@@ -4,3 +4,13 @@ allowBuilds:
   esbuild: false
   unrs-resolver: false
   vue-demi: false
+
+# Force patched versions of transitive (build/dev-time) deps flagged by Dependabot.
+overrides:
+  shell-quote: '>=1.8.4'
+  vite: '>=7.3.5'
+  esbuild: '>=0.28.1'
+  tar: '>=7.5.16'
+  js-yaml: '>=4.1.2'
+  launch-editor: '>=2.14.1'
+  '@babel/core': '>=7.29.1'
