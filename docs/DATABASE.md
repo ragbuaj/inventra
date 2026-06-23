@@ -289,6 +289,7 @@ Index: `idx_offices_parent_id`, `UNIQUE(code)`. Lihat §5 untuk komputasi subtre
 | code | text | no | **UNIQUE** (partial) — NIP/kode pegawai; dapat dipakai sebagai slug URL |
 | name | text | no | nama lengkap |
 | email | text? | yes | email kantor (informasional; bukan kredensial login) |
+| avatar_key | text? | yes | foto pegawai — objek di **MinIO** (dikompres + thumbnail saat unggah, mengikuti FR-2.6); diakses via presigned/proxy |
 | department_id | uuid? | yes | **FK** departments |
 | position_id | uuid? | yes | **FK** positions — jabatan |
 | office_id | uuid | no | **FK** offices — kantor penempatan |
@@ -302,7 +303,7 @@ Index: partial `UNIQUE(code)`, `idx_employees_office_id`, `idx_employees_departm
 | Kolom | Tipe | Null | Default | Keterangan |
 |---|---|---|---|---|
 | id | uuid | no | gen_random_uuid() | **PK** |
-| asset_tag | text | no | | **UNIQUE** (partial) — **kode aset** unik (mis. `AST-2026-0001`, FR-2.2) = payload **barcode** Code128 (FR-2.12); dipakai sebagai slug URL |
+| asset_tag | text | no | | **UNIQUE** (partial) — **kode aset** unik, format `<kode_kantor>-<kode_kategori>-<tahun>-<seq5>` (lihat §4.7) = payload **barcode** Code128 (FR-2.12); slug URL |
 | name | text | no | | |
 | category_id | uuid | no | | **FK** categories |
 | brand_id | uuid? | yes | | **FK** brands |
@@ -451,6 +452,43 @@ Index: `idx_import_created_by`, `idx_import_status`.
 | requests | `idx_requests_status_type`, `idx_requests_office_id`, `idx_requests_requester`, `idx_requests_decided_by`, `idx_requests_target` |
 | audit_logs | `idx_audit_entity(entity_type, entity_id)`, `idx_audit_actor`, `idx_audit_created_at` |
 | import_jobs | `idx_import_created_by`, `idx_import_status` |
+| asset_tag_counters | `UNIQUE(category_id, year)` |
+
+### 4.7 Generator `asset_tag` (kode aset)
+
+**Format:** `<kode_kantor>-<kode_kategori>-<tahun_beli>-<seq5>`
+- `kode_kantor` = `offices.code` (kantor aset)
+- `kode_kategori` = `categories.code`
+- `tahun_beli` = tahun dari `assets.purchase_date` (4 digit)
+- `seq5` = nomor urut **5 digit** (zero-padded), berjalan **per kategori**, **direset tiap tahun**
+
+Contoh: `JKT01-ELK-2026-00001`, `JKT01-ELK-2026-00002`, lalu `2027` mulai dari `00001` lagi.
+
+**Tabel counter** — sumber kebenaran nomor urut (dikecualikan dari soft delete; ini helper sequence):
+
+| Kolom | Tipe | Null | Keterangan |
+|---|---|---|---|
+| id | uuid | no | **PK** |
+| category_id | uuid | no | **FK** categories |
+| year | int | no | tahun |
+| last_seq | int | no | nomor urut terakhir terpakai |
+
+Index: `UNIQUE(category_id, year)`.
+
+**Generasi atomik** (aman dari race tanpa perlu lock eksternal):
+```sql
+INSERT INTO asset_tag_counters (category_id, year, last_seq)
+VALUES ($category_id, $year, 1)
+ON CONFLICT (category_id, year)
+DO UPDATE SET last_seq = asset_tag_counters.last_seq + 1
+RETURNING last_seq;
+-- asset_tag = format('%s-%s-%s-%05d', office_code, category_code, year, last_seq)
+```
+`UNIQUE(asset_tag)` (partial) berlaku sebagai jaring pengaman. Redis lock **tidak diperlукan** karena upsert+`RETURNING` sudah atomik per baris.
+
+**Catatan:**
+- `purchase_date` **wajib** saat auto-generate (untuk `tahun_beli`); bila aset diinput tanpa tanggal beli, sistem meminta tahun atau memakai tahun berjalan.
+- Sequence di-key oleh **(kategori, tahun)** lintas-kantor sesuai permintaan ("per kategori, reset per tahun"). *Bila ingin nomor urut terpisah per kantor, ubah kunci menjadi (office, category, year) — lihat §7 DB-Q5.*
 
 ---
 
@@ -485,7 +523,7 @@ Tiap fase roadmap (PRD §10) menambah migrasi `golang-migrate` di `backend/db/mi
 | `0000xx_identity` | 2 | `roles`, `role_permissions`, `users`, `field_permissions`, `data_scope_policies` |
 | `0000xx_masterdata` | 3 | provinces, cities, office_types, departments, positions, vendors, brands, models, categories, maintenance_categories, problem_categories, units |
 | `0000xx_offices` | 3 | offices, floors, rooms, employees |
-| `0000xx_assets` | 4 | assets, asset_attachments |
+| `0000xx_assets` | 4 | assets, asset_attachments, asset_tag_counters |
 | `0000xx_approval` | 5 | requests |
 | `0000xx_assignment` | 6 | assignments |
 | `0000xx_maintenance` | 7 | maintenance_schedules, maintenance_records |
@@ -509,3 +547,4 @@ Tiap fase roadmap (PRD §10) menambah migrasi `golang-migrate` di `backend/db/mi
 - **DB-Q1** — `email` memakai tipe `citext` (case-insensitive, perlu extension `citext`); alternatif: lowercase + `text`. (sementara: `citext`).
 - **DB-Q3** — Retensi `audit_logs` & `import_jobs` (volume besar): perlu kebijakan arsip/partisi? (sementara: tanpa partisi; ditinjau saat volume tumbuh).
 - **DB-Q4** — `created_by` saya batasi ke tabel operasional (bukan semua tabel). Setuju, atau Anda ingin `created_by`+`updated_by` di **semua** tabel demi keseragaman?
+- **DB-Q5** — Sequence `asset_tag` di-key **(kategori, tahun)** lintas-kantor (sesuai permintaan). Bila ingin nomor urut **terpisah per kantor**, kunci jadi (office, category, year). (sementara: per kategori).
