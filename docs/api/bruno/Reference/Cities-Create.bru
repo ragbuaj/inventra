@@ -1,0 +1,23 @@
+meta {
+  name: Cities - Create (FK province)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/cities
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "province_id": "{{provinceId}}",
+    "name": "Bandung",
+    "code": "3273"
+  }
+}

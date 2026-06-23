@@ -1,0 +1,28 @@
+meta {
+  name: Provinces - Create
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/provinces
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "Jawa Barat",
+    "code": "32"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("provinceId", res.body.id);
+  }
+}

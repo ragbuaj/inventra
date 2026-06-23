@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/ragbuaj/inventra/db/sqlc"
 )
@@ -26,8 +27,9 @@ var (
 
 // RegisterRoutes mounts all master-data endpoints. Read is open to any
 // authenticated user; writes require the masterdata.global.manage permission.
-func RegisterRoutes(rg *gin.RouterGroup, q *sqlc.Queries, authMW, requireManage gin.HandlerFunc) {
+func RegisterRoutes(rg *gin.RouterGroup, q *sqlc.Queries, pool *pgxpool.Pool, authMW, requireManage gin.HandlerFunc) {
 	registerCategories(rg, q, authMW, requireManage)
+	registerReference(rg, pool, authMW, requireManage)
 }
 
 // --- shared helpers -------------------------------------------------------

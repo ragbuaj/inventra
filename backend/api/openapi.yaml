@@ -27,7 +27,17 @@ tags:
   - name: Users
     description: User management (requires the user.manage permission)
   - name: Master Data
-    description: Reference master data (read open to authenticated users; writes require masterdata.global.manage)
+    description: |
+      Reference master data. Read is open to authenticated users; writes require
+      `masterdata.global.manage`. `categories` (documented in full) and `brands`
+      (representative of the generic reference CRUD) are shown here.
+
+      The following reference resources share the **same generic CRUD contract**
+      as `brands` (`GET/POST /api/v1/{resource}`, `GET/PUT/DELETE /api/v1/{resource}/{id}`),
+      differing only in their writable fields:
+      `office-types`, `departments`, `positions`, `units`, `maintenance-categories`,
+      `problem-categories`, `brands`, `vendors`, `provinces`, `cities` (field `province_id`),
+      `models` (field `brand_id`).
 
 paths:
   /health:
@@ -465,6 +475,112 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/v1/brands:
+    get:
+      tags: [Master Data]
+      operationId: listBrands
+      summary: List brands (representative reference resource)
+      description: Readable by any authenticated user. See the Master Data tag for the full list of resources sharing this contract.
+      security: [{ bearerJWT: [] }]
+      parameters:
+        - { name: search, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, default: 20, minimum: 1, maximum: 100 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0, minimum: 0 } }
+      responses:
+        "200":
+          description: A page of records
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RefList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [Master Data]
+      operationId: createBrand
+      summary: Create a brand
+      description: Requires the `masterdata.global.manage` permission.
+      security: [{ bearerJWT: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RefRequest" }
+      responses:
+        "201":
+          description: Created record
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RefItem" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: Duplicate unique value
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/brands/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Master Data]
+      operationId: getBrand
+      summary: Get a brand by id
+      description: Readable by any authenticated user.
+      security: [{ bearerJWT: [] }]
+      responses:
+        "200":
+          description: The record
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RefItem" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    put:
+      tags: [Master Data]
+      operationId: updateBrand
+      summary: Update a brand (full replace)
+      description: Requires the `masterdata.global.manage` permission.
+      security: [{ bearerJWT: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RefRequest" }
+      responses:
+        "200":
+          description: Updated record
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RefItem" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    delete:
+      tags: [Master Data]
+      operationId: deleteBrand
+      summary: Soft-delete a brand
+      description: Requires the `masterdata.global.manage` permission.
+      security: [{ bearerJWT: [] }]
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
 components:
   securitySchemes:
     bearerJWT:
@@ -688,6 +804,38 @@ components:
         data:
           type: array
           items: { $ref: "#/components/schemas/Category" }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+
+    RefItem:
+      type: object
+      description: A reference master-data record. Common fields shown; resources add their own (e.g. code, symbol, is_active, province_id, brand_id).
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        is_active: { type: boolean }
+        created_at: { type: [string, "null"], format: date-time }
+        updated_at: { type: [string, "null"], format: date-time }
+      additionalProperties: true
+
+    RefRequest:
+      type: object
+      description: Writable fields of a reference record (varies per resource; `name` is always required).
+      required: [name]
+      properties:
+        name: { type: string }
+        is_active: { type: boolean, default: true }
+      additionalProperties: true
+
+    RefList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/RefItem" }
         total: { type: integer }
         limit: { type: integer }
         offset: { type: integer }
