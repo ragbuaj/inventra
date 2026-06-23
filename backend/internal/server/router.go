@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
+	apidocs "github.com/ragbuaj/inventra/api"
 	"github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/auth"
 	"github.com/ragbuaj/inventra/internal/cache"
@@ -66,6 +67,17 @@ func NewRouter(d Deps) *gin.Engine {
 			status = "not_ready"
 		}
 		c.JSON(code, gin.H{"status": status, "checks": checks})
+	})
+
+	// API documentation: OpenAPI spec + self-hosted Scalar viewer.
+	r.GET("/openapi.yaml", func(c *gin.Context) {
+		c.Data(http.StatusOK, "application/yaml; charset=utf-8", apidocs.SpecYAML)
+	})
+	r.GET("/docs", func(c *gin.Context) {
+		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(apidocs.ScalarHTML))
+	})
+	r.GET("/docs/scalar.js", func(c *gin.Context) {
+		c.Data(http.StatusOK, "application/javascript; charset=utf-8", apidocs.ScalarJS)
 	})
 
 	// Shared wiring for feature modules.

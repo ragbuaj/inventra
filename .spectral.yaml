@@ -1,0 +1,6 @@
+# Spectral ruleset for the OpenAPI spec.
+#   npx @stoplight/spectral-cli lint backend/api/openapi.yaml
+extends: ["spectral:oas"]
+rules:
+  # The single dev server is intentional; don't require multiple.
+  oas3-api-servers: off

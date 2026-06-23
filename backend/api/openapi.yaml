@@ -1,0 +1,315 @@
+openapi: 3.1.0
+info:
+  title: Inventra API
+  version: 0.1.0
+  description: |
+    Asset management API for Inventra (see docs/PRD.md, docs/DATABASE.md).
+
+    **Auth:** Bearer JWT. Obtain tokens via `POST /api/v1/auth/login`, then send
+    `Authorization: Bearer <access_token>`. Access tokens are short-lived;
+    rotate with `POST /api/v1/auth/refresh`. `POST /api/v1/auth/logout` revokes
+    the current access token and the supplied refresh token.
+  contact:
+    name: Inventra
+    url: https://github.com/ragbuaj/inventra
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+
+tags:
+  - name: Health
+    description: Liveness & readiness probes
+  - name: Auth
+    description: Authentication & session
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      operationId: healthLiveness
+      summary: Liveness probe
+      description: Returns ok if the process is up. No external dependencies.
+      security: []
+      responses:
+        "200":
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+
+  /health/ready:
+    get:
+      tags: [Health]
+      operationId: healthReadiness
+      summary: Readiness probe
+      description: Verifies PostgreSQL and Redis are reachable.
+      security: []
+      responses:
+        "200":
+          description: All dependencies reachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Readiness"
+        "503":
+          description: One or more dependencies unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Readiness"
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      operationId: authLogin
+      summary: Login with email and password
+      description: Verifies credentials and issues an access + refresh token pair.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Tokens issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: Invalid email or password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: User is not active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      operationId: authRefresh
+      summary: Rotate refresh token for a new token pair
+      description: Validates the refresh token, rotates it (single-use), and issues a new pair.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: New token pair issued; the old refresh token is invalidated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      operationId: authLogout
+      summary: Revoke the current access token and a refresh token
+      description: Denylists the current access token until expiry and deletes the supplied refresh token.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequest"
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    examples: ["logged_out"]
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/v1/auth/me:
+    get:
+      tags: [Auth]
+      operationId: authMe
+      summary: Current authenticated user
+      description: Returns the profile of the user identified by the access token.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  securitySchemes:
+    bearerJWT:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    BadRequest:
+      description: Malformed request body
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Missing, invalid, or revoked token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+      examples:
+        - error: invalid email or password
+
+    Health:
+      type: object
+      required: [status, service, env]
+      properties:
+        status:
+          type: string
+          examples: ["ok"]
+        service:
+          type: string
+          examples: ["inventra-api"]
+        env:
+          type: string
+          examples: ["development"]
+
+    Readiness:
+      type: object
+      required: [status, checks]
+      properties:
+        status:
+          type: string
+          enum: [ready, not_ready]
+        checks:
+          type: object
+          properties:
+            postgres:
+              type: string
+              description: '"ok" or an error message'
+            redis:
+              type: string
+              description: '"ok" or an error message'
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          examples: ["admin@inventra.local"]
+        password:
+          type: string
+          format: password
+          minLength: 1
+          examples: ["admin12345"]
+
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+
+    LogoutRequest:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+          description: Optional; when supplied, this refresh token is also revoked.
+
+    TokenResponse:
+      type: object
+      required: [access_token, refresh_token, token_type, expires_in]
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+          examples: ["Bearer"]
+        expires_in:
+          type: integer
+          description: Access-token lifetime in seconds
+          examples: [900]
+
+    User:
+      type: object
+      required: [id, name, email, role_id, status, google_linked]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role_id:
+          type: string
+          format: uuid
+        office_id:
+          type: [string, "null"]
+          format: uuid
+        employee_id:
+          type: [string, "null"]
+          format: uuid
+        status:
+          type: string
+          enum: [active, inactive, suspended]
+        avatar_url:
+          type: [string, "null"]
+        google_linked:
+          type: boolean
