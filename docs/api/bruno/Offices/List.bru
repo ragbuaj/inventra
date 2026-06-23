@@ -1,0 +1,15 @@
+meta {
+  name: List (scoped)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/offices?limit=100
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

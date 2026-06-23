@@ -1,0 +1,24 @@
+meta {
+  name: Create
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/employees
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "code": "EMP-001",
+    "name": "Budi Santoso",
+    "email": "budi@inventra.local",
+    "office_id": "{{officeId}}"
+  }
+}

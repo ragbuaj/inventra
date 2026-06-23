@@ -1,0 +1,27 @@
+meta {
+  name: OfficeTypes - Create
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/office-types
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "Kantor Pusat"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("officeTypeId", res.body.id);
+  }
+}

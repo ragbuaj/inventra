@@ -1,0 +1,29 @@
+meta {
+  name: Create (root)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/offices
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "office_type_id": "{{officeTypeId}}",
+    "name": "Pusat",
+    "code": "PST"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("officeId", res.body.id);
+  }
+}

@@ -106,7 +106,7 @@ func NewRouter(d Deps) *gin.Engine {
 		userHandler := user.NewHandler(user.NewService(queries), fieldSvc)
 		user.RegisterRoutes(api, userHandler, requireAuth, middleware.RequirePermission(permSvc, "user.manage"))
 
-		masterdata.RegisterRoutes(api, queries, d.Pool, requireAuth, middleware.RequirePermission(permSvc, "masterdata.global.manage"))
+		masterdata.RegisterRoutes(api, queries, d.Pool, permSvc, scopeSvc, requireAuth)
 	}
 
 	return r

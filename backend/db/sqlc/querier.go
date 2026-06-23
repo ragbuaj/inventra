@@ -12,10 +12,16 @@ import (
 
 type Querier interface {
 	CountCategories(ctx context.Context, search string) (int64, error)
+	CountEmployees(ctx context.Context, arg CountEmployeesParams) (int64, error)
+	CountOffices(ctx context.Context, arg CountOfficesParams) (int64, error)
 	CountUsers(ctx context.Context, search string) (int64, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (MasterdataCategory, error)
+	CreateEmployee(ctx context.Context, arg CreateEmployeeParams) (MasterdataEmployee, error)
+	CreateOffice(ctx context.Context, arg CreateOfficeParams) (MasterdataOffice, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (IdentityUser, error)
 	GetCategory(ctx context.Context, id uuid.UUID) (MasterdataCategory, error)
+	GetEmployee(ctx context.Context, id uuid.UUID) (MasterdataEmployee, error)
+	GetOffice(ctx context.Context, id uuid.UUID) (MasterdataOffice, error)
 	// Authorization queries: office subtree (scoping) and field permissions.
 	// Returns an office plus all of its descendants (Pusat -> Wilayah -> Cabang -> Outlet).
 	GetOfficeSubtree(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error)
@@ -26,14 +32,23 @@ type Querier interface {
 	// Asset category master data (masterdata.categories). Respects soft delete.
 	ListCategories(ctx context.Context, arg ListCategoriesParams) ([]MasterdataCategory, error)
 	ListDataScopePolicies(ctx context.Context, roleID uuid.UUID) ([]IdentityDataScopePolicy, error)
+	// Employees (asset custodians) with data-scoping by office.
+	ListEmployees(ctx context.Context, arg ListEmployeesParams) ([]MasterdataEmployee, error)
 	ListFieldPermissionsByRole(ctx context.Context, roleID uuid.UUID) ([]ListFieldPermissionsByRoleRow, error)
+	// Offices (hierarchy) with data-scoping. all_scope bypasses the office filter
+	// (global scope); otherwise only offices whose id is in office_ids are returned.
+	ListOffices(ctx context.Context, arg ListOfficesParams) ([]MasterdataOffice, error)
 	ListRolePermissions(ctx context.Context, roleID uuid.UUID) ([]string, error)
 	ListRoles(ctx context.Context) ([]IdentityRole, error)
 	// User management queries (Superadmin). All respect soft delete.
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]IdentityUser, error)
 	SoftDeleteCategory(ctx context.Context, id uuid.UUID) (int64, error)
+	SoftDeleteEmployee(ctx context.Context, id uuid.UUID) (int64, error)
+	SoftDeleteOffice(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteUser(ctx context.Context, id uuid.UUID) (int64, error)
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (MasterdataCategory, error)
+	UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) (MasterdataEmployee, error)
+	UpdateOffice(ctx context.Context, arg UpdateOfficeParams) (MasterdataOffice, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (IdentityUser, error)
 }
 

@@ -581,6 +581,161 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/v1/offices:
+    get:
+      tags: [Master Data]
+      operationId: listOffices
+      summary: List offices (data-scoped)
+      description: |
+        Returns offices within the caller's **data scope**: `global` sees all;
+        `office_subtree` sees the caller's office and its descendants; etc.
+      security: [{ bearerJWT: [] }]
+      parameters:
+        - { name: search, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, default: 20, minimum: 1, maximum: 100 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0, minimum: 0 } }
+      responses:
+        "200":
+          description: A page of offices in scope
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OfficeList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [Master Data]
+      operationId: createOffice
+      summary: Create an office
+      description: Requires the `masterdata.office.manage` permission.
+      security: [{ bearerJWT: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OfficeRequest" }
+      responses:
+        "201":
+          description: Created office
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Office" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/offices/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Master Data]
+      operationId: getOffice
+      summary: Get an office by id
+      description: Readable by any authenticated user.
+      security: [{ bearerJWT: [] }]
+      responses:
+        "200": { description: The office, content: { application/json: { schema: { $ref: "#/components/schemas/Office" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { description: Not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    put:
+      tags: [Master Data]
+      operationId: updateOffice
+      summary: Update an office (full replace)
+      description: Requires the `masterdata.office.manage` permission.
+      security: [{ bearerJWT: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/OfficeRequest" } } }
+      responses:
+        "200": { description: Updated office, content: { application/json: { schema: { $ref: "#/components/schemas/Office" } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { description: Not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    delete:
+      tags: [Master Data]
+      operationId: deleteOffice
+      summary: Soft-delete an office
+      description: Requires the `masterdata.office.manage` permission.
+      security: [{ bearerJWT: [] }]
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { description: Not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/v1/employees:
+    get:
+      tags: [Master Data]
+      operationId: listEmployees
+      summary: List employees (data-scoped)
+      description: Returns employees whose office is within the caller's data scope.
+      security: [{ bearerJWT: [] }]
+      parameters:
+        - { name: search, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, default: 20, minimum: 1, maximum: 100 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0, minimum: 0 } }
+      responses:
+        "200":
+          description: A page of employees in scope
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EmployeeList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [Master Data]
+      operationId: createEmployee
+      summary: Create an employee
+      description: Requires the `masterdata.office.manage` permission.
+      security: [{ bearerJWT: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/EmployeeRequest" } } }
+      responses:
+        "201": { description: Created employee, content: { application/json: { schema: { $ref: "#/components/schemas/Employee" } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { description: Duplicate code, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/v1/employees/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Master Data]
+      operationId: getEmployee
+      summary: Get an employee by id
+      description: Readable by any authenticated user.
+      security: [{ bearerJWT: [] }]
+      responses:
+        "200": { description: The employee, content: { application/json: { schema: { $ref: "#/components/schemas/Employee" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { description: Not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    put:
+      tags: [Master Data]
+      operationId: updateEmployee
+      summary: Update an employee (full replace)
+      description: Requires the `masterdata.office.manage` permission.
+      security: [{ bearerJWT: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/EmployeeRequest" } } }
+      responses:
+        "200": { description: Updated employee, content: { application/json: { schema: { $ref: "#/components/schemas/Employee" } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { description: Not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    delete:
+      tags: [Master Data]
+      operationId: deleteEmployee
+      summary: Soft-delete an employee
+      description: Requires the `masterdata.office.manage` permission.
+      security: [{ bearerJWT: [] }]
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { description: Not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
 components:
   securitySchemes:
     bearerJWT:
@@ -836,6 +991,82 @@ components:
         data:
           type: array
           items: { $ref: "#/components/schemas/RefItem" }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+
+    Office:
+      type: object
+      required: [id, office_type_id, name, code, is_active]
+      properties:
+        id: { type: string, format: uuid }
+        parent_id: { type: [string, "null"], format: uuid }
+        office_type_id: { type: string, format: uuid }
+        province_id: { type: [string, "null"], format: uuid }
+        city_id: { type: [string, "null"], format: uuid }
+        name: { type: string }
+        code: { type: string }
+        address: { type: [string, "null"] }
+        is_active: { type: boolean }
+        created_at: { type: [string, "null"], format: date-time }
+        updated_at: { type: [string, "null"], format: date-time }
+
+    OfficeRequest:
+      type: object
+      required: [office_type_id, name, code]
+      properties:
+        parent_id: { type: [string, "null"], format: uuid }
+        office_type_id: { type: string, format: uuid }
+        province_id: { type: [string, "null"], format: uuid }
+        city_id: { type: [string, "null"], format: uuid }
+        name: { type: string }
+        code: { type: string }
+        address: { type: [string, "null"] }
+        is_active: { type: boolean, default: true }
+
+    OfficeList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/Office" } }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+
+    Employee:
+      type: object
+      required: [id, code, name, office_id, status]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        email: { type: [string, "null"], format: email }
+        avatar_key: { type: [string, "null"] }
+        department_id: { type: [string, "null"], format: uuid }
+        position_id: { type: [string, "null"], format: uuid }
+        office_id: { type: string, format: uuid }
+        status: { type: string, enum: [active, inactive, suspended] }
+        created_at: { type: [string, "null"], format: date-time }
+        updated_at: { type: [string, "null"], format: date-time }
+
+    EmployeeRequest:
+      type: object
+      required: [code, name, office_id]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        email: { type: [string, "null"], format: email }
+        avatar_key: { type: [string, "null"] }
+        department_id: { type: [string, "null"], format: uuid }
+        position_id: { type: [string, "null"], format: uuid }
+        office_id: { type: string, format: uuid }
+        status: { type: string, enum: [active, inactive, suspended], default: active }
+
+    EmployeeList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/Employee" } }
         total: { type: integer }
         limit: { type: integer }
         offset: { type: integer }
