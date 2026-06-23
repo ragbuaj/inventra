@@ -73,6 +73,8 @@ Legend: ✅ penuh · 🔵 terbatas pada lingkup kantor/wilayahnya (lihat §2.2) 
 ¹ Provinsi, kota, jenis kantor, kategori aset, kategori perawatan, kategori masalah, satuan, brand/model.
 ² Manager hanya untuk pengajuan operasional ringan; penghapusan aset & hal sensitif naik ke Kepala Unit/Kanwil/Superadmin.
 
+> **Peran dapat dikonfigurasi.** 5 peran & matriks di atas adalah **default ter-seed**. Peran disimpan di tabel `roles` dan izin per-aksi di `role_permissions`, sehingga Superadmin dapat menambah peran kustom & menyesuaikan izin. Detail skema: [DATABASE.md §4.1](DATABASE.md).
+
 ### 2.2 Lingkup Akses Data (Data Scoping / Ownership)
 
 Akses dibatasi **per-baris data** berdasarkan **kepemilikan** dan **hierarki kantor**, dengan **lingkup yang dapat dikonfigurasi** (bukan hardcode per-role).
