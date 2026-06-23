@@ -20,6 +20,7 @@
 |---|---|
 | **Primary key** | `id UUID PRIMARY KEY DEFAULT gen_random_uuid()` (pgcrypto, migrasi `000001_init`) |
 | **Penamaan** | tabel `snake_case` jamak; kolom `snake_case`; FK `<entitas>_id` |
+| **Schema (per modul)** | Tabel ditempatkan di **PostgreSQL schema per modul** (lihat §1.2). Enum & fungsi `set_updated_at` di schema `shared`; extensions di `public`. |
 | **Timestamp (wajib)** | **Semua tabel** punya `created_at timestamptz NOT NULL DEFAULT now()` & `updated_at timestamptz NOT NULL DEFAULT now()` (di-update via trigger `set_updated_at()`). Pengecualian: tabel append-only `audit_logs` hanya `created_at`. |
 | **Soft delete (semua tabel)** | Setiap tabel punya `deleted_at timestamptz NULL`. "Hapus" = set `deleted_at = now()` (+ catat di `audit_logs`); data tidak pernah dibuang fisik. Semua query default memfilter `WHERE deleted_at IS NULL`. |
 | **Unique + soft delete** | Semua constraint UNIQUE memakai **partial index** `... WHERE deleted_at IS NULL` agar kode/email dapat dipakai ulang setelah baris dihapus. |
@@ -40,11 +41,29 @@
 - `assets.asset_tag` **adalah kode aset unik** (mis. `AST-2026-0001`, FR-2.2) sekaligus payload **barcode** (FR-2.12) — bukan dua hal berbeda.
 - Soft delete & `created_at`/`updated_at` diterapkan ke seluruh tabel (lihat §1).
 
+### 1.2 Organisasi Schema (per modul)
+
+Tabel dipisah ke **PostgreSQL schema per modul**, selaras dengan modul backend (PRD §7). Batas modul jadi eksplisit di level database; FK lintas-schema tetap diperbolehkan.
+
+| Schema | Isi |
+|---|---|
+| `shared` | Semua **tipe enum** (§2) + fungsi trigger `set_updated_at()` — kosakata bersama |
+| `identity` | `roles`, `role_permissions`, `users`, `field_permissions`, `data_scope_policies` |
+| `audit` | `audit_logs` |
+| `masterdata` | offices, floors, rooms, provinces, cities, office_types, departments, positions, employees, vendors, brands, models, categories, maintenance_categories, problem_categories, units *(fase 3)* |
+| `asset` | assets, asset_attachments, asset_tag_counters *(fase 4)* |
+| `assignment` · `maintenance` · `depreciation` · `approval` · `import` | tabel modul masing-masing *(fase berikutnya)* |
+| `public` | extensions (`pgcrypto`, `citext`) + tabel bookkeeping `schema_migrations` (golang-migrate) |
+
+- **Referensi:** tipe enum diacu sebagai `shared.<enum>`; fungsi trigger `shared.set_updated_at()`; tabel diacu schema-qualified (mis. `identity.users`).
+- **Aplikasi:** koneksi backend memakai `search_path` yang mencakup schema modul + `shared,public` (atau query schema-qualified via sqlc). `gen_random_uuid()`/`citext` tetap resolve via `public` di search_path.
+
 ---
 
 ## 2. Tipe Enum
 
 > **Peran (role) BUKAN enum** — disimpan di tabel `roles` (§4.1) agar dapat dikonfigurasi superadmin.
+> Semua tipe enum di bawah dibuat di schema **`shared`** (diacu sebagai `shared.<enum>`, mis. `shared.user_status`).
 
 ```sql
 CREATE TYPE user_status         AS ENUM ('active','inactive','suspended');
@@ -133,7 +152,7 @@ Notasi: **PK** primary key · **FK** foreign key · `?` nullable.
 
 > **Kolom implisit di SEMUA tabel** (tidak diulang di tiap baris, lihat §1): `created_at`, `updated_at`, `deleted_at` (soft delete). `audit_logs` hanya `created_at`. Semua `UNIQUE` adalah partial `WHERE deleted_at IS NULL`.
 
-### 4.1 Identity & Otorisasi
+### 4.1 Identity & Otorisasi  · schema `identity`
 
 #### `roles` — peran (dapat dikonfigurasi superadmin)
 | Kolom | Tipe | Null | Default | Keterangan |

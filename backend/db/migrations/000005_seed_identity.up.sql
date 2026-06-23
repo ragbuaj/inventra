@@ -2,7 +2,7 @@
 -- Mirrors the seeded defaults described in PRD §2.1 and DATABASE.md §4.1.
 
 -- 1) Built-in (system) roles.
-INSERT INTO roles (code, name, description, is_system) VALUES
+INSERT INTO identity.roles (code, name, description, is_system) VALUES
   ('superadmin',    'Superadmin',    'Akses penuh sistem; kelola user, peran & konfigurasi otorisasi', true),
   ('kepala_kanwil', 'Kepala Kanwil', 'Kepala Kantor Wilayah; lingkup wilayah + seluruh kantor turunannya', true),
   ('kepala_unit',   'Kepala Unit',   'Kepala kantor (Cabang/Outlet); lingkup kantornya', true),
@@ -10,9 +10,9 @@ INSERT INTO roles (code, name, description, is_system) VALUES
   ('staf',          'Staf',          'Pengguna aset; hanya data miliknya', true);
 
 -- 2) Default data-scope policies (module '*' = default untuk semua modul).
-INSERT INTO data_scope_policies (role_id, module, scope_level)
-SELECT r.id, '*', v.scope::scope_level
-FROM roles r
+INSERT INTO identity.data_scope_policies (role_id, module, scope_level)
+SELECT r.id, '*', v.scope::shared.scope_level
+FROM identity.roles r
 JOIN (VALUES
   ('superadmin',    'global'),
   ('kepala_kanwil', 'office_subtree'),
@@ -22,9 +22,9 @@ JOIN (VALUES
 ) AS v(code, scope) ON v.code = r.code;
 
 -- 3) Default RBAC per-action (role_permissions). Keys are the action catalog.
-INSERT INTO role_permissions (role_id, permission_key)
+INSERT INTO identity.role_permissions (role_id, permission_key)
 SELECT r.id, v.perm
-FROM roles r
+FROM identity.roles r
 JOIN (VALUES
   -- Superadmin: full catalog.
   ('superadmin', 'user.manage'),
