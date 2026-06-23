@@ -132,7 +132,7 @@ Selain per-aksi dan per-baris, **tiap field pada entitas dapat dikonfigurasi hak
 
 ### 3.2 Katalog & Registrasi Aset
 - **FR-2.1** CRUD aset dengan atribut: kode/tag unik, nama, kategori, lokasi, status, nomor seri, tanggal beli, harga beli, pemasok, garansi, spesifikasi (fleksibel/JSON), foto, catatan.
-- **FR-2.2** **Kode aset (`asset_tag`) unik** dibuat otomatis dengan format **`<kode_kantor>-<kode_kategori>-<tahun_beli>-<sequence>`**, di mana `sequence` = **5 digit** yang berjalan **per kategori** dan **direset tiap tahun**. Contoh: `JKT01-ELK-2026-00001`. Validasi unik; detail generator di [DATABASE.md §4.7](DATABASE.md).
+- **FR-2.2** **Kode aset (`asset_tag`) unik** dibuat otomatis dengan format **`<kode_kantor>-<kode_kategori>-<tahun_beli>-<sequence>`**, di mana `sequence` = **5 digit** yang berjalan **per kantor & kategori** dan **direset tiap tahun**. Contoh: `JKT01-ELK-2026-00001`. Validasi unik; detail generator di [DATABASE.md §4.7](DATABASE.md).
 - **FR-2.3** **Status aset**: `available`, `assigned`, `under_maintenance`, `retired`, `lost`. Perubahan status mengikuti aturan transisi (lihat §5).
 - **FR-2.4** Master data **Kategori** (mis. Elektronik, Kendaraan, Furnitur) — bisa punya nilai default depresiasi (metode, masa manfaat).
 - **FR-2.5** Master data **Lokasi berjenjang**: **Kantor → Lantai → Ruangan**. Aset menunjuk ke Ruangan (yang mewarisi Lantai & Kantor). Lihat daftar master data lengkap di §3.7.
