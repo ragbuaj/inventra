@@ -80,6 +80,12 @@ go vet ./...
 go test ./...
 sqlc generate                              # regenerate db/sqlc from SQL
 
+# Database migrations (golang-migrate)
+go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+export DATABASE_URL="postgres://inventra:secret@localhost:5433/inventra_dev?sslmode=disable"
+migrate -path db/migrations -database "$DATABASE_URL" up
+migrate -path db/migrations -database "$DATABASE_URL" down 1
+
 # Frontend
 cd frontend
 pnpm dev | pnpm build | pnpm lint | pnpm typecheck
