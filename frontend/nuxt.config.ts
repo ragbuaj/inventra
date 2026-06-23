@@ -13,14 +13,25 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
-  routeRules: {
-    '/': { prerender: true }
-  },
-
   runtimeConfig: {
     public: {
       // Override with NUXT_PUBLIC_API_BASE; see .env.example.
       apiBase: 'http://localhost:8080/api/v1'
+    }
+  },
+
+  routeRules: {
+    '/': { prerender: true }
+  },
+
+  compatibilityDate: '2025-01-15',
+
+  eslint: {
+    config: {
+      stylistic: {
+        commaDangle: 'never',
+        braceStyle: '1tbs'
+      }
     }
   },
 
@@ -33,16 +44,5 @@ export default defineNuxtConfig({
       { code: 'id', name: 'Bahasa Indonesia', file: 'id.json' },
       { code: 'en', name: 'English', file: 'en.json' }
     ]
-  },
-
-  compatibilityDate: '2025-01-15',
-
-  eslint: {
-    config: {
-      stylistic: {
-        commaDangle: 'never',
-        braceStyle: '1tbs'
-      }
-    }
   }
 })
