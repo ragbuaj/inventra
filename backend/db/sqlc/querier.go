@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	CountUsers(ctx context.Context, search string) (int64, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (IdentityUser, error)
 	// Authorization queries: office subtree (scoping) and field permissions.
 	// Returns an office plus all of its descendants (Pusat -> Wilayah -> Cabang -> Outlet).
@@ -23,6 +24,10 @@ type Querier interface {
 	ListFieldPermissionsByRole(ctx context.Context, roleID uuid.UUID) ([]ListFieldPermissionsByRoleRow, error)
 	ListRolePermissions(ctx context.Context, roleID uuid.UUID) ([]string, error)
 	ListRoles(ctx context.Context) ([]IdentityRole, error)
+	// User management queries (Superadmin). All respect soft delete.
+	ListUsers(ctx context.Context, arg ListUsersParams) ([]IdentityUser, error)
+	SoftDeleteUser(ctx context.Context, id uuid.UUID) (int64, error)
+	UpdateUser(ctx context.Context, arg UpdateUserParams) (IdentityUser, error)
 }
 
 var _ Querier = (*Queries)(nil)

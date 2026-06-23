@@ -24,6 +24,8 @@ tags:
     description: Liveness & readiness probes
   - name: Auth
     description: Authentication & session
+  - name: Users
+    description: User management (requires the user.manage permission)
 
 paths:
   /health:
@@ -224,6 +226,132 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /api/v1/users:
+    get:
+      tags: [Users]
+      operationId: listUsers
+      summary: List users
+      description: Requires the `user.manage` permission (Superadmin by default).
+      security:
+        - bearerJWT: []
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string }
+          description: Filter by name or email (case-insensitive).
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0, minimum: 0 }
+      responses:
+        "200":
+          description: A page of users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserList"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Users]
+      operationId: createUser
+      summary: Create a user
+      description: Requires the `user.manage` permission.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: Created user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: Email already in use
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/users/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Users]
+      operationId: getUser
+      summary: Get a user by id
+      description: Requires the `user.manage` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    put:
+      tags: [Users]
+      operationId: updateUser
+      summary: Update a user (full replace of mutable fields)
+      description: Replaces name, role, status, office, and employee. Requires the `user.manage` permission.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    delete:
+      tags: [Users]
+      operationId: deleteUser
+      summary: Soft-delete a user
+      description: Marks the user deleted (soft delete). Requires the `user.manage` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
 components:
   securitySchemes:
     bearerJWT:
@@ -240,6 +368,12 @@ components:
             $ref: "#/components/schemas/Error"
     Unauthorized:
       description: Missing, invalid, or revoked token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: Authenticated but lacking the required permission
       content:
         application/json:
           schema:
@@ -359,6 +493,47 @@ components:
           type: [string, "null"]
         google_linked:
           type: boolean
+        created_at:
+          type: [string, "null"]
+          format: date-time
+        updated_at:
+          type: [string, "null"]
+          format: date-time
+
+    CreateUserRequest:
+      type: object
+      required: [name, email, role_id]
+      properties:
+        name: { type: string }
+        email: { type: string, format: email }
+        password:
+          type: string
+          format: password
+          description: Optional; when omitted the user can only sign in via Google.
+        role_id: { type: string, format: uuid }
+        office_id: { type: [string, "null"], format: uuid }
+        employee_id: { type: [string, "null"], format: uuid }
+
+    UpdateUserRequest:
+      type: object
+      required: [name, role_id, status]
+      properties:
+        name: { type: string }
+        role_id: { type: string, format: uuid }
+        status: { type: string, enum: [active, inactive, suspended] }
+        office_id: { type: [string, "null"], format: uuid }
+        employee_id: { type: [string, "null"], format: uuid }
+
+    UserList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/User" }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
 
     PermissionsResponse:
       type: object

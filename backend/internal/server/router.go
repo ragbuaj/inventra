@@ -20,6 +20,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/db"
 	"github.com/ragbuaj/inventra/internal/identity"
 	"github.com/ragbuaj/inventra/internal/middleware"
+	"github.com/ragbuaj/inventra/internal/user"
 )
 
 // Deps holds the shared infrastructure passed to feature modules.
@@ -95,10 +96,14 @@ func NewRouter(d Deps) *gin.Engine {
 
 		permSvc := authz.NewPermissionService(queries, d.Redis)
 		scopeSvc := authz.NewScopeService(queries, d.Redis)
+		fieldSvc := authz.NewFieldService(queries, d.Redis)
 
 		identitySvc := identity.NewService(queries, tokenManager, tokenStore)
 		identityHandler := identity.NewHandler(identitySvc, permSvc, scopeSvc)
 		identity.RegisterRoutes(api, identityHandler, requireAuth)
+
+		userHandler := user.NewHandler(user.NewService(queries), fieldSvc)
+		user.RegisterRoutes(api, userHandler, requireAuth, middleware.RequirePermission(permSvc, "user.manage"))
 	}
 
 	return r
