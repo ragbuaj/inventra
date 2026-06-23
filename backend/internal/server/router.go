@@ -19,6 +19,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/config"
 	"github.com/ragbuaj/inventra/internal/db"
 	"github.com/ragbuaj/inventra/internal/identity"
+	"github.com/ragbuaj/inventra/internal/masterdata"
 	"github.com/ragbuaj/inventra/internal/middleware"
 	"github.com/ragbuaj/inventra/internal/user"
 )
@@ -104,6 +105,8 @@ func NewRouter(d Deps) *gin.Engine {
 
 		userHandler := user.NewHandler(user.NewService(queries), fieldSvc)
 		user.RegisterRoutes(api, userHandler, requireAuth, middleware.RequirePermission(permSvc, "user.manage"))
+
+		masterdata.RegisterRoutes(api, queries, requireAuth, middleware.RequirePermission(permSvc, "masterdata.global.manage"))
 	}
 
 	return r

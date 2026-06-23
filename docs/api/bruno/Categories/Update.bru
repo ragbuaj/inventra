@@ -1,0 +1,25 @@
+meta {
+  name: Update
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/categories/{{categoryId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "Elektronik & IT",
+    "code": "ELK",
+    "default_depreciation_method": "declining_balance",
+    "default_useful_life_months": 36,
+    "is_active": true
+  }
+}

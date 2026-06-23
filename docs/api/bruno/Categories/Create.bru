@@ -1,0 +1,31 @@
+meta {
+  name: Create
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/categories
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "Elektronik",
+    "code": "ELK",
+    "default_depreciation_method": "straight_line",
+    "default_useful_life_months": 48,
+    "default_salvage_rate": "0.1000"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("categoryId", res.body.id);
+  }
+}

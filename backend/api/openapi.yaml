@@ -26,6 +26,8 @@ tags:
     description: Authentication & session
   - name: Users
     description: User management (requires the user.manage permission)
+  - name: Master Data
+    description: Reference master data (read open to authenticated users; writes require masterdata.global.manage)
 
 paths:
   /health:
@@ -352,6 +354,117 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/v1/categories:
+    get:
+      tags: [Master Data]
+      operationId: listCategories
+      summary: List asset categories
+      description: Readable by any authenticated user.
+      security:
+        - bearerJWT: []
+      parameters:
+        - { name: search, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, default: 20, minimum: 1, maximum: 100 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0, minimum: 0 } }
+      responses:
+        "200":
+          description: A page of categories
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CategoryList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [Master Data]
+      operationId: createCategory
+      summary: Create an asset category
+      description: Requires the `masterdata.global.manage` permission.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CategoryRequest" }
+      responses:
+        "201":
+          description: Created category
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Category" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: Duplicate code
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/categories/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Master Data]
+      operationId: getCategory
+      summary: Get a category by id
+      description: Readable by any authenticated user.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The category
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Category" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    put:
+      tags: [Master Data]
+      operationId: updateCategory
+      summary: Update a category (full replace)
+      description: Requires the `masterdata.global.manage` permission.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CategoryRequest" }
+      responses:
+        "200":
+          description: Updated category
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Category" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    delete:
+      tags: [Master Data]
+      operationId: deleteCategory
+      summary: Soft-delete a category
+      description: Requires the `masterdata.global.manage` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
 components:
   securitySchemes:
     bearerJWT:
@@ -531,6 +644,50 @@ components:
         data:
           type: array
           items: { $ref: "#/components/schemas/User" }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+
+    Category:
+      type: object
+      required: [id, name, is_active]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        code: { type: [string, "null"] }
+        parent_id: { type: [string, "null"], format: uuid }
+        default_depreciation_method:
+          type: [string, "null"]
+          description: One of `straight_line` or `declining_balance` (nullable).
+        default_useful_life_months: { type: [integer, "null"] }
+        default_salvage_rate:
+          type: [string, "null"]
+          description: Decimal string (e.g. "0.1000" = 10%).
+        is_active: { type: boolean }
+        created_at: { type: [string, "null"], format: date-time }
+        updated_at: { type: [string, "null"], format: date-time }
+
+    CategoryRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        code: { type: [string, "null"] }
+        parent_id: { type: [string, "null"], format: uuid }
+        default_depreciation_method:
+          type: [string, "null"]
+          description: One of `straight_line` or `declining_balance` (nullable).
+        default_useful_life_months: { type: [integer, "null"] }
+        default_salvage_rate: { type: [string, "null"] }
+        is_active: { type: boolean, default: true }
+
+    CategoryList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/Category" }
         total: { type: integer }
         limit: { type: integer }
         offset: { type: integer }

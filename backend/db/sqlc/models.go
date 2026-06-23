@@ -563,13 +563,13 @@ type AssetAsset struct {
 	Status                   SharedAssetStatus         `json:"status"`
 	SerialNumber             *string                   `json:"serial_number"`
 	PurchaseDate             pgtype.Date               `json:"purchase_date"`
-	PurchaseCost             pgtype.Numeric            `json:"purchase_cost"`
+	PurchaseCost             *string                   `json:"purchase_cost"`
 	VendorID                 *uuid.UUID                `json:"vendor_id"`
 	WarrantyExpiry           pgtype.Date               `json:"warranty_expiry"`
 	Specifications           []byte                    `json:"specifications"`
 	DepreciationMethod       *SharedDepreciationMethod `json:"depreciation_method"`
 	UsefulLifeMonths         *int32                    `json:"useful_life_months"`
-	SalvageValue             pgtype.Numeric            `json:"salvage_value"`
+	SalvageValue             *string                   `json:"salvage_value"`
 	CurrentHolderEmployeeID  *uuid.UUID                `json:"current_holder_employee_id"`
 	ExcludedFromValuation    bool                      `json:"excluded_from_valuation"`
 	ValuationExclusionReason *string                   `json:"valuation_exclusion_reason"`
@@ -637,9 +637,9 @@ type DepreciationDepreciationEntry struct {
 	ID                 uuid.UUID                `json:"id"`
 	AssetID            uuid.UUID                `json:"asset_id"`
 	Period             pgtype.Date              `json:"period"`
-	OpeningValue       pgtype.Numeric           `json:"opening_value"`
-	DepreciationAmount pgtype.Numeric           `json:"depreciation_amount"`
-	ClosingValue       pgtype.Numeric           `json:"closing_value"`
+	OpeningValue       string                   `json:"opening_value"`
+	DepreciationAmount string                   `json:"depreciation_amount"`
+	ClosingValue       string                   `json:"closing_value"`
 	Method             SharedDepreciationMethod `json:"method"`
 	CreatedAt          pgtype.Timestamptz       `json:"created_at"`
 	UpdatedAt          pgtype.Timestamptz       `json:"updated_at"`
@@ -731,7 +731,7 @@ type MaintenanceMaintenanceRecord struct {
 	Status                SharedMaintenanceStatus `json:"status"`
 	ScheduledDate         pgtype.Date             `json:"scheduled_date"`
 	CompletedDate         pgtype.Date             `json:"completed_date"`
-	Cost                  pgtype.Numeric          `json:"cost"`
+	Cost                  *string                 `json:"cost"`
 	VendorID              *uuid.UUID              `json:"vendor_id"`
 	PerformedBy           *string                 `json:"performed_by"`
 	Description           string                  `json:"description"`
@@ -770,7 +770,7 @@ type MasterdataCategory struct {
 	ParentID                  *uuid.UUID                `json:"parent_id"`
 	DefaultDepreciationMethod *SharedDepreciationMethod `json:"default_depreciation_method"`
 	DefaultUsefulLifeMonths   *int32                    `json:"default_useful_life_months"`
-	DefaultSalvageRate        pgtype.Numeric            `json:"default_salvage_rate"`
+	DefaultSalvageRate        *string                   `json:"default_salvage_rate"`
 	IsActive                  bool                      `json:"is_active"`
 	CreatedAt                 pgtype.Timestamptz        `json:"created_at"`
 	UpdatedAt                 pgtype.Timestamptz        `json:"updated_at"`
