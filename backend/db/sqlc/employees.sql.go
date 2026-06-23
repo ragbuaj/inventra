@@ -83,11 +83,19 @@ func (q *Queries) CreateEmployee(ctx context.Context, arg CreateEmployeeParams) 
 }
 
 const getEmployee = `-- name: GetEmployee :one
-SELECT id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at FROM masterdata.employees WHERE id = $1 AND deleted_at IS NULL
+SELECT id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at FROM masterdata.employees
+WHERE id = $1 AND deleted_at IS NULL
+  AND ($2::bool OR office_id = ANY($3::uuid[]))
 `
 
-func (q *Queries) GetEmployee(ctx context.Context, id uuid.UUID) (MasterdataEmployee, error) {
-	row := q.db.QueryRow(ctx, getEmployee, id)
+type GetEmployeeParams struct {
+	ID        uuid.UUID   `json:"id"`
+	AllScope  bool        `json:"all_scope"`
+	OfficeIds []uuid.UUID `json:"office_ids"`
+}
+
+func (q *Queries) GetEmployee(ctx context.Context, arg GetEmployeeParams) (MasterdataEmployee, error) {
+	row := q.db.QueryRow(ctx, getEmployee, arg.ID, arg.AllScope, arg.OfficeIds)
 	var i MasterdataEmployee
 	err := row.Scan(
 		&i.ID,
@@ -169,11 +177,19 @@ func (q *Queries) ListEmployees(ctx context.Context, arg ListEmployeesParams) ([
 }
 
 const softDeleteEmployee = `-- name: SoftDeleteEmployee :execrows
-UPDATE masterdata.employees SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL
+UPDATE masterdata.employees SET deleted_at = now()
+WHERE id = $1 AND deleted_at IS NULL
+  AND ($2::bool OR office_id = ANY($3::uuid[]))
 `
 
-func (q *Queries) SoftDeleteEmployee(ctx context.Context, id uuid.UUID) (int64, error) {
-	result, err := q.db.Exec(ctx, softDeleteEmployee, id)
+type SoftDeleteEmployeeParams struct {
+	ID        uuid.UUID   `json:"id"`
+	AllScope  bool        `json:"all_scope"`
+	OfficeIds []uuid.UUID `json:"office_ids"`
+}
+
+func (q *Queries) SoftDeleteEmployee(ctx context.Context, arg SoftDeleteEmployeeParams) (int64, error) {
+	result, err := q.db.Exec(ctx, softDeleteEmployee, arg.ID, arg.AllScope, arg.OfficeIds)
 	if err != nil {
 		return 0, err
 	}
@@ -182,14 +198,20 @@ func (q *Queries) SoftDeleteEmployee(ctx context.Context, id uuid.UUID) (int64, 
 
 const updateEmployee = `-- name: UpdateEmployee :one
 UPDATE masterdata.employees
-SET code = $2, name = $3, email = $4, avatar_key = $5,
-    department_id = $6, position_id = $7, office_id = $8, status = $9
-WHERE id = $1 AND deleted_at IS NULL
+SET code = $1,
+    name = $2,
+    email = $3,
+    avatar_key = $4,
+    department_id = $5,
+    position_id = $6,
+    office_id = $7,
+    status = $8
+WHERE id = $9 AND deleted_at IS NULL
+  AND ($10::bool OR office_id = ANY($11::uuid[]))
 RETURNING id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at
 `
 
 type UpdateEmployeeParams struct {
-	ID           uuid.UUID        `json:"id"`
 	Code         string           `json:"code"`
 	Name         string           `json:"name"`
 	Email        *string          `json:"email"`
@@ -198,11 +220,13 @@ type UpdateEmployeeParams struct {
 	PositionID   *uuid.UUID       `json:"position_id"`
 	OfficeID     uuid.UUID        `json:"office_id"`
 	Status       SharedUserStatus `json:"status"`
+	ID           uuid.UUID        `json:"id"`
+	AllScope     bool             `json:"all_scope"`
+	OfficeIds    []uuid.UUID      `json:"office_ids"`
 }
 
 func (q *Queries) UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) (MasterdataEmployee, error) {
 	row := q.db.QueryRow(ctx, updateEmployee,
-		arg.ID,
 		arg.Code,
 		arg.Name,
 		arg.Email,
@@ -211,6 +235,9 @@ func (q *Queries) UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) 
 		arg.PositionID,
 		arg.OfficeID,
 		arg.Status,
+		arg.ID,
+		arg.AllScope,
+		arg.OfficeIds,
 	)
 	var i MasterdataEmployee
 	err := row.Scan(

@@ -83,11 +83,19 @@ func (q *Queries) CreateOffice(ctx context.Context, arg CreateOfficeParams) (Mas
 }
 
 const getOffice = `-- name: GetOffice :one
-SELECT id, parent_id, office_type_id, province_id, city_id, name, code, address, is_active, created_at, updated_at, deleted_at FROM masterdata.offices WHERE id = $1 AND deleted_at IS NULL
+SELECT id, parent_id, office_type_id, province_id, city_id, name, code, address, is_active, created_at, updated_at, deleted_at FROM masterdata.offices
+WHERE id = $1 AND deleted_at IS NULL
+  AND ($2::bool OR id = ANY($3::uuid[]))
 `
 
-func (q *Queries) GetOffice(ctx context.Context, id uuid.UUID) (MasterdataOffice, error) {
-	row := q.db.QueryRow(ctx, getOffice, id)
+type GetOfficeParams struct {
+	ID        uuid.UUID   `json:"id"`
+	AllScope  bool        `json:"all_scope"`
+	OfficeIds []uuid.UUID `json:"office_ids"`
+}
+
+func (q *Queries) GetOffice(ctx context.Context, arg GetOfficeParams) (MasterdataOffice, error) {
+	row := q.db.QueryRow(ctx, getOffice, arg.ID, arg.AllScope, arg.OfficeIds)
 	var i MasterdataOffice
 	err := row.Scan(
 		&i.ID,
@@ -170,11 +178,19 @@ func (q *Queries) ListOffices(ctx context.Context, arg ListOfficesParams) ([]Mas
 }
 
 const softDeleteOffice = `-- name: SoftDeleteOffice :execrows
-UPDATE masterdata.offices SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL
+UPDATE masterdata.offices SET deleted_at = now()
+WHERE id = $1 AND deleted_at IS NULL
+  AND ($2::bool OR id = ANY($3::uuid[]))
 `
 
-func (q *Queries) SoftDeleteOffice(ctx context.Context, id uuid.UUID) (int64, error) {
-	result, err := q.db.Exec(ctx, softDeleteOffice, id)
+type SoftDeleteOfficeParams struct {
+	ID        uuid.UUID   `json:"id"`
+	AllScope  bool        `json:"all_scope"`
+	OfficeIds []uuid.UUID `json:"office_ids"`
+}
+
+func (q *Queries) SoftDeleteOffice(ctx context.Context, arg SoftDeleteOfficeParams) (int64, error) {
+	result, err := q.db.Exec(ctx, softDeleteOffice, arg.ID, arg.AllScope, arg.OfficeIds)
 	if err != nil {
 		return 0, err
 	}
@@ -183,27 +199,35 @@ func (q *Queries) SoftDeleteOffice(ctx context.Context, id uuid.UUID) (int64, er
 
 const updateOffice = `-- name: UpdateOffice :one
 UPDATE masterdata.offices
-SET parent_id = $2, office_type_id = $3, province_id = $4, city_id = $5,
-    name = $6, code = $7, address = $8, is_active = $9
-WHERE id = $1 AND deleted_at IS NULL
+SET parent_id = $1,
+    office_type_id = $2,
+    province_id = $3,
+    city_id = $4,
+    name = $5,
+    code = $6,
+    address = $7,
+    is_active = $8
+WHERE id = $9 AND deleted_at IS NULL
+  AND ($10::bool OR id = ANY($11::uuid[]))
 RETURNING id, parent_id, office_type_id, province_id, city_id, name, code, address, is_active, created_at, updated_at, deleted_at
 `
 
 type UpdateOfficeParams struct {
-	ID           uuid.UUID  `json:"id"`
-	ParentID     *uuid.UUID `json:"parent_id"`
-	OfficeTypeID uuid.UUID  `json:"office_type_id"`
-	ProvinceID   *uuid.UUID `json:"province_id"`
-	CityID       *uuid.UUID `json:"city_id"`
-	Name         string     `json:"name"`
-	Code         string     `json:"code"`
-	Address      *string    `json:"address"`
-	IsActive     bool       `json:"is_active"`
+	ParentID     *uuid.UUID  `json:"parent_id"`
+	OfficeTypeID uuid.UUID   `json:"office_type_id"`
+	ProvinceID   *uuid.UUID  `json:"province_id"`
+	CityID       *uuid.UUID  `json:"city_id"`
+	Name         string      `json:"name"`
+	Code         string      `json:"code"`
+	Address      *string     `json:"address"`
+	IsActive     bool        `json:"is_active"`
+	ID           uuid.UUID   `json:"id"`
+	AllScope     bool        `json:"all_scope"`
+	OfficeIds    []uuid.UUID `json:"office_ids"`
 }
 
 func (q *Queries) UpdateOffice(ctx context.Context, arg UpdateOfficeParams) (MasterdataOffice, error) {
 	row := q.db.QueryRow(ctx, updateOffice,
-		arg.ID,
 		arg.ParentID,
 		arg.OfficeTypeID,
 		arg.ProvinceID,
@@ -212,6 +236,9 @@ func (q *Queries) UpdateOffice(ctx context.Context, arg UpdateOfficeParams) (Mas
 		arg.Code,
 		arg.Address,
 		arg.IsActive,
+		arg.ID,
+		arg.AllScope,
+		arg.OfficeIds,
 	)
 	var i MasterdataOffice
 	err := row.Scan(

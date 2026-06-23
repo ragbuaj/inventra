@@ -45,3 +45,23 @@ func (d scopedDeps) callerOfficeScope(c *gin.Context, module string) (bool, []uu
 		return false, sc.OfficeIDs, nil
 	}
 }
+
+// inScope reports whether target is permitted under the caller's scope.
+func inScope(all bool, ids []uuid.UUID, target uuid.UUID) bool {
+	if all {
+		return true
+	}
+	for _, id := range ids {
+		if id == target {
+			return true
+		}
+	}
+	return false
+}
+
+func samePtr(a, b *uuid.UUID) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return *a == *b
+}

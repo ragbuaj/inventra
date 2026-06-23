@@ -20,8 +20,8 @@ type Querier interface {
 	CreateOffice(ctx context.Context, arg CreateOfficeParams) (MasterdataOffice, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (IdentityUser, error)
 	GetCategory(ctx context.Context, id uuid.UUID) (MasterdataCategory, error)
-	GetEmployee(ctx context.Context, id uuid.UUID) (MasterdataEmployee, error)
-	GetOffice(ctx context.Context, id uuid.UUID) (MasterdataOffice, error)
+	GetEmployee(ctx context.Context, arg GetEmployeeParams) (MasterdataEmployee, error)
+	GetOffice(ctx context.Context, arg GetOfficeParams) (MasterdataOffice, error)
 	// Authorization queries: office subtree (scoping) and field permissions.
 	// Returns an office plus all of its descendants (Pusat -> Wilayah -> Cabang -> Outlet).
 	GetOfficeSubtree(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error)
@@ -43,8 +43,8 @@ type Querier interface {
 	// User management queries (Superadmin). All respect soft delete.
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]IdentityUser, error)
 	SoftDeleteCategory(ctx context.Context, id uuid.UUID) (int64, error)
-	SoftDeleteEmployee(ctx context.Context, id uuid.UUID) (int64, error)
-	SoftDeleteOffice(ctx context.Context, id uuid.UUID) (int64, error)
+	SoftDeleteEmployee(ctx context.Context, arg SoftDeleteEmployeeParams) (int64, error)
+	SoftDeleteOffice(ctx context.Context, arg SoftDeleteOfficeParams) (int64, error)
 	SoftDeleteUser(ctx context.Context, id uuid.UUID) (int64, error)
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (MasterdataCategory, error)
 	UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) (MasterdataEmployee, error)

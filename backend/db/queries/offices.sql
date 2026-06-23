@@ -24,7 +24,9 @@ WHERE deleted_at IS NULL
   );
 
 -- name: GetOffice :one
-SELECT * FROM masterdata.offices WHERE id = $1 AND deleted_at IS NULL;
+SELECT * FROM masterdata.offices
+WHERE id = sqlc.arg(id) AND deleted_at IS NULL
+  AND (sqlc.arg(all_scope)::bool OR id = ANY(sqlc.arg(office_ids)::uuid[]));
 
 -- name: CreateOffice :one
 INSERT INTO masterdata.offices (
@@ -34,10 +36,19 @@ RETURNING *;
 
 -- name: UpdateOffice :one
 UPDATE masterdata.offices
-SET parent_id = $2, office_type_id = $3, province_id = $4, city_id = $5,
-    name = $6, code = $7, address = $8, is_active = $9
-WHERE id = $1 AND deleted_at IS NULL
+SET parent_id = sqlc.narg(parent_id),
+    office_type_id = sqlc.arg(office_type_id),
+    province_id = sqlc.narg(province_id),
+    city_id = sqlc.narg(city_id),
+    name = sqlc.arg(name),
+    code = sqlc.arg(code),
+    address = sqlc.narg(address),
+    is_active = sqlc.arg(is_active)
+WHERE id = sqlc.arg(id) AND deleted_at IS NULL
+  AND (sqlc.arg(all_scope)::bool OR id = ANY(sqlc.arg(office_ids)::uuid[]))
 RETURNING *;
 
 -- name: SoftDeleteOffice :execrows
-UPDATE masterdata.offices SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL;
+UPDATE masterdata.offices SET deleted_at = now()
+WHERE id = sqlc.arg(id) AND deleted_at IS NULL
+  AND (sqlc.arg(all_scope)::bool OR id = ANY(sqlc.arg(office_ids)::uuid[]));

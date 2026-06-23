@@ -23,7 +23,9 @@ WHERE deleted_at IS NULL
   );
 
 -- name: GetEmployee :one
-SELECT * FROM masterdata.employees WHERE id = $1 AND deleted_at IS NULL;
+SELECT * FROM masterdata.employees
+WHERE id = sqlc.arg(id) AND deleted_at IS NULL
+  AND (sqlc.arg(all_scope)::bool OR office_id = ANY(sqlc.arg(office_ids)::uuid[]));
 
 -- name: CreateEmployee :one
 INSERT INTO masterdata.employees (
@@ -33,10 +35,19 @@ RETURNING *;
 
 -- name: UpdateEmployee :one
 UPDATE masterdata.employees
-SET code = $2, name = $3, email = $4, avatar_key = $5,
-    department_id = $6, position_id = $7, office_id = $8, status = $9
-WHERE id = $1 AND deleted_at IS NULL
+SET code = sqlc.arg(code),
+    name = sqlc.arg(name),
+    email = sqlc.narg(email),
+    avatar_key = sqlc.narg(avatar_key),
+    department_id = sqlc.narg(department_id),
+    position_id = sqlc.narg(position_id),
+    office_id = sqlc.arg(office_id),
+    status = sqlc.arg(status)
+WHERE id = sqlc.arg(id) AND deleted_at IS NULL
+  AND (sqlc.arg(all_scope)::bool OR office_id = ANY(sqlc.arg(office_ids)::uuid[]))
 RETURNING *;
 
 -- name: SoftDeleteEmployee :execrows
-UPDATE masterdata.employees SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL;
+UPDATE masterdata.employees SET deleted_at = now()
+WHERE id = sqlc.arg(id) AND deleted_at IS NULL
+  AND (sqlc.arg(all_scope)::bool OR office_id = ANY(sqlc.arg(office_ids)::uuid[]));

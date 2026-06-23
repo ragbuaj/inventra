@@ -90,7 +90,12 @@ func (h *officeHandler) get(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	o, err := h.q.GetOffice(c.Request.Context(), id)
+	all, ids, err := h.callerOfficeScope(c, "offices")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
+		return
+	}
+	o, err := h.q.GetOffice(c.Request.Context(), sqlc.GetOfficeParams{ID: id, AllScope: all, OfficeIds: ids})
 	if err != nil {
 		writeError(c, mapDBError(err))
 		return
@@ -104,7 +109,17 @@ func (h *officeHandler) create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	all, ids, err := h.callerOfficeScope(c, "offices")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
+		return
+	}
 	parent, _ := parseUUIDPtr(req.ParentID)
+	// A scoped caller may only create an office under a parent within their scope.
+	if !all && (parent == nil || !inScope(all, ids, *parent)) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "office must be placed under an office within your scope"})
+		return
+	}
 	province, _ := parseUUIDPtr(req.ProvinceID)
 	city, _ := parseUUIDPtr(req.CityID)
 	o, err := h.q.CreateOffice(c.Request.Context(), sqlc.CreateOfficeParams{
@@ -135,11 +150,25 @@ func (h *officeHandler) update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	all, ids, err := h.callerOfficeScope(c, "offices")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
+		return
+	}
+	// Target must be within scope; fetch current to allow keeping its existing parent.
+	cur, err := h.q.GetOffice(c.Request.Context(), sqlc.GetOfficeParams{ID: id, AllScope: all, OfficeIds: ids})
+	if err != nil {
+		writeError(c, mapDBError(err))
+		return
+	}
 	parent, _ := parseUUIDPtr(req.ParentID)
+	if !all && !samePtr(parent, cur.ParentID) && (parent == nil || !inScope(all, ids, *parent)) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "cannot reparent the office outside your scope"})
+		return
+	}
 	province, _ := parseUUIDPtr(req.ProvinceID)
 	city, _ := parseUUIDPtr(req.CityID)
 	o, err := h.q.UpdateOffice(c.Request.Context(), sqlc.UpdateOfficeParams{
-		ID:           id,
 		ParentID:     parent,
 		OfficeTypeID: uuid.MustParse(req.OfficeTypeID),
 		ProvinceID:   province,
@@ -148,6 +177,9 @@ func (h *officeHandler) update(c *gin.Context) {
 		Code:         req.Code,
 		Address:      req.Address,
 		IsActive:     boolOr(req.IsActive, true),
+		ID:           id,
+		AllScope:     all,
+		OfficeIds:    ids,
 	})
 	if err != nil {
 		writeError(c, mapDBError(err))
@@ -162,7 +194,12 @@ func (h *officeHandler) delete(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	n, err := h.q.SoftDeleteOffice(c.Request.Context(), id)
+	all, ids, err := h.callerOfficeScope(c, "offices")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
+		return
+	}
+	n, err := h.q.SoftDeleteOffice(c.Request.Context(), sqlc.SoftDeleteOfficeParams{ID: id, AllScope: all, OfficeIds: ids})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete"})
 		return

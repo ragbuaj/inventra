@@ -97,7 +97,12 @@ func (h *employeeHandler) get(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	e, err := h.q.GetEmployee(c.Request.Context(), id)
+	all, ids, err := h.callerOfficeScope(c, "employees")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
+		return
+	}
+	e, err := h.q.GetEmployee(c.Request.Context(), sqlc.GetEmployeeParams{ID: id, AllScope: all, OfficeIds: ids})
 	if err != nil {
 		writeError(c, mapDBError(err))
 		return
@@ -111,6 +116,16 @@ func (h *employeeHandler) create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	all, ids, err := h.callerOfficeScope(c, "employees")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
+		return
+	}
+	officeID := uuid.MustParse(req.OfficeID)
+	if !inScope(all, ids, officeID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "employee office must be within your scope"})
+		return
+	}
 	dept, _ := parseUUIDPtr(req.DepartmentID)
 	pos, _ := parseUUIDPtr(req.PositionID)
 	e, err := h.q.CreateEmployee(c.Request.Context(), sqlc.CreateEmployeeParams{
@@ -120,7 +135,7 @@ func (h *employeeHandler) create(c *gin.Context) {
 		AvatarKey:    req.AvatarKey,
 		DepartmentID: dept,
 		PositionID:   pos,
-		OfficeID:     uuid.MustParse(req.OfficeID),
+		OfficeID:     officeID,
 		Status:       statusOr(req.Status, sqlc.SharedUserStatusActive),
 	})
 	if err != nil {
@@ -141,18 +156,30 @@ func (h *employeeHandler) update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	all, ids, err := h.callerOfficeScope(c, "employees")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
+		return
+	}
+	officeID := uuid.MustParse(req.OfficeID)
+	if !inScope(all, ids, officeID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "employee office must be within your scope"})
+		return
+	}
 	dept, _ := parseUUIDPtr(req.DepartmentID)
 	pos, _ := parseUUIDPtr(req.PositionID)
 	e, err := h.q.UpdateEmployee(c.Request.Context(), sqlc.UpdateEmployeeParams{
-		ID:           id,
 		Code:         req.Code,
 		Name:         req.Name,
 		Email:        req.Email,
 		AvatarKey:    req.AvatarKey,
 		DepartmentID: dept,
 		PositionID:   pos,
-		OfficeID:     uuid.MustParse(req.OfficeID),
+		OfficeID:     officeID,
 		Status:       statusOr(req.Status, sqlc.SharedUserStatusActive),
+		ID:           id,
+		AllScope:     all,
+		OfficeIds:    ids,
 	})
 	if err != nil {
 		writeError(c, mapDBError(err))
@@ -167,7 +194,12 @@ func (h *employeeHandler) delete(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	n, err := h.q.SoftDeleteEmployee(c.Request.Context(), id)
+	all, ids, err := h.callerOfficeScope(c, "employees")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
+		return
+	}
+	n, err := h.q.SoftDeleteEmployee(c.Request.Context(), sqlc.SoftDeleteEmployeeParams{ID: id, AllScope: all, OfficeIds: ids})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete"})
 		return
