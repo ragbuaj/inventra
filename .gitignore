@@ -1,0 +1,21 @@
+# Environment files (keep *.env.example)
+**/.env
+!**/.env.example
+
+# Go
+backend/bin/
+backend/tmp/
+*.out
+coverage.out
+
+# Node / Nuxt (frontend keeps its own .gitignore too)
+**/node_modules/
+**/.nuxt/
+**/.output/
+**/dist/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+*.swp

@@ -1,0 +1,9 @@
+{
+  "app": {
+    "name": "Inventra",
+    "tagline": "Manajemen Aset"
+  },
+  "common": {
+    "welcome": "Selamat datang di Inventra"
+  }
+}

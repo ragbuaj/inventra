@@ -1,0 +1,9 @@
+{
+  "app": {
+    "name": "Inventra",
+    "tagline": "Asset Management"
+  },
+  "common": {
+    "welcome": "Welcome to Inventra"
+  }
+}

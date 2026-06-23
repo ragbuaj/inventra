@@ -1,0 +1,58 @@
+# Development infrastructure for Inventra.
+#   docker compose -f docker-compose.dev.yml up -d
+#
+# Provides the three backing services from docs/PRD.md §7:
+#   PostgreSQL (authoritative store) · Redis (cache/state) · MinIO (object storage)
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: inventra-postgres
+    environment:
+      POSTGRES_USER: inventra
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: inventra_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - inventra-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inventra -d inventra_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: inventra-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - inventra-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: inventra-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - inventra-minio:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  inventra-postgres:
+  inventra-redis:
+  inventra-minio:

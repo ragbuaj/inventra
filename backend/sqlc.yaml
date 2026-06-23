@@ -1,0 +1,19 @@
+# sqlc configuration — generates type-safe Go from SQL.
+#   sqlc generate
+#
+# Migrations define the schema; queries are written per module and generate into
+# db/sqlc. See docs/PRD.md §7 for the module layout.
+version: "2"
+sql:
+  - engine: "postgresql"
+    schema: "db/migrations"
+    queries: "db/queries"
+    gen:
+      go:
+        package: "sqlc"
+        out: "db/sqlc"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
+        emit_interface: true
+        emit_empty_slices: true
+        emit_pointers_for_null_types: true
