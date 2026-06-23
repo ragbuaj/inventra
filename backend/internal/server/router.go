@@ -8,25 +8,60 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
+
+	"github.com/ragbuaj/inventra/internal/cache"
 	"github.com/ragbuaj/inventra/internal/config"
+	"github.com/ragbuaj/inventra/internal/db"
 )
 
-// NewRouter builds the Gin engine with base middleware and health checks.
-func NewRouter(cfg *config.Config) *gin.Engine {
-	if cfg.Env == "production" {
+// Deps holds the shared infrastructure passed to feature modules.
+type Deps struct {
+	Cfg   *config.Config
+	Pool  *pgxpool.Pool
+	Redis *redis.Client
+}
+
+// NewRouter builds the Gin engine with base middleware, health, and readiness probes.
+func NewRouter(d Deps) *gin.Engine {
+	if d.Cfg.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
 
-	// Liveness probe — does not depend on external services.
+	// Liveness — process is up; no external dependencies.
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "ok",
 			"service": "inventra-api",
-			"env":     cfg.Env,
+			"env":     d.Cfg.Env,
 		})
+	})
+
+	// Readiness — verifies PostgreSQL and Redis are reachable.
+	r.GET("/health/ready", func(c *gin.Context) {
+		checks := gin.H{"postgres": "ok", "redis": "ok"}
+		ready := true
+
+		if err := db.Ping(c.Request.Context(), d.Pool); err != nil {
+			checks["postgres"] = err.Error()
+			ready = false
+		}
+		if err := cache.Ping(c.Request.Context(), d.Redis); err != nil {
+			checks["redis"] = err.Error()
+			ready = false
+		}
+
+		code := http.StatusOK
+		status := "ready"
+		if !ready {
+			code = http.StatusServiceUnavailable
+			status = "not_ready"
+		}
+		c.JSON(code, gin.H{"status": status, "checks": checks})
 	})
 
 	api := r.Group("/api/v1")
@@ -35,8 +70,8 @@ func NewRouter(cfg *config.Config) *gin.Engine {
 			c.JSON(http.StatusOK, gin.H{"status": "ok"})
 		})
 		// Feature module routes are registered here, e.g.:
-		//   identity.RegisterRoutes(api, deps)
-		//   asset.RegisterRoutes(api, deps)
+		//   identity.RegisterRoutes(api, d)
+		//   asset.RegisterRoutes(api, d)
 	}
 
 	return r

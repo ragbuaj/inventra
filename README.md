@@ -59,7 +59,7 @@ cd backend
 cp .env.example .env
 go run ./cmd/api
 ```
-API at `http://localhost:8080` · health check: `GET /health`.
+API at `http://localhost:8080`. Liveness: `GET /health`. Readiness (checks PostgreSQL + Redis): `GET /health/ready`.
 
 ### 3. Frontend
 ```bash
