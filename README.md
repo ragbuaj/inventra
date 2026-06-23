@@ -36,11 +36,34 @@ asset-management/
 │   └── sqlc.yaml
 ├── frontend/               # Nuxt 4 app (scaffolded from the official `ui` template)
 ├── docs/PRD.md
-├── docker-compose.dev.yml  # Postgres + Redis + MinIO
+├── docker-compose.yml      # Full stack (infra + migrate + backend + frontend)
+├── docker-compose.dev.yml  # Infra only (Postgres + Redis + MinIO)
 └── .github/workflows/ci.yml # CI: backend + frontend build/test
+
 ```
 
-## Getting Started
+## Run everything in Docker (full stack)
+
+```bash
+docker compose up --build
+```
+Brings up PostgreSQL, Redis, MinIO, runs database migrations, then starts the API
+and the frontend:
+- Frontend → http://localhost:3000
+- API → http://localhost:8080 (docs at `/docs`)
+- MinIO console → http://localhost:9001
+
+Seed a superadmin (one-off, while the stack runs) — from the host, since the
+`backend` image ships only the API binary:
+```bash
+cd backend
+go run ./cmd/createadmin -email admin@inventra.local -password admin12345
+```
+It connects to the same Postgres exposed on `localhost:5433`.
+
+Stop: `docker compose down` (add `-v` to also drop data volumes).
+
+## Local development (run on host)
 
 ### Prerequisites
 - Docker Desktop · Go 1.25+ · Node.js 24+ · pnpm 11+

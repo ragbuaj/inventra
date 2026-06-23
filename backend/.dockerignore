@@ -1,0 +1,7 @@
+bin/
+tmp/
+*.out
+coverage.out
+.env
+Dockerfile
+.dockerignore
