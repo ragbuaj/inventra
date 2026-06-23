@@ -13,4 +13,6 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW gin.HandlerFunc) {
 	authed.Use(authMW)
 	authed.POST("/logout", h.logout)
 	authed.GET("/me", h.me)
+	authed.GET("/permissions", h.permissions)
+	authed.GET("/scope/:module", h.scope)
 }

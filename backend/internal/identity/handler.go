@@ -8,17 +8,55 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/middleware"
 )
 
 // Handler exposes the identity HTTP endpoints.
 type Handler struct {
-	svc *Service
+	svc    *Service
+	perms  *authz.PermissionService
+	scopes *authz.ScopeService
 }
 
 // NewHandler builds the identity Handler.
-func NewHandler(svc *Service) *Handler {
-	return &Handler{svc: svc}
+func NewHandler(svc *Service, perms *authz.PermissionService, scopes *authz.ScopeService) *Handler {
+	return &Handler{svc: svc, perms: perms, scopes: scopes}
+}
+
+// permissions returns the caller's effective RBAC permission keys.
+func (h *Handler) permissions(c *gin.Context) {
+	roleID, err := uuid.Parse(c.GetString(middleware.CtxRoleID))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing role"})
+		return
+	}
+	perms, err := h.perms.List(c.Request.Context(), roleID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load permissions"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"permissions": perms})
+}
+
+// scope returns the caller's effective data scope for a module.
+func (h *Handler) scope(c *gin.Context) {
+	userID, err := uuid.Parse(c.GetString(middleware.CtxUserID))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid subject"})
+		return
+	}
+	user, err := h.svc.Me(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
+	sc, err := h.scopes.Resolve(c.Request.Context(), user.RoleID, user.OfficeID, c.Param("module"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
+		return
+	}
+	c.JSON(http.StatusOK, sc)
 }
 
 func (h *Handler) login(c *gin.Context) {

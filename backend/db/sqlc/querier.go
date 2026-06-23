@@ -12,11 +12,15 @@ import (
 
 type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (IdentityUser, error)
+	// Authorization queries: office subtree (scoping) and field permissions.
+	// Returns an office plus all of its descendants (Pusat -> Wilayah -> Cabang -> Outlet).
+	GetOfficeSubtree(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error)
 	// Identity module queries. Schema-qualified (see DATABASE.md §1.2).
 	GetRoleByCode(ctx context.Context, code string) (IdentityRole, error)
 	GetUserByEmail(ctx context.Context, email string) (IdentityUser, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (IdentityUser, error)
 	ListDataScopePolicies(ctx context.Context, roleID uuid.UUID) ([]IdentityDataScopePolicy, error)
+	ListFieldPermissionsByRole(ctx context.Context, roleID uuid.UUID) ([]ListFieldPermissionsByRoleRow, error)
 	ListRolePermissions(ctx context.Context, roleID uuid.UUID) ([]string, error)
 	ListRoles(ctx context.Context) ([]IdentityRole, error)
 }

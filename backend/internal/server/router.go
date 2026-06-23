@@ -14,6 +14,7 @@ import (
 	apidocs "github.com/ragbuaj/inventra/api"
 	"github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/auth"
+	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/cache"
 	"github.com/ragbuaj/inventra/internal/config"
 	"github.com/ragbuaj/inventra/internal/db"
@@ -92,8 +93,12 @@ func NewRouter(d Deps) *gin.Engine {
 			c.JSON(http.StatusOK, gin.H{"status": "ok"})
 		})
 
+		permSvc := authz.NewPermissionService(queries, d.Redis)
+		scopeSvc := authz.NewScopeService(queries, d.Redis)
+
 		identitySvc := identity.NewService(queries, tokenManager, tokenStore)
-		identity.RegisterRoutes(api, identity.NewHandler(identitySvc), requireAuth)
+		identityHandler := identity.NewHandler(identitySvc, permSvc, scopeSvc)
+		identity.RegisterRoutes(api, identityHandler, requireAuth)
 	}
 
 	return r
