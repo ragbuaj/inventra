@@ -547,10 +547,10 @@ Tiap fase roadmap (PRD §10) menambah migrasi `golang-migrate` di `backend/db/mi
 | `000007_offices_employees` | 3 | `masterdata`: offices, floors, rooms, employees + FK `identity.users.{employee_id,office_id}` ✅ |
 | `000008_asset` | 4 | `asset`: assets, asset_attachments, asset_tag_counters ✅ |
 | `000009_import` | 4 | `import`: import_jobs ✅ |
-| `0000xx_approval` | 5 | `approval`: requests |
-| `0000xx_assignment` | 6 | `assignment`: assignments |
-| `0000xx_maintenance` | 7 | `maintenance`: maintenance_schedules, maintenance_records |
-| `0000xx_depreciation` | 8 | `depreciation`: depreciation_entries |
+| `000010_approval` | 5 | `approval`: requests (maker-checker, SoD check) ✅ |
+| `000011_assignment` | 6 | `assignment`: assignments (1 aktif/aset) ✅ |
+| `000012_maintenance` | 7 | `maintenance`: maintenance_schedules, maintenance_records ✅ |
+| `000013_depreciation` | 8 | `depreciation`: depreciation_entries (read model) ✅ |
 
 > `audit_logs` dibuat lebih awal (fase 2) karena bersifat cross-cutting.
 
