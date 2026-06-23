@@ -545,12 +545,12 @@ Tiap fase roadmap (PRD §10) menambah migrasi `golang-migrate` di `backend/db/mi
 | `000005_seed_identity` | 2 | seed: 5 peran sistem, default data_scope_policies, RBAC (45 izin) ✅ |
 | `000006_masterdata` | 3 | `masterdata`: provinces, cities, office_types, departments, positions, vendors, brands, models, categories, maintenance_categories, problem_categories, units ✅ |
 | `000007_offices_employees` | 3 | `masterdata`: offices, floors, rooms, employees + FK `identity.users.{employee_id,office_id}` ✅ |
-| `0000xx_assets` | 4 | `asset`: assets, asset_attachments, asset_tag_counters |
+| `000008_asset` | 4 | `asset`: assets, asset_attachments, asset_tag_counters ✅ |
+| `000009_import` | 4 | `import`: import_jobs ✅ |
 | `0000xx_approval` | 5 | `approval`: requests |
 | `0000xx_assignment` | 6 | `assignment`: assignments |
 | `0000xx_maintenance` | 7 | `maintenance`: maintenance_schedules, maintenance_records |
 | `0000xx_depreciation` | 8 | `depreciation`: depreciation_entries |
-| `0000xx_import` | 4 | `import`: import_jobs |
 
 > `audit_logs` dibuat lebih awal (fase 2) karena bersifat cross-cutting.
 
