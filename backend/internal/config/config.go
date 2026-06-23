@@ -7,6 +7,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -37,7 +38,9 @@ type Config struct {
 	MinIOUseSSL    bool
 
 	// Auth.
-	JWTSecret string
+	JWTSecret     string
+	JWTAccessTTL  time.Duration
+	JWTRefreshTTL time.Duration
 
 	// Google OAuth2.
 	GoogleClientID     string
@@ -73,7 +76,9 @@ func Load() *Config {
 		MinIOBucket:    getEnv("MINIO_BUCKET", "inventra"),
 		MinIOUseSSL:    getEnvBool("MINIO_USE_SSL", false),
 
-		JWTSecret: getEnv("JWT_SECRET", "change-me-in-production"),
+		JWTSecret:     getEnv("JWT_SECRET", "change-me-in-production"),
+		JWTAccessTTL:  getEnvDuration("JWT_ACCESS_TTL", 15*time.Minute),
+		JWTRefreshTTL: getEnvDuration("JWT_REFRESH_TTL", 168*time.Hour),
 
 		GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
 		GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
@@ -103,6 +108,15 @@ func getEnvBool(key string, fallback bool) bool {
 	if v, ok := os.LookupEnv(key); ok && v != "" {
 		if b, err := strconv.ParseBool(v); err == nil {
 			return b
+		}
+	}
+	return fallback
+}
+
+func getEnvDuration(key string, fallback time.Duration) time.Duration {
+	if v, ok := os.LookupEnv(key); ok && v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			return d
 		}
 	}
 	return fallback

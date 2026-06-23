@@ -11,9 +11,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
+	"github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/auth"
 	"github.com/ragbuaj/inventra/internal/cache"
 	"github.com/ragbuaj/inventra/internal/config"
 	"github.com/ragbuaj/inventra/internal/db"
+	"github.com/ragbuaj/inventra/internal/identity"
+	"github.com/ragbuaj/inventra/internal/middleware"
 )
 
 // Deps holds the shared infrastructure passed to feature modules.
@@ -64,14 +68,20 @@ func NewRouter(d Deps) *gin.Engine {
 		c.JSON(code, gin.H{"status": status, "checks": checks})
 	})
 
+	// Shared wiring for feature modules.
+	queries := sqlc.New(d.Pool)
+	tokenManager := auth.NewTokenManager(d.Cfg)
+	tokenStore := auth.NewTokenStore(d.Redis)
+	requireAuth := middleware.RequireAuth(tokenManager, tokenStore)
+
 	api := r.Group("/api/v1")
 	{
 		api.GET("/health", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"status": "ok"})
 		})
-		// Feature module routes are registered here, e.g.:
-		//   identity.RegisterRoutes(api, d)
-		//   asset.RegisterRoutes(api, d)
+
+		identitySvc := identity.NewService(queries, tokenManager, tokenStore)
+		identity.RegisterRoutes(api, identity.NewHandler(identitySvc), requireAuth)
 	}
 
 	return r

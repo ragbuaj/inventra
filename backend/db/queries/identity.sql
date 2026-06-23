@@ -17,6 +17,11 @@ WHERE id = $1 AND deleted_at IS NULL;
 SELECT * FROM identity.users
 WHERE email = $1 AND deleted_at IS NULL;
 
+-- name: CreateUser :one
+INSERT INTO identity.users (name, email, password_hash, role_id, office_id, employee_id)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING *;
+
 -- name: ListRolePermissions :many
 SELECT permission_key FROM identity.role_permissions
 WHERE role_id = $1 AND deleted_at IS NULL
