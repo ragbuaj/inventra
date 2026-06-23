@@ -1,0 +1,29 @@
+meta {
+  name: Floors - Create
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/floors
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "office_id": "{{officeId}}",
+    "name": "Lantai 1",
+    "level": 1
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("floorId", res.body.id);
+  }
+}

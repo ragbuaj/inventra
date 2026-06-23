@@ -39,6 +39,12 @@ tags:
       `problem-categories`, `brands`, `vendors`, `provinces`, `cities` (field `province_id`),
       `models` (field `brand_id`).
 
+      **Offices & employees** (documented in full) are data-scoped per row.
+      **Floors** (`GET /api/v1/floors?office_id=...`) and **rooms**
+      (`GET /api/v1/rooms?floor_id=...`) are nested, office-scoped location
+      resources (writes require `masterdata.office.manage`); see the Bruno
+      collection for examples.
+
 paths:
   /health:
     get:

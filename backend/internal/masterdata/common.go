@@ -36,6 +36,8 @@ func RegisterRoutes(rg *gin.RouterGroup, q *sqlc.Queries, pool *pgxpool.Pool, pe
 	registerCategories(rg, q, authMW, globalManage)
 	registerReference(rg, pool, authMW, globalManage)
 	registerOffices(rg, q, scopeSvc, authMW, officeManage)
+	registerFloors(rg, q, scopeSvc, authMW, officeManage)
+	registerRooms(rg, q, scopeSvc, authMW, officeManage)
 	registerEmployees(rg, q, scopeSvc, authMW, officeManage)
 }
 

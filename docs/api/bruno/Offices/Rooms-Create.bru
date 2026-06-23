@@ -1,0 +1,29 @@
+meta {
+  name: Rooms - Create
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/rooms
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "floor_id": "{{floorId}}",
+    "name": "Ruang IT",
+    "code": "R-IT"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("roomId", res.body.id);
+  }
+}
