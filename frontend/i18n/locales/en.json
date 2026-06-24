@@ -1,9 +1,8 @@
 {
-  "app": {
-    "name": "Inventra",
-    "tagline": "Asset Management"
-  },
+  "app": { "name": "Inventra", "tagline": "Asset Management" },
   "common": {
-    "welcome": "Welcome to Inventra"
+    "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit",
+    "add": "Add", "search": "Search", "reset": "Reset", "actions": "Actions",
+    "loading": "Loading…", "noData": "No data yet", "confirm": "Confirm"
   }
 }

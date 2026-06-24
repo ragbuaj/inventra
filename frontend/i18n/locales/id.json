@@ -1,9 +1,8 @@
 {
-  "app": {
-    "name": "Inventra",
-    "tagline": "Manajemen Aset"
-  },
+  "app": { "name": "Inventra", "tagline": "Manajemen Aset" },
   "common": {
-    "welcome": "Selamat datang di Inventra"
+    "save": "Simpan", "cancel": "Batal", "delete": "Hapus", "edit": "Ubah",
+    "add": "Tambah", "search": "Cari", "reset": "Reset", "actions": "Aksi",
+    "loading": "Memuat…", "noData": "Belum ada data", "confirm": "Konfirmasi"
   }
 }
