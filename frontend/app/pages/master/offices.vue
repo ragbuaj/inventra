@@ -24,6 +24,12 @@ const floors = ref<Floor[]>([])
 const floorRooms = ref<Record<string, Room[]>>({})
 const floorOpen = ref<Record<string, boolean>>({})
 
+// Inline rename state: tracks which floor/room name is being edited
+const editingFloorId = ref<string>()
+const editingRoomId = ref<string>()
+const editingFloorName = ref('')
+const editingRoomName = ref('')
+
 // Form state
 const formOpen = ref(false)
 const saving = ref(false)
@@ -220,6 +226,38 @@ async function deleteRoom(roomId: string) {
   if (!ok) return
   floorsApi.removeRoom(roomId)
   if (selectedId.value) loadFloors(selectedId.value)
+}
+
+function startEditFloor(floor: Floor) {
+  editingFloorId.value = floor.id
+  editingFloorName.value = floor.nama
+}
+
+function commitEditFloor() {
+  const id = editingFloorId.value
+  if (!id) return
+  const name = editingFloorName.value.trim()
+  if (name) {
+    floorsApi.updateFloor(id, { nama: name })
+    if (selectedId.value) loadFloors(selectedId.value)
+  }
+  editingFloorId.value = undefined
+}
+
+function startEditRoom(room: Room) {
+  editingRoomId.value = room.id
+  editingRoomName.value = room.nama
+}
+
+function commitEditRoom() {
+  const id = editingRoomId.value
+  if (!id) return
+  const name = editingRoomName.value.trim()
+  if (name) {
+    floorsApi.updateRoom(id, { nama: name })
+    if (selectedId.value) loadFloors(selectedId.value)
+  }
+  editingRoomId.value = undefined
 }
 
 function toggleFloor(floorId: string) {
@@ -458,7 +496,29 @@ onMounted(refresh)
                   class="size-4"
                 />
               </div>
-              <span class="flex-1 font-semibold text-[14px]">{{ floor.nama }}</span>
+              <!-- Inline-editable floor name -->
+              <template v-if="editingFloorId === floor.id">
+                <input
+                  v-model="editingFloorName"
+                  class="flex-1 font-semibold text-[14px] bg-default border border-primary rounded-[6px] px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary/30"
+                  :aria-label="t('masterdata.floors.editName')"
+                  @click.stop
+                  @blur="commitEditFloor"
+                  @keydown.enter.prevent="commitEditFloor"
+                  @keydown.esc.prevent="editingFloorId = undefined"
+                >
+              </template>
+              <template v-else>
+                <span class="flex-1 font-semibold text-[14px]">{{ floor.nama }}</span>
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  icon="i-lucide-pencil"
+                  :title="t('masterdata.floors.editName')"
+                  @click.stop="startEditFloor(floor)"
+                />
+              </template>
               <span class="text-[12px] text-muted font-medium">
                 {{ (floorRooms[floor.id] ?? []).length }} {{ t('masterdata.rooms.title').toLowerCase() }}
               </span>
@@ -493,7 +553,28 @@ onMounted(refresh)
                   name="i-lucide-door-open"
                   class="size-[15px] text-dimmed flex-none"
                 />
-                <span class="flex-1 text-[13.5px] font-medium">{{ room.nama }}</span>
+                <!-- Inline-editable room name -->
+                <template v-if="editingRoomId === room.id">
+                  <input
+                    v-model="editingRoomName"
+                    class="flex-1 text-[13.5px] font-medium bg-default border border-primary rounded-[6px] px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary/30"
+                    :aria-label="t('masterdata.rooms.editName')"
+                    @blur="commitEditRoom"
+                    @keydown.enter.prevent="commitEditRoom"
+                    @keydown.esc.prevent="editingRoomId = undefined"
+                  >
+                </template>
+                <template v-else>
+                  <span class="flex-1 text-[13.5px] font-medium">{{ room.nama }}</span>
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    icon="i-lucide-pencil"
+                    :title="t('masterdata.rooms.editName')"
+                    @click="startEditRoom(room)"
+                  />
+                </template>
                 <span class="font-mono text-[11.5px] text-dimmed">{{ room.kode }}</span>
                 <UButton
                   color="error"

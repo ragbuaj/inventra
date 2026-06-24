@@ -18,7 +18,6 @@ function handleMarkRead() {
       <button
         class="flex items-center justify-center w-9 h-9 rounded-[9px] border border-default bg-transparent text-muted cursor-pointer hover:bg-muted hover:text-default transition-colors"
         :title="t('notifications.title')"
-        @click="open = !open"
       >
         <UIcon
           name="i-lucide-bell"

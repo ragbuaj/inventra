@@ -13,6 +13,15 @@ function setupSuperadmin() {
   )
 }
 
+// Superadmin with ENUMERATED permissions (no '*') — as the backend actually returns
+function setupSuperadminEnumerated() {
+  useAuthStore().setSession(
+    'tok',
+    { id: '1', name: 'Admin Inventra', email: 'admin@inventra.local', role_id: 'r1', role_name: 'Superadmin' },
+    ['user.manage', 'masterdata.office.manage', 'masterdata.global.manage', 'masterdata.reference.manage']
+  )
+}
+
 describe('AppSidebar', () => {
   beforeEach(() => {
     useAuthStore().clear()
@@ -135,5 +144,30 @@ describe('AppSidebar', () => {
     const wrapper = await mountSuspended(AppSidebar)
     const aside = wrapper.find('aside')
     expect(aside.classes()).toContain('w-[76px]')
+  })
+})
+
+describe('AppSidebar — enumerated superadmin permissions (Bug 3)', () => {
+  beforeEach(() => {
+    useAuthStore().clear()
+    useUiStore().sidebarCollapsed = false
+  })
+
+  it('renders superadminNav (Master Data group) when permissions are enumerated without wildcard', async () => {
+    // Backend returns specific keys, never '*', so can('*') would always be false.
+    // The sidebar must gate on a real admin-only capability instead.
+    setupSuperadminEnumerated()
+    const wrapper = await mountSuspended(AppSidebar)
+    const html = wrapper.html()
+    // superadminNav contains a "Master Data" group — staffNav does not
+    expect(html).toContain('Master Data')
+  })
+
+  it('renders Kantor link (/master/offices) for enumerated superadmin', async () => {
+    setupSuperadminEnumerated()
+    const wrapper = await mountSuspended(AppSidebar)
+    const links = wrapper.findAll('a')
+    const kantorLink = links.find(a => a.attributes('href')?.includes('/master/offices'))
+    expect(kantorLink).toBeDefined()
   })
 })

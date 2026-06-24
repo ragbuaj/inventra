@@ -217,11 +217,13 @@
       }
     },
     "floors": {
-      "deleteConfirm": "Delete this floor?"
+      "deleteConfirm": "Delete this floor?",
+      "editName": "Rename floor"
     },
     "rooms": {
       "title": "Rooms",
-      "deleteConfirm": "Delete this room?"
+      "deleteConfirm": "Delete this room?",
+      "editName": "Rename room"
     }
   }
 }

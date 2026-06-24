@@ -6,9 +6,11 @@ const ui = useUiStore()
 const can = useCan()
 const auth = useAuthStore()
 const { t } = useI18n()
+const localePath = useLocalePath()
 
-// Determine which nav to use based on superadmin wildcard permission
-const nav = computed(() => can('*') ? superadminNav : staffNav)
+// Gate on 'user.manage': an admin-only capability the backend always returns for admins.
+// The backend never returns the literal '*' in the permissions list, only enumerated keys.
+const nav = computed(() => can('user.manage') ? superadminNav : staffNav)
 
 // Track which parent groups are expanded; default all open
 const expandedGroups = ref<Record<string, boolean>>({})
@@ -155,7 +157,7 @@ const userScope = computed(() => auth.user?.role_name ?? '')
                   <!-- Built child (has `to`) -->
                   <NuxtLink
                     v-if="!child.disabled && child.to"
-                    :to="child.to"
+                    :to="localePath(child.to)"
                     class="flex items-center w-full px-3 py-[8px] text-[13.5px] rounded-[8px] text-default hover:bg-muted transition-colors"
                     active-class="bg-primary/10 text-primary font-medium shadow-[inset_3px_0_0_var(--ui-primary)]"
                     :style="{ boxShadow: 'inset 3px 0 0 transparent' }"
@@ -179,7 +181,7 @@ const userScope = computed(() => auth.user?.role_name ?? '')
               <!-- Built leaf (has `to`) -->
               <NuxtLink
                 v-if="!item.disabled && item.to"
-                :to="item.to"
+                :to="localePath(item.to)"
                 :aria-label="t(item.labelKey)"
                 :title="ui.sidebarCollapsed ? t(item.labelKey) : undefined"
                 class="relative flex items-center w-full mb-[2px] rounded-[9px] gap-[11px] px-3 py-[9px] text-sm text-default hover:bg-muted transition-colors"

@@ -79,3 +79,55 @@ describe('useFloors — createRoom / removeRoom', () => {
     expect(rooms.every(r => r.floor_id === 'fl-pusat-1')).toBe(true)
   })
 })
+
+describe('useFloors — updateFloor (Bug 4)', () => {
+  const floors = useFloors()
+
+  it('updateFloor renames the floor and the new name is returned by getFloor', () => {
+    const f = floors.createFloor('o-pusat', 'Lantai Temp', 50)
+    const updated = floors.updateFloor(f.id, { nama: 'Lantai Diganti' })
+    expect(updated).toBeDefined()
+    expect(updated!.nama).toBe('Lantai Diganti')
+    const fetched = floors.getFloor(f.id)
+    expect(fetched?.nama).toBe('Lantai Diganti')
+    // cleanup
+    floors.removeFloor(f.id)
+  })
+
+  it('updateFloor returns undefined for unknown floor', () => {
+    const result = floors.updateFloor('no-such-floor', { nama: 'X' })
+    expect(result).toBeUndefined()
+  })
+
+  it('updateFloor rename is reflected in listByOffice', () => {
+    const f = floors.createFloor('o-jkt', 'Lantai Lama', 60)
+    floors.updateFloor(f.id, { nama: 'Lantai Baru Nama' })
+    const list = floors.listByOffice('o-jkt')
+    const found = list.find(x => x.id === f.id)
+    expect(found?.nama).toBe('Lantai Baru Nama')
+    // cleanup
+    floors.removeFloor(f.id)
+  })
+})
+
+describe('useFloors — updateRoom (Bug 4)', () => {
+  const floors = useFloors()
+
+  it('updateRoom renames the room and is reflected by roomsByFloor', () => {
+    const f = floors.createFloor('o-pusat', 'Temp Floor For Room', 55)
+    const r = floors.createRoom(f.id, 'o-pusat', 'Ruang Asli', 'TMP-ROOM')
+    const updated = floors.updateRoom(r.id, { nama: 'Ruang Direname' })
+    expect(updated).toBeDefined()
+    expect(updated!.nama).toBe('Ruang Direname')
+    const list = floors.roomsByFloor(f.id)
+    const found = list.find(x => x.id === r.id)
+    expect(found?.nama).toBe('Ruang Direname')
+    // cleanup
+    floors.removeFloor(f.id)
+  })
+
+  it('updateRoom returns undefined for unknown room', () => {
+    const result = floors.updateRoom('no-such-room', { nama: 'X' })
+    expect(result).toBeUndefined()
+  })
+})

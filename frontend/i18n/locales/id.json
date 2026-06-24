@@ -217,11 +217,13 @@
       }
     },
     "floors": {
-      "deleteConfirm": "Hapus lantai ini?"
+      "deleteConfirm": "Hapus lantai ini?",
+      "editName": "Ubah nama lantai"
     },
     "rooms": {
       "title": "Ruangan",
-      "deleteConfirm": "Hapus ruangan ini?"
+      "deleteConfirm": "Hapus ruangan ini?",
+      "editName": "Ubah nama ruangan"
     }
   }
 }

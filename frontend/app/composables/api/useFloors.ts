@@ -48,6 +48,14 @@ export function useFloors() {
     return roomStore.insert(room)
   }
 
+  function updateFloor(floorId: string, patch: Partial<Pick<Floor, 'nama'>>): Floor | undefined {
+    return floorStore.patch(floorId, patch)
+  }
+
+  function updateRoom(roomId: string, patch: Partial<Pick<Room, 'nama'>>): Room | undefined {
+    return roomStore.patch(roomId, patch)
+  }
+
   function removeRoom(roomId: string): boolean {
     return roomStore.remove(roomId)
   }
@@ -56,9 +64,11 @@ export function useFloors() {
     listByOffice,
     getFloor,
     createFloor,
+    updateFloor,
     removeFloor,
     roomsByFloor,
     createRoom,
+    updateRoom,
     removeRoom
   }
 }

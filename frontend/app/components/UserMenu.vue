@@ -31,7 +31,6 @@ function handleLogout() {
     <!-- Pill trigger: avatar initials + chevron, no name text -->
     <button
       class="flex items-center gap-2 px-1 py-1 pr-2 border border-default rounded-full bg-transparent cursor-pointer hover:bg-muted transition-colors"
-      @click="open = !open"
     >
       <span class="w-[30px] h-[30px] rounded-full bg-primary text-inverted flex items-center justify-center text-[12px] font-bold flex-none select-none">
         {{ initials }}
