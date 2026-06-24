@@ -4,5 +4,19 @@
     "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit",
     "add": "Add", "search": "Search", "reset": "Reset", "actions": "Actions",
     "loading": "Loading…", "noData": "No data yet", "confirm": "Confirm"
+  },
+  "status": {
+    "asset": {
+      "available": "Available",
+      "assigned": "Assigned",
+      "under_maintenance": "Under Maintenance",
+      "disposed": "Disposed",
+      "lost": "Lost"
+    },
+    "approval": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    }
   }
 }

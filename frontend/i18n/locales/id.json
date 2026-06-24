@@ -4,5 +4,19 @@
     "save": "Simpan", "cancel": "Batal", "delete": "Hapus", "edit": "Ubah",
     "add": "Tambah", "search": "Cari", "reset": "Reset", "actions": "Aksi",
     "loading": "Memuat…", "noData": "Belum ada data", "confirm": "Konfirmasi"
+  },
+  "status": {
+    "asset": {
+      "available": "Tersedia",
+      "assigned": "Dipinjam",
+      "under_maintenance": "Maintenance",
+      "disposed": "Dilepas",
+      "lost": "Hilang"
+    },
+    "approval": {
+      "pending": "Menunggu",
+      "approved": "Disetujui",
+      "rejected": "Ditolak"
+    }
   }
 }
