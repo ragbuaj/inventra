@@ -157,7 +157,7 @@ const userScope = computed(() => auth.user?.role_name ?? '')
                     v-if="!child.disabled && child.to"
                     :to="child.to"
                     class="flex items-center w-full px-3 py-[8px] text-[13.5px] rounded-[8px] text-default hover:bg-muted transition-colors"
-                    active-class="bg-primary/10 text-primary font-medium"
+                    active-class="bg-primary/10 text-primary font-medium shadow-[inset_3px_0_0_var(--ui-primary)]"
                     :style="{ boxShadow: 'inset 3px 0 0 transparent' }"
                   >
                     {{ $t(child.labelKey) }}
@@ -184,7 +184,7 @@ const userScope = computed(() => auth.user?.role_name ?? '')
                 :title="ui.sidebarCollapsed ? t(item.labelKey) : undefined"
                 class="relative flex items-center w-full mb-[2px] rounded-[9px] gap-[11px] px-3 py-[9px] text-sm text-default hover:bg-muted transition-colors"
                 :class="{ 'justify-center': ui.sidebarCollapsed }"
-                active-class="text-primary font-medium"
+                active-class="text-primary font-medium bg-primary/10 shadow-[inset_3px_0_0_var(--ui-primary)]"
                 :style="{ boxShadow: 'inset 3px 0 0 transparent' }"
               >
                 <UIcon
@@ -213,7 +213,6 @@ const userScope = computed(() => auth.user?.role_name ?? '')
                 v-else
                 :aria-label="t(item.labelKey)"
                 :title="ui.sidebarCollapsed ? t(item.labelKey) : t('nav.comingSoon')"
-                role="button"
                 tabindex="-1"
                 aria-disabled="true"
                 class="relative flex items-center w-full mb-[2px] rounded-[9px] gap-[11px] px-3 py-[9px] text-sm text-dimmed cursor-not-allowed select-none"
