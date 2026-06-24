@@ -237,10 +237,12 @@ function commitEditFloor() {
   const id = editingFloorId.value
   if (!id) return
   const name = editingFloorName.value.trim()
-  if (name) {
-    floorsApi.updateFloor(id, { nama: name })
-    if (selectedId.value) loadFloors(selectedId.value)
+  if (!name) {
+    toast.add({ title: t('masterdata.offices.nameRequired'), color: 'error' })
+    return
   }
+  floorsApi.updateFloor(id, { nama: name })
+  if (selectedId.value) loadFloors(selectedId.value)
   editingFloorId.value = undefined
 }
 
@@ -253,10 +255,12 @@ function commitEditRoom() {
   const id = editingRoomId.value
   if (!id) return
   const name = editingRoomName.value.trim()
-  if (name) {
-    floorsApi.updateRoom(id, { nama: name })
-    if (selectedId.value) loadFloors(selectedId.value)
+  if (!name) {
+    toast.add({ title: t('masterdata.offices.nameRequired'), color: 'error' })
+    return
   }
+  floorsApi.updateRoom(id, { nama: name })
+  if (selectedId.value) loadFloors(selectedId.value)
   editingRoomId.value = undefined
 }
 

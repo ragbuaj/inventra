@@ -132,6 +132,7 @@
       "deleteBody": "Kantor dan seluruh kantor anaknya akan dihapus. Tindakan ini tidak dapat dibatalkan.",
       "deleteFloorConfirm": "Hapus lantai ini? Semua ruangan di lantai ini juga akan dihapus.",
       "deleteRoomConfirm": "Hapus ruangan ini? Tindakan ini tidak dapat dibatalkan.",
+      "nameRequired": "Nama tidak boleh kosong.",
       "fields": {
         "nama": "Nama Kantor",
         "kode": "Kode",

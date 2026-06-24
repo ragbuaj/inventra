@@ -132,6 +132,7 @@
       "deleteBody": "The office and all its child offices will be deleted. This cannot be undone.",
       "deleteFloorConfirm": "Delete this floor? All rooms on this floor will also be removed.",
       "deleteRoomConfirm": "Delete this room? This action cannot be undone.",
+      "nameRequired": "Name cannot be empty.",
       "fields": {
         "nama": "Office Name",
         "kode": "Code",
