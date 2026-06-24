@@ -8,11 +8,12 @@ export function useApiClient() {
     const refresh = useCookie<string | null>('inventra_refresh')
     if (!refresh.value) return false
     try {
-      const res = await $fetch<{ access_token: string }>(`${base}/auth/refresh`, {
+      const res = await $fetch<{ access_token: string, refresh_token: string }>(`${base}/auth/refresh`, {
         method: 'POST',
         body: { refresh_token: refresh.value }
       })
       auth.setToken(res.access_token)
+      refresh.value = res.refresh_token
       return true
     } catch {
       return false
@@ -32,6 +33,7 @@ export function useApiClient() {
       }
       if (status === 401) {
         auth.clear()
+        useCookie<string | null>('inventra_refresh').value = null
         await navigateTo('/login')
       } else {
         toast.add({ title: 'Terjadi kesalahan', description: String(status ?? ''), color: 'error' })

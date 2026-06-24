@@ -59,5 +59,9 @@ export function useAuthApi() {
     }
   }
 
-  return { login, fetchMe, logout }
+  function refresh(): Promise<boolean> {
+    return useApiClient().refreshToken()
+  }
+
+  return { login, fetchMe, logout, refresh }
 }
