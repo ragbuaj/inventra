@@ -1,11 +1,7 @@
 <script setup lang="ts">
-export interface TreeNode {
-  id: string
-  label: string
-  icon?: string
-  childCount?: number
-  children?: TreeNode[]
-}
+import type { TreeNode } from '~/types'
+
+export type { TreeNode }
 defineProps<{ nodes: TreeNode[], selectedId?: string }>()
 const emit = defineEmits<{ select: [string] }>()
 const expanded = ref<Record<string, boolean>>({})
