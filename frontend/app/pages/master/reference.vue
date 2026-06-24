@@ -227,7 +227,7 @@ onMounted(async () => {
               class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border cursor-pointer transition-colors text-[11.5px] font-semibold"
               :class="(row as unknown as ReferenceRow).active !== false
                 ? 'border-success/30 bg-success/10 text-success'
-                : 'border-muted text-muted bg-transparent'"
+                : 'border-muted text-muted bg-muted'"
               @click="toggleActive(row as unknown as ReferenceRow)"
             >
               <span>

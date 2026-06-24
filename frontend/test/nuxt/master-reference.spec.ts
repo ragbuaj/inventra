@@ -1,6 +1,7 @@
 // @vitest-environment nuxt
 import { describe, it, expect } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
+import { useAuthStore } from '~/stores/auth'
 import ReferencePage from '~/pages/master/reference.vue'
 
 async function mountAndWait() {
@@ -68,15 +69,13 @@ describe('Master Data Referensi page', () => {
     // Find the "Departemen" nav button and click it
     const buttons = wrapper.findAll('button')
     const deptBtn = buttons.find(b => b.text().includes('Departemen') && !b.text().includes('office-types'))
-    if (deptBtn) {
-      await deptBtn.trigger('click')
-      await new Promise(r => setTimeout(r, 350))
-      await wrapper.vm.$nextTick()
-      const html = wrapper.html()
-      // After switching to departments, seeded row "Umum" should be visible
-      expect(html).toContain('Umum')
-      // The old entity rows should no longer dominate
-    }
+    expect(deptBtn).toBeDefined()
+    await deptBtn!.trigger('click')
+    await new Promise(r => setTimeout(r, 350))
+    await wrapper.vm.$nextTick()
+    const html = wrapper.html()
+    // After switching to departments, seeded row "Umum" should be visible
+    expect(html).toContain('Umum')
   })
 
   it('status column renders a toggle (button/switch) for each row', async () => {
@@ -102,30 +101,38 @@ describe('Master Data Referensi page', () => {
   })
 
   it('form modal has the Aktif toggle row', async () => {
+    useAuthStore().setSession(
+      'tok',
+      { id: '1', name: 'Admin', email: 'admin@test.com', role_id: 'r1', role_name: 'Admin' },
+      ['*']
+    )
     const wrapper = await mountAndWait()
     // Find and click the Add button to open the form
     const buttons = wrapper.findAll('button')
     const addBtn = buttons.find(b => b.text().trim() === 'Tambah' || b.text().includes('Tambah'))
-    if (addBtn) {
-      await addBtn.trigger('click')
-      await wrapper.vm.$nextTick()
-      const html = wrapper.html()
-      // The form should contain "Aktif" toggle label
-      expect(html).toContain('Aktif')
-    }
+    expect(addBtn).toBeDefined()
+    await addBtn!.trigger('click')
+    await wrapper.vm.$nextTick()
+    const html = wrapper.html()
+    // The form should contain "Aktif" toggle label
+    expect(html).toContain('Aktif')
   })
 
   it('form modal has a subtitle (entity label) under the title', async () => {
+    useAuthStore().setSession(
+      'tok',
+      { id: '1', name: 'Admin', email: 'admin@test.com', role_id: 'r1', role_name: 'Admin' },
+      ['*']
+    )
     const wrapper = await mountAndWait()
     const buttons = wrapper.findAll('button')
     const addBtn = buttons.find(b => b.text().trim() === 'Tambah' || b.text().includes('Tambah'))
-    if (addBtn) {
-      await addBtn.trigger('click')
-      await wrapper.vm.$nextTick()
-      const html = wrapper.html()
-      // Modal should contain "Tambah Data" (create title) or the entity name as subtitle
-      const hasTitleOrSub = html.includes('Tambah Data') || html.includes('Jenis Kantor')
-      expect(hasTitleOrSub).toBe(true)
-    }
+    expect(addBtn).toBeDefined()
+    await addBtn!.trigger('click')
+    await wrapper.vm.$nextTick()
+    const html = wrapper.html()
+    // Modal should contain "Tambah Data" (create title) or the entity name as subtitle
+    const hasTitleOrSub = html.includes('Tambah Data') || html.includes('Jenis Kantor')
+    expect(hasTitleOrSub).toBe(true)
   })
 })
