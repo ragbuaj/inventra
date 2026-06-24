@@ -64,5 +64,31 @@
       "approved": "Approved",
       "rejected": "Rejected"
     }
+  },
+  "masterdata": {
+    "offices": {
+      "title": "Office Master Data",
+      "subtitle": "Manage the 4-tier office hierarchy",
+      "add": "Add Office",
+      "searchPlaceholder": "Search name / code / city",
+      "selectHint": "Select an office in the tree to view details",
+      "empty": "No offices yet",
+      "fields": {
+        "nama": "Office Name",
+        "kode": "Code",
+        "tipe": "Tier",
+        "parent": "Parent",
+        "provinsi": "Province",
+        "kota": "City",
+        "alamat": "Address"
+      },
+      "tipe": { "pusat": "Head Office", "kanwil": "Regional", "cabang": "Branch", "unit": "Unit" },
+      "noParent": "No parent (Head Office)",
+      "createTitle": "Add Office",
+      "editTitle": "Edit Office",
+      "deleteConfirm": "Delete this office? This action cannot be undone.",
+      "errInvalidParent": "Invalid parent office.",
+      "errNotFound": "Office not found."
+    }
   }
 }

@@ -2,9 +2,24 @@
 import type { TreeNode } from '~/types'
 
 export type { TreeNode }
-defineProps<{ nodes: TreeNode[], selectedId?: string }>()
+const props = defineProps<{ nodes: TreeNode[], selectedId?: string }>()
 const emit = defineEmits<{ select: [string] }>()
-const expanded = ref<Record<string, boolean>>({})
+
+function collectIds(nodes: TreeNode[]): string[] {
+  return nodes.flatMap(n => [n.id, ...(n.children ? collectIds(n.children) : [])])
+}
+
+const expanded = ref<Record<string, boolean>>(Object.fromEntries(collectIds(props.nodes).map(id => [id, true])))
+
+watch(() => props.nodes, (nodes) => {
+  const ids = collectIds(nodes)
+  for (const id of ids) {
+    if (!(id in expanded.value)) {
+      expanded.value[id] = true
+    }
+  }
+}, { deep: true })
+
 function toggle(id: string) {
   expanded.value[id] = !expanded.value[id]
 }

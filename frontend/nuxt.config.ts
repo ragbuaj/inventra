@@ -15,6 +15,10 @@ export default defineNuxtConfig({
 
   ssr: false,
 
+  imports: {
+    dirs: ['composables', 'composables/api']
+  },
+
   devtools: {
     enabled: true
   },

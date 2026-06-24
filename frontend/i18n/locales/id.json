@@ -64,5 +64,31 @@
       "approved": "Disetujui",
       "rejected": "Ditolak"
     }
+  },
+  "masterdata": {
+    "offices": {
+      "title": "Master Data Kantor",
+      "subtitle": "Kelola hierarki kantor 4 jenjang",
+      "add": "Tambah Kantor",
+      "searchPlaceholder": "Cari nama / kode / kota",
+      "selectHint": "Pilih kantor pada pohon untuk melihat detail",
+      "empty": "Belum ada kantor",
+      "fields": {
+        "nama": "Nama Kantor",
+        "kode": "Kode",
+        "tipe": "Jenjang",
+        "parent": "Induk",
+        "provinsi": "Provinsi",
+        "kota": "Kota",
+        "alamat": "Alamat"
+      },
+      "tipe": { "pusat": "Pusat", "kanwil": "Kanwil", "cabang": "Cabang", "unit": "Unit" },
+      "noParent": "Tanpa induk (Pusat)",
+      "createTitle": "Tambah Kantor",
+      "editTitle": "Ubah Kantor",
+      "deleteConfirm": "Hapus kantor ini? Tindakan ini tidak dapat dibatalkan.",
+      "errInvalidParent": "Induk kantor tidak valid.",
+      "errNotFound": "Kantor tidak ditemukan."
+    }
   }
 }
