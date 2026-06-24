@@ -38,7 +38,7 @@ func NewRouter(d Deps) *gin.Engine {
 	}
 
 	r := gin.New()
-	r.Use(gin.Logger(), gin.Recovery())
+	r.Use(gin.Logger(), gin.Recovery(), middleware.CORS(d.Cfg.FrontendURL))
 
 	// Liveness — process is up; no external dependencies.
 	r.GET("/health", func(c *gin.Context) {
