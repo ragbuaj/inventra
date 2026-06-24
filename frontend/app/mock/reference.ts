@@ -22,6 +22,16 @@ const seeds: Partial<Record<ReferenceKey, ReferenceRow[]>> = {
   ],
   vendors: [
     { id: 'v-1', name: 'PT Sumber Jaya', email: 'sales@sumberjaya.co.id', phone: '021-5550001', active: true }
+  ],
+  departments: [
+    { id: 'd-1', name: 'Umum', active: true },
+    { id: 'd-2', name: 'Keuangan', active: true },
+    { id: 'd-3', name: 'Aset', active: true }
+  ],
+  positions: [
+    { id: 'pos-1', name: 'Kepala Kantor', active: true },
+    { id: 'pos-2', name: 'Staf', active: true },
+    { id: 'pos-3', name: 'Kepala Unit', active: true }
   ]
 }
 

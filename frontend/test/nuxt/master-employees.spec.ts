@@ -93,6 +93,20 @@ describe('Master Data Pegawai page', () => {
     expect(bodyHtml).toContain('Kantor')
   })
 
+  it('dept filter narrows results — selecting Keuangan shows only matching rows', async () => {
+    const wrapper = await mountSuspended(EmployeesPage)
+    await new Promise(r => setTimeout(r, 350))
+    await wrapper.vm.$nextTick()
+    const vm = wrapper.vm as unknown as { filterDept: string }
+    vm.filterDept = 'Keuangan'
+    await wrapper.vm.$nextTick()
+    const html = wrapper.html()
+    // Bunga Lestari is the only Keuangan employee in seed
+    expect(html).toContain('Bunga Lestari')
+    // Andi Pratama (Umum) should not appear when Keuangan filter is set
+    expect(html).not.toContain('Andi Pratama')
+  })
+
   it('status filter narrows results — selecting inactive shows only inactive rows', async () => {
     const wrapper = await mountSuspended(EmployeesPage)
     await new Promise(r => setTimeout(r, 350))
