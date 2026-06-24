@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;}
+input::placeholder{color:var(--text-dimmed);}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:9px;border:2px solid transparent;background-clip:padding-box;}
+:root{
+  --bg:#f8fafc; --bg-base:#ffffff; --bg-muted:#f1f5f9; --bg-elevated:#ffffff;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#0f172a; --text-muted:#64748b; --text-dimmed:#94a3b8;
+  --primary:#16a34a; --primary-hover:#15803d; --primary-fg:#ffffff;
+  --primary-soft-bg:#dcfce7; --primary-soft-text:#15803d;
+  --success:#16a34a; --success-soft-bg:#dcfce7; --success-soft-text:#15803d;
+  --warning:#d97706; --warning-soft-bg:#fef3c7; --warning-soft-text:#b45309;
+  --error:#dc2626; --error-soft-bg:#fee2e2; --error-soft-text:#b91c1c;
+  --info:#2563eb; --info-soft-bg:#dbeafe; --info-soft-text:#1d4ed8;
+  --neutral-soft-bg:#eef2f6; --neutral-soft-text:#475569;
+  --ring:color-mix(in srgb, var(--primary) 28%, transparent);
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
+  --shadow-lg:0 12px 34px rgba(15,23,42,.16);
+}
+[data-theme="dark"]{
+  --bg:#020617; --bg-base:#0b1220; --bg-muted:#1e293b; --bg-elevated:#1e293b;
+  --border:#1e293b; --border-strong:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8; --text-dimmed:#64748b;
+  --primary:#22c55e; --primary-hover:#16a34a; --primary-fg:#052e16;
+  --primary-soft-bg:#14331f; --primary-soft-text:#4ade80;
+  --success:#22c55e; --success-soft-bg:#14331f; --success-soft-text:#4ade80;
+  --warning:#f59e0b; --warning-soft-bg:#3a2a08; --warning-soft-text:#fbbf24;
+  --error:#ef4444; --error-soft-bg:#3a1414; --error-soft-text:#f87171;
+  --info:#3b82f6; --info-soft-bg:#13243f; --info-soft-text:#60a5fa;
+  --neutral-soft-bg:#1e293b; --neutral-soft-text:#cbd5e1;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 12px 34px rgba(0,0,0,.55);
+}
+@keyframes shimmer{0%{background-position:-500px 0}100%{background-position:500px 0}}
+@keyframes popIn{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:none}}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" data-theme="{{ theme }}" style="font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--text);">
+  <div style="display:flex;height:100vh;overflow:hidden;background:var(--bg);">
+
+    <!-- SIDEBAR -->
+    <aside style="width:{{ sidebarW }};flex:none;display:flex;flex-direction:column;background:var(--bg-base);border-right:1px solid var(--border);transition:width .2s ease;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:11px;height:61px;padding:0 18px;border-bottom:1px solid var(--border);flex:none;">
+        <div style="width:34px;height:34px;border-radius:9px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--primary-fg);flex:none;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13h6"/></svg></div>
+        <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="font:700 18px Inter;letter-spacing:-.01em;white-space:nowrap;">Inventra</span></sc-if>
+      </div>
+      <nav style="flex:1;overflow-y:auto;overflow-x:hidden;padding:12px;">
+        <sc-for list="{{ nav }}" as="g" hint-placeholder-count="2">
+          <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><div style="padding:14px 12px 6px;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dimmed);white-space:nowrap;">{{ g.label }}</div></sc-if>
+          <sc-if value="{{ collapsed }}" hint-placeholder-val="{{ false }}"><div style="height:1px;background:var(--border);margin:10px 8px;"></div></sc-if>
+          <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+            <button title="{{ it.label }}" style="position:relative;display:flex;align-items:center;justify-content:{{ navJustify }};gap:11px;width:100%;padding:9px 12px;margin-bottom:2px;font-family:Inter;font-size:14px;font-weight:{{ it.weight }};color:{{ it.fg }};background:{{ it.bg }};border:none;border-radius:9px;cursor:pointer;text-align:left;box-shadow:inset 3px 0 0 {{ it.accent }};white-space:nowrap;" style-hover="background:{{ it.hoverBg }};">
+              {{ it.icon }}
+              <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;">{{ it.label }}</span></sc-if>
+              <sc-if value="{{ it.badgeExp }}" hint-placeholder-val="{{ false }}"><span style="flex:none;min-width:20px;height:20px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;font:700 11px Inter;color:#fff;background:var(--error);border-radius:999px;">{{ it.badge }}</span></sc-if>
+            </button>
+          </sc-for>
+        </sc-for>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <header style="display:flex;align-items:center;gap:14px;height:61px;flex:none;padding:0 20px;background:var(--bg-base);border-bottom:1px solid var(--border);">
+        <button onClick="{{ toggleCollapse }}" title="Collapse" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex:none;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg></button>
+        <div style="display:flex;flex-direction:column;gap:1px;">
+          <div style="display:flex;align-items:center;gap:6px;font:400 11.5px Inter;color:var(--text-muted);"><span>Inventra</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span>{{ bcAset }}</span></div>
+          <span style="font:600 16px Inter;letter-spacing:-.01em;">{{ pageTitle }}</span>
+        </div>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex:none;">
+          <div style="display:flex;gap:2px;padding:3px;background:var(--bg-muted);border-radius:9px;">
+            <button onClick="{{ setId }}" style="padding:5px 9px;font:600 12px Inter;color:{{ idFg }};background:{{ idBg }};border:none;border-radius:6px;cursor:pointer;">ID</button>
+            <button onClick="{{ setEn }}" style="padding:5px 9px;font:600 12px Inter;color:{{ enFg }};background:{{ enBg }};border:none;border-radius:6px;cursor:pointer;">EN</button>
+          </div>
+          <button onClick="{{ toggleTheme }}" title="Tema" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">
+            <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></sc-if>
+            <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></sc-if>
+          </button>
+          <button title="Notifikasi" style="position:relative;display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span style="position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 4px;display:flex;align-items:center;justify-content:center;font:700 10px Inter;color:#fff;background:var(--error);border:2px solid var(--bg-base);border-radius:999px;">5</span></button>
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;background:transparent;border:1px solid var(--border);border-radius:999px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--primary);color:var(--primary-fg);display:flex;align-items:center;justify-content:center;font:700 12px Inter;">{{ userInitials }}</span><span style="display:flex;color:var(--text-dimmed);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+        </div>
+      </header>
+
+      <main style="flex:1;overflow-y:auto;padding:24px 28px 40px;">
+
+        <!-- PAGE HEADER -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px;">
+          <div>
+            <h1 style="margin:0 0 5px;font:700 23px Inter;letter-spacing:-.02em;">{{ pageTitle }}</h1>
+            <p style="margin:0;font:400 14px Inter;color:var(--text-muted);">{{ headerSub }}</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
+            <button style="display:inline-flex;align-items:center;gap:7px;padding:9px 13px;font:500 13.5px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9v6M10 9v6M13 9v6M16 9v6"/></svg>{{ scanLbl }}</button>
+            <button style="display:inline-flex;align-items:center;gap:7px;padding:9px 13px;font:500 13.5px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M4 21h16"/></svg>{{ importLbl }}</button>
+            <button style="display:inline-flex;align-items:center;gap:7px;padding:9px 15px;font:600 13.5px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>{{ addLbl }}</button>
+          </div>
+        </div>
+
+        <!-- FILTER BAR -->
+        <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;padding:14px;box-shadow:var(--shadow);margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div style="position:relative;flex:1;min-width:220px;">
+              <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);display:flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>
+              <input value="{{ q }}" onInput="{{ onSearch }}" placeholder="{{ searchPh }}" style="width:100%;padding:8px 12px 8px 35px;font:400 14px Inter;color:var(--text);background:var(--bg-muted);border:1px solid transparent;border-radius:9px;outline:none;" style-focus="background:var(--bg-base);border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+            </div>
+            <sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+              <div style="position:relative;">
+                <select value="{{ f.value }}" onChange="{{ f.on }}" style="appearance:none;padding:8px 30px 8px 12px;font:500 13px Inter;color:{{ f.color }};background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;cursor:pointer;max-width:170px;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);">
+                  <sc-for list="{{ f.opts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.label }}</option></sc-for>
+                </select>
+                <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+              </div>
+            </sc-for>
+            <div style="display:flex;align-items:center;gap:6px;padding:0 4px;border-left:1px solid var(--border);">
+              <input type="date" value="{{ dateFrom }}" onInput="{{ onFrom }}" title="Dari tanggal beli" style="padding:7px 9px;font:400 13px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;color-scheme:{{ scheme }};" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+              <span style="color:var(--text-dimmed);font:400 13px Inter;">–</span>
+              <input type="date" value="{{ dateTo }}" onInput="{{ onTo }}" title="Sampai tanggal beli" style="padding:7px 9px;font:400 13px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;color-scheme:{{ scheme }};" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+            </div>
+            <sc-if value="{{ anyFilter }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ resetFilter }}" style="display:inline-flex;align-items:center;gap:6px;padding:8px 12px;font:500 13px Inter;color:var(--error);background:transparent;border:1px solid transparent;border-radius:9px;cursor:pointer;" style-hover="background:var(--error-soft-bg);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>{{ resetLbl }}</button>
+            </sc-if>
+            <div style="flex:1;"></div>
+            <div style="display:flex;gap:3px;padding:3px;background:var(--bg-muted);border-radius:9px;flex:none;">
+              <button onClick="{{ viewTable }}" title="Tabel" style="display:flex;align-items:center;justify-content:center;width:32px;height:30px;color:{{ tableFg }};background:{{ tableBg }};border:none;border-radius:6px;cursor:pointer;box-shadow:{{ tableSh }};"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18v14H3zM3 10h18M3 15h18M9 5v14"/></svg></button>
+              <button onClick="{{ viewGrid }}" title="Grid" style="display:flex;align-items:center;justify-content:center;width:32px;height:30px;color:{{ gridFg }};background:{{ gridBg }};border:none;border-radius:6px;cursor:pointer;box-shadow:{{ gridSh }};"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- BULK BAR -->
+        <sc-if value="{{ hasSelection }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:12px;padding:11px 16px;margin-bottom:14px;background:var(--primary-soft-bg);border:1px solid color-mix(in srgb,var(--primary) 30%,transparent);border-radius:11px;">
+            <span style="font:600 13.5px Inter;color:var(--primary-soft-text);">{{ selCount }}</span>
+            <div style="flex:1;"></div>
+            <button style="display:inline-flex;align-items:center;gap:7px;padding:7px 13px;font:600 13px Inter;color:var(--primary-fg);background:var(--primary);border:none;border-radius:8px;cursor:pointer;" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 17h10v4H7z"/></svg>{{ batchPrint }}</button>
+            <button style="display:inline-flex;align-items:center;gap:7px;padding:7px 13px;font:500 13px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:8px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>{{ exportLbl }}</button>
+            <button onClick="{{ clearSel }}" style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;color:var(--primary-soft-text);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:color-mix(in srgb,var(--primary) 15%,transparent);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+          </div>
+        </sc-if>
+
+        <!-- LOADING -->
+        <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="height:42px;background:var(--bg-muted);border-bottom:1px solid var(--border);"></div>
+            <sc-for list="{{ skeRows }}" as="r" hint-placeholder-count="8">
+              <div style="display:flex;align-items:center;gap:16px;padding:14px 18px;border-bottom:1px solid var(--border);">
+                <div style="width:16px;height:16px;border-radius:4px;background:var(--bg-muted);flex:none;"></div>
+                <div style="width:130px;height:11px;border-radius:6px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;"></div>
+                <div style="flex:1;height:11px;border-radius:6px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;"></div>
+                <div style="width:84px;height:20px;border-radius:999px;background:var(--bg-muted);flex:none;"></div>
+                <div style="width:110px;height:11px;border-radius:6px;background:var(--bg-muted);flex:none;"></div>
+                <div style="width:70px;height:11px;border-radius:6px;background:var(--bg-muted);flex:none;"></div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <!-- EMPTY -->
+        <sc-if value="{{ showEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:60px 24px;text-align:center;">
+            <div style="width:60px;height:60px;margin:0 auto 16px;border-radius:16px;background:var(--bg-muted);color:var(--text-dimmed);display:flex;align-items:center;justify-content:center;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 8V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2"/><path d="M10 13h4"/></svg></div>
+            <div style="font:600 17px Inter;margin-bottom:6px;">{{ emptyTitle }}</div>
+            <div style="font:400 14px/1.5 Inter;color:var(--text-muted);max-width:340px;margin:0 auto 18px;">{{ emptySub }}</div>
+            <sc-if value="{{ anyFilter }}" hint-placeholder-val="{{ false }}"><button onClick="{{ resetFilter }}" style="display:inline-flex;align-items:center;gap:7px;padding:9px 16px;font:500 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);">{{ resetLbl }}</button></sc-if>
+            <sc-if value="{{ noFilter }}" hint-placeholder-val="{{ true }}"><button style="display:inline-flex;align-items:center;gap:7px;padding:9px 16px;font:500 14px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>{{ addLbl }}</button></sc-if>
+          </div>
+        </sc-if>
+
+        <!-- TABLE -->
+        <sc-if value="{{ showTable }}" hint-placeholder-val="{{ true }}">
+          <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;font:400 13.5px Inter;white-space:nowrap;">
+                <thead>
+                  <tr style="background:var(--bg-muted);">
+                    <th style="padding:11px 14px;width:42px;"><input type="checkbox" checked="{{ allChecked }}" onChange="{{ toggleAll }}" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;vertical-align:middle;" /></th>
+                    <th onClick="{{ sortTag }}" style="text-align:left;padding:11px 14px;font:600 12px Inter;letter-spacing:.03em;text-transform:uppercase;color:var(--text-muted);cursor:pointer;user-select:none;"><span style="display:inline-flex;align-items:center;gap:5px;">{{ colTag }}{{ arrTag }}</span></th>
+                    <th onClick="{{ sortNama }}" style="text-align:left;padding:11px 14px;font:600 12px Inter;letter-spacing:.03em;text-transform:uppercase;color:var(--text-muted);cursor:pointer;user-select:none;"><span style="display:inline-flex;align-items:center;gap:5px;">{{ colNama }}{{ arrNama }}</span></th>
+                    <th onClick="{{ sortKat }}" style="text-align:left;padding:11px 14px;font:600 12px Inter;letter-spacing:.03em;text-transform:uppercase;color:var(--text-muted);cursor:pointer;user-select:none;"><span style="display:inline-flex;align-items:center;gap:5px;">{{ colKat }}{{ arrKat }}</span></th>
+                    <th style="text-align:left;padding:11px 14px;font:600 12px Inter;letter-spacing:.03em;text-transform:uppercase;color:var(--text-muted);">{{ colBrand }}</th>
+                    <th onClick="{{ sortStatus }}" style="text-align:left;padding:11px 14px;font:600 12px Inter;letter-spacing:.03em;text-transform:uppercase;color:var(--text-muted);cursor:pointer;user-select:none;"><span style="display:inline-flex;align-items:center;gap:5px;">{{ colStatus }}{{ arrStatus }}</span></th>
+                    <th style="text-align:left;padding:11px 14px;font:600 12px Inter;letter-spacing:.03em;text-transform:uppercase;color:var(--text-muted);">{{ colKantor }}</th>
+                    <th style="text-align:left;padding:11px 14px;font:600 12px Inter;letter-spacing:.03em;text-transform:uppercase;color:var(--text-muted);">{{ colHolder }}</th>
+                    <th onClick="{{ sortTgl }}" style="text-align:left;padding:11px 14px;font:600 12px Inter;letter-spacing:.03em;text-transform:uppercase;color:var(--text-muted);cursor:pointer;user-select:none;"><span style="display:inline-flex;align-items:center;gap:5px;">{{ colDate }}{{ arrTgl }}</span></th>
+                    <sc-if value="{{ showPrice }}" hint-placeholder-val="{{ true }}">
+                      <th onClick="{{ sortHarga }}" style="text-align:right;padding:11px 14px;font:600 12px Inter;letter-spacing:.03em;text-transform:uppercase;color:var(--text-muted);cursor:pointer;user-select:none;"><span style="display:inline-flex;align-items:center;gap:5px;">{{ colHarga }}{{ arrHarga }}</span></th>
+                      <th onClick="{{ sortBuku }}" style="text-align:right;padding:11px 14px;font:600 12px Inter;letter-spacing:.03em;text-transform:uppercase;color:var(--text-muted);cursor:pointer;user-select:none;"><span style="display:inline-flex;align-items:center;gap:5px;">{{ colBuku }}{{ arrBuku }}</span></th>
+                    </sc-if>
+                    <th style="text-align:right;padding:11px 14px;font:600 12px Inter;letter-spacing:.03em;text-transform:uppercase;color:var(--text-muted);">{{ colAksi }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{ rows }}" as="r" hint-placeholder-count="10">
+                    <tr style="border-top:1px solid var(--border);background:{{ r.rowBg }};" style-hover="background:var(--bg-muted);">
+                      <td style="padding:12px 14px;"><input type="checkbox" checked="{{ r.selected }}" onChange="{{ r.toggle }}" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;vertical-align:middle;" /></td>
+                      <td style="padding:12px 14px;font:500 12.5px 'JetBrains Mono',monospace;color:var(--text-muted);">{{ r.tag }}</td>
+                      <td style="padding:12px 14px;font:500 13.5px Inter;color:var(--text);">{{ r.nama }}</td>
+                      <td style="padding:12px 14px;color:var(--text-muted);"><span style="display:inline-block;padding:2px 9px;font:600 12px Inter;border-radius:999px;background:var(--neutral-soft-bg);color:var(--neutral-soft-text);">{{ r.kat }}</span></td>
+                      <td style="padding:12px 14px;color:var(--text-muted);">{{ r.brand }}</td>
+                      <td style="padding:12px 14px;"><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;font:600 12px Inter;border-radius:999px;background:{{ r.stBg }};color:{{ r.stFg }};"><span style="width:6px;height:6px;border-radius:50%;background:{{ r.stDot }};"></span>{{ r.status }}</span></td>
+                      <td style="padding:12px 14px;color:var(--text-muted);">{{ r.kantor }}</td>
+                      <td style="padding:12px 14px;color:{{ r.holderColor }};">{{ r.holder }}</td>
+                      <td style="padding:12px 14px;color:var(--text-muted);">{{ r.date }}</td>
+                      <sc-if value="{{ showPrice }}" hint-placeholder-val="{{ true }}">
+                        <td style="padding:12px 14px;text-align:right;font-variant-numeric:tabular-nums;color:var(--text);">{{ r.harga }}</td>
+                        <td style="padding:12px 14px;text-align:right;font-variant-numeric:tabular-nums;color:var(--text-muted);">{{ r.buku }}</td>
+                      </sc-if>
+                      <td style="padding:12px 14px;text-align:right;">
+                        <div style="display:inline-flex;gap:2px;">
+                          <button title="Lihat" style="display:flex;padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--bg-base);color:var(--text);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                          <button title="Edit" style="display:flex;padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--bg-base);color:var(--text);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+                          <button title="Cetak Label" style="display:flex;padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--bg-base);color:var(--text);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 17h10v4H7z"/></svg></button>
+                          <button onClick="{{ r.del }}" title="Hapus" style="display:flex;padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--error-soft-bg);color:var(--error);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>
+                        </div>
+                      </td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:13px 16px;border-top:1px solid var(--border);">
+              <span style="font:400 13px Inter;color:var(--text-muted);">{{ pageInfo }}</span>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <button onClick="{{ prevPage }}" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;color:var(--text-muted);background:var(--bg-base);border:1px solid var(--border);border-radius:8px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+                <sc-for list="{{ pageBtns }}" as="p" hint-placeholder-count="2"><button onClick="{{ p.on }}" style="min-width:34px;height:34px;padding:0 6px;font:600 13px Inter;color:{{ p.fg }};background:{{ p.bg }};border:1px solid {{ p.bd }};border-radius:8px;cursor:pointer;">{{ p.n }}</button></sc-for>
+                <button onClick="{{ nextPage }}" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;color:var(--text-muted);background:var(--bg-base);border:1px solid var(--border);border-radius:8px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- GRID -->
+        <sc-if value="{{ showGrid }}" hint-placeholder-val="{{ false }}">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+            <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+              <div style="background:var(--bg-base);border:1px solid {{ r.cardBd }};border-radius:13px;box-shadow:var(--shadow);overflow:hidden;">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:14px 15px 0;">
+                  <div style="display:flex;align-items:center;gap:9px;min-width:0;">
+                    <input type="checkbox" checked="{{ r.selected }}" onChange="{{ r.toggle }}" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;flex:none;" />
+                    <span style="font:500 12px 'JetBrains Mono',monospace;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;">{{ r.tag }}</span>
+                  </div>
+                  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;font:600 11.5px Inter;border-radius:999px;background:{{ r.stBg }};color:{{ r.stFg }};flex:none;"><span style="width:6px;height:6px;border-radius:50%;background:{{ r.stDot }};"></span>{{ r.status }}</span>
+                </div>
+                <div style="padding:10px 15px 14px;">
+                  <div style="font:600 15px Inter;margin-bottom:2px;">{{ r.nama }}</div>
+                  <div style="font:400 12.5px Inter;color:var(--text-muted);margin-bottom:11px;">{{ r.brand }}</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+                    <span style="padding:2px 9px;font:600 11.5px Inter;border-radius:999px;background:var(--neutral-soft-bg);color:var(--neutral-soft-text);">{{ r.kat }}</span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;font:500 11.5px Inter;border-radius:999px;background:var(--bg-muted);color:var(--text-muted);"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l5-4v16M19 21V13l-9-4"/></svg>{{ r.kantor }}</span>
+                  </div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;font:400 12.5px Inter;color:var(--text-muted);padding-top:11px;border-top:1px solid var(--border);">
+                    <span style="color:{{ r.holderColor }};">{{ r.holder }}</span>
+                    <span>{{ r.date }}</span>
+                  </div>
+                  <sc-if value="{{ showPrice }}" hint-placeholder-val="{{ true }}"><div style="margin-top:8px;font:600 13.5px Inter;color:var(--text);">{{ r.harga }}</div></sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:16px;">
+            <span style="font:400 13px Inter;color:var(--text-muted);">{{ pageInfo }}</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <button onClick="{{ prevPage }}" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;color:var(--text-muted);background:var(--bg-base);border:1px solid var(--border);border-radius:8px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+              <sc-for list="{{ pageBtns }}" as="p" hint-placeholder-count="2"><button onClick="{{ p.on }}" style="min-width:34px;height:34px;padding:0 6px;font:600 13px Inter;color:{{ p.fg }};background:{{ p.bg }};border:1px solid {{ p.bd }};border-radius:8px;cursor:pointer;">{{ p.n }}</button></sc-for>
+              <button onClick="{{ nextPage }}" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;color:var(--text-muted);background:var(--bg-base);border:1px solid var(--border);border-radius:8px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+            </div>
+          </div>
+        </sc-if>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- DELETE CONFIRM -->
+  <sc-if value="{{ confirmOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeConfirm }}" style="position:fixed;inset:0;z-index:60;background:rgba(2,6,23,.5);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:24px;animation:overlayIn .15s ease-out;">
+      <div onClick="{{ stop }}" style="width:100%;max-width:404px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-lg);padding:24px;animation:popIn .18s ease-out;">
+        <div style="display:flex;gap:14px;">
+          <div style="width:42px;height:42px;border-radius:11px;background:var(--error-soft-bg);color:var(--error);display:flex;align-items:center;justify-content:center;flex:none;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></div>
+          <div><div style="font:600 16px Inter;margin-bottom:4px;">{{ confirmTitle }}</div><div style="font:400 14px/1.55 Inter;color:var(--text-muted);">{{ confirmBody }}</div></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:22px;">
+          <button onClick="{{ closeConfirm }}" style="padding:9px 15px;font:500 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);">{{ cancelLbl }}</button>
+          <button onClick="{{ confirmDelete }}" style="padding:9px 15px;font:500 14px Inter;color:#fff;background:var(--error);border:1px solid var(--error);border-radius:9px;cursor:pointer;" style-hover="filter:brightness(.94);">{{ deleteLbl }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ROLE PREVIEW -->
+  <div style="position:fixed;bottom:18px;left:18px;z-index:55;display:flex;align-items:center;gap:9px;padding:7px 9px 7px 12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:11px;box-shadow:var(--shadow-lg);">
+    <span style="font:600 10px 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dimmed);">{{ previewRole }}</span>
+    <div style="display:flex;gap:3px;padding:3px;background:var(--bg-muted);border-radius:8px;">
+      <button onClick="{{ setManager }}" style="padding:5px 11px;font:600 12px Inter;color:{{ mgrFg }};background:{{ mgrBg }};border:none;border-radius:6px;cursor:pointer;box-shadow:{{ mgrSh }};">Manager</button>
+      <button onClick="{{ setStaf }}" style="padding:5px 11px;font:600 12px Inter;color:{{ stafFg }};background:{{ stafBg }};border:none;border-radius:6px;cursor:pointer;box-shadow:{{ stafSh }};">Staf</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;id&quot;,&quot;en&quot;],&quot;default&quot;:&quot;id&quot;,&quot;tsType&quot;:&quot;'id' | 'en'&quot;},&quot;role&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;manager&quot;,&quot;staf&quot;],&quot;default&quot;:&quot;manager&quot;,&quot;tsType&quot;:&quot;'manager' | 'staf'&quot;},&quot;collapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;primaryColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#16a34a&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const ICONS={
+  dashboard:[['rect',{x:3,y:3,width:7,height:9,rx:1}],['rect',{x:14,y:3,width:7,height:5,rx:1}],['rect',{x:14,y:12,width:7,height:9,rx:1}],['rect',{x:3,y:16,width:7,height:5,rx:1}]],
+  box:[['path',{d:'M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2'}],['path',{d:'M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'}],['path',{d:'M9 13h6'}]],
+  clipboard:[['rect',{x:5,y:4,width:14,height:17,rx:2}],['path',{d:'M9 4V3h6v1'}],['path',{d:'M9 13l2 2 4-4'}]],
+  wrench:[['path',{d:'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.7 2.7-2-2z'}]],
+  approval:[['path',{d:'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'}],['path',{d:'M9 11l3 3 8-8'}]],
+  chart:[['path',{d:'M3 3v18h18'}],['path',{d:'M7 16v-5M12 16V8M17 16v-3'}]],
+  database:[['path',{d:'M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3z'}],['path',{d:'M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6'}],['path',{d:'M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6'}]],
+  settings:[['circle',{cx:12,cy:12,r:3}],['path',{d:'M19.4 15a1.6 1.6 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0 1.6 1.6 0 0 0-2.7-1.1 2 2 0 1 1-2.8-2.8A1.6 1.6 0 0 0 3 13.6a2 2 0 0 1 0-3.2A1.6 1.6 0 0 0 4.6 7a2 2 0 1 1 2.8-2.8A1.6 1.6 0 0 0 10 4.6V3a2 2 0 0 1 4 0 1.6 1.6 0 0 0 2.7 1.1A2 2 0 1 1 19.5 7a1.6 1.6 0 0 0-1 2.4 2 2 0 0 1 0 3.2z'}]],
+};
+function mk(key,size){const d=ICONS[key]||ICONS.box;return React.createElement('svg',{width:size||18,height:size||18,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.9,strokeLinecap:'round',strokeLinejoin:'round',style:{flex:'none'}},d.map((x,i)=>React.createElement(x[0],{...x[1],key:i})));}
+function arrow(dir){return React.createElement('svg',{width:13,height:13,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2.4,strokeLinecap:'round',strokeLinejoin:'round',style:{color:'var(--primary)'}},[React.createElement('polyline',{key:0,points: dir==='asc'?'18 15 12 9 6 15':'6 9 12 15 18 9'})]);}
+const L=(id,en)=>({id,en});
+const NAV=[
+  { label:L('Operasional','Operational'), items:[
+    { label:L('Dashboard','Dashboard'), icon:'dashboard' },
+    { label:L('Aset','Assets'), icon:'box', active:true },
+    { label:L('Penugasan','Assignments'), icon:'clipboard' },
+    { label:L('Maintenance','Maintenance'), icon:'wrench' },
+    { label:L('Pengajuan','Requests'), icon:'approval', badge:3 },
+    { label:L('Laporan','Reports'), icon:'chart' },
+  ]},
+  { label:L('Administrasi','Administration'), items:[
+    { label:L('Master Data','Master Data'), icon:'database' },
+    { label:L('Pengaturan','Settings'), icon:'settings' },
+  ]},
+];
+const STATUS={
+  tersedia:{label:L('Tersedia','Available'),bg:'var(--success-soft-bg)',fg:'var(--success-soft-text)',dot:'var(--success)'},
+  dipinjam:{label:L('Dipinjam','In use'),bg:'var(--info-soft-bg)',fg:'var(--info-soft-text)',dot:'var(--info)'},
+  maintenance:{label:L('Maintenance','Maintenance'),bg:'var(--warning-soft-bg)',fg:'var(--warning-soft-text)',dot:'var(--warning)'},
+  dilepas:{label:L('Dilepas','Disposed'),bg:'var(--neutral-soft-bg)',fg:'var(--neutral-soft-text)',dot:'var(--text-dimmed)'},
+  hilang:{label:L('Hilang','Lost'),bg:'var(--error-soft-bg)',fg:'var(--error-soft-text)',dot:'var(--error)'},
+};
+const KAT={Elektronik:L('Elektronik','Electronics'),Furnitur:L('Furnitur','Furniture'),Kendaraan:L('Kendaraan','Vehicle'),'Perangkat IT':L('Perangkat IT','IT Equipment')};
+// [tag,nama,kat,brand,status,kantor,lokasi,holder,tgl,harga,buku,mine]
+const A=(tag,nama,kat,brand,status,kantor,lokasi,holder,tgl,harga,buku,mine)=>({tag,nama,kat,brand,status,kantor,lokasi,holder,tgl,harga,buku,mine:!!mine});
+const ASSETS=[
+  A('JKT01-ELK-2026-00001','Laptop Dell Latitude 5440','Elektronik','Dell Latitude 5440','tersedia','Cabang Jakarta Selatan','Lantai 3 — IT','—','2026-01-12',18500000,16200000),
+  A('JKT01-ELK-2026-00002','Proyektor Epson EB-X51','Elektronik','Epson EB-X51','dipinjam','Cabang Jakarta Selatan','Ruang Rapat A','Andi Saputra','2026-01-20',7200000,6500000),
+  A('JKT01-KEN-2025-00007','Toyota Avanza 1.5 G','Kendaraan','Toyota Avanza','maintenance','Cabang Jakarta Selatan','Parkir Basement','—','2025-03-04',235000000,198000000),
+  A('JKT01-FUR-2025-00011','Meja Kerja Ergonomis','Furnitur','IKEA BEKANT','tersedia','Cabang Jakarta Selatan','Lantai 2 — Operasional','—','2025-06-18',2400000,1900000),
+  A('JKT01-ELK-2024-00021','Printer HP LaserJet Pro M404','Elektronik','HP M404dn','hilang','Cabang Jakarta Selatan','Lantai 2 — Operasional','—','2024-02-09',4100000,0),
+  A('JKT01-ELK-2026-00005','Monitor LG 27UL550','Elektronik','LG 27UL550','dipinjam','Cabang Jakarta Selatan','Lantai 3 — IT','Rina Putri','2026-02-02',3800000,3500000,1),
+  A('JKT01-ITX-2025-00014','Router MikroTik RB4011','Perangkat IT','MikroTik RB4011','tersedia','Cabang Jakarta Selatan','Lantai 3 — IT','—','2025-09-15',2700000,2300000),
+  A('JKT01-ELK-2023-00009','AC Daikin FTKC50','Elektronik','Daikin FTKC50','maintenance','Cabang Jakarta Selatan','Ruang Server','—','2023-11-22',8900000,5400000),
+  A('JKT01-FUR-2026-00003','Kursi Ergonomis Ergotec','Furnitur','Ergotec GL-905','tersedia','Outlet Kemang','Lantai 2 — Operasional','—','2026-01-08',1850000,1700000),
+  A('JKT01-ITX-2026-00006','CCTV Hikvision DS-2CD','Perangkat IT','Hikvision DS-2CD2143','dipinjam','Cabang Jakarta Selatan','Lobi','Rina Putri','2026-02-14',1600000,1500000,1),
+  A('JKT01-ELK-2025-00018','UPS APC Smart-UPS 1500','Elektronik','APC SMT1500','tersedia','Cabang Jakarta Selatan','Ruang Server','—','2025-07-30',6700000,5900000),
+  A('JKT01-KEN-2024-00004','Honda Vario 160','Kendaraan','Honda Vario 160','dipinjam','Cabang Jakarta Selatan','Parkir Basement','Budi Hartono','2024-08-12',28500000,22000000),
+  A('JKT01-FUR-2024-00016','Lemari Arsip Besi','Furnitur','Brother B-204','dilepas','Cabang Jakarta Selatan','Gudang Aset','—','2024-04-19',3200000,1200000),
+  A('JKT01-ELK-2026-00008','Laptop MacBook Air M3','Elektronik','Apple MacBook Air M3','dipinjam','Cabang Jakarta Selatan','Lantai 3 — IT','Rina Putri','2026-03-01',21500000,20800000,1),
+  A('JKT01-ITX-2025-00022','Switch Cisco Catalyst 1000','Perangkat IT','Cisco C1000-24T','tersedia','Cabang Jakarta Selatan','Ruang Server','—','2025-10-05',9800000,8600000),
+  A('JKT01-ELK-2025-00025','Scanner Fujitsu fi-7160','Elektronik','Fujitsu fi-7160','tersedia','Cabang Jakarta Selatan','Lantai 2 — Operasional','—','2025-05-11',12500000,10200000),
+  A('JKT01-FUR-2026-00010','Sofa Ruang Tamu 3-Seat','Furnitur','Informa Vesta','tersedia','Outlet Blok M','Lobi','—','2026-01-25',5600000,5300000),
+  A('JKT01-KEN-2026-00002','Toyota Hiace Commuter','Kendaraan','Toyota Hiace','tersedia','Cabang Jakarta Selatan','Parkir Basement','—','2026-02-28',588000000,575000000),
+  A('JKT01-ELK-2024-00030','Televisi Samsung 55" Crystal','Elektronik','Samsung UA55CU8000','dipinjam','Cabang Jakarta Selatan','Ruang Rapat A','Andi Saputra','2024-12-03',9300000,7100000),
+  A('JKT01-ITX-2026-00012','Access Point Ubiquiti U6-Pro','Perangkat IT','Ubiquiti U6-Pro','tersedia','Outlet Blok M','Lantai 3 — IT','—','2026-03-08',2300000,2200000),
+  A('JKT01-FUR-2023-00007','Meja Rapat Kayu 10-Seat','Furnitur','Custom Jati','maintenance','Cabang Jakarta Selatan','Ruang Rapat A','—','2023-09-17',14500000,9800000),
+  A('JKT01-ELK-2025-00028','Genset Cummins C22 D5','Elektronik','Cummins C22D5','tersedia','Outlet Kemang','Gudang Aset','—','2025-08-21',78000000,69000000),
+  A('JKT01-ELK-2026-00015','Laptop Lenovo ThinkPad E14','Elektronik','Lenovo ThinkPad E14','dipinjam','Cabang Jakarta Selatan','Lantai 3 — IT','Rina Putri','2026-03-12',13200000,12900000,1),
+  A('JKT01-KEN-2022-00001','Mitsubishi L300 Box','Kendaraan','Mitsubishi L300','dilepas','Cabang Jakarta Selatan','Parkir Basement','—','2022-05-30',165000000,60000000),
+  A('JKT01-FUR-2026-00018','Filing Cabinet 4-Laci','Furnitur','Datascrip FC-4','tersedia','Outlet Blok M','Gudang Aset','—','2026-02-19',2100000,2000000),
+  A('JKT01-ELK-2024-00033','Printer Epson L3210','Elektronik','Epson L3210','tersedia','Cabang Jakarta Selatan','Lantai 2 — Operasional','Rina Putri','2024-10-14',2750000,1900000,1),
+];
+const MON=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const CH={
+  id:{ bcAset:'Aset', pageTitle:'Katalog Aset', searchPh:'Cari nama atau kode aset…', addLbl:'Tambah Aset', importLbl:'Import', scanLbl:'Scan Barcode',
+    resetLbl:'Reset filter', exportLbl:'Ekspor', batchPrint:'Cetak Label', previewRole:'Pratinjau peran',
+    colTag:'Kode Aset', colNama:'Nama', colKat:'Kategori', colBrand:'Brand / Model', colStatus:'Status', colKantor:'Kantor', colHolder:'Pemegang', colDate:'Tgl Beli', colHarga:'Harga Beli', colBuku:'Nilai Buku', colAksi:'Aksi',
+    cancelLbl:'Batal', deleteLbl:'Ya, Hapus', confirmTitle:'Hapus aset ini?',
+    fStatus:'Status', fKat:'Kategori', fKantor:'Kantor', fLokasi:'Lokasi', allStatus:'Semua Status', allKat:'Semua Kategori', allKantor:'Semua Kantor', allLokasi:'Semua Lokasi',
+    headerMgr:'Kelola seluruh aset dalam lingkup kantor Anda.', headerStaf:'Daftar aset yang sedang Anda pegang.',
+    emptyNoData:'Belum ada aset', emptyNoDataSub:'Mulai dengan menambahkan aset pertama ke katalog.',
+    emptyFilter:'Tidak ada aset yang cocok', emptyFilterSub:'Coba ubah kata kunci atau atur ulang filter.' },
+  en:{ bcAset:'Assets', pageTitle:'Asset Catalog', searchPh:'Search asset name or code…', addLbl:'Add Asset', importLbl:'Import', scanLbl:'Scan Barcode',
+    resetLbl:'Reset filters', exportLbl:'Export', batchPrint:'Print Labels', previewRole:'Preview role',
+    colTag:'Asset Tag', colNama:'Name', colKat:'Category', colBrand:'Brand / Model', colStatus:'Status', colKantor:'Office', colHolder:'Holder', colDate:'Buy Date', colHarga:'Buy Price', colBuku:'Book Value', colAksi:'Actions',
+    cancelLbl:'Cancel', deleteLbl:'Yes, Delete', confirmTitle:'Delete this asset?',
+    fStatus:'Status', fKat:'Category', fKantor:'Office', fLokasi:'Location', allStatus:'All Status', allKat:'All Categories', allKantor:'All Offices', allLokasi:'All Locations',
+    headerMgr:'Manage all assets within your office scope.', headerStaf:'Assets currently assigned to you.',
+    emptyNoData:'No assets yet', emptyNoDataSub:'Start by adding your first asset to the catalog.',
+    emptyFilter:'No matching assets', emptyFilterSub:'Try changing the keyword or resetting filters.' },
+};
+const KANTOR_OPTS=['Cabang Jakarta Selatan','Outlet Blok M','Outlet Kemang'];
+const LOKASI_OPTS=['Lantai 3 — IT','Lantai 2 — Operasional','Ruang Server','Ruang Rapat A','Gudang Aset','Parkir Basement','Lobi'];
+const PAGE_SIZE=20;
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef=React.createRef();
+    this.state={
+      theme:(props.theme==='dark'?'dark':'light'),
+      lang:(props.lang==='en'?'en':'id'),
+      role:(props.role==='staf'?'staf':'manager'),
+      collapsed:!!props.collapsed,
+      view:'table',
+      q:'', fStatus:'all', fKat:'all', fKantor:'all', fLokasi:'all', dateFrom:'', dateTo:'',
+      sortKey:'tag', sortDir:'asc',
+      page:1,
+      selected:[], deleted:[],
+      loading:true,
+      confirmTag:null,
+    };
+    this._tt=false;this._tl=false;this._tc=false;this._tr=false;this._timer=null;
+  }
+  componentDidMount(){ this.applyPrimary(); this._timer=setTimeout(()=>this.setState({loading:false}),700); }
+  componentDidUpdate(){ this.applyPrimary(); }
+  componentWillUnmount(){ if(this._timer) clearTimeout(this._timer); }
+  applyPrimary(){ const c=this.props.primaryColor,el=this.rootRef.current; if(el&&c) el.style.setProperty('--primary',c); }
+  effTheme(){ return this._tt?this.state.theme:(this.props.theme||'light'); }
+  effLang(){ return this._tl?this.state.lang:(this.props.lang||'id'); }
+  effRole(){ return this._tr?this.state.role:(this.props.role||'manager'); }
+  effCollapsed(){ return this._tc?this.state.collapsed:!!this.props.collapsed; }
+  setSort(k){ this.setState(s=>({ sortKey:k, sortDir: s.sortKey===k&&s.sortDir==='asc'?'desc':'asc' })); }
+  reloadRole(role){ if(this._timer)clearTimeout(this._timer); this._tr=true; this.setState({role,loading:true,selected:[],page:1,q:'',fStatus:'all',fKat:'all',fKantor:'all',fLokasi:'all',dateFrom:'',dateTo:''}); this._timer=setTimeout(()=>this.setState({loading:false}),750); }
+  renderVals(){
+    const s=this.state;
+    const theme=this.effTheme(),lang=this.effLang(),role=this.effRole(),collapsed=this.effCollapsed();
+    const isDark=theme==='dark';
+    const ch=CH[lang];
+    const showPrice= role==='manager';
+
+    const nav=NAV.map(g=>({label:g.label[lang],items:g.items.map(it=>({
+      label:it.label[lang],icon:mk(it.icon),badge:it.badge,badgeExp:!!it.badge&&!collapsed,
+      bg:it.active?'var(--primary-soft-bg)':'transparent',fg:it.active?'var(--primary-soft-text)':'var(--text-muted)',
+      weight:it.active?'600':'500',accent:it.active?'var(--primary)':'transparent',hoverBg:it.active?'var(--primary-soft-bg)':'var(--bg-muted)',
+    }))}));
+
+    // pipeline
+    let list=ASSETS.filter(a=>!s.deleted.includes(a.tag));
+    if(role==='staf') list=list.filter(a=>a.mine);
+    const q=s.q.trim().toLowerCase();
+    if(q) list=list.filter(a=>a.nama.toLowerCase().includes(q)||a.tag.toLowerCase().includes(q)||a.brand.toLowerCase().includes(q));
+    if(s.fStatus!=='all') list=list.filter(a=>a.status===s.fStatus);
+    if(s.fKat!=='all') list=list.filter(a=>a.kat===s.fKat);
+    if(s.fKantor!=='all') list=list.filter(a=>a.kantor===s.fKantor);
+    if(s.fLokasi!=='all') list=list.filter(a=>a.lokasi===s.fLokasi);
+    if(s.dateFrom) list=list.filter(a=>a.tgl>=s.dateFrom);
+    if(s.dateTo) list=list.filter(a=>a.tgl<=s.dateTo);
+    const dir=s.sortDir==='asc'?1:-1;
+    const key=s.sortKey;
+    list=list.slice().sort((a,b)=>{
+      let x,y;
+      if(key==='harga'){x=a.harga;y=b.harga;} else if(key==='buku'){x=a.buku;y=b.buku;}
+      else if(key==='status'){x=STATUS[a.status].label.id;y=STATUS[b.status].label.id;}
+      else if(key==='kat'){x=a.kat;y=b.kat;} else if(key==='tgl'){x=a.tgl;y=b.tgl;}
+      else if(key==='nama'){x=a.nama.toLowerCase();y=b.nama.toLowerCase();} else {x=a.tag;y=b.tag;}
+      if(x<y)return -1*dir; if(x>y)return 1*dir; return 0;
+    });
+    const n=list.length;
+    const totalPages=Math.max(1,Math.ceil(n/PAGE_SIZE));
+    const page=Math.min(s.page,totalPages);
+    const start=(page-1)*PAGE_SIZE;
+    const pageList=list.slice(start,start+PAGE_SIZE);
+
+    const fmtDate=(t)=>{const d=new Date(t);return d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear();};
+    const fmtRp=(v)=>v?('Rp '+v.toLocaleString('id-ID')):'—';
+    const rows=pageList.map(a=>{
+      const st=STATUS[a.status];
+      const sel=s.selected.includes(a.tag);
+      return {
+        tag:a.tag, nama:a.nama, kat:KAT[a.kat][lang], brand:a.brand,
+        status:st.label[lang], stBg:st.bg, stFg:st.fg, stDot:st.dot,
+        kantor:a.kantor, holder:a.holder, holderColor:a.holder==='—'?'var(--text-dimmed)':'var(--text)',
+        date:fmtDate(a.tgl), harga:fmtRp(a.harga), buku:fmtRp(a.buku),
+        selected:sel, rowBg: sel?'color-mix(in srgb,var(--primary) 7%,transparent)':'transparent',
+        cardBd: sel?'var(--primary)':'var(--border)',
+        toggle:()=>this.setState(x=>({selected: x.selected.includes(a.tag)?x.selected.filter(t=>t!==a.tag):[...x.selected,a.tag]})),
+        del:()=>this.setState({confirmTag:a.tag}),
+      };
+    });
+    const pageTags=pageList.map(a=>a.tag);
+    const allChecked= pageTags.length>0 && pageTags.every(t=>s.selected.includes(t));
+
+    const pageBtns=[];
+    for(let i=1;i<=totalPages;i++) pageBtns.push({n:i,on:()=>this.setState({page:i}),
+      bg:i===page?'var(--primary)':'transparent',fg:i===page?'var(--primary-fg)':'var(--text-muted)',bd:i===page?'var(--primary)':'var(--border)'});
+
+    const anyFilter= !!q || s.fStatus!=='all' || s.fKat!=='all' || s.fKantor!=='all' || s.fLokasi!=='all' || !!s.dateFrom || !!s.dateTo;
+    const showEmpty= !s.loading && n===0;
+    const hasRows= !s.loading && n>0;
+    const startN=n===0?0:start+1, endN=Math.min(start+PAGE_SIZE,n);
+    const pageInfo=(lang==='id'?('Menampilkan '+startN+'–'+endN+' dari '+n+' aset'):('Showing '+startN+'–'+endN+' of '+n+' assets'));
+
+    const filters=[
+      { value:s.fStatus, color:s.fStatus==='all'?'var(--text-muted)':'var(--text)', on:(e)=>this.setState({fStatus:e.target.value,page:1}),
+        opts:[{v:'all',label:ch.allStatus}].concat(Object.keys(STATUS).map(k=>({v:k,label:STATUS[k].label[lang]}))) },
+      { value:s.fKat, color:s.fKat==='all'?'var(--text-muted)':'var(--text)', on:(e)=>this.setState({fKat:e.target.value,page:1}),
+        opts:[{v:'all',label:ch.allKat}].concat(Object.keys(KAT).map(k=>({v:k,label:KAT[k][lang]}))) },
+      { value:s.fKantor, color:s.fKantor==='all'?'var(--text-muted)':'var(--text)', on:(e)=>this.setState({fKantor:e.target.value,page:1}),
+        opts:[{v:'all',label:ch.allKantor}].concat(KANTOR_OPTS.map(k=>({v:k,label:k}))) },
+      { value:s.fLokasi, color:s.fLokasi==='all'?'var(--text-muted)':'var(--text)', on:(e)=>this.setState({fLokasi:e.target.value,page:1}),
+        opts:[{v:'all',label:ch.allLokasi}].concat(LOKASI_OPTS.map(k=>({v:k,label:k}))) },
+    ];
+
+    const sortArrow=(k)=> s.sortKey===k ? arrow(s.sortDir) : null;
+    const confirmTag=s.confirmTag;
+
+    return {
+      rootRef:this.rootRef, theme, isDark, isLight:!isDark,
+      sidebarW:collapsed?'76px':'264px', expanded:!collapsed, collapsed, navJustify:collapsed?'center':'flex-start',
+      toggleCollapse:()=>{this._tc=true;this.setState(st=>({collapsed:!this.effCollapsed()}));},
+      toggleTheme:()=>{this._tt=true;const cur=this.effTheme();this.setState({theme:cur==='light'?'dark':'light'});},
+      setId:()=>{this._tl=true;this.setState({lang:'id'});}, setEn:()=>{this._tl=true;this.setState({lang:'en'});},
+      idBg:lang==='id'?'var(--bg-base)':'transparent', idFg:lang==='id'?'var(--text)':'var(--text-muted)',
+      enBg:lang==='en'?'var(--bg-base)':'transparent', enFg:lang==='en'?'var(--text)':'var(--text-muted)',
+      nav, scheme:isDark?'dark':'light',
+      userInitials: role==='staf'?'RP':'DL',
+      bcAset:ch.bcAset, pageTitle:ch.pageTitle, headerSub: role==='staf'?ch.headerStaf:ch.headerMgr,
+      searchPh:ch.searchPh, addLbl:ch.addLbl, importLbl:ch.importLbl, scanLbl:ch.scanLbl, resetLbl:ch.resetLbl, exportLbl:ch.exportLbl, batchPrint:ch.batchPrint, previewRole:ch.previewRole,
+      colTag:ch.colTag, colNama:ch.colNama, colKat:ch.colKat, colBrand:ch.colBrand, colStatus:ch.colStatus, colKantor:ch.colKantor, colHolder:ch.colHolder, colDate:ch.colDate, colHarga:ch.colHarga, colBuku:ch.colBuku, colAksi:ch.colAksi,
+      q:s.q, onSearch:(e)=>this.setState({q:e.target.value,page:1}),
+      filters,
+      dateFrom:s.dateFrom, dateTo:s.dateTo, onFrom:(e)=>this.setState({dateFrom:e.target.value,page:1}), onTo:(e)=>this.setState({dateTo:e.target.value,page:1}),
+      anyFilter, noFilter:!anyFilter, resetFilter:()=>this.setState({q:'',fStatus:'all',fKat:'all',fKantor:'all',fLokasi:'all',dateFrom:'',dateTo:'',page:1}),
+      viewTable:()=>this.setState({view:'table'}), viewGrid:()=>this.setState({view:'grid'}),
+      tableBg:s.view==='table'?'var(--bg-base)':'transparent', tableFg:s.view==='table'?'var(--text)':'var(--text-muted)', tableSh:s.view==='table'?'var(--shadow)':'none',
+      gridBg:s.view==='grid'?'var(--bg-base)':'transparent', gridFg:s.view==='grid'?'var(--text)':'var(--text-muted)', gridSh:s.view==='grid'?'var(--shadow)':'none',
+      showPrice,
+      loading:s.loading, skeRows:[1,2,3,4,5,6,7,8],
+      showEmpty, showTable: hasRows && s.view==='table', showGrid: hasRows && s.view==='grid',
+      emptyTitle: anyFilter?ch.emptyFilter:ch.emptyNoData, emptySub: anyFilter?ch.emptyFilterSub:ch.emptyNoDataSub,
+      rows,
+      allChecked, toggleAll:()=>this.setState(x=>{ const all=pageTags.every(t=>x.selected.includes(t)); return { selected: all? x.selected.filter(t=>!pageTags.includes(t)) : Array.from(new Set([...x.selected,...pageTags])) }; }),
+      hasSelection:s.selected.length>0, selCount:(s.selected.length+' '+(lang==='id'?'dipilih':'selected')), clearSel:()=>this.setState({selected:[]}),
+      sortTag:()=>this.setSort('tag'), sortNama:()=>this.setSort('nama'), sortKat:()=>this.setSort('kat'), sortStatus:()=>this.setSort('status'), sortTgl:()=>this.setSort('tgl'), sortHarga:()=>this.setSort('harga'), sortBuku:()=>this.setSort('buku'),
+      arrTag:sortArrow('tag'), arrNama:sortArrow('nama'), arrKat:sortArrow('kat'), arrStatus:sortArrow('status'), arrTgl:sortArrow('tgl'), arrHarga:sortArrow('harga'), arrBuku:sortArrow('buku'),
+      pageBtns, pageInfo, prevPage:()=>this.setState(x=>({page:Math.max(1,x.page-1)})), nextPage:()=>this.setState(x=>({page:Math.min(totalPages,x.page+1)})),
+      confirmOpen:!!confirmTag, closeConfirm:()=>this.setState({confirmTag:null}), stop:(e)=>e.stopPropagation(),
+      confirmTitle:ch.confirmTitle, confirmBody:(lang==='id'?('Aset '):('Asset '))+(confirmTag||'')+(lang==='id'?' akan dihapus permanen.':' will be permanently deleted.'),
+      cancelLbl:ch.cancelLbl, deleteLbl:ch.deleteLbl,
+      confirmDelete:()=>this.setState(x=>({deleted:[...x.deleted,x.confirmTag],selected:x.selected.filter(t=>t!==x.confirmTag),confirmTag:null})),
+      setManager:()=>this.reloadRole('manager'), setStaf:()=>this.reloadRole('staf'),
+      mgrBg:role==='manager'?'var(--bg-base)':'transparent', mgrFg:role==='manager'?'var(--text)':'var(--text-muted)', mgrSh:role==='manager'?'var(--shadow)':'none',
+      stafBg:role==='staf'?'var(--bg-base)':'transparent', stafFg:role==='staf'?'var(--text)':'var(--text-muted)', stafSh:role==='staf'?'var(--shadow)':'none',
+    };
+  }
+}
+</script>
+</body>
+</html>

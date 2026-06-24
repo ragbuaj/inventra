@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:9px;border:2px solid transparent;background-clip:padding-box;}
+:root{
+  --bg:#f8fafc; --bg-base:#ffffff; --bg-muted:#f1f5f9; --bg-el:#ffffff;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#0f172a; --text-muted:#64748b; --text-dimmed:#94a3b8;
+  --primary:#16a34a; --primary-hover:#15803d; --primary-fg:#ffffff;
+  --primary-soft-bg:#dcfce7; --primary-soft-text:#15803d;
+  --success:#16a34a; --warning:#d97706; --warning-soft-bg:#fef3c7; --warning-soft-text:#b45309;
+  --error:#dc2626; --info:#2563eb; --info-soft-bg:#dbeafe; --info-soft-text:#1d4ed8;
+  --neutral-soft-bg:#eef2f6; --neutral-soft-text:#475569;
+  --ring:color-mix(in srgb, var(--primary) 28%, transparent);
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
+  --shadow-lg:0 18px 50px rgba(15,23,42,.18);
+}
+[data-theme="dark"]{
+  --bg:#020617; --bg-base:#0b1220; --bg-muted:#1e293b; --bg-el:#0f172a;
+  --border:#1e293b; --border-strong:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8; --text-dimmed:#64748b;
+  --primary:#22c55e; --primary-hover:#16a34a; --primary-fg:#052e16;
+  --primary-soft-bg:#14331f; --primary-soft-text:#4ade80;
+  --success:#22c55e; --warning:#f59e0b; --warning-soft-bg:#3a2a08; --warning-soft-text:#fbbf24;
+  --error:#ef4444; --info:#3b82f6; --info-soft-bg:#13243f; --info-soft-text:#60a5fa;
+  --neutral-soft-bg:#1e293b; --neutral-soft-text:#cbd5e1;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 18px 50px rgba(0,0,0,.6);
+}
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" data-theme="{{ theme }}" style="font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--text);">
+  <div style="display:flex;height:100vh;overflow:hidden;background:var(--bg);">
+
+    <!-- SIDEBAR -->
+    <aside style="width:{{ sidebarW }};flex:none;display:flex;flex-direction:column;background:var(--bg-base);border-right:1px solid var(--border);transition:width .2s ease;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:11px;height:61px;padding:0 18px;border-bottom:1px solid var(--border);flex:none;">
+        <div style="width:34px;height:34px;border-radius:9px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--primary-fg);flex:none;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13h6"/></svg></div>
+        <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="font:700 18px Inter;letter-spacing:-.01em;white-space:nowrap;">Inventra</span></sc-if>
+      </div>
+      <nav style="flex:1;overflow-y:auto;overflow-x:hidden;padding:12px;">
+        <sc-for list="{{ nav }}" as="g" hint-placeholder-count="2">
+          <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><div style="padding:14px 12px 6px;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dimmed);white-space:nowrap;">{{ g.label }}</div></sc-if>
+          <sc-if value="{{ collapsed }}" hint-placeholder-val="{{ false }}"><div style="height:1px;background:var(--border);margin:10px 8px;"></div></sc-if>
+          <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+            <button title="{{ it.label }}" style="position:relative;display:flex;align-items:center;justify-content:{{ navJustify }};gap:11px;width:100%;padding:9px 12px;margin-bottom:2px;font-family:Inter;font-size:14px;font-weight:{{ it.weight }};color:{{ it.fg }};background:{{ it.bg }};border:none;border-radius:9px;cursor:pointer;text-align:left;box-shadow:inset 3px 0 0 {{ it.accent }};white-space:nowrap;" style-hover="background:{{ it.hoverBg }};">
+              {{ it.icon }}
+              <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;">{{ it.label }}</span></sc-if>
+            </button>
+          </sc-for>
+        </sc-for>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <header style="display:flex;align-items:center;gap:14px;height:61px;flex:none;padding:0 20px;background:var(--bg-base);border-bottom:1px solid var(--border);">
+        <button onClick="{{ toggleCollapse }}" title="Collapse" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex:none;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg></button>
+        <div style="display:flex;align-items:center;gap:6px;font:400 12px Inter;color:var(--text-muted);"><span>Inventra</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span>{{ bcSetting }}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span style="color:var(--text);font-weight:500;">{{ pageTitle }}</span></div>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex:none;">
+          <div style="display:flex;gap:2px;padding:3px;background:var(--bg-muted);border-radius:9px;">
+            <button onClick="{{ setId }}" style="padding:5px 9px;font:600 12px Inter;color:{{ idFg }};background:{{ idBg }};border:none;border-radius:6px;cursor:pointer;">ID</button>
+            <button onClick="{{ setEn }}" style="padding:5px 9px;font:600 12px Inter;color:{{ enFg }};background:{{ enBg }};border:none;border-radius:6px;cursor:pointer;">EN</button>
+          </div>
+          <button onClick="{{ toggleTheme }}" title="Tema" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">
+            <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></sc-if>
+            <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></sc-if>
+          </button>
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;background:transparent;border:1px solid var(--border);border-radius:999px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--primary);color:var(--primary-fg);display:flex;align-items:center;justify-content:center;font:700 12px Inter;">SA</span><span style="display:flex;color:var(--text-dimmed);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+        </div>
+      </header>
+
+      <main style="flex:1;overflow-y:auto;padding:24px 28px 40px;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px;">
+          <div><h1 style="margin:0 0 5px;font:700 23px Inter;letter-spacing:-.02em;">{{ pageTitle }}</h1><p style="margin:0;max-width:620px;font:400 14px/1.55 Inter;color:var(--text-muted);">{{ pageSub }}</p></div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <sc-if value="{{ dirty }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:6px;font:500 12.5px Inter;color:var(--warning-soft-text);"><span style="width:7px;height:7px;border-radius:50%;background:var(--warning);"></span>{{ unsavedLbl }}</span></sc-if>
+            <button onClick="{{ save }}" disabled="{{ saveDisabled }}" style="display:inline-flex;align-items:center;gap:7px;padding:9px 16px;font:600 13.5px Inter;color:var(--primary-fg);background:{{ saveBg }};border:1px solid {{ saveBg }};border-radius:9px;cursor:{{ saveCursor }};opacity:{{ saveOpacity }};" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>{{ saveLbl }}</button>
+          </div>
+        </div>
+
+        <!-- LEGEND -->
+        <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg><span style="font:600 12.5px Inter;color:var(--text-muted);">{{ legendTitle }}</span></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;">
+            <sc-for list="{{ legend }}" as="l" hint-placeholder-count="4">
+              <div style="display:flex;align-items:flex-start;gap:9px;"><span style="width:22px;height:22px;border-radius:6px;background:{{ l.bg }};color:{{ l.fg }};display:flex;align-items:center;justify-content:center;flex:none;margin-top:1px;"><span style="width:8px;height:8px;border-radius:50%;background:{{ l.dot }};"></span></span><div><div style="font:600 12.5px 'JetBrains Mono',monospace;color:{{ l.fg }};">{{ l.key }}</div><div style="font:400 12px Inter;color:var(--text-muted);">{{ l.desc }}</div></div></div>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:18px;margin-top:13px;padding-top:12px;border-top:1px solid var(--border);">
+            <div style="display:flex;align-items:center;gap:7px;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;font:600 11px Inter;border-radius:7px;background:var(--info-soft-bg);color:var(--info-soft-text);"><span style="width:5px;height:5px;border-radius:50%;background:var(--info);"></span>office</span><span style="font:400 12px Inter;color:var(--text-muted);">{{ overrideHint }}</span></div>
+            <div style="display:flex;align-items:center;gap:7px;"><span style="display:inline-flex;align-items:center;gap:5px;padding:2px 9px;font:600 11px Inter;border-radius:7px;background:transparent;border:1px dashed var(--border-strong);color:var(--text-muted);"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>own</span><span style="font:400 12px Inter;color:var(--text-muted);">{{ inheritHint }}</span></div>
+          </div>
+        </div>
+
+        <!-- TABLE -->
+        <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow);overflow:visible;margin-top:8px;">
+          <div style="overflow-x:auto;border-radius:13px;">
+            <table style="width:100%;border-collapse:collapse;white-space:nowrap;">
+              <thead><tr style="background:var(--bg-muted);">
+                <th style="text-align:left;padding:12px 16px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);position:sticky;left:0;background:var(--bg-muted);z-index:2;">{{ thRole }}</th>
+                <th style="text-align:left;padding:12px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--primary-soft-text);border-left:1px solid var(--border);border-right:1px solid var(--border);background:var(--primary-soft-bg);">{{ thDefault }}</th>
+                <sc-for list="{{ moduleCols }}" as="c" hint-placeholder-count="5"><th style="text-align:left;padding:12px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ c }}</th></sc-for>
+              </tr></thead>
+              <tbody>
+                <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5">
+                  <tr style="border-top:1px solid var(--border);">
+                    <td style="padding:13px 16px;position:sticky;left:0;background:var(--bg-base);z-index:1;"><div style="font:600 13.5px Inter;color:var(--text);">{{ r.role }}</div><div style="font:400 11.5px Inter;color:var(--text-dimmed);">{{ r.roleSub }}</div></td>
+                    <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="6">
+                      <td style="padding:10px 12px;position:relative;background:{{ c.cellBg }};border-left:{{ c.cellBorderL }};border-right:{{ c.cellBorderR }};">
+                        <button onClick="{{ c.toggle }}" style="display:inline-flex;align-items:center;gap:7px;padding:5px 9px 5px 10px;border-radius:8px;background:{{ c.pillBg }};border:{{ c.pillBorder }};cursor:pointer;max-width:100%;" style-hover="filter:brightness(.97);">
+                          <span style="width:7px;height:7px;border-radius:50%;background:{{ c.dot }};flex:none;"></span>
+                          <span style="font:600 12px 'JetBrains Mono',monospace;color:{{ c.pillFg }};white-space:nowrap;">{{ c.level }}</span>
+                          <sc-if value="{{ c.isOverride }}" hint-placeholder-val="{{ false }}"><span title="Override" style="width:6px;height:6px;border-radius:50%;background:var(--warning);flex:none;"></span></sc-if>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="{{ c.pillFg }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;opacity:.7;"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <sc-if value="{{ c.open }}" hint-placeholder-val="{{ false }}">
+                          <div style="position:absolute;top:calc(100% - 2px);left:12px;z-index:40;min-width:230px;background:var(--bg-el);border:1px solid var(--border);border-radius:11px;box-shadow:var(--shadow-lg);padding:5px;">
+                            <sc-for list="{{ c.options }}" as="o" hint-placeholder-count="4">
+                              <button onClick="{{ o.on }}" style="display:flex;align-items:flex-start;gap:9px;width:100%;padding:8px 10px;background:{{ o.bg }};border:none;border-radius:8px;cursor:pointer;text-align:left;" style-hover="background:var(--bg-muted);">
+                                <sc-if value="{{ o.isInherit }}" hint-placeholder-val="{{ false }}"><span style="display:flex;color:var(--text-muted);margin-top:1px;flex:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 0 1 0 8h-1"/></svg></span></sc-if>
+                                <sc-if value="{{ o.isLevel }}" hint-placeholder-val="{{ true }}"><span style="width:8px;height:8px;border-radius:50%;background:{{ o.dot }};flex:none;margin-top:5px;"></span></sc-if>
+                                <span style="flex:1;min-width:0;"><span style="display:block;font:600 12.5px Inter;color:{{ o.titleColor }};">{{ o.title }}</span><span style="display:block;font:400 11.5px Inter;color:var(--text-muted);">{{ o.sub }}</span></span>
+                                <sc-if value="{{ o.active }}" hint-placeholder-val="{{ false }}"><span style="display:flex;color:var(--primary);flex:none;margin-top:2px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span></sc-if>
+                              </button>
+                            </sc-for>
+                          </div>
+                        </sc-if>
+                      </td>
+                    </sc-for>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div style="margin-top:14px;display:flex;align-items:flex-start;gap:8px;font:400 12.5px/1.5 Inter;color:var(--text-dimmed);max-width:760px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px;"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span>{{ footNote }}</span></div>
+      </main>
+    </div>
+  </div>
+
+  <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}"><div onClick="{{ closeMenu }}" style="position:fixed;inset:0;z-index:30;"></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;id&quot;,&quot;en&quot;],&quot;default&quot;:&quot;id&quot;,&quot;tsType&quot;:&quot;'id' | 'en'&quot;},&quot;collapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;primaryColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#16a34a&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const ICONS={
+  dashboard:[['rect',{x:3,y:3,width:7,height:9,rx:1}],['rect',{x:14,y:3,width:7,height:5,rx:1}],['rect',{x:14,y:12,width:7,height:9,rx:1}],['rect',{x:3,y:16,width:7,height:5,rx:1}]],
+  box:[['path',{d:'M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2'}],['path',{d:'M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'}],['path',{d:'M9 13h6'}]],
+  clipboard:[['rect',{x:5,y:4,width:14,height:17,rx:2}],['path',{d:'M9 4V3h6v1'}],['path',{d:'M9 13l2 2 4-4'}]],
+  wrench:[['path',{d:'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.7 2.7-2-2z'}]],
+  approval:[['path',{d:'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'}],['path',{d:'M9 11l3 3 8-8'}]],
+  chart:[['path',{d:'M3 3v18h18'}],['path',{d:'M7 16v-5M12 16V8M17 16v-3'}]],
+  database:[['path',{d:'M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3z'}],['path',{d:'M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6'}],['path',{d:'M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6'}]],
+  settings:[['circle',{cx:12,cy:12,r:3}],['path',{d:'M19.4 15a1.6 1.6 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0 1.6 1.6 0 0 0-2.7-1.1 2 2 0 1 1-2.8-2.8A1.6 1.6 0 0 0 3 13.6a2 2 0 0 1 0-3.2A1.6 1.6 0 0 0 4.6 7a2 2 0 1 1 2.8-2.8A1.6 1.6 0 0 0 10 4.6V3a2 2 0 0 1 4 0 1.6 1.6 0 0 0 2.7 1.1A2 2 0 1 1 19.5 7a1.6 1.6 0 0 0-1 2.4 2 2 0 0 1 0 3.2z'}]],
+};
+function mk(key,size){const d=ICONS[key]||ICONS.box;return React.createElement('svg',{width:size||16,height:size||16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.9,strokeLinecap:'round',strokeLinejoin:'round',style:{flex:'none'}},d.map((x,i)=>React.createElement(x[0],{...x[1],key:i})));}
+const L=(id,en)=>({id,en});
+const NAV=[
+  { label:L('Operasional','Operational'), items:[
+    { label:L('Dashboard','Dashboard'), icon:'dashboard' },{ label:L('Aset','Assets'), icon:'box' },{ label:L('Penugasan','Assignments'), icon:'clipboard' },
+    { label:L('Maintenance','Maintenance'), icon:'wrench' },{ label:L('Pengajuan','Requests'), icon:'approval' },{ label:L('Laporan','Reports'), icon:'chart' },
+  ]},
+  { label:L('Administrasi','Administration'), items:[{ label:L('Master Data','Master Data'), icon:'database' },{ label:L('Pengaturan','Settings'), icon:'settings', active:true }]},
+];
+const LEVELS={
+  global:{ dot:'var(--info)', bg:'var(--info-soft-bg)', fg:'var(--info-soft-text)', desc:L('Semua data lintas kantor','All data across offices') },
+  office_subtree:{ dot:'var(--primary)', bg:'var(--primary-soft-bg)', fg:'var(--primary-soft-text)', desc:L('Kantor sendiri + seluruh turunannya','Own office + all its descendants') },
+  office:{ dot:'var(--warning)', bg:'var(--warning-soft-bg)', fg:'var(--warning-soft-text)', desc:L('Hanya kantor sendiri','Own office only') },
+  own:{ dot:'var(--text-dimmed)', bg:'var(--neutral-soft-bg)', fg:'var(--neutral-soft-text)', desc:L('Hanya data miliknya','Only their own data') },
+};
+const LEVEL_KEYS=['global','office_subtree','office','own'];
+const MODULES=[['aset','Aset','Assets'],['pengajuan','Pengajuan','Requests'],['maintenance','Maintenance','Maintenance'],['master','Master Data','Master Data'],['laporan','Laporan','Reports']];
+const ROLES=[
+  { key:'superadmin', nama:L('Superadmin','Superadmin'), sub:L('Akses penuh','Full access'), def:'global', ov:{} },
+  { key:'kakanwil', nama:L('Kepala Kanwil','Regional Head'), sub:L('Lingkup wilayah','Region scope'), def:'office_subtree', ov:{} },
+  { key:'kaunit', nama:L('Kepala Unit','Unit Head'), sub:L('Lingkup kantor','Office scope'), def:'office', ov:{} },
+  { key:'manager', nama:L('Manager','Manager'), sub:L('Operasional aset','Asset operations'), def:'office', ov:{aset:'office_subtree', pengajuan:'own'} },
+  { key:'staf', nama:L('Staf','Staff'), sub:L('Data miliknya','Own data'), def:'own', ov:{} },
+  { key:'auditor', nama:L('Auditor Internal','Internal Auditor'), sub:L('Baca-saja','Read-only'), def:'office', ov:{aset:'office_subtree', laporan:'office_subtree'} },
+];
+const CH={
+  id:{ bcSetting:'Pengaturan', pageTitle:'Data Scope', pageSub:'Tetapkan level lingkup data per peran. Kolom Default berlaku untuk semua modul; kolom modul dapat menimpa (override) default bila perlu.',
+    unsavedLbl:'Perubahan belum disimpan', saveLbl:'Simpan', legendTitle:'Level lingkup data', thRole:'Peran', thDefault:'Default',
+    overrideHint:'Override per-modul (berbeda dari default)', inheritHint:'Mewarisi default peran',
+    inheritOpt:'Ikuti Default', inheritSubF:(lvl)=>'Mewarisi: '+lvl, footNote:'Contoh: peran Manager memakai default office, namun di-override menjadi office_subtree untuk Aset dan own untuk Pengajuan — menunjukkan lingkup berbeda per modul dalam satu peran.' },
+  en:{ bcSetting:'Settings', pageTitle:'Data Scope', pageSub:'Set the data scope level per role. The Default column applies to all modules; module columns can override the default when needed.',
+    unsavedLbl:'Unsaved changes', saveLbl:'Save', legendTitle:'Data scope levels', thRole:'Role', thDefault:'Default',
+    overrideHint:'Per-module override (differs from default)', inheritHint:'Inherits role default',
+    inheritOpt:'Follow Default', inheritSubF:(lvl)=>'Inherits: '+lvl, footNote:'Example: the Manager role uses the office default but is overridden to office_subtree for Assets and own for Requests — showing different scope per module within one role.' },
+};
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef=React.createRef();
+    this.state={
+      theme:(props.theme==='dark'?'dark':'light'), lang:(props.lang==='en'?'en':'id'), collapsed:!!props.collapsed,
+      roles:ROLES.map(r=>({...r,ov:{...r.ov}})), dirty:false, openCell:null,
+    };
+    this._tt=false;this._tl=false;this._tc=false;
+  }
+  componentDidMount(){ this.applyPrimary(); }
+  componentDidUpdate(){ this.applyPrimary(); }
+  applyPrimary(){ const c=this.props.primaryColor,el=this.rootRef.current; if(el&&c) el.style.setProperty('--primary',c); }
+  effTheme(){ return this._tt?this.state.theme:(this.props.theme||'light'); }
+  effLang(){ return this._tl?this.state.lang:(this.props.lang||'id'); }
+  effCollapsed(){ return this._tc?this.state.collapsed:!!this.props.collapsed; }
+  setDefault(rk,lvl){ this.setState(s=>({roles:s.roles.map(r=>r.key===rk?{...r,def:lvl}:r),dirty:true,openCell:null})); }
+  setOverride(rk,mod,lvl){ this.setState(s=>({roles:s.roles.map(r=>r.key===rk?{...r,ov:{...r.ov,[mod]:lvl}}:r),dirty:true,openCell:null})); }
+  clearOverride(rk,mod){ this.setState(s=>({roles:s.roles.map(r=>{ if(r.key!==rk)return r; const ov={...r.ov}; delete ov[mod]; return {...r,ov}; }),dirty:true,openCell:null})); }
+  renderVals(){
+    const s=this.state; const theme=this.effTheme(),lang=this.effLang(),collapsed=this.effCollapsed();
+    const isDark=theme==='dark'; const ch=CH[lang];
+    const nav=NAV.map(g=>({label:g.label[lang],items:g.items.map(it=>({
+      label:it.label[lang],icon:mk(it.icon),
+      bg:it.active?'var(--primary-soft-bg)':'transparent',fg:it.active?'var(--primary-soft-text)':'var(--text-muted)',
+      weight:it.active?'600':'500',accent:it.active?'var(--primary)':'transparent',hoverBg:it.active?'var(--primary-soft-bg)':'var(--bg-muted)',
+    }))}));
+    const legend=LEVEL_KEYS.map(k=>({key:k,desc:LEVELS[k].desc[lang],bg:LEVELS[k].bg,fg:LEVELS[k].fg,dot:LEVELS[k].dot}));
+
+    const mkLevelOpts=(rk,col,curLevel,isModule)=>{
+      const opts=[];
+      if(isModule){ const role=s.roles.find(r=>r.key===rk); const inheriting=!role.ov[col];
+        opts.push({ isInherit:true, isLevel:false, title:ch.inheritOpt, sub:ch.inheritSubF(role.def), active:inheriting, titleColor:'var(--text)', bg:inheriting?'var(--bg-muted)':'transparent', on:()=>this.clearOverride(rk,col) }); }
+      LEVEL_KEYS.forEach(lvl=>{ const role=s.roles.find(r=>r.key===rk); const isOv= isModule? role.ov[col]===lvl : role.def===lvl;
+        opts.push({ isInherit:false, isLevel:true, dot:LEVELS[lvl].dot, title:lvl, sub:LEVELS[lvl].desc[lang], active:isOv, titleColor:'var(--text)', bg:isOv?'var(--primary-soft-bg)':'transparent',
+          on:()=> isModule? this.setOverride(rk,col,lvl) : this.setDefault(rk,lvl) }); });
+      return opts;
+    };
+
+    const rows=s.roles.map(r=>{
+      const cells=[];
+      // default cell
+      (function(){ const lvl=r.def; const m=LEVELS[lvl]; const cid=r.key+':default'; const open=s.openCell===cid;
+        cells.push({ level:lvl, dot:m.dot, pillBg:m.bg, pillFg:m.fg, pillBorder:'1px solid transparent', isOverride:false,
+          cellBg:'var(--primary-soft-bg)', cellBorderL:'1px solid var(--border)', cellBorderR:'1px solid var(--border)',
+          open, toggle:(e)=>{e.stopPropagation();this.setState(x=>({openCell:x.openCell===cid?null:cid}));}, options:mkLevelOpts(r.key,'default',lvl,false) }); })();
+      // module cells
+      MODULES.forEach(mc=>{ const mod=mc[0]; const ov=r.ov[mod]; const lvl=ov||r.def; const m=LEVELS[lvl]; const isOv=!!ov; const cid=r.key+':'+mod; const open=s.openCell===cid;
+        cells.push({ level:lvl, dot:m.dot, isOverride:isOv,
+          pillBg: isOv?m.bg:'transparent', pillFg: isOv?m.fg:'var(--text-muted)', pillBorder: isOv?'1px solid transparent':'1px dashed var(--border-strong)',
+          cellBg:'transparent', cellBorderL:'none', cellBorderR:'none',
+          open, toggle:(e)=>{e.stopPropagation();this.setState(x=>({openCell:x.openCell===cid?null:cid}));}, options:mkLevelOpts(r.key,mod,lvl,true) }); });
+      return { role:r.nama[lang], roleSub:r.sub[lang], cells };
+    });
+
+    return {
+      rootRef:this.rootRef, theme, isDark, isLight:!isDark,
+      sidebarW:collapsed?'76px':'264px', expanded:!collapsed, collapsed, navJustify:collapsed?'center':'flex-start',
+      toggleCollapse:()=>{this._tc=true;this.setState(x=>({collapsed:!this.effCollapsed()}));},
+      toggleTheme:()=>{this._tt=true;const cur=this.effTheme();this.setState({theme:cur==='light'?'dark':'light'});},
+      setId:()=>{this._tl=true;this.setState({lang:'id'});}, setEn:()=>{this._tl=true;this.setState({lang:'en'});},
+      idBg:lang==='id'?'var(--bg-base)':'transparent', idFg:lang==='id'?'var(--text)':'var(--text-muted)',
+      enBg:lang==='en'?'var(--bg-base)':'transparent', enFg:lang==='en'?'var(--text)':'var(--text-muted)',
+      nav, bcSetting:ch.bcSetting, pageTitle:ch.pageTitle, pageSub:ch.pageSub,
+      dirty:s.dirty, unsavedLbl:ch.unsavedLbl, saveLbl:ch.saveLbl, save:()=>{ if(s.dirty) this.setState({dirty:false}); },
+      saveDisabled:!s.dirty, saveBg:s.dirty?'var(--primary)':'var(--text-dimmed)', saveCursor:s.dirty?'pointer':'not-allowed', saveOpacity:s.dirty?'1':'.55',
+      legendTitle:ch.legendTitle, legend, overrideHint:ch.overrideHint, inheritHint:ch.inheritHint,
+      thRole:ch.thRole, thDefault:ch.thDefault, moduleCols:MODULES.map(m=>lang==='id'?m[1]:m[2]),
+      rows, footNote:ch.footNote,
+      menuOpen:s.openCell!==null, closeMenu:()=>this.setState({openCell:null}),
+    };
+  }
+}
+</script>
+</body>
+</html>

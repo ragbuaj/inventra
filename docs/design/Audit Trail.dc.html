@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;}
+input::placeholder{color:var(--text-dimmed);}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:9px;border:2px solid transparent;background-clip:padding-box;}
+:root{
+  --bg:#f8fafc; --bg-base:#ffffff; --bg-muted:#f1f5f9; --bg-el:#ffffff; --bg-code:#f1f5f9;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#0f172a; --text-muted:#64748b; --text-dimmed:#94a3b8;
+  --primary:#16a34a; --primary-hover:#15803d; --primary-fg:#ffffff;
+  --primary-soft-bg:#dcfce7; --primary-soft-text:#15803d;
+  --success:#16a34a; --success-soft-bg:#dcfce7; --success-soft-text:#15803d;
+  --warning:#d97706; --warning-soft-bg:#fef3c7; --warning-soft-text:#b45309;
+  --error:#dc2626; --error-soft-bg:#fee2e2; --error-soft-text:#b91c1c;
+  --info:#2563eb; --info-soft-bg:#dbeafe; --info-soft-text:#1d4ed8;
+  --neutral-soft-bg:#eef2f6; --neutral-soft-text:#475569;
+  --ring:color-mix(in srgb, var(--primary) 28%, transparent);
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
+  --shadow-lg:0 18px 50px rgba(15,23,42,.18);
+}
+[data-theme="dark"]{
+  --bg:#020617; --bg-base:#0b1220; --bg-muted:#1e293b; --bg-el:#0f172a; --bg-code:#020617;
+  --border:#1e293b; --border-strong:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8; --text-dimmed:#64748b;
+  --primary:#22c55e; --primary-hover:#16a34a; --primary-fg:#052e16;
+  --primary-soft-bg:#14331f; --primary-soft-text:#4ade80;
+  --success:#22c55e; --success-soft-bg:#14331f; --success-soft-text:#4ade80;
+  --warning:#f59e0b; --warning-soft-bg:#3a2a08; --warning-soft-text:#fbbf24;
+  --error:#ef4444; --error-soft-bg:#3a1414; --error-soft-text:#f87171;
+  --info:#3b82f6; --info-soft-bg:#13243f; --info-soft-text:#60a5fa;
+  --neutral-soft-bg:#1e293b; --neutral-soft-text:#cbd5e1;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 18px 50px rgba(0,0,0,.6);
+}
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" data-theme="{{ theme }}" style="font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--text);">
+  <div style="display:flex;height:100vh;overflow:hidden;background:var(--bg);">
+
+    <!-- SIDEBAR -->
+    <aside style="width:{{ sidebarW }};flex:none;display:flex;flex-direction:column;background:var(--bg-base);border-right:1px solid var(--border);transition:width .2s ease;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:11px;height:61px;padding:0 18px;border-bottom:1px solid var(--border);flex:none;">
+        <div style="width:34px;height:34px;border-radius:9px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--primary-fg);flex:none;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13h6"/></svg></div>
+        <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="font:700 18px Inter;letter-spacing:-.01em;white-space:nowrap;">Inventra</span></sc-if>
+      </div>
+      <nav style="flex:1;overflow-y:auto;overflow-x:hidden;padding:12px;">
+        <sc-for list="{{ nav }}" as="g" hint-placeholder-count="2">
+          <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><div style="padding:14px 12px 6px;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dimmed);white-space:nowrap;">{{ g.label }}</div></sc-if>
+          <sc-if value="{{ collapsed }}" hint-placeholder-val="{{ false }}"><div style="height:1px;background:var(--border);margin:10px 8px;"></div></sc-if>
+          <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+            <button title="{{ it.label }}" style="position:relative;display:flex;align-items:center;justify-content:{{ navJustify }};gap:11px;width:100%;padding:9px 12px;margin-bottom:2px;font-family:Inter;font-size:14px;font-weight:{{ it.weight }};color:{{ it.fg }};background:{{ it.bg }};border:none;border-radius:9px;cursor:pointer;text-align:left;box-shadow:inset 3px 0 0 {{ it.accent }};white-space:nowrap;" style-hover="background:{{ it.hoverBg }};">
+              {{ it.icon }}
+              <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;">{{ it.label }}</span></sc-if>
+            </button>
+          </sc-for>
+        </sc-for>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <header style="display:flex;align-items:center;gap:14px;height:61px;flex:none;padding:0 20px;background:var(--bg-base);border-bottom:1px solid var(--border);">
+        <button onClick="{{ toggleCollapse }}" title="Collapse" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex:none;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg></button>
+        <div style="display:flex;align-items:center;gap:6px;font:400 12px Inter;color:var(--text-muted);"><span>Inventra</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span>{{ bcSetting }}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span style="color:var(--text);font-weight:500;">{{ pageTitle }}</span></div>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex:none;">
+          <div style="display:flex;gap:2px;padding:3px;background:var(--bg-muted);border-radius:9px;">
+            <button onClick="{{ setId }}" style="padding:5px 9px;font:600 12px Inter;color:{{ idFg }};background:{{ idBg }};border:none;border-radius:6px;cursor:pointer;">ID</button>
+            <button onClick="{{ setEn }}" style="padding:5px 9px;font:600 12px Inter;color:{{ enFg }};background:{{ enBg }};border:none;border-radius:6px;cursor:pointer;">EN</button>
+          </div>
+          <button onClick="{{ toggleTheme }}" title="Tema" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">
+            <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></sc-if>
+            <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></sc-if>
+          </button>
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;background:transparent;border:1px solid var(--border);border-radius:999px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--primary);color:var(--primary-fg);display:flex;align-items:center;justify-content:center;font:700 12px Inter;">SA</span><span style="display:flex;color:var(--text-dimmed);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+        </div>
+      </header>
+
+      <main style="flex:1;overflow-y:auto;padding:24px 28px 40px;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px;">
+          <div><h1 style="margin:0 0 5px;font:700 23px Inter;letter-spacing:-.02em;">{{ pageTitle }}</h1><p style="margin:0;font:400 14px Inter;color:var(--text-muted);">{{ pageSub }}</p></div>
+          <button style="display:inline-flex;align-items:center;gap:7px;padding:9px 15px;font:500 13.5px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>{{ exportLbl }}</button>
+        </div>
+
+        <!-- filter bar -->
+        <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;padding:14px;box-shadow:var(--shadow);margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="position:relative;flex:1;min-width:180px;">
+            <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);display:flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>
+            <input value="{{ q }}" onInput="{{ onSearch }}" placeholder="{{ searchPh }}" style="width:100%;padding:8px 12px 8px 35px;font:400 14px Inter;color:var(--text);background:var(--bg-muted);border:1px solid transparent;border-radius:9px;outline:none;" style-focus="background:var(--bg-base);border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;"><input type="date" value="{{ dateFrom }}" onInput="{{ onFrom }}" style="padding:7px 9px;font:400 13px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;color-scheme:{{ scheme }};" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" /><span style="color:var(--text-dimmed);">–</span><input type="date" value="{{ dateTo }}" onInput="{{ onTo }}" style="padding:7px 9px;font:400 13px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;color-scheme:{{ scheme }};" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" /></div>
+          <sc-for list="{{ filters }}" as="f" hint-placeholder-count="3">
+            <div style="position:relative;"><select value="{{ f.value }}" onChange="{{ f.on }}" style="appearance:none;padding:8px 30px 8px 12px;font:500 13px Inter;color:{{ f.color }};background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;cursor:pointer;max-width:170px;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><sc-for list="{{ f.opts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select><span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+          </sc-for>
+          <sc-if value="{{ anyFilter }}" hint-placeholder-val="{{ false }}"><button onClick="{{ resetFilter }}" style="display:inline-flex;align-items:center;gap:6px;padding:8px 12px;font:500 13px Inter;color:var(--error);background:transparent;border:none;border-radius:9px;cursor:pointer;" style-hover="background:var(--error-soft-bg);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>{{ resetLbl }}</button></sc-if>
+        </div>
+
+        <sc-if value="{{ hasRows }}" hint-placeholder-val="{{ true }}">
+          <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;font:400 13.5px Inter;">
+                <thead><tr style="background:var(--bg-muted);">
+                  <th style="width:30px;padding:11px 8px 11px 16px;"></th>
+                  <th style="text-align:left;padding:11px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);white-space:nowrap;">{{ cWaktu }}</th>
+                  <th style="text-align:left;padding:11px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cAktor }}</th>
+                  <th style="text-align:left;padding:11px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cAksi }}</th>
+                  <th style="text-align:left;padding:11px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cEntitas }}</th>
+                  <th style="text-align:left;padding:11px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cRingkasan }}</th>
+                  <th style="text-align:left;padding:11px 16px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);white-space:nowrap;">{{ cKantor }}</th>
+                </tr></thead>
+                <tbody>
+                  <sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+                    <tr style="border-top:1px solid var(--border);background:{{ r.rowBg }};cursor:pointer;" style-hover="background:var(--bg-muted);" onClick="{{ r.toggle }}">
+                      <td style="padding:12px 8px 12px 16px;"><span style="display:flex;color:var(--text-dimmed);transform:rotate({{ r.chevron }});transition:transform .15s;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span></td>
+                      <td style="padding:12px 14px;white-space:nowrap;"><div style="font:500 13px Inter;color:var(--text);">{{ r.tgl }}</div><div style="font:400 11.5px 'JetBrains Mono',monospace;color:var(--text-dimmed);">{{ r.jam }}</div></td>
+                      <td style="padding:12px 14px;"><div style="display:flex;align-items:center;gap:9px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--primary-soft-bg);color:var(--primary-soft-text);display:flex;align-items:center;justify-content:center;font:700 11px Inter;flex:none;">{{ r.ini }}</span><div style="min-width:0;"><div style="font:500 13px Inter;color:var(--text);white-space:nowrap;">{{ r.aktor }}</div><div style="font:400 11.5px Inter;color:var(--text-dimmed);white-space:nowrap;">{{ r.role }}</div></div></div></td>
+                      <td style="padding:12px 14px;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;font:600 11.5px Inter;border-radius:999px;background:{{ r.aksiBg }};color:{{ r.aksiFg }};">{{ r.aksiIcon }}{{ r.aksiLabel }}</span></td>
+                      <td style="padding:12px 14px;color:var(--text-muted);white-space:nowrap;">{{ r.entitas }}</td>
+                      <td style="padding:12px 14px;color:var(--text);max-width:320px;"><span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ r.ringkasan }}</span></td>
+                      <td style="padding:12px 16px;white-space:nowrap;"><div style="font:400 13px Inter;color:var(--text-muted);">{{ r.kantor }}</div><div style="font:400 11.5px 'JetBrains Mono',monospace;color:var(--text-dimmed);">{{ r.ip }}</div></td>
+                    </tr>
+                    <sc-if value="{{ r.open }}" hint-placeholder-val="{{ false }}">
+                      <tr style="background:var(--bg-muted);"><td colspan="7" style="padding:0 16px 16px 47px;">
+                        <div style="background:var(--bg-code);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+                          <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg><span style="font:600 12px Inter;color:var(--text-muted);">{{ diffTitle }}</span><span style="font:400 11.5px 'JetBrains Mono',monospace;color:var(--text-dimmed);">{{ r.refCode }}</span></div>
+                          <div style="padding:6px 14px 10px;">
+                            <sc-for list="{{ r.diff }}" as="d" hint-placeholder-count="2">
+                              <div style="display:grid;grid-template-columns:170px 1fr;gap:12px;align-items:start;padding:8px 0;border-bottom:1px solid var(--border);">
+                                <span style="font:500 12.5px 'JetBrains Mono',monospace;color:var(--text-muted);padding-top:2px;">{{ d.field }}</span>
+                                <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
+                                  <sc-if value="{{ d.hasBefore }}" hint-placeholder-val="{{ true }}"><span style="font:500 12.5px 'JetBrains Mono',monospace;padding:2px 8px;border-radius:6px;background:var(--error-soft-bg);color:var(--error-soft-text);text-decoration:line-through;">{{ d.before }}</span></sc-if>
+                                  <sc-if value="{{ d.hasArrow }}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></sc-if>
+                                  <sc-if value="{{ d.hasAfter }}" hint-placeholder-val="{{ true }}"><span style="font:500 12.5px 'JetBrains Mono',monospace;padding:2px 8px;border-radius:6px;background:var(--success-soft-bg);color:var(--success-soft-text);">{{ d.after }}</span></sc-if>
+                                </div>
+                              </div>
+                            </sc-for>
+                          </div>
+                        </div>
+                      </td></tr>
+                    </sc-if>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:12px 16px;border-top:1px solid var(--border);">
+              <span style="font:400 13px Inter;color:var(--text-muted);">{{ pageInfo }}</span>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <button onClick="{{ prevPage }}" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;color:var(--text-muted);background:var(--bg-base);border:1px solid var(--border);border-radius:8px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+                <sc-for list="{{ pageBtns }}" as="p" hint-placeholder-count="2"><button onClick="{{ p.on }}" style="min-width:34px;height:34px;padding:0 6px;font:600 13px Inter;color:{{ p.fg }};background:{{ p.bg }};border:1px solid {{ p.bd }};border-radius:8px;cursor:pointer;">{{ p.n }}</button></sc-for>
+                <button onClick="{{ nextPage }}" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;color:var(--text-muted);background:var(--bg-base);border:1px solid var(--border);border-radius:8px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noRows }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:56px 24px;text-align:center;">
+            <div style="width:54px;height:54px;margin:0 auto 14px;border-radius:14px;background:var(--bg-muted);color:var(--text-dimmed);display:flex;align-items:center;justify-content:center;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 8v4l3 2"/></svg></div>
+            <div style="font:600 16px Inter;margin-bottom:6px;">{{ emptyTitle }}</div>
+            <div style="font:400 14px Inter;color:var(--text-muted);max-width:320px;margin:0 auto 18px;">{{ emptySub }}</div>
+            <sc-if value="{{ anyFilter }}" hint-placeholder-val="{{ false }}"><button onClick="{{ resetFilter }}" style="display:inline-flex;align-items:center;gap:7px;padding:9px 16px;font:500 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);">{{ resetLbl }}</button></sc-if>
+          </div>
+        </sc-if>
+      </main>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;id&quot;,&quot;en&quot;],&quot;default&quot;:&quot;id&quot;,&quot;tsType&quot;:&quot;'id' | 'en'&quot;},&quot;collapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;primaryColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#16a34a&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const ICONS={
+  dashboard:[['rect',{x:3,y:3,width:7,height:9,rx:1}],['rect',{x:14,y:3,width:7,height:5,rx:1}],['rect',{x:14,y:12,width:7,height:9,rx:1}],['rect',{x:3,y:16,width:7,height:5,rx:1}]],
+  box:[['path',{d:'M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2'}],['path',{d:'M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'}],['path',{d:'M9 13h6'}]],
+  clipboard:[['rect',{x:5,y:4,width:14,height:17,rx:2}],['path',{d:'M9 4V3h6v1'}],['path',{d:'M9 13l2 2 4-4'}]],
+  wrench:[['path',{d:'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.7 2.7-2-2z'}]],
+  approval:[['path',{d:'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'}],['path',{d:'M9 11l3 3 8-8'}]],
+  chart:[['path',{d:'M3 3v18h18'}],['path',{d:'M7 16v-5M12 16V8M17 16v-3'}]],
+  database:[['path',{d:'M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3z'}],['path',{d:'M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6'}],['path',{d:'M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6'}]],
+  settings:[['circle',{cx:12,cy:12,r:3}],['path',{d:'M19.4 15a1.6 1.6 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0 1.6 1.6 0 0 0-2.7-1.1 2 2 0 1 1-2.8-2.8A1.6 1.6 0 0 0 3 13.6a2 2 0 0 1 0-3.2A1.6 1.6 0 0 0 4.6 7a2 2 0 1 1 2.8-2.8A1.6 1.6 0 0 0 10 4.6V3a2 2 0 0 1 4 0 1.6 1.6 0 0 0 2.7 1.1A2 2 0 1 1 19.5 7a1.6 1.6 0 0 0-1 2.4 2 2 0 0 1 0 3.2z'}]],
+  plus:[['path',{d:'M12 5v14M5 12h14'}]],
+  edit:[['path',{d:'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z'}]],
+  trash:[['path',{d:'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6'}]],
+};
+function mk(key,size){const d=ICONS[key]||ICONS.box;return React.createElement('svg',{width:size||16,height:size||16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.9,strokeLinecap:'round',strokeLinejoin:'round',style:{flex:'none'}},d.map((x,i)=>React.createElement(x[0],{...x[1],key:i})));}
+const L=(id,en)=>({id,en});
+const NAV=[
+  { label:L('Operasional','Operational'), items:[
+    { label:L('Dashboard','Dashboard'), icon:'dashboard' },{ label:L('Aset','Assets'), icon:'box' },{ label:L('Penugasan','Assignments'), icon:'clipboard' },
+    { label:L('Maintenance','Maintenance'), icon:'wrench' },{ label:L('Pengajuan','Requests'), icon:'approval' },{ label:L('Laporan','Reports'), icon:'chart' },
+  ]},
+  { label:L('Administrasi','Administration'), items:[{ label:L('Master Data','Master Data'), icon:'database' },{ label:L('Pengaturan','Settings'), icon:'settings', active:true }]},
+];
+const AKSI={ create:{label:L('Buat','Create'),bg:'var(--success-soft-bg)',fg:'var(--success-soft-text)',icon:'plus'}, update:{label:L('Ubah','Update'),bg:'var(--info-soft-bg)',fg:'var(--info-soft-text)',icon:'edit'}, delete:{label:L('Hapus','Delete'),bg:'var(--error-soft-bg)',fg:'var(--error-soft-text)',icon:'trash'} };
+function ini(n){const p=n.split(' ');return ((p[0]||'')[0]||'')+((p[1]||'')[0]||'');}
+// [id, dt(YYYY-MM-DD HH:mm), aktor, role, aksi, entitas, ref, ringkasan, kantor, ip, diff[]]
+const D=(field,before,after)=>({field,before,after});
+const LOGS=[
+  {id:1,dt:'2026-06-24 09:42',aktor:'Dewi Lestari',role:L('Asset Manager','Asset Manager'),aksi:'update',entitas:'Aset',ref:'JKT01-ELK-2025-00028',ringkasan:L('Ubah valuasi Genset Cummins C22','Update valuation of Genset Cummins C22'),kantor:'Cabang Jakarta Selatan',ip:'10.20.1.14',diff:[D('nilai_buku','Rp 69.000.000','Rp 45.000.000'),D('kondisi','Baik','Rusak Berat')]},
+  {id:2,dt:'2026-06-24 08:15',aktor:'Andi Saputra',role:L('Asset Manager','Asset Manager'),aksi:'create',entitas:'Aset',ref:'JKT01-ELK-2026-00040',ringkasan:L('Tambah Laptop Asus ExpertBook B1','Add Laptop Asus ExpertBook B1'),kantor:'Cabang Jakarta Selatan',ip:'10.20.1.22',diff:[D('nama',null,'Laptop Asus ExpertBook B1'),D('kategori',null,'Elektronik'),D('harga_beli',null,'Rp 14.500.000')]},
+  {id:3,dt:'2026-06-23 16:30',aktor:'Super Admin',role:L('Superadmin','Superadmin'),aksi:'update',entitas:'Peran',ref:'role:operator_gudang',ringkasan:L('Ubah izin peran Operator Gudang','Update Warehouse Operator role permissions'),kantor:'Kantor Pusat',ip:'10.0.0.2',diff:[D('permissions','— ','+ aset.label'),D('permissions','— ','+ penugasan.checkin')]},
+  {id:4,dt:'2026-06-23 14:05',aktor:'Siti Aminah',role:L('Kepala Unit','Unit Head'),aksi:'update',entitas:'Pengajuan',ref:'REG-2026-0012',ringkasan:L('Setujui registrasi 12 Laptop','Approve registration of 12 laptops'),kantor:'Cabang Jakarta Selatan',ip:'10.20.1.5',diff:[D('status','Menunggu','Disetujui'),D('approver',null,'Siti Aminah')]},
+  {id:5,dt:'2026-06-23 11:20',aktor:'Bambang Sukasno',role:L('Kepala Kanwil','Regional Head'),aksi:'delete',entitas:'Aset',ref:'JKT01-ELK-2024-00021',ringkasan:L('Hapus Printer HP LaserJet (hilang)','Delete HP LaserJet Printer (lost)'),kantor:'Kanwil DKI Jakarta',ip:'10.10.0.8',diff:[D('nama','Printer HP LaserJet Pro',null),D('status','Hilang',null)]},
+  {id:6,dt:'2026-06-22 17:48',aktor:'Super Admin',role:L('Superadmin','Superadmin'),aksi:'create',entitas:'User',ref:'fajar.nugroho@inventra.go.id',ringkasan:L('Buat akun Fajar Nugroho','Create account for Fajar Nugroho'),kantor:'Kantor Pusat',ip:'10.0.0.2',diff:[D('email',null,'fajar.nugroho@inventra.go.id'),D('peran',null,'Staf'),D('kantor',null,'Cabang Jakarta Pusat')]},
+  {id:7,dt:'2026-06-22 13:10',aktor:'Rina Putri',role:L('Staf','Staff'),aksi:'create',entitas:'Pengajuan',ref:'PMJ-2026-0048',ringkasan:L('Ajukan peminjaman Proyektor Epson','Request loan of Epson Projector'),kantor:'Cabang Jakarta Selatan',ip:'10.20.1.31',diff:[D('tipe',null,'Peminjaman'),D('aset',null,'JKT01-ELK-2026-00002')]},
+  {id:8,dt:'2026-06-22 09:05',aktor:'Dewi Lestari',role:L('Asset Manager','Asset Manager'),aksi:'update',entitas:'Aset',ref:'JKT01-ELK-2026-00005',ringkasan:L('Check-out Monitor LG ke Rina Putri','Check out Monitor LG to Rina Putri'),kantor:'Cabang Jakarta Selatan',ip:'10.20.1.14',diff:[D('status','Tersedia','Dipinjam'),D('pemegang','—','Rina Putri')]},
+  {id:9,dt:'2026-06-21 15:25',aktor:'Super Admin',role:L('Superadmin','Superadmin'),aksi:'update',entitas:'Field-Permission',ref:'aset.harga_beli',ringkasan:L('Batasi field harga_beli','Restrict harga_beli field'),kantor:'Kantor Pusat',ip:'10.0.0.2',diff:[D('staf.view','true','false'),D('kaunit.view','true','false')]},
+  {id:10,dt:'2026-06-21 10:40',aktor:'Andi Saputra',role:L('Asset Manager','Asset Manager'),aksi:'update',entitas:'Master Data',ref:'vendor:sinarkom',ringkasan:L('Ubah kontak PT Sinar Komputindo','Update PT Sinar Komputindo contact'),kantor:'Cabang Jakarta Selatan',ip:'10.20.1.22',diff:[D('telepon','021-5550100','021-5550123')]},
+  {id:11,dt:'2026-06-20 16:12',aktor:'Siti Aminah',role:L('Kepala Unit','Unit Head'),aksi:'update',entitas:'Pengajuan',ref:'PMJ-2026-0041',ringkasan:L('Tolak peminjaman kendaraan dinas','Reject official vehicle loan'),kantor:'Cabang Jakarta Selatan',ip:'10.20.1.5',diff:[D('status','Menunggu','Ditolak'),D('catatan',null,'Kendaraan terjadwal untuk unit lain')]},
+  {id:12,dt:'2026-06-20 09:30',aktor:'Super Admin',role:L('Superadmin','Superadmin'),aksi:'create',entitas:'Kantor',ref:'JKT01-KM',ringkasan:L('Tambah Outlet Kemang','Add Outlet Kemang'),kantor:'Kantor Pusat',ip:'10.0.0.2',diff:[D('nama',null,'Outlet Kemang'),D('jenis',null,'Outlet'),D('induk',null,'Cabang Jakarta Selatan')]},
+  {id:13,dt:'2026-06-19 14:00',aktor:'Dewi Lestari',role:L('Asset Manager','Asset Manager'),aksi:'create',entitas:'Maintenance',ref:'MNT-2026-0077',ringkasan:L('Catat servis mesin Toyota Avanza','Log engine service for Toyota Avanza'),kantor:'Cabang Jakarta Selatan',ip:'10.20.1.14',diff:[D('tipe',null,'Corrective'),D('biaya',null,'Rp 2.350.000'),D('vendor',null,'Auto2000')]},
+  {id:14,dt:'2026-06-19 08:22',aktor:'Rina Putri',role:L('Staf','Staff'),aksi:'update',entitas:'Pegawai',ref:'199205202012012002',ringkasan:L('Perbarui nomor telepon','Update phone number'),kantor:'Cabang Jakarta Selatan',ip:'10.20.1.31',diff:[D('telepon','0813-9087-1100','0813-9087-1122')]},
+];
+const ENTITAS=['Aset','Pengajuan','User','Peran','Field-Permission','Master Data','Kantor','Maintenance','Pegawai'];
+const MON=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const CH={
+  id:{ bcSetting:'Pengaturan', pageTitle:'Audit Trail', pageSub:'Telusuri seluruh aktivitas sistem (hanya-baca).', exportLbl:'Ekspor', searchPh:'Cari aktivitas / aktor…',
+    cWaktu:'Waktu', cAktor:'Aktor', cAksi:'Aksi', cEntitas:'Entitas', cRingkasan:'Ringkasan Perubahan', cKantor:'Kantor / IP',
+    fAktorAll:'Semua Aktor', fAksiAll:'Semua Aksi', fEntAll:'Semua Entitas', resetLbl:'Reset', diffTitle:'Perubahan (before → after)',
+    emptyTitle:'Tidak ada log', emptySub:'Tidak ada aktivitas yang cocok dengan filter atau rentang tanggal.',
+    pageInfoF:(a,b,n)=>'Menampilkan '+a+'–'+b+' dari '+n+' aktivitas' },
+  en:{ bcSetting:'Settings', pageTitle:'Audit Trail', pageSub:'Browse all system activity (read-only).', exportLbl:'Export', searchPh:'Search activity / actor…',
+    cWaktu:'Time', cAktor:'Actor', cAksi:'Action', cEntitas:'Entity', cRingkasan:'Change Summary', cKantor:'Office / IP',
+    fAktorAll:'All Actors', fAksiAll:'All Actions', fEntAll:'All Entities', resetLbl:'Reset', diffTitle:'Changes (before → after)',
+    emptyTitle:'No logs', emptySub:'No activity matches the filter or date range.',
+    pageInfoF:(a,b,n)=>'Showing '+a+'–'+b+' of '+n+' activities' },
+};
+const PAGE_SIZE=8;
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef=React.createRef();
+    this.state={
+      theme:(props.theme==='dark'?'dark':'light'), lang:(props.lang==='en'?'en':'id'), collapsed:!!props.collapsed,
+      q:'', dateFrom:'', dateTo:'', fAktor:'all', fAksi:'all', fEnt:'all', page:1, openId:2,
+    };
+    this._tt=false;this._tl=false;this._tc=false;
+  }
+  componentDidMount(){ this.applyPrimary(); }
+  componentDidUpdate(){ this.applyPrimary(); }
+  applyPrimary(){ const c=this.props.primaryColor,el=this.rootRef.current; if(el&&c) el.style.setProperty('--primary',c); }
+  effTheme(){ return this._tt?this.state.theme:(this.props.theme||'light'); }
+  effLang(){ return this._tl?this.state.lang:(this.props.lang||'id'); }
+  effCollapsed(){ return this._tc?this.state.collapsed:!!this.props.collapsed; }
+  fmtDate(d){ return d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear(); }
+  renderVals(){
+    const s=this.state; const theme=this.effTheme(),lang=this.effLang(),collapsed=this.effCollapsed();
+    const isDark=theme==='dark'; const ch=CH[lang];
+    const nav=NAV.map(g=>({label:g.label[lang],items:g.items.map(it=>({
+      label:it.label[lang],icon:mk(it.icon),
+      bg:it.active?'var(--primary-soft-bg)':'transparent',fg:it.active?'var(--primary-soft-text)':'var(--text-muted)',
+      weight:it.active?'600':'500',accent:it.active?'var(--primary)':'transparent',hoverBg:it.active?'var(--primary-soft-bg)':'var(--bg-muted)',
+    }))}));
+
+    const q=s.q.trim().toLowerCase();
+    let list=LOGS.slice();
+    if(q) list=list.filter(r=>r.ringkasan[lang].toLowerCase().includes(q)||r.aktor.toLowerCase().includes(q)||r.ref.toLowerCase().includes(q));
+    if(s.fAktor!=='all') list=list.filter(r=>r.aktor===s.fAktor);
+    if(s.fAksi!=='all') list=list.filter(r=>r.aksi===s.fAksi);
+    if(s.fEnt!=='all') list=list.filter(r=>r.entitas===s.fEnt);
+    if(s.dateFrom) list=list.filter(r=>r.dt.slice(0,10)>=s.dateFrom);
+    if(s.dateTo) list=list.filter(r=>r.dt.slice(0,10)<=s.dateTo);
+    const n=list.length; const totalPages=Math.max(1,Math.ceil(n/PAGE_SIZE)); const page=Math.min(s.page,totalPages); const start=(page-1)*PAGE_SIZE;
+    const rows=list.slice(start,start+PAGE_SIZE).map(r=>{ const a=AKSI[r.aksi]; const dt=new Date(r.dt.replace(' ','T')); const open=s.openId===r.id;
+      const diff=r.diff.map(d=>({ field:d.field, before:d.before==null?'':d.before, after:d.after==null?'':d.after, hasBefore:d.before!=null, hasAfter:d.after!=null, hasArrow:(d.before!=null&&d.after!=null) }));
+      return { tgl:this.fmtDate(dt), jam:r.dt.slice(11), ini:ini(r.aktor), aktor:r.aktor, role:r.role[lang],
+        aksiBg:a.bg, aksiFg:a.fg, aksiIcon:mk(a.icon,12), aksiLabel:a.label[lang], entitas:r.entitas, ringkasan:r.ringkasan[lang], kantor:r.kantor, ip:r.ip, refCode:r.ref,
+        open, chevron:open?'90deg':'0deg', rowBg:open?'var(--bg-muted)':'transparent', diff,
+        toggle:()=>this.setState(x=>({openId:x.openId===r.id?null:r.id})) };
+    });
+    const pageBtns=[]; for(let i=1;i<=totalPages;i++) pageBtns.push({n:String(i),on:()=>this.setState({page:i}),bg:i===page?'var(--primary)':'transparent',fg:i===page?'var(--primary-fg)':'var(--text-muted)',bd:i===page?'var(--primary)':'var(--border)'});
+    const startN=n===0?0:start+1, endN=Math.min(start+PAGE_SIZE,n);
+    const anyFilter=!!q||s.fAktor!=='all'||s.fAksi!=='all'||s.fEnt!=='all'||!!s.dateFrom||!!s.dateTo;
+    const actors=Array.from(new Set(LOGS.map(r=>r.aktor)));
+    const filters=[
+      {value:s.fAktor,color:s.fAktor==='all'?'var(--text-muted)':'var(--text)',on:(e)=>this.setState({fAktor:e.target.value,page:1}),opts:[{v:'all',label:ch.fAktorAll}].concat(actors.map(a=>({v:a,label:a})))},
+      {value:s.fAksi,color:s.fAksi==='all'?'var(--text-muted)':'var(--text)',on:(e)=>this.setState({fAksi:e.target.value,page:1}),opts:[{v:'all',label:ch.fAksiAll},{v:'create',label:AKSI.create.label[lang]},{v:'update',label:AKSI.update.label[lang]},{v:'delete',label:AKSI.delete.label[lang]}]},
+      {value:s.fEnt,color:s.fEnt==='all'?'var(--text-muted)':'var(--text)',on:(e)=>this.setState({fEnt:e.target.value,page:1}),opts:[{v:'all',label:ch.fEntAll}].concat(ENTITAS.map(e=>({v:e,label:e})))},
+    ];
+    return {
+      rootRef:this.rootRef, theme, isDark, isLight:!isDark, scheme:isDark?'dark':'light',
+      sidebarW:collapsed?'76px':'264px', expanded:!collapsed, collapsed, navJustify:collapsed?'center':'flex-start',
+      toggleCollapse:()=>{this._tc=true;this.setState(x=>({collapsed:!this.effCollapsed()}));},
+      toggleTheme:()=>{this._tt=true;const cur=this.effTheme();this.setState({theme:cur==='light'?'dark':'light'});},
+      setId:()=>{this._tl=true;this.setState({lang:'id'});}, setEn:()=>{this._tl=true;this.setState({lang:'en'});},
+      idBg:lang==='id'?'var(--bg-base)':'transparent', idFg:lang==='id'?'var(--text)':'var(--text-muted)',
+      enBg:lang==='en'?'var(--bg-base)':'transparent', enFg:lang==='en'?'var(--text)':'var(--text-muted)',
+      nav, bcSetting:ch.bcSetting, pageTitle:ch.pageTitle, pageSub:ch.pageSub, exportLbl:ch.exportLbl,
+      q:s.q, onSearch:(e)=>this.setState({q:e.target.value,page:1}), searchPh:ch.searchPh,
+      dateFrom:s.dateFrom, dateTo:s.dateTo, onFrom:(e)=>this.setState({dateFrom:e.target.value,page:1}), onTo:(e)=>this.setState({dateTo:e.target.value,page:1}),
+      filters, anyFilter, resetLbl:ch.resetLbl, resetFilter:()=>this.setState({q:'',dateFrom:'',dateTo:'',fAktor:'all',fAksi:'all',fEnt:'all',page:1}),
+      cWaktu:ch.cWaktu, cAktor:ch.cAktor, cAksi:ch.cAksi, cEntitas:ch.cEntitas, cRingkasan:ch.cRingkasan, cKantor:ch.cKantor, diffTitle:ch.diffTitle,
+      rows, hasRows:rows.length>0, noRows:rows.length===0, emptyTitle:ch.emptyTitle, emptySub:ch.emptySub,
+      pageBtns, prevPage:()=>this.setState(x=>({page:Math.max(1,x.page-1)})), nextPage:()=>this.setState(x=>({page:Math.min(totalPages,x.page+1)})), pageInfo:ch.pageInfoF(startN,endN,n),
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;}
+input::placeholder,textarea::placeholder{color:var(--text-dimmed);}
+:root{
+  --bg:#f8fafc; --bg-base:#ffffff; --bg-muted:#f1f5f9; --bg-elevated:#ffffff;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#0f172a; --text-muted:#64748b; --text-dimmed:#94a3b8;
+  --primary:#16a34a; --primary-hover:#15803d; --primary-fg:#ffffff;
+  --primary-soft-bg:#dcfce7; --primary-soft-text:#15803d;
+  --success:#16a34a; --success-soft-bg:#dcfce7; --success-soft-text:#15803d;
+  --warning:#d97706; --warning-soft-bg:#fef3c7; --warning-soft-text:#b45309;
+  --error:#dc2626; --error-soft-bg:#fee2e2; --error-soft-text:#b91c1c;
+  --info:#2563eb; --info-soft-bg:#dbeafe; --info-soft-text:#1d4ed8;
+  --neutral-soft-bg:#f1f5f9; --neutral-soft-text:#475569;
+  --ring:color-mix(in srgb, var(--primary) 28%, transparent);
+  --ring-error:color-mix(in srgb, var(--error) 25%, transparent);
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
+  --shadow-lg:0 12px 34px rgba(15,23,42,.16);
+}
+[data-theme="dark"]{
+  --bg:#020617; --bg-base:#0f172a; --bg-muted:#1e293b; --bg-elevated:#1e293b;
+  --border:#1e293b; --border-strong:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8; --text-dimmed:#64748b;
+  --primary:#22c55e; --primary-hover:#16a34a; --primary-fg:#052e16;
+  --primary-soft-bg:#14331f; --primary-soft-text:#4ade80;
+  --success:#22c55e; --success-soft-bg:#14331f; --success-soft-text:#4ade80;
+  --warning:#f59e0b; --warning-soft-bg:#3a2a08; --warning-soft-text:#fbbf24;
+  --error:#ef4444; --error-soft-bg:#3a1414; --error-soft-text:#f87171;
+  --info:#3b82f6; --info-soft-bg:#13243f; --info-soft-text:#60a5fa;
+  --neutral-soft-bg:#1e293b; --neutral-soft-text:#cbd5e1;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 12px 34px rgba(0,0,0,.55);
+}
+@keyframes shimmer{0%{background-position:-500px 0}100%{background-position:500px 0}}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+@keyframes slideIn{from{transform:translateX(100%)}to{transform:none}}
+@keyframes popIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" data-theme="{{ theme }}" style="min-height:100vh;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;">
+
+  <header style="position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;padding:14px 32px;background:color-mix(in srgb,var(--bg-base) 82%, transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:34px;height:34px;border-radius:9px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--primary-fg);box-shadow:var(--shadow);">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13h6"/></svg>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1px;">
+        <span style="font:700 16px Inter;letter-spacing:-.01em;">Inventra</span>
+        <span style="font:500 11px 'JetBrains Mono',monospace;letter-spacing:.1em;color:var(--text-dimmed);text-transform:uppercase;">Component Library</span>
+      </div>
+    </div>
+    <button onClick="{{ toggleTheme }}" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;font:500 13px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);">
+      <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </sc-if>
+      <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </sc-if>
+      {{ themeLabel }}
+    </button>
+  </header>
+
+  <div style="max-width:1180px;margin:0 auto;padding:36px 32px 96px;">
+
+    <div style="margin-bottom:44px;">
+      <h1 style="margin:0 0 8px;font:700 26px Inter;letter-spacing:-.02em;">Style Guide & Komponen Dasar</h1>
+      <p style="margin:0;max-width:640px;font:400 15px/1.6 Inter;color:var(--text-muted);">Acuan komponen untuk Inventra. Primary <strong style="color:var(--primary);font-weight:600;">green</strong>, neutral slate, token semantik, dukung light &amp; dark mode. Setara komponen Nuxt UI v4 + Tailwind v4. Klik toggle di kanan atas untuk berganti tema.</p>
+    </div>
+
+    <!-- ============ TOKENS / COLOR ============ -->
+    <section style="margin-bottom:44px;">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px;"><span style="font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--primary);">00</span><h2 style="margin:0;font:600 14px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);">Token Warna Semantik</h2></div>
+      <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:var(--shadow);">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;">
+          <div><div style="height:54px;border-radius:10px;background:var(--primary);border:1px solid var(--border);"></div><div style="margin-top:8px;font:600 12px Inter;">Primary</div><div style="font:400 11px 'JetBrains Mono',monospace;color:var(--text-dimmed);">green-600</div></div>
+          <div><div style="height:54px;border-radius:10px;background:var(--text);border:1px solid var(--border);"></div><div style="margin-top:8px;font:600 12px Inter;">Neutral</div><div style="font:400 11px 'JetBrains Mono',monospace;color:var(--text-dimmed);">slate-900</div></div>
+          <div><div style="height:54px;border-radius:10px;background:var(--success);border:1px solid var(--border);"></div><div style="margin-top:8px;font:600 12px Inter;">Success</div><div style="font:400 11px 'JetBrains Mono',monospace;color:var(--text-dimmed);">green</div></div>
+          <div><div style="height:54px;border-radius:10px;background:var(--warning);border:1px solid var(--border);"></div><div style="margin-top:8px;font:600 12px Inter;">Warning</div><div style="font:400 11px 'JetBrains Mono',monospace;color:var(--text-dimmed);">amber</div></div>
+          <div><div style="height:54px;border-radius:10px;background:var(--error);border:1px solid var(--border);"></div><div style="margin-top:8px;font:600 12px Inter;">Error</div><div style="font:400 11px 'JetBrains Mono',monospace;color:var(--text-dimmed);">red</div></div>
+          <div><div style="height:54px;border-radius:10px;background:var(--info);border:1px solid var(--border);"></div><div style="margin-top:8px;font:600 12px Inter;">Info</div><div style="font:400 11px 'JetBrains Mono',monospace;color:var(--text-dimmed);">blue</div></div>
+          <div><div style="height:54px;border-radius:10px;background:var(--bg-muted);border:1px solid var(--border);"></div><div style="margin-top:8px;font:600 12px Inter;">Muted</div><div style="font:400 11px 'JetBrains Mono',monospace;color:var(--text-dimmed);">slate-100</div></div>
+          <div><div style="height:54px;border-radius:10px;background:var(--bg-base);border:1px solid var(--border-strong);"></div><div style="margin-top:8px;font:600 12px Inter;">Surface</div><div style="font:400 11px 'JetBrains Mono',monospace;color:var(--text-dimmed);">base / border</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ BUTTONS ============ -->
+    <section style="margin-bottom:44px;">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px;"><span style="font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--primary);">01</span><h2 style="margin:0;font:600 14px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);">Buttons</h2></div>
+      <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:var(--shadow);display:grid;grid-template-columns:repeat(2,1fr);gap:28px;">
+
+        <div>
+          <div style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);margin-bottom:12px;text-transform:uppercase;letter-spacing:.08em;">Button / Primary &middot; ukuran</div>
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;">
+            <button style="display:inline-flex;align-items:center;gap:6px;padding:6px 11px;font:500 13px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:8px;cursor:pointer;" style-hover="background:var(--primary-hover);border-color:var(--primary-hover);">Kecil</button>
+            <button style="display:inline-flex;align-items:center;gap:6px;padding:9px 15px;font:500 14px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);border-color:var(--primary-hover);">Sedang</button>
+            <button style="display:inline-flex;align-items:center;gap:7px;padding:12px 20px;font:600 15px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:10px;cursor:pointer;" style-hover="background:var(--primary-hover);border-color:var(--primary-hover);">Besar</button>
+          </div>
+        </div>
+
+        <div>
+          <div style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);margin-bottom:12px;text-transform:uppercase;letter-spacing:.08em;">Button / Dengan ikon &amp; loading</div>
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;">
+            <button style="display:inline-flex;align-items:center;gap:7px;padding:9px 15px;font:500 14px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Tambah Aset</button>
+            <button style="display:inline-flex;align-items:center;gap:8px;padding:9px 15px;font:500 14px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:wait;opacity:.85;"><span style="width:14px;height:14px;border:2px solid color-mix(in srgb,var(--primary-fg) 40%,transparent);border-top-color:var(--primary-fg);border-radius:50%;display:inline-block;animation:spin .7s linear infinite;"></span>Menyimpan…</button>
+          </div>
+        </div>
+
+        <div>
+          <div style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);margin-bottom:12px;text-transform:uppercase;letter-spacing:.08em;">Button / Neutral &amp; Ghost</div>
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;">
+            <button style="display:inline-flex;align-items:center;gap:6px;padding:9px 15px;font:500 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);">Neutral</button>
+            <button style="display:inline-flex;align-items:center;gap:6px;padding:9px 15px;font:500 14px Inter;color:var(--text-muted);background:transparent;border:1px solid transparent;border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">Ghost</button>
+            <button style="display:inline-flex;align-items:center;gap:6px;padding:9px 15px;font:500 14px Inter;color:var(--primary-soft-text);background:var(--primary-soft-bg);border:1px solid transparent;border-radius:9px;cursor:pointer;">Soft</button>
+          </div>
+        </div>
+
+        <div>
+          <div style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);margin-bottom:12px;text-transform:uppercase;letter-spacing:.08em;">Button / Danger &amp; Disabled</div>
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;">
+            <button style="display:inline-flex;align-items:center;gap:6px;padding:9px 15px;font:500 14px Inter;color:#fff;background:var(--error);border:1px solid var(--error);border-radius:9px;cursor:pointer;" style-hover="filter:brightness(.94);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>Hapus</button>
+            <button style="display:inline-flex;align-items:center;gap:6px;padding:9px 15px;font:500 14px Inter;color:var(--text-dimmed);background:var(--bg-muted);border:1px solid var(--border);border-radius:9px;cursor:not-allowed;">Disabled</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ INPUTS ============ -->
+    <section style="margin-bottom:44px;">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px;"><span style="font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--primary);">02</span><h2 style="margin:0;font:600 14px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);">Input, Select &amp; Textarea</h2></div>
+      <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:var(--shadow);display:grid;grid-template-columns:repeat(3,1fr);gap:22px;">
+
+        <div>
+          <div style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);margin-bottom:8px;">Input / Normal</div>
+          <input placeholder="Cari aset…" style="width:100%;padding:9px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;transition:border-color .15s,box-shadow .15s;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+        </div>
+        <div>
+          <div style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);margin-bottom:8px;">Input / Focus</div>
+          <input value="Laptop Dell Latitude" style="width:100%;padding:9px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--primary);border-radius:9px;outline:none;box-shadow:0 0 0 3px var(--ring);" />
+        </div>
+        <div>
+          <div style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);margin-bottom:8px;">Input / Error</div>
+          <input value="INV-000" style="width:100%;padding:9px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--error);border-radius:9px;outline:none;box-shadow:0 0 0 3px var(--ring-error);" />
+        </div>
+
+        <div>
+          <div style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);margin-bottom:8px;">Input / Dengan ikon</div>
+          <div style="position:relative;">
+            <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);display:flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>
+            <input placeholder="Cari kode / nama aset" style="width:100%;padding:9px 12px 9px 34px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+          </div>
+        </div>
+        <div>
+          <div style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);margin-bottom:8px;">Select</div>
+          <div style="position:relative;">
+            <select style="width:100%;appearance:none;padding:9px 34px 9px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;cursor:pointer;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);">
+              <option>Semua Kategori</option><option>Elektronik</option><option>Kendaraan</option><option>Furnitur</option>
+            </select>
+            <span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+          </div>
+        </div>
+        <div>
+          <div style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);margin-bottom:8px;">Input / Disabled</div>
+          <input value="Tidak dapat diubah" disabled style="width:100%;padding:9px 12px;font:400 14px Inter;color:var(--text-dimmed);background:var(--bg-muted);border:1px solid var(--border);border-radius:9px;outline:none;cursor:not-allowed;" />
+        </div>
+
+        <div style="grid-column:1 / -1;">
+          <div style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);margin-bottom:8px;">Textarea</div>
+          <textarea placeholder="Catatan kondisi aset…" style="width:100%;min-height:88px;resize:vertical;padding:10px 12px;font:400 14px/1.5 Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"></textarea>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ FORM FIELD ============ -->
+    <section style="margin-bottom:44px;">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px;"><span style="font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--primary);">03</span><h2 style="margin:0;font:600 14px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);">Form Field (label + hint + error)</h2></div>
+      <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:var(--shadow);display:grid;grid-template-columns:repeat(2,1fr);gap:24px;">
+        <div>
+          <label style="display:block;font:500 13px Inter;color:var(--text);margin-bottom:6px;">Nama Aset <span style="color:var(--error);">*</span></label>
+          <input placeholder="mis. Laptop Dell Latitude 5440" style="width:100%;padding:9px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+          <div style="margin-top:6px;font:400 12px Inter;color:var(--text-dimmed);">Gunakan nama yang mudah dikenali oleh operator.</div>
+        </div>
+        <div>
+          <label style="display:block;font:500 13px Inter;color:var(--text);margin-bottom:6px;">Kode Aset <span style="color:var(--error);">*</span></label>
+          <input value="INV-000" style="width:100%;padding:9px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--error);border-radius:9px;outline:none;box-shadow:0 0 0 3px var(--ring-error);" />
+          <div style="margin-top:6px;display:flex;align-items:center;gap:5px;font:400 12px Inter;color:var(--error);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>Format kode tidak valid. Contoh: INV-2024-0312.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ BADGES ============ -->
+    <section style="margin-bottom:44px;">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px;"><span style="font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--primary);">04</span><h2 style="margin:0;font:600 14px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);">Badge Status</h2></div>
+      <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:var(--shadow);display:grid;grid-template-columns:1fr 1fr;gap:28px;">
+        <div>
+          <div style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);margin-bottom:12px;text-transform:uppercase;letter-spacing:.08em;">Status Aset</div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;">
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 11px;font:600 12px Inter;border-radius:999px;background:var(--success-soft-bg);color:var(--success-soft-text);"><span style="width:7px;height:7px;border-radius:50%;background:var(--success);"></span>Tersedia</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 11px;font:600 12px Inter;border-radius:999px;background:var(--info-soft-bg);color:var(--info-soft-text);"><span style="width:7px;height:7px;border-radius:50%;background:var(--info);"></span>Dipinjam</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 11px;font:600 12px Inter;border-radius:999px;background:var(--warning-soft-bg);color:var(--warning-soft-text);"><span style="width:7px;height:7px;border-radius:50%;background:var(--warning);"></span>Maintenance</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 11px;font:600 12px Inter;border-radius:999px;background:var(--neutral-soft-bg);color:var(--neutral-soft-text);"><span style="width:7px;height:7px;border-radius:50%;background:var(--text-dimmed);"></span>Dilepas</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 11px;font:600 12px Inter;border-radius:999px;background:var(--error-soft-bg);color:var(--error-soft-text);"><span style="width:7px;height:7px;border-radius:50%;background:var(--error);"></span>Hilang</span>
+          </div>
+        </div>
+        <div>
+          <div style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);margin-bottom:12px;text-transform:uppercase;letter-spacing:.08em;">Status Pengajuan</div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;">
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 11px;font:600 12px Inter;border-radius:999px;background:var(--warning-soft-bg);color:var(--warning-soft-text);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Pending</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 11px;font:600 12px Inter;border-radius:999px;background:var(--success-soft-bg);color:var(--success-soft-text);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Disetujui</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 11px;font:600 12px Inter;border-radius:999px;background:var(--error-soft-bg);color:var(--error-soft-text);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>Ditolak</span>
+          </div>
+          <div style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);margin:18px 0 12px;text-transform:uppercase;letter-spacing:.08em;">Variasi solid &amp; outline</div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;">
+            <span style="display:inline-flex;align-items:center;padding:4px 11px;font:600 12px Inter;border-radius:999px;background:var(--primary);color:var(--primary-fg);">Solid</span>
+            <span style="display:inline-flex;align-items:center;padding:3px 10px;font:600 12px Inter;border-radius:999px;background:transparent;color:var(--text-muted);border:1px solid var(--border-strong);">Outline</span>
+            <span style="display:inline-flex;align-items:center;padding:4px 11px;font:600 12px Inter;border-radius:999px;background:var(--neutral-soft-bg);color:var(--neutral-soft-text);">12 unit</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CARDS / KPI ============ -->
+    <section style="margin-bottom:44px;">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px;"><span style="font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--primary);">05</span><h2 style="margin:0;font:600 14px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);">Cards &amp; KPI / Stat Card</h2></div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px;">
+        <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:var(--shadow);">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;"><span style="font:500 13px Inter;color:var(--text-muted);">Total Aset</span><span style="width:30px;height:30px;border-radius:8px;background:var(--primary-soft-bg);color:var(--primary-soft-text);display:flex;align-items:center;justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 8V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2"/></svg></span></div>
+          <div style="font:700 26px Inter;letter-spacing:-.02em;margin:10px 0 4px;">1.248</div>
+          <div style="display:flex;align-items:center;gap:4px;font:500 12px Inter;color:var(--success);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>+34 bln ini</div>
+        </div>
+        <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:var(--shadow);">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;"><span style="font:500 13px Inter;color:var(--text-muted);">Nilai Buku</span><span style="width:30px;height:30px;border-radius:8px;background:var(--info-soft-bg);color:var(--info-soft-text);display:flex;align-items:center;justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span></div>
+          <div style="font:700 26px Inter;letter-spacing:-.02em;margin:10px 0 4px;">Rp 4,2 M</div>
+          <div style="display:flex;align-items:center;gap:4px;font:500 12px Inter;color:var(--error);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 7 7 17M15 17H7V9"/></svg>−8% depresiasi</div>
+        </div>
+        <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:var(--shadow);">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;"><span style="font:500 13px Inter;color:var(--text-muted);">Dipinjam</span><span style="width:30px;height:30px;border-radius:8px;background:var(--info-soft-bg);color:var(--info-soft-text);display:flex;align-items:center;justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9"/></svg></span></div>
+          <div style="font:700 26px Inter;letter-spacing:-.02em;margin:10px 0 4px;">86</div>
+          <div style="font:500 12px Inter;color:var(--text-muted);">7% dari total aktif</div>
+        </div>
+        <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:var(--shadow);">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;"><span style="font:500 13px Inter;color:var(--text-muted);">Maintenance</span><span style="width:30px;height:30px;border-radius:8px;background:var(--warning-soft-bg);color:var(--warning-soft-text);display:flex;align-items:center;justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.7 2.7-2-2z"/></svg></span></div>
+          <div style="font:700 26px Inter;letter-spacing:-.02em;margin:10px 0 4px;">12</div>
+          <div style="display:flex;align-items:center;gap:4px;font:500 12px Inter;color:var(--warning);">3 jatuh tempo minggu ini</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr;gap:16px;">
+        <div style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);text-transform:uppercase;letter-spacing:.08em;">Card / header + body + footer</div>
+        <div style="max-width:420px;background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;">
+          <div style="padding:16px 18px;border-bottom:1px solid var(--border);"><div style="font:600 15px Inter;">Laptop Dell Latitude 5440</div><div style="font:400 13px Inter;color:var(--text-muted);margin-top:2px;">INV-2024-0312 &middot; Elektronik</div></div>
+          <div style="padding:16px 18px;font:400 14px/1.6 Inter;color:var(--text-muted);">Diperoleh Mar 2024. Kondisi baik, garansi aktif hingga 2027. Saat ini tersedia di Kanwil Jakarta.</div>
+          <div style="padding:14px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;">
+            <button style="padding:8px 14px;font:500 13px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:8px;cursor:pointer;" style-hover="background:var(--bg-muted);">Detail</button>
+            <button style="padding:8px 14px;font:500 13px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:8px;cursor:pointer;" style-hover="background:var(--primary-hover);">Pinjam</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ DATA TABLE ============ -->
+    <section style="margin-bottom:44px;">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px;"><span style="font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--primary);">06</span><h2 style="margin:0;font:600 14px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);">Data Table + Pagination</h2></div>
+      <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;">
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font:400 14px Inter;">
+            <thead>
+              <tr style="background:var(--bg-muted);">
+                <th style="text-align:left;padding:11px 16px;font:600 12px Inter;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);">Kode</th>
+                <th style="text-align:left;padding:11px 16px;font:600 12px Inter;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);">Nama Aset</th>
+                <th style="text-align:left;padding:11px 16px;font:600 12px Inter;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);">Kategori</th>
+                <th style="text-align:left;padding:11px 16px;font:600 12px Inter;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);">Kantor</th>
+                <th style="text-align:left;padding:11px 16px;font:600 12px Inter;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);">Status</th>
+                <th style="text-align:right;padding:11px 16px;font:600 12px Inter;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-top:1px solid var(--border);" style-hover="background:var(--bg-muted);">
+                <td style="padding:13px 16px;font:500 13px 'JetBrains Mono',monospace;color:var(--text-muted);">INV-2024-0312</td>
+                <td style="padding:13px 16px;font:500 14px Inter;">Laptop Dell Latitude 5440</td>
+                <td style="padding:13px 16px;color:var(--text-muted);">Elektronik</td>
+                <td style="padding:13px 16px;color:var(--text-muted);">Kanwil Jakarta</td>
+                <td style="padding:13px 16px;"><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;font:600 12px Inter;border-radius:999px;background:var(--success-soft-bg);color:var(--success-soft-text);"><span style="width:6px;height:6px;border-radius:50%;background:var(--success);"></span>Tersedia</span></td>
+                <td style="padding:13px 16px;text-align:right;white-space:nowrap;"><button title="Lihat" style="padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--bg-base);color:var(--text);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button><button title="Edit" style="padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--bg-base);color:var(--text);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button title="Hapus" style="padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--error-soft-bg);color:var(--error);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button></td>
+              </tr>
+              <tr style="border-top:1px solid var(--border);" style-hover="background:var(--bg-muted);">
+                <td style="padding:13px 16px;font:500 13px 'JetBrains Mono',monospace;color:var(--text-muted);">INV-2024-0288</td>
+                <td style="padding:13px 16px;font:500 14px Inter;">Proyektor Epson EB-X51</td>
+                <td style="padding:13px 16px;color:var(--text-muted);">Elektronik</td>
+                <td style="padding:13px 16px;color:var(--text-muted);">Cabang Bandung</td>
+                <td style="padding:13px 16px;"><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;font:600 12px Inter;border-radius:999px;background:var(--info-soft-bg);color:var(--info-soft-text);"><span style="width:6px;height:6px;border-radius:50%;background:var(--info);"></span>Dipinjam</span></td>
+                <td style="padding:13px 16px;text-align:right;white-space:nowrap;"><button title="Lihat" style="padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--bg-base);color:var(--text);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button><button title="Edit" style="padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--bg-base);color:var(--text);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button title="Hapus" style="padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--error-soft-bg);color:var(--error);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button></td>
+              </tr>
+              <tr style="border-top:1px solid var(--border);" style-hover="background:var(--bg-muted);">
+                <td style="padding:13px 16px;font:500 13px 'JetBrains Mono',monospace;color:var(--text-muted);">INV-2023-0150</td>
+                <td style="padding:13px 16px;font:500 14px Inter;">Kendaraan Toyota Avanza</td>
+                <td style="padding:13px 16px;color:var(--text-muted);">Kendaraan</td>
+                <td style="padding:13px 16px;color:var(--text-muted);">Kantor Pusat</td>
+                <td style="padding:13px 16px;"><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;font:600 12px Inter;border-radius:999px;background:var(--warning-soft-bg);color:var(--warning-soft-text);"><span style="width:6px;height:6px;border-radius:50%;background:var(--warning);"></span>Maintenance</span></td>
+                <td style="padding:13px 16px;text-align:right;white-space:nowrap;"><button title="Lihat" style="padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--bg-base);color:var(--text);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button><button title="Edit" style="padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--bg-base);color:var(--text);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button title="Hapus" style="padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--error-soft-bg);color:var(--error);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button></td>
+              </tr>
+              <tr style="border-top:1px solid var(--border);" style-hover="background:var(--bg-muted);">
+                <td style="padding:13px 16px;font:500 13px 'JetBrains Mono',monospace;color:var(--text-muted);">INV-2022-0099</td>
+                <td style="padding:13px 16px;font:500 14px Inter;">Printer HP LaserJet Pro</td>
+                <td style="padding:13px 16px;color:var(--text-muted);">Elektronik</td>
+                <td style="padding:13px 16px;color:var(--text-muted);">Cabang Surabaya</td>
+                <td style="padding:13px 16px;"><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;font:600 12px Inter;border-radius:999px;background:var(--error-soft-bg);color:var(--error-soft-text);"><span style="width:6px;height:6px;border-radius:50%;background:var(--error);"></span>Hilang</span></td>
+                <td style="padding:13px 16px;text-align:right;white-space:nowrap;"><button title="Lihat" style="padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--bg-base);color:var(--text);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button><button title="Edit" style="padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--bg-base);color:var(--text);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button title="Hapus" style="padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--error-soft-bg);color:var(--error);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-top:1px solid var(--border);">
+          <span style="font:400 13px Inter;color:var(--text-muted);">Menampilkan 1–4 dari 1.248 aset</span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button onClick="{{ prevPage }}" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;color:var(--text-muted);background:var(--bg-base);border:1px solid var(--border);border-radius:8px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <sc-for list="{{ pages }}" as="p" hint-placeholder-count="5">
+              <button onClick="{{ p.on }}" style="min-width:34px;height:34px;padding:0 6px;font:600 13px Inter;color:{{ p.fg }};background:{{ p.bg }};border:1px solid {{ p.bd }};border-radius:8px;cursor:pointer;">{{ p.n }}</button>
+            </sc-for>
+            <span style="font:500 13px Inter;color:var(--text-dimmed);padding:0 2px;">…</span>
+            <button onClick="{{ nextPage }}" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;color:var(--text-muted);background:var(--bg-base);border:1px solid var(--border);border-radius:8px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TABS + BREADCRUMB ============ -->
+    <section style="margin-bottom:44px;">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px;"><span style="font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--primary);">07</span><h2 style="margin:0;font:600 14px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);">Tabs &amp; Breadcrumb</h2></div>
+      <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:var(--shadow);">
+        <div style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);margin-bottom:10px;text-transform:uppercase;letter-spacing:.08em;">Breadcrumb</div>
+        <nav style="display:flex;align-items:center;gap:8px;font:400 14px Inter;color:var(--text-muted);margin-bottom:24px;">
+          <a style="color:var(--text-muted);text-decoration:none;cursor:pointer;" style-hover="color:var(--primary);">Dashboard</a>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <a style="color:var(--text-muted);text-decoration:none;cursor:pointer;" style-hover="color:var(--primary);">Aset</a>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <a style="color:var(--text-muted);text-decoration:none;cursor:pointer;" style-hover="color:var(--primary);">Elektronik</a>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <span style="color:var(--text);font-weight:500;">Laptop Dell Latitude 5440</span>
+        </nav>
+
+        <div style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);margin-bottom:10px;text-transform:uppercase;letter-spacing:.08em;">Tabs</div>
+        <div style="display:flex;gap:4px;border-bottom:1px solid var(--border);">
+          <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+            <button onClick="{{ t.on }}" style="padding:10px 16px;margin-bottom:-1px;font-family:Inter;font-size:14px;font-weight:{{ t.weight }};color:{{ t.color }};background:transparent;border:none;border-bottom:{{ t.border }};cursor:pointer;">{{ t.label }}</button>
+          </sc-for>
+        </div>
+        <div style="padding:18px 4px;font:400 14px/1.6 Inter;color:var(--text-muted);">
+          <sc-if value="{{ tabDetail }}" hint-placeholder-val="{{ true }}"><div>Spesifikasi, kategori, lokasi kantor, tanggal perolehan, dan kondisi aset ditampilkan di sini.</div></sc-if>
+          <sc-if value="{{ tabRiwayat }}" hint-placeholder-val="{{ false }}"><div>Linimasa check-out / check-in, perpindahan kantor, dan tindakan maintenance aset ini.</div></sc-if>
+          <sc-if value="{{ tabDokumen }}" hint-placeholder-val="{{ false }}"><div>Faktur pembelian, kartu garansi, dan foto kondisi terlampir sebagai dokumen pendukung.</div></sc-if>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ OVERLAYS ============ -->
+    <section style="margin-bottom:44px;">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px;"><span style="font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--primary);">08</span><h2 style="margin:0;font:600 14px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);">Modal, Slideover, Confirm &amp; Dropdown</h2></div>
+      <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:var(--shadow);display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+        <button onClick="{{ openModal }}" style="padding:9px 15px;font:500 14px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);">Buka Modal</button>
+        <button onClick="{{ openSlideover }}" style="padding:9px 15px;font:500 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);">Buka Slideover</button>
+        <button onClick="{{ openConfirm }}" style="padding:9px 15px;font:500 14px Inter;color:#fff;background:var(--error);border:1px solid var(--error);border-radius:9px;cursor:pointer;" style-hover="filter:brightness(.94);">Confirm Hapus</button>
+
+        <div style="position:relative;">
+          <button onClick="{{ toggleDropdown }}" style="display:inline-flex;align-items:center;gap:7px;padding:9px 15px;font:500 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);">Aksi<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <sc-if value="{{ dropdownOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;top:calc(100% + 6px);left:0;z-index:40;min-width:188px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow-lg);padding:6px;animation:popIn .14s ease-out;">
+              <button onClick="{{ closeDropdown }}" style="display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;font:400 14px Inter;color:var(--text);background:transparent;border:none;border-radius:8px;cursor:pointer;text-align:left;" style-hover="background:var(--bg-muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>Lihat Detail</button>
+              <button onClick="{{ closeDropdown }}" style="display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;font:400 14px Inter;color:var(--text);background:transparent;border:none;border-radius:8px;cursor:pointer;text-align:left;" style-hover="background:var(--bg-muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit</button>
+              <button onClick="{{ closeDropdown }}" style="display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;font:400 14px Inter;color:var(--text);background:transparent;border:none;border-radius:8px;cursor:pointer;text-align:left;" style-hover="background:var(--bg-muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>Duplikat</button>
+              <div style="height:1px;background:var(--border);margin:5px 4px;"></div>
+              <button onClick="{{ closeDropdown }}" style="display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;font:400 14px Inter;color:var(--error);background:transparent;border:none;border-radius:8px;cursor:pointer;text-align:left;" style-hover="background:var(--error-soft-bg);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>Hapus</button>
+            </div>
+          </sc-if>
+        </div>
+
+        <span style="font:400 13px Inter;color:var(--text-dimmed);margin-left:4px;">Klik tombol untuk melihat overlay.</span>
+      </div>
+    </section>
+
+    <!-- ============ TOAST / ALERT ============ -->
+    <section style="margin-bottom:44px;">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px;"><span style="font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--primary);">09</span><h2 style="margin:0;font:600 14px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);">Alert (inline) &amp; Toast</h2></div>
+      <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:var(--shadow);">
+        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+          <div style="display:flex;gap:11px;padding:13px 15px;border-radius:11px;background:var(--success-soft-bg);border:1px solid color-mix(in srgb,var(--success) 30%,transparent);"><span style="color:var(--success);flex:none;margin-top:1px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8.5 12 11 14.5 15.5 9.5"/></svg></span><div><div style="font:600 14px Inter;color:var(--success-soft-text);">Aset berhasil ditambahkan</div><div style="font:400 13px Inter;color:var(--text-muted);margin-top:1px;">INV-2024-0413 kini tampil di katalog Kanwil Jakarta.</div></div></div>
+          <div style="display:flex;gap:11px;padding:13px 15px;border-radius:11px;background:var(--warning-soft-bg);border:1px solid color-mix(in srgb,var(--warning) 30%,transparent);"><span style="color:var(--warning);flex:none;margin-top:1px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span><div><div style="font:600 14px Inter;color:var(--warning-soft-text);">3 aset jatuh tempo maintenance</div><div style="font:400 13px Inter;color:var(--text-muted);margin-top:1px;">Jadwalkan servis sebelum akhir minggu ini.</div></div></div>
+          <div style="display:flex;gap:11px;padding:13px 15px;border-radius:11px;background:var(--error-soft-bg);border:1px solid color-mix(in srgb,var(--error) 30%,transparent);"><span style="color:var(--error);flex:none;margin-top:1px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg></span><div><div style="font:600 14px Inter;color:var(--error-soft-text);">Gagal menyimpan perubahan</div><div style="font:400 13px Inter;color:var(--text-muted);margin-top:1px;">Periksa koneksi jaringan lalu coba kembali.</div></div></div>
+        </div>
+        <div style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);margin-bottom:10px;text-transform:uppercase;letter-spacing:.08em;">Picu Toast (muncul kanan bawah)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;">
+          <button onClick="{{ pushSuccess }}" style="padding:8px 14px;font:500 13px Inter;color:var(--success-soft-text);background:var(--success-soft-bg);border:1px solid transparent;border-radius:8px;cursor:pointer;">Toast Success</button>
+          <button onClick="{{ pushWarning }}" style="padding:8px 14px;font:500 13px Inter;color:var(--warning-soft-text);background:var(--warning-soft-bg);border:1px solid transparent;border-radius:8px;cursor:pointer;">Toast Warning</button>
+          <button onClick="{{ pushError }}" style="padding:8px 14px;font:500 13px Inter;color:var(--error-soft-text);background:var(--error-soft-bg);border:1px solid transparent;border-radius:8px;cursor:pointer;">Toast Error</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ EMPTY + SKELETON ============ -->
+    <section style="margin-bottom:44px;">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px;"><span style="font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--primary);">10</span><h2 style="margin:0;font:600 14px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);">Empty State &amp; Skeleton Loader</h2></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:var(--shadow);">
+          <div style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);margin-bottom:16px;text-transform:uppercase;letter-spacing:.08em;">Empty State</div>
+          <div style="border:1.5px dashed var(--border-strong);border-radius:14px;padding:34px 20px;text-align:center;">
+            <div style="width:52px;height:52px;margin:0 auto 14px;border-radius:14px;background:var(--bg-muted);color:var(--text-dimmed);display:flex;align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 8V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2"/><path d="M10 13h4"/></svg></div>
+            <div style="font:600 15px Inter;margin-bottom:5px;">Belum ada aset</div>
+            <div style="font:400 13px/1.5 Inter;color:var(--text-muted);max-width:280px;margin:0 auto 16px;">Mulai dengan menambahkan aset pertama ke katalog kantor ini.</div>
+            <button style="display:inline-flex;align-items:center;gap:6px;padding:9px 15px;font:500 14px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Tambah Aset</button>
+          </div>
+        </div>
+        <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:var(--shadow);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <span style="font:500 11px/1 'JetBrains Mono',monospace;color:var(--text-dimmed);text-transform:uppercase;letter-spacing:.08em;">Skeleton Loader</span>
+            <button onClick="{{ toggleLoading }}" style="padding:5px 11px;font:500 12px Inter;color:var(--text-muted);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:7px;cursor:pointer;" style-hover="background:var(--bg-muted);">{{ loadingToggleLabel }}</button>
+          </div>
+          <sc-if value="{{ loading }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <div style="display:flex;align-items:center;gap:13px;"><div style="width:42px;height:42px;border-radius:11px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;flex:none;"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px;"><div style="height:11px;width:62%;border-radius:6px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;"></div><div style="height:9px;width:40%;border-radius:6px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;"></div></div></div>
+              <div style="display:flex;align-items:center;gap:13px;"><div style="width:42px;height:42px;border-radius:11px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;flex:none;"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px;"><div style="height:11px;width:74%;border-radius:6px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;"></div><div style="height:9px;width:33%;border-radius:6px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;"></div></div></div>
+              <div style="display:flex;align-items:center;gap:13px;"><div style="width:42px;height:42px;border-radius:11px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;flex:none;"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px;"><div style="height:11px;width:54%;border-radius:6px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;"></div><div style="height:9px;width:46%;border-radius:6px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;"></div></div></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ loaded }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;gap:13px;padding:7px 0;"><div style="width:42px;height:42px;border-radius:11px;background:var(--primary-soft-bg);color:var(--primary-soft-text);display:flex;align-items:center;justify-content:center;flex:none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg></div><div><div style="font:600 14px Inter;">Laptop Dell Latitude 5440</div><div style="font:400 12px Inter;color:var(--text-muted);">INV-2024-0312 &middot; Tersedia</div></div></div>
+              <div style="display:flex;align-items:center;gap:13px;padding:7px 0;"><div style="width:42px;height:42px;border-radius:11px;background:var(--info-soft-bg);color:var(--info-soft-text);display:flex;align-items:center;justify-content:center;flex:none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8"/></svg></div><div><div style="font:600 14px Inter;">Proyektor Epson EB-X51</div><div style="font:400 12px Inter;color:var(--text-muted);">INV-2024-0288 &middot; Dipinjam</div></div></div>
+              <div style="display:flex;align-items:center;gap:13px;padding:7px 0;"><div style="width:42px;height:42px;border-radius:11px;background:var(--warning-soft-bg);color:var(--warning-soft-text);display:flex;align-items:center;justify-content:center;flex:none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div><div style="font:600 14px Inter;">Toyota Avanza</div><div style="font:400 12px Inter;color:var(--text-muted);">INV-2023-0150 &middot; Maintenance</div></div></div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TREE VIEW ============ -->
+    <section style="margin-bottom:20px;">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px;"><span style="font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--primary);">11</span><h2 style="margin:0;font:600 14px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);">Tree View — Hierarki Kantor</h2></div>
+      <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow);max-width:460px;">
+        <!-- Pusat -->
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;font:600 14px Inter;">
+          <span style="display:flex;color:var(--text-dimmed);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+          <span style="display:flex;color:var(--primary);"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h0M9 13h0M9 17h0M15 9h0M15 13h0M15 17h0"/></svg></span>
+          <span style="flex:1;">Kantor Pusat</span>
+          <span style="padding:2px 9px;font:600 11px 'JetBrains Mono',monospace;border-radius:999px;background:var(--neutral-soft-bg);color:var(--neutral-soft-text);">1.248</span>
+        </div>
+
+        <div style="margin-left:13px;border-left:1px solid var(--border);padding-left:10px;">
+          <!-- Kanwil Jakarta -->
+          <button onClick="{{ toggleJakarta }}" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border-radius:9px;font:500 14px Inter;color:var(--text);background:transparent;border:none;cursor:pointer;text-align:left;" style-hover="background:var(--bg-muted);">
+            <span style="display:flex;color:var(--text-dimmed);transform:rotate({{ jakChevron }});transition:transform .15s;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+            <span style="display:flex;color:var(--text-muted);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18M2 22h20M9 7h0M9 11h0M9 15h0M15 7h0M15 11h0M15 15h0"/></svg></span>
+            <span style="flex:1;">Kanwil DKI Jakarta</span>
+            <span style="padding:2px 9px;font:600 11px 'JetBrains Mono',monospace;border-radius:999px;background:var(--neutral-soft-bg);color:var(--neutral-soft-text);">430</span>
+          </button>
+          <sc-if value="{{ tJakarta }}" hint-placeholder-val="{{ true }}">
+            <div style="margin-left:13px;border-left:1px solid var(--border);padding-left:10px;">
+              <!-- Cabang Jakarta Selatan (active, expandable) -->
+              <button onClick="{{ toggleJaksel }}" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border-radius:9px;font:600 14px Inter;color:var(--primary-soft-text);background:var(--primary-soft-bg);border:none;cursor:pointer;text-align:left;">
+                <span style="display:flex;opacity:.8;transform:rotate({{ jakselChevron }});transition:transform .15s;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+                <span style="display:flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l5-4v16M19 21V13l-9-4"/></svg></span>
+                <span style="flex:1;">Cabang Jakarta Selatan</span>
+                <span style="padding:2px 9px;font:600 11px 'JetBrains Mono',monospace;border-radius:999px;background:color-mix(in srgb,var(--primary) 22%,transparent);color:var(--primary-soft-text);">96</span>
+              </button>
+              <sc-if value="{{ tJaksel }}" hint-placeholder-val="{{ true }}">
+                <div style="margin-left:13px;border-left:1px solid var(--border);padding-left:10px;">
+                  <div style="display:flex;align-items:center;gap:8px;padding:7px 10px 7px 24px;border-radius:9px;font:400 14px Inter;color:var(--text-muted);" style-hover="background:var(--bg-muted);">
+                    <span style="display:flex;color:var(--text-dimmed);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>
+                    <span style="flex:1;">Outlet Blok M</span>
+                    <span style="padding:2px 9px;font:600 11px 'JetBrains Mono',monospace;border-radius:999px;background:var(--neutral-soft-bg);color:var(--neutral-soft-text);">28</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;padding:7px 10px 7px 24px;border-radius:9px;font:400 14px Inter;color:var(--text-muted);" style-hover="background:var(--bg-muted);">
+                    <span style="display:flex;color:var(--text-dimmed);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>
+                    <span style="flex:1;">Outlet Kemang</span>
+                    <span style="padding:2px 9px;font:600 11px 'JetBrains Mono',monospace;border-radius:999px;background:var(--neutral-soft-bg);color:var(--neutral-soft-text);">19</span>
+                  </div>
+                </div>
+              </sc-if>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;font:500 14px Inter;color:var(--text);" style-hover="background:var(--bg-muted);">
+                <span style="width:16px;"></span>
+                <span style="display:flex;color:var(--text-muted);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l5-4v16M19 21V13l-9-4"/></svg></span>
+                <span style="flex:1;">Cabang Jakarta Pusat</span>
+                <span style="padding:2px 9px;font:600 11px 'JetBrains Mono',monospace;border-radius:999px;background:var(--neutral-soft-bg);color:var(--neutral-soft-text);">112</span>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- Kanwil Jawa Barat -->
+          <button onClick="{{ toggleJabar }}" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border-radius:9px;font:500 14px Inter;color:var(--text);background:transparent;border:none;cursor:pointer;text-align:left;" style-hover="background:var(--bg-muted);">
+            <span style="display:flex;color:var(--text-dimmed);transform:rotate({{ jabarChevron }});transition:transform .15s;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+            <span style="display:flex;color:var(--text-muted);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18M2 22h20M9 7h0M9 11h0M15 7h0M15 11h0"/></svg></span>
+            <span style="flex:1;">Kanwil Jawa Barat</span>
+            <span style="padding:2px 9px;font:600 11px 'JetBrains Mono',monospace;border-radius:999px;background:var(--neutral-soft-bg);color:var(--neutral-soft-text);">318</span>
+          </button>
+          <sc-if value="{{ tJabar }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-left:13px;border-left:1px solid var(--border);padding-left:10px;">
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;font:500 14px Inter;color:var(--text);" style-hover="background:var(--bg-muted);">
+                <span style="width:16px;"></span>
+                <span style="display:flex;color:var(--text-muted);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l5-4v16M19 21V13l-9-4"/></svg></span>
+                <span style="flex:1;">Cabang Bandung</span>
+                <span style="padding:2px 9px;font:600 11px 'JetBrains Mono',monospace;border-radius:999px;background:var(--neutral-soft-bg);color:var(--neutral-soft-text);">154</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;font:500 14px Inter;color:var(--text);" style-hover="background:var(--bg-muted);">
+                <span style="width:16px;"></span>
+                <span style="display:flex;color:var(--text-muted);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l5-4v16M19 21V13l-9-4"/></svg></span>
+                <span style="flex:1;">Cabang Bekasi</span>
+                <span style="padding:2px 9px;font:600 11px 'JetBrains Mono',monospace;border-radius:999px;background:var(--neutral-soft-bg);color:var(--neutral-soft-text);">164</span>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ============ MODAL ============ -->
+  <sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeModal }}" style="position:fixed;inset:0;z-index:60;background:rgba(2,6,23,.5);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:24px;animation:overlayIn .15s ease-out;">
+      <div onClick="{{ stop }}" style="width:100%;max-width:460px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-lg);animation:popIn .18s ease-out;overflow:hidden;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border);">
+          <div><div style="font:600 16px Inter;">Tambah Aset</div><div style="font:400 13px Inter;color:var(--text-muted);margin-top:2px;">Lengkapi data untuk mendaftarkan aset baru.</div></div>
+          <button onClick="{{ closeModal }}" style="padding:5px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+          <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">Nama Aset</label><input placeholder="mis. Monitor LG 27''" style="width:100%;padding:9px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" /></div>
+          <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">Kategori</label><div style="position:relative;"><select style="width:100%;appearance:none;padding:9px 34px 9px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;cursor:pointer;"><option>Elektronik</option><option>Kendaraan</option><option>Furnitur</option></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border);">
+          <button onClick="{{ closeModal }}" style="padding:9px 15px;font:500 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);">Batal</button>
+          <button onClick="{{ closeModal }}" style="padding:9px 15px;font:500 14px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);">Simpan</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ SLIDEOVER ============ -->
+  <sc-if value="{{ slideoverOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeSlideover }}" style="position:fixed;inset:0;z-index:60;background:rgba(2,6,23,.5);backdrop-filter:blur(2px);display:flex;justify-content:flex-end;animation:overlayIn .15s ease-out;">
+      <div onClick="{{ stop }}" style="width:100%;max-width:420px;height:100%;background:var(--bg-elevated);border-left:1px solid var(--border);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;animation:slideIn .22s cubic-bezier(.4,0,.2,1);">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border);">
+          <div><div style="font:600 16px Inter;">Detail Aset</div><div style="font:400 13px 'JetBrains Mono',monospace;color:var(--text-muted);margin-top:2px;">INV-2024-0312</div></div>
+          <button onClick="{{ closeSlideover }}" style="padding:5px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:18px;">
+          <div style="display:flex;align-items:center;gap:14px;"><div style="width:56px;height:56px;border-radius:13px;background:var(--primary-soft-bg);color:var(--primary-soft-text);display:flex;align-items:center;justify-content:center;flex:none;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg></div><div><div style="font:600 16px Inter;">Laptop Dell Latitude 5440</div><span style="display:inline-flex;align-items:center;gap:6px;margin-top:5px;padding:3px 10px;font:600 12px Inter;border-radius:999px;background:var(--success-soft-bg);color:var(--success-soft-text);"><span style="width:6px;height:6px;border-radius:50%;background:var(--success);"></span>Tersedia</span></div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div><div style="font:400 12px Inter;color:var(--text-muted);margin-bottom:3px;">Kategori</div><div style="font:500 14px Inter;">Elektronik</div></div>
+            <div><div style="font:400 12px Inter;color:var(--text-muted);margin-bottom:3px;">Kantor</div><div style="font:500 14px Inter;">Kanwil Jakarta</div></div>
+            <div><div style="font:400 12px Inter;color:var(--text-muted);margin-bottom:3px;">Tgl Perolehan</div><div style="font:500 14px Inter;">12 Mar 2024</div></div>
+            <div><div style="font:400 12px Inter;color:var(--text-muted);margin-bottom:3px;">Kondisi</div><div style="font:500 14px Inter;">Baik</div></div>
+          </div>
+          <div style="padding:14px;border-radius:11px;background:var(--bg-muted);font:400 13px/1.6 Inter;color:var(--text-muted);">Field <strong style="color:var(--text);">harga beli</strong> &amp; <strong style="color:var(--text);">nilai buku</strong> hanya tampil untuk peran tertentu sesuai aturan akses.</div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border);">
+          <button onClick="{{ closeSlideover }}" style="padding:9px 15px;font:500 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);">Tutup</button>
+          <button onClick="{{ closeSlideover }}" style="padding:9px 15px;font:500 14px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);">Edit Aset</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ CONFIRM ============ -->
+  <sc-if value="{{ confirmOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeConfirm }}" style="position:fixed;inset:0;z-index:60;background:rgba(2,6,23,.5);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:24px;animation:overlayIn .15s ease-out;">
+      <div onClick="{{ stop }}" style="width:100%;max-width:400px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-lg);padding:24px;animation:popIn .18s ease-out;">
+        <div style="display:flex;gap:14px;">
+          <div style="width:42px;height:42px;border-radius:11px;background:var(--error-soft-bg);color:var(--error);display:flex;align-items:center;justify-content:center;flex:none;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></div>
+          <div><div style="font:600 16px Inter;margin-bottom:4px;">Hapus aset ini?</div><div style="font:400 14px/1.55 Inter;color:var(--text-muted);">Aset <strong style="color:var(--text);">INV-2024-0312</strong> akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.</div></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:22px;">
+          <button onClick="{{ closeConfirm }}" style="padding:9px 15px;font:500 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);">Batal</button>
+          <button onClick="{{ closeConfirm }}" style="padding:9px 15px;font:500 14px Inter;color:#fff;background:var(--error);border:1px solid var(--error);border-radius:9px;cursor:pointer;" style-hover="filter:brightness(.94);">Ya, Hapus</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ TOAST STACK ============ -->
+  <div style="position:fixed;bottom:24px;right:24px;z-index:70;display:flex;flex-direction:column;gap:10px;width:340px;max-width:calc(100vw - 48px);">
+    <sc-for list="{{ toasts }}" as="t" hint-placeholder-count="0">
+      <div style="display:flex;gap:11px;padding:13px 14px;border-radius:12px;background:var(--bg-elevated);border:1px solid var(--border);border-left:3px solid {{ t.ac }};box-shadow:var(--shadow-lg);animation:toastIn .2s ease-out;">
+        <span style="color:{{ t.ac }};flex:none;margin-top:1px;display:flex;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg></span>
+        <div style="flex:1;min-width:0;"><div style="font:600 14px Inter;color:var(--text);">{{ t.title }}</div><div style="font:400 13px Inter;color:var(--text-muted);margin-top:1px;">{{ t.msg }}</div></div>
+        <button onClick="{{ t.close }}" style="padding:3px;color:var(--text-dimmed);background:transparent;border:none;border-radius:6px;cursor:pointer;flex:none;height:fit-content;" style-hover="color:var(--text);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+    </sc-for>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;},&quot;primaryColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#16a34a&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef = React.createRef();
+    this.state = {
+      theme: (props.theme === 'dark' ? 'dark' : 'light'),
+      activeTab: 'detail',
+      modalOpen: false, slideoverOpen: false, confirmOpen: false, dropdownOpen: false,
+      page: 2,
+      toasts: [],
+      loading: true,
+      tree: { jakarta: true, jaksel: true, jabar: false },
+    };
+    this._userTouchedTheme = false;
+    this._tid = 0;
+  }
+  componentDidMount(){ this.applyPrimary(); }
+  componentDidUpdate(){ this.applyPrimary(); }
+  applyPrimary(){
+    const c = this.props.primaryColor;
+    const el = this.rootRef.current;
+    if (el && c) el.style.setProperty('--primary', c);
+  }
+  effTheme(){ return this._userTouchedTheme ? this.state.theme : (this.props.theme || 'light'); }
+  pushToast(type){
+    const map = {
+      success: { title: 'Berhasil disimpan', msg: 'Perubahan aset telah tersimpan.' },
+      warning: { title: 'Perlu perhatian', msg: 'Jadwal maintenance jatuh tempo minggu ini.' },
+      error:   { title: 'Gagal menyimpan', msg: 'Periksa koneksi lalu coba kembali.' },
+    };
+    const id = ++this._tid;
+    this.setState(s => ({ toasts: [...s.toasts, { id, type, ...map[type] }] }));
+    setTimeout(() => this.removeToast(id), 4000);
+  }
+  removeToast(id){ this.setState(s => ({ toasts: s.toasts.filter(x => x.id !== id) })); }
+  toggleTree(k){ this.setState(s => ({ tree: { ...s.tree, [k]: !s.tree[k] } })); }
+  renderVals(){
+    const s = this.state;
+    const theme = this.effTheme();
+    const isDark = theme === 'dark';
+    const pages = [1,2,3,4,5].map(n => ({
+      n,
+      on: () => this.setState({ page: n }),
+      bg: n === s.page ? 'var(--primary)' : 'transparent',
+      fg: n === s.page ? 'var(--primary-fg)' : 'var(--text-muted)',
+      bd: n === s.page ? 'var(--primary)' : 'var(--border)',
+    }));
+    const tabDefs = [
+      { k: 'detail', label: 'Detail Aset' },
+      { k: 'riwayat', label: 'Riwayat' },
+      { k: 'dokumen', label: 'Dokumen' },
+    ];
+    const tabs = tabDefs.map(t => ({
+      label: t.label,
+      on: () => this.setState({ activeTab: t.k }),
+      color: s.activeTab === t.k ? 'var(--text)' : 'var(--text-muted)',
+      border: s.activeTab === t.k ? '2px solid var(--primary)' : '2px solid transparent',
+      weight: s.activeTab === t.k ? '600' : '500',
+    }));
+    const toasts = s.toasts.map(t => ({
+      title: t.title, msg: t.msg,
+      ac: 'var(--' + t.type + ')',
+      close: () => this.removeToast(t.id),
+    }));
+    return {
+      rootRef: this.rootRef,
+      theme, isDark, isLight: !isDark,
+      themeLabel: isDark ? 'Mode Terang' : 'Mode Gelap',
+      toggleTheme: () => { this._userTouchedTheme = true; const cur = this.effTheme(); this.setState({ theme: cur === 'light' ? 'dark' : 'light' }); },
+      tabs,
+      tabDetail: s.activeTab === 'detail',
+      tabRiwayat: s.activeTab === 'riwayat',
+      tabDokumen: s.activeTab === 'dokumen',
+      pages,
+      prevPage: () => this.setState(st => ({ page: Math.max(1, st.page - 1) })),
+      nextPage: () => this.setState(st => ({ page: Math.min(5, st.page + 1) })),
+      modalOpen: s.modalOpen, openModal: () => this.setState({ modalOpen: true }), closeModal: () => this.setState({ modalOpen: false }),
+      slideoverOpen: s.slideoverOpen, openSlideover: () => this.setState({ slideoverOpen: true }), closeSlideover: () => this.setState({ slideoverOpen: false }),
+      confirmOpen: s.confirmOpen, openConfirm: () => this.setState({ confirmOpen: true }), closeConfirm: () => this.setState({ confirmOpen: false }),
+      dropdownOpen: s.dropdownOpen, toggleDropdown: () => this.setState(st => ({ dropdownOpen: !st.dropdownOpen })), closeDropdown: () => this.setState({ dropdownOpen: false }),
+      stop: (e) => e.stopPropagation(),
+      pushSuccess: () => this.pushToast('success'),
+      pushWarning: () => this.pushToast('warning'),
+      pushError: () => this.pushToast('error'),
+      toasts,
+      loading: s.loading, loaded: !s.loading,
+      loadingToggleLabel: s.loading ? 'Tampilkan data' : 'Tampilkan skeleton',
+      toggleLoading: () => this.setState(st => ({ loading: !st.loading })),
+      tJakarta: s.tree.jakarta, tJaksel: s.tree.jaksel, tJabar: s.tree.jabar,
+      jakChevron: s.tree.jakarta ? '90deg' : '0deg',
+      jakselChevron: s.tree.jaksel ? '90deg' : '0deg',
+      jabarChevron: s.tree.jabar ? '90deg' : '0deg',
+      toggleJakarta: () => this.toggleTree('jakarta'),
+      toggleJaksel: () => this.toggleTree('jaksel'),
+      toggleJabar: () => this.toggleTree('jabar'),
+    };
+  }
+}
+</script>
+</body>
+</html>

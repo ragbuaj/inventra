@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;}
+input::placeholder,textarea::placeholder{color:var(--text-dimmed);}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:9px;border:2px solid transparent;background-clip:padding-box;}
+:root{
+  --bg:#f8fafc; --bg-base:#ffffff; --bg-muted:#f1f5f9; --bg-elevated:#0f172a00;
+  --bg-el:#ffffff;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#0f172a; --text-muted:#64748b; --text-dimmed:#94a3b8;
+  --primary:#16a34a; --primary-hover:#15803d; --primary-fg:#ffffff;
+  --primary-soft-bg:#dcfce7; --primary-soft-text:#15803d;
+  --success:#16a34a; --success-soft-bg:#dcfce7; --success-soft-text:#15803d;
+  --warning:#d97706; --error:#dc2626; --error-soft-bg:#fee2e2; --error-soft-text:#b91c1c;
+  --info:#2563eb; --info-soft-bg:#dbeafe; --info-soft-text:#1d4ed8;
+  --neutral-soft-bg:#eef2f6; --neutral-soft-text:#475569;
+  --ring:color-mix(in srgb, var(--primary) 28%, transparent);
+  --ring-error:color-mix(in srgb, var(--error) 25%, transparent);
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
+  --shadow-lg:0 18px 50px rgba(15,23,42,.18);
+}
+[data-theme="dark"]{
+  --bg:#020617; --bg-base:#0b1220; --bg-muted:#1e293b; --bg-el:#0f172a;
+  --border:#1e293b; --border-strong:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8; --text-dimmed:#64748b;
+  --primary:#22c55e; --primary-hover:#16a34a; --primary-fg:#052e16;
+  --primary-soft-bg:#14331f; --primary-soft-text:#4ade80;
+  --success:#22c55e; --success-soft-bg:#14331f; --success-soft-text:#4ade80;
+  --warning:#f59e0b; --error:#ef4444; --error-soft-bg:#3a1414; --error-soft-text:#f87171;
+  --info:#3b82f6; --info-soft-bg:#13243f; --info-soft-text:#60a5fa;
+  --neutral-soft-bg:#1e293b; --neutral-soft-text:#cbd5e1;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 18px 50px rgba(0,0,0,.6);
+}
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" data-theme="{{ theme }}" style="font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--text);">
+  <div style="display:flex;height:100vh;overflow:hidden;background:var(--bg);">
+
+    <!-- SIDEBAR -->
+    <aside style="width:{{ sidebarW }};flex:none;display:flex;flex-direction:column;background:var(--bg-base);border-right:1px solid var(--border);transition:width .2s ease;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:11px;height:61px;padding:0 18px;border-bottom:1px solid var(--border);flex:none;">
+        <div style="width:34px;height:34px;border-radius:9px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--primary-fg);flex:none;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13h6"/></svg></div>
+        <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="font:700 18px Inter;letter-spacing:-.01em;white-space:nowrap;">Inventra</span></sc-if>
+      </div>
+      <nav style="flex:1;overflow-y:auto;overflow-x:hidden;padding:12px;">
+        <sc-for list="{{ nav }}" as="g" hint-placeholder-count="2">
+          <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><div style="padding:14px 12px 6px;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dimmed);white-space:nowrap;">{{ g.label }}</div></sc-if>
+          <sc-if value="{{ collapsed }}" hint-placeholder-val="{{ false }}"><div style="height:1px;background:var(--border);margin:10px 8px;"></div></sc-if>
+          <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+            <button title="{{ it.label }}" style="position:relative;display:flex;align-items:center;justify-content:{{ navJustify }};gap:11px;width:100%;padding:9px 12px;margin-bottom:2px;font-family:Inter;font-size:14px;font-weight:{{ it.weight }};color:{{ it.fg }};background:{{ it.bg }};border:none;border-radius:9px;cursor:pointer;text-align:left;box-shadow:inset 3px 0 0 {{ it.accent }};white-space:nowrap;" style-hover="background:{{ it.hoverBg }};">
+              {{ it.icon }}
+              <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;">{{ it.label }}</span></sc-if>
+            </button>
+          </sc-for>
+        </sc-for>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <header style="display:flex;align-items:center;gap:14px;height:61px;flex:none;padding:0 20px;background:var(--bg-base);border-bottom:1px solid var(--border);">
+        <button onClick="{{ toggleCollapse }}" title="Collapse" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex:none;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg></button>
+        <div style="display:flex;align-items:center;gap:6px;font:400 12px Inter;color:var(--text-muted);"><span>Inventra</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span>{{ bcMaster }}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span style="color:var(--text);font-weight:500;">{{ pageTitle }}</span></div>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex:none;">
+          <div style="display:flex;gap:2px;padding:3px;background:var(--bg-muted);border-radius:9px;">
+            <button onClick="{{ setId }}" style="padding:5px 9px;font:600 12px Inter;color:{{ idFg }};background:{{ idBg }};border:none;border-radius:6px;cursor:pointer;">ID</button>
+            <button onClick="{{ setEn }}" style="padding:5px 9px;font:600 12px Inter;color:{{ enFg }};background:{{ enBg }};border:none;border-radius:6px;cursor:pointer;">EN</button>
+          </div>
+          <button onClick="{{ toggleTheme }}" title="Tema" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">
+            <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></sc-if>
+            <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></sc-if>
+          </button>
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;background:transparent;border:1px solid var(--border);border-radius:999px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--primary);color:var(--primary-fg);display:flex;align-items:center;justify-content:center;font:700 12px Inter;">SA</span><span style="display:flex;color:var(--text-dimmed);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+        </div>
+      </header>
+
+      <main style="flex:1;overflow-y:auto;padding:24px 28px 40px;">
+        <!-- page header -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px;">
+          <div><h1 style="margin:0 0 5px;font:700 23px Inter;letter-spacing:-.02em;">{{ pageTitle }}</h1><p style="margin:0;font:400 14px Inter;color:var(--text-muted);">{{ pageSub }}</p></div>
+          <button onClick="{{ openAdd }}" style="display:inline-flex;align-items:center;gap:7px;padding:9px 15px;font:600 13.5px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>{{ addLbl }}</button>
+        </div>
+
+        <!-- filter bar -->
+        <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;padding:14px;box-shadow:var(--shadow);margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="position:relative;flex:1;min-width:200px;">
+            <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);display:flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>
+            <input value="{{ q }}" onInput="{{ onSearch }}" placeholder="{{ searchPh }}" style="width:100%;padding:8px 12px 8px 35px;font:400 14px Inter;color:var(--text);background:var(--bg-muted);border:1px solid transparent;border-radius:9px;outline:none;" style-focus="background:var(--bg-base);border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+          </div>
+          <sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+            <div style="position:relative;"><select value="{{ f.value }}" onChange="{{ f.on }}" style="appearance:none;padding:8px 30px 8px 12px;font:500 13px Inter;color:{{ f.color }};background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;cursor:pointer;max-width:180px;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><sc-for list="{{ f.opts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select><span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+          </sc-for>
+          <sc-if value="{{ anyFilter }}" hint-placeholder-val="{{ false }}"><button onClick="{{ resetFilter }}" style="display:inline-flex;align-items:center;gap:6px;padding:8px 12px;font:500 13px Inter;color:var(--error);background:transparent;border:none;border-radius:9px;cursor:pointer;" style-hover="background:var(--error-soft-bg);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>{{ resetLbl }}</button></sc-if>
+        </div>
+
+        <sc-if value="{{ hasRows }}" hint-placeholder-val="{{ true }}">
+          <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;font:400 13.5px Inter;white-space:nowrap;">
+                <thead><tr style="background:var(--bg-muted);">
+                  <th style="text-align:left;padding:11px 16px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cNip }}</th>
+                  <th style="text-align:left;padding:11px 16px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cNama }}</th>
+                  <th style="text-align:left;padding:11px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cDept }}</th>
+                  <th style="text-align:left;padding:11px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cJabatan }}</th>
+                  <th style="text-align:left;padding:11px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cKantor }}</th>
+                  <th style="text-align:left;padding:11px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cKontak }}</th>
+                  <th style="text-align:left;padding:11px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cStatus }}</th>
+                  <th style="text-align:right;padding:11px 16px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cAksi }}</th>
+                </tr></thead>
+                <tbody>
+                  <sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+                    <tr style="border-top:1px solid var(--border);" style-hover="background:var(--bg-muted);">
+                      <td style="padding:11px 16px;font:500 12px 'JetBrains Mono',monospace;color:var(--text-muted);">{{ r.nip }}</td>
+                      <td style="padding:11px 16px;"><div style="display:flex;align-items:center;gap:10px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--primary-soft-bg);color:var(--primary-soft-text);display:flex;align-items:center;justify-content:center;font:700 11px Inter;flex:none;">{{ r.ini }}</span><span style="font:500 13.5px Inter;color:var(--text);">{{ r.nama }}</span></div></td>
+                      <td style="padding:11px 14px;color:var(--text-muted);">{{ r.dept }}</td>
+                      <td style="padding:11px 14px;"><span style="display:inline-block;padding:2px 9px;font:600 12px Inter;border-radius:999px;background:var(--neutral-soft-bg);color:var(--neutral-soft-text);">{{ r.jabatan }}</span></td>
+                      <td style="padding:11px 14px;color:var(--text-muted);">{{ r.kantor }}</td>
+                      <td style="padding:11px 14px;"><div style="font:400 13px Inter;color:var(--text);">{{ r.email }}</div><div style="font:400 12px Inter;color:var(--text-dimmed);">{{ r.telepon }}</div></td>
+                      <td style="padding:11px 14px;"><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;font:600 12px Inter;border-radius:999px;background:{{ r.stBg }};color:{{ r.stFg }};"><span style="width:6px;height:6px;border-radius:50%;background:{{ r.stDot }};"></span>{{ r.stLabel }}</span></td>
+                      <td style="padding:11px 16px;text-align:right;white-space:nowrap;"><button onClick="{{ r.edit }}" title="Edit" style="display:inline-flex;padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--bg-base);color:var(--text);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button onClick="{{ r.del }}" title="Hapus" style="display:inline-flex;padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--error-soft-bg);color:var(--error);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button></td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:12px 16px;border-top:1px solid var(--border);">
+              <span style="font:400 13px Inter;color:var(--text-muted);">{{ pageInfo }}</span>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <button onClick="{{ prevPage }}" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;color:var(--text-muted);background:var(--bg-base);border:1px solid var(--border);border-radius:8px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+                <sc-for list="{{ pageBtns }}" as="p" hint-placeholder-count="2"><button onClick="{{ p.on }}" style="min-width:34px;height:34px;padding:0 6px;font:600 13px Inter;color:{{ p.fg }};background:{{ p.bg }};border:1px solid {{ p.bd }};border-radius:8px;cursor:pointer;">{{ p.n }}</button></sc-for>
+                <button onClick="{{ nextPage }}" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;color:var(--text-muted);background:var(--bg-base);border:1px solid var(--border);border-radius:8px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noRows }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:56px 24px;text-align:center;">
+            <div style="width:54px;height:54px;margin:0 auto 14px;border-radius:14px;background:var(--bg-muted);color:var(--text-dimmed);display:flex;align-items:center;justify-content:center;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/></svg></div>
+            <div style="font:600 16px Inter;margin-bottom:6px;">{{ emptyTitle }}</div>
+            <div style="font:400 14px Inter;color:var(--text-muted);max-width:320px;margin:0 auto 18px;">{{ emptySub }}</div>
+            <sc-if value="{{ anyFilter }}" hint-placeholder-val="{{ false }}"><button onClick="{{ resetFilter }}" style="display:inline-flex;align-items:center;gap:7px;padding:9px 16px;font:500 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);">{{ resetLbl }}</button></sc-if>
+            <sc-if value="{{ noFilter }}" hint-placeholder-val="{{ true }}"><button onClick="{{ openAdd }}" style="display:inline-flex;align-items:center;gap:7px;padding:9px 16px;font:500 14px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>{{ addLbl }}</button></sc-if>
+          </div>
+        </sc-if>
+      </main>
+    </div>
+  </div>
+
+  <!-- SLIDEOVER FORM -->
+  <sc-if value="{{ formOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeForm }}" style="position:fixed;inset:0;z-index:60;background:rgba(2,6,23,.5);backdrop-filter:blur(2px);display:flex;justify-content:flex-end;">
+      <div onClick="{{ stop }}" style="width:480px;max-width:94vw;height:100%;background:var(--bg-el);border-left:1px solid var(--border);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;">
+        <div style="flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:20px 24px;border-bottom:1px solid var(--border);"><div><div style="font:700 18px Inter;letter-spacing:-.01em;">{{ formTitle }}</div><div style="font:400 13px Inter;color:var(--text-muted);margin-top:2px;">{{ formSub }}</div></div><button onClick="{{ closeForm }}" style="display:flex;padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:8px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+        <div style="flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:15px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lNip }} <span style="color:var(--error);">*</span></label><input value="{{ fNip }}" onInput="{{ onFNip }}" placeholder="mis. 1990…" style="width:100%;padding:10px 12px;font:400 14px 'JetBrains Mono',monospace;color:var(--text);background:var(--bg-base);border:1px solid {{ fNipBorder }};border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" /><sc-if value="{{ fNipErr }}" hint-placeholder-val="{{ false }}"><div style="margin-top:5px;font:400 12px Inter;color:var(--error);">{{ reqMsg }}</div></sc-if></div>
+            <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lStatus }}</label><label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border-radius:10px;background:var(--bg-muted);cursor:pointer;height:42px;"><span style="font:500 13px Inter;color:var(--text);">{{ fStatusLabel }}</span><button onClick="{{ toggleFActive }}" style="width:40px;height:22px;border-radius:99px;background:{{ fActiveTrack }};position:relative;border:none;cursor:pointer;flex:none;transition:background .15s;"><span style="position:absolute;top:3px;left:{{ fActiveKnob }};width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.3);"></span></button></label></div>
+          </div>
+          <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lNama }} <span style="color:var(--error);">*</span></label><input value="{{ fNama }}" onInput="{{ onFNama }}" placeholder="{{ phNama }}" style="width:100%;padding:10px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid {{ fNamaBorder }};border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" /><sc-if value="{{ fNamaErr }}" hint-placeholder-val="{{ false }}"><div style="margin-top:5px;font:400 12px Inter;color:var(--error);">{{ reqMsg }}</div></sc-if></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lDept }}</label><div style="position:relative;"><select value="{{ fDept }}" onChange="{{ onFDept }}" style="width:100%;appearance:none;padding:10px 32px 10px 12px;font:400 14px Inter;color:{{ fDeptColor }};background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;cursor:pointer;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><option value="">{{ phPilih }}</option><sc-for list="{{ deptOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o }}">{{ o }}</option></sc-for></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div></div>
+            <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lJabatan }}</label><div style="position:relative;"><select value="{{ fJabatan }}" onChange="{{ onFJabatan }}" style="width:100%;appearance:none;padding:10px 32px 10px 12px;font:400 14px Inter;color:{{ fJabatanColor }};background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;cursor:pointer;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><option value="">{{ phPilih }}</option><sc-for list="{{ jabatanOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o }}">{{ o }}</option></sc-for></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div></div>
+          </div>
+          <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lKantor }}</label><div style="position:relative;"><select value="{{ fKantor }}" onChange="{{ onFKantor }}" style="width:100%;appearance:none;padding:10px 32px 10px 12px;font:400 14px Inter;color:{{ fKantorColor }};background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;cursor:pointer;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><option value="">{{ phPilih }}</option><sc-for list="{{ kantorOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o }}">{{ o }}</option></sc-for></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div><div style="margin-top:5px;display:flex;align-items:center;gap:5px;font:400 11.5px Inter;color:var(--text-dimmed);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>{{ scopeNote }}</div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lEmail }} <span style="color:var(--error);">*</span></label><input value="{{ fEmail }}" onInput="{{ onFEmail }}" type="email" placeholder="nama@inventra.go.id" style="width:100%;padding:10px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid {{ fEmailBorder }};border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" /><sc-if value="{{ fEmailErr }}" hint-placeholder-val="{{ false }}"><div style="margin-top:5px;font:400 12px Inter;color:var(--error);">{{ fEmailMsg }}</div></sc-if></div>
+            <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lTelepon }}</label><input value="{{ fTelepon }}" onInput="{{ onFTelepon }}" type="tel" placeholder="08xx-xxxx-xxxx" style="width:100%;padding:10px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" /></div>
+          </div>
+        </div>
+        <div style="flex:none;display:flex;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid var(--border);background:var(--bg-el);"><button onClick="{{ closeForm }}" style="padding:10px 16px;font:500 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;cursor:pointer;" style-hover="background:var(--bg-muted);">{{ cancelLbl }}</button><button onClick="{{ saveForm }}" style="padding:10px 20px;font:600 14px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:10px;cursor:pointer;" style-hover="background:var(--primary-hover);">{{ saveLbl }}</button></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- DELETE CONFIRM -->
+  <sc-if value="{{ confirmOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeConfirm }}" style="position:fixed;inset:0;z-index:60;background:rgba(2,6,23,.5);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:24px;">
+      <div onClick="{{ stop }}" style="width:100%;max-width:404px;background:var(--bg-el);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-lg);padding:24px;">
+        <div style="display:flex;gap:14px;"><div style="width:42px;height:42px;border-radius:11px;background:var(--error-soft-bg);color:var(--error);display:flex;align-items:center;justify-content:center;flex:none;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></div><div><div style="font:600 16px Inter;margin-bottom:4px;">{{ confirmTitle }}</div><div style="font:400 14px/1.55 Inter;color:var(--text-muted);">{{ confirmBody }}</div></div></div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:22px;"><button onClick="{{ closeConfirm }}" style="padding:9px 15px;font:500 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);">{{ cancelLbl }}</button><button onClick="{{ confirmDelete }}" style="padding:9px 15px;font:500 14px Inter;color:#fff;background:var(--error);border:1px solid var(--error);border-radius:9px;cursor:pointer;" style-hover="filter:brightness(.94);">{{ deleteConfirmLbl }}</button></div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;id&quot;,&quot;en&quot;],&quot;default&quot;:&quot;id&quot;,&quot;tsType&quot;:&quot;'id' | 'en'&quot;},&quot;collapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;primaryColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#16a34a&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const ICONS={
+  dashboard:[['rect',{x:3,y:3,width:7,height:9,rx:1}],['rect',{x:14,y:3,width:7,height:5,rx:1}],['rect',{x:14,y:12,width:7,height:9,rx:1}],['rect',{x:3,y:16,width:7,height:5,rx:1}]],
+  box:[['path',{d:'M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2'}],['path',{d:'M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'}],['path',{d:'M9 13h6'}]],
+  clipboard:[['rect',{x:5,y:4,width:14,height:17,rx:2}],['path',{d:'M9 4V3h6v1'}],['path',{d:'M9 13l2 2 4-4'}]],
+  wrench:[['path',{d:'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.7 2.7-2-2z'}]],
+  approval:[['path',{d:'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'}],['path',{d:'M9 11l3 3 8-8'}]],
+  chart:[['path',{d:'M3 3v18h18'}],['path',{d:'M7 16v-5M12 16V8M17 16v-3'}]],
+  database:[['path',{d:'M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3z'}],['path',{d:'M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6'}],['path',{d:'M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6'}]],
+  settings:[['circle',{cx:12,cy:12,r:3}],['path',{d:'M19.4 15a1.6 1.6 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0 1.6 1.6 0 0 0-2.7-1.1 2 2 0 1 1-2.8-2.8A1.6 1.6 0 0 0 3 13.6a2 2 0 0 1 0-3.2A1.6 1.6 0 0 0 4.6 7a2 2 0 1 1 2.8-2.8A1.6 1.6 0 0 0 10 4.6V3a2 2 0 0 1 4 0 1.6 1.6 0 0 0 2.7 1.1A2 2 0 1 1 19.5 7a1.6 1.6 0 0 0-1 2.4 2 2 0 0 1 0 3.2z'}]],
+};
+function mk(key,size){const d=ICONS[key]||ICONS.box;return React.createElement('svg',{width:size||18,height:size||18,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.9,strokeLinecap:'round',strokeLinejoin:'round',style:{flex:'none'}},d.map((x,i)=>React.createElement(x[0],{...x[1],key:i})));}
+const L=(id,en)=>({id,en});
+const NAV=[
+  { label:L('Operasional','Operational'), items:[
+    { label:L('Dashboard','Dashboard'), icon:'dashboard' },{ label:L('Aset','Assets'), icon:'box' },{ label:L('Penugasan','Assignments'), icon:'clipboard' },
+    { label:L('Maintenance','Maintenance'), icon:'wrench' },{ label:L('Pengajuan','Requests'), icon:'approval' },{ label:L('Laporan','Reports'), icon:'chart' },
+  ]},
+  { label:L('Administrasi','Administration'), items:[{ label:L('Master Data','Master Data'), icon:'database', active:true },{ label:L('Pengaturan','Settings'), icon:'settings' }]},
+];
+const DEPTS=['Operasional','Teknologi Informasi','Keuangan','Umum & SDM','Logistik'];
+const JABATAN=['Kepala Unit','Asset Manager','Staf Operasional','Staf IT','Staf Umum','Staf Lapangan','Auditor Internal'];
+const KANTOR=['Cabang Jakarta Selatan','Outlet Blok M','Outlet Kemang','Cabang Jakarta Pusat'];
+function ini(n){const p=n.split(' ');return ((p[0]||'')[0]||'')+((p[1]||'')[0]||'');}
+function P(nip,nama,dept,jab,kantor,email,tel,active){return {id:nip,nip,nama,dept,jabatan:jab,kantor,email,telepon:tel,active};}
+const PEG=[
+  P('198703152010011001','Andi Saputra','Operasional','Staf Operasional','Cabang Jakarta Selatan','andi.saputra@inventra.go.id','0812-3456-7890',true),
+  P('199205202012012002','Rina Putri','Teknologi Informasi','Staf IT','Cabang Jakarta Selatan','rina.putri@inventra.go.id','0813-9087-1122',true),
+  P('198511102008011003','Budi Hartono','Umum & SDM','Staf Umum','Cabang Jakarta Selatan','budi.hartono@inventra.go.id','0856-2211-3344',true),
+  P('197803051999031004','Dewi Lestari','Operasional','Asset Manager','Cabang Jakarta Selatan','dewi.lestari@inventra.go.id','0811-7788-9900',true),
+  P('199510152015011005','Eko Prasetyo','Logistik','Staf Lapangan','Outlet Blok M','eko.prasetyo@inventra.go.id','0857-1234-5566',true),
+  P('198009251999032006','Siti Aminah','Keuangan','Kepala Unit','Cabang Jakarta Selatan','siti.aminah@inventra.go.id','0812-3344-5566',true),
+  P('199301122014011007','Fajar Nugroho','Teknologi Informasi','Staf IT','Cabang Jakarta Pusat','fajar.nugroho@inventra.go.id','0815-6677-8899',true),
+  P('198706302010012008','Maya Sari','Umum & SDM','Staf Umum','Outlet Kemang','maya.sari@inventra.go.id','0858-9988-7766',false),
+  P('199607182018011009','Rizky Pratama','Operasional','Staf Operasional','Cabang Jakarta Selatan','rizky.pratama@inventra.go.id','0813-2233-4455',true),
+  P('198412052006011010','Hendra Wijaya','Logistik','Staf Lapangan','Cabang Jakarta Pusat','hendra.wijaya@inventra.go.id','0852-4455-6677',true),
+  P('199009092013012011','Putri Maharani','Keuangan','Staf Operasional','Cabang Jakarta Selatan','putri.maharani@inventra.go.id','0811-5566-7788',true),
+  P('197511201998031012','Agus Salim','Operasional','Auditor Internal','Cabang Jakarta Selatan','agus.salim@inventra.go.id','0812-8899-0011',true),
+  P('199812032020011013','Dian Kusuma','Teknologi Informasi','Staf IT','Outlet Blok M','dian.kusuma@inventra.go.id','0857-3344-2211',true),
+  P('198603152009012014','Lestari Wulandari','Umum & SDM','Staf Umum','Cabang Jakarta Selatan','lestari.w@inventra.go.id','0856-1122-3344',false),
+];
+const CH={
+  id:{ bcMaster:'Master Data', pageTitle:'Pegawai', pageSub:'Kelola data pegawai dalam lingkup kantor Anda.', addLbl:'Tambah Pegawai', searchPh:'Cari nama atau NIP…',
+    cNip:'NIP', cNama:'Nama', cDept:'Departemen', cJabatan:'Jabatan', cKantor:'Kantor', cKontak:'Email / Telepon', cStatus:'Status', cAksi:'Aksi',
+    fKantorAll:'Semua Kantor', fDeptAll:'Semua Departemen', fJabAll:'Semua Jabatan', fStatusAll:'Semua Status', stActive:'Aktif', stInactive:'Nonaktif',
+    resetLbl:'Reset', emptyTitle:'Belum ada pegawai', emptySub:'Belum ada pegawai pada lingkup ini, atau tidak cocok dengan pencarian/filter.',
+    addTitle:'Tambah Pegawai', editTitle:'Edit Pegawai', addSub:'Daftarkan pegawai baru ke kantor.', editSub:'Perbarui data pegawai.',
+    lNip:'NIP', lNama:'Nama Lengkap', lDept:'Departemen', lJabatan:'Jabatan', lKantor:'Kantor', lEmail:'Email', lTelepon:'Telepon', lStatus:'Status',
+    phNama:'mis. Andi Saputra', phPilih:'Pilih…', scopeNote:'Pilihan kantor dibatasi sesuai lingkup peran Anda.',
+    reqMsg:'Wajib diisi.', emailMsg:'Format email tidak valid.', cancelLbl:'Batal', saveLbl:'Simpan', deleteConfirmLbl:'Ya, Hapus',
+    confirmTitle:'Hapus pegawai ini?', confirmBody:(n)=>'“'+n+'” akan dihapus dari data pegawai. Tindakan ini tidak dapat dibatalkan.',
+    pageInfoF:(a,b,n)=>'Menampilkan '+a+'–'+b+' dari '+n+' pegawai' },
+  en:{ bcMaster:'Master Data', pageTitle:'Employees', pageSub:'Manage employee data within your office scope.', addLbl:'Add Employee', searchPh:'Search name or NIP…',
+    cNip:'NIP', cNama:'Name', cDept:'Department', cJabatan:'Title', cKantor:'Office', cKontak:'Email / Phone', cStatus:'Status', cAksi:'Actions',
+    fKantorAll:'All Offices', fDeptAll:'All Departments', fJabAll:'All Titles', fStatusAll:'All Status', stActive:'Active', stInactive:'Inactive',
+    resetLbl:'Reset', emptyTitle:'No employees yet', emptySub:'No employees in this scope, or none match the search/filter.',
+    addTitle:'Add Employee', editTitle:'Edit Employee', addSub:'Register a new employee to an office.', editSub:'Update employee data.',
+    lNip:'NIP', lNama:'Full Name', lDept:'Department', lJabatan:'Title', lKantor:'Office', lEmail:'Email', lTelepon:'Phone', lStatus:'Status',
+    phNama:'e.g. Andi Saputra', phPilih:'Select…', scopeNote:'Office choices are limited to your role scope.',
+    reqMsg:'Required.', emailMsg:'Invalid email format.', cancelLbl:'Cancel', saveLbl:'Save', deleteConfirmLbl:'Yes, Delete',
+    confirmTitle:'Delete this employee?', confirmBody:(n)=>'“'+n+'” will be removed from employee data. This cannot be undone.',
+    pageInfoF:(a,b,n)=>'Showing '+a+'–'+b+' of '+n+' employees' },
+};
+const PAGE_SIZE=10;
+const EMAILRE=/^.+@.+\..+$/;
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef=React.createRef();
+    this.state={
+      theme:(props.theme==='dark'?'dark':'light'), lang:(props.lang==='en'?'en':'id'), collapsed:!!props.collapsed,
+      data:PEG.slice(), q:'', fKantor:'all', fDept:'all', fJab:'all', fStatus:'all', page:1,
+      formOpen:false, editId:null, form:{}, fActive:true, errs:{}, confirmId:null, seq:1,
+    };
+    this._tt=false;this._tl=false;this._tc=false;
+  }
+  componentDidMount(){ this.applyPrimary(); }
+  componentDidUpdate(){ this.applyPrimary(); }
+  applyPrimary(){ const c=this.props.primaryColor,el=this.rootRef.current; if(el&&c) el.style.setProperty('--primary',c); }
+  effTheme(){ return this._tt?this.state.theme:(this.props.theme||'light'); }
+  effLang(){ return this._tl?this.state.lang:(this.props.lang||'id'); }
+  effCollapsed(){ return this._tc?this.state.collapsed:!!this.props.collapsed; }
+  openAdd(){ this.setState({formOpen:true,editId:null,form:{nip:'',nama:'',dept:'',jabatan:'',kantor:'',email:'',telepon:''},fActive:true,errs:{}}); }
+  openEdit(row){ this.setState({formOpen:true,editId:row.id,form:{nip:row.nip,nama:row.nama,dept:row.dept,jabatan:row.jabatan,kantor:row.kantor,email:row.email,telepon:row.telepon},fActive:row.active,errs:{}}); }
+  setF(k,v){ this.setState(s=>{const errs={...s.errs};delete errs[k];return {form:{...s.form,[k]:v},errs};}); }
+  saveForm(){
+    const lang=this.effLang(); const f=this.state.form; const errs={};
+    if(!String(f.nip||'').trim()) errs.nip=1; if(!String(f.nama||'').trim()) errs.nama=1;
+    if(!String(f.email||'').trim()) errs.email='req'; else if(!EMAILRE.test(f.email)) errs.email='fmt';
+    if(Object.keys(errs).length){ this.setState({errs}); return; }
+    const s=this.state; const row={id:s.editId||('n'+s.seq),...f,active:s.fActive};
+    if(s.editId) this.setState(st=>({data:st.data.map(r=>r.id===st.editId?row:r),formOpen:false}));
+    else this.setState(st=>({data:[row,...st.data],formOpen:false,seq:st.seq+1,page:1}));
+  }
+  doDelete(){ this.setState(s=>({data:s.data.filter(r=>r.id!==s.confirmId),confirmId:null})); }
+  renderVals(){
+    const s=this.state; const theme=this.effTheme(),lang=this.effLang(),collapsed=this.effCollapsed();
+    const isDark=theme==='dark'; const ch=CH[lang];
+    const nav=NAV.map(g=>({label:g.label[lang],items:g.items.map(it=>({
+      label:it.label[lang],icon:mk(it.icon),
+      bg:it.active?'var(--primary-soft-bg)':'transparent',fg:it.active?'var(--primary-soft-text)':'var(--text-muted)',
+      weight:it.active?'600':'500',accent:it.active?'var(--primary)':'transparent',hoverBg:it.active?'var(--primary-soft-bg)':'var(--bg-muted)',
+    }))}));
+
+    const q=s.q.trim().toLowerCase();
+    let list=s.data.slice();
+    if(q) list=list.filter(r=>r.nama.toLowerCase().includes(q)||r.nip.includes(q));
+    if(s.fKantor!=='all') list=list.filter(r=>r.kantor===s.fKantor);
+    if(s.fDept!=='all') list=list.filter(r=>r.dept===s.fDept);
+    if(s.fJab!=='all') list=list.filter(r=>r.jabatan===s.fJab);
+    if(s.fStatus!=='all') list=list.filter(r=>(s.fStatus==='active')===r.active);
+    const n=list.length;
+    const totalPages=Math.max(1,Math.ceil(n/PAGE_SIZE));
+    const page=Math.min(s.page,totalPages);
+    const start=(page-1)*PAGE_SIZE;
+    const rows=list.slice(start,start+PAGE_SIZE).map(r=>({
+      nip:r.nip, ini:ini(r.nama), nama:r.nama, dept:r.dept, jabatan:r.jabatan, kantor:r.kantor, email:r.email, telepon:r.telepon,
+      stLabel:r.active?ch.stActive:ch.stInactive, stBg:r.active?'var(--success-soft-bg)':'var(--neutral-soft-bg)', stFg:r.active?'var(--success-soft-text)':'var(--neutral-soft-text)', stDot:r.active?'var(--success)':'var(--text-dimmed)',
+      edit:()=>this.openEdit(r), del:()=>this.setState({confirmId:r.id}),
+    }));
+    const pageBtns=[]; for(let i=1;i<=totalPages;i++) pageBtns.push({n:String(i),on:()=>this.setState({page:i}),bg:i===page?'var(--primary)':'transparent',fg:i===page?'var(--primary-fg)':'var(--text-muted)',bd:i===page?'var(--primary)':'var(--border)'});
+    const startN=n===0?0:start+1, endN=Math.min(start+PAGE_SIZE,n);
+    const anyFilter=!!q||s.fKantor!=='all'||s.fDept!=='all'||s.fJab!=='all'||s.fStatus!=='all';
+
+    const filters=[
+      {value:s.fKantor,color:s.fKantor==='all'?'var(--text-muted)':'var(--text)',on:(e)=>this.setState({fKantor:e.target.value,page:1}),opts:[{v:'all',label:ch.fKantorAll}].concat(KANTOR.map(k=>({v:k,label:k})))},
+      {value:s.fDept,color:s.fDept==='all'?'var(--text-muted)':'var(--text)',on:(e)=>this.setState({fDept:e.target.value,page:1}),opts:[{v:'all',label:ch.fDeptAll}].concat(DEPTS.map(k=>({v:k,label:k})))},
+      {value:s.fJab,color:s.fJab==='all'?'var(--text-muted)':'var(--text)',on:(e)=>this.setState({fJab:e.target.value,page:1}),opts:[{v:'all',label:ch.fJabAll}].concat(JABATAN.map(k=>({v:k,label:k})))},
+      {value:s.fStatus,color:s.fStatus==='all'?'var(--text-muted)':'var(--text)',on:(e)=>this.setState({fStatus:e.target.value,page:1}),opts:[{v:'all',label:ch.fStatusAll},{v:'active',label:ch.stActive},{v:'inactive',label:ch.stInactive}]},
+    ];
+
+    return {
+      rootRef:this.rootRef, theme, isDark, isLight:!isDark,
+      sidebarW:collapsed?'76px':'264px', expanded:!collapsed, collapsed, navJustify:collapsed?'center':'flex-start',
+      toggleCollapse:()=>{this._tc=true;this.setState(x=>({collapsed:!this.effCollapsed()}));},
+      toggleTheme:()=>{this._tt=true;const cur=this.effTheme();this.setState({theme:cur==='light'?'dark':'light'});},
+      setId:()=>{this._tl=true;this.setState({lang:'id'});}, setEn:()=>{this._tl=true;this.setState({lang:'en'});},
+      idBg:lang==='id'?'var(--bg-base)':'transparent', idFg:lang==='id'?'var(--text)':'var(--text-muted)',
+      enBg:lang==='en'?'var(--bg-base)':'transparent', enFg:lang==='en'?'var(--text)':'var(--text-muted)',
+      nav, bcMaster:ch.bcMaster, pageTitle:ch.pageTitle, pageSub:ch.pageSub, addLbl:ch.addLbl, openAdd:()=>this.openAdd(),
+      q:s.q, onSearch:(e)=>this.setState({q:e.target.value,page:1}), searchPh:ch.searchPh, filters,
+      anyFilter, noFilter:!anyFilter, resetLbl:ch.resetLbl, resetFilter:()=>this.setState({q:'',fKantor:'all',fDept:'all',fJab:'all',fStatus:'all',page:1}),
+      cNip:ch.cNip, cNama:ch.cNama, cDept:ch.cDept, cJabatan:ch.cJabatan, cKantor:ch.cKantor, cKontak:ch.cKontak, cStatus:ch.cStatus, cAksi:ch.cAksi,
+      rows, hasRows:rows.length>0, noRows:rows.length===0, emptyTitle:ch.emptyTitle, emptySub:ch.emptySub,
+      pageBtns, prevPage:()=>this.setState(x=>({page:Math.max(1,x.page-1)})), nextPage:()=>this.setState(x=>({page:Math.min(totalPages,x.page+1)})), pageInfo:ch.pageInfoF(startN,endN,n),
+      // form
+      formOpen:s.formOpen, closeForm:()=>this.setState({formOpen:false}), stop:(e)=>e.stopPropagation(),
+      formTitle:s.editId?ch.editTitle:ch.addTitle, formSub:s.editId?ch.editSub:ch.addSub,
+      lNip:ch.lNip, lNama:ch.lNama, lDept:ch.lDept, lJabatan:ch.lJabatan, lKantor:ch.lKantor, lEmail:ch.lEmail, lTelepon:ch.lTelepon, lStatus:ch.lStatus,
+      phNama:ch.phNama, phPilih:ch.phPilih, scopeNote:ch.scopeNote, deptOpts:DEPTS, jabatanOpts:JABATAN, kantorOpts:KANTOR,
+      fNip:s.form.nip, onFNip:(e)=>this.setF('nip',e.target.value), fNipBorder:s.errs.nip?'var(--error)':'var(--border-strong)', fNipErr:!!s.errs.nip,
+      fNama:s.form.nama, onFNama:(e)=>this.setF('nama',e.target.value), fNamaBorder:s.errs.nama?'var(--error)':'var(--border-strong)', fNamaErr:!!s.errs.nama,
+      fDept:s.form.dept, onFDept:(e)=>this.setF('dept',e.target.value), fDeptColor:s.form.dept?'var(--text)':'var(--text-dimmed)',
+      fJabatan:s.form.jabatan, onFJabatan:(e)=>this.setF('jabatan',e.target.value), fJabatanColor:s.form.jabatan?'var(--text)':'var(--text-dimmed)',
+      fKantor:s.form.kantor, onFKantor:(e)=>this.setF('kantor',e.target.value), fKantorColor:s.form.kantor?'var(--text)':'var(--text-dimmed)',
+      fEmail:s.form.email, onFEmail:(e)=>this.setF('email',e.target.value), fEmailBorder:s.errs.email?'var(--error)':'var(--border-strong)', fEmailErr:!!s.errs.email, fEmailMsg:(s.errs.email==='fmt'?ch.emailMsg:ch.reqMsg),
+      fTelepon:s.form.telepon, onFTelepon:(e)=>this.setF('telepon',e.target.value),
+      fActive:s.fActive, fStatusLabel:s.fActive?ch.stActive:ch.stInactive, fActiveTrack:s.fActive?'var(--primary)':'var(--border-strong)', fActiveKnob:s.fActive?'21px':'3px', toggleFActive:()=>this.setState(x=>({fActive:!x.fActive})),
+      reqMsg:ch.reqMsg, cancelLbl:ch.cancelLbl, saveLbl:ch.saveLbl, saveForm:()=>this.saveForm(),
+      // confirm
+      confirmOpen:s.confirmId!==null, closeConfirm:()=>this.setState({confirmId:null}), confirmDelete:()=>this.doDelete(),
+      confirmTitle:ch.confirmTitle, confirmBody:ch.confirmBody((s.data.find(r=>r.id===s.confirmId)||{}).nama||''), deleteConfirmLbl:ch.deleteConfirmLbl,
+    };
+  }
+}
+</script>
+</body>
+</html>

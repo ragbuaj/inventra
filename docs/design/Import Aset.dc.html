@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:9px;border:2px solid transparent;background-clip:padding-box;}
+:root{
+  --bg:#f8fafc; --bg-base:#ffffff; --bg-muted:#f1f5f9; --bg-elevated:#ffffff;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#0f172a; --text-muted:#64748b; --text-dimmed:#94a3b8;
+  --primary:#16a34a; --primary-hover:#15803d; --primary-fg:#ffffff;
+  --primary-soft-bg:#dcfce7; --primary-soft-text:#15803d;
+  --success:#16a34a; --success-soft-bg:#dcfce7; --success-soft-text:#15803d;
+  --warning:#d97706; --warning-soft-bg:#fef3c7; --warning-soft-text:#b45309;
+  --error:#dc2626; --error-soft-bg:#fee2e2; --error-soft-text:#b91c1c;
+  --info:#2563eb; --info-soft-bg:#dbeafe; --info-soft-text:#1d4ed8;
+  --neutral-soft-bg:#eef2f6; --neutral-soft-text:#475569;
+  --ring:color-mix(in srgb, var(--primary) 28%, transparent);
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
+  --shadow-lg:0 12px 34px rgba(15,23,42,.16);
+  --stripe:#e7ebf0;
+}
+[data-theme="dark"]{
+  --bg:#020617; --bg-base:#0b1220; --bg-muted:#1e293b; --bg-elevated:#1e293b;
+  --border:#1e293b; --border-strong:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8; --text-dimmed:#64748b;
+  --primary:#22c55e; --primary-hover:#16a34a; --primary-fg:#052e16;
+  --primary-soft-bg:#14331f; --primary-soft-text:#4ade80;
+  --success:#22c55e; --success-soft-bg:#14331f; --success-soft-text:#4ade80;
+  --warning:#f59e0b; --warning-soft-bg:#3a2a08; --warning-soft-text:#fbbf24;
+  --error:#ef4444; --error-soft-bg:#3a1414; --error-soft-text:#f87171;
+  --info:#3b82f6; --info-soft-bg:#13243f; --info-soft-text:#60a5fa;
+  --neutral-soft-bg:#1e293b; --neutral-soft-text:#cbd5e1;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 12px 34px rgba(0,0,0,.55);
+  --stripe:#16202f;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" data-theme="{{ theme }}" style="font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--text);">
+  <div style="display:flex;height:100vh;overflow:hidden;background:var(--bg);">
+
+    <!-- SIDEBAR -->
+    <aside style="width:{{ sidebarW }};flex:none;display:flex;flex-direction:column;background:var(--bg-base);border-right:1px solid var(--border);transition:width .2s ease;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:11px;height:61px;padding:0 18px;border-bottom:1px solid var(--border);flex:none;">
+        <div style="width:34px;height:34px;border-radius:9px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--primary-fg);flex:none;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13h6"/></svg></div>
+        <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="font:700 18px Inter;letter-spacing:-.01em;white-space:nowrap;">Inventra</span></sc-if>
+      </div>
+      <nav style="flex:1;overflow-y:auto;overflow-x:hidden;padding:12px;">
+        <sc-for list="{{ nav }}" as="g" hint-placeholder-count="2">
+          <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><div style="padding:14px 12px 6px;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dimmed);white-space:nowrap;">{{ g.label }}</div></sc-if>
+          <sc-if value="{{ collapsed }}" hint-placeholder-val="{{ false }}"><div style="height:1px;background:var(--border);margin:10px 8px;"></div></sc-if>
+          <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+            <button title="{{ it.label }}" style="position:relative;display:flex;align-items:center;justify-content:{{ navJustify }};gap:11px;width:100%;padding:9px 12px;margin-bottom:2px;font-family:Inter;font-size:14px;font-weight:{{ it.weight }};color:{{ it.fg }};background:{{ it.bg }};border:none;border-radius:9px;cursor:pointer;text-align:left;box-shadow:inset 3px 0 0 {{ it.accent }};white-space:nowrap;" style-hover="background:{{ it.hoverBg }};">
+              {{ it.icon }}
+              <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;">{{ it.label }}</span></sc-if>
+              <sc-if value="{{ it.badgeExp }}" hint-placeholder-val="{{ false }}"><span style="flex:none;min-width:20px;height:20px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;font:700 11px Inter;color:#fff;background:var(--error);border-radius:999px;">{{ it.badge }}</span></sc-if>
+            </button>
+          </sc-for>
+        </sc-for>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <header style="display:flex;align-items:center;gap:14px;height:61px;flex:none;padding:0 20px;background:var(--bg-base);border-bottom:1px solid var(--border);">
+        <button onClick="{{ toggleCollapse }}" title="Collapse" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex:none;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg></button>
+        <div style="display:flex;align-items:center;gap:6px;font:400 12px Inter;color:var(--text-muted);"><span>Inventra</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span>{{ bcAset }}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span style="color:var(--text);font-weight:500;">{{ pageTitle }}</span></div>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex:none;">
+          <div style="display:flex;gap:2px;padding:3px;background:var(--bg-muted);border-radius:9px;">
+            <button onClick="{{ setId }}" style="padding:5px 9px;font:600 12px Inter;color:{{ idFg }};background:{{ idBg }};border:none;border-radius:6px;cursor:pointer;">ID</button>
+            <button onClick="{{ setEn }}" style="padding:5px 9px;font:600 12px Inter;color:{{ enFg }};background:{{ enBg }};border:none;border-radius:6px;cursor:pointer;">EN</button>
+          </div>
+          <button onClick="{{ toggleTheme }}" title="Tema" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">
+            <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></sc-if>
+            <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></sc-if>
+          </button>
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;background:transparent;border:1px solid var(--border);border-radius:999px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--primary);color:var(--primary-fg);display:flex;align-items:center;justify-content:center;font:700 12px Inter;">DL</span><span style="display:flex;color:var(--text-dimmed);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+        </div>
+      </header>
+
+      <main style="flex:1;overflow-y:auto;padding:26px 32px 40px;">
+        <div style="max-width:980px;margin:0 auto;">
+
+          <div style="margin-bottom:22px;">
+            <h1 style="margin:0 0 5px;font:700 23px Inter;letter-spacing:-.02em;">{{ pageTitle }}</h1>
+            <p style="margin:0;font:400 14px Inter;color:var(--text-muted);">{{ pageSub }}</p>
+          </div>
+
+          <!-- STEPPER -->
+          <div style="display:flex;align-items:center;margin-bottom:24px;">
+            <sc-for list="{{ steps }}" as="st" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:11px;flex:none;">
+                <div style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:700 14px Inter;background:{{ st.circleBg }};color:{{ st.circleFg }};border:2px solid {{ st.circleBd }};">
+                  <sc-if value="{{ st.done }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></sc-if>
+                  <sc-if value="{{ st.showNum }}" hint-placeholder-val="{{ true }}">{{ st.n }}</sc-if>
+                </div>
+                <div style="display:flex;flex-direction:column;"><span style="font:600 13.5px Inter;color:{{ st.labelColor }};white-space:nowrap;">{{ st.label }}</span><span style="font:400 11.5px Inter;color:var(--text-dimmed);white-space:nowrap;">{{ st.sub }}</span></div>
+              </div>
+              <sc-if value="{{ st.connector }}" hint-placeholder-val="{{ true }}"><div style="flex:1;height:2px;margin:0 16px;background:{{ st.lineBg }};border-radius:2px;min-width:30px;"></div></sc-if>
+            </sc-for>
+          </div>
+
+          <!-- PROCESSING -->
+          <sc-if value="{{ processing }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:54px 32px;text-align:center;">
+              <div style="width:52px;height:52px;margin:0 auto 18px;border:4px solid var(--bg-muted);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;"></div>
+              <div style="font:600 16px Inter;margin-bottom:6px;">{{ progressLabel }}</div>
+              <div style="font:400 13px Inter;color:var(--text-muted);margin-bottom:20px;">{{ progressSub }}</div>
+              <div style="max-width:420px;margin:0 auto;">
+                <div style="height:8px;border-radius:99px;background:var(--bg-muted);overflow:hidden;"><div style="height:100%;width:{{ progressW }};background:var(--primary);border-radius:99px;transition:width .15s linear;"></div></div>
+                <div style="margin-top:8px;font:600 13px 'JetBrains Mono',monospace;color:var(--primary);">{{ progressPct }}</div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- STEP 1: UNGGAH -->
+          <sc-if value="{{ showStep1 }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:18px 22px;border-bottom:1px solid var(--border);">
+                  <div style="display:flex;align-items:center;gap:11px;"><span style="width:34px;height:34px;border-radius:9px;background:var(--info-soft-bg);color:var(--info-soft-text);display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg></span><div><div style="font:600 14.5px Inter;">{{ tplTitle }}</div><div style="font:400 12.5px Inter;color:var(--text-muted);">{{ tplSub }}</div></div></div>
+                  <div style="display:flex;gap:9px;">
+                    <button style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;font:500 13px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>CSV</button>
+                    <button style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;font:500 13px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>XLSX</button>
+                  </div>
+                </div>
+                <div style="padding:22px;">
+                  <sc-if value="{{ noFile }}" hint-placeholder-val="{{ true }}">
+                    <button onClick="{{ pickFile }}" style="width:100%;border:1.5px dashed var(--border-strong);border-radius:13px;padding:40px 20px;text-align:center;background:transparent;cursor:pointer;" style-hover="border-color:var(--primary);background:color-mix(in srgb,var(--primary) 4%,transparent);">
+                      <div style="width:50px;height:50px;margin:0 auto 12px;border-radius:13px;background:var(--bg-muted);color:var(--text-muted);display:flex;align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5-5 5 5M12 5v12"/></svg></div>
+                      <div style="font:600 14.5px Inter;color:var(--text);margin-bottom:4px;">{{ dropTitle }}</div>
+                      <div style="font:400 12.5px Inter;color:var(--text-dimmed);">{{ dropSub }}</div>
+                    </button>
+                  </sc-if>
+                  <sc-if value="{{ hasFile }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:center;gap:13px;padding:15px 16px;border:1px solid var(--border);border-radius:12px;background:var(--bg-muted);">
+                      <span style="width:42px;height:42px;border-radius:10px;background:var(--success-soft-bg);color:var(--success-soft-text);display:flex;align-items:center;justify-content:center;flex:none;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15l2 2 4-4"/></svg></span>
+                      <div style="flex:1;min-width:0;"><div style="font:600 14px Inter;">{{ fileName }}</div><div style="font:400 12px Inter;color:var(--text-muted);">{{ fileMeta }}</div></div>
+                      <button onClick="{{ removeFile }}" style="display:flex;padding:6px;color:var(--text-dimmed);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="color:var(--error);background:var(--error-soft-bg);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+                    </div>
+                  </sc-if>
+                </div>
+              </div>
+
+              <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:18px 22px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg><span style="font:600 13.5px Inter;">{{ colTitle }}</span></div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                  <sc-for list="{{ expectedCols }}" as="c" hint-placeholder-count="6">
+                    <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;font:500 12px 'JetBrains Mono',monospace;border-radius:7px;background:var(--bg-muted);color:var(--text-muted);">{{ c.name }}<sc-if value="{{ c.req }}" hint-placeholder-val="{{ false }}"><span style="color:var(--error);">*</span></sc-if></span>
+                  </sc-for>
+                </div>
+                <div style="margin-top:12px;font:400 12.5px/1.5 Inter;color:var(--text-dimmed);">{{ colNote }}</div>
+              </div>
+
+              <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;">
+                <button onClick="{{ startValidate }}" disabled="{{ noFile }}" style="display:inline-flex;align-items:center;gap:7px;padding:10px 20px;font:600 14px Inter;color:var(--primary-fg);background:{{ validateBg }};border:1px solid {{ validateBg }};border-radius:10px;cursor:{{ validateCursor }};opacity:{{ validateOpacity }};" style-hover="background:var(--primary-hover);">{{ validateLbl }}<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- STEP 2: VALIDASI -->
+          <sc-if value="{{ showStep2 }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                  <span style="display:inline-flex;align-items:center;gap:7px;padding:7px 13px;font:600 13px Inter;border-radius:9px;background:var(--bg-base);border:1px solid var(--border);"><span style="color:var(--text-muted);">{{ totalLbl }}</span><span style="color:var(--text);">{{ totalRows }}</span></span>
+                  <span style="display:inline-flex;align-items:center;gap:7px;padding:7px 13px;font:600 13px Inter;border-radius:9px;background:var(--success-soft-bg);color:var(--success-soft-text);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>{{ validCount }}</span>
+                  <span style="display:inline-flex;align-items:center;gap:7px;padding:7px 13px;font:600 13px Inter;border-radius:9px;background:var(--error-soft-bg);color:var(--error-soft-text);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>{{ errCount }}</span>
+                </div>
+                <label style="display:flex;align-items:center;gap:8px;font:500 13px Inter;color:var(--text-muted);cursor:pointer;"><input type="checkbox" checked="{{ onlyErrors }}" onChange="{{ toggleOnlyErrors }}" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;" />{{ onlyErrLbl }}</label>
+              </div>
+
+              <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow);overflow:hidden;">
+                <div style="overflow-x:auto;">
+                  <table style="width:100%;border-collapse:collapse;font:400 13px Inter;white-space:nowrap;">
+                    <thead><tr style="background:var(--bg-muted);">
+                      <th style="text-align:left;padding:10px 14px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">#</th>
+                      <th style="text-align:left;padding:10px 14px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ chStatus }}</th>
+                      <th style="text-align:left;padding:10px 14px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">asset_tag</th>
+                      <th style="text-align:left;padding:10px 14px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">nama</th>
+                      <th style="text-align:left;padding:10px 14px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">kategori</th>
+                      <th style="text-align:left;padding:10px 14px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">kantor</th>
+                      <th style="text-align:left;padding:10px 14px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">tgl_beli</th>
+                      <th style="text-align:left;padding:10px 14px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">harga</th>
+                      <th style="text-align:left;padding:10px 16px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ chNote }}</th>
+                    </tr></thead>
+                    <tbody>
+                      <sc-for list="{{ previewRows }}" as="r" hint-placeholder-count="6">
+                        <tr style="border-top:1px solid var(--border);" style-hover="background:var(--bg-muted);">
+                          <td style="padding:11px 14px;color:var(--text-dimmed);font:500 12px 'JetBrains Mono',monospace;">{{ r.no }}</td>
+                          <td style="padding:11px 14px;"><span style="display:inline-flex;align-items:center;gap:5px;padding:2px 9px;font:600 11.5px Inter;border-radius:999px;background:{{ r.stBg }};color:{{ r.stFg }};"><span style="width:6px;height:6px;border-radius:50%;background:{{ r.stDot }};"></span>{{ r.stLabel }}</span></td>
+                          <td style="padding:11px 14px;font:500 12px 'JetBrains Mono',monospace;background:{{ r.tagBg }};color:{{ r.tagColor }};">{{ r.tag }}</td>
+                          <td style="padding:11px 14px;background:{{ r.namaBg }};color:{{ r.namaColor }};">{{ r.nama }}</td>
+                          <td style="padding:11px 14px;background:{{ r.katBg }};color:{{ r.katColor }};">{{ r.kategori }}</td>
+                          <td style="padding:11px 14px;color:var(--text-muted);">{{ r.kantor }}</td>
+                          <td style="padding:11px 14px;background:{{ r.tglBg }};color:{{ r.tglColor }};">{{ r.tgl }}</td>
+                          <td style="padding:11px 14px;background:{{ r.hargaBg }};color:{{ r.hargaColor }};">{{ r.harga }}</td>
+                          <td style="padding:11px 16px;color:{{ r.noteColor }};font-size:12.5px;">{{ r.note }}</td>
+                        </tr>
+                      </sc-for>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div style="display:flex;justify-content:space-between;gap:10px;margin-top:18px;">
+                <button onClick="{{ backStep1 }}" style="display:inline-flex;align-items:center;gap:7px;padding:10px 18px;font:500 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>{{ backLbl }}</button>
+                <button onClick="{{ createAssets }}" style="display:inline-flex;align-items:center;gap:7px;padding:10px 20px;font:600 14px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:10px;cursor:pointer;" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>{{ createLbl }}</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- STEP 3: HASIL -->
+          <sc-if value="{{ showStep3 }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:30px;text-align:center;margin-bottom:16px;">
+                <div style="width:58px;height:58px;margin:0 auto 16px;border-radius:16px;background:var(--success-soft-bg);color:var(--success-soft-text);display:flex;align-items:center;justify-content:center;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8.5 12 11 14.5 15.5 9.5"/></svg></div>
+                <h2 style="margin:0 0 6px;font:700 20px Inter;letter-spacing:-.01em;">{{ resultTitle }}</h2>
+                <p style="margin:0 auto 24px;max-width:460px;font:400 14px/1.55 Inter;color:var(--text-muted);">{{ resultSub }}</p>
+                <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+                  <div style="min-width:150px;padding:18px 22px;border-radius:13px;background:var(--success-soft-bg);border:1px solid color-mix(in srgb,var(--success) 28%,transparent);"><div style="font:700 28px Inter;color:var(--success-soft-text);">{{ createdN }}</div><div style="font:500 13px Inter;color:var(--success-soft-text);">{{ createdLbl }}</div></div>
+                  <div style="min-width:150px;padding:18px 22px;border-radius:13px;background:var(--error-soft-bg);border:1px solid color-mix(in srgb,var(--error) 28%,transparent);"><div style="font:700 28px Inter;color:var(--error-soft-text);">{{ failedN }}</div><div style="font:500 13px Inter;color:var(--error-soft-text);">{{ failedLbl }}</div></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:11px;align-items:center;padding:13px 16px;border-radius:12px;background:var(--warning-soft-bg);border:1px solid color-mix(in srgb,var(--warning) 28%,transparent);margin-bottom:18px;">
+                <span style="color:var(--warning-soft-text);flex:none;display:flex;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span>
+                <span style="flex:1;font:500 13px/1.45 Inter;color:var(--warning-soft-text);">{{ failNote }}</span>
+                <button style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;font:600 12.5px Inter;color:var(--warning-soft-text);background:var(--bg-base);border:1px solid color-mix(in srgb,var(--warning) 30%,transparent);border-radius:8px;cursor:pointer;flex:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>{{ downloadFailLbl }}</button>
+              </div>
+              <div style="display:flex;justify-content:flex-end;gap:10px;">
+                <button onClick="{{ finish }}" style="display:inline-flex;align-items:center;gap:7px;padding:10px 22px;font:600 14px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:10px;cursor:pointer;" style-hover="background:var(--primary-hover);">{{ finishLbl }}</button>
+              </div>
+            </div>
+          </sc-if>
+
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;id&quot;,&quot;en&quot;],&quot;default&quot;:&quot;id&quot;,&quot;tsType&quot;:&quot;'id' | 'en'&quot;},&quot;step&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;1&quot;,&quot;2&quot;,&quot;3&quot;],&quot;default&quot;:&quot;1&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;collapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;primaryColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#16a34a&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const ICONS={
+  dashboard:[['rect',{x:3,y:3,width:7,height:9,rx:1}],['rect',{x:14,y:3,width:7,height:5,rx:1}],['rect',{x:14,y:12,width:7,height:9,rx:1}],['rect',{x:3,y:16,width:7,height:5,rx:1}]],
+  box:[['path',{d:'M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2'}],['path',{d:'M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'}],['path',{d:'M9 13h6'}]],
+  clipboard:[['rect',{x:5,y:4,width:14,height:17,rx:2}],['path',{d:'M9 4V3h6v1'}],['path',{d:'M9 13l2 2 4-4'}]],
+  wrench:[['path',{d:'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.7 2.7-2-2z'}]],
+  approval:[['path',{d:'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'}],['path',{d:'M9 11l3 3 8-8'}]],
+  chart:[['path',{d:'M3 3v18h18'}],['path',{d:'M7 16v-5M12 16V8M17 16v-3'}]],
+  database:[['path',{d:'M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3z'}],['path',{d:'M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6'}],['path',{d:'M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6'}]],
+  settings:[['circle',{cx:12,cy:12,r:3}],['path',{d:'M19.4 15a1.6 1.6 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0 1.6 1.6 0 0 0-2.7-1.1 2 2 0 1 1-2.8-2.8A1.6 1.6 0 0 0 3 13.6a2 2 0 0 1 0-3.2A1.6 1.6 0 0 0 4.6 7a2 2 0 1 1 2.8-2.8A1.6 1.6 0 0 0 10 4.6V3a2 2 0 0 1 4 0 1.6 1.6 0 0 0 2.7 1.1A2 2 0 1 1 19.5 7a1.6 1.6 0 0 0-1 2.4 2 2 0 0 1 0 3.2z'}]],
+};
+function mk(key,size){const d=ICONS[key]||ICONS.box;return React.createElement('svg',{width:size||18,height:size||18,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.9,strokeLinecap:'round',strokeLinejoin:'round',style:{flex:'none'}},d.map((x,i)=>React.createElement(x[0],{...x[1],key:i})));}
+const L=(id,en)=>({id,en});
+const NAV=[
+  { label:L('Operasional','Operational'), items:[
+    { label:L('Dashboard','Dashboard'), icon:'dashboard' },
+    { label:L('Aset','Assets'), icon:'box', active:true },
+    { label:L('Penugasan','Assignments'), icon:'clipboard' },
+    { label:L('Maintenance','Maintenance'), icon:'wrench' },
+    { label:L('Pengajuan','Requests'), icon:'approval', badge:3 },
+    { label:L('Laporan','Reports'), icon:'chart' },
+  ]},
+  { label:L('Administrasi','Administration'), items:[
+    { label:L('Master Data','Master Data'), icon:'database' },
+    { label:L('Pengaturan','Settings'), icon:'settings' },
+  ]},
+];
+// rows: [tag,nama,kategori,kantor,tgl,harga, errFields[], errKey]
+const R=(tag,nama,kategori,kantor,tgl,harga,errFields,errKey)=>({tag,nama,kategori,kantor,tgl,harga,errFields:errFields||[],errKey:errKey||null});
+const ROWS=[
+  R('JKT01-ELK-2026-00040','Laptop Asus ExpertBook','Elektronik','Cabang Jakarta Selatan','2026-02-10','14.500.000'),
+  R('JKT01-ELK-2026-00041','Monitor Dell P2422H','Elektronik','Cabang Jakarta Selatan','2026-02-10','3.200.000'),
+  R('JKT01-FUR-2026-00012','Kursi Kantor Donati','Furnitur','Outlet Blok M','2026-01-28','1.450.000'),
+  R('JKT01-ELK-2026-00041','Keyboard Logitech MX','Elektronik','Cabang Jakarta Selatan','2026-02-11','850.000',['tag'],'dupTag'),
+  R('JKT01-XYZ-2026-00001','Meja Lipat Portable','Elektronikk','Cabang Jakarta Selatan','2026-02-12','600.000',['kategori'],'kat'),
+  R('JKT01-KEN-2026-00003','Motor Listrik Gesits','Kendaraan','Cabang Jakarta Selatan','2026-13-40','28.000.000',['tgl'],'tgl'),
+  R('JKT01-ELK-2026-00042','','Elektronik','Cabang Jakarta Selatan','2026-02-09','4.200.000',['nama'],'nama'),
+  R('JKT01-ITX-2026-00020','Switch TP-Link 8 Port','Perangkat IT','Outlet Kemang','2026-02-08','1.900.000'),
+  R('JKT01-ELK-2026-00043','Proyektor BenQ MW560','Elektronik','Cabang Jakarta Selatan','2026-02-07','dua juta',['harga'],'harga'),
+  R('JKT01-FUR-2026-00013','Lemari Arsip 4 Pintu','Furnitur','Cabang Jakarta Selatan','2026-02-06','2.750.000'),
+  R('JKT01-ELK-2026-00044','Printer Canon G3060','Elektronik','Cabang Jakarta Selatan','2026-02-05','3.100.000'),
+  R('JKT01-ITX-2026-00021','Access Point Aruba','Perangkat IT','Outlet Blok M','2026-02-04','5.400.000'),
+];
+const ERRMSG={
+  dupTag:L('asset_tag duplikat dengan baris #2','asset_tag duplicates row #2'),
+  kat:L('Kategori "Elektronikk" tidak ditemukan','Category "Elektronikk" not found'),
+  tgl:L('Tanggal tidak valid','Invalid date'),
+  nama:L('Nama wajib diisi','Name is required'),
+  harga:L('Harga tidak valid (bukan angka)','Invalid price (not a number)'),
+};
+const CH={
+  id:{ bcAset:'Aset', pageTitle:'Import Massal Aset', pageSub:'Unggah berkas CSV/XLSX, validasi per-baris, lalu buat aset yang valid.',
+    steps:[['Unggah','Pilih berkas'],['Validasi','Periksa data'],['Hasil','Ringkasan']],
+    tplTitle:'Unduh Template', tplSub:'Gunakan format kolom standar agar data terbaca.',
+    dropTitle:'Klik untuk pilih berkas, atau seret ke sini', dropSub:'CSV atau XLSX — maks. 5 MB',
+    colTitle:'Kolom yang diharapkan', colNote:'Kolom bertanda * wajib diisi. Baris pertama harus berupa header sesuai nama kolom di atas.',
+    validateLbl:'Validasi Berkas', backLbl:'Kembali',
+    totalLbl:'Total baris', onlyErrLbl:'Tampilkan hanya yang error', chStatus:'Status', chNote:'Catatan',
+    stValid:'Valid', stErr:'Error', createLbl:'Buat Aset Valid',
+    procValidate:'Memvalidasi berkas…', procValidateSub:'Memeriksa setiap baris terhadap master data.',
+    procCreate:'Membuat aset…', procCreateSub:'Mendaftarkan baris valid ke antrean persetujuan.',
+    resultTitle:'Import selesai diproses', resultSub:'Baris valid telah dibuat dan masuk antrean persetujuan (maker-checker). Baris gagal dapat diperbaiki lalu diunggah ulang.',
+    createdLbl:'Aset dibuat', failedLbl:'Baris gagal',
+    failNote:'4 baris gagal divalidasi. Unduh untuk koreksi lalu impor ulang.', downloadFailLbl:'Unduh Baris Gagal', finishLbl:'Selesai',
+    expected:[['asset_tag',false],['nama',true],['kategori',true],['kantor',true],['tgl_beli',true],['harga',true],['vendor',false],['lokasi',false]] },
+  en:{ bcAset:'Assets', pageTitle:'Bulk Asset Import', pageSub:'Upload a CSV/XLSX file, validate row by row, then create valid assets.',
+    steps:[['Upload','Pick file'],['Validate','Check data'],['Result','Summary']],
+    tplTitle:'Download Template', tplSub:'Use the standard column format so data is parsed correctly.',
+    dropTitle:'Click to pick a file, or drag it here', dropSub:'CSV or XLSX — max. 5 MB',
+    colTitle:'Expected columns', colNote:'Columns marked * are required. The first row must be a header matching the column names above.',
+    validateLbl:'Validate File', backLbl:'Back',
+    totalLbl:'Total rows', onlyErrLbl:'Show only errors', chStatus:'Status', chNote:'Note',
+    stValid:'Valid', stErr:'Error', createLbl:'Create Valid Assets',
+    procValidate:'Validating file…', procValidateSub:'Checking each row against master data.',
+    procCreate:'Creating assets…', procCreateSub:'Registering valid rows to the approval queue.',
+    resultTitle:'Import processed', resultSub:'Valid rows were created and entered the approval queue (maker-checker). Failed rows can be fixed and re-uploaded.',
+    createdLbl:'Assets created', failedLbl:'Failed rows',
+    failNote:'4 rows failed validation. Download to fix and re-import.', downloadFailLbl:'Download Failed Rows', finishLbl:'Finish',
+    expected:[['asset_tag',false],['nama',true],['kategori',true],['kantor',true],['tgl_beli',true],['harga',true],['vendor',false],['lokasi',false]] },
+};
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef=React.createRef();
+    this.state={
+      theme:(props.theme==='dark'?'dark':'light'),
+      lang:(props.lang==='en'?'en':'id'),
+      collapsed:!!props.collapsed,
+      step:(props.step?Number(props.step):1),
+      phase:'idle', progress:0, progressKey:'',
+      file:(props.step&&Number(props.step)>1)?{name:'aset-import-batch.xlsx',meta:'12 baris · 18 KB'}:null,
+      onlyErrors:false,
+    };
+    this._tt=false;this._tl=false;this._tc=false;this._iv=null;
+  }
+  componentDidMount(){ this.applyPrimary(); }
+  componentDidUpdate(){ this.applyPrimary(); }
+  componentWillUnmount(){ if(this._iv)clearInterval(this._iv); }
+  applyPrimary(){ const c=this.props.primaryColor,el=this.rootRef.current; if(el&&c) el.style.setProperty('--primary',c); }
+  effTheme(){ return this._tt?this.state.theme:(this.props.theme||'light'); }
+  effLang(){ return this._tl?this.state.lang:(this.props.lang||'id'); }
+  effCollapsed(){ return this._tc?this.state.collapsed:!!this.props.collapsed; }
+  runProgress(key,onDone){
+    if(this._iv)clearInterval(this._iv);
+    this.setState({phase:'processing',progress:0,progressKey:key});
+    let p=0;
+    this._iv=setInterval(()=>{
+      p+=Math.random()*16+9;
+      if(p>=100){ p=100; clearInterval(this._iv); this.setState({progress:100}); setTimeout(()=>{ this.setState({phase:'idle'}); onDone(); },320); }
+      else this.setState({progress:Math.round(p)});
+    },130);
+  }
+  renderVals(){
+    const s=this.state;
+    const theme=this.effTheme(),lang=this.effLang(),collapsed=this.effCollapsed();
+    const isDark=theme==='dark';
+    const ch=CH[lang];
+    const processing=s.phase==='processing';
+
+    const nav=NAV.map(g=>({label:g.label[lang],items:g.items.map(it=>({
+      label:it.label[lang],icon:mk(it.icon),badge:it.badge,badgeExp:!!it.badge&&!collapsed,
+      bg:it.active?'var(--primary-soft-bg)':'transparent',fg:it.active?'var(--primary-soft-text)':'var(--text-muted)',
+      weight:it.active?'600':'500',accent:it.active?'var(--primary)':'transparent',hoverBg:it.active?'var(--primary-soft-bg)':'var(--bg-muted)',
+    }))}));
+
+    const steps=ch.steps.map((st,i)=>{
+      const n=i+1; const done=s.step>n; const active=s.step===n;
+      return { n:String(n), label:st[0], sub:st[1], done, showNum:!done,
+        circleBg: done?'var(--primary)':(active?'var(--primary-soft-bg)':'var(--bg-muted)'),
+        circleFg: done?'var(--primary-fg)':(active?'var(--primary-soft-text)':'var(--text-dimmed)'),
+        circleBd: (done||active)?'var(--primary)':'var(--border-strong)',
+        labelColor: (done||active)?'var(--text)':'var(--text-muted)',
+        connector: i<2, lineBg: s.step>n?'var(--primary)':'var(--border-strong)' };
+    });
+
+    const valid=ROWS.filter(r=>r.errFields.length===0).length;
+    const errN=ROWS.length-valid;
+    const eb=(field,r)=> r.errFields.includes(field)?'var(--error-soft-bg)':'transparent';
+    const ec=(field,r)=> r.errFields.includes(field)?'var(--error-soft-text)':'var(--text)';
+    let pr=ROWS.map((r,i)=>{
+      const ok=r.errFields.length===0;
+      return {
+        no:String(i+1), valid:ok,
+        stLabel: ok?ch.stValid:ch.stErr,
+        stBg: ok?'var(--success-soft-bg)':'var(--error-soft-bg)',
+        stFg: ok?'var(--success-soft-text)':'var(--error-soft-text)',
+        stDot: ok?'var(--success)':'var(--error)',
+        tag:r.tag, nama:r.nama||'(kosong)', kategori:r.kategori, kantor:r.kantor, tgl:r.tgl, harga:r.harga==='dua juta'?r.harga:('Rp '+r.harga),
+        tagBg:eb('tag',r), tagColor:r.errFields.includes('tag')?'var(--error-soft-text)':'var(--text-muted)',
+        namaBg:eb('nama',r), namaColor:r.errFields.includes('nama')?'var(--error-soft-text)':'var(--text)',
+        katBg:eb('kategori',r), katColor:ec('kategori',r),
+        tglBg:eb('tgl',r), tglColor:ec('tgl',r),
+        hargaBg:eb('harga',r), hargaColor:ec('harga',r),
+        note: r.errKey?ERRMSG[r.errKey][lang]:'—', noteColor: r.errKey?'var(--error)':'var(--text-dimmed)',
+      };
+    });
+    if(s.onlyErrors) pr=pr.filter(r=>!r.valid);
+
+    const progressKey=s.progressKey;
+    const procLabel = progressKey==='create'?ch.procCreate:ch.procValidate;
+    const procSub = progressKey==='create'?ch.procCreateSub:ch.procValidateSub;
+
+    return {
+      rootRef:this.rootRef, theme, isDark, isLight:!isDark,
+      sidebarW:collapsed?'76px':'264px', expanded:!collapsed, collapsed, navJustify:collapsed?'center':'flex-start',
+      toggleCollapse:()=>{this._tc=true;this.setState(x=>({collapsed:!this.effCollapsed()}));},
+      toggleTheme:()=>{this._tt=true;const cur=this.effTheme();this.setState({theme:cur==='light'?'dark':'light'});},
+      setId:()=>{this._tl=true;this.setState({lang:'id'});}, setEn:()=>{this._tl=true;this.setState({lang:'en'});},
+      idBg:lang==='id'?'var(--bg-base)':'transparent', idFg:lang==='id'?'var(--text)':'var(--text-muted)',
+      enBg:lang==='en'?'var(--bg-base)':'transparent', enFg:lang==='en'?'var(--text)':'var(--text-muted)',
+      nav, bcAset:ch.bcAset, pageTitle:ch.pageTitle, pageSub:ch.pageSub,
+      steps,
+      processing, progressW:s.progress+'%', progressPct:s.progress+'%', progressLabel:procLabel, progressSub:procSub,
+      showStep1: !processing && s.step===1, showStep2: !processing && s.step===2, showStep3: !processing && s.step===3,
+      // step1
+      tplTitle:ch.tplTitle, tplSub:ch.tplSub, dropTitle:ch.dropTitle, dropSub:ch.dropSub,
+      colTitle:ch.colTitle, colNote:ch.colNote, expectedCols:ch.expected.map(c=>({name:c[0],req:c[1]})),
+      noFile:!s.file, hasFile:!!s.file, fileName:s.file?s.file.name:'', fileMeta:s.file?s.file.meta:'',
+      pickFile:()=>this.setState({file:{name:'aset-import-batch.xlsx',meta:'12 baris · 18 KB'}}),
+      removeFile:()=>this.setState({file:null}),
+      validateLbl:ch.validateLbl, validateBg:s.file?'var(--primary)':'var(--text-dimmed)', validateCursor:s.file?'pointer':'not-allowed', validateOpacity:s.file?'1':'.6',
+      startValidate:()=>{ if(s.file) this.runProgress('validate',()=>this.setState({step:2})); },
+      // step2
+      totalLbl:ch.totalLbl, totalRows:String(ROWS.length),
+      validCount:(valid+' '+ch.stValid.toLowerCase()), errCount:(errN+' error'),
+      onlyErrors:s.onlyErrors, toggleOnlyErrors:()=>this.setState(x=>({onlyErrors:!x.onlyErrors})), onlyErrLbl:ch.onlyErrLbl,
+      chStatus:ch.chStatus, chNote:ch.chNote, previewRows:pr,
+      backLbl:ch.backLbl, backStep1:()=>this.setState({step:1,onlyErrors:false}),
+      createLbl:(ch.createLbl+' ('+valid+')'), createAssets:()=>this.runProgress('create',()=>this.setState({step:3})),
+      // step3
+      resultTitle:ch.resultTitle, resultSub:ch.resultSub, createdN:String(valid), createdLbl:ch.createdLbl, failedN:String(errN), failedLbl:ch.failedLbl,
+      failNote:ch.failNote, downloadFailLbl:ch.downloadFailLbl, finishLbl:ch.finishLbl,
+      finish:()=>this.setState({step:1,file:null,onlyErrors:false}),
+    };
+  }
+}
+</script>
+</body>
+</html>

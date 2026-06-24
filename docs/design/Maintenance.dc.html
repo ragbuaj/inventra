@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;}
+input::placeholder,textarea::placeholder{color:var(--text-dimmed);}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:9px;border:2px solid transparent;background-clip:padding-box;}
+:root{
+  --bg:#f8fafc; --bg-base:#ffffff; --bg-muted:#f1f5f9; --bg-elevated:#ffffff;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#0f172a; --text-muted:#64748b; --text-dimmed:#94a3b8;
+  --primary:#16a34a; --primary-hover:#15803d; --primary-fg:#ffffff;
+  --primary-soft-bg:#dcfce7; --primary-soft-text:#15803d;
+  --success:#16a34a; --success-soft-bg:#dcfce7; --success-soft-text:#15803d;
+  --warning:#d97706; --warning-soft-bg:#fef3c7; --warning-soft-text:#b45309;
+  --error:#dc2626; --error-soft-bg:#fee2e2; --error-soft-text:#b91c1c;
+  --info:#2563eb; --info-soft-bg:#dbeafe; --info-soft-text:#1d4ed8;
+  --neutral-soft-bg:#eef2f6; --neutral-soft-text:#475569;
+  --ring:color-mix(in srgb, var(--primary) 28%, transparent);
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
+  --shadow-lg:0 18px 50px rgba(15,23,42,.18);
+}
+[data-theme="dark"]{
+  --bg:#020617; --bg-base:#0b1220; --bg-muted:#1e293b; --bg-elevated:#0f172a;
+  --border:#1e293b; --border-strong:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8; --text-dimmed:#64748b;
+  --primary:#22c55e; --primary-hover:#16a34a; --primary-fg:#052e16;
+  --primary-soft-bg:#14331f; --primary-soft-text:#4ade80;
+  --success:#22c55e; --success-soft-bg:#14331f; --success-soft-text:#4ade80;
+  --warning:#f59e0b; --warning-soft-bg:#3a2a08; --warning-soft-text:#fbbf24;
+  --error:#ef4444; --error-soft-bg:#3a1414; --error-soft-text:#f87171;
+  --info:#3b82f6; --info-soft-bg:#13243f; --info-soft-text:#60a5fa;
+  --neutral-soft-bg:#1e293b; --neutral-soft-text:#cbd5e1;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 18px 50px rgba(0,0,0,.6);
+}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+@keyframes slideIn{from{transform:translateX(100%)}to{transform:none}}
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" data-theme="{{ theme }}" style="font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--text);">
+  <div style="display:flex;height:100vh;overflow:hidden;background:var(--bg);">
+
+    <!-- SIDEBAR -->
+    <aside style="width:{{ sidebarW }};flex:none;display:flex;flex-direction:column;background:var(--bg-base);border-right:1px solid var(--border);transition:width .2s ease;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:11px;height:61px;padding:0 18px;border-bottom:1px solid var(--border);flex:none;">
+        <div style="width:34px;height:34px;border-radius:9px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--primary-fg);flex:none;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13h6"/></svg></div>
+        <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="font:700 18px Inter;letter-spacing:-.01em;white-space:nowrap;">Inventra</span></sc-if>
+      </div>
+      <nav style="flex:1;overflow-y:auto;overflow-x:hidden;padding:12px;">
+        <sc-for list="{{ nav }}" as="g" hint-placeholder-count="2">
+          <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><div style="padding:14px 12px 6px;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dimmed);white-space:nowrap;">{{ g.label }}</div></sc-if>
+          <sc-if value="{{ collapsed }}" hint-placeholder-val="{{ false }}"><div style="height:1px;background:var(--border);margin:10px 8px;"></div></sc-if>
+          <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+            <button title="{{ it.label }}" style="position:relative;display:flex;align-items:center;justify-content:{{ navJustify }};gap:11px;width:100%;padding:9px 12px;margin-bottom:2px;font-family:Inter;font-size:14px;font-weight:{{ it.weight }};color:{{ it.fg }};background:{{ it.bg }};border:none;border-radius:9px;cursor:pointer;text-align:left;box-shadow:inset 3px 0 0 {{ it.accent }};white-space:nowrap;" style-hover="background:{{ it.hoverBg }};">
+              {{ it.icon }}
+              <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;">{{ it.label }}</span></sc-if>
+              <sc-if value="{{ it.badgeExp }}" hint-placeholder-val="{{ false }}"><span style="flex:none;min-width:20px;height:20px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;font:700 11px Inter;color:#fff;background:var(--error);border-radius:999px;">{{ it.badge }}</span></sc-if>
+            </button>
+          </sc-for>
+        </sc-for>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <header style="display:flex;align-items:center;gap:14px;height:61px;flex:none;padding:0 20px;background:var(--bg-base);border-bottom:1px solid var(--border);">
+        <button onClick="{{ toggleCollapse }}" title="Collapse" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex:none;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg></button>
+        <div style="display:flex;align-items:center;gap:6px;font:400 12px Inter;color:var(--text-muted);"><span>Inventra</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span style="color:var(--text);font-weight:500;">{{ pageTitle }}</span></div>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex:none;">
+          <div style="display:flex;gap:2px;padding:3px;background:var(--bg-muted);border-radius:9px;">
+            <button onClick="{{ setId }}" style="padding:5px 9px;font:600 12px Inter;color:{{ idFg }};background:{{ idBg }};border:none;border-radius:6px;cursor:pointer;">ID</button>
+            <button onClick="{{ setEn }}" style="padding:5px 9px;font:600 12px Inter;color:{{ enFg }};background:{{ enBg }};border:none;border-radius:6px;cursor:pointer;">EN</button>
+          </div>
+          <button onClick="{{ toggleTheme }}" title="Tema" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">
+            <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></sc-if>
+            <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></sc-if>
+          </button>
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;background:transparent;border:1px solid var(--border);border-radius:999px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--primary);color:var(--primary-fg);display:flex;align-items:center;justify-content:center;font:700 12px Inter;">DL</span><span style="display:flex;color:var(--text-dimmed);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+        </div>
+      </header>
+
+      <main style="flex:1;overflow-y:auto;padding:26px 32px 40px;">
+        <div style="max-width:1000px;margin:0 auto;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px;">
+            <div><h1 style="margin:0 0 5px;font:700 23px Inter;letter-spacing:-.02em;">{{ pageTitle }}</h1><p style="margin:0;font:400 14px Inter;color:var(--text-muted);">{{ pageSub }}</p></div>
+          </div>
+
+          <!-- OVERDUE BANNER -->
+          <sc-if value="{{ hasDue }}" hint-placeholder-val="{{ true }}">
+            <div style="border:1px solid color-mix(in srgb,var(--warning) 32%,transparent);border-radius:13px;background:var(--warning-soft-bg);padding:14px 16px;margin-bottom:20px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+                <div style="display:flex;align-items:center;gap:9px;"><span style="color:var(--warning-soft-text);display:flex;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span><span style="font:600 14px Inter;color:var(--warning-soft-text);">{{ dueBannerTitle }}</span></div>
+                <button onClick="{{ goJadwal }}" style="font:600 12.5px Inter;color:var(--warning-soft-text);background:var(--bg-base);border:1px solid color-mix(in srgb,var(--warning) 32%,transparent);border-radius:8px;padding:6px 12px;cursor:pointer;">{{ seeSchedule }}</button>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <sc-for list="{{ dueItems }}" as="d" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;background:var(--bg-base);border:1px solid {{ d.cardBd }};">
+                    <span style="width:30px;height:30px;border-radius:8px;background:{{ d.iconBg }};color:{{ d.iconFg }};display:flex;align-items:center;justify-content:center;flex:none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.7 2.7-2-2z"/></svg></span>
+                    <div style="flex:1;min-width:0;"><div style="font:600 13.5px Inter;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ d.asset }}</div><div style="font:400 12.5px Inter;color:var(--text-muted);">{{ d.task }}</div></div>
+                    <span style="flex:none;padding:3px 11px;font:600 12px Inter;border-radius:999px;background:{{ d.dueBg }};color:{{ d.dueFg }};">{{ d.dueLabel }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- TABS -->
+          <div style="display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:20px;">
+            <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+              <button onClick="{{ t.on }}" style="display:inline-flex;align-items:center;gap:8px;padding:12px 16px;margin-bottom:-1px;font-family:Inter;font-size:14px;font-weight:{{ t.weight }};color:{{ t.color }};background:transparent;border:none;border-bottom:{{ t.border }};cursor:pointer;">{{ t.icon }}{{ t.label }}</button>
+            </sc-for>
+          </div>
+
+          <!-- ============ JADWAL ============ -->
+          <sc-if value="{{ tabJadwal }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <sc-for list="{{ scheduleRows }}" as="s" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--bg-base);border:1px solid {{ s.cardBd }};border-radius:12px;box-shadow:var(--shadow);">
+                  <span style="width:40px;height:40px;border-radius:10px;background:{{ s.iconBg }};color:{{ s.iconFg }};display:flex;align-items:center;justify-content:center;flex:none;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.7 2.7-2-2z"/></svg></span>
+                  <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font:600 14px Inter;color:var(--text);">{{ s.asset }}</span><span style="padding:2px 8px;font:600 11px Inter;border-radius:999px;background:{{ s.typeBg }};color:{{ s.typeFg }};">{{ s.typeLabel }}</span></div>
+                    <div style="font:400 12.5px Inter;color:var(--text-muted);margin-top:2px;">{{ s.task }} · {{ s.vendor }}</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:12px;flex:none;">
+                    <div style="text-align:right;"><div style="font:600 12.5px Inter;color:{{ s.dueColor }};">{{ s.dueLabel }}</div><div style="font:400 11.5px Inter;color:var(--text-dimmed);">{{ s.dateLabel }}</div></div>
+                    <button onClick="{{ s.makeNote }}" style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;font:600 12.5px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:8px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>{{ makeNoteLbl }}</button>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <!-- ============ CATATAN ============ -->
+          <sc-if value="{{ tabCatatan }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+                <div style="position:relative;flex:1;min-width:220px;">
+                  <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);display:flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>
+                  <input value="{{ cq }}" onInput="{{ onCq }}" placeholder="{{ phCatatan }}" style="width:100%;padding:9px 12px 9px 35px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+                </div>
+                <button onClick="{{ openNote }}" style="display:inline-flex;align-items:center;gap:7px;padding:9px 15px;font:600 13.5px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>{{ addNoteLbl }}</button>
+              </div>
+              <sc-if value="{{ hasRecords }}" hint-placeholder-val="{{ true }}">
+                <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow);overflow:hidden;">
+                  <div style="overflow-x:auto;">
+                    <table style="width:100%;border-collapse:collapse;font:400 13.5px Inter;white-space:nowrap;">
+                      <thead><tr style="background:var(--bg-muted);">
+                        <th style="text-align:left;padding:11px 16px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ thAset }}</th>
+                        <th style="text-align:left;padding:11px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ thTipe }}</th>
+                        <th style="text-align:left;padding:11px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ thKategori }}</th>
+                        <th style="text-align:left;padding:11px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ thTanggal }}</th>
+                        <th style="text-align:left;padding:11px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ thStatus }}</th>
+                        <th style="text-align:right;padding:11px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ thBiaya }}</th>
+                        <th style="text-align:left;padding:11px 16px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ thVendor }}</th>
+                      </tr></thead>
+                      <tbody>
+                        <sc-for list="{{ recordRows }}" as="r" hint-placeholder-count="5">
+                          <tr style="border-top:1px solid var(--border);" style-hover="background:var(--bg-muted);">
+                            <td style="padding:12px 16px;"><div style="font:500 13.5px Inter;color:var(--text);">{{ r.nama }}</div><div style="font:400 11.5px 'JetBrains Mono',monospace;color:var(--text-dimmed);">{{ r.tag }}</div></td>
+                            <td style="padding:12px 14px;"><span style="padding:2px 9px;font:600 11.5px Inter;border-radius:999px;background:{{ r.typeBg }};color:{{ r.typeFg }};">{{ r.tipe }}</span></td>
+                            <td style="padding:12px 14px;color:var(--text-muted);">{{ r.kategori }}</td>
+                            <td style="padding:12px 14px;color:var(--text-muted);">{{ r.tanggal }}</td>
+                            <td style="padding:12px 14px;"><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;font:600 12px Inter;border-radius:999px;background:{{ r.stBg }};color:{{ r.stFg }};"><span style="width:6px;height:6px;border-radius:50%;background:{{ r.stDot }};"></span>{{ r.stLabel }}</span></td>
+                            <td style="padding:12px 14px;text-align:right;font-variant-numeric:tabular-nums;color:var(--text);">{{ r.biaya }}</td>
+                            <td style="padding:12px 16px;color:var(--text-muted);">{{ r.vendor }}</td>
+                          </tr>
+                        </sc-for>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ noRecords }}" hint-placeholder-val="{{ false }}">
+                <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:54px 24px;text-align:center;">
+                  <div style="width:54px;height:54px;margin:0 auto 14px;border-radius:14px;background:var(--bg-muted);color:var(--text-dimmed);display:flex;align-items:center;justify-content:center;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.7 2.7-2-2z"/></svg></div>
+                  <div style="font:600 16px Inter;margin-bottom:6px;">{{ emptyRecTitle }}</div>
+                  <div style="font:400 14px Inter;color:var(--text-muted);">{{ emptyRecSub }}</div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <!-- ============ LAPORAN KERUSAKAN ============ -->
+          <sc-if value="{{ tabLaporan }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="padding:3px 10px;font:600 11.5px Inter;border-radius:999px;background:var(--info-soft-bg);color:var(--info-soft-text);">{{ stafBadge }}</span></div>
+                <sc-if value="{{ lkMsgShow }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;gap:11px;align-items:center;padding:12px 14px;margin-bottom:16px;border-radius:11px;background:var(--success-soft-bg);border:1px solid color-mix(in srgb,var(--success) 30%,transparent);"><span style="color:var(--success-soft-text);flex:none;display:flex;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8.5 12 11 14.5 15.5 9.5"/></svg></span><span style="font:500 13px/1.45 Inter;color:var(--success-soft-text);">{{ lkMsg }}</span></div>
+                </sc-if>
+                <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:15px;">
+                  <div style="font:600 15px Inter;">{{ lkFormTitle }}</div>
+                  <div>
+                    <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lkAset }} <span style="color:var(--error);">*</span></label>
+                    <div style="position:relative;"><select value="{{ lkTag }}" onChange="{{ onLkTag }}" style="width:100%;appearance:none;padding:10px 32px 10px 12px;font:400 14px Inter;color:{{ lkTagColor }};background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;cursor:pointer;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><option value="">{{ phPilih }}</option><sc-for list="{{ myAssets }}" as="a" hint-placeholder-count="4"><option value="{{ a.tag }}">{{ a.label }}</option></sc-for></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+                  </div>
+                  <div>
+                    <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lkKategori }} <span style="color:var(--error);">*</span></label>
+                    <div style="position:relative;"><select value="{{ lkKat }}" onChange="{{ onLkKat }}" style="width:100%;appearance:none;padding:10px 32px 10px 12px;font:400 14px Inter;color:{{ lkKatColor }};background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;cursor:pointer;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><option value="">{{ phPilih }}</option><sc-for list="{{ problemOpts }}" as="o" hint-placeholder-count="5"><option value="{{ o }}">{{ o }}</option></sc-for></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+                  </div>
+                  <div>
+                    <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lkDeskripsi }}</label>
+                    <textarea value="{{ lkDesc }}" onInput="{{ onLkDesc }}" placeholder="{{ phDesc }}" style="width:100%;min-height:80px;resize:vertical;padding:10px 12px;font:400 14px/1.5 Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"></textarea>
+                  </div>
+                  <div>
+                    <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lkFoto }}</label>
+                    <div style="border:1.5px dashed var(--border-strong);border-radius:11px;padding:18px;text-align:center;cursor:pointer;" style-hover="border-color:var(--primary);background:color-mix(in srgb,var(--primary) 4%,transparent);"><div style="width:36px;height:36px;margin:0 auto 7px;border-radius:9px;background:var(--bg-muted);color:var(--text-muted);display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3.5"/></svg></div><div style="font:500 12.5px Inter;color:var(--text-muted);">{{ fotoDrop }}</div></div>
+                  </div>
+                  <button onClick="{{ submitLk }}" style="display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:11px;font:600 14px Inter;color:var(--primary-fg);background:{{ lkBtnBg }};border:1px solid {{ lkBtnBg }};border-radius:10px;cursor:{{ lkBtnCursor }};opacity:{{ lkBtnOpacity }};" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg>{{ submitLkLbl }}</button>
+                  <div style="font:400 12px/1.5 Inter;color:var(--text-dimmed);display:flex;gap:7px;align-items:flex-start;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:1px;"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>{{ lkQueueNote }}</div>
+                </div>
+              </div>
+
+              <div>
+                <div style="font:600 14px Inter;margin-bottom:12px;">{{ lkHistTitle }}</div>
+                <sc-if value="{{ hasReports }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;gap:10px;">
+                    <sc-for list="{{ reportRows }}" as="r" hint-placeholder-count="2">
+                      <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px;">
+                        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;"><div style="min-width:0;"><div style="font:600 13.5px Inter;color:var(--text);">{{ r.nama }}</div><div style="font:400 11.5px 'JetBrains Mono',monospace;color:var(--text-dimmed);">{{ r.tag }}</div></div><span style="flex:none;padding:3px 10px;font:600 11.5px Inter;border-radius:999px;background:var(--warning-soft-bg);color:var(--warning-soft-text);">{{ r.status }}</span></div>
+                        <div style="margin-top:9px;display:flex;flex-wrap:wrap;gap:6px;"><span style="padding:2px 9px;font:600 11.5px Inter;border-radius:999px;background:var(--neutral-soft-bg);color:var(--neutral-soft-text);">{{ r.kategori }}</span><span style="font:400 12px Inter;color:var(--text-dimmed);align-self:center;">{{ r.date }}</span></div>
+                        <sc-if value="{{ r.hasDesc }}" hint-placeholder-val="{{ false }}"><div style="margin-top:8px;font:400 12.5px/1.5 Inter;color:var(--text-muted);">{{ r.desc }}</div></sc-if>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ noReports }}" hint-placeholder-val="{{ true }}">
+                  <div style="background:var(--bg-base);border:1px dashed var(--border-strong);border-radius:14px;padding:46px 24px;text-align:center;">
+                    <div style="width:50px;height:50px;margin:0 auto 13px;border-radius:13px;background:var(--bg-muted);color:var(--text-dimmed);display:flex;align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg></div>
+                    <div style="font:600 15px Inter;margin-bottom:5px;">{{ emptyRepTitle }}</div>
+                    <div style="font:400 13px/1.5 Inter;color:var(--text-muted);max-width:260px;margin:0 auto;">{{ emptyRepSub }}</div>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-if>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ADD NOTE SLIDEOVER -->
+  <sc-if value="{{ noteOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeNote }}" style="position:fixed;inset:0;z-index:60;background:rgba(2,6,23,.5);backdrop-filter:blur(2px);display:flex;justify-content:flex-end;animation:overlayIn .15s ease-out;">
+      <div onClick="{{ stop }}" style="width:480px;max-width:94vw;height:100%;background:var(--bg-elevated);border-left:1px solid var(--border);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;animation:slideIn .24s cubic-bezier(.4,0,.2,1);">
+        <div style="flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:20px 24px;border-bottom:1px solid var(--border);"><div><div style="font:700 18px Inter;letter-spacing:-.01em;">{{ noteTitle }}</div><div style="font:400 13px Inter;color:var(--text-muted);margin-top:2px;">{{ noteSub }}</div></div><button onClick="{{ closeNote }}" style="display:flex;padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:8px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+        <div style="flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:15px;">
+          <div>
+            <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ nlAset }} <span style="color:var(--error);">*</span></label>
+            <div style="position:relative;"><select value="{{ naTag }}" onChange="{{ onNaTag }}" style="width:100%;appearance:none;padding:10px 32px 10px 12px;font:400 14px Inter;color:{{ naTagColor }};background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;cursor:pointer;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><option value="">{{ phPilih }}</option><sc-for list="{{ assetOpts }}" as="a" hint-placeholder-count="5"><option value="{{ a.tag }}">{{ a.label }}</option></sc-for></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ nlTipe }}</label><div style="position:relative;"><select value="{{ naTipe }}" onChange="{{ onNaTipe }}" style="width:100%;appearance:none;padding:10px 32px 10px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;cursor:pointer;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><sc-for list="{{ tipeOpts }}" as="o" hint-placeholder-count="2"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div></div>
+            <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ nlKategori }}</label><div style="position:relative;"><select value="{{ naKat }}" onChange="{{ onNaKat }}" style="width:100%;appearance:none;padding:10px 32px 10px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;cursor:pointer;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><sc-for list="{{ careOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o }}">{{ o }}</option></sc-for></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div></div>
+            <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ nlTanggal }} <span style="color:var(--error);">*</span></label><input type="date" value="{{ naTgl }}" onInput="{{ onNaTgl }}" style="width:100%;padding:9px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;color-scheme:{{ scheme }};" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" /></div>
+            <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ nlStatus }}</label><div style="position:relative;"><select value="{{ naStatus }}" onChange="{{ onNaStatus }}" style="width:100%;appearance:none;padding:10px 32px 10px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;cursor:pointer;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><sc-for list="{{ statusOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div></div>
+          </div>
+          <div>
+            <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ nlBiaya }}</label>
+            <div style="position:relative;"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font:500 13px Inter;color:var(--text-dimmed);">Rp</span><input value="{{ naBiaya }}" onInput="{{ onNaBiaya }}" inputmode="numeric" placeholder="0" style="width:100%;padding:10px 12px 10px 36px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" /></div>
+          </div>
+          <div>
+            <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ nlVendor }}</label>
+            <div style="position:relative;"><select value="{{ naVendor }}" onChange="{{ onNaVendor }}" style="width:100%;appearance:none;padding:10px 32px 10px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;cursor:pointer;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><sc-for list="{{ vendorOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o }}">{{ o }}</option></sc-for></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+          </div>
+          <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ nlDeskripsi }}</label><textarea value="{{ naDesc }}" onInput="{{ onNaDesc }}" placeholder="{{ phNaDesc }}" style="width:100%;min-height:72px;resize:vertical;padding:10px 12px;font:400 14px/1.5 Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"></textarea></div>
+        </div>
+        <div style="flex:none;display:flex;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid var(--border);background:var(--bg-elevated);"><button onClick="{{ closeNote }}" style="padding:10px 16px;font:500 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;cursor:pointer;" style-hover="background:var(--bg-muted);">{{ cancelLbl }}</button><button onClick="{{ saveNote }}" style="padding:10px 20px;font:600 14px Inter;color:var(--primary-fg);background:{{ naBtnBg }};border:1px solid {{ naBtnBg }};border-radius:10px;cursor:{{ naBtnCursor }};opacity:{{ naBtnOpacity }};" style-hover="background:var(--primary-hover);">{{ saveLbl }}</button></div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;id&quot;,&quot;en&quot;],&quot;default&quot;:&quot;id&quot;,&quot;tsType&quot;:&quot;'id' | 'en'&quot;},&quot;tab&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;jadwal&quot;,&quot;catatan&quot;,&quot;laporan&quot;],&quot;default&quot;:&quot;jadwal&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;collapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;primaryColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#16a34a&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const ICONS={
+  dashboard:[['rect',{x:3,y:3,width:7,height:9,rx:1}],['rect',{x:14,y:3,width:7,height:5,rx:1}],['rect',{x:14,y:12,width:7,height:9,rx:1}],['rect',{x:3,y:16,width:7,height:5,rx:1}]],
+  box:[['path',{d:'M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2'}],['path',{d:'M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'}],['path',{d:'M9 13h6'}]],
+  clipboard:[['rect',{x:5,y:4,width:14,height:17,rx:2}],['path',{d:'M9 4V3h6v1'}],['path',{d:'M9 13l2 2 4-4'}]],
+  wrench:[['path',{d:'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.7 2.7-2-2z'}]],
+  approval:[['path',{d:'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'}],['path',{d:'M9 11l3 3 8-8'}]],
+  chart:[['path',{d:'M3 3v18h18'}],['path',{d:'M7 16v-5M12 16V8M17 16v-3'}]],
+  database:[['path',{d:'M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3z'}],['path',{d:'M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6'}],['path',{d:'M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6'}]],
+  settings:[['circle',{cx:12,cy:12,r:3}],['path',{d:'M19.4 15a1.6 1.6 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0 1.6 1.6 0 0 0-2.7-1.1 2 2 0 1 1-2.8-2.8A1.6 1.6 0 0 0 3 13.6a2 2 0 0 1 0-3.2A1.6 1.6 0 0 0 4.6 7a2 2 0 1 1 2.8-2.8A1.6 1.6 0 0 0 10 4.6V3a2 2 0 0 1 4 0 1.6 1.6 0 0 0 2.7 1.1A2 2 0 1 1 19.5 7a1.6 1.6 0 0 0-1 2.4 2 2 0 0 1 0 3.2z'}]],
+  calendar:[['rect',{x:3,y:4,width:18,height:18,rx:2}],['path',{d:'M16 2v4M8 2v4M3 10h18'}]],
+  note:[['path',{d:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'}],['path',{d:'M14 2v6h6M9 13h6M9 17h4'}]],
+  alert2:[['path',{d:'M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z'}],['path',{d:'M12 9v4M12 17h.01'}]],
+};
+function mk(key,size){const d=ICONS[key]||ICONS.box;return React.createElement('svg',{width:size||18,height:size||18,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.9,strokeLinecap:'round',strokeLinejoin:'round',style:{flex:'none'}},d.map((x,i)=>React.createElement(x[0],{...x[1],key:i})));}
+const L=(id,en)=>({id,en});
+const NAV=[
+  { label:L('Operasional','Operational'), items:[
+    { label:L('Dashboard','Dashboard'), icon:'dashboard' },
+    { label:L('Aset','Assets'), icon:'box' },
+    { label:L('Penugasan','Assignments'), icon:'clipboard' },
+    { label:L('Maintenance','Maintenance'), icon:'wrench', active:true },
+    { label:L('Pengajuan','Requests'), icon:'approval', badge:3 },
+    { label:L('Laporan','Reports'), icon:'chart' },
+  ]},
+  { label:L('Administrasi','Administration'), items:[
+    { label:L('Master Data','Master Data'), icon:'database' },
+    { label:L('Pengaturan','Settings'), icon:'settings' },
+  ]},
+];
+const TODAY=new Date(2026,5,24);
+const SCHEDULE=[
+  {tag:'JKT01-KEN-2025-00007',asset:'Toyota Avanza 1.5 G',task:L('Servis berkala 40.000 km','Scheduled 40,000 km service'),tipe:'preventive',due:'2026-06-20',vendor:'Auto2000'},
+  {tag:'JKT01-ELK-2023-00009',asset:'AC Daikin FTKC50 · R.301',task:L('Pembersihan filter','Filter cleaning'),tipe:'preventive',due:'2026-06-27',vendor:'PT Sinar Komputindo'},
+  {tag:'JKT01-ELK-2025-00028',asset:'Genset Cummins C22 D5',task:L('Inspeksi rutin','Routine inspection'),tipe:'preventive',due:'2026-07-05',vendor:L('Teknisi Internal','Internal Tech')},
+  {tag:'JKT01-FUR-2023-00007',asset:'Meja Rapat Kayu 10-Seat',task:L('Reparasi kaki meja','Table leg repair'),tipe:'corrective',due:'2026-07-12',vendor:'CV Karya Kayu'},
+  {tag:'JKT01-ITX-2025-00022',asset:'Switch Cisco Catalyst 1000',task:L('Update firmware','Firmware update'),tipe:'preventive',due:'2026-07-18',vendor:L('Teknisi Internal','Internal Tech')},
+];
+const RECORDS=[
+  {tag:'JKT01-KEN-2025-00007',nama:'Toyota Avanza 1.5 G',tipe:'corrective',kategori:L('Servis Mesin','Engine Service'),tanggal:'2026-05-12',status:'completed',biaya:2350000,vendor:'Auto2000'},
+  {tag:'JKT01-ELK-2023-00009',nama:'AC Daikin FTKC50',tipe:'preventive',kategori:L('Pembersihan','Cleaning'),tanggal:'2026-06-18',status:'in_progress',biaya:350000,vendor:'PT Sinar Komputindo'},
+  {tag:'JKT01-ELK-2026-00001',nama:'Laptop Dell Latitude 5440',tipe:'corrective',kategori:L('Penggantian Sparepart','Part Replacement'),tanggal:'2026-04-03',status:'completed',biaya:1200000,vendor:L('Teknisi Internal — Eko','Internal — Eko')},
+  {tag:'JKT01-ELK-2025-00028',nama:'Genset Cummins C22 D5',tipe:'preventive',kategori:L('Inspeksi','Inspection'),tanggal:'2026-07-05',status:'scheduled',biaya:0,vendor:L('Teknisi Internal','Internal Tech')},
+  {tag:'JKT01-ELK-2024-00021',nama:'Printer HP LaserJet Pro',tipe:'corrective',kategori:L('Penggantian Sparepart','Part Replacement'),tanggal:'2026-06-02',status:'completed',biaya:680000,vendor:'PT Sinar Komputindo'},
+  {tag:'JKT01-KEN-2024-00004',nama:'Honda Vario 160',tipe:'preventive',kategori:L('Servis Berkala','Scheduled Service'),tanggal:'2026-05-28',status:'cancelled',biaya:0,vendor:'Auto2000'},
+];
+const MYASSETS=[
+  {tag:'JKT01-ELK-2026-00005',nama:'Monitor LG 27UL550'},
+  {tag:'JKT01-ELK-2026-00008',nama:'Laptop MacBook Air M3'},
+  {tag:'JKT01-ELK-2026-00015',nama:'Laptop Lenovo ThinkPad E14'},
+  {tag:'JKT01-ITX-2026-00006',nama:'CCTV Hikvision DS-2CD'},
+  {tag:'JKT01-ELK-2024-00033',nama:'Printer Epson L3210'},
+];
+const ALLASSETS=[
+  {tag:'JKT01-ELK-2026-00001',nama:'Laptop Dell Latitude 5440'},
+  {tag:'JKT01-ELK-2026-00002',nama:'Proyektor Epson EB-X51'},
+  {tag:'JKT01-KEN-2025-00007',nama:'Toyota Avanza 1.5 G'},
+  {tag:'JKT01-ELK-2023-00009',nama:'AC Daikin FTKC50'},
+  {tag:'JKT01-ELK-2025-00028',nama:'Genset Cummins C22 D5'},
+  {tag:'JKT01-FUR-2023-00007',nama:'Meja Rapat Kayu 10-Seat'},
+  {tag:'JKT01-ITX-2025-00022',nama:'Switch Cisco Catalyst 1000'},
+];
+const TIPE={preventive:{label:L('Preventive','Preventive'),bg:'var(--info-soft-bg)',fg:'var(--info-soft-text)'},corrective:{label:L('Corrective','Corrective'),bg:'var(--warning-soft-bg)',fg:'var(--warning-soft-text)'}};
+const MST={
+  scheduled:{label:L('Dijadwalkan','Scheduled'),bg:'var(--neutral-soft-bg)',fg:'var(--neutral-soft-text)',dot:'var(--text-dimmed)'},
+  in_progress:{label:L('Berlangsung','In Progress'),bg:'var(--info-soft-bg)',fg:'var(--info-soft-text)',dot:'var(--info)'},
+  completed:{label:L('Selesai','Completed'),bg:'var(--success-soft-bg)',fg:'var(--success-soft-text)',dot:'var(--success)'},
+  cancelled:{label:L('Dibatalkan','Cancelled'),bg:'var(--error-soft-bg)',fg:'var(--error-soft-text)',dot:'var(--error)'},
+};
+const MON=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const CARE=['Servis Berkala','Pembersihan','Reparasi','Penggantian Sparepart','Inspeksi','Kalibrasi'];
+const VENDORS=['Auto2000','PT Sinar Komputindo','CV Karya Kayu','Teknisi Internal — Eko','CV Teknologi Nusantara'];
+const PROBLEMS={ id:['Layar / Tampilan','Mati Total / Tidak Menyala','Bunyi / Mekanis','Baterai / Daya','Konektivitas / Jaringan','Lainnya'], en:['Screen / Display','Dead / No Power','Noise / Mechanical','Battery / Power','Connectivity / Network','Other'] };
+const CH={
+  id:{ pageTitle:'Maintenance', pageSub:'Kelola jadwal, catatan perawatan, dan laporan kerusakan aset.',
+    tabs:[['jadwal','Jadwal','calendar'],['catatan','Catatan','note'],['laporan','Laporan Kerusakan','alert2']],
+    dueBannerTitle:'Maintenance jatuh tempo', seeSchedule:'Lihat Jadwal', makeNoteLbl:'Buat Catatan',
+    phCatatan:'Cari aset / vendor…', addNoteLbl:'Tambah Catatan', thAset:'Aset', thTipe:'Tipe', thKategori:'Kategori', thTanggal:'Tanggal', thStatus:'Status', thBiaya:'Biaya', thVendor:'Vendor / Teknisi',
+    emptyRecTitle:'Tidak ada catatan', emptyRecSub:'Belum ada catatan maintenance yang cocok.',
+    stafBadge:'Tampilan Staf', lkFormTitle:'Laporkan Kerusakan Aset', lkAset:'Aset yang Anda pegang', lkKategori:'Kategori Masalah', lkDeskripsi:'Deskripsi', lkFoto:'Foto (opsional)', fotoDrop:'Klik untuk unggah foto kerusakan',
+    phPilih:'Pilih…', phDesc:'Jelaskan kerusakan yang terjadi…', submitLkLbl:'Kirim Laporan', lkQueueNote:'Laporan akan masuk antrean sebagai permintaan maintenance untuk ditinjau Manager.',
+    lkHistTitle:'Riwayat Laporan Saya', emptyRepTitle:'Belum ada laporan', emptyRepSub:'Laporan kerusakan yang Anda kirim akan tampil di sini.',
+    lkMsg:'Laporan kerusakan terkirim & masuk antrean maintenance.', reportStatus:'Menunggu Review',
+    noteTitle:'Tambah Catatan Maintenance', noteSub:'Catat tindakan perawatan untuk aset.',
+    nlAset:'Aset', nlTipe:'Tipe', nlKategori:'Kategori Perawatan', nlTanggal:'Tanggal', nlStatus:'Status', nlBiaya:'Biaya', nlVendor:'Vendor / Teknisi', nlDeskripsi:'Deskripsi',
+    phNaDesc:'Rincian tindakan perawatan…', cancelLbl:'Batal', saveLbl:'Simpan Catatan',
+    overdue:(n)=>'Terlambat '+n+' hari', today:'Jatuh tempo hari ini', inDays:(n)=>n+' hari lagi' },
+  en:{ pageTitle:'Maintenance', pageSub:'Manage schedules, maintenance notes, and damage reports.',
+    tabs:[['jadwal','Schedule','calendar'],['catatan','Notes','note'],['laporan','Damage Report','alert2']],
+    dueBannerTitle:'Maintenance due', seeSchedule:'View Schedule', makeNoteLbl:'Add Note',
+    phCatatan:'Search asset / vendor…', addNoteLbl:'Add Note', thAset:'Asset', thTipe:'Type', thKategori:'Category', thTanggal:'Date', thStatus:'Status', thBiaya:'Cost', thVendor:'Vendor / Technician',
+    emptyRecTitle:'No notes', emptyRecSub:'No matching maintenance notes yet.',
+    stafBadge:'Staff View', lkFormTitle:'Report Asset Damage', lkAset:'Asset you hold', lkKategori:'Problem Category', lkDeskripsi:'Description', lkFoto:'Photo (optional)', fotoDrop:'Click to upload a damage photo',
+    phPilih:'Select…', phDesc:'Describe the damage…', submitLkLbl:'Submit Report', lkQueueNote:'The report enters the queue as a maintenance request for the Manager to review.',
+    lkHistTitle:'My Report History', emptyRepTitle:'No reports yet', emptyRepSub:'Damage reports you submit will appear here.',
+    lkMsg:'Damage report submitted & queued for maintenance.', reportStatus:'Awaiting Review',
+    noteTitle:'Add Maintenance Note', noteSub:'Record a maintenance action for an asset.',
+    nlAset:'Asset', nlTipe:'Type', nlKategori:'Care Category', nlTanggal:'Date', nlStatus:'Status', nlBiaya:'Cost', nlVendor:'Vendor / Technician', nlDeskripsi:'Description',
+    phNaDesc:'Details of the maintenance action…', cancelLbl:'Cancel', saveLbl:'Save Note',
+    overdue:(n)=>n+' days overdue', today:'Due today', inDays:(n)=>'in '+n+' days' },
+};
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef=React.createRef();
+    this.state={
+      theme:(props.theme==='dark'?'dark':'light'),
+      lang:(props.lang==='en'?'en':'id'),
+      collapsed:!!props.collapsed,
+      tab:(props.tab||'jadwal'),
+      cq:'',
+      records:RECORDS.slice(),
+      reports:[],
+      noteOpen:false,
+      na:{tag:'',tipe:'preventive',kat:'Servis Berkala',tgl:'',status:'scheduled',biaya:'',vendor:'Auto2000',desc:''},
+      lk:{tag:'',kat:'',desc:''}, lkMsg:false,
+      seq:1,
+    };
+    this._tt=false;this._tl=false;this._tc=false;this._t=null;
+  }
+  componentDidMount(){ this.applyPrimary(); }
+  componentDidUpdate(){ this.applyPrimary(); }
+  componentWillUnmount(){ if(this._t)clearTimeout(this._t); }
+  applyPrimary(){ const c=this.props.primaryColor,el=this.rootRef.current; if(el&&c) el.style.setProperty('--primary',c); }
+  effTheme(){ return this._tt?this.state.theme:(this.props.theme||'light'); }
+  effLang(){ return this._tl?this.state.lang:(this.props.lang||'id'); }
+  effCollapsed(){ return this._tc?this.state.collapsed:!!this.props.collapsed; }
+  fmt(t){ if(!t)return '—'; const d=new Date(t); return d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear(); }
+  diffDays(t){ const d=new Date(t); return Math.round((d-TODAY)/86400000); }
+  setNa(k,v){ this.setState(s=>({na:{...s.na,[k]:v}})); }
+  setLk(k,v){ this.setState(s=>({lk:{...s.lk,[k]:v}})); }
+  saveNote(){
+    const s=this.state; if(!s.na.tag||!s.na.tgl) return;
+    const a=ALLASSETS.find(x=>x.tag===s.na.tag);
+    const rec={tag:s.na.tag,nama:a?a.nama:s.na.tag,tipe:s.na.tipe,kategori:{id:s.na.kat,en:s.na.kat},tanggal:s.na.tgl,status:s.na.status,biaya:Number(String(s.na.biaya).replace(/\D/g,''))||0,vendor:s.na.vendor};
+    this.setState(st=>({records:[rec,...st.records],noteOpen:false,na:{tag:'',tipe:'preventive',kat:'Servis Berkala',tgl:'',status:'scheduled',biaya:'',vendor:'Auto2000',desc:''}}));
+  }
+  submitLk(){
+    const s=this.state; if(!s.lk.tag||!s.lk.kat) return;
+    const a=MYASSETS.find(x=>x.tag===s.lk.tag);
+    const rep={tag:s.lk.tag,nama:a?a.nama:s.lk.tag,kategori:s.lk.kat,desc:s.lk.desc,date:new Date()};
+    this.setState(st=>({reports:[rep,...st.reports],lk:{tag:'',kat:'',desc:''},lkMsg:true}));
+    if(this._t)clearTimeout(this._t); this._t=setTimeout(()=>this.setState({lkMsg:false}),4000);
+  }
+  openNoteFor(item){ this.setState(s=>({noteOpen:true,na:{...s.na,tag:item?item.tag:'',kat:'Servis Berkala'}})); }
+  renderVals(){
+    const s=this.state;
+    const theme=this.effTheme(),lang=this.effLang(),collapsed=this.effCollapsed();
+    const isDark=theme==='dark';
+    const ch=CH[lang];
+
+    const nav=NAV.map(g=>({label:g.label[lang],items:g.items.map(it=>({
+      label:it.label[lang],icon:mk(it.icon),badge:it.badge,badgeExp:!!it.badge&&!collapsed,
+      bg:it.active?'var(--primary-soft-bg)':'transparent',fg:it.active?'var(--primary-soft-text)':'var(--text-muted)',
+      weight:it.active?'600':'500',accent:it.active?'var(--primary)':'transparent',hoverBg:it.active?'var(--primary-soft-bg)':'var(--bg-muted)',
+    }))}));
+    const tabs=ch.tabs.map(([k,label,icon])=>({label,on:()=>this.setState({tab:k}),icon:mk(icon,15),
+      color:s.tab===k?'var(--text)':'var(--text-muted)',border:s.tab===k?'2px solid var(--primary)':'2px solid transparent',weight:s.tab===k?'600':'500'}));
+
+    const dueBadge=(diff)=>{
+      if(diff<0) return {label:ch.overdue(-diff), color:'var(--error)', bg:'var(--error-soft-bg)', fg:'var(--error-soft-text)', urgent:true};
+      if(diff===0) return {label:ch.today, color:'var(--error)', bg:'var(--error-soft-bg)', fg:'var(--error-soft-text)', urgent:true};
+      if(diff<=7) return {label:ch.inDays(diff), color:'var(--warning)', bg:'var(--warning-soft-bg)', fg:'var(--warning-soft-text)', urgent:false};
+      return {label:ch.inDays(diff), color:'var(--text-muted)', bg:'var(--neutral-soft-bg)', fg:'var(--neutral-soft-text)', urgent:false};
+    };
+
+    const scheduleRows=SCHEDULE.map(it=>{
+      const diff=this.diffDays(it.due); const db=dueBadge(diff); const tp=TIPE[it.tipe];
+      return { asset:it.asset, task:it.task[lang], vendor:typeof it.vendor==='object'?it.vendor[lang]:it.vendor,
+        typeLabel:tp.label[lang], typeBg:tp.bg, typeFg:tp.fg,
+        dueLabel:db.label, dueColor:db.color, dateLabel:this.fmt(it.due),
+        cardBd: db.urgent?'color-mix(in srgb,var(--error) 35%,transparent)':'var(--border)',
+        iconBg: db.urgent?'var(--error-soft-bg)':'var(--warning-soft-bg)', iconFg: db.urgent?'var(--error-soft-text)':'var(--warning-soft-text)',
+        makeNote:()=>this.openNoteFor(it), makeNoteLbl:ch.makeNoteLbl };
+    });
+
+    const dueSorted=SCHEDULE.map(it=>({it,diff:this.diffDays(it.due)})).filter(x=>x.diff<=3).sort((a,b)=>a.diff-b.diff);
+    const dueItems=dueSorted.map(({it,diff})=>{ const db=dueBadge(diff); return {
+      asset:it.asset, task:it.task[lang], dueLabel:db.label, dueBg:db.bg, dueFg:db.fg,
+      cardBd: db.urgent?'color-mix(in srgb,var(--error) 32%,transparent)':'var(--border)',
+      iconBg: db.urgent?'var(--error-soft-bg)':'var(--warning-soft-bg)', iconFg: db.urgent?'var(--error-soft-text)':'var(--warning-soft-text)' };});
+
+    const cq=s.cq.trim().toLowerCase();
+    let recs=s.records;
+    if(cq) recs=recs.filter(r=>r.nama.toLowerCase().includes(cq)||r.tag.toLowerCase().includes(cq)||r.vendor.toLowerCase().includes(cq));
+    const recordRows=recs.map(r=>{ const tp=TIPE[r.tipe],st=MST[r.status]; const kat=typeof r.kategori==='object'?r.kategori[lang]:r.kategori; return {
+      nama:r.nama, tag:r.tag, tipe:tp.label[lang], typeBg:tp.bg, typeFg:tp.fg, kategori:kat, tanggal:this.fmt(r.tanggal),
+      stLabel:st.label[lang], stBg:st.bg, stFg:st.fg, stDot:st.dot, biaya:r.biaya?('Rp '+r.biaya.toLocaleString('id-ID')):'—', vendor:typeof r.vendor==='object'?r.vendor[lang]:r.vendor };});
+
+    const reportRows=s.reports.map(r=>({nama:r.nama,tag:r.tag,kategori:r.kategori,desc:r.desc,hasDesc:!!r.desc,
+      status:ch.reportStatus, date:this.fmt(r.date.toISOString().slice(0,10))}));
+
+    const naReady=!!(s.na.tag&&s.na.tgl);
+    const lkReady=!!(s.lk.tag&&s.lk.kat);
+
+    return {
+      rootRef:this.rootRef, theme, isDark, isLight:!isDark, scheme:isDark?'dark':'light',
+      sidebarW:collapsed?'76px':'264px', expanded:!collapsed, collapsed, navJustify:collapsed?'center':'flex-start',
+      toggleCollapse:()=>{this._tc=true;this.setState(x=>({collapsed:!this.effCollapsed()}));},
+      toggleTheme:()=>{this._tt=true;const cur=this.effTheme();this.setState({theme:cur==='light'?'dark':'light'});},
+      setId:()=>{this._tl=true;this.setState({lang:'id'});}, setEn:()=>{this._tl=true;this.setState({lang:'en'});},
+      idBg:lang==='id'?'var(--bg-base)':'transparent', idFg:lang==='id'?'var(--text)':'var(--text-muted)',
+      enBg:lang==='en'?'var(--bg-base)':'transparent', enFg:lang==='en'?'var(--text)':'var(--text-muted)',
+      nav, pageTitle:ch.pageTitle, pageSub:ch.pageSub,
+      tabs, tabJadwal:s.tab==='jadwal', tabCatatan:s.tab==='catatan', tabLaporan:s.tab==='laporan',
+      hasDue:dueItems.length>0, dueBannerTitle:ch.dueBannerTitle, seeSchedule:ch.seeSchedule, dueItems, goJadwal:()=>this.setState({tab:'jadwal'}),
+      scheduleRows, makeNoteLbl:ch.makeNoteLbl,
+      cq:s.cq, onCq:(e)=>this.setState({cq:e.target.value}), phCatatan:ch.phCatatan, addNoteLbl:ch.addNoteLbl,
+      thAset:ch.thAset, thTipe:ch.thTipe, thKategori:ch.thKategori, thTanggal:ch.thTanggal, thStatus:ch.thStatus, thBiaya:ch.thBiaya, thVendor:ch.thVendor,
+      recordRows, hasRecords:recordRows.length>0, noRecords:recordRows.length===0, emptyRecTitle:ch.emptyRecTitle, emptyRecSub:ch.emptyRecSub,
+      // laporan
+      stafBadge:ch.stafBadge, lkFormTitle:ch.lkFormTitle, lkAset:ch.lkAset, lkKategori:ch.lkKategori, lkDeskripsi:ch.lkDeskripsi, lkFoto:ch.lkFoto, fotoDrop:ch.fotoDrop, phPilih:ch.phPilih, phDesc:ch.phDesc,
+      myAssets:MYASSETS.map(a=>({tag:a.tag,label:a.nama+' · '+a.tag})), problemOpts:PROBLEMS[lang],
+      lkTag:s.lk.tag, lkTagColor:s.lk.tag?'var(--text)':'var(--text-dimmed)', onLkTag:(e)=>this.setLk('tag',e.target.value),
+      lkKat:s.lk.kat, lkKatColor:s.lk.kat?'var(--text)':'var(--text-dimmed)', onLkKat:(e)=>this.setLk('kat',e.target.value),
+      lkDesc:s.lk.desc, onLkDesc:(e)=>this.setLk('desc',e.target.value),
+      submitLkLbl:ch.submitLkLbl, submitLk:()=>this.submitLk(), lkQueueNote:ch.lkQueueNote,
+      lkBtnBg:lkReady?'var(--primary)':'var(--text-dimmed)', lkBtnCursor:lkReady?'pointer':'not-allowed', lkBtnOpacity:lkReady?'1':'.6',
+      lkMsgShow:s.lkMsg, lkMsg:ch.lkMsg,
+      lkHistTitle:ch.lkHistTitle, reportRows, hasReports:reportRows.length>0, noReports:reportRows.length===0, emptyRepTitle:ch.emptyRepTitle, emptyRepSub:ch.emptyRepSub,
+      // note slideover
+      noteOpen:s.noteOpen, openNote:()=>this.setState({noteOpen:true}), closeNote:()=>this.setState({noteOpen:false}), stop:(e)=>e.stopPropagation(),
+      noteTitle:ch.noteTitle, noteSub:ch.noteSub,
+      nlAset:ch.nlAset, nlTipe:ch.nlTipe, nlKategori:ch.nlKategori, nlTanggal:ch.nlTanggal, nlStatus:ch.nlStatus, nlBiaya:ch.nlBiaya, nlVendor:ch.nlVendor, nlDeskripsi:ch.nlDeskripsi, phNaDesc:ch.phNaDesc,
+      assetOpts:ALLASSETS.map(a=>({tag:a.tag,label:a.nama+' · '+a.tag})),
+      tipeOpts:[{v:'preventive',label:TIPE.preventive.label[lang]},{v:'corrective',label:TIPE.corrective.label[lang]}],
+      careOpts:CARE, vendorOpts:VENDORS,
+      statusOpts:Object.keys(MST).map(k=>({v:k,label:MST[k].label[lang]})),
+      naTag:s.na.tag, naTagColor:s.na.tag?'var(--text)':'var(--text-dimmed)', onNaTag:(e)=>this.setNa('tag',e.target.value),
+      naTipe:s.na.tipe, onNaTipe:(e)=>this.setNa('tipe',e.target.value),
+      naKat:s.na.kat, onNaKat:(e)=>this.setNa('kat',e.target.value),
+      naTgl:s.na.tgl, onNaTgl:(e)=>this.setNa('tgl',e.target.value),
+      naStatus:s.na.status, onNaStatus:(e)=>this.setNa('status',e.target.value),
+      naBiaya:s.na.biaya, onNaBiaya:(e)=>this.setNa('biaya',e.target.value),
+      naVendor:s.na.vendor, onNaVendor:(e)=>this.setNa('vendor',e.target.value),
+      naDesc:s.na.desc, onNaDesc:(e)=>this.setNa('desc',e.target.value),
+      cancelLbl:ch.cancelLbl, saveLbl:ch.saveLbl, saveNote:()=>this.saveNote(),
+      naBtnBg:naReady?'var(--primary)':'var(--text-dimmed)', naBtnCursor:naReady?'pointer':'not-allowed', naBtnOpacity:naReady?'1':'.6',
+    };
+  }
+}
+</script>
+</body>
+</html>

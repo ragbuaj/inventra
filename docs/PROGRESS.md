@@ -1,0 +1,84 @@
+# Inventra — Progress & Remaining Work
+
+Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope and
+[DATABASE.md](DATABASE.md) for the schema.
+
+> **Pending merge:** branch `feat/md-floors-rooms` (floors + rooms) awaiting merge to `main`.
+
+## ✅ Done
+
+### Foundation & DevOps
+- [x] Project scaffold (Go/Gin backend, Nuxt 4 frontend)
+- [x] `docker compose up` full stack (Postgres + Redis + MinIO + migrate + backend + frontend)
+- [x] GitHub Actions CI (backend build/vet/test · frontend lint/typecheck/build · Spectral)
+- [x] PRD + DATABASE design docs
+
+### Database (13 migrations · 9 schemas · 31 tables)
+- [x] enums + `set_updated_at` + per-module schemas (`shared/identity/audit/masterdata/asset/import/approval/assignment/maintenance/depreciation`)
+- [x] All tables incl. soft delete, partial-unique, FK indexes, seed (5 roles, 45 RBAC perms)
+
+### Backend — Data layer
+- [x] pgx pool + Redis client + sqlc models (all tables)
+- [x] `/health` (liveness) + `/health/ready` (Postgres + Redis)
+
+### Backend — Identity & Authorization
+- [x] Local auth: login, JWT access+refresh (Redis store + denylist), logout, `/auth/me`
+- [x] Authorization 3-layer (configurable): RBAC (`role_permissions`), data scope (`data_scope_policies` + office subtree), field permission (`field_permissions`)
+- [x] `/auth/permissions`, `/auth/scope/{module}`
+- [x] User management (Superadmin): CRUD + field-permission filtering
+
+### Backend — Master Data (all data-scoped & access-controlled)
+- [x] Categories (enum/nullable/self-ref/numeric)
+- [x] 11 reference resources via generic engine (office-types, departments, positions, units, maintenance/problem categories, brands, vendors, provinces, cities, models)
+- [x] Offices (hierarchy) + floors + rooms + employees — **office-subtree scoping** on all ops, IDOR-hardened
+
+### API Documentation
+- [x] OpenAPI 3.1 spec + self-hosted Scalar at `/docs` + Spectral lint in CI
+- [x] Bruno collection (git-tracked)
+
+---
+
+## ⛔ Remaining
+
+### Backend — Feature modules
+- [ ] **Asset core** — CRUD; `asset_tag` generator (atomic per office/category/year); status state machine; data-scoping + field-permission (mask `purchase_cost`/`book_value`); valuation-exclusion flag
+- [ ] **Asset attachments (MinIO)** — Storage interface; upload + size/type validation; image compress + thumbnail; presigned/proxy access
+- [ ] **Barcode / QR** — Code128 from `asset_tag` + QR; printable labels (single/batch); scan lookup
+- [ ] **Approval (maker-checker)** — generic `requests`; routing (Manager/Kepala Unit/Kanwil/Superadmin by scope); segregation-of-duty; flows: asset_create, asset_delete, valuation_exclusion
+- [ ] **Assignment** — check-out/check-in; assignment requests (Staf → approve); one-active-per-asset; overdue; history
+- [ ] **Maintenance** — schedules (interval/next_due); records (preventive/corrective, cost, vendor); damage reports (Staf + problem category); `under_maintenance` status
+- [ ] **Depreciation** — book value (straight-line / declining-balance); monthly `depreciation_entries` read model
+- [ ] **Reporting & Dashboard** — aggregates (totals/value/by status·category·office, overdue, maintenance due, costs); **PDF + Excel export**; scoped
+- [ ] **Bulk import** — CSV/XLSX (assets + master data); `import_jobs`; per-row validation + error report
+
+### Backend — Cross-cutting (not yet implemented)
+- [ ] **Audit logging** — centralized writes to `audit_logs` on every mutation (table exists, writer not wired); audit view endpoints
+- [ ] **Google OAuth2 login** — `/auth/google` + callback + account linking (currently local-only)
+- [ ] **Password reset / email verification** — Redis-TTL tokens (+ email later)
+- [ ] **Rate limiting** — login anti-brute-force + throttling (Redis)
+- [ ] **Notifications (in-app)** — store + endpoints (approval decisions, maintenance reminders)
+- [ ] **Scheduler (cron in-process)** — monthly depreciation; maintenance-due reminders
+- [ ] **Authorization admin endpoints** — Superadmin CRUD for roles, role_permissions, field_permissions, data_scope_policies (+ Redis cache invalidation)
+
+### Frontend (only scaffold exists)
+- [ ] Auth pages (login + Google) · layouts (`admin` / `app`) · route middleware (RBAC + scope)
+- [ ] Dashboard
+- [ ] Assets (list/detail/form) · attachments · barcode/QR
+- [ ] Assignment · Maintenance · Approval inboxes
+- [ ] Reports (view + export) · Import wizard
+- [ ] Master data management UIs · User management · Authorization settings
+- [ ] Profile · i18n content (id/en) · field-permission-aware forms
+
+### Quality
+- [ ] Broaden test coverage (services, handlers, integration)
+- [ ] Optional seed data (provinces/cities, office types, etc.)
+
+---
+
+## Suggested order
+1. **Audit logging** (cross-cutting — wire before more mutations accrue)
+2. **Asset core + attachments (MinIO) + barcode**
+3. **Approval (maker-checker)** → **Assignment** → **Maintenance**
+4. **Depreciation** → **Reporting/Dashboard (+ PDF/Excel)** → **Import**
+5. **Google OAuth2 + rate limiting + notifications + scheduler + authz admin**
+6. **Frontend** (can proceed in parallel once asset/master-data APIs are stable)

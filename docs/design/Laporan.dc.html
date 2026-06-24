@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;}
+input::placeholder{color:var(--text-dimmed);}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:9px;border:2px solid transparent;background-clip:padding-box;}
+:root{
+  --bg:#f8fafc; --bg-base:#ffffff; --bg-muted:#f1f5f9; --bg-el:#ffffff;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#0f172a; --text-muted:#64748b; --text-dimmed:#94a3b8;
+  --primary:#16a34a; --primary-hover:#15803d; --primary-fg:#ffffff;
+  --primary-soft-bg:#dcfce7; --primary-soft-text:#15803d;
+  --success:#16a34a; --warning:#d97706; --error:#dc2626;
+  --info:#2563eb; --info-soft-bg:#dbeafe; --info-soft-text:#1d4ed8;
+  --neutral-soft-bg:#eef2f6; --neutral-soft-text:#475569;
+  --ring:color-mix(in srgb, var(--primary) 28%, transparent);
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
+  --shadow-lg:0 18px 50px rgba(15,23,42,.18);
+}
+[data-theme="dark"]{
+  --bg:#020617; --bg-base:#0b1220; --bg-muted:#1e293b; --bg-el:#0f172a;
+  --border:#1e293b; --border-strong:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8; --text-dimmed:#64748b;
+  --primary:#22c55e; --primary-hover:#16a34a; --primary-fg:#052e16;
+  --primary-soft-bg:#14331f; --primary-soft-text:#4ade80;
+  --success:#22c55e; --warning:#f59e0b; --error:#ef4444;
+  --info:#3b82f6; --info-soft-bg:#13243f; --info-soft-text:#60a5fa;
+  --neutral-soft-bg:#1e293b; --neutral-soft-text:#cbd5e1;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 18px 50px rgba(0,0,0,.6);
+}
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" data-theme="{{ theme }}" style="font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--text);">
+  <div style="display:flex;height:100vh;overflow:hidden;background:var(--bg);">
+
+    <!-- SIDEBAR -->
+    <aside style="width:{{ sidebarW }};flex:none;display:flex;flex-direction:column;background:var(--bg-base);border-right:1px solid var(--border);transition:width .2s ease;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:11px;height:61px;padding:0 18px;border-bottom:1px solid var(--border);flex:none;">
+        <div style="width:34px;height:34px;border-radius:9px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--primary-fg);flex:none;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13h6"/></svg></div>
+        <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="font:700 18px Inter;letter-spacing:-.01em;white-space:nowrap;">Inventra</span></sc-if>
+      </div>
+      <nav style="flex:1;overflow-y:auto;overflow-x:hidden;padding:12px;">
+        <sc-for list="{{ nav }}" as="g" hint-placeholder-count="2">
+          <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><div style="padding:14px 12px 6px;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dimmed);white-space:nowrap;">{{ g.label }}</div></sc-if>
+          <sc-if value="{{ collapsed }}" hint-placeholder-val="{{ false }}"><div style="height:1px;background:var(--border);margin:10px 8px;"></div></sc-if>
+          <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+            <button title="{{ it.label }}" style="position:relative;display:flex;align-items:center;justify-content:{{ navJustify }};gap:11px;width:100%;padding:9px 12px;margin-bottom:2px;font-family:Inter;font-size:14px;font-weight:{{ it.weight }};color:{{ it.fg }};background:{{ it.bg }};border:none;border-radius:9px;cursor:pointer;text-align:left;box-shadow:inset 3px 0 0 {{ it.accent }};white-space:nowrap;" style-hover="background:{{ it.hoverBg }};">
+              {{ it.icon }}
+              <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;">{{ it.label }}</span></sc-if>
+            </button>
+          </sc-for>
+        </sc-for>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <header style="display:flex;align-items:center;gap:14px;height:61px;flex:none;padding:0 20px;background:var(--bg-base);border-bottom:1px solid var(--border);">
+        <button onClick="{{ toggleCollapse }}" title="Collapse" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex:none;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg></button>
+        <div style="display:flex;align-items:center;gap:6px;font:400 12px Inter;color:var(--text-muted);"><span>Inventra</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span style="color:var(--text);font-weight:500;">{{ pageTitle }}</span></div>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex:none;">
+          <div style="display:flex;gap:2px;padding:3px;background:var(--bg-muted);border-radius:9px;">
+            <button onClick="{{ setId }}" style="padding:5px 9px;font:600 12px Inter;color:{{ idFg }};background:{{ idBg }};border:none;border-radius:6px;cursor:pointer;">ID</button>
+            <button onClick="{{ setEn }}" style="padding:5px 9px;font:600 12px Inter;color:{{ enFg }};background:{{ enBg }};border:none;border-radius:6px;cursor:pointer;">EN</button>
+          </div>
+          <button onClick="{{ toggleTheme }}" title="Tema" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">
+            <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></sc-if>
+            <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></sc-if>
+          </button>
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;background:transparent;border:1px solid var(--border);border-radius:999px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--primary);color:var(--primary-fg);display:flex;align-items:center;justify-content:center;font:700 12px Inter;">DL</span><span style="display:flex;color:var(--text-dimmed);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+        </div>
+      </header>
+
+      <main style="flex:1;overflow-y:auto;padding:24px 28px 40px;">
+        <div style="margin-bottom:16px;"><h1 style="margin:0 0 5px;font:700 23px Inter;letter-spacing:-.02em;">{{ pageTitle }}</h1><p style="margin:0;font:400 14px Inter;color:var(--text-muted);">{{ pageSub }}</p></div>
+
+        <!-- REPORT TYPE CARDS -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
+          <sc-for list="{{ reportCards }}" as="c" hint-placeholder-count="4">
+            <button onClick="{{ c.on }}" style="display:flex;flex-direction:column;gap:8px;padding:15px;border-radius:13px;border:1px solid {{ c.bd }};background:{{ c.bg }};cursor:pointer;text-align:left;box-shadow:{{ c.sh }};" style-hover="border-color:var(--primary);">
+              <span style="width:34px;height:34px;border-radius:9px;background:{{ c.iconBg }};color:{{ c.iconFg }};display:flex;align-items:center;justify-content:center;">{{ c.icon }}</span>
+              <span style="font:600 13.5px Inter;color:{{ c.titleColor }};line-height:1.3;">{{ c.label }}</span>
+              <span style="font:400 11.5px/1.4 Inter;color:var(--text-muted);">{{ c.desc }}</span>
+            </button>
+          </sc-for>
+        </div>
+
+        <!-- FILTER BAR -->
+        <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;padding:14px;box-shadow:var(--shadow);margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+            <div style="display:flex;flex-direction:column;gap:4px;"><span style="font:500 11px Inter;color:var(--text-dimmed);text-transform:uppercase;letter-spacing:.04em;">{{ f.label }}</span><div style="position:relative;"><select value="{{ f.value }}" onChange="{{ f.on }}" style="appearance:none;padding:8px 30px 8px 12px;font:500 13px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;cursor:pointer;min-width:150px;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><sc-for list="{{ f.opts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select><span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div></div>
+          </sc-for>
+          <div style="flex:1;"></div>
+          <button onClick="{{ apply }}" style="display:inline-flex;align-items:center;gap:7px;align-self:flex-end;padding:9px 18px;font:600 13.5px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.5V19l4 2v-8.5z"/></svg>{{ applyLbl }}</button>
+        </div>
+
+        <!-- PLACEHOLDER (before apply) -->
+        <sc-if value="{{ showPlaceholder }}" hint-placeholder-val="{{ true }}">
+          <div style="background:var(--bg-base);border:1.5px dashed var(--border-strong);border-radius:16px;padding:64px 24px;text-align:center;">
+            <div style="width:58px;height:58px;margin:0 auto 16px;border-radius:15px;background:var(--bg-muted);color:var(--text-dimmed);display:flex;align-items:center;justify-content:center;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></div>
+            <div style="font:600 16px Inter;margin-bottom:6px;">{{ phTitle }}</div>
+            <div style="font:400 14px/1.5 Inter;color:var(--text-muted);max-width:360px;margin:0 auto;">{{ phSub }}</div>
+          </div>
+        </sc-if>
+
+        <!-- EMPTY -->
+        <sc-if value="{{ showEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:60px 24px;text-align:center;">
+            <div style="width:54px;height:54px;margin:0 auto 14px;border-radius:14px;background:var(--bg-muted);color:var(--text-dimmed);display:flex;align-items:center;justify-content:center;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M16 8l-4 4-2-2-3 3"/></svg></div>
+            <div style="font:600 16px Inter;margin-bottom:6px;">{{ emptyTitle }}</div>
+            <div style="font:400 14px Inter;color:var(--text-muted);max-width:340px;margin:0 auto 18px;">{{ emptySub }}</div>
+            <button onClick="{{ resetFilter }}" style="display:inline-flex;align-items:center;gap:7px;padding:9px 16px;font:500 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);">{{ resetLbl }}</button>
+          </div>
+        </sc-if>
+
+        <!-- RESULTS -->
+        <sc-if value="{{ showResult }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px;">
+              <div><div style="font:700 17px Inter;">{{ resultTitle }}</div><div style="font:400 12.5px Inter;color:var(--text-muted);margin-top:1px;">{{ resultMeta }}</div></div>
+              <div style="display:flex;gap:9px;">
+                <button style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;font:500 13px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>{{ pdfLbl }}</button>
+                <button style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;font:500 13px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13l6 6M15 13l-6 6"/></svg>{{ excelLbl }}</button>
+              </div>
+            </div>
+
+            <!-- KPI -->
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px;">
+              <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="3">
+                <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;padding:16px 18px;box-shadow:var(--shadow);"><div style="font:500 12.5px Inter;color:var(--text-muted);">{{ k.label }}</div><div style="font:700 24px Inter;letter-spacing:-.02em;margin:6px 0 3px;">{{ k.value }}</div><div style="font:400 12px Inter;color:var(--text-dimmed);">{{ k.sub }}</div></div>
+              </sc-for>
+            </div>
+
+            <div style="display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:start;">
+              <!-- CHART -->
+              <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;padding:18px;box-shadow:var(--shadow);">
+                <div style="font:600 14px Inter;margin-bottom:16px;">{{ chartTitle }}</div>
+                <div style="display:flex;flex-direction:column;gap:13px;">
+                  <sc-for list="{{ chartBars }}" as="b" hint-placeholder-count="4">
+                    <div><div style="display:flex;justify-content:space-between;font:500 12.5px Inter;margin-bottom:5px;"><span style="color:var(--text-muted);">{{ b.label }}</span><span style="color:var(--text);font-weight:600;">{{ b.display }}</span></div><div style="height:8px;border-radius:99px;background:var(--bg-muted);overflow:hidden;"><div style="height:100%;width:{{ b.w }};border-radius:99px;background:var(--primary);"></div></div></div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <!-- TABLE -->
+              <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow);overflow:hidden;">
+                <div style="overflow-x:auto;">
+                  <table style="width:100%;border-collapse:collapse;font:400 13px Inter;white-space:nowrap;">
+                    <thead><tr style="background:var(--bg-muted);">
+                      <sc-for list="{{ cols }}" as="c" hint-placeholder-count="4"><th style="padding:11px 16px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);text-align:{{ c.align }};">{{ c.label }}</th></sc-for>
+                    </tr></thead>
+                    <tbody>
+                      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+                        <tr style="border-top:1px solid var(--border);" style-hover="background:var(--bg-muted);">
+                          <sc-for list="{{ r }}" as="c" hint-placeholder-count="4"><td style="padding:11px 16px;text-align:{{ c.align }};color:{{ c.color }};font-family:{{ c.ff }};font-weight:{{ c.weight }};font-variant-numeric:tabular-nums;">{{ c.text }}</td></sc-for>
+                        </tr>
+                      </sc-for>
+                    </tbody>
+                    <tfoot><tr style="border-top:2px solid var(--border-strong);background:var(--bg-muted);">
+                      <sc-for list="{{ footer }}" as="c" hint-placeholder-count="4"><td style="padding:12px 16px;text-align:{{ c.align }};color:var(--text);font-weight:700;font-size:13px;font-variant-numeric:tabular-nums;">{{ c.text }}</td></sc-for>
+                    </tr></tfoot>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+      </main>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;id&quot;,&quot;en&quot;],&quot;default&quot;:&quot;id&quot;,&quot;tsType&quot;:&quot;'id' | 'en'&quot;},&quot;report&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;aset&quot;,&quot;depr&quot;,&quot;util&quot;,&quot;biaya&quot;],&quot;default&quot;:&quot;aset&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;collapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;primaryColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#16a34a&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const ICONS={
+  dashboard:[['rect',{x:3,y:3,width:7,height:9,rx:1}],['rect',{x:14,y:3,width:7,height:5,rx:1}],['rect',{x:14,y:12,width:7,height:9,rx:1}],['rect',{x:3,y:16,width:7,height:5,rx:1}]],
+  box:[['path',{d:'M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2'}],['path',{d:'M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'}],['path',{d:'M9 13h6'}]],
+  clipboard:[['rect',{x:5,y:4,width:14,height:17,rx:2}],['path',{d:'M9 4V3h6v1'}],['path',{d:'M9 13l2 2 4-4'}]],
+  wrench:[['path',{d:'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.7 2.7-2-2z'}]],
+  approval:[['path',{d:'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'}],['path',{d:'M9 11l3 3 8-8'}]],
+  chart:[['path',{d:'M3 3v18h18'}],['path',{d:'M7 16v-5M12 16V8M17 16v-3'}]],
+  database:[['path',{d:'M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3z'}],['path',{d:'M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6'}],['path',{d:'M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6'}]],
+  settings:[['circle',{cx:12,cy:12,r:3}],['path',{d:'M19.4 15a1.6 1.6 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0 1.6 1.6 0 0 0-2.7-1.1 2 2 0 1 1-2.8-2.8A1.6 1.6 0 0 0 3 13.6a2 2 0 0 1 0-3.2A1.6 1.6 0 0 0 4.6 7a2 2 0 1 1 2.8-2.8A1.6 1.6 0 0 0 10 4.6V3a2 2 0 0 1 4 0 1.6 1.6 0 0 0 2.7 1.1A2 2 0 1 1 19.5 7a1.6 1.6 0 0 0-1 2.4 2 2 0 0 1 0 3.2z'}]],
+  wallet:[['path',{d:'M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2'}],['path',{d:'M3 7v10a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-3'}],['path',{d:'M21 11v4h-4a2 2 0 0 1 0-4z'}]],
+  trendDown:[['path',{d:'M3 7l6 6 4-4 8 8'}],['path',{d:'M21 17v-6h-6'}]],
+  gauge:[['path',{d:'M12 14l4-4'}],['path',{d:'M3.3 16a9 9 0 1 1 17.4 0'}]],
+  receipt:[['path',{d:'M5 3v18l2-1 2 1 2-1 2 1 2-1 2 1V3l-2 1-2-1-2 1-2-1-2 1z'}],['path',{d:'M9 8h6M9 12h6'}]],
+};
+function mk(key,size){const d=ICONS[key]||ICONS.box;return React.createElement('svg',{width:size||16,height:size||16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.9,strokeLinecap:'round',strokeLinejoin:'round',style:{flex:'none'}},d.map((x,i)=>React.createElement(x[0],{...x[1],key:i})));}
+const L=(id,en)=>({id,en});
+const NAV=[
+  { label:L('Operasional','Operational'), items:[
+    { label:L('Dashboard','Dashboard'), icon:'dashboard' },{ label:L('Aset','Assets'), icon:'box' },{ label:L('Penugasan','Assignments'), icon:'clipboard' },
+    { label:L('Maintenance','Maintenance'), icon:'wrench' },{ label:L('Pengajuan','Requests'), icon:'approval' },{ label:L('Laporan','Reports'), icon:'chart', active:true },
+  ]},
+  { label:L('Administrasi','Administration'), items:[{ label:L('Master Data','Master Data'), icon:'database' },{ label:L('Pengaturan','Settings'), icon:'settings' }]},
+];
+const rp=(v)=>'Rp '+v.toLocaleString('id-ID');
+const rpJt=(v)=>'Rp '+(v/1000000).toLocaleString('id-ID',{maximumFractionDigits:1})+' Jt';
+const ASET=[
+  {kode:'JKT01-ELK-2026-00001',nama:'Laptop Dell Latitude 5440',kat:'Elektronik',status:'Tersedia',harga:18500000,akum:2300000,buku:16200000},
+  {kode:'JKT01-ELK-2026-00002',nama:'Proyektor Epson EB-X51',kat:'Elektronik',status:'Dipinjam',harga:7200000,akum:700000,buku:6500000},
+  {kode:'JKT01-KEN-2025-00007',nama:'Toyota Avanza 1.5 G',kat:'Kendaraan',status:'Maintenance',harga:235000000,akum:37000000,buku:198000000},
+  {kode:'JKT01-FUR-2025-00011',nama:'Meja Kerja Ergonomis',kat:'Furnitur',status:'Tersedia',harga:2400000,akum:500000,buku:1900000},
+  {kode:'JKT01-ITX-2025-00014',nama:'Router MikroTik RB4011',kat:'Perangkat IT',status:'Tersedia',harga:2700000,akum:400000,buku:2300000},
+  {kode:'JKT01-ELK-2025-00028',nama:'Genset Cummins C22 D5',kat:'Elektronik',status:'Tersedia',harga:78000000,akum:9000000,buku:69000000},
+  {kode:'JKT01-ELK-2025-00018',nama:'UPS APC Smart-UPS 1500',kat:'Elektronik',status:'Tersedia',harga:6700000,akum:800000,buku:5900000},
+  {kode:'JKT01-KEN-2024-00004',nama:'Honda Vario 160',kat:'Kendaraan',status:'Dipinjam',harga:28500000,akum:6500000,buku:22000000},
+];
+const DEPR=[ ['2024',420000000,84000000,336000000],['2025',336000000,84000000,252000000],['2026',252000000,84000000,168000000],['2027',168000000,76000000,92000000],['2028',92000000,56000000,36000000],['2029',36000000,24000000,12000000] ];
+const UTIL=[
+  {nama:'Proyektor Epson EB-X51',kat:'Elektronik',hari:142,pinjam:18,util:78},
+  {nama:'MacBook Air M3',kat:'Elektronik',hari:134,pinjam:14,util:73},
+  {nama:'Monitor LG 27UL550',kat:'Elektronik',hari:120,pinjam:12,util:66},
+  {nama:'Toyota Avanza 1.5 G',kat:'Kendaraan',hari:96,pinjam:9,util:53},
+  {nama:'Honda Vario 160',kat:'Kendaraan',hari:88,pinjam:7,util:48},
+  {nama:'Kursi Ergonomis Ergotec',kat:'Furnitur',hari:40,pinjam:3,util:22},
+];
+const BIAYA=[
+  {nama:'Toyota Avanza 1.5 G',kat:'Kendaraan',tipe:'Corrective',n:3,biaya:4200000},
+  {nama:'AC Daikin FTKC50',kat:'Elektronik',tipe:'Preventive',n:5,biaya:1750000},
+  {nama:'Genset Cummins C22',kat:'Elektronik',tipe:'Preventive',n:2,biaya:900000},
+  {nama:'Laptop Dell Latitude',kat:'Elektronik',tipe:'Corrective',n:1,biaya:1200000},
+  {nama:'Honda Vario 160',kat:'Kendaraan',tipe:'Preventive',n:2,biaya:600000},
+];
+const KAT=['Elektronik','Furnitur','Kendaraan','Perangkat IT'];
+const KANTOR=['Cabang Jakarta Selatan','Outlet Blok M','Outlet Kemang'];
+const CH={
+  id:{ pageTitle:'Laporan', pageSub:'Susun dan ekspor laporan aset, depresiasi, utilisasi, dan biaya.',
+    cards:[['aset','Daftar Aset & Nilai Buku','Inventaris lengkap dengan nilai buku','box'],['depr','Depresiasi per Periode','Penyusutan nilai aset per tahun','trendDown'],['util','Utilisasi / Penugasan','Tingkat pemakaian aset','gauge'],['biaya','Biaya Maintenance','Rekap biaya perawatan','receipt']],
+    fPeriode:'Periode', fKantor:'Kantor', fKategori:'Kategori', fStatus:'Status', applyLbl:'Terapkan',
+    periodeOpts:['30 hari terakhir','Bulan ini','Kuartal ini','Tahun berjalan'], allKantor:'Semua Kantor', allKat:'Semua Kategori', allStatus:'Semua Status', statusList:['Tersedia','Dipinjam','Maintenance','Dilepas','Hilang'],
+    pdfLbl:'Ekspor PDF', excelLbl:'Ekspor Excel', resetLbl:'Atur Ulang Filter',
+    phTitle:'Pilih kriteria laporan', phSub:'Tentukan jenis laporan dan filter di atas, lalu klik "Terapkan" untuk menampilkan hasil.',
+    emptyTitle:'Tidak ada data', emptySub:'Tidak ada data yang cocok dengan filter yang dipilih. Coba ubah kategori atau status.',
+    resultMetaF:(p)=>'Periode: '+p+' · Cabang Jakarta Selatan', total:'TOTAL',
+    rowsF:(n)=>n+' baris',
+    kAset:['Total Aset','Total Nilai Perolehan','Total Nilai Buku'], kDepr:['Penyusutan 2026','Akumulasi Penyusutan','Sisa Nilai Buku'], kUtil:['Rata-rata Utilisasi','Aset Aktif Dipinjam','Total Hari Pinjam'], kBiaya:['Total Biaya','Preventive','Corrective'],
+    colAset:['Kode','Nama Aset','Kategori','Harga Beli','Akum. Penyusutan','Nilai Buku'], chAset:'Nilai Buku per Kategori',
+    colDepr:['Periode','Nilai Awal','Penyusutan','Nilai Akhir'], chDepr:'Penyusutan per Tahun',
+    colUtil:['Nama Aset','Kategori','Hari Dipinjam','Jml Peminjaman','Utilisasi'], chUtil:'Rata Utilisasi per Kategori',
+    colBiaya:['Aset','Kategori','Tipe','Jml Tindakan','Total Biaya'], chBiaya:'Biaya per Kategori' },
+  en:{ pageTitle:'Reports', pageSub:'Build and export asset, depreciation, utilization, and cost reports.',
+    cards:[['aset','Asset List & Book Value','Full inventory with book value','box'],['depr','Depreciation by Period','Asset value depreciation per year','trendDown'],['util','Utilization / Assignment','Asset usage rate','gauge'],['biaya','Maintenance Cost','Maintenance cost recap','receipt']],
+    fPeriode:'Period', fKantor:'Office', fKategori:'Category', fStatus:'Status', applyLbl:'Apply',
+    periodeOpts:['Last 30 days','This month','This quarter','Year to date'], allKantor:'All Offices', allKat:'All Categories', allStatus:'All Status', statusList:['Available','In use','Maintenance','Disposed','Lost'],
+    pdfLbl:'Export PDF', excelLbl:'Export Excel', resetLbl:'Reset Filters',
+    phTitle:'Choose report criteria', phSub:'Set the report type and filters above, then click "Apply" to show the result.',
+    emptyTitle:'No data', emptySub:'No data matches the selected filters. Try changing the category or status.',
+    resultMetaF:(p)=>'Period: '+p+' · Jakarta Selatan Branch', total:'TOTAL',
+    rowsF:(n)=>n+' rows',
+    kAset:['Total Assets','Total Acquisition Value','Total Book Value'], kDepr:['2026 Depreciation','Accumulated Depreciation','Remaining Book Value'], kUtil:['Average Utilization','Active Loaned Assets','Total Loan Days'], kBiaya:['Total Cost','Preventive','Corrective'],
+    colAset:['Code','Asset Name','Category','Buy Price','Accum. Deprec.','Book Value'], chAset:'Book Value by Category',
+    colDepr:['Period','Opening','Depreciation','Closing'], chDepr:'Depreciation per Year',
+    colUtil:['Asset Name','Category','Days Loaned','Loan Count','Utilization'], chUtil:'Avg Utilization by Category',
+    colBiaya:['Asset','Category','Type','Actions','Total Cost'], chBiaya:'Cost by Category' },
+};
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef=React.createRef();
+    this.state={
+      theme:(props.theme==='dark'?'dark':'light'), lang:(props.lang==='en'?'en':'id'), collapsed:!!props.collapsed,
+      report:(props.report||'aset'), fPeriode:'3', fKantor:'all', fKat:'all', fStatus:'all', applied:false,
+    };
+    this._tt=false;this._tl=false;this._tc=false;
+  }
+  componentDidMount(){ this.applyPrimary(); }
+  componentDidUpdate(){ this.applyPrimary(); }
+  applyPrimary(){ const c=this.props.primaryColor,el=this.rootRef.current; if(el&&c) el.style.setProperty('--primary',c); }
+  effTheme(){ return this._tt?this.state.theme:(this.props.theme||'light'); }
+  effLang(){ return this._tl?this.state.lang:(this.props.lang||'id'); }
+  effCollapsed(){ return this._tc?this.state.collapsed:!!this.props.collapsed; }
+  C(text,align,opt){ return {text,align:align||'left',color:(opt&&opt.color)||'var(--text)',ff:(opt&&opt.mono)?"'JetBrains Mono',monospace":'Inter',weight:(opt&&opt.weight)||'400'}; }
+  build(lang){
+    const s=this.state; const ch=CH[lang];
+    const kat=s.fKat, st=s.fStatus;
+    const passKat=(k)=> kat==='all'||k===kat;
+    const passSt=(x)=> st==='all'||x===st;
+    if(s.report==='aset'){
+      const rowsD=ASET.filter(a=>passKat(a.kat)&&passSt(a.status));
+      const tH=rowsD.reduce((a,b)=>a+b.harga,0), tA=rowsD.reduce((a,b)=>a+b.akum,0), tB=rowsD.reduce((a,b)=>a+b.buku,0);
+      const grp={}; rowsD.forEach(a=>{grp[a.kat]=(grp[a.kat]||0)+a.buku;});
+      const mx=Math.max(1,...Object.values(grp));
+      return { hasData:rowsD.length>0,
+        kpis:[{label:ch.kAset[0],value:String(rowsD.length),sub:lang==='id'?'unit aset':'asset units'},{label:ch.kAset[1],value:rpJt(tH),sub:lang==='id'?'akumulasi perolehan':'total acquisition'},{label:ch.kAset[2],value:rpJt(tB),sub:lang==='id'?'setelah penyusutan':'after depreciation'}],
+        chartTitle:ch.chAset, chartBars:Object.keys(grp).map(k=>({label:k,display:rpJt(grp[k]),w:Math.round(grp[k]/mx*100)+'%'})),
+        cols:ch.colAset.map((l,i)=>({label:l,align:i>=3?'right':'left'})),
+        rows:rowsD.map(a=>[this.C(a.kode,'left',{mono:true,color:'var(--text-muted)'}),this.C(a.nama,'left',{weight:'500'}),this.C(a.kat,'left',{color:'var(--text-muted)'}),this.C(rp(a.harga),'right'),this.C(rp(a.akum),'right',{color:'var(--text-muted)'}),this.C(rp(a.buku),'right',{weight:'600'})]),
+        footer:[this.C(ch.total,'left'),this.C('','left'),this.C('','left'),this.C(rp(tH),'right'),this.C(rp(tA),'right'),this.C(rp(tB),'right')] };
+    }
+    if(s.report==='depr'){
+      const peny=DEPR.reduce((a,b)=>a+b[2],0); const mx=Math.max(...DEPR.map(d=>d[2]));
+      return { hasData:true,
+        kpis:[{label:ch.kDepr[0],value:rpJt(84000000),sub:lang==='id'?'tahun berjalan':'current year'},{label:ch.kDepr[1],value:rpJt(408000000),sub:'2024–2026'},{label:ch.kDepr[2],value:rpJt(168000000),sub:lang==='id'?'per akhir 2026':'end of 2026'}],
+        chartTitle:ch.chDepr, chartBars:DEPR.map(d=>({label:d[0],display:rpJt(d[2]),w:Math.round(d[2]/mx*100)+'%'})),
+        cols:ch.colDepr.map((l,i)=>({label:l,align:i>=1?'right':'left'})),
+        rows:DEPR.map(d=>[this.C(d[0],'left',{mono:true,weight:'600'}),this.C(rp(d[1]),'right',{color:'var(--text-muted)'}),this.C(rp(d[2]),'right',{color:'var(--error)'}),this.C(rp(d[3]),'right',{weight:'600'})]),
+        footer:[this.C(ch.total,'left'),this.C('','right'),this.C(rp(peny),'right'),this.C('','right')] };
+    }
+    if(s.report==='util'){
+      const rowsD=UTIL.filter(a=>passKat(a.kat));
+      const avg=rowsD.length?Math.round(rowsD.reduce((a,b)=>a+b.util,0)/rowsD.length):0;
+      const totHari=rowsD.reduce((a,b)=>a+b.hari,0); const dipinjam=rowsD.filter(a=>a.util>0).length;
+      const grp={},cnt={}; rowsD.forEach(a=>{grp[a.kat]=(grp[a.kat]||0)+a.util;cnt[a.kat]=(cnt[a.kat]||0)+1;});
+      const avgK={}; Object.keys(grp).forEach(k=>avgK[k]=Math.round(grp[k]/cnt[k]));
+      return { hasData:rowsD.length>0,
+        kpis:[{label:ch.kUtil[0],value:avg+'%',sub:lang==='id'?'dari kapasitas':'of capacity'},{label:ch.kUtil[1],value:String(dipinjam),sub:lang==='id'?'aset terpakai':'assets used'},{label:ch.kUtil[2],value:totHari+(lang==='id'?' hari':' days'),sub:lang==='id'?'akumulasi':'accumulated'}],
+        chartTitle:ch.chUtil, chartBars:Object.keys(avgK).map(k=>({label:k,display:avgK[k]+'%',w:avgK[k]+'%'})),
+        cols:ch.colUtil.map((l,i)=>({label:l,align:i>=2?'right':'left'})),
+        rows:rowsD.map(a=>[this.C(a.nama,'left',{weight:'500'}),this.C(a.kat,'left',{color:'var(--text-muted)'}),this.C(a.hari+(lang==='id'?' hari':' d'),'right',{color:'var(--text-muted)'}),this.C(a.pinjam+'×','right',{color:'var(--text-muted)'}),this.C(a.util+'%','right',{weight:'600'})]),
+        footer:[this.C(ch.total,'left'),this.C('','left'),this.C(totHari+(lang==='id'?' hari':' d'),'right'),this.C(rowsD.reduce((a,b)=>a+b.pinjam,0)+'×','right'),this.C(avg+'%','right')] };
+    }
+    // biaya
+    const rowsD=BIAYA.filter(a=>passKat(a.kat));
+    const tot=rowsD.reduce((a,b)=>a+b.biaya,0); const prev=rowsD.filter(a=>a.tipe==='Preventive').reduce((a,b)=>a+b.biaya,0); const corr=rowsD.filter(a=>a.tipe==='Corrective').reduce((a,b)=>a+b.biaya,0);
+    const grp={}; rowsD.forEach(a=>{grp[a.kat]=(grp[a.kat]||0)+a.biaya;}); const mx=Math.max(1,...Object.values(grp));
+    return { hasData:rowsD.length>0,
+      kpis:[{label:ch.kBiaya[0],value:rpJt(tot),sub:lang==='id'?'periode terpilih':'selected period'},{label:ch.kBiaya[1],value:rpJt(prev),sub:'preventive'},{label:ch.kBiaya[2],value:rpJt(corr),sub:'corrective'}],
+      chartTitle:ch.chBiaya, chartBars:Object.keys(grp).map(k=>({label:k,display:rpJt(grp[k]),w:Math.round(grp[k]/mx*100)+'%'})),
+      cols:ch.colBiaya.map((l,i)=>({label:l,align:i>=3?'right':'left'})),
+      rows:rowsD.map(a=>[this.C(a.nama,'left',{weight:'500'}),this.C(a.kat,'left',{color:'var(--text-muted)'}),this.C(a.tipe,'left',{color:'var(--text-muted)'}),this.C(String(a.n),'right',{color:'var(--text-muted)'}),this.C(rp(a.biaya),'right',{weight:'600'})]),
+      footer:[this.C(ch.total,'left'),this.C('','left'),this.C('','left'),this.C(String(rowsD.reduce((a,b)=>a+b.n,0)),'right'),this.C(rp(tot),'right')] };
+  }
+  renderVals(){
+    const s=this.state; const theme=this.effTheme(),lang=this.effLang(),collapsed=this.effCollapsed();
+    const isDark=theme==='dark'; const ch=CH[lang];
+    const nav=NAV.map(g=>({label:g.label[lang],items:g.items.map(it=>({
+      label:it.label[lang],icon:mk(it.icon),
+      bg:it.active?'var(--primary-soft-bg)':'transparent',fg:it.active?'var(--primary-soft-text)':'var(--text-muted)',
+      weight:it.active?'600':'500',accent:it.active?'var(--primary)':'transparent',hoverBg:it.active?'var(--primary-soft-bg)':'var(--bg-muted)',
+    }))}));
+    const reportCards=ch.cards.map(c=>{ const act=s.report===c[0]; return {
+      label:c[1], desc:c[2], icon:mk(c[3],17), on:()=>this.setState({report:c[0]}),
+      bg:act?'var(--primary-soft-bg)':'var(--bg-base)', bd:act?'var(--primary)':'var(--border)', sh:act?'none':'var(--shadow)',
+      iconBg:act?'color-mix(in srgb,var(--primary) 20%,transparent)':'var(--bg-muted)', iconFg:act?'var(--primary-soft-text)':'var(--text-muted)', titleColor:act?'var(--primary-soft-text)':'var(--text)',
+    };});
+    const showStatus = s.report==='aset';
+    const filters=[
+      {label:ch.fPeriode,value:s.fPeriode,on:(e)=>this.setState({fPeriode:e.target.value}),opts:ch.periodeOpts.map((p,i)=>({v:String(i),label:p}))},
+      {label:ch.fKantor,value:s.fKantor,on:(e)=>this.setState({fKantor:e.target.value}),opts:[{v:'all',label:ch.allKantor}].concat(KANTOR.map(k=>({v:k,label:k})))},
+      {label:ch.fKategori,value:s.fKat,on:(e)=>this.setState({fKat:e.target.value}),opts:[{v:'all',label:ch.allKat}].concat(KAT.map(k=>({v:k,label:k})))},
+    ];
+    if(showStatus) filters.push({label:ch.fStatus,value:s.fStatus,on:(e)=>this.setState({fStatus:e.target.value}),opts:[{v:'all',label:ch.allStatus}].concat(ch.statusList.map(k=>({v:k,label:k})))});
+
+    const r=this.build(lang);
+    const card=ch.cards.find(c=>c[0]===s.report);
+
+    return {
+      rootRef:this.rootRef, theme, isDark, isLight:!isDark,
+      sidebarW:collapsed?'76px':'264px', expanded:!collapsed, collapsed, navJustify:collapsed?'center':'flex-start',
+      toggleCollapse:()=>{this._tc=true;this.setState(x=>({collapsed:!this.effCollapsed()}));},
+      toggleTheme:()=>{this._tt=true;const cur=this.effTheme();this.setState({theme:cur==='light'?'dark':'light'});},
+      setId:()=>{this._tl=true;this.setState({lang:'id'});}, setEn:()=>{this._tl=true;this.setState({lang:'en'});},
+      idBg:lang==='id'?'var(--bg-base)':'transparent', idFg:lang==='id'?'var(--text)':'var(--text-muted)',
+      enBg:lang==='en'?'var(--bg-base)':'transparent', enFg:lang==='en'?'var(--text)':'var(--text-muted)',
+      nav, pageTitle:ch.pageTitle, pageSub:ch.pageSub, reportCards, filters, applyLbl:ch.applyLbl, apply:()=>this.setState({applied:true}),
+      showPlaceholder:!s.applied, showEmpty:s.applied&&!r.hasData, showResult:s.applied&&r.hasData,
+      phTitle:ch.phTitle, phSub:ch.phSub, emptyTitle:ch.emptyTitle, emptySub:ch.emptySub, resetLbl:ch.resetLbl, resetFilter:()=>this.setState({fKat:'all',fStatus:'all',fKantor:'all'}),
+      resultTitle:card[1], resultMeta:ch.resultMetaF(ch.periodeOpts[Number(s.fPeriode)]), pdfLbl:ch.pdfLbl, excelLbl:ch.excelLbl,
+      kpis:r.kpis, chartTitle:r.chartTitle, chartBars:r.chartBars, cols:r.cols, rows:r.rows, footer:r.footer,
+    };
+  }
+}
+</script>
+</body>
+</html>

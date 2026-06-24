@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;}
+input::placeholder{color:var(--text-dimmed);}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:9px;border:2px solid transparent;background-clip:padding-box;}
+:root{
+  --bg:#f8fafc; --bg-base:#ffffff; --bg-muted:#f1f5f9; --bg-elevated:#ffffff;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#0f172a; --text-muted:#64748b; --text-dimmed:#94a3b8;
+  --primary:#16a34a; --primary-hover:#15803d; --primary-fg:#ffffff;
+  --primary-soft-bg:#dcfce7; --primary-soft-text:#15803d;
+  --warning:#d97706; --error:#dc2626;
+  --ring:color-mix(in srgb, var(--primary) 28%, transparent);
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
+  --shadow-lg:0 12px 34px rgba(15,23,42,.16);
+  --sheet:#475569;
+}
+[data-theme="dark"]{
+  --bg:#020617; --bg-base:#0b1220; --bg-muted:#1e293b; --bg-elevated:#1e293b;
+  --border:#1e293b; --border-strong:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8; --text-dimmed:#64748b;
+  --primary:#22c55e; --primary-hover:#16a34a; --primary-fg:#052e16;
+  --primary-soft-bg:#14331f; --primary-soft-text:#4ade80;
+  --warning:#f59e0b; --error:#ef4444;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 12px 34px rgba(0,0,0,.55);
+  --sheet:#0a0f1a;
+}
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" data-theme="{{ theme }}" style="font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--text);">
+  <div style="display:flex;height:100vh;overflow:hidden;background:var(--bg);">
+
+    <!-- SIDEBAR -->
+    <aside style="width:{{ sidebarW }};flex:none;display:flex;flex-direction:column;background:var(--bg-base);border-right:1px solid var(--border);transition:width .2s ease;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:11px;height:61px;padding:0 18px;border-bottom:1px solid var(--border);flex:none;">
+        <div style="width:34px;height:34px;border-radius:9px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--primary-fg);flex:none;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13h6"/></svg></div>
+        <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="font:700 18px Inter;letter-spacing:-.01em;white-space:nowrap;">Inventra</span></sc-if>
+      </div>
+      <nav style="flex:1;overflow-y:auto;overflow-x:hidden;padding:12px;">
+        <sc-for list="{{ nav }}" as="g" hint-placeholder-count="2">
+          <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><div style="padding:14px 12px 6px;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dimmed);white-space:nowrap;">{{ g.label }}</div></sc-if>
+          <sc-if value="{{ collapsed }}" hint-placeholder-val="{{ false }}"><div style="height:1px;background:var(--border);margin:10px 8px;"></div></sc-if>
+          <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+            <button title="{{ it.label }}" style="position:relative;display:flex;align-items:center;justify-content:{{ navJustify }};gap:11px;width:100%;padding:9px 12px;margin-bottom:2px;font-family:Inter;font-size:14px;font-weight:{{ it.weight }};color:{{ it.fg }};background:{{ it.bg }};border:none;border-radius:9px;cursor:pointer;text-align:left;box-shadow:inset 3px 0 0 {{ it.accent }};white-space:nowrap;" style-hover="background:{{ it.hoverBg }};">
+              {{ it.icon }}
+              <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;">{{ it.label }}</span></sc-if>
+              <sc-if value="{{ it.badgeExp }}" hint-placeholder-val="{{ false }}"><span style="flex:none;min-width:20px;height:20px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;font:700 11px Inter;color:#fff;background:var(--error);border-radius:999px;">{{ it.badge }}</span></sc-if>
+            </button>
+          </sc-for>
+        </sc-for>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <header style="display:flex;align-items:center;gap:14px;height:61px;flex:none;padding:0 20px;background:var(--bg-base);border-bottom:1px solid var(--border);">
+        <button onClick="{{ toggleCollapse }}" title="Collapse" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex:none;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg></button>
+        <div style="display:flex;align-items:center;gap:6px;font:400 12px Inter;color:var(--text-muted);"><span>Inventra</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span>{{ bcAset }}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span style="color:var(--text);font-weight:500;">{{ pageTitle }}</span></div>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex:none;">
+          <div style="display:flex;gap:2px;padding:3px;background:var(--bg-muted);border-radius:9px;">
+            <button onClick="{{ setId }}" style="padding:5px 9px;font:600 12px Inter;color:{{ idFg }};background:{{ idBg }};border:none;border-radius:6px;cursor:pointer;">ID</button>
+            <button onClick="{{ setEn }}" style="padding:5px 9px;font:600 12px Inter;color:{{ enFg }};background:{{ enBg }};border:none;border-radius:6px;cursor:pointer;">EN</button>
+          </div>
+          <button onClick="{{ toggleTheme }}" title="Tema" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">
+            <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></sc-if>
+            <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></sc-if>
+          </button>
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;background:transparent;border:1px solid var(--border);border-radius:999px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--primary);color:var(--primary-fg);display:flex;align-items:center;justify-content:center;font:700 12px Inter;">DL</span><span style="display:flex;color:var(--text-dimmed);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+        </div>
+      </header>
+
+      <div style="flex:1;display:flex;min-width:0;overflow:hidden;">
+
+        <!-- LEFT CONTROLS -->
+        <div style="width:340px;flex:none;border-right:1px solid var(--border);background:var(--bg-base);display:flex;flex-direction:column;overflow:hidden;">
+          <div style="padding:18px 20px 12px;flex:none;"><h1 style="margin:0 0 3px;font:700 18px Inter;letter-spacing:-.01em;">{{ pageTitle }}</h1><p style="margin:0;font:400 12.5px Inter;color:var(--text-muted);">{{ pageSub }}</p></div>
+
+          <div style="flex:1;overflow-y:auto;padding:6px 20px 20px;">
+            <!-- ASET -->
+            <div style="margin-bottom:20px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;"><span style="font:600 12px Inter;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);">{{ lAset }}</span><span style="font:600 11.5px Inter;color:var(--primary);">{{ selInfo }}</span></div>
+              <div style="position:relative;margin-bottom:10px;">
+                <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>
+                <input value="{{ q }}" onInput="{{ onSearch }}" placeholder="{{ searchPh }}" style="width:100%;padding:8px 12px 8px 34px;font:400 13px Inter;color:var(--text);background:var(--bg-muted);border:1px solid transparent;border-radius:9px;outline:none;" style-focus="background:var(--bg-base);border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+              </div>
+              <label style="display:flex;align-items:center;gap:9px;padding:7px 8px;font:600 12.5px Inter;color:var(--text-muted);cursor:pointer;border-bottom:1px solid var(--border);"><input type="checkbox" checked="{{ allChecked }}" onChange="{{ toggleAll }}" style="width:15px;height:15px;accent-color:var(--primary);cursor:pointer;" />{{ selectAllLbl }}</label>
+              <div style="max-height:220px;overflow-y:auto;margin-top:2px;">
+                <sc-for list="{{ assetRows }}" as="a" hint-placeholder-count="6">
+                  <label style="display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:8px;cursor:pointer;" style-hover="background:var(--bg-muted);"><input type="checkbox" checked="{{ a.checked }}" onChange="{{ a.toggle }}" style="width:15px;height:15px;accent-color:var(--primary);cursor:pointer;flex:none;" /><span style="flex:1;min-width:0;"><span style="display:block;font:500 13px Inter;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ a.nama }}</span><span style="display:block;font:400 11px 'JetBrains Mono',monospace;color:var(--text-dimmed);">{{ a.tag }}</span></span></label>
+                </sc-for>
+              </div>
+            </div>
+
+            <!-- UKURAN -->
+            <div style="margin-bottom:18px;">
+              <div style="font:600 12px Inter;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin-bottom:9px;">{{ lLayout }}</div>
+              <label style="display:block;font:500 12.5px Inter;color:var(--text-muted);margin-bottom:5px;">{{ lSize }}</label>
+              <div style="position:relative;margin-bottom:11px;"><select value="{{ size }}" onChange="{{ onSize }}" style="width:100%;appearance:none;padding:9px 32px 9px 12px;font:400 13.5px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;cursor:pointer;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><sc-for list="{{ sizeOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+              <label style="display:block;font:500 12.5px Inter;color:var(--text-muted);margin-bottom:6px;">{{ lCols }}</label>
+              <div style="display:flex;gap:6px;">
+                <sc-for list="{{ colOpts }}" as="c" hint-placeholder-count="3"><button onClick="{{ c.on }}" style="flex:1;padding:8px;font:600 13px Inter;color:{{ c.fg }};background:{{ c.bg }};border:1px solid {{ c.bd }};border-radius:8px;cursor:pointer;">{{ c.n }}</button></sc-for>
+              </div>
+              <div style="margin-top:8px;font:400 12px Inter;color:var(--text-dimmed);">{{ perPageInfo }}</div>
+            </div>
+
+            <!-- TAMPILKAN -->
+            <div style="margin-bottom:18px;">
+              <div style="font:600 12px Inter;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin-bottom:9px;">{{ lShow }}</div>
+              <div style="display:flex;gap:4px;padding:4px;background:var(--bg-muted);border-radius:10px;">
+                <sc-for list="{{ modeOpts }}" as="m" hint-placeholder-count="3"><button onClick="{{ m.on }}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;font:600 12.5px Inter;color:{{ m.fg }};background:{{ m.bg }};border:none;border-radius:7px;cursor:pointer;box-shadow:{{ m.sh }};">{{ m.label }}</button></sc-for>
+              </div>
+            </div>
+
+            <!-- FIELD -->
+            <div>
+              <div style="font:600 12px Inter;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin-bottom:9px;">{{ lFields }}</div>
+              <div style="display:flex;flex-direction:column;gap:2px;">
+                <label style="display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;font:500 13px Inter;color:var(--text);cursor:pointer;" style-hover="background:var(--bg-muted);"><input type="checkbox" checked="{{ fNama }}" onChange="{{ toggleNama }}" style="width:15px;height:15px;accent-color:var(--primary);cursor:pointer;" />{{ fNamaLbl }}</label>
+                <label style="display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;font:500 13px Inter;color:var(--text);cursor:pointer;" style-hover="background:var(--bg-muted);"><input type="checkbox" checked="{{ fKode }}" onChange="{{ toggleKode }}" style="width:15px;height:15px;accent-color:var(--primary);cursor:pointer;" />{{ fKodeLbl }}</label>
+                <label style="display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;font:500 13px Inter;color:var(--text);cursor:pointer;" style-hover="background:var(--bg-muted);"><input type="checkbox" checked="{{ fKantor }}" onChange="{{ toggleKantor }}" style="width:15px;height:15px;accent-color:var(--primary);cursor:pointer;" />{{ fKantorLbl }}</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT PREVIEW -->
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg);">
+          <div style="flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--bg-base);">
+            <div style="display:flex;align-items:center;gap:10px;"><span style="font:600 14px Inter;">{{ modeTitle }}</span><span style="font:400 13px Inter;color:var(--text-muted);">{{ countInfo }}</span></div>
+            <div style="display:flex;gap:9px;">
+              <button style="display:inline-flex;align-items:center;gap:7px;padding:9px 15px;font:500 13.5px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>{{ pdfLbl }}</button>
+              <button style="display:inline-flex;align-items:center;gap:7px;padding:9px 16px;font:600 13.5px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 17h10v4H7z"/></svg>{{ printLbl }}</button>
+            </div>
+          </div>
+
+          <div style="flex:1;overflow:auto;padding:28px;display:flex;justify-content:flex-start;align-items:flex-start;">
+            <sc-if value="{{ hasLabels }}" hint-placeholder-val="{{ true }}">
+              <div style="background:#ffffff;border-radius:6px;box-shadow:var(--shadow-lg);padding:26px;">
+                <div style="display:grid;grid-template-columns:{{ gridTemplate }};gap:12px;">
+                  <sc-for list="{{ labels }}" as="l" hint-placeholder-count="3">
+                    <div style="width:{{ labelW }};height:{{ labelH }};background:#fff;border:1px dashed #cbd5e1;border-radius:6px;padding:11px;display:flex;flex-direction:column;justify-content:space-between;gap:8px;color:#0f172a;overflow:hidden;">
+                      <div style="display:flex;gap:9px;align-items:flex-start;">
+                        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+                          <sc-if value="{{ fNama }}" hint-placeholder-val="{{ true }}"><div style="font:600 13px Inter;color:#0f172a;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">{{ l.nama }}</div></sc-if>
+                          <sc-if value="{{ fKode }}" hint-placeholder-val="{{ true }}"><div style="font:600 11px 'JetBrains Mono',monospace;color:#475569;">{{ l.tag }}</div></sc-if>
+                          <sc-if value="{{ fKantor }}" hint-placeholder-val="{{ true }}"><div style="font:400 10px Inter;color:#94a3b8;">{{ l.kantor }}</div></sc-if>
+                        </div>
+                        <sc-if value="{{ showQR }}" hint-placeholder-val="{{ true }}"><div style="flex:none;">{{ l.qrEl }}</div></sc-if>
+                      </div>
+                      <sc-if value="{{ showBarcode }}" hint-placeholder-val="{{ true }}">
+                        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">{{ l.barEl }}<div style="font:500 9px 'JetBrains Mono',monospace;color:#475569;letter-spacing:.5px;">{{ l.tag }}</div></div>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ noLabels }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:60px;text-align:center;">
+                <div style="width:60px;height:60px;margin:0 auto 16px;border-radius:16px;background:var(--bg-muted);color:var(--text-dimmed);display:flex;align-items:center;justify-content:center;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9v6M10 9v6M13 9v6M16 9v6"/></svg></div>
+                <div style="font:600 16px Inter;margin-bottom:6px;">{{ emptyTitle }}</div>
+                <div style="font:400 14px Inter;color:var(--text-muted);max-width:300px;">{{ emptySub }}</div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;id&quot;,&quot;en&quot;],&quot;default&quot;:&quot;id&quot;,&quot;tsType&quot;:&quot;'id' | 'en'&quot;},&quot;state&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;single&quot;,&quot;batch&quot;,&quot;empty&quot;],&quot;default&quot;:&quot;single&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;collapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;primaryColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#16a34a&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const ICONS={
+  dashboard:[['rect',{x:3,y:3,width:7,height:9,rx:1}],['rect',{x:14,y:3,width:7,height:5,rx:1}],['rect',{x:14,y:12,width:7,height:9,rx:1}],['rect',{x:3,y:16,width:7,height:5,rx:1}]],
+  box:[['path',{d:'M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2'}],['path',{d:'M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'}],['path',{d:'M9 13h6'}]],
+  clipboard:[['rect',{x:5,y:4,width:14,height:17,rx:2}],['path',{d:'M9 4V3h6v1'}],['path',{d:'M9 13l2 2 4-4'}]],
+  wrench:[['path',{d:'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.7 2.7-2-2z'}]],
+  approval:[['path',{d:'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'}],['path',{d:'M9 11l3 3 8-8'}]],
+  chart:[['path',{d:'M3 3v18h18'}],['path',{d:'M7 16v-5M12 16V8M17 16v-3'}]],
+  database:[['path',{d:'M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3z'}],['path',{d:'M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6'}],['path',{d:'M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6'}]],
+  settings:[['circle',{cx:12,cy:12,r:3}],['path',{d:'M19.4 15a1.6 1.6 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0 1.6 1.6 0 0 0-2.7-1.1 2 2 0 1 1-2.8-2.8A1.6 1.6 0 0 0 3 13.6a2 2 0 0 1 0-3.2A1.6 1.6 0 0 0 4.6 7a2 2 0 1 1 2.8-2.8A1.6 1.6 0 0 0 10 4.6V3a2 2 0 0 1 4 0 1.6 1.6 0 0 0 2.7 1.1A2 2 0 1 1 19.5 7a1.6 1.6 0 0 0-1 2.4 2 2 0 0 1 0 3.2z'}]],
+};
+function mk(key,size){const d=ICONS[key]||ICONS.box;return React.createElement('svg',{width:size||18,height:size||18,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.9,strokeLinecap:'round',strokeLinejoin:'round',style:{flex:'none'}},d.map((x,i)=>React.createElement(x[0],{...x[1],key:i})));}
+function barcodeEl(tag,h){
+  const bars=[{w:5,on:false}];
+  for(let i=0;i<tag.length;i++){const c=tag.charCodeAt(i);
+    bars.push({w:(c%3)+1,on:true});bars.push({w:((c>>2)%3)+1,on:false});
+    bars.push({w:((c>>4)%2)+1,on:true});bars.push({w:((c>>1)%2)+1,on:false});}
+  bars.push({w:2,on:true});bars.push({w:5,on:false});
+  return React.createElement('div',{style:{display:'flex',alignItems:'stretch',height:h+'px',width:'100%',justifyContent:'center'}},
+    bars.map((b,i)=>React.createElement('div',{key:i,style:{width:(b.w*1.3)+'px',background:b.on?'#0f172a':'#fff'}})));
+}
+function qrEl(tag,size){
+  const N=21,cell=size/N;
+  const g=[];for(let r=0;r<N;r++){g[r]=[];for(let c=0;c<N;c++)g[r][c]=0;}
+  const finder=(or,oc)=>{for(let r=0;r<7;r++)for(let c=0;c<7;c++){const edge=(r===0||r===6||c===0||c===6),inner=(r>=2&&r<=4&&c>=2&&c<=4);g[or+r][oc+c]=(edge||inner)?1:0;}};
+  finder(0,0);finder(0,N-7);finder(N-7,0);
+  let seed=7;for(let i=0;i<tag.length;i++)seed=(seed*31+tag.charCodeAt(i))>>>0;
+  const rnd=()=>{seed=(seed*1103515245+12345)>>>0;return (seed>>>16)/65535;};
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){const inF=(r<8&&c<8)||(r<8&&c>=N-8)||(r>=N-8&&c<8);if(!inF)g[r][c]=rnd()>0.52?1:0;}
+  const cells=[];
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){if(g[r][c])cells.push(React.createElement('div',{key:r+'_'+c,style:{position:'absolute',left:(c*cell)+'px',top:(r*cell)+'px',width:Math.ceil(cell)+'px',height:Math.ceil(cell)+'px',background:'#0f172a'}}));}
+  return React.createElement('div',{style:{position:'relative',width:size+'px',height:size+'px',background:'#fff',flex:'none'}},cells);
+}
+const L=(id,en)=>({id,en});
+const NAV=[
+  { label:L('Operasional','Operational'), items:[
+    { label:L('Dashboard','Dashboard'), icon:'dashboard' },
+    { label:L('Aset','Assets'), icon:'box', active:true },
+    { label:L('Penugasan','Assignments'), icon:'clipboard' },
+    { label:L('Maintenance','Maintenance'), icon:'wrench' },
+    { label:L('Pengajuan','Requests'), icon:'approval', badge:3 },
+    { label:L('Laporan','Reports'), icon:'chart' },
+  ]},
+  { label:L('Administrasi','Administration'), items:[
+    { label:L('Master Data','Master Data'), icon:'database' },
+    { label:L('Pengaturan','Settings'), icon:'settings' },
+  ]},
+];
+const ASSETS=[
+  {tag:'JKT01-ELK-2026-00001',nama:'Laptop Dell Latitude 5440',kantor:'Cabang Jakarta Selatan'},
+  {tag:'JKT01-ELK-2026-00002',nama:'Proyektor Epson EB-X51',kantor:'Cabang Jakarta Selatan'},
+  {tag:'JKT01-KEN-2025-00007',nama:'Toyota Avanza 1.5 G',kantor:'Cabang Jakarta Selatan'},
+  {tag:'JKT01-FUR-2025-00011',nama:'Meja Kerja Ergonomis',kantor:'Cabang Jakarta Selatan'},
+  {tag:'JKT01-ITX-2025-00014',nama:'Router MikroTik RB4011',kantor:'Cabang Jakarta Selatan'},
+  {tag:'JKT01-ELK-2025-00018',nama:'UPS APC Smart-UPS 1500',kantor:'Cabang Jakarta Selatan'},
+  {tag:'JKT01-FUR-2026-00003',nama:'Kursi Ergonomis Ergotec',kantor:'Outlet Kemang'},
+  {tag:'JKT01-ITX-2026-00006',nama:'CCTV Hikvision DS-2CD',kantor:'Cabang Jakarta Selatan'},
+];
+const SIZES={ '50x30':{w:196,h:116,qr:60,bar:30}, '70x40':{w:248,h:146,qr:74,bar:36}, '100x50':{w:320,h:168,qr:88,bar:42} };
+const CH={
+  id:{ bcAset:'Aset', pageTitle:'Label & Barcode', pageSub:'Pratinjau dan cetak label aset (Code128 + QR).',
+    lAset:'Pilih Aset', searchPh:'Cari nama / kode…', selectAllLbl:'Pilih semua (hasil filter)',
+    lLayout:'Tata Letak', lSize:'Ukuran label', lCols:'Kolom per baris', lShow:'Tampilkan', lFields:'Field dicetak',
+    fNamaLbl:'Nama aset', fKodeLbl:'Kode aset', fKantorLbl:'Kantor',
+    mBarcode:'Barcode', mQR:'QR', mBoth:'Keduanya',
+    sizeOpts:[['50x30','50 × 30 mm'],['70x40','70 × 40 mm'],['100x50','100 × 50 mm']],
+    pdfLbl:'Unduh PDF', printLbl:'Cetak',
+    single:'Label Tunggal', batch:'Lembar Batch',
+    emptyTitle:'Belum ada aset dipilih', emptySub:'Centang aset di panel kiri untuk melihat pratinjau label.',
+    perPage:(n)=>'≈ '+n+' label / halaman A4', selN:(n)=>n+' dipilih', countN:(n)=>n+' label', },
+  en:{ bcAset:'Assets', pageTitle:'Label & Barcode', pageSub:'Preview and print asset labels (Code128 + QR).',
+    lAset:'Select Assets', searchPh:'Search name / code…', selectAllLbl:'Select all (filtered)',
+    lLayout:'Layout', lSize:'Label size', lCols:'Columns per row', lShow:'Show', lFields:'Printed fields',
+    fNamaLbl:'Asset name', fKodeLbl:'Asset code', fKantorLbl:'Office',
+    mBarcode:'Barcode', mQR:'QR', mBoth:'Both',
+    sizeOpts:[['50x30','50 × 30 mm'],['70x40','70 × 40 mm'],['100x50','100 × 50 mm']],
+    pdfLbl:'Download PDF', printLbl:'Print',
+    single:'Single Label', batch:'Batch Sheet',
+    emptyTitle:'No asset selected', emptySub:'Check assets in the left panel to preview labels.',
+    perPage:(n)=>'≈ '+n+' labels / A4 page', selN:(n)=>n+' selected', countN:(n)=>n+' labels', },
+};
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef=React.createRef();
+    this.state={
+      theme:(props.theme==='dark'?'dark':'light'),
+      lang:(props.lang==='en'?'en':'id'),
+      collapsed:!!props.collapsed,
+      q:'', size:'70x40', cols:3, mode:'both',
+      fields:{nama:true,kode:true,kantor:true},
+      selected: props.state==='empty'?[] : (props.state==='batch'? ASSETS.slice(0,5).map(a=>a.tag) : [ASSETS[0].tag]),
+    };
+    this._tt=false;this._tl=false;this._tc=false;
+  }
+  componentDidMount(){ this.applyPrimary(); }
+  componentDidUpdate(){ this.applyPrimary(); }
+  applyPrimary(){ const c=this.props.primaryColor,el=this.rootRef.current; if(el&&c) el.style.setProperty('--primary',c); }
+  effTheme(){ return this._tt?this.state.theme:(this.props.theme||'light'); }
+  effLang(){ return this._tl?this.state.lang:(this.props.lang||'id'); }
+  effCollapsed(){ return this._tc?this.state.collapsed:!!this.props.collapsed; }
+  renderVals(){
+    const s=this.state;
+    const theme=this.effTheme(),lang=this.effLang(),collapsed=this.effCollapsed();
+    const isDark=theme==='dark';
+    const ch=CH[lang];
+    const sz=SIZES[s.size];
+
+    const nav=NAV.map(g=>({label:g.label[lang],items:g.items.map(it=>({
+      label:it.label[lang],icon:mk(it.icon),badge:it.badge,badgeExp:!!it.badge&&!collapsed,
+      bg:it.active?'var(--primary-soft-bg)':'transparent',fg:it.active?'var(--primary-soft-text)':'var(--text-muted)',
+      weight:it.active?'600':'500',accent:it.active?'var(--primary)':'transparent',hoverBg:it.active?'var(--primary-soft-bg)':'var(--bg-muted)',
+    }))}));
+
+    const q=s.q.trim().toLowerCase();
+    const filtered=ASSETS.filter(a=>!q||a.nama.toLowerCase().includes(q)||a.tag.toLowerCase().includes(q));
+    const assetRows=filtered.map(a=>({
+      tag:a.tag, nama:a.nama, checked:s.selected.includes(a.tag),
+      toggle:()=>this.setState(x=>({selected: x.selected.includes(a.tag)?x.selected.filter(t=>t!==a.tag):[...x.selected,a.tag]})),
+    }));
+    const filteredTags=filtered.map(a=>a.tag);
+    const allChecked= filteredTags.length>0 && filteredTags.every(t=>s.selected.includes(t));
+
+    const showQR = s.mode==='qr'||s.mode==='both';
+    const showBarcode = s.mode==='barcode'||s.mode==='both';
+
+    const selAssets=ASSETS.filter(a=>s.selected.includes(a.tag));
+    const labels=selAssets.map(a=>({
+      tag:a.tag, nama:a.nama, kantor:a.kantor,
+      qrEl: showQR?qrEl(a.tag,sz.qr):null,
+      barEl: showBarcode?barcodeEl(a.tag,sz.bar):null,
+    }));
+
+    const rowsPer=Math.max(1,Math.floor((1040)/(sz.h+12)));
+    const perPage=s.cols*rowsPer;
+
+    const colOpts=[2,3,4].map(n=>({n:String(n),on:()=>this.setState({cols:n}),
+      bg:s.cols===n?'var(--primary-soft-bg)':'var(--bg-base)',fg:s.cols===n?'var(--primary-soft-text)':'var(--text-muted)',bd:s.cols===n?'var(--primary)':'var(--border-strong)'}));
+    const modeDefs=[['barcode',ch.mBarcode],['qr',ch.mQR],['both',ch.mBoth]];
+    const modeOpts=modeDefs.map(([k,label])=>({label,on:()=>this.setState({mode:k}),
+      bg:s.mode===k?'var(--bg-base)':'transparent',fg:s.mode===k?'var(--text)':'var(--text-muted)',sh:s.mode===k?'var(--shadow)':'none'}));
+
+    return {
+      rootRef:this.rootRef, theme, isDark, isLight:!isDark,
+      sidebarW:collapsed?'76px':'264px', expanded:!collapsed, collapsed, navJustify:collapsed?'center':'flex-start',
+      toggleCollapse:()=>{this._tc=true;this.setState(x=>({collapsed:!this.effCollapsed()}));},
+      toggleTheme:()=>{this._tt=true;const cur=this.effTheme();this.setState({theme:cur==='light'?'dark':'light'});},
+      setId:()=>{this._tl=true;this.setState({lang:'id'});}, setEn:()=>{this._tl=true;this.setState({lang:'en'});},
+      idBg:lang==='id'?'var(--bg-base)':'transparent', idFg:lang==='id'?'var(--text)':'var(--text-muted)',
+      enBg:lang==='en'?'var(--bg-base)':'transparent', enFg:lang==='en'?'var(--text)':'var(--text-muted)',
+      nav, bcAset:ch.bcAset, pageTitle:ch.pageTitle, pageSub:ch.pageSub,
+      lAset:ch.lAset, searchPh:ch.searchPh, selectAllLbl:ch.selectAllLbl,
+      q:s.q, onSearch:(e)=>this.setState({q:e.target.value}),
+      assetRows, allChecked, selInfo:ch.selN(s.selected.length),
+      toggleAll:()=>this.setState(x=>{ const all=filteredTags.every(t=>x.selected.includes(t)); return {selected: all? x.selected.filter(t=>!filteredTags.includes(t)) : Array.from(new Set([...x.selected,...filteredTags]))}; }),
+      lLayout:ch.lLayout, lSize:ch.lSize, lCols:ch.lCols, lShow:ch.lShow, lFields:ch.lFields,
+      size:s.size, sizeOpts:ch.sizeOpts.map(o=>({v:o[0],label:o[1]})), onSize:(e)=>this.setState({size:e.target.value}),
+      colOpts, perPageInfo:ch.perPage(perPage),
+      modeOpts,
+      fNama:s.fields.nama, fKode:s.fields.kode, fKantor:s.fields.kantor,
+      fNamaLbl:ch.fNamaLbl, fKodeLbl:ch.fKodeLbl, fKantorLbl:ch.fKantorLbl,
+      toggleNama:()=>this.setState(x=>({fields:{...x.fields,nama:!x.fields.nama}})),
+      toggleKode:()=>this.setState(x=>({fields:{...x.fields,kode:!x.fields.kode}})),
+      toggleKantor:()=>this.setState(x=>({fields:{...x.fields,kantor:!x.fields.kantor}})),
+      showQR, showBarcode,
+      labels, hasLabels:labels.length>0, noLabels:labels.length===0,
+      gridTemplate:'repeat('+Math.min(s.cols, Math.max(1,labels.length))+', '+sz.w+'px)', labelW:sz.w+'px', labelH:sz.h+'px',
+      modeTitle: labels.length<=1?ch.single:ch.batch, countInfo:ch.countN(labels.length),
+      pdfLbl:ch.pdfLbl, printLbl:ch.printLbl,
+      emptyTitle:ch.emptyTitle, emptySub:ch.emptySub,
+    };
+  }
+}
+</script>
+</body>
+</html>

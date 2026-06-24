@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;}
+input::placeholder{color:var(--text-dimmed);}
+:root{
+  --bg:#f8fafc; --bg-base:#ffffff; --bg-muted:#f1f5f9;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#0f172a; --text-muted:#64748b; --text-dimmed:#94a3b8;
+  --primary:#16a34a; --primary-hover:#15803d; --primary-fg:#ffffff;
+  --primary-soft-bg:#dcfce7; --primary-soft-text:#15803d;
+  --error:#dc2626; --error-soft-bg:#fee2e2; --error-soft-text:#b91c1c;
+  --ring:color-mix(in srgb, var(--primary) 28%, transparent);
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
+  --shadow-lg:0 18px 50px rgba(15,23,42,.14);
+}
+[data-theme="dark"]{
+  --bg:#020617; --bg-base:#0f172a; --bg-muted:#1e293b;
+  --border:#1e293b; --border-strong:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8; --text-dimmed:#64748b;
+  --primary:#22c55e; --primary-hover:#16a34a; --primary-fg:#052e16;
+  --primary-soft-bg:#14331f; --primary-soft-text:#4ade80;
+  --error:#ef4444; --error-soft-bg:#3a1414; --error-soft-text:#f87171;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 18px 50px rgba(0,0,0,.6);
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (max-width:880px){
+  [data-brand-panel]{display:none !important;}
+  [data-auth-shell]{grid-template-columns:1fr !important;}
+}
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" data-theme="{{ theme }}" style="font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--text);">
+  <div data-auth-shell style="min-height:100vh;display:grid;grid-template-columns:1.05fr 1fr;background:var(--bg);">
+
+    <!-- ===== BRAND PANEL ===== -->
+    <aside data-brand-panel style="position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:48px 52px;background:linear-gradient(150deg,#14532d 0%,#15803d 42%,#16a34a 100%);color:#fff;">
+      <div style="position:absolute;top:-90px;right:-70px;width:340px;height:340px;border-radius:50%;background:rgba(255,255,255,.10);filter:blur(8px);"></div>
+      <div style="position:absolute;bottom:-120px;left:-60px;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,.07);"></div>
+      <div style="position:absolute;bottom:24px;right:-30px;color:rgba(255,255,255,.06);"><svg width="280" height="280" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13h6"/></svg></div>
+
+      <div style="position:relative;display:flex;align-items:center;gap:13px;">
+        <div style="width:42px;height:42px;border-radius:11px;background:rgba(255,255,255,.16);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.25);">
+          <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13h6"/></svg>
+        </div>
+        <span style="font:700 22px Inter;letter-spacing:-.01em;">Inventra</span>
+      </div>
+
+      <div style="position:relative;max-width:440px;">
+        <h1 style="margin:0 0 16px;font:700 32px/1.25 Inter;letter-spacing:-.02em;">{{ t.brandHead }}</h1>
+        <p style="margin:0 0 30px;font:400 16px/1.65 Inter;color:rgba(255,255,255,.82);">{{ t.brandTag }}</p>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;align-items:center;gap:11px;font:500 15px Inter;color:rgba(255,255,255,.95);"><span style="width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;flex:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>{{ t.feat1 }}</div>
+          <div style="display:flex;align-items:center;gap:11px;font:500 15px Inter;color:rgba(255,255,255,.95);"><span style="width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;flex:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>{{ t.feat2 }}</div>
+          <div style="display:flex;align-items:center;gap:11px;font:500 15px Inter;color:rgba(255,255,255,.95);"><span style="width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;flex:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>{{ t.feat3 }}</div>
+        </div>
+      </div>
+
+      <div style="position:relative;font:400 13px Inter;color:rgba(255,255,255,.6);">{{ t.copyright }}</div>
+    </aside>
+
+    <!-- ===== FORM PANEL ===== -->
+    <main style="position:relative;display:flex;align-items:center;justify-content:center;padding:40px 28px;">
+
+      <!-- preview switcher (top-left) -->
+      <div style="position:absolute;top:22px;left:24px;display:flex;align-items:center;gap:8px;">
+        <span style="font:600 10px 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dimmed);">{{ t.preview }}</span>
+        <div style="display:flex;gap:3px;padding:3px;background:var(--bg-muted);border:1px solid var(--border);border-radius:9px;">
+          <sc-for list="{{ views }}" as="v" hint-placeholder-count="3">
+            <button onClick="{{ v.on }}" style="padding:5px 10px;font:600 12px Inter;color:{{ v.fg }};background:{{ v.bg }};border:none;border-radius:6px;cursor:pointer;box-shadow:{{ v.sh }};">{{ v.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- lang + theme (top-right) -->
+      <div style="position:absolute;top:22px;right:24px;display:flex;align-items:center;gap:8px;">
+        <div style="display:flex;gap:2px;padding:3px;background:var(--bg-muted);border:1px solid var(--border);border-radius:9px;">
+          <button onClick="{{ setId }}" style="padding:5px 10px;font:600 12px Inter;color:{{ idFg }};background:{{ idBg }};border:none;border-radius:6px;cursor:pointer;">ID</button>
+          <button onClick="{{ setEn }}" style="padding:5px 10px;font:600 12px Inter;color:{{ enFg }};background:{{ enBg }};border:none;border-radius:6px;cursor:pointer;">EN</button>
+        </div>
+        <button onClick="{{ toggleTheme }}" title="Tema" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;color:var(--text-muted);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">
+          <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></sc-if>
+          <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></sc-if>
+        </button>
+      </div>
+
+      <!-- mobile brand mark -->
+      <div data-mobile-brand style="position:absolute;top:24px;left:50%;transform:translateX(-50%);display:none;"></div>
+
+      <div style="width:100%;max-width:392px;">
+
+        <!-- ===== LOGIN ===== -->
+        <sc-if value="{{ viewLogin }}" hint-placeholder-val="{{ true }}">
+          <div style="animation:fadeUp .25s ease-out;">
+            <h2 style="margin:0 0 6px;font:700 24px Inter;letter-spacing:-.01em;">{{ t.loginTitle }}</h2>
+            <p style="margin:0 0 24px;font:400 15px Inter;color:var(--text-muted);">{{ t.loginSub }}</p>
+
+            <sc-if value="{{ error }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:10px;align-items:flex-start;padding:11px 13px;margin-bottom:18px;border-radius:10px;background:var(--error-soft-bg);border:1px solid color-mix(in srgb,var(--error) 30%,transparent);">
+                <span style="color:var(--error);flex:none;margin-top:1px;display:flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg></span>
+                <span style="font:500 13px/1.45 Inter;color:var(--error-soft-text);">{{ t.errCred }}</span>
+              </div>
+            </sc-if>
+
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <div>
+                <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ t.email }}</label>
+                <div style="position:relative;">
+                  <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);display:flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
+                  <input value="{{ email }}" onInput="{{ onEmail }}" placeholder="{{ t.emailPh }}" style="width:100%;padding:10px 12px 10px 38px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid {{ emailBorder }};border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+                </div>
+              </div>
+              <div>
+                <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ t.password }}</label>
+                <div style="position:relative;">
+                  <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);display:flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+                  <input type="{{ passType }}" placeholder="{{ t.passPh }}" style="width:100%;padding:10px 40px 10px 38px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid {{ emailBorder }};border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+                  <button onClick="{{ toggleShowPass }}" title="Lihat / sembunyikan" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:5px;color:var(--text-dimmed);background:transparent;border:none;border-radius:6px;cursor:pointer;display:flex;" style-hover="color:var(--text);">
+                    <sc-if value="{{ showPass }}" hint-placeholder-val="{{ false }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 4.2A9.5 9.5 0 0 1 12 4c6.5 0 10 7 10 7a13.2 13.2 0 0 1-2.2 3M6.1 6.1A13.3 13.3 0 0 0 2 11s3.5 7 10 7a9.4 9.4 0 0 0 4-.9M1 1l22 22M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></sc-if>
+                    <sc-if value="{{ hidePass }}" hint-placeholder-val="{{ true }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></sc-if>
+                  </button>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <label style="display:flex;align-items:center;gap:8px;font:400 14px Inter;color:var(--text-muted);cursor:pointer;"><input type="checkbox" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;" />{{ t.remember }}</label>
+                <button onClick="{{ goForgot }}" style="font:500 14px Inter;color:var(--primary);background:transparent;border:none;cursor:pointer;padding:0;" style-hover="text-decoration:underline;">{{ t.forgot }}</button>
+              </div>
+
+              <button onClick="{{ submitLogin }}" disabled="{{ loading }}" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;margin-top:2px;font:600 15px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:10px;cursor:{{ btnCursor }};opacity:{{ btnOpacity }};" style-hover="background:var(--primary-hover);border-color:var(--primary-hover);">
+                <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}"><span style="width:15px;height:15px;border:2px solid color-mix(in srgb,var(--primary-fg) 40%,transparent);border-top-color:var(--primary-fg);border-radius:50%;animation:spin .7s linear infinite;"></span></sc-if>
+                {{ loginBtnLabel }}
+              </button>
+
+              <div style="display:flex;align-items:center;gap:14px;margin:4px 0;"><div style="flex:1;height:1px;background:var(--border);"></div><span style="font:400 13px Inter;color:var(--text-dimmed);">{{ t.or }}</span><div style="flex:1;height:1px;background:var(--border);"></div></div>
+
+              <button style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px;font:600 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;cursor:pointer;" style-hover="background:var(--bg-muted);">
+                <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.2 13.3 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9.1h12.4c-.5 2.9-2.2 5.4-4.7 7l7.6 5.9c4.4-4.1 7-10.1 7-17.4z"/><path fill="#FBBC05" d="M10.4 28.3c-.5-1.4-.8-2.9-.8-4.3s.3-3 .8-4.3l-7.8-6.1C.9 16.6 0 20.2 0 24s.9 7.4 2.6 10.4l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.5-2 15.3-5.5l-7.6-5.9c-2.1 1.4-4.8 2.3-7.7 2.3-6.4 0-11.8-3.8-13.6-9.8l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+                {{ t.google }}
+              </button>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== FORGOT ===== -->
+        <sc-if value="{{ viewForgot }}" hint-placeholder-val="{{ false }}">
+          <div style="animation:fadeUp .25s ease-out;">
+            <div style="width:46px;height:46px;border-radius:12px;background:var(--primary-soft-bg);color:var(--primary-soft-text);display:flex;align-items:center;justify-content:center;margin-bottom:18px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V8a5 5 0 0 1 9.5-2"/></svg></div>
+            <h2 style="margin:0 0 6px;font:700 24px Inter;letter-spacing:-.01em;">{{ t.forgotTitle }}</h2>
+            <p style="margin:0 0 24px;font:400 15px/1.55 Inter;color:var(--text-muted);">{{ t.forgotSub }}</p>
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <div>
+                <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ t.email }}</label>
+                <div style="position:relative;">
+                  <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);display:flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
+                  <input value="{{ email }}" onInput="{{ onEmail }}" placeholder="{{ t.emailPh }}" style="width:100%;padding:10px 12px 10px 38px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+                </div>
+              </div>
+              <button onClick="{{ submitForgot }}" disabled="{{ loading }}" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;font:600 15px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:10px;cursor:{{ btnCursor }};opacity:{{ btnOpacity }};" style-hover="background:var(--primary-hover);">
+                <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}"><span style="width:15px;height:15px;border:2px solid color-mix(in srgb,var(--primary-fg) 40%,transparent);border-top-color:var(--primary-fg);border-radius:50%;animation:spin .7s linear infinite;"></span></sc-if>
+                {{ forgotBtnLabel }}
+              </button>
+              <button onClick="{{ goLogin }}" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;font:500 14px Inter;color:var(--text-muted);background:transparent;border:none;cursor:pointer;padding:4px;" style-hover="color:var(--text);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>{{ t.back }}</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== SENT ===== -->
+        <sc-if value="{{ viewSent }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center;animation:fadeUp .25s ease-out;">
+            <div style="width:54px;height:54px;border-radius:14px;background:var(--primary-soft-bg);color:var(--primary-soft-text);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/><polyline points="16 14 18 16 22 12"/></svg></div>
+            <h2 style="margin:0 0 8px;font:700 24px Inter;letter-spacing:-.01em;">{{ t.sentTitle }}</h2>
+            <p style="margin:0 0 24px;font:400 15px/1.6 Inter;color:var(--text-muted);">{{ sentSub }}</p>
+            <button onClick="{{ goLogin }}" style="width:100%;padding:12px;font:600 15px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:10px;cursor:pointer;" style-hover="background:var(--primary-hover);">{{ t.back }}</button>
+          </div>
+        </sc-if>
+
+        <!-- ===== RESET ===== -->
+        <sc-if value="{{ viewReset }}" hint-placeholder-val="{{ false }}">
+          <div style="animation:fadeUp .25s ease-out;">
+            <div style="width:46px;height:46px;border-radius:12px;background:var(--primary-soft-bg);color:var(--primary-soft-text);display:flex;align-items:center;justify-content:center;margin-bottom:18px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><path d="M12 15v2"/></svg></div>
+            <h2 style="margin:0 0 6px;font:700 24px Inter;letter-spacing:-.01em;">{{ t.resetTitle }}</h2>
+            <p style="margin:0 0 24px;font:400 15px/1.55 Inter;color:var(--text-muted);">{{ t.resetSub }}</p>
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <div>
+                <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ t.newPass }}</label>
+                <div style="position:relative;">
+                  <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);display:flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+                  <input type="{{ newType }}" placeholder="{{ t.newPassPh }}" style="width:100%;padding:10px 40px 10px 38px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+                  <button onClick="{{ toggleShowNew }}" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:5px;color:var(--text-dimmed);background:transparent;border:none;border-radius:6px;cursor:pointer;display:flex;" style-hover="color:var(--text);">
+                    <sc-if value="{{ showNew }}" hint-placeholder-val="{{ false }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 4.2A9.5 9.5 0 0 1 12 4c6.5 0 10 7 10 7a13.2 13.2 0 0 1-2.2 3M6.1 6.1A13.3 13.3 0 0 0 2 11s3.5 7 10 7a9.4 9.4 0 0 0 4-.9M1 1l22 22M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></sc-if>
+                    <sc-if value="{{ hideNew }}" hint-placeholder-val="{{ true }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></sc-if>
+                  </button>
+                </div>
+                <div style="margin-top:6px;font:400 12px/1.45 Inter;color:var(--text-dimmed);">{{ t.passHint }}</div>
+              </div>
+              <div>
+                <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ t.confirmPass }}</label>
+                <div style="position:relative;">
+                  <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);display:flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+                  <input type="{{ confirmType }}" placeholder="{{ t.confirmPh }}" style="width:100%;padding:10px 40px 10px 38px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+                  <button onClick="{{ toggleShowConfirm }}" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:5px;color:var(--text-dimmed);background:transparent;border:none;border-radius:6px;cursor:pointer;display:flex;" style-hover="color:var(--text);">
+                    <sc-if value="{{ showConfirm }}" hint-placeholder-val="{{ false }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 4.2A9.5 9.5 0 0 1 12 4c6.5 0 10 7 10 7a13.2 13.2 0 0 1-2.2 3M6.1 6.1A13.3 13.3 0 0 0 2 11s3.5 7 10 7a9.4 9.4 0 0 0 4-.9M1 1l22 22M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></sc-if>
+                    <sc-if value="{{ hideConfirm }}" hint-placeholder-val="{{ true }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></sc-if>
+                  </button>
+                </div>
+              </div>
+              <button onClick="{{ submitReset }}" disabled="{{ loading }}" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;margin-top:2px;font:600 15px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:10px;cursor:{{ btnCursor }};opacity:{{ btnOpacity }};" style-hover="background:var(--primary-hover);">
+                <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}"><span style="width:15px;height:15px;border:2px solid color-mix(in srgb,var(--primary-fg) 40%,transparent);border-top-color:var(--primary-fg);border-radius:50%;animation:spin .7s linear infinite;"></span></sc-if>
+                {{ resetBtnLabel }}
+              </button>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== DONE ===== -->
+        <sc-if value="{{ viewDone }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center;animation:fadeUp .25s ease-out;">
+            <div style="width:54px;height:54px;border-radius:14px;background:var(--primary-soft-bg);color:var(--primary-soft-text);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8.5 12 11 14.5 15.5 9.5"/></svg></div>
+            <h2 style="margin:0 0 8px;font:700 24px Inter;letter-spacing:-.01em;">{{ t.doneTitle }}</h2>
+            <p style="margin:0 0 24px;font:400 15px/1.6 Inter;color:var(--text-muted);">{{ t.doneSub }}</p>
+            <button onClick="{{ goLogin }}" style="width:100%;padding:12px;font:600 15px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:10px;cursor:pointer;" style-hover="background:var(--primary-hover);">{{ t.toLogin }}</button>
+          </div>
+        </sc-if>
+
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;id&quot;,&quot;en&quot;],&quot;default&quot;:&quot;id&quot;,&quot;tsType&quot;:&quot;'id' | 'en'&quot;},&quot;initialView&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;login&quot;,&quot;forgot&quot;,&quot;reset&quot;],&quot;default&quot;:&quot;login&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;primaryColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#16a34a&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const STR = {
+  id: {
+    brandHead: 'Manajemen aset, rapi dan terkendali.',
+    brandTag: 'Katalog, peminjaman, maintenance, hingga laporan organisasi 4 jenjang kantor — semuanya dalam satu sistem.',
+    feat1: 'Katalog aset terpusat lintas jenjang kantor',
+    feat2: 'Check-out / check-in & jadwal maintenance',
+    feat3: 'Approval maker-checker & laporan akurat',
+    copyright: '© 2026 Inventra · Sistem Manajemen Aset',
+    loginTitle: 'Masuk ke akun Anda',
+    loginSub: 'Selamat datang kembali. Silakan masuk untuk melanjutkan.',
+    email: 'Email', emailPh: 'nama@organisasi.go.id',
+    password: 'Password', passPh: 'Masukkan password',
+    remember: 'Ingat saya', forgot: 'Lupa password?',
+    signIn: 'Masuk', signingIn: 'Memproses…',
+    or: 'atau', google: 'Masuk dengan Google',
+    errCred: 'Email atau password salah. Silakan periksa kembali.',
+    forgotTitle: 'Lupa password?',
+    forgotSub: 'Masukkan email akun Anda. Kami akan mengirim tautan untuk mengatur ulang password.',
+    sendReset: 'Kirim Tautan Reset', sending: 'Mengirim…',
+    back: 'Kembali ke halaman masuk',
+    sentTitle: 'Periksa email Anda',
+    sentA: 'Kami telah mengirim tautan reset ke ', sentB: '. Tautan berlaku selama 30 menit.',
+    resetTitle: 'Atur password baru',
+    resetSub: 'Buat password baru yang kuat untuk mengamankan akun Anda.',
+    newPass: 'Password baru', newPassPh: 'Minimal 8 karakter',
+    confirmPass: 'Konfirmasi password', confirmPh: 'Ulangi password baru',
+    passHint: 'Gunakan minimal 8 karakter dengan kombinasi huruf, angka, dan simbol.',
+    savePass: 'Simpan Password', saving: 'Menyimpan…',
+    doneTitle: 'Password berhasil diubah',
+    doneSub: 'Silakan masuk kembali menggunakan password baru Anda.',
+    toLogin: 'Ke Halaman Masuk',
+    preview: 'Pratinjau',
+    vLogin: 'Masuk', vForgot: 'Lupa', vReset: 'Reset',
+  },
+  en: {
+    brandHead: 'Asset management, neat and in control.',
+    brandTag: 'Catalog, lending, maintenance and reporting across a 4-tier office structure — all in one system.',
+    feat1: 'Centralized asset catalog across office tiers',
+    feat2: 'Check-out / check-in & maintenance schedules',
+    feat3: 'Maker-checker approval & accurate reports',
+    copyright: '© 2026 Inventra · Asset Management System',
+    loginTitle: 'Sign in to your account',
+    loginSub: 'Welcome back. Please sign in to continue.',
+    email: 'Email', emailPh: 'name@organization.com',
+    password: 'Password', passPh: 'Enter your password',
+    remember: 'Remember me', forgot: 'Forgot password?',
+    signIn: 'Sign in', signingIn: 'Signing in…',
+    or: 'or', google: 'Sign in with Google',
+    errCred: 'Incorrect email or password. Please try again.',
+    forgotTitle: 'Forgot password?',
+    forgotSub: 'Enter your account email. We will send a link to reset your password.',
+    sendReset: 'Send Reset Link', sending: 'Sending…',
+    back: 'Back to sign in',
+    sentTitle: 'Check your email',
+    sentA: 'We have sent a reset link to ', sentB: '. The link is valid for 30 minutes.',
+    resetTitle: 'Set a new password',
+    resetSub: 'Create a strong new password to secure your account.',
+    newPass: 'New password', newPassPh: 'At least 8 characters',
+    confirmPass: 'Confirm password', confirmPh: 'Repeat new password',
+    passHint: 'Use at least 8 characters with a mix of letters, numbers, and symbols.',
+    savePass: 'Save Password', saving: 'Saving…',
+    doneTitle: 'Password updated',
+    doneSub: 'Please sign in again with your new password.',
+    toLogin: 'Go to Sign In',
+    preview: 'Preview',
+    vLogin: 'Sign in', vForgot: 'Forgot', vReset: 'Reset',
+  },
+};
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef = React.createRef();
+    this.state = {
+      theme: (props.theme === 'dark' ? 'dark' : 'light'),
+      lang: (props.lang === 'en' ? 'en' : 'id'),
+      view: (props.initialView || 'login'),
+      showPass: false, showNew: false, showConfirm: false,
+      loading: false, error: false,
+      email: 'admin@inventra.go.id',
+    };
+    this._tt = false; this._tl = false;
+    this._timer = null;
+  }
+  componentDidMount(){ this.applyPrimary(); }
+  componentDidUpdate(){ this.applyPrimary(); }
+  componentWillUnmount(){ if (this._timer) clearTimeout(this._timer); }
+  applyPrimary(){ const c = this.props.primaryColor, el = this.rootRef.current; if (el && c) el.style.setProperty('--primary', c); }
+  effTheme(){ return this._tt ? this.state.theme : (this.props.theme || 'light'); }
+  effLang(){ return this._tl ? this.state.lang : (this.props.lang || 'id'); }
+  setView(v){ if (this._timer) clearTimeout(this._timer); this.setState({ view: v, loading: false, error: false }); }
+  submitLogin(){
+    if (this.state.loading) return;
+    this.setState({ loading: true, error: false });
+    this._timer = setTimeout(() => this.setState({ loading: false, error: true }), 1400);
+  }
+  submitForgot(){
+    if (this.state.loading) return;
+    this.setState({ loading: true });
+    this._timer = setTimeout(() => this.setState({ loading: false, view: 'sent' }), 1400);
+  }
+  submitReset(){
+    if (this.state.loading) return;
+    this.setState({ loading: true });
+    this._timer = setTimeout(() => this.setState({ loading: false, view: 'done' }), 1400);
+  }
+  renderVals(){
+    const s = this.state;
+    const theme = this.effTheme(), lang = this.effLang();
+    const t = STR[lang];
+    const isDark = theme === 'dark';
+    const viewDefs = [['login', t.vLogin], ['forgot', t.vForgot], ['reset', t.vReset]];
+    const views = viewDefs.map(([k, label]) => ({
+      label,
+      on: () => this.setView(k),
+      bg: s.view === k || (k === 'forgot' && s.view === 'sent') || (k === 'reset' && s.view === 'done') ? 'var(--bg-base)' : 'transparent',
+      fg: s.view === k || (k === 'forgot' && s.view === 'sent') || (k === 'reset' && s.view === 'done') ? 'var(--text)' : 'var(--text-muted)',
+      sh: s.view === k || (k === 'forgot' && s.view === 'sent') || (k === 'reset' && s.view === 'done') ? 'var(--shadow)' : 'none',
+    }));
+    return {
+      rootRef: this.rootRef,
+      t, theme, isDark, isLight: !isDark,
+      toggleTheme: () => { this._tt = true; const cur = this.effTheme(); this.setState({ theme: cur === 'light' ? 'dark' : 'light' }); },
+      setId: () => { this._tl = true; this.setState({ lang: 'id' }); },
+      setEn: () => { this._tl = true; this.setState({ lang: 'en' }); },
+      idBg: lang === 'id' ? 'var(--bg-base)' : 'transparent',
+      idFg: lang === 'id' ? 'var(--text)' : 'var(--text-muted)',
+      enBg: lang === 'en' ? 'var(--bg-base)' : 'transparent',
+      enFg: lang === 'en' ? 'var(--text)' : 'var(--text-muted)',
+      views,
+      viewLogin: s.view === 'login', viewForgot: s.view === 'forgot',
+      viewSent: s.view === 'sent', viewReset: s.view === 'reset', viewDone: s.view === 'done',
+      email: s.email, onEmail: (e) => this.setState({ email: e.target.value }),
+      sentSub: t.sentA + (s.email || t.emailPh) + t.sentB,
+      error: s.error,
+      emailBorder: s.error ? 'var(--error)' : 'var(--border-strong)',
+      loading: s.loading,
+      btnCursor: s.loading ? 'wait' : 'pointer',
+      btnOpacity: s.loading ? '.85' : '1',
+      loginBtnLabel: s.loading ? t.signingIn : t.signIn,
+      forgotBtnLabel: s.loading ? t.sending : t.sendReset,
+      resetBtnLabel: s.loading ? t.saving : t.savePass,
+      showPass: s.showPass, hidePass: !s.showPass, passType: s.showPass ? 'text' : 'password',
+      toggleShowPass: () => this.setState(st => ({ showPass: !st.showPass })),
+      showNew: s.showNew, hideNew: !s.showNew, newType: s.showNew ? 'text' : 'password',
+      toggleShowNew: () => this.setState(st => ({ showNew: !st.showNew })),
+      showConfirm: s.showConfirm, hideConfirm: !s.showConfirm, confirmType: s.showConfirm ? 'text' : 'password',
+      toggleShowConfirm: () => this.setState(st => ({ showConfirm: !st.showConfirm })),
+      submitLogin: () => this.submitLogin(),
+      submitForgot: () => this.submitForgot(),
+      submitReset: () => this.submitReset(),
+      goForgot: () => this.setView('forgot'),
+      goLogin: () => this.setView('login'),
+    };
+  }
+}
+</script>
+</body>
+</html>
