@@ -33,7 +33,7 @@ function notAvailable() {
 </script>
 
 <template>
-  <div class="w-full max-w-sm">
+  <div class="w-full max-w-[392px]">
     <h1 class="text-2xl font-bold tracking-tight">
       {{ $t('auth.signInTitle') }}
     </h1>
@@ -64,6 +64,7 @@ function notAvailable() {
           v-model="state.email"
           type="email"
           icon="i-lucide-mail"
+          size="lg"
           :placeholder="$t('auth.emailPlaceholder')"
           class="w-full"
           autocomplete="email"
@@ -79,6 +80,7 @@ function notAvailable() {
           v-model="state.password"
           :type="showPassword ? 'text' : 'password'"
           icon="i-lucide-lock"
+          size="lg"
           :placeholder="$t('auth.passwordPlaceholder')"
           class="w-full"
           autocomplete="current-password"
