@@ -6,8 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Inventra** — asset/inventory management system. Go 1.25 + Gin backend (`backend/`), Nuxt 4
 frontend (`frontend/`), PostgreSQL 16, Redis 7, MinIO. Status: **foundation scaffold** — backend
-feature modules are being built in phases per `docs/PRD.md`; the frontend is still the stock Nuxt UI
-template (real UI not yet built). Go module path: `github.com/ragbuaj/inventra`.
+feature modules are being built in phases per `docs/PRD.md`; the frontend **foundation** (SPA shell,
+design system, real auth, reusable component library, Vitest + Playwright) is built, with feature
+screens built per phase against the `docs/design` mockups. Go module path: `github.com/ragbuaj/inventra`.
 
 Authoritative design docs: `docs/PRD.md` (requirements, roles, FRs) and `docs/DATABASE.md` (schema,
 conventions, data dictionary). Both are written in Indonesian. `docs/PROGRESS.md` tracks phase status.
@@ -33,6 +34,9 @@ npx --yes @stoplight/spectral-cli lint backend/api/openapi.yaml --ruleset .spect
 
 # Frontend (from frontend/, pnpm)
 pnpm dev | pnpm build | pnpm lint | pnpm typecheck
+pnpm test                 # Vitest unit + Nuxt-runtime tests (frontend/test/)
+pnpm test:watch           # Vitest watch mode
+pnpm test:e2e             # Playwright e2e (frontend/e2e/) — needs backend stack up + seeded admin
 
 # Infra only (Postgres :5433, Redis :6379, MinIO :9000/:9001)
 docker compose -f docker-compose.dev.yml up -d
@@ -42,8 +46,9 @@ docker compose up --build
 go run ./cmd/createadmin -email admin@inventra.local -password admin12345
 ```
 
-CI (`.github/workflows/ci.yml`) runs the backend build/vet/test, the frontend lint/typecheck/build,
-and the Spectral lint — keep all of these green.
+CI (`.github/workflows/ci.yml`) runs the backend build/vet/test, the frontend
+lint/typecheck/**test**/build, the Spectral lint, and a separate **e2e** job (docker-compose backend +
+seeded admin → Playwright) — keep all of these green.
 
 ## Backend architecture
 
@@ -136,13 +141,24 @@ status codes.
 
 ## Frontend (Nuxt 4)
 
-The frontend is still the stock Nuxt UI starter — real screens are not built yet. When building UI,
-follow these conventions:
+The foundation is built — **SPA mode** (`ssr: false`), design tokens, real auth, the app shell, and a
+global component library (see `docs/superpowers/specs/2026-06-24-frontend-foundation-design.md` and
+`docs/superpowers/plans/2026-06-24-frontend-foundation.md`). Feature screens are built per phase on top
+of it. When building UI, follow these conventions:
 
+- **Match the prepared mockups — design fidelity is mandatory.** Every screen has a high-fidelity
+  reference in `docs/design/<Screen>.dc.html` (the set in `docs/DESIGN_BRIEF.md` §2 — e.g.
+  `Katalog Aset.dc.html`, `Dashboard.dc.html`, `Detail Aset.dc.html`). **Before building a screen, open
+  its mockup in a browser** (the `.dc.html` files render standalone) and treat it as the source of truth
+  for layout, spacing, visual hierarchy, every state (loading/empty/error), and which components appear.
+  Reproduce it faithfully with `U*` components — don't improvise a different layout. If a mockup detail
+  conflicts with these conventions (e.g. a literal hex color), keep the convention (semantic tokens,
+  i18n) but preserve the mockup's structure and intent. The aim is a UI that matches what's in
+  `docs/design` 1:1.
 - **Always build on Nuxt UI components** (`@nuxt/ui`, the `U*` prefix: `UApp`, `UButton`, `UCard`,
   `UTable`, `UForm`, `UModal`, `UInput`, …). Don't hand-roll buttons/inputs/modals or pull in another
-  component library — compose the `U*` primitives. The app shell uses `UApp` > `UHeader`/`UMain`/
-  `UFooter`.
+  component library — compose the `U*` primitives. The app shell is `layouts/default.vue`
+  (`AppSidebar` + `AppTopbar` + `UMain`); the login screen uses `layouts/auth.vue`.
 - **Extract reusable components** into `app/components/` (auto-imported, no manual import). Prefer a
   small wrapper component over repeating the same `U*` markup across pages — e.g. a `ResourceTable`,
   `FormField`, or entity-specific card that encapsulates a Nuxt UI composition. Keep pages thin; push
@@ -158,6 +174,12 @@ follow these conventions:
   override with `NUXT_PUBLIC_API_BASE`) — don't hardcode the backend URL.
 - **Lint matters**: ESLint stylistic config enforces no trailing commas (`commaDangle: 'never'`) and
   1tbs brace style; `pnpm lint` and `pnpm typecheck` must pass (CI gates on them).
+- **Testing is required.** Unit + Nuxt-runtime tests use **Vitest + @nuxt/test-utils** (`frontend/test/`,
+  `pnpm test`); E2E uses **Playwright** (`frontend/e2e/`, `pnpm test:e2e`). Pure logic (formatters, mock
+  helpers, composables like `useCan`) gets unit tests (node env); components get runtime mount tests via
+  `mountSuspended` (add `// @vitest-environment nuxt` to the file); user-facing flows get an e2e against
+  the real backend. **Assert real behavior** (rendered text, resolved i18n, emitted events) — never a
+  hollow `expect(html.length).toBeGreaterThan(0)`. New screens land with tests; `pnpm test` gates CI.
 
 ## Development workflow
 
@@ -183,9 +205,19 @@ roughly one resource/sub-feature at a time (see git history: offices, then floor
      **read *and* write** (get/list/create/update/delete) — missing scope on any verb is a security bug.
   5. Wire the module into `NewRouter` (or the module's own `RegisterRoutes`).
   6. Update `backend/api/openapi.yaml` to match.
+- **Building a frontend screen — standard order:**
+  1. **Open the matching `docs/design/<Screen>.dc.html` mockup** in a browser; identify the layout,
+     components, and every state. It is the visual source of truth — build to match it.
+  2. Reuse/extend global components (`app/components/`) before writing page markup; keep pages thin.
+  3. Back data with a module service (mock fixtures today, real `$fetch` later behind the **same**
+     interface — `composables/api/`); never call the backend URL directly.
+  4. Put every string in `i18n/locales/{id,en}.json`; gate role-specific UI with `useCan`/`<Can>`.
+  5. Write tests: unit for logic, a `mountSuspended` runtime test for the component, an e2e for the flow.
+  6. Match the mockup in light **and** dark mode before committing.
 - **Verify before committing** — run and confirm green: `go build ./...`, `go vet ./...`,
   `go test ./...`, and the Spectral lint. For frontend changes: `pnpm lint`, `pnpm typecheck`,
-  `pnpm build`. These are exactly what CI enforces; don't claim done without running them.
+  `pnpm test`, `pnpm build`. These are exactly what CI enforces; don't claim done without running them.
+  (E2E `pnpm test:e2e` needs the backend stack up + a seeded admin; CI runs it in the separate `e2e` job.)
 
 ## Conventions
 
