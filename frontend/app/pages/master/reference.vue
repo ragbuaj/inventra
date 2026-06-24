@@ -40,9 +40,9 @@ async function refresh() {
 }
 
 function resetForm() {
-  const cleared = Object.fromEntries(Object.keys(form).map(k => [k, '']))
-  const fresh = Object.fromEntries(descriptor.value.fields.map(f => [f.key, '']))
-  Object.assign(form, cleared, fresh)
+  // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+  for (const k of Object.keys(form)) delete form[k]
+  for (const f of descriptor.value.fields) form[f.key] = ''
 }
 
 function openCreate() {
