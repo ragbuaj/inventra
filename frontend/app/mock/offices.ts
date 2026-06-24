@@ -34,7 +34,7 @@ const tipeColorClass: Record<string, string> = {
   primary: 'text-primary',
   info: 'text-info',
   warning: 'text-warning',
-  neutral: 'text-neutral-500'
+  neutral: 'text-dimmed'
 }
 
 export function buildOfficeTree(offices: Office[]): TreeNode[] {
@@ -53,7 +53,7 @@ export function buildOfficeTree(offices: Office[]): TreeNode[] {
         label: o.nama,
         icon: meta.icon,
         iconBg: tipeBgClass[meta.color] ?? 'bg-neutral/10',
-        iconColor: tipeColorClass[meta.color] ?? 'text-neutral-500',
+        iconColor: tipeColorClass[meta.color] ?? 'text-dimmed',
         inactive: !o.active,
         childCount: children.length || undefined,
         children: children.length ? children : undefined

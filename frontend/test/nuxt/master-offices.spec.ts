@@ -38,8 +38,16 @@ describe('Master Data Kantor page', () => {
 
   it('inactive offices are present in the tree (Cabang Cimahi is inactive)', async () => {
     const wrapper = await mountAndWait()
-    // Cabang Cimahi (o-bdg-a) has active: false in seed data
+    // Cabang Cimahi (o-bdg-a) has active: false in seed data — the TreeView renders
+    // an inactive dot span (bg-muted rounded-full) immediately after the label text
     expect(wrapper.html()).toContain('Cabang Cimahi')
+    // Find the tree row containing Cabang Cimahi
+    const rows = wrapper.findAll('[class*="cursor-pointer"]')
+    const cimahiRow = rows.find(r => r.text().includes('Cabang Cimahi'))
+    expect(cimahiRow).toBeDefined()
+    // The inactive dot is rendered as a span with bg-muted inside that row
+    const inactiveDot = cimahiRow!.find('span.bg-muted.rounded-full')
+    expect(inactiveDot.exists()).toBe(true)
   })
 
   it('selecting a tree node shows the detail panel with name, kode, and info card', async () => {

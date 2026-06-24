@@ -7,6 +7,7 @@ definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
 
 const { t } = useI18n()
 const toast = useToast()
+const { open: confirm } = useConfirm()
 const api = useOffices()
 const floorsApi = useFloors()
 
@@ -174,6 +175,8 @@ async function onSubmit() {
 
 async function onDelete() {
   if (!selected.value) return
+  const ok = await confirm({ title: t('masterdata.offices.deleteTitle'), description: t('masterdata.offices.deleteBody') })
+  if (!ok) return
   try {
     await api.remove(selected.value.id)
     selected.value = undefined
@@ -196,7 +199,9 @@ function addFloor() {
   loadFloors(selectedId.value)
 }
 
-function deleteFloor(floorId: string) {
+async function deleteFloor(floorId: string) {
+  const ok = await confirm({ title: t('masterdata.offices.deleteFloorConfirm') })
+  if (!ok) return
   floorsApi.removeFloor(floorId)
   if (selectedId.value) loadFloors(selectedId.value)
 }
@@ -210,7 +215,9 @@ function addRoom(floorId: string) {
   loadFloors(selectedId.value)
 }
 
-function deleteRoom(roomId: string) {
+async function deleteRoom(roomId: string) {
+  const ok = await confirm({ title: t('masterdata.offices.deleteRoomConfirm') })
+  if (!ok) return
   floorsApi.removeRoom(roomId)
   if (selectedId.value) loadFloors(selectedId.value)
 }
@@ -447,7 +454,7 @@ onMounted(refresh)
               />
               <div class="size-[30px] rounded-[8px] bg-primary/10 text-primary flex items-center justify-center flex-none">
                 <UIcon
-                  name="i-lucide-landmark"
+                  name="i-lucide-layers"
                   class="size-4"
                 />
               </div>
@@ -514,7 +521,7 @@ onMounted(refresh)
         >
           <div class="size-[50px] mx-auto mb-3 rounded-[13px] bg-muted text-dimmed flex items-center justify-center">
             <UIcon
-              name="i-lucide-landmark"
+              name="i-lucide-layers"
               class="size-6"
             />
           </div>
@@ -577,15 +584,24 @@ onMounted(refresh)
             />
           </UFormField>
         </div>
-        <!-- Nama full-width -->
-        <UFormField :label="t('masterdata.offices.fields.nama')">
-          <UInput
-            v-model="form.nama"
-            :placeholder="t('masterdata.offices.fields.nama')"
-            class="w-full"
-          />
-        </UFormField>
-        <!-- Alamat textarea -->
+        <!-- Row 3: Nama + Kota -->
+        <div class="grid grid-cols-2 gap-3.5">
+          <UFormField :label="t('masterdata.offices.fields.nama')">
+            <UInput
+              v-model="form.nama"
+              :placeholder="t('masterdata.offices.fields.nama')"
+              class="w-full"
+            />
+          </UFormField>
+          <UFormField :label="t('masterdata.offices.fields.kota')">
+            <UInput
+              v-model="form.kota"
+              :placeholder="t('masterdata.offices.fields.kota')"
+              class="w-full"
+            />
+          </UFormField>
+        </div>
+        <!-- Alamat full-width -->
         <UFormField :label="t('masterdata.offices.fields.alamat')">
           <UTextarea
             v-model="form.alamat"
