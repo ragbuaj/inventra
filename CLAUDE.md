@@ -42,6 +42,9 @@ pnpm test:e2e             # Playwright e2e (frontend/e2e/) — needs backend sta
 docker compose -f docker-compose.dev.yml up -d
 # Full stack incl. migrate + api + frontend
 docker compose up --build
+# Full stack with live reload (Go via Air, Nuxt via Vite HMR) — source bind-mounted,
+# edits hot-reload. Watchers poll (Windows/WSL2 bind mounts lack inotify events).
+docker compose -f docker-compose.yml -f docker-compose.watch.yml up --build
 # Seed a superadmin (run from host while stack is up)
 go run ./cmd/createadmin -email admin@inventra.local -password admin12345
 ```

@@ -1,0 +1,19 @@
+# syntax=docker/dockerfile:1
+#
+# Development image: runs the API under Air for live reload. Source is bind-mounted
+# at /src by docker-compose.watch.yml; the Go module/build caches live in named
+# volumes so rebuilds stay fast. Not for production — see Dockerfile for that.
+FROM golang:1.25-alpine
+WORKDIR /src
+
+RUN apk add --no-cache git
+# Air live-reloader (github.com/air-verse/air) — installed to /go/bin (on PATH).
+RUN go install github.com/air-verse/air@latest
+
+# Warm the module cache from the manifests so the first build inside the
+# bind-mounted container is quick. Source itself arrives via the volume mount.
+COPY go.mod go.sum ./
+RUN go mod download
+
+EXPOSE 8080
+CMD ["air", "-c", ".air.toml"]
