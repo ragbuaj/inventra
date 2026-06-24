@@ -106,6 +106,24 @@
       "editTitle": "Ubah Pegawai",
       "deleteConfirm": "Hapus pegawai ini?",
       "errNotFound": "Pegawai tidak ditemukan."
+    },
+    "reference": {
+      "title": "Master Data Referensi",
+      "subtitle": "Kelola data referensi",
+      "resourceLabel": "Jenis Referensi",
+      "add": "Tambah",
+      "empty": "Belum ada data",
+      "createTitle": "Tambah Data",
+      "editTitle": "Ubah Data",
+      "deleteConfirm": "Hapus data ini?",
+      "errNotFound": "Data tidak ditemukan.",
+      "fields": { "name": "Nama", "code": "Kode", "symbol": "Simbol", "email": "Email", "phone": "Telepon" },
+      "resources": {
+        "office-types": "Jenis Kantor", "departments": "Departemen", "positions": "Jabatan",
+        "units": "Satuan", "maintenance-categories": "Kategori Pemeliharaan",
+        "problem-categories": "Kategori Masalah", "brands": "Merek", "vendors": "Vendor",
+        "provinces": "Provinsi", "cities": "Kota", "models": "Model"
+      }
     }
   }
 }

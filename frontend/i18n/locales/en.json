@@ -106,6 +106,24 @@
       "editTitle": "Edit Employee",
       "deleteConfirm": "Delete this employee?",
       "errNotFound": "Employee not found."
+    },
+    "reference": {
+      "title": "Reference Master Data",
+      "subtitle": "Manage reference data",
+      "resourceLabel": "Reference Type",
+      "add": "Add",
+      "empty": "No data yet",
+      "createTitle": "Add Entry",
+      "editTitle": "Edit Entry",
+      "deleteConfirm": "Delete this entry?",
+      "errNotFound": "Entry not found.",
+      "fields": { "name": "Name", "code": "Code", "symbol": "Symbol", "email": "Email", "phone": "Phone" },
+      "resources": {
+        "office-types": "Office Types", "departments": "Departments", "positions": "Positions",
+        "units": "Units", "maintenance-categories": "Maintenance Categories",
+        "problem-categories": "Problem Categories", "brands": "Brands", "vendors": "Vendors",
+        "provinces": "Provinces", "cities": "Cities", "models": "Models"
+      }
     }
   }
 }
