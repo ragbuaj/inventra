@@ -158,6 +158,14 @@ of it. When building UI, follow these conventions:
   conflicts with these conventions (e.g. a literal hex color), keep the convention (semantic tokens,
   i18n) but preserve the mockup's structure and intent. The aim is a UI that matches what's in
   `docs/design` 1:1.
+  - **Never change, simplify, drop, or substitute the provided design on your own initiative.** Build
+    exactly what the mockup shows. If you think a deviation is warranted, ask first and wait — only
+    deviate when the user explicitly requests a customization. Deferring part of a design ("later
+    phase") also counts as a change: do it only when the user agrees.
+  - **Finish every screen with a side-by-side comparison against its mockup.** Open the built screen
+    and `docs/design/<Screen>.dc.html` together and verify a 1:1 match — layout, spacing, visual
+    hierarchy, every state (loading/empty/error/populated), and every component/field present in the
+    mockup. Fix any gap before claiming the screen done; report the comparison result.
 - **Always build on Nuxt UI components** (`@nuxt/ui`, the `U*` prefix: `UApp`, `UButton`, `UCard`,
   `UTable`, `UForm`, `UModal`, `UInput`, …). Don't hand-roll buttons/inputs/modals or pull in another
   component library — compose the `U*` primitives. The app shell is `layouts/default.vue`
@@ -183,6 +191,13 @@ of it. When building UI, follow these conventions:
   `mountSuspended` (add `// @vitest-environment nuxt` to the file); user-facing flows get an e2e against
   the real backend. **Assert real behavior** (rendered text, resolved i18n, emitted events) — never a
   hollow `expect(html.length).toBeGreaterThan(0)`. New screens land with tests; `pnpm test` gates CI.
+  - **Be proactive and expansive with test cases — this initiative is wanted.** Don't stop at the happy
+    path: cover edge and boundary conditions, empty/error/loading states, invalid input, permission
+    variations, and failure modes, so hard-to-find bugs surface early. Err on the side of *more*
+    coverage rather than less; broad, thorough test suites are explicitly preferred here.
+  - **At every completion, re-check that the test suite is complete** for what you built — every state,
+    branch, edge case, and failure mode that can be tested has a test. Treat missing coverage as
+    unfinished work, not a follow-up.
 
 ## Development workflow
 
@@ -215,8 +230,13 @@ roughly one resource/sub-feature at a time (see git history: offices, then floor
   3. Back data with a module service (mock fixtures today, real `$fetch` later behind the **same**
      interface — `composables/api/`); never call the backend URL directly.
   4. Put every string in `i18n/locales/{id,en}.json`; gate role-specific UI with `useCan`/`<Can>`.
-  5. Write tests: unit for logic, a `mountSuspended` runtime test for the component, an e2e for the flow.
-  6. Match the mockup in light **and** dark mode before committing.
+  5. Write tests proactively and broadly: unit for logic, a `mountSuspended` runtime test for the
+     component, an e2e for the flow — and beyond the happy path cover edge/boundary cases,
+     empty/error/loading states, invalid input, and permission variations. Then re-check the suite is
+     complete for every state and branch before moving on.
+  6. Match the mockup in light **and** dark mode, then do a final **1:1 side-by-side comparison** of the
+     built screen against `docs/design/<Screen>.dc.html`. Fix any deviation — never redesign or defer
+     part of the mockup on your own initiative (ask first) — before committing.
 - **Verify before committing** — run and confirm green: `go build ./...`, `go vet ./...`,
   `go test ./...`, and the Spectral lint. For frontend changes: `pnpm lint`, `pnpm typecheck`,
   `pnpm test`, `pnpm build`. These are exactly what CI enforces; don't claim done without running them.
