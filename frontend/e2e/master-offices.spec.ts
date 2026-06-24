@@ -17,8 +17,9 @@ test.describe('Master Data Kantor (mock-backed)', () => {
     await login(page)
     await page.goto('/master/offices')
 
-    await expect(page.getByRole('heading', { name: 'Master Data Kantor' })).toBeVisible()
-    // Seeded office is present.
+    // The rebuilt Kantor screen is a split panel; the tree panel header is "Hierarki Kantor".
+    await expect(page.getByText('Hierarki Kantor')).toBeVisible()
+    // Seeded office is present in the tree.
     await expect(page.getByText('Kantor Pusat')).toBeVisible()
 
     // Open the create form and add a new office.
