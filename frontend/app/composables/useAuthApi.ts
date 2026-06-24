@@ -21,6 +21,12 @@ export function useAuthApi() {
   const auth = useAuthStore()
   const base = config.public.apiBase as string
   const refreshCookie = useRefreshCookie()
+  // Build the API client synchronously here, during setup. The Nuxt composables
+  // it relies on (useRuntimeConfig/useNuxtApp) must be called before the first
+  // `await`, or the Nuxt instance context is lost and they throw — which
+  // previously surfaced as a bogus "connection error" right after a successful
+  // login, when fetchMe() built the client after awaiting /auth/login.
+  const client = useApiClient()
 
   async function login(email: string, password: string): Promise<void> {
     const res = await $fetch<{ access_token: string, refresh_token: string }>(`${base}/auth/login`, {
@@ -33,7 +39,6 @@ export function useAuthApi() {
   }
 
   async function fetchMe(): Promise<void> {
-    const client = useApiClient()
     const me = await client.request<MeResponse>('/auth/me')
     const perms = await client.request<{ permissions: string[] }>('/auth/permissions')
     const user: AuthUser = {
@@ -48,7 +53,7 @@ export function useAuthApi() {
 
   async function logout(): Promise<void> {
     try {
-      await useApiClient().request('/auth/logout', {
+      await client.request('/auth/logout', {
         method: 'POST',
         body: { refresh_token: refreshCookie.value ?? undefined }
       })
@@ -60,7 +65,7 @@ export function useAuthApi() {
   }
 
   function refresh(): Promise<boolean> {
-    return useApiClient().refreshToken()
+    return client.refreshToken()
   }
 
   return { login, fetchMe, logout, refresh }

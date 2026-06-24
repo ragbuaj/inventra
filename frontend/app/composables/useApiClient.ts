@@ -1,9 +1,28 @@
 export function useApiClient() {
   const config = useRuntimeConfig()
   const auth = useAuthStore()
-  const toast = useToast()
-  const { t } = useI18n()
+  const nuxtApp = useNuxtApp()
   const base = config.public.apiBase as string
+
+  // Best-effort generic error toast. Resolved lazily and inside Nuxt context:
+  // request() runs after an `await` (component setup context is gone) and the
+  // client may also be built outside a component (e.g. the rehydration plugin),
+  // where useToast()/useI18n() would throw "Must be called at the top of a
+  // setup function". Any failure here is swallowed — never mask the real error.
+  function notifyError(status?: number) {
+    try {
+      nuxtApp.runWithContext(() => {
+        const t = (nuxtApp.$i18n as { t: (key: string) => string } | undefined)?.t
+        useToast().add({
+          title: t ? t('common.error') : 'Error',
+          description: String(status ?? ''),
+          color: 'error'
+        })
+      })
+    } catch {
+      // No UI context available (e.g. during plugin init) — skip the toast.
+    }
+  }
 
   async function refreshToken(): Promise<boolean> {
     const refresh = useRefreshCookie()
@@ -35,9 +54,9 @@ export function useApiClient() {
       if (status === 401) {
         auth.clear()
         useRefreshCookie().value = null
-        await navigateTo('/login')
+        await nuxtApp.runWithContext(() => navigateTo('/login'))
       } else {
-        toast.add({ title: t('common.error'), description: String(status ?? ''), color: 'error' })
+        notifyError(status)
       }
       throw err
     }
