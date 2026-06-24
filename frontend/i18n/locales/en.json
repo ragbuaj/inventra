@@ -25,7 +25,12 @@
     "brandCopyright": "© 2026 Inventra · Asset Management System"
   },
   "nav": {
-    "profile": "Profile",
+    "profile": "My Profile",
+    "accountSettings": "Account Settings",
+    "signOut": "Sign Out",
+    "scopeGlobal": "Entire network",
+    "scopeOffice": "My office",
+    "searchPlaceholder": "Search assets, employees, offices…",
     "dashboard": "Dashboard",
     "assets": "Assets",
     "assetCatalog": "Catalog",

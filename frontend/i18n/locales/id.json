@@ -25,7 +25,12 @@
     "brandCopyright": "© 2026 Inventra · Sistem Manajemen Aset"
   },
   "nav": {
-    "profile": "Profil",
+    "profile": "Profil Saya",
+    "accountSettings": "Pengaturan Akun",
+    "signOut": "Keluar",
+    "scopeGlobal": "Seluruh jaringan",
+    "scopeOffice": "Kantor saya",
+    "searchPlaceholder": "Cari aset, pegawai, kantor…",
     "dashboard": "Dasbor",
     "assets": "Aset",
     "assetCatalog": "Katalog",
