@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const colorMode = useColorMode()
+const { t } = useI18n()
 
 function toggle() {
   colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
@@ -9,7 +10,7 @@ function toggle() {
 <template>
   <button
     class="flex items-center justify-center w-9 h-9 rounded-[9px] border border-default bg-transparent text-muted cursor-pointer hover:bg-muted hover:text-default transition-colors"
-    :title="colorMode.value === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+    :title="colorMode.value === 'dark' ? t('theme.switchToLight') : t('theme.switchToDark')"
     @click="toggle"
   >
     <UIcon

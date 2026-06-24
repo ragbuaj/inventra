@@ -105,6 +105,10 @@
       "threeHoursAgo": "3 hours ago"
     }
   },
+  "theme": {
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode"
+  },
   "masterdata": {
     "offices": {
       "title": "Office Master Data",

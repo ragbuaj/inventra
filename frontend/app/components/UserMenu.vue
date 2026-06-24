@@ -93,7 +93,7 @@ function handleLogout() {
             />
             {{ t('nav.accountSettings') }}
           </button>
-          <div class="h-px bg-default-border my-[5px] mx-1" />
+          <div class="h-px bg-border my-[5px] mx-1" />
           <button
             class="flex items-center gap-[10px] w-full px-[10px] py-[9px] text-[14px] font-medium text-error bg-transparent border-0 rounded-[8px] cursor-pointer text-left hover:bg-error/10 transition-colors"
             @click="handleLogout"

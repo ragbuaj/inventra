@@ -105,6 +105,10 @@
       "threeHoursAgo": "3 jam lalu"
     }
   },
+  "theme": {
+    "switchToLight": "Beralih ke mode terang",
+    "switchToDark": "Beralih ke mode gelap"
+  },
   "masterdata": {
     "offices": {
       "title": "Master Data Kantor",
