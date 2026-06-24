@@ -21,6 +21,7 @@
     "reference": "Referensi",
     "users": "Pengguna",
     "audit": "Audit Log",
+    "toggleSidebar": "Tampilkan/sembunyikan menu",
     "group": {
       "main": "Utama",
       "asset": "Manajemen Aset",

@@ -21,6 +21,7 @@
     "reference": "Reference",
     "users": "Users",
     "audit": "Audit Log",
+    "toggleSidebar": "Toggle sidebar",
     "group": {
       "main": "Main",
       "asset": "Asset Management",

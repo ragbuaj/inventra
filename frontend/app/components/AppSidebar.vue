@@ -49,6 +49,12 @@ const groups: NavGroup[] = [
 function visibleItems(items: NavItem[]) {
   return items.filter(i => !i.permission || can(i.permission))
 }
+
+const visibleGroups = computed(() =>
+  groups
+    .map(g => ({ ...g, items: visibleItems(g.items) }))
+    .filter(g => g.items.length)
+)
 </script>
 
 <template>
@@ -70,32 +76,31 @@ function visibleItems(items: NavItem[]) {
     </div>
 
     <nav class="flex-1 overflow-y-auto p-3 space-y-4">
-      <template
-        v-for="group in groups"
+      <div
+        v-for="group in visibleGroups"
         :key="group.labelKey"
       >
-        <div v-if="visibleItems(group.items).length">
-          <p
-            v-if="!ui.sidebarCollapsed"
-            class="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-dimmed font-mono"
-          >
-            {{ $t(group.labelKey) }}
-          </p>
-          <NuxtLink
-            v-for="item in visibleItems(group.items)"
-            :key="item.to"
-            :to="item.to"
-            class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-elevated"
-            active-class="bg-primary/10 text-primary font-medium"
-          >
-            <UIcon
-              :name="item.icon"
-              class="size-5 shrink-0"
-            />
-            <span v-if="!ui.sidebarCollapsed">{{ $t(item.labelKey) }}</span>
-          </NuxtLink>
-        </div>
-      </template>
+        <p
+          v-if="!ui.sidebarCollapsed"
+          class="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-dimmed font-mono"
+        >
+          {{ $t(group.labelKey) }}
+        </p>
+        <NuxtLink
+          v-for="item in group.items"
+          :key="item.to"
+          :to="item.to"
+          :aria-label="$t(item.labelKey)"
+          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-elevated"
+          active-class="bg-primary/10 text-primary font-medium"
+        >
+          <UIcon
+            :name="item.icon"
+            class="size-5 shrink-0"
+          />
+          <span v-if="!ui.sidebarCollapsed">{{ $t(item.labelKey) }}</span>
+        </NuxtLink>
+      </div>
     </nav>
   </aside>
 </template>

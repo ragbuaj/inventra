@@ -8,6 +8,7 @@ const ui = useUiStore()
       color="neutral"
       variant="ghost"
       icon="i-lucide-panel-left"
+      :aria-label="$t('nav.toggleSidebar')"
       @click="ui.toggleSidebar()"
     />
     <GlobalSearch />
