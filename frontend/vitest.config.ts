@@ -6,6 +6,9 @@ const root = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineVitestConfig({
   test: {
+    // Vitest owns `test/`; Playwright owns `e2e/` (its *.spec.ts must not be
+    // collected here — it imports from @playwright/test, not vitest).
+    include: ['test/**/*.{spec,test}.ts'],
     environment: 'node',
     environmentOptions: {},
     hookTimeout: 60000
