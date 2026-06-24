@@ -1,5 +1,13 @@
 {
   "app": { "name": "Inventra", "tagline": "Manajemen Aset" },
+  "auth": {
+    "signInTitle": "Masuk ke Inventra",
+    "signInSubtitle": "Masukkan email dan kata sandi Anda",
+    "email": "Email",
+    "password": "Kata Sandi",
+    "signIn": "Masuk",
+    "invalidCredentials": "Email atau kata sandi tidak valid"
+  },
   "common": {
     "save": "Simpan", "cancel": "Batal", "delete": "Hapus", "edit": "Ubah",
     "add": "Tambah", "search": "Cari", "reset": "Reset", "actions": "Aksi",

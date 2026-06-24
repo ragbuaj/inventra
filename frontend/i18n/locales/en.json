@@ -1,5 +1,13 @@
 {
   "app": { "name": "Inventra", "tagline": "Asset Management" },
+  "auth": {
+    "signInTitle": "Sign in to Inventra",
+    "signInSubtitle": "Enter your email and password",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign In",
+    "invalidCredentials": "Invalid email or password"
+  },
   "common": {
     "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit",
     "add": "Add", "search": "Search", "reset": "Reset", "actions": "Actions",
