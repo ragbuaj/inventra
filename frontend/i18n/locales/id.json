@@ -6,7 +6,11 @@
     "email": "Email",
     "password": "Kata Sandi",
     "signIn": "Masuk",
-    "invalidCredentials": "Email atau kata sandi tidak valid"
+    "invalidCredentials": "Email atau kata sandi tidak valid",
+    "signOut": "Keluar"
+  },
+  "nav": {
+    "profile": "Profil"
   },
   "common": {
     "save": "Simpan", "cancel": "Batal", "delete": "Hapus", "edit": "Ubah",

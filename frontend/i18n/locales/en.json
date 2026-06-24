@@ -6,7 +6,11 @@
     "email": "Email",
     "password": "Password",
     "signIn": "Sign In",
-    "invalidCredentials": "Invalid email or password"
+    "invalidCredentials": "Invalid email or password",
+    "signOut": "Sign Out"
+  },
+  "nav": {
+    "profile": "Profile"
   },
   "common": {
     "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit",
