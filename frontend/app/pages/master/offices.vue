@@ -572,7 +572,7 @@ onMounted(refresh)
                     size="xs"
                     icon="i-lucide-pencil"
                     :title="t('masterdata.rooms.editName')"
-                    @click="startEditRoom(room)"
+                    @click.stop="startEditRoom(room)"
                   />
                 </template>
                 <span class="font-mono text-[11.5px] text-dimmed">{{ room.kode }}</span>
