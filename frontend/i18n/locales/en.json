@@ -159,14 +159,43 @@
       "errNotFound": "Office not found."
     },
     "employees": {
-      "title": "Employee Master Data",
-      "subtitle": "Manage employee records",
+      "title": "Employees",
+      "subtitle": "Manage employee data within your office scope.",
       "add": "Add Employee",
       "empty": "No employees yet",
-      "columns": { "nip": "ID", "nama": "Name", "jabatan": "Position", "kantor": "Office", "status": "Status" },
+      "emptyFilter": "No employees match the selected filters.",
+      "searchPlaceholder": "Search name or NIP…",
+      "createSub": "Register a new employee to an office.",
+      "editSub": "Update employee data.",
+      "scopeNote": "Office choices are limited to your role scope.",
+      "columns": {
+        "nip": "NIP",
+        "nama": "Name",
+        "departemen": "Department",
+        "jabatan": "Position",
+        "kantor": "Office",
+        "kontak": "Email / Phone",
+        "status": "Status"
+      },
+      "filter": {
+        "allKantor": "All Offices",
+        "allDept": "All Departments",
+        "allJabatan": "All Positions",
+        "allStatus": "All Status"
+      },
+      "placeholders": {
+        "nama": "e.g. Andi Saputra",
+        "pilih": "Select…"
+      },
       "fields": {
-        "nip": "Employee ID", "nama": "Name", "email": "Email", "telepon": "Phone",
-        "jabatan": "Position", "departemen": "Department", "office": "Office", "status": "Status"
+        "nip": "NIP",
+        "nama": "Full Name",
+        "email": "Email",
+        "telepon": "Phone",
+        "jabatan": "Position",
+        "departemen": "Department",
+        "office": "Office",
+        "status": "Status"
       },
       "status": { "active": "Active", "inactive": "Inactive" },
       "createTitle": "Add Employee",

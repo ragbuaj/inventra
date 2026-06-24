@@ -159,14 +159,43 @@
       "errNotFound": "Kantor tidak ditemukan."
     },
     "employees": {
-      "title": "Master Data Pegawai",
-      "subtitle": "Kelola data pegawai",
+      "title": "Pegawai",
+      "subtitle": "Kelola data pegawai dalam lingkup kantor Anda.",
       "add": "Tambah Pegawai",
       "empty": "Belum ada pegawai",
-      "columns": { "nip": "NIP", "nama": "Nama", "jabatan": "Jabatan", "kantor": "Kantor", "status": "Status" },
+      "emptyFilter": "Tidak ada pegawai yang cocok dengan filter yang dipilih.",
+      "searchPlaceholder": "Cari nama atau NIP…",
+      "createSub": "Daftarkan pegawai baru ke kantor.",
+      "editSub": "Perbarui data pegawai.",
+      "scopeNote": "Pilihan kantor dibatasi sesuai lingkup peran Anda.",
+      "columns": {
+        "nip": "NIP",
+        "nama": "Nama",
+        "departemen": "Departemen",
+        "jabatan": "Jabatan",
+        "kantor": "Kantor",
+        "kontak": "Email / Telepon",
+        "status": "Status"
+      },
+      "filter": {
+        "allKantor": "Semua Kantor",
+        "allDept": "Semua Departemen",
+        "allJabatan": "Semua Jabatan",
+        "allStatus": "Semua Status"
+      },
+      "placeholders": {
+        "nama": "mis. Andi Saputra",
+        "pilih": "Pilih…"
+      },
       "fields": {
-        "nip": "NIP", "nama": "Nama", "email": "Email", "telepon": "Telepon",
-        "jabatan": "Jabatan", "departemen": "Departemen", "office": "Kantor", "status": "Status"
+        "nip": "NIP",
+        "nama": "Nama Lengkap",
+        "email": "Email",
+        "telepon": "Telepon",
+        "jabatan": "Jabatan",
+        "departemen": "Departemen",
+        "office": "Kantor",
+        "status": "Status"
       },
       "status": { "active": "Aktif", "inactive": "Nonaktif" },
       "createTitle": "Tambah Pegawai",
