@@ -1,0 +1,173 @@
+// @vitest-environment nuxt
+import { describe, it, expect, beforeEach } from 'vitest'
+import { mountSuspended } from '@nuxt/test-utils/runtime'
+import AppSidebar from '~/components/AppSidebar.vue'
+import { useAuthStore } from '~/stores/auth'
+import { useUiStore } from '~/stores/ui'
+
+function setupSuperadmin() {
+  useAuthStore().setSession(
+    'tok',
+    { id: '1', name: 'Admin Inventra', email: 'admin@inventra.local', role_id: 'r1', role_name: 'Superadmin' },
+    ['*']
+  )
+}
+
+// Superadmin with ENUMERATED permissions (no '*') — as the backend actually returns
+function setupSuperadminEnumerated() {
+  useAuthStore().setSession(
+    'tok',
+    { id: '1', name: 'Admin Inventra', email: 'admin@inventra.local', role_id: 'r1', role_name: 'Superadmin' },
+    ['user.manage', 'masterdata.office.manage', 'masterdata.global.manage', 'masterdata.reference.manage']
+  )
+}
+
+describe('AppSidebar', () => {
+  beforeEach(() => {
+    useAuthStore().clear()
+    useUiStore().sidebarCollapsed = false
+  })
+
+  it('renders the Operasional section label', async () => {
+    setupSuperadmin()
+    const wrapper = await mountSuspended(AppSidebar)
+    expect(wrapper.html()).toContain('Operasional')
+  })
+
+  it('renders the Administrasi section label', async () => {
+    setupSuperadmin()
+    const wrapper = await mountSuspended(AppSidebar)
+    expect(wrapper.html()).toContain('Administrasi')
+  })
+
+  it('hides section labels when sidebar is collapsed', async () => {
+    setupSuperadmin()
+    useUiStore().sidebarCollapsed = true
+    const wrapper = await mountSuspended(AppSidebar)
+    const html = wrapper.html()
+    // Section labels should not be rendered when collapsed
+    expect(html).not.toContain('Operasional')
+    expect(html).not.toContain('Administrasi')
+  })
+
+  it('renders a built item (Kantor) as a NuxtLink to /master/offices', async () => {
+    setupSuperadmin()
+    const wrapper = await mountSuspended(AppSidebar)
+    // Kantor should be visible (parent group Master Data must be expanded)
+    const links = wrapper.findAll('a')
+    const kantorLink = links.find(a => a.attributes('href') === '/master/offices')
+    expect(kantorLink).toBeDefined()
+  })
+
+  it('renders a disabled item (Laporan) as non-link and not navigable', async () => {
+    setupSuperadmin()
+    const wrapper = await mountSuspended(AppSidebar)
+    const html = wrapper.html()
+    // Laporan should appear as text somewhere
+    expect(html).toContain('Laporan')
+    // Must NOT be an anchor link
+    const links = wrapper.findAll('a')
+    const laporanLink = links.find(a => a.text().includes('Laporan'))
+    expect(laporanLink).toBeUndefined()
+  })
+
+  it('renders a badge count (8) for Pengajuan & Approval item', async () => {
+    setupSuperadmin()
+    const wrapper = await mountSuspended(AppSidebar)
+    expect(wrapper.html()).toContain('8')
+  })
+
+  it('clicking a parent group toggles its children visibility', async () => {
+    setupSuperadmin()
+    const wrapper = await mountSuspended(AppSidebar)
+    // Find the Master Data parent button
+    const buttons = wrapper.findAll('button')
+    const masterDataBtn = buttons.find(b => b.text().includes('Master Data'))
+    expect(masterDataBtn).toBeDefined()
+
+    // Initially Master Data children should be visible (default expanded)
+    const htmlBefore = wrapper.html()
+    expect(htmlBefore).toContain('Kantor')
+
+    // Click to collapse
+    await masterDataBtn!.trigger('click')
+    await wrapper.vm.$nextTick()
+    const htmlAfter = wrapper.html()
+    // After collapse, Kantor child link should be gone
+    expect(htmlAfter).not.toContain('/master/offices')
+  })
+
+  it('renders the logo wordmark Inventra when expanded', async () => {
+    setupSuperadmin()
+    useUiStore().sidebarCollapsed = false
+    const wrapper = await mountSuspended(AppSidebar)
+    expect(wrapper.html()).toContain('Inventra')
+  })
+
+  it('hides the wordmark when collapsed', async () => {
+    setupSuperadmin()
+    useUiStore().sidebarCollapsed = true
+    const wrapper = await mountSuspended(AppSidebar)
+    // In collapsed mode Inventra text inside the logo area should not be visible
+    // The aside should NOT contain the wordmark span
+    const wordmarks = wrapper.findAll('[data-wordmark]')
+    expect(wordmarks).toHaveLength(0)
+  })
+
+  it('renders the user strip with name and role when expanded', async () => {
+    setupSuperadmin()
+    useUiStore().sidebarCollapsed = false
+    const wrapper = await mountSuspended(AppSidebar)
+    const html = wrapper.html()
+    expect(html).toContain('Admin Inventra')
+    expect(html).toContain('Superadmin')
+  })
+
+  it('renders user initials in the bottom avatar', async () => {
+    setupSuperadmin()
+    const wrapper = await mountSuspended(AppSidebar)
+    // "Admin Inventra" -> initials "AI"
+    expect(wrapper.html()).toContain('AI')
+  })
+
+  it('sidebar has w-[264px] class when expanded', async () => {
+    setupSuperadmin()
+    useUiStore().sidebarCollapsed = false
+    const wrapper = await mountSuspended(AppSidebar)
+    const aside = wrapper.find('aside')
+    expect(aside.classes()).toContain('w-[264px]')
+  })
+
+  it('sidebar has w-[76px] class when collapsed', async () => {
+    setupSuperadmin()
+    useUiStore().sidebarCollapsed = true
+    const wrapper = await mountSuspended(AppSidebar)
+    const aside = wrapper.find('aside')
+    expect(aside.classes()).toContain('w-[76px]')
+  })
+})
+
+describe('AppSidebar — enumerated superadmin permissions (Bug 3)', () => {
+  beforeEach(() => {
+    useAuthStore().clear()
+    useUiStore().sidebarCollapsed = false
+  })
+
+  it('renders superadminNav (Master Data group) when permissions are enumerated without wildcard', async () => {
+    // Backend returns specific keys, never '*', so can('*') would always be false.
+    // The sidebar must gate on a real admin-only capability instead.
+    setupSuperadminEnumerated()
+    const wrapper = await mountSuspended(AppSidebar)
+    const html = wrapper.html()
+    // superadminNav contains a "Master Data" group — staffNav does not
+    expect(html).toContain('Master Data')
+  })
+
+  it('renders Kantor link (/master/offices) for enumerated superadmin', async () => {
+    setupSuperadminEnumerated()
+    const wrapper = await mountSuspended(AppSidebar)
+    const links = wrapper.findAll('a')
+    const kantorLink = links.find(a => a.attributes('href')?.includes('/master/offices'))
+    expect(kantorLink).toBeDefined()
+  })
+})

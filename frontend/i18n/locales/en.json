@@ -25,23 +25,40 @@
     "brandCopyright": "© 2026 Inventra · Asset Management System"
   },
   "nav": {
-    "profile": "Profile",
+    "profile": "My Profile",
+    "accountSettings": "Account Settings",
+    "signOut": "Sign Out",
+    "scopeGlobal": "Entire network",
+    "scopeOffice": "My office",
+    "searchPlaceholder": "Search assets, employees, offices…",
     "dashboard": "Dashboard",
     "assets": "Assets",
-    "assignment": "Assignment",
+    "assetCatalog": "Catalog",
+    "assetImport": "Import",
+    "assetLabel": "Label & Barcode",
+    "myAssets": "My Assets",
+    "assignment": "Assignments",
     "maintenance": "Maintenance",
-    "approval": "Approval",
+    "approval": "Requests & Approval",
+    "approvalStaff": "Requests",
+    "reports": "Reports",
+    "masterData": "Master Data",
     "offices": "Offices",
     "employees": "Employees",
+    "geography": "Location & Geography",
     "reference": "Reference",
+    "settings": "Settings",
     "users": "Users",
-    "audit": "Audit Log",
+    "rbac": "Roles & RBAC",
+    "dataScope": "Data Scope",
+    "fieldPermission": "Field Permission",
+    "auditTrail": "Audit Trail",
+    "comingSoon": "Coming soon",
     "toggleSidebar": "Toggle sidebar",
     "group": {
-      "main": "Main",
-      "asset": "Asset Management",
-      "masterdata": "Master Data",
-      "settings": "Settings"
+      "operasional": "Operational",
+      "administrasi": "Administration",
+      "menu": "Menu"
     }
   },
   "common": {
@@ -49,7 +66,9 @@
     "add": "Add", "search": "Search", "reset": "Reset", "actions": "Actions",
     "loading": "Loading…", "noData": "No data yet", "confirm": "Confirm",
     "showingRange": "Showing {from}–{to} of {total}",
-    "error": "Something went wrong"
+    "error": "Something went wrong",
+    "active": "Active",
+    "inactive": "Inactive"
   },
   "status": {
     "asset": {
@@ -63,6 +82,149 @@
       "pending": "Pending",
       "approved": "Approved",
       "rejected": "Rejected"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markRead": "Mark read",
+    "viewAll": "View all notifications",
+    "empty": "No new notifications",
+    "item": {
+      "approvalPending": "A new lending request is awaiting approval",
+      "maintenanceDue": "Toyota Avanza maintenance is due tomorrow",
+      "assetReturned": "Asset INV-2024-0312 has been returned"
+    },
+    "time": {
+      "fiveMinutesAgo": "5 minutes ago",
+      "oneHourAgo": "1 hour ago",
+      "threeHoursAgo": "3 hours ago"
+    }
+  },
+  "theme": {
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode"
+  },
+  "masterdata": {
+    "offices": {
+      "title": "Office Master Data",
+      "subtitle": "Manage the 4-tier office hierarchy",
+      "hierarki": "Office Hierarchy",
+      "tambahKantor": "Add Office",
+      "cariKantor": "Search offices…",
+      "pilihKantor": "Select an office to view details",
+      "pilihKantorSub": "Click an office in the hierarchy to view its details.",
+      "induk": "Parent",
+      "noParentLabel": "— (No parent / Head Office)",
+      "aktif": "Active",
+      "aktifHint": "Active offices can be selected when assigning assets",
+      "nonaktif": "Inactive",
+      "lantaiRuangan": "Floors & Rooms",
+      "tambahLantai": "Add Floor",
+      "tambahRuangan": "Add Room",
+      "emptyFloors": "No floors yet",
+      "emptyFloorsSub": "Add a floor to start organizing rooms in this office.",
+      "noRoomMsg": "No rooms on this floor yet.",
+      "roomCount": "{n} rooms",
+      "treeEmpty": "No matching office.",
+      "addSub": "Register a new office in the hierarchy.",
+      "editSub": "Update office data.",
+      "deleteTitle": "Delete this office?",
+      "deleteBody": "The office and all its child offices will be deleted. This cannot be undone.",
+      "deleteFloorConfirm": "Delete this floor? All rooms on this floor will also be removed.",
+      "deleteRoomConfirm": "Delete this room? This action cannot be undone.",
+      "nameRequired": "Name cannot be empty.",
+      "fields": {
+        "nama": "Office Name",
+        "kode": "Code",
+        "tipe": "Tier",
+        "parent": "Parent",
+        "provinsi": "Province",
+        "kota": "City",
+        "alamat": "Address",
+        "active": "Status"
+      },
+      "tipe": { "pusat": "Head Office", "kanwil": "Regional", "cabang": "Branch", "unit": "Unit" },
+      "noParent": "No parent (Head Office)",
+      "createTitle": "Add Office",
+      "editTitle": "Edit Office",
+      "errInvalidParent": "Invalid parent office.",
+      "errNotFound": "Office not found."
+    },
+    "employees": {
+      "title": "Employees",
+      "subtitle": "Manage employee data within your office scope.",
+      "add": "Add Employee",
+      "empty": "No employees yet",
+      "emptyFilter": "No employees match the selected filters.",
+      "searchPlaceholder": "Search name or NIP…",
+      "createSub": "Register a new employee to an office.",
+      "editSub": "Update employee data.",
+      "scopeNote": "Office choices are limited to your role scope.",
+      "columns": {
+        "nip": "NIP",
+        "nama": "Name",
+        "departemen": "Department",
+        "jabatan": "Position",
+        "kantor": "Office",
+        "kontak": "Email / Phone",
+        "status": "Status"
+      },
+      "filter": {
+        "allKantor": "All Offices",
+        "allDept": "All Departments",
+        "allJabatan": "All Positions",
+        "allStatus": "All Status"
+      },
+      "placeholders": {
+        "nama": "e.g. Andi Saputra",
+        "pilih": "Select…"
+      },
+      "fields": {
+        "nip": "NIP",
+        "nama": "Full Name",
+        "email": "Email",
+        "telepon": "Phone",
+        "jabatan": "Position",
+        "departemen": "Department",
+        "office": "Office",
+        "status": "Status"
+      },
+      "status": { "active": "Active", "inactive": "Inactive" },
+      "createTitle": "Add Employee",
+      "editTitle": "Edit Employee",
+      "deleteConfirm": "Delete this employee?",
+      "errNotFound": "Employee not found."
+    },
+    "reference": {
+      "panelTitle": "Master Data",
+      "panelSubtitle": "Reference data",
+      "add": "Add",
+      "empty": "No data yet",
+      "createTitle": "Add Entry",
+      "editTitle": "Edit Entry",
+      "deleteConfirm": "Delete this entry?",
+      "errNotFound": "Entry not found.",
+      "statusColumn": "Status",
+      "aktif": "Active",
+      "aktifHint": "Visible & selectable across the system",
+      "nonaktif": "Inactive",
+      "entitySubtitle": "Manage reference data",
+      "fields": { "name": "Name", "code": "Code", "symbol": "Symbol", "email": "Email", "phone": "Phone", "active": "Status" },
+      "resources": {
+        "office-types": "Office Types", "departments": "Departments", "positions": "Positions",
+        "units": "Units", "maintenance-categories": "Maintenance Categories",
+        "problem-categories": "Problem Categories", "brands": "Brands", "vendors": "Vendors",
+        "provinces": "Provinces", "cities": "Cities", "models": "Models"
+      }
+    },
+    "floors": {
+      "deleteConfirm": "Delete this floor?",
+      "editName": "Rename floor"
+    },
+    "rooms": {
+      "title": "Rooms",
+      "deleteConfirm": "Delete this room?",
+      "editName": "Rename room"
     }
   }
 }

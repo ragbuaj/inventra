@@ -25,23 +25,40 @@
     "brandCopyright": "© 2026 Inventra · Sistem Manajemen Aset"
   },
   "nav": {
-    "profile": "Profil",
+    "profile": "Profil Saya",
+    "accountSettings": "Pengaturan Akun",
+    "signOut": "Keluar",
+    "scopeGlobal": "Seluruh jaringan",
+    "scopeOffice": "Kantor saya",
+    "searchPlaceholder": "Cari aset, pegawai, kantor…",
     "dashboard": "Dasbor",
     "assets": "Aset",
-    "assignment": "Peminjaman",
-    "maintenance": "Pemeliharaan",
-    "approval": "Persetujuan",
+    "assetCatalog": "Katalog",
+    "assetImport": "Import",
+    "assetLabel": "Label & Barcode",
+    "myAssets": "Aset Saya",
+    "assignment": "Penugasan",
+    "maintenance": "Maintenance",
+    "approval": "Pengajuan & Approval",
+    "approvalStaff": "Pengajuan",
+    "reports": "Laporan",
+    "masterData": "Master Data",
     "offices": "Kantor",
-    "employees": "Karyawan",
+    "employees": "Pegawai",
+    "geography": "Lokasi & Geografi",
     "reference": "Referensi",
-    "users": "Pengguna",
-    "audit": "Audit Log",
+    "settings": "Pengaturan",
+    "users": "User",
+    "rbac": "Peran & RBAC",
+    "dataScope": "Data Scope",
+    "fieldPermission": "Field-Permission",
+    "auditTrail": "Audit Trail",
+    "comingSoon": "Segera hadir",
     "toggleSidebar": "Tampilkan/sembunyikan menu",
     "group": {
-      "main": "Utama",
-      "asset": "Manajemen Aset",
-      "masterdata": "Master Data",
-      "settings": "Pengaturan"
+      "operasional": "Operasional",
+      "administrasi": "Administrasi",
+      "menu": "Menu"
     }
   },
   "common": {
@@ -49,7 +66,9 @@
     "add": "Tambah", "search": "Cari", "reset": "Reset", "actions": "Aksi",
     "loading": "Memuat…", "noData": "Belum ada data", "confirm": "Konfirmasi",
     "showingRange": "Menampilkan {from}–{to} dari {total}",
-    "error": "Terjadi kesalahan"
+    "error": "Terjadi kesalahan",
+    "active": "Aktif",
+    "inactive": "Nonaktif"
   },
   "status": {
     "asset": {
@@ -63,6 +82,149 @@
       "pending": "Menunggu",
       "approved": "Disetujui",
       "rejected": "Ditolak"
+    }
+  },
+  "notifications": {
+    "title": "Notifikasi",
+    "markRead": "Tandai dibaca",
+    "viewAll": "Lihat semua notifikasi",
+    "empty": "Tidak ada notifikasi baru",
+    "item": {
+      "approvalPending": "Pengajuan peminjaman baru menunggu persetujuan",
+      "maintenanceDue": "Maintenance Toyota Avanza jatuh tempo besok",
+      "assetReturned": "Aset INV-2024-0312 berhasil dikembalikan"
+    },
+    "time": {
+      "fiveMinutesAgo": "5 menit lalu",
+      "oneHourAgo": "1 jam lalu",
+      "threeHoursAgo": "3 jam lalu"
+    }
+  },
+  "theme": {
+    "switchToLight": "Beralih ke mode terang",
+    "switchToDark": "Beralih ke mode gelap"
+  },
+  "masterdata": {
+    "offices": {
+      "title": "Master Data Kantor",
+      "subtitle": "Kelola hierarki kantor 4 jenjang",
+      "hierarki": "Hierarki Kantor",
+      "tambahKantor": "Tambah Kantor",
+      "cariKantor": "Cari kantor…",
+      "pilihKantor": "Pilih kantor untuk melihat detail",
+      "pilihKantorSub": "Klik salah satu kantor pada hierarki untuk melihat detailnya.",
+      "induk": "Induk",
+      "noParentLabel": "— (Tanpa induk / Pusat)",
+      "aktif": "Aktif",
+      "aktifHint": "Kantor aktif dapat dipilih saat penempatan aset",
+      "nonaktif": "Nonaktif",
+      "lantaiRuangan": "Lantai & Ruangan",
+      "tambahLantai": "Tambah Lantai",
+      "tambahRuangan": "Tambah Ruangan",
+      "emptyFloors": "Belum ada lantai",
+      "emptyFloorsSub": "Tambahkan lantai untuk mulai menata ruangan di kantor ini.",
+      "noRoomMsg": "Belum ada ruangan di lantai ini.",
+      "roomCount": "{n} ruangan",
+      "treeEmpty": "Tidak ada kantor cocok.",
+      "addSub": "Daftarkan kantor baru pada hierarki.",
+      "editSub": "Perbarui data kantor.",
+      "deleteTitle": "Hapus kantor ini?",
+      "deleteBody": "Kantor dan seluruh kantor anaknya akan dihapus. Tindakan ini tidak dapat dibatalkan.",
+      "deleteFloorConfirm": "Hapus lantai ini? Semua ruangan di lantai ini juga akan dihapus.",
+      "deleteRoomConfirm": "Hapus ruangan ini? Tindakan ini tidak dapat dibatalkan.",
+      "nameRequired": "Nama tidak boleh kosong.",
+      "fields": {
+        "nama": "Nama Kantor",
+        "kode": "Kode",
+        "tipe": "Jenjang",
+        "parent": "Induk",
+        "provinsi": "Provinsi",
+        "kota": "Kota",
+        "alamat": "Alamat",
+        "active": "Status"
+      },
+      "tipe": { "pusat": "Pusat", "kanwil": "Kanwil", "cabang": "Cabang", "unit": "Unit" },
+      "noParent": "Tanpa induk (Pusat)",
+      "createTitle": "Tambah Kantor",
+      "editTitle": "Ubah Kantor",
+      "errInvalidParent": "Induk kantor tidak valid.",
+      "errNotFound": "Kantor tidak ditemukan."
+    },
+    "employees": {
+      "title": "Pegawai",
+      "subtitle": "Kelola data pegawai dalam lingkup kantor Anda.",
+      "add": "Tambah Pegawai",
+      "empty": "Belum ada pegawai",
+      "emptyFilter": "Tidak ada pegawai yang cocok dengan filter yang dipilih.",
+      "searchPlaceholder": "Cari nama atau NIP…",
+      "createSub": "Daftarkan pegawai baru ke kantor.",
+      "editSub": "Perbarui data pegawai.",
+      "scopeNote": "Pilihan kantor dibatasi sesuai lingkup peran Anda.",
+      "columns": {
+        "nip": "NIP",
+        "nama": "Nama",
+        "departemen": "Departemen",
+        "jabatan": "Jabatan",
+        "kantor": "Kantor",
+        "kontak": "Email / Telepon",
+        "status": "Status"
+      },
+      "filter": {
+        "allKantor": "Semua Kantor",
+        "allDept": "Semua Departemen",
+        "allJabatan": "Semua Jabatan",
+        "allStatus": "Semua Status"
+      },
+      "placeholders": {
+        "nama": "mis. Andi Saputra",
+        "pilih": "Pilih…"
+      },
+      "fields": {
+        "nip": "NIP",
+        "nama": "Nama Lengkap",
+        "email": "Email",
+        "telepon": "Telepon",
+        "jabatan": "Jabatan",
+        "departemen": "Departemen",
+        "office": "Kantor",
+        "status": "Status"
+      },
+      "status": { "active": "Aktif", "inactive": "Nonaktif" },
+      "createTitle": "Tambah Pegawai",
+      "editTitle": "Ubah Pegawai",
+      "deleteConfirm": "Hapus pegawai ini?",
+      "errNotFound": "Pegawai tidak ditemukan."
+    },
+    "reference": {
+      "panelTitle": "Master Data",
+      "panelSubtitle": "Data referensi",
+      "add": "Tambah",
+      "empty": "Belum ada data",
+      "createTitle": "Tambah Data",
+      "editTitle": "Ubah Data",
+      "deleteConfirm": "Hapus data ini?",
+      "errNotFound": "Data tidak ditemukan.",
+      "statusColumn": "Status",
+      "aktif": "Aktif",
+      "aktifHint": "Tampil & dapat dipilih di seluruh sistem",
+      "nonaktif": "Nonaktif",
+      "entitySubtitle": "Kelola data referensi",
+      "fields": { "name": "Nama", "code": "Kode", "symbol": "Simbol", "email": "Email", "phone": "Telepon", "active": "Status" },
+      "resources": {
+        "office-types": "Jenis Kantor", "departments": "Departemen", "positions": "Jabatan",
+        "units": "Satuan", "maintenance-categories": "Kategori Pemeliharaan",
+        "problem-categories": "Kategori Masalah", "brands": "Merek", "vendors": "Vendor",
+        "provinces": "Provinsi", "cities": "Kota", "models": "Model"
+      }
+    },
+    "floors": {
+      "deleteConfirm": "Hapus lantai ini?",
+      "editName": "Ubah nama lantai"
+    },
+    "rooms": {
+      "title": "Ruangan",
+      "deleteConfirm": "Hapus ruangan ini?",
+      "editName": "Ubah nama ruangan"
     }
   }
 }

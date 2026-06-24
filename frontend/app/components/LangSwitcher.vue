@@ -1,18 +1,30 @@
 <script setup lang="ts">
-const { locale, locales, setLocale } = useI18n()
-const items = computed(() => (locales.value as { code: string, name: string }[]).map(l => ({
-  label: l.name,
-  onSelect: () => setLocale(l.code as 'id' | 'en')
-})))
+const { locale, setLocale } = useI18n()
 </script>
 
 <template>
-  <UDropdownMenu :items="items">
-    <UButton
-      color="neutral"
-      variant="ghost"
-      icon="i-lucide-languages"
-      :label="locale.toUpperCase()"
-    />
-  </UDropdownMenu>
+  <div class="flex gap-0.5 p-[3px] bg-muted rounded-[9px]">
+    <button
+      :class="[
+        'px-[9px] py-[5px] text-[12px] font-semibold rounded-[6px] border-0 cursor-pointer transition-colors',
+        locale === 'id'
+          ? 'bg-default text-default shadow-sm'
+          : 'bg-transparent text-muted hover:text-default'
+      ]"
+      @click="setLocale('id')"
+    >
+      ID
+    </button>
+    <button
+      :class="[
+        'px-[9px] py-[5px] text-[12px] font-semibold rounded-[6px] border-0 cursor-pointer transition-colors',
+        locale === 'en'
+          ? 'bg-default text-default shadow-sm'
+          : 'bg-transparent text-muted hover:text-default'
+      ]"
+      @click="setLocale('en')"
+    >
+      EN
+    </button>
+  </div>
 </template>

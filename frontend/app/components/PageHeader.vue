@@ -3,9 +3,9 @@ defineProps<{ title: string, subtitle?: string }>()
 </script>
 
 <template>
-  <div class="flex items-center justify-between gap-4 mb-4">
+  <div class="flex items-center justify-between gap-4 mb-[22px]">
     <div>
-      <h1 class="text-xl font-semibold">
+      <h1 class="text-2xl font-bold tracking-tight">
         {{ title }}
       </h1>
       <p
