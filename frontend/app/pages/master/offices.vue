@@ -12,6 +12,7 @@ const api = useOffices()
 const nodes = ref<TreeNode[]>([])
 const selectedId = ref<string>()
 const selected = ref<Office>()
+const parentName = ref<string>()
 const search = ref('')
 const loading = ref(true)
 
@@ -34,7 +35,14 @@ async function refresh() {
 
 async function onSelect(id: string) {
   selectedId.value = id
-  selected.value = await api.get(id)
+  const office = await api.get(id)
+  selected.value = office
+  if (office && office.parent_id) {
+    const parent = await api.get(office.parent_id)
+    parentName.value = parent?.nama
+  } else {
+    parentName.value = undefined
+  }
 }
 
 function openCreate() {
@@ -74,16 +82,22 @@ async function onDelete() {
   if (!selected.value) return
   const ok = await confirm({ title: t('common.delete'), description: t('masterdata.offices.deleteConfirm') })
   if (!ok) return
-  await api.remove(selected.value.id)
-  selected.value = undefined
-  selectedId.value = undefined
-  await refresh()
+  try {
+    await api.remove(selected.value.id)
+    selected.value = undefined
+    selectedId.value = undefined
+    parentName.value = undefined
+    await refresh()
+  } catch (err) {
+    toast.add({ title: t((err as Error).message), color: 'error' })
+  }
 }
 
 const detailRows = computed(() => {
   const o = selected.value
   if (!o) return []
   return [
+    { label: t('masterdata.offices.fields.parent'), value: parentName.value ?? t('masterdata.offices.noParent') },
     { label: t('masterdata.offices.fields.kode'), value: o.kode },
     { label: t('masterdata.offices.fields.tipe'), value: t(`masterdata.offices.tipe.${o.tipe}`) },
     { label: t('masterdata.offices.fields.provinsi'), value: o.provinsi },
