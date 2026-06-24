@@ -38,9 +38,10 @@ Pattern (one per entity):
   fixture to `useApiClient().request(...)`. Pages, components, and tests are untouched. Fixtures return
   the same `{data,total,limit,offset}` envelope the backend uses, so the swap is mechanical.
 
-For screens whose backend **does** exist today (offices, employees, reference, users — see route
-table below), the composable MAY call the real API directly instead of a mock; this is decided
-per-phase in that phase's spec.
+**All phases — including Phase 1 — use mock fixtures first**, for a uniform pattern across the whole
+codebase. Even where the backend already exists (offices, employees, reference, users), the screen is
+built against a mock fixture behind the composable, then swapped to real `$fetch` later. The
+availability table below records which composables can be swapped earliest, not which start real.
 
 ### Backend availability (as of 2026-06-24)
 

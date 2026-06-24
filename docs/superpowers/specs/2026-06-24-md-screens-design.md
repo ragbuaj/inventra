@@ -3,15 +3,15 @@
 **Date:** 2026-06-24
 **Parent:** `2026-06-24-frontend-feature-screens-roadmap-design.md`
 **Status:** Approved spec, ready for writing-plans
-**Backend:** Real API exists for all three entities — these screens call the live backend through
-their `composables/api/` service (no mock fixtures needed), behind the same interface used by later
-mock-backed phases.
+**Backend:** Real API exists for all three entities, but per the roadmap these screens are built
+**against mock fixtures first** (uniform with every other phase), behind the `composables/api/`
+interface, then swapped to real `$fetch` later — a mechanical change isolated to the composable body.
 
 ## Goal
 
 Implement the three Master Data screens faithfully to their `docs/design` mockups, on top of the
-existing component library, with full CRUD, office-subtree data scope respected by the backend, i18n,
-and tests.
+existing component library, with full CRUD, office-subtree data scope modeled in the mock layer,
+i18n, and tests.
 
 | Screen | Mockup | Route | Backend endpoints |
 |---|---|---|---|
@@ -24,9 +24,12 @@ All three nav items already exist in `AppSidebar.vue` (`masterdata.office.manage
 
 ## Shared API layer
 
-`app/composables/api/` (new folder). One composable per concern; each returns the typed CRUD surface
-and calls `useApiClient().request(...)`. Responses use the backend envelope `{data,total,limit,offset}`
-→ map to `Paginated<T>` (already in `app/types`). List inputs use `ListQuery`.
+`app/composables/api/` (new folder). One composable per concern; each returns the typed CRUD surface.
+**Implementation today reads from seeded mock fixtures** in `app/mock/<entity>.ts` (re-exported from
+`app/mock/index.ts`) via the existing `paginate`/`filterBy` helpers + a small simulated-latency
+wrapper. The composable returns the backend envelope shape `Paginated<T>` (already in `app/types`) so
+the later swap to `useApiClient().request(...)` is mechanical and confined to the composable body.
+List inputs use `ListQuery`.
 
 - **`useOffices.ts`** — `list(query)`, `get(id)`, `create(input)`, `update(id,input)`, `remove(id)`,
   plus `tree()` (offices arranged into the hierarchy for `TreeView`). Floors/rooms accessed via
@@ -36,10 +39,13 @@ and calls `useApiClient().request(...)`. Responses use the backend envelope `{da
 - **`useReference.ts`** — generic: `list(resource, query)` / `create(resource, input)` / … where
   `resource` is one of the 11 reference keys. Mirrors the backend's declarative engine: a single
   composable parameterized by resource string, with a typed `referenceResources` descriptor table
-  (key, i18n label, field schema) living in `app/composables/api/referenceResources.ts`.
+  (key, i18n label, field schema) living in `app/composables/api/referenceResources.ts`. Backed by a
+  keyed fixture map in `app/mock/reference.ts`.
 
 Types for `Office`, `Employee`, and the reference row shapes go in `app/types/index.ts` (or a
-`app/types/masterdata.ts` if it grows), matching the OpenAPI schemas.
+`app/types/masterdata.ts` if it grows), matching the OpenAPI schemas. Mock fixtures seed realistic
+Indonesian data (office names + codes like `JKT01`, employees, reference rows) and model
+office-subtree scope so the UI exercises scoped/empty states.
 
 ## Screen designs
 
@@ -50,7 +56,8 @@ subtree the caller can see; selecting a node shows a detail panel (nama, code e.
 alamat, parent, type). Toolbar (`DataToolbar`) with search. Create/Edit via `FormSlideover` (or
 `FormModal` per mockup) with fields: nama, code, office-type, parent office (select within caller
 scope), kota/province, alamat. Delete via `ConfirmDialog`. Scoped callers may only place an office
-under a parent within their scope — surface backend `403`/conflict errors as toasts.
+under a parent within their scope — the mock layer rejects out-of-scope placement and the UI surfaces
+the error as a toast (the same path real `403`/conflict responses will use after the swap).
 
 **States:** tree loading skeleton, empty (no offices in scope), detail empty (nothing selected),
 form validation errors, delete confirm, API error toast.
@@ -100,17 +107,19 @@ New keys under namespaces `masterdata.offices.*`, `masterdata.employees.*`, `mas
 
 ## Testing
 
-- **Unit:** `useReference` resource-descriptor logic; any list-query mapping helper.
+- **Unit:** `useReference` resource-descriptor logic; mock fixture CRUD (create/update/remove mutate
+  the in-memory store; `list` paginates/filters correctly).
 - **Runtime (`mountSuspended`, `// @vitest-environment nuxt`):** one per screen — assert the table
-  renders seeded rows with resolved i18n labels, empty state shows when list is empty, and the
-  create form opens. Mock the composable's `request` at the `useApiClient` boundary.
-- **E2E (`frontend/e2e/`):** offices CRUD happy path against the real backend + seeded admin (create
-  an office, see it in the tree, edit, delete). Runs in CI's e2e job.
+  renders seeded fixture rows with resolved i18n labels, empty state shows when the list is empty, and
+  the create form opens. Backed by the mock composable directly (no network).
+- **E2E (`frontend/e2e/`):** offices CRUD happy path driven entirely by the frontend mock layer (no
+  backend dependency) — create an office, see it in the tree, edit, delete. When the real backend is
+  wired later, this e2e is re-pointed at the seeded admin stack.
 
 ## Verification
 
 `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` green; screens match mockups in light and
-dark mode; backend scope `403`s surface as user-facing errors (not silent failures).
+dark mode; mock-layer scope rejections surface as user-facing error toasts (not silent failures).
 
 ## Out of scope (Phase 1)
 
