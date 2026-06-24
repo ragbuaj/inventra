@@ -19,3 +19,6 @@ coverage.out
 Thumbs.db
 .idea/
 *.swp
+
+# Agent scratch (briefs, reports, ledger)
+.superpowers/

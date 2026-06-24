@@ -41,10 +41,19 @@ describe('ResourceTable', () => {
     const wrapper = await mountSuspended(ResourceTable, {
       props: { rows: [], columns, loading: false }
     })
-    // Check that no row data from our fixture appears and something renders
+    // No row data from our fixture appears
     expect(wrapper.html()).not.toContain('Laptop A')
-    // EmptyState should render (contains an icon + text)
-    expect(wrapper.html().length).toBeGreaterThan(0)
+    // EmptyState renders the default common.noData i18n text (id locale: "Belum ada data")
+    expect(wrapper.html()).toContain('Belum ada data')
+  })
+
+  it('renders a custom empty title when emptyTitle is provided', async () => {
+    const wrapper = await mountSuspended(ResourceTable, {
+      props: { rows: [], columns, loading: false, emptyTitle: 'Tidak ada aset' }
+    })
+    expect(wrapper.html()).toContain('Tidak ada aset')
+    // The default fallback text should NOT appear when a custom title is given
+    expect(wrapper.html()).not.toContain('Belum ada data')
   })
 
   it('renders TableSkeleton when loading is true', async () => {
@@ -52,10 +61,12 @@ describe('ResourceTable', () => {
       props: { rows: [], columns, loading: true }
     })
     const html = wrapper.html()
-    // TableSkeleton renders; row data should NOT appear
+    // Row data should NOT appear while loading
     expect(html).not.toContain('Laptop A')
-    // The skeleton renders some markup
-    expect(html.length).toBeGreaterThan(0)
+    // The EmptyState text must NOT appear — we are loading, not empty
+    expect(html).not.toContain('Belum ada data')
+    // TableSkeleton renders USkeleton elements with a stable animate-pulse class
+    expect(wrapper.findAll('.animate-pulse').length).toBeGreaterThan(0)
   })
 
   it('does not render EmptyState when loading is true', async () => {
