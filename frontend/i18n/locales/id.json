@@ -33,7 +33,8 @@
     "save": "Simpan", "cancel": "Batal", "delete": "Hapus", "edit": "Ubah",
     "add": "Tambah", "search": "Cari", "reset": "Reset", "actions": "Aksi",
     "loading": "Memuat…", "noData": "Belum ada data", "confirm": "Konfirmasi",
-    "showingRange": "Menampilkan {from}–{to} dari {total}"
+    "showingRange": "Menampilkan {from}–{to} dari {total}",
+    "error": "Terjadi kesalahan"
   },
   "status": {
     "asset": {

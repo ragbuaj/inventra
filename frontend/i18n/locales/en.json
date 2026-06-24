@@ -33,7 +33,8 @@
     "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit",
     "add": "Add", "search": "Search", "reset": "Reset", "actions": "Actions",
     "loading": "Loading…", "noData": "No data yet", "confirm": "Confirm",
-    "showingRange": "Showing {from}–{to} of {total}"
+    "showingRange": "Showing {from}–{to} of {total}",
+    "error": "Something went wrong"
   },
   "status": {
     "asset": {

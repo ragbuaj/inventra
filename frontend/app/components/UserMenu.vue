@@ -20,7 +20,7 @@ const items = computed(() => [[
           {{ auth.user?.name }}
         </p>
         <p class="text-xs text-muted">
-          {{ auth.user?.role_name }}
+          {{ auth.user?.role_name || auth.user?.email }}
         </p>
       </div>
     </button>

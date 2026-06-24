@@ -24,9 +24,9 @@ const groups: NavGroup[] = [
     labelKey: 'nav.group.asset',
     items: [
       { labelKey: 'nav.assets', icon: 'i-lucide-package', to: '/assets', permission: 'asset.read' },
-      { labelKey: 'nav.assignment', icon: 'i-lucide-arrow-left-right', to: '/assignment', permission: 'assignment.read' },
-      { labelKey: 'nav.maintenance', icon: 'i-lucide-wrench', to: '/maintenance', permission: 'maintenance.read' },
-      { labelKey: 'nav.approval', icon: 'i-lucide-check-square', to: '/approval', permission: 'approval.read' }
+      { labelKey: 'nav.assignment', icon: 'i-lucide-arrow-left-right', to: '/assignment', permission: 'asset.checkout' },
+      { labelKey: 'nav.maintenance', icon: 'i-lucide-wrench', to: '/maintenance', permission: 'maintenance.manage' },
+      { labelKey: 'nav.approval', icon: 'i-lucide-check-square', to: '/approval', permission: 'request.approve' }
     ]
   },
   {
@@ -41,7 +41,7 @@ const groups: NavGroup[] = [
     labelKey: 'nav.group.settings',
     items: [
       { labelKey: 'nav.users', icon: 'i-lucide-user-cog', to: '/settings/users', permission: 'user.manage' },
-      { labelKey: 'nav.audit', icon: 'i-lucide-scroll-text', to: '/settings/audit', permission: 'audit.read' }
+      { labelKey: 'nav.audit', icon: 'i-lucide-scroll-text', to: '/settings/audit', permission: 'audit.view' }
     ]
   }
 ]

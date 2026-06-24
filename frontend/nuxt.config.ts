@@ -7,6 +7,8 @@ export default defineNuxtConfig({
     '@nuxtjs/i18n'
   ],
 
+  ssr: false,
+
   devtools: {
     enabled: true
   },
@@ -18,10 +20,6 @@ export default defineNuxtConfig({
       // Override with NUXT_PUBLIC_API_BASE; see .env.example.
       apiBase: 'http://localhost:8080/api/v1'
     }
-  },
-
-  routeRules: {
-    '/': { prerender: true }
   },
 
   compatibilityDate: '2025-01-15',

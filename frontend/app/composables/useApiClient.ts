@@ -2,10 +2,11 @@ export function useApiClient() {
   const config = useRuntimeConfig()
   const auth = useAuthStore()
   const toast = useToast()
+  const { t } = useI18n()
   const base = config.public.apiBase as string
 
   async function refreshToken(): Promise<boolean> {
-    const refresh = useCookie<string | null>('inventra_refresh')
+    const refresh = useRefreshCookie()
     if (!refresh.value) return false
     try {
       const res = await $fetch<{ access_token: string, refresh_token: string }>(`${base}/auth/refresh`, {
@@ -33,10 +34,10 @@ export function useApiClient() {
       }
       if (status === 401) {
         auth.clear()
-        useCookie<string | null>('inventra_refresh').value = null
+        useRefreshCookie().value = null
         await navigateTo('/login')
       } else {
-        toast.add({ title: 'Terjadi kesalahan', description: String(status ?? ''), color: 'error' })
+        toast.add({ title: t('common.error'), description: String(status ?? ''), color: 'error' })
       }
       throw err
     }

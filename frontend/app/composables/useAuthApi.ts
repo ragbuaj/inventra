@@ -20,7 +20,7 @@ export function useAuthApi() {
   const config = useRuntimeConfig()
   const auth = useAuthStore()
   const base = config.public.apiBase as string
-  const refreshCookie = useCookie<string | null>('inventra_refresh', { sameSite: 'lax' })
+  const refreshCookie = useRefreshCookie()
 
   async function login(email: string, password: string): Promise<void> {
     const res = await $fetch<{ access_token: string, refresh_token: string }>(`${base}/auth/login`, {
