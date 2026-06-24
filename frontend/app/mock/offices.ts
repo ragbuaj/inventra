@@ -11,12 +11,30 @@ export const officeSeed: Office[] = [
 
 export const officeStore = createStore<Office>(officeSeed)
 
-/** Map office tipe → tree icon + bg/color tokens for the colored type badge */
-export const officeTipeMeta: Record<Office['tipe'], { icon: string, bg: string, color: string }> = {
-  pusat: { icon: 'i-lucide-landmark', bg: 'bg-primary/10', color: 'text-primary' },
-  kanwil: { icon: 'i-lucide-building-2', bg: 'bg-blue-500/10', color: 'text-blue-600' },
-  cabang: { icon: 'i-lucide-building', bg: 'bg-amber-500/10', color: 'text-amber-600' },
-  unit: { icon: 'i-lucide-map-pin', bg: 'bg-purple-500/10', color: 'text-purple-600' }
+/**
+ * Map office tipe → icon name + Nuxt UI semantic color name.
+ * Use `color` directly with UBadge (color="primary" etc.).
+ * buildOfficeTree converts color → semantic Tailwind token classes for TreeView.
+ */
+export const officeTipeMeta: Record<Office['tipe'], { icon: string, color: string }> = {
+  pusat: { icon: 'i-lucide-landmark', color: 'primary' },
+  kanwil: { icon: 'i-lucide-building-2', color: 'info' },
+  cabang: { icon: 'i-lucide-building', color: 'warning' },
+  unit: { icon: 'i-lucide-map-pin', color: 'neutral' }
+}
+
+const tipeBgClass: Record<string, string> = {
+  primary: 'bg-primary/10',
+  info: 'bg-info/10',
+  warning: 'bg-warning/10',
+  neutral: 'bg-neutral/10'
+}
+
+const tipeColorClass: Record<string, string> = {
+  primary: 'text-primary',
+  info: 'text-info',
+  warning: 'text-warning',
+  neutral: 'text-neutral-500'
 }
 
 export function buildOfficeTree(offices: Office[]): TreeNode[] {
@@ -34,8 +52,8 @@ export function buildOfficeTree(offices: Office[]): TreeNode[] {
         id: o.id,
         label: o.nama,
         icon: meta.icon,
-        iconBg: meta.bg,
-        iconColor: meta.color,
+        iconBg: tipeBgClass[meta.color] ?? 'bg-neutral/10',
+        iconColor: tipeColorClass[meta.color] ?? 'text-neutral-500',
         inactive: !o.active,
         childCount: children.length || undefined,
         children: children.length ? children : undefined
