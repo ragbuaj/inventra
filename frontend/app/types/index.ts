@@ -31,6 +31,24 @@ export interface Office {
   provinsi: string
   kota: string
   alamat: string
+  active: boolean
+  created_at: string
+}
+
+export interface Floor {
+  id: string
+  office_id: string
+  nama: string
+  lantai: number
+  created_at: string
+}
+
+export interface Room {
+  id: string
+  floor_id: string
+  office_id: string
+  nama: string
+  kode: string
   created_at: string
 }
 
@@ -58,6 +76,24 @@ export interface TreeNode {
   id: string
   label: string
   icon?: string
+  iconBg?: string
+  iconColor?: string
+  inactive?: boolean
   childCount?: number
   children?: TreeNode[]
+}
+
+export interface NavItem {
+  labelKey: string
+  icon?: string
+  to?: string
+  permission?: string
+  badgeCount?: number
+  disabled?: boolean
+  children?: NavItem[]
+}
+
+export interface NavGroup {
+  labelKey: string
+  items: NavItem[]
 }

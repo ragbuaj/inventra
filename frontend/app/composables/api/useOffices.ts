@@ -10,6 +10,7 @@ export interface OfficeInput {
   provinsi: string
   kota: string
   alamat: string
+  active?: boolean
 }
 
 function assertValidParent(parentId: string | null) {
@@ -37,7 +38,7 @@ export function useOffices() {
   async function create(input: OfficeInput): Promise<Office> {
     await fakeLatency()
     assertValidParent(input.parent_id)
-    return officeStore.insert({ id: generateId(), created_at: new Date().toISOString(), ...input })
+    return officeStore.insert({ id: generateId(), created_at: new Date().toISOString(), active: true, ...input })
   }
 
   async function update(id: string, input: OfficeInput): Promise<Office> {

@@ -28,17 +28,33 @@
     "profile": "Profile",
     "dashboard": "Dashboard",
     "assets": "Assets",
-    "assignment": "Assignment",
+    "assetCatalog": "Catalog",
+    "assetImport": "Import",
+    "assetLabel": "Label & Barcode",
+    "myAssets": "My Assets",
+    "assignment": "Assignments",
     "maintenance": "Maintenance",
-    "approval": "Approval",
+    "approval": "Requests & Approval",
+    "reports": "Reports",
+    "masterData": "Master Data",
     "offices": "Offices",
     "employees": "Employees",
+    "geography": "Location & Geography",
     "reference": "Reference",
+    "settings": "Settings",
     "users": "Users",
+    "rbac": "Roles & RBAC",
+    "dataScope": "Data Scope",
+    "fieldPermission": "Field Permission",
+    "auditTrail": "Audit Trail",
     "audit": "Audit Log",
+    "comingSoon": "Coming soon",
     "toggleSidebar": "Toggle sidebar",
     "group": {
       "main": "Main",
+      "operasional": "Operational",
+      "administrasi": "Administration",
+      "menu": "Menu",
       "asset": "Asset Management",
       "masterdata": "Master Data",
       "settings": "Settings"
@@ -49,7 +65,9 @@
     "add": "Add", "search": "Search", "reset": "Reset", "actions": "Actions",
     "loading": "Loading…", "noData": "No data yet", "confirm": "Confirm",
     "showingRange": "Showing {from}–{to} of {total}",
-    "error": "Something went wrong"
+    "error": "Something went wrong",
+    "active": "Active",
+    "inactive": "Inactive"
   },
   "status": {
     "asset": {
@@ -63,6 +81,22 @@
       "pending": "Pending",
       "approved": "Approved",
       "rejected": "Rejected"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markRead": "Mark read",
+    "viewAll": "View all notifications",
+    "empty": "No new notifications",
+    "item": {
+      "approvalPending": "A new lending request is awaiting approval",
+      "maintenanceDue": "Toyota Avanza maintenance is due tomorrow",
+      "assetReturned": "Asset INV-2024-0312 has been returned"
+    },
+    "time": {
+      "fiveMinutesAgo": "5 minutes ago",
+      "oneHourAgo": "1 hour ago",
+      "threeHoursAgo": "3 hours ago"
     }
   },
   "masterdata": {
@@ -79,7 +113,8 @@
         "parent": "Parent",
         "provinsi": "Province",
         "kota": "City",
-        "alamat": "Address"
+        "alamat": "Address",
+        "active": "Status"
       },
       "tipe": { "pusat": "Head Office", "kanwil": "Regional", "cabang": "Branch", "unit": "Unit" },
       "noParent": "No parent (Head Office)",
@@ -115,13 +150,29 @@
       "editTitle": "Edit Entry",
       "deleteConfirm": "Delete this entry?",
       "errNotFound": "Entry not found.",
-      "fields": { "name": "Name", "code": "Code", "symbol": "Symbol", "email": "Email", "phone": "Phone" },
+      "fields": { "name": "Name", "code": "Code", "symbol": "Symbol", "email": "Email", "phone": "Phone", "active": "Status" },
       "resources": {
         "office-types": "Office Types", "departments": "Departments", "positions": "Positions",
         "units": "Units", "maintenance-categories": "Maintenance Categories",
         "problem-categories": "Problem Categories", "brands": "Brands", "vendors": "Vendors",
         "provinces": "Provinces", "cities": "Cities", "models": "Models"
       }
+    },
+    "floors": {
+      "title": "Floors",
+      "add": "Add Floor",
+      "empty": "No floors yet",
+      "fields": { "nama": "Floor Name", "lantai": "Floor Number" },
+      "createTitle": "Add Floor",
+      "deleteConfirm": "Delete this floor?"
+    },
+    "rooms": {
+      "title": "Rooms",
+      "add": "Add Room",
+      "empty": "No rooms yet",
+      "fields": { "nama": "Room Name", "kode": "Room Code" },
+      "createTitle": "Add Room",
+      "deleteConfirm": "Delete this room?"
     }
   }
 }

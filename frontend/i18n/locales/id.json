@@ -28,17 +28,33 @@
     "profile": "Profil",
     "dashboard": "Dasbor",
     "assets": "Aset",
-    "assignment": "Peminjaman",
-    "maintenance": "Pemeliharaan",
-    "approval": "Persetujuan",
+    "assetCatalog": "Katalog",
+    "assetImport": "Import",
+    "assetLabel": "Label & Barcode",
+    "myAssets": "Aset Saya",
+    "assignment": "Penugasan",
+    "maintenance": "Maintenance",
+    "approval": "Pengajuan & Approval",
+    "reports": "Laporan",
+    "masterData": "Master Data",
     "offices": "Kantor",
-    "employees": "Karyawan",
+    "employees": "Pegawai",
+    "geography": "Lokasi & Geografi",
     "reference": "Referensi",
-    "users": "Pengguna",
+    "settings": "Pengaturan",
+    "users": "User",
+    "rbac": "Peran & RBAC",
+    "dataScope": "Data Scope",
+    "fieldPermission": "Field-Permission",
+    "auditTrail": "Audit Trail",
     "audit": "Audit Log",
+    "comingSoon": "Segera hadir",
     "toggleSidebar": "Tampilkan/sembunyikan menu",
     "group": {
       "main": "Utama",
+      "operasional": "Operasional",
+      "administrasi": "Administrasi",
+      "menu": "Menu",
       "asset": "Manajemen Aset",
       "masterdata": "Master Data",
       "settings": "Pengaturan"
@@ -49,7 +65,9 @@
     "add": "Tambah", "search": "Cari", "reset": "Reset", "actions": "Aksi",
     "loading": "Memuat…", "noData": "Belum ada data", "confirm": "Konfirmasi",
     "showingRange": "Menampilkan {from}–{to} dari {total}",
-    "error": "Terjadi kesalahan"
+    "error": "Terjadi kesalahan",
+    "active": "Aktif",
+    "inactive": "Nonaktif"
   },
   "status": {
     "asset": {
@@ -63,6 +81,22 @@
       "pending": "Menunggu",
       "approved": "Disetujui",
       "rejected": "Ditolak"
+    }
+  },
+  "notifications": {
+    "title": "Notifikasi",
+    "markRead": "Tandai dibaca",
+    "viewAll": "Lihat semua notifikasi",
+    "empty": "Tidak ada notifikasi baru",
+    "item": {
+      "approvalPending": "Pengajuan peminjaman baru menunggu persetujuan",
+      "maintenanceDue": "Maintenance Toyota Avanza jatuh tempo besok",
+      "assetReturned": "Aset INV-2024-0312 berhasil dikembalikan"
+    },
+    "time": {
+      "fiveMinutesAgo": "5 menit lalu",
+      "oneHourAgo": "1 jam lalu",
+      "threeHoursAgo": "3 jam lalu"
     }
   },
   "masterdata": {
@@ -79,7 +113,8 @@
         "parent": "Induk",
         "provinsi": "Provinsi",
         "kota": "Kota",
-        "alamat": "Alamat"
+        "alamat": "Alamat",
+        "active": "Status"
       },
       "tipe": { "pusat": "Pusat", "kanwil": "Kanwil", "cabang": "Cabang", "unit": "Unit" },
       "noParent": "Tanpa induk (Pusat)",
@@ -115,13 +150,29 @@
       "editTitle": "Ubah Data",
       "deleteConfirm": "Hapus data ini?",
       "errNotFound": "Data tidak ditemukan.",
-      "fields": { "name": "Nama", "code": "Kode", "symbol": "Simbol", "email": "Email", "phone": "Telepon" },
+      "fields": { "name": "Nama", "code": "Kode", "symbol": "Simbol", "email": "Email", "phone": "Telepon", "active": "Status" },
       "resources": {
         "office-types": "Jenis Kantor", "departments": "Departemen", "positions": "Jabatan",
         "units": "Satuan", "maintenance-categories": "Kategori Pemeliharaan",
         "problem-categories": "Kategori Masalah", "brands": "Merek", "vendors": "Vendor",
         "provinces": "Provinsi", "cities": "Kota", "models": "Model"
       }
+    },
+    "floors": {
+      "title": "Lantai",
+      "add": "Tambah Lantai",
+      "empty": "Belum ada lantai",
+      "fields": { "nama": "Nama Lantai", "lantai": "Nomor Lantai" },
+      "createTitle": "Tambah Lantai",
+      "deleteConfirm": "Hapus lantai ini?"
+    },
+    "rooms": {
+      "title": "Ruangan",
+      "add": "Tambah Ruangan",
+      "empty": "Belum ada ruangan",
+      "fields": { "nama": "Nama Ruangan", "kode": "Kode Ruangan" },
+      "createTitle": "Tambah Ruangan",
+      "deleteConfirm": "Hapus ruangan ini?"
     }
   }
 }

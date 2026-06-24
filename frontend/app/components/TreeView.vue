@@ -33,7 +33,11 @@ function toggle(id: string) {
     >
       <div
         class="flex items-center gap-1.5 px-2 py-1.5 rounded-md cursor-pointer hover:bg-elevated"
-        :class="node.id === selectedId ? 'bg-elevated text-primary font-medium' : ''"
+        :class="[
+          node.id === selectedId
+            ? 'bg-elevated text-primary font-medium shadow-[inset_3px_0_0_var(--ui-primary)]'
+            : ''
+        ]"
         @click="emit('select', node.id)"
       >
         <UButton
@@ -48,12 +52,33 @@ function toggle(id: string) {
           v-else
           class="w-5"
         />
+        <!-- Colored type badge icon (when iconBg/iconColor provided) -->
+        <span
+          v-if="node.icon && (node.iconBg || node.iconColor)"
+          class="flex items-center justify-center size-5 rounded flex-none"
+          :class="[node.iconBg ?? '', node.iconColor ?? '']"
+        >
+          <UIcon
+            :name="node.icon"
+            class="size-3"
+          />
+        </span>
+        <!-- Plain icon (no badge) -->
         <UIcon
-          v-if="node.icon"
+          v-else-if="node.icon"
           :name="node.icon"
           class="size-4 text-muted"
         />
-        <span class="text-sm truncate">{{ node.label }}</span>
+        <span
+          class="text-sm truncate"
+          :class="node.inactive ? 'text-muted' : ''"
+        >{{ node.label }}</span>
+        <!-- Inactive dot -->
+        <span
+          v-if="node.inactive"
+          class="ms-1 size-1.5 rounded-full bg-muted flex-none"
+          :title="$t('common.inactive')"
+        />
         <UBadge
           v-if="node.childCount"
           color="neutral"

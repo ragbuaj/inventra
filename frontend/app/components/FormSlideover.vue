@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ title: string, loading?: boolean }>()
+const props = defineProps<{ title: string, subtitle?: string, loading?: boolean }>()
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ submit: [] }>()
 </script>
@@ -7,7 +7,8 @@ const emit = defineEmits<{ submit: [] }>()
 <template>
   <USlideover
     v-model:open="open"
-    :title="title"
+    :title="props.title"
+    :description="props.subtitle"
   >
     <template #body>
       <slot />
@@ -22,7 +23,7 @@ const emit = defineEmits<{ submit: [] }>()
           {{ $t('common.cancel') }}
         </UButton>
         <UButton
-          :loading="loading"
+          :loading="props.loading"
           @click="emit('submit')"
         >
           {{ $t('common.save') }}

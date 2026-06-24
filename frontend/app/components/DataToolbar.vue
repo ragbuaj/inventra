@@ -1,12 +1,14 @@
 <script setup lang="ts">
-defineProps<{ search?: string }>()
+const props = withDefaults(defineProps<{ search?: string, showReset?: boolean }>(), {
+  showReset: true
+})
 const emit = defineEmits<{ 'update:search': [string], 'reset': [] }>()
 </script>
 
 <template>
   <div class="flex flex-wrap items-center gap-2 mb-4">
     <UInput
-      :model-value="search"
+      :model-value="props.search"
       icon="i-lucide-search"
       :placeholder="$t('common.search')"
       class="w-64"
@@ -14,6 +16,7 @@ const emit = defineEmits<{ 'update:search': [string], 'reset': [] }>()
     />
     <slot name="filters" />
     <UButton
+      v-if="props.showReset"
       color="neutral"
       variant="ghost"
       icon="i-lucide-rotate-ccw"
