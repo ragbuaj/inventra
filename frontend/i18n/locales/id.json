@@ -10,7 +10,23 @@
     "signOut": "Keluar"
   },
   "nav": {
-    "profile": "Profil"
+    "profile": "Profil",
+    "dashboard": "Dasbor",
+    "assets": "Aset",
+    "assignment": "Peminjaman",
+    "maintenance": "Pemeliharaan",
+    "approval": "Persetujuan",
+    "offices": "Kantor",
+    "employees": "Karyawan",
+    "reference": "Referensi",
+    "users": "Pengguna",
+    "audit": "Audit Log",
+    "group": {
+      "main": "Utama",
+      "asset": "Manajemen Aset",
+      "masterdata": "Master Data",
+      "settings": "Pengaturan"
+    }
   },
   "common": {
     "save": "Simpan", "cancel": "Batal", "delete": "Hapus", "edit": "Ubah",

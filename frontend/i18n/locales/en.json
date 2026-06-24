@@ -10,7 +10,23 @@
     "signOut": "Sign Out"
   },
   "nav": {
-    "profile": "Profile"
+    "profile": "Profile",
+    "dashboard": "Dashboard",
+    "assets": "Assets",
+    "assignment": "Assignment",
+    "maintenance": "Maintenance",
+    "approval": "Approval",
+    "offices": "Offices",
+    "employees": "Employees",
+    "reference": "Reference",
+    "users": "Users",
+    "audit": "Audit Log",
+    "group": {
+      "main": "Main",
+      "asset": "Asset Management",
+      "masterdata": "Master Data",
+      "settings": "Settings"
+    }
   },
   "common": {
     "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit",
