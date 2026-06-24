@@ -11,7 +11,7 @@ test.describe('Login (real backend)', () => {
 
     await page.locator('input[type="email"]').fill(EMAIL)
     await page.locator('input[type="password"]').fill(PASSWORD)
-    await page.getByRole('button', { name: 'Masuk' }).click()
+    await page.getByRole('button', { name: 'Masuk', exact: true }).click()
 
     // On success the app redirects to the dashboard root.
     await expect(page).toHaveURL(/\/$/)
@@ -23,9 +23,9 @@ test.describe('Login (real backend)', () => {
 
     await page.locator('input[type="email"]').fill('wrong@example.com')
     await page.locator('input[type="password"]').fill('definitely-wrong')
-    await page.getByRole('button', { name: 'Masuk' }).click()
+    await page.getByRole('button', { name: 'Masuk', exact: true }).click()
 
-    await expect(page.getByText('Email atau kata sandi tidak valid')).toBeVisible()
+    await expect(page.getByText('Email atau kata sandi salah. Silakan periksa kembali.')).toBeVisible()
     // Must NOT navigate away from the login page on failure.
     await expect(page).toHaveURL(/\/login$/)
   })

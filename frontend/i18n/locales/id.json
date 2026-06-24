@@ -1,13 +1,28 @@
 {
   "app": { "name": "Inventra", "tagline": "Manajemen Aset" },
   "auth": {
-    "signInTitle": "Masuk ke Inventra",
-    "signInSubtitle": "Masukkan email dan kata sandi Anda",
+    "signInTitle": "Masuk ke akun Anda",
+    "signInSubtitle": "Selamat datang kembali. Silakan masuk untuk melanjutkan.",
     "email": "Email",
+    "emailPlaceholder": "nama{'@'}organisasi.go.id",
     "password": "Kata Sandi",
+    "passwordPlaceholder": "Masukkan kata sandi",
+    "togglePassword": "Lihat / sembunyikan kata sandi",
+    "rememberMe": "Ingat saya",
+    "forgotPassword": "Lupa kata sandi?",
     "signIn": "Masuk",
-    "invalidCredentials": "Email atau kata sandi tidak valid",
-    "signOut": "Keluar"
+    "or": "atau",
+    "signInWithGoogle": "Masuk dengan Google",
+    "invalidCredentials": "Email atau kata sandi salah. Silakan periksa kembali.",
+    "connectionError": "Tidak dapat terhubung ke server. Periksa koneksi dan coba lagi.",
+    "featureComingSoon": "Fitur ini belum tersedia.",
+    "signOut": "Keluar",
+    "brandHeadline": "Manajemen aset, rapi dan terkendali.",
+    "brandTagline": "Katalog, peminjaman, maintenance, hingga laporan organisasi 4 jenjang kantor — semuanya dalam satu sistem.",
+    "brandFeature1": "Katalog aset terpusat lintas jenjang kantor",
+    "brandFeature2": "Check-out / check-in & jadwal maintenance",
+    "brandFeature3": "Approval maker-checker & laporan akurat",
+    "brandCopyright": "© 2026 Inventra · Sistem Manajemen Aset"
   },
   "nav": {
     "profile": "Profil",
