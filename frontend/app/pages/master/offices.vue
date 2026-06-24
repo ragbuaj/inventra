@@ -246,6 +246,10 @@ function commitEditFloor() {
   editingFloorId.value = undefined
 }
 
+function cancelEditFloor() {
+  editingFloorId.value = undefined
+}
+
 function startEditRoom(room: Room) {
   editingRoomId.value = room.id
   editingRoomName.value = room.nama
@@ -261,6 +265,10 @@ function commitEditRoom() {
   }
   floorsApi.updateRoom(id, { nama: name })
   if (selectedId.value) loadFloors(selectedId.value)
+  editingRoomId.value = undefined
+}
+
+function cancelEditRoom() {
   editingRoomId.value = undefined
 }
 
@@ -509,8 +517,16 @@ onMounted(refresh)
                   @click.stop
                   @blur="commitEditFloor"
                   @keydown.enter.prevent="commitEditFloor"
-                  @keydown.esc.prevent="editingFloorId = undefined"
+                  @keydown.esc.prevent="cancelEditFloor"
                 >
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  icon="i-lucide-x"
+                  :title="t('common.cancel')"
+                  @mousedown.prevent.stop="cancelEditFloor"
+                />
               </template>
               <template v-else>
                 <span class="flex-1 font-semibold text-[14px]">{{ floor.nama }}</span>
@@ -565,8 +581,16 @@ onMounted(refresh)
                     :aria-label="t('masterdata.rooms.editName')"
                     @blur="commitEditRoom"
                     @keydown.enter.prevent="commitEditRoom"
-                    @keydown.esc.prevent="editingRoomId = undefined"
+                    @keydown.esc.prevent="cancelEditRoom"
                   >
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    icon="i-lucide-x"
+                    :title="t('common.cancel')"
+                    @mousedown.prevent.stop="cancelEditRoom"
+                  />
                 </template>
                 <template v-else>
                   <span class="flex-1 text-[13.5px] font-medium">{{ room.nama }}</span>
