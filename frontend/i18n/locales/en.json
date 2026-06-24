@@ -89,6 +89,23 @@
       "deleteConfirm": "Delete this office? This action cannot be undone.",
       "errInvalidParent": "Invalid parent office.",
       "errNotFound": "Office not found."
+    },
+    "employees": {
+      "title": "Employee Master Data",
+      "subtitle": "Manage employee records",
+      "add": "Add Employee",
+      "searchPlaceholder": "Search name / ID / email",
+      "empty": "No employees yet",
+      "columns": { "nip": "ID", "nama": "Name", "jabatan": "Position", "kantor": "Office", "status": "Status" },
+      "fields": {
+        "nip": "Employee ID", "nama": "Name", "email": "Email", "telepon": "Phone",
+        "jabatan": "Position", "departemen": "Department", "office": "Office", "status": "Status"
+      },
+      "status": { "active": "Active", "inactive": "Inactive" },
+      "createTitle": "Add Employee",
+      "editTitle": "Edit Employee",
+      "deleteConfirm": "Delete this employee?",
+      "errNotFound": "Employee not found."
     }
   }
 }

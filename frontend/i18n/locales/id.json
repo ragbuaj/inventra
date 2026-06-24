@@ -89,6 +89,23 @@
       "deleteConfirm": "Hapus kantor ini? Tindakan ini tidak dapat dibatalkan.",
       "errInvalidParent": "Induk kantor tidak valid.",
       "errNotFound": "Kantor tidak ditemukan."
+    },
+    "employees": {
+      "title": "Master Data Pegawai",
+      "subtitle": "Kelola data pegawai",
+      "add": "Tambah Pegawai",
+      "searchPlaceholder": "Cari nama / NIP / email",
+      "empty": "Belum ada pegawai",
+      "columns": { "nip": "NIP", "nama": "Nama", "jabatan": "Jabatan", "kantor": "Kantor", "status": "Status" },
+      "fields": {
+        "nip": "NIP", "nama": "Nama", "email": "Email", "telepon": "Telepon",
+        "jabatan": "Jabatan", "departemen": "Departemen", "office": "Kantor", "status": "Status"
+      },
+      "status": { "active": "Aktif", "inactive": "Nonaktif" },
+      "createTitle": "Tambah Pegawai",
+      "editTitle": "Ubah Pegawai",
+      "deleteConfirm": "Hapus pegawai ini?",
+      "errNotFound": "Pegawai tidak ditemukan."
     }
   }
 }
