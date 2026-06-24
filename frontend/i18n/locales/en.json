@@ -53,17 +53,12 @@
     "dataScope": "Data Scope",
     "fieldPermission": "Field Permission",
     "auditTrail": "Audit Trail",
-    "audit": "Audit Log",
     "comingSoon": "Coming soon",
     "toggleSidebar": "Toggle sidebar",
     "group": {
-      "main": "Main",
       "operasional": "Operational",
       "administrasi": "Administration",
-      "menu": "Menu",
-      "asset": "Asset Management",
-      "masterdata": "Master Data",
-      "settings": "Settings"
+      "menu": "Menu"
     }
   },
   "common": {
@@ -113,9 +108,6 @@
     "offices": {
       "title": "Office Master Data",
       "subtitle": "Manage the 4-tier office hierarchy",
-      "add": "Add Office",
-      "selectHint": "Select an office in the tree to view details",
-      "empty": "No offices yet",
       "hierarki": "Office Hierarchy",
       "tambahKantor": "Add Office",
       "cariKantor": "Search offices…",
@@ -154,7 +146,6 @@
       "noParent": "No parent (Head Office)",
       "createTitle": "Add Office",
       "editTitle": "Edit Office",
-      "deleteConfirm": "Delete this office? This action cannot be undone.",
       "errInvalidParent": "Invalid parent office.",
       "errNotFound": "Office not found."
     },
@@ -204,11 +195,8 @@
       "errNotFound": "Employee not found."
     },
     "reference": {
-      "title": "Reference Master Data",
-      "subtitle": "Manage reference data",
       "panelTitle": "Master Data",
       "panelSubtitle": "Reference data",
-      "resourceLabel": "Reference Type",
       "add": "Add",
       "empty": "No data yet",
       "createTitle": "Add Entry",
@@ -229,19 +217,10 @@
       }
     },
     "floors": {
-      "title": "Floors",
-      "add": "Add Floor",
-      "empty": "No floors yet",
-      "fields": { "nama": "Floor Name", "lantai": "Floor Number" },
-      "createTitle": "Add Floor",
       "deleteConfirm": "Delete this floor?"
     },
     "rooms": {
       "title": "Rooms",
-      "add": "Add Room",
-      "empty": "No rooms yet",
-      "fields": { "nama": "Room Name", "kode": "Room Code" },
-      "createTitle": "Add Room",
       "deleteConfirm": "Delete this room?"
     }
   }

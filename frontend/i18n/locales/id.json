@@ -53,17 +53,12 @@
     "dataScope": "Data Scope",
     "fieldPermission": "Field-Permission",
     "auditTrail": "Audit Trail",
-    "audit": "Audit Log",
     "comingSoon": "Segera hadir",
     "toggleSidebar": "Tampilkan/sembunyikan menu",
     "group": {
-      "main": "Utama",
       "operasional": "Operasional",
       "administrasi": "Administrasi",
-      "menu": "Menu",
-      "asset": "Manajemen Aset",
-      "masterdata": "Master Data",
-      "settings": "Pengaturan"
+      "menu": "Menu"
     }
   },
   "common": {
@@ -113,9 +108,6 @@
     "offices": {
       "title": "Master Data Kantor",
       "subtitle": "Kelola hierarki kantor 4 jenjang",
-      "add": "Tambah Kantor",
-      "selectHint": "Pilih kantor pada pohon untuk melihat detail",
-      "empty": "Belum ada kantor",
       "hierarki": "Hierarki Kantor",
       "tambahKantor": "Tambah Kantor",
       "cariKantor": "Cari kantor…",
@@ -154,7 +146,6 @@
       "noParent": "Tanpa induk (Pusat)",
       "createTitle": "Tambah Kantor",
       "editTitle": "Ubah Kantor",
-      "deleteConfirm": "Hapus kantor ini? Tindakan ini tidak dapat dibatalkan.",
       "errInvalidParent": "Induk kantor tidak valid.",
       "errNotFound": "Kantor tidak ditemukan."
     },
@@ -204,11 +195,8 @@
       "errNotFound": "Pegawai tidak ditemukan."
     },
     "reference": {
-      "title": "Master Data Referensi",
-      "subtitle": "Kelola data referensi",
       "panelTitle": "Master Data",
       "panelSubtitle": "Data referensi",
-      "resourceLabel": "Jenis Referensi",
       "add": "Tambah",
       "empty": "Belum ada data",
       "createTitle": "Tambah Data",
@@ -229,19 +217,10 @@
       }
     },
     "floors": {
-      "title": "Lantai",
-      "add": "Tambah Lantai",
-      "empty": "Belum ada lantai",
-      "fields": { "nama": "Nama Lantai", "lantai": "Nomor Lantai" },
-      "createTitle": "Tambah Lantai",
       "deleteConfirm": "Hapus lantai ini?"
     },
     "rooms": {
       "title": "Ruangan",
-      "add": "Tambah Ruangan",
-      "empty": "Belum ada ruangan",
-      "fields": { "nama": "Nama Ruangan", "kode": "Kode Ruangan" },
-      "createTitle": "Tambah Ruangan",
       "deleteConfirm": "Hapus ruangan ini?"
     }
   }

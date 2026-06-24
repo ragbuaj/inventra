@@ -27,7 +27,7 @@ function handleMarkRead() {
       </button>
       <span
         v-if="unread > 0"
-        class="absolute -top-[3px] -right-[3px] min-w-[17px] h-[17px] px-1 flex items-center justify-center text-[10px] font-bold text-white bg-error border-2 border-default rounded-full pointer-events-none"
+        class="absolute -top-[3px] -right-[3px] min-w-[17px] h-[17px] px-1 flex items-center justify-center text-[10px] font-bold text-inverted bg-error border-2 border-default rounded-full pointer-events-none"
       >
         {{ unread }}
       </span>

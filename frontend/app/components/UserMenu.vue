@@ -33,7 +33,7 @@ function handleLogout() {
       class="flex items-center gap-2 px-1 py-1 pr-2 border border-default rounded-full bg-transparent cursor-pointer hover:bg-muted transition-colors"
       @click="open = !open"
     >
-      <span class="w-[30px] h-[30px] rounded-full bg-primary text-white flex items-center justify-center text-[12px] font-bold flex-none select-none">
+      <span class="w-[30px] h-[30px] rounded-full bg-primary text-inverted flex items-center justify-center text-[12px] font-bold flex-none select-none">
         {{ initials }}
       </span>
       <UIcon
@@ -46,7 +46,7 @@ function handleLogout() {
       <div class="w-[264px] overflow-hidden rounded-[13px]">
         <!-- Header: larger avatar + name + email -->
         <div class="flex gap-[11px] items-center px-[15px] py-[15px] border-b border-default">
-          <span class="w-[42px] h-[42px] rounded-full bg-primary text-white flex items-center justify-center text-[15px] font-bold flex-none select-none">
+          <span class="w-[42px] h-[42px] rounded-full bg-primary text-inverted flex items-center justify-center text-[15px] font-bold flex-none select-none">
             {{ initials }}
           </span>
           <div class="min-w-0">
@@ -93,7 +93,7 @@ function handleLogout() {
             />
             {{ t('nav.accountSettings') }}
           </button>
-          <div class="h-px bg-border my-[5px] mx-1" />
+          <div class="h-px bg-[var(--ui-border)] my-[5px] mx-1" />
           <button
             class="flex items-center gap-[10px] w-full px-[10px] py-[9px] text-[14px] font-medium text-error bg-transparent border-0 rounded-[8px] cursor-pointer text-left hover:bg-error/10 transition-colors"
             @click="handleLogout"

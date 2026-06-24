@@ -96,7 +96,7 @@ const userScope = computed(() => auth.user?.role_name ?? '')
         </div>
         <div
           v-else
-          class="h-px bg-default mx-2 my-[10px]"
+          class="h-px bg-[var(--ui-border)] mx-2 my-[10px]"
         />
 
         <template
@@ -199,12 +199,12 @@ const userScope = computed(() => auth.user?.role_name ?? '')
                 <!-- Badge expanded -->
                 <span
                   v-if="!ui.sidebarCollapsed && item.badgeCount"
-                  class="flex-none min-w-[20px] h-[20px] px-[6px] inline-flex items-center justify-center text-[11px] font-bold text-white bg-error rounded-full"
+                  class="flex-none min-w-[20px] h-[20px] px-[6px] inline-flex items-center justify-center text-[11px] font-bold text-inverted bg-error rounded-full"
                 >{{ item.badgeCount }}</span>
                 <!-- Badge collapsed -->
                 <span
                   v-if="ui.sidebarCollapsed && item.badgeCount"
-                  class="absolute top-[6px] right-[10px] min-w-[16px] h-[16px] px-[4px] inline-flex items-center justify-center text-[9px] font-bold text-white bg-error rounded-full"
+                  class="absolute top-[6px] right-[10px] min-w-[16px] h-[16px] px-[4px] inline-flex items-center justify-center text-[9px] font-bold text-inverted bg-error rounded-full"
                 >{{ item.badgeCount }}</span>
               </NuxtLink>
 
@@ -230,12 +230,12 @@ const userScope = computed(() => auth.user?.role_name ?? '')
                 <!-- Badge expanded -->
                 <span
                   v-if="!ui.sidebarCollapsed && item.badgeCount"
-                  class="flex-none min-w-[20px] h-[20px] px-[6px] inline-flex items-center justify-center text-[11px] font-bold text-white bg-error rounded-full"
+                  class="flex-none min-w-[20px] h-[20px] px-[6px] inline-flex items-center justify-center text-[11px] font-bold text-inverted bg-error rounded-full"
                 >{{ item.badgeCount }}</span>
                 <!-- Badge collapsed -->
                 <span
                   v-if="ui.sidebarCollapsed && item.badgeCount"
-                  class="absolute top-[6px] right-[10px] min-w-[16px] h-[16px] px-[4px] inline-flex items-center justify-center text-[9px] font-bold text-white bg-error rounded-full"
+                  class="absolute top-[6px] right-[10px] min-w-[16px] h-[16px] px-[4px] inline-flex items-center justify-center text-[9px] font-bold text-inverted bg-error rounded-full"
                 >{{ item.badgeCount }}</span>
               </span>
             </template>

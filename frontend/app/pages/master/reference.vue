@@ -240,7 +240,7 @@ onMounted(async () => {
                 :class="(row as unknown as ReferenceRow).active !== false ? 'bg-success' : 'bg-muted'"
               >
                 <span
-                  class="absolute top-0.5 w-[13px] h-[13px] rounded-full bg-white shadow-sm transition-all"
+                  class="absolute top-0.5 w-[13px] h-[13px] rounded-full bg-default shadow-sm transition-all"
                   :class="(row as unknown as ReferenceRow).active !== false ? 'left-[13px]' : 'left-0.5'"
                 />
               </span>
