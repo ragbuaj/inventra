@@ -8,6 +8,7 @@ const { t } = useI18n()
 const toast = useToast()
 const { open: confirm } = useConfirm()
 const api = useEmployees()
+const officesApi = useOffices()
 
 const rows = ref<Employee[]>([])
 const total = ref(0)
@@ -15,6 +16,8 @@ const limit = ref(20)
 const offset = ref(0)
 const search = ref('')
 const loading = ref(true)
+
+const officeMap = ref<Record<string, string>>({})
 
 const formOpen = ref(false)
 const saving = ref(false)
@@ -27,6 +30,7 @@ const columns = [
   { accessorKey: 'nip', header: t('masterdata.employees.columns.nip') },
   { accessorKey: 'nama', header: t('masterdata.employees.columns.nama') },
   { accessorKey: 'jabatan', header: t('masterdata.employees.columns.jabatan') },
+  { accessorKey: 'kantor', header: t('masterdata.employees.columns.kantor') },
   { accessorKey: 'status', header: t('masterdata.employees.columns.status') }
 ]
 
@@ -40,6 +44,15 @@ async function refresh() {
   rows.value = res.data
   total.value = res.total
   loading.value = false
+}
+
+async function loadOffices() {
+  const res = await officesApi.list({ limit: 100 })
+  const map: Record<string, string> = {}
+  for (const o of res.data) {
+    map[o.id] = o.nama
+  }
+  officeMap.value = map
 }
 
 function openCreate() {
@@ -79,7 +92,10 @@ async function onDelete(row: Employee) {
 }
 
 watch([search, offset], refresh)
-onMounted(refresh)
+onMounted(() => {
+  refresh()
+  loadOffices()
+})
 </script>
 
 <template>
@@ -115,6 +131,9 @@ onMounted(refresh)
       :empty-title="t('masterdata.employees.empty')"
       @update:offset="offset = $event"
     >
+      <template #kantor-cell="{ row }">
+        {{ officeMap[(row as unknown as Employee).office_id] ?? (row as unknown as Employee).office_id }}
+      </template>
       <template #status-cell="{ row }">
         <UBadge
           :color="(row as unknown as Employee).status === 'active' ? 'success' : 'neutral'"
