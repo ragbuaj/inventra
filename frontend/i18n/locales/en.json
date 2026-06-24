@@ -206,6 +206,8 @@
     "reference": {
       "title": "Reference Master Data",
       "subtitle": "Manage reference data",
+      "panelTitle": "Master Data",
+      "panelSubtitle": "Reference data",
       "resourceLabel": "Reference Type",
       "add": "Add",
       "empty": "No data yet",
@@ -213,6 +215,11 @@
       "editTitle": "Edit Entry",
       "deleteConfirm": "Delete this entry?",
       "errNotFound": "Entry not found.",
+      "statusColumn": "Status",
+      "aktif": "Active",
+      "aktifHint": "Visible & selectable across the system",
+      "nonaktif": "Inactive",
+      "entitySubtitle": "Manage reference data",
       "fields": { "name": "Name", "code": "Code", "symbol": "Symbol", "email": "Email", "phone": "Phone", "active": "Status" },
       "resources": {
         "office-types": "Office Types", "departments": "Departments", "positions": "Positions",

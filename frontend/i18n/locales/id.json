@@ -206,6 +206,8 @@
     "reference": {
       "title": "Master Data Referensi",
       "subtitle": "Kelola data referensi",
+      "panelTitle": "Master Data",
+      "panelSubtitle": "Data referensi",
       "resourceLabel": "Jenis Referensi",
       "add": "Tambah",
       "empty": "Belum ada data",
@@ -213,6 +215,11 @@
       "editTitle": "Ubah Data",
       "deleteConfirm": "Hapus data ini?",
       "errNotFound": "Data tidak ditemukan.",
+      "statusColumn": "Status",
+      "aktif": "Aktif",
+      "aktifHint": "Tampil & dapat dipilih di seluruh sistem",
+      "nonaktif": "Nonaktif",
+      "entitySubtitle": "Kelola data referensi",
       "fields": { "name": "Nama", "code": "Kode", "symbol": "Simbol", "email": "Email", "phone": "Telepon", "active": "Status" },
       "resources": {
         "office-types": "Jenis Kantor", "departments": "Departemen", "positions": "Jabatan",
