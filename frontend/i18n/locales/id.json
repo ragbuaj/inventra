@@ -70,7 +70,6 @@
       "title": "Master Data Kantor",
       "subtitle": "Kelola hierarki kantor 4 jenjang",
       "add": "Tambah Kantor",
-      "searchPlaceholder": "Cari nama / kode / kota",
       "selectHint": "Pilih kantor pada pohon untuk melihat detail",
       "empty": "Belum ada kantor",
       "fields": {
@@ -94,7 +93,6 @@
       "title": "Master Data Pegawai",
       "subtitle": "Kelola data pegawai",
       "add": "Tambah Pegawai",
-      "searchPlaceholder": "Cari nama / NIP / email",
       "empty": "Belum ada pegawai",
       "columns": { "nip": "NIP", "nama": "Nama", "jabatan": "Jabatan", "kantor": "Kantor", "status": "Status" },
       "fields": {

@@ -18,12 +18,13 @@ const search = ref('')
 const loading = ref(true)
 
 const officeMap = ref<Record<string, string>>({})
+const officeOptions = ref<{ value: string, label: string }[]>([])
 
 const formOpen = ref(false)
 const saving = ref(false)
 const editingId = ref<string>()
 const form = reactive<EmployeeInput>({
-  nip: '', nama: '', email: '', telepon: '', jabatan: '', departemen: '', office_id: 'o-jkt', status: 'active'
+  nip: '', nama: '', email: '', telepon: '', jabatan: '', departemen: '', office_id: '', status: 'active'
 })
 
 const columns = [
@@ -53,11 +54,12 @@ async function loadOffices() {
     map[o.id] = o.nama
   }
   officeMap.value = map
+  officeOptions.value = res.data.map(o => ({ value: o.id, label: o.nama }))
 }
 
 function openCreate() {
   editingId.value = undefined
-  Object.assign(form, { nip: '', nama: '', email: '', telepon: '', jabatan: '', departemen: '', office_id: 'o-jkt', status: 'active' })
+  Object.assign(form, { nip: '', nama: '', email: '', telepon: '', jabatan: '', departemen: '', office_id: officeOptions.value[0]?.value ?? '', status: 'active' })
   formOpen.value = true
 }
 
@@ -207,6 +209,13 @@ onMounted(() => {
         <UFormField :label="t('masterdata.employees.fields.departemen')">
           <UInput
             v-model="form.departemen"
+            class="w-full"
+          />
+        </UFormField>
+        <UFormField :label="t('masterdata.employees.fields.office')">
+          <USelect
+            v-model="form.office_id"
+            :items="officeOptions"
             class="w-full"
           />
         </UFormField>

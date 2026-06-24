@@ -70,7 +70,6 @@
       "title": "Office Master Data",
       "subtitle": "Manage the 4-tier office hierarchy",
       "add": "Add Office",
-      "searchPlaceholder": "Search name / code / city",
       "selectHint": "Select an office in the tree to view details",
       "empty": "No offices yet",
       "fields": {
@@ -94,7 +93,6 @@
       "title": "Employee Master Data",
       "subtitle": "Manage employee records",
       "add": "Add Employee",
-      "searchPlaceholder": "Search name / ID / email",
       "empty": "No employees yet",
       "columns": { "nip": "ID", "nama": "Name", "jabatan": "Position", "kantor": "Office", "status": "Status" },
       "fields": {
