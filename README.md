@@ -5,9 +5,20 @@ check-out/check-in, maintenance, depreciation, reporting, and approvals — with
 configurable role-based authorization across a hierarchical office structure
 (Pusat → Wilayah → Cabang → Outlet).
 
-Full requirements: [docs/PRD.md](docs/PRD.md).
+Full requirements: [docs/PRD.md](docs/PRD.md) · database design: [docs/DATABASE.md](docs/DATABASE.md) ·
+live progress tracker: [docs/PROGRESS.md](docs/PROGRESS.md).
 
-> Status: **foundation scaffold**. Feature modules are built in phases per the PRD roadmap (§10).
+> Status: **in active development**, built in phases per the PRD roadmap (§10).
+>
+> - **Backend:** identity & 3-layer authorization (RBAC + data scope + field permission), user
+>   management, and master data (offices · floors · rooms · employees · categories · 11 reference
+>   resources) — all data-scoped and access-controlled. OpenAPI 3.1 spec served at `/docs`.
+> - **Frontend:** SPA foundation (app shell, design system, real auth, reusable component library,
+>   Vitest + Playwright), plus the **Master Data** feature screens (Kantor · Pegawai · Referensi)
+>   built to match the `docs/design` mockups. Feature screens are **mock-first** — backed by typed
+>   `composables/api/` services that swap to the real API as each backend module lands.
+> - **Remaining:** asset core, attachments, barcode, approval, assignment, maintenance,
+>   depreciation, reporting, and import — see [docs/PROGRESS.md](docs/PROGRESS.md).
 
 ## Tech Stack
 
@@ -17,7 +28,9 @@ Full requirements: [docs/PRD.md](docs/PRD.md).
 | Database | PostgreSQL 16 (via sqlc + golang-migrate) |
 | Cache & state | Redis 7 |
 | Object storage | MinIO (S3-compatible) |
-| Frontend | Nuxt 4 (Vue 3 + Vite) · Nuxt UI · Pinia · i18n (id/en) |
+| Frontend | Nuxt 4 (Vue 3 + Vite, SPA) · Nuxt UI · Pinia · i18n (id/en) |
+| Frontend tests | Vitest + @nuxt/test-utils (unit + runtime) · Playwright (e2e) |
+| API docs | OpenAPI 3.1 (hand-maintained) · Scalar UI · Spectral lint |
 | DevOps | Docker Compose · GitHub Actions |
 
 ## Project Structure
@@ -25,20 +38,35 @@ Full requirements: [docs/PRD.md](docs/PRD.md).
 ```
 asset-management/
 ├── backend/
-│   ├── cmd/api/            # Entry point (HTTP server, graceful shutdown)
+│   ├── cmd/
+│   │   ├── api/            # Entry point (HTTP server, graceful shutdown)
+│   │   └── createadmin/    # One-off superadmin seeder
 │   ├── internal/
 │   │   ├── config/         # Env configuration
-│   │   └── server/         # Router + middleware
-│   ├── db/
-│   │   ├── migrations/     # golang-migrate SQL files
-│   │   ├── queries/        # sqlc query files (per module)
-│   │   └── sqlc/           # Generated Go (after `sqlc generate`)
+│   │   ├── auth/           # JWT (access/refresh), Argon2, Redis token store
+│   │   ├── authz/          # RBAC · data scope · field permission (Redis-cached)
+│   │   ├── identity/       # /auth/* (login/refresh/logout/me/permissions/scope)
+│   │   ├── user/           # User management (CRUD + field filtering)
+│   │   ├── masterdata/     # Offices/floors/rooms/employees/categories + reference engine
+│   │   ├── middleware/     # RequireAuth · RequirePermission · scope
+│   │   └── server/         # NewRouter composition root
+│   ├── db/{migrations,queries,sqlc}/   # SQL source · sqlc queries · generated Go
+│   ├── api/openapi.yaml    # Hand-maintained spec (served at /docs, Spectral-linted)
 │   └── sqlc.yaml
-├── frontend/               # Nuxt 4 app (scaffolded from the official `ui` template)
-├── docs/PRD.md
+├── frontend/               # Nuxt 4 SPA
+│   └── app/
+│       ├── components/     # Global component library (auto-imported)
+│       ├── composables/    # incl. api/ — typed service layer (mock-first today)
+│       ├── layouts/        # default (shell) + auth
+│       ├── pages/          # incl. master/ (offices · employees · reference)
+│       ├── mock/           # In-memory fixtures behind the api/ services
+│       ├── middleware/ · stores/ · utils/
+│       └── ../i18n/locales/{id,en}.json · ../test/ (Vitest) · ../e2e/ (Playwright)
+├── docs/                   # PRD.md · DATABASE.md · PROGRESS.md · DESIGN_BRIEF.md · design/ mockups
 ├── docker-compose.yml      # Full stack (infra + migrate + backend + frontend)
 ├── docker-compose.dev.yml  # Infra only (Postgres + Redis + MinIO)
-└── .github/workflows/ci.yml # CI: backend + frontend build/test
+├── docker-compose.watch.yml # Live-reload overlay (Go via Air, Nuxt via Vite HMR)
+└── .github/workflows/ci.yml # CI: backend build/vet/test · frontend lint/typecheck/test/build · Spectral · e2e
 
 ```
 
@@ -112,6 +140,8 @@ migrate -path db/migrations -database "$DATABASE_URL" down 1
 # Frontend
 cd frontend
 pnpm dev | pnpm build | pnpm lint | pnpm typecheck
+pnpm test                 # Vitest unit + Nuxt-runtime tests
+pnpm test:e2e             # Playwright e2e (needs backend stack up + seeded admin)
 ```
 
 ## License
