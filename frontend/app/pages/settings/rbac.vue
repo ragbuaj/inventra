@@ -1,0 +1,285 @@
+<script setup lang="ts">
+import type { RoleView, ModuleView } from '~/composables/api/useRbac'
+import { useRbac } from '~/composables/api/useRbac'
+
+definePageMeta({ middleware: 'can', permission: 'user.manage' })
+
+type Locale = 'id' | 'en'
+
+const { t, locale } = useI18n()
+const toast = useToast()
+const { getModules, listRoles, createRole, updateRolePermissions } = useRbac()
+
+const roles = ref<RoleView[]>([])
+const modules = ref<ModuleView[]>([])
+const selectedKey = ref('')
+const draft = ref<string[]>([])
+const dirty = ref(false)
+const loading = ref(true)
+const saving = ref(false)
+
+const selectedRole = computed(() => roles.value.find(r => r.key === selectedKey.value))
+const saveDisabled = computed(() => !!selectedRole.value?.system || !dirty.value)
+
+async function load() {
+  loading.value = true
+  modules.value = getModules(locale.value as Locale)
+  roles.value = await listRoles(locale.value as Locale)
+  if (!selectedKey.value || !roles.value.some(r => r.key === selectedKey.value)) {
+    // Match the mockup's default selection (the Manager role).
+    selectedKey.value = roles.value.some(r => r.key === 'manager')
+      ? 'manager'
+      : (roles.value[0]?.key ?? '')
+  }
+  draft.value = [...(selectedRole.value?.perms ?? [])]
+  dirty.value = false
+  loading.value = false
+}
+
+function selectRole(key: string) {
+  selectedKey.value = key
+  draft.value = [...(roles.value.find(r => r.key === key)?.perms ?? [])]
+  dirty.value = false
+}
+
+function togglePerm(code: string) {
+  if (selectedRole.value?.system) return
+  draft.value = draft.value.includes(code)
+    ? draft.value.filter(c => c !== code)
+    : [...draft.value, code]
+  dirty.value = true
+}
+
+function toggleModule(modKey: string) {
+  if (selectedRole.value?.system) return
+  const mod = modules.value.find(m => m.key === modKey)
+  if (!mod) return
+  const ids = mod.perms.map(p => p.code)
+  const allOn = ids.every(id => draft.value.includes(id))
+  draft.value = allOn
+    ? draft.value.filter(c => !ids.includes(c))
+    : [...new Set([...draft.value, ...ids])]
+  dirty.value = true
+}
+
+async function save() {
+  if (saveDisabled.value) return
+  saving.value = true
+  try {
+    await updateRolePermissions(selectedKey.value, draft.value)
+    const r = roles.value.find(x => x.key === selectedKey.value)
+    if (r) r.perms = [...draft.value]
+    dirty.value = false
+    toast.add({ title: t('settings.rbac.savedToast'), color: 'success', icon: 'i-lucide-save' })
+  } finally {
+    saving.value = false
+  }
+}
+
+// Add Role modal. NO_COPY is a sentinel — Nuxt UI's Select rejects an empty-string value.
+const NO_COPY = '__none__'
+const addOpen = ref(false)
+const addForm = reactive({ nama: '', copyFromKey: NO_COPY, desc: '' })
+const addError = ref('')
+const creating = ref(false)
+
+const copyOptions = computed(() => [
+  { value: NO_COPY, label: t('settings.rbac.add.copyNone') },
+  ...roles.value.map(r => ({ value: r.key, label: r.nama }))
+])
+
+function openAdd() {
+  addForm.nama = ''
+  addForm.copyFromKey = NO_COPY
+  addForm.desc = ''
+  addError.value = ''
+  addOpen.value = true
+}
+
+async function submitAdd() {
+  if (!addForm.nama.trim()) {
+    addError.value = t('settings.rbac.add.required')
+    return
+  }
+  creating.value = true
+  try {
+    const created = await createRole(
+      {
+        nama: addForm.nama,
+        copyFromKey: addForm.copyFromKey !== NO_COPY ? addForm.copyFromKey : undefined,
+        desc: addForm.desc
+      },
+      locale.value as Locale
+    )
+    roles.value.push(created)
+    selectRole(created.key)
+    addOpen.value = false
+    toast.add({ title: t('settings.rbac.add.createdToast'), color: 'success', icon: 'i-lucide-plus' })
+  } finally {
+    creating.value = false
+  }
+}
+
+watch(locale, () => load())
+onMounted(() => load())
+</script>
+
+<template>
+  <div class="-mx-8 -my-7 h-[calc(100%+3.5rem)] flex overflow-hidden">
+    <div
+      v-if="loading"
+      class="flex-1 flex items-center justify-center"
+    >
+      <UIcon
+        name="i-lucide-loader-circle"
+        class="size-6 animate-spin text-muted"
+      />
+    </div>
+
+    <template v-else>
+      <RbacRoleList
+        :roles="roles"
+        :selected-key="selectedKey"
+        @select="selectRole"
+        @add="openAdd"
+      />
+
+      <!-- Right pane: header + matrix -->
+      <div class="flex-1 flex flex-col min-w-0 bg-muted/40">
+        <div class="flex-none flex items-center justify-between gap-3.5 flex-wrap px-7 py-[18px] border-b border-default bg-default">
+          <div class="min-w-0">
+            <div class="flex items-center gap-[9px] flex-wrap">
+              <h1 class="text-[19px] font-bold tracking-tight">
+                {{ selectedRole?.nama }}
+              </h1>
+              <UBadge
+                v-if="selectedRole?.system"
+                color="neutral"
+                variant="subtle"
+                class="rounded-full gap-1"
+              >
+                <UIcon
+                  name="i-lucide-lock"
+                  class="size-3"
+                />
+                {{ t('settings.rbac.systemBadge') }}
+              </UBadge>
+              <UBadge
+                v-else
+                color="primary"
+                variant="subtle"
+                class="rounded-full"
+              >
+                {{ t('settings.rbac.customBadge') }}
+              </UBadge>
+            </div>
+            <div class="text-[13px] text-muted mt-[3px]">
+              {{ selectedRole?.desc }}
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <span
+              v-if="dirty"
+              class="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-warning"
+            >
+              <span class="size-[7px] rounded-full bg-warning" />
+              {{ t('settings.rbac.unsavedChanges') }}
+            </span>
+            <UButton
+              icon="i-lucide-save"
+              :disabled="saveDisabled"
+              :loading="saving"
+              @click="save"
+            >
+              {{ t('settings.rbac.saveChanges') }}
+            </UButton>
+          </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto px-7 py-[22px]">
+          <div
+            v-if="selectedRole?.system"
+            class="flex gap-[11px] items-center px-3.5 py-3 mb-[18px] rounded-[11px] bg-muted border border-default"
+          >
+            <UIcon
+              name="i-lucide-lock"
+              class="size-[17px] text-muted flex-none"
+            />
+            <span class="text-[13px] leading-snug text-muted">{{ t('settings.rbac.lockNote') }}</span>
+          </div>
+
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <RbacPermissionCard
+              v-for="m in modules"
+              :key="m.key"
+              :module="m"
+              :granted="draft"
+              :readonly="selectedRole?.system"
+              @toggle="togglePerm"
+              @toggle-all="toggleModule(m.key)"
+            />
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Add Role modal -->
+    <UModal
+      v-model:open="addOpen"
+      :title="t('settings.rbac.add.title')"
+      :description="t('settings.rbac.add.subtitle')"
+    >
+      <template #body>
+        <div class="space-y-4">
+          <UFormField
+            :label="t('settings.rbac.add.roleName')"
+            required
+            :error="addError"
+          >
+            <UInput
+              v-model="addForm.nama"
+              :placeholder="t('settings.rbac.add.namePlaceholder')"
+              class="w-full"
+            />
+          </UFormField>
+
+          <UFormField :label="t('settings.rbac.add.copyFrom')">
+            <USelect
+              v-model="addForm.copyFromKey"
+              :items="copyOptions"
+              class="w-full"
+            />
+            <template #hint>
+              <span class="text-xs text-dimmed mt-1">{{ t('settings.rbac.add.copyNote') }}</span>
+            </template>
+          </UFormField>
+
+          <UFormField :label="t('settings.rbac.add.description')">
+            <UInput
+              v-model="addForm.desc"
+              :placeholder="t('settings.rbac.add.descPlaceholder')"
+              class="w-full"
+            />
+          </UFormField>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2 w-full">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="addOpen = false"
+          >
+            {{ t('common.cancel') }}
+          </UButton>
+          <UButton
+            :loading="creating"
+            @click="submitAdd"
+          >
+            {{ t('settings.rbac.add.create') }}
+          </UButton>
+        </div>
+      </template>
+    </UModal>
+  </div>
+</template>

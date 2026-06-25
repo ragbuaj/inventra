@@ -56,6 +56,36 @@
       "errNotFound": "Pengguna tidak ditemukan.",
       "required": "Wajib diisi.",
       "invalidEmail": "Format email tidak valid."
+    },
+    "rbac": {
+      "title": "Peran & RBAC",
+      "rolesTitle": "Peran",
+      "rolesSub": "Pilih peran untuk mengatur izinnya",
+      "addRole": "Tambah Peran",
+      "systemBadge": "Sistem",
+      "customBadge": "Kustom",
+      "lockNote": "Peran sistem bersifat bawaan dan tidak dapat diubah. Duplikat sebagai peran kustom untuk menyesuaikan izin.",
+      "unsavedChanges": "Perubahan belum disimpan",
+      "saveChanges": "Simpan Perubahan",
+      "savedToast": "Perubahan izin disimpan",
+      "permCount": "{n} izin",
+      "moduleCount": "{granted} / {total} izin",
+      "selectAll": "Pilih semua",
+      "clearAll": "Kosongkan",
+      "add": {
+        "title": "Tambah Peran",
+        "subtitle": "Buat peran kustom baru.",
+        "roleName": "Nama Peran",
+        "copyFrom": "Salin izin dari",
+        "copyNone": "— (Mulai kosong)",
+        "copyNote": "Salin izin dari peran lain sebagai titik awal.",
+        "description": "Deskripsi",
+        "namePlaceholder": "mis. Operator Lapangan",
+        "descPlaceholder": "Deskripsi singkat peran…",
+        "required": "Wajib diisi.",
+        "create": "Buat Peran",
+        "createdToast": "Peran kustom dibuat"
+      }
     }
   },
   "dashboard": {
