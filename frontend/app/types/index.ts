@@ -95,6 +95,24 @@ export interface User {
   created_at: string
 }
 
+export type AssetStatus = 'tersedia' | 'dipinjam' | 'maintenance' | 'dilepas' | 'hilang'
+
+export interface Asset {
+  tag: string
+  nama: string
+  kategori: string
+  brand: string
+  status: AssetStatus
+  kantor: string
+  lokasi: string
+  /** holder name, or '—' when unassigned */
+  holder: string
+  /** buy date YYYY-MM-DD */
+  tgl: string
+  harga: number
+  buku: number
+}
+
 export interface ReferenceRow {
   id: string
   name: string

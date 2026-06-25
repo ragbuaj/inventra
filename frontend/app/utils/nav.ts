@@ -17,19 +17,18 @@ export const superadminNav: NavGroup[] = [
       {
         labelKey: 'nav.assets',
         icon: 'i-lucide-package',
-        disabled: true,
         children: [
           {
             labelKey: 'nav.assetCatalog',
-            disabled: true
+            to: '/assets'
           },
           {
             labelKey: 'nav.assetImport',
-            disabled: true
+            to: '/assets/import'
           },
           {
             labelKey: 'nav.assetLabel',
-            disabled: true
+            to: '/assets/label'
           }
         ]
       },
