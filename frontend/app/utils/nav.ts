@@ -95,15 +95,15 @@ export const superadminNav: NavGroup[] = [
           },
           {
             labelKey: 'nav.dataScope',
-            disabled: true
+            to: '/settings/data-scope'
           },
           {
             labelKey: 'nav.fieldPermission',
-            disabled: true
+            to: '/settings/field-permission'
           },
           {
             labelKey: 'nav.auditTrail',
-            disabled: true
+            to: '/settings/audit'
           }
         ]
       }
