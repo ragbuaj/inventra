@@ -56,6 +56,36 @@
       "errNotFound": "User not found.",
       "required": "Required.",
       "invalidEmail": "Invalid email format."
+    },
+    "rbac": {
+      "title": "Roles & RBAC",
+      "rolesTitle": "Roles",
+      "rolesSub": "Pick a role to manage its permissions",
+      "addRole": "Add Role",
+      "systemBadge": "System",
+      "customBadge": "Custom",
+      "lockNote": "System roles are built-in and cannot be edited. Duplicate as a custom role to adjust permissions.",
+      "unsavedChanges": "Unsaved changes",
+      "saveChanges": "Save Changes",
+      "savedToast": "Permission changes saved",
+      "permCount": "{n} perms",
+      "moduleCount": "{granted} / {total} perms",
+      "selectAll": "Select all",
+      "clearAll": "Clear",
+      "add": {
+        "title": "Add Role",
+        "subtitle": "Create a new custom role.",
+        "roleName": "Role Name",
+        "copyFrom": "Copy permissions from",
+        "copyNone": "— (Start empty)",
+        "copyNote": "Copy permissions from another role as a starting point.",
+        "description": "Description",
+        "namePlaceholder": "e.g. Field Operator",
+        "descPlaceholder": "Short role description…",
+        "required": "Required.",
+        "create": "Create Role",
+        "createdToast": "Custom role created"
+      }
     }
   },
   "dashboard": {

@@ -5,3 +5,5 @@ export * from './employees'
 export * from './reference'
 export * from './dashboard'
 export * from './users'
+// `./rbac` is imported directly (it re-declares a `Localized` helper that would
+// clash with `./dashboard` under `export *`), so it is intentionally not re-exported here.

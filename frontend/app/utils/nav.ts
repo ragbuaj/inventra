@@ -91,7 +91,7 @@ export const superadminNav: NavGroup[] = [
           },
           {
             labelKey: 'nav.rbac',
-            disabled: true
+            to: '/settings/rbac'
           },
           {
             labelKey: 'nav.dataScope',
