@@ -86,6 +86,70 @@
         "create": "Buat Peran",
         "createdToast": "Peran kustom dibuat"
       }
+    },
+    "dataScope": {
+      "title": "Data Scope",
+      "subtitle": "Tetapkan level lingkup data per peran. Kolom Default berlaku untuk semua modul; kolom modul dapat menimpa (override) default bila perlu.",
+      "save": "Simpan",
+      "unsavedChanges": "Perubahan belum disimpan",
+      "savedToast": "Lingkup data disimpan",
+      "legendTitle": "Level lingkup data",
+      "roleColumn": "Peran",
+      "defaultColumn": "Default",
+      "overrideHint": "Override per-modul (berbeda dari default)",
+      "inheritHint": "Mewarisi default peran",
+      "overrideTag": "Override",
+      "followDefault": "Ikuti Default",
+      "inherits": "Mewarisi: {level}",
+      "footNote": "Contoh: peran Manager memakai default office, namun di-override menjadi office_subtree untuk Aset dan own untuk Pengajuan — menunjukkan lingkup berbeda per modul dalam satu peran."
+    },
+    "fieldPermission": {
+      "title": "Field-Permission",
+      "subtitle": "Tetapkan field mana yang boleh dilihat dan diedit tiap peran, per entitas. Field tanpa aturan eksplisit mengikuti default sistem.",
+      "save": "Simpan",
+      "unsavedChanges": "Perubahan belum disimpan",
+      "savedToast": "Aturan field disimpan",
+      "entityLabel": "Entitas",
+      "searchPlaceholder": "Cari field…",
+      "viewLabel": "Lihat (L)",
+      "editLabel": "Edit (E)",
+      "fieldColumn": "Field",
+      "defaultTag": "Default",
+      "resetField": "Kembalikan ke default",
+      "empty": "Tidak ada field yang cocok.",
+      "footNote": "Contoh pada entitas Aset: harga_beli hanya dapat dilihat oleh Superadmin & Manager (diedit Superadmin), sedangkan nilai_buku hanya untuk Superadmin. Klik ikon putar untuk mengembalikan field ke default."
+    },
+    "audit": {
+      "title": "Audit Trail",
+      "subtitle": "Telusuri seluruh aktivitas sistem (hanya-baca).",
+      "export": "Ekspor",
+      "exportComingSoon": "Ekspor belum tersedia.",
+      "searchPlaceholder": "Cari aktivitas / aktor…",
+      "reset": "Reset",
+      "diffTitle": "Perubahan (before → after)",
+      "dateFrom": "Dari tanggal",
+      "dateTo": "Sampai tanggal",
+      "columns": {
+        "time": "Waktu",
+        "actor": "Aktor",
+        "action": "Aksi",
+        "entity": "Entitas",
+        "summary": "Ringkasan Perubahan",
+        "office": "Kantor / IP"
+      },
+      "filter": {
+        "allActors": "Semua Aktor",
+        "allActions": "Semua Aksi",
+        "allEntities": "Semua Entitas"
+      },
+      "action": {
+        "create": "Buat",
+        "update": "Ubah",
+        "delete": "Hapus"
+      },
+      "emptyTitle": "Tidak ada log",
+      "emptySub": "Tidak ada aktivitas yang cocok dengan filter atau rentang tanggal.",
+      "showing": "Menampilkan {from}–{to} dari {total} aktivitas"
     }
   },
   "dashboard": {

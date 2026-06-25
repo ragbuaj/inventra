@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { superadminNav, staffNav } from '~/utils/nav'
 import type { NavItem } from '~/types'
 
-const BUILT_ROUTES = ['/', '/master/offices', '/master/employees', '/master/reference', '/settings/users', '/settings/rbac']
+const BUILT_ROUTES = ['/', '/master/offices', '/master/employees', '/master/reference', '/settings/users', '/settings/rbac', '/settings/data-scope', '/settings/field-permission', '/settings/audit']
 
 function collectItems(items: NavItem[]): NavItem[] {
   return items.flatMap(item => [item, ...(item.children ? collectItems(item.children) : [])])

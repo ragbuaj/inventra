@@ -86,6 +86,70 @@
         "create": "Create Role",
         "createdToast": "Custom role created"
       }
+    },
+    "dataScope": {
+      "title": "Data Scope",
+      "subtitle": "Set the data scope level per role. The Default column applies to all modules; module columns can override the default when needed.",
+      "save": "Save",
+      "unsavedChanges": "Unsaved changes",
+      "savedToast": "Data scope saved",
+      "legendTitle": "Data scope levels",
+      "roleColumn": "Role",
+      "defaultColumn": "Default",
+      "overrideHint": "Per-module override (differs from default)",
+      "inheritHint": "Inherits role default",
+      "overrideTag": "Override",
+      "followDefault": "Follow Default",
+      "inherits": "Inherits: {level}",
+      "footNote": "Example: the Manager role uses the office default but is overridden to office_subtree for Assets and own for Requests — showing different scope per module within one role."
+    },
+    "fieldPermission": {
+      "title": "Field Permission",
+      "subtitle": "Set which fields each role may view and edit, per entity. Fields without explicit rules follow the system default.",
+      "save": "Save",
+      "unsavedChanges": "Unsaved changes",
+      "savedToast": "Field rules saved",
+      "entityLabel": "Entity",
+      "searchPlaceholder": "Search field…",
+      "viewLabel": "View (L)",
+      "editLabel": "Edit (E)",
+      "fieldColumn": "Field",
+      "defaultTag": "Default",
+      "resetField": "Revert to default",
+      "empty": "No matching field.",
+      "footNote": "Example on the Asset entity: harga_beli is viewable only by Superadmin & Manager (edited by Superadmin), while nilai_buku is Superadmin-only. Click the reset icon to revert a field to default."
+    },
+    "audit": {
+      "title": "Audit Trail",
+      "subtitle": "Browse all system activity (read-only).",
+      "export": "Export",
+      "exportComingSoon": "Export isn't available yet.",
+      "searchPlaceholder": "Search activity / actor…",
+      "reset": "Reset",
+      "diffTitle": "Changes (before → after)",
+      "dateFrom": "From date",
+      "dateTo": "To date",
+      "columns": {
+        "time": "Time",
+        "actor": "Actor",
+        "action": "Action",
+        "entity": "Entity",
+        "summary": "Change Summary",
+        "office": "Office / IP"
+      },
+      "filter": {
+        "allActors": "All Actors",
+        "allActions": "All Actions",
+        "allEntities": "All Entities"
+      },
+      "action": {
+        "create": "Create",
+        "update": "Update",
+        "delete": "Delete"
+      },
+      "emptyTitle": "No logs",
+      "emptySub": "No activity matches the filter or date range.",
+      "showing": "Showing {from}–{to} of {total} activities"
     }
   },
   "dashboard": {
