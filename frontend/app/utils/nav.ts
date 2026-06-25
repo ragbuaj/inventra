@@ -40,7 +40,7 @@ export const superadminNav: NavGroup[] = [
       {
         labelKey: 'nav.maintenance',
         icon: 'i-lucide-wrench',
-        disabled: true
+        to: '/maintenance'
       },
       {
         labelKey: 'nav.approval',

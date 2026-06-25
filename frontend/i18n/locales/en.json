@@ -257,6 +257,85 @@
       "emptySub": "No assignment matches the filter."
     }
   },
+  "maintenance": {
+    "title": "Maintenance",
+    "subtitle": "Manage schedules, maintenance notes, and damage reports.",
+    "dueBannerTitle": "Maintenance due",
+    "seeSchedule": "View Schedule",
+    "makeNote": "Add Note",
+    "tabs": {
+      "jadwal": "Schedule",
+      "catatan": "Notes",
+      "laporan": "Damage Report"
+    },
+    "type": {
+      "preventive": "Preventive",
+      "corrective": "Corrective"
+    },
+    "status": {
+      "scheduled": "Scheduled",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "due": {
+      "overdue": "{n} days overdue",
+      "today": "Due today",
+      "inDays": "in {n} days"
+    },
+    "records": {
+      "searchPlaceholder": "Search asset / vendor…",
+      "addNote": "Add Note",
+      "colAsset": "Asset",
+      "colType": "Type",
+      "colCategory": "Category",
+      "colDate": "Date",
+      "colStatus": "Status",
+      "colCost": "Cost",
+      "colVendor": "Vendor / Technician",
+      "emptyTitle": "No notes",
+      "emptySub": "No matching maintenance notes yet."
+    },
+    "report": {
+      "staffBadge": "Staff View",
+      "formTitle": "Report Asset Damage",
+      "asset": "Asset you hold",
+      "problem": "Problem Category",
+      "description": "Description",
+      "descPlaceholder": "Describe the damage…",
+      "photo": "Photo (optional)",
+      "photoDrop": "Click to upload a damage photo",
+      "selectPlaceholder": "Select…",
+      "submit": "Submit Report",
+      "queueNote": "The report enters the queue as a maintenance request for the Manager to review.",
+      "submitted": "Damage report submitted & queued for maintenance.",
+      "awaiting": "Awaiting Review",
+      "historyTitle": "My Report History",
+      "emptyTitle": "No reports yet",
+      "emptySub": "Damage reports you submit will appear here."
+    },
+    "problems": {
+      "display": "Screen / Display",
+      "dead": "Dead / No Power",
+      "noise": "Noise / Mechanical",
+      "battery": "Battery / Power",
+      "connectivity": "Connectivity / Network",
+      "other": "Other"
+    },
+    "note": {
+      "title": "Add Maintenance Note",
+      "subtitle": "Record a maintenance action for an asset.",
+      "asset": "Asset",
+      "type": "Type",
+      "category": "Care Category",
+      "date": "Date",
+      "status": "Status",
+      "cost": "Cost",
+      "vendor": "Vendor / Technician",
+      "description": "Description",
+      "descPlaceholder": "Details of the maintenance action…"
+    }
+  },
   "settings": {
     "users": {
       "title": "Users",

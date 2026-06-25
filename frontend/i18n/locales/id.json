@@ -257,6 +257,85 @@
       "emptySub": "Belum ada penugasan yang cocok dengan filter."
     }
   },
+  "maintenance": {
+    "title": "Maintenance",
+    "subtitle": "Kelola jadwal, catatan perawatan, dan laporan kerusakan aset.",
+    "dueBannerTitle": "Maintenance jatuh tempo",
+    "seeSchedule": "Lihat Jadwal",
+    "makeNote": "Buat Catatan",
+    "tabs": {
+      "jadwal": "Jadwal",
+      "catatan": "Catatan",
+      "laporan": "Laporan Kerusakan"
+    },
+    "type": {
+      "preventive": "Preventive",
+      "corrective": "Corrective"
+    },
+    "status": {
+      "scheduled": "Dijadwalkan",
+      "in_progress": "Berlangsung",
+      "completed": "Selesai",
+      "cancelled": "Dibatalkan"
+    },
+    "due": {
+      "overdue": "Terlambat {n} hari",
+      "today": "Jatuh tempo hari ini",
+      "inDays": "{n} hari lagi"
+    },
+    "records": {
+      "searchPlaceholder": "Cari aset / vendor…",
+      "addNote": "Tambah Catatan",
+      "colAsset": "Aset",
+      "colType": "Tipe",
+      "colCategory": "Kategori",
+      "colDate": "Tanggal",
+      "colStatus": "Status",
+      "colCost": "Biaya",
+      "colVendor": "Vendor / Teknisi",
+      "emptyTitle": "Tidak ada catatan",
+      "emptySub": "Belum ada catatan maintenance yang cocok."
+    },
+    "report": {
+      "staffBadge": "Tampilan Staf",
+      "formTitle": "Laporkan Kerusakan Aset",
+      "asset": "Aset yang Anda pegang",
+      "problem": "Kategori Masalah",
+      "description": "Deskripsi",
+      "descPlaceholder": "Jelaskan kerusakan yang terjadi…",
+      "photo": "Foto (opsional)",
+      "photoDrop": "Klik untuk unggah foto kerusakan",
+      "selectPlaceholder": "Pilih…",
+      "submit": "Kirim Laporan",
+      "queueNote": "Laporan akan masuk antrean sebagai permintaan maintenance untuk ditinjau Manager.",
+      "submitted": "Laporan kerusakan terkirim & masuk antrean maintenance.",
+      "awaiting": "Menunggu Review",
+      "historyTitle": "Riwayat Laporan Saya",
+      "emptyTitle": "Belum ada laporan",
+      "emptySub": "Laporan kerusakan yang Anda kirim akan tampil di sini."
+    },
+    "problems": {
+      "display": "Layar / Tampilan",
+      "dead": "Mati Total / Tidak Menyala",
+      "noise": "Bunyi / Mekanis",
+      "battery": "Baterai / Daya",
+      "connectivity": "Konektivitas / Jaringan",
+      "other": "Lainnya"
+    },
+    "note": {
+      "title": "Tambah Catatan Maintenance",
+      "subtitle": "Catat tindakan perawatan untuk aset.",
+      "asset": "Aset",
+      "type": "Tipe",
+      "category": "Kategori Perawatan",
+      "date": "Tanggal",
+      "status": "Status",
+      "cost": "Biaya",
+      "vendor": "Vendor / Teknisi",
+      "description": "Deskripsi",
+      "descPlaceholder": "Rincian tindakan perawatan…"
+    }
+  },
   "settings": {
     "users": {
       "title": "Pengguna",
