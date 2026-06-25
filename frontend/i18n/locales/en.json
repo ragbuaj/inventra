@@ -1,5 +1,56 @@
 {
   "app": { "name": "Inventra", "tagline": "Asset Management" },
+  "dashboard": {
+    "title": "Dashboard",
+    "scopeNote": "Figures follow your data scope",
+    "export": "Export",
+    "reload": "Reload",
+    "totalLabel": "Total Assets",
+    "comingSoon": "This feature isn't available yet.",
+    "period": {
+      "last30": "Last 30 days",
+      "thisMonth": "This month",
+      "thisQuarter": "This quarter",
+      "ytd": "Year to date"
+    },
+    "kpi": {
+      "total": "Total Assets",
+      "acquisition": "Acquisition Value",
+      "bookValue": "Book Value",
+      "overdue": "Overdue Assets",
+      "maintenanceDue": "Maintenance Due",
+      "maintenanceCost": "Total Maintenance Cost"
+    },
+    "kpiTrend": {
+      "growing": "+ growing",
+      "acqUp": "+1.2%",
+      "depreciation": "−6.4% depreciation",
+      "needsAction": "needs action",
+      "within7Days": "within 7 days",
+      "costUp": "+8.3%"
+    },
+    "status": {
+      "available": "Available",
+      "inUse": "In use",
+      "maintenance": "Maintenance",
+      "disposed": "Disposed",
+      "lost": "Lost"
+    },
+    "chart": {
+      "statusTitle": "Assets by Status",
+      "categoryTitle": "Assets by Category",
+      "locationTitle": "Assets by Location / Office"
+    },
+    "panel": {
+      "maintenanceTitle": "Maintenance Due",
+      "approvalTitle": "Requests Awaiting Approval",
+      "seeAll": "See all",
+      "approvedToast": "Request approved",
+      "rejectedToast": "Request rejected",
+      "allHandledTitle": "All requests handled",
+      "allHandledSub": "Nothing awaiting approval."
+    }
+  },
   "auth": {
     "signInTitle": "Sign in to your account",
     "signInSubtitle": "Welcome back. Please sign in to continue.",
