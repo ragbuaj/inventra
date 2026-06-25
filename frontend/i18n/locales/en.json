@@ -1,5 +1,56 @@
 {
   "app": { "name": "Inventra", "tagline": "Asset Management" },
+  "assets": {
+    "title": "Asset Catalog",
+    "subtitle": "Manage all assets within your office scope.",
+    "add": "Add Asset",
+    "import": "Import",
+    "scan": "Scan Barcode",
+    "searchPlaceholder": "Search asset name or code…",
+    "reset": "Reset filters",
+    "export": "Export",
+    "printLabels": "Print Labels",
+    "selected": "{n} selected",
+    "showing": "Showing {from}–{to} of {total} assets",
+    "dateFrom": "Buy date from",
+    "dateTo": "Buy date to",
+    "viewTable": "Table view",
+    "viewGrid": "Grid view",
+    "comingSoon": "This feature isn't available yet.",
+    "errNotFound": "Asset not found.",
+    "deleteTitle": "Delete this asset?",
+    "deleteBody": "Asset {tag} will be permanently deleted. This cannot be undone.",
+    "emptyNoData": "No assets yet",
+    "emptyNoDataSub": "Start by adding your first asset to the catalog.",
+    "emptyFilter": "No matching assets",
+    "emptyFilterSub": "Try changing the keyword or resetting filters.",
+    "columns": {
+      "tag": "Asset Tag",
+      "nama": "Name",
+      "kategori": "Category",
+      "brand": "Brand / Model",
+      "status": "Status",
+      "kantor": "Office",
+      "holder": "Holder",
+      "date": "Buy Date",
+      "harga": "Buy Price",
+      "buku": "Book Value",
+      "aksi": "Actions"
+    },
+    "filter": {
+      "allStatus": "All Status",
+      "allCategory": "All Categories",
+      "allOffice": "All Offices",
+      "allLocation": "All Locations"
+    },
+    "status": {
+      "tersedia": "Available",
+      "dipinjam": "In use",
+      "maintenance": "Maintenance",
+      "dilepas": "Disposed",
+      "hilang": "Lost"
+    }
+  },
   "settings": {
     "users": {
       "title": "Users",
@@ -266,7 +317,7 @@
   },
   "common": {
     "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit",
-    "add": "Add", "search": "Search", "reset": "Reset", "actions": "Actions",
+    "add": "Add", "search": "Search", "reset": "Reset", "actions": "Actions", "view": "View",
     "loading": "Loading…", "noData": "No data yet", "confirm": "Confirm",
     "showingRange": "Showing {from}–{to} of {total}",
     "error": "Something went wrong",

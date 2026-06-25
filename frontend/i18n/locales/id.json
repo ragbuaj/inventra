@@ -1,5 +1,56 @@
 {
   "app": { "name": "Inventra", "tagline": "Manajemen Aset" },
+  "assets": {
+    "title": "Katalog Aset",
+    "subtitle": "Kelola seluruh aset dalam lingkup kantor Anda.",
+    "add": "Tambah Aset",
+    "import": "Import",
+    "scan": "Scan Barcode",
+    "searchPlaceholder": "Cari nama atau kode aset…",
+    "reset": "Reset filter",
+    "export": "Ekspor",
+    "printLabels": "Cetak Label",
+    "selected": "{n} dipilih",
+    "showing": "Menampilkan {from}–{to} dari {total} aset",
+    "dateFrom": "Dari tanggal beli",
+    "dateTo": "Sampai tanggal beli",
+    "viewTable": "Tampilan tabel",
+    "viewGrid": "Tampilan grid",
+    "comingSoon": "Fitur ini belum tersedia.",
+    "errNotFound": "Aset tidak ditemukan.",
+    "deleteTitle": "Hapus aset ini?",
+    "deleteBody": "Aset {tag} akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.",
+    "emptyNoData": "Belum ada aset",
+    "emptyNoDataSub": "Mulai dengan menambahkan aset pertama ke katalog.",
+    "emptyFilter": "Tidak ada aset yang cocok",
+    "emptyFilterSub": "Coba ubah kata kunci atau atur ulang filter.",
+    "columns": {
+      "tag": "Kode Aset",
+      "nama": "Nama",
+      "kategori": "Kategori",
+      "brand": "Brand / Model",
+      "status": "Status",
+      "kantor": "Kantor",
+      "holder": "Pemegang",
+      "date": "Tgl Beli",
+      "harga": "Harga Beli",
+      "buku": "Nilai Buku",
+      "aksi": "Aksi"
+    },
+    "filter": {
+      "allStatus": "Semua Status",
+      "allCategory": "Semua Kategori",
+      "allOffice": "Semua Kantor",
+      "allLocation": "Semua Lokasi"
+    },
+    "status": {
+      "tersedia": "Tersedia",
+      "dipinjam": "Dipinjam",
+      "maintenance": "Maintenance",
+      "dilepas": "Dilepas",
+      "hilang": "Hilang"
+    }
+  },
   "settings": {
     "users": {
       "title": "Pengguna",
@@ -266,7 +317,7 @@
   },
   "common": {
     "save": "Simpan", "cancel": "Batal", "delete": "Hapus", "edit": "Ubah",
-    "add": "Tambah", "search": "Cari", "reset": "Reset", "actions": "Aksi",
+    "add": "Tambah", "search": "Cari", "reset": "Reset", "actions": "Aksi", "view": "Lihat",
     "loading": "Memuat…", "noData": "Belum ada data", "confirm": "Konfirmasi",
     "showingRange": "Menampilkan {from}–{to} dari {total}",
     "error": "Terjadi kesalahan",
