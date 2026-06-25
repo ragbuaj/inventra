@@ -196,6 +196,67 @@
       "emptySub": "Check assets in the left panel to preview labels."
     }
   },
+  "assignment": {
+    "title": "Asset Assignment",
+    "subtitle": "Check assets out to staff, return them, and view history.",
+    "reset": "Reset",
+    "tabs": {
+      "checkout": "Check-out",
+      "checkin": "Check-in",
+      "history": "History"
+    },
+    "status": {
+      "active": "Active",
+      "returned": "Returned"
+    },
+    "condition": {
+      "baik": "Good",
+      "ringan": "Minor Damage",
+      "berat": "Major Damage"
+    },
+    "checkout": {
+      "asset": "Asset (available only)",
+      "assetHint": "Only assets with status \"Available\" can be lent.",
+      "assetPlaceholder": "Search asset name / code…",
+      "recipient": "Recipient",
+      "recipientPlaceholder": "Select staff…",
+      "borrowDate": "Borrow Date",
+      "condOut": "Outgoing Condition",
+      "note": "Note",
+      "notePlaceholder": "e.g. Borrowed for branch event support…",
+      "submit": "Check-out",
+      "errIncomplete": "Complete asset, staff, and borrow date.",
+      "ok": "Asset \"{name}\" checked out to {holder}."
+    },
+    "checkin": {
+      "active": "Active Assignment",
+      "activePlaceholder": "Select assignment…",
+      "info": "Borrowed by {holder} · {date}",
+      "returnDate": "Return Date",
+      "condIn": "Incoming Condition",
+      "needsMaint": "Needs maintenance",
+      "needsMaintNote": "If checked, the asset status becomes \"Maintenance\" after return.",
+      "submit": "Check-in",
+      "errIncomplete": "Select an assignment and fill the return date.",
+      "ok": "Asset \"{name}\" returned successfully.",
+      "okMaint": "Asset \"{name}\" returned & flagged for maintenance.",
+      "emptyTitle": "No active assignment",
+      "emptySub": "All assets have been returned. Check one out first."
+    },
+    "history": {
+      "searchPlaceholder": "Search asset / holder…",
+      "allStatus": "All Status",
+      "colAsset": "Asset",
+      "colHolder": "Holder",
+      "colBorrow": "Borrow Date",
+      "colReturn": "Return Date",
+      "colStatus": "Status",
+      "colCondition": "Condition",
+      "total": "Total {n} assignments",
+      "emptyTitle": "No history",
+      "emptySub": "No assignment matches the filter."
+    }
+  },
   "settings": {
     "users": {
       "title": "Users",

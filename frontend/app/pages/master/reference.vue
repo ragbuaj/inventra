@@ -229,13 +229,13 @@ onMounted(async () => {
 
         <!-- Table -->
         <ResourceTable
+          v-model:sorting="sorting"
           :rows="rows"
           :columns="columns"
           :loading="loading"
           :total="total"
           :limit="limit"
           :offset="offset"
-          v-model:sorting="sorting"
           :empty-title="t('masterdata.reference.empty')"
           :actions="rowActions"
           @update:offset="offset = $event"

@@ -35,7 +35,7 @@ export const superadminNav: NavGroup[] = [
       {
         labelKey: 'nav.assignment',
         icon: 'i-lucide-clipboard-check',
-        disabled: true
+        to: '/assignment'
       },
       {
         labelKey: 'nav.maintenance',
