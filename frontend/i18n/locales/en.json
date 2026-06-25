@@ -167,6 +167,33 @@
         "nama": "Name is required",
         "harga": "Invalid price (not a number)"
       }
+    },
+    "label": {
+      "title": "Label & Barcode",
+      "subtitle": "Preview and print asset labels (Code128 + QR).",
+      "selectAssets": "Select Assets",
+      "searchPlaceholder": "Search name / code…",
+      "selectAll": "Select all (filtered)",
+      "selected": "{n} selected",
+      "layout": "Layout",
+      "size": "Label size",
+      "columns": "Columns per row",
+      "show": "Show",
+      "fields": "Printed fields",
+      "fieldNama": "Asset name",
+      "fieldKode": "Asset code",
+      "fieldKantor": "Office",
+      "modeBarcode": "Barcode",
+      "modeQr": "QR",
+      "modeBoth": "Both",
+      "pdf": "Download PDF",
+      "print": "Print",
+      "single": "Single Label",
+      "batch": "Batch Sheet",
+      "count": "{n} labels",
+      "perPage": "≈ {n} labels / A4 page",
+      "emptyTitle": "No asset selected",
+      "emptySub": "Check assets in the left panel to preview labels."
     }
   },
   "settings": {
