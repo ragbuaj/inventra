@@ -1,5 +1,63 @@
 {
   "app": { "name": "Inventra", "tagline": "Asset Management" },
+  "settings": {
+    "users": {
+      "title": "Users",
+      "subtitle": "Manage login accounts and their links to roles, offices, and employees.",
+      "add": "Add User",
+      "searchPlaceholder": "Search name or email…",
+      "columns": {
+        "nama": "Name & Email",
+        "peran": "Role",
+        "kantor": "Assigned Office",
+        "pegawai": "Linked Employee",
+        "login": "Login",
+        "status": "Status",
+        "aksi": "Actions"
+      },
+      "filter": {
+        "allRoles": "All Roles",
+        "allKantor": "All Offices",
+        "allStatus": "All Status"
+      },
+      "status": { "active": "Active", "inactive": "Inactive", "suspended": "Suspended" },
+      "login": { "email": "Email", "google": "Google" },
+      "actions": {
+        "edit": "Edit User",
+        "resetPassword": "Reset Password",
+        "activate": "Activate",
+        "deactivate": "Deactivate",
+        "delete": "Delete"
+      },
+      "toast": {
+        "passwordReset": "Password reset link sent",
+        "statusChanged": "User status updated"
+      },
+      "empty": "No users yet",
+      "emptyFilter": "No accounts match the search or filter.",
+      "createTitle": "Add User",
+      "editTitle": "Edit User",
+      "createSub": "Create a new login account and link it to a role & office.",
+      "editSub": "Update the user account.",
+      "fields": {
+        "nama": "Name",
+        "email": "Email",
+        "password": "Password",
+        "peran": "Role",
+        "kantor": "Assigned Office",
+        "pegawai": "Linked Employee",
+        "status": "Status"
+      },
+      "placeholders": { "nama": "e.g. Andi Saputra", "pilih": "Select…" },
+      "passwordNote": "Leave empty if the user only logs in with Google.",
+      "pegawaiNote": "Link to employee data to sync title & department.",
+      "deleteTitle": "Delete this user?",
+      "deleteConfirm": "Account “{nama}” ({email}) will be permanently deleted. This cannot be undone.",
+      "errNotFound": "User not found.",
+      "required": "Required.",
+      "invalidEmail": "Invalid email format."
+    }
+  },
   "dashboard": {
     "title": "Dashboard",
     "scopeNote": "Figures follow your data scope",
@@ -180,9 +238,9 @@
       "addSub": "Register a new office in the hierarchy.",
       "editSub": "Update office data.",
       "deleteTitle": "Delete this office?",
-      "deleteBody": "The office and all its child offices will be deleted. This cannot be undone.",
-      "deleteFloorConfirm": "Delete this floor? All rooms on this floor will also be removed.",
-      "deleteRoomConfirm": "Delete this room? This action cannot be undone.",
+      "deleteBody": "Office “{nama}” and all its child offices will be deleted. This cannot be undone.",
+      "deleteFloorConfirm": "Delete floor “{nama}”? All rooms on this floor will also be removed.",
+      "deleteRoomConfirm": "Delete room “{nama}”? This action cannot be undone.",
       "nameRequired": "Name cannot be empty.",
       "fields": {
         "nama": "Office Name",
@@ -243,7 +301,7 @@
       "status": { "active": "Active", "inactive": "Inactive" },
       "createTitle": "Add Employee",
       "editTitle": "Edit Employee",
-      "deleteConfirm": "Delete this employee?",
+      "deleteConfirm": "Employee “{nama}” (NIP {nip}) will be deleted. This cannot be undone.",
       "errNotFound": "Employee not found."
     },
     "reference": {
@@ -253,7 +311,7 @@
       "empty": "No data yet",
       "createTitle": "Add Entry",
       "editTitle": "Edit Entry",
-      "deleteConfirm": "Delete this entry?",
+      "deleteConfirm": "Entry “{name}” will be deleted. This cannot be undone.",
       "errNotFound": "Entry not found.",
       "statusColumn": "Status",
       "aktif": "Active",
