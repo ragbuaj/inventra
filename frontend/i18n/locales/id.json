@@ -58,6 +58,57 @@
       "invalidEmail": "Format email tidak valid."
     }
   },
+  "dashboard": {
+    "title": "Dashboard",
+    "scopeNote": "Angka mengikuti data scope Anda",
+    "export": "Ekspor",
+    "reload": "Muat ulang",
+    "totalLabel": "Total Aset",
+    "comingSoon": "Fitur ini belum tersedia.",
+    "period": {
+      "last30": "30 hari terakhir",
+      "thisMonth": "Bulan ini",
+      "thisQuarter": "Kuartal ini",
+      "ytd": "Tahun berjalan"
+    },
+    "kpi": {
+      "total": "Total Aset",
+      "acquisition": "Nilai Perolehan",
+      "bookValue": "Nilai Buku",
+      "overdue": "Aset Overdue",
+      "maintenanceDue": "Maintenance Jatuh Tempo",
+      "maintenanceCost": "Total Biaya Maintenance"
+    },
+    "kpiTrend": {
+      "growing": "+ aktif bertambah",
+      "acqUp": "+1,2%",
+      "depreciation": "−6,4% depresiasi",
+      "needsAction": "perlu tindakan",
+      "within7Days": "dalam 7 hari",
+      "costUp": "+8,3%"
+    },
+    "status": {
+      "available": "Tersedia",
+      "inUse": "Dipinjam",
+      "maintenance": "Maintenance",
+      "disposed": "Dilepas",
+      "lost": "Hilang"
+    },
+    "chart": {
+      "statusTitle": "Aset per Status",
+      "categoryTitle": "Aset per Kategori",
+      "locationTitle": "Aset per Lokasi / Kantor"
+    },
+    "panel": {
+      "maintenanceTitle": "Maintenance Jatuh Tempo",
+      "approvalTitle": "Pengajuan Menunggu Approval",
+      "seeAll": "Lihat semua",
+      "approvedToast": "Pengajuan disetujui",
+      "rejectedToast": "Pengajuan ditolak",
+      "allHandledTitle": "Semua pengajuan ditindak",
+      "allHandledSub": "Tidak ada yang menunggu persetujuan."
+    }
+  },
   "auth": {
     "signInTitle": "Masuk ke akun Anda",
     "signInSubtitle": "Selamat datang kembali. Silakan masuk untuk melanjutkan.",

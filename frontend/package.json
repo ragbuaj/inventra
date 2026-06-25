@@ -21,6 +21,8 @@
     "@nuxt/ui": "^4.9.0",
     "@nuxtjs/i18n": "10.4.0",
     "@pinia/nuxt": "0.11.3",
+    "@unovis/ts": "^1.6.6",
+    "@unovis/vue": "^1.6.6",
     "nuxt": "^4.4.8",
     "pinia": "^3.0.4",
     "tailwindcss": "^4.3.1"

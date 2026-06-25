@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import type { Employee } from '~/types'
+import type { Employee, RowAction, TableSorting } from '~/types'
 import type { EmployeeInput } from '~/composables/api/useEmployees'
 
 definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
 
 const { t } = useI18n()
 const toast = useToast()
+const can = useCan()
 const { open: confirm } = useConfirm()
 const api = useEmployees()
 const officesApi = useOffices()
@@ -21,6 +22,7 @@ const filterKantor = ref(ALL)
 const filterDept = ref(ALL)
 const filterJabatan = ref(ALL)
 const filterStatus = ref(ALL)
+const sorting = ref<TableSorting>([])
 const loading = ref(true)
 
 const officeMap = ref<Record<string, string>>({})
@@ -36,13 +38,13 @@ const form = reactive<EmployeeInput>({
 })
 
 const columns = [
-  { accessorKey: 'nip', header: t('masterdata.employees.columns.nip') },
-  { accessorKey: 'nama', header: t('masterdata.employees.columns.nama') },
-  { accessorKey: 'departemen', header: t('masterdata.employees.columns.departemen') },
-  { accessorKey: 'jabatan', header: t('masterdata.employees.columns.jabatan') },
+  { accessorKey: 'nip', header: t('masterdata.employees.columns.nip'), sortable: true },
+  { accessorKey: 'nama', header: t('masterdata.employees.columns.nama'), sortable: true },
+  { accessorKey: 'departemen', header: t('masterdata.employees.columns.departemen'), sortable: true },
+  { accessorKey: 'jabatan', header: t('masterdata.employees.columns.jabatan'), sortable: true },
   { accessorKey: 'kantor', header: t('masterdata.employees.columns.kantor') },
   { accessorKey: 'kontak', header: t('masterdata.employees.columns.kontak') },
-  { accessorKey: 'status', header: t('masterdata.employees.columns.status') }
+  { accessorKey: 'status', header: t('masterdata.employees.columns.status'), sortable: true }
 ]
 
 function initials(nama: string): string {
@@ -66,8 +68,10 @@ const filteredRows = computed(() => {
   })
 })
 
+const sortedRows = computed(() => sortRows(filteredRows.value, sorting.value))
+
 const paginatedRows = computed(() =>
-  filteredRows.value.slice(offset.value, offset.value + limit.value)
+  sortedRows.value.slice(offset.value, offset.value + limit.value)
 )
 
 const tableRows = computed(() =>
@@ -136,6 +140,15 @@ async function onDelete(row: Employee) {
   await refresh()
 }
 
+function rowActions(row: Record<string, unknown>): RowAction[] {
+  if (!can('masterdata.office.manage')) return []
+  const r = row as unknown as Employee
+  return [
+    { label: t('common.edit'), icon: 'i-lucide-pencil', onSelect: () => openEdit(r) },
+    { label: t('common.delete'), icon: 'i-lucide-trash-2', color: 'error', separator: true, onSelect: () => onDelete(r) }
+  ]
+}
+
 function resetFilters() {
   search.value = ''
   filterKantor.value = ALL
@@ -145,7 +158,7 @@ function resetFilters() {
   offset.value = 0
 }
 
-watch([search, filterKantor, filterDept, filterJabatan, filterStatus], () => {
+watch([search, filterKantor, filterDept, filterJabatan, filterStatus, sorting], () => {
   offset.value = 0
 })
 
@@ -229,7 +242,9 @@ onMounted(() => {
       :total="filteredRows.length"
       :limit="limit"
       :offset="offset"
+      v-model:sorting="sorting"
       :empty-title="anyFilterActive ? t('masterdata.employees.emptyFilter') : t('masterdata.employees.empty')"
+      :actions="rowActions"
       @update:offset="offset = $event"
     >
       <template #nip-cell="{ row }">
@@ -282,27 +297,6 @@ onMounted(() => {
         >
           {{ t(`masterdata.employees.status.${(row as unknown as Employee).status}`) }}
         </UBadge>
-      </template>
-
-      <template #row-actions="{ row }">
-        <Can permission="masterdata.office.manage">
-          <div class="flex gap-1">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              icon="i-lucide-pencil"
-              size="xs"
-              @click="openEdit(row as unknown as Employee)"
-            />
-            <UButton
-              color="error"
-              variant="ghost"
-              icon="i-lucide-trash-2"
-              size="xs"
-              @click="onDelete(row as unknown as Employee)"
-            />
-          </div>
-        </Can>
       </template>
     </ResourceTable>
 

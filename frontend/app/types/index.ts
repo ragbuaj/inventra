@@ -22,6 +22,24 @@ export interface AuthUser {
 
 export type BadgeColor = 'primary' | 'success' | 'warning' | 'error' | 'neutral' | 'info'
 
+export interface RowAction {
+  label: string
+  icon?: string
+  color?: BadgeColor | 'secondary'
+  separator?: boolean
+  disabled?: boolean
+  onSelect?: () => void
+}
+
+export type RowActions = (row: Record<string, unknown>) => RowAction[]
+
+export interface SortState {
+  id: string
+  desc: boolean
+}
+
+export type TableSorting = SortState[]
+
 export interface Office {
   id: string
   nama: string

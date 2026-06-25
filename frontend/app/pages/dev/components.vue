@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { TreeNode } from '~/components/TreeView.vue'
+import type { RowAction } from '~/types'
 
 const { open } = useConfirm()
 const rows = ref([
@@ -7,8 +8,8 @@ const rows = ref([
   { id: '2', name: 'Proyektor Epson', status: 'under_maintenance' }
 ])
 const columns = [
-  { accessorKey: 'name', header: 'Nama' },
-  { accessorKey: 'status', header: 'Status' }
+  { accessorKey: 'name', header: 'Nama', sortable: true },
+  { accessorKey: 'status', header: 'Status', sortable: true }
 ]
 const tree: TreeNode[] = [
   {
@@ -32,6 +33,11 @@ const offset = ref(0)
 async function askDelete() {
   await open({ title: 'Hapus data?', description: 'Tindakan ini tidak dapat dibatalkan.' })
 }
+const rowActions = (): RowAction[] => [
+  { label: 'Lihat Detail', icon: 'i-lucide-eye', onSelect: () => {} },
+  { label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => {} },
+  { label: 'Hapus', icon: 'i-lucide-trash-2', color: 'error', separator: true, onSelect: () => askDelete() }
+]
 </script>
 
 <template>
@@ -90,6 +96,7 @@ async function askDelete() {
         :columns="columns"
         :total="2"
         :offset="offset"
+        :actions="rowActions"
         @update:offset="offset = $event"
       >
         <template #name-cell="{ row }">
@@ -97,14 +104,6 @@ async function askDelete() {
         </template>
         <template #status-cell="{ row }">
           <StatusBadge :status="row.status as string" />
-        </template>
-        <template #row-actions>
-          <UButton
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            icon="i-lucide-pencil"
-          />
         </template>
       </ResourceTable>
     </section>

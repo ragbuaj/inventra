@@ -15,7 +15,7 @@ test.describe('Login (real backend)', () => {
 
     // On success the app redirects to the dashboard root.
     await expect(page).toHaveURL(/\/$/)
-    await expect(page.getByRole('heading', { name: 'Dasbor' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
   })
 
   test('shows an inline error on invalid credentials', async ({ page }) => {

@@ -11,7 +11,7 @@ const to = computed(() => Math.min(props.offset + props.limit, props.total))
 </script>
 
 <template>
-  <div class="flex items-center justify-between gap-4 mt-4">
+  <div class="flex items-center justify-between gap-4 px-4 py-3 border-t border-default">
     <p class="text-sm text-muted">
       {{ $t('common.showingRange', { from, to, total }) }}
     </p>
