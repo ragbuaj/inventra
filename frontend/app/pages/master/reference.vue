@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ReferenceRow } from '~/types'
+import type { ReferenceRow, RowAction, TableSorting } from '~/types'
 import type { ReferenceKey, ReferenceDescriptor } from '~/composables/api/referenceResources'
 import { referenceResources } from '~/composables/api/referenceResources'
 
@@ -7,6 +7,7 @@ definePageMeta({ middleware: 'can', permission: 'masterdata.global.manage' })
 
 const { t } = useI18n()
 const toast = useToast()
+const can = useCan()
 const { open: confirm } = useConfirm()
 const api = useReference()
 
@@ -25,6 +26,7 @@ const total = ref(0)
 const limit = ref(20)
 const offset = ref(0)
 const search = ref('')
+const sorting = ref<TableSorting>([])
 const loading = ref(true)
 
 // Form state
@@ -37,11 +39,13 @@ const form = reactive<Record<string, unknown>>({ active: true })
 const columns = computed(() => [
   ...descriptor.value.fields.map(f => ({
     accessorKey: f.key,
-    header: t(f.labelKey)
+    header: t(f.labelKey),
+    sortable: true
   })),
   {
     accessorKey: 'active',
-    header: t('masterdata.reference.statusColumn')
+    header: t('masterdata.reference.statusColumn'),
+    sortable: true
   }
 ])
 
@@ -117,11 +121,24 @@ async function onDelete(row: ReferenceRow) {
   await fetchAllCounts()
 }
 
+function rowActions(row: Record<string, unknown>): RowAction[] {
+  if (!can('masterdata.global.manage')) return []
+  const r = row as unknown as ReferenceRow
+  return [
+    { label: t('common.edit'), icon: 'i-lucide-pencil', onSelect: () => openEdit(r) },
+    { label: t('common.delete'), icon: 'i-lucide-trash-2', color: 'error', separator: true, onSelect: () => onDelete(r) }
+  ]
+}
+
 async function toggleActive(row: ReferenceRow) {
+  // Optimistic local flip — no full refetch, so the table never flashes a
+  // skeleton just to update a single status cell.
+  const prev = row.active !== false
+  row.active = !prev
   try {
-    await api.update(resourceKey.value, row.id, { active: !row.active })
-    await refresh()
+    await api.update(resourceKey.value, row.id, { active: !prev })
   } catch (err) {
+    row.active = prev
     toast.add({ title: t((err as Error).message), color: 'error' })
   }
 }
@@ -218,7 +235,9 @@ onMounted(async () => {
           :total="total"
           :limit="limit"
           :offset="offset"
+          v-model:sorting="sorting"
           :empty-title="t('masterdata.reference.empty')"
+          :actions="rowActions"
           @update:offset="offset = $event"
         >
           <!-- Status toggle cell -->
@@ -245,28 +264,6 @@ onMounted(async () => {
                 />
               </span>
             </button>
-          </template>
-
-          <!-- Row actions -->
-          <template #row-actions="{ row }">
-            <Can permission="masterdata.global.manage">
-              <div class="flex gap-1">
-                <UButton
-                  color="neutral"
-                  variant="ghost"
-                  icon="i-lucide-pencil"
-                  size="xs"
-                  @click="openEdit(row as unknown as ReferenceRow)"
-                />
-                <UButton
-                  color="error"
-                  variant="ghost"
-                  icon="i-lucide-trash-2"
-                  size="xs"
-                  @click="onDelete(row as unknown as ReferenceRow)"
-                />
-              </div>
-            </Can>
           </template>
         </ResourceTable>
       </div>
