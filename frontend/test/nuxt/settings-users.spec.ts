@@ -92,7 +92,22 @@ describe('User Management page — search & filters', () => {
   it('shows the empty state when nothing matches', async () => {
     const wrapper = await mountAndWait()
     await wrapper.find('input[type="text"]').setValue('zzz-no-match')
-    await new Promise(r => setTimeout(r, 50))
+    // Wait past the filter loading pulse so the empty state (only shown when not
+    // loading) replaces the table.
+    await new Promise(r => setTimeout(r, 400))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('Belum ada akun yang cocok')
+  })
+
+  it('enters a loading state on filter change (empty state suppressed until it settles)', async () => {
+    const wrapper = await mountAndWait()
+    await wrapper.find('input[type="text"]').setValue('zzz-still-loading')
+    await wrapper.vm.$nextTick()
+    // While the filter pulse is active the table is loading, so the empty state
+    // is deliberately suppressed even though nothing matches…
+    expect(wrapper.text()).not.toContain('Belum ada akun yang cocok')
+    // …and it appears once the loading pulse settles.
+    await new Promise(r => setTimeout(r, 400))
     await wrapper.vm.$nextTick()
     expect(wrapper.text()).toContain('Belum ada akun yang cocok')
   })
@@ -122,5 +137,43 @@ describe('User Management page — create form', () => {
     // No new user was added and the required-field error is shown.
     expect(document.body.textContent).toContain('Wajib diisi')
     expect(userStore.all()).toHaveLength(12)
+  })
+})
+
+describe('User Management page — sorting', () => {
+  it('re-orders rows when a sortable column header is clicked', async () => {
+    const wrapper = await mountAndWait()
+    // Default (seed) order puts "Super Admin" on page 1.
+    expect(wrapper.text()).toContain('Super Admin')
+    // Click the sortable "Name & Email" header → ascending by name pushes
+    // "Super Admin" (last alphabetically) onto page 2.
+    const header = wrapper.findAll('button').find(b => b.text().includes('Nama & Email'))
+    expect(header).toBeDefined()
+    await header!.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('Agus Salim') // first alphabetically
+    expect(wrapper.text()).not.toContain('Super Admin')
+  })
+})
+
+describe('User Management page — delete confirmation', () => {
+  it('includes the user name and email in the delete confirmation', async () => {
+    const { state } = useConfirm()
+    const wrapper = await mountAndWait()
+    // Open the first row's action menu (aria-label = "Aksi").
+    const trigger = wrapper.findAll('button').find(b => b.attributes('aria-label') === 'Aksi')
+    expect(trigger).toBeDefined()
+    await trigger!.trigger('click')
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 20))
+    // The menu teleports to <body>; click its "Hapus" item.
+    const del = Array.from(document.body.querySelectorAll('[role="menuitem"]')).find(el => el.textContent?.includes('Hapus'))
+    expect(del).toBeDefined();
+    (del as HTMLElement).click()
+    await wrapper.vm.$nextTick()
+    // The confirm dialog description names the specific account.
+    expect(state.value.open).toBe(true)
+    expect(state.value.description).toContain('Super Admin')
+    expect(state.value.description).toContain('admin@inventra.go.id')
   })
 })

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { User, BadgeColor } from '~/types'
+import type { User, BadgeColor, RowAction, TableSorting } from '~/types'
 import type { UserInput } from '~/composables/api/useUsers'
 import { useUsers } from '~/composables/api/useUsers'
 import { ROLES, KANTOR_OPTIONS, PEGAWAI_OPTIONS, userRoleColor } from '~/mock/users'
@@ -8,6 +8,7 @@ definePageMeta({ middleware: 'can', permission: 'user.manage' })
 
 const { t } = useI18n()
 const toast = useToast()
+const can = useCan()
 const { open: confirm } = useConfirm()
 const api = useUsers()
 
@@ -20,7 +21,20 @@ const search = ref('')
 const filterRole = ref(ALL)
 const filterKantor = ref(ALL)
 const filterStatus = ref(ALL)
+const sorting = ref<TableSorting>([])
 const loading = ref(true)
+
+// Brief loading pulse on filter/search so the table shows its inline loading
+// bar (matches the prepared UX; the data itself filters client-side).
+const filtering = ref(false)
+let filterTimer: ReturnType<typeof setTimeout> | undefined
+function pulseFilterLoading() {
+  filtering.value = true
+  if (filterTimer) clearTimeout(filterTimer)
+  filterTimer = setTimeout(() => {
+    filtering.value = false
+  }, 300)
+}
 
 const formOpen = ref(false)
 const saving = ref(false)
@@ -33,12 +47,12 @@ const errors = reactive<{ nama?: string, email?: string }>({})
 const EMAIL_RE = /^.+@.+\..+$/
 
 const columns = [
-  { accessorKey: 'nama', header: t('settings.users.columns.nama') },
-  { accessorKey: 'peran', header: t('settings.users.columns.peran') },
-  { accessorKey: 'kantor', header: t('settings.users.columns.kantor') },
-  { accessorKey: 'pegawai', header: t('settings.users.columns.pegawai') },
-  { accessorKey: 'login', header: t('settings.users.columns.login') },
-  { accessorKey: 'status', header: t('settings.users.columns.status') }
+  { accessorKey: 'nama', header: t('settings.users.columns.nama'), sortable: true },
+  { accessorKey: 'peran', header: t('settings.users.columns.peran'), sortable: true },
+  { accessorKey: 'kantor', header: t('settings.users.columns.kantor'), sortable: true },
+  { accessorKey: 'pegawai', header: t('settings.users.columns.pegawai'), sortable: true },
+  { accessorKey: 'login', header: t('settings.users.columns.login'), sortable: true },
+  { accessorKey: 'status', header: t('settings.users.columns.status'), sortable: true }
 ]
 
 const roleOptions = [{ value: ALL, label: t('settings.users.filter.allRoles') }, ...ROLES.map(r => ({ value: r, label: r }))]
@@ -85,22 +99,22 @@ const filteredRows = computed(() => {
   })
 })
 
+const sortedRows = computed(() => sortRows(filteredRows.value, sorting.value))
+
 const tableRows = computed(() =>
-  filteredRows.value.slice(offset.value, offset.value + limit.value).map(r => ({ ...r }))
+  sortedRows.value.slice(offset.value, offset.value + limit.value).map(r => ({ ...r }))
 )
 
-function rowActions(row: User) {
+function rowActions(row: Record<string, unknown>): RowAction[] {
+  if (!can('user.manage')) return []
+  const r = row as unknown as User
   return [
-    [
-      { label: t('settings.users.actions.edit'), icon: 'i-lucide-pencil', onSelect: () => openEdit(row) },
-      { label: t('settings.users.actions.resetPassword'), icon: 'i-lucide-key-round', onSelect: () => onResetPassword(row) },
-      row.status === 'active'
-        ? { label: t('settings.users.actions.deactivate'), icon: 'i-lucide-ban', onSelect: () => onToggleStatus(row) }
-        : { label: t('settings.users.actions.activate'), icon: 'i-lucide-circle-check', onSelect: () => onToggleStatus(row) }
-    ],
-    [
-      { label: t('settings.users.actions.delete'), icon: 'i-lucide-trash-2', color: 'error' as const, onSelect: () => onDelete(row) }
-    ]
+    { label: t('settings.users.actions.edit'), icon: 'i-lucide-pencil', onSelect: () => openEdit(r) },
+    { label: t('settings.users.actions.resetPassword'), icon: 'i-lucide-key-round', onSelect: () => onResetPassword(r) },
+    r.status === 'active'
+      ? { label: t('settings.users.actions.deactivate'), icon: 'i-lucide-ban', onSelect: () => onToggleStatus(r) }
+      : { label: t('settings.users.actions.activate'), icon: 'i-lucide-circle-check', onSelect: () => onToggleStatus(r) },
+    { label: t('settings.users.actions.delete'), icon: 'i-lucide-trash-2', color: 'error', separator: true, onSelect: () => onDelete(r) }
   ]
 }
 
@@ -171,7 +185,10 @@ async function onToggleStatus(row: User) {
 }
 
 async function onDelete(row: User) {
-  const ok = await confirm({ title: t('settings.users.deleteTitle'), description: t('settings.users.deleteConfirm') })
+  const ok = await confirm({
+    title: t('settings.users.deleteTitle'),
+    description: t('settings.users.deleteConfirm', { nama: row.nama, email: row.email })
+  })
   if (!ok) return
   await api.remove(row.id)
   await refresh()
@@ -186,6 +203,11 @@ function resetFilters() {
 }
 
 watch([search, filterRole, filterKantor, filterStatus], () => {
+  offset.value = 0
+  pulseFilterLoading()
+})
+
+watch(sorting, () => {
   offset.value = 0
 })
 
@@ -249,13 +271,15 @@ onMounted(() => {
     </div>
 
     <ResourceTable
+      v-model:sorting="sorting"
       :rows="(tableRows as unknown as Record<string, unknown>[])"
       :columns="columns"
-      :loading="loading"
+      :loading="loading || filtering"
       :total="filteredRows.length"
       :limit="limit"
       :offset="offset"
       :empty-title="anyFilterActive ? t('settings.users.emptyFilter') : t('settings.users.empty')"
+      :actions="rowActions"
       @update:offset="offset = $event"
     >
       <template #nama-cell="{ row }">
@@ -316,23 +340,6 @@ onMounted(() => {
           />
           {{ t(`settings.users.status.${(row as unknown as User).status}`) }}
         </UBadge>
-      </template>
-
-      <template #row-actions="{ row }">
-        <Can permission="user.manage">
-          <UDropdownMenu
-            :items="rowActions(row as unknown as User)"
-            :content="{ align: 'end' }"
-          >
-            <UButton
-              icon="i-lucide-ellipsis-vertical"
-              color="neutral"
-              variant="ghost"
-              size="xs"
-              :aria-label="t('settings.users.columns.aksi')"
-            />
-          </UDropdownMenu>
-        </Can>
       </template>
     </ResourceTable>
 

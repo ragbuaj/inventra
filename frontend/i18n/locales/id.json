@@ -52,7 +52,7 @@
       "passwordNote": "Kosongkan jika pengguna hanya login dengan Google.",
       "pegawaiNote": "Tautkan ke data pegawai untuk sinkron jabatan & departemen.",
       "deleteTitle": "Hapus pengguna ini?",
-      "deleteConfirm": "Akun akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.",
+      "deleteConfirm": "Akun “{nama}” ({email}) akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.",
       "errNotFound": "Pengguna tidak ditemukan.",
       "required": "Wajib diisi.",
       "invalidEmail": "Format email tidak valid."
@@ -238,9 +238,9 @@
       "addSub": "Daftarkan kantor baru pada hierarki.",
       "editSub": "Perbarui data kantor.",
       "deleteTitle": "Hapus kantor ini?",
-      "deleteBody": "Kantor dan seluruh kantor anaknya akan dihapus. Tindakan ini tidak dapat dibatalkan.",
-      "deleteFloorConfirm": "Hapus lantai ini? Semua ruangan di lantai ini juga akan dihapus.",
-      "deleteRoomConfirm": "Hapus ruangan ini? Tindakan ini tidak dapat dibatalkan.",
+      "deleteBody": "Kantor “{nama}” dan seluruh kantor anaknya akan dihapus. Tindakan ini tidak dapat dibatalkan.",
+      "deleteFloorConfirm": "Hapus lantai “{nama}”? Semua ruangan di lantai ini juga akan dihapus.",
+      "deleteRoomConfirm": "Hapus ruangan “{nama}”? Tindakan ini tidak dapat dibatalkan.",
       "nameRequired": "Nama tidak boleh kosong.",
       "fields": {
         "nama": "Nama Kantor",
@@ -301,7 +301,7 @@
       "status": { "active": "Aktif", "inactive": "Nonaktif" },
       "createTitle": "Tambah Pegawai",
       "editTitle": "Ubah Pegawai",
-      "deleteConfirm": "Hapus pegawai ini?",
+      "deleteConfirm": "Pegawai “{nama}” (NIP {nip}) akan dihapus. Tindakan ini tidak dapat dibatalkan.",
       "errNotFound": "Pegawai tidak ditemukan."
     },
     "reference": {
@@ -311,7 +311,7 @@
       "empty": "Belum ada data",
       "createTitle": "Tambah Data",
       "editTitle": "Ubah Data",
-      "deleteConfirm": "Hapus data ini?",
+      "deleteConfirm": "Data “{name}” akan dihapus. Tindakan ini tidak dapat dibatalkan.",
       "errNotFound": "Data tidak ditemukan.",
       "statusColumn": "Status",
       "aktif": "Aktif",

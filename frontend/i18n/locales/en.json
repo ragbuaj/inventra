@@ -52,7 +52,7 @@
       "passwordNote": "Leave empty if the user only logs in with Google.",
       "pegawaiNote": "Link to employee data to sync title & department.",
       "deleteTitle": "Delete this user?",
-      "deleteConfirm": "The account will be permanently deleted. This cannot be undone.",
+      "deleteConfirm": "Account “{nama}” ({email}) will be permanently deleted. This cannot be undone.",
       "errNotFound": "User not found.",
       "required": "Required.",
       "invalidEmail": "Invalid email format."
@@ -238,9 +238,9 @@
       "addSub": "Register a new office in the hierarchy.",
       "editSub": "Update office data.",
       "deleteTitle": "Delete this office?",
-      "deleteBody": "The office and all its child offices will be deleted. This cannot be undone.",
-      "deleteFloorConfirm": "Delete this floor? All rooms on this floor will also be removed.",
-      "deleteRoomConfirm": "Delete this room? This action cannot be undone.",
+      "deleteBody": "Office “{nama}” and all its child offices will be deleted. This cannot be undone.",
+      "deleteFloorConfirm": "Delete floor “{nama}”? All rooms on this floor will also be removed.",
+      "deleteRoomConfirm": "Delete room “{nama}”? This action cannot be undone.",
       "nameRequired": "Name cannot be empty.",
       "fields": {
         "nama": "Office Name",
@@ -301,7 +301,7 @@
       "status": { "active": "Active", "inactive": "Inactive" },
       "createTitle": "Add Employee",
       "editTitle": "Edit Employee",
-      "deleteConfirm": "Delete this employee?",
+      "deleteConfirm": "Employee “{nama}” (NIP {nip}) will be deleted. This cannot be undone.",
       "errNotFound": "Employee not found."
     },
     "reference": {
@@ -311,7 +311,7 @@
       "empty": "No data yet",
       "createTitle": "Add Entry",
       "editTitle": "Edit Entry",
-      "deleteConfirm": "Delete this entry?",
+      "deleteConfirm": "Entry “{name}” will be deleted. This cannot be undone.",
       "errNotFound": "Entry not found.",
       "statusColumn": "Status",
       "aktif": "Active",

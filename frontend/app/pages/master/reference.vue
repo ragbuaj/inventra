@@ -113,7 +113,7 @@ async function onSubmit() {
 async function onDelete(row: ReferenceRow) {
   const ok = await confirm({
     title: t('common.delete'),
-    description: t('masterdata.reference.deleteConfirm')
+    description: t('masterdata.reference.deleteConfirm', { name: row.name })
   })
   if (!ok) return
   await api.remove(resourceKey.value, row.id)

@@ -181,7 +181,7 @@ async function onSubmit() {
 
 async function onDelete() {
   if (!selected.value) return
-  const ok = await confirm({ title: t('masterdata.offices.deleteTitle'), description: t('masterdata.offices.deleteBody') })
+  const ok = await confirm({ title: t('masterdata.offices.deleteTitle'), description: t('masterdata.offices.deleteBody', { nama: selected.value.nama }) })
   if (!ok) return
   try {
     await api.remove(selected.value.id)
@@ -206,7 +206,8 @@ function addFloor() {
 }
 
 async function deleteFloor(floorId: string) {
-  const ok = await confirm({ title: t('masterdata.offices.deleteFloorConfirm') })
+  const nama = floors.value.find(f => f.id === floorId)?.nama ?? ''
+  const ok = await confirm({ title: t('masterdata.offices.deleteFloorConfirm', { nama }) })
   if (!ok) return
   floorsApi.removeFloor(floorId)
   if (selectedId.value) loadFloors(selectedId.value)
@@ -222,7 +223,8 @@ function addRoom(floorId: string) {
 }
 
 async function deleteRoom(roomId: string) {
-  const ok = await confirm({ title: t('masterdata.offices.deleteRoomConfirm') })
+  const nama = Object.values(floorRooms.value).flat().find(r => r.id === roomId)?.nama ?? ''
+  const ok = await confirm({ title: t('masterdata.offices.deleteRoomConfirm', { nama }) })
   if (!ok) return
   floorsApi.removeRoom(roomId)
   if (selectedId.value) loadFloors(selectedId.value)

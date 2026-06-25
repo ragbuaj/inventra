@@ -25,6 +25,17 @@ const filterStatus = ref(ALL)
 const sorting = ref<TableSorting>([])
 const loading = ref(true)
 
+// Brief loading pulse on filter/search so the table shows its inline loading bar.
+const filtering = ref(false)
+let filterTimer: ReturnType<typeof setTimeout> | undefined
+function pulseFilterLoading() {
+  filtering.value = true
+  if (filterTimer) clearTimeout(filterTimer)
+  filterTimer = setTimeout(() => {
+    filtering.value = false
+  }, 300)
+}
+
 const officeMap = ref<Record<string, string>>({})
 const officeOptions = ref<{ value: string, label: string }[]>([])
 const deptOptions = ref<{ value: string, label: string }[]>([])
@@ -134,7 +145,10 @@ async function onSubmit() {
 }
 
 async function onDelete(row: Employee) {
-  const ok = await confirm({ title: t('common.delete'), description: t('masterdata.employees.deleteConfirm') })
+  const ok = await confirm({
+    title: t('common.delete'),
+    description: t('masterdata.employees.deleteConfirm', { nama: row.nama, nip: row.nip })
+  })
   if (!ok) return
   await api.remove(row.id)
   await refresh()
@@ -158,7 +172,12 @@ function resetFilters() {
   offset.value = 0
 }
 
-watch([search, filterKantor, filterDept, filterJabatan, filterStatus, sorting], () => {
+watch([search, filterKantor, filterDept, filterJabatan, filterStatus], () => {
+  offset.value = 0
+  pulseFilterLoading()
+})
+
+watch(sorting, () => {
   offset.value = 0
 })
 
@@ -236,13 +255,13 @@ onMounted(() => {
     </div>
 
     <ResourceTable
+      v-model:sorting="sorting"
       :rows="(tableRows as unknown as Record<string, unknown>[])"
       :columns="columns"
-      :loading="loading"
+      :loading="loading || filtering"
       :total="filteredRows.length"
       :limit="limit"
       :offset="offset"
-      v-model:sorting="sorting"
       :empty-title="anyFilterActive ? t('masterdata.employees.emptyFilter') : t('masterdata.employees.empty')"
       :actions="rowActions"
       @update:offset="offset = $event"
