@@ -70,6 +70,16 @@ asset-management/
 
 ```
 
+## Docker Compose configurations
+
+Three compose files cover the different workflows — combine them with `-f` as needed:
+
+| File | Purpose | Command |
+|---|---|---|
+| `docker-compose.yml` | Full stack: infra + migrate + backend + frontend | `docker compose up --build` |
+| `docker-compose.dev.yml` | Infra only (Postgres · Redis · MinIO) — run app on host | `docker compose -f docker-compose.dev.yml up -d` |
+| `docker-compose.watch.yml` | Live-reload overlay (Go via Air, Nuxt via Vite HMR) — layered on the base file | `docker compose -f docker-compose.yml -f docker-compose.watch.yml up --build` |
+
 ## Run everything in Docker (full stack)
 
 ```bash
@@ -80,6 +90,42 @@ and the frontend:
 - Frontend → http://localhost:3000
 - API → http://localhost:8080 (docs at `/docs`)
 - MinIO console → http://localhost:9001
+
+### Full stack with live reload
+
+Run the base stack with the watch overlay to hot-reload source edits inside the
+containers — the backend rebuilds via [Air](https://github.com/air-verse/air), the
+frontend via Vite HMR. Source is bind-mounted, so saving a file triggers a reload:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.watch.yml up --build
+```
+
+> On Windows/WSL2 bind mounts, filesystem events (inotify) aren't delivered, so the
+> watchers fall back to **polling** — reloads may lag a second or two behind a save.
+
+#### Adding dependencies under watch
+
+Live reload covers **source edits**, not dependency changes — handle new libraries
+explicitly:
+
+- **Backend (Go):** after `go get <lib>`, import it in a `.go` file. Saving that file
+  triggers an Air rebuild, and `go build` fetches the new module into the container's
+  module cache (needs network). Editing only `go.mod`/`go.sum` won't trigger a reload —
+  Air watches `.go` files only.
+- **Frontend (Nuxt):** `node_modules` lives in a named volume (not the bind mount), so a
+  new entry in `package.json` is **not** installed automatically. Install it inside the
+  running container, or recreate the volume:
+
+  ```bash
+  # Install into the running container (fastest)
+  docker compose -f docker-compose.yml -f docker-compose.watch.yml exec frontend pnpm install
+
+  # …or rebuild from scratch (drops and re-seeds node_modules)
+  docker compose -f docker-compose.yml -f docker-compose.watch.yml down
+  docker volume rm inventra_frontend-node-modules
+  docker compose -f docker-compose.yml -f docker-compose.watch.yml up --build
+  ```
 
 Seed a superadmin (one-off, while the stack runs) — from the host, since the
 `backend` image ships only the API binary:
