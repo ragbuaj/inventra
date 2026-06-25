@@ -1,5 +1,63 @@
 {
   "app": { "name": "Inventra", "tagline": "Manajemen Aset" },
+  "settings": {
+    "users": {
+      "title": "Pengguna",
+      "subtitle": "Kelola akun login serta tautannya ke peran, kantor, dan pegawai.",
+      "add": "Tambah User",
+      "searchPlaceholder": "Cari nama atau email…",
+      "columns": {
+        "nama": "Nama & Email",
+        "peran": "Peran",
+        "kantor": "Kantor Penempatan",
+        "pegawai": "Pegawai Tertaut",
+        "login": "Login",
+        "status": "Status",
+        "aksi": "Aksi"
+      },
+      "filter": {
+        "allRoles": "Semua Peran",
+        "allKantor": "Semua Kantor",
+        "allStatus": "Semua Status"
+      },
+      "status": { "active": "Aktif", "inactive": "Nonaktif", "suspended": "Disuspend" },
+      "login": { "email": "Email", "google": "Google" },
+      "actions": {
+        "edit": "Edit User",
+        "resetPassword": "Reset Password",
+        "activate": "Aktifkan",
+        "deactivate": "Nonaktifkan",
+        "delete": "Hapus"
+      },
+      "toast": {
+        "passwordReset": "Tautan reset password dikirim",
+        "statusChanged": "Status pengguna diperbarui"
+      },
+      "empty": "Belum ada pengguna",
+      "emptyFilter": "Belum ada akun yang cocok dengan pencarian atau filter.",
+      "createTitle": "Tambah User",
+      "editTitle": "Edit User",
+      "createSub": "Buat akun login baru dan tautkan ke peran & kantor.",
+      "editSub": "Perbarui akun pengguna.",
+      "fields": {
+        "nama": "Nama",
+        "email": "Email",
+        "password": "Password",
+        "peran": "Peran",
+        "kantor": "Kantor Penempatan",
+        "pegawai": "Pegawai Tertaut",
+        "status": "Status"
+      },
+      "placeholders": { "nama": "mis. Andi Saputra", "pilih": "Pilih…" },
+      "passwordNote": "Kosongkan jika pengguna hanya login dengan Google.",
+      "pegawaiNote": "Tautkan ke data pegawai untuk sinkron jabatan & departemen.",
+      "deleteTitle": "Hapus pengguna ini?",
+      "deleteConfirm": "Akun akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.",
+      "errNotFound": "Pengguna tidak ditemukan.",
+      "required": "Wajib diisi.",
+      "invalidEmail": "Format email tidak valid."
+    }
+  },
   "auth": {
     "signInTitle": "Masuk ke akun Anda",
     "signInSubtitle": "Selamat datang kembali. Silakan masuk untuk melanjutkan.",

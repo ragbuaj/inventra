@@ -65,6 +65,18 @@ export interface Employee {
   created_at: string
 }
 
+export interface User {
+  id: string
+  nama: string
+  email: string
+  peran: string
+  kantor: string
+  pegawai: string
+  login: 'email' | 'google'
+  status: 'active' | 'inactive' | 'suspended'
+  created_at: string
+}
+
 export interface ReferenceRow {
   id: string
   name: string
