@@ -93,6 +93,38 @@
       "maintenanceType": { "preventive": "Preventive", "corrective": "Corrective" },
       "maintenanceStatus": { "selesai": "Selesai", "berjalan": "Berjalan", "dijadwalkan": "Dijadwalkan" },
       "depreciationCols": { "period": "Periode", "opening": "Nilai Awal", "depreciation": "Penyusutan", "bookValue": "Nilai Buku", "current": "Berjalan" }
+    },
+    "form": {
+      "titleNew": "Tambah Aset",
+      "titleEdit": "Edit Aset",
+      "subNew": "Daftarkan aset fisik baru ke katalog.",
+      "subEdit": "Perbarui data aset yang sudah ada.",
+      "banner": "Aset baru akan masuk antrean persetujuan (maker-checker) sebelum aktif di katalog.",
+      "kodeNote": "Dibuat otomatis dari kantor, kategori, dan tahun.",
+      "requiredNote": "* wajib diisi",
+      "years": "tahun",
+      "methodStraight": "Garis Lurus (straight line)",
+      "methodDeclining": "Saldo Menurun (declining balance)",
+      "dropTitle": "Seret & lepas foto/dokumen, atau klik untuk unggah",
+      "dropSub": "JPG, PNG, atau PDF — maks. 10 MB per berkas",
+      "fixErrors": "Periksa kembali field yang wajib diisi.",
+      "createdToast": "Aset ditambahkan",
+      "savedToast": "Aset diperbarui",
+      "sections": { "identity": "Identitas", "placement": "Penempatan", "purchase": "Pembelian", "depreciation": "Depresiasi", "attachments": "Lampiran" },
+      "fields": {
+        "nama": "Nama Aset", "kategori": "Kategori", "brand": "Brand", "model": "Model", "kode": "Kode Aset",
+        "kantor": "Kantor", "lantai": "Lantai", "ruangan": "Ruangan", "pemegang": "Pemegang",
+        "tglBeli": "Tanggal Beli", "harga": "Harga Beli", "vendor": "Vendor",
+        "metode": "Metode Depresiasi", "masa": "Masa Manfaat", "residu": "Nilai Residu"
+      },
+      "placeholders": { "nama": "mis. Laptop Dell Latitude 5440", "select": "Pilih…" },
+      "errors": {
+        "nama": "Nama aset wajib diisi.",
+        "kategori": "Kategori wajib dipilih.",
+        "kantor": "Kantor wajib dipilih.",
+        "tglBeli": "Tanggal beli wajib diisi.",
+        "harga": "Harga beli wajib diisi."
+      }
     }
   },
   "settings": {

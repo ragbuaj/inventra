@@ -93,6 +93,38 @@
       "maintenanceType": { "preventive": "Preventive", "corrective": "Corrective" },
       "maintenanceStatus": { "selesai": "Completed", "berjalan": "Ongoing", "dijadwalkan": "Scheduled" },
       "depreciationCols": { "period": "Period", "opening": "Opening", "depreciation": "Depreciation", "bookValue": "Book Value", "current": "Current" }
+    },
+    "form": {
+      "titleNew": "Add Asset",
+      "titleEdit": "Edit Asset",
+      "subNew": "Register a new physical asset to the catalog.",
+      "subEdit": "Update data of an existing asset.",
+      "banner": "A new asset will enter the approval queue (maker-checker) before going live in the catalog.",
+      "kodeNote": "Auto-generated from office, category, and year.",
+      "requiredNote": "* required",
+      "years": "years",
+      "methodStraight": "Straight Line",
+      "methodDeclining": "Declining Balance",
+      "dropTitle": "Drag & drop photos/documents, or click to upload",
+      "dropSub": "JPG, PNG, or PDF — max. 10 MB per file",
+      "fixErrors": "Please check the required fields.",
+      "createdToast": "Asset added",
+      "savedToast": "Asset updated",
+      "sections": { "identity": "Identity", "placement": "Placement", "purchase": "Purchase", "depreciation": "Depreciation", "attachments": "Attachments" },
+      "fields": {
+        "nama": "Asset Name", "kategori": "Category", "brand": "Brand", "model": "Model", "kode": "Asset Tag",
+        "kantor": "Office", "lantai": "Floor", "ruangan": "Room", "pemegang": "Holder",
+        "tglBeli": "Buy Date", "harga": "Buy Price", "vendor": "Vendor",
+        "metode": "Depreciation Method", "masa": "Useful Life", "residu": "Residual Value"
+      },
+      "placeholders": { "nama": "e.g. Dell Latitude 5440 Laptop", "select": "Select…" },
+      "errors": {
+        "nama": "Asset name is required.",
+        "kategori": "Category is required.",
+        "kantor": "Office is required.",
+        "tglBeli": "Buy date is required.",
+        "harga": "Buy price is required."
+      }
     }
   },
   "settings": {
