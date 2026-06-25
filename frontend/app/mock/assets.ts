@@ -107,6 +107,44 @@ export function depreciationSchedule(asset: Asset, life = 4): DepreciationRow[] 
   return rows
 }
 
+// ── Bulk-import sample rows (mock validation preview) ───────────────────────────
+export interface ImportRow {
+  tag: string
+  nama: string
+  kategori: string
+  kantor: string
+  tgl: string
+  harga: string
+  /** field codes with a validation error */
+  errFields: string[]
+  /** i18n suffix under assets.import.errors.* (null = valid) */
+  errKey: string | null
+}
+
+const ir = (tag: string, nama: string, kategori: string, kantor: string, tgl: string, harga: string, errFields: string[] = [], errKey: string | null = null): ImportRow =>
+  ({ tag, nama, kategori, kantor, tgl, harga, errFields, errKey })
+
+export const IMPORT_SAMPLE_ROWS: ImportRow[] = [
+  ir('JKT01-ELK-2026-00040', 'Laptop Asus ExpertBook', 'Elektronik', 'Cabang Jakarta Selatan', '2026-02-10', '14.500.000'),
+  ir('JKT01-ELK-2026-00041', 'Monitor Dell P2422H', 'Elektronik', 'Cabang Jakarta Selatan', '2026-02-10', '3.200.000'),
+  ir('JKT01-FUR-2026-00012', 'Kursi Kantor Donati', 'Furnitur', 'Outlet Blok M', '2026-01-28', '1.450.000'),
+  ir('JKT01-ELK-2026-00041', 'Keyboard Logitech MX', 'Elektronik', 'Cabang Jakarta Selatan', '2026-02-11', '850.000', ['tag'], 'dupTag'),
+  ir('JKT01-XYZ-2026-00001', 'Meja Lipat Portable', 'Elektronikk', 'Cabang Jakarta Selatan', '2026-02-12', '600.000', ['kategori'], 'kat'),
+  ir('JKT01-KEN-2026-00003', 'Motor Listrik Gesits', 'Kendaraan', 'Cabang Jakarta Selatan', '2026-13-40', '28.000.000', ['tgl'], 'tgl'),
+  ir('JKT01-ELK-2026-00042', '', 'Elektronik', 'Cabang Jakarta Selatan', '2026-02-09', '4.200.000', ['nama'], 'nama'),
+  ir('JKT01-ITX-2026-00020', 'Switch TP-Link 8 Port', 'Perangkat IT', 'Outlet Kemang', '2026-02-08', '1.900.000'),
+  ir('JKT01-ELK-2026-00043', 'Proyektor BenQ MW560', 'Elektronik', 'Cabang Jakarta Selatan', '2026-02-07', 'dua juta', ['harga'], 'harga'),
+  ir('JKT01-FUR-2026-00013', 'Lemari Arsip 4 Pintu', 'Furnitur', 'Cabang Jakarta Selatan', '2026-02-06', '2.750.000'),
+  ir('JKT01-ELK-2026-00044', 'Printer Canon G3060', 'Elektronik', 'Cabang Jakarta Selatan', '2026-02-05', '3.100.000'),
+  ir('JKT01-ITX-2026-00021', 'Access Point Aruba', 'Perangkat IT', 'Outlet Blok M', '2026-02-04', '5.400.000')
+]
+
+/** Expected import columns: [name, required]. */
+export const IMPORT_COLUMNS: [string, boolean][] = [
+  ['asset_tag', false], ['nama', true], ['kategori', true], ['kantor', true],
+  ['tgl_beli', true], ['harga', true], ['vendor', false], ['lokasi', false]
+]
+
 function clone(list: Asset[]): Asset[] {
   return list.map(x => ({ ...x }))
 }

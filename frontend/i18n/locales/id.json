@@ -125,6 +125,48 @@
         "tglBeli": "Tanggal beli wajib diisi.",
         "harga": "Harga beli wajib diisi."
       }
+    },
+    "import": {
+      "title": "Import Massal Aset",
+      "subtitle": "Unggah berkas CSV/XLSX, validasi per-baris, lalu buat aset yang valid.",
+      "templateTitle": "Unduh Template",
+      "templateSub": "Gunakan format kolom standar agar data terbaca.",
+      "dropTitle": "Klik untuk pilih berkas, atau seret ke sini",
+      "dropSub": "CSV atau XLSX — maks. 5 MB",
+      "fileMeta": "{rows} baris · 18 KB",
+      "columnsTitle": "Kolom yang diharapkan",
+      "columnsNote": "Kolom bertanda * wajib diisi. Baris pertama harus berupa header sesuai nama kolom di atas.",
+      "validate": "Validasi Berkas",
+      "back": "Kembali",
+      "totalRows": "Total baris",
+      "onlyErrors": "Tampilkan hanya yang error",
+      "status": "Status",
+      "note": "Catatan",
+      "valid": "Valid",
+      "error": "Error",
+      "create": "Buat Aset Valid",
+      "resultTitle": "Import selesai diproses",
+      "resultSub": "Baris valid telah dibuat dan masuk antrean persetujuan (maker-checker). Baris gagal dapat diperbaiki lalu diunggah ulang.",
+      "createdLabel": "Aset dibuat",
+      "failedLabel": "Baris gagal",
+      "downloadFailed": "Unduh Baris Gagal",
+      "finish": "Selesai",
+      "steps": {
+        "upload": "Unggah", "uploadSub": "Pilih berkas",
+        "validate": "Validasi", "validateSub": "Periksa data",
+        "result": "Hasil", "resultSub": "Ringkasan"
+      },
+      "processing": {
+        "validate": "Memvalidasi berkas…", "validateSub": "Memeriksa setiap baris terhadap master data.",
+        "create": "Membuat aset…", "createSub": "Mendaftarkan baris valid ke antrean persetujuan."
+      },
+      "errors": {
+        "dupTag": "asset_tag duplikat dengan baris #2",
+        "kat": "Kategori “Elektronikk” tidak ditemukan",
+        "tgl": "Tanggal tidak valid",
+        "nama": "Nama wajib diisi",
+        "harga": "Harga tidak valid (bukan angka)"
+      }
     }
   },
   "settings": {

@@ -125,6 +125,48 @@
         "tglBeli": "Buy date is required.",
         "harga": "Buy price is required."
       }
+    },
+    "import": {
+      "title": "Bulk Asset Import",
+      "subtitle": "Upload a CSV/XLSX file, validate row by row, then create valid assets.",
+      "templateTitle": "Download Template",
+      "templateSub": "Use the standard column format so data is parsed correctly.",
+      "dropTitle": "Click to pick a file, or drag it here",
+      "dropSub": "CSV or XLSX — max. 5 MB",
+      "fileMeta": "{rows} rows · 18 KB",
+      "columnsTitle": "Expected columns",
+      "columnsNote": "Columns marked * are required. The first row must be a header matching the column names above.",
+      "validate": "Validate File",
+      "back": "Back",
+      "totalRows": "Total rows",
+      "onlyErrors": "Show only errors",
+      "status": "Status",
+      "note": "Note",
+      "valid": "Valid",
+      "error": "Error",
+      "create": "Create Valid Assets",
+      "resultTitle": "Import processed",
+      "resultSub": "Valid rows were created and entered the approval queue (maker-checker). Failed rows can be fixed and re-uploaded.",
+      "createdLabel": "Assets created",
+      "failedLabel": "Failed rows",
+      "downloadFailed": "Download Failed Rows",
+      "finish": "Finish",
+      "steps": {
+        "upload": "Upload", "uploadSub": "Pick file",
+        "validate": "Validate", "validateSub": "Check data",
+        "result": "Result", "resultSub": "Summary"
+      },
+      "processing": {
+        "validate": "Validating file…", "validateSub": "Checking each row against master data.",
+        "create": "Creating assets…", "createSub": "Registering valid rows to the approval queue."
+      },
+      "errors": {
+        "dupTag": "asset_tag duplicates row #2",
+        "kat": "Category “Elektronikk” not found",
+        "tgl": "Invalid date",
+        "nama": "Name is required",
+        "harga": "Invalid price (not a number)"
+      }
     }
   },
   "settings": {

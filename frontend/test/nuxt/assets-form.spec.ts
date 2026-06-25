@@ -38,7 +38,7 @@ describe('AssetForm — create mode', () => {
 
 describe('AssetForm — edit mode', () => {
   it('renders the edit title and prefills the asset name + tag', async () => {
-    const asset = assetSeed[0]
+    const asset = assetSeed[0]!
     const wrapper = await mountSuspended(AssetForm, { props: { mode: 'edit', initial: asset } })
     const html = wrapper.html()
     expect(wrapper.text()).toContain('Edit Aset')
