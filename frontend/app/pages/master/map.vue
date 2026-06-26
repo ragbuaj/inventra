@@ -318,6 +318,7 @@ function resetView() {
             <Transition name="slide-up">
               <div
                 v-if="selected"
+                data-testid="office-detail-card"
                 class="absolute left-4 bottom-4 w-[312px] max-w-[calc(100%-32px)] bg-elevated border border-default rounded-[14px] shadow-xl overflow-hidden"
               >
                 <!-- Header row: icon + name/jenis/kode + close -->

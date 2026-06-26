@@ -26,10 +26,13 @@ test.describe('Peta Lokasi (Office Map page)', () => {
     // Click the office row for Kantor Pusat
     await page.getByText('Kantor Pusat').first().click()
 
-    // Detail card should appear with name, kode, and action buttons
-    await expect(page.getByText('PST')).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Lihat Kantor' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Buka di Maps' })).toBeVisible()
+    // Detail card should appear with name, kode, and action buttons.
+    // Scope to the detail card — the office code also renders in the list row.
+    const detail = page.getByTestId('office-detail-card')
+    await expect(detail).toBeVisible()
+    await expect(detail.getByText('PST')).toBeVisible()
+    await expect(detail.getByRole('link', { name: 'Lihat Kantor' })).toBeVisible()
+    await expect(detail.getByRole('link', { name: 'Buka di Maps' })).toBeVisible()
   })
 
   test('shows empty state when search yields no results', async ({ page }) => {
@@ -41,6 +44,7 @@ test.describe('Peta Lokasi (Office Map page)', () => {
     const searchInput = page.getByPlaceholder('Cari kantor / kode…')
     await searchInput.fill('xxxxxxnotfound')
 
-    await expect(page.getByText('Tidak ada kantor')).toBeVisible()
+    // Exact match — emptyListSub ("Tidak ada kantor cocok dengan filter.") also contains the phrase.
+    await expect(page.getByText('Tidak ada kantor', { exact: true })).toBeVisible()
   })
 })
