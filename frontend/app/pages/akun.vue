@@ -24,7 +24,6 @@ const oldPass = ref('')
 const newPass = ref('')
 const confirmPass = ref('')
 const secErr = reactive<{ old?: boolean, newp?: boolean, confirm?: boolean }>({})
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const strength = computed(() => passwordStrength(newPass.value))
 const sessions = ref<AccountSession[]>([])
 
@@ -52,7 +51,6 @@ async function saveProfil() {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function changePassword() {
   secErr.old = !oldPass.value
   secErr.newp = !newPass.value
@@ -65,7 +63,6 @@ async function changePassword() {
   toast.add({ title: t('account.toastPassTitle'), description: t('account.toastPassMsg'), color: 'success' })
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function logoutAll() {
   await account.logoutAllOthers()
   toast.add({ title: t('account.toastLogoutTitle'), description: t('account.toastLogoutMsg'), color: 'success' })
@@ -92,6 +89,20 @@ const initials = computed(() => {
 const joinDateLabel = computed(() => {
   if (!profile.value) return ''
   return new Date(profile.value.joinDate).toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+})
+
+function strengthBarClass(i: number): string {
+  if (i > strength.value.score) return 'bg-muted'
+  if (strength.value.score === 1) return 'bg-error'
+  if (strength.value.score === 2) return 'bg-warning'
+  return 'bg-primary'
+}
+
+const strengthLabelClass = computed(() => {
+  if (strength.value.score === 1) return 'text-error'
+  if (strength.value.score === 2) return 'text-warning'
+  if (strength.value.score >= 3) return 'text-primary'
+  return 'text-muted'
 })
 </script>
 
@@ -370,8 +381,200 @@ const joinDateLabel = computed(() => {
           </div>
         </div>
 
-        <!-- TAB: KEAMANAN — template filled in C4 -->
-        <div v-else-if="tab === 'keamanan'" />
+        <!-- TAB: KEAMANAN -->
+        <div
+          v-else-if="tab === 'keamanan'"
+          class="flex flex-col gap-[18px]"
+        >
+          <!-- Change Password card (email login only) -->
+          <div
+            v-if="!isGoogle"
+            class="bg-default border border-default rounded-[14px] shadow-sm p-[18px_20px]"
+          >
+            <div class="text-[13px] font-semibold mb-4">
+              {{ t('account.secPassword') }}
+            </div>
+            <div class="flex flex-col gap-[15px] max-w-[420px]">
+              <!-- Current password -->
+              <div>
+                <label class="block text-[13px] font-medium mb-[6px]">
+                  {{ t('account.lOldPass') }} <span class="text-error">*</span>
+                </label>
+                <UInput
+                  v-model="oldPass"
+                  type="password"
+                  placeholder="••••••••"
+                  :class="secErr.old ? 'ring-1 ring-error [&_input]:border-error' : ''"
+                  size="md"
+                />
+                <div
+                  v-if="secErr.old"
+                  class="mt-[6px] text-[12px] text-error"
+                >
+                  {{ t('account.required') }}
+                </div>
+              </div>
+
+              <!-- New password + strength meter -->
+              <div>
+                <label class="block text-[13px] font-medium mb-[6px]">
+                  {{ t('account.lNewPass') }} <span class="text-error">*</span>
+                </label>
+                <UInput
+                  v-model="newPass"
+                  type="password"
+                  placeholder="••••••••"
+                  :class="secErr.newp ? 'ring-1 ring-error [&_input]:border-error' : ''"
+                  size="md"
+                />
+                <div
+                  v-if="secErr.newp"
+                  class="mt-[6px] text-[12px] text-error"
+                >
+                  {{ t('account.required') }}
+                </div>
+                <!-- Strength meter -->
+                <div
+                  v-if="newPass.length"
+                  class="mt-[9px]"
+                >
+                  <div class="flex gap-[5px] mb-[5px]">
+                    <div
+                      v-for="i in 4"
+                      :key="i"
+                      class="flex-1 h-[5px] rounded-full transition-colors"
+                      :class="strengthBarClass(i)"
+                    />
+                  </div>
+                  <div
+                    class="text-[11.5px] font-medium"
+                    :class="strengthLabelClass"
+                  >
+                    {{ strength.labelKey ? t(strength.labelKey) : '' }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Confirm password -->
+              <div>
+                <label class="block text-[13px] font-medium mb-[6px]">
+                  {{ t('account.lConfirmPass') }} <span class="text-error">*</span>
+                </label>
+                <UInput
+                  v-model="confirmPass"
+                  type="password"
+                  placeholder="••••••••"
+                  :class="secErr.confirm ? 'ring-1 ring-error [&_input]:border-error' : ''"
+                  size="md"
+                />
+                <div
+                  v-if="secErr.confirm"
+                  class="mt-[6px] flex items-center gap-[5px] text-[12px] text-error"
+                >
+                  <UIcon
+                    name="i-lucide-alert-circle"
+                    class="size-[13px] flex-none"
+                  />
+                  {{ t('account.confirmMismatch') }}
+                </div>
+              </div>
+
+              <!-- Submit -->
+              <div class="flex justify-start">
+                <UButton
+                  color="primary"
+                  icon="i-lucide-lock"
+                  size="md"
+                  @click="changePassword"
+                >
+                  {{ t('account.changePass') }}
+                </UButton>
+              </div>
+            </div>
+          </div>
+
+          <!-- Google login info card -->
+          <div
+            v-else
+            class="bg-default border border-default rounded-[14px] shadow-sm p-[18px_20px]"
+          >
+            <div class="text-[13px] font-semibold mb-[14px]">
+              {{ t('account.secPassword') }}
+            </div>
+            <div class="flex gap-[13px] items-center p-[15px_16px] rounded-[11px] bg-info/10 border border-info/30">
+              <span class="w-10 h-10 rounded-[10px] bg-default flex items-center justify-center flex-none shadow-sm">
+                <UIcon
+                  name="i-simple-icons-google"
+                  class="size-5 text-info"
+                />
+              </span>
+              <div>
+                <div class="text-[13.5px] font-semibold text-info">
+                  {{ t('account.googleTitle') }}
+                </div>
+                <div class="text-[12.5px] leading-relaxed text-muted mt-[2px]">
+                  {{ t('account.googleNote') }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sessions card -->
+          <div class="bg-default border border-default rounded-[14px] shadow-sm overflow-hidden">
+            <!-- Header row -->
+            <div class="flex items-center justify-between gap-3 px-5 py-[15px] border-b border-default">
+              <span class="text-[13px] font-semibold">{{ t('account.secSesi') }}</span>
+              <button
+                type="button"
+                class="inline-flex items-center gap-[6px] px-3 py-[7px] text-[12.5px] font-medium text-error bg-default border border-[var(--ui-border-strong)] rounded-[8px] cursor-pointer hover:bg-error/10 hover:border-transparent"
+                @click="logoutAll"
+              >
+                <UIcon
+                  name="i-lucide-log-out"
+                  class="size-[14px]"
+                />
+                {{ t('account.logoutAll') }}
+              </button>
+            </div>
+            <!-- Session rows -->
+            <div>
+              <div
+                v-for="s in sessions"
+                :key="s.id"
+                class="flex items-center gap-[13px] px-5 py-[13px] border-b border-default last:border-b-0"
+              >
+                <span class="w-9 h-9 rounded-[9px] bg-muted text-muted flex items-center justify-center flex-none">
+                  <UIcon
+                    :name="s.icon"
+                    class="size-[17px]"
+                  />
+                </span>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="text-[13.5px] font-semibold">{{ s.device }}</span>
+                    <span
+                      v-if="s.current"
+                      class="px-2 py-[1px] text-[10px] font-semibold rounded-full bg-primary/10 text-primary"
+                    >
+                      {{ t('account.current') }}
+                    </span>
+                  </div>
+                  <div class="text-[12px] text-muted mt-[1px]">
+                    {{ s.meta }}
+                  </div>
+                </div>
+                <button
+                  v-if="!s.current"
+                  type="button"
+                  class="text-[12px] font-medium text-muted bg-transparent border-none cursor-pointer px-2 py-[5px] rounded-[7px] hover:bg-error/10 hover:text-error"
+                  @click="async () => { await account.revokeSession(s.id); sessions = sessions.filter(x => x.id !== s.id) }"
+                >
+                  {{ t('account.revoke') }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- TAB: PREFERENSI — template filled in C5 -->
         <div v-else-if="tab === 'pref'" />
