@@ -8,5 +8,6 @@
       </main>
     </div>
     <ConfirmDialog />
+    <CommandPalette />
   </div>
 </template>

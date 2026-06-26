@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;}
+input::placeholder{color:var(--text-dimmed);}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:9px;border:2px solid transparent;background-clip:padding-box;}
+@keyframes shimmer{0%{background-position:-500px 0}100%{background-position:500px 0}}
+@keyframes pinPulse{0%{transform:scale(1);opacity:.55}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}
+:root{
+  --bg:#f8fafc; --bg-base:#ffffff; --bg-muted:#f1f5f9; --bg-el:#ffffff;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#0f172a; --text-muted:#64748b; --text-dimmed:#94a3b8;
+  --primary:#16a34a; --primary-hover:#15803d; --primary-fg:#ffffff;
+  --primary-soft-bg:#dcfce7; --primary-soft-text:#15803d;
+  --success:#16a34a; --warning:#d97706; --error:#dc2626;
+  --info:#2563eb; --info-soft-bg:#dbeafe; --info-soft-text:#1d4ed8;
+  --neutral-soft-bg:#eef2f6; --neutral-soft-text:#475569;
+  --ring:color-mix(in srgb, var(--primary) 28%, transparent);
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
+  --shadow-lg:0 18px 50px rgba(15,23,42,.18);
+  --map-land:#e8edf2; --map-land2:#dfe6ec; --map-water:#cfe0ea; --map-road:#ffffff; --map-green:#d6e6d0;
+  --pin-pusat:#16a34a; --pin-wilayah:#2563eb; --pin-cabang:#d97706; --pin-outlet:#64748b;
+}
+[data-theme="dark"]{
+  --bg:#020617; --bg-base:#0b1220; --bg-muted:#1e293b; --bg-el:#0f172a;
+  --border:#1e293b; --border-strong:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8; --text-dimmed:#64748b;
+  --primary:#22c55e; --primary-hover:#16a34a; --primary-fg:#052e16;
+  --primary-soft-bg:#14331f; --primary-soft-text:#4ade80;
+  --success:#22c55e; --warning:#f59e0b; --error:#ef4444;
+  --info:#3b82f6; --info-soft-bg:#13243f; --info-soft-text:#60a5fa;
+  --neutral-soft-bg:#1e293b; --neutral-soft-text:#cbd5e1;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 18px 50px rgba(0,0,0,.6);
+  --map-land:#101a2b; --map-land2:#0d1626; --map-water:#0a2436; --map-road:#1e2c42; --map-green:#10241c;
+  --pin-pusat:#22c55e; --pin-wilayah:#3b82f6; --pin-cabang:#f59e0b; --pin-outlet:#94a3b8;
+}
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" data-theme="{{ theme }}" style="font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--text);">
+  <div style="display:flex;height:100vh;overflow:hidden;background:var(--bg);">
+
+    <!-- SIDEBAR -->
+    <aside style="width:{{ sidebarW }};flex:none;display:flex;flex-direction:column;background:var(--bg-base);border-right:1px solid var(--border);transition:width .2s ease;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:11px;height:61px;padding:0 18px;border-bottom:1px solid var(--border);flex:none;">
+        <div style="width:34px;height:34px;border-radius:9px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--primary-fg);flex:none;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13h6"/></svg></div>
+        <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="font:700 18px Inter;letter-spacing:-.01em;white-space:nowrap;">Inventra</span></sc-if>
+      </div>
+      <nav style="flex:1;overflow-y:auto;overflow-x:hidden;padding:12px;">
+        <sc-for list="{{ nav }}" as="g" hint-placeholder-count="2">
+          <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><div style="padding:14px 12px 6px;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dimmed);white-space:nowrap;">{{ g.label }}</div></sc-if>
+          <sc-if value="{{ collapsed }}" hint-placeholder-val="{{ false }}"><div style="height:1px;background:var(--border);margin:10px 8px;"></div></sc-if>
+          <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+            <button title="{{ it.label }}" style="position:relative;display:flex;align-items:center;justify-content:{{ navJustify }};gap:11px;width:100%;padding:9px 12px;margin-bottom:2px;font-family:Inter;font-size:14px;font-weight:{{ it.weight }};color:{{ it.fg }};background:{{ it.bg }};border:none;border-radius:9px;cursor:pointer;text-align:left;box-shadow:inset 3px 0 0 {{ it.accent }};white-space:nowrap;" style-hover="background:{{ it.hoverBg }};">
+              {{ it.icon }}
+              <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;">{{ it.label }}</span></sc-if>
+            </button>
+          </sc-for>
+        </sc-for>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <header style="display:flex;align-items:center;gap:14px;height:61px;flex:none;padding:0 20px;background:var(--bg-base);border-bottom:1px solid var(--border);">
+        <button onClick="{{ toggleCollapse }}" title="Collapse" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex:none;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg></button>
+        <div style="display:flex;align-items:center;gap:6px;font:400 12px Inter;color:var(--text-muted);"><span>Inventra</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span>{{ bcMaster }}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span style="color:var(--text);font-weight:500;">{{ pageTitle }}</span></div>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex:none;">
+          <div style="display:flex;gap:2px;padding:3px;background:var(--bg-muted);border-radius:9px;">
+            <button onClick="{{ setId }}" style="padding:5px 9px;font:600 12px Inter;color:{{ idFg }};background:{{ idBg }};border:none;border-radius:6px;cursor:pointer;">ID</button>
+            <button onClick="{{ setEn }}" style="padding:5px 9px;font:600 12px Inter;color:{{ enFg }};background:{{ enBg }};border:none;border-radius:6px;cursor:pointer;">EN</button>
+          </div>
+          <button onClick="{{ toggleTheme }}" title="Tema" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">
+            <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></sc-if>
+            <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></sc-if>
+          </button>
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;background:transparent;border:1px solid var(--border);border-radius:999px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--primary);color:var(--primary-fg);display:flex;align-items:center;justify-content:center;font:700 12px Inter;">SA</span><span style="display:flex;color:var(--text-dimmed);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+        </div>
+      </header>
+
+      <main style="flex:1;display:flex;flex-direction:column;min-height:0;padding:20px 24px 22px;">
+        <div style="margin-bottom:12px;">
+          <h1 style="margin:0 0 4px;font:700 22px Inter;letter-spacing:-.02em;">{{ pageTitle }}</h1>
+          <div style="display:inline-flex;align-items:center;gap:5px;font:400 12px Inter;color:var(--text-dimmed);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>{{ usageNote }}</div>
+        </div>
+
+        <div style="flex:1;display:flex;gap:16px;min-height:0;">
+
+          <!-- LEFT: OFFICE LIST -->
+          <div style="width:312px;flex:none;display:flex;flex-direction:column;background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="flex:none;padding:13px 13px 11px;border-bottom:1px solid var(--border);">
+              <div style="position:relative;margin-bottom:9px;"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span><input value="{{ q }}" onInput="{{ onSearch }}" placeholder="{{ searchPh }}" style="width:100%;padding:8px 12px 8px 34px;font:400 13px Inter;color:var(--text);background:var(--bg-muted);border:1px solid transparent;border-radius:9px;outline:none;" style-focus="background:var(--bg-base);border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" /></div>
+              <div style="display:flex;gap:8px;">
+                <div style="position:relative;flex:1;"><select value="{{ fJenis }}" onChange="{{ onJenis }}" style="width:100%;appearance:none;padding:7px 28px 7px 10px;font:500 12px Inter;color:{{ fJenisColor }};background:var(--bg-base);border:1px solid var(--border-strong);border-radius:8px;outline:none;cursor:pointer;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><sc-for list="{{ jenisOpts }}" as="o" hint-placeholder-count="5"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select><span style="position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+                <div style="position:relative;flex:1;"><select value="{{ fProv }}" onChange="{{ onProv }}" style="width:100%;appearance:none;padding:7px 28px 7px 10px;font:500 12px Inter;color:{{ fProvColor }};background:var(--bg-base);border:1px solid var(--border-strong);border-radius:8px;outline:none;cursor:pointer;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><sc-for list="{{ provOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select><span style="position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+              </div>
+            </div>
+            <div style="flex:1;overflow-y:auto;padding:8px;">
+              <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+                <sc-for list="{{ skel }}" as="n" hint-placeholder-count="5"><div style="display:flex;align-items:center;gap:10px;padding:10px;"><div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;flex:none;"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div style="height:10px;width:65%;border-radius:5px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;"></div><div style="height:8px;width:40%;border-radius:5px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;"></div></div></div></sc-for>
+              </sc-if>
+              <sc-if value="{{ loaded }}" hint-placeholder-val="{{ true }}">
+                <sc-for list="{{ listRows }}" as="r" hint-placeholder-count="5">
+                  <button onClick="{{ r.on }}" style="display:flex;align-items:flex-start;gap:10px;width:100%;padding:10px;margin-bottom:3px;border-radius:10px;border:1px solid {{ r.bd }};background:{{ r.bg }};cursor:pointer;text-align:left;" style-hover="border-color:var(--primary);">
+                    <span style="width:30px;height:30px;border-radius:8px;background:{{ r.pinSoft }};color:{{ r.pinColor }};display:flex;align-items:center;justify-content:center;flex:none;margin-top:1px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5" fill="var(--bg-base)"/></svg></span>
+                    <div style="flex:1;min-width:0;">
+                      <div style="display:flex;align-items:center;gap:6px;"><span style="font:600 13px Inter;color:{{ r.fg }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.nama }}</span></div>
+                      <div style="display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap;"><span style="padding:1px 7px;font:600 10px Inter;border-radius:999px;background:{{ r.pinSoft }};color:{{ r.pinColor }};">{{ r.jenisLabel }}</span><span style="font:400 11px 'JetBrains Mono',monospace;color:var(--text-dimmed);">{{ r.kode }}</span></div>
+                      <div style="font:400 11.5px Inter;color:var(--text-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.lokasi }}</div>
+                    </div>
+                  </button>
+                </sc-for>
+                <sc-if value="{{ listEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:40px 18px;text-align:center;"><div style="width:42px;height:42px;margin:0 auto 11px;border-radius:11px;background:var(--bg-muted);color:var(--text-dimmed);display:flex;align-items:center;justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></div><div style="font:600 13.5px Inter;margin-bottom:4px;">{{ emptyListTitle }}</div><div style="font:400 12px Inter;color:var(--text-muted);">{{ emptyListSub }}</div></div></sc-if>
+              </sc-if>
+            </div>
+          </div>
+
+          <!-- RIGHT: MAP -->
+          <div style="flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--border);">
+              <span style="display:inline-flex;align-items:center;gap:7px;font:600 13px Inter;color:var(--text);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 7v13l6-3 6 3 6-3V4l-6 3-6-3z"/><path d="M9 4v13M15 7v13"/></svg>{{ summaryStrip }}</span>
+              <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                <div style="display:flex;align-items:center;gap:11px;">
+                  <sc-for list="{{ legend }}" as="l" hint-placeholder-count="4"><span style="display:inline-flex;align-items:center;gap:5px;font:500 11.5px Inter;color:var(--text-muted);"><span style="width:9px;height:9px;border-radius:50%;background:{{ l.color }};"></span>{{ l.label }}</span></sc-for>
+                </div>
+              </div>
+            </div>
+
+            <div style="flex:1;position:relative;overflow:hidden;background:var(--map-water);">
+              <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;inset:0;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;"></div>
+              </sc-if>
+              <sc-if value="{{ loaded }}" hint-placeholder-val="{{ true }}">
+                <!-- MAP VIEWPORT -->
+                <div style="position:absolute;inset:0;transform:translate({{ panX }},{{ panY }}) scale({{ zoom }});transition:transform .4s cubic-bezier(.4,0,.2,1);transform-origin:center;">
+                  <!-- illustrative Jabodetabek map -->
+                  <svg viewBox="0 0 800 560" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%;">
+                    <rect x="0" y="0" width="800" height="560" fill="var(--map-water)"/>
+                    <!-- landmass -->
+                    <path d="M-20 150 Q120 110 240 130 Q360 90 500 120 Q650 100 820 140 L820 580 L-20 580 Z" fill="var(--map-land)"/>
+                    <path d="M120 250 Q260 230 380 250 Q520 235 700 270 L700 420 Q500 400 360 420 Q220 405 120 420 Z" fill="var(--map-land2)"/>
+                    <!-- bay (north) -->
+                    <path d="M-20 150 Q160 175 300 158 Q220 200 120 205 Q40 200 -20 215 Z" fill="var(--map-water)" opacity="0.85"/>
+                    <!-- green patches -->
+                    <ellipse cx="180" cy="430" rx="80" ry="46" fill="var(--map-green)"/>
+                    <ellipse cx="620" cy="400" rx="95" ry="54" fill="var(--map-green)"/>
+                    <ellipse cx="430" cy="470" rx="70" ry="38" fill="var(--map-green)"/>
+                    <!-- roads -->
+                    <g stroke="var(--map-road)" fill="none" stroke-linecap="round">
+                      <path d="M60 300 Q300 270 760 320" stroke-width="7" opacity="0.9"/>
+                      <path d="M400 120 L400 540" stroke-width="6" opacity="0.85"/>
+                      <path d="M140 160 Q360 320 680 520" stroke-width="5" opacity="0.7"/>
+                      <path d="M700 150 Q480 330 180 520" stroke-width="5" opacity="0.7"/>
+                      <circle cx="400" cy="300" r="58" stroke-width="5" opacity="0.6"/>
+                    </g>
+                    <!-- river -->
+                    <path d="M360 130 Q345 280 300 400 Q280 470 250 540" stroke="var(--map-water)" stroke-width="9" fill="none" opacity="0.8"/>
+                  </svg>
+                  <!-- PINS -->
+                  <sc-for list="{{ pins }}" as="p" hint-placeholder-count="5">
+                    <button onClick="{{ p.on }}" title="{{ p.nama }}" style="position:absolute;left:{{ p.x }};top:{{ p.y }};transform:translate(-50%,-100%);z-index:{{ p.z }};background:transparent;border:none;cursor:pointer;padding:0;">
+                      <sc-if value="{{ p.selected }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;left:50%;bottom:2px;width:30px;height:30px;border-radius:50%;background:{{ p.color }};transform:translateX(-50%);animation:pinPulse 1.6s ease-out infinite;"></span></sc-if>
+                      <span style="position:relative;display:flex;flex-direction:column;align-items:center;">
+                        <span style="display:flex;align-items:center;justify-content:center;width:{{ p.size }};height:{{ p.size }};border-radius:50% 50% 50% 0;background:{{ p.color }};transform:rotate(-45deg);box-shadow:0 3px 8px rgba(0,0,0,.3);border:2px solid var(--bg-base);">
+                          <span style="transform:rotate(45deg);color:#fff;display:flex;">{{ p.icon }}</span>
+                        </span>
+                        <sc-if value="{{ p.showLabel }}" hint-placeholder-val="{{ true }}"><span style="margin-top:4px;padding:2px 7px;font:600 10.5px Inter;white-space:nowrap;color:var(--text);background:color-mix(in srgb,var(--bg-base) 88%,transparent);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow);">{{ p.nama }}</span></sc-if>
+                      </span>
+                    </button>
+                  </sc-for>
+                </div>
+
+                <!-- EMPTY OVERLAY -->
+                <sc-if value="{{ mapEmpty }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;background:color-mix(in srgb,var(--bg-base) 55%,transparent);"><div style="width:50px;height:50px;border-radius:13px;background:var(--bg-base);color:var(--text-dimmed);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><path d="M4 4l16 16"/></svg></div><div style="font:600 14.5px Inter;">{{ emptyMapTitle }}</div><div style="font:400 12.5px Inter;color:var(--text-muted);">{{ emptyMapSub }}</div></div>
+                </sc-if>
+
+                <!-- ZOOM CONTROLS -->
+                <div style="position:absolute;top:14px;right:14px;display:flex;flex-direction:column;gap:1px;background:var(--bg-base);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);overflow:hidden;">
+                  <button onClick="{{ zoomIn }}" title="Zoom in" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;color:var(--text-muted);background:transparent;border:none;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+                  <div style="height:1px;background:var(--border);"></div>
+                  <button onClick="{{ zoomOut }}" title="Zoom out" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;color:var(--text-muted);background:transparent;border:none;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+                </div>
+                <button onClick="{{ resetView }}" title="{{ resetTip }}" style="position:absolute;bottom:14px;right:14px;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;font:500 12.5px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border);border-radius:9px;box-shadow:var(--shadow);cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 3 6.7"/><path d="M3 21v-5h5"/></svg>{{ resetLbl }}</button>
+
+                <!-- DETAIL CARD -->
+                <sc-if value="{{ detailOpen }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;left:16px;bottom:16px;width:312px;max-width:calc(100% - 32px);background:var(--bg-el);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-lg);overflow:hidden;">
+                    <div style="display:flex;align-items:flex-start;gap:11px;padding:15px 16px 12px;">
+                      <span style="width:36px;height:36px;border-radius:9px;background:{{ d_pinSoft }};color:{{ d_pinColor }};display:flex;align-items:center;justify-content:center;flex:none;">{{ d_icon }}</span>
+                      <div style="flex:1;min-width:0;"><div style="font:700 15px Inter;line-height:1.25;">{{ d_nama }}</div><div style="display:flex;align-items:center;gap:7px;margin-top:4px;"><span style="padding:2px 8px;font:600 10.5px Inter;border-radius:999px;background:{{ d_pinSoft }};color:{{ d_pinColor }};">{{ d_jenis }}</span><span style="font:400 11px 'JetBrains Mono',monospace;color:var(--text-dimmed);">{{ d_kode }}</span></div></div>
+                      <button onClick="{{ closeDetail }}" style="display:flex;padding:5px;color:var(--text-dimmed);background:transparent;border:none;border-radius:6px;cursor:pointer;flex:none;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+                    </div>
+                    <div style="padding:0 16px 12px;display:flex;flex-direction:column;gap:9px;">
+                      <div style="display:flex;align-items:flex-start;gap:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg><div style="font:400 12.5px/1.45 Inter;color:var(--text-muted);">{{ d_alamat }}</div></div>
+                      <div style="display:flex;align-items:center;gap:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="M3 21h18M5 21V9l5-4v16M19 21V13l-9-4"/></svg><div style="font:500 12.5px Inter;color:var(--text);">{{ d_kotaProv }}</div></div>
+                      <div style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:9px;background:var(--bg-muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary-soft-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 8V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2M9 13h6"/></svg><span style="font:600 13px Inter;color:var(--text);">{{ d_aset }}</span><span style="font:400 12px Inter;color:var(--text-muted);">{{ d_asetLbl }}</span></div>
+                    </div>
+                    <div style="display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border);">
+                      <button style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px;font:600 12.5px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>{{ viewOfficeLbl }}</button>
+                      <button style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px;font:500 12.5px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>{{ mapsLbl }}</button>
+                    </div>
+                  </div>
+                </sc-if>
+              </sc-if>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;id&quot;,&quot;en&quot;],&quot;default&quot;:&quot;id&quot;,&quot;tsType&quot;:&quot;'id' | 'en'&quot;},&quot;collapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;primaryColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#16a34a&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const ICONS={
+  dashboard:[['rect',{x:3,y:3,width:7,height:9,rx:1}],['rect',{x:14,y:3,width:7,height:5,rx:1}],['rect',{x:14,y:12,width:7,height:9,rx:1}],['rect',{x:3,y:16,width:7,height:5,rx:1}]],
+  box:[['path',{d:'M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2'}],['path',{d:'M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'}],['path',{d:'M9 13h6'}]],
+  clipboard:[['rect',{x:5,y:4,width:14,height:17,rx:2}],['path',{d:'M9 4V3h6v1'}],['path',{d:'M9 13l2 2 4-4'}]],
+  wrench:[['path',{d:'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.7 2.7-2-2z'}]],
+  approval:[['path',{d:'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'}],['path',{d:'M9 11l3 3 8-8'}]],
+  chart:[['path',{d:'M3 3v18h18'}],['path',{d:'M7 16v-5M12 16V8M17 16v-3'}]],
+  database:[['path',{d:'M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3z'}],['path',{d:'M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6'}],['path',{d:'M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6'}]],
+  settings:[['circle',{cx:12,cy:12,r:3}],['path',{d:'M19.4 15a1.6 1.6 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0 1.6 1.6 0 0 0-2.7-1.1 2 2 0 1 1-2.8-2.8A1.6 1.6 0 0 0 3 13.6a2 2 0 0 1 0-3.2A1.6 1.6 0 0 0 4.6 7a2 2 0 1 1 2.8-2.8A1.6 1.6 0 0 0 10 4.6V3a2 2 0 0 1 4 0 1.6 1.6 0 0 0 2.7 1.1A2 2 0 1 1 19.5 7a1.6 1.6 0 0 0-1 2.4 2 2 0 0 1 0 3.2z'}]],
+  pin:[['circle',{cx:12,cy:10,r:3}]],
+  pusat:[['path',{d:'M3 21h18M5 21V8l7-4 7 4v13'}],['path',{d:'M9 21v-5h6v5'}]],
+  wilayah:[['path',{d:'M6 22V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v18M3 22h18M10 7h0M14 7h0M10 11h0M14 11h0'}]],
+  cabang:[['path',{d:'M3 21h18M5 21V9l5-4v16M19 21V13l-9-4'}]],
+  outlet:[['path',{d:'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'}]],
+};
+function mk(key,size,sw){const d=ICONS[key]||ICONS.box;return React.createElement('svg',{width:size||18,height:size||18,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:sw||1.9,strokeLinecap:'round',strokeLinejoin:'round',style:{flex:'none'}},d.map((x,i)=>React.createElement(x[0],{...x[1],key:i})));}
+const L=(id,en)=>({id,en});
+const NAV=[
+  { label:L('Operasional','Operational'), items:[
+    { label:L('Dashboard','Dashboard'), icon:'dashboard' },{ label:L('Aset','Assets'), icon:'box' },{ label:L('Penugasan','Assignments'), icon:'clipboard' },
+    { label:L('Maintenance','Maintenance'), icon:'wrench' },{ label:L('Pengajuan','Requests'), icon:'approval' },{ label:L('Laporan','Reports'), icon:'chart' },
+  ]},
+  { label:L('Administrasi','Administration'), items:[{ label:L('Master Data','Master Data'), icon:'database', active:true },{ label:L('Pengaturan','Settings'), icon:'settings' }]},
+];
+const JTYPE={
+  Pusat:{label:L('Pusat','HQ'),color:'var(--pin-pusat)',soft:'var(--primary-soft-bg)',softText:'var(--primary-soft-text)',icon:'pusat'},
+  Wilayah:{label:L('Wilayah','Regional'),color:'var(--pin-wilayah)',soft:'var(--info-soft-bg)',softText:'var(--info-soft-text)',icon:'wilayah'},
+  Cabang:{label:L('Cabang','Branch'),color:'var(--pin-cabang)',soft:'color-mix(in srgb,var(--pin-cabang) 16%,transparent)',softText:'var(--pin-cabang)',icon:'cabang'},
+  Outlet:{label:L('Outlet','Outlet'),color:'var(--pin-outlet)',soft:'var(--neutral-soft-bg)',softText:'var(--neutral-soft-text)',icon:'outlet'},
+};
+// x/y in 0..800 / 0..560 illustrative coords
+const OFFICES=[
+  {id:'o1',nama:'Kantor Pusat',kode:'PST',jenis:'Pusat',kota:'Jakarta Pusat',prov:'DKI Jakarta',alamat:'Jl. Medan Merdeka Barat No. 1, Jakarta Pusat',aset:94,x:400,y:250},
+  {id:'o2',nama:'Kanwil DKI Jakarta',kode:'KW-DKI',jenis:'Wilayah',kota:'Jakarta Pusat',prov:'DKI Jakarta',alamat:'Jl. Jend. Sudirman Kav. 5, Jakarta Pusat',aset:56,x:360,y:300},
+  {id:'o3',nama:'Cabang Jakarta Selatan',kode:'JKT01',jenis:'Cabang',kota:'Jakarta Selatan',prov:'DKI Jakarta',alamat:'Jl. TB Simatupang No. 22, Jakarta Selatan',aset:96,x:430,y:390},
+  {id:'o4',nama:'Cabang Jakarta Pusat',kode:'JKT02',jenis:'Cabang',kota:'Jakarta Pusat',prov:'DKI Jakarta',alamat:'Jl. M.H. Thamrin No. 10, Jakarta Pusat',aset:112,x:415,y:270},
+  {id:'o5',nama:'Outlet Blok M',kode:'JKT01-BM',jenis:'Outlet',kota:'Jakarta Selatan',prov:'DKI Jakarta',alamat:'Blok M Square Lt. 2, Jakarta Selatan',aset:28,x:395,y:410},
+  {id:'o6',nama:'Outlet Kemang',kode:'JKT01-KM',jenis:'Outlet',kota:'Jakarta Selatan',prov:'DKI Jakarta',alamat:'Jl. Kemang Raya No. 8, Jakarta Selatan',aset:19,x:455,y:430},
+  {id:'o7',nama:'Cabang Bekasi',kode:'BKS01',jenis:'Cabang',kota:'Bekasi',prov:'Jawa Barat',alamat:'Jl. Ahmad Yani No. 1, Bekasi',aset:64,x:620,y:330},
+  {id:'o8',nama:'Cabang Tangerang',kode:'TGR01',jenis:'Cabang',kota:'Tangerang',prov:'Banten',alamat:'Jl. Jend. Sudirman No. 3, Tangerang',aset:48,x:180,y:330},
+  {id:'o9',nama:'Outlet Depok',kode:'DPK01',jenis:'Outlet',kota:'Depok',prov:'Jawa Barat',alamat:'Jl. Margonda Raya No. 100, Depok',aset:22,x:470,y:480},
+];
+const CH={
+  id:{ bcMaster:'Master Data', pageTitle:'Peta Lokasi Kantor', usageNote:'Provinsi & Kota dikelola di Referensi; titik lokasi kantor diatur pada form kantor (Master Data Kantor).',
+    searchPh:'Cari kantor / kode…', jenisAll:'Semua Jenis', provAll:'Semua Provinsi',
+    emptyListTitle:'Tidak ada kantor', emptyListSub:'Tidak ada kantor cocok dengan filter.', emptyMapTitle:'Tidak ada titik untuk ditampilkan', emptyMapSub:'Sesuaikan filter untuk melihat pin kantor.',
+    resetLbl:'Reset Tampilan', resetTip:'Pusatkan & reset zoom', viewOfficeLbl:'Lihat Kantor', mapsLbl:'Buka di Maps', asetLbl:'aset terdaftar',
+    stripF:(o,k,p)=>o+' kantor · '+k+' kota · '+p+' provinsi' },
+  en:{ bcMaster:'Master Data', pageTitle:'Office Location Map', usageNote:'Provinces & Cities are managed in Reference; office coordinates are set on the office form (Office Master Data).',
+    searchPh:'Search office / code…', jenisAll:'All Types', provAll:'All Provinces',
+    emptyListTitle:'No offices', emptyListSub:'No office matches the filter.', emptyMapTitle:'No points to display', emptyMapSub:'Adjust the filter to see office pins.',
+    resetLbl:'Reset View', resetTip:'Recenter & reset zoom', viewOfficeLbl:'View Office', mapsLbl:'Open in Maps', asetLbl:'registered assets',
+    stripF:(o,k,p)=>o+' offices · '+k+' cities · '+p+' provinces' },
+};
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef=React.createRef();
+    this.state={
+      theme:(props.theme==='dark'?'dark':'light'), lang:(props.lang==='en'?'en':'id'), collapsed:!!props.collapsed,
+      q:'', fJenis:'all', fProv:'all', selId:null, loading:true, zoom:1, panX:0, panY:0,
+    };
+    this._tt=false;this._tl=false;this._tc=false;this._timer=null;
+  }
+  componentDidMount(){ this.applyPrimary(); this._timer=setTimeout(()=>this.setState({loading:false}),700); }
+  componentDidUpdate(){ this.applyPrimary(); }
+  componentWillUnmount(){ if(this._timer)clearTimeout(this._timer); }
+  applyPrimary(){ const c=this.props.primaryColor,el=this.rootRef.current; if(el&&c) el.style.setProperty('--primary',c); }
+  effTheme(){ return this._tt?this.state.theme:(this.props.theme||'light'); }
+  effLang(){ return this._tl?this.state.lang:(this.props.lang||'id'); }
+  effCollapsed(){ return this._tc?this.state.collapsed:!!this.props.collapsed; }
+  select(o){
+    // center map on the pin: pin coords are % of 800x560; translate so it moves toward center at zoom
+    const z=1.7; const cx=o.x/800, cy=o.y/560;
+    const panX=((0.5-cx)*100*z).toFixed(1)+'%'; const panY=((0.5-cy)*100*z).toFixed(1)+'%';
+    this.setState({selId:o.id, zoom:z, panX, panY});
+  }
+  resetView(){ this.setState({selId:null, zoom:1, panX:'0%', panY:'0%'}); }
+  zoomIn(){ this.setState(s=>({zoom:Math.min(2.6, +(s.zoom+0.3).toFixed(2))})); }
+  zoomOut(){ this.setState(s=>({zoom:Math.max(0.8, +(s.zoom-0.3).toFixed(2))})); }
+  renderVals(){
+    const s=this.state; const theme=this.effTheme(),lang=this.effLang(),collapsed=this.effCollapsed();
+    const isDark=theme==='dark'; const ch=CH[lang];
+    const nav=NAV.map(g=>({label:g.label[lang],items:g.items.map(it=>({
+      label:it.label[lang],icon:mk(it.icon),
+      bg:it.active?'var(--primary-soft-bg)':'transparent',fg:it.active?'var(--primary-soft-text)':'var(--text-muted)',
+      weight:it.active?'600':'500',accent:it.active?'var(--primary)':'transparent',hoverBg:it.active?'var(--primary-soft-bg)':'var(--bg-muted)',
+    }))}));
+
+    const q=s.q.trim().toLowerCase();
+    const filtered=OFFICES.filter(o=>{
+      if(q&&!(o.nama.toLowerCase().includes(q)||o.kode.toLowerCase().includes(q))) return false;
+      if(s.fJenis!=='all'&&o.jenis!==s.fJenis) return false;
+      if(s.fProv!=='all'&&o.prov!==s.fProv) return false;
+      return true;
+    });
+    const provs=Array.from(new Set(OFFICES.map(o=>o.prov)));
+    const cities=Array.from(new Set(filtered.map(o=>o.kota)));
+    const provsShown=Array.from(new Set(filtered.map(o=>o.prov)));
+
+    const listRows=filtered.map(o=>{ const j=JTYPE[o.jenis]; const seld=o.id===s.selId; return {
+      nama:o.nama, kode:o.kode, jenisLabel:j.label[lang], lokasi:o.kota+', '+o.prov,
+      pinColor:j.color, pinSoft:j.soft, on:()=>this.select(o),
+      bg:seld?'var(--primary-soft-bg)':'var(--bg-base)', bd:seld?'var(--primary)':'var(--border)', fg:seld?'var(--primary-soft-text)':'var(--text)',
+    };});
+
+    const pins=filtered.map(o=>{ const j=JTYPE[o.jenis]; const seld=o.id===s.selId;
+      return { nama:o.nama, x:(o.x/800*100).toFixed(1)+'%', y:(o.y/560*100).toFixed(1)+'%', color:j.color,
+        icon:mk(j.icon,11,2.2), size:seld?'34px':'27px', z:seld?20:(o.jenis==='Pusat'?12:10), selected:seld, showLabel:seld||s.zoom>=1.3,
+        on:()=>this.select(o) };
+    });
+
+    const sel=filtered.find(o=>o.id===s.selId)||OFFICES.find(o=>o.id===s.selId);
+    let det={detailOpen:false};
+    if(sel && filtered.some(o=>o.id===sel.id)){ const j=JTYPE[sel.jenis];
+      det={ detailOpen:true, d_nama:sel.nama, d_kode:sel.kode, d_jenis:j.label[lang], d_pinColor:j.color, d_pinSoft:j.soft, d_icon:mk(j.icon,17,2),
+        d_alamat:sel.alamat, d_kotaProv:sel.kota+', '+sel.prov, d_aset:String(sel.aset), d_asetLbl:ch.asetLbl };
+    }
+
+    const legend=Object.keys(JTYPE).map(k=>({label:JTYPE[k].label[lang],color:JTYPE[k].color}));
+
+    return {
+      rootRef:this.rootRef, theme, isDark, isLight:!isDark,
+      sidebarW:collapsed?'76px':'264px', expanded:!collapsed, collapsed, navJustify:collapsed?'center':'flex-start',
+      toggleCollapse:()=>{this._tc=true;this.setState(x=>({collapsed:!this.effCollapsed()}));},
+      toggleTheme:()=>{this._tt=true;const cur=this.effTheme();this.setState({theme:cur==='light'?'dark':'light'});},
+      setId:()=>{this._tl=true;this.setState({lang:'id'});}, setEn:()=>{this._tl=true;this.setState({lang:'en'});},
+      idBg:lang==='id'?'var(--bg-base)':'transparent', idFg:lang==='id'?'var(--text)':'var(--text-muted)',
+      enBg:lang==='en'?'var(--bg-base)':'transparent', enFg:lang==='en'?'var(--text)':'var(--text-muted)',
+      nav, bcMaster:ch.bcMaster, pageTitle:ch.pageTitle, usageNote:ch.usageNote,
+      loading:s.loading, loaded:!s.loading, skel:[1,2,3,4,5],
+      q:s.q, onSearch:(e)=>this.setState({q:e.target.value}), searchPh:ch.searchPh,
+      fJenis:s.fJenis, fJenisColor:s.fJenis==='all'?'var(--text-muted)':'var(--text)', onJenis:(e)=>this.setState({fJenis:e.target.value,selId:null}),
+      jenisOpts:[{v:'all',label:ch.jenisAll}].concat(Object.keys(JTYPE).map(k=>({v:k,label:JTYPE[k].label[lang]}))),
+      fProv:s.fProv, fProvColor:s.fProv==='all'?'var(--text-muted)':'var(--text)', onProv:(e)=>this.setState({fProv:e.target.value,selId:null}),
+      provOpts:[{v:'all',label:ch.provAll}].concat(provs.map(p=>({v:p,label:p}))),
+      listRows, listEmpty:filtered.length===0, emptyListTitle:ch.emptyListTitle, emptyListSub:ch.emptyListSub,
+      summaryStrip:ch.stripF(filtered.length,cities.length,provsShown.length), legend,
+      pins, mapEmpty:filtered.length===0, emptyMapTitle:ch.emptyMapTitle, emptyMapSub:ch.emptyMapSub,
+      zoom:s.zoom, panX:s.panX||'0%', panY:s.panY||'0%',
+      zoomIn:()=>this.zoomIn(), zoomOut:()=>this.zoomOut(), resetView:()=>this.resetView(), resetLbl:ch.resetLbl, resetTip:ch.resetTip,
+      closeDetail:()=>this.setState({selId:null}), viewOfficeLbl:ch.viewOfficeLbl, mapsLbl:ch.mapsLbl,
+      ...det,
+    };
+  }
+}
+</script>
+</body>
+</html>

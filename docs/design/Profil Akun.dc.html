@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;}
+input::placeholder{color:var(--text-dimmed);}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:9px;border:2px solid transparent;background-clip:padding-box;}
+@keyframes shimmer{0%{background-position:-500px 0}100%{background-position:500px 0}}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+:root{
+  --bg:#f8fafc; --bg-base:#ffffff; --bg-muted:#f1f5f9; --bg-el:#ffffff;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#0f172a; --text-muted:#64748b; --text-dimmed:#94a3b8;
+  --primary:#16a34a; --primary-hover:#15803d; --primary-fg:#ffffff;
+  --primary-soft-bg:#dcfce7; --primary-soft-text:#15803d;
+  --success:#16a34a; --success-soft-bg:#dcfce7; --success-soft-text:#15803d;
+  --warning:#d97706; --warning-soft-bg:#fef3c7; --warning-soft-text:#b45309;
+  --error:#dc2626; --error-soft-bg:#fee2e2; --error-soft-text:#b91c1c;
+  --info:#2563eb; --info-soft-bg:#dbeafe; --info-soft-text:#1d4ed8;
+  --neutral-soft-bg:#eef2f6; --neutral-soft-text:#475569;
+  --ring:color-mix(in srgb, var(--primary) 28%, transparent);
+  --ring-error:color-mix(in srgb, var(--error) 25%, transparent);
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
+  --shadow-lg:0 18px 50px rgba(15,23,42,.18);
+}
+[data-theme="dark"]{
+  --bg:#020617; --bg-base:#0b1220; --bg-muted:#1e293b; --bg-el:#0f172a;
+  --border:#1e293b; --border-strong:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8; --text-dimmed:#64748b;
+  --primary:#22c55e; --primary-hover:#16a34a; --primary-fg:#052e16;
+  --primary-soft-bg:#14331f; --primary-soft-text:#4ade80;
+  --success:#22c55e; --success-soft-bg:#14331f; --success-soft-text:#4ade80;
+  --warning:#f59e0b; --warning-soft-bg:#3a2a08; --warning-soft-text:#fbbf24;
+  --error:#ef4444; --error-soft-bg:#3a1414; --error-soft-text:#f87171;
+  --info:#3b82f6; --info-soft-bg:#13243f; --info-soft-text:#60a5fa;
+  --neutral-soft-bg:#1e293b; --neutral-soft-text:#cbd5e1;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 18px 50px rgba(0,0,0,.6);
+}
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" data-theme="{{ theme }}" style="font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--text);">
+  <div style="display:flex;height:100vh;overflow:hidden;background:var(--bg);">
+
+    <!-- SIDEBAR -->
+    <aside style="width:{{ sidebarW }};flex:none;display:flex;flex-direction:column;background:var(--bg-base);border-right:1px solid var(--border);transition:width .2s ease;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:11px;height:61px;padding:0 18px;border-bottom:1px solid var(--border);flex:none;">
+        <div style="width:34px;height:34px;border-radius:9px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--primary-fg);flex:none;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13h6"/></svg></div>
+        <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="font:700 18px Inter;letter-spacing:-.01em;white-space:nowrap;">Inventra</span></sc-if>
+      </div>
+      <nav style="flex:1;overflow-y:auto;overflow-x:hidden;padding:12px;">
+        <sc-for list="{{ nav }}" as="g" hint-placeholder-count="2">
+          <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><div style="padding:14px 12px 6px;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dimmed);white-space:nowrap;">{{ g.label }}</div></sc-if>
+          <sc-if value="{{ collapsed }}" hint-placeholder-val="{{ false }}"><div style="height:1px;background:var(--border);margin:10px 8px;"></div></sc-if>
+          <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+            <button title="{{ it.label }}" style="position:relative;display:flex;align-items:center;justify-content:{{ navJustify }};gap:11px;width:100%;padding:9px 12px;margin-bottom:2px;font-family:Inter;font-size:14px;font-weight:{{ it.weight }};color:{{ it.fg }};background:{{ it.bg }};border:none;border-radius:9px;cursor:pointer;text-align:left;box-shadow:inset 3px 0 0 {{ it.accent }};white-space:nowrap;" style-hover="background:{{ it.hoverBg }};">
+              {{ it.icon }}
+              <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;">{{ it.label }}</span></sc-if>
+            </button>
+          </sc-for>
+        </sc-for>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <header style="display:flex;align-items:center;gap:14px;height:61px;flex:none;padding:0 20px;background:var(--bg-base);border-bottom:1px solid var(--border);">
+        <button onClick="{{ toggleCollapse }}" title="Collapse" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex:none;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg></button>
+        <div style="display:flex;align-items:center;gap:6px;font:400 12px Inter;color:var(--text-muted);"><span>Inventra</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span style="color:var(--text);font-weight:500;">{{ pageTitle }}</span></div>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex:none;">
+          <div style="display:flex;gap:2px;padding:3px;background:var(--bg-muted);border-radius:9px;">
+            <button onClick="{{ setId }}" style="padding:5px 9px;font:600 12px Inter;color:{{ idFg }};background:{{ idBg }};border:none;border-radius:6px;cursor:pointer;">ID</button>
+            <button onClick="{{ setEn }}" style="padding:5px 9px;font:600 12px Inter;color:{{ enFg }};background:{{ enBg }};border:none;border-radius:6px;cursor:pointer;">EN</button>
+          </div>
+          <button onClick="{{ toggleTheme }}" title="Tema" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">
+            <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></sc-if>
+            <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></sc-if>
+          </button>
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;background:transparent;border:1px solid var(--border);border-radius:999px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--primary);color:var(--primary-fg);display:flex;align-items:center;justify-content:center;font:700 12px Inter;">AS</span><span style="display:flex;color:var(--text-dimmed);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+        </div>
+      </header>
+
+      <main style="flex:1;overflow-y:auto;padding:26px 28px 44px;">
+        <div style="max-width:760px;margin:0 auto;">
+
+          <!-- LOADING -->
+          <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:18px;margin-bottom:24px;"><div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;flex:none;"></div><div style="flex:1;display:flex;flex-direction:column;gap:9px;"><div style="height:16px;width:38%;border-radius:6px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;"></div><div style="height:11px;width:55%;border-radius:6px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;"></div></div></div>
+            <div style="height:38px;width:320px;border-radius:9px;margin-bottom:20px;background:var(--bg-muted);"></div>
+            <div style="display:flex;flex-direction:column;gap:16px;"><div style="height:64px;border-radius:11px;background:var(--bg-muted);"></div><div style="height:64px;border-radius:11px;background:var(--bg-muted);"></div><div style="height:120px;border-radius:11px;background:var(--bg-muted);"></div></div>
+          </sc-if>
+
+          <sc-if value="{{ loaded }}" hint-placeholder-val="{{ true }}">
+            <!-- PROFILE HEADER -->
+            <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:22px;">
+              <div style="position:relative;flex:none;">
+                <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--primary),color-mix(in srgb,var(--primary) 60%,#000));color:#fff;display:flex;align-items:center;justify-content:center;font:700 28px Inter;box-shadow:var(--shadow);">AS</div>
+                <button onClick="{{ goProfil }}" title="{{ changePhotoLbl }}" style="position:absolute;right:-2px;bottom:-2px;width:28px;height:28px;border-radius:50%;background:var(--bg-base);border:1px solid var(--border-strong);color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow);" style-hover="color:var(--primary);border-color:var(--primary);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><h1 style="margin:0;font:700 22px Inter;letter-spacing:-.02em;">{{ nama }}</h1><span style="padding:3px 11px;font:600 12px Inter;border-radius:999px;background:var(--warning-soft-bg);color:var(--warning-soft-text);">{{ peran }}</span></div>
+                <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:6px;">
+                  <span style="display:inline-flex;align-items:center;gap:6px;font:400 13px Inter;color:var(--text-muted);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>{{ email }}</span>
+                  <span style="display:inline-flex;align-items:center;gap:6px;font:400 13px Inter;color:var(--text-muted);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l5-4v16M19 21V13l-9-4"/></svg>{{ kantor }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- TABS -->
+            <div style="display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:22px;">
+              <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+                <button onClick="{{ t.on }}" style="display:inline-flex;align-items:center;gap:8px;padding:12px 16px;margin-bottom:-1px;font-family:Inter;font-size:14px;font-weight:{{ t.weight }};color:{{ t.color }};background:transparent;border:none;border-bottom:{{ t.border }};cursor:pointer;">{{ t.icon }}{{ t.label }}</button>
+              </sc-for>
+            </div>
+
+            <!-- ============ TAB: PROFIL ============ -->
+            <sc-if value="{{ tabProfil }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;gap:18px;">
+                <!-- avatar block -->
+                <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:18px 20px;">
+                  <div style="font:600 13px Inter;margin-bottom:14px;">{{ secFoto }}</div>
+                  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+                    <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--primary),color-mix(in srgb,var(--primary) 60%,#000));color:#fff;display:flex;align-items:center;justify-content:center;font:700 22px Inter;flex:none;">AS</div>
+                    <div style="display:flex;gap:9px;flex-wrap:wrap;">
+                      <button style="display:inline-flex;align-items:center;gap:6px;padding:8px 13px;font:500 13px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5-5 5 5M12 5v12"/></svg>{{ uploadLbl }}</button>
+                      <button style="display:inline-flex;align-items:center;gap:6px;padding:8px 13px;font:500 13px Inter;color:var(--error);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--error-soft-bg);border-color:transparent;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>{{ removeLbl }}</button>
+                    </div>
+                    <span style="font:400 12px Inter;color:var(--text-dimmed);">{{ fotoHint }}</span>
+                  </div>
+                </div>
+
+                <!-- form -->
+                <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:18px 20px;">
+                  <div style="font:600 13px Inter;margin-bottom:16px;">{{ secDiri }}</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                    <div>
+                      <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lNama }} <span style="color:var(--error);">*</span></label>
+                      <input value="{{ fNama }}" onInput="{{ onFNama }}" style="width:100%;padding:10px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid {{ fNamaBorder }};border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+                      <sc-if value="{{ fNamaErr }}" hint-placeholder-val="{{ false }}"><div style="margin-top:6px;font:400 12px Inter;color:var(--error);">{{ reqMsg }}</div></sc-if>
+                    </div>
+                    <div>
+                      <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lTelepon }}</label>
+                      <input value="{{ fTelepon }}" onInput="{{ onFTelepon }}" type="tel" placeholder="08xx-xxxx-xxxx" style="width:100%;padding:10px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+                    </div>
+                    <div style="grid-column:1 / -1;">
+                      <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lEmail }}</label>
+                      <input value="{{ email }}" disabled="{{ emailLocked }}" onInput="{{ onFEmail }}" style="width:100%;padding:10px 12px;font:400 14px Inter;color:{{ emailColor }};background:{{ emailBg }};border:1px solid var(--border-strong);border-radius:10px;outline:none;cursor:{{ emailCursor }};" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+                      <sc-if value="{{ emailLocked }}" hint-placeholder-val="{{ false }}"><div style="margin-top:6px;display:flex;align-items:center;gap:5px;font:400 12px Inter;color:var(--text-dimmed);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>{{ emailLockNote }}</div></sc-if>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- read-only info -->
+                <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:18px 20px;">
+                  <div style="font:600 13px Inter;margin-bottom:4px;">{{ secAkun }}</div>
+                  <div style="font:400 12px Inter;color:var(--text-dimmed);margin-bottom:14px;">{{ secAkunHint }}</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 28px;">
+                    <div><div style="font:400 12px Inter;color:var(--text-muted);margin-bottom:3px;">{{ iPeran }}</div><div style="font:500 14px Inter;">{{ peran }}</div></div>
+                    <div><div style="font:400 12px Inter;color:var(--text-muted);margin-bottom:3px;">{{ iKantor }}</div><div style="font:500 14px Inter;">{{ kantor }}</div></div>
+                    <div><div style="font:400 12px Inter;color:var(--text-muted);margin-bottom:3px;">{{ iPegawai }}</div><div style="font:500 14px Inter;">{{ pegawai }}</div></div>
+                    <div><div style="font:400 12px Inter;color:var(--text-muted);margin-bottom:3px;">{{ iLogin }}</div><div><span style="display:inline-flex;align-items:center;gap:6px;font:500 13.5px Inter;color:var(--text);">{{ loginIcon }}{{ loginLabel }}</span></div></div>
+                    <div><div style="font:400 12px Inter;color:var(--text-muted);margin-bottom:3px;">{{ iJoin }}</div><div style="font:500 14px Inter;">{{ joinDate }}</div></div>
+                  </div>
+                </div>
+
+                <div style="display:flex;justify-content:flex-end;gap:10px;">
+                  <button onClick="{{ saveProfil }}" style="display:inline-flex;align-items:center;gap:7px;padding:10px 18px;font:600 14px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:10px;cursor:pointer;" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>{{ saveLbl }}</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- ============ TAB: KEAMANAN ============ -->
+            <sc-if value="{{ tabKeamanan }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:18px;">
+                <sc-if value="{{ isEmailLogin }}" hint-placeholder-val="{{ true }}">
+                  <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:18px 20px;">
+                    <div style="font:600 13px Inter;margin-bottom:16px;">{{ secPassword }}</div>
+                    <div style="display:flex;flex-direction:column;gap:15px;max-width:420px;">
+                      <div>
+                        <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lOldPass }} <span style="color:var(--error);">*</span></label>
+                        <input value="{{ oldPass }}" onInput="{{ onOldPass }}" type="password" placeholder="••••••••" style="width:100%;padding:10px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid {{ oldPassBorder }};border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+                        <sc-if value="{{ oldPassErr }}" hint-placeholder-val="{{ false }}"><div style="margin-top:6px;font:400 12px Inter;color:var(--error);">{{ reqMsg }}</div></sc-if>
+                      </div>
+                      <div>
+                        <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lNewPass }} <span style="color:var(--error);">*</span></label>
+                        <input value="{{ newPass }}" onInput="{{ onNewPass }}" type="password" placeholder="••••••••" style="width:100%;padding:10px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid {{ newPassBorder }};border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+                        <sc-if value="{{ showStrength }}" hint-placeholder-val="{{ false }}">
+                          <div style="margin-top:9px;">
+                            <div style="display:flex;gap:5px;margin-bottom:5px;"><sc-for list="{{ strengthBars }}" as="b" hint-placeholder-count="4"><div style="flex:1;height:5px;border-radius:99px;background:{{ b.color }};"></div></sc-for></div>
+                            <div style="font:500 11.5px Inter;color:{{ strengthColor }};">{{ strengthLabel }}</div>
+                          </div>
+                        </sc-if>
+                      </div>
+                      <div>
+                        <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lConfirmPass }} <span style="color:var(--error);">*</span></label>
+                        <input value="{{ confirmPass }}" onInput="{{ onConfirmPass }}" type="password" placeholder="••••••••" style="width:100%;padding:10px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid {{ confirmBorder }};border-radius:10px;outline:none;box-shadow:{{ confirmRing }};" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+                        <sc-if value="{{ confirmErr }}" hint-placeholder-val="{{ false }}"><div style="margin-top:6px;display:flex;align-items:center;gap:5px;font:400 12px Inter;color:var(--error);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>{{ confirmErrMsg }}</div></sc-if>
+                      </div>
+                      <div style="display:flex;justify-content:flex-start;"><button onClick="{{ changePass }}" style="display:inline-flex;align-items:center;gap:7px;padding:10px 18px;font:600 14px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:10px;cursor:pointer;" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>{{ changePassLbl }}</button></div>
+                    </div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ isGoogleLogin }}" hint-placeholder-val="{{ false }}">
+                  <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:18px 20px;">
+                    <div style="font:600 13px Inter;margin-bottom:14px;">{{ secPassword }}</div>
+                    <div style="display:flex;gap:13px;align-items:center;padding:15px 16px;border-radius:11px;background:var(--info-soft-bg);border:1px solid color-mix(in srgb,var(--info) 28%,transparent);">
+                      <span style="width:40px;height:40px;border-radius:10px;background:var(--bg-base);display:flex;align-items:center;justify-content:center;flex:none;box-shadow:var(--shadow);">{{ googleBig }}</span>
+                      <div><div style="font:600 13.5px Inter;color:var(--info-soft-text);">{{ googleTitle }}</div><div style="font:400 12.5px/1.5 Inter;color:var(--text-muted);margin-top:2px;">{{ googleNote }}</div></div>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <!-- sessions -->
+                <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 20px;border-bottom:1px solid var(--border);"><span style="font:600 13px Inter;">{{ secSesi }}</span><button onClick="{{ logoutAll }}" style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;font:500 12.5px Inter;color:var(--error);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:8px;cursor:pointer;" style-hover="background:var(--error-soft-bg);border-color:transparent;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>{{ logoutAllLbl }}</button></div>
+                  <div>
+                    <sc-for list="{{ sessions }}" as="s" hint-placeholder-count="3">
+                      <div style="display:flex;align-items:center;gap:13px;padding:13px 20px;border-bottom:1px solid var(--border);">
+                        <span style="width:36px;height:36px;border-radius:9px;background:var(--bg-muted);color:var(--text-muted);display:flex;align-items:center;justify-content:center;flex:none;">{{ s.icon }}</span>
+                        <div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:8px;"><span style="font:600 13.5px Inter;">{{ s.device }}</span><sc-if value="{{ s.current }}" hint-placeholder-val="{{ false }}"><span style="padding:1px 8px;font:600 10px Inter;border-radius:999px;background:var(--primary-soft-bg);color:var(--primary-soft-text);">{{ currentLbl }}</span></sc-if></div><div style="font:400 12px Inter;color:var(--text-muted);margin-top:1px;">{{ s.meta }}</div></div>
+                        <sc-if value="{{ s.canRevoke }}" hint-placeholder-val="{{ true }}"><button style="font:500 12px Inter;color:var(--text-muted);background:transparent;border:none;cursor:pointer;padding:5px 8px;border-radius:7px;" style-hover="background:var(--error-soft-bg);color:var(--error);">{{ revokeLbl }}</button></sc-if>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- ============ TAB: PREFERENSI ============ -->
+            <sc-if value="{{ tabPref }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:18px;">
+                <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:18px 20px;">
+                  <div style="font:600 13px Inter;margin-bottom:16px;">{{ secTampilan }}</div>
+                  <div style="display:flex;flex-direction:column;gap:18px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+                      <div><div style="font:500 14px Inter;">{{ lBahasa }}</div><div style="font:400 12px Inter;color:var(--text-muted);margin-top:1px;">{{ lBahasaHint }}</div></div>
+                      <div style="display:flex;gap:3px;padding:3px;background:var(--bg-muted);border-radius:9px;"><button onClick="{{ setId }}" style="padding:6px 14px;font:600 13px Inter;color:{{ langIdFg }};background:{{ langIdBg }};border:none;border-radius:7px;cursor:pointer;box-shadow:{{ langIdSh }};">Indonesia</button><button onClick="{{ setEn }}" style="padding:6px 14px;font:600 13px Inter;color:{{ langEnFg }};background:{{ langEnBg }};border:none;border-radius:7px;cursor:pointer;box-shadow:{{ langEnSh }};">English</button></div>
+                    </div>
+                    <div style="height:1px;background:var(--border);"></div>
+                    <div>
+                      <div style="margin-bottom:11px;"><div style="font:500 14px Inter;">{{ lTema }}</div><div style="font:400 12px Inter;color:var(--text-muted);margin-top:1px;">{{ lTemaHint }}</div></div>
+                      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:440px;">
+                        <sc-for list="{{ themeOpts }}" as="t" hint-placeholder-count="3">
+                          <button onClick="{{ t.on }}" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 10px;border-radius:11px;border:1.5px solid {{ t.bd }};background:{{ t.bg }};cursor:pointer;">
+                            <span style="color:{{ t.iconColor }};display:flex;">{{ t.icon }}</span>
+                            <span style="font:600 12.5px Inter;color:{{ t.labelColor }};">{{ t.label }}</span>
+                          </button>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:18px 20px;">
+                  <div style="font:600 13px Inter;margin-bottom:4px;">{{ secNotif }}</div>
+                  <div style="font:400 12px Inter;color:var(--text-dimmed);margin-bottom:8px;">{{ secNotifHint }}</div>
+                  <sc-for list="{{ notifs }}" as="n" hint-placeholder-count="3">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0;border-bottom:1px solid var(--border);">
+                      <div style="display:flex;align-items:center;gap:11px;"><span style="width:34px;height:34px;border-radius:9px;background:{{ n.iconBg }};color:{{ n.iconFg }};display:flex;align-items:center;justify-content:center;flex:none;">{{ n.icon }}</span><div><div style="font:500 13.5px Inter;">{{ n.label }}</div><div style="font:400 12px Inter;color:var(--text-muted);">{{ n.desc }}</div></div></div>
+                      <button onClick="{{ n.toggle }}" style="width:42px;height:24px;border-radius:99px;background:{{ n.track }};position:relative;border:none;cursor:pointer;flex:none;transition:background .15s;"><span style="position:absolute;top:3px;left:{{ n.knob }};width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.3);"></span></button>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+          </sc-if>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div style="position:fixed;bottom:24px;right:24px;z-index:70;display:flex;flex-direction:column;gap:10px;width:340px;max-width:calc(100vw - 48px);">
+    <sc-for list="{{ toasts }}" as="t" hint-placeholder-count="0">
+      <div style="display:flex;gap:11px;padding:13px 14px;border-radius:12px;background:var(--bg-el);border:1px solid var(--border);border-left:3px solid var(--success);box-shadow:var(--shadow-lg);animation:toastIn .2s ease-out;">
+        <span style="color:var(--success);flex:none;margin-top:1px;display:flex;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8.5 12 11 14.5 15.5 9.5"/></svg></span>
+        <div style="flex:1;min-width:0;"><div style="font:600 14px Inter;color:var(--text);">{{ t.title }}</div><div style="font:400 13px Inter;color:var(--text-muted);margin-top:1px;">{{ t.msg }}</div></div>
+        <button onClick="{{ t.close }}" style="padding:3px;color:var(--text-dimmed);background:transparent;border:none;border-radius:6px;cursor:pointer;flex:none;height:fit-content;" style-hover="color:var(--text);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;id&quot;,&quot;en&quot;],&quot;default&quot;:&quot;id&quot;,&quot;tsType&quot;:&quot;'id' | 'en'&quot;},&quot;tab&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;profil&quot;,&quot;keamanan&quot;,&quot;pref&quot;],&quot;default&quot;:&quot;profil&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;loginMethod&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;email&quot;,&quot;google&quot;],&quot;default&quot;:&quot;email&quot;,&quot;tsType&quot;:&quot;'email' | 'google'&quot;},&quot;collapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;primaryColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#16a34a&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const ICONS={
+  dashboard:[['rect',{x:3,y:3,width:7,height:9,rx:1}],['rect',{x:14,y:3,width:7,height:5,rx:1}],['rect',{x:14,y:12,width:7,height:9,rx:1}],['rect',{x:3,y:16,width:7,height:5,rx:1}]],
+  box:[['path',{d:'M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2'}],['path',{d:'M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'}],['path',{d:'M9 13h6'}]],
+  clipboard:[['rect',{x:5,y:4,width:14,height:17,rx:2}],['path',{d:'M9 4V3h6v1'}],['path',{d:'M9 13l2 2 4-4'}]],
+  wrench:[['path',{d:'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.7 2.7-2-2z'}]],
+  approval:[['path',{d:'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'}],['path',{d:'M9 11l3 3 8-8'}]],
+  chart:[['path',{d:'M3 3v18h18'}],['path',{d:'M7 16v-5M12 16V8M17 16v-3'}]],
+  database:[['path',{d:'M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3z'}],['path',{d:'M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6'}],['path',{d:'M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6'}]],
+  settings:[['circle',{cx:12,cy:12,r:3}],['path',{d:'M19.4 15a1.6 1.6 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0 1.6 1.6 0 0 0-2.7-1.1 2 2 0 1 1-2.8-2.8A1.6 1.6 0 0 0 3 13.6a2 2 0 0 1 0-3.2A1.6 1.6 0 0 0 4.6 7a2 2 0 1 1 2.8-2.8A1.6 1.6 0 0 0 10 4.6V3a2 2 0 0 1 4 0 1.6 1.6 0 0 0 2.7 1.1A2 2 0 1 1 19.5 7a1.6 1.6 0 0 0-1 2.4 2 2 0 0 1 0 3.2z'}]],
+  user:[['circle',{cx:12,cy:8,r:4}],['path',{d:'M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1'}]],
+  shield:[['path',{d:'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z'}]],
+  sliders:[['path',{d:'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6'}]],
+  sun:[['circle',{cx:12,cy:12,r:4}],['path',{d:'M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'}]],
+  moon:[['path',{d:'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'}]],
+  monitor:[['rect',{x:2,y:3,width:20,height:14,rx:2}],['path',{d:'M8 21h8M12 17v4'}]],
+  laptop:[['rect',{x:3,y:4,width:18,height:12,rx:2}],['path',{d:'M2 20h20'}]],
+  phone:[['rect',{x:7,y:2,width:10,height:20,rx:2}],['path',{d:'M11 18h2'}]],
+  bellCheck:[['path',{d:'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9'}],['path',{d:'M10.3 21a2 2 0 0 0 3.4 0'}]],
+  bellWrench:[['path',{d:'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9'}],['path',{d:'M10.3 21a2 2 0 0 0 3.4 0'}]],
+};
+function mk(key,size,sw){const d=ICONS[key]||ICONS.box;return React.createElement('svg',{width:size||18,height:size||18,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:sw||1.9,strokeLinecap:'round',strokeLinejoin:'round',style:{flex:'none'}},d.map((x,i)=>React.createElement(x[0],{...x[1],key:i})));}
+function googleIcon(sz){return React.createElement('svg',{width:sz||16,height:sz||16,viewBox:'0 0 48 48',style:{flex:'none'}},[
+  React.createElement('path',{key:0,fill:'#EA4335',d:'M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.2 13.3 17.6 9.5 24 9.5z'}),
+  React.createElement('path',{key:1,fill:'#4285F4',d:'M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9.1h12.4c-.5 2.9-2.2 5.4-4.7 7l7.6 5.9c4.4-4.1 7-10.1 7-17.4z'}),
+  React.createElement('path',{key:2,fill:'#FBBC05',d:'M10.4 28.3c-.5-1.4-.8-2.9-.8-4.3s.3-3 .8-4.3l-7.8-6.1C.9 16.6 0 20.2 0 24s.9 7.4 2.6 10.4l7.8-6.1z'}),
+  React.createElement('path',{key:3,fill:'#34A853',d:'M24 48c6.2 0 11.5-2 15.3-5.5l-7.6-5.9c-2.1 1.4-4.8 2.3-7.7 2.3-6.4 0-11.8-3.8-13.6-9.8l-7.8 6.1C6.5 42.6 14.6 48 24 48z'}),
+]);}
+const L=(id,en)=>({id,en});
+const NAV=[
+  { label:L('Operasional','Operational'), items:[
+    { label:L('Dashboard','Dashboard'), icon:'dashboard' },{ label:L('Aset','Assets'), icon:'box' },{ label:L('Penugasan','Assignments'), icon:'clipboard' },
+    { label:L('Maintenance','Maintenance'), icon:'wrench' },{ label:L('Pengajuan','Requests'), icon:'approval' },{ label:L('Laporan','Reports'), icon:'chart' },
+  ]},
+  { label:L('Administrasi','Administration'), items:[{ label:L('Master Data','Master Data'), icon:'database' },{ label:L('Pengaturan','Settings'), icon:'settings' }]},
+];
+const CH={
+  id:{ pageTitle:'Profil & Pengaturan Akun', changePhotoLbl:'Ganti foto',
+    tabs:[['profil','Profil','user'],['keamanan','Keamanan','shield'],['pref','Preferensi','sliders']],
+    secFoto:'Foto Profil', uploadLbl:'Unggah Foto', removeLbl:'Hapus', fotoHint:'JPG atau PNG, maks. 2 MB.',
+    secDiri:'Data Diri', lNama:'Nama Lengkap', lTelepon:'Telepon', lEmail:'Email', emailLockNote:'Email dikelola oleh akun Google dan tidak dapat diubah.', reqMsg:'Wajib diisi.',
+    secAkun:'Informasi Akun', secAkunHint:'Data berikut dikelola oleh administrator dan tidak dapat diubah dari sini.',
+    iPeran:'Peran', iKantor:'Kantor Penempatan', iPegawai:'Pegawai Tertaut', iLogin:'Metode Login', iJoin:'Tanggal Bergabung', loginEmail:'Email', loginGoogle:'Google',
+    saveLbl:'Simpan Perubahan',
+    secPassword:'Ganti Password', lOldPass:'Password Lama', lNewPass:'Password Baru', lConfirmPass:'Konfirmasi Password Baru', changePassLbl:'Ganti Password',
+    confirmErrMsg:'Konfirmasi password tidak cocok.', strength:['Lemah','Sedang','Kuat','Sangat Kuat'],
+    googleTitle:'Akun ini masuk via Google', googleNote:'Password tidak dikelola di Inventra. Kelola kata sandi & keamanan di akun Google Anda.',
+    secSesi:'Sesi & Perangkat', logoutAllLbl:'Keluar dari semua perangkat', currentLbl:'Sesi ini', revokeLbl:'Keluar',
+    secTampilan:'Tampilan', lBahasa:'Bahasa', lBahasaHint:'Bahasa antarmuka aplikasi.', lTema:'Tema', lTemaHint:'Pilih tampilan terang, gelap, atau ikuti sistem.', themeNames:['Terang','Gelap','Sistem'],
+    secNotif:'Notifikasi', secNotifHint:'Atur pemberitahuan yang Anda terima.',
+    notifs:[['approval','Keputusan Approval','Saat pengajuan Anda disetujui atau ditolak'],['maint','Pengingat Maintenance','Saat aset jatuh tempo perawatan'],['assign','Penugasan Aset','Saat aset di-check-out ke Anda']],
+    toastProfil:['Profil diperbarui','Perubahan data diri Anda telah disimpan.'], toastPass:['Password diganti','Kata sandi Anda berhasil diperbarui.'], toastLogout:['Sesi diakhiri','Anda telah keluar dari semua perangkat lain.'],
+    devices:[['Chrome · macOS','Jakarta, Indonesia · Sekarang','laptop',true],['Safari · iPhone 15','Jakarta, Indonesia · 2 jam lalu','phone',false],['Edge · Windows 11','Bandung, Indonesia · kemarin','monitor',false]] },
+  en:{ pageTitle:'Profile & Account Settings', changePhotoLbl:'Change photo',
+    tabs:[['profil','Profile','user'],['keamanan','Security','shield'],['pref','Preferences','sliders']],
+    secFoto:'Profile Photo', uploadLbl:'Upload Photo', removeLbl:'Remove', fotoHint:'JPG or PNG, max. 2 MB.',
+    secDiri:'Personal Data', lNama:'Full Name', lTelepon:'Phone', lEmail:'Email', emailLockNote:'Email is managed by your Google account and cannot be changed.', reqMsg:'Required.',
+    secAkun:'Account Information', secAkunHint:'The following data is managed by an administrator and cannot be changed here.',
+    iPeran:'Role', iKantor:'Assigned Office', iPegawai:'Linked Employee', iLogin:'Login Method', iJoin:'Joined Date', loginEmail:'Email', loginGoogle:'Google',
+    saveLbl:'Save Changes',
+    secPassword:'Change Password', lOldPass:'Current Password', lNewPass:'New Password', lConfirmPass:'Confirm New Password', changePassLbl:'Change Password',
+    confirmErrMsg:'Password confirmation does not match.', strength:['Weak','Fair','Strong','Very Strong'],
+    googleTitle:'This account signs in via Google', googleNote:'Password is not managed in Inventra. Manage your password & security in your Google account.',
+    secSesi:'Sessions & Devices', logoutAllLbl:'Log out of all devices', currentLbl:'This session', revokeLbl:'Log out',
+    secTampilan:'Appearance', lBahasa:'Language', lBahasaHint:'Application interface language.', lTema:'Theme', lTemaHint:'Choose light, dark, or follow system.', themeNames:['Light','Dark','System'],
+    secNotif:'Notifications', secNotifHint:'Manage the notifications you receive.',
+    notifs:[['approval','Approval Decisions','When your request is approved or rejected'],['maint','Maintenance Reminders','When an asset is due for maintenance'],['assign','Asset Assignments','When an asset is checked out to you']],
+    toastProfil:['Profile updated','Your personal data changes have been saved.'], toastPass:['Password changed','Your password was updated successfully.'], toastLogout:['Sessions ended','You have been logged out of all other devices.'],
+    devices:[['Chrome · macOS','Jakarta, Indonesia · Now','laptop',true],['Safari · iPhone 15','Jakarta, Indonesia · 2h ago','phone',false],['Edge · Windows 11','Bandung, Indonesia · yesterday','monitor',false]] },
+};
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef=React.createRef();
+    this.state={
+      theme:(props.theme==='dark'?'dark':'light'), lang:(props.lang==='en'?'en':'id'), collapsed:!!props.collapsed,
+      tab:(props.tab||'profil'), loginMethod:(props.loginMethod||'email'), themePref:'light',
+      loading:true,
+      fNama:'Andi Saputra', fTelepon:'0812-3456-7890', fEmail:'andi.saputra@inventra.local', nameErr:false,
+      oldPass:'', newPass:'', confirmPass:'', secErr:{},
+      notif:{approval:true, maint:true, assign:false},
+      toasts:[],
+    };
+    this._tt=false;this._tl=false;this._tc=false;this._timer=null;this._tid=0;
+  }
+  componentDidMount(){ this.applyPrimary(); this._timer=setTimeout(()=>this.setState({loading:false}),650); }
+  componentDidUpdate(){ this.applyPrimary(); }
+  componentWillUnmount(){ if(this._timer)clearTimeout(this._timer); }
+  applyPrimary(){ const c=this.props.primaryColor,el=this.rootRef.current; if(el&&c) el.style.setProperty('--primary',c); }
+  effTheme(){ return this._tt?this.state.theme:(this.props.theme||'light'); }
+  effLang(){ return this._tl?this.state.lang:(this.props.lang||'id'); }
+  effCollapsed(){ return this._tc?this.state.collapsed:!!this.props.collapsed; }
+  pushToast(arr){ const id=++this._tid; this.setState(s=>({toasts:[...s.toasts,{id,title:arr[0],msg:arr[1]}]})); setTimeout(()=>this.rmToast(id),3800); }
+  rmToast(id){ this.setState(s=>({toasts:s.toasts.filter(t=>t.id!==id)})); }
+  strength(pw){ let s=0; if(pw.length>=8)s++; if(/[A-Z]/.test(pw)&&/[a-z]/.test(pw))s++; if(/\d/.test(pw))s++; if(/[^A-Za-z0-9]/.test(pw))s++; return Math.min(s,4); }
+  saveProfil(){ if(!this.state.fNama.trim()){ this.setState({nameErr:true}); return; } const ch=CH[this.effLang()]; this.pushToast(ch.toastProfil); }
+  changePass(){ const ch=CH[this.effLang()]; const e={}; const s=this.state;
+    if(!s.oldPass) e.old=1; if(!s.newPass) e.newp=1; if(!s.confirmPass||s.confirmPass!==s.newPass) e.confirm=1;
+    if(Object.keys(e).length){ this.setState({secErr:e}); return; }
+    this.setState({secErr:{},oldPass:'',newPass:'',confirmPass:''}); this.pushToast(ch.toastPass); }
+  renderVals(){
+    const s=this.state; const theme=this.effTheme(),lang=this.effLang(),collapsed=this.effCollapsed();
+    const isDark=theme==='dark'; const ch=CH[lang];
+    const isGoogle=s.loginMethod==='google';
+    const nav=NAV.map(g=>({label:g.label[lang],items:g.items.map(it=>({
+      label:it.label[lang],icon:mk(it.icon),
+      bg:'transparent',fg:'var(--text-muted)',weight:'500',accent:'transparent',hoverBg:'var(--bg-muted)',
+    }))}));
+    const tabs=ch.tabs.map(([k,label,icon])=>({label,on:()=>this.setState({tab:k}),icon:mk(icon,15),
+      color:s.tab===k?'var(--text)':'var(--text-muted)',border:s.tab===k?'2px solid var(--primary)':'2px solid transparent',weight:s.tab===k?'600':'500'}));
+
+    // password strength
+    const str=this.strength(s.newPass);
+    const strColors=['var(--error)','var(--warning)','var(--primary)','var(--primary)'];
+    const strengthBars=[0,1,2,3].map(i=>({color: i<str?strColors[str-1]:'var(--border-strong)'}));
+
+    const themeOpts=[['light','sun'],['dark','moon'],['system','monitor']].map(([k,ic],i)=>{ const act=s.themePref===k; return {
+      label:ch.themeNames[i], icon:mk(ic,19), on:()=>{ this.setState({themePref:k}); if(k!=='system'){ this._tt=true; this.setState({theme:k}); } },
+      bd:act?'var(--primary)':'var(--border-strong)', bg:act?'var(--primary-soft-bg)':'var(--bg-base)',
+      iconColor:act?'var(--primary-soft-text)':'var(--text-muted)', labelColor:act?'var(--primary-soft-text)':'var(--text)' };
+    });
+
+    const notifMeta={approval:{icon:'bellCheck',bg:'var(--primary-soft-bg)',fg:'var(--primary-soft-text)'},maint:{icon:'wrench',bg:'var(--warning-soft-bg)',fg:'var(--warning-soft-text)'},assign:{icon:'clipboard',bg:'var(--info-soft-bg)',fg:'var(--info-soft-text)'}};
+    const notifs=ch.notifs.map(([k,label,desc])=>{ const on=s.notif[k]; const m=notifMeta[k]; return {
+      label, desc, icon:mk(m.icon,16), iconBg:m.bg, iconFg:m.fg,
+      track:on?'var(--primary)':'var(--border-strong)', knob:on?'21px':'3px', toggle:()=>this.setState(st=>({notif:{...st.notif,[k]:!st.notif[k]}})) };
+    });
+
+    const sessions=ch.devices.map(d=>({device:d[0],meta:d[1],icon:mk(d[2],17),current:d[3],canRevoke:!d[3]}));
+
+    return {
+      rootRef:this.rootRef, theme, isDark, isLight:!isDark,
+      sidebarW:collapsed?'76px':'264px', expanded:!collapsed, collapsed, navJustify:collapsed?'center':'flex-start',
+      toggleCollapse:()=>{this._tc=true;this.setState(x=>({collapsed:!this.effCollapsed()}));},
+      toggleTheme:()=>{this._tt=true;const cur=this.effTheme();this.setState({theme:cur==='light'?'dark':'light',themePref:cur==='light'?'dark':'light'});},
+      setId:()=>{this._tl=true;this.setState({lang:'id'});}, setEn:()=>{this._tl=true;this.setState({lang:'en'});},
+      idBg:lang==='id'?'var(--bg-base)':'transparent', idFg:lang==='id'?'var(--text)':'var(--text-muted)',
+      enBg:lang==='en'?'var(--bg-base)':'transparent', enFg:lang==='en'?'var(--text)':'var(--text-muted)',
+      nav, pageTitle:ch.pageTitle, changePhotoLbl:ch.changePhotoLbl,
+      loading:s.loading, loaded:!s.loading,
+      tabs, tabProfil:s.tab==='profil', tabKeamanan:s.tab==='keamanan', tabPref:s.tab==='pref', goProfil:()=>this.setState({tab:'profil'}),
+      nama:s.fNama, peran:'Asset Manager', email:s.fEmail, kantor:'Cabang Jakarta Selatan', pegawai:'Andi Saputra', joinDate:lang==='id'?'12 Maret 2024':'12 March 2024',
+      loginIcon:isGoogle?googleIcon(15):mk('box',0)&&React.createElement('svg',{width:15,height:15,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round',style:{flex:'none'}},[React.createElement('rect',{key:0,x:3,y:5,width:18,height:14,rx:2}),React.createElement('path',{key:1,d:'m3 7 9 6 9-6'})]),
+      loginLabel:isGoogle?ch.loginGoogle:ch.loginEmail, isEmailLogin:!isGoogle, isGoogleLogin:isGoogle,
+      // profil form
+      secFoto:ch.secFoto, uploadLbl:ch.uploadLbl, removeLbl:ch.removeLbl, fotoHint:ch.fotoHint,
+      secDiri:ch.secDiri, lNama:ch.lNama, lTelepon:ch.lTelepon, lEmail:ch.lEmail, reqMsg:ch.reqMsg,
+      fNama:s.fNama, onFNama:(e)=>this.setState({fNama:e.target.value,nameErr:false}), fNamaBorder:s.nameErr?'var(--error)':'var(--border-strong)', fNamaErr:s.nameErr,
+      fTelepon:s.fTelepon, onFTelepon:(e)=>this.setState({fTelepon:e.target.value}),
+      emailLocked:isGoogle, emailColor:isGoogle?'var(--text-muted)':'var(--text)', emailBg:isGoogle?'var(--bg-muted)':'var(--bg-base)', emailCursor:isGoogle?'not-allowed':'text', emailLockNote:ch.emailLockNote, onFEmail:(e)=>this.setState({fEmail:e.target.value}),
+      secAkun:ch.secAkun, secAkunHint:ch.secAkunHint, iPeran:ch.iPeran, iKantor:ch.iKantor, iPegawai:ch.iPegawai, iLogin:ch.iLogin, iJoin:ch.iJoin,
+      saveLbl:ch.saveLbl, saveProfil:()=>this.saveProfil(),
+      // keamanan
+      secPassword:ch.secPassword, lOldPass:ch.lOldPass, lNewPass:ch.lNewPass, lConfirmPass:ch.lConfirmPass, changePassLbl:ch.changePassLbl,
+      oldPass:s.oldPass, onOldPass:(e)=>this.setState(st=>({oldPass:e.target.value,secErr:{...st.secErr,old:undefined}})), oldPassBorder:s.secErr.old?'var(--error)':'var(--border-strong)', oldPassErr:!!s.secErr.old,
+      newPass:s.newPass, onNewPass:(e)=>this.setState(st=>({newPass:e.target.value,secErr:{...st.secErr,newp:undefined}})), newPassBorder:s.secErr.newp?'var(--error)':'var(--border-strong)',
+      showStrength:s.newPass.length>0, strengthBars, strengthLabel:str>0?ch.strength[str-1]:'', strengthColor:str>0?strColors[str-1]:'var(--text-dimmed)',
+      confirmPass:s.confirmPass, onConfirmPass:(e)=>this.setState(st=>({confirmPass:e.target.value,secErr:{...st.secErr,confirm:undefined}})),
+      confirmBorder:s.secErr.confirm?'var(--error)':'var(--border-strong)', confirmRing:s.secErr.confirm?'0 0 0 3px var(--ring-error)':'none', confirmErr:!!s.secErr.confirm, confirmErrMsg:ch.confirmErrMsg,
+      changePass:()=>this.changePass(),
+      googleBig:googleIcon(20), googleTitle:ch.googleTitle, googleNote:ch.googleNote,
+      secSesi:ch.secSesi, logoutAllLbl:ch.logoutAllLbl, logoutAll:()=>this.pushToast(ch.toastLogout), currentLbl:ch.currentLbl, revokeLbl:ch.revokeLbl, sessions,
+      // preferensi
+      secTampilan:ch.secTampilan, lBahasa:ch.lBahasa, lBahasaHint:ch.lBahasaHint, lTema:ch.lTema, lTemaHint:ch.lTemaHint, themeOpts,
+      langIdBg:lang==='id'?'var(--bg-base)':'transparent', langIdFg:lang==='id'?'var(--text)':'var(--text-muted)', langIdSh:lang==='id'?'var(--shadow)':'none',
+      langEnBg:lang==='en'?'var(--bg-base)':'transparent', langEnFg:lang==='en'?'var(--text)':'var(--text-muted)', langEnSh:lang==='en'?'var(--shadow)':'none',
+      secNotif:ch.secNotif, secNotifHint:ch.secNotifHint, notifs,
+      toasts:s.toasts.map(t=>({title:t.title,msg:t.msg,close:()=>this.rmToast(t.id)})),
+    };
+  }
+}
+</script>
+</body>
+</html>

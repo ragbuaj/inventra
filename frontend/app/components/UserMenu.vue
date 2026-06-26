@@ -74,7 +74,7 @@ function handleLogout() {
         <div class="p-[6px]">
           <button
             class="flex items-center gap-[10px] w-full px-[10px] py-[9px] text-[14px] text-default bg-transparent border-0 rounded-[8px] cursor-pointer text-left hover:bg-muted transition-colors"
-            @click="open = false"
+            @click="open = false; navigateTo('/account')"
           >
             <UIcon
               name="i-lucide-user"
@@ -84,7 +84,7 @@ function handleLogout() {
           </button>
           <button
             class="flex items-center gap-[10px] w-full px-[10px] py-[9px] text-[14px] text-default bg-transparent border-0 rounded-[8px] cursor-pointer text-left hover:bg-muted transition-colors"
-            @click="open = false"
+            @click="open = false; navigateTo('/account?tab=preferences')"
           >
             <UIcon
               name="i-lucide-settings"

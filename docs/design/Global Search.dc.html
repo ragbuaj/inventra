@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;}
+input::placeholder{color:var(--text-dimmed);}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:9px;border:2px solid transparent;background-clip:padding-box;}
+@keyframes shimmer{0%{background-position:-500px 0}100%{background-position:500px 0}}
+@keyframes paletteIn{from{opacity:0;transform:translateY(-12px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes overlayFade{from{opacity:0}to{opacity:1}}
+:root{
+  --bg:#f1f5f9; --bg-base:#ffffff; --bg-muted:#f1f5f9; --bg-el:#ffffff;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#0f172a; --text-muted:#64748b; --text-dimmed:#94a3b8;
+  --primary:#16a34a; --primary-hover:#15803d; --primary-fg:#ffffff;
+  --primary-soft-bg:#dcfce7; --primary-soft-text:#15803d;
+  --success:#16a34a; --success-soft-bg:#dcfce7; --success-soft-text:#15803d;
+  --warning:#d97706; --warning-soft-bg:#fef3c7; --warning-soft-text:#b45309;
+  --error:#dc2626; --info:#2563eb; --info-soft-bg:#dbeafe; --info-soft-text:#1d4ed8;
+  --neutral-soft-bg:#eef2f6; --neutral-soft-text:#475569;
+  --hl:#fef08a; --hl-text:#713f12;
+  --kbd-bg:#ffffff; --kbd-border:#cbd5e1;
+  --ring:color-mix(in srgb, var(--primary) 28%, transparent);
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
+  --shadow-xl:0 24px 60px rgba(15,23,42,.28);
+}
+[data-theme="dark"]{
+  --bg:#020617; --bg-base:#0b1220; --bg-muted:#1e293b; --bg-el:#0f172a;
+  --border:#1e293b; --border-strong:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8; --text-dimmed:#64748b;
+  --primary:#22c55e; --primary-hover:#16a34a; --primary-fg:#052e16;
+  --primary-soft-bg:#14331f; --primary-soft-text:#4ade80;
+  --success:#22c55e; --success-soft-bg:#14331f; --success-soft-text:#4ade80;
+  --warning:#f59e0b; --warning-soft-bg:#3a2a08; --warning-soft-text:#fbbf24;
+  --error:#ef4444; --info:#3b82f6; --info-soft-bg:#13243f; --info-soft-text:#60a5fa;
+  --neutral-soft-bg:#1e293b; --neutral-soft-text:#cbd5e1;
+  --hl:#3a3408; --hl-text:#fde047;
+  --kbd-bg:#1e293b; --kbd-border:#334155;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-xl:0 24px 60px rgba(0,0,0,.7);
+}
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" data-theme="{{ theme }}" tabindex="0" onKeyDown="{{ onKey }}" style="font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--text);outline:none;">
+  <div style="height:100vh;overflow:hidden;background:var(--bg);position:relative;">
+
+    <!-- faux app topbar -->
+    <header style="display:flex;align-items:center;gap:14px;height:61px;padding:0 20px;background:var(--bg-base);border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:11px;"><div style="width:32px;height:32px;border-radius:9px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--primary-fg);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13h6"/></svg></div><span style="font:700 17px Inter;letter-spacing:-.01em;">Inventra</span></div>
+      <div style="flex:1;display:flex;justify-content:center;">
+        <button onClick="{{ openPalette }}" style="display:flex;align-items:center;gap:10px;width:100%;max-width:420px;padding:9px 12px;font:400 13.5px Inter;color:var(--text-dimmed);background:var(--bg-muted);border:1px solid transparent;border-radius:10px;cursor:text;" style-hover="border-color:var(--border-strong);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex:none;"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <span style="flex:1;text-align:left;">{{ topbarPlaceholder }}</span>
+          <span style="display:inline-flex;align-items:center;gap:2px;padding:2px 7px;font:600 11px 'JetBrains Mono',monospace;color:var(--text-muted);background:var(--kbd-bg);border:1px solid var(--kbd-border);border-radius:6px;flex:none;">{{ cmdK }}</span>
+        </button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="display:flex;gap:2px;padding:3px;background:var(--bg-muted);border-radius:9px;">
+          <button onClick="{{ setId }}" style="padding:5px 9px;font:600 12px Inter;color:{{ idFg }};background:{{ idBg }};border:none;border-radius:6px;cursor:pointer;">ID</button>
+          <button onClick="{{ setEn }}" style="padding:5px 9px;font:600 12px Inter;color:{{ enFg }};background:{{ enBg }};border:none;border-radius:6px;cursor:pointer;">EN</button>
+        </div>
+        <button onClick="{{ toggleTheme }}" title="Tema" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">
+          <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></sc-if>
+          <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></sc-if>
+        </button>
+        <span style="width:32px;height:32px;border-radius:50%;background:var(--primary);color:var(--primary-fg);display:flex;align-items:center;justify-content:center;font:700 12px Inter;">AS</span>
+      </div>
+    </header>
+
+    <!-- faux page content -->
+    <div style="padding:28px 32px;opacity:.5;filter:saturate(.7);pointer-events:none;">
+      <div style="height:22px;width:200px;border-radius:7px;background:var(--bg-muted);margin-bottom:18px;"></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px;"><div style="height:90px;border-radius:13px;background:var(--bg-base);border:1px solid var(--border);"></div><div style="height:90px;border-radius:13px;background:var(--bg-base);border:1px solid var(--border);"></div><div style="height:90px;border-radius:13px;background:var(--bg-base);border:1px solid var(--border);"></div></div>
+      <div style="height:280px;border-radius:13px;background:var(--bg-base);border:1px solid var(--border);"></div>
+    </div>
+
+    <!-- hint when closed -->
+    <sc-if value="{{ closed }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:50%;bottom:28px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:9px 15px;background:var(--bg-el);border:1px solid var(--border);border-radius:11px;box-shadow:var(--shadow);">
+        <span style="font:400 13px Inter;color:var(--text-muted);">{{ hintText }}</span>
+        <span style="display:inline-flex;align-items:center;gap:2px;padding:2px 7px;font:600 11px 'JetBrains Mono',monospace;color:var(--text);background:var(--kbd-bg);border:1px solid var(--kbd-border);border-radius:6px;">{{ cmdK }}</span>
+        <button onClick="{{ openPalette }}" style="margin-left:4px;font:600 12.5px Inter;color:var(--primary);background:transparent;border:none;cursor:pointer;">{{ openNow }}</button>
+      </div>
+    </sc-if>
+
+    <!-- PALETTE -->
+    <sc-if value="{{ open }}" hint-placeholder-val="{{ true }}">
+      <div onClick="{{ closePalette }}" style="position:absolute;inset:0;z-index:60;background:rgba(2,6,23,.45);backdrop-filter:blur(3px);display:flex;justify-content:center;align-items:flex-start;padding:88px 20px 20px;">
+        <div onClick="{{ stop }}" style="width:100%;max-width:640px;max-height:calc(100vh - 130px);display:flex;flex-direction:column;background:var(--bg-el);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-xl);overflow:hidden;">
+
+          <!-- input row -->
+          <div style="flex:none;display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--border);">
+            <span style="color:var(--text-dimmed);display:flex;flex:none;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>
+            <input value="{{ query }}" onInput="{{ onInput }}" placeholder="{{ placeholder }}" style="flex:1;min-width:0;font:400 16px Inter;color:var(--text);background:transparent;border:none;outline:none;" />
+            <sc-if value="{{ hasQuery }}" hint-placeholder-val="{{ false }}"><button onClick="{{ clearQuery }}" title="Bersihkan" style="display:flex;padding:4px;color:var(--text-dimmed);background:transparent;border:none;border-radius:6px;cursor:pointer;flex:none;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></sc-if>
+            <button onClick="{{ closePalette }}" style="display:inline-flex;align-items:center;padding:4px 9px;font:600 11px 'JetBrains Mono',monospace;color:var(--text-muted);background:var(--kbd-bg);border:1px solid var(--kbd-border);border-radius:6px;cursor:pointer;flex:none;" style-hover="color:var(--text);">Esc</button>
+          </div>
+
+          <!-- body -->
+          <div style="flex:1;overflow-y:auto;padding:8px;">
+
+            <!-- LOADING -->
+            <sc-if value="{{ showLoading }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:6px 8px;"><div style="height:10px;width:70px;border-radius:5px;margin:8px 6px 12px;background:var(--bg-muted);"></div>
+                <sc-for list="{{ skel }}" as="n" hint-placeholder-count="4"><div style="display:flex;align-items:center;gap:12px;padding:9px 8px;"><div style="width:34px;height:34px;border-radius:9px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;flex:none;"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div style="height:11px;width:55%;border-radius:5px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;"></div><div style="height:9px;width:32%;border-radius:5px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;"></div></div></div></sc-for>
+              </div>
+            </sc-if>
+
+            <!-- EMPTY STATE (initial: recent + quick) -->
+            <sc-if value="{{ showInitial }}" hint-placeholder-val="{{ true }}">
+              <div>
+                <div style="padding:10px 10px 5px;font:600 11px Inter;letter-spacing:.07em;text-transform:uppercase;color:var(--text-dimmed);">{{ recentTitle }}</div>
+                <sc-for list="{{ recentRows }}" as="r" hint-placeholder-count="3">
+                  <button onClick="{{ r.on }}" onMouseEnter="{{ r.hover }}" style="display:flex;align-items:center;gap:12px;width:100%;padding:9px 10px;border-radius:10px;background:{{ r.bg }};border:none;cursor:pointer;text-align:left;">
+                    <span style="width:30px;height:30px;border-radius:8px;background:var(--bg-muted);color:var(--text-muted);display:flex;align-items:center;justify-content:center;flex:none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 8v4l3 2"/></svg></span>
+                    <span style="flex:1;font:500 14px Inter;color:var(--text);">{{ r.text }}</span>
+                    <span style="display:flex;color:var(--text-dimmed);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></span>
+                  </button>
+                </sc-for>
+                <div style="padding:14px 10px 5px;font:600 11px Inter;letter-spacing:.07em;text-transform:uppercase;color:var(--text-dimmed);">{{ quickTitle }}</div>
+                <sc-for list="{{ quickRows }}" as="q" hint-placeholder-count="3">
+                  <button onClick="{{ q.on }}" onMouseEnter="{{ q.hover }}" style="display:flex;align-items:center;gap:12px;width:100%;padding:9px 10px;border-radius:10px;background:{{ q.bg }};border:none;cursor:pointer;text-align:left;">
+                    <span style="width:30px;height:30px;border-radius:8px;background:{{ q.iconBg }};color:{{ q.iconFg }};display:flex;align-items:center;justify-content:center;flex:none;">{{ q.icon }}</span>
+                    <span style="flex:1;font:500 14px Inter;color:var(--text);">{{ q.label }}</span>
+                    <span style="display:inline-flex;align-items:center;padding:2px 7px;font:600 10.5px 'JetBrains Mono',monospace;color:var(--text-dimmed);background:var(--kbd-bg);border:1px solid var(--kbd-border);border-radius:6px;">{{ q.kbd }}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <!-- RESULTS -->
+            <sc-if value="{{ showResults }}" hint-placeholder-val="{{ false }}">
+              <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+                <div style="margin-bottom:4px;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 10px 5px;">
+                    <span style="font:600 11px Inter;letter-spacing:.07em;text-transform:uppercase;color:var(--text-dimmed);">{{ g.label }}</span>
+                    <button style="font:600 11px Inter;color:var(--primary);background:transparent;border:none;cursor:pointer;">{{ g.seeAll }}</button>
+                  </div>
+                  <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="2">
+                    <button onClick="{{ it.on }}" onMouseEnter="{{ it.hover }}" style="display:flex;align-items:center;gap:12px;width:100%;padding:9px 10px;border-radius:10px;background:{{ it.bg }};border:none;cursor:pointer;text-align:left;box-shadow:inset 3px 0 0 {{ it.accent }};">
+                      <span style="width:34px;height:34px;border-radius:9px;background:{{ it.iconBg }};color:{{ it.iconFg }};display:flex;align-items:center;justify-content:center;flex:none;">{{ it.icon }}</span>
+                      <div style="flex:1;min-width:0;">
+                        <div style="font:500 14px Inter;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ it.titleEl }}</div>
+                        <div style="display:flex;align-items:center;gap:7px;margin-top:2px;"><span style="font:400 12px 'JetBrains Mono',monospace;color:var(--text-dimmed);">{{ it.sub }}</span><sc-if value="{{ it.hasStatus }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:4px;padding:1px 8px;font:600 10.5px Inter;border-radius:999px;background:{{ it.stBg }};color:{{ it.stFg }};"><span style="width:5px;height:5px;border-radius:50%;background:{{ it.stDot }};"></span>{{ it.status }}</span></sc-if></div>
+                      </div>
+                      <sc-if value="{{ it.selected }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;padding:2px 7px;font:600 10.5px 'JetBrains Mono',monospace;color:var(--primary-soft-text);background:var(--primary-soft-bg);border-radius:6px;flex:none;">↵</span></sc-if>
+                    </button>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </sc-if>
+
+            <!-- NO RESULTS -->
+            <sc-if value="{{ showEmpty }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:46px 24px;text-align:center;">
+                <div style="width:50px;height:50px;margin:0 auto 13px;border-radius:13px;background:var(--bg-muted);color:var(--text-dimmed);display:flex;align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M8 11h6"/></svg></div>
+                <div style="font:600 15px Inter;margin-bottom:5px;">{{ emptyTitle }}</div>
+                <div style="font:400 13px Inter;color:var(--text-muted);">{{ emptySub }}</div>
+              </div>
+            </sc-if>
+
+          </div>
+
+          <!-- footer -->
+          <div style="flex:none;display:flex;align-items:center;gap:16px;padding:11px 16px;border-top:1px solid var(--border);background:var(--bg-muted);">
+            <span style="display:inline-flex;align-items:center;gap:6px;font:400 11.5px Inter;color:var(--text-muted);"><span style="display:inline-flex;gap:2px;"><span style="padding:1px 5px;font:600 10px 'JetBrains Mono',monospace;background:var(--kbd-bg);border:1px solid var(--kbd-border);border-radius:5px;">↑</span><span style="padding:1px 5px;font:600 10px 'JetBrains Mono',monospace;background:var(--kbd-bg);border:1px solid var(--kbd-border);border-radius:5px;">↓</span></span>{{ navHint }}</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font:400 11.5px Inter;color:var(--text-muted);"><span style="padding:1px 6px;font:600 10px 'JetBrains Mono',monospace;background:var(--kbd-bg);border:1px solid var(--kbd-border);border-radius:5px;">↵</span>{{ openHint }}</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font:400 11.5px Inter;color:var(--text-muted);"><span style="padding:1px 6px;font:600 10px 'JetBrains Mono',monospace;background:var(--kbd-bg);border:1px solid var(--kbd-border);border-radius:5px;">Esc</span>{{ closeHint }}</span>
+            <div style="flex:1;"></div>
+            <span style="font:400 11px Inter;color:var(--text-dimmed);">{{ scopeHint }}</span>
+          </div>
+
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;id&quot;,&quot;en&quot;],&quot;default&quot;:&quot;id&quot;,&quot;tsType&quot;:&quot;'id' | 'en'&quot;},&quot;open&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;query&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;primaryColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#16a34a&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const ICONS={
+  box:[['path',{d:'M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2'}],['path',{d:'M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'}],['path',{d:'M9 13h6'}]],
+  car:[['path',{d:'M3 16V11l2-5h14l2 5v5'}],['path',{d:'M3 16h18v3a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-1H7v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z'}],['path',{d:'M6 13h.01M18 13h.01'}]],
+  user:[['circle',{cx:12,cy:8,r:4}],['path',{d:'M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1'}]],
+  office:[['path',{d:'M3 21h18M5 21V9l5-4v16M19 21V13l-9-4'}]],
+  shieldUser:[['path',{d:'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z'}],['circle',{cx:12,cy:10,r:2}],['path',{d:'M8.5 16a3.5 3.5 0 0 1 7 0'}]],
+  approval:[['path',{d:'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'}],['path',{d:'M9 11l3 3 8-8'}]],
+  plus:[['path',{d:'M12 5v14M5 12h14'}]],
+  chart:[['path',{d:'M3 3v18h18'}],['path',{d:'M7 16v-5M12 16V8M17 16v-3'}]],
+  send:[['path',{d:'M22 2 11 13M22 2l-7 20-4-9-9-4z'}]],
+};
+function mk(key,size,sw){const d=ICONS[key]||ICONS.box;return React.createElement('svg',{width:size||16,height:size||16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:sw||1.9,strokeLinecap:'round',strokeLinejoin:'round',style:{flex:'none'}},d.map((x,i)=>React.createElement(x[0],{...x[1],key:i})));}
+function hl(text,q){ // returns React node with highlighted match
+  if(!q) return text; const i=text.toLowerCase().indexOf(q.toLowerCase()); if(i<0) return text;
+  const pre=text.slice(0,i), m=text.slice(i,i+q.length), post=text.slice(i+q.length);
+  return React.createElement(React.Fragment,null, pre,
+    React.createElement('mark',{style:{background:'var(--hl)',color:'var(--hl-text)',borderRadius:'3px',padding:'0 1px'}}, m), post);
+}
+const L=(id,en)=>({id,en});
+const ST={
+  tersedia:{label:L('Tersedia','Available'),bg:'var(--success-soft-bg)',fg:'var(--success-soft-text)',dot:'var(--success)'},
+  maintenance:{label:L('Maintenance','Maintenance'),bg:'var(--warning-soft-bg)',fg:'var(--warning-soft-text)',dot:'var(--warning)'},
+  menunggu:{label:L('Menunggu','Pending'),bg:'var(--warning-soft-bg)',fg:'var(--warning-soft-text)',dot:'var(--warning)'},
+  aktif:{label:L('Aktif','Active'),bg:'var(--success-soft-bg)',fg:'var(--success-soft-text)',dot:'var(--success)'},
+};
+const TYPES={
+  aset:{label:L('Aset','Assets'),icon:'box',iconBg:'var(--primary-soft-bg)',iconFg:'var(--primary-soft-text)'},
+  pegawai:{label:L('Pegawai','Employees'),icon:'user',iconBg:'var(--info-soft-bg)',iconFg:'var(--info-soft-text)'},
+  kantor:{label:L('Kantor','Offices'),icon:'office',iconBg:'var(--warning-soft-bg)',iconFg:'var(--warning-soft-text)'},
+  user:{label:L('User','Users'),icon:'shieldUser',iconBg:'var(--neutral-soft-bg)',iconFg:'var(--neutral-soft-text)'},
+  pengajuan:{label:L('Pengajuan','Requests'),icon:'approval',iconBg:'var(--info-soft-bg)',iconFg:'var(--info-soft-text)'},
+};
+const DATA=[
+  {type:'aset',title:'Laptop Dell Latitude 5440',sub:'JKT01-ELK-2026-00001',status:'tersedia',icon:'box',total:42},
+  {type:'aset',title:'Toyota Avanza 1.5 G',sub:'JKT01-KEN-2025-00007',status:'maintenance',icon:'car',total:42},
+  {type:'aset',title:'Proyektor Epson EB-X51',sub:'JKT01-ELK-2026-00002',status:'tersedia',icon:'box',total:42},
+  {type:'pegawai',title:'Rina Putri',sub:'Staf IT · Cabang Jakarta Selatan',status:null,icon:'user',total:14},
+  {type:'pegawai',title:'Andi Saputra',sub:'Asset Manager · Cabang Jakarta Selatan',status:null,icon:'user',total:14},
+  {type:'kantor',title:'Cabang Jakarta Selatan',sub:'JKT01 · DKI Jakarta',status:'aktif',icon:'office',total:6},
+  {type:'user',title:'andi.saputra@inventra.local',sub:'Asset Manager · Aktif',status:null,icon:'shieldUser',total:12},
+  {type:'pengajuan',title:'Registrasi 12 Laptop Asus ExpertBook B1',sub:'REG-2026-0012',status:'menunggu',icon:'approval',total:5},
+];
+const GROUP_ORDER=['aset','pegawai','kantor','user','pengajuan'];
+const CH={
+  id:{ topbarPlaceholder:'Cari aset, pegawai, kantor, pengajuan…', cmdK:'⌘K', hintText:'Tekan untuk pencarian cepat', openNow:'Buka sekarang',
+    placeholder:'Cari aset, pegawai, kantor, pengajuan…',
+    recentTitle:'Pencarian Terakhir', quickTitle:'Aksi Cepat',
+    recent:['Laptop Dell Latitude','Toyota Avanza','Rina Putri'],
+    quick:[['Tambah Aset','plus','A'],['Buka Laporan','chart','L'],['Buat Pengajuan','send','P']],
+    seeAllF:(n)=>'Lihat semua ('+n+')', emptyTitleF:(q)=>'Tidak ada hasil untuk "'+q+'"', emptySub:'Coba kata kunci lain atau periksa ejaannya.',
+    navHint:'navigasi', openHint:'buka', closeHint:'tutup', scopeHint:'Hasil dibatasi lingkup & izin Anda' },
+  en:{ topbarPlaceholder:'Search assets, staff, offices, requests…', cmdK:'⌘K', hintText:'Press for quick search', openNow:'Open now',
+    placeholder:'Search assets, staff, offices, requests…',
+    recentTitle:'Recent Searches', quickTitle:'Quick Actions',
+    recent:['Dell Latitude Laptop','Toyota Avanza','Rina Putri'],
+    quick:[['Add Asset','plus','A'],['Open Reports','chart','L'],['Create Request','send','P']],
+    seeAllF:(n)=>'See all ('+n+')', emptyTitleF:(q)=>'No results for "'+q+'"', emptySub:'Try another keyword or check the spelling.',
+    navHint:'navigate', openHint:'open', closeHint:'close', scopeHint:'Results limited to your scope & permissions' },
+};
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef=React.createRef();
+    this.state={
+      theme:(props.theme==='dark'?'dark':'light'), lang:(props.lang==='en'?'en':'id'),
+      open:(props.open!==undefined?!!props.open:true), query:(props.query||''), sel:0, loading:false,
+    };
+    this._tt=false;this._tl=false;this._loadT=null;
+  }
+  componentDidMount(){ this.applyPrimary(); if(this.rootRef.current) this.rootRef.current.focus(); }
+  componentDidUpdate(){ this.applyPrimary(); }
+  applyPrimary(){ const c=this.props.primaryColor,el=this.rootRef.current; if(el&&c) el.style.setProperty('--primary',c); }
+  effTheme(){ return this._tt?this.state.theme:(this.props.theme||'light'); }
+  effLang(){ return this._tl?this.state.lang:(this.props.lang||'id'); }
+  results(){ const q=this.state.query.trim().toLowerCase(); if(!q) return []; return DATA.filter(d=>d.title.toLowerCase().includes(q)||d.sub.toLowerCase().includes(q)); }
+  flatItems(){ // ordered flat list of selectable result items (for keyboard)
+    const res=this.results(); const out=[]; GROUP_ORDER.forEach(t=>res.filter(r=>r.type===t).forEach(r=>out.push(r))); return out;
+  }
+  onInput(e){ const v=e.target.value; if(this._loadT) clearTimeout(this._loadT);
+    if(v.trim()){ this.setState({query:v,sel:0,loading:true}); this._loadT=setTimeout(()=>this.setState({loading:false}),420); }
+    else this.setState({query:v,sel:0,loading:false}); }
+  move(d){ const n=this.flatItems().length; if(!n) return; this.setState(s=>({sel:(s.sel+d+n)%n})); }
+  onKey(e){
+    if((e.metaKey||e.ctrlKey)&&(e.key==='k'||e.key==='K')){ e.preventDefault(); this.setState(s=>({open:!s.open})); return; }
+    if(!this.state.open){ return; }
+    if(e.key==='Escape'){ e.preventDefault(); this.setState({open:false}); }
+    else if(e.key==='ArrowDown'){ e.preventDefault(); this.move(1); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); this.move(-1); }
+    else if(e.key==='Enter'){ e.preventDefault(); /* open selected (demo: keep) */ }
+  }
+  renderVals(){
+    const s=this.state; const theme=this.effTheme(),lang=this.effLang();
+    const isDark=theme==='dark'; const ch=CH[lang];
+    const q=s.query.trim();
+    const hasQuery=q.length>0;
+    const res=this.results();
+    const flat=this.flatItems();
+    const showLoading=s.open&&hasQuery&&s.loading;
+    const showResults=s.open&&hasQuery&&!s.loading&&res.length>0;
+    const showEmpty=s.open&&hasQuery&&!s.loading&&res.length===0;
+    const showInitial=s.open&&!hasQuery;
+
+    let selIdx=0;
+    const groups=GROUP_ORDER.map(t=>{
+      const items=res.filter(r=>r.type===t); if(!items.length) return null; const T=TYPES[t];
+      const rows=items.map(r=>{ const idx=selIdx++; const seld=idx===s.sel; const st=r.status?ST[r.status]:null;
+        return { titleEl:hl(r.title,q), sub:r.sub, icon:mk(r.icon,16), iconBg:T.iconBg, iconFg:T.iconFg,
+          hasStatus:!!st, status:st?st.label[lang]:'', stBg:st?st.bg:'', stFg:st?st.fg:'', stDot:st?st.dot:'',
+          selected:seld, bg:seld?'var(--primary-soft-bg)':'transparent', accent:seld?'var(--primary)':'transparent',
+          on:()=>{}, hover:()=>this.setState({sel:idx}) };
+      });
+      return { label:T.label[lang], seeAll:ch.seeAllF(items[0].total), items:rows };
+    }).filter(Boolean);
+
+    const recentRows=ch.recent.map((t,i)=>({ text:t, bg:'transparent',
+      on:()=>this.onInput({target:{value:t}}), hover:()=>{} }));
+    const qIcoBg=['var(--primary-soft-bg)','var(--info-soft-bg)','var(--neutral-soft-bg)'];
+    const qIcoFg=['var(--primary-soft-text)','var(--info-soft-text)','var(--neutral-soft-text)'];
+    const quickRows=ch.quick.map((it,i)=>({ label:it[0], icon:mk(it[1],15), iconBg:qIcoBg[i%3], iconFg:qIcoFg[i%3], kbd:it[2], bg:'transparent', on:()=>{}, hover:()=>{} }));
+
+    return {
+      rootRef:this.rootRef, theme, isDark, isLight:!isDark, onKey:(e)=>this.onKey(e),
+      toggleTheme:()=>{this._tt=true;const cur=this.effTheme();this.setState({theme:cur==='light'?'dark':'light'});},
+      setId:()=>{this._tl=true;this.setState({lang:'id'});}, setEn:()=>{this._tl=true;this.setState({lang:'en'});},
+      idBg:lang==='id'?'var(--bg-base)':'transparent', idFg:lang==='id'?'var(--text)':'var(--text-muted)',
+      enBg:lang==='en'?'var(--bg-base)':'transparent', enFg:lang==='en'?'var(--text)':'var(--text-muted)',
+      topbarPlaceholder:ch.topbarPlaceholder, cmdK:ch.cmdK, hintText:ch.hintText, openNow:ch.openNow,
+      open:s.open, closed:!s.open, openPalette:()=>{this.setState({open:true});if(this.rootRef.current)this.rootRef.current.focus();}, closePalette:()=>this.setState({open:false}), stop:(e)=>e.stopPropagation(),
+      query:s.query, onInput:(e)=>this.onInput(e), placeholder:ch.placeholder, hasQuery, clearQuery:()=>this.setState({query:'',sel:0,loading:false}),
+      showLoading, showResults, showEmpty, showInitial, skel:[1,2,3,4],
+      recentTitle:ch.recentTitle, recentRows, quickTitle:ch.quickTitle, quickRows,
+      groups,
+      emptyTitle:ch.emptyTitleF(q), emptySub:ch.emptySub,
+      navHint:ch.navHint, openHint:ch.openHint, closeHint:ch.closeHint, scopeHint:ch.scopeHint,
+    };
+  }
+}
+</script>
+</body>
+</html>

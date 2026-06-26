@@ -71,8 +71,8 @@ export const superadminNav: NavGroup[] = [
             to: '/master/employees'
           },
           {
-            labelKey: 'nav.geography',
-            disabled: true
+            labelKey: 'nav.officeMap',
+            to: '/master/map'
           },
           {
             labelKey: 'nav.reference',

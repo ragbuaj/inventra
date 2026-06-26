@@ -146,3 +146,61 @@ export interface NavGroup {
   labelKey: string
   items: NavItem[]
 }
+
+export type SearchEntityType = 'aset' | 'pegawai' | 'kantor' | 'user' | 'pengajuan'
+
+export interface SearchItem {
+  type: SearchEntityType
+  title: string
+  sub: string
+  status: string | null
+  icon: string
+  to: string
+}
+
+export interface SearchGroup {
+  type: SearchEntityType
+  labelKey: string
+  total: number
+  items: SearchItem[]
+}
+
+export type OfficeJenis = 'Pusat' | 'Wilayah' | 'Cabang' | 'Outlet'
+
+export interface MapOffice {
+  id: string
+  nama: string
+  kode: string
+  jenis: OfficeJenis
+  kota: string
+  prov: string
+  alamat: string
+  aset: number
+  lat: number
+  lng: number
+}
+
+export interface AccountProfile {
+  nama: string
+  email: string
+  telepon: string
+  peran: string
+  kantor: string
+  pegawai: string
+  loginMethod: 'email' | 'google'
+  joinDate: string
+}
+
+export interface AccountSession {
+  id: string
+  device: string
+  meta: string
+  icon: string
+  current: boolean
+}
+
+export interface NotifPrefs {
+  approval: boolean
+  maint: boolean
+  assign: boolean
+}
