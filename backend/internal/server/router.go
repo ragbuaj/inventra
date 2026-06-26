@@ -13,6 +13,7 @@ import (
 
 	apidocs "github.com/ragbuaj/inventra/api"
 	"github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/auth"
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/cache"
@@ -98,15 +99,19 @@ func NewRouter(d Deps) *gin.Engine {
 		permSvc := authz.NewPermissionService(queries, d.Redis)
 		scopeSvc := authz.NewScopeService(queries, d.Redis)
 		fieldSvc := authz.NewFieldService(queries, d.Redis)
+		auditSvc := audit.NewService(queries)
 
 		identitySvc := identity.NewService(queries, tokenManager, tokenStore)
 		identityHandler := identity.NewHandler(identitySvc, permSvc, scopeSvc)
 		identity.RegisterRoutes(api, identityHandler, requireAuth)
 
-		userHandler := user.NewHandler(user.NewService(queries), fieldSvc)
+		userHandler := user.NewHandler(user.NewService(queries), fieldSvc, auditSvc)
 		user.RegisterRoutes(api, userHandler, requireAuth, middleware.RequirePermission(permSvc, "user.manage"))
 
-		masterdata.RegisterRoutes(api, queries, d.Pool, permSvc, scopeSvc, requireAuth)
+		masterdata.RegisterRoutes(api, queries, d.Pool, permSvc, scopeSvc, auditSvc, requireAuth)
+
+		auditHandler := audit.NewHandler(auditSvc, scopeSvc, queries)
+		audit.RegisterRoutes(api, auditHandler, requireAuth, middleware.RequirePermission(permSvc, "audit.view"))
 	}
 
 	return r

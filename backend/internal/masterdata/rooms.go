@@ -7,11 +7,21 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/authz"
 )
 
 type roomHandler struct {
 	scopedDeps
+}
+
+// floorOffice resolves the office a floor belongs to (for audit office scoping).
+func (h *roomHandler) floorOffice(c *gin.Context, floorID uuid.UUID, all bool, ids []uuid.UUID) *uuid.UUID {
+	fl, err := h.q.GetFloor(c.Request.Context(), sqlc.GetFloorParams{ID: floorID, AllScope: all, OfficeIds: ids})
+	if err != nil {
+		return nil
+	}
+	return &fl.OfficeID
 }
 
 type roomRequest struct {
@@ -122,6 +132,7 @@ func (h *roomHandler) create(c *gin.Context) {
 		writeError(c, mapDBError(err))
 		return
 	}
+	audit.Record(c, h.aud, audit.ActionCreate, "rooms", r.ID, h.floorOffice(c, floorID, all, ids), audit.Diff(nil, toRoomResponse(r)))
 	c.JSON(http.StatusCreated, toRoomResponse(r))
 }
 
@@ -146,6 +157,11 @@ func (h *roomHandler) update(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "floor is outside your scope"})
 		return
 	}
+	cur, err := h.q.GetRoom(c.Request.Context(), sqlc.GetRoomParams{ID: id, AllScope: all, OfficeIds: ids})
+	if err != nil {
+		writeError(c, mapDBError(err))
+		return
+	}
 	r, err := h.q.UpdateRoom(c.Request.Context(), sqlc.UpdateRoomParams{
 		FloorID: floorID, Name: req.Name, Code: req.Code, ID: id, AllScope: all, OfficeIds: ids,
 	})
@@ -153,6 +169,7 @@ func (h *roomHandler) update(c *gin.Context) {
 		writeError(c, mapDBError(err))
 		return
 	}
+	audit.Record(c, h.aud, audit.ActionUpdate, "rooms", r.ID, h.floorOffice(c, floorID, all, ids), audit.Diff(toRoomResponse(cur), toRoomResponse(r)))
 	c.JSON(http.StatusOK, toRoomResponse(r))
 }
 
@@ -167,6 +184,11 @@ func (h *roomHandler) delete(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
 		return
 	}
+	cur, err := h.q.GetRoom(c.Request.Context(), sqlc.GetRoomParams{ID: id, AllScope: all, OfficeIds: ids})
+	if err != nil {
+		writeError(c, mapDBError(err))
+		return
+	}
 	n, err := h.q.SoftDeleteRoom(c.Request.Context(), sqlc.SoftDeleteRoomParams{ID: id, AllScope: all, OfficeIds: ids})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete"})
@@ -176,11 +198,12 @@ func (h *roomHandler) delete(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": ErrNotFound.Error()})
 		return
 	}
+	audit.Record(c, h.aud, audit.ActionDelete, "rooms", id, h.floorOffice(c, cur.FloorID, all, ids), audit.Diff(toRoomResponse(cur), nil))
 	c.Status(http.StatusNoContent)
 }
 
-func registerRooms(rg *gin.RouterGroup, q *sqlc.Queries, scope *authz.ScopeService, authMW, requireManage gin.HandlerFunc) {
-	h := &roomHandler{scopedDeps{q: q, scope: scope}}
+func registerRooms(rg *gin.RouterGroup, q *sqlc.Queries, scope *authz.ScopeService, aud *audit.Service, authMW, requireManage gin.HandlerFunc) {
+	h := &roomHandler{scopedDeps{q: q, scope: scope, aud: aud}}
 	g := rg.Group("/rooms")
 	g.GET("", authMW, h.list)
 	g.GET("/:id", authMW, h.get)

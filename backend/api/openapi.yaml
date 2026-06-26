@@ -44,6 +44,8 @@ tags:
       (`GET /api/v1/rooms?floor_id=...`) are nested, office-scoped location
       resources (writes require `masterdata.office.manage`); see the Bruno
       collection for examples.
+  - name: Audit
+    description: Read-only audit trail (requires the `audit.view` permission)
 
 paths:
   /health:
@@ -742,6 +744,58 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { description: Not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
 
+  /api/v1/audit:
+    get:
+      tags: [Audit]
+      operationId: listAuditLogs
+      summary: List audit-trail entries
+      description: |
+        Read-only audit log, newest first. Requires the `audit.view` permission.
+        Results are office-scoped to the caller (global-scope callers see all rows,
+        including global/no-office actions).
+      security:
+        - bearerJWT: []
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string }
+          description: Filter by entity type or entity id (case-insensitive).
+        - name: actor_id
+          in: query
+          schema: { type: string, format: uuid }
+          description: Filter by the acting user.
+        - name: entity_type
+          in: query
+          schema: { type: string }
+          description: Filter by entity type (e.g. `offices`, `users`, `brands`).
+        - name: action
+          in: query
+          schema: { type: string, enum: [create, update, delete] }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+          description: Only entries at or after this time (RFC3339).
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+          description: Only entries at or before this time (RFC3339).
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0, minimum: 0 }
+      responses:
+        "200":
+          description: A page of audit entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditList"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
 components:
   securitySchemes:
     bearerJWT:
@@ -921,6 +975,42 @@ components:
         data:
           type: array
           items: { $ref: "#/components/schemas/User" }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+
+    AuditActor:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: [string, "null"] }
+        email: { type: [string, "null"] }
+
+    AuditLog:
+      type: object
+      required: [id, entity_type, entity_id, action, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        actor: { oneOf: [{ $ref: "#/components/schemas/AuditActor" }, { type: "null" }] }
+        entity_type: { type: string }
+        entity_id: { type: string, format: uuid }
+        action: { type: string, enum: [create, update, delete] }
+        changes:
+          description: "Changed fields keyed by name, each with optional before/after values (before omitted on create, after omitted on delete)."
+          type: [object, "null"]
+          additionalProperties: true
+        ip: { type: [string, "null"] }
+        office_id: { type: [string, "null"], format: uuid }
+        created_at: { type: string, format: date-time }
+
+    AuditList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/AuditLog" }
         total: { type: integer }
         limit: { type: integer }
         offset: { type: integer }

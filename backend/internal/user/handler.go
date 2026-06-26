@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/middleware"
 )
@@ -17,11 +18,12 @@ import (
 type Handler struct {
 	svc    *Service
 	fields *authz.FieldService
+	aud    *audit.Service
 }
 
 // NewHandler builds the user Handler.
-func NewHandler(svc *Service, fields *authz.FieldService) *Handler {
-	return &Handler{svc: svc, fields: fields}
+func NewHandler(svc *Service, fields *authz.FieldService, aud *audit.Service) *Handler {
+	return &Handler{svc: svc, fields: fields, aud: aud}
 }
 
 func (h *Handler) list(c *gin.Context) {
@@ -80,6 +82,7 @@ func (h *Handler) create(c *gin.Context) {
 		h.svcError(c, err)
 		return
 	}
+	audit.Record(c, h.aud, audit.ActionCreate, "users", u.ID, u.OfficeID, audit.Diff(nil, userToMap(u)))
 	c.JSON(http.StatusCreated, h.one(c, u))
 }
 
@@ -99,6 +102,11 @@ func (h *Handler) update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	before, err := h.svc.Get(c.Request.Context(), id)
+	if err != nil {
+		h.svcError(c, err)
+		return
+	}
 	u, err := h.svc.Update(c.Request.Context(), id, UpdateInput{
 		Name:       req.Name,
 		RoleID:     uuid.MustParse(req.RoleID),
@@ -110,6 +118,7 @@ func (h *Handler) update(c *gin.Context) {
 		h.svcError(c, err)
 		return
 	}
+	audit.Record(c, h.aud, audit.ActionUpdate, "users", u.ID, u.OfficeID, audit.Diff(userToMap(before), userToMap(u)))
 	c.JSON(http.StatusOK, h.one(c, u))
 }
 
@@ -119,10 +128,16 @@ func (h *Handler) delete(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
+	before, err := h.svc.Get(c.Request.Context(), id)
+	if err != nil {
+		h.svcError(c, err)
+		return
+	}
 	if err := h.svc.Delete(c.Request.Context(), id); err != nil {
 		h.svcError(c, err)
 		return
 	}
+	audit.Record(c, h.aud, audit.ActionDelete, "users", id, before.OfficeID, audit.Diff(userToMap(before), nil))
 	c.Status(http.StatusNoContent)
 }
 

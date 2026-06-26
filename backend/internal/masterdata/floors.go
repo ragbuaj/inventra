@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/authz"
 )
 
@@ -116,6 +117,7 @@ func (h *floorHandler) create(c *gin.Context) {
 		writeError(c, mapDBError(err))
 		return
 	}
+	audit.Record(c, h.aud, audit.ActionCreate, "floors", f.ID, &f.OfficeID, audit.Diff(nil, toFloorResponse(f)))
 	c.JSON(http.StatusCreated, toFloorResponse(f))
 }
 
@@ -140,6 +142,11 @@ func (h *floorHandler) update(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "office is outside your scope"})
 		return
 	}
+	cur, err := h.q.GetFloor(c.Request.Context(), sqlc.GetFloorParams{ID: id, AllScope: all, OfficeIds: ids})
+	if err != nil {
+		writeError(c, mapDBError(err))
+		return
+	}
 	f, err := h.q.UpdateFloor(c.Request.Context(), sqlc.UpdateFloorParams{
 		OfficeID: officeID, Name: req.Name, Level: req.Level, ID: id, AllScope: all, OfficeIds: ids,
 	})
@@ -147,6 +154,7 @@ func (h *floorHandler) update(c *gin.Context) {
 		writeError(c, mapDBError(err))
 		return
 	}
+	audit.Record(c, h.aud, audit.ActionUpdate, "floors", f.ID, &f.OfficeID, audit.Diff(toFloorResponse(cur), toFloorResponse(f)))
 	c.JSON(http.StatusOK, toFloorResponse(f))
 }
 
@@ -161,6 +169,11 @@ func (h *floorHandler) delete(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
 		return
 	}
+	cur, err := h.q.GetFloor(c.Request.Context(), sqlc.GetFloorParams{ID: id, AllScope: all, OfficeIds: ids})
+	if err != nil {
+		writeError(c, mapDBError(err))
+		return
+	}
 	n, err := h.q.SoftDeleteFloor(c.Request.Context(), sqlc.SoftDeleteFloorParams{ID: id, AllScope: all, OfficeIds: ids})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete"})
@@ -170,11 +183,12 @@ func (h *floorHandler) delete(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": ErrNotFound.Error()})
 		return
 	}
+	audit.Record(c, h.aud, audit.ActionDelete, "floors", id, &cur.OfficeID, audit.Diff(toFloorResponse(cur), nil))
 	c.Status(http.StatusNoContent)
 }
 
-func registerFloors(rg *gin.RouterGroup, q *sqlc.Queries, scope *authz.ScopeService, authMW, requireManage gin.HandlerFunc) {
-	h := &floorHandler{scopedDeps{q: q, scope: scope}}
+func registerFloors(rg *gin.RouterGroup, q *sqlc.Queries, scope *authz.ScopeService, aud *audit.Service, authMW, requireManage gin.HandlerFunc) {
+	h := &floorHandler{scopedDeps{q: q, scope: scope, aud: aud}}
 	g := rg.Group("/floors")
 	g.GET("", authMW, h.list)
 	g.GET("/:id", authMW, h.get)

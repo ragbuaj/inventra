@@ -5,14 +5,17 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/middleware"
 )
 
-// scopedDeps resolves the caller's office-based data scope for list filtering.
+// scopedDeps resolves the caller's office-based data scope for list filtering,
+// and carries the audit writer used to log mutations.
 type scopedDeps struct {
 	q     *sqlc.Queries
 	scope *authz.ScopeService
+	aud   *audit.Service
 }
 
 // callerOfficeScope returns (allScope, officeIDs) for the caller in the module.
