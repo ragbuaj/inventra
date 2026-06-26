@@ -179,3 +179,28 @@ export interface MapOffice {
   lat: number
   lng: number
 }
+
+export interface AccountProfile {
+  nama: string
+  email: string
+  telepon: string
+  peran: string
+  kantor: string
+  pegawai: string
+  loginMethod: 'email' | 'google'
+  joinDate: string
+}
+
+export interface AccountSession {
+  id: string
+  device: string
+  meta: string
+  icon: string
+  current: boolean
+}
+
+export interface NotifPrefs {
+  approval: boolean
+  maint: boolean
+  assign: boolean
+}
