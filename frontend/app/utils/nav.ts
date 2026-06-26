@@ -51,7 +51,7 @@ export const superadminNav: NavGroup[] = [
       {
         labelKey: 'nav.reports',
         icon: 'i-lucide-bar-chart-2',
-        disabled: true
+        to: '/reports'
       }
     ]
   },

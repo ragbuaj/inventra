@@ -386,6 +386,94 @@
     "resultApproved": "Disetujui oleh {actor} · {date}",
     "resultRejected": "Ditolak oleh {actor} · {date}"
   },
+  "reports": {
+    "title": "Laporan",
+    "subtitle": "Susun dan ekspor laporan aset, depresiasi, utilisasi, dan biaya.",
+    "card": {
+      "aset": { "label": "Daftar Aset & Nilai Buku", "desc": "Inventaris lengkap dengan nilai buku" },
+      "depr": { "label": "Depresiasi per Periode", "desc": "Penyusutan nilai aset per tahun" },
+      "util": { "label": "Utilisasi / Penugasan", "desc": "Tingkat pemakaian aset" },
+      "biaya": { "label": "Biaya Maintenance", "desc": "Rekap biaya perawatan" }
+    },
+    "filter": {
+      "period": "Periode",
+      "office": "Kantor",
+      "category": "Kategori",
+      "status": "Status"
+    },
+    "period": {
+      "last30": "30 hari terakhir",
+      "thisMonth": "Bulan ini",
+      "thisQuarter": "Kuartal ini",
+      "ytd": "Tahun berjalan"
+    },
+    "allOffices": "Semua Kantor",
+    "allCategories": "Semua Kategori",
+    "allStatus": "Semua Status",
+    "apply": "Terapkan",
+    "pdf": "Ekspor PDF",
+    "excel": "Ekspor Excel",
+    "reset": "Atur Ulang Filter",
+    "exportSoon": "Ekspor akan segera tersedia.",
+    "phTitle": "Pilih kriteria laporan",
+    "phSub": "Tentukan jenis laporan dan filter di atas, lalu klik \"Terapkan\" untuk menampilkan hasil.",
+    "emptyTitle": "Tidak ada data",
+    "emptySub": "Tidak ada data yang cocok dengan filter yang dipilih. Coba ubah kategori atau status.",
+    "resultMeta": "Periode: {period} · Cabang Jakarta Selatan",
+    "total": "TOTAL",
+    "unit": { "days": "hari", "daysShort": "hari" },
+    "kpi": {
+      "assetCount": "Total Aset",
+      "assetAcq": "Total Nilai Perolehan",
+      "assetBook": "Total Nilai Buku",
+      "deprCurrent": "Penyusutan 2026",
+      "deprAccum": "Akumulasi Penyusutan",
+      "deprBook": "Sisa Nilai Buku",
+      "utilAvg": "Rata-rata Utilisasi",
+      "utilLoaned": "Aset Aktif Dipinjam",
+      "utilDays": "Total Hari Pinjam",
+      "costTotal": "Total Biaya",
+      "costPrev": "Preventive",
+      "costCorr": "Corrective"
+    },
+    "sub": {
+      "assetUnits": "unit aset",
+      "acquisition": "akumulasi perolehan",
+      "afterDeprec": "setelah penyusutan",
+      "currentYear": "tahun berjalan",
+      "endOf2026": "per akhir 2026",
+      "ofCapacity": "dari kapasitas",
+      "assetsUsed": "aset terpakai",
+      "accumulated": "akumulasi",
+      "selectedPeriod": "periode terpilih"
+    },
+    "chart": {
+      "aset": "Nilai Buku per Kategori",
+      "depr": "Penyusutan per Tahun",
+      "util": "Rata Utilisasi per Kategori",
+      "biaya": "Biaya per Kategori"
+    },
+    "col": {
+      "code": "Kode",
+      "name": "Nama Aset",
+      "category": "Kategori",
+      "buyPrice": "Harga Beli",
+      "accumDeprec": "Akum. Penyusutan",
+      "bookValue": "Nilai Buku",
+      "period": "Periode",
+      "opening": "Nilai Awal",
+      "deprec": "Penyusutan",
+      "closing": "Nilai Akhir",
+      "assetName": "Nama Aset",
+      "daysLoaned": "Hari Dipinjam",
+      "loanCount": "Jml Peminjaman",
+      "utilization": "Utilisasi",
+      "asset": "Aset",
+      "type": "Tipe",
+      "actions": "Jml Tindakan",
+      "totalCost": "Total Biaya"
+    }
+  },
   "settings": {
     "users": {
       "title": "Pengguna",

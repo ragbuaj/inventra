@@ -386,6 +386,94 @@
     "resultApproved": "Approved by {actor} · {date}",
     "resultRejected": "Rejected by {actor} · {date}"
   },
+  "reports": {
+    "title": "Reports",
+    "subtitle": "Build and export asset, depreciation, utilization, and cost reports.",
+    "card": {
+      "aset": { "label": "Asset List & Book Value", "desc": "Full inventory with book value" },
+      "depr": { "label": "Depreciation by Period", "desc": "Asset value depreciation per year" },
+      "util": { "label": "Utilization / Assignment", "desc": "Asset usage rate" },
+      "biaya": { "label": "Maintenance Cost", "desc": "Maintenance cost recap" }
+    },
+    "filter": {
+      "period": "Period",
+      "office": "Office",
+      "category": "Category",
+      "status": "Status"
+    },
+    "period": {
+      "last30": "Last 30 days",
+      "thisMonth": "This month",
+      "thisQuarter": "This quarter",
+      "ytd": "Year to date"
+    },
+    "allOffices": "All Offices",
+    "allCategories": "All Categories",
+    "allStatus": "All Status",
+    "apply": "Apply",
+    "pdf": "Export PDF",
+    "excel": "Export Excel",
+    "reset": "Reset Filters",
+    "exportSoon": "Export coming soon.",
+    "phTitle": "Choose report criteria",
+    "phSub": "Set the report type and filters above, then click \"Apply\" to show the result.",
+    "emptyTitle": "No data",
+    "emptySub": "No data matches the selected filters. Try changing the category or status.",
+    "resultMeta": "Period: {period} · Jakarta Selatan Branch",
+    "total": "TOTAL",
+    "unit": { "days": "days", "daysShort": "d" },
+    "kpi": {
+      "assetCount": "Total Assets",
+      "assetAcq": "Total Acquisition Value",
+      "assetBook": "Total Book Value",
+      "deprCurrent": "2026 Depreciation",
+      "deprAccum": "Accumulated Depreciation",
+      "deprBook": "Remaining Book Value",
+      "utilAvg": "Average Utilization",
+      "utilLoaned": "Active Loaned Assets",
+      "utilDays": "Total Loan Days",
+      "costTotal": "Total Cost",
+      "costPrev": "Preventive",
+      "costCorr": "Corrective"
+    },
+    "sub": {
+      "assetUnits": "asset units",
+      "acquisition": "total acquisition",
+      "afterDeprec": "after depreciation",
+      "currentYear": "current year",
+      "endOf2026": "end of 2026",
+      "ofCapacity": "of capacity",
+      "assetsUsed": "assets used",
+      "accumulated": "accumulated",
+      "selectedPeriod": "selected period"
+    },
+    "chart": {
+      "aset": "Book Value by Category",
+      "depr": "Depreciation per Year",
+      "util": "Avg Utilization by Category",
+      "biaya": "Cost by Category"
+    },
+    "col": {
+      "code": "Code",
+      "name": "Asset Name",
+      "category": "Category",
+      "buyPrice": "Buy Price",
+      "accumDeprec": "Accum. Deprec.",
+      "bookValue": "Book Value",
+      "period": "Period",
+      "opening": "Opening",
+      "deprec": "Depreciation",
+      "closing": "Closing",
+      "assetName": "Asset Name",
+      "daysLoaned": "Days Loaned",
+      "loanCount": "Loan Count",
+      "utilization": "Utilization",
+      "asset": "Asset",
+      "type": "Type",
+      "actions": "Actions",
+      "totalCost": "Total Cost"
+    }
+  },
   "settings": {
     "users": {
       "title": "Users",
