@@ -59,8 +59,20 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 - [ ] **Assignment** — check-out/check-in; assignment requests (Staf → approve); one-active-per-asset; overdue; history
 - [ ] **Maintenance** — schedules (interval/next_due); records (preventive/corrective, cost, vendor); damage reports (Staf + problem category); `under_maintenance` status
 - [ ] **Depreciation** — book value (straight-line / declining-balance); monthly `depreciation_entries` read model
-- [ ] **Reporting & Dashboard** — aggregates (totals/value/by status·category·office, overdue, maintenance due, costs); **PDF + Excel export**; scoped
+- [ ] **Reporting & Dashboard** — aggregates (totals/value/by status·category·office, overdue, maintenance due, costs); **PDF + Excel export**; scoped — reading from the pre-aggregated OLAP tables (see *Analytics / OLAP* below)
 - [ ] **Bulk import** — CSV/XLSX (assets + master data); `import_jobs`; per-row validation + error report
+
+### Analytics / OLAP (large-data plan)
+
+> Dashboard & Reporting currently aggregate **directly over the OLTP tables**. As assets,
+> assignments, maintenance records, depreciation entries, and audit logs grow, those scans get
+> slow and contend with transactional writes. Plan: add a dedicated **analytical read layer**
+> kept separate from the write path (OLTP stays the source of truth; OLAP is a derived read model).
+
+- [ ] **`analytics` schema (star schema)** — dimension tables (`dim_office`, `dim_category`, `dim_status`, `dim_date`) + fact tables (`fact_asset_snapshot`, `fact_assignment`, `fact_maintenance_cost`, `fact_depreciation`). `depreciation.depreciation_entries` is the first instance of such a derived read model and sets the pattern.
+- [ ] **Population via the in-process scheduler** — periodic rollups (nightly/hourly) transform OLTP → facts, incremental where possible. Start with **materialized views** (scheduled `REFRESH`) for moderate scale; graduate to maintained fact tables once volume warrants it.
+- [ ] **Reporting/Dashboard read from OLAP** — scoped by office (reuse data-scope on dimension keys), keeping report queries cheap and OLTP writes fast. Keep the read API stable so the backing store can change transparently.
+- [ ] **Escalation path (only if needed)** — a column-store / external OLAP engine (e.g. DuckDB or ClickHouse) for very large volumes; introduce only when materialized views + fact tables on Postgres stop scaling.
 
 ### Backend — Cross-cutting (not yet implemented)
 - [ ] **Audit logging** — centralized writes to `audit_logs` on every mutation (table exists, writer not wired); audit view endpoints
@@ -92,7 +104,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 1. **Audit logging** (cross-cutting — wire before more mutations accrue)
 2. **Asset core + attachments (MinIO) + barcode**
 3. **Approval (maker-checker)** → **Assignment** → **Maintenance**
-4. **Depreciation** → **Reporting/Dashboard (+ PDF/Excel)** → **Import**
+4. **Depreciation** → **Reporting/Dashboard (+ PDF/Excel)** → **Import** — add the **Analytics / OLAP** read layer (materialized views → fact tables) once report data volume warrants it
 5. **Google OAuth2 + rate limiting + notifications + scheduler + authz admin**
 6. **Wire the (already-built) frontend screens to real APIs** as each backend module lands —
    swap `mock/*` for real `$fetch` behind the same `composables/api/use*` interface
