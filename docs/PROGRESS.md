@@ -74,10 +74,10 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 ### Frontend (screens built mock-first — remaining work)
 - [ ] **Wire screens to real backend APIs** — replace `mock/*` fixtures with real `$fetch` behind the
       existing `composables/api/use*` interface, as each backend module lands; field-permission-aware forms
-- [ ] **Lokasi & Geografi** master-data screen (`nav.geography`) — no mockup yet; needs design first
+- [ ] **Lokasi & Geografi** master-data screen (`nav.geography`) — no mockup yet; design prompt at `DESIGN_BRIEF.md` §5.21
 - [ ] **Staff role menus** — wire staff nav (`myAssets`, staff `assignment`/`approval`) to pages/variants
 - [ ] **Google OAuth login** button + flow (UI; awaits backend `/auth/google`)
-- [ ] Profile page
+- [ ] **Profil & Pengaturan Akun** (`nav.profile` + `nav.accountSettings`) — no mockup yet; design prompt at `DESIGN_BRIEF.md` §5.22
 - [ ] **E2E coverage** — Playwright specs for Dashboard, Assets, Settings, RBAC, Operasional clusters
       (currently only `login` + `master-offices`)
 - [ ] Live light/dark visual pass for auth-gated screens (pending a stable backend to log in)

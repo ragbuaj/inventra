@@ -91,8 +91,9 @@ Checklist. Untuk tiap item, kirim template di §3.
 13. Kantor — tampilan pohon hierarki (Pusat→Wilayah→Cabang→Outlet) + lantai/ruangan bertingkat
 14. Pegawai (list + form, scoped per kantor)
 
-> **Belum ada mockup** (satu-satunya layar bermenu yang tersisa): **Lokasi & Geografi**
-> (`nav.geography`, anak Master Data) — hierarki Provinsi → Kota. Prompt siap-pakai di **§5.21**.
+> **Layar bermenu yang belum ada mockup-nya** (prompt siap-pakai sudah disiapkan):
+> - **Lokasi & Geografi** (`nav.geography`, anak Master Data) — hierarki Provinsi → Kota → **§5.21**
+> - **Profil & Pengaturan Akun** (menu profil topbar: `nav.profile` + `nav.accountSettings`) → **§5.22**
 
 **Pengaturan/Admin (Superadmin)**
 15. Manajemen user (list + form: peran, kantor, pegawai tertaut)
@@ -646,4 +647,40 @@ Tampilkan versi light dan dark.
 Pakai data contoh realistis berbahasa Indonesia: "DKI Jakarta" (kode 31) → kota
 "Jakarta Selatan", "Jakarta Pusat", "Jakarta Timur"; "Jawa Barat" (32) → "Bandung",
 "Bekasi", "Depok"; "Banten" (36) → "Tangerang", "Serang". Patuhi master brief.
+```
+
+### 5.22 Profil & Pengaturan Akun
+
+```
+Sekarang desain layar: Profil & Pengaturan Akun.
+
+Tujuan layar: Pengguna melihat & menyunting profil pribadinya dan mengatur akunnya
+(password, preferensi tampilan, keamanan). Satu halaman dengan tabs, dicapai dari
+menu profil di topbar — item "Profil" membuka tab Profil, item "Pengaturan Akun"
+membuka tab Keamanan.
+Pengguna utama: semua peran.
+Elemen yang harus ada:
+- Header profil: avatar besar (dengan tombol ganti foto), nama, peran (badge),
+  email, dan kantor penempatan.
+- Tabs: (1) Profil, (2) Keamanan, (3) Preferensi.
+- Tab "Profil": form data diri — Avatar (upload/ganti/hapus), Nama, Email
+  (read-only bila login Google, dengan catatan), Telepon; dan blok info read-only:
+  Peran, Kantor Penempatan, Pegawai Tertaut, Metode Login (badge Email / Google),
+  Tanggal Bergabung. Tombol "Simpan Perubahan".
+- Tab "Keamanan": Ganti Password (Password Lama, Password Baru + indikator kekuatan,
+  Konfirmasi Password) — bila akun login Google-only, ganti dengan info banner
+  "Akun ini masuk via Google; kelola password di akun Google Anda". Sub-bagian
+  "Sesi & Perangkat" opsional: daftar sesi aktif + tombol "Keluar dari semua perangkat".
+- Tab "Preferensi": Bahasa (id/en), Tema (Light / Dark / Ikuti Sistem), dan toggle
+  preferensi notifikasi (keputusan approval, pengingat maintenance).
+- Validasi inline (field wajib bertanda *, pesan error di bawah field); toast sukses
+  "Profil diperbarui" / "Password diganti".
+States: tab Profil terisi; tab Keamanan dengan form ganti password DAN varian akun
+Google (banner, tanpa form password); tab Preferensi; satu field dengan error
+validasi (mis. "Konfirmasi password tidak cocok"); loading (skeleton).
+Tampilkan versi light dan dark.
+
+Pakai data contoh realistis berbahasa Indonesia: nama "Andi Saputra", peran
+"Asset Manager", email "andi.saputra@inventra.local", kantor "Cabang Jakarta Selatan",
+metode login Email. Patuhi master brief.
 ```
