@@ -164,3 +164,18 @@ export interface SearchGroup {
   total: number
   items: SearchItem[]
 }
+
+export type OfficeJenis = 'Pusat' | 'Wilayah' | 'Cabang' | 'Outlet'
+
+export interface MapOffice {
+  id: string
+  nama: string
+  kode: string
+  jenis: OfficeJenis
+  kota: string
+  prov: string
+  alamat: string
+  aset: number
+  lat: number
+  lng: number
+}

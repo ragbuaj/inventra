@@ -904,6 +904,25 @@
       "editName": "Rename room"
     }
   },
+  "map": {
+    "title": "Office Location Map",
+    "breadcrumb": "Location Map",
+    "usageNote": "Provinces & Cities are managed in Reference; office coordinates are set on the office form (Office Master Data).",
+    "searchPlaceholder": "Search office / code…",
+    "jenisAll": "All Types",
+    "provAll": "All Provinces",
+    "emptyListTitle": "No offices",
+    "emptyListSub": "No office matches the filter.",
+    "emptyMapTitle": "No points to display",
+    "emptyMapSub": "Adjust the filter to see office pins.",
+    "resetLabel": "Reset View",
+    "resetTip": "Recenter & reset zoom",
+    "viewOffice": "View Office",
+    "openMaps": "Open in Maps",
+    "registeredAssets": "registered assets",
+    "summary": "{o} offices · {k} cities · {p} provinces",
+    "jenis": { "pusat": "HQ", "wilayah": "Regional", "cabang": "Branch", "outlet": "Outlet" }
+  },
   "search": {
     "topbarPlaceholder": "Search assets, staff, offices, requests…",
     "placeholder": "Search assets, staff, offices, requests…",

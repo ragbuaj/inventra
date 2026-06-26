@@ -904,6 +904,25 @@
       "editName": "Ubah nama ruangan"
     }
   },
+  "map": {
+    "title": "Peta Lokasi Kantor",
+    "breadcrumb": "Peta Lokasi",
+    "usageNote": "Provinsi & Kota dikelola di Referensi; titik lokasi kantor diatur pada form kantor (Master Data Kantor).",
+    "searchPlaceholder": "Cari kantor / kode…",
+    "jenisAll": "Semua Jenis",
+    "provAll": "Semua Provinsi",
+    "emptyListTitle": "Tidak ada kantor",
+    "emptyListSub": "Tidak ada kantor cocok dengan filter.",
+    "emptyMapTitle": "Tidak ada titik untuk ditampilkan",
+    "emptyMapSub": "Sesuaikan filter untuk melihat pin kantor.",
+    "resetLabel": "Reset Tampilan",
+    "resetTip": "Pusatkan & reset zoom",
+    "viewOffice": "Lihat Kantor",
+    "openMaps": "Buka di Maps",
+    "registeredAssets": "aset terdaftar",
+    "summary": "{o} kantor · {k} kota · {p} provinsi",
+    "jenis": { "pusat": "Pusat", "wilayah": "Wilayah", "cabang": "Cabang", "outlet": "Outlet" }
+  },
   "search": {
     "topbarPlaceholder": "Cari aset, pegawai, kantor, pengajuan…",
     "placeholder": "Cari aset, pegawai, kantor, pengajuan…",

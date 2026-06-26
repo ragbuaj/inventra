@@ -39,8 +39,16 @@
    the page behind the modal); slightly deeper in dark mode. */
 :root {
   --ui-overlay-scrim: rgba(2, 6, 23, 0.45);
+  --pin-pusat: #16a34a;
+  --pin-wilayah: #2563eb;
+  --pin-cabang: #d97706;
+  --pin-outlet: #64748b;
 }
 
 .dark {
   --ui-overlay-scrim: rgba(2, 6, 23, 0.6);
+  --pin-pusat: #22c55e;
+  --pin-wilayah: #3b82f6;
+  --pin-cabang: #f59e0b;
+  --pin-outlet: #94a3b8;
 }
