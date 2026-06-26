@@ -13,6 +13,7 @@ coverage.out
 **/.nuxt/
 **/.output/
 **/dist/
+**/.pnpm-store/
 
 # OS / editor
 .DS_Store
