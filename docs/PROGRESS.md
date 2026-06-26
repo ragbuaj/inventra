@@ -41,11 +41,16 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 - [x] **Settings cluster** — User Management, Peran & RBAC, Data Scope, Field Permission, Audit Trail
 - [x] **Master Data** — Offices, Employees, Reference
 - [x] **Operasional cluster** — Penugasan (assignment), Maintenance, Pengajuan & Approval, Laporan (reports)
+- [x] **Global Search** — ⌘K command palette (mock multi-entity aggregator, keyboard nav, recent + quick actions)
+- [x] **Peta Lokasi** — office-location map (real Leaflet + OSM, colored pins, list/filter/detail) under Master Data
+- [x] **Profil Akun** — `/akun` profile & settings (Profil / Keamanan / Preferensi tabs)
 - [x] Mock-first data seam (`mock/*` + `composables/api/use*`) ready to swap to real `$fetch` behind the same interface
-- [x] Tests: 343 Vitest unit + `mountSuspended` runtime specs green; lint/typecheck/build gate CI
+- [x] Tests: 387 Vitest unit + `mountSuspended` runtime specs green; lint/typecheck/build gate CI
 
-> **All 20 `docs/design/*.dc.html` mockups are now implemented.** Frontend screens currently
+> **All 23 `docs/design/*.dc.html` mockups are now implemented.** Frontend screens currently
 > render mock fixtures; they need wiring to real backend modules as those land (below).
+> (Peta Lokasi uses a real Leaflet map per an explicit product decision, in place of the
+> mockup's illustrative SVG; everything else matches its mockup 1:1.)
 
 ---
 
