@@ -91,6 +91,9 @@ Checklist. Untuk tiap item, kirim template di §3.
 13. Kantor — tampilan pohon hierarki (Pusat→Wilayah→Cabang→Outlet) + lantai/ruangan bertingkat
 14. Pegawai (list + form, scoped per kantor)
 
+> **Belum ada mockup** (satu-satunya layar bermenu yang tersisa): **Lokasi & Geografi**
+> (`nav.geography`, anak Master Data) — hierarki Provinsi → Kota. Prompt siap-pakai di **§5.21**.
+
 **Pengaturan/Admin (Superadmin)**
 15. Manajemen user (list + form: peran, kantor, pegawai tertaut)
 16. Konfigurasi peran & RBAC (matriks izin per-aksi)
@@ -609,4 +612,38 @@ Tampilkan versi light dan dark.
 
 Pakai data contoh realistis berbahasa Indonesia, rupiah berformat Rp,
 kode aset JKT01-ELK-2026-00001. Patuhi master brief.
+```
+
+### 5.21 Lokasi & Geografi
+
+```
+Sekarang desain layar: Master Data — Lokasi & Geografi.
+
+Tujuan layar: Mengelola data geografis berjenjang (Provinsi → Kota) yang menjadi
+rujukan alamat kantor. Ini terpisah dari "Master Data Kantor" (yang mengelola
+struktur kantor + lantai/ruangan) dan lebih kaya daripada tabel referensi datar.
+Pengguna utama: Superadmin.
+Elemen yang harus ada:
+- Layout dua panel:
+  - Panel kiri — daftar Provinsi: search, tiap baris menampilkan nama + kode provinsi
+    + badge jumlah kota; baris terpilih ditandai aksen primary; tombol "Tambah Provinsi"
+    di atas. (Boleh berupa list atau tree 2-level yang bisa di-expand menampilkan kotanya.)
+  - Panel kanan — Kota dari provinsi terpilih: header (nama provinsi + kode + jumlah kota
+    + tombol Edit/Hapus provinsi), search kota, tombol "Tambah Kota", lalu data table kota
+    (kolom: Nama, Kode, Status Aktif [badge/toggle], aksi edit/hapus) + pagination bila banyak.
+- Strip ringkasan kecil di atas: "X provinsi · Y kota".
+- Form tambah/edit Provinsi (modal): Nama, Kode, toggle Aktif.
+- Form tambah/edit Kota (modal): Provinsi induk [select—terisi dari konteks panel],
+  Nama, Kode, toggle Aktif.
+- Aksi hapus memakai confirm dialog (tampilkan nama yang akan dihapus); hapus provinsi
+  yang masih punya kota harus memberi peringatan.
+- Catatan kecil/inline: "Data ini dipakai pada alamat Kantor (Master Data Kantor)."
+States: provinsi terpilih menampilkan daftar kotanya (data penuh); provinsi tanpa kota
+(empty state di panel kanan); belum ada provinsi terpilih (placeholder panel kanan);
+loading (skeleton); modal form tambah & edit; konfirmasi hapus.
+Tampilkan versi light dan dark.
+
+Pakai data contoh realistis berbahasa Indonesia: "DKI Jakarta" (kode 31) → kota
+"Jakarta Selatan", "Jakarta Pusat", "Jakarta Timur"; "Jawa Barat" (32) → "Bandung",
+"Bekasi", "Depok"; "Banten" (36) → "Tangerang", "Serang". Patuhi master brief.
 ```
