@@ -91,9 +91,10 @@ Checklist. Untuk tiap item, kirim template di §3.
 13. Kantor — tampilan pohon hierarki (Pusat→Wilayah→Cabang→Outlet) + lantai/ruangan bertingkat
 14. Pegawai (list + form, scoped per kantor)
 
-> **Layar bermenu yang belum ada mockup-nya** (prompt siap-pakai sudah disiapkan):
-> - **Lokasi & Geografi** (`nav.geography`, anak Master Data) — hierarki Provinsi → Kota → **§5.21**
+> **Layar/komponen yang belum ada mockup-nya** (prompt siap-pakai sudah disiapkan):
+> - **Lokasi & Geografi** (`nav.geography`, anak Master Data) — **peta lokasi kantor** (provinsi/kota sudah di Referensi) → **§5.21**
 > - **Profil & Pengaturan Akun** (menu profil topbar: `nav.profile` + `nav.accountSettings`) → **§5.22**
+> - **Global Search** (command palette dari search topbar) → **§5.23**
 
 **Pengaturan/Admin (Superadmin)**
 15. Manajemen user (list + form: peran, kantor, pegawai tertaut)
@@ -615,38 +616,46 @@ Pakai data contoh realistis berbahasa Indonesia, rupiah berformat Rp,
 kode aset JKT01-ELK-2026-00001. Patuhi master brief.
 ```
 
-### 5.21 Lokasi & Geografi
+### 5.21 Lokasi & Geografi (Peta Lokasi Kantor)
+
+> Catatan scope: master data **Provinsi & Kota sudah dikelola di Master Data → Referensi**, dan
+> struktur kantor di **Master Data → Kantor**. Jadi layar ini **bukan** CRUD geografi — fungsinya
+> memvisualisasikan **lokasi kantor pada peta** dan menelusurinya.
 
 ```
-Sekarang desain layar: Master Data — Lokasi & Geografi.
+Sekarang desain layar: Lokasi & Geografi — Peta Lokasi Kantor.
 
-Tujuan layar: Mengelola data geografis berjenjang (Provinsi → Kota) yang menjadi
-rujukan alamat kantor. Ini terpisah dari "Master Data Kantor" (yang mengelola
-struktur kantor + lantai/ruangan) dan lebih kaya daripada tabel referensi datar.
-Pengguna utama: Superadmin.
+Tujuan layar: Memvisualisasikan sebaran kantor pada peta dan menelusuri lokasinya.
+Provinsi & Kota acuan sudah dikelola di Master Data → Referensi, dan data kantor di
+Master Data → Kantor; layar ini TIDAK meng-CRUD provinsi/kota maupun kantor — fokusnya
+menampilkan titik lokasi kantor di peta.
+Pengguna utama: Superadmin / Kepala Kanwil (dibatasi lingkup kantor).
 Elemen yang harus ada:
 - Layout dua panel:
-  - Panel kiri — daftar Provinsi: search, tiap baris menampilkan nama + kode provinsi
-    + badge jumlah kota; baris terpilih ditandai aksen primary; tombol "Tambah Provinsi"
-    di atas. (Boleh berupa list atau tree 2-level yang bisa di-expand menampilkan kotanya.)
-  - Panel kanan — Kota dari provinsi terpilih: header (nama provinsi + kode + jumlah kota
-    + tombol Edit/Hapus provinsi), search kota, tombol "Tambah Kota", lalu data table kota
-    (kolom: Nama, Kode, Status Aktif [badge/toggle], aksi edit/hapus) + pagination bila banyak.
-- Strip ringkasan kecil di atas: "X provinsi · Y kota".
-- Form tambah/edit Provinsi (modal): Nama, Kode, toggle Aktif.
-- Form tambah/edit Kota (modal): Provinsi induk [select—terisi dari konteks panel],
-  Nama, Kode, toggle Aktif.
-- Aksi hapus memakai confirm dialog (tampilkan nama yang akan dihapus); hapus provinsi
-  yang masih punya kota harus memberi peringatan.
-- Catatan kecil/inline: "Data ini dipakai pada alamat Kantor (Master Data Kantor)."
-States: provinsi terpilih menampilkan daftar kotanya (data penuh); provinsi tanpa kota
-(empty state di panel kanan); belum ada provinsi terpilih (placeholder panel kanan);
-loading (skeleton); modal form tambah & edit; konfirmasi hapus.
-Tampilkan versi light dan dark.
+  - Panel kiri (lebih sempit) — daftar kantor: search; filter Jenis Kantor
+    (Pusat/Wilayah/Cabang/Outlet) & Provinsi; tiap baris menampilkan nama kantor,
+    kode, jenis (badge), dan kota/provinsi; baris terpilih ditandai aksen primary.
+  - Panel kanan (dominan) — peta dengan penanda (pin) untuk setiap kantor; warna/ikon
+    pin berbeda per jenis kantor; klik pin ATAU baris saling menyorot dan memusatkan
+    peta ke lokasi itu. CATATAN: untuk mockup, gambarkan peta sebagai ilustrasi/SVG
+    bergaya peta Indonesia (Jabodetabek) dengan pin berlabel — bukan peta tile
+    interaktif — supaya artifact bisa dirender standalone.
+- Kartu/popup detail saat pin atau baris dipilih: nama kantor, kode, jenis, alamat
+  lengkap, kota & provinsi, jumlah aset di kantor itu (ringkas), tombol "Lihat Kantor"
+  (menuju Master Data Kantor) dan "Buka di Google Maps".
+- Strip ringkasan kecil di atas peta: "X kantor · Y kota · Z provinsi".
+- Legend jenis kantor (warna pin) + kontrol zoom in/out dan "reset tampilan".
+- Catatan kecil/inline: "Provinsi & Kota dikelola di Referensi; titik lokasi kantor
+  diatur pada form kantor (Master Data Kantor)."
+States: peta dengan beberapa pin + daftar terisi (data penuh); satu kantor terpilih
+(pin tersorot + kartu detail terbuka); hasil filter kosong (empty state pada daftar
+& peta tanpa pin); loading (skeleton daftar + peta).
+Tampilkan versi light dan dark (peta ikut tema: gaya terang & gelap).
 
-Pakai data contoh realistis berbahasa Indonesia: "DKI Jakarta" (kode 31) → kota
-"Jakarta Selatan", "Jakarta Pusat", "Jakarta Timur"; "Jawa Barat" (32) → "Bandung",
-"Bekasi", "Depok"; "Banten" (36) → "Tangerang", "Serang". Patuhi master brief.
+Pakai data contoh realistis berbahasa Indonesia: "Kantor Pusat" (Jakarta Pusat,
+DKI Jakarta), "Kanwil DKI Jakarta", "Cabang Jakarta Selatan", "Outlet Blok M"
+(Jakarta Selatan), "Outlet Kemang"; sebar pin di area Jakarta/Jabodetabek.
+Patuhi master brief.
 ```
 
 ### 5.22 Profil & Pengaturan Akun
@@ -683,4 +692,41 @@ Tampilkan versi light dan dark.
 Pakai data contoh realistis berbahasa Indonesia: nama "Andi Saputra", peran
 "Asset Manager", email "andi.saputra@inventra.local", kantor "Cabang Jakarta Selatan",
 metode login Email. Patuhi master brief.
+```
+
+### 5.23 Global Search (Command Palette)
+
+> Bukan halaman penuh — sebuah **overlay command palette** yang dibuka dari kolom search di
+> topbar (atau pintasan ⌘K / Ctrl+K). Mencari lintas-entitas dan membawa pengguna langsung ke
+> record. Hasil **menghormati hak akses** (lingkup kantor + field-permission) — hanya tampilkan
+> yang boleh dilihat pengguna.
+
+```
+Sekarang desain komponen: Global Search (Command Palette).
+
+Tujuan: Pencarian cepat lintas-entitas dari topbar — Aset, Pegawai, Kantor, User,
+Pengajuan — dengan hasil dikelompokkan per tipe dan deep link ke record-nya.
+Pengguna utama: semua peran (hasil dibatasi lingkup kantor + field-permission).
+Elemen yang harus ada:
+- Overlay di tengah-atas layar (modal + backdrop blur), dibuka via pintasan ⌘K / Ctrl+K
+  atau klik kolom search di topbar. Lebar ~640px, sudut membulat, bayangan.
+- Baris input besar di atas: ikon search di kiri, placeholder "Cari aset, pegawai,
+  kantor, pengajuan…", badge pintasan "⌘K" / tombol Esc di kanan.
+- Daftar hasil dikelompokkan dengan section header per tipe (Aset, Pegawai, Kantor,
+  User, Pengajuan). Tiap item: ikon tipe + judul (mis. nama aset) + subjudul (mis.
+  kode + status/kantor), dengan bagian teks yang cocok di-highlight. Item terpilih
+  (keyboard) disorot aksen primary; tampilkan badge "Lihat semua (N)" per grup.
+- State awal (input kosong): blok "Pencarian Terakhir" (recent) + "Aksi Cepat"
+  (mis. Tambah Aset, Buka Laporan, Buat Pengajuan).
+- Footer palette: petunjuk keyboard — "↑↓ navigasi · ↵ buka · Esc tutup".
+- Navigasi keyboard penuh (panah memilih, Enter membuka, Esc menutup).
+States: tertutup (hanya kolom search di topbar dengan hint ⌘K); terbuka & kosong
+(recent + aksi cepat); terbuka dengan hasil ber-grup; loading (skeleton baris hasil);
+empty ("Tidak ada hasil untuk '<kata kunci>'").
+Tampilkan versi light dan dark.
+
+Pakai data contoh realistis berbahasa Indonesia: Aset "Laptop Dell Latitude 5440 ·
+JKT01-ELK-2026-00001" (Tersedia), "Toyota Avanza 1.5 G · JKT01-KEN-2025-00007"
+(Maintenance); Pegawai "Rina Putri", "Andi Saputra"; Kantor "Cabang Jakarta Selatan";
+Pengajuan "Registrasi 12 Laptop Asus ExpertBook B1" (Menunggu). Patuhi master brief.
 ```

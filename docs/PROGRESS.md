@@ -81,7 +81,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > **respecting the caller's data-scope + field-permission**, returning typed/grouped results that
 > deep-link to the record.
 
-- [ ] **Frontend — command palette** — overlay opened by ⌘K or the topbar input: debounced query, results grouped by type (Aset, Pegawai, Kantor, User, Pengajuan) each with icon + deep link, keyboard navigation, recent searches, empty/loading states. Backed by `composables/api/useSearch` (mock first, then real).
+- [ ] **Frontend — command palette** — overlay opened by ⌘K or the topbar input: debounced query, results grouped by type (Aset, Pegawai, Kantor, User, Pengajuan) each with icon + deep link, keyboard navigation, recent searches, empty/loading states. Backed by `composables/api/useSearch` (mock first, then real). Design prompt at `DESIGN_BRIEF.md` §5.23.
 - [ ] **Backend `/search?q=&types=`** — fan-out across modules, **scope-filtered** (reuse `callerOfficeScope`) and **field-permission-aware**; return typed hits `{ type, id, title, subtitle, url }` with a small per-type limit + "more" counts.
 - [ ] **Indexing / scale** — start with Postgres full-text search (`tsvector` columns + GIN indexes, `unaccent` for accent-insensitive matching) per searchable entity; graduate to a dedicated engine (Meilisearch / Typesense / Elasticsearch) — populated by the scheduler/CDC — when volume, ranking, and typo-tolerance demand it (shares the indexing story with *Analytics / OLAP* above).
 
@@ -97,7 +97,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 ### Frontend (screens built mock-first — remaining work)
 - [ ] **Wire screens to real backend APIs** — replace `mock/*` fixtures with real `$fetch` behind the
       existing `composables/api/use*` interface, as each backend module lands; field-permission-aware forms
-- [ ] **Lokasi & Geografi** master-data screen (`nav.geography`) — no mockup yet; design prompt at `DESIGN_BRIEF.md` §5.21
+- [ ] **Lokasi & Geografi** — office-location **map** screen (`nav.geography`); provinces/cities already live in Referensi, so this just plots offices on a map. No mockup yet; design prompt at `DESIGN_BRIEF.md` §5.21
 - [ ] **Staff role menus** — wire staff nav (`myAssets`, staff `assignment`/`approval`) to pages/variants
 - [ ] **Google OAuth login** button + flow (UI; awaits backend `/auth/google`)
 - [ ] **Profil & Pengaturan Akun** (`nav.profile` + `nav.accountSettings`) — no mockup yet; design prompt at `DESIGN_BRIEF.md` §5.22
