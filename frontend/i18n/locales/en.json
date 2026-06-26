@@ -911,6 +911,7 @@
     "openNow": "Open now",
     "recentTitle": "Recent Searches",
     "quickTitle": "Quick Actions",
+    "clearButton": "Clear",
     "qAddAsset": "Add Asset",
     "qOpenReports": "Open Reports",
     "qCreateRequest": "Create Request",

@@ -17,3 +17,30 @@
   --color-green-900: #14532d;
   --color-green-950: #052e16;
 }
+
+/* Moving-gradient shimmer used by skeleton loaders (matches the mockup's @keyframes shimmer). */
+@keyframes shimmer {
+  0% { background-position: -500px 0; }
+  100% { background-position: 500px 0; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--ui-bg-muted) 25%,
+    var(--ui-border) 37%,
+    var(--ui-bg-muted) 63%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+/* Dark scrim behind modal overlays — intentionally dark in BOTH themes (it darkens
+   the page behind the modal); slightly deeper in dark mode. */
+:root {
+  --ui-overlay-scrim: rgba(2, 6, 23, 0.45);
+}
+
+.dark {
+  --ui-overlay-scrim: rgba(2, 6, 23, 0.6);
+}
