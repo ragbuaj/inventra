@@ -196,6 +196,284 @@
       "emptySub": "Centang aset di panel kiri untuk melihat pratinjau label."
     }
   },
+  "assignment": {
+    "title": "Penugasan Aset",
+    "subtitle": "Check-out aset ke pegawai, kembalikan, dan lihat riwayatnya.",
+    "reset": "Reset",
+    "tabs": {
+      "checkout": "Check-out",
+      "checkin": "Check-in",
+      "history": "Riwayat"
+    },
+    "status": {
+      "active": "Aktif",
+      "returned": "Dikembalikan"
+    },
+    "condition": {
+      "baik": "Baik",
+      "ringan": "Rusak Ringan",
+      "berat": "Rusak Berat"
+    },
+    "checkout": {
+      "asset": "Aset (hanya yang tersedia)",
+      "assetHint": "Hanya aset berstatus \"Tersedia\" yang dapat dipinjamkan.",
+      "assetPlaceholder": "Cari nama / kode aset…",
+      "recipient": "Pegawai Penerima",
+      "recipientPlaceholder": "Pilih pegawai…",
+      "borrowDate": "Tanggal Pinjam",
+      "condOut": "Kondisi Keluar",
+      "note": "Catatan",
+      "notePlaceholder": "mis. Dipinjam untuk dukungan acara cabang…",
+      "submit": "Check-out",
+      "errIncomplete": "Lengkapi aset, pegawai, dan tanggal pinjam.",
+      "ok": "Aset \"{name}\" berhasil di-check-out ke {holder}."
+    },
+    "checkin": {
+      "active": "Penugasan Aktif",
+      "activePlaceholder": "Pilih penugasan…",
+      "info": "Dipinjam oleh {holder} · {date}",
+      "returnDate": "Tanggal Kembali",
+      "condIn": "Kondisi Masuk",
+      "needsMaint": "Perlu maintenance",
+      "needsMaintNote": "Jika dicentang, status aset otomatis menjadi \"Maintenance\" setelah dikembalikan.",
+      "submit": "Check-in",
+      "errIncomplete": "Pilih penugasan dan isi tanggal kembali.",
+      "ok": "Aset \"{name}\" berhasil dikembalikan.",
+      "okMaint": "Aset \"{name}\" dikembalikan & ditandai perlu maintenance.",
+      "emptyTitle": "Tidak ada penugasan aktif",
+      "emptySub": "Semua aset sudah dikembalikan. Lakukan check-out terlebih dahulu."
+    },
+    "history": {
+      "searchPlaceholder": "Cari aset / pemegang…",
+      "allStatus": "Semua Status",
+      "colAsset": "Aset",
+      "colHolder": "Pemegang",
+      "colBorrow": "Tgl Pinjam",
+      "colReturn": "Tgl Kembali",
+      "colStatus": "Status",
+      "colCondition": "Kondisi",
+      "total": "Total {n} penugasan",
+      "emptyTitle": "Tidak ada riwayat",
+      "emptySub": "Belum ada penugasan yang cocok dengan filter."
+    }
+  },
+  "maintenance": {
+    "title": "Maintenance",
+    "subtitle": "Kelola jadwal, catatan perawatan, dan laporan kerusakan aset.",
+    "dueBannerTitle": "Maintenance jatuh tempo",
+    "seeSchedule": "Lihat Jadwal",
+    "makeNote": "Buat Catatan",
+    "tabs": {
+      "jadwal": "Jadwal",
+      "catatan": "Catatan",
+      "laporan": "Laporan Kerusakan"
+    },
+    "type": {
+      "preventive": "Preventive",
+      "corrective": "Corrective"
+    },
+    "status": {
+      "scheduled": "Dijadwalkan",
+      "in_progress": "Berlangsung",
+      "completed": "Selesai",
+      "cancelled": "Dibatalkan"
+    },
+    "due": {
+      "overdue": "Terlambat {n} hari",
+      "today": "Jatuh tempo hari ini",
+      "inDays": "{n} hari lagi"
+    },
+    "records": {
+      "searchPlaceholder": "Cari aset / vendor…",
+      "addNote": "Tambah Catatan",
+      "colAsset": "Aset",
+      "colType": "Tipe",
+      "colCategory": "Kategori",
+      "colDate": "Tanggal",
+      "colStatus": "Status",
+      "colCost": "Biaya",
+      "colVendor": "Vendor / Teknisi",
+      "emptyTitle": "Tidak ada catatan",
+      "emptySub": "Belum ada catatan maintenance yang cocok."
+    },
+    "report": {
+      "staffBadge": "Tampilan Staf",
+      "formTitle": "Laporkan Kerusakan Aset",
+      "asset": "Aset yang Anda pegang",
+      "problem": "Kategori Masalah",
+      "description": "Deskripsi",
+      "descPlaceholder": "Jelaskan kerusakan yang terjadi…",
+      "photo": "Foto (opsional)",
+      "photoDrop": "Klik untuk unggah foto kerusakan",
+      "selectPlaceholder": "Pilih…",
+      "submit": "Kirim Laporan",
+      "queueNote": "Laporan akan masuk antrean sebagai permintaan maintenance untuk ditinjau Manager.",
+      "submitted": "Laporan kerusakan terkirim & masuk antrean maintenance.",
+      "awaiting": "Menunggu Review",
+      "historyTitle": "Riwayat Laporan Saya",
+      "emptyTitle": "Belum ada laporan",
+      "emptySub": "Laporan kerusakan yang Anda kirim akan tampil di sini."
+    },
+    "problems": {
+      "display": "Layar / Tampilan",
+      "dead": "Mati Total / Tidak Menyala",
+      "noise": "Bunyi / Mekanis",
+      "battery": "Baterai / Daya",
+      "connectivity": "Konektivitas / Jaringan",
+      "other": "Lainnya"
+    },
+    "note": {
+      "title": "Tambah Catatan Maintenance",
+      "subtitle": "Catat tindakan perawatan untuk aset.",
+      "asset": "Aset",
+      "type": "Tipe",
+      "category": "Kategori Perawatan",
+      "date": "Tanggal",
+      "status": "Status",
+      "cost": "Biaya",
+      "vendor": "Vendor / Teknisi",
+      "description": "Deskripsi",
+      "descPlaceholder": "Rincian tindakan perawatan…"
+    }
+  },
+  "approval": {
+    "title": "Pengajuan & Approval",
+    "pending": "{n} menunggu",
+    "allTypes": "Semua Tipe",
+    "filter": {
+      "pending": "Menunggu",
+      "approved": "Disetujui",
+      "rejected": "Ditolak",
+      "all": "Semua"
+    },
+    "type": {
+      "registrasi": "Registrasi Aset",
+      "penghapusan": "Penghapusan Aset",
+      "peminjaman": "Peminjaman",
+      "maintenance": "Maintenance",
+      "valuasi": "Pengecualian Valuasi"
+    },
+    "status": {
+      "pending": "Menunggu",
+      "approved": "Disetujui",
+      "rejected": "Ditolak"
+    },
+    "action": {
+      "submitted": "Mengajukan permintaan",
+      "approved": "Menyetujui pengajuan",
+      "rejected": "Menolak pengajuan",
+      "pending": "Menunggu persetujuan Anda"
+    },
+    "sensitive": "Sensitif",
+    "sensitiveWarn": "Tindakan sensitif — pastikan Anda meninjau data dengan saksama sebelum memutuskan.",
+    "submitted": "Diajukan",
+    "dataSection": "Data Diajukan",
+    "thField": "Field",
+    "thBefore": "Sebelum",
+    "thAfter": "Sesudah",
+    "reasonSection": "Alasan Pengajuan",
+    "attachSection": "Lampiran",
+    "noAttach": "Tidak ada lampiran.",
+    "timelineSection": "Riwayat Approval",
+    "noteLabel": "Catatan (opsional)",
+    "notePlaceholder": "Tambahkan catatan untuk pengaju…",
+    "approve": "Setujui",
+    "reject": "Tolak",
+    "phTitle": "Tidak ada pengajuan dipilih",
+    "phSub": "Pilih sebuah pengajuan di panel kiri untuk meninjau detailnya.",
+    "inboxEmptyTitle": "Tidak ada pengajuan",
+    "inboxEmptySub": "Tidak ada item pada filter ini.",
+    "resultApproved": "Disetujui oleh {actor} · {date}",
+    "resultRejected": "Ditolak oleh {actor} · {date}"
+  },
+  "reports": {
+    "title": "Laporan",
+    "subtitle": "Susun dan ekspor laporan aset, depresiasi, utilisasi, dan biaya.",
+    "card": {
+      "aset": { "label": "Daftar Aset & Nilai Buku", "desc": "Inventaris lengkap dengan nilai buku" },
+      "depr": { "label": "Depresiasi per Periode", "desc": "Penyusutan nilai aset per tahun" },
+      "util": { "label": "Utilisasi / Penugasan", "desc": "Tingkat pemakaian aset" },
+      "biaya": { "label": "Biaya Maintenance", "desc": "Rekap biaya perawatan" }
+    },
+    "filter": {
+      "period": "Periode",
+      "office": "Kantor",
+      "category": "Kategori",
+      "status": "Status"
+    },
+    "period": {
+      "last30": "30 hari terakhir",
+      "thisMonth": "Bulan ini",
+      "thisQuarter": "Kuartal ini",
+      "ytd": "Tahun berjalan"
+    },
+    "allOffices": "Semua Kantor",
+    "allCategories": "Semua Kategori",
+    "allStatus": "Semua Status",
+    "apply": "Terapkan",
+    "pdf": "Ekspor PDF",
+    "excel": "Ekspor Excel",
+    "reset": "Atur Ulang Filter",
+    "exportSoon": "Ekspor akan segera tersedia.",
+    "phTitle": "Pilih kriteria laporan",
+    "phSub": "Tentukan jenis laporan dan filter di atas, lalu klik \"Terapkan\" untuk menampilkan hasil.",
+    "emptyTitle": "Tidak ada data",
+    "emptySub": "Tidak ada data yang cocok dengan filter yang dipilih. Coba ubah kategori atau status.",
+    "resultMeta": "Periode: {period} · Cabang Jakarta Selatan",
+    "total": "TOTAL",
+    "unit": { "days": "hari", "daysShort": "hari" },
+    "kpi": {
+      "assetCount": "Total Aset",
+      "assetAcq": "Total Nilai Perolehan",
+      "assetBook": "Total Nilai Buku",
+      "deprCurrent": "Penyusutan 2026",
+      "deprAccum": "Akumulasi Penyusutan",
+      "deprBook": "Sisa Nilai Buku",
+      "utilAvg": "Rata-rata Utilisasi",
+      "utilLoaned": "Aset Aktif Dipinjam",
+      "utilDays": "Total Hari Pinjam",
+      "costTotal": "Total Biaya",
+      "costPrev": "Preventive",
+      "costCorr": "Corrective"
+    },
+    "sub": {
+      "assetUnits": "unit aset",
+      "acquisition": "akumulasi perolehan",
+      "afterDeprec": "setelah penyusutan",
+      "currentYear": "tahun berjalan",
+      "endOf2026": "per akhir 2026",
+      "ofCapacity": "dari kapasitas",
+      "assetsUsed": "aset terpakai",
+      "accumulated": "akumulasi",
+      "selectedPeriod": "periode terpilih"
+    },
+    "chart": {
+      "aset": "Nilai Buku per Kategori",
+      "depr": "Penyusutan per Tahun",
+      "util": "Rata Utilisasi per Kategori",
+      "biaya": "Biaya per Kategori"
+    },
+    "col": {
+      "code": "Kode",
+      "name": "Nama Aset",
+      "category": "Kategori",
+      "buyPrice": "Harga Beli",
+      "accumDeprec": "Akum. Penyusutan",
+      "bookValue": "Nilai Buku",
+      "period": "Periode",
+      "opening": "Nilai Awal",
+      "deprec": "Penyusutan",
+      "closing": "Nilai Akhir",
+      "assetName": "Nama Aset",
+      "daysLoaned": "Hari Dipinjam",
+      "loanCount": "Jml Peminjaman",
+      "utilization": "Utilisasi",
+      "asset": "Aset",
+      "type": "Tipe",
+      "actions": "Jml Tindakan",
+      "totalCost": "Total Biaya"
+    }
+  },
   "settings": {
     "users": {
       "title": "Pengguna",

@@ -59,16 +59,16 @@ describe('AppSidebar', () => {
     expect(kantorLink).toBeDefined()
   })
 
-  it('renders a disabled item (Laporan) as non-link and not navigable', async () => {
+  it('renders a disabled item (Geografi) as non-link and not navigable', async () => {
     setupSuperadmin()
     const wrapper = await mountSuspended(AppSidebar)
     const html = wrapper.html()
-    // Laporan should appear as text somewhere
-    expect(html).toContain('Laporan')
+    // Geografi (a Master Data child, not yet built) should appear as text
+    expect(html).toContain('Geografi')
     // Must NOT be an anchor link
     const links = wrapper.findAll('a')
-    const laporanLink = links.find(a => a.text().includes('Laporan'))
-    expect(laporanLink).toBeUndefined()
+    const geoLink = links.find(a => a.text().includes('Geografi'))
+    expect(geoLink).toBeUndefined()
   })
 
   it('renders a badge count (8) for Pengajuan & Approval item', async () => {

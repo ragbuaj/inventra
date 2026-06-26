@@ -35,23 +35,23 @@ export const superadminNav: NavGroup[] = [
       {
         labelKey: 'nav.assignment',
         icon: 'i-lucide-clipboard-check',
-        disabled: true
+        to: '/assignment'
       },
       {
         labelKey: 'nav.maintenance',
         icon: 'i-lucide-wrench',
-        disabled: true
+        to: '/maintenance'
       },
       {
         labelKey: 'nav.approval',
         icon: 'i-lucide-check-square',
-        disabled: true,
+        to: '/approval',
         badgeCount: 8
       },
       {
         labelKey: 'nav.reports',
         icon: 'i-lucide-bar-chart-2',
-        disabled: true
+        to: '/reports'
       }
     ]
   },
