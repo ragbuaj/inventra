@@ -4,7 +4,7 @@ import { login } from './helpers'
 test('account: open from user menu and change password validation', async ({ page }) => {
   await login(page)
   await page.goto('/akun')
-  await expect(page.getByText('Profil & Pengaturan Akun')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Keamanan' })).toBeVisible()
   await page.getByRole('button', { name: 'Keamanan' }).click()
   const pw = page.locator('input[type="password"]')
   await pw.nth(0).fill('oldpass')

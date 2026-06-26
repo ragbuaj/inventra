@@ -2,21 +2,20 @@ import type { MapOffice, OfficeJenis } from '~/types'
 
 /**
  * Jenis → i18n label key, semantic color token, and pin/legend Tailwind classes.
- * Colors map the mockup's pins to semantic tokens:
- *   Pusat→primary, Wilayah→info, Cabang→warning, Outlet→neutral.
+ * Pin colors map the mockup's pins to semantic tokens:
+ *   Pusat→primary, Wilayah→info, Cabang→warning, Outlet→neutral (via pinVar CSS vars).
  */
 export const jenisMeta: Record<OfficeJenis, {
   labelKey: string
-  color: string // hex resolved from CSS var at runtime for the Leaflet divIcon
   pinVar: string
   softBg: string
   softText: string
   icon: string
 }> = {
-  Pusat: { labelKey: 'map.jenis.pusat', color: '', pinVar: '--pin-pusat', softBg: 'bg-primary/10', softText: 'text-primary', icon: 'i-lucide-landmark' },
-  Wilayah: { labelKey: 'map.jenis.wilayah', color: '', pinVar: '--pin-wilayah', softBg: 'bg-info/10', softText: 'text-info', icon: 'i-lucide-building-2' },
-  Cabang: { labelKey: 'map.jenis.cabang', color: '', pinVar: '--pin-cabang', softBg: 'bg-warning/10', softText: 'text-warning', icon: 'i-lucide-building' },
-  Outlet: { labelKey: 'map.jenis.outlet', color: '', pinVar: '--pin-outlet', softBg: 'bg-neutral/10', softText: 'text-dimmed', icon: 'i-lucide-store' }
+  Pusat: { labelKey: 'map.jenis.pusat', pinVar: '--pin-pusat', softBg: 'bg-primary/10', softText: 'text-primary', icon: 'i-lucide-landmark' },
+  Wilayah: { labelKey: 'map.jenis.wilayah', pinVar: '--pin-wilayah', softBg: 'bg-info/10', softText: 'text-info', icon: 'i-lucide-building-2' },
+  Cabang: { labelKey: 'map.jenis.cabang', pinVar: '--pin-cabang', softBg: 'bg-warning/10', softText: 'text-warning', icon: 'i-lucide-building' },
+  Outlet: { labelKey: 'map.jenis.outlet', pinVar: '--pin-outlet', softBg: 'bg-neutral/10', softText: 'text-dimmed', icon: 'i-lucide-store' }
 }
 
 export const JENIS_ORDER: OfficeJenis[] = ['Pusat', 'Wilayah', 'Cabang', 'Outlet']

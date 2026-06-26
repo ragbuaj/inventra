@@ -9,6 +9,8 @@ const toast = useToast()
 const colorMode = useColorMode()
 const account = useAccount()
 
+useHead({ title: t('account.title') })
+
 const tab = ref<'profil' | 'keamanan' | 'pref'>(['profil', 'keamanan', 'pref'].includes(route.query.tab as string) ? route.query.tab as 'profil' | 'keamanan' | 'pref' : 'profil')
 watch(tab, v => router.replace({ query: { ...route.query, tab: v } }))
 
@@ -29,6 +31,9 @@ const sessions = ref<AccountSession[]>([])
 
 // preferences — used by Preferensi tab (C5)
 const themePref = ref(colorMode.preference)
+watch(() => colorMode.preference, (v) => {
+  themePref.value = v
+})
 const notif = ref<NotifPrefs>(account.getNotifPrefs())
 
 onMounted(async () => {
@@ -56,11 +61,15 @@ async function changePassword() {
   secErr.newp = !newPass.value
   secErr.confirm = !confirmPass.value || confirmPass.value !== newPass.value
   if (secErr.old || secErr.newp || secErr.confirm) return
-  await account.changePassword({ oldPass: oldPass.value, newPass: newPass.value, confirmPass: confirmPass.value })
-  oldPass.value = ''
-  newPass.value = ''
-  confirmPass.value = ''
-  toast.add({ title: t('account.toastPassTitle'), description: t('account.toastPassMsg'), color: 'success' })
+  try {
+    await account.changePassword({ oldPass: oldPass.value, newPass: newPass.value, confirmPass: confirmPass.value })
+    oldPass.value = ''
+    newPass.value = ''
+    confirmPass.value = ''
+    toast.add({ title: t('account.toastPassTitle'), description: t('account.toastPassMsg'), color: 'success' })
+  } catch {
+    toast.add({ title: t('common.error'), color: 'error' })
+  }
 }
 
 async function logoutAll() {

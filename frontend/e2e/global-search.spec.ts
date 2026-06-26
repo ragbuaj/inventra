@@ -7,7 +7,7 @@ test('opens the command palette and searches', async ({ page }) => {
   const input = page.getByPlaceholder(/Cari aset, pegawai/)
   await expect(input).toBeVisible()
   await input.fill('latitude')
-  await expect(page.getByText('Aset', { exact: false })).toBeVisible()
+  await expect(page.getByText('Aset', { exact: true })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(input).toBeHidden()
 })
