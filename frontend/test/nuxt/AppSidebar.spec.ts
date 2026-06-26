@@ -59,16 +59,17 @@ describe('AppSidebar', () => {
     expect(kantorLink).toBeDefined()
   })
 
-  it('renders a disabled item (Geografi) as non-link and not navigable', async () => {
+  it('renders Peta Lokasi as a built nav link (was formerly disabled Geografi)', async () => {
     setupSuperadmin()
     const wrapper = await mountSuspended(AppSidebar)
     const html = wrapper.html()
-    // Geografi (a Master Data child, not yet built) should appear as text
-    expect(html).toContain('Geografi')
-    // Must NOT be an anchor link
+    // Peta Lokasi (office map) is now a built route under Master Data
+    expect(html).toContain('Peta Lokasi')
+    // Must appear as an anchor link to /master/map
     const links = wrapper.findAll('a')
-    const geoLink = links.find(a => a.text().includes('Geografi'))
-    expect(geoLink).toBeUndefined()
+    const mapLink = links.find(a => a.text().includes('Peta Lokasi'))
+    expect(mapLink).toBeDefined()
+    expect(mapLink!.attributes('href')).toBe('/master/map')
   })
 
   it('renders a badge count (8) for Pengajuan & Approval item', async () => {
