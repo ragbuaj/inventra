@@ -68,12 +68,16 @@ describe('AppTopbar', () => {
     expect(uiStore.sidebarCollapsed).toBe(!before)
   })
 
-  it('renders the search input with ⌘K indicator', async () => {
+  it('renders the search trigger button with ⌘K indicator', async () => {
     setupSuperadmin()
     const wrapper = await mountSuspended(AppTopbar)
     const html = wrapper.html()
     expect(html).toContain('⌘K')
-    expect(wrapper.find('input').exists()).toBe(true)
+    // GlobalSearch is now a button trigger (not an input) that opens the command palette.
+    // Prove the actual search trigger is present (the button carrying the ⌘K chip),
+    // not just any button in the topbar.
+    const searchTrigger = wrapper.findAll('button').find(b => b.text().includes('⌘K'))
+    expect(searchTrigger).toBeDefined()
   })
 
   it('renders both ID and EN language segment buttons', async () => {
