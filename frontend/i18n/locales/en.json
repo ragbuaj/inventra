@@ -336,6 +336,56 @@
       "descPlaceholder": "Details of the maintenance action…"
     }
   },
+  "approval": {
+    "title": "Requests & Approval",
+    "pending": "{n} pending",
+    "allTypes": "All Types",
+    "filter": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "all": "All"
+    },
+    "type": {
+      "registrasi": "Asset Registration",
+      "penghapusan": "Asset Disposal",
+      "peminjaman": "Lending",
+      "maintenance": "Maintenance",
+      "valuasi": "Valuation Exception"
+    },
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "action": {
+      "submitted": "Submitted the request",
+      "approved": "Approved the request",
+      "rejected": "Rejected the request",
+      "pending": "Awaiting your approval"
+    },
+    "sensitive": "Sensitive",
+    "sensitiveWarn": "Sensitive action — please review the data carefully before deciding.",
+    "submitted": "Submitted",
+    "dataSection": "Submitted Data",
+    "thField": "Field",
+    "thBefore": "Before",
+    "thAfter": "After",
+    "reasonSection": "Reason",
+    "attachSection": "Attachments",
+    "noAttach": "No attachments.",
+    "timelineSection": "Approval History",
+    "noteLabel": "Note (optional)",
+    "notePlaceholder": "Add a note for the requester…",
+    "approve": "Approve",
+    "reject": "Reject",
+    "phTitle": "No request selected",
+    "phSub": "Pick a request from the left panel to review its details.",
+    "inboxEmptyTitle": "No requests",
+    "inboxEmptySub": "No items in this filter.",
+    "resultApproved": "Approved by {actor} · {date}",
+    "resultRejected": "Rejected by {actor} · {date}"
+  },
   "settings": {
     "users": {
       "title": "Users",

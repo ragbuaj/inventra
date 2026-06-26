@@ -45,7 +45,7 @@ export const superadminNav: NavGroup[] = [
       {
         labelKey: 'nav.approval',
         icon: 'i-lucide-check-square',
-        disabled: true,
+        to: '/approval',
         badgeCount: 8
       },
       {

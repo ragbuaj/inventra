@@ -336,6 +336,56 @@
       "descPlaceholder": "Rincian tindakan perawatan…"
     }
   },
+  "approval": {
+    "title": "Pengajuan & Approval",
+    "pending": "{n} menunggu",
+    "allTypes": "Semua Tipe",
+    "filter": {
+      "pending": "Menunggu",
+      "approved": "Disetujui",
+      "rejected": "Ditolak",
+      "all": "Semua"
+    },
+    "type": {
+      "registrasi": "Registrasi Aset",
+      "penghapusan": "Penghapusan Aset",
+      "peminjaman": "Peminjaman",
+      "maintenance": "Maintenance",
+      "valuasi": "Pengecualian Valuasi"
+    },
+    "status": {
+      "pending": "Menunggu",
+      "approved": "Disetujui",
+      "rejected": "Ditolak"
+    },
+    "action": {
+      "submitted": "Mengajukan permintaan",
+      "approved": "Menyetujui pengajuan",
+      "rejected": "Menolak pengajuan",
+      "pending": "Menunggu persetujuan Anda"
+    },
+    "sensitive": "Sensitif",
+    "sensitiveWarn": "Tindakan sensitif — pastikan Anda meninjau data dengan saksama sebelum memutuskan.",
+    "submitted": "Diajukan",
+    "dataSection": "Data Diajukan",
+    "thField": "Field",
+    "thBefore": "Sebelum",
+    "thAfter": "Sesudah",
+    "reasonSection": "Alasan Pengajuan",
+    "attachSection": "Lampiran",
+    "noAttach": "Tidak ada lampiran.",
+    "timelineSection": "Riwayat Approval",
+    "noteLabel": "Catatan (opsional)",
+    "notePlaceholder": "Tambahkan catatan untuk pengaju…",
+    "approve": "Setujui",
+    "reject": "Tolak",
+    "phTitle": "Tidak ada pengajuan dipilih",
+    "phSub": "Pilih sebuah pengajuan di panel kiri untuk meninjau detailnya.",
+    "inboxEmptyTitle": "Tidak ada pengajuan",
+    "inboxEmptySub": "Tidak ada item pada filter ini.",
+    "resultApproved": "Disetujui oleh {actor} · {date}",
+    "resultRejected": "Ditolak oleh {actor} · {date}"
+  },
   "settings": {
     "users": {
       "title": "Pengguna",
