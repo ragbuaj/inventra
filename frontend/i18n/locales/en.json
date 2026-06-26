@@ -903,5 +903,30 @@
       "deleteConfirm": "Delete this room?",
       "editName": "Rename room"
     }
+  },
+  "search": {
+    "topbarPlaceholder": "Search assets, staff, offices, requests…",
+    "placeholder": "Search assets, staff, offices, requests…",
+    "hint": "Press for quick search",
+    "openNow": "Open now",
+    "recentTitle": "Recent Searches",
+    "quickTitle": "Quick Actions",
+    "qAddAsset": "Add Asset",
+    "qOpenReports": "Open Reports",
+    "qCreateRequest": "Create Request",
+    "seeAll": "See all ({n})",
+    "emptyTitle": "No results for \"{q}\"",
+    "emptySub": "Try another keyword or check the spelling.",
+    "navHint": "navigate",
+    "openHint": "open",
+    "closeHint": "close",
+    "scopeNote": "Results limited to your scope & permissions",
+    "group": {
+      "aset": "Assets",
+      "pegawai": "Employees",
+      "kantor": "Offices",
+      "user": "Users",
+      "pengajuan": "Requests"
+    }
   }
 }

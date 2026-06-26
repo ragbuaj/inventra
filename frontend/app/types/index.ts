@@ -146,3 +146,21 @@ export interface NavGroup {
   labelKey: string
   items: NavItem[]
 }
+
+export type SearchEntityType = 'aset' | 'pegawai' | 'kantor' | 'user' | 'pengajuan'
+
+export interface SearchItem {
+  type: SearchEntityType
+  title: string
+  sub: string
+  status: string | null
+  icon: string
+  to: string
+}
+
+export interface SearchGroup {
+  type: SearchEntityType
+  labelKey: string
+  total: number
+  items: SearchItem[]
+}

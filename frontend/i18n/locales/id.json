@@ -903,5 +903,30 @@
       "deleteConfirm": "Hapus ruangan ini?",
       "editName": "Ubah nama ruangan"
     }
+  },
+  "search": {
+    "topbarPlaceholder": "Cari aset, pegawai, kantor, pengajuan…",
+    "placeholder": "Cari aset, pegawai, kantor, pengajuan…",
+    "hint": "Tekan untuk pencarian cepat",
+    "openNow": "Buka sekarang",
+    "recentTitle": "Pencarian Terakhir",
+    "quickTitle": "Aksi Cepat",
+    "qAddAsset": "Tambah Aset",
+    "qOpenReports": "Buka Laporan",
+    "qCreateRequest": "Buat Pengajuan",
+    "seeAll": "Lihat semua ({n})",
+    "emptyTitle": "Tidak ada hasil untuk \"{q}\"",
+    "emptySub": "Coba kata kunci lain atau periksa ejaannya.",
+    "navHint": "navigasi",
+    "openHint": "buka",
+    "closeHint": "tutup",
+    "scopeNote": "Hasil dibatasi lingkup & izin Anda",
+    "group": {
+      "aset": "Aset",
+      "pegawai": "Pegawai",
+      "kantor": "Kantor",
+      "user": "User",
+      "pengajuan": "Pengajuan"
+    }
   }
 }
