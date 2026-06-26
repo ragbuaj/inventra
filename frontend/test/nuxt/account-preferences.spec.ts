@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
-import Akun from '~/pages/akun.vue'
+import Akun from '~/pages/account.vue'
 import { useAuthStore } from '~/stores/auth'
 
 function user() {

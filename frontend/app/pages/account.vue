@@ -11,7 +11,7 @@ const account = useAccount()
 
 useHead({ title: t('account.title') })
 
-const tab = ref<'profil' | 'keamanan' | 'pref'>(['profil', 'keamanan', 'pref'].includes(route.query.tab as string) ? route.query.tab as 'profil' | 'keamanan' | 'pref' : 'profil')
+const tab = ref<'profile' | 'security' | 'preferences'>(['profile', 'security', 'preferences'].includes(route.query.tab as string) ? route.query.tab as 'profile' | 'security' | 'preferences' : 'profile')
 watch(tab, v => router.replace({ query: { ...route.query, tab: v } }))
 
 const loading = ref(true)
@@ -50,7 +50,7 @@ async function saveProfil() {
   if (nameErr.value) return
   try {
     await account.updateProfile({ nama: fNama.value, telepon: fTelepon.value })
-    toast.add({ title: t('account.toastProfilTitle'), description: t('account.toastProfilMsg'), color: 'success' })
+    toast.add({ title: t('account.toastProfileTitle'), description: t('account.toastProfileMsg'), color: 'success' })
   } catch {
     toast.add({ title: t('common.error'), color: 'error' })
   }
@@ -188,50 +188,50 @@ const strengthLabelClass = computed(() => {
           <button
             type="button"
             class="inline-flex items-center gap-2 px-4 py-3 -mb-px text-[14px] font-medium bg-transparent border-none cursor-pointer transition-colors"
-            :class="tab === 'profil' ? 'text-primary border-b-2 border-primary' : 'text-muted hover:text-default'"
-            @click="tab = 'profil'"
+            :class="tab === 'profile' ? 'text-primary border-b-2 border-primary' : 'text-muted hover:text-default'"
+            @click="tab = 'profile'"
           >
             <UIcon
               name="i-lucide-user"
               class="size-4"
             />
-            {{ t('account.tabProfil') }}
+            {{ t('account.tabProfile') }}
           </button>
           <button
             type="button"
             class="inline-flex items-center gap-2 px-4 py-3 -mb-px text-[14px] font-medium bg-transparent border-none cursor-pointer transition-colors"
-            :class="tab === 'keamanan' ? 'text-primary border-b-2 border-primary' : 'text-muted hover:text-default'"
-            @click="tab = 'keamanan'"
+            :class="tab === 'security' ? 'text-primary border-b-2 border-primary' : 'text-muted hover:text-default'"
+            @click="tab = 'security'"
           >
             <UIcon
               name="i-lucide-shield"
               class="size-4"
             />
-            {{ t('account.tabKeamanan') }}
+            {{ t('account.tabSecurity') }}
           </button>
           <button
             type="button"
             class="inline-flex items-center gap-2 px-4 py-3 -mb-px text-[14px] font-medium bg-transparent border-none cursor-pointer transition-colors"
-            :class="tab === 'pref' ? 'text-primary border-b-2 border-primary' : 'text-muted hover:text-default'"
-            @click="tab = 'pref'"
+            :class="tab === 'preferences' ? 'text-primary border-b-2 border-primary' : 'text-muted hover:text-default'"
+            @click="tab = 'preferences'"
           >
             <UIcon
               name="i-lucide-settings-2"
               class="size-4"
             />
-            {{ t('account.tabPref') }}
+            {{ t('account.tabPreferences') }}
           </button>
         </div>
 
         <!-- TAB: PROFIL -->
         <div
-          v-if="tab === 'profil'"
+          v-if="tab === 'profile'"
           class="flex flex-col gap-[18px]"
         >
           <!-- Avatar block -->
           <div class="bg-default border border-default rounded-[14px] shadow-sm p-[18px_20px]">
             <div class="text-[13px] font-semibold mb-[14px]">
-              {{ t('account.secFoto') }}
+              {{ t('account.secPhoto') }}
             </div>
             <div class="flex items-center gap-4 flex-wrap">
               <div class="w-[60px] h-[60px] rounded-full bg-gradient-to-br from-primary to-primary/60 text-inverted flex items-center justify-center text-[22px] font-bold flex-none">
@@ -259,20 +259,20 @@ const strengthLabelClass = computed(() => {
                   {{ t('account.remove') }}
                 </button>
               </div>
-              <span class="text-[12px] text-dimmed">{{ t('account.fotoHint') }}</span>
+              <span class="text-[12px] text-dimmed">{{ t('account.photoHint') }}</span>
             </div>
           </div>
 
           <!-- Data Diri form -->
           <div class="bg-default border border-default rounded-[14px] shadow-sm p-[18px_20px]">
             <div class="text-[13px] font-semibold mb-4">
-              {{ t('account.secDiri') }}
+              {{ t('account.secPersonal') }}
             </div>
             <div class="grid grid-cols-2 gap-4">
               <!-- Full Name -->
               <div>
                 <label class="block text-[13px] font-medium mb-[6px]">
-                  {{ t('account.lNama') }} <span class="text-error">*</span>
+                  {{ t('account.lName') }} <span class="text-error">*</span>
                 </label>
                 <UInput
                   v-model="fNama"
@@ -289,7 +289,7 @@ const strengthLabelClass = computed(() => {
               <!-- Phone -->
               <div>
                 <label class="block text-[13px] font-medium mb-[6px]">
-                  {{ t('account.lTelepon') }}
+                  {{ t('account.lPhone') }}
                 </label>
                 <UInput
                   v-model="fTelepon"
@@ -326,15 +326,15 @@ const strengthLabelClass = computed(() => {
           <!-- Info Akun (read-only) -->
           <div class="bg-default border border-default rounded-[14px] shadow-sm p-[18px_20px]">
             <div class="text-[13px] font-semibold mb-1">
-              {{ t('account.secAkun') }}
+              {{ t('account.secAccount') }}
             </div>
             <div class="text-[12px] text-dimmed mb-[14px]">
-              {{ t('account.secAkunHint') }}
+              {{ t('account.secAccountHint') }}
             </div>
             <div class="grid grid-cols-2 gap-x-7 gap-y-[14px]">
               <div>
                 <div class="text-[12px] text-muted mb-[3px]">
-                  {{ t('account.iPeran') }}
+                  {{ t('account.iRole') }}
                 </div>
                 <div class="text-[14px] font-medium">
                   {{ profile?.peran }}
@@ -342,7 +342,7 @@ const strengthLabelClass = computed(() => {
               </div>
               <div>
                 <div class="text-[12px] text-muted mb-[3px]">
-                  {{ t('account.iKantor') }}
+                  {{ t('account.iOffice') }}
                 </div>
                 <div class="text-[14px] font-medium">
                   {{ profile?.kantor }}
@@ -350,7 +350,7 @@ const strengthLabelClass = computed(() => {
               </div>
               <div>
                 <div class="text-[12px] text-muted mb-[3px]">
-                  {{ t('account.iPegawai') }}
+                  {{ t('account.iEmployee') }}
                 </div>
                 <div class="text-[14px] font-medium">
                   {{ profile?.pegawai }}
@@ -394,7 +394,7 @@ const strengthLabelClass = computed(() => {
 
         <!-- TAB: KEAMANAN -->
         <div
-          v-else-if="tab === 'keamanan'"
+          v-else-if="tab === 'security'"
           class="flex flex-col gap-[18px]"
         >
           <!-- Change Password card (email login only) -->
@@ -534,7 +534,7 @@ const strengthLabelClass = computed(() => {
           <div class="bg-default border border-default rounded-[14px] shadow-sm overflow-hidden">
             <!-- Header row -->
             <div class="flex items-center justify-between gap-3 px-5 py-[15px] border-b border-default">
-              <span class="text-[13px] font-semibold">{{ t('account.secSesi') }}</span>
+              <span class="text-[13px] font-semibold">{{ t('account.secSessions') }}</span>
               <button
                 type="button"
                 class="inline-flex items-center gap-[6px] px-3 py-[7px] text-[12.5px] font-medium text-error bg-default border border-[var(--ui-border-strong)] rounded-[8px] cursor-pointer hover:bg-error/10 hover:border-transparent"
@@ -589,23 +589,23 @@ const strengthLabelClass = computed(() => {
 
         <!-- TAB: PREFERENSI -->
         <div
-          v-else-if="tab === 'pref'"
+          v-else-if="tab === 'preferences'"
           class="flex flex-col gap-[18px]"
         >
           <!-- Tampilan card -->
           <div class="bg-default border border-default rounded-[14px] shadow-sm p-[18px_20px]">
             <div class="text-[13px] font-semibold mb-4">
-              {{ t('account.secTampilan') }}
+              {{ t('account.secAppearance') }}
             </div>
             <div class="flex flex-col gap-[18px]">
               <!-- Language row -->
               <div class="flex items-center justify-between gap-4 flex-wrap">
                 <div>
                   <div class="text-[14px] font-medium">
-                    {{ t('account.lBahasa') }}
+                    {{ t('account.lLanguage') }}
                   </div>
                   <div class="text-[12px] text-muted mt-[1px]">
-                    {{ t('account.lBahasaHint') }}
+                    {{ t('account.lLanguageHint') }}
                   </div>
                 </div>
                 <div class="flex gap-[3px] p-[3px] bg-muted rounded-[9px]">
@@ -635,10 +635,10 @@ const strengthLabelClass = computed(() => {
               <div>
                 <div class="mb-[11px]">
                   <div class="text-[14px] font-medium">
-                    {{ t('account.lTema') }}
+                    {{ t('account.lTheme') }}
                   </div>
                   <div class="text-[12px] text-muted mt-[1px]">
-                    {{ t('account.lTemaHint') }}
+                    {{ t('account.lThemeHint') }}
                   </div>
                 </div>
                 <div class="grid grid-cols-3 gap-[10px] max-w-[440px]">
@@ -704,10 +704,10 @@ const strengthLabelClass = computed(() => {
           <!-- Notifikasi card -->
           <div class="bg-default border border-default rounded-[14px] shadow-sm p-[18px_20px]">
             <div class="text-[13px] font-semibold mb-1">
-              {{ t('account.secNotif') }}
+              {{ t('account.secNotifications') }}
             </div>
             <div class="text-[12px] text-dimmed mb-2">
-              {{ t('account.secNotifHint') }}
+              {{ t('account.secNotificationsHint') }}
             </div>
             <div>
               <div

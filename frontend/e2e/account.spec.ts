@@ -3,7 +3,7 @@ import { login } from './helpers'
 
 test('account: open from user menu and change password validation', async ({ page }) => {
   await login(page)
-  await page.goto('/akun')
+  await page.goto('/account')
   await expect(page.getByRole('button', { name: 'Keamanan' })).toBeVisible()
   await page.getByRole('button', { name: 'Keamanan' }).click()
   const pw = page.locator('input[type="password"]')
@@ -16,7 +16,7 @@ test('account: open from user menu and change password validation', async ({ pag
 
 test('account: switch language preference', async ({ page }) => {
   await login(page)
-  await page.goto('/akun?tab=pref')
+  await page.goto('/account?tab=preferences')
   await page.getByRole('button', { name: 'English' }).click()
   await expect(page.getByText('Appearance')).toBeVisible()
 })

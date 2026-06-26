@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
-import Akun from '~/pages/akun.vue'
+import Akun from '~/pages/account.vue'
 import { useAuthStore } from '~/stores/auth'
 
 function user() {
@@ -10,7 +10,7 @@ function user() {
 }
 
 async function mountLoaded() {
-  const w = await mountSuspended(Akun, { route: '/akun' })
+  const w = await mountSuspended(Akun, { route: '/account' })
   await new Promise(r => setTimeout(r, 500))
   await flushPromises()
   return w
