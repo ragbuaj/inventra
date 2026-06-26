@@ -10,6 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/ragbuaj/inventra/internal/audit"
 )
 
 // Generic CRUD engine for simple reference master data (flat tables of
@@ -208,17 +210,30 @@ func coerce(r resource, body map[string]any) ([]any, error) {
 
 // --- HTTP wiring ----------------------------------------------------------
 
-func registerReference(rg *gin.RouterGroup, pool *pgxpool.Pool, authMW, requireManage gin.HandlerFunc) {
+func registerReference(rg *gin.RouterGroup, pool *pgxpool.Pool, aud *audit.Service, authMW, requireManage gin.HandlerFunc) {
 	e := &refEngine{pool: pool}
 	for _, res := range referenceResources {
 		res := res
 		g := rg.Group("/" + res.Path)
 		g.GET("", authMW, func(c *gin.Context) { refList(c, e, res) })
 		g.GET("/:id", authMW, func(c *gin.Context) { refGet(c, e, res) })
-		g.POST("", authMW, requireManage, func(c *gin.Context) { refCreate(c, e, res) })
-		g.PUT("/:id", authMW, requireManage, func(c *gin.Context) { refUpdate(c, e, res) })
-		g.DELETE("/:id", authMW, requireManage, func(c *gin.Context) { refDelete(c, e, res) })
+		g.POST("", authMW, requireManage, func(c *gin.Context) { refCreate(c, e, aud, res) })
+		g.PUT("/:id", authMW, requireManage, func(c *gin.Context) { refUpdate(c, e, aud, res) })
+		g.DELETE("/:id", authMW, requireManage, func(c *gin.Context) { refDelete(c, e, aud, res) })
 	}
+}
+
+// refEntityID extracts the row's uuid from the generic result map.
+func refEntityID(m map[string]any) (uuid.UUID, bool) {
+	s, ok := m["id"].(string)
+	if !ok {
+		return uuid.Nil, false
+	}
+	id, err := uuid.Parse(s)
+	if err != nil {
+		return uuid.Nil, false
+	}
+	return id, true
 }
 
 func refList(c *gin.Context, e *refEngine, r resource) {
@@ -247,7 +262,7 @@ func refGet(c *gin.Context, e *refEngine, r resource) {
 	c.JSON(http.StatusOK, m)
 }
 
-func refCreate(c *gin.Context, e *refEngine, r resource) {
+func refCreate(c *gin.Context, e *refEngine, aud *audit.Service, r resource) {
 	var body map[string]any
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -258,10 +273,13 @@ func refCreate(c *gin.Context, e *refEngine, r resource) {
 		writeError(c, err)
 		return
 	}
+	if id, ok := refEntityID(m); ok {
+		audit.Record(c, aud, audit.ActionCreate, r.Table, id, nil, audit.Diff(nil, m))
+	}
 	c.JSON(http.StatusCreated, m)
 }
 
-func refUpdate(c *gin.Context, e *refEngine, r resource) {
+func refUpdate(c *gin.Context, e *refEngine, aud *audit.Service, r resource) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
@@ -272,18 +290,29 @@ func refUpdate(c *gin.Context, e *refEngine, r resource) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	before, err := e.get(c.Request.Context(), r, id)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
 	m, err := e.write(c.Request.Context(), r, &id, body)
 	if err != nil {
 		writeError(c, err)
 		return
 	}
+	audit.Record(c, aud, audit.ActionUpdate, r.Table, id, nil, audit.Diff(before, m))
 	c.JSON(http.StatusOK, m)
 }
 
-func refDelete(c *gin.Context, e *refEngine, r resource) {
+func refDelete(c *gin.Context, e *refEngine, aud *audit.Service, r resource) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	before, err := e.get(c.Request.Context(), r, id)
+	if err != nil {
+		writeError(c, err)
 		return
 	}
 	ok, err := e.del(c.Request.Context(), r, id)
@@ -295,5 +324,6 @@ func refDelete(c *gin.Context, e *refEngine, r resource) {
 		c.JSON(http.StatusNotFound, gin.H{"error": ErrNotFound.Error()})
 		return
 	}
+	audit.Record(c, aud, audit.ActionDelete, r.Table, id, nil, audit.Diff(before, nil))
 	c.Status(http.StatusNoContent)
 }

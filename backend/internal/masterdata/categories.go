@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/audit"
 )
 
 // --- service --------------------------------------------------------------
@@ -136,6 +137,7 @@ func (r categoryRequest) toInput() (categoryInput, error) {
 
 type categoryHandler struct {
 	svc *categoryService
+	aud *audit.Service
 }
 
 func (h *categoryHandler) list(c *gin.Context) {
@@ -190,6 +192,7 @@ func (h *categoryHandler) create(c *gin.Context) {
 		writeError(c, err)
 		return
 	}
+	audit.Record(c, h.aud, audit.ActionCreate, "categories", cat.ID, nil, audit.Diff(nil, toCategoryResponse(cat)))
 	c.JSON(http.StatusCreated, toCategoryResponse(cat))
 }
 
@@ -209,11 +212,17 @@ func (h *categoryHandler) update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	cur, err := h.svc.q.GetCategory(c.Request.Context(), id)
+	if err != nil {
+		writeError(c, mapDBError(err))
+		return
+	}
 	cat, err := h.svc.update(c.Request.Context(), id, in)
 	if err != nil {
 		writeError(c, err)
 		return
 	}
+	audit.Record(c, h.aud, audit.ActionUpdate, "categories", cat.ID, nil, audit.Diff(toCategoryResponse(cur), toCategoryResponse(cat)))
 	c.JSON(http.StatusOK, toCategoryResponse(cat))
 }
 
@@ -221,6 +230,11 @@ func (h *categoryHandler) delete(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	cur, err := h.svc.q.GetCategory(c.Request.Context(), id)
+	if err != nil {
+		writeError(c, mapDBError(err))
 		return
 	}
 	n, err := h.svc.q.SoftDeleteCategory(c.Request.Context(), id)
@@ -232,13 +246,14 @@ func (h *categoryHandler) delete(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": ErrNotFound.Error()})
 		return
 	}
+	audit.Record(c, h.aud, audit.ActionDelete, "categories", id, nil, audit.Diff(toCategoryResponse(cur), nil))
 	c.Status(http.StatusNoContent)
 }
 
 // --- routes ---------------------------------------------------------------
 
-func registerCategories(rg *gin.RouterGroup, q *sqlc.Queries, authMW, requireManage gin.HandlerFunc) {
-	h := &categoryHandler{svc: &categoryService{q: q}}
+func registerCategories(rg *gin.RouterGroup, q *sqlc.Queries, aud *audit.Service, authMW, requireManage gin.HandlerFunc) {
+	h := &categoryHandler{svc: &categoryService{q: q}, aud: aud}
 	g := rg.Group("/categories")
 	g.GET("", authMW, h.list)
 	g.GET("/:id", authMW, h.get)

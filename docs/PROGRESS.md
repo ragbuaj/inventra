@@ -86,7 +86,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 - [ ] **Indexing / scale** — start with Postgres full-text search (`tsvector` columns + GIN indexes, `unaccent` for accent-insensitive matching) per searchable entity; graduate to a dedicated engine (Meilisearch / Typesense / Elasticsearch) — populated by the scheduler/CDC — when volume, ranking, and typo-tolerance demand it (shares the indexing story with *Analytics / OLAP* above).
 
 ### Backend — Cross-cutting (not yet implemented)
-- [ ] **Audit logging** — centralized writes to `audit_logs` on every mutation (table exists, writer not wired); audit view endpoints
+- [x] **Audit logging** — `internal/audit` writer wired into every masterdata + user mutation (create/update/delete) with before/after diffs; office-scoped, filterable `GET /api/v1/audit` (gated by `audit.view`); migration 000014 adds `audit_logs.office_id`
 - [ ] **Google OAuth2 login** — `/auth/google` + callback + account linking (currently local-only)
 - [ ] **Password reset / email verification** — Redis-TTL tokens (+ email later)
 - [ ] **Rate limiting** — login anti-brute-force + throttling (Redis)

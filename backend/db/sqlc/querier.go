@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	CountAuditLogs(ctx context.Context, arg CountAuditLogsParams) (int64, error)
 	CountCategories(ctx context.Context, search string) (int64, error)
 	CountEmployees(ctx context.Context, arg CountEmployeesParams) (int64, error)
 	CountFloorsByOffice(ctx context.Context, arg CountFloorsByOfficeParams) (int64, error)
@@ -35,6 +36,12 @@ type Querier interface {
 	GetRoom(ctx context.Context, arg GetRoomParams) (MasterdataRoom, error)
 	GetUserByEmail(ctx context.Context, email string) (IdentityUser, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (IdentityUser, error)
+	// Audit log: append-only writes + an office-scoped, filterable read model.
+	// all_scope bypasses the office filter (global scope); otherwise only rows whose
+	// office_id is in office_ids are returned. NULL-office (global) rows are visible
+	// only to all-scope callers.
+	InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) (AuditAuditLog, error)
+	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]ListAuditLogsRow, error)
 	// Asset category master data (masterdata.categories). Respects soft delete.
 	ListCategories(ctx context.Context, arg ListCategoriesParams) ([]MasterdataCategory, error)
 	ListDataScopePolicies(ctx context.Context, roleID uuid.UUID) ([]IdentityDataScopePolicy, error)

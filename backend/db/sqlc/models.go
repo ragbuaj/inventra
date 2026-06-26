@@ -631,6 +631,7 @@ type AuditAuditLog struct {
 	Changes    []byte             `json:"changes"`
 	Ip         *string            `json:"ip"`
 	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	OfficeID   *uuid.UUID         `json:"office_id"`
 }
 
 type DepreciationDepreciationEntry struct {

@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/authz"
 )
 
@@ -136,6 +137,7 @@ func (h *officeHandler) create(c *gin.Context) {
 		writeError(c, mapDBError(err))
 		return
 	}
+	audit.Record(c, h.aud, audit.ActionCreate, "offices", o.ID, &o.ID, audit.Diff(nil, toOfficeResponse(o)))
 	c.JSON(http.StatusCreated, toOfficeResponse(o))
 }
 
@@ -185,6 +187,7 @@ func (h *officeHandler) update(c *gin.Context) {
 		writeError(c, mapDBError(err))
 		return
 	}
+	audit.Record(c, h.aud, audit.ActionUpdate, "offices", o.ID, &o.ID, audit.Diff(toOfficeResponse(cur), toOfficeResponse(o)))
 	c.JSON(http.StatusOK, toOfficeResponse(o))
 }
 
@@ -199,6 +202,12 @@ func (h *officeHandler) delete(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
 		return
 	}
+	// Fetch within scope first so we can audit the removed row (and confirm access).
+	cur, err := h.q.GetOffice(c.Request.Context(), sqlc.GetOfficeParams{ID: id, AllScope: all, OfficeIds: ids})
+	if err != nil {
+		writeError(c, mapDBError(err))
+		return
+	}
 	n, err := h.q.SoftDeleteOffice(c.Request.Context(), sqlc.SoftDeleteOfficeParams{ID: id, AllScope: all, OfficeIds: ids})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete"})
@@ -208,11 +217,12 @@ func (h *officeHandler) delete(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": ErrNotFound.Error()})
 		return
 	}
+	audit.Record(c, h.aud, audit.ActionDelete, "offices", id, &id, audit.Diff(toOfficeResponse(cur), nil))
 	c.Status(http.StatusNoContent)
 }
 
-func registerOffices(rg *gin.RouterGroup, q *sqlc.Queries, scope *authz.ScopeService, authMW, requireManage gin.HandlerFunc) {
-	h := &officeHandler{scopedDeps{q: q, scope: scope}}
+func registerOffices(rg *gin.RouterGroup, q *sqlc.Queries, scope *authz.ScopeService, aud *audit.Service, authMW, requireManage gin.HandlerFunc) {
+	h := &officeHandler{scopedDeps{q: q, scope: scope, aud: aud}}
 	g := rg.Group("/offices")
 	g.GET("", authMW, h.list)
 	g.GET("/:id", authMW, h.get)

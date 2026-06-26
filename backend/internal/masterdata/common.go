@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/middleware"
 )
@@ -29,16 +30,16 @@ var (
 
 // RegisterRoutes mounts all master-data endpoints. Read is open to any
 // authenticated user; writes require the masterdata.global.manage permission.
-func RegisterRoutes(rg *gin.RouterGroup, q *sqlc.Queries, pool *pgxpool.Pool, permSvc *authz.PermissionService, scopeSvc *authz.ScopeService, authMW gin.HandlerFunc) {
+func RegisterRoutes(rg *gin.RouterGroup, q *sqlc.Queries, pool *pgxpool.Pool, permSvc *authz.PermissionService, scopeSvc *authz.ScopeService, aud *audit.Service, authMW gin.HandlerFunc) {
 	globalManage := middleware.RequirePermission(permSvc, "masterdata.global.manage")
 	officeManage := middleware.RequirePermission(permSvc, "masterdata.office.manage")
 
-	registerCategories(rg, q, authMW, globalManage)
-	registerReference(rg, pool, authMW, globalManage)
-	registerOffices(rg, q, scopeSvc, authMW, officeManage)
-	registerFloors(rg, q, scopeSvc, authMW, officeManage)
-	registerRooms(rg, q, scopeSvc, authMW, officeManage)
-	registerEmployees(rg, q, scopeSvc, authMW, officeManage)
+	registerCategories(rg, q, aud, authMW, globalManage)
+	registerReference(rg, pool, aud, authMW, globalManage)
+	registerOffices(rg, q, scopeSvc, aud, authMW, officeManage)
+	registerFloors(rg, q, scopeSvc, aud, authMW, officeManage)
+	registerRooms(rg, q, scopeSvc, aud, authMW, officeManage)
+	registerEmployees(rg, q, scopeSvc, aud, authMW, officeManage)
 }
 
 // --- shared helpers -------------------------------------------------------

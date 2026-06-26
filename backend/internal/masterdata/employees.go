@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/authz"
 )
 
@@ -142,6 +143,7 @@ func (h *employeeHandler) create(c *gin.Context) {
 		writeError(c, mapDBError(err))
 		return
 	}
+	audit.Record(c, h.aud, audit.ActionCreate, "employees", e.ID, &e.OfficeID, audit.Diff(nil, toEmployeeResponse(e)))
 	c.JSON(http.StatusCreated, toEmployeeResponse(e))
 }
 
@@ -166,6 +168,11 @@ func (h *employeeHandler) update(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "employee office must be within your scope"})
 		return
 	}
+	cur, err := h.q.GetEmployee(c.Request.Context(), sqlc.GetEmployeeParams{ID: id, AllScope: all, OfficeIds: ids})
+	if err != nil {
+		writeError(c, mapDBError(err))
+		return
+	}
 	dept, _ := parseUUIDPtr(req.DepartmentID)
 	pos, _ := parseUUIDPtr(req.PositionID)
 	e, err := h.q.UpdateEmployee(c.Request.Context(), sqlc.UpdateEmployeeParams{
@@ -185,6 +192,7 @@ func (h *employeeHandler) update(c *gin.Context) {
 		writeError(c, mapDBError(err))
 		return
 	}
+	audit.Record(c, h.aud, audit.ActionUpdate, "employees", e.ID, &e.OfficeID, audit.Diff(toEmployeeResponse(cur), toEmployeeResponse(e)))
 	c.JSON(http.StatusOK, toEmployeeResponse(e))
 }
 
@@ -199,6 +207,11 @@ func (h *employeeHandler) delete(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
 		return
 	}
+	cur, err := h.q.GetEmployee(c.Request.Context(), sqlc.GetEmployeeParams{ID: id, AllScope: all, OfficeIds: ids})
+	if err != nil {
+		writeError(c, mapDBError(err))
+		return
+	}
 	n, err := h.q.SoftDeleteEmployee(c.Request.Context(), sqlc.SoftDeleteEmployeeParams{ID: id, AllScope: all, OfficeIds: ids})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete"})
@@ -208,11 +221,12 @@ func (h *employeeHandler) delete(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": ErrNotFound.Error()})
 		return
 	}
+	audit.Record(c, h.aud, audit.ActionDelete, "employees", id, &cur.OfficeID, audit.Diff(toEmployeeResponse(cur), nil))
 	c.Status(http.StatusNoContent)
 }
 
-func registerEmployees(rg *gin.RouterGroup, q *sqlc.Queries, scope *authz.ScopeService, authMW, requireManage gin.HandlerFunc) {
-	h := &employeeHandler{scopedDeps{q: q, scope: scope}}
+func registerEmployees(rg *gin.RouterGroup, q *sqlc.Queries, scope *authz.ScopeService, aud *audit.Service, authMW, requireManage gin.HandlerFunc) {
+	h := &employeeHandler{scopedDeps{q: q, scope: scope, aud: aud}}
 	g := rg.Group("/employees")
 	g.GET("", authMW, h.list)
 	g.GET("/:id", authMW, h.get)
