@@ -74,6 +74,17 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 - [ ] **Reporting/Dashboard read from OLAP** — scoped by office (reuse data-scope on dimension keys), keeping report queries cheap and OLTP writes fast. Keep the read API stable so the backing store can change transparently.
 - [ ] **Escalation path (only if needed)** — a column-store / external OLAP engine (e.g. DuckDB or ClickHouse) for very large volumes; introduce only when materialized views + fact tables on Postgres stop scaling.
 
+### Global search (topbar)
+
+> The topbar has a global-search input (placeholder wired in the app shell) but no backend. Plan a
+> cross-entity **command palette** (⌘K) that searches assets, employees, offices, users, and requests,
+> **respecting the caller's data-scope + field-permission**, returning typed/grouped results that
+> deep-link to the record.
+
+- [ ] **Frontend — command palette** — overlay opened by ⌘K or the topbar input: debounced query, results grouped by type (Aset, Pegawai, Kantor, User, Pengajuan) each with icon + deep link, keyboard navigation, recent searches, empty/loading states. Backed by `composables/api/useSearch` (mock first, then real).
+- [ ] **Backend `/search?q=&types=`** — fan-out across modules, **scope-filtered** (reuse `callerOfficeScope`) and **field-permission-aware**; return typed hits `{ type, id, title, subtitle, url }` with a small per-type limit + "more" counts.
+- [ ] **Indexing / scale** — start with Postgres full-text search (`tsvector` columns + GIN indexes, `unaccent` for accent-insensitive matching) per searchable entity; graduate to a dedicated engine (Meilisearch / Typesense / Elasticsearch) — populated by the scheduler/CDC — when volume, ranking, and typo-tolerance demand it (shares the indexing story with *Analytics / OLAP* above).
+
 ### Backend — Cross-cutting (not yet implemented)
 - [ ] **Audit logging** — centralized writes to `audit_logs` on every mutation (table exists, writer not wired); audit view endpoints
 - [ ] **Google OAuth2 login** — `/auth/google` + callback + account linking (currently local-only)
