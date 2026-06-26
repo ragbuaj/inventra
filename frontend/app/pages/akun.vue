@@ -68,19 +68,21 @@ async function logoutAll() {
   toast.add({ title: t('account.toastLogoutTitle'), description: t('account.toastLogoutMsg'), color: 'success' })
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function setTheme(pref: 'light' | 'dark' | 'system') {
   themePref.value = pref
   colorMode.preference = pref
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function toggleNotif(k: keyof NotifPrefs) {
   notif.value = { ...notif.value, [k]: !notif.value[k] }
   account.setNotifPrefs(notif.value)
 }
 
-const _setLocale = setLocale
+const notifItems = computed(() => [
+  { key: 'approval' as keyof NotifPrefs, icon: 'i-lucide-check-circle', label: t('account.notifApproval'), desc: t('account.notifApprovalDesc'), iconBg: 'bg-primary/10', iconColor: 'text-primary' },
+  { key: 'maint' as keyof NotifPrefs, icon: 'i-lucide-wrench', label: t('account.notifMaint'), desc: t('account.notifMaintDesc'), iconBg: 'bg-warning/10', iconColor: 'text-warning' },
+  { key: 'assign' as keyof NotifPrefs, icon: 'i-lucide-package', label: t('account.notifAssign'), desc: t('account.notifAssignDesc'), iconBg: 'bg-info/10', iconColor: 'text-info' }
+])
 
 const initials = computed(() => {
   const n = (profile.value?.nama ?? '').trim().split(/\s+/)
@@ -576,8 +578,173 @@ const strengthLabelClass = computed(() => {
           </div>
         </div>
 
-        <!-- TAB: PREFERENSI — template filled in C5 -->
-        <div v-else-if="tab === 'pref'" />
+        <!-- TAB: PREFERENSI -->
+        <div
+          v-else-if="tab === 'pref'"
+          class="flex flex-col gap-[18px]"
+        >
+          <!-- Tampilan card -->
+          <div class="bg-default border border-default rounded-[14px] shadow-sm p-[18px_20px]">
+            <div class="text-[13px] font-semibold mb-4">
+              {{ t('account.secTampilan') }}
+            </div>
+            <div class="flex flex-col gap-[18px]">
+              <!-- Language row -->
+              <div class="flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <div class="text-[14px] font-medium">
+                    {{ t('account.lBahasa') }}
+                  </div>
+                  <div class="text-[12px] text-muted mt-[1px]">
+                    {{ t('account.lBahasaHint') }}
+                  </div>
+                </div>
+                <div class="flex gap-[3px] p-[3px] bg-muted rounded-[9px]">
+                  <button
+                    type="button"
+                    class="px-[14px] py-[6px] text-[13px] font-semibold rounded-[7px] border-none cursor-pointer transition-colors"
+                    :class="locale === 'id' ? 'bg-default text-default shadow-sm' : 'bg-transparent text-muted hover:text-default'"
+                    @click="setLocale('id')"
+                  >
+                    Indonesia
+                  </button>
+                  <button
+                    type="button"
+                    class="px-[14px] py-[6px] text-[13px] font-semibold rounded-[7px] border-none cursor-pointer transition-colors"
+                    :class="locale === 'en' ? 'bg-default text-default shadow-sm' : 'bg-transparent text-muted hover:text-default'"
+                    @click="setLocale('en')"
+                  >
+                    English
+                  </button>
+                </div>
+              </div>
+
+              <!-- Divider -->
+              <div class="h-px bg-default" />
+
+              <!-- Theme row -->
+              <div>
+                <div class="mb-[11px]">
+                  <div class="text-[14px] font-medium">
+                    {{ t('account.lTema') }}
+                  </div>
+                  <div class="text-[12px] text-muted mt-[1px]">
+                    {{ t('account.lTemaHint') }}
+                  </div>
+                </div>
+                <div class="grid grid-cols-3 gap-[10px] max-w-[440px]">
+                  <button
+                    type="button"
+                    class="flex flex-col items-center gap-2 p-[14px_10px] rounded-[11px] border-[1.5px] cursor-pointer transition-colors"
+                    :class="themePref === 'light' ? 'border-primary bg-primary/5' : 'border-default bg-default hover:border-primary/40'"
+                    @click="setTheme('light')"
+                  >
+                    <UIcon
+                      name="i-lucide-sun"
+                      class="size-5"
+                      :class="themePref === 'light' ? 'text-primary' : 'text-muted'"
+                    />
+                    <span
+                      class="text-[12.5px] font-semibold"
+                      :class="themePref === 'light' ? 'text-primary' : 'text-muted'"
+                    >
+                      {{ t('account.themeLight') }}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    class="flex flex-col items-center gap-2 p-[14px_10px] rounded-[11px] border-[1.5px] cursor-pointer transition-colors"
+                    :class="themePref === 'dark' ? 'border-primary bg-primary/5' : 'border-default bg-default hover:border-primary/40'"
+                    @click="setTheme('dark')"
+                  >
+                    <UIcon
+                      name="i-lucide-moon"
+                      class="size-5"
+                      :class="themePref === 'dark' ? 'text-primary' : 'text-muted'"
+                    />
+                    <span
+                      class="text-[12.5px] font-semibold"
+                      :class="themePref === 'dark' ? 'text-primary' : 'text-muted'"
+                    >
+                      {{ t('account.themeDark') }}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    class="flex flex-col items-center gap-2 p-[14px_10px] rounded-[11px] border-[1.5px] cursor-pointer transition-colors"
+                    :class="themePref === 'system' ? 'border-primary bg-primary/5' : 'border-default bg-default hover:border-primary/40'"
+                    @click="setTheme('system')"
+                  >
+                    <UIcon
+                      name="i-lucide-monitor"
+                      class="size-5"
+                      :class="themePref === 'system' ? 'text-primary' : 'text-muted'"
+                    />
+                    <span
+                      class="text-[12.5px] font-semibold"
+                      :class="themePref === 'system' ? 'text-primary' : 'text-muted'"
+                    >
+                      {{ t('account.themeSystem') }}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notifikasi card -->
+          <div class="bg-default border border-default rounded-[14px] shadow-sm p-[18px_20px]">
+            <div class="text-[13px] font-semibold mb-1">
+              {{ t('account.secNotif') }}
+            </div>
+            <div class="text-[12px] text-dimmed mb-2">
+              {{ t('account.secNotifHint') }}
+            </div>
+            <div>
+              <div
+                v-for="item in notifItems"
+                :key="item.key"
+                class="flex items-center justify-between gap-[14px] py-[13px] border-b border-default last:border-b-0"
+              >
+                <div class="flex items-center gap-[11px]">
+                  <span
+                    class="w-[34px] h-[34px] rounded-[9px] flex items-center justify-center flex-none"
+                    :class="item.iconBg"
+                  >
+                    <UIcon
+                      :name="item.icon"
+                      class="size-[17px]"
+                      :class="item.iconColor"
+                    />
+                  </span>
+                  <div>
+                    <div class="text-[13.5px] font-medium">
+                      {{ item.label }}
+                    </div>
+                    <div class="text-[12px] text-muted">
+                      {{ item.desc }}
+                    </div>
+                  </div>
+                </div>
+                <!-- Toggle switch -->
+                <button
+                  type="button"
+                  role="switch"
+                  :aria-checked="notif[item.key]"
+                  :data-testid="`notif-${item.key}`"
+                  class="relative w-[42px] h-[24px] rounded-full border-none cursor-pointer flex-none transition-colors"
+                  :class="notif[item.key] ? 'bg-primary' : 'bg-muted'"
+                  @click="toggleNotif(item.key)"
+                >
+                  <span
+                    class="absolute top-[3px] w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-all"
+                    :class="notif[item.key] ? 'left-[21px]' : 'left-[3px]'"
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </template>
     </div>
   </div>
