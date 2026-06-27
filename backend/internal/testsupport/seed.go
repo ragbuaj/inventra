@@ -9,6 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ragbuaj/inventra/db/sqlc"
 )
 
 // OfficeTree holds the IDs seeded by SeedOfficeTree. Shape:
@@ -51,4 +53,24 @@ func SeedOfficeTree(t *testing.T, pool *pgxpool.Pool) OfficeTree {
 	tree.Wilayah2 = ins("Wilayah 2", "W2", &tree.Pusat)
 	tree.Cabang2 = ins("Cabang 2", "C2", &tree.Wilayah2)
 	return tree
+}
+
+// SeedRole inserts an identity.roles row and returns its id.
+func SeedRole(t *testing.T, pool *pgxpool.Pool, code string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO identity.roles (code, name) VALUES ($1, $1) RETURNING id`,
+		code).Scan(&id))
+	return id
+}
+
+// SeedScopePolicy inserts an identity.data_scope_policies row for a role.
+func SeedScopePolicy(t *testing.T, pool *pgxpool.Pool, roleID uuid.UUID, module string, level sqlc.SharedScopeLevel) {
+	t.Helper()
+	_, err := pool.Exec(context.Background(),
+		`INSERT INTO identity.data_scope_policies (role_id, module, scope_level)
+		 VALUES ($1, $2, $3)`,
+		roleID, module, string(level))
+	require.NoError(t, err)
 }
