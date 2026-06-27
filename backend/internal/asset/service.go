@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	sqlc "github.com/ragbuaj/inventra/db/sqlc"
@@ -66,4 +68,77 @@ func (s *Service) GenerateAssetTag(ctx context.Context, qtx *sqlc.Queries, offic
 		return "", err
 	}
 	return formatAssetTag(officeCode, *categoryCode, int(year), int64(seq)), nil
+}
+
+// mapDBError translates pgx/Postgres errors into package sentinel errors.
+func mapDBError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		switch pgErr.Code {
+		case "23505":
+			return ErrConflict
+		case "23503":
+			return ErrInvalidRef
+		case "23514":
+			return ErrRoomRequired
+		}
+	}
+	return err
+}
+
+// ListInput holds the parameters for a scoped asset list query.
+type ListInput struct {
+	Search       *string
+	CategoryID   *uuid.UUID
+	OfficeFilter *uuid.UUID
+	Status       *sqlc.SharedAssetStatus
+	AssetClass   *sqlc.SharedAssetClass
+	Limit, Offset int32
+	AllScope     bool
+	OfficeIDs    []uuid.UUID
+}
+
+// List returns a page of assets matching the given filters, scoped to the
+// caller's office set, along with the total unfiltered count.
+func (s *Service) List(ctx context.Context, in ListInput) ([]sqlc.AssetAsset, int64, error) {
+	rows, err := s.q.ListAssets(ctx, sqlc.ListAssetsParams{
+		AllScope:     in.AllScope,
+		OfficeIds:    in.OfficeIDs,
+		Search:       in.Search,
+		CategoryID:   in.CategoryID,
+		OfficeFilter: in.OfficeFilter,
+		Status:       in.Status,
+		AssetClass:   in.AssetClass,
+		Off:          in.Offset,
+		Lim:          in.Limit,
+	})
+	if err != nil {
+		return nil, 0, mapDBError(err)
+	}
+	total, err := s.q.CountAssets(ctx, sqlc.CountAssetsParams{
+		AllScope:     in.AllScope,
+		OfficeIds:    in.OfficeIDs,
+		Search:       in.Search,
+		CategoryID:   in.CategoryID,
+		OfficeFilter: in.OfficeFilter,
+		Status:       in.Status,
+		AssetClass:   in.AssetClass,
+	})
+	if err != nil {
+		return nil, 0, mapDBError(err)
+	}
+	return rows, total, nil
+}
+
+// Get returns a single asset by ID, or ErrNotFound if it does not exist or is
+// soft-deleted.
+func (s *Service) Get(ctx context.Context, id uuid.UUID) (sqlc.AssetAsset, error) {
+	a, err := s.q.GetAsset(ctx, id)
+	return a, mapDBError(err)
 }
