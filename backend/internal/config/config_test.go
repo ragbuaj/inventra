@@ -22,3 +22,28 @@ func TestLoadLoggingFromEnv(t *testing.T) {
 		t.Fatalf("env not applied: level=%q format=%q", cfg.LogLevel, cfg.LogFormat)
 	}
 }
+
+func TestLoadRateLimitDefaults(t *testing.T) {
+	t.Setenv("RATELIMIT_ENABLED", "")
+	t.Setenv("RATELIMIT_GLOBAL_PER_MIN", "")
+	cfg := Load()
+	if !cfg.RateLimitEnabled {
+		t.Fatal("RateLimitEnabled default should be true")
+	}
+	if cfg.RateLimitGlobalPerMin != 120 || cfg.RateLimitLoginPerMin != 5 ||
+		cfg.RateLimitLoginIPPerMin != 20 || cfg.RateLimitRefreshPerMin != 30 || cfg.RateLimitTimeoutMS != 50 {
+		t.Fatalf("unexpected rate-limit defaults: %+v", cfg)
+	}
+}
+
+func TestLoadRateLimitFromEnv(t *testing.T) {
+	t.Setenv("RATELIMIT_ENABLED", "false")
+	t.Setenv("RATELIMIT_LOGIN_PER_MIN", "9")
+	cfg := Load()
+	if cfg.RateLimitEnabled {
+		t.Fatal("RATELIMIT_ENABLED=false not applied")
+	}
+	if cfg.RateLimitLoginPerMin != 9 {
+		t.Fatalf("RATELIMIT_LOGIN_PER_MIN: %d", cfg.RateLimitLoginPerMin)
+	}
+}

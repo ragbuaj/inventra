@@ -52,6 +52,14 @@ type Config struct {
 	// Logging (ADR-0002).
 	LogLevel  string
 	LogFormat string
+
+	// Rate limiting (ADR-0004).
+	RateLimitEnabled       bool
+	RateLimitTimeoutMS     int
+	RateLimitGlobalPerMin  int
+	RateLimitLoginPerMin   int
+	RateLimitLoginIPPerMin int
+	RateLimitRefreshPerMin int
 }
 
 // Load reads configuration from the environment, applying sensible development
@@ -92,6 +100,13 @@ func Load() *Config {
 
 		LogLevel:  getEnv("LOG_LEVEL", "info"),
 		LogFormat: getEnv("LOG_FORMAT", ""),
+
+		RateLimitEnabled:       getEnvBool("RATELIMIT_ENABLED", true),
+		RateLimitTimeoutMS:     getEnvInt("RATELIMIT_TIMEOUT_MS", 50),
+		RateLimitGlobalPerMin:  getEnvInt("RATELIMIT_GLOBAL_PER_MIN", 120),
+		RateLimitLoginPerMin:   getEnvInt("RATELIMIT_LOGIN_PER_MIN", 5),
+		RateLimitLoginIPPerMin: getEnvInt("RATELIMIT_LOGIN_IP_PER_MIN", 20),
+		RateLimitRefreshPerMin: getEnvInt("RATELIMIT_REFRESH_PER_MIN", 30),
 	}
 }
 
