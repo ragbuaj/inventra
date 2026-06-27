@@ -262,6 +262,12 @@ roughly one resource/sub-feature at a time (see git history: offices, then floor
   `go test ./...`, and the Spectral lint. For frontend changes: `pnpm lint`, `pnpm typecheck`,
   `pnpm test`, `pnpm build`. These are exactly what CI enforces; don't claim done without running them.
   (E2E `pnpm test:e2e` needs the backend stack up + a seeded admin; CI runs it in the separate `e2e` job.)
+- **Always update `docs/PROGRESS.md` when a task lands** — part of "done", not optional. After completing
+  and verifying a feature/task (in the same commit/PR that finishes it), tick the matching checkbox
+  (`[ ]` → `[x]`) with a one-line note and PR number where relevant, and refresh the **"▶ Next session —
+  start here"** block to point at the next real step. PROGRESS.md is the source of truth for *what's built
+  vs. left*; never let it drift from the actual code. Before claiming a screen/module already exists,
+  verify against the repo (files/routes/migrations), not the checklist — the checklist can lag.
 
 ## Conventions
 
