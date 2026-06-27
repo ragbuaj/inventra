@@ -6,6 +6,8 @@ CREATE SCHEMA IF NOT EXISTS depreciation;
 CREATE TABLE depreciation.depreciation_entries (
   id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   asset_id            uuid NOT NULL REFERENCES asset.assets (id),
+  -- Bank fixed-asset (PRD v1.1): commercial (PSAK 16) and fiscal (PMK 72/2023) bases coexist.
+  basis               shared.depreciation_basis NOT NULL DEFAULT 'commercial',
   period              date NOT NULL,
   opening_value       numeric(18,2) NOT NULL,
   depreciation_amount numeric(18,2) NOT NULL,
@@ -15,7 +17,7 @@ CREATE TABLE depreciation.depreciation_entries (
   updated_at          timestamptz NOT NULL DEFAULT now(),
   deleted_at          timestamptz
 );
-CREATE UNIQUE INDEX uq_depr_asset_period ON depreciation.depreciation_entries (asset_id, period) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX uq_depr_asset_period ON depreciation.depreciation_entries (asset_id, basis, period) WHERE deleted_at IS NULL;
 CREATE INDEX idx_depr_asset_id ON depreciation.depreciation_entries (asset_id);
 CREATE TRIGGER trg_depr_set_updated BEFORE UPDATE ON depreciation.depreciation_entries
   FOR EACH ROW EXECUTE FUNCTION shared.set_updated_at();

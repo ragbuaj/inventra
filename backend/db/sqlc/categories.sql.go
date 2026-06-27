@@ -31,9 +31,11 @@ func (q *Queries) CountCategories(ctx context.Context, search string) (int64, er
 const createCategory = `-- name: CreateCategory :one
 INSERT INTO masterdata.categories (
   name, code, parent_id, default_depreciation_method,
-  default_useful_life_months, default_salvage_rate, is_active
-) VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, name, code, parent_id, default_depreciation_method, default_useful_life_months, default_salvage_rate, is_active, created_at, updated_at, deleted_at
+  default_useful_life_months, default_salvage_rate,
+  asset_class, default_fiscal_group, default_fiscal_life_months,
+  gl_account_code, capitalization_threshold, is_active
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+RETURNING id, name, code, parent_id, default_depreciation_method, default_useful_life_months, default_salvage_rate, asset_class, default_fiscal_group, default_fiscal_life_months, gl_account_code, capitalization_threshold, is_active, created_at, updated_at, deleted_at
 `
 
 type CreateCategoryParams struct {
@@ -43,6 +45,11 @@ type CreateCategoryParams struct {
 	DefaultDepreciationMethod *SharedDepreciationMethod `json:"default_depreciation_method"`
 	DefaultUsefulLifeMonths   *int32                    `json:"default_useful_life_months"`
 	DefaultSalvageRate        *string                   `json:"default_salvage_rate"`
+	AssetClass                SharedAssetClass          `json:"asset_class"`
+	DefaultFiscalGroup        *SharedFiscalAssetGroup   `json:"default_fiscal_group"`
+	DefaultFiscalLifeMonths   *int32                    `json:"default_fiscal_life_months"`
+	GlAccountCode             *string                   `json:"gl_account_code"`
+	CapitalizationThreshold   *string                   `json:"capitalization_threshold"`
 	IsActive                  bool                      `json:"is_active"`
 }
 
@@ -54,6 +61,11 @@ func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) 
 		arg.DefaultDepreciationMethod,
 		arg.DefaultUsefulLifeMonths,
 		arg.DefaultSalvageRate,
+		arg.AssetClass,
+		arg.DefaultFiscalGroup,
+		arg.DefaultFiscalLifeMonths,
+		arg.GlAccountCode,
+		arg.CapitalizationThreshold,
 		arg.IsActive,
 	)
 	var i MasterdataCategory
@@ -65,6 +77,11 @@ func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) 
 		&i.DefaultDepreciationMethod,
 		&i.DefaultUsefulLifeMonths,
 		&i.DefaultSalvageRate,
+		&i.AssetClass,
+		&i.DefaultFiscalGroup,
+		&i.DefaultFiscalLifeMonths,
+		&i.GlAccountCode,
+		&i.CapitalizationThreshold,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -74,7 +91,7 @@ func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) 
 }
 
 const getCategory = `-- name: GetCategory :one
-SELECT id, name, code, parent_id, default_depreciation_method, default_useful_life_months, default_salvage_rate, is_active, created_at, updated_at, deleted_at FROM masterdata.categories
+SELECT id, name, code, parent_id, default_depreciation_method, default_useful_life_months, default_salvage_rate, asset_class, default_fiscal_group, default_fiscal_life_months, gl_account_code, capitalization_threshold, is_active, created_at, updated_at, deleted_at FROM masterdata.categories
 WHERE id = $1 AND deleted_at IS NULL
 `
 
@@ -89,6 +106,11 @@ func (q *Queries) GetCategory(ctx context.Context, id uuid.UUID) (MasterdataCate
 		&i.DefaultDepreciationMethod,
 		&i.DefaultUsefulLifeMonths,
 		&i.DefaultSalvageRate,
+		&i.AssetClass,
+		&i.DefaultFiscalGroup,
+		&i.DefaultFiscalLifeMonths,
+		&i.GlAccountCode,
+		&i.CapitalizationThreshold,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -99,7 +121,7 @@ func (q *Queries) GetCategory(ctx context.Context, id uuid.UUID) (MasterdataCate
 
 const listCategories = `-- name: ListCategories :many
 
-SELECT id, name, code, parent_id, default_depreciation_method, default_useful_life_months, default_salvage_rate, is_active, created_at, updated_at, deleted_at FROM masterdata.categories
+SELECT id, name, code, parent_id, default_depreciation_method, default_useful_life_months, default_salvage_rate, asset_class, default_fiscal_group, default_fiscal_life_months, gl_account_code, capitalization_threshold, is_active, created_at, updated_at, deleted_at FROM masterdata.categories
 WHERE deleted_at IS NULL
   AND (
     $1::text = ''
@@ -134,6 +156,11 @@ func (q *Queries) ListCategories(ctx context.Context, arg ListCategoriesParams) 
 			&i.DefaultDepreciationMethod,
 			&i.DefaultUsefulLifeMonths,
 			&i.DefaultSalvageRate,
+			&i.AssetClass,
+			&i.DefaultFiscalGroup,
+			&i.DefaultFiscalLifeMonths,
+			&i.GlAccountCode,
+			&i.CapitalizationThreshold,
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -171,9 +198,14 @@ SET name = $2,
     default_depreciation_method = $5,
     default_useful_life_months = $6,
     default_salvage_rate = $7,
-    is_active = $8
+    asset_class = $8,
+    default_fiscal_group = $9,
+    default_fiscal_life_months = $10,
+    gl_account_code = $11,
+    capitalization_threshold = $12,
+    is_active = $13
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, name, code, parent_id, default_depreciation_method, default_useful_life_months, default_salvage_rate, is_active, created_at, updated_at, deleted_at
+RETURNING id, name, code, parent_id, default_depreciation_method, default_useful_life_months, default_salvage_rate, asset_class, default_fiscal_group, default_fiscal_life_months, gl_account_code, capitalization_threshold, is_active, created_at, updated_at, deleted_at
 `
 
 type UpdateCategoryParams struct {
@@ -184,6 +216,11 @@ type UpdateCategoryParams struct {
 	DefaultDepreciationMethod *SharedDepreciationMethod `json:"default_depreciation_method"`
 	DefaultUsefulLifeMonths   *int32                    `json:"default_useful_life_months"`
 	DefaultSalvageRate        *string                   `json:"default_salvage_rate"`
+	AssetClass                SharedAssetClass          `json:"asset_class"`
+	DefaultFiscalGroup        *SharedFiscalAssetGroup   `json:"default_fiscal_group"`
+	DefaultFiscalLifeMonths   *int32                    `json:"default_fiscal_life_months"`
+	GlAccountCode             *string                   `json:"gl_account_code"`
+	CapitalizationThreshold   *string                   `json:"capitalization_threshold"`
 	IsActive                  bool                      `json:"is_active"`
 }
 
@@ -196,6 +233,11 @@ func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) 
 		arg.DefaultDepreciationMethod,
 		arg.DefaultUsefulLifeMonths,
 		arg.DefaultSalvageRate,
+		arg.AssetClass,
+		arg.DefaultFiscalGroup,
+		arg.DefaultFiscalLifeMonths,
+		arg.GlAccountCode,
+		arg.CapitalizationThreshold,
 		arg.IsActive,
 	)
 	var i MasterdataCategory
@@ -207,6 +249,11 @@ func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) 
 		&i.DefaultDepreciationMethod,
 		&i.DefaultUsefulLifeMonths,
 		&i.DefaultSalvageRate,
+		&i.AssetClass,
+		&i.DefaultFiscalGroup,
+		&i.DefaultFiscalLifeMonths,
+		&i.GlAccountCode,
+		&i.CapitalizationThreshold,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,

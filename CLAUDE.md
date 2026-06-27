@@ -4,15 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-**Inventra** — asset/inventory management system. Go 1.25 + Gin backend (`backend/`), Nuxt 4
-frontend (`frontend/`), PostgreSQL 16, Redis 7, MinIO. Status: **foundation scaffold** — backend
-feature modules are being built in phases per `docs/PRD.md`; the frontend **foundation** (SPA shell,
-design system, real auth, reusable component library, Vitest + Playwright) is built, with feature
-screens built per phase against the `docs/design` mockups. Go module path: `github.com/ragbuaj/inventra`.
+**Inventra** — a **bank fixed-asset management system** (manajemen aset tetap & inventaris for a
+bank; reference context: Bank BTN). This is **fixed/physical asset** management (buildings, vehicles,
+IT/ATM hardware, furniture) — **not** investment/wealth asset management. Go 1.25 + Gin backend
+(`backend/`), Nuxt 4 frontend (`frontend/`), PostgreSQL 16, Redis 7, MinIO. Status: **foundation
+scaffold** — backend feature modules are being built in phases per `docs/PRD.md`; the frontend
+**foundation** (SPA shell, design system, real auth, reusable component library, Vitest + Playwright)
+is built, with feature screens built per phase against the `docs/design` mockups. Go module path:
+`github.com/ragbuaj/inventra`.
 
-Authoritative design docs: `docs/PRD.md` (requirements, roles, FRs) and `docs/DATABASE.md` (schema,
-conventions, data dictionary). Both are written in Indonesian. `docs/PROGRESS.md` tracks phase status.
-`docs/DESIGN_BRIEF.md` holds the UI prompt kit / design brief used to generate frontend mockups.
+The product scope was enriched to **bank-grade** in **PRD v1.1**: asset lifecycle with BAST documents,
+inter-office transfers (mutasi), physical stock-take (stock opname), disposal with gain/loss,
+**dual-basis depreciation** (commercial PSAK 16 + fiscal PMK 72/2023), intangible assets (PSAK 19,
+fields prepared), capitalization threshold, and **value-tiered maker-checker** (segregation of duties +
+`approval_thresholds` per POJK 17/2023 & 18/POJK.03/2016). These map onto the **existing** office
+hierarchy + 3-layer authorization. The core schema (migrations `000001`–`000014`) is implemented; the
+v1.1 additions are planned migrations `000015`–`000021` (see DATABASE.md §6) — **not yet written**.
+
+Authoritative design docs: `docs/PRD.md` (requirements, roles, FRs; bank-FAM regulatory citations in
+its **Lampiran A**), `docs/DATABASE.md` (schema, conventions, data dictionary), and `docs/ERD.md`
+(consolidated entity-relationship diagrams). All written in Indonesian. `docs/PROGRESS.md` tracks phase
+status. `docs/DESIGN_BRIEF.md` holds the UI prompt kit / design brief used to generate frontend mockups.
+`docs/adr/` holds Architecture Decision Records (MADR) — consult before changing stack choices
+(testing, logging, config, rate limiting, authz); supersede rather than edit an Accepted ADR.
 
 ## Commands
 
@@ -38,16 +52,20 @@ pnpm test                 # Vitest unit + Nuxt-runtime tests (frontend/test/)
 pnpm test:watch           # Vitest watch mode
 pnpm test:e2e             # Playwright e2e (frontend/e2e/) — needs backend stack up + seeded admin
 
-# Infra only (Postgres :5433, Redis :6379, MinIO :9000/:9001)
+# Infra only (Postgres :5433, Redis :6379, MinIO :9000/:9001) — run app on host
 docker compose -f docker-compose.dev.yml up -d
-# Full stack incl. migrate + api + frontend
+# Full stack in Docker WITH live reload (Go via Air, Nuxt via Vite HMR) — Docker
+# Compose `watch` syncs source into the containers; no bind-mount polling.
+docker compose -f docker-compose.dev.yml --profile app watch
+# Production-like full stack (compiled images; what CI's e2e uses)
 docker compose up --build
-# Full stack with live reload (Go via Air, Nuxt via Vite HMR) — source bind-mounted,
-# edits hot-reload. Watchers poll (Windows/WSL2 bind mounts lack inotify events).
-docker compose -f docker-compose.yml -f docker-compose.watch.yml up --build
 # Seed a superadmin (run from host while stack is up)
 go run ./cmd/createadmin -email admin@inventra.local -password admin12345
 ```
+
+> **Two compose files** (the `watch.yml` overlay is gone): `docker-compose.yml` =
+> production-like compiled images (used by CI e2e); `docker-compose.dev.yml` = dev — infra by
+> default, full stack + live reload via `--profile app watch`.
 
 CI (`.github/workflows/ci.yml`) runs the backend build/vet/test, the frontend
 lint/typecheck/**test**/build, the Spectral lint, and a separate **e2e** job (docker-compose backend +
@@ -81,9 +99,10 @@ and `internal/user/` as the canonical examples). Follow this split for new modul
 - **`routes.go`** — `RegisterRoutes(rg, handler, authMW, ...)` mounts the route group and attaches
   middleware (`RequireAuth`, `RequirePermission`, scope) per endpoint.
 
-`internal/masterdata/` is the deliberate exception: it's a multi-resource aggregate (many small reference
-entities in one package, one file per entity like `offices.go` / `employees.go`) rather than the strict
-four-file split — see the two masterdata patterns below.
+`internal/masterdata/` is a multi-resource aggregate: **each resource is its own sub-package** following
+the same four-file split (`office/`, `category/`, `employee/`, `floor/`, `room/`), plus a generic
+`reference/` engine for flat tables and a `common/` package of shared plumbing. A thin `masterdata.go`
+aggregates them. See the masterdata patterns below (and [docs/adr/0008](docs/adr/0008-backend-masterdata-module-convention.md)).
 
 ### Authorization — the core abstraction (read this before touching any endpoint)
 
@@ -97,10 +116,10 @@ matrix. Invalidate the relevant Redis cache after mutating these tables.
 2. **Data scope** (`internal/authz/scope.go`, table `data_scope_policies`) — per-row visibility over the
    office hierarchy: `global` / `office_subtree` / `office` / `own`. Resolved per **module string** (e.g.
    `"offices"`), with a per-role default row (`module = '*'`) overridable per module. `office_subtree`
-   expands via `GetOfficeSubtree` (also cached). Handlers call `scopedDeps.callerOfficeScope(c, module)`
-   → `(allScope bool, officeIDs []uuid)` and pass those into scope-aware sqlc queries (`AllScope`/
-   `OfficeIds` params). The module string passed here **must match** the `data_scope_policies.module`
-   value. Conservative fallback is always `own`.
+   expands via `GetOfficeSubtree` (also cached). Handlers call `common.ScopedDeps.CallerOfficeScope(c,
+   module)` → `(allScope bool, officeIDs []uuid)` and pass those into scope-aware sqlc queries
+   (`AllScope`/`OfficeIds` params), typically via their resource service. The module string passed here
+   **must match** the `data_scope_policies.module` value. Conservative fallback is always `own`.
 3. **Field permissions** (`internal/authz/fields.go`, table `field_permissions`) — per-`(entity, field,
    role)` view/edit flags. `FilterView` strips non-viewable fields from a serialized record;
    **default-allow** (a field with no explicit policy stays visible).
@@ -114,19 +133,21 @@ revocation, and sets `CtxUserID` / `CtxRoleID` on the Gin context. Auth lives in
 
 `internal/masterdata` serves reference data via **two** approaches; pick by entity shape:
 
-- **Generic reference engine** (`ref.go` + `resources.go`) — for *flat* tables (text/bool/uuid columns +
-  id/timestamps/soft-delete). Adding a new reference resource is **declarative**: append a `resource{}`
-  to the `referenceResources` slice in `resources.go` — no SQL, no handler. The engine builds
-  parameterized CRUD against `masterdata.<table>` using `pgx` directly (not sqlc). Table/column names
-  come only from these literals, never from request input.
-- **sqlc-backed handlers** — for complex entities (`categories`, `offices`, `floors`, `rooms`,
-  `employees`) needing enums, numerics, self-references, or office data-scoping. `offices.go` is the
-  reference example: it threads `callerOfficeScope` through scope-aware queries and enforces scope on
-  create/update/delete (e.g. a scoped caller may only place an office under a parent within their scope).
+- **Generic reference engine** (`reference/` package: `engine.go` + `resources.go`) — for *flat* tables
+  (text/bool/uuid columns + id/timestamps/soft-delete). Adding a new reference resource is
+  **declarative**: append a `resource{}` to the `referenceResources` slice in `reference/resources.go` —
+  no SQL, no handler. The engine builds parameterized CRUD against `masterdata.<table>` using `pgx`
+  directly (not sqlc). Table/column names come only from these literals, never from request input.
+- **Per-resource sub-packages** (`office/`, `category/`, `employee/`, `floor/`, `room/`) — for complex
+  entities needing enums, numerics, self-references, or office data-scoping. Each follows the four-file
+  split: the **service** holds business rules + scope enforcement as sentinel errors (Gin-free), the
+  **handler** resolves scope via `common.ScopedDeps.CallerOfficeScope(c, module)` and passes
+  `(allScope, officeIDs)` into the service. `office/` is the reference example (a scoped caller may only
+  place an office under a parent within their scope).
 
-Shared error mapping (`common.go`): `mapDBError` turns pgx/Postgres errors (`23505`→conflict,
-`23503`→invalid reference, no-rows→not found) into sentinel errors; `writeError` maps those to HTTP
-status codes.
+Shared plumbing (`common/` package): `common.MapDBError` turns pgx/Postgres errors (`23505`→conflict,
+`23503`→invalid reference, no-rows→not found) into sentinel errors; `common.WriteError` maps those to
+HTTP status codes; `common.ScopedDeps` resolves the caller's office scope.
 
 ## Database conventions (from docs/DATABASE.md)
 

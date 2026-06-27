@@ -1,17 +1,20 @@
 # syntax=docker/dockerfile:1
 #
-# Development image: runs `nuxt dev` with Vite HMR. Source is bind-mounted at
-# /app by docker-compose.watch.yml, while node_modules stays in a named volume
-# (so the container keeps its own Linux-native install, not the host's).
-# Not for production — see Dockerfile for that.
+# Development image: runs `nuxt dev` with Vite HMR. Used by docker-compose.dev.yml
+# (profile `app`) with `docker compose watch` — source is synced into /app (with
+# node_modules ignored), while node_modules stays in a named volume (the
+# container keeps its own Linux-native install, not the host's). Not for
+# production — see Dockerfile for that.
 FROM node:24-alpine
 WORKDIR /app
 RUN corepack enable
 
-# Install deps into the image; the compose named volume for /app/node_modules
-# is seeded from this layer on first run.
+# Install deps into the image first (cached layer); the compose named volume for
+# /app/node_modules is seeded from this layer on first run. node_modules is
+# .dockerignore'd, so the COPY below brings source only — never the host's.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
+COPY . .
 
 ENV HOST=0.0.0.0
 ENV PORT=3000

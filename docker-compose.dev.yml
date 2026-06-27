@@ -1,8 +1,17 @@
-# Development infrastructure for Inventra.
-#   docker compose -f docker-compose.dev.yml up -d
+# Inventra — development stack (single file; replaces the old watch overlay).
 #
-# Provides the three backing services from docs/PRD.md §7:
-#   PostgreSQL (authoritative store) · Redis (cache/state) · MinIO (object storage)
+# Infra only (run the Go API + Nuxt on the host):
+#   docker compose -f docker-compose.dev.yml up -d
+#     → PostgreSQL · Redis · MinIO (the three backing services from PRD §7)
+#
+# Full stack in Docker WITH live reload (Docker Compose `watch`):
+#   docker compose -f docker-compose.dev.yml --profile app watch
+#     → infra + migrate + backend (Air) + frontend (Vite HMR); saving a source
+#       file syncs it into the container and reloads. Editing go.mod / package.json
+#       rebuilds the image. No bind-mount polling — `watch` syncs onto the
+#       container's native FS, so inotify works (incl. on Windows/WSL2).
+#
+# Production / CI full stack lives in docker-compose.yml (compiled images).
 services:
   postgres:
     image: postgres:16-alpine
@@ -52,7 +61,102 @@ services:
       timeout: 5s
       retries: 5
 
+  # --- App services (profile `app`): only start with `--profile app`. ---
+  migrate:
+    image: migrate/migrate:v4.19.1
+    profiles: ["app"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/db/migrations:/migrations:ro
+    command:
+      - "-path=/migrations"
+      - "-database=postgres://inventra:secret@postgres:5432/inventra_dev?sslmode=disable"
+      - "up"
+    restart: "no"
+
+  backend:
+    profiles: ["app"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      ENV: development
+      SERVER_PORT: "8080"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: inventra
+      DB_PASSWORD: secret
+      DB_NAME: inventra_dev
+      DB_SSLMODE: disable
+      REDIS_ADDR: redis:6379
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+      MINIO_BUCKET: inventra
+      MINIO_USE_SSL: "false"
+      JWT_SECRET: change-me-in-production
+      FRONTEND_URL: http://localhost:3000
+    ports:
+      - "8080:8080"
+    volumes:
+      - backend-go-mod:/go/pkg/mod
+      - backend-go-build:/root/.cache/go-build
+    develop:
+      watch:
+        - action: sync          # *.go edits → synced to /src → Air rebuilds
+          path: ./backend
+          target: /src
+          ignore:
+            - tmp/
+            - bin/
+        - action: rebuild       # dependency changes → rebuild image (go mod download)
+          path: ./backend/go.mod
+        - action: rebuild
+          path: ./backend/go.sum
+
+  frontend:
+    profiles: ["app"]
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      # Browser-facing API base (requests originate from the user's browser).
+      NUXT_PUBLIC_API_BASE: http://localhost:8080/api/v1
+    ports:
+      - "3000:3000"
+    volumes:
+      # Keep the container's own Linux-native node_modules over the synced tree.
+      - frontend-node-modules:/app/node_modules
+    develop:
+      watch:
+        - action: sync          # source edits → Vite HMR (node_modules excluded)
+          path: ./frontend
+          target: /app
+          ignore:
+            - node_modules/
+        - action: rebuild       # dependency changes → rebuild image (pnpm install)
+          path: ./frontend/package.json
+        - action: rebuild
+          path: ./frontend/pnpm-lock.yaml
+
 volumes:
   inventra-postgres:
   inventra-redis:
   inventra-minio:
+  backend-go-mod:
+  backend-go-build:
+  frontend-node-modules:

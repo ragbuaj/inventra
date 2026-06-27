@@ -1,36 +1,35 @@
-package masterdata
+package common
 
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
 	"github.com/ragbuaj/inventra/db/sqlc"
-	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/middleware"
 )
 
-// scopedDeps resolves the caller's office-based data scope for list filtering,
-// and carries the audit writer used to log mutations.
-type scopedDeps struct {
-	q     *sqlc.Queries
-	scope *authz.ScopeService
-	aud   *audit.Service
+// ScopedDeps resolves the caller's office-based data scope for list/row filtering.
+// Resource handlers embed it to translate the caller into (allScope, officeIDs)
+// before calling their service with those scope parameters.
+type ScopedDeps struct {
+	Q     *sqlc.Queries
+	Scope *authz.ScopeService
 }
 
-// callerOfficeScope returns (allScope, officeIDs) for the caller in the module.
+// CallerOfficeScope returns (allScope, officeIDs) for the caller in the module.
 // allScope=true means no office filter (global). Otherwise rows are limited to
 // the returned office IDs (the caller's office subtree, office, or own office).
-func (d scopedDeps) callerOfficeScope(c *gin.Context, module string) (bool, []uuid.UUID, error) {
+func (d ScopedDeps) CallerOfficeScope(c *gin.Context, module string) (bool, []uuid.UUID, error) {
 	uid, err := uuid.Parse(c.GetString(middleware.CtxUserID))
 	if err != nil {
 		return false, nil, err
 	}
-	user, err := d.q.GetUserByID(c.Request.Context(), uid)
+	user, err := d.Q.GetUserByID(c.Request.Context(), uid)
 	if err != nil {
 		return false, nil, err
 	}
-	sc, err := d.scope.Resolve(c.Request.Context(), user.RoleID, user.OfficeID, module)
+	sc, err := d.Scope.Resolve(c.Request.Context(), user.RoleID, user.OfficeID, module)
 	if err != nil {
 		return false, nil, err
 	}
@@ -49,8 +48,8 @@ func (d scopedDeps) callerOfficeScope(c *gin.Context, module string) (bool, []uu
 	}
 }
 
-// inScope reports whether target is permitted under the caller's scope.
-func inScope(all bool, ids []uuid.UUID, target uuid.UUID) bool {
+// InScope reports whether target is permitted under the caller's scope.
+func InScope(all bool, ids []uuid.UUID, target uuid.UUID) bool {
 	if all {
 		return true
 	}
@@ -62,7 +61,8 @@ func inScope(all bool, ids []uuid.UUID, target uuid.UUID) bool {
 	return false
 }
 
-func samePtr(a, b *uuid.UUID) bool {
+// SamePtr reports whether two optional UUIDs are equal (both nil counts as equal).
+func SamePtr(a, b *uuid.UUID) bool {
 	if a == nil || b == nil {
 		return a == nil && b == nil
 	}

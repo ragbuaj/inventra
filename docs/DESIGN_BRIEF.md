@@ -95,6 +95,7 @@ Checklist. Untuk tiap item, kirim template di §3.
 > - **Lokasi & Geografi** (`nav.geography`, anak Master Data) — **peta lokasi kantor** (provinsi/kota sudah di Referensi) → **§5.21**
 > - **Profil & Pengaturan Akun** (menu profil topbar: `nav.profile` + `nav.accountSettings`) → **§5.22**
 > - **Global Search** (command palette dari search topbar) → **§5.23**
+> - **Kategori Aset** (`nav` Master Data) — entitas kaya (penyusutan komersial+fiskal, akun GL, golongan pajak, batas kapitalisasi); terpisah dari Referensi → **§5.24**
 
 **Pengaturan/Admin (Superadmin)**
 15. Manajemen user (list + form: peran, kantor, pegawai tertaut)
@@ -729,4 +730,52 @@ Pakai data contoh realistis berbahasa Indonesia: Aset "Laptop Dell Latitude 5440
 JKT01-ELK-2026-00001" (Tersedia), "Toyota Avanza 1.5 G · JKT01-KEN-2025-00007"
 (Maintenance); Pegawai "Rina Putri", "Andi Saputra"; Kantor "Cabang Jakarta Selatan";
 Pengajuan "Registrasi 12 Laptop Asus ExpertBook B1" (Menunggu). Patuhi master brief.
+```
+
+### 5.24 Kategori Aset (Master Data)
+
+> Kategori aset **bukan** entitas referensi datar — ia kaya: hierarki induk, default
+> **penyusutan komersial (PSAK 16)** & **fiskal (PMK 72/2023)**, akun GL, golongan pajak, dan
+> batas kapitalisasi (konteks bank fixed-asset). Karena itu butuh layar/form sendiri, terpisah
+> dari "Master Data Referensi" (§5.12). Konteks tambahan: produk ini sistem **manajemen aset
+> tetap bank** — gunakan istilah akuntansi/pajak Indonesia yang natural.
+
+```
+Sekarang desain layar: Master Data Kategori Aset.
+
+Tujuan layar: Mengelola kategori/golongan aset tetap beserta nilai default akuntansi
+& pajaknya (klasifikasi, penyusutan komersial + fiskal, akun GL, batas kapitalisasi).
+Konteks: sistem manajemen aset tetap (fixed asset) sebuah bank — pakai istilah
+akuntansi/pajak Indonesia (PSAK, penyusutan, golongan/kelompok harta pajak, akun GL).
+Pengguna utama: Superadmin.
+Elemen yang harus ada:
+- Page header "Kategori Aset" + tombol "Tambah Kategori".
+- Filter bar: search nama/kode, filter Kelas Aset (Berwujud/Takberwujud), filter
+  Golongan Pajak, toggle "Hanya aktif".
+- Data table kolom: Nama (boleh indentasi/anak bila punya induk), Kode, Kelas Aset
+  [badge Berwujud/Takberwujud], Metode Susut (komersial), Masa Manfaat (komersial),
+  Golongan Pajak, Akun GL, Status Aktif [badge], aksi edit/hapus. Pagination.
+- Form tambah/edit dalam slideover (drawer kanan), dikelompokkan jadi section:
+  • Umum: Nama, Kode, Kategori Induk [select—opsional, untuk sub-kategori],
+    Kelas Aset [Berwujud/Takberwujud], toggle Aktif.
+  • Penyusutan Komersial (PSAK 16): Metode [Garis Lurus / Saldo Menurun],
+    Masa Manfaat (bulan), Nilai Residu (%).
+  • Pajak / Fiskal (PMK 72/2023): Golongan/Kelompok Harta
+    [Kelompok 1 / 2 / 3 / 4 / Bangunan Permanen / Bangunan Non-Permanen],
+    Masa Manfaat Fiskal (bulan).
+  • Akuntansi: Akun GL (COA), Batas Kapitalisasi (Rp).
+  Catatan kontekstual: bila Kelas Aset = Takberwujud, tampilkan label "Amortisasi"
+  alih-alih "Penyusutan" dan sembunyikan field yang tak relevan (mis. golongan pajak
+  bangunan); bila golongan pajak = Bangunan, metode otomatis Garis Lurus (disabled).
+States: list dengan data, empty state, form slideover (tambah & edit) dengan section
+ter-grup, satu field error (mis. Kode wajib), konfirmasi hapus.
+Tampilkan versi light dan dark.
+
+Pakai data contoh realistis berbahasa Indonesia (konteks bank):
+"Perangkat IT / Komputer" (ELK · Berwujud · Garis Lurus · 48 bln · Kelompok 1 ·
+GL 1.2.3.01), "Kendaraan Bermotor" (KEN · Saldo Menurun · 96 bln · Kelompok 2),
+"Bangunan Kantor" (BGN · Garis Lurus · 240 bln · Bangunan Permanen),
+"Mesin ATM" (ATM · Kelompok 2), "Mebel & Inventaris Kantor" (MBL · Kelompok 1),
+"Software / Lisensi" (SFT · Takberwujud · Amortisasi Garis Lurus · 48 bln).
+Patuhi master brief.
 ```

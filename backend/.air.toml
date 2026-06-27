@@ -1,7 +1,8 @@
-# Air live-reload config for the Go API, used by the Docker watch stack
-# (docker-compose.watch.yml). Polling is enabled because Windows/WSL2 bind
-# mounts do not deliver inotify events to the container — without it Air never
-# sees source changes. CGO is disabled to match the production build.
+# Air live-reload config for the Go API, used by docker-compose.dev.yml
+# (profile `app`) with `docker compose watch`. Watch *syncs* source onto the
+# container's native filesystem, so Air sees changes via normal inotify —
+# polling is no longer needed (the old Windows/WSL2 bind-mount hack is gone).
+# CGO is disabled to match the production build.
 root = "."
 tmp_dir = "tmp"
 
@@ -13,8 +14,7 @@ tmp_dir = "tmp"
   exclude_regex = ["_test\\.go"]
   delay = 500
   stop_on_error = true
-  poll = true
-  poll_interval = 500
+  poll = false
 
 [log]
   time = true

@@ -88,3 +88,18 @@ CREATE UNIQUE INDEX uq_data_scope ON identity.data_scope_policies (role_id, modu
 CREATE INDEX idx_data_scope_role ON identity.data_scope_policies (role_id);
 CREATE TRIGGER trg_data_scope_set_updated BEFORE UPDATE ON identity.data_scope_policies
   FOR EACH ROW EXECUTE FUNCTION shared.set_updated_at();
+
+-- Global, superadmin-managed configuration (PRD v1.1): capitalization threshold default, etc.
+CREATE TABLE identity.app_settings (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  key         text NOT NULL,
+  value       text NOT NULL,
+  value_type  text,
+  description text,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now(),
+  deleted_at  timestamptz
+);
+CREATE UNIQUE INDEX uq_app_settings_key ON identity.app_settings (key) WHERE deleted_at IS NULL;
+CREATE TRIGGER trg_app_settings_set_updated BEFORE UPDATE ON identity.app_settings
+  FOR EACH ROW EXECUTE FUNCTION shared.set_updated_at();

@@ -1030,6 +1030,17 @@ components:
         default_salvage_rate:
           type: [string, "null"]
           description: Decimal string (e.g. "0.1000" = 10%).
+        asset_class:
+          type: string
+          description: "`tangible` or `intangible` (PRD v1.1)."
+        default_fiscal_group:
+          type: [string, "null"]
+          description: Fiscal/tax depreciation group (PMK 72/2023) — `kelompok_1`..`kelompok_4`, `bangunan_permanen`, `bangunan_non_permanen`, `non_susut`.
+        default_fiscal_life_months: { type: [integer, "null"] }
+        gl_account_code: { type: [string, "null"] }
+        capitalization_threshold:
+          type: [string, "null"]
+          description: Decimal string (IDR). Below this, an acquisition is expensed, not capitalized.
         is_active: { type: boolean }
         created_at: { type: [string, "null"], format: date-time }
         updated_at: { type: [string, "null"], format: date-time }
@@ -1046,6 +1057,15 @@ components:
           description: One of `straight_line` or `declining_balance` (nullable).
         default_useful_life_months: { type: [integer, "null"] }
         default_salvage_rate: { type: [string, "null"] }
+        asset_class:
+          type: [string, "null"]
+          description: "`tangible` or `intangible`; defaults to `tangible` when omitted."
+        default_fiscal_group:
+          type: [string, "null"]
+          description: "`kelompok_1`..`kelompok_4`, `bangunan_permanen`, `bangunan_non_permanen`, or `non_susut`."
+        default_fiscal_life_months: { type: [integer, "null"] }
+        gl_account_code: { type: [string, "null"] }
+        capitalization_threshold: { type: [string, "null"] }
         is_active: { type: boolean, default: true }
 
     CategoryList:

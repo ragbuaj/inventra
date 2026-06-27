@@ -27,8 +27,10 @@ WHERE id = $1 AND deleted_at IS NULL;
 -- name: CreateCategory :one
 INSERT INTO masterdata.categories (
   name, code, parent_id, default_depreciation_method,
-  default_useful_life_months, default_salvage_rate, is_active
-) VALUES ($1, $2, $3, $4, $5, $6, $7)
+  default_useful_life_months, default_salvage_rate,
+  asset_class, default_fiscal_group, default_fiscal_life_months,
+  gl_account_code, capitalization_threshold, is_active
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 RETURNING *;
 
 -- name: UpdateCategory :one
@@ -39,7 +41,12 @@ SET name = $2,
     default_depreciation_method = $5,
     default_useful_life_months = $6,
     default_salvage_rate = $7,
-    is_active = $8
+    asset_class = $8,
+    default_fiscal_group = $9,
+    default_fiscal_life_months = $10,
+    gl_account_code = $11,
+    capitalization_threshold = $12,
+    is_active = $13
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 

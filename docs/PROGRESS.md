@@ -1,7 +1,32 @@
 # Inventra — Progress & Remaining Work
 
-Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope and
-[DATABASE.md](DATABASE.md) for the schema.
+Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope,
+[DATABASE.md](DATABASE.md) for the schema, and [ERD.md](ERD.md) for entity relationships.
+
+> **Scope update — PRD v1.1 (Bank Fixed Asset Management).** The product was reframed to a **bank**
+> fixed-asset system (context: Bank BTN) and enriched with: inter-office **mutasi**, **stock opname**,
+> **BAST** documents, **dual-basis depreciation** (commercial PSAK 16 + fiscal PMK 72/2023), **disposal**
+> with gain/loss, **intangible** assets (PSAK 19, fields prepared), **capitalization threshold**, and
+> **value-tiered maker-checker** (`approval_thresholds`, SoD per POJK 17/2023 & 18/POJK.03/2016).
+> Design docs (PRD/DATABASE/ERD) are updated, and the **bank-FAM schema is now built** — v1.1
+> enums/columns are **baked into the initial migrations** (greenfield) + new tables in
+> `000015_fam_tables` (see *Database* below and DATABASE.md §6). Architecture decisions from the pivot
+> are recorded as ADRs in [adr/](adr/) (**ADR-0001–0009**: testing, logging, config, rate-limit, authz
+> build-vs-buy, map, frontend API convention, masterdata split, third-party sign-in). What's already ✅
+> predates the pivot and remains valid — the office hierarchy + 3-layer authorization are the foundation
+> the bank scope builds on.
+
+> ## ▶ Next session — start here
+> 1. **Bring the dev stack up, reset & migrate** (the bank-FAM schema bake-in needs a fresh DB):
+>    drop schemas CASCADE → `migrate up` → re-seed admin. Exact commands in DATABASE.md §6 ⚠️ note.
+>    `migrate up` of the full v1.1 set was **not** validated live yet (stack went down mid-session;
+>    only enums+categories were applied live — rest verified via `sqlc generate` + `go build`).
+> 2. **#6 Kategori Aset screen** — generate the mockup from **DESIGN_BRIEF §5.24** → save as
+>    `docs/design/Master Data Kategori Aset.dc.html` → build the screen mock-first 1:1 (new
+>    `useCategories` + `mock/categories` + i18n + tests). Backend category API already carries the
+>    bank-FAM fields. This is the one master entity without a frontend screen.
+> 3. Then: backend **handlers** for the new bank-FAM tables (transfer/opname/disposal/documents/
+>    thresholds), per the *Bank-FAM (PRD v1.1)* checklist below.
 
 ## ✅ Done
 
@@ -11,9 +36,13 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 - [x] GitHub Actions CI (backend build/vet/test · frontend lint/typecheck/build · Spectral)
 - [x] PRD + DATABASE design docs
 
-### Database (13 migrations · 9 schemas · 31 tables)
-- [x] enums + `set_updated_at` + per-module schemas (`shared/identity/audit/masterdata/asset/import/approval/assignment/maintenance/depreciation`)
+### Database (15 migrations · 12 schemas)
+- [x] enums + `set_updated_at` + per-module schemas (`shared/identity/audit/masterdata/asset/import/approval/assignment/maintenance/depreciation` + v1.1 `transfer/stockopname/disposal`)
 - [x] All tables incl. soft delete, partial-unique, FK indexes, seed (5 roles, 45 RBAC perms)
+- [x] **Bank-FAM v1.1 schema baked in** (greenfield) — enums + columns folded into initial migrations
+      (`000002`/`003`/`006`/`007`/`008`/`010`/`013`) + new tables `000015_fam_tables` (asset_transfers,
+      disposals, stock_opname_*, asset_documents) + app_settings/approval_thresholds/request_approvals.
+      `sqlc generate` + build/vet/test + Spectral green; ⚠️ full `migrate up` re-validate on next stack-up
 
 ### Backend — Data layer
 - [x] pgx pool + Redis client + sqlc models (all tables)
@@ -29,6 +58,9 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 - [x] Categories (enum/nullable/self-ref/numeric)
 - [x] 11 reference resources via generic engine (office-types, departments, positions, units, maintenance/problem categories, brands, vendors, provinces, cities, models)
 - [x] Offices (hierarchy) + floors + rooms + employees — **office-subtree scoping** on all ops, IDOR-hardened
+- [x] **Masterdata convention refactor** (ADR-0008) — each resource is its own sub-package with the
+      four-file split (`office/` · `category/` · `employee/` · `floor/` · `room/`), shared plumbing in
+      `common/`, generic engine in `reference/`; thin `masterdata.go` aggregator. Build/vet/test green, no behavior change
 
 ### API Documentation
 - [x] OpenAPI 3.1 spec + self-hosted Scalar at `/docs` + Spectral lint in CI
@@ -55,6 +87,35 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 ---
 
 ## ⛔ Remaining
+
+### Bank-FAM (PRD v1.1) — schema done, modules to build
+
+> New scope from the bank pivot. **Schema is built** (see *Database* above); what remains is the
+> **backend modules/handlers** + frontend for these features. Enforce data-scope + field-permission on
+> every new endpoint (read **and** write); follow the masterdata 4-file split (ADR-0008).
+
+- [x] **Bank-FAM schema** — DONE (greenfield bake-in). New enums + columns folded into the initial
+      migrations (`000002`/`000003`/`000006`/`000007`/`000008`/`000010`/`000013`); genuinely-new tables in
+      `000015_fam_tables` (`transfer.asset_transfers`, `disposal.disposals`, `stockopname.stock_opname_*`,
+      `asset.asset_documents`) + `app_settings`/`approval_thresholds`/`request_approvals`. `sqlc generate`
+      + `go build/vet/test` green; `migrate up` validated live (reset via drop-schemas, not `down -all`).
+      **Backend handlers** for the new tables (transfer/opname/disposal/documents/thresholds) still to build.
+- [x] **Category enrichment — backend** — `categories` columns (GL account, fiscal group, commercial+
+      fiscal useful life, capitalization threshold, asset_class) baked in; `category` service/dto + sqlc +
+      OpenAPI wired (build green). **Frontend Kategori screen** still to build (#6 — see *Next session*).
+- [ ] **Dual-basis depreciation** — commercial (PSAK 16) + fiscal (PMK 72/2023, kelompok 1–4 / bangunan)
+      `depreciation_entries` per basis; intangible amortization (PSAK 19); impairment (PSAK 48) write-down
+- [ ] **Value-tiered approval** — `approval_thresholds` (configurable bands) + `request_approvals` chain;
+      SoD (maker ≠ checker ≠ approver); seed placeholder bands (PRD §2.4)
+- [ ] **Asset transfer (mutasi)** — inter-office transfer + BAST + history; updates `assets.office_id`
+- [ ] **Stock opname** — sessions + item reconciliation (found/not_found/damaged/misplaced) + report
+- [ ] **Disposal** — sale/auction/donation/write_off + gain/loss; `assets.status → disposed`
+- [ ] **Asset documents (BAST)** — acquisition/transfer/disposal docs in MinIO
+- [ ] **Journal-ready export** — GL-account rollup (depreciation expense, disposal gain/loss)
+- [ ] **Capitalization threshold** — `app_settings` global default + per-category override; below
+      threshold → expensed, not capitalized
+- [ ] **Confirm with bank policy** — office-tier naming, capitalization amount, approval-limit bands,
+      cost-model vs revaluation, exact PSAK paragraphs (PRD ⚠️ items / DATABASE DB-Q6–Q8)
 
 ### Backend — Feature modules
 - [ ] **Asset core** — CRUD; `asset_tag` generator (atomic per office/category/year); status state machine; data-scoping + field-permission (mask `purchase_cost`/`book_value`); valuation-exclusion flag
@@ -92,7 +153,9 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 
 ### Backend — Cross-cutting (not yet implemented)
 - [x] **Audit logging** — `internal/audit` writer wired into every masterdata + user mutation (create/update/delete) with before/after diffs; office-scoped, filterable `GET /api/v1/audit` (gated by `audit.view`); migration 000014 adds `audit_logs.office_id`
-- [ ] **Google OAuth2 login** — `/auth/google` + callback + account linking (currently local-only)
+- [ ] **Google OAuth2 login** — `/auth/google` + callback + account linking (currently local-only).
+      Use `golang.org/x/oauth2` + `coreos/go-oidc/v3` (ADR-0009): verify ID token, link by verified email,
+      mint the same app JWT; structure provider-agnostically for future enterprise SSO (Entra/bank IdP)
 - [ ] **Password reset / email verification** — Redis-TTL tokens (+ email later)
 - [ ] **Rate limiting** — login anti-brute-force + throttling (Redis)
 - [ ] **Notifications (in-app)** — store + endpoints (approval decisions, maintenance reminders)
@@ -100,6 +163,14 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 - [ ] **Authorization admin endpoints** — Superadmin CRUD for roles, role_permissions, field_permissions, data_scope_policies (+ Redis cache invalidation)
 
 ### Frontend (screens built mock-first — remaining work)
+- [ ] **API composable convention refactor** (ADR-0007) — (a) rename Indonesian DTO field keys to the
+      backend's English `snake_case` contract (start `useOffices`/`Office`/mock store), (b) regroup
+      `composables/api/` + `mock/` into module subfolders (masterdata/asset/identity/operational/reporting).
+      Do before wiring screens to real APIs to avoid a mapping shim; keep lint/typecheck/test green.
+- [ ] **Kategori Aset screen** (#6) — the one master entity without a frontend screen. Generate the
+      mockup from `DESIGN_BRIEF.md` §5.24 → `docs/design/Master Data Kategori Aset.dc.html`, then build
+      mock-first 1:1 (`useCategories` + `mock/categories` + i18n + tests). Rich form: bank-FAM fields
+      (asset_class, commercial+fiscal depreciation, GL account, fiscal group, capitalization threshold).
 - [ ] **Wire screens to real backend APIs** — replace `mock/*` fixtures with real `$fetch` behind the
       existing `composables/api/use*` interface, as each backend module lands; field-permission-aware forms
 - [ ] **Lokasi & Geografi** — office-location **map** screen (`nav.geography`); provinces/cities already live in Referensi, so this just plots offices on a map. No mockup yet; design prompt at `DESIGN_BRIEF.md` §5.21

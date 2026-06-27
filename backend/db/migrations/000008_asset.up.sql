@@ -10,7 +10,8 @@ CREATE TABLE asset.assets (
   category_id                 uuid NOT NULL REFERENCES masterdata.categories (id),
   brand_id                    uuid REFERENCES masterdata.brands (id),
   model_id                    uuid REFERENCES masterdata.models (id),
-  room_id                     uuid NOT NULL REFERENCES masterdata.rooms (id),
+  -- room_id is nullable: intangible assets (PRD v1.1) have no physical room.
+  room_id                     uuid REFERENCES masterdata.rooms (id),
   office_id                   uuid NOT NULL REFERENCES masterdata.offices (id),
   unit_id                     uuid REFERENCES masterdata.units (id),
   status                      shared.asset_status NOT NULL DEFAULT 'available',
@@ -18,11 +19,22 @@ CREATE TABLE asset.assets (
   purchase_date               date,
   purchase_cost               numeric(18,2),
   vendor_id                   uuid REFERENCES masterdata.vendors (id),
+  po_number                   text,
+  funding_source              text,
   warranty_expiry             date,
   specifications              jsonb NOT NULL DEFAULT '{}',
+  -- Bank fixed-asset (PRD v1.1): class, capitalization, dual-basis depreciation, impairment, BAST.
+  asset_class                 shared.asset_class NOT NULL DEFAULT 'tangible',
+  capitalized                 boolean NOT NULL DEFAULT true,
   depreciation_method         shared.depreciation_method,
   useful_life_months          int,
   salvage_value               numeric(18,2),
+  fiscal_group                shared.fiscal_asset_group,
+  fiscal_life_months          int,
+  accumulated_depreciation    numeric(18,2) NOT NULL DEFAULT 0,
+  book_value                  numeric(18,2),
+  impairment_loss             numeric(18,2),
+  acquisition_bast_no         text,
   current_holder_employee_id  uuid REFERENCES masterdata.employees (id),
   excluded_from_valuation     boolean NOT NULL DEFAULT false,
   valuation_exclusion_reason  text,
@@ -30,7 +42,9 @@ CREATE TABLE asset.assets (
   notes                       text,
   created_at                  timestamptz NOT NULL DEFAULT now(),
   updated_at                  timestamptz NOT NULL DEFAULT now(),
-  deleted_at                  timestamptz
+  deleted_at                  timestamptz,
+  -- Tangible assets must have a physical location; intangible assets must not require one.
+  CONSTRAINT chk_assets_tangible_room CHECK (asset_class = 'intangible' OR room_id IS NOT NULL)
 );
 CREATE UNIQUE INDEX uq_assets_asset_tag ON asset.assets (asset_tag) WHERE deleted_at IS NULL;
 CREATE INDEX idx_assets_office_id ON asset.assets (office_id);
@@ -43,6 +57,7 @@ CREATE INDEX idx_assets_vendor_id ON asset.assets (vendor_id);
 CREATE INDEX idx_assets_unit_id ON asset.assets (unit_id);
 CREATE INDEX idx_assets_holder ON asset.assets (current_holder_employee_id);
 CREATE INDEX idx_assets_created_by ON asset.assets (created_by_id);
+CREATE INDEX idx_assets_class ON asset.assets (asset_class);
 CREATE TRIGGER trg_assets_set_updated BEFORE UPDATE ON asset.assets
   FOR EACH ROW EXECUTE FUNCTION shared.set_updated_at();
 
