@@ -86,4 +86,29 @@ describe('Master Data Kategori Aset page', () => {
     expect(body).toContain('Golongan / Kelompok Harta')
     expect(body).toContain('Akun GL (COA)')
   })
+
+  it('search by code narrows the dataset', async () => {
+    const wrapper = await mountLoaded()
+    const vm = wrapper.vm as unknown as { search: string, orderedRows: { name: string }[] }
+    vm.search = 'KEN'
+    await wrapper.vm.$nextTick()
+    expect(vm.orderedRows.some(r => r.name.includes('Kendaraan'))).toBe(true)
+    expect(vm.orderedRows.some(r => r.name.includes('Komputer'))).toBe(false)
+  })
+
+  it('parentOptions excludes the editing category and its descendants', async () => {
+    const wrapper = await mountLoaded()
+    const vm = wrapper.vm as unknown as {
+      openEdit: (r: unknown) => void
+      parentOptions: { value: string }[]
+      orderedRows: { id: string, name: string }[]
+    }
+    const parent = vm.orderedRows.find(r => r.name === 'Perangkat IT')
+    expect(parent).toBeTruthy()
+    vm.openEdit(parent)
+    await wrapper.vm.$nextTick()
+    const ids = vm.parentOptions.map(o => o.value)
+    expect(ids).not.toContain('c-it')
+    expect(ids).not.toContain('c-laptop')
+  })
 })

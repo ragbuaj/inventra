@@ -67,21 +67,17 @@ const orderedRows = computed(() => {
     byParent.get(key)!.push(r)
   }
   const present = new Set(rows.map(r => r.id))
+  const pushed = new Set<string>()
   const out: Category[] = []
-  const pushTree = (parent: string | null) => {
-    for (const r of byParent.get(parent) ?? []) {
-      out.push(r)
-      if (byParent.has(r.id)) pushTree(r.id)
-    }
+  const push = (r: Category) => {
+    if (pushed.has(r.id)) return
+    pushed.add(r.id)
+    out.push(r)
+    for (const child of byParent.get(r.id) ?? []) push(child)
   }
   // Roots = rows whose parent isn't in the current filtered set.
   for (const r of rows) {
-    if (!r.parent_id || !present.has(r.parent_id)) {
-      if (!out.includes(r)) {
-        out.push(r)
-        if (byParent.has(r.id)) pushTree(r.id)
-      }
-    }
+    if (!r.parent_id || !present.has(r.parent_id)) push(r)
   }
   return out
 })
@@ -181,7 +177,7 @@ watch([search, filterClass, filterGroup, activeOnly], () => {
 
 onMounted(refresh)
 
-defineExpose({ openCreate, filterClass, filterGroup, activeOnly, formOpen })
+defineExpose({ openCreate, openEdit, filterClass, filterGroup, activeOnly, formOpen, orderedRows, parentOptions, search, rowActions })
 </script>
 
 <template>
