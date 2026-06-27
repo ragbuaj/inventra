@@ -15,8 +15,9 @@ func Recovery(base *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if r := recover(); r != nil {
-				rid, _ := c.Get(CtxRequestID)
-				base.With(slog.Any("request_id", rid)).Error("panic recovered",
+				ridVal, _ := c.Get(CtxRequestID)
+				rid, _ := ridVal.(string)
+				base.With(slog.String("request_id", rid)).Error("panic recovered",
 					slog.String("error", fmt.Sprint(r)),
 					slog.String("path", c.Request.URL.Path),
 					slog.String("stack", string(debug.Stack())),

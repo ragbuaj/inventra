@@ -17,7 +17,7 @@ const CtxRequestID = "request_id"
 const RequestHeaderID = "X-Request-ID"
 
 // healthPaths are noisy probes excluded from request logging.
-var healthPaths = map[string]struct{}{"/health": {}, "/health/ready": {}}
+var healthPaths = map[string]struct{}{"/health": {}, "/health/ready": {}, "/api/v1/health": {}}
 
 // RequestID reads an inbound X-Request-ID or generates one, stores it on the gin
 // context, and echoes it in the response header.
@@ -44,6 +44,11 @@ func RequestLogger(base *slog.Logger) gin.HandlerFunc {
 		c.Request = c.Request.WithContext(logging.WithLogger(c.Request.Context(), reqLog))
 
 		start := time.Now()
+		// A panicked request is recovered by the Recovery middleware (registered
+		// downstream). After recovery aborts with 500, execution returns here and
+		// this completion line still fires — Recovery's panic line and this line
+		// share request_id and are complementary: one carries the stack, the other
+		// carries latency/status.
 		c.Next()
 
 		if _, skip := healthPaths[c.Request.URL.Path]; skip {

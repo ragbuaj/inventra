@@ -135,3 +135,40 @@ func TestRequestLoggerWarnOnClientError(t *testing.T) {
 		t.Fatalf("status 400 must log at WARN, got %v", m["level"])
 	}
 }
+
+func TestRequestLoggerAndRecoveryBothLogOnPanic(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	log, buf := bufLogger()
+	r := gin.New()
+	r.Use(RequestID(), RequestLogger(log), Recovery(log))
+	r.GET("/boom", func(c *gin.Context) { panic("kaboom") })
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/boom", nil))
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d", w.Code)
+	}
+	lines := bytes.Split(bytes.TrimSpace(buf.Bytes()), []byte("\n"))
+	if len(lines) != 2 {
+		t.Fatalf("expected 2 log lines (panic + request), got %d: %s", len(lines), buf.String())
+	}
+	byMsg := map[string]map[string]any{}
+	for _, ln := range lines {
+		var m map[string]any
+		if err := json.Unmarshal(ln, &m); err != nil {
+			t.Fatalf("parse %q: %v", ln, err)
+		}
+		msg, _ := m["msg"].(string)
+		byMsg[msg] = m
+	}
+	if _, ok := byMsg["panic recovered"]; !ok {
+		t.Fatalf("missing panic-recovered line: %s", buf.String())
+	}
+	req, ok := byMsg["request"]
+	if !ok {
+		t.Fatalf("missing request completion line: %s", buf.String())
+	}
+	if req["status"].(float64) != 500 || req["level"] != "ERROR" {
+		t.Fatalf("request completion line should be status 500 / ERROR: %v", req)
+	}
+}
