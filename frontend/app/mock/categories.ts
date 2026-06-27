@@ -25,8 +25,9 @@ export function isBuildingGroup(g: FiscalGroup | null | undefined): boolean {
 
 // Display a numeric string with id-ID thousands grouping ('1000000' → '1.000.000').
 export function formatThousands(v: string | number | null | undefined): string {
-  const n = Number(String(v ?? '').replace(/\D/g, ''))
-  return n ? n.toLocaleString('id-ID') : ''
+  const s = String(v ?? '').replace(/\D/g, '')
+  if (!s) return ''
+  return Number(s).toLocaleString('id-ID')
 }
 
 // Strip grouping back to a bare digit string ('1.000.000' → '1000000').

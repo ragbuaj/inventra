@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { categorySeed, categoryStore, isBuildingGroup, formatThousands, parseThousands } from '~/mock/categories'
+import { categorySeed, categoryStore, isBuildingGroup, formatThousands, parseThousands, FISCAL_GROUPS } from '~/mock/categories'
 import { filterBy, paginate } from '~/mock/helpers'
 
 describe('categories mock', () => {
@@ -38,5 +38,14 @@ describe('categories mock', () => {
     expect(formatThousands('1000000')).toBe('1.000.000')
     expect(formatThousands('')).toBe('')
     expect(parseThousands('1.000.000')).toBe('1000000')
+  })
+
+  it('FISCAL_GROUPS has the 6 form options and excludes non_susut', () => {
+    expect(FISCAL_GROUPS).toHaveLength(6)
+    expect(FISCAL_GROUPS).not.toContain('non_susut')
+  })
+
+  it('formatThousands preserves a zero value', () => {
+    expect(formatThousands('0')).toBe('0')
   })
 })
