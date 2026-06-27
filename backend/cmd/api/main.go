@@ -21,6 +21,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/logging"
 	"github.com/ragbuaj/inventra/internal/ratelimit"
 	"github.com/ragbuaj/inventra/internal/server"
+	"github.com/ragbuaj/inventra/internal/storage"
 )
 
 func main() {
@@ -53,9 +54,21 @@ func main() {
 
 	limiter := ratelimit.New(rdb, cfg)
 
+	// MinIO (object storage for asset attachments).
+	store, err := storage.NewMinIOStorage(cfg.MinIOEndpoint, cfg.MinIOAccessKey, cfg.MinIOSecretKey, cfg.MinIOBucket, cfg.MinIOUseSSL)
+	if err != nil {
+		slog.Error("minio init failed", "error", err)
+		os.Exit(1)
+	}
+	if err := store.EnsureBucket(ctx); err != nil {
+		slog.Error("minio bucket ensure failed", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("MinIO connected", "bucket", cfg.MinIOBucket)
+
 	srv := &http.Server{
 		Addr:              ":" + cfg.ServerPort,
-		Handler:           server.NewRouter(server.Deps{Cfg: cfg, Pool: pool, Redis: rdb, Log: logger, Limiter: limiter}),
+		Handler:           server.NewRouter(server.Deps{Cfg: cfg, Pool: pool, Redis: rdb, Log: logger, Limiter: limiter, Storage: store}),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
