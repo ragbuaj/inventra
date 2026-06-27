@@ -58,12 +58,20 @@ describe('Master Data Kategori Aset page', () => {
     expect(html).not.toContain('Kendaraan Bermotor')
   })
 
-  it('active-only filter hides the inactive (Legacy) row', async () => {
+  it('active-only filter removes the inactive (Legacy) row from the dataset', async () => {
     const wrapper = await mountLoaded()
-    const vm = wrapper.vm as unknown as { activeOnly: boolean }
-    expect(wrapper.html()).toContain('Peralatan Jaringan (Legacy)')
+    const vm = wrapper.vm as unknown as { activeOnly: boolean, orderedRows: { name: string }[] }
+    expect(vm.orderedRows.some(r => r.name.includes('Legacy'))).toBe(true)
     vm.activeOnly = true
     await wrapper.vm.$nextTick()
+    expect(vm.orderedRows.some(r => r.name.includes('Legacy'))).toBe(false)
+  })
+
+  it('paginates with page size 7 (8 seed rows span two pages)', async () => {
+    const wrapper = await mountLoaded()
+    const vm = wrapper.vm as unknown as { orderedRows: unknown[] }
+    expect(vm.orderedRows.length).toBe(8)
+    // Page 1 renders the first 7; the 8th (Legacy) is on page 2, not in page-1 HTML.
     expect(wrapper.html()).not.toContain('Peralatan Jaringan (Legacy)')
   })
 
