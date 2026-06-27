@@ -30,7 +30,10 @@ INSERT INTO approval.approval_thresholds (request_type, amount_from, amount_to, 
 
 -- Permissions: grant new action keys to roles.
 -- Schema: identity.role_permissions (role_id uuid, permission_key text).
--- Existing seeds (000005) use keys like asset.read/asset.create/asset.update; these are new keys.
+-- NOTE: request.create already exists in 000005 for all five roles; ON CONFLICT DO NOTHING
+-- handles dedup — this migration inserts zero new rows for that key.
+-- The genuinely new keys introduced here are: request.decide, approval.config.manage,
+-- asset.view, asset.manage (none present in 000005).
 -- Grant matrix per brief:
 --   Superadmin:                  all 5 keys
 --   Manager, Kepala Kanwil, Kepala Unit: request.decide, asset.view, asset.manage
