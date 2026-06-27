@@ -21,8 +21,10 @@ import (
 	"github.com/ragbuaj/inventra/internal/cache"
 	"github.com/ragbuaj/inventra/internal/config"
 	"github.com/ragbuaj/inventra/internal/db"
+	"github.com/ragbuaj/inventra/internal/asset"
 	"github.com/ragbuaj/inventra/internal/identity"
 	"github.com/ragbuaj/inventra/internal/masterdata"
+	"github.com/ragbuaj/inventra/internal/masterdata/common"
 	"github.com/ragbuaj/inventra/internal/middleware"
 	"github.com/ragbuaj/inventra/internal/oauth"
 	"github.com/ragbuaj/inventra/internal/ratelimit"
@@ -142,6 +144,14 @@ func NewRouter(d Deps) *gin.Engine {
 		user.RegisterRoutes(api, userHandler, requireAuth, middleware.RequirePermission(permSvc, "user.manage"))
 
 		masterdata.RegisterRoutes(api, queries, d.Pool, permSvc, scopeSvc, auditSvc, requireAuth)
+
+		assetSvc := asset.NewService(queries, d.Pool)
+		assetHandler := asset.NewHandler(assetSvc, fieldSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)
+		asset.RegisterRoutes(api, assetHandler,
+			requireAuth,
+			middleware.RequirePermission(permSvc, "asset.view"),
+			middleware.RequirePermission(permSvc, "asset.manage"),
+		)
 
 		auditHandler := audit.NewHandler(auditSvc, scopeSvc, queries)
 		audit.RegisterRoutes(api, auditHandler, requireAuth, middleware.RequirePermission(permSvc, "audit.view"))
