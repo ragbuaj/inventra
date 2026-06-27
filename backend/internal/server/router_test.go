@@ -30,9 +30,10 @@ func TestRouterHealthEchoesRequestID(t *testing.T) {
 	}
 }
 
-// The global throttle is mounted on /api/v1; with a nil Redis client the limiter
-// fails open, so a single /api/v1/health request is allowed (200) — proving the
-// middleware is mounted without breaking the request.
+// The global throttle is mounted on /api/v1; rate limiting is disabled in tests
+// (RateLimitEnabled:false), so the limiter short-circuits without touching the nil
+// Redis client, and a single /api/v1/health request is allowed (200) — proving the
+// middleware is mounted without blocking normal traffic.
 func TestRouterGlobalThrottleMounted(t *testing.T) {
 	r := NewRouter(testDeps())
 	w := httptest.NewRecorder()
