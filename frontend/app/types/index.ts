@@ -83,6 +83,29 @@ export interface Employee {
   created_at: string
 }
 
+export type AssetClass = 'tangible' | 'intangible'
+export type DepreciationMethod = 'straight_line' | 'declining_balance'
+export type FiscalGroup
+  = | 'kelompok_1' | 'kelompok_2' | 'kelompok_3' | 'kelompok_4'
+    | 'bangunan_permanen' | 'bangunan_non_permanen' | 'non_susut'
+
+export interface Category {
+  id: string
+  name: string
+  code: string | null
+  parent_id: string | null
+  default_depreciation_method: DepreciationMethod | null
+  default_useful_life_months: number | null
+  default_salvage_rate: string | null
+  asset_class: AssetClass
+  default_fiscal_group: FiscalGroup | null
+  default_fiscal_life_months: number | null
+  gl_account_code: string | null
+  capitalization_threshold: string | null
+  is_active: boolean
+  created_at: string
+}
+
 export interface User {
   id: string
   nama: string

@@ -71,6 +71,10 @@ export const superadminNav: NavGroup[] = [
             to: '/master/employees'
           },
           {
+            labelKey: 'nav.categories',
+            to: '/master/categories'
+          },
+          {
             labelKey: 'nav.officeMap',
             to: '/master/map'
           },

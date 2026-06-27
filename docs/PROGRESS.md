@@ -17,10 +17,12 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
-> 1. **Bring the dev stack up, reset & migrate** (the bank-FAM schema bake-in needs a fresh DB):
->    drop schemas CASCADE → `migrate up` → re-seed admin. Exact commands in DATABASE.md §6 ⚠️ note.
->    `migrate up` of the full v1.1 set was **not** validated live yet (stack went down mid-session;
->    only enums+categories were applied live — rest verified via `sqlc generate` + `go build`).
+> 1. ~~**Bring the dev stack up, reset & migrate**~~ ✅ **DONE (2026-06-27).** Full `migrate up` of
+>    the v1.1 set validated live from an empty DB (throwaway `inventra_migrate_test`): all 15 migrations
+>    apply clean (exit 0, version 15, 13 schemas, 39 tables, 5 roles seeded). Dev DB (`inventra_dev`) is
+>    at v15 with admin seeded; `/health/ready` → postgres+redis ok; `go build/vet/test` green. Reset
+>    recipe for a fresh greenfield DB still in DATABASE.md §6 ⚠️ note (drop schemas CASCADE → `migrate up`
+>    → re-seed admin).
 > 2. **#6 Kategori Aset screen** — generate the mockup from **DESIGN_BRIEF §5.24** → save as
 >    `docs/design/Master Data Kategori Aset.dc.html` → build the screen mock-first 1:1 (new
 >    `useCategories` + `mock/categories` + i18n + tests). Backend category API already carries the

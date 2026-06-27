@@ -722,6 +722,7 @@
     "masterData": "Master Data",
     "offices": "Kantor",
     "employees": "Pegawai",
+    "categories": "Kategori Aset",
     "officeMap": "Peta Lokasi",
     "reference": "Referensi",
     "settings": "Pengaturan",
@@ -871,6 +872,89 @@
       "editTitle": "Ubah Pegawai",
       "deleteConfirm": "Pegawai “{nama}” (NIP {nip}) akan dihapus. Tindakan ini tidak dapat dibatalkan.",
       "errNotFound": "Pegawai tidak ditemukan."
+    },
+    "categories": {
+      "title": "Kategori Aset",
+      "subtitle": "Kelola golongan aset tetap beserta penyusutan komersial (PSAK 16), fiskal (PMK 72/2023), dan akun GL.",
+      "add": "Tambah Kategori",
+      "empty": "Belum ada kategori",
+      "emptyFilter": "Belum ada kategori aset yang cocok dengan pencarian atau filter.",
+      "searchPlaceholder": "Cari nama atau kode…",
+      "createTitle": "Tambah Kategori Aset",
+      "editTitle": "Edit Kategori Aset",
+      "createSub": "Buat golongan aset tetap baru.",
+      "editSub": "Perbarui parameter kategori.",
+      "deleteConfirm": "“{name}” akan dihapus dari master kategori. Pastikan tidak ada aset yang masih memakai kategori ini.",
+      "errNotFound": "Kategori tidak ditemukan.",
+      "req": "Wajib diisi.",
+      "months": "bulan",
+      "columns": {
+        "name": "Nama",
+        "code": "Kode",
+        "class": "Kelas Aset",
+        "method": "Metode Susut",
+        "life": "Masa (bln)",
+        "fiscalGroup": "Golongan Pajak",
+        "gl": "Akun GL",
+        "status": "Status"
+      },
+      "filter": {
+        "allClass": "Semua Kelas",
+        "allGroup": "Semua Golongan",
+        "activeOnly": "Hanya aktif"
+      },
+      "class": {
+        "tangible": "Berwujud",
+        "intangible": "Takberwujud"
+      },
+      "method": {
+        "straight_line": "Garis Lurus",
+        "declining_balance": "Saldo Menurun"
+      },
+      "fiscalGroup": {
+        "kelompok_1": "Kelompok 1",
+        "kelompok_2": "Kelompok 2",
+        "kelompok_3": "Kelompok 3",
+        "kelompok_4": "Kelompok 4",
+        "bangunan_permanen": "Bangunan Permanen",
+        "bangunan_non_permanen": "Bangunan Non-Permanen"
+      },
+      "section": {
+        "general": "Umum",
+        "deprCommercial": "Penyusutan Komersial",
+        "amortCommercial": "Amortisasi Komersial",
+        "deprRef": "PSAK 16 — Aset Tetap",
+        "amortRef": "PSAK 19 — Aset Takberwujud",
+        "tax": "Pajak / Fiskal",
+        "taxRef": "PMK 72/2023 — Penyusutan & Amortisasi Fiskal",
+        "accounting": "Akuntansi"
+      },
+      "fields": {
+        "name": "Nama Kategori",
+        "code": "Kode",
+        "parent": "Kategori Induk",
+        "class": "Kelas Aset",
+        "active": "Aktif",
+        "method": "Metode",
+        "life": "Masa Manfaat",
+        "salvage": "Nilai Residu",
+        "fiscalGroup": "Golongan / Kelompok Harta",
+        "fiscalLife": "Masa Manfaat Fiskal",
+        "gl": "Akun GL (COA)",
+        "capitalization": "Batas Kapitalisasi"
+      },
+      "placeholders": {
+        "name": "mis. Komputer & Laptop",
+        "code": "ELK",
+        "select": "Pilih…",
+        "parentNone": "— (Tanpa induk / kategori utama)"
+      },
+      "hint": {
+        "parent": "Kosongkan untuk kategori utama; pilih induk untuk sub-kategori.",
+        "gl": "Kode akun buku besar aset.",
+        "capitalization": "Minimum nilai untuk dikapitalisasi sebagai aset tetap.",
+        "buildingLock": "Aset bangunan wajib memakai Garis Lurus."
+      }
     },
     "reference": {
       "panelTitle": "Master Data",
