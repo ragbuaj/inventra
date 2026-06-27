@@ -85,9 +85,9 @@ export interface Employee {
 
 export type AssetClass = 'tangible' | 'intangible'
 export type DepreciationMethod = 'straight_line' | 'declining_balance'
-export type FiscalGroup =
-  | 'kelompok_1' | 'kelompok_2' | 'kelompok_3' | 'kelompok_4'
-  | 'bangunan_permanen' | 'bangunan_non_permanen' | 'non_susut'
+export type FiscalGroup
+  = | 'kelompok_1' | 'kelompok_2' | 'kelompok_3' | 'kelompok_4'
+    | 'bangunan_permanen' | 'bangunan_non_permanen' | 'non_susut'
 
 export interface Category {
   id: string
