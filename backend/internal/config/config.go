@@ -48,6 +48,10 @@ type Config struct {
 	GoogleRedirectURL  string
 
 	FrontendURL string
+
+	// Logging (ADR-0002).
+	LogLevel  string
+	LogFormat string
 }
 
 // Load reads configuration from the environment, applying sensible development
@@ -85,6 +89,9 @@ func Load() *Config {
 		GoogleRedirectURL:  getEnv("GOOGLE_REDIRECT_URL", "http://localhost:8080/api/v1/auth/google/callback"),
 
 		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
+
+		LogLevel:  getEnv("LOG_LEVEL", "info"),
+		LogFormat: getEnv("LOG_FORMAT", ""),
 	}
 }
 
