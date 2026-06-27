@@ -141,7 +141,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       enforced); valuation-exclusion flag. Asset create/disposal/exclusion go through the approval
       engine (not direct write). ⚠️ Attachments (MinIO) and barcode/QR still pending (see below).
       **Done — (2026-06-28).**
-- [ ] **Asset attachments (MinIO)** — Storage interface; upload + size/type validation; image compress + thumbnail; presigned/proxy access
+- [x] **Asset attachments (MinIO)** — Storage interface; upload + size/type validation; image compress + thumbnail; proxy download/thumbnail; integration-test coverage (MinIO round-trip + scope + rollback). **Done — (2026-06-28).**
 - [ ] **Barcode / QR** — Code128 from `asset_tag` + QR; printable labels (single/batch); scan lookup
 - [x] **Approval (maker-checker)** — generic `request_approvals` table; threshold-driven chain
       construction; SoD enforcement (maker cannot approve own request); pull-model eligibility

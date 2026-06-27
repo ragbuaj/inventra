@@ -85,6 +85,12 @@ func (h *Handler) uploadAttachment(c *gin.Context) {
 
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
+		// MaxBytesReader fires during multipart parsing when the body exceeds the limit.
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "file too large"})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing file field"})
 		return
 	}
