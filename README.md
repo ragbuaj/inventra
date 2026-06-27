@@ -155,6 +155,10 @@ go run ./cmd/api
 ```
 API at `http://localhost:8080`. Liveness: `GET /health`. Readiness (checks PostgreSQL + Redis): `GET /health/ready`.
 
+> **Google sign-in** is optional and **off by default** (empty `GOOGLE_CLIENT_ID`). To enable it, see
+> [docs/google-oauth-setup.md](docs/google-oauth-setup.md) — Google Cloud Console setup, the
+> Testing/Internal/Production consent-screen choice, and the env variables.
+
 ### 3. Frontend
 ```bash
 cd frontend
