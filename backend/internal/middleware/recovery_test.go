@@ -44,6 +44,12 @@ func TestRecoveryReturns500AndLogsStructured(t *testing.T) {
 	if _, ok := m["stack"]; !ok {
 		t.Fatal("stack attr missing from log")
 	}
+	if m["error"] != "kaboom" {
+		t.Fatalf("log error attr wrong: %v", m["error"])
+	}
+	if m["path"] != "/boom" {
+		t.Fatalf("log path attr wrong: %v", m["path"])
+	}
 }
 
 func TestRecoveryPassesNormalRequest(t *testing.T) {
