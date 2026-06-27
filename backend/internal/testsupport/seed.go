@@ -86,3 +86,33 @@ func SeedEmployee(t *testing.T, pool *pgxpool.Pool, officeID uuid.UUID, code str
 		code, officeID).Scan(&id))
 	return id
 }
+
+// SeedFloor inserts a masterdata.floors row in the given office and returns its id.
+func SeedFloor(t *testing.T, pool *pgxpool.Pool, officeID uuid.UUID, name string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO masterdata.floors (office_id, name) VALUES ($1, $2) RETURNING id`,
+		officeID, name).Scan(&id))
+	return id
+}
+
+// SeedRoom inserts a masterdata.rooms row on the given floor and returns its id.
+func SeedRoom(t *testing.T, pool *pgxpool.Pool, floorID uuid.UUID, name string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO masterdata.rooms (floor_id, name) VALUES ($1, $2) RETURNING id`,
+		floorID, name).Scan(&id))
+	return id
+}
+
+// SeedFieldPermission inserts an identity.field_permissions row for a role.
+func SeedFieldPermission(t *testing.T, pool *pgxpool.Pool, roleID uuid.UUID, entity, field string, canView, canEdit bool) {
+	t.Helper()
+	_, err := pool.Exec(context.Background(),
+		`INSERT INTO identity.field_permissions (role_id, entity, field, can_view, can_edit)
+		 VALUES ($1, $2, $3, $4, $5)`,
+		roleID, entity, field, canView, canEdit)
+	require.NoError(t, err)
+}
