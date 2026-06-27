@@ -75,6 +75,19 @@ func (h *Handler) submit(c *gin.Context) {
 	}
 	uid, _ := uuid.Parse(c.GetString(middleware.CtxUserID))
 	officeID, _ := uuid.Parse(req.OfficeID)
+
+	// Enforce data scope: the maker may only route requests through an office
+	// that falls within their own office data scope.
+	all, ids, err := h.scoped.CallerOfficeScope(c, "assets")
+	if err != nil {
+		common.WriteError(c, err)
+		return
+	}
+	if !common.InScope(all, ids, officeID) {
+		common.WriteError(c, common.ErrForbidden)
+		return
+	}
+
 	in := SubmitInput{
 		Type:     sqlc.SharedRequestType(req.Type),
 		Amount:   req.Amount,

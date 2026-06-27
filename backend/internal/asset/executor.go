@@ -55,6 +55,14 @@ func (e createExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.App
 	if err != nil {
 		return ErrInvalidRef
 	}
+
+	// Defense-in-depth: the office embedded in the payload must match the
+	// office recorded on the approval request row. A mismatch means the
+	// payload was tampered with after the scope check in the submit handler.
+	if req.OfficeID == nil || officeID != *req.OfficeID {
+		return ErrInvalidRef
+	}
+
 	categoryID, err := uuid.Parse(p.CategoryID)
 	if err != nil {
 		return ErrInvalidRef
@@ -112,6 +120,19 @@ func (e disposalExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.A
 	if err != nil {
 		return mapDBError(err)
 	}
+
+	// Defense-in-depth: the asset's home office must match the office on the
+	// approval request so a maker cannot dispose of an out-of-scope asset.
+	// SECURITY/TODO: The `amount` used for value-tier routing is maker-supplied
+	// (from the submission payload). The correct basis for disposal is the
+	// asset's current book value (server-derived). Once the depreciation module
+	// computes book_value, the engine should derive `amount` from the asset
+	// record rather than trusting the submitted amount to prevent threshold
+	// manipulation.
+	if req.OfficeID == nil || cur.OfficeID != *req.OfficeID {
+		return ErrInvalidRef
+	}
+
 	if !validTransition(cur.Status, sqlc.SharedAssetStatusDisposed) {
 		return ErrInvalidState
 	}
@@ -130,7 +151,18 @@ func (e exclusionExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.
 	if req.TargetID == nil {
 		return ErrInvalidRef
 	}
-	_, err := qtx.SetAssetValuationExclusion(ctx, sqlc.SetAssetValuationExclusionParams{
+
+	// Defense-in-depth: load the asset to verify its office matches the request
+	// office before applying the valuation exclusion.
+	cur, err := qtx.GetAsset(ctx, *req.TargetID)
+	if err != nil {
+		return mapDBError(err)
+	}
+	if req.OfficeID == nil || cur.OfficeID != *req.OfficeID {
+		return ErrInvalidRef
+	}
+
+	_, err = qtx.SetAssetValuationExclusion(ctx, sqlc.SetAssetValuationExclusionParams{
 		ID:                       *req.TargetID,
 		ExcludedFromValuation:    true,
 		ValuationExclusionReason: req.Reason,
