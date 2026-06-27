@@ -1,4 +1,4 @@
-{
+﻿{
   "app": { "name": "Inventra", "tagline": "Asset Management" },
   "assets": {
     "title": "Asset Catalog",
@@ -722,6 +722,7 @@
     "masterData": "Master Data",
     "offices": "Offices",
     "employees": "Employees",
+    "categories": "Asset Categories",
     "officeMap": "Location Map",
     "reference": "Reference",
     "settings": "Settings",
@@ -871,6 +872,88 @@
       "editTitle": "Edit Employee",
       "deleteConfirm": "Employee “{nama}” (NIP {nip}) will be deleted. This cannot be undone.",
       "errNotFound": "Employee not found."
+    },
+    "categories": {
+      "title": "Asset Categories",
+      "subtitle": "Manage fixed-asset classes with commercial (IAS 16), fiscal (PMK 72/2023) depreciation, and GL accounts.",
+      "add": "Add Category",
+      "empty": "No categories yet",
+      "emptyFilter": "No asset category matches the search or filter.",
+      "searchPlaceholder": "Search name or code…",
+      "createTitle": "Add Asset Category",
+      "editTitle": "Edit Asset Category",
+      "createSub": "Create a new fixed-asset class.",
+      "editSub": "Update category parameters.",
+      "deleteConfirm": "“{name}” will be removed from the category master. Ensure no asset still uses this category.",
+      "errNotFound": "Category not found.",
+      "req": "Required.",
+      "months": "months",
+      "columns": {
+        "name": "Name",
+        "code": "Code",
+        "class": "Asset Class",
+        "method": "Deprec. Method",
+        "life": "Life (mo)",
+        "fiscalGroup": "Tax Group",
+        "gl": "GL Account",
+        "status": "Status"
+      },
+      "filter": {
+        "allClass": "All Classes",
+        "allGroup": "All Groups",
+        "activeOnly": "Active only"
+      },
+      "class": {
+        "tangible": "Tangible",
+        "intangible": "Intangible"
+      },
+      "method": {
+        "straight_line": "Straight Line",
+        "declining_balance": "Declining Balance"
+      },
+      "fiscalGroup": {
+        "kelompok_1": "Group 1",
+        "kelompok_2": "Group 2",
+        "kelompok_3": "Group 3",
+        "kelompok_4": "Group 4",
+        "bangunan_permanen": "Permanent Building",
+        "bangunan_non_permanen": "Non-Permanent Building"
+      },
+      "section": {
+        "general": "General",
+        "deprCommercial": "Commercial Depreciation",
+        "amortCommercial": "Commercial Amortization",
+        "deprRef": "IAS 16 — Fixed Assets",
+        "amortRef": "IAS 38 — Intangible Assets",
+        "tax": "Tax / Fiscal",
+        "taxRef": "PMK 72/2023 — Fiscal Depreciation & Amortization",
+        "accounting": "Accounting"
+      },
+      "fields": {
+        "name": "Category Name",
+        "code": "Code",
+        "parent": "Parent Category",
+        "class": "Asset Class",
+        "active": "Active",
+        "method": "Method",
+        "life": "Useful Life",
+        "salvage": "Residual Value",
+        "fiscalGroup": "Tax Asset Group",
+        "fiscalLife": "Fiscal Useful Life",
+        "gl": "GL Account (COA)",
+        "capitalization": "Capitalization Threshold"
+      },
+      "placeholders": {
+        "name": "e.g. Computers & Laptops",
+        "select": "Select…",
+        "parentNone": "— (No parent / top category)"
+      },
+      "hint": {
+        "parent": "Leave empty for a top category; pick a parent for a sub-category.",
+        "gl": "Asset general-ledger account code.",
+        "capitalization": "Minimum value to capitalize as a fixed asset.",
+        "buildingLock": "Building assets must use Straight Line."
+      }
     },
     "reference": {
       "panelTitle": "Master Data",

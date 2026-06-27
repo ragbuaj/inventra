@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { superadminNav, staffNav } from '~/utils/nav'
 import type { NavItem } from '~/types'
 
-const BUILT_ROUTES = ['/', '/master/offices', '/master/employees', '/master/map', '/master/reference', '/settings/users', '/settings/rbac', '/settings/data-scope', '/settings/field-permission', '/settings/audit', '/assets', '/assets/import', '/assets/label', '/assignment', '/maintenance', '/approval', '/reports']
+const BUILT_ROUTES = ['/', '/master/offices', '/master/employees', '/master/categories', '/master/map', '/master/reference', '/settings/users', '/settings/rbac', '/settings/data-scope', '/settings/field-permission', '/settings/audit', '/assets', '/assets/import', '/assets/label', '/assignment', '/maintenance', '/approval', '/reports']
 
 function collectItems(items: NavItem[]): NavItem[] {
   return items.flatMap(item => [item, ...(item.children ? collectItems(item.children) : [])])
@@ -80,9 +80,16 @@ describe('superadminNav — children groups', () => {
     expect(aset?.children).toHaveLength(3)
   })
 
-  it('Master Data parent has 4 children', () => {
+  it('Master Data parent has 5 children', () => {
     const master = superadminNav[1].items.find(i => i.labelKey === 'nav.masterData')
-    expect(master?.children).toHaveLength(4)
+    expect(master?.children).toHaveLength(5)
+  })
+
+  it('includes a Kategori entry under Master Data linking to /master/categories', () => {
+    const master = superadminNav
+      .flatMap(g => g.items)
+      .find(i => i.labelKey === 'nav.masterData')
+    expect(master?.children?.some(c => c.to === '/master/categories' && c.labelKey === 'nav.categories')).toBe(true)
   })
 
   it('Pengaturan parent has 5 children', () => {
