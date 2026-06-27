@@ -3,6 +3,8 @@ package config
 import "testing"
 
 func TestLoadLoggingDefaults(t *testing.T) {
+	t.Setenv("LOG_LEVEL", "")
+	t.Setenv("LOG_FORMAT", "")
 	cfg := Load()
 	if cfg.LogLevel != "info" {
 		t.Fatalf("LogLevel default: %q", cfg.LogLevel)

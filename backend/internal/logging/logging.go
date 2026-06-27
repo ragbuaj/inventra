@@ -61,7 +61,8 @@ func parseLevel(s string) slog.Level {
 	}
 }
 
-// redactAttr masks sensitive values regardless of type or nesting depth.
+// redactAttr is called by the slog handler for every attribute (including those
+// inside groups) and replaces sensitive values regardless of original type.
 func redactAttr(_ []string, a slog.Attr) slog.Attr {
 	if _, ok := sensitiveKeys[strings.ToLower(a.Key)]; ok {
 		return slog.String(a.Key, redacted)
