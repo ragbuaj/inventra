@@ -41,6 +41,7 @@ type Querier interface {
 	// office_id is in office_ids are returned. NULL-office (global) rows are visible
 	// only to all-scope callers.
 	InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) (AuditAuditLog, error)
+	LinkGoogleID(ctx context.Context, arg LinkGoogleIDParams) error
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]ListAuditLogsRow, error)
 	// Asset category master data (masterdata.categories). Respects soft delete.
 	ListCategories(ctx context.Context, arg ListCategoriesParams) ([]MasterdataCategory, error)
