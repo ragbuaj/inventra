@@ -154,7 +154,17 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 - [ ] **Indexing / scale** — start with Postgres full-text search (`tsvector` columns + GIN indexes, `unaccent` for accent-insensitive matching) per searchable entity; graduate to a dedicated engine (Meilisearch / Typesense / Elasticsearch) — populated by the scheduler/CDC — when volume, ranking, and typo-tolerance demand it (shares the indexing story with *Analytics / OLAP* above).
 
 ### Backend — Cross-cutting (not yet implemented)
-- [x] **Audit logging** — `internal/audit` writer wired into every masterdata + user mutation (create/update/delete) with before/after diffs; office-scoped, filterable `GET /api/v1/audit` (gated by `audit.view`); migration 000014 adds `audit_logs.office_id`
+- [x] **Audit logging** — `internal/audit` writer wired into every masterdata + user mutation (create/update/delete) with before/after diffs; office-scoped, filterable `GET /api/v1/audit` (gated by `audit.view`); migration 000014 adds `audit_logs.office_id`. (This is the **business audit trail** — distinct from application/observability logging below.)
+- [ ] **Structured logging & request correlation (ADR-0002)** — not yet implemented. Current state:
+      stdlib `log` for startup/lifecycle (`cmd/api/main.go`), Gin's **default** `gin.Logger()` for HTTP
+      (`internal/server/router.go`), and a single `slog.Warn` on audit-write failure (`internal/audit/record.go`).
+      Per **ADR-0002** (Accepted), build: **Backend** — a `log/slog` logger (JSON in prod, text in dev via
+      config/ADR-0003), a slog-backed request middleware replacing `gin.Logger()` (method/path/status/latency),
+      a **request-id** middleware that reads/echoes `X-Request-ID` and binds `request_id` (+ `user_id`/`role_id`
+      where available) to every line, a logger pulled from `context.Context`, and a `safeAttrs` redaction helper
+      so `password_hash`/tokens/`google_id` are never logged; keep `/health` noise low. **Frontend** — a thin
+      `useLogger` composable that generates/propagates `X-Request-ID` per API call and ships client errors to the
+      backend (console in dev). No heavy client logging lib. Handler interface keeps an OpenTelemetry bridge open later.
 - [ ] **Google OAuth2 login** — `/auth/google` + callback + account linking (currently local-only).
       Use `golang.org/x/oauth2` + `coreos/go-oidc/v3` (ADR-0009): verify ID token, link by verified email,
       mint the same app JWT; structure provider-agnostically for future enterprise SSO (Entra/bank IdP)
@@ -194,6 +204,6 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 2. **Asset core + attachments (MinIO) + barcode**
 3. **Approval (maker-checker)** → **Assignment** → **Maintenance**
 4. **Depreciation** → **Reporting/Dashboard (+ PDF/Excel)** → **Import** — add the **Analytics / OLAP** read layer (materialized views → fact tables) once report data volume warrants it
-5. **Google OAuth2 + rate limiting + notifications + scheduler + authz admin**
+5. **Structured logging (ADR-0002) + Google OAuth2 + rate limiting + notifications + scheduler + authz admin**
 6. **Wire the (already-built) frontend screens to real APIs** as each backend module lands —
    swap `mock/*` for real `$fetch` behind the same `composables/api/use*` interface
