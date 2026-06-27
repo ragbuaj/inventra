@@ -1,13 +1,18 @@
 package identity
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
 
-// RegisterRoutes mounts the identity endpoints under the given group.
-// authMW protects endpoints that require a valid access token.
-func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW gin.HandlerFunc) {
+	"github.com/ragbuaj/inventra/internal/middleware"
+	"github.com/ragbuaj/inventra/internal/ratelimit"
+)
+
+// RegisterRoutes mounts the identity endpoints. authMW protects authed routes;
+// the limiter applies per-IP throttles on the unauthenticated auth endpoints.
+func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW gin.HandlerFunc, limiter ratelimit.Allower, loginIPPerMin, refreshPerMin int) {
 	grp := rg.Group("/auth")
-	grp.POST("/login", h.login)
-	grp.POST("/refresh", h.refresh)
+	grp.POST("/login", middleware.PerIP(limiter, loginIPPerMin, "auth_login", true), h.login)
+	grp.POST("/refresh", middleware.PerIP(limiter, refreshPerMin, "auth_refresh", true), h.refresh)
 
 	authed := grp.Group("")
 	authed.Use(authMW)

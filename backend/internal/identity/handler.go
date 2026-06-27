@@ -3,6 +3,7 @@ package identity
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -10,18 +11,21 @@ import (
 
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/middleware"
+	"github.com/ragbuaj/inventra/internal/ratelimit"
 )
 
 // Handler exposes the identity HTTP endpoints.
 type Handler struct {
-	svc    *Service
-	perms  *authz.PermissionService
-	scopes *authz.ScopeService
+	svc         *Service
+	perms       *authz.PermissionService
+	scopes      *authz.ScopeService
+	limiter     ratelimit.Allower
+	loginPerMin int
 }
 
 // NewHandler builds the identity Handler.
-func NewHandler(svc *Service, perms *authz.PermissionService, scopes *authz.ScopeService) *Handler {
-	return &Handler{svc: svc, perms: perms, scopes: scopes}
+func NewHandler(svc *Service, perms *authz.PermissionService, scopes *authz.ScopeService, limiter ratelimit.Allower, loginPerMin int) *Handler {
+	return &Handler{svc: svc, perms: perms, scopes: scopes, limiter: limiter, loginPerMin: loginPerMin}
 }
 
 // permissions returns the caller's effective RBAC permission keys.
@@ -63,6 +67,11 @@ func (h *Handler) login(c *gin.Context) {
 	var req loginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	key := "login:acct:" + strings.ToLower(strings.TrimSpace(req.Email))
+	if res := h.limiter.Allow(c.Request.Context(), key, h.loginPerMin, true); !res.Allowed {
+		middleware.WriteRateLimited(c, res)
 		return
 	}
 	pair, _, err := h.svc.Login(c.Request.Context(), req.Email, req.Password)
