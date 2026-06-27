@@ -298,6 +298,35 @@ func (q *Queries) GetRequest(ctx context.Context, id uuid.UUID) (ApprovalRequest
 	return i, err
 }
 
+const getRequestForUpdate = `-- name: GetRequestForUpdate :one
+SELECT id, type, office_id, amount, current_step, target_entity, target_id, payload, reason, status, requested_by_id, decided_by_id, decision_note, decided_at, created_at, updated_at, deleted_at FROM approval.requests WHERE id = $1 AND deleted_at IS NULL FOR UPDATE
+`
+
+func (q *Queries) GetRequestForUpdate(ctx context.Context, id uuid.UUID) (ApprovalRequest, error) {
+	row := q.db.QueryRow(ctx, getRequestForUpdate, id)
+	var i ApprovalRequest
+	err := row.Scan(
+		&i.ID,
+		&i.Type,
+		&i.OfficeID,
+		&i.Amount,
+		&i.CurrentStep,
+		&i.TargetEntity,
+		&i.TargetID,
+		&i.Payload,
+		&i.Reason,
+		&i.Status,
+		&i.RequestedByID,
+		&i.DecidedByID,
+		&i.DecisionNote,
+		&i.DecidedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const listInboxCandidates = `-- name: ListInboxCandidates :many
 SELECT id, type, office_id, amount, current_step, target_entity, target_id, payload, reason, status, requested_by_id, decided_by_id, decision_note, decided_at, created_at, updated_at, deleted_at FROM approval.requests
 WHERE deleted_at IS NULL AND status='pending'

@@ -46,6 +46,7 @@ type Querier interface {
 	// Returns an office plus all of its descendants (Pusat -> Wilayah -> Cabang -> Outlet).
 	GetOfficeSubtree(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error)
 	GetRequest(ctx context.Context, id uuid.UUID) (ApprovalRequest, error)
+	GetRequestForUpdate(ctx context.Context, id uuid.UUID) (ApprovalRequest, error)
 	// Identity module queries. Schema-qualified (see DATABASE.md §1.2).
 	GetRoleByCode(ctx context.Context, code string) (IdentityRole, error)
 	GetRoom(ctx context.Context, arg GetRoomParams) (MasterdataRoom, error)

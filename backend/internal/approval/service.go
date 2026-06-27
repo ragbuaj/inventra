@@ -79,6 +79,11 @@ type SubmitInput struct {
 // Submit resolves the approval chain for the given amount, creates the request
 // and its per-step approval rows atomically inside a transaction.
 func (s *Service) Submit(ctx context.Context, in SubmitInput) (sqlc.ApprovalRequest, error) {
+	// Every request must be tied to a real office so it is always visible in Inbox.
+	if in.OfficeID == uuid.Nil {
+		return sqlc.ApprovalRequest{}, ErrInvalidState
+	}
+
 	steps, err := s.q.MatchThresholdSteps(ctx, sqlc.MatchThresholdStepsParams{
 		RequestType: in.Type,
 		Amount:      in.Amount,
@@ -198,7 +203,7 @@ func resolveTierOffice(anc []sqlc.GetOfficeAncestorsRow, originID uuid.UUID, lev
 	}
 }
 
-// ancestorsFor returns the ancestor chain for the given office (cached via sqlc).
+// ancestorsFor returns the ancestor chain for the given office by querying GetOfficeAncestors directly.
 func (s *Service) ancestorsFor(ctx context.Context, officeID uuid.UUID) ([]sqlc.GetOfficeAncestorsRow, error) {
 	return s.q.GetOfficeAncestors(ctx, officeID)
 }
@@ -256,6 +261,18 @@ func (s *Service) Decide(ctx context.Context, requestID uuid.UUID, caller Caller
 	defer tx.Rollback(ctx) //nolint:errcheck
 	qtx := s.q.WithTx(tx)
 
+	// Re-load with a row lock so two concurrent approvers cannot both pass this point.
+	// We abort if the request moved to a different step or is no longer pending since
+	// our pre-tx eligibility check — the eligibility itself remains valid because the
+	// chain configuration did not change.
+	locked, err := qtx.GetRequestForUpdate(ctx, requestID)
+	if err != nil {
+		return req, mapDBError(err)
+	}
+	if locked.Status != sqlc.SharedRequestStatusPending || locked.CurrentStep != req.CurrentStep {
+		return req, ErrInvalidState
+	}
+
 	if !approve {
 		if _, err := qtx.DecideRequestApproval(ctx, sqlc.DecideRequestApprovalParams{
 			RequestID:  requestID,
@@ -292,8 +309,10 @@ func (s *Service) Decide(ctx context.Context, requestID uuid.UUID, caller Caller
 		return req, mapDBError(err)
 	}
 
-	// isLast: step_order == total number of approval rows (steps are 1-indexed from Submit)
-	isLast := step.StepOrder == int32(len(approvals))
+	// isLast: compare against the highest step_order in the chain.
+	// approvals is ORDER BY step_order and non-empty at this point, so the last element is safe.
+	maxStep := approvals[len(approvals)-1].StepOrder
+	isLast := step.StepOrder == maxStep
 	if !isLast {
 		out, err := qtx.AdvanceRequestStep(ctx, requestID)
 		if err != nil {
@@ -362,6 +381,7 @@ func (s *Service) Inbox(ctx context.Context, caller Caller) ([]sqlc.ApprovalRequ
 				found = true
 			}
 		}
+		// Submit guarantees office_id is non-nil; the nil check here is purely defensive.
 		if !found || req.OfficeID == nil {
 			continue
 		}

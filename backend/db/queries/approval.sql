@@ -40,6 +40,9 @@ VALUES (
 -- name: GetRequest :one
 SELECT * FROM approval.requests WHERE id=$1 AND deleted_at IS NULL;
 
+-- name: GetRequestForUpdate :one
+SELECT * FROM approval.requests WHERE id = $1 AND deleted_at IS NULL FOR UPDATE;
+
 -- name: ListRequests :many
 SELECT * FROM approval.requests
 WHERE deleted_at IS NULL
