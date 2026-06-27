@@ -81,6 +81,12 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
+    # Load developer .env (Google OAuth secrets etc.). The `environment:` block
+    # below still wins for the Docker-internal infra hosts. required:false → the
+    # stack still runs when backend/.env is absent.
+    env_file:
+      - path: ./backend/.env
+        required: false
     depends_on:
       postgres:
         condition: service_healthy

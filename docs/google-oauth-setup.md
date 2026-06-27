@@ -62,6 +62,26 @@ it holds the single-use `state` (CSRF) and PKCE verifier via `GETDEL`.
 | `FRONTEND_URL` | ⚠️ | `http://localhost:3000` | sole redirect target after callback (anti-open-redirect) |
 | `GOOGLE_ISSUER` | — | `https://accounts.google.com` | rarely changed |
 
+**Running on the host** (`go run ./cmd/api` from `backend/`): `godotenv` reads `backend/.env` at
+startup — edit it, then **restart** the process (env is read once at boot).
+
+**Running in Docker** (`docker compose ... --profile app watch`, or `docker compose up`): the backend
+image ships only the binary, so it loads `backend/.env` via the compose service's `env_file` directive.
+The `environment:` block still overrides the Docker-internal infra hosts (`DB_HOST=postgres`, …); only
+the variables it does *not* set — including the `GOOGLE_*` ones — come from `backend/.env`. A compose
+file or `.env` change requires **recreating** the backend container (`watch` only syncs source, it does
+not re-read env):
+
+```bash
+docker compose -f docker-compose.dev.yml --profile app up -d --force-recreate backend
+```
+
+Verify what the container will actually receive (value masked):
+
+```bash
+docker compose -f docker-compose.dev.yml --profile app config | grep GOOGLE_CLIENT_ID
+```
+
 ## 4. Provision a user (link-only prerequisite)
 
 Because of the link-only policy, before testing make sure a user exists **with the same email** as your
