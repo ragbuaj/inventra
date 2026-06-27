@@ -66,8 +66,8 @@ func TestGoogleCallbackProviderError(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/cb?error=access_denied", nil))
 	loc := w.Header().Get("Location")
-	if w.Code != http.StatusFound || !strings.Contains(loc, "oauth=error") {
-		t.Fatalf("provider error should redirect error: %d %s", w.Code, loc)
+	if w.Code != http.StatusFound || !strings.Contains(loc, "oauth=error") || !strings.Contains(loc, "reason=server") {
+		t.Fatalf("provider error should redirect error reason=server: %d %s", w.Code, loc)
 	}
 }
 
