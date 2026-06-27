@@ -26,9 +26,18 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > 2. ~~**#6 Kategori Aset screen**~~ ✅ **DONE** — `app/pages/master/categories.vue` + `useCategories`
 >    + `mock/categories` + `CategoryFormSlideover.vue` + i18n + tests, built 1:1 from
 >    `docs/design/Kategori Aset.dc.html`. (All 23 frontend mockup screens are now implemented.)
-> 3. **Backend handlers** for the new bank-FAM tables (transfer/opname/disposal/documents/thresholds),
->    per the *Bank-FAM (PRD v1.1)* checklist below — the main remaining backend build.
-> 4. **ADR-0007 composable refactor** (still pending) — before wiring screens to real APIs: rename the
+> 3. ~~**Approval engine + Asset core backend**~~ ✅ **DONE (2026-06-28).** See *Bank-FAM* and
+>    *Backend — Feature modules* below for details.
+> 4. **Next priorities (pick one):**
+>    - **Asset attachments (MinIO)** — storage interface, presigned upload/download, image thumbnail
+>      (see *Backend — Feature modules* below); enables BAST documents later.
+>    - **Barcode/QR** — Code128 from `asset_tag`, printable label endpoint; scan lookup.
+>    - **Wire frontend Asset & Approval screens** to the real `/api/v1/assets` and `/api/v1/requests`
+>      endpoints (replace `mock/*` fixtures behind the existing `composables/api/use*` interface);
+>      do the **ADR-0007 composable refactor** first (rename Indonesian DTO keys).
+>    - **Disposal accounting** — once depreciation lands, derive disposal `amount` from server-side
+>      `book_value` (currently maker-supplied); wire gain/loss journal entries.
+> 5. **ADR-0007 composable refactor** (still pending) — before wiring screens to real APIs: rename the
 >    Indonesian DTO keys (`nama`/`kode`/`alamat`) to the backend's English `snake_case` contract and
 >    regroup `composables/api/` + `mock/` into module subfolders. Avoids a mapping shim later.
 
@@ -109,11 +118,15 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       OpenAPI wired (build green). **Frontend Kategori screen** still to build (#6 — see *Next session*).
 - [ ] **Dual-basis depreciation** — commercial (PSAK 16) + fiscal (PMK 72/2023, kelompok 1–4 / bangunan)
       `depreciation_entries` per basis; intangible amortization (PSAK 19); impairment (PSAK 48) write-down
-- [ ] **Value-tiered approval** — `approval_thresholds` (configurable bands) + `request_approvals` chain;
-      SoD (maker ≠ checker ≠ approver); seed placeholder bands (PRD §2.4)
+- [x] **Value-tiered approval** — `approval_thresholds` (configurable bands per request_type/min-max
+      amount/approval_level) + `request_approvals` chain; SoD (maker ≠ checker per step); seeded
+      placeholder bands; authz-admin CRUD endpoints for thresholds included. **Done — (2026-06-28).**
 - [ ] **Asset transfer (mutasi)** — inter-office transfer + BAST + history; updates `assets.office_id`
 - [ ] **Stock opname** — sessions + item reconciliation (found/not_found/damaged/misplaced) + report
-- [ ] **Disposal** — sale/auction/donation/write_off + gain/loss; `assets.status → disposed`
+- [ ] **Disposal** — status transition (`assets.status → disposed`) implemented via approval executor
+      (asset_disposal flow). Gain/loss accounting + journal entries still pending (requires depreciation
+      to derive server-side `book_value`; currently disposal `amount` is maker-supplied — ⚠️ value-tier
+      hardening needed once depreciation lands).
 - [ ] **Asset documents (BAST)** — acquisition/transfer/disposal docs in MinIO
 - [ ] **Journal-ready export** — GL-account rollup (depreciation expense, disposal gain/loss)
 - [ ] **Capitalization threshold** — `app_settings` global default + per-category override; below
@@ -122,10 +135,19 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       cost-model vs revaluation, exact PSAK paragraphs (PRD ⚠️ items / DATABASE DB-Q6–Q8)
 
 ### Backend — Feature modules
-- [ ] **Asset core** — CRUD; `asset_tag` generator (atomic per office/category/year); status state machine; data-scoping + field-permission (mask `purchase_cost`/`book_value`); valuation-exclusion flag
+- [x] **Asset core** — CRUD read/update (direct, data-scoped + field-permission masking of
+      `purchase_cost`/`book_value`/`accumulated_depreciation`); `asset_tag` generator (atomic
+      per-office/category/year, Postgres advisory lock); status state machine (valid transitions
+      enforced); valuation-exclusion flag. Asset create/disposal/exclusion go through the approval
+      engine (not direct write). ⚠️ Attachments (MinIO) and barcode/QR still pending (see below).
+      **Done — (2026-06-28).**
 - [ ] **Asset attachments (MinIO)** — Storage interface; upload + size/type validation; image compress + thumbnail; presigned/proxy access
 - [ ] **Barcode / QR** — Code128 from `asset_tag` + QR; printable labels (single/batch); scan lookup
-- [ ] **Approval (maker-checker)** — generic `requests`; routing (Manager/Kepala Unit/Kanwil/Superadmin by scope); segregation-of-duty; flows: asset_create, asset_delete, valuation_exclusion
+- [x] **Approval (maker-checker)** — generic `request_approvals` table; threshold-driven chain
+      construction; SoD enforcement (maker cannot approve own request); pull-model eligibility
+      (pending step scoped to checker's office); executors: `asset_create`, `asset_disposal`,
+      `valuation_exclusion`; authz-admin CRUD endpoints for `approval_thresholds` (Superadmin-gated).
+      **Done — (2026-06-28).**
 - [ ] **Assignment** — check-out/check-in; assignment requests (Staf → approve); one-active-per-asset; overdue; history
 - [ ] **Maintenance** — schedules (interval/next_due); records (preventive/corrective, cost, vendor); damage reports (Staf + problem category); `under_maintenance` status
 - [ ] **Depreciation** — book value (straight-line / declining-balance); monthly `depreciation_entries` read model
