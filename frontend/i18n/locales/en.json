@@ -945,6 +945,7 @@
       },
       "placeholders": {
         "name": "e.g. Computers & Laptops",
+        "code": "ELK",
         "select": "Select…",
         "parentNone": "— (No parent / top category)"
       },

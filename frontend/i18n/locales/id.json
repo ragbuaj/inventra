@@ -945,6 +945,7 @@
       },
       "placeholders": {
         "name": "mis. Komputer & Laptop",
+        "code": "ELK",
         "select": "Pilih…",
         "parentNone": "— (Tanpa induk / kategori utama)"
       },

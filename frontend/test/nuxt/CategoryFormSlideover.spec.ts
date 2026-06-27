@@ -58,6 +58,30 @@ describe('CategoryFormSlideover', () => {
     expect(document.body.innerHTML).toContain('Wajib diisi')
   })
 
+  it('lets an edited child category clear its parent back to none', async () => {
+    const wrapper = await mountSuspended(CategoryFormSlideover, {
+      props: {
+        open: true,
+        category: {
+          id: 'c-laptop', name: 'Komputer & Laptop', code: 'ELK', parent_id: 'c-it',
+          default_depreciation_method: 'straight_line', default_useful_life_months: 48,
+          default_salvage_rate: '0', asset_class: 'tangible', default_fiscal_group: 'kelompok_1',
+          default_fiscal_life_months: 48, gl_account_code: '1.2.3.01', capitalization_threshold: '1000000',
+          is_active: true, created_at: '2026-01-06'
+        },
+        parentOptions: [{ value: 'c-it', label: 'Perangkat IT' }]
+      }
+    })
+    await wrapper.vm.$nextTick()
+    const vm = wrapper.vm as unknown as { form: Record<string, unknown>, onSubmit: () => void }
+    expect(vm.form.parent_id).toBe('c-it')
+    vm.form.parent_id = '__none__'
+    vm.onSubmit()
+    await wrapper.vm.$nextTick()
+    const payload = wrapper.emitted('submit')?.[0]?.[0] as Record<string, unknown>
+    expect(payload.parent_id).toBeNull()
+  })
+
   it('emits submit with a snake_case CategoryInput payload', async () => {
     const wrapper = await mountOpen()
     const vm = wrapper.vm as unknown as Vm

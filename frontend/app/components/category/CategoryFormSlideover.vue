@@ -30,9 +30,9 @@ interface FormState {
 
 function emptyForm(): FormState {
   return {
-    name: '', code: '', parent_id: '', asset_class: 'tangible',
+    name: '', code: '', parent_id: '__none__', asset_class: 'tangible',
     default_depreciation_method: 'straight_line', default_useful_life_months: '',
-    default_salvage_rate: '', default_fiscal_group: '', default_fiscal_life_months: '',
+    default_salvage_rate: '', default_fiscal_group: '__none__', default_fiscal_life_months: '',
     gl_account_code: '', capitalization_threshold: '', is_active: true
   }
 }
@@ -51,12 +51,12 @@ function hydrate() {
   Object.assign(form, {
     name: c.name,
     code: c.code ?? '',
-    parent_id: c.parent_id ?? '',
+    parent_id: c.parent_id ?? '__none__',
     asset_class: c.asset_class,
     default_depreciation_method: c.default_depreciation_method ?? 'straight_line',
     default_useful_life_months: c.default_useful_life_months != null ? String(c.default_useful_life_months) : '',
     default_salvage_rate: c.default_salvage_rate ?? '',
-    default_fiscal_group: c.default_fiscal_group ?? '',
+    default_fiscal_group: c.default_fiscal_group ?? '__none__',
     default_fiscal_life_months: c.default_fiscal_life_months != null ? String(c.default_fiscal_life_months) : '',
     gl_account_code: c.gl_account_code ?? '',
     capitalization_threshold: formatThousands(c.capitalization_threshold),
@@ -117,12 +117,12 @@ function toInput(): CategoryInput {
   return {
     name: form.name.trim(),
     code: strOrNull(form.code),
-    parent_id: form.parent_id || null,
+    parent_id: (form.parent_id === '__none__' || form.parent_id === '') ? null : form.parent_id,
     default_depreciation_method: form.default_depreciation_method,
     default_useful_life_months: numOrNull(form.default_useful_life_months),
     default_salvage_rate: strOrNull(form.default_salvage_rate),
     asset_class: form.asset_class,
-    default_fiscal_group: (form.default_fiscal_group || null) as Category['default_fiscal_group'],
+    default_fiscal_group: (form.default_fiscal_group === '__none__' || form.default_fiscal_group === '') ? null : (form.default_fiscal_group as Category['default_fiscal_group']),
     default_fiscal_life_months: numOrNull(form.default_fiscal_life_months),
     gl_account_code: strOrNull(form.gl_account_code),
     capitalization_threshold: cap !== '' ? cap : null,
@@ -175,7 +175,7 @@ defineExpose({ form, isIntangible, isBuilding, onSubmit })
             >
               <UInput
                 v-model="form.code"
-                placeholder="ELK"
+                :placeholder="t('masterdata.categories.placeholders.code')"
                 class="w-full font-mono"
               />
             </UFormField>
@@ -187,8 +187,7 @@ defineExpose({ form, isIntangible, isBuilding, onSubmit })
           >
             <USelect
               v-model="form.parent_id"
-              :items="props.parentOptions"
-              :placeholder="t('masterdata.categories.placeholders.parentNone')"
+              :items="[{ value: '__none__', label: t('masterdata.categories.placeholders.parentNone') }, ...props.parentOptions]"
               class="w-full"
             />
           </UFormField>
@@ -259,7 +258,6 @@ defineExpose({ form, isIntangible, isBuilding, onSubmit })
                 v-model="form.default_useful_life_months"
                 inputmode="numeric"
                 placeholder="48"
-                :trailing="false"
                 class="w-full"
               >
                 <template #trailing>
@@ -296,8 +294,7 @@ defineExpose({ form, isIntangible, isBuilding, onSubmit })
           <UFormField :label="t('masterdata.categories.fields.fiscalGroup')">
             <USelect
               v-model="form.default_fiscal_group"
-              :items="fiscalGroupOptions"
-              :placeholder="t('masterdata.categories.placeholders.select')"
+              :items="[{ value: '__none__', label: t('masterdata.categories.placeholders.select') }, ...fiscalGroupOptions]"
               class="w-full"
             />
           </UFormField>
