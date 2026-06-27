@@ -73,6 +73,23 @@ func dateStr(d pgtype.Date) *string {
 	return &s
 }
 
+// attachmentToMap serializes an asset attachment for the API response.
+// Storage-internal fields (object_key, thumbnail_key) are intentionally omitted;
+// has_thumbnail (bool) is derived from ThumbnailKey so callers can conditionally
+// render thumbnails without knowing the storage path.
+func attachmentToMap(a sqlc.AssetAssetAttachment) map[string]any {
+	return map[string]any{
+		"id":                a.ID.String(),
+		"asset_id":          a.AssetID.String(),
+		"kind":              string(a.Kind),
+		"original_filename": a.OriginalFilename,
+		"size_bytes":        a.SizeBytes,
+		"mime_type":         a.MimeType,
+		"has_thumbnail":     a.ThumbnailKey != nil,
+		"created_at":        common.TsStr(a.CreatedAt),
+	}
+}
+
 // AssetUpdateRequest is the PUT body for non-sensitive asset attributes.
 // purchase_cost and asset_class are excluded (handled by dedicated operations).
 type AssetUpdateRequest struct {
