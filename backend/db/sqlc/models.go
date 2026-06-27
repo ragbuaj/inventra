@@ -1352,12 +1352,13 @@ type MasterdataOffice struct {
 }
 
 type MasterdataOfficeType struct {
-	ID        uuid.UUID          `json:"id"`
-	Name      string             `json:"name"`
-	IsActive  bool               `json:"is_active"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
+	ID        uuid.UUID            `json:"id"`
+	Name      string               `json:"name"`
+	IsActive  bool                 `json:"is_active"`
+	CreatedAt pgtype.Timestamptz   `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz   `json:"updated_at"`
+	DeletedAt pgtype.Timestamptz   `json:"deleted_at"`
+	Tier      *SharedApproverLevel `json:"tier"`
 }
 
 type MasterdataPosition struct {

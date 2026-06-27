@@ -11,26 +11,42 @@ import (
 )
 
 type Querier interface {
+	AdvanceRequestStep(ctx context.Context, id uuid.UUID) (ApprovalRequest, error)
+	BumpAssetTagCounter(ctx context.Context, arg BumpAssetTagCounterParams) (int32, error)
+	CancelRequest(ctx context.Context, arg CancelRequestParams) (ApprovalRequest, error)
+	CountAssets(ctx context.Context, arg CountAssetsParams) (int64, error)
 	CountAuditLogs(ctx context.Context, arg CountAuditLogsParams) (int64, error)
 	CountCategories(ctx context.Context, search string) (int64, error)
 	CountEmployees(ctx context.Context, arg CountEmployeesParams) (int64, error)
 	CountFloorsByOffice(ctx context.Context, arg CountFloorsByOfficeParams) (int64, error)
 	CountOffices(ctx context.Context, arg CountOfficesParams) (int64, error)
+	CountRequests(ctx context.Context, arg CountRequestsParams) (int64, error)
 	CountRoomsByFloor(ctx context.Context, arg CountRoomsByFloorParams) (int64, error)
 	CountUsers(ctx context.Context, search string) (int64, error)
+	CreateAsset(ctx context.Context, arg CreateAssetParams) (AssetAsset, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (MasterdataCategory, error)
 	CreateEmployee(ctx context.Context, arg CreateEmployeeParams) (MasterdataEmployee, error)
 	CreateFloor(ctx context.Context, arg CreateFloorParams) (MasterdataFloor, error)
 	CreateOffice(ctx context.Context, arg CreateOfficeParams) (MasterdataOffice, error)
+	CreateRequest(ctx context.Context, arg CreateRequestParams) (ApprovalRequest, error)
+	CreateRequestApproval(ctx context.Context, arg CreateRequestApprovalParams) (ApprovalRequestApproval, error)
 	CreateRoom(ctx context.Context, arg CreateRoomParams) (MasterdataRoom, error)
+	CreateThreshold(ctx context.Context, arg CreateThresholdParams) (ApprovalApprovalThreshold, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (IdentityUser, error)
+	DecideRequestApproval(ctx context.Context, arg DecideRequestApprovalParams) (ApprovalRequestApproval, error)
+	GetAsset(ctx context.Context, id uuid.UUID) (AssetAsset, error)
 	GetCategory(ctx context.Context, id uuid.UUID) (MasterdataCategory, error)
+	GetCategoryCode(ctx context.Context, id uuid.UUID) (*string, error)
 	GetEmployee(ctx context.Context, arg GetEmployeeParams) (MasterdataEmployee, error)
 	GetFloor(ctx context.Context, arg GetFloorParams) (MasterdataFloor, error)
 	GetOffice(ctx context.Context, arg GetOfficeParams) (MasterdataOffice, error)
+	GetOfficeAncestors(ctx context.Context, id uuid.UUID) ([]GetOfficeAncestorsRow, error)
+	GetOfficeCode(ctx context.Context, id uuid.UUID) (string, error)
 	// Authorization queries: office subtree (scoping) and field permissions.
 	// Returns an office plus all of its descendants (Pusat -> Wilayah -> Cabang -> Outlet).
 	GetOfficeSubtree(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error)
+	GetRequest(ctx context.Context, id uuid.UUID) (ApprovalRequest, error)
+	GetRequestForUpdate(ctx context.Context, id uuid.UUID) (ApprovalRequest, error)
 	// Identity module queries. Schema-qualified (see DATABASE.md §1.2).
 	GetRoleByCode(ctx context.Context, code string) (IdentityRole, error)
 	GetRoom(ctx context.Context, arg GetRoomParams) (MasterdataRoom, error)
@@ -42,6 +58,9 @@ type Querier interface {
 	// only to all-scope callers.
 	InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) (AuditAuditLog, error)
 	LinkGoogleID(ctx context.Context, arg LinkGoogleIDParams) error
+	// Asset core queries (asset.assets + asset.asset_tag_counters).
+	// Respects soft delete and caller data scope (all_scope / office_ids).
+	ListAssets(ctx context.Context, arg ListAssetsParams) ([]AssetAsset, error)
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]ListAuditLogsRow, error)
 	// Asset category master data (masterdata.categories). Respects soft delete.
 	ListCategories(ctx context.Context, arg ListCategoriesParams) ([]MasterdataCategory, error)
@@ -52,26 +71,39 @@ type Querier interface {
 	// Floors (within an office). Listed per office; single-row ops carry the
 	// office scope (all_scope OR office_id = ANY(office_ids)).
 	ListFloorsByOffice(ctx context.Context, arg ListFloorsByOfficeParams) ([]MasterdataFloor, error)
+	ListInboxCandidates(ctx context.Context) ([]ApprovalRequest, error)
 	// Offices (hierarchy) with data-scoping. all_scope bypasses the office filter
 	// (global scope); otherwise only offices whose id is in office_ids are returned.
 	ListOffices(ctx context.Context, arg ListOfficesParams) ([]MasterdataOffice, error)
+	ListRequestApprovals(ctx context.Context, requestID uuid.UUID) ([]ApprovalRequestApproval, error)
+	ListRequests(ctx context.Context, arg ListRequestsParams) ([]ApprovalRequest, error)
 	ListRolePermissions(ctx context.Context, roleID uuid.UUID) ([]string, error)
 	ListRoles(ctx context.Context) ([]IdentityRole, error)
 	// Rooms (within a floor). Scope is derived from the room's floor -> office.
 	ListRoomsByFloor(ctx context.Context, arg ListRoomsByFloorParams) ([]MasterdataRoom, error)
+	ListThresholds(ctx context.Context) ([]ApprovalApprovalThreshold, error)
 	// User management queries (Superadmin). All respect soft delete.
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]IdentityUser, error)
+	// Approval / maker-checker queries (approval schema).
+	// See docs/DATABASE.md §4.5 and PRD §3.6 for schema context.
+	MatchThresholdSteps(ctx context.Context, arg MatchThresholdStepsParams) ([]ApprovalApprovalThreshold, error)
+	SetAssetStatus(ctx context.Context, arg SetAssetStatusParams) (AssetAsset, error)
+	SetAssetValuationExclusion(ctx context.Context, arg SetAssetValuationExclusionParams) (AssetAsset, error)
+	SetRequestDecision(ctx context.Context, arg SetRequestDecisionParams) (ApprovalRequest, error)
 	SoftDeleteCategory(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteEmployee(ctx context.Context, arg SoftDeleteEmployeeParams) (int64, error)
 	SoftDeleteFloor(ctx context.Context, arg SoftDeleteFloorParams) (int64, error)
 	SoftDeleteOffice(ctx context.Context, arg SoftDeleteOfficeParams) (int64, error)
 	SoftDeleteRoom(ctx context.Context, arg SoftDeleteRoomParams) (int64, error)
+	SoftDeleteThreshold(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteUser(ctx context.Context, id uuid.UUID) (int64, error)
+	UpdateAsset(ctx context.Context, arg UpdateAssetParams) (AssetAsset, error)
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (MasterdataCategory, error)
 	UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) (MasterdataEmployee, error)
 	UpdateFloor(ctx context.Context, arg UpdateFloorParams) (MasterdataFloor, error)
 	UpdateOffice(ctx context.Context, arg UpdateOfficeParams) (MasterdataOffice, error)
 	UpdateRoom(ctx context.Context, arg UpdateRoomParams) (MasterdataRoom, error)
+	UpdateThreshold(ctx context.Context, arg UpdateThresholdParams) (ApprovalApprovalThreshold, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (IdentityUser, error)
 }
 

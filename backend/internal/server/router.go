@@ -15,14 +15,17 @@ import (
 
 	apidocs "github.com/ragbuaj/inventra/api"
 	"github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/approval"
 	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/auth"
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/cache"
 	"github.com/ragbuaj/inventra/internal/config"
 	"github.com/ragbuaj/inventra/internal/db"
+	"github.com/ragbuaj/inventra/internal/asset"
 	"github.com/ragbuaj/inventra/internal/identity"
 	"github.com/ragbuaj/inventra/internal/masterdata"
+	"github.com/ragbuaj/inventra/internal/masterdata/common"
 	"github.com/ragbuaj/inventra/internal/middleware"
 	"github.com/ragbuaj/inventra/internal/oauth"
 	"github.com/ragbuaj/inventra/internal/ratelimit"
@@ -143,8 +146,23 @@ func NewRouter(d Deps) *gin.Engine {
 
 		masterdata.RegisterRoutes(api, queries, d.Pool, permSvc, scopeSvc, auditSvc, requireAuth)
 
+		assetSvc := asset.NewService(queries, d.Pool)
+		assetHandler := asset.NewHandler(assetSvc, fieldSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)
+		asset.RegisterRoutes(api, assetHandler,
+			requireAuth,
+			middleware.RequirePermission(permSvc, "asset.view"),
+			middleware.RequirePermission(permSvc, "asset.manage"),
+		)
+
 		auditHandler := audit.NewHandler(auditSvc, scopeSvc, queries)
 		audit.RegisterRoutes(api, auditHandler, requireAuth, middleware.RequirePermission(permSvc, "audit.view"))
+
+		approvalSvc := approval.NewService(queries, d.Pool, scopeSvc, d.Redis)
+		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
+		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, assetSvc.DisposalExecutor())
+		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeValuationExclusion, assetSvc.ExclusionExecutor())
+		approvalHandler := approval.NewHandler(approvalSvc, fieldSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)
+		approval.RegisterRoutes(api, approvalHandler, requireAuth, permSvc)
 	}
 
 	return r

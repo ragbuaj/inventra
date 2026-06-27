@@ -44,6 +44,18 @@ tags:
       (`GET /api/v1/rooms?floor_id=...`) are nested, office-scoped location
       resources (writes require `masterdata.office.manage`); see the Bruno
       collection for examples.
+  - name: Assets
+    description: |
+      Asset core. Reads require the `asset.view` permission; writes require `asset.manage`.
+      Sensitive financial fields are subject to per-role field-permission masking.
+  - name: Requests
+    description: |
+      Approval requests (maker-checker workflow). Submitting requires `request.create`;
+      inbox/decide actions require `request.decide`; listing is open to any authenticated user.
+  - name: Approval Thresholds
+    description: |
+      Value-tiered approval-threshold configuration. All operations require
+      the `approval.config.manage` permission.
   - name: Audit
     description: Read-only audit trail (requires the `audit.view` permission)
 
@@ -786,6 +798,393 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { description: Not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
 
+  /api/v1/assets:
+    get:
+      tags: [Assets]
+      operationId: listAssets
+      summary: List assets (data-scoped)
+      description: |
+        Returns assets within the caller's data scope. Requires the `asset.view`
+        permission. Sensitive financial fields (purchase_cost, book_value,
+        accumulated_depreciation) may be masked by field-permission policies.
+      security:
+        - bearerJWT: []
+      parameters:
+        - { name: search, in: query, schema: { type: string }, description: Filter by name or asset_tag (case-insensitive). }
+        - { name: limit, in: query, schema: { type: integer, default: 20, minimum: 1, maximum: 100 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0, minimum: 0 } }
+        - name: category_id
+          in: query
+          schema: { type: string, format: uuid }
+          description: Filter by category.
+        - name: office_id
+          in: query
+          schema: { type: string, format: uuid }
+          description: Filter by office.
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [available, assigned, under_maintenance, in_transfer, retired, disposed, lost]
+          description: Filter by asset status.
+        - name: asset_class
+          in: query
+          schema:
+            type: string
+            enum: [tangible, intangible]
+          description: Filter by asset class.
+      responses:
+        "200":
+          description: A page of assets
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssetList" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/assets/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Assets]
+      operationId: getAsset
+      summary: Get an asset by id
+      description: Requires the `asset.view` permission. The asset must be within the caller's data scope.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The asset
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Asset" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    put:
+      tags: [Assets]
+      operationId: updateAsset
+      summary: Update non-sensitive asset attributes
+      description: |
+        Replaces the mutable non-financial attributes of an asset.
+        Requires the `asset.manage` permission; the asset must be within the caller's data scope.
+        `purchase_cost` and `asset_class` are not updated here — they are changed via dedicated operations.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssetUpdate" }
+      responses:
+        "200":
+          description: Updated asset
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Asset" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/requests:
+    post:
+      tags: [Requests]
+      operationId: submitRequest
+      summary: Submit an approval request
+      description: Creates a new approval request and routes it to the first eligible approver. Requires the `request.create` permission.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SubmitRequest" }
+      responses:
+        "201":
+          description: Created request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Request" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422":
+          description: No matching approval threshold configured
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    get:
+      tags: [Requests]
+      operationId: listRequests
+      summary: List approval requests (data-scoped)
+      description: Returns requests within the caller's data scope. No special permission beyond authentication required for listing.
+      security:
+        - bearerJWT: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected, cancelled]
+          description: Filter by request status.
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [asset_create, asset_disposal, asset_transfer, assignment, maintenance, valuation_exclusion]
+          description: Filter by request type.
+        - { name: limit, in: query, schema: { type: integer, default: 20, minimum: 1, maximum: 100 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0, minimum: 0 } }
+      responses:
+        "200":
+          description: A page of requests
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RequestList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/requests/inbox:
+    get:
+      tags: [Requests]
+      operationId: listRequestsInbox
+      summary: Pending requests awaiting the caller's decision
+      description: Returns requests currently at a step the caller is eligible to approve or reject. Requires the `request.decide` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Requests in inbox
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RequestInbox" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/requests/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Requests]
+      operationId: getRequest
+      summary: Get a request by id (with approval steps)
+      description: Returns the request and its full approval step history.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The request with steps
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RequestWithSteps" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/requests/{id}/approve:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Requests]
+      operationId: approveRequest
+      summary: Approve a pending request
+      description: Moves the request to the next approval step or marks it approved when all steps pass. Requires the `request.decide` permission.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DecideRequest" }
+      responses:
+        "200":
+          description: Updated request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Request" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Request is not in a state that allows approval
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/requests/{id}/reject:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Requests]
+      operationId: rejectRequest
+      summary: Reject a pending request
+      description: Marks the request as rejected at the current step. Requires the `request.decide` permission.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DecideRequest" }
+      responses:
+        "200":
+          description: Updated request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Request" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Request is not in a state that allows rejection
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/requests/{id}/cancel:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Requests]
+      operationId: cancelRequest
+      summary: Cancel a request (maker only)
+      description: Cancels the request. Only the original maker may cancel, and only while the request is still pending.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Cancelled request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Request" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Request cannot be cancelled in its current state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/approval-thresholds:
+    get:
+      tags: [Approval Thresholds]
+      operationId: listThresholds
+      summary: List approval thresholds
+      description: Returns all configured approval thresholds. Requires the `approval.config.manage` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: All thresholds
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ThresholdList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Approval Thresholds]
+      operationId: createThreshold
+      summary: Create an approval threshold
+      description: Requires the `approval.config.manage` permission.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ThresholdRequest" }
+      responses:
+        "201":
+          description: Created threshold
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Threshold" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: Duplicate threshold configuration
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/approval-thresholds/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [Approval Thresholds]
+      operationId: updateThreshold
+      summary: Update an approval threshold
+      description: |
+        Replaces mutable threshold fields (`amount_from`, `amount_to`, `required_level`,
+        `step_order`, `is_active`). `request_type` is immutable after creation.
+        Requires the `approval.config.manage` permission.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ThresholdRequest" }
+      responses:
+        "200":
+          description: Updated threshold
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Threshold" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    delete:
+      tags: [Approval Thresholds]
+      operationId: deleteThreshold
+      summary: Delete an approval threshold
+      description: Requires the `approval.config.manage` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/v1/audit:
     get:
       tags: [Audit]
@@ -1253,3 +1652,227 @@ components:
           items:
             type: string
             format: uuid
+
+    Asset:
+      type: object
+      description: |
+        A fixed asset record. Sensitive financial fields (`purchase_cost`, `book_value`,
+        `accumulated_depreciation`) are included in the schema but may be omitted at
+        runtime by field-permission masking depending on the caller's role.
+      required: [id, asset_tag, name, category_id, office_id, status, asset_class]
+      properties:
+        id: { type: string, format: uuid }
+        asset_tag: { type: string }
+        name: { type: string }
+        category_id: { type: string, format: uuid }
+        office_id: { type: string, format: uuid }
+        brand_id: { type: [string, "null"], format: uuid }
+        model_id: { type: [string, "null"], format: uuid }
+        room_id: { type: [string, "null"], format: uuid }
+        unit_id: { type: [string, "null"], format: uuid }
+        vendor_id: { type: [string, "null"], format: uuid }
+        current_holder_employee_id: { type: [string, "null"], format: uuid }
+        created_by_id: { type: [string, "null"], format: uuid }
+        status:
+          type: string
+          enum: [available, assigned, under_maintenance, in_transfer, retired, disposed, lost]
+        asset_class:
+          type: string
+          enum: [tangible, intangible]
+        serial_number: { type: [string, "null"] }
+        purchase_date: { type: [string, "null"], format: date }
+        purchase_cost:
+          type: [string, "null"]
+          description: Decimal string (IDR). Subject to field-permission masking.
+        book_value:
+          type: [string, "null"]
+          description: Decimal string (IDR). Subject to field-permission masking.
+        accumulated_depreciation:
+          type: [string, "null"]
+          description: Decimal string (IDR). Subject to field-permission masking.
+        salvage_value: { type: [string, "null"] }
+        impairment_loss: { type: [string, "null"] }
+        po_number: { type: [string, "null"] }
+        funding_source: { type: [string, "null"] }
+        warranty_expiry: { type: [string, "null"], format: date }
+        capitalized: { type: [boolean, "null"] }
+        depreciation_method: { type: [string, "null"] }
+        useful_life_months: { type: [integer, "null"] }
+        fiscal_group: { type: [string, "null"] }
+        fiscal_life_months: { type: [integer, "null"] }
+        acquisition_bast_no: { type: [string, "null"] }
+        excluded_from_valuation: { type: [boolean, "null"] }
+        valuation_exclusion_reason: { type: [string, "null"] }
+        notes: { type: [string, "null"] }
+        created_at: { type: [string, "null"], format: date-time }
+        updated_at: { type: [string, "null"], format: date-time }
+
+    AssetUpdate:
+      type: object
+      description: Writable non-financial asset attributes. `purchase_cost` and `asset_class` are changed via dedicated operations.
+      required: [name, category_id]
+      properties:
+        name: { type: string }
+        category_id: { type: string, format: uuid }
+        brand_id: { type: [string, "null"], format: uuid }
+        model_id: { type: [string, "null"], format: uuid }
+        room_id: { type: [string, "null"], format: uuid }
+        unit_id: { type: [string, "null"], format: uuid }
+        vendor_id: { type: [string, "null"], format: uuid }
+        serial_number: { type: [string, "null"] }
+        po_number: { type: [string, "null"] }
+        funding_source: { type: [string, "null"] }
+        purchase_date: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
+        warranty_expiry: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
+        notes: { type: [string, "null"] }
+
+    AssetList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/Asset" } }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+
+    SubmitRequest:
+      type: object
+      description: Body for POST /requests.
+      required: [type, amount, office_id]
+      properties:
+        type:
+          type: string
+          enum: [asset_create, asset_disposal, valuation_exclusion]
+        amount:
+          type: string
+          description: Decimal string (IDR). Determines which threshold steps apply.
+        office_id:
+          type: string
+          format: uuid
+          description: Office initiating the request.
+        target_id:
+          type: [string, "null"]
+          format: uuid
+          description: Optional reference to the target entity (e.g. asset id for disposal).
+        payload:
+          type: [object, "null"]
+          additionalProperties: true
+          description: Arbitrary request payload (e.g. asset details for asset_create).
+        reason:
+          type: [string, "null"]
+          description: Optional narrative justification.
+
+    DecideRequest:
+      type: object
+      description: Optional body for POST /requests/{id}/approve or /reject. The decision is determined by the route; only an optional note is read.
+      properties:
+        note:
+          type: [string, "null"]
+          description: Optional decision note.
+
+    Request:
+      type: object
+      description: An approval request record.
+      required: [id, type, status, amount, current_step, requested_by_id, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        type:
+          type: string
+          enum: [asset_create, asset_disposal, asset_transfer, assignment, maintenance, valuation_exclusion]
+        status:
+          type: string
+          enum: [pending, approved, rejected, cancelled]
+        amount:
+          type: string
+          description: Decimal string (IDR).
+        current_step: { type: integer }
+        office_id: { type: [string, "null"], format: uuid }
+        target_id: { type: [string, "null"], format: uuid }
+        target_entity: { type: [string, "null"] }
+        reason: { type: [string, "null"] }
+        requested_by_id: { type: string, format: uuid }
+        decided_by_id: { type: [string, "null"], format: uuid }
+        decision_note: { type: [string, "null"] }
+        created_at: { type: [string, "null"], format: date-time }
+
+    RequestWithSteps:
+      allOf:
+        - $ref: "#/components/schemas/Request"
+        - type: object
+          properties:
+            steps:
+              type: array
+              description: Ordered approval-step history for this request.
+              items:
+                type: object
+                additionalProperties: true
+
+    RequestList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/Request" } }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+
+    RequestInbox:
+      type: object
+      required: [data, total]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/Request" } }
+        total: { type: integer }
+
+    Threshold:
+      type: object
+      description: A single approval-threshold rule mapping request type + amount range to a required approver level.
+      required: [id, request_type, amount_from, required_level, step_order, is_active]
+      properties:
+        id: { type: string, format: uuid }
+        request_type:
+          type: string
+          enum: [asset_create, asset_disposal, asset_transfer, assignment, maintenance, valuation_exclusion]
+        amount_from:
+          type: string
+          description: Lower bound (IDR decimal string, inclusive).
+        amount_to:
+          type: [string, "null"]
+          description: Upper bound (IDR decimal string, inclusive). Null means no upper bound.
+        required_level:
+          type: string
+          enum: [office, office_subtree, wilayah, pusat]
+        step_order: { type: integer }
+        is_active: { type: boolean }
+        created_at: { type: [string, "null"], format: date-time }
+
+    ThresholdRequest:
+      type: object
+      description: Body for POST/PUT /approval-thresholds.
+      required: [request_type, amount_from, required_level, step_order]
+      properties:
+        request_type:
+          type: string
+          enum: [asset_create, asset_disposal, asset_transfer, assignment, maintenance, valuation_exclusion]
+          description: Immutable after creation (ignored on PUT).
+        amount_from:
+          type: string
+          description: Lower bound (IDR decimal string).
+        amount_to:
+          type: [string, "null"]
+          description: Upper bound (IDR decimal string). Omit or null for no upper bound.
+        required_level:
+          type: string
+          enum: [office, office_subtree, wilayah, pusat]
+        step_order:
+          type: integer
+          description: Order of this step within the threshold chain (1-based).
+        is_active:
+          type: boolean
+          default: false
+
+    ThresholdList:
+      type: object
+      required: [data, total]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/Threshold" } }
+        total: { type: integer }

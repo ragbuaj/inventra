@@ -52,3 +52,16 @@ RETURNING *;
 UPDATE masterdata.offices SET deleted_at = now()
 WHERE id = sqlc.arg(id) AND deleted_at IS NULL
   AND (sqlc.arg(all_scope)::bool OR id = ANY(sqlc.arg(office_ids)::uuid[]));
+
+-- name: GetOfficeAncestors :many
+WITH RECURSIVE anc AS (
+  SELECT o.id, o.parent_id, o.office_type_id
+  FROM masterdata.offices o WHERE o.id = $1 AND o.deleted_at IS NULL
+  UNION ALL
+  SELECT o.id, o.parent_id, o.office_type_id
+  FROM masterdata.offices o
+  JOIN anc a ON o.id = a.parent_id
+  WHERE o.deleted_at IS NULL
+)
+SELECT anc.id, anc.parent_id, ot.tier
+FROM anc JOIN masterdata.office_types ot ON ot.id = anc.office_type_id;
