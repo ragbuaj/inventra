@@ -3,7 +3,9 @@ package asset
 import (
 	"errors"
 	"io"
+	"mime"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -11,6 +13,23 @@ import (
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
 	"github.com/ragbuaj/inventra/internal/middleware"
 )
+
+// contentDisposition returns a safe RFC 6266 inline Content-Disposition header value.
+// It strips CR/LF control characters and lets mime.FormatMediaType handle quote/non-ASCII
+// encoding so that user-controlled filenames cannot inject raw header bytes.
+func contentDisposition(filename string) string {
+	clean := strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' {
+			return -1
+		}
+		return r
+	}, filename)
+	v := mime.FormatMediaType("inline", map[string]string{"filename": clean})
+	if v == "" {
+		return `inline; filename="download"`
+	}
+	return v
+}
 
 // resolveAssetInScope loads the asset for :id and enforces the caller's "assets" office scope.
 // Returns the assetID, officeID and true if access is allowed; otherwise writes the error
@@ -160,7 +179,10 @@ func (h *Handler) streamAttachment(c *gin.Context, thumb bool) {
 	} else if att.MimeType != "" {
 		ct = att.MimeType
 	}
-	c.Header("Content-Disposition", `inline; filename="`+att.OriginalFilename+`"`)
+	// Anti-sniffing + sandbox: never let the browser execute served bytes.
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.Header("Content-Security-Policy", "sandbox")
+	c.Header("Content-Disposition", contentDisposition(att.OriginalFilename))
 	c.DataFromReader(http.StatusOK, info.Size, ct, rc, nil)
 }
 
