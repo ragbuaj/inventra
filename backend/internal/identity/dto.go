@@ -12,27 +12,17 @@ type loginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
-type refreshRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
-}
-
-type logoutRequest struct {
-	RefreshToken string `json:"refresh_token"`
-}
-
 type tokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	TokenType    string `json:"token_type"`
-	ExpiresIn    int64  `json:"expires_in"` // access token lifetime, seconds
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+	ExpiresIn   int64  `json:"expires_in"` // access token lifetime, seconds
 }
 
 func newTokenResponse(p auth.TokenPair) tokenResponse {
 	return tokenResponse{
-		AccessToken:  p.AccessToken,
-		RefreshToken: p.RefreshToken,
-		TokenType:    "Bearer",
-		ExpiresIn:    int64(time.Until(p.AccessExpiresAt).Seconds()),
+		AccessToken: p.AccessToken,
+		TokenType:   "Bearer",
+		ExpiresIn:   int64(time.Until(p.AccessExpiresAt).Seconds()),
 	}
 }
 
