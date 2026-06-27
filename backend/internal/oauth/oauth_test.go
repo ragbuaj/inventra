@@ -51,6 +51,9 @@ func TestAuthCodeURLStoresStateAndIncludesIt(t *testing.T) {
 	if !strings.Contains(url, "code_challenge=") {
 		t.Fatalf("url missing PKCE challenge: %s", url)
 	}
+	if !strings.Contains(url, "code_challenge_method=S256") {
+		t.Fatalf("url missing S256 PKCE method: %s", url)
+	}
 	// state was stored (consumable once)
 	if _, err := s.state.Consume(context.Background(), state); err != nil {
 		t.Fatalf("state not stored: %v", err)
@@ -90,5 +93,18 @@ func TestDisabledServiceRejects(t *testing.T) {
 	}
 	if _, _, err := s.Exchange(context.Background(), "c", "s"); !errors.Is(err, ErrDisabled) {
 		t.Fatalf("disabled Exchange: %v", err)
+	}
+}
+
+func TestExchangeStateSingleUse(t *testing.T) {
+	kv := newFakeKV()
+	s := testService(fakeExch{raw: "rawtoken"}, fakeVer{email: "a@b.com", verified: true, sub: "sub-1"}, kv)
+	_ = s.state.Save(context.Background(), "st", "pkce")
+	if _, _, err := s.Exchange(context.Background(), "code", "st"); err != nil {
+		t.Fatalf("first exchange should succeed: %v", err)
+	}
+	// replay: same state must now be rejected (single-use)
+	if _, _, err := s.Exchange(context.Background(), "code", "st"); !errors.Is(err, ErrStateInvalid) {
+		t.Fatalf("replayed state must be ErrStateInvalid, got %v", err)
 	}
 }

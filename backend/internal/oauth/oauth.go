@@ -15,7 +15,7 @@ import (
 
 // Errors.
 var (
-	ErrDisabled         = errors.New("google sign-in is not configured")
+	ErrDisabled         = errors.New("oauth sign-in is not configured")
 	ErrEmailNotVerified = errors.New("google email is not verified")
 )
 
@@ -90,7 +90,7 @@ func (s *Service) AuthCodeURL(ctx context.Context) (string, string, error) {
 	if err := s.state.Save(ctx, state, pkce); err != nil {
 		return "", "", err
 	}
-	url := s.oauthCfg.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.S256ChallengeOption(pkce))
+	url := s.oauthCfg.AuthCodeURL(state, oauth2.S256ChallengeOption(pkce))
 	return url, state, nil
 }
 
