@@ -25,15 +25,12 @@ export function useApiClient() {
   }
 
   async function refreshToken(): Promise<boolean> {
-    const refresh = useRefreshCookie()
-    if (!refresh.value) return false
     try {
-      const res = await $fetch<{ access_token: string, refresh_token: string }>(`${base}/auth/refresh`, {
+      const res = await $fetch<{ access_token: string }>(`${base}/auth/refresh`, {
         method: 'POST',
-        body: { refresh_token: refresh.value }
+        credentials: 'include'
       })
       auth.setToken(res.access_token)
-      refresh.value = res.refresh_token
       return true
     } catch {
       return false
@@ -54,7 +51,6 @@ export function useApiClient() {
       }
       if (status === 401) {
         auth.clear()
-        useRefreshCookie().value = null
         await nuxtApp.runWithContext(() => navigateTo('/login'))
       } else {
         notifyError(status)

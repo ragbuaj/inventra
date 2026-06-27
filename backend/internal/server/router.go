@@ -123,7 +123,7 @@ func NewRouter(d Deps) *gin.Engine {
 		auditSvc := audit.NewService(queries)
 
 		identitySvc := identity.NewService(queries, tokenManager, tokenStore)
-		identityHandler := identity.NewHandler(identitySvc, permSvc, scopeSvc, d.Limiter, d.Cfg.RateLimitLoginPerMin)
+		identityHandler := identity.NewHandler(identitySvc, permSvc, scopeSvc, d.Limiter, d.Cfg.RateLimitLoginPerMin, d.Cfg.Env == "production", d.Cfg.JWTRefreshTTL)
 		identity.RegisterRoutes(api, identityHandler, requireAuth, d.Limiter, d.Cfg.RateLimitLoginIPPerMin, d.Cfg.RateLimitRefreshPerMin)
 
 		userHandler := user.NewHandler(user.NewService(queries), fieldSvc, auditSvc)

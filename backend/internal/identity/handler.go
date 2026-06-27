@@ -16,16 +16,18 @@ import (
 
 // Handler exposes the identity HTTP endpoints.
 type Handler struct {
-	svc         *Service
-	perms       *authz.PermissionService
-	scopes      *authz.ScopeService
-	limiter     ratelimit.Allower
-	loginPerMin int
+	svc          *Service
+	perms        *authz.PermissionService
+	scopes       *authz.ScopeService
+	limiter      ratelimit.Allower
+	loginPerMin  int
+	secureCookie bool
+	refreshTTL   time.Duration
 }
 
 // NewHandler builds the identity Handler.
-func NewHandler(svc *Service, perms *authz.PermissionService, scopes *authz.ScopeService, limiter ratelimit.Allower, loginPerMin int) *Handler {
-	return &Handler{svc: svc, perms: perms, scopes: scopes, limiter: limiter, loginPerMin: loginPerMin}
+func NewHandler(svc *Service, perms *authz.PermissionService, scopes *authz.ScopeService, limiter ratelimit.Allower, loginPerMin int, secureCookie bool, refreshTTL time.Duration) *Handler {
+	return &Handler{svc: svc, perms: perms, scopes: scopes, limiter: limiter, loginPerMin: loginPerMin, secureCookie: secureCookie, refreshTTL: refreshTTL}
 }
 
 // permissions returns the caller's effective RBAC permission keys.
@@ -79,33 +81,34 @@ func (h *Handler) login(c *gin.Context) {
 		h.authError(c, err)
 		return
 	}
+	setRefreshCookie(c, pair.RefreshToken, h.refreshTTL, h.secureCookie)
 	c.JSON(http.StatusOK, newTokenResponse(pair))
 }
 
 func (h *Handler) refresh(c *gin.Context) {
-	var req refreshRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	rt, err := c.Cookie(refreshCookieName)
+	if err != nil || rt == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing refresh token"})
 		return
 	}
-	pair, err := h.svc.Refresh(c.Request.Context(), req.RefreshToken)
+	pair, err := h.svc.Refresh(c.Request.Context(), rt)
 	if err != nil {
 		h.authError(c, err)
 		return
 	}
+	setRefreshCookie(c, pair.RefreshToken, h.refreshTTL, h.secureCookie)
 	c.JSON(http.StatusOK, newTokenResponse(pair))
 }
 
 func (h *Handler) logout(c *gin.Context) {
-	var req logoutRequest
-	_ = c.ShouldBindJSON(&req) // refresh_token optional
-
+	rt, _ := c.Cookie(refreshCookieName)
 	jti, _ := c.Get(middleware.CtxAccessJTI)
 	exp, _ := c.Get(middleware.CtxAccessExp)
-	if err := h.svc.Logout(c.Request.Context(), jti.(string), exp.(time.Time), req.RefreshToken); err != nil {
+	if err := h.svc.Logout(c.Request.Context(), jti.(string), exp.(time.Time), rt); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "logout failed"})
 		return
 	}
+	clearRefreshCookie(c, h.secureCookie)
 	c.JSON(http.StatusOK, gin.H{"status": "logged_out"})
 }
 

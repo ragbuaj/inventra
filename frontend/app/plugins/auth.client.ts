@@ -1,17 +1,12 @@
 export default defineNuxtPlugin(async () => {
   const auth = useAuthStore()
-  const refresh = useRefreshCookie()
-  if (auth.isAuthenticated || !refresh.value) return
-  // Construct the auth API synchronously, before any `await` — the composables
-  // it builds rely on the Nuxt instance context, which is lost after the first
-  // await in a plugin.
+  if (auth.isAuthenticated) return
+  // The refresh token is an HttpOnly cookie JS cannot read, so attempt a refresh
+  // unconditionally; a 401 simply means the user is not logged in.
   const authApi = useAuthApi()
   try {
-    const ok = await authApi.refresh()
-    if (ok) {
-      await authApi.fetchMe()
-    }
+    if (await authApi.refresh()) await authApi.fetchMe()
   } catch {
-    // Failed rehydration — stay logged out
+    // Stay logged out.
   }
 })

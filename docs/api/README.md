@@ -25,8 +25,7 @@ CI runs this on every push/PR (job `api-docs`).
 1. Install [Bruno](https://www.usebruno.com/).
 2. Open collection folder `docs/api/bruno/`.
 3. Select the **Local** environment (`baseUrl = http://localhost:8080`).
-4. Run **Auth › Login** — it stores `accessToken` / `refreshToken` as env vars; the
-   other Auth requests reuse them automatically.
+4. Run **Auth › Login** — it stores `accessToken` as an env var; the refresh token is set as an `inventra_refresh` **HttpOnly cookie** that Bruno's cookie jar replays automatically on Refresh/Logout.
 
 Seed a user first (dev): `go run ./cmd/createadmin -email admin@inventra.local -password admin12345` (from `backend/`).
 
