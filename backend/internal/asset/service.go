@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	sqlc "github.com/ragbuaj/inventra/db/sqlc"
@@ -141,4 +142,51 @@ func (s *Service) List(ctx context.Context, in ListInput) ([]sqlc.AssetAsset, in
 func (s *Service) Get(ctx context.Context, id uuid.UUID) (sqlc.AssetAsset, error) {
 	a, err := s.q.GetAsset(ctx, id)
 	return a, mapDBError(err)
+}
+
+// UpdateInput holds the updatable attributes for a direct asset update.
+// Excluded: purchase_cost, asset_class, status (handled by dedicated operations).
+type UpdateInput struct {
+	Name           string
+	CategoryID     uuid.UUID
+	BrandID        *uuid.UUID
+	ModelID        *uuid.UUID
+	RoomID         *uuid.UUID
+	UnitID         *uuid.UUID
+	SerialNumber   *string
+	PurchaseDate   pgtype.Date
+	VendorID       *uuid.UUID
+	PONumber       *string
+	FundingSource  *string
+	WarrantyExpiry pgtype.Date
+	Specifications []byte
+	Notes          *string
+}
+
+// Update fetches the current asset row (for audit before/after diff), applies
+// the given field changes, and returns both snapshots. Returns ErrNotFound if
+// the asset does not exist or is soft-deleted.
+func (s *Service) Update(ctx context.Context, id uuid.UUID, in UpdateInput) (before, after sqlc.AssetAsset, err error) {
+	before, err = s.q.GetAsset(ctx, id)
+	if err != nil {
+		return before, before, mapDBError(err)
+	}
+	after, err = s.q.UpdateAsset(ctx, sqlc.UpdateAssetParams{
+		ID:             id,
+		Name:           in.Name,
+		CategoryID:     in.CategoryID,
+		BrandID:        in.BrandID,
+		ModelID:        in.ModelID,
+		RoomID:         in.RoomID,
+		UnitID:         in.UnitID,
+		SerialNumber:   in.SerialNumber,
+		PurchaseDate:   in.PurchaseDate,
+		VendorID:       in.VendorID,
+		PoNumber:       in.PONumber,
+		FundingSource:  in.FundingSource,
+		WarrantyExpiry: in.WarrantyExpiry,
+		Specifications: in.Specifications,
+		Notes:          in.Notes,
+	})
+	return before, after, mapDBError(err)
 }
