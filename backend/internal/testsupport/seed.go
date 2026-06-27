@@ -74,3 +74,15 @@ func SeedScopePolicy(t *testing.T, pool *pgxpool.Pool, roleID uuid.UUID, module 
 		roleID, module, string(level))
 	require.NoError(t, err)
 }
+
+// SeedEmployee inserts a masterdata.employees row in the given office (status active)
+// and returns its id.
+func SeedEmployee(t *testing.T, pool *pgxpool.Pool, officeID uuid.UUID, code string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO masterdata.employees (code, name, office_id)
+		 VALUES ($1, $1, $2) RETURNING id`,
+		code, officeID).Scan(&id))
+	return id
+}
