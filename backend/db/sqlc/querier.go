@@ -40,6 +40,7 @@ type Querier interface {
 	GetEmployee(ctx context.Context, arg GetEmployeeParams) (MasterdataEmployee, error)
 	GetFloor(ctx context.Context, arg GetFloorParams) (MasterdataFloor, error)
 	GetOffice(ctx context.Context, arg GetOfficeParams) (MasterdataOffice, error)
+	GetOfficeAncestors(ctx context.Context, id uuid.UUID) ([]GetOfficeAncestorsRow, error)
 	GetOfficeCode(ctx context.Context, id uuid.UUID) (string, error)
 	// Authorization queries: office subtree (scoping) and field permissions.
 	// Returns an office plus all of its descendants (Pusat -> Wilayah -> Cabang -> Outlet).

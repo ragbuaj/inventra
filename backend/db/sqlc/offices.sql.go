@@ -116,6 +116,46 @@ func (q *Queries) GetOffice(ctx context.Context, arg GetOfficeParams) (Masterdat
 	return i, err
 }
 
+const getOfficeAncestors = `-- name: GetOfficeAncestors :many
+WITH RECURSIVE anc AS (
+  SELECT o.id, o.parent_id, o.office_type_id
+  FROM masterdata.offices o WHERE o.id = $1 AND o.deleted_at IS NULL
+  UNION ALL
+  SELECT o.id, o.parent_id, o.office_type_id
+  FROM masterdata.offices o
+  JOIN anc a ON o.id = a.parent_id
+  WHERE o.deleted_at IS NULL
+)
+SELECT anc.id, anc.parent_id, ot.tier
+FROM anc JOIN masterdata.office_types ot ON ot.id = anc.office_type_id
+`
+
+type GetOfficeAncestorsRow struct {
+	ID       uuid.UUID            `json:"id"`
+	ParentID *uuid.UUID           `json:"parent_id"`
+	Tier     *SharedApproverLevel `json:"tier"`
+}
+
+func (q *Queries) GetOfficeAncestors(ctx context.Context, id uuid.UUID) ([]GetOfficeAncestorsRow, error) {
+	rows, err := q.db.Query(ctx, getOfficeAncestors, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetOfficeAncestorsRow{}
+	for rows.Next() {
+		var i GetOfficeAncestorsRow
+		if err := rows.Scan(&i.ID, &i.ParentID, &i.Tier); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listOffices = `-- name: ListOffices :many
 
 SELECT id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at FROM masterdata.offices
