@@ -112,7 +112,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       `000015_fam_tables` (`transfer.asset_transfers`, `disposal.disposals`, `stockopname.stock_opname_*`,
       `asset.asset_documents`) + `app_settings`/`approval_thresholds`/`request_approvals`. `sqlc generate`
       + `go build/vet/test` green; `migrate up` validated live (reset via drop-schemas, not `down -all`).
-      **Backend handlers** for the new tables (transfer/opname/disposal/documents/thresholds) still to build.
+      **Backend handlers** for the new tables (transfer/opname/disposal/documents) still to build.
 - [x] **Category enrichment — backend** — `categories` columns (GL account, fiscal group, commercial+
       fiscal useful life, capitalization threshold, asset_class) baked in; `category` service/dto + sqlc +
       OpenAPI wired (build green). **Frontend Kategori screen** still to build (#6 — see *Next session*).

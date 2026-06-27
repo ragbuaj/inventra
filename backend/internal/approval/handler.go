@@ -209,6 +209,16 @@ func (h *Handler) get(c *gin.Context) {
 		h.svcError(c, err)
 		return
 	}
+	// Enforce data scope: the caller may only view requests within their office scope.
+	all, ids, err := h.scoped.CallerOfficeScope(c, "requests")
+	if err != nil {
+		common.WriteError(c, err)
+		return
+	}
+	if r.OfficeID == nil || !common.InScope(all, ids, *r.OfficeID) {
+		common.WriteError(c, common.ErrForbidden)
+		return
+	}
 	out := requestToMap(r)
 	out["steps"] = steps
 	c.JSON(http.StatusOK, out)

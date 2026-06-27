@@ -11,6 +11,7 @@ func TestValidTransition(t *testing.T) {
 		{"available", "assigned"}, {"assigned", "available"},
 		{"available", "under_maintenance"}, {"under_maintenance", "available"},
 		{"available", "lost"}, {"assigned", "lost"}, {"available", "disposed"},
+		{"assigned", "disposed"}, {"under_maintenance", "disposed"},
 	}
 	for _, p := range ok {
 		if !validTransition(p[0], p[1]) {

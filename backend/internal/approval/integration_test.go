@@ -7,9 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +21,10 @@ import (
 	"github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/approval"
 	"github.com/ragbuaj/inventra/internal/asset"
+	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/authz"
+	"github.com/ragbuaj/inventra/internal/masterdata/common"
+	"github.com/ragbuaj/inventra/internal/middleware"
 	"github.com/ragbuaj/inventra/internal/testsupport"
 )
 
@@ -863,4 +869,103 @@ func TestApproval_ExecutorAtomicity_RollbackOnError(t *testing.T) {
 	reloadedAsset, aerr := assetSvc.Get(ctx, assetID)
 	require.NoError(t, aerr)
 	assert.Equal(t, sqlc.SharedAssetStatusDisposed, reloadedAsset.Status, "asset status must remain disposed after rollback")
+}
+
+// TestApproval_GetRequest_ScopeEnforced verifies that GET /requests/:id is scope-gated:
+// a caller whose data scope does not cover the request's office receives 403, while a
+// caller with global scope receives 200.
+//
+// The scope gate lives in the HTTP handler (handler.go `get`), so this test drives it
+// via net/http/httptest with a minimal gin router that injects context keys in place of
+// the real JWT middleware.
+func TestApproval_GetRequest_ScopeEnforced(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	ctx := context.Background()
+	resetAll(t, pool)
+
+	tr := seedTieredOfficeTree(t, pool)
+
+	// Seed a second, isolated office that has NO parent/child relationship with Cabang.
+	var otherOfficeID uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx,
+		`INSERT INTO masterdata.offices (parent_id, office_type_id, name, code)
+		 VALUES (NULL, $1, 'Kantor Lain', 'OTH') RETURNING id`,
+		tr.CabangTypeID).Scan(&otherOfficeID))
+
+	// Seed two roles: one with "office" scope (cabang-only), one with "global" scope.
+	cabangRoleID := testsupport.SeedRole(t, pool, "cabang-viewer-"+uuid.New().String()[:8])
+	testsupport.SeedScopePolicy(t, pool, cabangRoleID, "*", sqlc.SharedScopeLevelOffice)
+
+	globalRoleID := testsupport.SeedRole(t, pool, "global-viewer-"+uuid.New().String()[:8])
+	testsupport.SeedScopePolicy(t, pool, globalRoleID, "*", sqlc.SharedScopeLevelGlobal)
+
+	// Seed users. cabangUser is placed in Cabang; globalUser has no office placement (superadmin-style).
+	cabangUserID := seedUser(t, pool, cabangRoleID, "cabang.viewer@test.local")
+	_, err := pool.Exec(ctx,
+		`UPDATE identity.users SET office_id = $1 WHERE id = $2`,
+		tr.CabangID, cabangUserID)
+	require.NoError(t, err)
+
+	globalUserID := seedUser(t, pool, globalRoleID, "global.viewer@test.local")
+
+	// outsideUser is placed in otherOffice (a completely different office subtree).
+	outsideRoleID := testsupport.SeedRole(t, pool, "outside-viewer-"+uuid.New().String()[:8])
+	testsupport.SeedScopePolicy(t, pool, outsideRoleID, "*", sqlc.SharedScopeLevelOffice)
+	outsideUserID := seedUser(t, pool, outsideRoleID, "outside.viewer@test.local")
+	_, err = pool.Exec(ctx,
+		`UPDATE identity.users SET office_id = $1 WHERE id = $2`,
+		otherOfficeID, outsideUserID)
+	require.NoError(t, err)
+
+	// Submit a request for Cabang (the target office).
+	q := sqlc.New(pool)
+	scopeSvc := authz.NewScopeService(q, rdb)
+	svc := approval.NewService(q, pool, scopeSvc, rdb)
+
+	req, err := svc.Submit(ctx, approval.SubmitInput{
+		Type:     sqlc.SharedRequestTypeAssetCreate,
+		Amount:   "1000000",
+		OfficeID: tr.CabangID,
+		Payload:  []byte(`{"name":"Test","category_id":"` + uuid.New().String() + `","office_id":"` + tr.CabangID.String() + `","asset_class":"intangible"}`),
+		Maker:    cabangUserID,
+	})
+	require.NoError(t, err)
+
+	// Build the gin handler under test.
+	gin.SetMode(gin.TestMode)
+	auditSvc := audit.NewService(q)
+	fieldSvc := authz.NewFieldService(q, rdb)
+	scoped := common.ScopedDeps{Q: q, Scope: scopeSvc}
+	h := approval.NewHandler(svc, fieldSvc, scoped, auditSvc)
+	permSvc := authz.NewPermissionService(q, rdb)
+
+	// callGet builds a fresh gin engine with a stub auth MW that injects the given
+	// user/role IDs (bypassing real JWT) and drives GET /api/v1/requests/:id.
+	callGet := func(userID, roleID uuid.UUID) int {
+		stubAuth := func(c *gin.Context) {
+			c.Set(middleware.CtxUserID, userID.String())
+			c.Set(middleware.CtxRoleID, roleID.String())
+			c.Next()
+		}
+		r := gin.New()
+		v1 := r.Group("/api/v1")
+		approval.RegisterRoutes(v1, h, stubAuth, permSvc)
+		w := httptest.NewRecorder()
+		httpReq, _ := http.NewRequest(http.MethodGet, "/api/v1/requests/"+req.ID.String(), nil)
+		r.ServeHTTP(w, httpReq)
+		return w.Code
+	}
+
+	// outsideUser's office scope is "otherOffice" only → must be 403.
+	assert.Equal(t, http.StatusForbidden, callGet(outsideUserID, outsideRoleID),
+		"caller scoped to a different office must receive 403")
+
+	// globalUser has global scope → must see the request.
+	assert.Equal(t, http.StatusOK, callGet(globalUserID, globalRoleID),
+		"caller with global scope must receive 200")
+
+	// cabangUser is placed in Cabang (same office as request) → 200.
+	assert.Equal(t, http.StatusOK, callGet(cabangUserID, cabangRoleID),
+		"caller scoped to the request's own office must receive 200")
 }
