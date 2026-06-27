@@ -43,6 +43,17 @@ func NewRouter(d Deps) *gin.Engine {
 	}
 
 	r := gin.New()
+
+	// Trust only configured proxies so c.ClientIP() (used by rate limiting) cannot be
+	// spoofed via X-Forwarded-For. Empty TRUSTED_PROXIES → trust none (direct RemoteAddr);
+	// set to the load-balancer CIDR(s) in production. On a bad value, fail safe (trust none).
+	if err := r.SetTrustedProxies(d.Cfg.TrustedProxies); err != nil {
+		if d.Log != nil {
+			d.Log.Error("invalid TRUSTED_PROXIES; trusting no proxies", "error", err)
+		}
+		_ = r.SetTrustedProxies(nil)
+	}
+
 	r.Use(
 		middleware.RequestID(),
 		middleware.RequestLogger(d.Log),

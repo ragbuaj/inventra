@@ -51,3 +51,18 @@ func TestLoadRateLimitFromEnv(t *testing.T) {
 		t.Fatalf("RATELIMIT_LOGIN_PER_MIN: %d", cfg.RateLimitLoginPerMin)
 	}
 }
+
+func TestLoadTrustedProxies(t *testing.T) {
+	t.Setenv("TRUSTED_PROXIES", "10.0.0.0/8, 192.168.1.1 ,")
+	cfg := Load()
+	if len(cfg.TrustedProxies) != 2 || cfg.TrustedProxies[0] != "10.0.0.0/8" || cfg.TrustedProxies[1] != "192.168.1.1" {
+		t.Fatalf("parsed: %#v", cfg.TrustedProxies)
+	}
+}
+
+func TestLoadTrustedProxiesEmpty(t *testing.T) {
+	t.Setenv("TRUSTED_PROXIES", "")
+	if Load().TrustedProxies != nil {
+		t.Fatalf("empty TRUSTED_PROXIES should yield nil, got %#v", Load().TrustedProxies)
+	}
+}
