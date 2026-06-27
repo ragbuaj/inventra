@@ -89,7 +89,7 @@ paths:
       tags: [Auth]
       operationId: authLogin
       summary: Login with email and password
-      description: Verifies credentials and issues an access + refresh token pair.
+      description: Verifies credentials and issues an access token; sets the refresh token as an `inventra_refresh` HttpOnly cookie.
       security: []
       requestBody:
         required: true
@@ -100,6 +100,10 @@ paths:
       responses:
         "200":
           description: Tokens issued
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: Sets the `inventra_refresh` HttpOnly cookie.
           content:
             application/json:
               schema:
@@ -126,23 +130,21 @@ paths:
       tags: [Auth]
       operationId: authRefresh
       summary: Rotate refresh token for a new token pair
-      description: Validates the refresh token, rotates it (single-use), and issues a new pair.
+      description: >
+        Rotates the session using the `inventra_refresh` HttpOnly cookie set at
+        login. No request body. Responds 401 if the cookie is missing or invalid.
       security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RefreshRequest"
       responses:
         "200":
           description: New token pair issued; the old refresh token is invalidated
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: Sets the `inventra_refresh` HttpOnly cookie.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/TokenResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
         "401":
           description: Invalid or expired refresh token
           content:
@@ -156,16 +158,10 @@ paths:
     post:
       tags: [Auth]
       operationId: authLogout
-      summary: Revoke the current access token and a refresh token
-      description: Denylists the current access token until expiry and deletes the supplied refresh token.
+      summary: Revoke the current access token and the refresh cookie
+      description: Denylists the current access token until expiry and clears the `inventra_refresh` HttpOnly cookie. No request body.
       security:
         - bearerJWT: []
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/LogoutRequest"
       responses:
         "200":
           description: Logged out
@@ -899,27 +895,11 @@ components:
           minLength: 1
           examples: ["admin12345"]
 
-    RefreshRequest:
-      type: object
-      required: [refresh_token]
-      properties:
-        refresh_token:
-          type: string
-
-    LogoutRequest:
-      type: object
-      properties:
-        refresh_token:
-          type: string
-          description: Optional; when supplied, this refresh token is also revoked.
-
     TokenResponse:
       type: object
-      required: [access_token, refresh_token, token_type, expires_in]
+      required: [access_token, token_type, expires_in]
       properties:
         access_token:
-          type: string
-        refresh_token:
           type: string
         token_type:
           type: string
