@@ -88,6 +88,8 @@ func mapDBError(err error) error {
 			return ErrInvalidRef
 		case "23514":
 			return ErrRoomRequired
+		case "22P02":
+			return ErrInvalidRef
 		}
 	}
 	return err

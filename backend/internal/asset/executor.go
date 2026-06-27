@@ -3,6 +3,7 @@ package asset
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -61,8 +62,11 @@ func (e createExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.App
 
 	// Derive asset-tag year from purchase date when present, else current year.
 	year := int32(time.Now().Year())
-	purchaseDate, err := parsePurchaseDate(p.PurchaseDate)
-	if err == nil && purchaseDate.Valid {
+	purchaseDate, derr := parsePurchaseDate(p.PurchaseDate)
+	if derr != nil {
+		return fmt.Errorf("invalid purchase_date: %w", derr)
+	}
+	if purchaseDate.Valid {
 		year = int32(purchaseDate.Time.Year())
 	}
 

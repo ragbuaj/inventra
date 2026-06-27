@@ -42,6 +42,13 @@ func TestMapDBError(t *testing.T) {
 		}
 	})
 
+	t.Run("22P02 invalid text representation → ErrInvalidRef", func(t *testing.T) {
+		err := &pgconn.PgError{Code: "22P02"}
+		if got := mapDBError(err); !errors.Is(got, ErrInvalidRef) {
+			t.Fatalf("expected ErrInvalidRef, got %v", got)
+		}
+	})
+
 	t.Run("unknown error passes through unchanged", func(t *testing.T) {
 		sentinel := errors.New("some other error")
 		if got := mapDBError(sentinel); !errors.Is(got, sentinel) {
