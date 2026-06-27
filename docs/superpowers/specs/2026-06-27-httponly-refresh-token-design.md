@@ -40,6 +40,10 @@ backend/internal/identity/dto.go            ← tokenResponse buang RefreshToken
 backend/internal/identity/routes.go         ← tak berubah struktur (rate-limit middleware tetap)
 backend/internal/server/router.go           ← teruskan secureCookie(=Env==production) + refreshTTL(=cfg.JWTRefreshTTL) ke NewHandler
 backend/api/openapi.yaml                     ← /auth/login|refresh|logout: Set-Cookie; no refresh in body/response
+docs/api/bruno/Auth/Login.bru                 ← hentikan ekstraksi refreshToken dari body (cookie jar Bruno)
+docs/api/bruno/Auth/Refresh.bru               ← body none + tak kirim/ekstrak refresh_token (cookie jar)
+docs/api/bruno/Auth/Logout.bru                ← body none (tak kirim refresh_token)
+docs/api/README.md                            ← perbarui teks: refresh token kini cookie httpOnly (cookie jar Bruno)
 frontend/app/composables/useAuthApi.ts       ← login/logout: credentials include, tak set refresh cookie
 frontend/app/composables/useApiClient.ts      ← refreshToken: credentials include, no body, no useRefreshCookie
 frontend/app/plugins/auth.client.ts           ← selalu coba refresh saat cold-load (drop cek cookie)
@@ -120,6 +124,22 @@ seluruh `config`.
   ```
 - **Hapus** `useRefreshCookie.ts`. Pastikan `credentials: 'include'` pada semua panggilan auth (`/auth/login`,
   `/auth/refresh`, `/auth/logout`) — endpoint lain memakai header `Authorization` dan tak butuh cookie.
+
+## 6b. OpenAPI & koleksi Bruno (konsumen `refresh_token`)
+
+Pencarian menemukan konsumen yang mengandalkan `refresh_token` di body/response — semua diperbarui di C1:
+
+- **`backend/api/openapi.yaml`**: `TokenResponse` buang field/`required` `refresh_token` (sisakan `access_token`,
+  `token_type`, `expires_in`). Operasi `POST /auth/refresh` & `POST /auth/logout` **buang `requestBody`** (refresh dari
+  cookie httpOnly); hapus skema `RefreshRequest` & `LogoutRequest` yang menjadi tak terpakai (hindari warning Spectral);
+  tambahkan deskripsi `Set-Cookie inventra_refresh` pada response login/refresh dan penghapusannya pada logout. Spectral hijau.
+- **`docs/api/bruno/Auth/Login.bru`**: hapus `bru.setEnvVar("refreshToken", res.body.refresh_token)` (tetap simpan
+  `accessToken`). **`Refresh.bru`**: `body: none`, hapus body `refresh_token` dan ekstraksi `refreshToken`. **`Logout.bru`**:
+  `body: none`. Bruno punya **cookie jar** (aktif default) yang menangkap `Set-Cookie` dan mengirim ulang otomatis ke path
+  cocok — `HttpOnly` tak menghalangi Bruno (itu batasan JS-browser), dan `Secure=false` di dev jalan via HTTP. Jadi alur
+  Login→Refresh→Logout tetap berfungsi tanpa menangani refresh token manual.
+- **`docs/api/README.md`**: perbarui kalimat yang menyebut menyimpan `refreshToken` sebagai env var → refresh token kini
+  cookie httpOnly yang ditangani cookie jar Bruno.
 
 ## 7. CORS
 
