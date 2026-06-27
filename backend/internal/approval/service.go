@@ -357,6 +357,49 @@ func (s *Service) Cancel(ctx context.Context, requestID, maker uuid.UUID) (sqlc.
 	return out, nil
 }
 
+// ListThresholds returns all non-deleted approval thresholds.
+func (s *Service) ListThresholds(ctx context.Context) ([]sqlc.ApprovalApprovalThreshold, error) {
+	rows, err := s.q.ListThresholds(ctx)
+	return rows, mapDBError(err)
+}
+
+// CreateThreshold inserts a new approval threshold and invalidates the threshold cache.
+func (s *Service) CreateThreshold(ctx context.Context, p sqlc.CreateThresholdParams) (sqlc.ApprovalApprovalThreshold, error) {
+	out, err := s.q.CreateThreshold(ctx, p)
+	if err == nil {
+		_ = s.invalidateThresholdCache(ctx)
+	}
+	return out, mapDBError(err)
+}
+
+// UpdateThreshold updates an existing approval threshold and invalidates the threshold cache.
+func (s *Service) UpdateThreshold(ctx context.Context, p sqlc.UpdateThresholdParams) (sqlc.ApprovalApprovalThreshold, error) {
+	out, err := s.q.UpdateThreshold(ctx, p)
+	if err == nil {
+		_ = s.invalidateThresholdCache(ctx)
+	}
+	return out, mapDBError(err)
+}
+
+// DeleteThreshold soft-deletes the threshold with the given ID.
+// Returns ErrNotFound if no row was affected.
+func (s *Service) DeleteThreshold(ctx context.Context, id uuid.UUID) error {
+	n, err := s.q.SoftDeleteThreshold(ctx, id)
+	if err != nil {
+		return mapDBError(err)
+	}
+	if n == 0 {
+		return ErrNotFound
+	}
+	_ = s.invalidateThresholdCache(ctx)
+	return nil
+}
+
+// invalidateThresholdCache deletes the Redis key used to cache threshold reads.
+func (s *Service) invalidateThresholdCache(ctx context.Context) error {
+	return s.rdb.Del(ctx, "approval:thresholds").Err()
+}
+
 // Inbox returns all pending requests for which the caller is currently eligible to decide.
 func (s *Service) Inbox(ctx context.Context, caller Caller) ([]sqlc.ApprovalRequest, error) {
 	candidates, err := s.q.ListInboxCandidates(ctx)
