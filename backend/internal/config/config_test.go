@@ -25,7 +25,11 @@ func TestLoadLoggingFromEnv(t *testing.T) {
 
 func TestLoadRateLimitDefaults(t *testing.T) {
 	t.Setenv("RATELIMIT_ENABLED", "")
+	t.Setenv("RATELIMIT_TIMEOUT_MS", "")
 	t.Setenv("RATELIMIT_GLOBAL_PER_MIN", "")
+	t.Setenv("RATELIMIT_LOGIN_PER_MIN", "")
+	t.Setenv("RATELIMIT_LOGIN_IP_PER_MIN", "")
+	t.Setenv("RATELIMIT_REFRESH_PER_MIN", "")
 	cfg := Load()
 	if !cfg.RateLimitEnabled {
 		t.Fatal("RateLimitEnabled default should be true")
