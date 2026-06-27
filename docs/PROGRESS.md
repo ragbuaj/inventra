@@ -23,12 +23,14 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >    at v15 with admin seeded; `/health/ready` → postgres+redis ok; `go build/vet/test` green. Reset
 >    recipe for a fresh greenfield DB still in DATABASE.md §6 ⚠️ note (drop schemas CASCADE → `migrate up`
 >    → re-seed admin).
-> 2. **#6 Kategori Aset screen** — generate the mockup from **DESIGN_BRIEF §5.24** → save as
->    `docs/design/Master Data Kategori Aset.dc.html` → build the screen mock-first 1:1 (new
->    `useCategories` + `mock/categories` + i18n + tests). Backend category API already carries the
->    bank-FAM fields. This is the one master entity without a frontend screen.
-> 3. Then: backend **handlers** for the new bank-FAM tables (transfer/opname/disposal/documents/
->    thresholds), per the *Bank-FAM (PRD v1.1)* checklist below.
+> 2. ~~**#6 Kategori Aset screen**~~ ✅ **DONE** — `app/pages/master/categories.vue` + `useCategories`
+>    + `mock/categories` + `CategoryFormSlideover.vue` + i18n + tests, built 1:1 from
+>    `docs/design/Kategori Aset.dc.html`. (All 23 frontend mockup screens are now implemented.)
+> 3. **Backend handlers** for the new bank-FAM tables (transfer/opname/disposal/documents/thresholds),
+>    per the *Bank-FAM (PRD v1.1)* checklist below — the main remaining backend build.
+> 4. **ADR-0007 composable refactor** (still pending) — before wiring screens to real APIs: rename the
+>    Indonesian DTO keys (`nama`/`kode`/`alamat`) to the backend's English `snake_case` contract and
+>    regroup `composables/api/` + `mock/` into module subfolders. Avoids a mapping shim later.
 
 ## ✅ Done
 
@@ -179,10 +181,10 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       backend's English `snake_case` contract (start `useOffices`/`Office`/mock store), (b) regroup
       `composables/api/` + `mock/` into module subfolders (masterdata/asset/identity/operational/reporting).
       Do before wiring screens to real APIs to avoid a mapping shim; keep lint/typecheck/test green.
-- [ ] **Kategori Aset screen** (#6) — the one master entity without a frontend screen. Generate the
-      mockup from `DESIGN_BRIEF.md` §5.24 → `docs/design/Master Data Kategori Aset.dc.html`, then build
-      mock-first 1:1 (`useCategories` + `mock/categories` + i18n + tests). Rich form: bank-FAM fields
-      (asset_class, commercial+fiscal depreciation, GL account, fiscal group, capitalization threshold).
+- [x] **Kategori Aset screen** (#6) — built mock-first 1:1 from `docs/design/Kategori Aset.dc.html`:
+      `app/pages/master/categories.vue` + `useCategories` + `mock/categories` + `components/category/`
+      `CategoryFormSlideover.vue` + i18n + tests. Rich form carries the bank-FAM fields (asset_class,
+      commercial+fiscal depreciation, GL account, fiscal group, capitalization threshold). **Done.**
 - [ ] **Wire screens to real backend APIs** — replace `mock/*` fixtures with real `$fetch` behind the
       existing `composables/api/use*` interface, as each backend module lands; field-permission-aware forms
 - [ ] **Lokasi & Geografi** — office-location **map** screen (`nav.geography`); provinces/cities already live in Referensi, so this just plots offices on a map. No mockup yet; design prompt at `DESIGN_BRIEF.md` §5.21
