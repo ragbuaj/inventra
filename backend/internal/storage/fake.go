@@ -62,3 +62,14 @@ func (f *Fake) Has(key string) bool {
 	_, ok := f.objs[key]
 	return ok
 }
+
+// ObjsKeys returns all stored object keys (test helper for rollback assertions).
+func (f *Fake) ObjsKeys() []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	ks := make([]string, 0, len(f.objs))
+	for k := range f.objs {
+		ks = append(ks, k)
+	}
+	return ks
+}
