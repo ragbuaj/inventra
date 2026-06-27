@@ -28,6 +28,9 @@ func TestAllowMapsRedisAllowed(t *testing.T) {
 	if !got.Allowed || got.Remaining != 4 || got.ResetAfter != 12*time.Second || got.Limit != 5 {
 		t.Fatalf("unexpected: %+v", got)
 	}
+	if got.RetryAfter != -1 {
+		t.Fatalf("RetryAfter not copied: %v", got.RetryAfter)
+	}
 }
 
 func TestAllowMapsRedisDenied(t *testing.T) {
@@ -65,6 +68,13 @@ func TestAllowDisabledAlwaysAllows(t *testing.T) {
 	f := &fakeAllower{err: errors.New("must not matter")}
 	if !newTestLimiter(f, false).Allow(context.Background(), "x:y", 5, true).Allowed {
 		t.Fatal("disabled limiter must always allow")
+	}
+}
+
+func TestAllowPerMinZeroAlwaysAllows(t *testing.T) {
+	f := &fakeAllower{err: errors.New("must not matter")}
+	if !newTestLimiter(f, true).Allow(context.Background(), "x:y", 0, false).Allowed {
+		t.Fatal("perMin<=0 must always allow without calling Redis")
 	}
 }
 

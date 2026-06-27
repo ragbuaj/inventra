@@ -73,6 +73,8 @@ func (l *Limiter) Allow(ctx context.Context, key string, perMin int, withBacksto
 
 	res, err := l.rl.Allow(cctx, key, redis_rate.PerMinute(perMin))
 	if err != nil {
+		// Degraded path: Redis is unreachable, so err is a transport/timeout error
+		// that does not embed the Lua KEYS (the key). Log only key_prefix, never the full key.
 		logging.FromContext(ctx).Warn("rate limiter degraded", "key_prefix", keyPrefix(key), "error", err)
 		if withBackstop {
 			return Result{Allowed: l.backstop.Allow(key, perMin), Limit: perMin, Degraded: true}
