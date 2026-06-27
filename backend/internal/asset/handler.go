@@ -29,17 +29,41 @@ func NewHandler(svc *Service, fieldSvc *authz.FieldService, scoped common.Scoped
 }
 
 // filterMap applies field-permission masking for the caller's role on the "assets" entity.
-func (h *Handler) filterMap(c *gin.Context, m map[string]any) map[string]any {
+// It returns an error when ForEntity fails (e.g. Redis down) so callers can fail-closed
+// rather than leaking sensitive financial fields.
+// A nil policies map with no error is the legitimate "no policy / default-allow" case and
+// is handled normally by FilterView (which is itself default-allow).
+func (h *Handler) filterMap(c *gin.Context, m map[string]any) (map[string]any, error) {
 	roleID, err := uuid.Parse(c.GetString(middleware.CtxRoleID))
 	if err != nil {
-		return m
+		return m, nil
 	}
 	policies, err := h.fieldSvc.ForEntity(c.Request.Context(), roleID, "assets")
-	if err != nil || policies == nil {
-		return m
+	if err != nil {
+		return nil, err
 	}
-	authz.FilterView(policies, m)
-	return m
+	if policies != nil {
+		authz.FilterView(policies, m)
+	}
+	return m, nil
+}
+
+// validAssetStatuses and validAssetClasses hold the known enum values used for
+// query-param validation in list. Values must match the shared.asset_status and
+// shared.asset_class Postgres enums.
+var validAssetStatuses = map[string]bool{
+	"available":         true,
+	"assigned":          true,
+	"under_maintenance": true,
+	"in_transfer":       true,
+	"retired":           true,
+	"disposed":          true,
+	"lost":              true,
+}
+
+var validAssetClasses = map[string]bool{
+	"tangible":   true,
+	"intangible": true,
 }
 
 func (h *Handler) list(c *gin.Context) {
@@ -70,23 +94,39 @@ func (h *Handler) list(c *gin.Context) {
 			in.OfficeFilter = &id
 		}
 	}
+	// Finding 4: validate status and asset_class before casting to enum types.
 	if s := c.Query("status"); s != "" {
+		if !validAssetStatuses[s] {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid status"})
+			return
+		}
 		v := sqlc.SharedAssetStatus(s)
 		in.Status = &v
 	}
 	if s := c.Query("asset_class"); s != "" {
+		if !validAssetClasses[s] {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid asset_class"})
+			return
+		}
 		v := sqlc.SharedAssetClass(s)
 		in.AssetClass = &v
 	}
 
 	rows, total, err := h.svc.List(c.Request.Context(), in)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list assets"})
+		// Finding 3: route list service errors through svcError for consistency.
+		svcError(c, err)
 		return
 	}
 	data := make([]map[string]any, 0, len(rows))
 	for _, a := range rows {
-		data = append(data, h.filterMap(c, assetToMap(a)))
+		// Finding 2: fail-closed on filterMap error — do not emit unmasked map.
+		masked, err := h.filterMap(c, assetToMap(a))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve field permissions"})
+			return
+		}
+		data = append(data, masked)
 	}
 	c.JSON(http.StatusOK, gin.H{"data": data, "total": total, "limit": limit, "offset": offset})
 }
@@ -111,7 +151,13 @@ func (h *Handler) get(c *gin.Context) {
 		common.WriteError(c, common.ErrForbidden)
 		return
 	}
-	c.JSON(http.StatusOK, h.filterMap(c, assetToMap(a)))
+	// Finding 2: fail-closed on filterMap error.
+	masked, err := h.filterMap(c, assetToMap(a))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve field permissions"})
+		return
+	}
+	c.JSON(http.StatusOK, masked)
 }
 
 func (h *Handler) update(c *gin.Context) {
@@ -120,6 +166,27 @@ func (h *Handler) update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
+
+	// Finding 1: authorize BEFORE any mutation.
+	// Step 1: fetch current asset to obtain its office for scope check.
+	cur, err := h.svc.Get(c.Request.Context(), id)
+	if err != nil {
+		svcError(c, err)
+		return
+	}
+	// Step 2: resolve caller's data scope.
+	all, ids, err := h.scoped.CallerOfficeScope(c, scopeModule)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
+		return
+	}
+	// Step 3: enforce scope gate before touching the DB with a write.
+	if !common.InScope(all, ids, cur.OfficeID) {
+		common.WriteError(c, common.ErrForbidden)
+		return
+	}
+
+	// Step 4: bind and validate the request body.
 	var req AssetUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -130,24 +197,22 @@ func (h *Handler) update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	// Resolve scope before mutating — scope check uses the current row's office.
-	all, ids, err := h.scoped.CallerOfficeScope(c, scopeModule)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
-		return
-	}
+
+	// Step 5: perform the mutation.
 	before, after, err := h.svc.Update(c.Request.Context(), id, in)
 	if err != nil {
 		svcError(c, err)
 		return
 	}
-	if !common.InScope(all, ids, before.OfficeID) {
-		common.WriteError(c, common.ErrForbidden)
-		return
-	}
 	audit.Record(c, h.aud, audit.ActionUpdate, "assets", after.ID, &after.OfficeID,
 		audit.Diff(assetToMap(before), assetToMap(after)))
-	c.JSON(http.StatusOK, h.filterMap(c, assetToMap(after)))
+	// Finding 2: fail-closed on filterMap error.
+	masked, err := h.filterMap(c, assetToMap(after))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve field permissions"})
+		return
+	}
+	c.JSON(http.StatusOK, masked)
 }
 
 // svcError maps asset service sentinel errors to HTTP status codes.
