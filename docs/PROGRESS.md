@@ -153,23 +153,23 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 - [ ] **Backend `/search?q=&types=`** — fan-out across modules, **scope-filtered** (reuse `callerOfficeScope`) and **field-permission-aware**; return typed hits `{ type, id, title, subtitle, url }` with a small per-type limit + "more" counts.
 - [ ] **Indexing / scale** — start with Postgres full-text search (`tsvector` columns + GIN indexes, `unaccent` for accent-insensitive matching) per searchable entity; graduate to a dedicated engine (Meilisearch / Typesense / Elasticsearch) — populated by the scheduler/CDC — when volume, ranking, and typo-tolerance demand it (shares the indexing story with *Analytics / OLAP* above).
 
-### Backend — Cross-cutting (not yet implemented)
+### Backend — Cross-cutting
 - [x] **Audit logging** — `internal/audit` writer wired into every masterdata + user mutation (create/update/delete) with before/after diffs; office-scoped, filterable `GET /api/v1/audit` (gated by `audit.view`); migration 000014 adds `audit_logs.office_id`. (This is the **business audit trail** — distinct from application/observability logging below.)
-- [ ] **Structured logging & request correlation (ADR-0002)** — not yet implemented. Current state:
-      stdlib `log` for startup/lifecycle (`cmd/api/main.go`), Gin's **default** `gin.Logger()` for HTTP
-      (`internal/server/router.go`), and a single `slog.Warn` on audit-write failure (`internal/audit/record.go`).
-      Per **ADR-0002** (Accepted), build: **Backend** — a `log/slog` logger (JSON in prod, text in dev via
-      config/ADR-0003), a slog-backed request middleware replacing `gin.Logger()` (method/path/status/latency),
-      a **request-id** middleware that reads/echoes `X-Request-ID` and binds `request_id` (+ `user_id`/`role_id`
-      where available) to every line, a logger pulled from `context.Context`, and a `safeAttrs` redaction helper
-      so `password_hash`/tokens/`google_id` are never logged; keep `/health` noise low. **Frontend** — a thin
-      `useLogger` composable that generates/propagates `X-Request-ID` per API call and ships client errors to the
-      backend (console in dev). No heavy client logging lib. Handler interface keeps an OpenTelemetry bridge open later.
-- [ ] **Google OAuth2 login** — `/auth/google` + callback + account linking (currently local-only).
-      Use `golang.org/x/oauth2` + `coreos/go-oidc/v3` (ADR-0009): verify ID token, link by verified email,
-      mint the same app JWT; structure provider-agnostically for future enterprise SSO (Entra/bank IdP)
+- [x] **Structured logging & request correlation (ADR-0002)** — `log/slog` logger (JSON in prod, text in dev),
+      slog-backed request middleware (method/path/status/latency) replacing `gin.Logger()`, a **request-id**
+      middleware reading/echoing `X-Request-ID` (CORS allow/expose-listed) and binding `request_id`/`user_id`/`role_id`
+      to every line, a context-carried logger, and a `safeAttrs` redaction helper (`password_hash`/tokens/`google_id`).
+      Frontend `useLogger` propagates `X-Request-ID` per API call and ships client errors. **Done — PR #18.**
+- [x] **Google OAuth2 login (ADR-0009, link-only)** — `/auth/google` + callback via `golang.org/x/oauth2` +
+      `coreos/go-oidc/v3`: OIDC authorization-code + **PKCE (S256)**, single-use Redis state, ID-token verify
+      (audience pinned, `email_verified` required), **link-only** account linking by verified email (no
+      auto-provision), mints the same app JWT (refresh in **httpOnly cookie**). Feature-gated off without
+      `GOOGLE_CLIENT_ID`. **Done — PR #21** (setup guide #22, Docker env fix #23; see `docs/google-oauth-setup.md`).
+- [x] **Refresh token in httpOnly cookie (C1)** — refresh moved out of the JS-readable body into an
+      HttpOnly/SameSite cookie scoped to `/api/v1/auth`; access token stays in memory. **Done — PR #20.**
 - [ ] **Password reset / email verification** — Redis-TTL tokens (+ email later)
-- [ ] **Rate limiting** — login anti-brute-force + throttling (Redis)
+- [x] **Rate limiting (ADR-0004)** — Redis token-bucket (`go-redis/redis_rate`): per-IP + per-account login
+      bands, global + refresh throttles, trusted-proxy client-IP hardening; configurable, fail-open. **Done — PR #19.**
 - [ ] **Notifications (in-app)** — store + endpoints (approval decisions, maintenance reminders)
 - [ ] **Scheduler (cron in-process)** — monthly depreciation; maintenance-due reminders
 - [ ] **Authorization admin endpoints** — Superadmin CRUD for roles, role_permissions, field_permissions, data_scope_policies (+ Redis cache invalidation)
@@ -187,7 +187,8 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       existing `composables/api/use*` interface, as each backend module lands; field-permission-aware forms
 - [ ] **Lokasi & Geografi** — office-location **map** screen (`nav.geography`); provinces/cities already live in Referensi, so this just plots offices on a map. No mockup yet; design prompt at `DESIGN_BRIEF.md` §5.21
 - [ ] **Staff role menus** — wire staff nav (`myAssets`, staff `assignment`/`approval`) to pages/variants
-- [ ] **Google OAuth login** button + flow (UI; awaits backend `/auth/google`)
+- [x] **Google OAuth login** button + flow (UI) — login redirect + `?oauth=success/error` landing
+      (refresh → fetchMe → navigate; i18n error reasons). **Done — PR #21.**
 - [ ] **Profil & Pengaturan Akun** (`nav.profile` + `nav.accountSettings`) — no mockup yet; design prompt at `DESIGN_BRIEF.md` §5.22
 - [ ] **E2E coverage** — Playwright specs for Dashboard, Assets, Settings, RBAC, Operasional clusters
       (currently only `login` + `master-offices`)
@@ -209,6 +210,6 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 2. **Asset core + attachments (MinIO) + barcode**
 3. **Approval (maker-checker)** → **Assignment** → **Maintenance**
 4. **Depreciation** → **Reporting/Dashboard (+ PDF/Excel)** → **Import** — add the **Analytics / OLAP** read layer (materialized views → fact tables) once report data volume warrants it
-5. **Structured logging (ADR-0002) + Google OAuth2 + rate limiting + notifications + scheduler + authz admin**
+5. ~~Structured logging (ADR-0002) + Google OAuth2 (ADR-0009) + rate limiting (ADR-0004)~~ ✅ **done (PR #18/#19/#21)** — remaining cross-cutting: **notifications + scheduler + authz admin endpoints**
 6. **Wire the (already-built) frontend screens to real APIs** as each backend module lands —
    swap `mock/*` for real `$fetch` behind the same `composables/api/use*` interface
