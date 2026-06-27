@@ -485,3 +485,105 @@ func TestAttachment_DBRollback(t *testing.T) {
 		assert.Empty(t, rows, "no attachment row must exist after DB-rollback failure")
 	})
 }
+
+// TestAttachment_CrossAssetRejected verifies the ownership guard: an attachment that
+// belongs to asset B cannot be accessed (download, delete) via asset A's URL path,
+// even when the caller has scope over the office that contains both assets.
+//
+// The guard lives in streamAttachment and deleteAttachment:
+//
+//	if att.AssetID != assetID { c.JSON(404, ...) }
+//
+// This test seeds two assets in the SAME office so that scope is never the rejection
+// reason — only the cross-asset mismatch causes the 404.
+func TestAttachment_CrossAssetRejected(t *testing.T) {
+	ctx := context.Background()
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	minioStore := testsupport.NewMinIO(t)
+
+	_, err := pool.Exec(ctx,
+		`TRUNCATE approval.request_approvals, approval.requests,
+		 asset.asset_tag_counters, asset.assets CASCADE`)
+	require.NoError(t, err)
+
+	q := sqlc.New(pool)
+
+	// Both assets live in the same office so the caller's global scope covers both.
+	officeID := seedOfficeWithType(t, pool, "CrossAssetOfficeType", "CRSA")
+	catID := seedCategory(t, pool, "CRS")
+
+	assetA := seedAssetDirect(t, pool, "CRSA-CRS-2026-00001", "Cross Asset A", catID, officeID)
+	assetB := seedAssetDirect(t, pool, "CRSA-CRS-2026-00002", "Cross Asset B", catID, officeID)
+
+	// Superadmin — global scope, so both assets are in-scope.
+	roleID := lookupRole(t, pool, "Superadmin")
+
+	var userID uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx,
+		`INSERT INTO identity.users (name, email, role_id, office_id, status)
+		 VALUES ($1, $2, $3, $4, 'active') RETURNING id`,
+		"cross-asset-caller", "cross-asset-caller@test.local", roleID, officeID).Scan(&userID))
+
+	svc := asset.NewService(q, pool, minioStore, 5<<20)
+	fieldSvc := authz.NewFieldService(q, rdb)
+	scopeSvc := authz.NewScopeService(q, rdb)
+	scoped := common.ScopedDeps{Q: q, Scope: scopeSvc}
+	audSvc := audit.NewService(q)
+	h := asset.NewHandler(svc, fieldSvc, scoped, audSvc)
+
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	rg := router.Group("/api/v1")
+
+	stubAuth := func(c *gin.Context) {
+		c.Set(middleware.CtxUserID, userID.String())
+		c.Set(middleware.CtxRoleID, roleID.String())
+		c.Next()
+	}
+	passThrough := func(c *gin.Context) { c.Next() }
+	asset.RegisterRoutes(rg, h, stubAuth, passThrough, passThrough)
+
+	do := func(method, path string, body io.Reader, ct string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(method, path, body)
+		if ct != "" {
+			req.Header.Set("Content-Type", ct)
+		}
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		return w
+	}
+
+	// Upload an attachment to asset B — this must succeed (201).
+	baseB := "/api/v1/assets/" + assetB.String() + "/attachments"
+	uploadBody, uploadCT := attBuildMultipart(t, "photo.png", "image/png", attMakePNG())
+	w := do(http.MethodPost, baseB, uploadBody, uploadCT)
+	require.Equal(t, http.StatusCreated, w.Code,
+		"pre-condition: upload to asset B must succeed; body: %s", w.Body.String())
+
+	var uploadResp map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &uploadResp))
+	aidB, ok := uploadResp["id"].(string)
+	require.True(t, ok, "upload response must contain string id")
+
+	// ── Cross-asset GET /content via asset A's path ───────────────────────────
+	// att.AssetID == assetB but the URL uses assetA → ownership guard fires → 404.
+	contentPath := "/api/v1/assets/" + assetA.String() + "/attachments/" + aidB + "/content"
+	w = do(http.MethodGet, contentPath, nil, "")
+	assert.Equal(t, http.StatusNotFound, w.Code,
+		"GET content with mismatched asset path → 404; body: %s", w.Body.String())
+
+	// ── Cross-asset DELETE via asset A's path ─────────────────────────────────
+	deletePath := "/api/v1/assets/" + assetA.String() + "/attachments/" + aidB
+	w = do(http.MethodDelete, deletePath, nil, "")
+	assert.Equal(t, http.StatusNotFound, w.Code,
+		"DELETE with mismatched asset path → 404; body: %s", w.Body.String())
+
+	// Verify the attachment on asset B is still intact (the misrouted DELETE must not have deleted it).
+	w = do(http.MethodGet, baseB, nil, "")
+	require.Equal(t, http.StatusOK, w.Code)
+	var listResp map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &listResp))
+	assert.Equal(t, float64(1), listResp["total"],
+		"attachment on asset B must still exist after rejected cross-asset DELETE")
+}
