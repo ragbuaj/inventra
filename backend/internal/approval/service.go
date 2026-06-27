@@ -197,3 +197,182 @@ func resolveTierOffice(anc []sqlc.GetOfficeAncestorsRow, originID uuid.UUID, lev
 		return uuid.Nil, false
 	}
 }
+
+// ancestorsFor returns the ancestor chain for the given office (cached via sqlc).
+func (s *Service) ancestorsFor(ctx context.Context, officeID uuid.UUID) ([]sqlc.GetOfficeAncestorsRow, error) {
+	return s.q.GetOfficeAncestors(ctx, officeID)
+}
+
+// Decide records an approve or reject decision on the current step of a pending request.
+// On rejection it finalises the request immediately. On the final approval it runs the
+// registered executor inside the same transaction so the side-effect is atomic.
+func (s *Service) Decide(ctx context.Context, requestID uuid.UUID, caller Caller, approve bool, note *string) (sqlc.ApprovalRequest, error) {
+	req, err := s.q.GetRequest(ctx, requestID)
+	if err != nil {
+		return req, mapDBError(err)
+	}
+	if req.Status != sqlc.SharedRequestStatusPending {
+		return req, ErrInvalidState
+	}
+
+	approvals, err := s.q.ListRequestApprovals(ctx, requestID)
+	if err != nil {
+		return req, mapDBError(err)
+	}
+
+	var step sqlc.ApprovalRequestApproval
+	var prior []uuid.UUID
+	found := false
+	for _, a := range approvals {
+		if a.StepOrder < req.CurrentStep && a.ApproverID != nil {
+			prior = append(prior, *a.ApproverID)
+		}
+		if a.StepOrder == req.CurrentStep {
+			step = a
+			found = true
+		}
+	}
+	if !found {
+		return req, ErrInvalidState
+	}
+
+	var tierOffice uuid.UUID
+	tierOK := false
+	if req.OfficeID != nil {
+		anc, err := s.ancestorsFor(ctx, *req.OfficeID)
+		if err != nil {
+			return req, err
+		}
+		tierOffice, tierOK = resolveTierOffice(anc, *req.OfficeID, step.RequiredLevel)
+	}
+	if err := eligibleToDecide(caller, req, step, prior, tierOffice, tierOK); err != nil {
+		return req, err
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return req, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	qtx := s.q.WithTx(tx)
+
+	if !approve {
+		if _, err := qtx.DecideRequestApproval(ctx, sqlc.DecideRequestApprovalParams{
+			RequestID:  requestID,
+			StepOrder:  step.StepOrder,
+			ApproverID: &caller.UserID,
+			Decision:   sqlc.SharedRequestStatusRejected,
+			Note:       note,
+		}); err != nil {
+			return req, mapDBError(err)
+		}
+		out, err := qtx.SetRequestDecision(ctx, sqlc.SetRequestDecisionParams{
+			ID:           requestID,
+			Status:       sqlc.SharedRequestStatusRejected,
+			DecidedByID:  &caller.UserID,
+			DecisionNote: note,
+		})
+		if err != nil {
+			return req, mapDBError(err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return req, err
+		}
+		return out, nil
+	}
+
+	// approve path
+	if _, err := qtx.DecideRequestApproval(ctx, sqlc.DecideRequestApprovalParams{
+		RequestID:  requestID,
+		StepOrder:  step.StepOrder,
+		ApproverID: &caller.UserID,
+		Decision:   sqlc.SharedRequestStatusApproved,
+		Note:       note,
+	}); err != nil {
+		return req, mapDBError(err)
+	}
+
+	// isLast: step_order == total number of approval rows (steps are 1-indexed from Submit)
+	isLast := step.StepOrder == int32(len(approvals))
+	if !isLast {
+		out, err := qtx.AdvanceRequestStep(ctx, requestID)
+		if err != nil {
+			return req, mapDBError(err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return req, err
+		}
+		return out, nil
+	}
+
+	// final step: mark approved and run executor in the same tx
+	out, err := qtx.SetRequestDecision(ctx, sqlc.SetRequestDecisionParams{
+		ID:           requestID,
+		Status:       sqlc.SharedRequestStatusApproved,
+		DecidedByID:  &caller.UserID,
+		DecisionNote: note,
+	})
+	if err != nil {
+		return req, mapDBError(err)
+	}
+	exec, ok := s.exec[req.Type]
+	if !ok {
+		return req, ErrInvalidState
+	}
+	if err := exec.Execute(ctx, qtx, out); err != nil {
+		return req, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return req, err
+	}
+	return out, nil
+}
+
+// Cancel cancels a pending request on behalf of its maker.
+// Returns ErrNotFound if the request is not pending or does not belong to maker.
+func (s *Service) Cancel(ctx context.Context, requestID, maker uuid.UUID) (sqlc.ApprovalRequest, error) {
+	out, err := s.q.CancelRequest(ctx, sqlc.CancelRequestParams{ID: requestID, RequestedByID: maker})
+	if err != nil {
+		return out, mapDBError(err)
+	}
+	return out, nil
+}
+
+// Inbox returns all pending requests for which the caller is currently eligible to decide.
+func (s *Service) Inbox(ctx context.Context, caller Caller) ([]sqlc.ApprovalRequest, error) {
+	candidates, err := s.q.ListInboxCandidates(ctx)
+	if err != nil {
+		return nil, mapDBError(err)
+	}
+	out := make([]sqlc.ApprovalRequest, 0)
+	for _, req := range candidates {
+		approvals, err := s.q.ListRequestApprovals(ctx, req.ID)
+		if err != nil {
+			return nil, mapDBError(err)
+		}
+		var step sqlc.ApprovalRequestApproval
+		var prior []uuid.UUID
+		found := false
+		for _, a := range approvals {
+			if a.StepOrder < req.CurrentStep && a.ApproverID != nil {
+				prior = append(prior, *a.ApproverID)
+			}
+			if a.StepOrder == req.CurrentStep {
+				step = a
+				found = true
+			}
+		}
+		if !found || req.OfficeID == nil {
+			continue
+		}
+		anc, err := s.ancestorsFor(ctx, *req.OfficeID)
+		if err != nil {
+			return nil, err
+		}
+		to, ok := resolveTierOffice(anc, *req.OfficeID, step.RequiredLevel)
+		if eligibleToDecide(caller, req, step, prior, to, ok) == nil {
+			out = append(out, req)
+		}
+	}
+	return out, nil
+}
