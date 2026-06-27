@@ -111,8 +111,27 @@ func TestRequestLoggerIncludesUserWhenSet(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/u", nil))
 	var m map[string]any
-	json.Unmarshal(bytes.TrimSpace(buf.Bytes()), &m)
+	if err := json.Unmarshal(bytes.TrimSpace(buf.Bytes()), &m); err != nil {
+		t.Fatalf("parse %q: %v", buf.String(), err)
+	}
 	if m["user_id"] != "user-7" || m["role_id"] != "role-3" {
 		t.Fatalf("user/role not logged: %v", m)
+	}
+}
+
+func TestRequestLoggerWarnOnClientError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	log, buf := bufLogger()
+	r := gin.New()
+	r.Use(RequestID(), RequestLogger(log))
+	r.GET("/bad", func(c *gin.Context) { c.Status(http.StatusBadRequest) })
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/bad", nil))
+	var m map[string]any
+	if err := json.Unmarshal(bytes.TrimSpace(buf.Bytes()), &m); err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if m["level"] != "WARN" {
+		t.Fatalf("status 400 must log at WARN, got %v", m["level"])
 	}
 }
