@@ -158,6 +158,9 @@ func NewRouter(d Deps) *gin.Engine {
 		audit.RegisterRoutes(api, auditHandler, requireAuth, middleware.RequirePermission(permSvc, "audit.view"))
 
 		approvalSvc := approval.NewService(queries, d.Pool, scopeSvc, d.Redis)
+		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
+		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, assetSvc.DisposalExecutor())
+		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeValuationExclusion, assetSvc.ExclusionExecutor())
 		approvalHandler := approval.NewHandler(approvalSvc, fieldSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)
 		approval.RegisterRoutes(api, approvalHandler, requireAuth, permSvc)
 	}
