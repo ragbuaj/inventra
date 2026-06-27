@@ -23,12 +23,14 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >    at v15 with admin seeded; `/health/ready` → postgres+redis ok; `go build/vet/test` green. Reset
 >    recipe for a fresh greenfield DB still in DATABASE.md §6 ⚠️ note (drop schemas CASCADE → `migrate up`
 >    → re-seed admin).
-> 2. **#6 Kategori Aset screen** — generate the mockup from **DESIGN_BRIEF §5.24** → save as
->    `docs/design/Master Data Kategori Aset.dc.html` → build the screen mock-first 1:1 (new
->    `useCategories` + `mock/categories` + i18n + tests). Backend category API already carries the
->    bank-FAM fields. This is the one master entity without a frontend screen.
-> 3. Then: backend **handlers** for the new bank-FAM tables (transfer/opname/disposal/documents/
->    thresholds), per the *Bank-FAM (PRD v1.1)* checklist below.
+> 2. ~~**#6 Kategori Aset screen**~~ ✅ **DONE** — `app/pages/master/categories.vue` + `useCategories`
+>    + `mock/categories` + `CategoryFormSlideover.vue` + i18n + tests, built 1:1 from
+>    `docs/design/Kategori Aset.dc.html`. (All 23 frontend mockup screens are now implemented.)
+> 3. **Backend handlers** for the new bank-FAM tables (transfer/opname/disposal/documents/thresholds),
+>    per the *Bank-FAM (PRD v1.1)* checklist below — the main remaining backend build.
+> 4. **ADR-0007 composable refactor** (still pending) — before wiring screens to real APIs: rename the
+>    Indonesian DTO keys (`nama`/`kode`/`alamat`) to the backend's English `snake_case` contract and
+>    regroup `composables/api/` + `mock/` into module subfolders. Avoids a mapping shim later.
 
 ## ✅ Done
 
@@ -153,23 +155,23 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 - [ ] **Backend `/search?q=&types=`** — fan-out across modules, **scope-filtered** (reuse `callerOfficeScope`) and **field-permission-aware**; return typed hits `{ type, id, title, subtitle, url }` with a small per-type limit + "more" counts.
 - [ ] **Indexing / scale** — start with Postgres full-text search (`tsvector` columns + GIN indexes, `unaccent` for accent-insensitive matching) per searchable entity; graduate to a dedicated engine (Meilisearch / Typesense / Elasticsearch) — populated by the scheduler/CDC — when volume, ranking, and typo-tolerance demand it (shares the indexing story with *Analytics / OLAP* above).
 
-### Backend — Cross-cutting (not yet implemented)
+### Backend — Cross-cutting
 - [x] **Audit logging** — `internal/audit` writer wired into every masterdata + user mutation (create/update/delete) with before/after diffs; office-scoped, filterable `GET /api/v1/audit` (gated by `audit.view`); migration 000014 adds `audit_logs.office_id`. (This is the **business audit trail** — distinct from application/observability logging below.)
-- [ ] **Structured logging & request correlation (ADR-0002)** — not yet implemented. Current state:
-      stdlib `log` for startup/lifecycle (`cmd/api/main.go`), Gin's **default** `gin.Logger()` for HTTP
-      (`internal/server/router.go`), and a single `slog.Warn` on audit-write failure (`internal/audit/record.go`).
-      Per **ADR-0002** (Accepted), build: **Backend** — a `log/slog` logger (JSON in prod, text in dev via
-      config/ADR-0003), a slog-backed request middleware replacing `gin.Logger()` (method/path/status/latency),
-      a **request-id** middleware that reads/echoes `X-Request-ID` and binds `request_id` (+ `user_id`/`role_id`
-      where available) to every line, a logger pulled from `context.Context`, and a `safeAttrs` redaction helper
-      so `password_hash`/tokens/`google_id` are never logged; keep `/health` noise low. **Frontend** — a thin
-      `useLogger` composable that generates/propagates `X-Request-ID` per API call and ships client errors to the
-      backend (console in dev). No heavy client logging lib. Handler interface keeps an OpenTelemetry bridge open later.
-- [ ] **Google OAuth2 login** — `/auth/google` + callback + account linking (currently local-only).
-      Use `golang.org/x/oauth2` + `coreos/go-oidc/v3` (ADR-0009): verify ID token, link by verified email,
-      mint the same app JWT; structure provider-agnostically for future enterprise SSO (Entra/bank IdP)
+- [x] **Structured logging & request correlation (ADR-0002)** — `log/slog` logger (JSON in prod, text in dev),
+      slog-backed request middleware (method/path/status/latency) replacing `gin.Logger()`, a **request-id**
+      middleware reading/echoing `X-Request-ID` (CORS allow/expose-listed) and binding `request_id`/`user_id`/`role_id`
+      to every line, a context-carried logger, and a `safeAttrs` redaction helper (`password_hash`/tokens/`google_id`).
+      Frontend `useLogger` propagates `X-Request-ID` per API call and ships client errors. **Done — PR #18.**
+- [x] **Google OAuth2 login (ADR-0009, link-only)** — `/auth/google` + callback via `golang.org/x/oauth2` +
+      `coreos/go-oidc/v3`: OIDC authorization-code + **PKCE (S256)**, single-use Redis state, ID-token verify
+      (audience pinned, `email_verified` required), **link-only** account linking by verified email (no
+      auto-provision), mints the same app JWT (refresh in **httpOnly cookie**). Feature-gated off without
+      `GOOGLE_CLIENT_ID`. **Done — PR #21** (setup guide #22, Docker env fix #23; see `docs/google-oauth-setup.md`).
+- [x] **Refresh token in httpOnly cookie (C1)** — refresh moved out of the JS-readable body into an
+      HttpOnly/SameSite cookie scoped to `/api/v1/auth`; access token stays in memory. **Done — PR #20.**
 - [ ] **Password reset / email verification** — Redis-TTL tokens (+ email later)
-- [ ] **Rate limiting** — login anti-brute-force + throttling (Redis)
+- [x] **Rate limiting (ADR-0004)** — Redis token-bucket (`go-redis/redis_rate`): per-IP + per-account login
+      bands, global + refresh throttles, trusted-proxy client-IP hardening; configurable, fail-open. **Done — PR #19.**
 - [ ] **Notifications (in-app)** — store + endpoints (approval decisions, maintenance reminders)
 - [ ] **Scheduler (cron in-process)** — monthly depreciation; maintenance-due reminders
 - [ ] **Authorization admin endpoints** — Superadmin CRUD for roles, role_permissions, field_permissions, data_scope_policies (+ Redis cache invalidation)
@@ -179,22 +181,28 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       backend's English `snake_case` contract (start `useOffices`/`Office`/mock store), (b) regroup
       `composables/api/` + `mock/` into module subfolders (masterdata/asset/identity/operational/reporting).
       Do before wiring screens to real APIs to avoid a mapping shim; keep lint/typecheck/test green.
-- [ ] **Kategori Aset screen** (#6) — the one master entity without a frontend screen. Generate the
-      mockup from `DESIGN_BRIEF.md` §5.24 → `docs/design/Master Data Kategori Aset.dc.html`, then build
-      mock-first 1:1 (`useCategories` + `mock/categories` + i18n + tests). Rich form: bank-FAM fields
-      (asset_class, commercial+fiscal depreciation, GL account, fiscal group, capitalization threshold).
+- [x] **Kategori Aset screen** (#6) — built mock-first 1:1 from `docs/design/Kategori Aset.dc.html`:
+      `app/pages/master/categories.vue` + `useCategories` + `mock/categories` + `components/category/`
+      `CategoryFormSlideover.vue` + i18n + tests. Rich form carries the bank-FAM fields (asset_class,
+      commercial+fiscal depreciation, GL account, fiscal group, capitalization threshold). **Done.**
 - [ ] **Wire screens to real backend APIs** — replace `mock/*` fixtures with real `$fetch` behind the
       existing `composables/api/use*` interface, as each backend module lands; field-permission-aware forms
 - [ ] **Lokasi & Geografi** — office-location **map** screen (`nav.geography`); provinces/cities already live in Referensi, so this just plots offices on a map. No mockup yet; design prompt at `DESIGN_BRIEF.md` §5.21
 - [ ] **Staff role menus** — wire staff nav (`myAssets`, staff `assignment`/`approval`) to pages/variants
-- [ ] **Google OAuth login** button + flow (UI; awaits backend `/auth/google`)
+- [x] **Google OAuth login** button + flow (UI) — login redirect + `?oauth=success/error` landing
+      (refresh → fetchMe → navigate; i18n error reasons). **Done — PR #21.**
 - [ ] **Profil & Pengaturan Akun** (`nav.profile` + `nav.accountSettings`) — no mockup yet; design prompt at `DESIGN_BRIEF.md` §5.22
 - [ ] **E2E coverage** — Playwright specs for Dashboard, Assets, Settings, RBAC, Operasional clusters
       (currently only `login` + `master-offices`)
 - [ ] Live light/dark visual pass for auth-gated screens (pending a stable backend to log in)
 
 ### Quality
-- [x] Backend testing stack (ADR-0001): testify + testcontainers-go; `internal/testsupport` (Postgres/Redis containers, migration apply, reset, seed) + office data-scope integration suite on real Postgres + `backend-integration` CI job (`-tags=integration`). Broader service/handler coverage continues per phase.
+- [x] Backend testing stack (ADR-0001): testify + testcontainers-go; `internal/testsupport` (Postgres/Redis containers, migration apply, `Reset`, seed helpers) + `backend-integration` CI job (`-tags=integration`, runs every PR; default `go test ./...` stays unit-only via the build tag).
+- [x] Backend integration suites (real Postgres/Redis, behind `//go:build integration`):
+      - **Masterdata data-scope:** office (#24), employee (#25), floor (#26), room — transitive floor→office scope (#26).
+      - **Authz:** `ScopeService.Resolve` — 4 levels + fallback + Redis caching (#25); field-permission `ForEntity`/`FilterView` + caching (#26).
+      - **Cross-module:** audit office-scoped `List` + `Log`/`Diff` round-trip (#27); reference engine generic CRUD + `coerce` (white-box) (#27).
+      - Remaining backend targets (minor): category sub-package, full HTTP+JWT request path.
 - [ ] Optional seed data (provinces/cities, office types, etc.)
 
 ---
@@ -204,6 +212,6 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 2. **Asset core + attachments (MinIO) + barcode**
 3. **Approval (maker-checker)** → **Assignment** → **Maintenance**
 4. **Depreciation** → **Reporting/Dashboard (+ PDF/Excel)** → **Import** — add the **Analytics / OLAP** read layer (materialized views → fact tables) once report data volume warrants it
-5. **Structured logging (ADR-0002) + Google OAuth2 + rate limiting + notifications + scheduler + authz admin**
+5. ~~Structured logging (ADR-0002) + Google OAuth2 (ADR-0009) + rate limiting (ADR-0004)~~ ✅ **done (PR #18/#19/#21)** — remaining cross-cutting: **notifications + scheduler + authz admin endpoints**
 6. **Wire the (already-built) frontend screens to real APIs** as each backend module lands —
    swap `mock/*` for real `$fetch` behind the same `composables/api/use*` interface
