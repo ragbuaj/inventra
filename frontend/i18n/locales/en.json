@@ -699,7 +699,16 @@
     "brandFeature1": "Centralized asset catalog across office tiers",
     "brandFeature2": "Check-out / check-in & maintenance schedules",
     "brandFeature3": "Maker-checker approval & accurate reports",
-    "brandCopyright": "© 2026 Inventra · Asset Management System"
+    "brandCopyright": "© 2026 Inventra · Asset Management System",
+    "google": {
+      "error": {
+        "not_registered": "No account exists for this Google email. Contact your admin.",
+        "account_mismatch": "This email is already linked to a different Google account.",
+        "inactive": "Your account is inactive.",
+        "disabled": "Google sign-in is not available.",
+        "server": "Google sign-in failed. Please try again."
+      }
+    }
   },
   "nav": {
     "profile": "My Profile",

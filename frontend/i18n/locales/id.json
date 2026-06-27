@@ -699,7 +699,16 @@
     "brandFeature1": "Katalog aset terpusat lintas jenjang kantor",
     "brandFeature2": "Check-out / check-in & jadwal maintenance",
     "brandFeature3": "Approval maker-checker & laporan akurat",
-    "brandCopyright": "© 2026 Inventra · Sistem Manajemen Aset"
+    "brandCopyright": "© 2026 Inventra · Sistem Manajemen Aset",
+    "google": {
+      "error": {
+        "not_registered": "Akun untuk email Google ini belum terdaftar. Hubungi admin.",
+        "account_mismatch": "Email ini sudah tertaut ke akun Google lain.",
+        "inactive": "Akun Anda tidak aktif.",
+        "disabled": "Masuk dengan Google belum tersedia.",
+        "server": "Gagal masuk dengan Google. Coba lagi."
+      }
+    }
   },
   "nav": {
     "profile": "Profil Saya",
