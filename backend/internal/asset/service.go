@@ -27,6 +27,20 @@ type Service struct {
 
 func NewService(q *sqlc.Queries, pool *pgxpool.Pool) *Service { return &Service{q: q, pool: pool} }
 
+// allowedTransitions defines the valid status transitions for assets.
+// Only transitions present in this map are permitted; everything else is rejected.
+var allowedTransitions = map[sqlc.SharedAssetStatus]map[sqlc.SharedAssetStatus]bool{
+	"available":         {"assigned": true, "under_maintenance": true, "lost": true, "disposed": true},
+	"assigned":          {"available": true, "lost": true, "disposed": true},
+	"under_maintenance": {"available": true, "disposed": true},
+}
+
+// validTransition reports whether transitioning an asset from status `from` to
+// status `to` is permitted by the state machine.
+func validTransition(from, to sqlc.SharedAssetStatus) bool {
+	return allowedTransitions[from][to]
+}
+
 // formatAssetTag formats an asset tag as <officeCode>-<categoryCode>-<year>-<seq:%05d>.
 // Example: JKT01-ELK-2026-00001
 func formatAssetTag(officeCode, categoryCode string, year int, seq int64) string {
