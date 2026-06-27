@@ -400,6 +400,19 @@ func (s *Service) invalidateThresholdCache(ctx context.Context) error {
 	return s.rdb.Del(ctx, "approval:thresholds").Err()
 }
 
+// GetWithSteps fetches a single approval request and its ordered approval steps.
+func (s *Service) GetWithSteps(ctx context.Context, id uuid.UUID) (sqlc.ApprovalRequest, []sqlc.ApprovalRequestApproval, error) {
+	r, err := s.q.GetRequest(ctx, id)
+	if err != nil {
+		return r, nil, mapDBError(err)
+	}
+	steps, err := s.q.ListRequestApprovals(ctx, id)
+	if err != nil {
+		return r, nil, mapDBError(err)
+	}
+	return r, steps, nil
+}
+
 // List returns a paginated, scope-filtered slice of requests plus the total count.
 // Empty status/typ strings are treated as "no filter" (nil).
 func (s *Service) List(ctx context.Context, all bool, ids []uuid.UUID, status, typ string, limit, offset int32) ([]sqlc.ApprovalRequest, int64, error) {

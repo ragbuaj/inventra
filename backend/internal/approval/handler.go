@@ -1,6 +1,8 @@
 package approval
 
 import (
+	"errors"
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -51,6 +53,10 @@ func (h *Handler) svcError(c *gin.Context, err error) {
 		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 	case ErrNoThreshold:
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+	case ErrConflict:
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+	case ErrInvalidRef:
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	default:
 		common.WriteError(c, err)
 	}
@@ -104,7 +110,10 @@ func (h *Handler) decide(c *gin.Context, isApprove bool) {
 		return
 	}
 	var body DecideRequest
-	_ = c.ShouldBindJSON(&body)
+	if err := c.ShouldBindJSON(&body); err != nil && !errors.Is(err, io.EOF) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	caller, err := h.callerFromCtx(c)
 	if err != nil {
 		common.WriteError(c, err)
@@ -182,12 +191,11 @@ func (h *Handler) get(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	r, err := h.svc.q.GetRequest(c, id)
+	r, steps, err := h.svc.GetWithSteps(c, id)
 	if err != nil {
-		h.svcError(c, mapDBError(err))
+		h.svcError(c, err)
 		return
 	}
-	steps, _ := h.svc.q.ListRequestApprovals(c, id)
 	out := requestToMap(r)
 	out["steps"] = steps
 	c.JSON(http.StatusOK, out)
@@ -214,6 +222,10 @@ func (h *Handler) createThreshold(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	if err := req.validate(); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	out, err := h.svc.CreateThreshold(c, req.toCreateParams())
 	if err != nil {
 		h.svcError(c, err)
@@ -231,6 +243,10 @@ func (h *Handler) updateThreshold(c *gin.Context) {
 	}
 	var req ThresholdRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := req.validateUpdate(); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

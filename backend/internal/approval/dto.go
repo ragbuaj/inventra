@@ -48,6 +48,41 @@ type ThresholdRequest struct {
 	IsActive      bool    `json:"is_active"`
 }
 
+var validRequestTypes = map[string]bool{
+	"asset_create":        true,
+	"asset_disposal":      true,
+	"asset_transfer":      true,
+	"assignment":          true,
+	"maintenance":         true,
+	"valuation_exclusion": true,
+}
+
+var validRequiredLevels = map[string]bool{
+	"office":         true,
+	"office_subtree": true,
+	"wilayah":        true,
+	"pusat":          true,
+}
+
+// validate checks enum fields for create (both request_type and required_level).
+func (r ThresholdRequest) validate() error {
+	if !validRequestTypes[r.RequestType] {
+		return errors.New("invalid request_type")
+	}
+	if !validRequiredLevels[r.RequiredLevel] {
+		return errors.New("invalid required_level")
+	}
+	return nil
+}
+
+// validateUpdate checks only required_level (request_type is immutable on update).
+func (r ThresholdRequest) validateUpdate() error {
+	if !validRequiredLevels[r.RequiredLevel] {
+		return errors.New("invalid required_level")
+	}
+	return nil
+}
+
 func (r ThresholdRequest) toCreateParams() sqlc.CreateThresholdParams {
 	return sqlc.CreateThresholdParams{
 		RequestType:   sqlc.SharedRequestType(r.RequestType),
