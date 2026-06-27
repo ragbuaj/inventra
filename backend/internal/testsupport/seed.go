@@ -96,3 +96,13 @@ func SeedFloor(t *testing.T, pool *pgxpool.Pool, officeID uuid.UUID, name string
 		officeID, name).Scan(&id))
 	return id
 }
+
+// SeedRoom inserts a masterdata.rooms row on the given floor and returns its id.
+func SeedRoom(t *testing.T, pool *pgxpool.Pool, floorID uuid.UUID, name string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO masterdata.rooms (floor_id, name) VALUES ($1, $2) RETURNING id`,
+		floorID, name).Scan(&id))
+	return id
+}
