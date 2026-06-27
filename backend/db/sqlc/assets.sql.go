@@ -78,8 +78,12 @@ INSERT INTO asset.assets (
   funding_source, warranty_expiry, specifications, asset_class, capitalized,
   acquisition_bast_no, created_by_id, notes
 ) VALUES (
-  $1,$2,$3,$4,$5,$6,$7,$8,'available',$9,$10,$11,$12,$13,$14,$15,
-  COALESCE($16,'{}')::jsonb,$17,$18,$19,$20,$21
+  $1,$2,$3,$4,
+  $5,$6,$7,$8,
+  'available',$9,$10,$11,
+  $12,$13,$14,$15,
+  COALESCE($16,'{}')::jsonb,$17,$18,
+  $19,$20,$21
 ) RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at
 `
 
@@ -99,7 +103,7 @@ type CreateAssetParams struct {
 	PoNumber          *string          `json:"po_number"`
 	FundingSource     *string          `json:"funding_source"`
 	WarrantyExpiry    pgtype.Date      `json:"warranty_expiry"`
-	Column16          []byte           `json:"column_16"`
+	Specifications    []byte           `json:"specifications"`
 	AssetClass        SharedAssetClass `json:"asset_class"`
 	Capitalized       bool             `json:"capitalized"`
 	AcquisitionBastNo *string          `json:"acquisition_bast_no"`
@@ -124,7 +128,7 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 		arg.PoNumber,
 		arg.FundingSource,
 		arg.WarrantyExpiry,
-		arg.Column16,
+		arg.Specifications,
 		arg.AssetClass,
 		arg.Capitalized,
 		arg.AcquisitionBastNo,
@@ -455,15 +459,16 @@ func (q *Queries) SetAssetValuationExclusion(ctx context.Context, arg SetAssetVa
 
 const updateAsset = `-- name: UpdateAsset :one
 UPDATE asset.assets SET
-  name = $2, category_id = $3, brand_id = $4, model_id = $5, room_id = $6,
-  unit_id = $7, serial_number = $8, purchase_date = $9, vendor_id = $10,
-  po_number = $11, funding_source = $12, warranty_expiry = $13,
-  specifications = COALESCE($14,'{}')::jsonb, notes = $15
-WHERE id = $1 AND deleted_at IS NULL RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at
+  name = $1, category_id = $2, brand_id = $3,
+  model_id = $4, room_id = $5, unit_id = $6,
+  serial_number = $7, purchase_date = $8,
+  vendor_id = $9, po_number = $10,
+  funding_source = $11, warranty_expiry = $12,
+  specifications = COALESCE($13,'{}')::jsonb, notes = $14
+WHERE id = $15 AND deleted_at IS NULL RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at
 `
 
 type UpdateAssetParams struct {
-	ID             uuid.UUID   `json:"id"`
 	Name           string      `json:"name"`
 	CategoryID     uuid.UUID   `json:"category_id"`
 	BrandID        *uuid.UUID  `json:"brand_id"`
@@ -476,13 +481,13 @@ type UpdateAssetParams struct {
 	PoNumber       *string     `json:"po_number"`
 	FundingSource  *string     `json:"funding_source"`
 	WarrantyExpiry pgtype.Date `json:"warranty_expiry"`
-	Column14       []byte      `json:"column_14"`
+	Specifications []byte      `json:"specifications"`
 	Notes          *string     `json:"notes"`
+	ID             uuid.UUID   `json:"id"`
 }
 
 func (q *Queries) UpdateAsset(ctx context.Context, arg UpdateAssetParams) (AssetAsset, error) {
 	row := q.db.QueryRow(ctx, updateAsset,
-		arg.ID,
 		arg.Name,
 		arg.CategoryID,
 		arg.BrandID,
@@ -495,8 +500,9 @@ func (q *Queries) UpdateAsset(ctx context.Context, arg UpdateAssetParams) (Asset
 		arg.PoNumber,
 		arg.FundingSource,
 		arg.WarrantyExpiry,
-		arg.Column14,
+		arg.Specifications,
 		arg.Notes,
+		arg.ID,
 	)
 	var i AssetAsset
 	err := row.Scan(

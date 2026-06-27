@@ -106,7 +106,11 @@ func (q *Queries) CountRequests(ctx context.Context, arg CountRequestsParams) (i
 const createRequest = `-- name: CreateRequest :one
 INSERT INTO approval.requests
   (type, office_id, amount, current_step, target_entity, target_id, payload, reason, requested_by_id)
-VALUES ($1,$2,$3,1,$4,$5,COALESCE($6,'{}')::jsonb,$7,$8) RETURNING id, type, office_id, amount, current_step, target_entity, target_id, payload, reason, status, requested_by_id, decided_by_id, decision_note, decided_at, created_at, updated_at, deleted_at
+VALUES (
+  $1,$2,$3,1,
+  $4,$5,COALESCE($6,'{}')::jsonb,
+  $7,$8
+) RETURNING id, type, office_id, amount, current_step, target_entity, target_id, payload, reason, status, requested_by_id, decided_by_id, decision_note, decided_at, created_at, updated_at, deleted_at
 `
 
 type CreateRequestParams struct {
@@ -115,7 +119,7 @@ type CreateRequestParams struct {
 	Amount        *string           `json:"amount"`
 	TargetEntity  *string           `json:"target_entity"`
 	TargetID      *uuid.UUID        `json:"target_id"`
-	Column6       []byte            `json:"column_6"`
+	Payload       []byte            `json:"payload"`
 	Reason        *string           `json:"reason"`
 	RequestedByID uuid.UUID         `json:"requested_by_id"`
 }
@@ -127,7 +131,7 @@ func (q *Queries) CreateRequest(ctx context.Context, arg CreateRequestParams) (A
 		arg.Amount,
 		arg.TargetEntity,
 		arg.TargetID,
-		arg.Column6,
+		arg.Payload,
 		arg.Reason,
 		arg.RequestedByID,
 	)
@@ -187,7 +191,10 @@ func (q *Queries) CreateRequestApproval(ctx context.Context, arg CreateRequestAp
 const createThreshold = `-- name: CreateThreshold :one
 INSERT INTO approval.approval_thresholds
   (request_type, amount_from, amount_to, required_level, step_order, is_active)
-VALUES ($1,$2,$3,$4,$5,COALESCE($6,true)) RETURNING id, request_type, amount_from, amount_to, required_level, step_order, is_active, created_at, updated_at, deleted_at
+VALUES (
+  $1,$2,$3,
+  $4,$5,COALESCE($6::boolean,true)
+) RETURNING id, request_type, amount_from, amount_to, required_level, step_order, is_active, created_at, updated_at, deleted_at
 `
 
 type CreateThresholdParams struct {
@@ -196,7 +203,7 @@ type CreateThresholdParams struct {
 	AmountTo      *string             `json:"amount_to"`
 	RequiredLevel SharedApproverLevel `json:"required_level"`
 	StepOrder     int32               `json:"step_order"`
-	Column6       interface{}         `json:"column_6"`
+	IsActive      bool                `json:"is_active"`
 }
 
 func (q *Queries) CreateThreshold(ctx context.Context, arg CreateThresholdParams) (ApprovalApprovalThreshold, error) {
@@ -206,7 +213,7 @@ func (q *Queries) CreateThreshold(ctx context.Context, arg CreateThresholdParams
 		arg.AmountTo,
 		arg.RequiredLevel,
 		arg.StepOrder,
-		arg.Column6,
+		arg.IsActive,
 	)
 	var i ApprovalApprovalThreshold
 	err := row.Scan(

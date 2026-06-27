@@ -37,17 +37,23 @@ INSERT INTO asset.assets (
   funding_source, warranty_expiry, specifications, asset_class, capitalized,
   acquisition_bast_no, created_by_id, notes
 ) VALUES (
-  $1,$2,$3,$4,$5,$6,$7,$8,'available',$9,$10,$11,$12,$13,$14,$15,
-  COALESCE($16,'{}')::jsonb,$17,$18,$19,$20,$21
+  sqlc.arg(asset_tag),sqlc.arg(name),sqlc.arg(category_id),sqlc.arg(brand_id),
+  sqlc.arg(model_id),sqlc.arg(room_id),sqlc.arg(office_id),sqlc.arg(unit_id),
+  'available',sqlc.arg(serial_number),sqlc.arg(purchase_date),sqlc.arg(purchase_cost),
+  sqlc.arg(vendor_id),sqlc.arg(po_number),sqlc.arg(funding_source),sqlc.arg(warranty_expiry),
+  COALESCE(sqlc.arg(specifications),'{}')::jsonb,sqlc.arg(asset_class),sqlc.arg(capitalized),
+  sqlc.arg(acquisition_bast_no),sqlc.arg(created_by_id),sqlc.arg(notes)
 ) RETURNING *;
 
 -- name: UpdateAsset :one
 UPDATE asset.assets SET
-  name = $2, category_id = $3, brand_id = $4, model_id = $5, room_id = $6,
-  unit_id = $7, serial_number = $8, purchase_date = $9, vendor_id = $10,
-  po_number = $11, funding_source = $12, warranty_expiry = $13,
-  specifications = COALESCE($14,'{}')::jsonb, notes = $15
-WHERE id = $1 AND deleted_at IS NULL RETURNING *;
+  name = sqlc.arg(name), category_id = sqlc.arg(category_id), brand_id = sqlc.arg(brand_id),
+  model_id = sqlc.arg(model_id), room_id = sqlc.arg(room_id), unit_id = sqlc.arg(unit_id),
+  serial_number = sqlc.arg(serial_number), purchase_date = sqlc.arg(purchase_date),
+  vendor_id = sqlc.arg(vendor_id), po_number = sqlc.arg(po_number),
+  funding_source = sqlc.arg(funding_source), warranty_expiry = sqlc.arg(warranty_expiry),
+  specifications = COALESCE(sqlc.arg(specifications),'{}')::jsonb, notes = sqlc.arg(notes)
+WHERE id = sqlc.arg(id) AND deleted_at IS NULL RETURNING *;
 
 -- name: SetAssetStatus :one
 UPDATE asset.assets SET status = $2 WHERE id = $1 AND deleted_at IS NULL RETURNING *;

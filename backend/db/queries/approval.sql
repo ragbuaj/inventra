@@ -15,7 +15,10 @@ ORDER BY request_type, amount_from, step_order;
 -- name: CreateThreshold :one
 INSERT INTO approval.approval_thresholds
   (request_type, amount_from, amount_to, required_level, step_order, is_active)
-VALUES ($1,$2,$3,$4,$5,COALESCE($6,true)) RETURNING *;
+VALUES (
+  sqlc.arg(request_type),sqlc.arg(amount_from),sqlc.arg(amount_to),
+  sqlc.arg(required_level),sqlc.arg(step_order),COALESCE(sqlc.arg(is_active)::boolean,true)
+) RETURNING *;
 
 -- name: UpdateThreshold :one
 UPDATE approval.approval_thresholds SET
@@ -28,7 +31,11 @@ UPDATE approval.approval_thresholds SET deleted_at=now() WHERE id=$1 AND deleted
 -- name: CreateRequest :one
 INSERT INTO approval.requests
   (type, office_id, amount, current_step, target_entity, target_id, payload, reason, requested_by_id)
-VALUES ($1,$2,$3,1,$4,$5,COALESCE($6,'{}')::jsonb,$7,$8) RETURNING *;
+VALUES (
+  sqlc.arg(type),sqlc.arg(office_id),sqlc.arg(amount),1,
+  sqlc.arg(target_entity),sqlc.arg(target_id),COALESCE(sqlc.arg(payload),'{}')::jsonb,
+  sqlc.arg(reason),sqlc.arg(requested_by_id)
+) RETURNING *;
 
 -- name: GetRequest :one
 SELECT * FROM approval.requests WHERE id=$1 AND deleted_at IS NULL;
