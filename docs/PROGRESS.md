@@ -194,7 +194,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 - [ ] Live light/dark visual pass for auth-gated screens (pending a stable backend to log in)
 
 ### Quality
-- [ ] Broaden backend test coverage (services, handlers, integration)
+- [x] Backend testing stack (ADR-0001): testify + testcontainers-go; `internal/testsupport` (Postgres/Redis containers, migration apply, reset, seed) + office data-scope integration suite on real Postgres + `backend-integration` CI job (`-tags=integration`). Broader service/handler coverage continues per phase.
 - [ ] Optional seed data (provinces/cities, office types, etc.)
 
 ---
