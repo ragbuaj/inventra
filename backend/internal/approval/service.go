@@ -1,11 +1,18 @@
 package approval
 
 import (
+	"context"
 	"errors"
 	"sort"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
+
 	sqlc "github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
 )
 
@@ -17,7 +24,110 @@ var (
 	ErrInvalidState = errors.New("approval: request is not in a state that allows this action")
 	ErrNotFound     = errors.New("approval: record not found")
 	ErrForbidden    = errors.New("approval: caller lacks permission")
+	ErrConflict     = errors.New("approval: duplicate record")
+	ErrInvalidRef   = errors.New("approval: invalid reference")
 )
+
+// mapDBError translates pgx/Postgres errors into package sentinel errors.
+func mapDBError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		switch pgErr.Code {
+		case "23505":
+			return ErrConflict
+		case "23503":
+			return ErrInvalidRef
+		}
+	}
+	return err
+}
+
+// Service holds the data-access and business-logic layer for the approval module.
+type Service struct {
+	q     *sqlc.Queries
+	pool  *pgxpool.Pool
+	scope *authz.ScopeService
+	rdb   *redis.Client
+	exec  registry
+}
+
+func NewService(q *sqlc.Queries, pool *pgxpool.Pool, scope *authz.ScopeService, rdb *redis.Client) *Service {
+	return &Service{q: q, pool: pool, scope: scope, rdb: rdb, exec: registry{}}
+}
+
+// RegisterExecutor registers a side-effect executor for the given request type.
+func (s *Service) RegisterExecutor(t sqlc.SharedRequestType, e Executor) { s.exec[t] = e }
+
+// SubmitInput carries the data needed to open a new approval request.
+type SubmitInput struct {
+	Type         sqlc.SharedRequestType
+	Amount       string
+	OfficeID     uuid.UUID
+	TargetEntity *string
+	TargetID     *uuid.UUID
+	Payload      []byte
+	Reason       *string
+	Maker        uuid.UUID
+}
+
+// Submit resolves the approval chain for the given amount, creates the request
+// and its per-step approval rows atomically inside a transaction.
+func (s *Service) Submit(ctx context.Context, in SubmitInput) (sqlc.ApprovalRequest, error) {
+	steps, err := s.q.MatchThresholdSteps(ctx, sqlc.MatchThresholdStepsParams{
+		RequestType: in.Type,
+		Amount:      in.Amount,
+	})
+	if err != nil {
+		return sqlc.ApprovalRequest{}, mapDBError(err)
+	}
+	chain := buildChain(steps)
+	if len(chain) == 0 {
+		return sqlc.ApprovalRequest{}, ErrNoThreshold
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return sqlc.ApprovalRequest{}, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	qtx := s.q.WithTx(tx)
+
+	req, err := qtx.CreateRequest(ctx, sqlc.CreateRequestParams{
+		Type:          in.Type,
+		OfficeID:      &in.OfficeID,
+		Amount:        &in.Amount,
+		TargetEntity:  in.TargetEntity,
+		TargetID:      in.TargetID,
+		Payload:       in.Payload,
+		Reason:        in.Reason,
+		RequestedByID: in.Maker,
+	})
+	if err != nil {
+		return sqlc.ApprovalRequest{}, mapDBError(err)
+	}
+
+	for _, st := range chain {
+		if _, err := qtx.CreateRequestApproval(ctx, sqlc.CreateRequestApprovalParams{
+			RequestID:     req.ID,
+			StepOrder:     st.Order,
+			RequiredLevel: st.Level,
+		}); err != nil {
+			return sqlc.ApprovalRequest{}, mapDBError(err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return sqlc.ApprovalRequest{}, err
+	}
+	return req, nil
+}
 
 // Caller carries the resolved identity and scope of the acting user.
 type Caller struct {
