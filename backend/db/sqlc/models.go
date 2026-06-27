@@ -12,13 +12,147 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type SharedApproverLevel string
+
+const (
+	SharedApproverLevelOffice        SharedApproverLevel = "office"
+	SharedApproverLevelOfficeSubtree SharedApproverLevel = "office_subtree"
+	SharedApproverLevelWilayah       SharedApproverLevel = "wilayah"
+	SharedApproverLevelPusat         SharedApproverLevel = "pusat"
+)
+
+func (e *SharedApproverLevel) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedApproverLevel(s)
+	case string:
+		*e = SharedApproverLevel(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedApproverLevel: %T", src)
+	}
+	return nil
+}
+
+type NullSharedApproverLevel struct {
+	SharedApproverLevel SharedApproverLevel `json:"shared_approver_level"`
+	Valid               bool                `json:"valid"` // Valid is true if SharedApproverLevel is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedApproverLevel) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedApproverLevel, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedApproverLevel.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedApproverLevel) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedApproverLevel), nil
+}
+
+type SharedAssetClass string
+
+const (
+	SharedAssetClassTangible   SharedAssetClass = "tangible"
+	SharedAssetClassIntangible SharedAssetClass = "intangible"
+)
+
+func (e *SharedAssetClass) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedAssetClass(s)
+	case string:
+		*e = SharedAssetClass(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedAssetClass: %T", src)
+	}
+	return nil
+}
+
+type NullSharedAssetClass struct {
+	SharedAssetClass SharedAssetClass `json:"shared_asset_class"`
+	Valid            bool             `json:"valid"` // Valid is true if SharedAssetClass is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedAssetClass) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedAssetClass, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedAssetClass.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedAssetClass) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedAssetClass), nil
+}
+
+type SharedAssetDocumentType string
+
+const (
+	SharedAssetDocumentTypeBastAcquisition SharedAssetDocumentType = "bast_acquisition"
+	SharedAssetDocumentTypeBastTransfer    SharedAssetDocumentType = "bast_transfer"
+	SharedAssetDocumentTypeBastDisposal    SharedAssetDocumentType = "bast_disposal"
+	SharedAssetDocumentTypeInvoice         SharedAssetDocumentType = "invoice"
+	SharedAssetDocumentTypeContract        SharedAssetDocumentType = "contract"
+	SharedAssetDocumentTypeOther           SharedAssetDocumentType = "other"
+)
+
+func (e *SharedAssetDocumentType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedAssetDocumentType(s)
+	case string:
+		*e = SharedAssetDocumentType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedAssetDocumentType: %T", src)
+	}
+	return nil
+}
+
+type NullSharedAssetDocumentType struct {
+	SharedAssetDocumentType SharedAssetDocumentType `json:"shared_asset_document_type"`
+	Valid                   bool                    `json:"valid"` // Valid is true if SharedAssetDocumentType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedAssetDocumentType) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedAssetDocumentType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedAssetDocumentType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedAssetDocumentType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedAssetDocumentType), nil
+}
+
 type SharedAssetStatus string
 
 const (
 	SharedAssetStatusAvailable        SharedAssetStatus = "available"
 	SharedAssetStatusAssigned         SharedAssetStatus = "assigned"
 	SharedAssetStatusUnderMaintenance SharedAssetStatus = "under_maintenance"
+	SharedAssetStatusInTransfer       SharedAssetStatus = "in_transfer"
 	SharedAssetStatusRetired          SharedAssetStatus = "retired"
+	SharedAssetStatusDisposed         SharedAssetStatus = "disposed"
 	SharedAssetStatusLost             SharedAssetStatus = "lost"
 )
 
@@ -184,6 +318,48 @@ func (ns NullSharedAuditAction) Value() (driver.Value, error) {
 	return string(ns.SharedAuditAction), nil
 }
 
+type SharedDepreciationBasis string
+
+const (
+	SharedDepreciationBasisCommercial SharedDepreciationBasis = "commercial"
+	SharedDepreciationBasisFiscal     SharedDepreciationBasis = "fiscal"
+)
+
+func (e *SharedDepreciationBasis) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedDepreciationBasis(s)
+	case string:
+		*e = SharedDepreciationBasis(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedDepreciationBasis: %T", src)
+	}
+	return nil
+}
+
+type NullSharedDepreciationBasis struct {
+	SharedDepreciationBasis SharedDepreciationBasis `json:"shared_depreciation_basis"`
+	Valid                   bool                    `json:"valid"` // Valid is true if SharedDepreciationBasis is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedDepreciationBasis) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedDepreciationBasis, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedDepreciationBasis.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedDepreciationBasis) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedDepreciationBasis), nil
+}
+
 type SharedDepreciationMethod string
 
 const (
@@ -224,6 +400,97 @@ func (ns NullSharedDepreciationMethod) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.SharedDepreciationMethod), nil
+}
+
+type SharedDisposalMethod string
+
+const (
+	SharedDisposalMethodSale     SharedDisposalMethod = "sale"
+	SharedDisposalMethodAuction  SharedDisposalMethod = "auction"
+	SharedDisposalMethodDonation SharedDisposalMethod = "donation"
+	SharedDisposalMethodWriteOff SharedDisposalMethod = "write_off"
+)
+
+func (e *SharedDisposalMethod) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedDisposalMethod(s)
+	case string:
+		*e = SharedDisposalMethod(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedDisposalMethod: %T", src)
+	}
+	return nil
+}
+
+type NullSharedDisposalMethod struct {
+	SharedDisposalMethod SharedDisposalMethod `json:"shared_disposal_method"`
+	Valid                bool                 `json:"valid"` // Valid is true if SharedDisposalMethod is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedDisposalMethod) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedDisposalMethod, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedDisposalMethod.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedDisposalMethod) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedDisposalMethod), nil
+}
+
+type SharedFiscalAssetGroup string
+
+const (
+	SharedFiscalAssetGroupKelompok1           SharedFiscalAssetGroup = "kelompok_1"
+	SharedFiscalAssetGroupKelompok2           SharedFiscalAssetGroup = "kelompok_2"
+	SharedFiscalAssetGroupKelompok3           SharedFiscalAssetGroup = "kelompok_3"
+	SharedFiscalAssetGroupKelompok4           SharedFiscalAssetGroup = "kelompok_4"
+	SharedFiscalAssetGroupBangunanPermanen    SharedFiscalAssetGroup = "bangunan_permanen"
+	SharedFiscalAssetGroupBangunanNonPermanen SharedFiscalAssetGroup = "bangunan_non_permanen"
+	SharedFiscalAssetGroupNonSusut            SharedFiscalAssetGroup = "non_susut"
+)
+
+func (e *SharedFiscalAssetGroup) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedFiscalAssetGroup(s)
+	case string:
+		*e = SharedFiscalAssetGroup(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedFiscalAssetGroup: %T", src)
+	}
+	return nil
+}
+
+type NullSharedFiscalAssetGroup struct {
+	SharedFiscalAssetGroup SharedFiscalAssetGroup `json:"shared_fiscal_asset_group"`
+	Valid                  bool                   `json:"valid"` // Valid is true if SharedFiscalAssetGroup is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedFiscalAssetGroup) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedFiscalAssetGroup, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedFiscalAssetGroup.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedFiscalAssetGroup) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedFiscalAssetGroup), nil
 }
 
 type SharedImportStatus string
@@ -356,6 +623,95 @@ func (ns NullSharedMaintenanceType) Value() (driver.Value, error) {
 	return string(ns.SharedMaintenanceType), nil
 }
 
+type SharedOpnameItemResult string
+
+const (
+	SharedOpnameItemResultPending   SharedOpnameItemResult = "pending"
+	SharedOpnameItemResultFound     SharedOpnameItemResult = "found"
+	SharedOpnameItemResultNotFound  SharedOpnameItemResult = "not_found"
+	SharedOpnameItemResultDamaged   SharedOpnameItemResult = "damaged"
+	SharedOpnameItemResultMisplaced SharedOpnameItemResult = "misplaced"
+)
+
+func (e *SharedOpnameItemResult) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedOpnameItemResult(s)
+	case string:
+		*e = SharedOpnameItemResult(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedOpnameItemResult: %T", src)
+	}
+	return nil
+}
+
+type NullSharedOpnameItemResult struct {
+	SharedOpnameItemResult SharedOpnameItemResult `json:"shared_opname_item_result"`
+	Valid                  bool                   `json:"valid"` // Valid is true if SharedOpnameItemResult is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedOpnameItemResult) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedOpnameItemResult, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedOpnameItemResult.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedOpnameItemResult) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedOpnameItemResult), nil
+}
+
+type SharedOpnameSessionStatus string
+
+const (
+	SharedOpnameSessionStatusOpen        SharedOpnameSessionStatus = "open"
+	SharedOpnameSessionStatusCounting    SharedOpnameSessionStatus = "counting"
+	SharedOpnameSessionStatusReconciling SharedOpnameSessionStatus = "reconciling"
+	SharedOpnameSessionStatusClosed      SharedOpnameSessionStatus = "closed"
+)
+
+func (e *SharedOpnameSessionStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedOpnameSessionStatus(s)
+	case string:
+		*e = SharedOpnameSessionStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedOpnameSessionStatus: %T", src)
+	}
+	return nil
+}
+
+type NullSharedOpnameSessionStatus struct {
+	SharedOpnameSessionStatus SharedOpnameSessionStatus `json:"shared_opname_session_status"`
+	Valid                     bool                      `json:"valid"` // Valid is true if SharedOpnameSessionStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedOpnameSessionStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedOpnameSessionStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedOpnameSessionStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedOpnameSessionStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedOpnameSessionStatus), nil
+}
+
 type SharedRequestStatus string
 
 const (
@@ -404,7 +760,8 @@ type SharedRequestType string
 
 const (
 	SharedRequestTypeAssetCreate        SharedRequestType = "asset_create"
-	SharedRequestTypeAssetDelete        SharedRequestType = "asset_delete"
+	SharedRequestTypeAssetDisposal      SharedRequestType = "asset_disposal"
+	SharedRequestTypeAssetTransfer      SharedRequestType = "asset_transfer"
 	SharedRequestTypeAssignment         SharedRequestType = "assignment"
 	SharedRequestTypeMaintenance        SharedRequestType = "maintenance"
 	SharedRequestTypeValuationExclusion SharedRequestType = "valuation_exclusion"
@@ -489,6 +846,52 @@ func (ns NullSharedScopeLevel) Value() (driver.Value, error) {
 	return string(ns.SharedScopeLevel), nil
 }
 
+type SharedTransferStatus string
+
+const (
+	SharedTransferStatusPending   SharedTransferStatus = "pending"
+	SharedTransferStatusApproved  SharedTransferStatus = "approved"
+	SharedTransferStatusInTransit SharedTransferStatus = "in_transit"
+	SharedTransferStatusReceived  SharedTransferStatus = "received"
+	SharedTransferStatusRejected  SharedTransferStatus = "rejected"
+	SharedTransferStatusCancelled SharedTransferStatus = "cancelled"
+)
+
+func (e *SharedTransferStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedTransferStatus(s)
+	case string:
+		*e = SharedTransferStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedTransferStatus: %T", src)
+	}
+	return nil
+}
+
+type NullSharedTransferStatus struct {
+	SharedTransferStatus SharedTransferStatus `json:"shared_transfer_status"`
+	Valid                bool                 `json:"valid"` // Valid is true if SharedTransferStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedTransferStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedTransferStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedTransferStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedTransferStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedTransferStatus), nil
+}
+
 type SharedUserStatus string
 
 const (
@@ -532,10 +935,25 @@ func (ns NullSharedUserStatus) Value() (driver.Value, error) {
 	return string(ns.SharedUserStatus), nil
 }
 
+type ApprovalApprovalThreshold struct {
+	ID            uuid.UUID           `json:"id"`
+	RequestType   SharedRequestType   `json:"request_type"`
+	AmountFrom    string              `json:"amount_from"`
+	AmountTo      *string             `json:"amount_to"`
+	RequiredLevel SharedApproverLevel `json:"required_level"`
+	StepOrder     int32               `json:"step_order"`
+	IsActive      bool                `json:"is_active"`
+	CreatedAt     pgtype.Timestamptz  `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz  `json:"updated_at"`
+	DeletedAt     pgtype.Timestamptz  `json:"deleted_at"`
+}
+
 type ApprovalRequest struct {
 	ID            uuid.UUID           `json:"id"`
 	Type          SharedRequestType   `json:"type"`
 	OfficeID      *uuid.UUID          `json:"office_id"`
+	Amount        *string             `json:"amount"`
+	CurrentStep   int32               `json:"current_step"`
 	TargetEntity  *string             `json:"target_entity"`
 	TargetID      *uuid.UUID          `json:"target_id"`
 	Payload       []byte              `json:"payload"`
@@ -550,6 +968,20 @@ type ApprovalRequest struct {
 	DeletedAt     pgtype.Timestamptz  `json:"deleted_at"`
 }
 
+type ApprovalRequestApproval struct {
+	ID            uuid.UUID           `json:"id"`
+	RequestID     uuid.UUID           `json:"request_id"`
+	StepOrder     int32               `json:"step_order"`
+	RequiredLevel SharedApproverLevel `json:"required_level"`
+	ApproverID    *uuid.UUID          `json:"approver_id"`
+	Decision      SharedRequestStatus `json:"decision"`
+	Note          *string             `json:"note"`
+	DecidedAt     pgtype.Timestamptz  `json:"decided_at"`
+	CreatedAt     pgtype.Timestamptz  `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz  `json:"updated_at"`
+	DeletedAt     pgtype.Timestamptz  `json:"deleted_at"`
+}
+
 type AssetAsset struct {
 	ID                       uuid.UUID                 `json:"id"`
 	AssetTag                 string                    `json:"asset_tag"`
@@ -557,7 +989,7 @@ type AssetAsset struct {
 	CategoryID               uuid.UUID                 `json:"category_id"`
 	BrandID                  *uuid.UUID                `json:"brand_id"`
 	ModelID                  *uuid.UUID                `json:"model_id"`
-	RoomID                   uuid.UUID                 `json:"room_id"`
+	RoomID                   *uuid.UUID                `json:"room_id"`
 	OfficeID                 uuid.UUID                 `json:"office_id"`
 	UnitID                   *uuid.UUID                `json:"unit_id"`
 	Status                   SharedAssetStatus         `json:"status"`
@@ -565,11 +997,21 @@ type AssetAsset struct {
 	PurchaseDate             pgtype.Date               `json:"purchase_date"`
 	PurchaseCost             *string                   `json:"purchase_cost"`
 	VendorID                 *uuid.UUID                `json:"vendor_id"`
+	PoNumber                 *string                   `json:"po_number"`
+	FundingSource            *string                   `json:"funding_source"`
 	WarrantyExpiry           pgtype.Date               `json:"warranty_expiry"`
 	Specifications           []byte                    `json:"specifications"`
+	AssetClass               SharedAssetClass          `json:"asset_class"`
+	Capitalized              bool                      `json:"capitalized"`
 	DepreciationMethod       *SharedDepreciationMethod `json:"depreciation_method"`
 	UsefulLifeMonths         *int32                    `json:"useful_life_months"`
 	SalvageValue             *string                   `json:"salvage_value"`
+	FiscalGroup              *SharedFiscalAssetGroup   `json:"fiscal_group"`
+	FiscalLifeMonths         *int32                    `json:"fiscal_life_months"`
+	AccumulatedDepreciation  string                    `json:"accumulated_depreciation"`
+	BookValue                *string                   `json:"book_value"`
+	ImpairmentLoss           *string                   `json:"impairment_loss"`
+	AcquisitionBastNo        *string                   `json:"acquisition_bast_no"`
 	CurrentHolderEmployeeID  *uuid.UUID                `json:"current_holder_employee_id"`
 	ExcludedFromValuation    bool                      `json:"excluded_from_valuation"`
 	ValuationExclusionReason *string                   `json:"valuation_exclusion_reason"`
@@ -593,6 +1035,23 @@ type AssetAssetAttachment struct {
 	CreatedAt        pgtype.Timestamptz   `json:"created_at"`
 	UpdatedAt        pgtype.Timestamptz   `json:"updated_at"`
 	DeletedAt        pgtype.Timestamptz   `json:"deleted_at"`
+}
+
+type AssetAssetDocument struct {
+	ID                uuid.UUID               `json:"id"`
+	AssetID           uuid.UUID               `json:"asset_id"`
+	DocType           SharedAssetDocumentType `json:"doc_type"`
+	DocNo             *string                 `json:"doc_no"`
+	DocDate           pgtype.Date             `json:"doc_date"`
+	Counterparty      *string                 `json:"counterparty"`
+	ObjectKey         *string                 `json:"object_key"`
+	RelatedRequestID  *uuid.UUID              `json:"related_request_id"`
+	RelatedTransferID *uuid.UUID              `json:"related_transfer_id"`
+	RelatedDisposalID *uuid.UUID              `json:"related_disposal_id"`
+	CreatedByID       *uuid.UUID              `json:"created_by_id"`
+	CreatedAt         pgtype.Timestamptz      `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz      `json:"updated_at"`
+	DeletedAt         pgtype.Timestamptz      `json:"deleted_at"`
 }
 
 type AssetAssetTagCounter struct {
@@ -637,6 +1096,7 @@ type AuditAuditLog struct {
 type DepreciationDepreciationEntry struct {
 	ID                 uuid.UUID                `json:"id"`
 	AssetID            uuid.UUID                `json:"asset_id"`
+	Basis              SharedDepreciationBasis  `json:"basis"`
 	Period             pgtype.Date              `json:"period"`
 	OpeningValue       string                   `json:"opening_value"`
 	DepreciationAmount string                   `json:"depreciation_amount"`
@@ -645,6 +1105,34 @@ type DepreciationDepreciationEntry struct {
 	CreatedAt          pgtype.Timestamptz       `json:"created_at"`
 	UpdatedAt          pgtype.Timestamptz       `json:"updated_at"`
 	DeletedAt          pgtype.Timestamptz       `json:"deleted_at"`
+}
+
+type DisposalDisposal struct {
+	ID                  uuid.UUID            `json:"id"`
+	AssetID             uuid.UUID            `json:"asset_id"`
+	Method              SharedDisposalMethod `json:"method"`
+	DisposalDate        pgtype.Date          `json:"disposal_date"`
+	Proceeds            *string              `json:"proceeds"`
+	BookValueAtDisposal *string              `json:"book_value_at_disposal"`
+	GainLoss            *string              `json:"gain_loss"`
+	BastNo              *string              `json:"bast_no"`
+	ApprovedByID        *uuid.UUID           `json:"approved_by_id"`
+	RequestID           *uuid.UUID           `json:"request_id"`
+	CreatedByID         *uuid.UUID           `json:"created_by_id"`
+	CreatedAt           pgtype.Timestamptz   `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz   `json:"updated_at"`
+	DeletedAt           pgtype.Timestamptz   `json:"deleted_at"`
+}
+
+type IdentityAppSetting struct {
+	ID          uuid.UUID          `json:"id"`
+	Key         string             `json:"key"`
+	Value       string             `json:"value"`
+	ValueType   *string            `json:"value_type"`
+	Description *string            `json:"description"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
 }
 
 type IdentityDataScopePolicy struct {
@@ -772,6 +1260,11 @@ type MasterdataCategory struct {
 	DefaultDepreciationMethod *SharedDepreciationMethod `json:"default_depreciation_method"`
 	DefaultUsefulLifeMonths   *int32                    `json:"default_useful_life_months"`
 	DefaultSalvageRate        *string                   `json:"default_salvage_rate"`
+	AssetClass                SharedAssetClass          `json:"asset_class"`
+	DefaultFiscalGroup        *SharedFiscalAssetGroup   `json:"default_fiscal_group"`
+	DefaultFiscalLifeMonths   *int32                    `json:"default_fiscal_life_months"`
+	GlAccountCode             *string                   `json:"gl_account_code"`
+	CapitalizationThreshold   *string                   `json:"capitalization_threshold"`
 	IsActive                  bool                      `json:"is_active"`
 	CreatedAt                 pgtype.Timestamptz        `json:"created_at"`
 	UpdatedAt                 pgtype.Timestamptz        `json:"updated_at"`
@@ -843,18 +1336,19 @@ type MasterdataModel struct {
 }
 
 type MasterdataOffice struct {
-	ID           uuid.UUID          `json:"id"`
-	ParentID     *uuid.UUID         `json:"parent_id"`
-	OfficeTypeID uuid.UUID          `json:"office_type_id"`
-	ProvinceID   *uuid.UUID         `json:"province_id"`
-	CityID       *uuid.UUID         `json:"city_id"`
-	Name         string             `json:"name"`
-	Code         string             `json:"code"`
-	Address      *string            `json:"address"`
-	IsActive     bool               `json:"is_active"`
-	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt    pgtype.Timestamptz `json:"deleted_at"`
+	ID             uuid.UUID          `json:"id"`
+	ParentID       *uuid.UUID         `json:"parent_id"`
+	OfficeTypeID   uuid.UUID          `json:"office_type_id"`
+	ProvinceID     *uuid.UUID         `json:"province_id"`
+	CityID         *uuid.UUID         `json:"city_id"`
+	Name           string             `json:"name"`
+	Code           string             `json:"code"`
+	CostCenterCode *string            `json:"cost_center_code"`
+	Address        *string            `json:"address"`
+	IsActive       bool               `json:"is_active"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt      pgtype.Timestamptz `json:"deleted_at"`
 }
 
 type MasterdataOfficeType struct {
@@ -924,4 +1418,54 @@ type MasterdataVendor struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type StockopnameStockOpnameItem struct {
+	ID          uuid.UUID              `json:"id"`
+	SessionID   uuid.UUID              `json:"session_id"`
+	AssetID     uuid.UUID              `json:"asset_id"`
+	Expected    bool                   `json:"expected"`
+	Result      SharedOpnameItemResult `json:"result"`
+	CountedByID *uuid.UUID             `json:"counted_by_id"`
+	CountedAt   pgtype.Timestamptz     `json:"counted_at"`
+	Note        *string                `json:"note"`
+	CreatedAt   pgtype.Timestamptz     `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz     `json:"updated_at"`
+	DeletedAt   pgtype.Timestamptz     `json:"deleted_at"`
+}
+
+type StockopnameStockOpnameSession struct {
+	ID          uuid.UUID                 `json:"id"`
+	OfficeID    uuid.UUID                 `json:"office_id"`
+	Name        *string                   `json:"name"`
+	Period      pgtype.Date               `json:"period"`
+	Status      SharedOpnameSessionStatus `json:"status"`
+	StartedByID uuid.UUID                 `json:"started_by_id"`
+	StartedAt   pgtype.Timestamptz        `json:"started_at"`
+	ClosedByID  *uuid.UUID                `json:"closed_by_id"`
+	ClosedAt    pgtype.Timestamptz        `json:"closed_at"`
+	CreatedAt   pgtype.Timestamptz        `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz        `json:"updated_at"`
+	DeletedAt   pgtype.Timestamptz        `json:"deleted_at"`
+}
+
+type TransferAssetTransfer struct {
+	ID            uuid.UUID            `json:"id"`
+	AssetID       uuid.UUID            `json:"asset_id"`
+	FromOfficeID  uuid.UUID            `json:"from_office_id"`
+	ToOfficeID    uuid.UUID            `json:"to_office_id"`
+	ToRoomID      *uuid.UUID           `json:"to_room_id"`
+	Status        SharedTransferStatus `json:"status"`
+	Reason        *string              `json:"reason"`
+	RequestedByID uuid.UUID            `json:"requested_by_id"`
+	ApprovedByID  *uuid.UUID           `json:"approved_by_id"`
+	ShippedDate   pgtype.Date          `json:"shipped_date"`
+	ReceivedDate  pgtype.Date          `json:"received_date"`
+	ReceivedByID  *uuid.UUID           `json:"received_by_id"`
+	BastNo        *string              `json:"bast_no"`
+	RequestID     *uuid.UUID           `json:"request_id"`
+	Notes         *string              `json:"notes"`
+	CreatedAt     pgtype.Timestamptz   `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz   `json:"updated_at"`
+	DeletedAt     pgtype.Timestamptz   `json:"deleted_at"`
 }

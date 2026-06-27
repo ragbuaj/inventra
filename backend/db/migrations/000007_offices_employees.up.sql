@@ -9,6 +9,7 @@ CREATE TABLE masterdata.offices (
   city_id        uuid REFERENCES masterdata.cities (id),
   name           text NOT NULL,
   code           text NOT NULL,
+  cost_center_code text,
   address        text,
   is_active      boolean NOT NULL DEFAULT true,
   created_at     timestamptz NOT NULL DEFAULT now(),

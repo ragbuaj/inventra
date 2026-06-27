@@ -1,12 +1,15 @@
-# Inventra — Asset Management System
+# Inventra — Bank Fixed Asset Management System
 
-Web application for managing an organization's **physical assets / inventory**: catalog,
-check-out/check-in, maintenance, depreciation, reporting, and approvals — with
-configurable role-based authorization across a hierarchical office structure
-(Pusat → Wilayah → Cabang → Outlet).
+Web application for managing a **bank's fixed assets & inventory** (manajemen aset tetap; reference
+context: Bank BTN): asset lifecycle from acquisition, check-out/check-in, inter-office transfers
+(mutasi), maintenance, physical stock-take (stock opname), dual-basis depreciation (commercial +
+fiscal), disposal, reporting, and value-tiered approvals — with configurable role-based authorization
+across a 4-level office hierarchy (Pusat → Wilayah → Cabang/Unit → Outlet). This is **fixed/physical
+asset** management, **not** investment/wealth asset management.
 
 Full requirements: [docs/PRD.md](docs/PRD.md) · database design: [docs/DATABASE.md](docs/DATABASE.md) ·
-live progress tracker: [docs/PROGRESS.md](docs/PROGRESS.md).
+entity-relationship diagrams: [docs/ERD.md](docs/ERD.md) · architecture decisions:
+[docs/adr/](docs/adr/) · live progress tracker: [docs/PROGRESS.md](docs/PROGRESS.md).
 
 > Status: **in active development**, built in phases per the PRD roadmap (§10).
 >
@@ -18,7 +21,14 @@ live progress tracker: [docs/PROGRESS.md](docs/PROGRESS.md).
 >   built to match the `docs/design` mockups. Feature screens are **mock-first** — backed by typed
 >   `composables/api/` services that swap to the real API as each backend module lands.
 > - **Remaining:** asset core, attachments, barcode, approval, assignment, maintenance,
->   depreciation, reporting, and import — see [docs/PROGRESS.md](docs/PROGRESS.md).
+>   depreciation, reporting, and import — plus the **PRD v1.1 bank-FAM** additions (mutasi,
+>   stock opname, BAST, dual-basis depreciation, disposal, value-tiered approval, intangible) —
+>   see [docs/PROGRESS.md](docs/PROGRESS.md).
+>
+> Design docs were updated to **PRD v1.1** (bank fixed-asset scope) with sourced regulatory citations
+> (PSAK 16/19/48, PMK 72/2023, POJK 17/2023 & 18/POJK.03/2016) in [docs/PRD.md](docs/PRD.md) Lampiran A.
+> The core schema (migrations `000001`–`000014`) is implemented; v1.1 schema additions are planned as
+> migrations `000015`–`000021` (not yet written).
 
 ## Tech Stack
 
@@ -62,23 +72,22 @@ asset-management/
 │       ├── mock/           # In-memory fixtures behind the api/ services
 │       ├── middleware/ · stores/ · utils/
 │       └── ../i18n/locales/{id,en}.json · ../test/ (Vitest) · ../e2e/ (Playwright)
-├── docs/                   # PRD.md · DATABASE.md · PROGRESS.md · DESIGN_BRIEF.md · design/ mockups
-├── docker-compose.yml      # Full stack (infra + migrate + backend + frontend)
-├── docker-compose.dev.yml  # Infra only (Postgres + Redis + MinIO)
-├── docker-compose.watch.yml # Live-reload overlay (Go via Air, Nuxt via Vite HMR)
+├── docs/                   # PRD.md · DATABASE.md · ERD.md · PROGRESS.md · DESIGN_BRIEF.md · adr/ · design/ mockups
+├── docker-compose.yml      # Production-like full stack (compiled images; CI e2e)
+├── docker-compose.dev.yml  # Dev: infra by default · full stack + live reload via `--profile app watch`
 └── .github/workflows/ci.yml # CI: backend build/vet/test · frontend lint/typecheck/test/build · Spectral · e2e
 
 ```
 
 ## Docker Compose configurations
 
-Three compose files cover the different workflows — combine them with `-f` as needed:
+Two self-contained compose files cover the workflows (no `-f a -f b` overlay):
 
 | File | Purpose | Command |
 |---|---|---|
-| `docker-compose.yml` | Full stack: infra + migrate + backend + frontend | `docker compose up --build` |
+| `docker-compose.yml` | Production-like full stack (compiled images) — used by CI e2e | `docker compose up --build` |
 | `docker-compose.dev.yml` | Infra only (Postgres · Redis · MinIO) — run app on host | `docker compose -f docker-compose.dev.yml up -d` |
-| `docker-compose.watch.yml` | Live-reload overlay (Go via Air, Nuxt via Vite HMR) — layered on the base file | `docker compose -f docker-compose.yml -f docker-compose.watch.yml up --build` |
+| `docker-compose.dev.yml` *(profile `app`)* | Full dev stack **with live reload** (Air + Vite HMR) via Docker Compose `watch` | `docker compose -f docker-compose.dev.yml --profile app watch` |
 
 ## Run everything in Docker (full stack)
 
@@ -91,41 +100,29 @@ and the frontend:
 - API → http://localhost:8080 (docs at `/docs`)
 - MinIO console → http://localhost:9001
 
-### Full stack with live reload
+### Full stack with live reload (`docker compose watch`)
 
-Run the base stack with the watch overlay to hot-reload source edits inside the
-containers — the backend rebuilds via [Air](https://github.com/air-verse/air), the
-frontend via Vite HMR. Source is bind-mounted, so saving a file triggers a reload:
+Bring up the dev stack and have source edits hot-reload inside the containers — the
+backend rebuilds via [Air](https://github.com/air-verse/air), the frontend via Vite HMR:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.watch.yml up --build
+docker compose -f docker-compose.dev.yml --profile app watch
 ```
 
-> On Windows/WSL2 bind mounts, filesystem events (inotify) aren't delivered, so the
-> watchers fall back to **polling** — reloads may lag a second or two behind a save.
+Docker Compose **syncs** changed files into each container's own filesystem (rather than
+bind-mounting), so the in-container watchers see changes via normal **inotify** — including
+on Windows/WSL2, where bind-mount events aren't delivered. No polling needed.
 
-#### Adding dependencies under watch
+#### How changes are handled
 
-Live reload covers **source edits**, not dependency changes — handle new libraries
-explicitly:
+`develop.watch` rules per service:
 
-- **Backend (Go):** after `go get <lib>`, import it in a `.go` file. Saving that file
-  triggers an Air rebuild, and `go build` fetches the new module into the container's
-  module cache (needs network). Editing only `go.mod`/`go.sum` won't trigger a reload —
-  Air watches `.go` files only.
-- **Frontend (Nuxt):** `node_modules` lives in a named volume (not the bind mount), so a
-  new entry in `package.json` is **not** installed automatically. Install it inside the
-  running container, or recreate the volume:
-
-  ```bash
-  # Install into the running container (fastest)
-  docker compose -f docker-compose.yml -f docker-compose.watch.yml exec frontend pnpm install
-
-  # …or rebuild from scratch (drops and re-seeds node_modules)
-  docker compose -f docker-compose.yml -f docker-compose.watch.yml down
-  docker volume rm inventra_frontend-node-modules
-  docker compose -f docker-compose.yml -f docker-compose.watch.yml up --build
-  ```
+- **Source edits** (`action: sync`) → synced into the container; Air rebuilds the Go binary,
+  Vite hot-reloads the Nuxt app. Near-instant.
+- **Dependency changes** (`action: rebuild`) → editing `go.mod`/`go.sum` or
+  `package.json`/`pnpm-lock.yaml` rebuilds that service's image (so `go mod download` /
+  `pnpm install` run), then restarts it. `node_modules` stays in a named volume and is never
+  synced from the host.
 
 Seed a superadmin (one-off, while the stack runs) — from the host, since the
 `backend` image ships only the API binary:

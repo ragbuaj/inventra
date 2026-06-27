@@ -1,7 +1,8 @@
-package masterdata
+package reference
 
 // referenceResources declares the simple reference master data served by the
-// generic engine. Complex entities (categories, offices, employees) are separate.
+// generic engine. Complex entities (categories, offices, employees, floors, rooms)
+// live in their own packages.
 var referenceResources = []resource{
 	{Path: "office-types", Table: "office_types", OrderBy: "name", Columns: []column{
 		{Name: "name", Type: typeText, Required: true, Search: true},

@@ -1,22 +1,20 @@
-package masterdata
+// Package reference is the generic CRUD engine for simple reference master data
+// (flat tables of text/bool/uuid columns + id/timestamps/deleted_at). Complex
+// entities with enums/numerics/self-references (categories, offices, employees,
+// floors, rooms) have their own packages instead.
+package reference
 
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/ragbuaj/inventra/internal/audit"
+	"github.com/ragbuaj/inventra/internal/masterdata/common"
 )
-
-// Generic CRUD engine for simple reference master data (flat tables of
-// text/bool/uuid columns + id/timestamps/deleted_at). Complex entities with
-// enums/numerics/self-references (e.g. categories) use sqlc instead.
 
 type colType int
 
@@ -41,7 +39,7 @@ type resource struct {
 	Columns []column
 }
 
-type refEngine struct {
+type engine struct {
 	pool *pgxpool.Pool
 }
 
@@ -72,7 +70,7 @@ func (r resource) searchClause(argPos int) string {
 	return fmt.Sprintf(" AND ($%d = '' OR %s)", argPos, strings.Join(cols, " OR "))
 }
 
-func (e *refEngine) list(ctx context.Context, r resource, search string, limit, offset int32) ([]map[string]any, int64, error) {
+func (e *engine) list(ctx context.Context, r resource, search string, limit, offset int32) ([]map[string]any, int64, error) {
 	table := "masterdata." + r.Table
 	q := fmt.Sprintf("SELECT %s FROM %s WHERE deleted_at IS NULL%s ORDER BY %s LIMIT $2 OFFSET $3",
 		r.selectExpr(), table, r.searchClause(1), r.OrderBy)
@@ -93,7 +91,7 @@ func (e *refEngine) list(ctx context.Context, r resource, search string, limit, 
 	return data, total, nil
 }
 
-func (e *refEngine) get(ctx context.Context, r resource, id uuid.UUID) (map[string]any, error) {
+func (e *engine) get(ctx context.Context, r resource, id uuid.UUID) (map[string]any, error) {
 	q := fmt.Sprintf("SELECT %s FROM masterdata.%s WHERE id = $1 AND deleted_at IS NULL", r.selectExpr(), r.Table)
 	rows, err := e.pool.Query(ctx, q, id)
 	if err != nil {
@@ -101,12 +99,12 @@ func (e *refEngine) get(ctx context.Context, r resource, id uuid.UUID) (map[stri
 	}
 	m, err := pgx.CollectExactlyOneRow(rows, pgx.RowToMap)
 	if err != nil {
-		return nil, mapDBError(err)
+		return nil, common.MapDBError(err)
 	}
 	return m, nil
 }
 
-func (e *refEngine) write(ctx context.Context, r resource, id *uuid.UUID, body map[string]any) (map[string]any, error) {
+func (e *engine) write(ctx context.Context, r resource, id *uuid.UUID, body map[string]any) (map[string]any, error) {
 	vals, err := coerce(r, body)
 	if err != nil {
 		return nil, err
@@ -137,16 +135,16 @@ func (e *refEngine) write(ctx context.Context, r resource, id *uuid.UUID, body m
 
 	rows, err := e.pool.Query(ctx, q, args...)
 	if err != nil {
-		return nil, mapDBError(err)
+		return nil, common.MapDBError(err)
 	}
 	m, err := pgx.CollectExactlyOneRow(rows, pgx.RowToMap)
 	if err != nil {
-		return nil, mapDBError(err)
+		return nil, common.MapDBError(err)
 	}
 	return m, nil
 }
 
-func (e *refEngine) del(ctx context.Context, r resource, id uuid.UUID) (bool, error) {
+func (e *engine) del(ctx context.Context, r resource, id uuid.UUID) (bool, error) {
 	tag, err := e.pool.Exec(ctx,
 		fmt.Sprintf("UPDATE masterdata.%s SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL", r.Table), id)
 	if err != nil {
@@ -206,124 +204,4 @@ func coerce(r resource, body map[string]any) ([]any, error) {
 		}
 	}
 	return out, nil
-}
-
-// --- HTTP wiring ----------------------------------------------------------
-
-func registerReference(rg *gin.RouterGroup, pool *pgxpool.Pool, aud *audit.Service, authMW, requireManage gin.HandlerFunc) {
-	e := &refEngine{pool: pool}
-	for _, res := range referenceResources {
-		res := res
-		g := rg.Group("/" + res.Path)
-		g.GET("", authMW, func(c *gin.Context) { refList(c, e, res) })
-		g.GET("/:id", authMW, func(c *gin.Context) { refGet(c, e, res) })
-		g.POST("", authMW, requireManage, func(c *gin.Context) { refCreate(c, e, aud, res) })
-		g.PUT("/:id", authMW, requireManage, func(c *gin.Context) { refUpdate(c, e, aud, res) })
-		g.DELETE("/:id", authMW, requireManage, func(c *gin.Context) { refDelete(c, e, aud, res) })
-	}
-}
-
-// refEntityID extracts the row's uuid from the generic result map.
-func refEntityID(m map[string]any) (uuid.UUID, bool) {
-	s, ok := m["id"].(string)
-	if !ok {
-		return uuid.Nil, false
-	}
-	id, err := uuid.Parse(s)
-	if err != nil {
-		return uuid.Nil, false
-	}
-	return id, true
-}
-
-func refList(c *gin.Context, e *refEngine, r resource) {
-	search := c.Query("search")
-	limit := clampInt(c.Query("limit"), 20, 1, 100)
-	offset := clampInt(c.Query("offset"), 0, 0, 1<<31-1)
-	data, total, err := e.list(c.Request.Context(), r, search, limit, offset)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"data": data, "total": total, "limit": limit, "offset": offset})
-}
-
-func refGet(c *gin.Context, e *refEngine, r resource) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
-		return
-	}
-	m, err := e.get(c.Request.Context(), r, id)
-	if err != nil {
-		writeError(c, err)
-		return
-	}
-	c.JSON(http.StatusOK, m)
-}
-
-func refCreate(c *gin.Context, e *refEngine, aud *audit.Service, r resource) {
-	var body map[string]any
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	m, err := e.write(c.Request.Context(), r, nil, body)
-	if err != nil {
-		writeError(c, err)
-		return
-	}
-	if id, ok := refEntityID(m); ok {
-		audit.Record(c, aud, audit.ActionCreate, r.Table, id, nil, audit.Diff(nil, m))
-	}
-	c.JSON(http.StatusCreated, m)
-}
-
-func refUpdate(c *gin.Context, e *refEngine, aud *audit.Service, r resource) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
-		return
-	}
-	var body map[string]any
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	before, err := e.get(c.Request.Context(), r, id)
-	if err != nil {
-		writeError(c, err)
-		return
-	}
-	m, err := e.write(c.Request.Context(), r, &id, body)
-	if err != nil {
-		writeError(c, err)
-		return
-	}
-	audit.Record(c, aud, audit.ActionUpdate, r.Table, id, nil, audit.Diff(before, m))
-	c.JSON(http.StatusOK, m)
-}
-
-func refDelete(c *gin.Context, e *refEngine, aud *audit.Service, r resource) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
-		return
-	}
-	before, err := e.get(c.Request.Context(), r, id)
-	if err != nil {
-		writeError(c, err)
-		return
-	}
-	ok, err := e.del(c.Request.Context(), r, id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete"})
-		return
-	}
-	if !ok {
-		c.JSON(http.StatusNotFound, gin.H{"error": ErrNotFound.Error()})
-		return
-	}
-	audit.Record(c, aud, audit.ActionDelete, r.Table, id, nil, audit.Diff(before, nil))
-	c.Status(http.StatusNoContent)
 }

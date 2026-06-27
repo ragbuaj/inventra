@@ -1,8 +1,9 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 
-// Enable filesystem polling for dev watchers. Required inside Docker on Windows/
-// WSL2, where bind mounts don't deliver inotify events (set NUXT_DEV_POLLING=true
-// in docker-compose.watch.yml). Off by default so native host dev stays fast.
+// Optional filesystem polling for dev watchers (set NUXT_DEV_POLLING=true). Off by
+// default — the Docker dev stack uses `docker compose watch`, which syncs files onto
+// the container's native FS so inotify works without polling. Kept as a fallback for
+// bind-mount setups where inotify events aren't delivered.
 const devPolling = process.env.NUXT_DEV_POLLING === 'true'
 
 export default defineNuxtConfig({

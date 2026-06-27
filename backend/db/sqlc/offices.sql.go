@@ -39,7 +39,7 @@ const createOffice = `-- name: CreateOffice :one
 INSERT INTO masterdata.offices (
   parent_id, office_type_id, province_id, city_id, name, code, address, is_active
 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, parent_id, office_type_id, province_id, city_id, name, code, address, is_active, created_at, updated_at, deleted_at
+RETURNING id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at
 `
 
 type CreateOfficeParams struct {
@@ -73,6 +73,7 @@ func (q *Queries) CreateOffice(ctx context.Context, arg CreateOfficeParams) (Mas
 		&i.CityID,
 		&i.Name,
 		&i.Code,
+		&i.CostCenterCode,
 		&i.Address,
 		&i.IsActive,
 		&i.CreatedAt,
@@ -83,7 +84,7 @@ func (q *Queries) CreateOffice(ctx context.Context, arg CreateOfficeParams) (Mas
 }
 
 const getOffice = `-- name: GetOffice :one
-SELECT id, parent_id, office_type_id, province_id, city_id, name, code, address, is_active, created_at, updated_at, deleted_at FROM masterdata.offices
+SELECT id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at FROM masterdata.offices
 WHERE id = $1 AND deleted_at IS NULL
   AND ($2::bool OR id = ANY($3::uuid[]))
 `
@@ -105,6 +106,7 @@ func (q *Queries) GetOffice(ctx context.Context, arg GetOfficeParams) (Masterdat
 		&i.CityID,
 		&i.Name,
 		&i.Code,
+		&i.CostCenterCode,
 		&i.Address,
 		&i.IsActive,
 		&i.CreatedAt,
@@ -116,7 +118,7 @@ func (q *Queries) GetOffice(ctx context.Context, arg GetOfficeParams) (Masterdat
 
 const listOffices = `-- name: ListOffices :many
 
-SELECT id, parent_id, office_type_id, province_id, city_id, name, code, address, is_active, created_at, updated_at, deleted_at FROM masterdata.offices
+SELECT id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at FROM masterdata.offices
 WHERE deleted_at IS NULL
   AND ($1::bool OR id = ANY($2::uuid[]))
   AND (
@@ -161,6 +163,7 @@ func (q *Queries) ListOffices(ctx context.Context, arg ListOfficesParams) ([]Mas
 			&i.CityID,
 			&i.Name,
 			&i.Code,
+			&i.CostCenterCode,
 			&i.Address,
 			&i.IsActive,
 			&i.CreatedAt,
@@ -209,7 +212,7 @@ SET parent_id = $1,
     is_active = $8
 WHERE id = $9 AND deleted_at IS NULL
   AND ($10::bool OR id = ANY($11::uuid[]))
-RETURNING id, parent_id, office_type_id, province_id, city_id, name, code, address, is_active, created_at, updated_at, deleted_at
+RETURNING id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at
 `
 
 type UpdateOfficeParams struct {
@@ -249,6 +252,7 @@ func (q *Queries) UpdateOffice(ctx context.Context, arg UpdateOfficeParams) (Mas
 		&i.CityID,
 		&i.Name,
 		&i.Code,
+		&i.CostCenterCode,
 		&i.Address,
 		&i.IsActive,
 		&i.CreatedAt,

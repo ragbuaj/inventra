@@ -120,6 +120,12 @@ CREATE TABLE masterdata.categories (
   default_depreciation_method shared.depreciation_method,
   default_useful_life_months  int,
   default_salvage_rate        numeric(5,4),
+  -- Bank fixed-asset (PRD v1.1): accounting/tax defaults.
+  asset_class                 shared.asset_class NOT NULL DEFAULT 'tangible',
+  default_fiscal_group        shared.fiscal_asset_group,
+  default_fiscal_life_months  int,
+  gl_account_code             text,
+  capitalization_threshold    numeric(18,2),
   is_active                   boolean NOT NULL DEFAULT true,
   created_at                  timestamptz NOT NULL DEFAULT now(),
   updated_at                  timestamptz NOT NULL DEFAULT now(),
