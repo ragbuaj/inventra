@@ -400,6 +400,46 @@ func (s *Service) invalidateThresholdCache(ctx context.Context) error {
 	return s.rdb.Del(ctx, "approval:thresholds").Err()
 }
 
+// List returns a paginated, scope-filtered slice of requests plus the total count.
+// Empty status/typ strings are treated as "no filter" (nil).
+func (s *Service) List(ctx context.Context, all bool, ids []uuid.UUID, status, typ string, limit, offset int32) ([]sqlc.ApprovalRequest, int64, error) {
+	officeIDs := ids
+	if officeIDs == nil {
+		officeIDs = []uuid.UUID{}
+	}
+	var statusPtr *sqlc.SharedRequestStatus
+	if status != "" {
+		v := sqlc.SharedRequestStatus(status)
+		statusPtr = &v
+	}
+	var typPtr *sqlc.SharedRequestType
+	if typ != "" {
+		v := sqlc.SharedRequestType(typ)
+		typPtr = &v
+	}
+	rows, err := s.q.ListRequests(ctx, sqlc.ListRequestsParams{
+		AllScope:  all,
+		OfficeIds: officeIDs,
+		Status:    statusPtr,
+		Type:      typPtr,
+		Off:       offset,
+		Lim:       limit,
+	})
+	if err != nil {
+		return nil, 0, mapDBError(err)
+	}
+	total, err := s.q.CountRequests(ctx, sqlc.CountRequestsParams{
+		AllScope:  all,
+		OfficeIds: officeIDs,
+		Status:    statusPtr,
+		Type:      typPtr,
+	})
+	if err != nil {
+		return nil, 0, mapDBError(err)
+	}
+	return rows, total, nil
+}
+
 // Inbox returns all pending requests for which the caller is currently eligible to decide.
 func (s *Service) Inbox(ctx context.Context, caller Caller) ([]sqlc.ApprovalRequest, error) {
 	candidates, err := s.q.ListInboxCandidates(ctx)

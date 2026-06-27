@@ -15,6 +15,7 @@ import (
 
 	apidocs "github.com/ragbuaj/inventra/api"
 	"github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/approval"
 	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/auth"
 	"github.com/ragbuaj/inventra/internal/authz"
@@ -155,6 +156,10 @@ func NewRouter(d Deps) *gin.Engine {
 
 		auditHandler := audit.NewHandler(auditSvc, scopeSvc, queries)
 		audit.RegisterRoutes(api, auditHandler, requireAuth, middleware.RequirePermission(permSvc, "audit.view"))
+
+		approvalSvc := approval.NewService(queries, d.Pool, scopeSvc, d.Redis)
+		approvalHandler := approval.NewHandler(approvalSvc, fieldSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)
+		approval.RegisterRoutes(api, approvalHandler, requireAuth, permSvc)
 	}
 
 	return r
