@@ -1,8 +1,10 @@
 package identity
 
 import (
+	"context"
 	"errors"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -11,8 +13,15 @@ import (
 
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/middleware"
+	"github.com/ragbuaj/inventra/internal/oauth"
 	"github.com/ragbuaj/inventra/internal/ratelimit"
 )
+
+// googleAuth is the OAuth surface the handler needs (satisfied by *oauth.Service).
+type googleAuth interface {
+	AuthCodeURL(ctx context.Context) (url, state string, err error)
+	Exchange(ctx context.Context, code, state string) (email, sub string, err error)
+}
 
 // Handler exposes the identity HTTP endpoints.
 type Handler struct {
@@ -23,11 +32,13 @@ type Handler struct {
 	loginPerMin  int
 	secureCookie bool
 	refreshTTL   time.Duration
+	googleOAuth  googleAuth
+	frontendURL  string
 }
 
 // NewHandler builds the identity Handler.
-func NewHandler(svc *Service, perms *authz.PermissionService, scopes *authz.ScopeService, limiter ratelimit.Allower, loginPerMin int, secureCookie bool, refreshTTL time.Duration) *Handler {
-	return &Handler{svc: svc, perms: perms, scopes: scopes, limiter: limiter, loginPerMin: loginPerMin, secureCookie: secureCookie, refreshTTL: refreshTTL}
+func NewHandler(svc *Service, perms *authz.PermissionService, scopes *authz.ScopeService, limiter ratelimit.Allower, loginPerMin int, secureCookie bool, refreshTTL time.Duration, googleOAuth googleAuth, frontendURL string) *Handler {
+	return &Handler{svc: svc, perms: perms, scopes: scopes, limiter: limiter, loginPerMin: loginPerMin, secureCookie: secureCookie, refreshTTL: refreshTTL, googleOAuth: googleOAuth, frontendURL: frontendURL}
 }
 
 // permissions returns the caller's effective RBAC permission keys.
@@ -135,5 +146,58 @@ func (h *Handler) authError(c *gin.Context, err error) {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 	default:
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+	}
+}
+
+// googleStart redirects the browser to Google's consent screen.
+func (h *Handler) googleStart(c *gin.Context) {
+	authURL, _, err := h.googleOAuth.AuthCodeURL(c.Request.Context())
+	if err != nil {
+		h.redirectAuthError(c, googleReason(err))
+		return
+	}
+	c.Redirect(http.StatusFound, authURL)
+}
+
+// googleCallback completes the flow: validate, exchange, link-only login, set the
+// refresh cookie, and redirect back to the SPA.
+func (h *Handler) googleCallback(c *gin.Context) {
+	if c.Query("error") != "" {
+		h.redirectAuthError(c, "server")
+		return
+	}
+	email, sub, err := h.googleOAuth.Exchange(c.Request.Context(), c.Query("code"), c.Query("state"))
+	if err != nil {
+		h.redirectAuthError(c, googleReason(err))
+		return
+	}
+	pair, _, err := h.svc.LoginWithGoogle(c.Request.Context(), email, sub)
+	if err != nil {
+		h.redirectAuthError(c, googleReason(err))
+		return
+	}
+	setRefreshCookie(c, pair.RefreshToken, h.refreshTTL, h.secureCookie)
+	c.Redirect(http.StatusFound, h.frontendURL+"/login?oauth=success")
+}
+
+// redirectAuthError sends the browser back to the SPA login with a short, safe
+// reason code. It never reflects user input into the Location.
+func (h *Handler) redirectAuthError(c *gin.Context, reason string) {
+	c.Redirect(http.StatusFound, h.frontendURL+"/login?oauth=error&reason="+url.QueryEscape(reason))
+}
+
+// googleReason maps an internal error to a fixed, non-sensitive reason code.
+func googleReason(err error) string {
+	switch {
+	case errors.Is(err, oauth.ErrDisabled):
+		return "disabled"
+	case errors.Is(err, ErrNotProvisioned):
+		return "not_registered"
+	case errors.Is(err, ErrGoogleMismatch):
+		return "account_mismatch"
+	case errors.Is(err, ErrUserInactive):
+		return "inactive"
+	default:
+		return "server"
 	}
 }

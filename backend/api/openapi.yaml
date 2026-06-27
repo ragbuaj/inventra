@@ -154,6 +154,44 @@ paths:
         "429":
           $ref: "#/components/responses/TooManyRequests"
 
+  /api/v1/auth/google:
+    get:
+      tags: [Auth]
+      operationId: authGoogleStart
+      summary: Start Google sign-in
+      description: Redirects (302) to Google's consent screen. No body.
+      security: []
+      responses:
+        "302":
+          description: Redirect to the Google consent screen.
+          headers:
+            Location:
+              schema: { type: string }
+
+  /api/v1/auth/google/callback:
+    get:
+      tags: [Auth]
+      operationId: authGoogleCallback
+      summary: Google sign-in callback
+      description: >
+        Validates state, exchanges the code, verifies the ID token, links the
+        account (link-only), sets the `inventra_refresh` HttpOnly cookie, and
+        redirects (302) to the SPA at `/login?oauth=success` (or `?oauth=error&reason=...`).
+      security: []
+      parameters:
+        - { in: query, name: code, schema: { type: string } }
+        - { in: query, name: state, schema: { type: string } }
+        - { in: query, name: error, schema: { type: string } }
+      responses:
+        "302":
+          description: Redirect back to the SPA.
+          headers:
+            Location:
+              schema: { type: string }
+            Set-Cookie:
+              schema: { type: string }
+              description: On success, sets the inventra_refresh HttpOnly cookie.
+
   /api/v1/auth/logout:
     post:
       tags: [Auth]

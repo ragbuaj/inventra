@@ -47,6 +47,7 @@ type Config struct {
 	GoogleClientID     string
 	GoogleClientSecret string
 	GoogleRedirectURL  string
+	GoogleIssuer       string
 
 	FrontendURL string
 
@@ -102,6 +103,7 @@ func Load() *Config {
 		GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
 		GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
 		GoogleRedirectURL:  getEnv("GOOGLE_REDIRECT_URL", "http://localhost:8080/api/v1/auth/google/callback"),
+		GoogleIssuer:       getEnv("GOOGLE_ISSUER", "https://accounts.google.com"),
 
 		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
 

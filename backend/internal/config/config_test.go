@@ -67,3 +67,10 @@ func TestLoadTrustedProxiesEmpty(t *testing.T) {
 		t.Fatalf("empty TRUSTED_PROXIES should yield nil, got %#v", cfg.TrustedProxies)
 	}
 }
+
+func TestLoadGoogleIssuerDefault(t *testing.T) {
+	t.Setenv("GOOGLE_ISSUER", "")
+	if got := Load().GoogleIssuer; got != "https://accounts.google.com" {
+		t.Fatalf("GoogleIssuer default: %q", got)
+	}
+}

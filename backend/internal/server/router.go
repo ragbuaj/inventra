@@ -5,6 +5,7 @@
 package server
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/identity"
 	"github.com/ragbuaj/inventra/internal/masterdata"
 	"github.com/ragbuaj/inventra/internal/middleware"
+	"github.com/ragbuaj/inventra/internal/oauth"
 	"github.com/ragbuaj/inventra/internal/ratelimit"
 	"github.com/ragbuaj/inventra/internal/user"
 )
@@ -122,9 +124,19 @@ func NewRouter(d Deps) *gin.Engine {
 		fieldSvc := authz.NewFieldService(queries, d.Redis)
 		auditSvc := audit.NewService(queries)
 
+		googleOAuth, oerr := oauth.New(context.Background(), oauth.Config{
+			ClientID:     d.Cfg.GoogleClientID,
+			ClientSecret: d.Cfg.GoogleClientSecret,
+			RedirectURL:  d.Cfg.GoogleRedirectURL,
+			Issuer:       d.Cfg.GoogleIssuer,
+		}, d.Redis)
+		if oerr != nil {
+			d.Log.Warn("google oauth disabled (discovery failed)", "error", oerr)
+		}
+
 		identitySvc := identity.NewService(queries, tokenManager, tokenStore)
-		identityHandler := identity.NewHandler(identitySvc, permSvc, scopeSvc, d.Limiter, d.Cfg.RateLimitLoginPerMin, d.Cfg.Env == "production", d.Cfg.JWTRefreshTTL)
-		identity.RegisterRoutes(api, identityHandler, requireAuth, d.Limiter, d.Cfg.RateLimitLoginIPPerMin, d.Cfg.RateLimitRefreshPerMin)
+		identityHandler := identity.NewHandler(identitySvc, permSvc, scopeSvc, d.Limiter, d.Cfg.RateLimitLoginPerMin, d.Cfg.Env == "production", d.Cfg.JWTRefreshTTL, googleOAuth, d.Cfg.FrontendURL)
+		identity.RegisterRoutes(api, identityHandler, requireAuth, d.Limiter, d.Cfg.RateLimitLoginIPPerMin, d.Cfg.RateLimitRefreshPerMin, d.Cfg.RateLimitLoginIPPerMin)
 
 		userHandler := user.NewHandler(user.NewService(queries), fieldSvc, auditSvc)
 		user.RegisterRoutes(api, userHandler, requireAuth, middleware.RequirePermission(permSvc, "user.manage"))

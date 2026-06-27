@@ -30,3 +30,8 @@ ORDER BY permission_key;
 -- name: ListDataScopePolicies :many
 SELECT * FROM identity.data_scope_policies
 WHERE role_id = $1 AND deleted_at IS NULL;
+
+-- name: LinkGoogleID :exec
+UPDATE identity.users
+SET google_id = $2, updated_at = now()
+WHERE id = $1 AND deleted_at IS NULL;

@@ -1,8 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'auth' })
 const { t } = useI18n()
-const { login } = useAuthApi()
+const { login, refresh, fetchMe } = useAuthApi()
 const toast = useToast()
+const config = useRuntimeConfig()
+const route = useRoute()
 
 const state = reactive({ email: '', password: '' })
 const showPassword = ref(false)
@@ -26,7 +28,31 @@ async function onSubmit() {
   }
 }
 
-// Google sign-in and password reset are not wired to the backend yet.
+function startGoogle() {
+  window.location.href = `${config.public.apiBase}/auth/google`
+}
+
+const GOOGLE_REASONS = ['not_registered', 'account_mismatch', 'inactive', 'disabled', 'server']
+
+onMounted(async () => {
+  if (route.query.oauth === 'success') {
+    try {
+      if (await refresh()) {
+        await fetchMe()
+        await navigateTo('/')
+        return
+      }
+    } catch {
+      // fall through to error message
+    }
+    errorMsg.value = t('auth.google.error.server')
+  } else if (route.query.oauth === 'error') {
+    const reason = String(route.query.reason ?? 'server')
+    errorMsg.value = t(`auth.google.error.${GOOGLE_REASONS.includes(reason) ? reason : 'server'}`)
+  }
+})
+
+// Password reset is not wired to the backend yet.
 function notAvailable() {
   toast.add({ title: t('auth.featureComingSoon'), color: 'info' })
 }
@@ -132,7 +158,7 @@ function notAvailable() {
         color="neutral"
         variant="outline"
         icon="i-simple-icons-google"
-        @click="notAvailable"
+        @click="startGoogle"
       >
         {{ $t('auth.signInWithGoogle') }}
       </UButton>

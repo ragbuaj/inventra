@@ -129,6 +129,22 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (IdentityUser, 
 	return i, err
 }
 
+const linkGoogleID = `-- name: LinkGoogleID :exec
+UPDATE identity.users
+SET google_id = $2, updated_at = now()
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+type LinkGoogleIDParams struct {
+	ID       uuid.UUID `json:"id"`
+	GoogleID *string   `json:"google_id"`
+}
+
+func (q *Queries) LinkGoogleID(ctx context.Context, arg LinkGoogleIDParams) error {
+	_, err := q.db.Exec(ctx, linkGoogleID, arg.ID, arg.GoogleID)
+	return err
+}
+
 const listDataScopePolicies = `-- name: ListDataScopePolicies :many
 SELECT id, role_id, module, scope_level, created_at, updated_at, deleted_at FROM identity.data_scope_policies
 WHERE role_id = $1 AND deleted_at IS NULL
