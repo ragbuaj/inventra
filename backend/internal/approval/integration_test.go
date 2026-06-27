@@ -6,7 +6,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -223,6 +225,11 @@ func TestApproval_AssetCreate_ThreeStep(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), total)
 	assert.Equal(t, "Laptop 150M", assets[0].Name)
+
+	// Assert the generated asset tag matches the expected format built from the seeded codes.
+	// Office "CBG" (Cabang Alpha), category "ELK", current year, first sequence.
+	expectedTag := fmt.Sprintf("%s-%s-%d-%05d", tr.CabangCode, "ELK", time.Now().Year(), 1)
+	assert.Equal(t, expectedTag, assets[0].AssetTag)
 }
 
 // TestApproval_SoD_MakerCannotApprove verifies that the maker of a request cannot
@@ -267,6 +274,67 @@ func TestApproval_SoD_MakerCannotApprove(t *testing.T) {
 	caller := buildCaller(maker, roleID, false, []uuid.UUID{tr.CabangID})
 	_, err = svc.Decide(ctx, req.ID, caller, true, nil)
 	require.ErrorIs(t, err, approval.ErrSelfApproval)
+}
+
+// TestApproval_SoD_PriorApproverCannotApproveNextStep verifies the SoD rule that
+// once a user has approved any earlier step they cannot approve a later step in the
+// same request (prior-approver check in eligibleToDecide).
+func TestApproval_SoD_PriorApproverCannotApproveNextStep(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	ctx := context.Background()
+	resetAll(t, pool)
+
+	tr := seedTieredOfficeTree(t, pool)
+	catID := seedCategory(t, pool, "SOD")
+
+	officeRoleID := lookupRole(t, pool, "Kepala Unit")
+	wilayahRoleID := lookupRole(t, pool, "Kepala Kanwil")
+
+	maker := seedUser(t, pool, officeRoleID, "maker.sodstep@test.local")
+	// approver1 holds the office role and is eligible at step 1 (office tier)
+	approver1 := seedUser(t, pool, officeRoleID, "approver1.sodstep@test.local")
+	// approver2 would be the intended wilayah approver for step 2, but we won't use them
+	_ = seedUser(t, pool, wilayahRoleID, "approver2.sodstep@test.local")
+
+	q := sqlc.New(pool)
+	scopeSvc := authz.NewScopeService(q, rdb)
+	svc := approval.NewService(q, pool, scopeSvc, rdb)
+	assetSvc := asset.NewService(q, pool)
+	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
+
+	catIDStr := catID.String()
+	officeIDStr := tr.CabangID.String()
+	payload, _ := json.Marshal(asset.AssetCreatePayload{
+		Name:       "Laptop SoD Test",
+		CategoryID: catIDStr,
+		OfficeID:   officeIDStr,
+		AssetClass: "intangible",
+	})
+
+	// 50M falls in the 2-step band (office → wilayah) per migration 000016
+	req, err := svc.Submit(ctx, approval.SubmitInput{
+		Type:     sqlc.SharedRequestTypeAssetCreate,
+		Amount:   "50000000",
+		OfficeID: tr.CabangID,
+		Payload:  payload,
+		Maker:    maker,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, int32(1), req.CurrentStep)
+
+	// approver1 is eligible at step 1 (office scope covers Cabang) — this must succeed.
+	caller1 := buildCaller(approver1, officeRoleID, false, []uuid.UUID{tr.CabangID})
+	req, err = svc.Decide(ctx, req.ID, caller1, true, nil)
+	require.NoError(t, err, "approver1 should succeed at step 1")
+	assert.Equal(t, sqlc.SharedRequestStatusPending, req.Status)
+	assert.Equal(t, int32(2), req.CurrentStep)
+
+	// Now approver1 attempts step 2 — this must be blocked by the prior-approver SoD rule.
+	// Give caller1 wilayah-scope so the only block is the SoD rule, not a scope/tier failure.
+	caller1Broad := buildCaller(approver1, officeRoleID, false, []uuid.UUID{tr.WilayahID, tr.CabangID})
+	_, err = svc.Decide(ctx, req.ID, caller1Broad, true, nil)
+	require.ErrorIs(t, err, approval.ErrSelfApproval, "prior approver must not be allowed to approve the next step")
 }
 
 // TestApproval_RejectMidChain_NoAssetCreated verifies that rejecting in the middle
@@ -422,7 +490,12 @@ func TestApproval_AssetDisposal_CrossOfficeRejected(t *testing.T) {
 
 	caller := buildCaller(approver, officeRoleID, false, []uuid.UUID{otherOfficeID, tr.CabangID, tr.WilayahID})
 	_, err = svc.Decide(ctx, req.ID, caller, true, nil)
-	require.Error(t, err, "cross-office disposal should fail at executor")
+	require.ErrorIs(t, err, asset.ErrInvalidRef, "cross-office disposal should fail with ErrInvalidRef at executor")
+
+	// Asset must remain unchanged — still available, not disposed.
+	reloaded, rerr := assetSvc.Get(ctx, assetID)
+	require.NoError(t, rerr)
+	assert.Equal(t, sqlc.SharedAssetStatusAvailable, reloaded.Status, "asset status must be unchanged after cross-office disposal rejection")
 }
 
 // TestApproval_ValuationExclusion_SetsFlag verifies that approving a
@@ -517,7 +590,12 @@ func TestApproval_ValuationExclusion_CrossOfficeRejected(t *testing.T) {
 
 	caller := buildCaller(approver, wilayahRoleID, false, []uuid.UUID{tr.WilayahID, tr.CabangID, otherOfficeID})
 	_, err = svc.Decide(ctx, req.ID, caller, true, nil)
-	require.Error(t, err, "cross-office valuation exclusion should fail")
+	require.ErrorIs(t, err, asset.ErrInvalidRef, "cross-office valuation exclusion should fail with ErrInvalidRef at executor")
+
+	// Asset must remain unchanged — excluded_from_valuation still false.
+	reloaded, rerr := assetSvc.Get(ctx, assetID)
+	require.NoError(t, rerr)
+	assert.False(t, reloaded.ExcludedFromValuation, "asset excluded_from_valuation must be unchanged after cross-office exclusion rejection")
 }
 
 // TestApproval_Cancel_MakerOnly verifies that only the original maker can cancel
@@ -780,4 +858,9 @@ func TestApproval_ExecutorAtomicity_RollbackOnError(t *testing.T) {
 	reloaded, err := q.GetRequest(ctx, req.ID)
 	require.NoError(t, err)
 	assert.Equal(t, sqlc.SharedRequestStatusPending, reloaded.Status, "request should still be pending after executor rollback")
+
+	// The asset must also be unchanged — still disposed (the failed executor did not alter it).
+	reloadedAsset, aerr := assetSvc.Get(ctx, assetID)
+	require.NoError(t, aerr)
+	assert.Equal(t, sqlc.SharedAssetStatusDisposed, reloadedAsset.Status, "asset status must remain disposed after rollback")
 }
