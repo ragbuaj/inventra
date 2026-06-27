@@ -8,7 +8,7 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,44 +18,49 @@ import (
 	"github.com/ragbuaj/inventra/internal/cache"
 	"github.com/ragbuaj/inventra/internal/config"
 	"github.com/ragbuaj/inventra/internal/db"
+	"github.com/ragbuaj/inventra/internal/logging"
 	"github.com/ragbuaj/inventra/internal/server"
 )
 
 func main() {
 	cfg := config.Load()
+	logger := logging.New(cfg)
+	slog.SetDefault(logger)
 	ctx := context.Background()
 
 	// PostgreSQL (authoritative store).
 	pool, err := db.NewPool(ctx, cfg)
 	if err != nil {
-		log.Fatalf("db pool: %v", err)
+		slog.Error("db pool", "error", err)
+		os.Exit(1)
 	}
 	defer pool.Close()
 	if err := db.Ping(ctx, pool); err != nil {
-		log.Printf("WARNING: PostgreSQL not reachable at startup: %v", err)
+		slog.Warn("PostgreSQL not reachable at startup", "error", err)
 	} else {
-		log.Println("PostgreSQL connected")
+		slog.Info("PostgreSQL connected")
 	}
 
 	// Redis (cache/state).
 	rdb := cache.NewClient(cfg)
 	defer func() { _ = rdb.Close() }()
 	if err := cache.Ping(ctx, rdb); err != nil {
-		log.Printf("WARNING: Redis not reachable at startup: %v", err)
+		slog.Warn("Redis not reachable at startup", "error", err)
 	} else {
-		log.Println("Redis connected")
+		slog.Info("Redis connected")
 	}
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.ServerPort,
-		Handler:           server.NewRouter(server.Deps{Cfg: cfg, Pool: pool, Redis: rdb}),
+		Handler:           server.NewRouter(server.Deps{Cfg: cfg, Pool: pool, Redis: rdb, Log: logger}),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	go func() {
-		log.Printf("Inventra API listening on %s (env=%s)", srv.Addr, cfg.Env)
+		slog.Info("Inventra API listening", "addr", srv.Addr, "env", cfg.Env)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("server error: %v", err)
+			slog.Error("server error", "error", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -63,11 +68,12 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("shutting down...")
+	slog.Info("shutting down")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Fatalf("forced shutdown: %v", err)
+		slog.Error("forced shutdown", "error", err)
+		os.Exit(1)
 	}
-	log.Println("server stopped")
+	slog.Info("server stopped")
 }

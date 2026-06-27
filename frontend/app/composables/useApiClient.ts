@@ -43,6 +43,7 @@ export function useApiClient() {
   async function request<T>(path: string, opts: Record<string, unknown> = {}): Promise<T> {
     const headers: Record<string, string> = { ...(opts.headers as Record<string, string> || {}) }
     if (auth.accessToken) headers.Authorization = `Bearer ${auth.accessToken}`
+    if (!headers['X-Request-ID']) headers['X-Request-ID'] = crypto.randomUUID()
     try {
       return await $fetch<T>(`${base}${path}`, { ...opts, headers })
     } catch (err: unknown) {

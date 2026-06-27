@@ -5,6 +5,7 @@
 package server
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -30,6 +31,7 @@ type Deps struct {
 	Cfg   *config.Config
 	Pool  *pgxpool.Pool
 	Redis *redis.Client
+	Log   *slog.Logger
 }
 
 // NewRouter builds the Gin engine with base middleware, health, and readiness probes.
@@ -39,7 +41,12 @@ func NewRouter(d Deps) *gin.Engine {
 	}
 
 	r := gin.New()
-	r.Use(gin.Logger(), gin.Recovery(), middleware.CORS(d.Cfg.FrontendURL))
+	r.Use(
+		middleware.RequestID(),
+		middleware.RequestLogger(d.Log),
+		middleware.Recovery(d.Log),
+		middleware.CORS(d.Cfg.FrontendURL),
+	)
 
 	// Liveness — process is up; no external dependencies.
 	r.GET("/health", func(c *gin.Context) {
