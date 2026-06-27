@@ -9,10 +9,12 @@ import (
 
 // RegisterRoutes mounts the identity endpoints. authMW protects authed routes;
 // the limiter applies per-IP throttles on the unauthenticated auth endpoints.
-func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW gin.HandlerFunc, limiter ratelimit.Allower, loginIPPerMin, refreshPerMin int) {
+func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW gin.HandlerFunc, limiter ratelimit.Allower, loginIPPerMin, refreshPerMin, googleIPPerMin int) {
 	grp := rg.Group("/auth")
 	grp.POST("/login", middleware.PerIP(limiter, loginIPPerMin, "auth_login", true), h.login)
 	grp.POST("/refresh", middleware.PerIP(limiter, refreshPerMin, "auth_refresh", true), h.refresh)
+	grp.GET("/google", middleware.PerIP(limiter, googleIPPerMin, "auth_google", true), h.googleStart)
+	grp.GET("/google/callback", middleware.PerIP(limiter, googleIPPerMin, "auth_google", true), h.googleCallback)
 
 	authed := grp.Group("")
 	authed.Use(authMW)
