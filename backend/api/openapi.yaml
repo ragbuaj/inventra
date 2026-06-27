@@ -1763,12 +1763,8 @@ components:
 
     DecideRequest:
       type: object
-      description: Body for POST /requests/{id}/approve or /reject.
-      required: [decision]
+      description: Optional body for POST /requests/{id}/approve or /reject. The decision is determined by the route; only an optional note is read.
       properties:
-        decision:
-          type: string
-          enum: [approve, reject]
         note:
           type: [string, "null"]
           description: Optional decision note.
