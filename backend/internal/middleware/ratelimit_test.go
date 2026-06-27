@@ -38,6 +38,9 @@ func TestPerIPUnderLimitSetsHeaders(t *testing.T) {
 	if w.Header().Get("RateLimit-Limit") != "5" || w.Header().Get("RateLimit-Remaining") != "4" {
 		t.Fatalf("RateLimit headers: %v", w.Header())
 	}
+	if w.Header().Get("RateLimit-Reset") != "30" {
+		t.Fatalf("RateLimit-Reset: %q", w.Header().Get("RateLimit-Reset"))
+	}
 }
 
 func TestPerIPOverLimitReturns429(t *testing.T) {
@@ -57,6 +60,12 @@ func TestPerIPOverLimitReturns429(t *testing.T) {
 	}
 	if !strings.Contains(w.Body.String(), "too many requests") {
 		t.Fatalf("body: %s", w.Body.String())
+	}
+	if w.Header().Get("RateLimit-Limit") != "5" {
+		t.Fatalf("deny RateLimit-Limit: %q", w.Header().Get("RateLimit-Limit"))
+	}
+	if w.Header().Get("RateLimit-Remaining") != "0" {
+		t.Fatalf("deny RateLimit-Remaining: %q", w.Header().Get("RateLimit-Remaining"))
 	}
 }
 
@@ -85,5 +94,19 @@ func TestWriteRateLimitedFloorsRetryAfterToOne(t *testing.T) {
 	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/x", nil))
 	if w.Header().Get("Retry-After") != "1" {
 		t.Fatalf("Retry-After floor: %q", w.Header().Get("Retry-After"))
+	}
+}
+
+func TestSetRateLimitHeadersClampsNegativeRemaining(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.GET("/x", func(c *gin.Context) {
+		SetRateLimitHeaders(c, ratelimit.Result{Limit: 5, Remaining: -3, ResetAfter: 0})
+		c.Status(http.StatusOK)
+	})
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/x", nil))
+	if w.Header().Get("RateLimit-Remaining") != "0" {
+		t.Fatalf("negative Remaining must clamp to 0, got %q", w.Header().Get("RateLimit-Remaining"))
 	}
 }
