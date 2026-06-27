@@ -106,3 +106,13 @@ func SeedRoom(t *testing.T, pool *pgxpool.Pool, floorID uuid.UUID, name string) 
 		floorID, name).Scan(&id))
 	return id
 }
+
+// SeedFieldPermission inserts an identity.field_permissions row for a role.
+func SeedFieldPermission(t *testing.T, pool *pgxpool.Pool, roleID uuid.UUID, entity, field string, canView, canEdit bool) {
+	t.Helper()
+	_, err := pool.Exec(context.Background(),
+		`INSERT INTO identity.field_permissions (role_id, entity, field, can_view, can_edit)
+		 VALUES ($1, $2, $3, $4, $5)`,
+		roleID, entity, field, canView, canEdit)
+	require.NoError(t, err)
+}
