@@ -47,11 +47,8 @@ func TestRouterGlobalThrottleMounted(t *testing.T) {
 // With no trusted proxies, a client-supplied X-Forwarded-For must be ignored so
 // the rate-limit key uses the real RemoteAddr (not a spoofable header).
 func TestClientIPIgnoresForwardedWhenNoTrustedProxies(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
-	if err := r.SetTrustedProxies(nil); err != nil {
-		t.Fatalf("SetTrustedProxies(nil): %v", err)
-	}
+	deps := testDeps() // TrustedProxies is nil → NewRouter trusts no proxies
+	r := NewRouter(deps)
 	var got string
 	r.GET("/ip", func(c *gin.Context) {
 		got = c.ClientIP()

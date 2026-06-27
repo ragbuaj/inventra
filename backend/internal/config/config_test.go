@@ -62,7 +62,8 @@ func TestLoadTrustedProxies(t *testing.T) {
 
 func TestLoadTrustedProxiesEmpty(t *testing.T) {
 	t.Setenv("TRUSTED_PROXIES", "")
-	if Load().TrustedProxies != nil {
-		t.Fatalf("empty TRUSTED_PROXIES should yield nil, got %#v", Load().TrustedProxies)
+	cfg := Load()
+	if cfg.TrustedProxies != nil {
+		t.Fatalf("empty TRUSTED_PROXIES should yield nil, got %#v", cfg.TrustedProxies)
 	}
 }
