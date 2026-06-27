@@ -11,6 +11,8 @@ import (
 )
 
 type Querier interface {
+	BumpAssetTagCounter(ctx context.Context, arg BumpAssetTagCounterParams) (int32, error)
+	CountAssets(ctx context.Context, arg CountAssetsParams) (int64, error)
 	CountAuditLogs(ctx context.Context, arg CountAuditLogsParams) (int64, error)
 	CountCategories(ctx context.Context, search string) (int64, error)
 	CountEmployees(ctx context.Context, arg CountEmployeesParams) (int64, error)
@@ -18,16 +20,20 @@ type Querier interface {
 	CountOffices(ctx context.Context, arg CountOfficesParams) (int64, error)
 	CountRoomsByFloor(ctx context.Context, arg CountRoomsByFloorParams) (int64, error)
 	CountUsers(ctx context.Context, search string) (int64, error)
+	CreateAsset(ctx context.Context, arg CreateAssetParams) (AssetAsset, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (MasterdataCategory, error)
 	CreateEmployee(ctx context.Context, arg CreateEmployeeParams) (MasterdataEmployee, error)
 	CreateFloor(ctx context.Context, arg CreateFloorParams) (MasterdataFloor, error)
 	CreateOffice(ctx context.Context, arg CreateOfficeParams) (MasterdataOffice, error)
 	CreateRoom(ctx context.Context, arg CreateRoomParams) (MasterdataRoom, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (IdentityUser, error)
+	GetAsset(ctx context.Context, id uuid.UUID) (AssetAsset, error)
 	GetCategory(ctx context.Context, id uuid.UUID) (MasterdataCategory, error)
+	GetCategoryCode(ctx context.Context, id uuid.UUID) (*string, error)
 	GetEmployee(ctx context.Context, arg GetEmployeeParams) (MasterdataEmployee, error)
 	GetFloor(ctx context.Context, arg GetFloorParams) (MasterdataFloor, error)
 	GetOffice(ctx context.Context, arg GetOfficeParams) (MasterdataOffice, error)
+	GetOfficeCode(ctx context.Context, id uuid.UUID) (string, error)
 	// Authorization queries: office subtree (scoping) and field permissions.
 	// Returns an office plus all of its descendants (Pusat -> Wilayah -> Cabang -> Outlet).
 	GetOfficeSubtree(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error)
@@ -42,6 +48,9 @@ type Querier interface {
 	// only to all-scope callers.
 	InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) (AuditAuditLog, error)
 	LinkGoogleID(ctx context.Context, arg LinkGoogleIDParams) error
+	// Asset core queries (asset.assets + asset.asset_tag_counters).
+	// Respects soft delete and caller data scope (all_scope / office_ids).
+	ListAssets(ctx context.Context, arg ListAssetsParams) ([]AssetAsset, error)
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]ListAuditLogsRow, error)
 	// Asset category master data (masterdata.categories). Respects soft delete.
 	ListCategories(ctx context.Context, arg ListCategoriesParams) ([]MasterdataCategory, error)
@@ -61,12 +70,15 @@ type Querier interface {
 	ListRoomsByFloor(ctx context.Context, arg ListRoomsByFloorParams) ([]MasterdataRoom, error)
 	// User management queries (Superadmin). All respect soft delete.
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]IdentityUser, error)
+	SetAssetStatus(ctx context.Context, arg SetAssetStatusParams) (AssetAsset, error)
+	SetAssetValuationExclusion(ctx context.Context, arg SetAssetValuationExclusionParams) (AssetAsset, error)
 	SoftDeleteCategory(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteEmployee(ctx context.Context, arg SoftDeleteEmployeeParams) (int64, error)
 	SoftDeleteFloor(ctx context.Context, arg SoftDeleteFloorParams) (int64, error)
 	SoftDeleteOffice(ctx context.Context, arg SoftDeleteOfficeParams) (int64, error)
 	SoftDeleteRoom(ctx context.Context, arg SoftDeleteRoomParams) (int64, error)
 	SoftDeleteUser(ctx context.Context, id uuid.UUID) (int64, error)
+	UpdateAsset(ctx context.Context, arg UpdateAssetParams) (AssetAsset, error)
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (MasterdataCategory, error)
 	UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) (MasterdataEmployee, error)
 	UpdateFloor(ctx context.Context, arg UpdateFloorParams) (MasterdataFloor, error)
