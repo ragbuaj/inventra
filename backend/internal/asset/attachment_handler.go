@@ -103,8 +103,8 @@ func (h *Handler) uploadAttachment(c *gin.Context) {
 
 	data, err := io.ReadAll(f)
 	if err != nil {
-		// MaxBytesReader causes ReadAll to fail when the limit is exceeded.
-		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "file too large"})
+		// I/O error reading the already-buffered multipart part (size limits fire above at FormFile).
+		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot read file"})
 		return
 	}
 

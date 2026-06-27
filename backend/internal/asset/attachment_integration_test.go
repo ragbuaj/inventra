@@ -410,73 +410,78 @@ func TestAttachment_ScopeEnforcement(t *testing.T) {
 }
 
 // TestAttachment_DBRollback drives UploadAttachment with a non-existent asset_id
-// (causing a FK violation on CreateAttachment) and verifies:
+// (causing a FK violation on CreateAttachment) and verifies that the best-effort
+// rollback leaves NO orphaned objects in storage.
 //
-//  1. The call returns an error (ErrInvalidRef from mapDBError 23503).
-//  2. No attachment row exists in the DB for that asset_id.
-//  3. The storage objects uploaded before the DB call were removed (no orphans) —
-//     confirmed by probing MinIO: a sentinel PUT at the same prefix works, but
-//     a targeted Get on a key matching the attachment.go key format fails with
-//     ErrObjectNotFound (since Remove was called by the rollback path).
+// It uses a storage.Fake (in-memory) paired with a real Postgres testcontainer so
+// that the FK violation is authentic while ObjsKeys() lets us directly assert that
+// every object the service uploaded was removed by the rollback path.
 //
-// Because the attachment UUID generated inside UploadAttachment is not observable
-// externally, we verify the absence indirectly:
-//   - DB: ListAttachments returns empty.
-//   - Storage: we confirm MinIO is reachable (probe), then trust the service's
-//     best-effort Remove path in attachment.go lines 102-106 / 83-86.
-//     This is the accepted approach for best-effort rollback tests where the exact
-//     key is not externally observable.
+// Two sub-cases:
+//  1. PDF (no thumbnail) — one object Put, one Remove expected.
+//  2. PNG (image, thumbnail generated) — two objects Put (original + thumbnail),
+//     both must be removed.
 func TestAttachment_DBRollback(t *testing.T) {
 	ctx := context.Background()
 	pool := testsupport.NewPostgres(t)
-	minioStore := testsupport.NewMinIO(t)
-
 	q := sqlc.New(pool)
-	svc := asset.NewService(q, pool, minioStore, 5<<20)
 
 	nonExistentAssetID := uuid.New()
 	callerID := uuid.New()
-	pngData := attMakePNG()
 
-	_, uploadErr := svc.UploadAttachment(ctx, asset.UploadInput{
-		AssetID:     nonExistentAssetID,
-		Filename:    "orphan.png",
-		ContentType: "image/png",
-		Data:        pngData,
-		CreatedBy:   callerID,
+	// ── sub-case 1: PDF — document, no thumbnail ──────────────────────────────
+	t.Run("pdf_no_orphan", func(t *testing.T) {
+		fake := storage.NewFake()
+		svc := asset.NewService(q, pool, fake, 5<<20)
+
+		_, uploadErr := svc.UploadAttachment(ctx, asset.UploadInput{
+			AssetID:     nonExistentAssetID,
+			Filename:    "x.pdf",
+			ContentType: "application/pdf",
+			Data:        []byte("%PDF-1.4 test"),
+			CreatedBy:   callerID,
+		})
+
+		// Must return an error (FK violation → ErrInvalidRef).
+		require.Error(t, uploadErr, "upload to non-existent asset_id must fail")
+		assert.ErrorIs(t, uploadErr, asset.ErrInvalidRef,
+			"FK violation must map to ErrInvalidRef")
+
+		// No objects must remain in the Fake store (original removed on rollback).
+		assert.Len(t, fake.ObjsKeys(), 0,
+			"rollback must remove the uploaded PDF object; orphaned keys: %v", fake.ObjsKeys())
+
+		// DB side: no attachment row created.
+		rows, dbErr := q.ListAttachments(ctx, nonExistentAssetID)
+		require.NoError(t, dbErr)
+		assert.Empty(t, rows, "no attachment row must exist after DB-rollback failure")
 	})
 
-	// 1. Must return error.
-	require.Error(t, uploadErr, "upload to non-existent asset_id must fail")
+	// ── sub-case 2: PNG — image, thumbnail is generated then both must be removed ─
+	t.Run("image_no_orphan", func(t *testing.T) {
+		fake := storage.NewFake()
+		svc := asset.NewService(q, pool, fake, 5<<20)
 
-	// The FK violation on asset_id → ErrInvalidRef.
-	assert.ErrorIs(t, uploadErr, asset.ErrInvalidRef,
-		"FK violation must map to ErrInvalidRef")
+		_, uploadErr := svc.UploadAttachment(ctx, asset.UploadInput{
+			AssetID:     nonExistentAssetID,
+			Filename:    "photo.png",
+			ContentType: "image/png",
+			Data:        attMakePNG(),
+			CreatedBy:   callerID,
+		})
 
-	// 2. DB side: no attachment row created.
-	rows, dbErr := q.ListAttachments(ctx, nonExistentAssetID)
-	require.NoError(t, dbErr, "ListAttachments must not itself error")
-	assert.Empty(t, rows, "no attachment row must exist after DB-rollback failure")
+		// Must return an error (FK violation → ErrInvalidRef).
+		require.Error(t, uploadErr, "upload to non-existent asset_id must fail")
+		assert.ErrorIs(t, uploadErr, asset.ErrInvalidRef,
+			"FK violation must map to ErrInvalidRef")
 
-	// 3. Storage side: MinIO is reachable and no objects survived under the asset prefix.
-	// Confirm storage is live via a probe object.
-	probeKey := "assets/" + nonExistentAssetID.String() + "/__rollback_probe__"
-	require.NoError(t,
-		minioStore.Put(ctx, probeKey, bytes.NewReader([]byte("probe")), 5, "text/plain"),
-		"MinIO probe PUT must succeed (confirming storage is live)")
-	rc, _, probeGetErr := minioStore.Get(ctx, probeKey)
-	require.NoError(t, probeGetErr, "MinIO probe GET must succeed")
-	_ = rc.Close()
-	_ = minioStore.Remove(ctx, probeKey)
+		// Both the original and thumbnail objects must be removed (no orphans).
+		assert.Len(t, fake.ObjsKeys(), 0,
+			"rollback must remove BOTH the original and thumbnail objects; orphaned keys: %v", fake.ObjsKeys())
 
-	// Attempt to Get the original object key as the service would have generated it:
-	// format: assets/<assetID>/<randomUUID>.png
-	// We cannot predict the UUID, but we know the prefix. Since the storage interface
-	// doesn't expose List, we verify that at least the DB side is clean and that
-	// storage is accessible. The Remove calls in attachment.go (lines 102-106) are
-	// exercised by this test path; their correctness is verified by the combined
-	// evidence of:
-	//   (a) No DB row → the error path was taken.
-	//   (b) Storage is reachable → Remove calls ran against a live store.
-	// This is the expected test pattern for best-effort rollback on opaque keys.
+		// DB side: no attachment row created.
+		rows, dbErr := q.ListAttachments(ctx, nonExistentAssetID)
+		require.NoError(t, dbErr)
+		assert.Empty(t, rows, "no attachment row must exist after DB-rollback failure")
+	})
 }
