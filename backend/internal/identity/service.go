@@ -18,17 +18,27 @@ var (
 	ErrInvalidCredentials = errors.New("invalid email or password")
 	ErrInvalidToken       = errors.New("invalid or expired token")
 	ErrUserInactive       = errors.New("user is not active")
+	ErrNotProvisioned     = errors.New("no account exists for this Google email")
+	ErrGoogleMismatch     = errors.New("email is linked to a different Google account")
 )
+
+// userStore is the data surface the identity Service needs (seam for tests).
+// *sqlc.Queries satisfies it.
+type userStore interface {
+	GetUserByID(ctx context.Context, id uuid.UUID) (sqlc.IdentityUser, error)
+	GetUserByEmail(ctx context.Context, email string) (sqlc.IdentityUser, error)
+	LinkGoogleID(ctx context.Context, arg sqlc.LinkGoogleIDParams) error
+}
 
 // Service handles login, token refresh/rotation, logout, and current-user lookup.
 type Service struct {
-	q     *sqlc.Queries
+	q     userStore
 	tm    *auth.TokenManager
 	store *auth.TokenStore
 }
 
 // NewService builds the identity Service.
-func NewService(q *sqlc.Queries, tm *auth.TokenManager, store *auth.TokenStore) *Service {
+func NewService(q userStore, tm *auth.TokenManager, store *auth.TokenStore) *Service {
 	return &Service{q: q, tm: tm, store: store}
 }
 
@@ -48,6 +58,36 @@ func (s *Service) Login(ctx context.Context, email, password string) (auth.Token
 		return auth.TokenPair{}, sqlc.IdentityUser{}, ErrUserInactive
 	}
 
+	pair, err := s.issue(ctx, user)
+	if err != nil {
+		return auth.TokenPair{}, sqlc.IdentityUser{}, err
+	}
+	return pair, user, nil
+}
+
+// LoginWithGoogle links a verified Google identity to an EXISTING user (link-only)
+// and issues the same token pair as local login. It never creates a user.
+func (s *Service) LoginWithGoogle(ctx context.Context, email, googleSub string) (auth.TokenPair, sqlc.IdentityUser, error) {
+	user, err := s.q.GetUserByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return auth.TokenPair{}, sqlc.IdentityUser{}, ErrNotProvisioned
+		}
+		return auth.TokenPair{}, sqlc.IdentityUser{}, err
+	}
+	// Mismatch and status are checked BEFORE linking, so an inactive or
+	// already-differently-linked account is never modified.
+	if user.GoogleID != nil && *user.GoogleID != googleSub {
+		return auth.TokenPair{}, sqlc.IdentityUser{}, ErrGoogleMismatch
+	}
+	if user.Status != sqlc.SharedUserStatusActive {
+		return auth.TokenPair{}, sqlc.IdentityUser{}, ErrUserInactive
+	}
+	if user.GoogleID == nil {
+		if err := s.q.LinkGoogleID(ctx, sqlc.LinkGoogleIDParams{ID: user.ID, GoogleID: &googleSub}); err != nil {
+			return auth.TokenPair{}, sqlc.IdentityUser{}, err
+		}
+	}
 	pair, err := s.issue(ctx, user)
 	if err != nil {
 		return auth.TokenPair{}, sqlc.IdentityUser{}, err
