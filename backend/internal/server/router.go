@@ -23,15 +23,17 @@ import (
 	"github.com/ragbuaj/inventra/internal/identity"
 	"github.com/ragbuaj/inventra/internal/masterdata"
 	"github.com/ragbuaj/inventra/internal/middleware"
+	"github.com/ragbuaj/inventra/internal/ratelimit"
 	"github.com/ragbuaj/inventra/internal/user"
 )
 
 // Deps holds the shared infrastructure passed to feature modules.
 type Deps struct {
-	Cfg   *config.Config
-	Pool  *pgxpool.Pool
-	Redis *redis.Client
-	Log   *slog.Logger
+	Cfg     *config.Config
+	Pool    *pgxpool.Pool
+	Redis   *redis.Client
+	Log     *slog.Logger
+	Limiter *ratelimit.Limiter
 }
 
 // NewRouter builds the Gin engine with base middleware, health, and readiness probes.
@@ -41,6 +43,17 @@ func NewRouter(d Deps) *gin.Engine {
 	}
 
 	r := gin.New()
+
+	// Trust only configured proxies so c.ClientIP() (used by rate limiting) cannot be
+	// spoofed via X-Forwarded-For. Empty TRUSTED_PROXIES → trust none (direct RemoteAddr);
+	// set to the load-balancer CIDR(s) in production. On a bad value, fail safe (trust none).
+	if err := r.SetTrustedProxies(d.Cfg.TrustedProxies); err != nil {
+		if d.Log != nil {
+			d.Log.Error("invalid TRUSTED_PROXIES; trusting no proxies", "error", err)
+		}
+		_ = r.SetTrustedProxies(nil)
+	}
+
 	r.Use(
 		middleware.RequestID(),
 		middleware.RequestLogger(d.Log),
@@ -98,6 +111,7 @@ func NewRouter(d Deps) *gin.Engine {
 	requireAuth := middleware.RequireAuth(tokenManager, tokenStore)
 
 	api := r.Group("/api/v1")
+	api.Use(middleware.PerIP(d.Limiter, d.Cfg.RateLimitGlobalPerMin, "global", false))
 	{
 		api.GET("/health", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"status": "ok"})
@@ -109,8 +123,8 @@ func NewRouter(d Deps) *gin.Engine {
 		auditSvc := audit.NewService(queries)
 
 		identitySvc := identity.NewService(queries, tokenManager, tokenStore)
-		identityHandler := identity.NewHandler(identitySvc, permSvc, scopeSvc)
-		identity.RegisterRoutes(api, identityHandler, requireAuth)
+		identityHandler := identity.NewHandler(identitySvc, permSvc, scopeSvc, d.Limiter, d.Cfg.RateLimitLoginPerMin)
+		identity.RegisterRoutes(api, identityHandler, requireAuth, d.Limiter, d.Cfg.RateLimitLoginIPPerMin, d.Cfg.RateLimitRefreshPerMin)
 
 		userHandler := user.NewHandler(user.NewService(queries), fieldSvc, auditSvc)
 		user.RegisterRoutes(api, userHandler, requireAuth, middleware.RequirePermission(permSvc, "user.manage"))

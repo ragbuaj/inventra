@@ -7,6 +7,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -52,6 +53,20 @@ type Config struct {
 	// Logging (ADR-0002).
 	LogLevel  string
 	LogFormat string
+
+	// Rate limiting (ADR-0004).
+	RateLimitEnabled       bool
+	RateLimitTimeoutMS     int
+	RateLimitGlobalPerMin  int
+	RateLimitLoginPerMin   int
+	RateLimitLoginIPPerMin int
+	RateLimitRefreshPerMin int
+
+	// TrustedProxies lists the CIDRs/IPs whose X-Forwarded-For header Gin should
+	// honour when resolving c.ClientIP() for rate limiting. nil = trust none
+	// (use direct RemoteAddr, which cannot be spoofed). Set to your load-balancer
+	// CIDR(s) in production via TRUSTED_PROXIES (comma-separated).
+	TrustedProxies []string
 }
 
 // Load reads configuration from the environment, applying sensible development
@@ -92,6 +107,15 @@ func Load() *Config {
 
 		LogLevel:  getEnv("LOG_LEVEL", "info"),
 		LogFormat: getEnv("LOG_FORMAT", ""),
+
+		RateLimitEnabled:       getEnvBool("RATELIMIT_ENABLED", true),
+		RateLimitTimeoutMS:     getEnvInt("RATELIMIT_TIMEOUT_MS", 50),
+		RateLimitGlobalPerMin:  getEnvInt("RATELIMIT_GLOBAL_PER_MIN", 120),
+		RateLimitLoginPerMin:   getEnvInt("RATELIMIT_LOGIN_PER_MIN", 5),
+		RateLimitLoginIPPerMin: getEnvInt("RATELIMIT_LOGIN_IP_PER_MIN", 20),
+		RateLimitRefreshPerMin: getEnvInt("RATELIMIT_REFRESH_PER_MIN", 30),
+
+		TrustedProxies: splitCSV(getEnv("TRUSTED_PROXIES", "")),
 	}
 }
 
@@ -127,4 +151,19 @@ func getEnvDuration(key string, fallback time.Duration) time.Duration {
 		}
 	}
 	return fallback
+}
+
+// splitCSV parses a comma-separated value into a trimmed, non-empty slice (nil if empty).
+func splitCSV(s string) []string {
+	if strings.TrimSpace(s) == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if v := strings.TrimSpace(p); v != "" {
+			out = append(out, v)
+		}
+	}
+	return out
 }

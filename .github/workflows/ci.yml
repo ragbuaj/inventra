@@ -61,6 +61,8 @@ jobs:
       # Infra + migrations + API only — the frontend under test is the one
       # Playwright builds/serves, not the compose `frontend` service.
       - name: Start backend stack
+        env:
+          RATELIMIT_ENABLED: "false"
         run: docker compose up -d --build postgres redis minio migrate backend
 
       - uses: actions/setup-go@v5

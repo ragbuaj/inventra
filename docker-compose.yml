@@ -92,6 +92,7 @@ services:
       MINIO_USE_SSL: "false"
       JWT_SECRET: change-me-in-production
       FRONTEND_URL: http://localhost:3000
+      RATELIMIT_ENABLED: "${RATELIMIT_ENABLED:-true}"
     ports:
       - "8080:8080"
 

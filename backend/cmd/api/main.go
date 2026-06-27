@@ -19,6 +19,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/config"
 	"github.com/ragbuaj/inventra/internal/db"
 	"github.com/ragbuaj/inventra/internal/logging"
+	"github.com/ragbuaj/inventra/internal/ratelimit"
 	"github.com/ragbuaj/inventra/internal/server"
 )
 
@@ -50,9 +51,11 @@ func main() {
 		slog.Info("Redis connected")
 	}
 
+	limiter := ratelimit.New(rdb, cfg)
+
 	srv := &http.Server{
 		Addr:              ":" + cfg.ServerPort,
-		Handler:           server.NewRouter(server.Deps{Cfg: cfg, Pool: pool, Redis: rdb, Log: logger}),
+		Handler:           server.NewRouter(server.Deps{Cfg: cfg, Pool: pool, Redis: rdb, Log: logger, Limiter: limiter}),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
