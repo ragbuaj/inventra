@@ -165,6 +165,10 @@ paths:
       responses:
         "200":
           description: Logged out
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: Clears the `inventra_refresh` HttpOnly cookie.
           content:
             application/json:
               schema:
