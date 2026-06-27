@@ -22,7 +22,11 @@ func CORS(allowedOrigin string) gin.HandlerFunc {
 			h.Set("Access-Control-Allow-Origin", origin)
 			h.Set("Access-Control-Allow-Credentials", "true")
 			h.Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-			h.Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+			// X-Request-ID is sent by the SPA on every API call for request correlation
+			// (ADR-0002); it must be allow-listed or the browser blocks the request, and
+			// exposed so the client can read the echoed id from the response.
+			h.Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Request-ID")
+			h.Set("Access-Control-Expose-Headers", "X-Request-ID")
 			h.Set("Access-Control-Max-Age", "600")
 			h.Add("Vary", "Origin")
 		}

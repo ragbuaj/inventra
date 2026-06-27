@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -31,6 +32,24 @@ func TestCORSAllowsConfiguredOrigin(t *testing.T) {
 	}
 	if got := w.Header().Get("Access-Control-Allow-Credentials"); got != "true" {
 		t.Fatalf("Access-Control-Allow-Credentials = %q, want \"true\"", got)
+	}
+}
+
+func TestCORSAllowsAndExposesRequestID(t *testing.T) {
+	r := newCORSRouter()
+
+	req := httptest.NewRequest(http.MethodPost, "/auth/login", nil)
+	req.Header.Set("Origin", testOrigin)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	// The SPA sends X-Request-ID on every call (ADR-0002); without it in
+	// Allow-Headers the browser blocks every authenticated request.
+	if got := w.Header().Get("Access-Control-Allow-Headers"); !strings.Contains(got, "X-Request-ID") {
+		t.Fatalf("Access-Control-Allow-Headers = %q, must include X-Request-ID", got)
+	}
+	if got := w.Header().Get("Access-Control-Expose-Headers"); !strings.Contains(got, "X-Request-ID") {
+		t.Fatalf("Access-Control-Expose-Headers = %q, must include X-Request-ID", got)
 	}
 }
 
