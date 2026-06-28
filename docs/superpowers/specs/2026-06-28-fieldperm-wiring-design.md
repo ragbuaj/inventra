@@ -78,7 +78,7 @@ Catatan: grid hanya menyentuh entity `E`; entity lain (termasuk yang tak ada di 
 - `field-permission.vue`: selector entity (dari katalog), grid (field × kolom peran), `FieldPermToggle` per sel (view/edit), `dirtyRoleIds` + Save (PUT hanya peran berubah, paralel), state loading/error+retry, badge "Default" untuk field tanpa restriksi. id identity di seluruh binding.
 - `components/fieldperm/FieldPermToggle.vue`: tak berubah selain sumber tipe `CellRule` (pindah dari mock ke constants bila perlu).
 - Konstanta UI yang bocor dari mock (`FIELD_ROLE_KEYS`, `CellRule`) → pindah ke `~/constants/fieldCatalog.ts` atau hilangkan (kolom peran kini dari API).
-- i18n (`settings.fieldPermission`): `entity.<key>` (assets/users), `field.<key>` (label field, fallback ke key), `loadError`, `retry`. Label field di-resolve via `te()/t()` dengan fallback ke key mentah.
+- i18n (`settings.fieldPermission`): `entity.<key>` (assets/users), `field.<field>` (**flat** — satu peta label field; key sama lintas entity mis. `name`/`status`/`office_id` berbagi label, wajar), `loadError`, `retry`. Label entity & field di-resolve via `te()/t()` dengan **fallback ke key mentah** (sehingga field tanpa entri i18n tetap tampil).
 
 ## 6. Pengujian (proaktif & luas)
 
