@@ -229,6 +229,8 @@ func TestBarcode_QR(t *testing.T) {
 	w := h.do(t, http.MethodGet, path, nil, "")
 	require.Equal(t, http.StatusOK, w.Code, "barcode qr → 200; body len: %d", w.Body.Len())
 	assert.Equal(t, "image/png", w.Header().Get("Content-Type"))
+	assert.Equal(t, "nosniff", w.Header().Get("X-Content-Type-Options"),
+		"must set X-Content-Type-Options: nosniff")
 
 	_, fmt, err := image.Decode(bytes.NewReader(w.Body.Bytes()))
 	require.NoError(t, err, "QR response body must decode as a valid image")
@@ -359,6 +361,7 @@ func TestLabel_QROnlyGeneric(t *testing.T) {
 	})
 	w := h.do(t, http.MethodPost, "/api/v1/assets/labels", body, "application/json")
 	require.Equal(t, http.StatusOK, w.Code, "generic qr-only roll → 200; body: %s", w.Body.String())
+	assert.Equal(t, "application/pdf", w.Header().Get("Content-Type"))
 	assert.True(t, bytes.HasPrefix(w.Body.Bytes(), []byte("%PDF")))
 }
 
@@ -377,6 +380,7 @@ func TestLabel_WithNameAndOfficeFields(t *testing.T) {
 	})
 	w := h.do(t, http.MethodPost, "/api/v1/assets/labels", body, "application/json")
 	require.Equal(t, http.StatusOK, w.Code, "label with name+office fields → 200; body: %s", w.Body.String())
+	assert.Equal(t, "application/pdf", w.Header().Get("Content-Type"))
 	assert.True(t, bytes.HasPrefix(w.Body.Bytes(), []byte("%PDF")))
 }
 
@@ -538,6 +542,7 @@ func TestLabel_CustomSizePreset(t *testing.T) {
 	})
 	w := h.do(t, http.MethodPost, "/api/v1/assets/labels", body, "application/json")
 	require.Equal(t, http.StatusOK, w.Code, "60x24 preset → 200; body: %s", w.Body.String())
+	assert.Equal(t, "application/pdf", w.Header().Get("Content-Type"))
 	assert.True(t, bytes.HasPrefix(w.Body.Bytes(), []byte("%PDF")))
 }
 
@@ -550,6 +555,6 @@ func TestLabel_UnknownSizePreset(t *testing.T) {
 		"size":      "999x999",
 	})
 	w := h.do(t, http.MethodPost, "/api/v1/assets/labels", body, "application/json")
-	assert.True(t, w.Code == http.StatusBadRequest || w.Code == http.StatusUnprocessableEntity,
-		"unknown size preset → 400 or 422; got %d; body: %s", w.Code, w.Body.String())
+	assert.Equal(t, http.StatusBadRequest, w.Code,
+		"unknown size preset → 400; got %d; body: %s", w.Code, w.Body.String())
 }
