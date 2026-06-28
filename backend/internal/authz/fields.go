@@ -57,6 +57,12 @@ func (s *FieldService) forRole(ctx context.Context, roleID uuid.UUID) (map[strin
 	return byEntity, nil
 }
 
+// Invalidate clears the cached field permissions for a role
+// (call after changing field_permissions).
+func (s *FieldService) Invalidate(ctx context.Context, roleID uuid.UUID) error {
+	return s.rdb.Del(ctx, "authz:fields:"+roleID.String()).Err()
+}
+
 // FilterView removes fields the role may not view from a serialized record.
 // Fields with no explicit policy stay visible (default-allow).
 func FilterView(policies map[string]FieldPolicy, data map[string]any) {
