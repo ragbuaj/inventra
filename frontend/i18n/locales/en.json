@@ -638,7 +638,7 @@
       "defaultTag": "Default",
       "resetField": "Revert to default",
       "empty": "No matching field.",
-      "footNote": "Example on the Asset entity: harga_beli is viewable only by Superadmin & Manager (edited by Superadmin), while nilai_buku is Superadmin-only. Click the reset icon to revert a field to default.",
+      "footNote": "Fields without an explicit rule follow the default (view & edit allowed). Configure per role to hide or lock sensitive fields.",
       "entity": { "assets": "Assets", "users": "User" },
       "field": {
         "name": "Name", "category_id": "Category", "office_id": "Office", "serial_number": "Serial number",

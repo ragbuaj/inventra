@@ -1,111 +1,118 @@
 <script setup lang="ts">
-import type { EntityRules, CellRule } from '~/mock/fieldPermission'
-import type { EntityView, RoleColumn } from '~/composables/api/useFieldPermission'
+import type { RoleColumn, EntityRules } from '~/composables/api/useFieldPermission'
 import { useFieldPermission } from '~/composables/api/useFieldPermission'
-import { FIELD_ROLE_KEYS } from '~/mock/fieldPermission'
+import type { CellRule } from '~/constants/fieldCatalog'
 
 definePageMeta({ middleware: 'can', permission: 'user.manage' })
 
-type Locale = 'id' | 'en'
-
-const { t, locale } = useI18n()
+const { t, te } = useI18n()
 const toast = useToast()
-const { getEntities, getRoleColumns, getRules, saveRules } = useFieldPermission()
+const { getEntities, load, getRules, saveRules } = useFieldPermission()
 
-const entities = ref<EntityView[]>([])
+const entities = getEntities() // [{ key, fields }]
 const roleCols = ref<RoleColumn[]>([])
-const entityKey = ref('aset')
+const entityKey = ref(entities[0]?.key ?? 'assets')
 const rules = ref<EntityRules>({})
 const search = ref('')
 const loading = ref(true)
+const loadFailed = ref(false)
 const saving = ref(false)
 const dirty = ref(false)
 
-const entityOptions = computed(() => entities.value.map(e => ({ value: e.key, label: e.label })))
-const currentEntity = computed(() => entities.value.find(e => e.key === entityKey.value))
+function entityLabel(key: string): string {
+  const k = `settings.fieldPermission.entity.${key}`
+  return te(k) ? t(k) : key
+}
+function fieldLabel(field: string): string {
+  const k = `settings.fieldPermission.field.${field}`
+  return te(k) ? t(k) : field
+}
+
+const entityOptions = computed(() => entities.map(e => ({ value: e.key, label: entityLabel(e.key) })))
+const currentEntity = computed(() => entities.find(e => e.key === entityKey.value))
 
 const filteredFields = computed(() => {
   const q = search.value.trim().toLowerCase()
-  return (currentEntity.value?.fields ?? []).filter(fl => !q || fl.code.toLowerCase().includes(q) || fl.label.toLowerCase().includes(q))
+  return (currentEntity.value?.fields ?? []).filter(f => !q || f.toLowerCase().includes(q) || fieldLabel(f).toLowerCase().includes(q))
 })
 
-function isExplicit(code: string): boolean {
-  return !!rules.value[code]
+function isExplicit(field: string): boolean {
+  return !!rules.value[field]
 }
-function cell(code: string, roleKey: string): CellRule {
-  const fr = rules.value[code]
-  if (fr) return fr[roleKey] ?? { view: false, edit: false }
+// Default-allow: a cell with no explicit restriction is view+edit.
+function cell(field: string, roleId: string): CellRule {
+  const fr = rules.value[field]
+  if (fr && fr[roleId]) return fr[roleId]
   return { view: true, edit: true }
 }
-function ensure(code: string) {
-  if (rules.value[code]) return
+function ensure(field: string) {
+  if (rules.value[field]) return
   const fr: Record<string, CellRule> = {}
-  for (const k of FIELD_ROLE_KEYS) fr[k] = { view: true, edit: true }
-  rules.value = { ...rules.value, [code]: fr }
+  for (const c of roleCols.value) fr[c.key] = { view: true, edit: true }
+  rules.value = { ...rules.value, [field]: fr }
 }
-function toggleView(code: string, roleKey: string) {
-  ensure(code)
-  const fr = rules.value[code]
+function toggleView(field: string, roleId: string) {
+  ensure(field)
+  const fr = rules.value[field]
   if (!fr) return
-  const cur: CellRule = { ...(fr[roleKey] ?? { view: false, edit: false }) }
+  const cur: CellRule = { ...(fr[roleId] ?? { view: false, edit: false }) }
   cur.view = !cur.view
   if (!cur.view) cur.edit = false
-  fr[roleKey] = cur
+  fr[roleId] = cur
   dirty.value = true
 }
-function toggleEdit(code: string, roleKey: string) {
-  ensure(code)
-  const fr = rules.value[code]
+function toggleEdit(field: string, roleId: string) {
+  ensure(field)
+  const fr = rules.value[field]
   if (!fr) return
-  const cur: CellRule = { ...(fr[roleKey] ?? { view: false, edit: false }) }
+  const cur: CellRule = { ...(fr[roleId] ?? { view: false, edit: false }) }
   cur.edit = !cur.edit
   if (cur.edit) cur.view = true
-  fr[roleKey] = cur
+  fr[roleId] = cur
   dirty.value = true
 }
-function resetField(code: string) {
-  const { [code]: _omit, ...rest } = rules.value
+function resetField(field: string) {
+  const { [field]: _omit, ...rest } = rules.value
   rules.value = rest
   dirty.value = true
 }
 
-async function loadEntityRules() {
-  loading.value = true
-  rules.value = await getRules(entityKey.value)
+function refreshRules() {
+  rules.value = getRules(entityKey.value)
   dirty.value = false
-  loading.value = false
+}
+
+async function load_() {
+  loading.value = true
+  loadFailed.value = false
+  try {
+    roleCols.value = await load()
+    refreshRules()
+  } catch {
+    loadFailed.value = true
+  } finally {
+    loading.value = false
+  }
 }
 
 function onEntityChange() {
   search.value = ''
-  loadEntityRules()
+  refreshRules()
 }
 
 async function save() {
   if (!dirty.value) return
   saving.value = true
   try {
-    await saveRules(entityKey.value, rules.value)
-    dirty.value = false
+    await saveRules(entityKey.value, rules.value, roleCols.value.map(c => c.key))
+    refreshRules()
     toast.add({ title: t('settings.fieldPermission.savedToast'), color: 'success', icon: 'i-lucide-save' })
   } finally {
     saving.value = false
   }
 }
 
-function loadMeta() {
-  entities.value = getEntities(locale.value as Locale)
-  roleCols.value = getRoleColumns(locale.value as Locale)
-}
-
-watch(locale, () => {
-  loadMeta()
-})
-
-onMounted(() => {
-  loadMeta()
-  loadEntityRules()
-})
+onMounted(() => load_())
 </script>
 
 <template>
@@ -139,130 +146,163 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Controls -->
-    <div class="flex items-center gap-3 flex-wrap mb-3.5">
-      <div class="flex items-center gap-2.5">
-        <span class="text-[13px] font-medium text-muted">{{ t('settings.fieldPermission.entityLabel') }}</span>
-        <USelect
-          v-model="entityKey"
-          :items="entityOptions"
-          class="min-w-[160px]"
-          @update:model-value="onEntityChange"
-        />
-      </div>
-      <UInput
-        v-model="search"
-        icon="i-lucide-search"
-        :placeholder="t('settings.fieldPermission.searchPlaceholder')"
-        class="flex-1 min-w-[200px] max-w-[320px]"
-      />
-      <div class="flex items-center gap-3.5 ms-auto">
-        <span class="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
-          <span class="size-[18px] rounded bg-info/10 text-info flex items-center justify-center">
-            <UIcon
-              name="i-lucide-eye"
-              class="size-[11px]"
-            />
-          </span>
-          {{ t('settings.fieldPermission.viewLabel') }}
-        </span>
-        <span class="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
-          <span class="size-[18px] rounded bg-primary/10 text-primary flex items-center justify-center">
-            <UIcon
-              name="i-lucide-pencil"
-              class="size-[11px]"
-            />
-          </span>
-          {{ t('settings.fieldPermission.editLabel') }}
-        </span>
-      </div>
-    </div>
-
-    <!-- Matrix -->
-    <div class="bg-default border border-default rounded-[13px] shadow-sm overflow-hidden">
-      <div class="overflow-x-auto rounded-[13px]">
-        <table class="w-full border-collapse whitespace-nowrap">
-          <thead>
-            <tr class="bg-muted">
-              <th class="text-left px-4 py-3 text-xs font-semibold uppercase text-muted sticky left-0 bg-muted z-[2] min-w-[230px]">
-                {{ t('settings.fieldPermission.fieldColumn') }}
-              </th>
-              <th
-                v-for="c in roleCols"
-                :key="c.key"
-                class="text-center px-3.5 py-3 text-[11.5px] font-semibold uppercase text-muted border-s border-default"
-              >
-                {{ c.label }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="fl in filteredFields"
-              :key="fl.code"
-              class="border-t border-default hover:bg-muted/50"
-            >
-              <td class="px-4 py-[11px] sticky left-0 bg-default z-[1]">
-                <div class="flex items-center gap-2.5">
-                  <div class="min-w-0">
-                    <div class="text-[12.5px] font-semibold font-mono">
-                      {{ fl.code }}
-                    </div>
-                    <div class="text-[11.5px] text-dimmed">
-                      {{ fl.label }}
-                    </div>
-                  </div>
-                  <UBadge
-                    v-if="!isExplicit(fl.code)"
-                    color="neutral"
-                    variant="subtle"
-                    size="sm"
-                    class="rounded-full"
-                  >
-                    {{ t('settings.fieldPermission.defaultTag') }}
-                  </UBadge>
-                  <UButton
-                    v-else
-                    icon="i-lucide-rotate-ccw"
-                    color="neutral"
-                    variant="ghost"
-                    size="xs"
-                    :title="t('settings.fieldPermission.resetField')"
-                    @click="resetField(fl.code)"
-                  />
-                </div>
-              </td>
-              <td
-                v-for="c in roleCols"
-                :key="c.key"
-                class="px-3 py-2.5 text-center border-s border-default"
-              >
-                <FieldpermFieldPermToggle
-                  :view="cell(fl.code, c.key).view"
-                  :edit="cell(fl.code, c.key).edit"
-                  :dimmed="!isExplicit(fl.code)"
-                  @toggle-view="toggleView(fl.code, c.key)"
-                  @toggle-edit="toggleEdit(fl.code, c.key)"
-                />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div
-        v-if="!loading && filteredFields.length === 0"
-        class="py-11 text-center text-[13.5px] text-dimmed"
-      >
-        {{ t('settings.fieldPermission.empty') }}
-      </div>
-    </div>
-
-    <div class="mt-3.5 flex items-start gap-2 max-w-[780px] text-[12.5px] leading-relaxed text-dimmed">
+    <!-- Loading state -->
+    <div
+      v-if="loading"
+      class="flex items-center justify-center py-20"
+    >
       <UIcon
-        name="i-lucide-info"
-        class="size-3.5 mt-0.5 flex-none"
+        name="i-lucide-loader-circle"
+        class="size-6 animate-spin text-muted"
       />
-      <span>{{ t('settings.fieldPermission.footNote') }}</span>
     </div>
+
+    <!-- Load error state -->
+    <div
+      v-else-if="loadFailed"
+      class="flex flex-col items-center justify-center gap-3 py-20 text-muted"
+    >
+      <UIcon
+        name="i-lucide-circle-alert"
+        class="size-6"
+      />
+      <span class="text-sm">{{ t('settings.fieldPermission.loadError') }}</span>
+      <UButton
+        color="neutral"
+        variant="subtle"
+        @click="load_"
+      >
+        {{ t('settings.fieldPermission.retry') }}
+      </UButton>
+    </div>
+
+    <!-- Controls + Matrix -->
+    <template v-else>
+      <!-- Controls -->
+      <div class="flex items-center gap-3 flex-wrap mb-3.5">
+        <div class="flex items-center gap-2.5">
+          <span class="text-[13px] font-medium text-muted">{{ t('settings.fieldPermission.entityLabel') }}</span>
+          <USelect
+            v-model="entityKey"
+            :items="entityOptions"
+            class="min-w-[160px]"
+            @update:model-value="onEntityChange"
+          />
+        </div>
+        <UInput
+          v-model="search"
+          icon="i-lucide-search"
+          :placeholder="t('settings.fieldPermission.searchPlaceholder')"
+          class="flex-1 min-w-[200px] max-w-[320px]"
+        />
+        <div class="flex items-center gap-3.5 ms-auto">
+          <span class="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
+            <span class="size-[18px] rounded bg-info/10 text-info flex items-center justify-center">
+              <UIcon
+                name="i-lucide-eye"
+                class="size-[11px]"
+              />
+            </span>
+            {{ t('settings.fieldPermission.viewLabel') }}
+          </span>
+          <span class="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
+            <span class="size-[18px] rounded bg-primary/10 text-primary flex items-center justify-center">
+              <UIcon
+                name="i-lucide-pencil"
+                class="size-[11px]"
+              />
+            </span>
+            {{ t('settings.fieldPermission.editLabel') }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Matrix -->
+      <div class="bg-default border border-default rounded-[13px] shadow-sm overflow-hidden">
+        <div class="overflow-x-auto rounded-[13px]">
+          <table class="w-full border-collapse whitespace-nowrap">
+            <thead>
+              <tr class="bg-muted">
+                <th class="text-left px-4 py-3 text-xs font-semibold uppercase text-muted sticky left-0 bg-muted z-[2] min-w-[230px]">
+                  {{ t('settings.fieldPermission.fieldColumn') }}
+                </th>
+                <th
+                  v-for="c in roleCols"
+                  :key="c.key"
+                  class="text-center px-3.5 py-3 text-[11.5px] font-semibold uppercase text-muted border-s border-default"
+                >
+                  {{ c.label }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="fl in filteredFields"
+                :key="fl"
+                class="border-t border-default hover:bg-muted/50"
+              >
+                <td class="px-4 py-[11px] sticky left-0 bg-default z-[1]">
+                  <div class="flex items-center gap-2.5">
+                    <div class="min-w-0">
+                      <div class="text-[12.5px] font-semibold font-mono">
+                        {{ fl }}
+                      </div>
+                      <div class="text-[11.5px] text-dimmed">
+                        {{ fieldLabel(fl) }}
+                      </div>
+                    </div>
+                    <UBadge
+                      v-if="!isExplicit(fl)"
+                      color="neutral"
+                      variant="subtle"
+                      size="sm"
+                      class="rounded-full"
+                    >
+                      {{ t('settings.fieldPermission.defaultTag') }}
+                    </UBadge>
+                    <UButton
+                      v-else
+                      icon="i-lucide-rotate-ccw"
+                      color="neutral"
+                      variant="ghost"
+                      size="xs"
+                      :title="t('settings.fieldPermission.resetField')"
+                      @click="resetField(fl)"
+                    />
+                  </div>
+                </td>
+                <td
+                  v-for="c in roleCols"
+                  :key="c.key"
+                  class="px-3 py-2.5 text-center border-s border-default"
+                >
+                  <FieldpermFieldPermToggle
+                    :view="cell(fl, c.key).view"
+                    :edit="cell(fl, c.key).edit"
+                    :dimmed="!isExplicit(fl)"
+                    @toggle-view="toggleView(fl, c.key)"
+                    @toggle-edit="toggleEdit(fl, c.key)"
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div
+          v-if="filteredFields.length === 0"
+          class="py-11 text-center text-[13.5px] text-dimmed"
+        >
+          {{ t('settings.fieldPermission.empty') }}
+        </div>
+      </div>
+
+      <div class="mt-3.5 flex items-start gap-2 max-w-[780px] text-[12.5px] leading-relaxed text-dimmed">
+        <UIcon
+          name="i-lucide-info"
+          class="size-3.5 mt-0.5 flex-none"
+        />
+        <span>{{ t('settings.fieldPermission.footNote') }}</span>
+      </div>
+    </template>
   </div>
 </template>
