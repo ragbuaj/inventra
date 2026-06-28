@@ -3,10 +3,10 @@ import type { RoleView } from '~/composables/api/useRbac'
 
 defineProps<{
   roles: RoleView[]
-  selectedKey: string
+  selectedId: string
 }>()
 
-defineEmits<{ select: [key: string], add: [] }>()
+defineEmits<{ select: [id: string], add: [] }>()
 
 const { t } = useI18n()
 </script>
@@ -25,17 +25,17 @@ const { t } = useI18n()
     <div class="flex-1 overflow-y-auto px-[10px]">
       <button
         v-for="r in roles"
-        :key="r.key"
+        :key="r.id"
         type="button"
         class="flex items-center gap-[10px] w-full px-[11px] py-[10px] mb-[3px] rounded-[9px] border text-left transition-colors cursor-pointer hover:border-primary"
-        :class="r.key === selectedKey
+        :class="r.id === selectedId
           ? 'border-primary bg-primary/10'
           : 'border-default bg-default'"
-        @click="$emit('select', r.key)"
+        @click="$emit('select', r.id)"
       >
         <span
           class="size-8 rounded-lg flex items-center justify-center flex-none"
-          :class="r.key === selectedKey ? 'bg-primary/20 text-primary' : 'bg-muted text-muted'"
+          :class="r.id === selectedId ? 'bg-primary/20 text-primary' : 'bg-muted text-muted'"
         >
           <UIcon
             name="i-lucide-shield"
@@ -45,16 +45,16 @@ const { t } = useI18n()
         <div class="flex-1 min-w-0">
           <div
             class="font-semibold text-[13.5px] truncate"
-            :class="r.key === selectedKey ? 'text-primary' : 'text-default'"
+            :class="r.id === selectedId ? 'text-primary' : 'text-default'"
           >
-            {{ r.nama }}
+            {{ r.name }}
           </div>
           <div class="text-[11.5px] text-dimmed">
             {{ t('settings.rbac.permCount', { n: r.perms.length }) }}
           </div>
         </div>
         <UIcon
-          v-if="r.system"
+          v-if="r.is_system"
           name="i-lucide-lock"
           class="size-[13px] text-dimmed flex-none"
           :title="t('settings.rbac.systemBadge')"

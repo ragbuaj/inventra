@@ -4,61 +4,64 @@ import { useRbac } from '~/composables/api/useRbac'
 
 definePageMeta({ middleware: 'can', permission: 'user.manage' })
 
-type Locale = 'id' | 'en'
-
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const toast = useToast()
-const { getModules, listRoles, createRole, updateRolePermissions } = useRbac()
+const { getCatalog, listRoles, getRolePermissions, createRole, updateRolePermissions } = useRbac()
 
 const roles = ref<RoleView[]>([])
 const modules = ref<ModuleView[]>([])
-const selectedKey = ref('')
+const selectedId = ref('')
 const draft = ref<string[]>([])
 const dirty = ref(false)
 const loading = ref(true)
+const loadFailed = ref(false)
 const saving = ref(false)
 
-const selectedRole = computed(() => roles.value.find(r => r.key === selectedKey.value))
-const saveDisabled = computed(() => !!selectedRole.value?.system || !dirty.value)
+const selectedRole = computed(() => roles.value.find(r => r.id === selectedId.value))
+const saveDisabled = computed(() => !dirty.value)
 
 async function load() {
   loading.value = true
-  modules.value = getModules(locale.value as Locale)
-  roles.value = await listRoles(locale.value as Locale)
-  if (!selectedKey.value || !roles.value.some(r => r.key === selectedKey.value)) {
-    // Match the mockup's default selection (the Manager role).
-    selectedKey.value = roles.value.some(r => r.key === 'manager')
-      ? 'manager'
-      : (roles.value[0]?.key ?? '')
+  loadFailed.value = false
+  try {
+    const [mods, roleList] = await Promise.all([getCatalog(), listRoles()])
+    modules.value = mods
+    // Eager-load each role's permissions (parallel) so the list count + matrix are populated.
+    const permsList = await Promise.all(roleList.map(r => getRolePermissions(r.id)))
+    roleList.forEach((r, i) => {
+      r.perms = permsList[i] ?? []
+    })
+    roles.value = roleList
+    if (!selectedId.value || !roles.value.some(r => r.id === selectedId.value)) {
+      const mgr = roles.value.find(r => r.code === 'manager')
+      selectedId.value = mgr?.id ?? roles.value[0]?.id ?? ''
+    }
+    draft.value = [...(selectedRole.value?.perms ?? [])]
+    dirty.value = false
+  } catch {
+    loadFailed.value = true
+  } finally {
+    loading.value = false
   }
-  draft.value = [...(selectedRole.value?.perms ?? [])]
-  dirty.value = false
-  loading.value = false
 }
 
-function selectRole(key: string) {
-  selectedKey.value = key
-  draft.value = [...(roles.value.find(r => r.key === key)?.perms ?? [])]
+function selectRole(id: string) {
+  selectedId.value = id
+  draft.value = [...(roles.value.find(r => r.id === id)?.perms ?? [])]
   dirty.value = false
 }
 
 function togglePerm(code: string) {
-  if (selectedRole.value?.system) return
-  draft.value = draft.value.includes(code)
-    ? draft.value.filter(c => c !== code)
-    : [...draft.value, code]
+  draft.value = draft.value.includes(code) ? draft.value.filter(c => c !== code) : [...draft.value, code]
   dirty.value = true
 }
 
 function toggleModule(modKey: string) {
-  if (selectedRole.value?.system) return
   const mod = modules.value.find(m => m.key === modKey)
   if (!mod) return
   const ids = mod.perms.map(p => p.code)
   const allOn = ids.every(id => draft.value.includes(id))
-  draft.value = allOn
-    ? draft.value.filter(c => !ids.includes(c))
-    : [...new Set([...draft.value, ...ids])]
+  draft.value = allOn ? draft.value.filter(c => !ids.includes(c)) : [...new Set([...draft.value, ...ids])]
   dirty.value = true
 }
 
@@ -66,8 +69,8 @@ async function save() {
   if (saveDisabled.value) return
   saving.value = true
   try {
-    await updateRolePermissions(selectedKey.value, draft.value)
-    const r = roles.value.find(x => x.key === selectedKey.value)
+    await updateRolePermissions(selectedId.value, draft.value)
+    const r = roles.value.find(x => x.id === selectedId.value)
     if (r) r.perms = [...draft.value]
     dirty.value = false
     toast.add({ title: t('settings.rbac.savedToast'), color: 'success', icon: 'i-lucide-save' })
@@ -76,51 +79,51 @@ async function save() {
   }
 }
 
-// Add Role modal. NO_COPY is a sentinel — Nuxt UI's Select rejects an empty-string value.
+// Add Role modal. NO_COPY sentinel — Nuxt UI Select rejects empty-string values.
 const NO_COPY = '__none__'
 const addOpen = ref(false)
-const addForm = reactive({ nama: '', copyFromKey: NO_COPY, desc: '' })
+const addForm = reactive({ name: '', copyFromId: NO_COPY, desc: '' })
 const addError = ref('')
 const creating = ref(false)
 
 const copyOptions = computed(() => [
   { value: NO_COPY, label: t('settings.rbac.add.copyNone') },
-  ...roles.value.map(r => ({ value: r.key, label: r.nama }))
+  ...roles.value.map(r => ({ value: r.id, label: r.name }))
 ])
 
 function openAdd() {
-  addForm.nama = ''
-  addForm.copyFromKey = NO_COPY
+  addForm.name = ''
+  addForm.copyFromId = NO_COPY
   addForm.desc = ''
   addError.value = ''
   addOpen.value = true
 }
 
 async function submitAdd() {
-  if (!addForm.nama.trim()) {
+  if (!addForm.name.trim()) {
     addError.value = t('settings.rbac.add.required')
     return
   }
   creating.value = true
   try {
-    const created = await createRole(
-      {
-        nama: addForm.nama,
-        copyFromKey: addForm.copyFromKey !== NO_COPY ? addForm.copyFromKey : undefined,
-        desc: addForm.desc
-      },
-      locale.value as Locale
-    )
+    const created = await createRole({
+      name: addForm.name,
+      copyFromId: addForm.copyFromId !== NO_COPY ? addForm.copyFromId : undefined,
+      description: addForm.desc
+    })
     roles.value.push(created)
-    selectRole(created.key)
+    selectRole(created.id)
     addOpen.value = false
     toast.add({ title: t('settings.rbac.add.createdToast'), color: 'success', icon: 'i-lucide-plus' })
+  } catch (err: unknown) {
+    // 409 = duplicate code/name -> inline form error instead of a generic toast.
+    if ((err as { statusCode?: number }).statusCode === 409) addError.value = t('settings.rbac.add.conflict')
+    else addError.value = t('settings.rbac.loadError')
   } finally {
     creating.value = false
   }
 }
 
-watch(locale, () => load())
 onMounted(() => load())
 </script>
 
@@ -136,10 +139,28 @@ onMounted(() => load())
       />
     </div>
 
+    <div
+      v-else-if="loadFailed"
+      class="flex-1 flex flex-col items-center justify-center gap-3 text-muted"
+    >
+      <UIcon
+        name="i-lucide-circle-alert"
+        class="size-6"
+      />
+      <span class="text-sm">{{ t('settings.rbac.loadError') }}</span>
+      <UButton
+        color="neutral"
+        variant="subtle"
+        @click="load"
+      >
+        {{ t('settings.rbac.retry') }}
+      </UButton>
+    </div>
+
     <template v-else>
       <RbacRoleList
         :roles="roles"
-        :selected-key="selectedKey"
+        :selected-id="selectedId"
         @select="selectRole"
         @add="openAdd"
       />
@@ -150,10 +171,10 @@ onMounted(() => load())
           <div class="min-w-0">
             <div class="flex items-center gap-[9px] flex-wrap">
               <h1 class="text-[19px] font-bold tracking-tight">
-                {{ selectedRole?.nama }}
+                {{ selectedRole?.name }}
               </h1>
               <UBadge
-                v-if="selectedRole?.system"
+                v-if="selectedRole?.is_system"
                 color="neutral"
                 variant="subtle"
                 class="rounded-full gap-1"
@@ -174,7 +195,7 @@ onMounted(() => load())
               </UBadge>
             </div>
             <div class="text-[13px] text-muted mt-[3px]">
-              {{ selectedRole?.desc }}
+              {{ selectedRole?.description }}
             </div>
           </div>
           <div class="flex items-center gap-3">
@@ -198,7 +219,7 @@ onMounted(() => load())
 
         <div class="flex-1 overflow-y-auto px-7 py-[22px]">
           <div
-            v-if="selectedRole?.system"
+            v-if="selectedRole?.is_system"
             class="flex gap-[11px] items-center px-3.5 py-3 mb-[18px] rounded-[11px] bg-muted border border-default"
           >
             <UIcon
@@ -214,7 +235,7 @@ onMounted(() => load())
               :key="m.key"
               :module="m"
               :granted="draft"
-              :readonly="selectedRole?.system"
+              :readonly="selectedRole?.is_system"
               @toggle="togglePerm"
               @toggle-all="toggleModule(m.key)"
             />
@@ -237,7 +258,7 @@ onMounted(() => load())
             :error="addError"
           >
             <UInput
-              v-model="addForm.nama"
+              v-model="addForm.name"
               :placeholder="t('settings.rbac.add.namePlaceholder')"
               class="w-full"
             />
@@ -245,7 +266,7 @@ onMounted(() => load())
 
           <UFormField :label="t('settings.rbac.add.copyFrom')">
             <USelect
-              v-model="addForm.copyFromKey"
+              v-model="addForm.copyFromId"
               :items="copyOptions"
               class="w-full"
             />

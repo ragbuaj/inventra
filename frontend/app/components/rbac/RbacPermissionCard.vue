@@ -9,7 +9,15 @@ const props = defineProps<{
 
 defineEmits<{ toggle: [code: string], toggleAll: [] }>()
 
-const { t } = useI18n()
+const { t, te } = useI18n()
+function permLabel(code: string, fallback: string) {
+  const k = `settings.rbac.catalog.perm.${code}`
+  return te(k) ? t(k) : fallback
+}
+function groupLabel(key: string, fallback: string) {
+  const k = `settings.rbac.catalog.group.${key}`
+  return te(k) ? t(k) : fallback
+}
 
 const grantedSet = computed(() => new Set(props.granted))
 const grantedCount = computed(() => props.module.perms.filter(p => grantedSet.value.has(p.code)).length)
@@ -28,7 +36,7 @@ const allOn = computed(() => grantedCount.value === props.module.perms.length)
       </span>
       <div class="flex-1 min-w-0">
         <div class="font-semibold text-sm">
-          {{ module.label }}
+          {{ groupLabel(module.key, module.label) }}
         </div>
         <div class="text-[11.5px] text-dimmed">
           {{ t('settings.rbac.moduleCount', { granted: grantedCount, total: module.perms.length }) }}
@@ -65,7 +73,7 @@ const allOn = computed(() => grantedCount.value === props.module.perms.length)
           <span
             class="block text-[13px] font-medium"
             :class="grantedSet.has(p.code) ? 'text-default' : 'text-muted'"
-          >{{ p.label }}</span>
+          >{{ permLabel(p.code, p.label) }}</span>
           <span class="block text-[11px] font-mono text-dimmed">{{ p.code }}</span>
         </span>
       </button>
