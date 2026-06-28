@@ -30,8 +30,8 @@ func TestAttachFile_RejectsTypeAndSize(t *testing.T) {
 	}
 }
 
-func TestAttachFile_RollbackOnDBError(t *testing.T) {
-	// Put succeeds but the DB update fails (q=nil panics? no — use PutErr to stop before DB).
+func TestAttachFile_RemovesObjectOnPutError(t *testing.T) {
+	// When the storage Put fails, AttachFile propagates the error and leaves no object behind.
 	f := storage.NewFake()
 	f.PutErr = errors.New("boom")
 	s := NewService(nil, nil, f, 1024, "")

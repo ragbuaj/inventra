@@ -1271,8 +1271,8 @@ paths:
       summary: Attach a file to a document record
       description: |
         Uploads (or replaces) the file associated with the document. Accepted MIME types mirror
-        the asset-attachment endpoint (image/jpeg, image/png, image/webp, application/pdf, and
-        common document formats). Returns 413 if the file exceeds the server size limit; 415 if
+        the asset-attachment endpoint (image/jpeg, image/png, image/webp, application/pdf).
+        Returns 413 if the file exceeds the server size limit; 415 if
         the MIME type is not accepted. Requires the `asset.manage` permission.
       security:
         - bearerJWT: []
