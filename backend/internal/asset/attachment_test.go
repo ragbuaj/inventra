@@ -32,7 +32,7 @@ func TestAllowedMIMEAndKind(t *testing.T) {
 
 func TestUploadAttachment_RejectsTypeAndSize(t *testing.T) {
 	// q=nil intentional: validation must fire BEFORE any DB/storage call.
-	s := NewService(nil, nil, storage.NewFake(), 10)
+	s := NewService(nil, nil, storage.NewFake(), 10, "")
 	ctx := context.Background()
 
 	_, err := s.UploadAttachment(ctx, UploadInput{
@@ -58,7 +58,7 @@ func TestUploadAttachment_RollbackOnDBError(t *testing.T) {
 	// When Put fails the error is propagated and no object should remain in storage.
 	f := storage.NewFake()
 	f.PutErr = errors.New("boom")
-	s := NewService(nil, nil, f, 1024)
+	s := NewService(nil, nil, f, 1024, "")
 
 	_, err := s.UploadAttachment(context.Background(), UploadInput{
 		AssetID:     uuid.New(),

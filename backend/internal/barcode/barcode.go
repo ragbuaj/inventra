@@ -3,6 +3,7 @@ package barcode
 
 import (
 	"bytes"
+	"image"
 	"image/png"
 
 	"github.com/boombuler/barcode"
@@ -25,6 +26,15 @@ func EncodeCode128(s string) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+// EncodeQRHighEC returns a QR image at High error-correction (tolerates a center logo overlay).
+func EncodeQRHighEC(s string) (image.Image, error) {
+	bc, err := qr.Encode(s, qr.H, qr.Auto)
+	if err != nil {
+		return nil, err
+	}
+	return barcode.Scale(bc, 300, 300)
 }
 
 // EncodeQR returns a PNG of a QR code for s.

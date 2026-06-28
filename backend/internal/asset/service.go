@@ -29,10 +29,11 @@ type Service struct {
 	pool     *pgxpool.Pool
 	store    storage.Storage
 	maxBytes int64
+	logoPath string
 }
 
-func NewService(q *sqlc.Queries, pool *pgxpool.Pool, store storage.Storage, maxBytes int64) *Service {
-	return &Service{q: q, pool: pool, store: store, maxBytes: maxBytes}
+func NewService(q *sqlc.Queries, pool *pgxpool.Pool, store storage.Storage, maxBytes int64, logoPath string) *Service {
+	return &Service{q: q, pool: pool, store: store, maxBytes: maxBytes, logoPath: logoPath}
 }
 
 // allowedTransitions defines the valid status transitions for assets.
