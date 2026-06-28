@@ -128,25 +128,19 @@ describe('Field Permission page — loaded grid (assets)', () => {
 
   it('purchase_cost for Manager shows view+edit OFF (explicit restriction)', async () => {
     const wrapper = await mountAndWait()
-    // purchase_cost row: Manager is r-manager with can_view:false, can_edit:false
-    // The toggle buttons render as "L" (view) and "E" (edit) inside FieldPermToggle
-    // Locate the purchase_cost row's cells using the row text context
-    // The row contains "purchase_cost" and "Harga beli"; buttons in that row's Manager cell are OFF
-    // We verify by checking that within purchase_cost's row area the L button is styled OFF
-    // Since we can't easily isolate table cells, we check via the component text:
-    // Both L and E buttons exist in the DOM (they always do) — verify by checking that
-    // the dimmed state is applied for purchase_cost in Manager's column by asserting
-    // no restriction means Default badge, while purchase_cost shows no Default badge at all
-    // (it IS explicitly restricted in Manager), meaning both cells must be explicit.
     const rows = wrapper.findAll('tr')
     const purchaseCostRow = rows.find(r => r.text().includes('purchase_cost'))
     expect(purchaseCostRow).toBeDefined()
     // purchase_cost has explicit rules → no "Default" badge on that row
-    // (other rows like "name" that have no restriction show "Default")
     expect(purchaseCostRow!.text()).not.toContain('Default')
-    // L/E buttons are present in the row
+    // L buttons: index 0 = Superadmin, index 1 = Manager (fixture order)
     const lBtns = purchaseCostRow!.findAll('button').filter(b => b.text().includes('L'))
-    expect(lBtns.length).toBeGreaterThan(0)
+    expect(lBtns.length).toBeGreaterThanOrEqual(2)
+    // Manager's L (index 1) must be in the OFF/restricted visual state:
+    // offPill class includes 'border-dashed'; view-ON class includes 'text-info'
+    const managerL = lBtns[1]!
+    expect(managerL.classes().join(' ')).toContain('border-dashed')
+    expect(managerL.classes().join(' ')).not.toContain('text-info')
   })
 })
 
@@ -204,18 +198,20 @@ describe('Field Permission page — toggle and save', () => {
 
     const wrapper = await mountAndWait()
 
-    // We're on "assets" entity. Find the purchase_cost row's Manager cell.
-    // Manager's purchase_cost is explicit (view+edit off). Toggle its view ON.
-    // That toggles the explicit restriction, modifying it so view becomes true.
-    // Actually, to make Manager's rules change, find an L button in purchase_cost row
+    // We're on "assets" entity. Toggle Manager's purchase_cost view-L button (index 1
+    // in the row — Superadmin is index 0, Manager is index 1 per fixture order).
+    // Manager's purchase_cost starts as {can_view:false, can_edit:false}; clicking L
+    // sets view=true (edit stays false since toggleView only flips view).
+    // That makes r-manager dirty → saveRules issues a PUT for r-manager.
     const rows = wrapper.findAll('tr')
     const purchaseCostRow = rows.find(r => r.text().includes('purchase_cost'))
     expect(purchaseCostRow).toBeDefined()
 
-    // L buttons in purchase_cost row — click the first L (Superadmin's column, default-allow = view ON → toggle OFF)
+    // L buttons in purchase_cost row: [0]=Superadmin, [1]=Manager
     const lBtns = purchaseCostRow!.findAll('button').filter(b => b.text().includes('L'))
-    expect(lBtns.length).toBeGreaterThan(0)
-    await lBtns[0]!.trigger('click')
+    expect(lBtns.length).toBeGreaterThanOrEqual(2)
+    // Toggle Manager's L (index 1) to make r-manager dirty
+    await lBtns[1]!.trigger('click')
     await wrapper.vm.$nextTick()
 
     // Click Save
@@ -233,22 +229,21 @@ describe('Field Permission page — toggle and save', () => {
     )
     expect(putReqs.length).toBeGreaterThan(0)
 
-    // For PUT to r-manager: body.fields must preserve the users/email row
+    // r-manager MUST have been PUT — hard assertion (no if-guard)
     const managerPut = putReqs.find(r => r.path === '/authz/roles/r-manager/fields')
-    if (managerPut) {
-      const body = managerPut.opts.body as { fields: FieldRow[] }
-      const emailRow = body.fields.find(f => f.entity === 'users' && f.field === 'email')
-      // Manager's users/email is a restriction — it must be preserved
-      expect(emailRow).toBeDefined()
-      expect(emailRow!.can_view).toBe(true)
-      expect(emailRow!.can_edit).toBe(false)
-      // Body should only contain restriction cells for assets (not full-allow)
-      const assetRows = body.fields.filter(f => f.entity === 'assets')
-      for (const row of assetRows) {
-        // Each asset row in the body must be a restriction (not fully allowed)
-        const isFullAllow = row.can_view && row.can_edit
-        expect(isFullAllow).toBe(false)
-      }
+    expect(managerPut).toBeTruthy()
+
+    const body = managerPut!.opts.body as { fields: FieldRow[] }
+    // Manager's users/email restriction must be PRESERVED (cross-entity row)
+    const emailRow = body.fields.find(f => f.entity === 'users' && f.field === 'email')
+    expect(emailRow).toBeDefined()
+    expect(emailRow!.can_view).toBe(true)
+    expect(emailRow!.can_edit).toBe(false)
+    // Body.fields for assets must contain only restriction cells (not full-allow rows)
+    const assetRows = body.fields.filter(f => f.entity === 'assets')
+    for (const row of assetRows) {
+      const isFullAllow = row.can_view && row.can_edit
+      expect(isFullAllow).toBe(false)
     }
   })
 
@@ -291,7 +286,7 @@ describe('Field Permission page — only dirty roles PUT', () => {
     const purchaseCostRow = rows.find(r => r.text().includes('purchase_cost'))
     expect(purchaseCostRow).toBeDefined()
     const lBtns = purchaseCostRow!.findAll('button').filter(b => b.text().includes('L'))
-    expect(lBtns.length).toBeGreaterThan(0)
+    expect(lBtns.length).toBeGreaterThanOrEqual(2)
     // Click the first L button (Superadmin column — default-allow, so this makes it explicit)
     await lBtns[0]!.trigger('click')
     await wrapper.vm.$nextTick()
@@ -381,6 +376,7 @@ describe('Field Permission page — default-allow toggle baseline', () => {
     const purchaseCostRow = rows.find(r => r.text().includes('purchase_cost'))
     expect(purchaseCostRow).toBeDefined()
     const lBtns = purchaseCostRow!.findAll('button').filter(b => b.text().includes('L'))
+    expect(lBtns.length).toBeGreaterThanOrEqual(2)
     await lBtns[0]!.trigger('click')
     await wrapper.vm.$nextTick()
 
