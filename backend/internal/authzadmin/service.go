@@ -101,12 +101,11 @@ func (s *Service) UpdateRole(ctx context.Context, id uuid.UUID, in RoleInput) (b
 		return before, after, mapDBError(err)
 	}
 	code := in.Code
-	if before.IsSystem {
-		// System roles: code is immutable. Reject an attempted change; otherwise keep it.
-		if in.Code != "" && in.Code != before.Code {
-			return before, after, ErrSystemRole
-		}
-		code = before.Code
+	if code == "" {
+		code = before.Code // empty = keep existing code
+	}
+	if before.IsSystem && code != before.Code {
+		return before, after, ErrSystemRole // system role: code is immutable
 	}
 	after, err = s.q.UpdateRole(ctx, sqlc.UpdateRoleParams{ID: id, Code: code, Name: in.Name, Description: in.Description})
 	return before, after, mapDBError(err)
