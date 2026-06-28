@@ -187,22 +187,24 @@ test.describe('Data Scope screen — real backend', () => {
     await expect(tableHeader).toBeVisible()
     // "Default" column header (i18n: settings.dataScope.defaultColumn)
     await expect(tableHeader.getByText('Default').first()).toBeVisible()
-    // At least one module column header from the real catalog
-    const hasModuleCol = await Promise.race([
-      page.getByRole('columnheader', { name: /Kantor|Pegawai|Aset|Pengajuan|Audit/i }).first().isVisible(),
-      page.locator('table thead th').filter({ hasText: /Kantor|Pegawai|Aset|Pengajuan|Audit/ }).first().isVisible()
-    ])
-    expect(hasModuleCol).toBe(true)
+    // At least one module column header from the real catalog — auto-waiting assertion
+    await expect(
+      page.locator('table thead th').filter({ hasText: /Kantor|Pegawai|Aset|Pengajuan|Audit/ }).first()
+    ).toBeVisible()
   })
 
   test('legend renders all four scope levels with descriptions', async ({ page }) => {
-    // Legend must show the four scope levels (mono keys)
-    await expect(page.getByText('global').first()).toBeVisible()
-    await expect(page.getByText('office_subtree').first()).toBeVisible()
-    await expect(page.getByText('office').first()).toBeVisible()
-    await expect(page.getByText('own').first()).toBeVisible()
+    // Scope the assertions to the legend card to avoid matching stray text (e.g. pill cells)
+    // The legend section is identified by its title text
+    const legendCard = page.locator('div').filter({ hasText: 'Level lingkup data' }).last()
+    await expect(legendCard).toBeVisible()
     // Legend title
-    await expect(page.getByText('Level lingkup data').first()).toBeVisible()
+    await expect(legendCard.getByText('Level lingkup data').first()).toBeVisible()
+    // Legend must show the four scope level keys inside the legend region
+    await expect(legendCard.getByText('global').first()).toBeVisible()
+    await expect(legendCard.getByText('office_subtree').first()).toBeVisible()
+    await expect(legendCard.getByText('office').first()).toBeVisible()
+    await expect(legendCard.getByText('own').first()).toBeVisible()
   })
 
   test('Save button is disabled with no changes (clean state)', async ({ page }) => {
@@ -214,27 +216,34 @@ test.describe('Data Scope screen — real backend', () => {
   })
 
   test('changing a role default scope marks dirty and enables Save, persists across reload', async ({ page }) => {
-    // Use the Superadmin row — click its Default cell pill to open the popover
-    // The Default column pill for Superadmin is the first ScopeCell in the first data row
+    // Use the Superadmin row — click its Default cell pill to open the popover.
+    // The pill button in the Default column renders the level key as its visible text
+    // (ScopeCell.vue: <span class="font-mono ...">{{ effective }}</span> inside <button>).
     const table = page.locator('table tbody')
     await expect(table).toBeVisible()
 
-    // Find the row containing "Superadmin" and click its Default cell button (first pill in row)
+    // Find the row containing "Superadmin" and locate its Default cell pill button
     const superadminRow = table.locator('tr').filter({ hasText: 'Superadmin' }).first()
     await expect(superadminRow).toBeVisible()
 
-    // Get the current scope level shown in the Default cell
-    const defaultPill = superadminRow.locator('td').nth(1).locator('button[type="button"]').first()
+    // Default cell is the second td (index 1 — first td is the sticky role-name cell)
+    const defaultCell = superadminRow.locator('td').nth(1)
+    const defaultPill = defaultCell.locator('button[type="button"]').first()
     await expect(defaultPill).toBeVisible()
-    const currentLevel = await defaultPill.locator('span.font-mono').first().textContent()
+
+    // Read the current level from the pill's visible text (e.g. "global" / "own")
+    // The pill button's accessible text is the level key rendered in the font-mono span
+    const currentLevel = (await defaultPill.textContent())?.trim().match(/global|office_subtree|office|own/)?.[0] ?? 'global'
 
     // Open the popover
     await defaultPill.click()
 
-    // Pick a different level than the current one
-    // Use 'own' if currently global, else 'global'
-    const targetLevel = currentLevel?.trim() === 'own' ? 'global' : 'own'
-    const levelOption = page.locator('button[type="button"]', { hasText: targetLevel }).filter({ has: page.locator('span.font-mono') }).first()
+    // Pick a different level deterministically: 'own' if currently 'global', else 'global'
+    const targetLevel = currentLevel === 'own' ? 'global' : 'own'
+
+    // Popover option buttons each contain the level key as visible text (font-mono span).
+    // Locate by the exact level key text scoped to buttons — unique among the four options.
+    const levelOption = page.locator('button[type="button"]').filter({ hasText: new RegExp(`^${targetLevel}`) }).first()
     await levelOption.click()
 
     // Dirty indicator should appear
@@ -252,13 +261,14 @@ test.describe('Data Scope screen — real backend', () => {
     await page.reload()
     await expect(page.getByText('Superadmin').first()).toBeVisible({ timeout: 10_000 })
 
+    // After reload, assert the Default cell shows the target level as its visible text
     const superadminRowAfter = page.locator('table tbody tr').filter({ hasText: 'Superadmin' }).first()
     const defaultPillAfter = superadminRowAfter.locator('td').nth(1).locator('button[type="button"]').first()
-    await expect(defaultPillAfter.locator('span.font-mono').first()).toHaveText(targetLevel, { timeout: 8_000 })
+    await expect(defaultPillAfter).toContainText(targetLevel, { timeout: 8_000 })
 
-    // Clean up: revert to original level
+    // Clean up: revert to original level (best-effort; not a hard failure)
     await defaultPillAfter.click()
-    const revertOption = page.locator('button[type="button"]', { hasText: currentLevel ?? 'global' }).filter({ has: page.locator('span.font-mono') }).first()
+    const revertOption = page.locator('button[type="button"]').filter({ hasText: new RegExp(`^${currentLevel}`) }).first()
     await revertOption.click()
     const saveBtnCleanup = page.getByRole('button', { name: /Simpan/ })
     if (await saveBtnCleanup.isEnabled()) {
