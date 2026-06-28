@@ -17,35 +17,17 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
-> 1. ~~**Bring the dev stack up, reset & migrate**~~ ✅ **DONE (2026-06-27).** Full `migrate up` of
->    the v1.1 set validated live from an empty DB (throwaway `inventra_migrate_test`): all 15 migrations
->    apply clean (exit 0, version 15, 13 schemas, 39 tables, 5 roles seeded). Dev DB (`inventra_dev`) is
->    at v15 with admin seeded; `/health/ready` → postgres+redis ok; `go build/vet/test` green. Reset
->    recipe for a fresh greenfield DB still in DATABASE.md §6 ⚠️ note (drop schemas CASCADE → `migrate up`
->    → re-seed admin).
-> 2. ~~**#6 Kategori Aset screen**~~ ✅ **DONE** — `app/pages/master/categories.vue` + `useCategories`
->    + `mock/categories` + `CategoryFormSlideover.vue` + i18n + tests, built 1:1 from
->    `docs/design/Kategori Aset.dc.html`. (All 23 frontend mockup screens are now implemented.)
-> 3. ~~**Approval engine + Asset core backend**~~ ✅ **DONE (2026-06-28).** See *Bank-FAM* and
->    *Backend — Feature modules* below for details.
-> 4. ~~**Asset attachments (MinIO)**~~ ✅ **DONE (2026-06-28).** Storage interface + MinIO impl;
->    proxied upload/list/download/thumbnail/delete; MIME whitelist (jpeg/png/webp/pdf) +
->    `ATTACHMENT_MAX_BYTES` (5 MB); image thumbnails (original preserved); scope-gated (per-asset
->    office) + `Content-Disposition` sanitized + `nosniff`/CSP; integration tests (MinIO testcontainer).
->    `internal/storage` interface ready for BAST/`asset_documents` reuse.
-> 5. ~~**Barcode/QR + label PDF**~~ ✅ **DONE (2026-06-28).** Code128 + QR PNG from `asset_tag`;
->    scan-lookup; barcode endpoint; BTN + generic label templates; roll + sheet layouts; scope-gated;
->    integration tests. `go build/vet/test` + Spectral green; `boombuler/barcode` + `go-pdf/fpdf` as direct deps.
-> 6. ~~**Asset documents (BAST)**~~ ✅ **DONE (2026-06-28).** metadata CRUD + optional MinIO file (reuses `internal/storage`); scope-gated + audited; integration tests (10 cases); OpenAPI spec updated.
-> 7. **Next priorities (pick one):**
->    - **Wire frontend Asset & Approval screens** to the real `/api/v1/assets` and `/api/v1/requests`
->      endpoints; do the **ADR-0007 composable refactor** first (rename Indonesian DTO keys from
->      `nama`/`kode`/`alamat` to the backend's English `snake_case` contract + regroup
->      `composables/api/` + `mock/` into module subfolders).
->    - **Asset transfer (mutasi)** — inter-office transfer + BAST doc linkage + history; updates
->      `assets.office_id`; reuses the asset-documents + storage + approval engine already built.
->    - **Disposal accounting** — once depreciation lands, derive disposal `amount` from server-side
->      `book_value`; wire gain/loss journal entries.
+> 1. ~~**Bring the dev stack up, reset & migrate**~~ ✅ **DONE (2026-06-27).**
+> 2. ~~**#6 Kategori Aset screen**~~ ✅ **DONE.**
+> 3. ~~**Approval engine + Asset core backend**~~ ✅ **DONE (2026-06-28).**
+> 4. ~~**Asset attachments (MinIO)**~~ ✅ **DONE (2026-06-28).**
+> 5. ~~**Barcode/QR + label PDF**~~ ✅ **DONE (2026-06-28).**
+> 6. ~~**Asset documents (BAST)**~~ ✅ **DONE (2026-06-28).**
+> 7. ~~**Authorization admin endpoints**~~ ✅ **DONE (2026-06-28).** `internal/authzadmin` — role CRUD, replace-set permissions/scope/fields, Redis cache invalidation, permission catalog, seed RBAC drift fix, integration tests, OpenAPI spec.
+> 8. **Next priorities (pick one):**
+>    - **Wire frontend Peran & RBAC / Data Scope / Field Permission screens** to the real `/api/v1/authz/*` endpoints (the screens are already built mock-first; do the ADR-0007 composable refactor first).
+>    - **Wire frontend Asset & Approval screens** to `/api/v1/assets` and `/api/v1/requests`; ADR-0007 composable refactor (rename Indonesian DTO keys → English `snake_case` contract + regroup `composables/api/` + `mock/` into module subfolders).
+>    - **Asset transfer (mutasi)** — inter-office transfer + BAST doc linkage + history; updates `assets.office_id`; reuses the asset-documents + storage + approval engine already built.
 
 ## ✅ Done
 
@@ -201,7 +183,8 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       bands, global + refresh throttles, trusted-proxy client-IP hardening; configurable, fail-open. **Done — PR #19.**
 - [ ] **Notifications (in-app)** — store + endpoints (approval decisions, maintenance reminders)
 - [ ] **Scheduler (cron in-process)** — monthly depreciation; maintenance-due reminders
-- [ ] **Authorization admin endpoints** — Superadmin CRUD for roles, role_permissions, field_permissions, data_scope_policies (+ Redis cache invalidation)
+- [x] **Authorization admin endpoints** — `internal/authzadmin` — role CRUD (system-role protected), replace-set role_permissions/data_scope/field_permissions with Redis cache invalidation (ScopeService/FieldService gained `Invalidate`), canonical permission catalog (`GET /authz/catalog`). **Done — (2026-06-28).**
+- [x] **Seed RBAC drift fix** — stale permission keys (`asset.read`/`asset.create`/`request.approve`) realigned to the canonical catalog (`asset.view`/`asset.manage`, `request.decide`, `approval.config.manage`); seed script and migration re-verified against `permissionCatalog`. **Done — (2026-06-28).**
 
 ### Frontend (screens built mock-first — remaining work)
 - [ ] **API composable convention refactor** (ADR-0007) — (a) rename Indonesian DTO field keys to the

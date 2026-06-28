@@ -95,6 +95,13 @@ func (s *ScopeService) policies(ctx context.Context, roleID uuid.UUID) ([]sqlc.I
 	return policies, nil
 }
 
+// Invalidate clears the cached data-scope policies for a role
+// (call after changing data_scope_policies). The office-subtree cache is
+// keyed by office, not role, so it is unaffected by policy changes.
+func (s *ScopeService) Invalidate(ctx context.Context, roleID uuid.UUID) error {
+	return s.rdb.Del(ctx, "authz:scope:"+roleID.String()).Err()
+}
+
 func (s *ScopeService) subtree(ctx context.Context, officeID uuid.UUID) ([]uuid.UUID, error) {
 	key := "authz:subtree:" + officeID.String()
 	var cached []uuid.UUID

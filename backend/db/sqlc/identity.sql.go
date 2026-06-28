@@ -11,6 +11,45 @@ import (
 	"github.com/google/uuid"
 )
 
+const countUsersByRole = `-- name: CountUsersByRole :one
+SELECT count(*) FROM identity.users WHERE role_id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) CountUsersByRole(ctx context.Context, roleID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countUsersByRole, roleID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const createRole = `-- name: CreateRole :one
+INSERT INTO identity.roles (code, name, description, is_system)
+VALUES ($1, $2, $3, false)
+RETURNING id, code, name, description, is_system, created_at, updated_at, deleted_at
+`
+
+type CreateRoleParams struct {
+	Code        string  `json:"code"`
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+}
+
+func (q *Queries) CreateRole(ctx context.Context, arg CreateRoleParams) (IdentityRole, error) {
+	row := q.db.QueryRow(ctx, createRole, arg.Code, arg.Name, arg.Description)
+	var i IdentityRole
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.Name,
+		&i.Description,
+		&i.IsSystem,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO identity.users (name, email, password_hash, role_id, office_id, employee_id)
 VALUES ($1, $2, $3, $4, $5, $6)
@@ -63,6 +102,26 @@ func (q *Queries) GetAppSetting(ctx context.Context, key string) (string, error)
 	var value string
 	err := row.Scan(&value)
 	return value, err
+}
+
+const getRole = `-- name: GetRole :one
+SELECT id, code, name, description, is_system, created_at, updated_at, deleted_at FROM identity.roles WHERE id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) GetRole(ctx context.Context, id uuid.UUID) (IdentityRole, error) {
+	row := q.db.QueryRow(ctx, getRole, id)
+	var i IdentityRole
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.Name,
+		&i.Description,
+		&i.IsSystem,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
 }
 
 const getRoleByCode = `-- name: GetRoleByCode :one
@@ -133,6 +192,95 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (IdentityUser, 
 		&i.AvatarUrl,
 		&i.RoleID,
 		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const insertDataScopePolicy = `-- name: InsertDataScopePolicy :one
+INSERT INTO identity.data_scope_policies (role_id, module, scope_level)
+VALUES ($1, $2, $3)
+RETURNING id, role_id, module, scope_level, created_at, updated_at, deleted_at
+`
+
+type InsertDataScopePolicyParams struct {
+	RoleID     uuid.UUID        `json:"role_id"`
+	Module     string           `json:"module"`
+	ScopeLevel SharedScopeLevel `json:"scope_level"`
+}
+
+func (q *Queries) InsertDataScopePolicy(ctx context.Context, arg InsertDataScopePolicyParams) (IdentityDataScopePolicy, error) {
+	row := q.db.QueryRow(ctx, insertDataScopePolicy, arg.RoleID, arg.Module, arg.ScopeLevel)
+	var i IdentityDataScopePolicy
+	err := row.Scan(
+		&i.ID,
+		&i.RoleID,
+		&i.Module,
+		&i.ScopeLevel,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const insertFieldPermission = `-- name: InsertFieldPermission :one
+INSERT INTO identity.field_permissions (entity, field, role_id, can_view, can_edit)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, entity, field, role_id, can_view, can_edit, created_at, updated_at, deleted_at
+`
+
+type InsertFieldPermissionParams struct {
+	Entity  string    `json:"entity"`
+	Field   string    `json:"field"`
+	RoleID  uuid.UUID `json:"role_id"`
+	CanView bool      `json:"can_view"`
+	CanEdit bool      `json:"can_edit"`
+}
+
+func (q *Queries) InsertFieldPermission(ctx context.Context, arg InsertFieldPermissionParams) (IdentityFieldPermission, error) {
+	row := q.db.QueryRow(ctx, insertFieldPermission,
+		arg.Entity,
+		arg.Field,
+		arg.RoleID,
+		arg.CanView,
+		arg.CanEdit,
+	)
+	var i IdentityFieldPermission
+	err := row.Scan(
+		&i.ID,
+		&i.Entity,
+		&i.Field,
+		&i.RoleID,
+		&i.CanView,
+		&i.CanEdit,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const insertRolePermission = `-- name: InsertRolePermission :one
+INSERT INTO identity.role_permissions (role_id, permission_key)
+VALUES ($1, $2)
+RETURNING id, role_id, permission_key, created_at, updated_at, deleted_at
+`
+
+type InsertRolePermissionParams struct {
+	RoleID        uuid.UUID `json:"role_id"`
+	PermissionKey string    `json:"permission_key"`
+}
+
+func (q *Queries) InsertRolePermission(ctx context.Context, arg InsertRolePermissionParams) (IdentityRolePermission, error) {
+	row := q.db.QueryRow(ctx, insertRolePermission, arg.RoleID, arg.PermissionKey)
+	var i IdentityRolePermission
+	err := row.Scan(
+		&i.ID,
+		&i.RoleID,
+		&i.PermissionKey,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
@@ -248,4 +396,90 @@ func (q *Queries) ListRoles(ctx context.Context) ([]IdentityRole, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const softDeleteDataScopePoliciesByRole = `-- name: SoftDeleteDataScopePoliciesByRole :execrows
+UPDATE identity.data_scope_policies SET deleted_at = now()
+WHERE role_id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) SoftDeleteDataScopePoliciesByRole(ctx context.Context, roleID uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, softDeleteDataScopePoliciesByRole, roleID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const softDeleteFieldPermissionsByRole = `-- name: SoftDeleteFieldPermissionsByRole :execrows
+UPDATE identity.field_permissions SET deleted_at = now()
+WHERE role_id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) SoftDeleteFieldPermissionsByRole(ctx context.Context, roleID uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, softDeleteFieldPermissionsByRole, roleID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const softDeleteRole = `-- name: SoftDeleteRole :execrows
+UPDATE identity.roles SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) SoftDeleteRole(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, softDeleteRole, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const softDeleteRolePermissionsByRole = `-- name: SoftDeleteRolePermissionsByRole :execrows
+UPDATE identity.role_permissions SET deleted_at = now()
+WHERE role_id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) SoftDeleteRolePermissionsByRole(ctx context.Context, roleID uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, softDeleteRolePermissionsByRole, roleID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const updateRole = `-- name: UpdateRole :one
+UPDATE identity.roles
+SET code = $2, name = $3, description = $4
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, code, name, description, is_system, created_at, updated_at, deleted_at
+`
+
+type UpdateRoleParams struct {
+	ID          uuid.UUID `json:"id"`
+	Code        string    `json:"code"`
+	Name        string    `json:"name"`
+	Description *string   `json:"description"`
+}
+
+func (q *Queries) UpdateRole(ctx context.Context, arg UpdateRoleParams) (IdentityRole, error) {
+	row := q.db.QueryRow(ctx, updateRole,
+		arg.ID,
+		arg.Code,
+		arg.Name,
+		arg.Description,
+	)
+	var i IdentityRole
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.Name,
+		&i.Description,
+		&i.IsSystem,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
 }

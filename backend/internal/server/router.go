@@ -20,6 +20,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/auth"
 	"github.com/ragbuaj/inventra/internal/authz"
+	"github.com/ragbuaj/inventra/internal/authzadmin"
 	"github.com/ragbuaj/inventra/internal/cache"
 	"github.com/ragbuaj/inventra/internal/config"
 	"github.com/ragbuaj/inventra/internal/db"
@@ -165,6 +166,14 @@ func NewRouter(d Deps) *gin.Engine {
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeValuationExclusion, assetSvc.ExclusionExecutor())
 		approvalHandler := approval.NewHandler(approvalSvc, fieldSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)
 		approval.RegisterRoutes(api, approvalHandler, requireAuth, permSvc)
+
+		authzAdminSvc := authzadmin.NewService(queries, d.Pool, permSvc, scopeSvc, fieldSvc)
+		authzAdminHandler := authzadmin.NewHandler(authzAdminSvc, auditSvc)
+		authzadmin.RegisterRoutes(api, authzAdminHandler, requireAuth,
+			middleware.RequirePermission(permSvc, "role.manage"),
+			middleware.RequirePermission(permSvc, "scope.manage"),
+			middleware.RequirePermission(permSvc, "fieldperm.manage"),
+		)
 	}
 
 	return r
