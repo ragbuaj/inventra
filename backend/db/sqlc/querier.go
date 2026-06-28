@@ -23,6 +23,7 @@ type Querier interface {
 	CountRequests(ctx context.Context, arg CountRequestsParams) (int64, error)
 	CountRoomsByFloor(ctx context.Context, arg CountRoomsByFloorParams) (int64, error)
 	CountUsers(ctx context.Context, search string) (int64, error)
+	CountUsersByRole(ctx context.Context, roleID uuid.UUID) (int64, error)
 	CreateAsset(ctx context.Context, arg CreateAssetParams) (AssetAsset, error)
 	CreateAssetDocument(ctx context.Context, arg CreateAssetDocumentParams) (AssetAssetDocument, error)
 	CreateAttachment(ctx context.Context, arg CreateAttachmentParams) (AssetAssetAttachment, error)
@@ -32,6 +33,7 @@ type Querier interface {
 	CreateOffice(ctx context.Context, arg CreateOfficeParams) (MasterdataOffice, error)
 	CreateRequest(ctx context.Context, arg CreateRequestParams) (ApprovalRequest, error)
 	CreateRequestApproval(ctx context.Context, arg CreateRequestApprovalParams) (ApprovalRequestApproval, error)
+	CreateRole(ctx context.Context, arg CreateRoleParams) (IdentityRole, error)
 	CreateRoom(ctx context.Context, arg CreateRoomParams) (MasterdataRoom, error)
 	CreateThreshold(ctx context.Context, arg CreateThresholdParams) (ApprovalApprovalThreshold, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (IdentityUser, error)
@@ -55,6 +57,7 @@ type Querier interface {
 	GetOfficeSubtree(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error)
 	GetRequest(ctx context.Context, id uuid.UUID) (ApprovalRequest, error)
 	GetRequestForUpdate(ctx context.Context, id uuid.UUID) (ApprovalRequest, error)
+	GetRole(ctx context.Context, id uuid.UUID) (IdentityRole, error)
 	// Identity module queries. Schema-qualified (see DATABASE.md §1.2).
 	GetRoleByCode(ctx context.Context, code string) (IdentityRole, error)
 	GetRoom(ctx context.Context, arg GetRoomParams) (MasterdataRoom, error)
@@ -65,6 +68,9 @@ type Querier interface {
 	// office_id is in office_ids are returned. NULL-office (global) rows are visible
 	// only to all-scope callers.
 	InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) (AuditAuditLog, error)
+	InsertDataScopePolicy(ctx context.Context, arg InsertDataScopePolicyParams) (IdentityDataScopePolicy, error)
+	InsertFieldPermission(ctx context.Context, arg InsertFieldPermissionParams) (IdentityFieldPermission, error)
+	InsertRolePermission(ctx context.Context, arg InsertRolePermissionParams) (IdentityRolePermission, error)
 	LinkGoogleID(ctx context.Context, arg LinkGoogleIDParams) error
 	ListAssetDocuments(ctx context.Context, assetID uuid.UUID) ([]AssetAssetDocument, error)
 	// Asset core queries (asset.assets + asset.asset_tag_counters).
@@ -104,9 +110,13 @@ type Querier interface {
 	SoftDeleteAssetDocument(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteAttachment(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteCategory(ctx context.Context, id uuid.UUID) (int64, error)
+	SoftDeleteDataScopePoliciesByRole(ctx context.Context, roleID uuid.UUID) (int64, error)
 	SoftDeleteEmployee(ctx context.Context, arg SoftDeleteEmployeeParams) (int64, error)
+	SoftDeleteFieldPermissionsByRole(ctx context.Context, roleID uuid.UUID) (int64, error)
 	SoftDeleteFloor(ctx context.Context, arg SoftDeleteFloorParams) (int64, error)
 	SoftDeleteOffice(ctx context.Context, arg SoftDeleteOfficeParams) (int64, error)
+	SoftDeleteRole(ctx context.Context, id uuid.UUID) (int64, error)
+	SoftDeleteRolePermissionsByRole(ctx context.Context, roleID uuid.UUID) (int64, error)
 	SoftDeleteRoom(ctx context.Context, arg SoftDeleteRoomParams) (int64, error)
 	SoftDeleteThreshold(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteUser(ctx context.Context, id uuid.UUID) (int64, error)
@@ -116,6 +126,7 @@ type Querier interface {
 	UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) (MasterdataEmployee, error)
 	UpdateFloor(ctx context.Context, arg UpdateFloorParams) (MasterdataFloor, error)
 	UpdateOffice(ctx context.Context, arg UpdateOfficeParams) (MasterdataOffice, error)
+	UpdateRole(ctx context.Context, arg UpdateRoleParams) (IdentityRole, error)
 	UpdateRoom(ctx context.Context, arg UpdateRoomParams) (MasterdataRoom, error)
 	UpdateThreshold(ctx context.Context, arg UpdateThresholdParams) (ApprovalApprovalThreshold, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (IdentityUser, error)
