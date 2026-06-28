@@ -1,8 +1,4 @@
-import type { AuditAction, AuditLog } from '~/mock/audit'
-import { auditSeed, AUDIT_MONTHS } from '~/mock/audit'
-import { fakeLatency } from '~/mock/helpers'
-
-type Locale = 'id' | 'en'
+export type AuditAction = 'create' | 'update' | 'delete'
 
 export interface AuditDiffView {
   field: string
@@ -14,75 +10,101 @@ export interface AuditDiffView {
 }
 
 export interface AuditRow {
-  id: number
+  id: string
+  created_at: string
   date: string
   time: string
-  /** 'YYYY-MM-DD' for date-range filtering */
-  dateKey: string
   actor: string
+  actor_email: string
   initials: string
-  role: string
   action: AuditAction
-  entity: string
-  summary: string
-  office: string
+  entity_type: string
+  entity_id: string
   ip: string
-  ref: string
   diff: AuditDiffView[]
 }
 
+export interface AuditListParams {
+  search?: string
+  entity_type?: string
+  action?: AuditAction
+  from?: string
+  to?: string
+  limit: number
+  offset: number
+}
+
+interface AuditChange { before?: unknown, after?: unknown }
+interface AuditDTO {
+  id: string
+  entity_type: string
+  entity_id: string
+  action: AuditAction
+  ip: string
+  changes: Record<string, AuditChange> | null
+  actor: { id: string, name: string, email: string } | null
+  office_id: string | null
+  created_at: string
+}
+
 function initials(name: string): string {
-  const parts = name.trim().split(' ')
+  const parts = name.trim().split(/\s+/)
   return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase()
 }
 
-function formatDate(dt: string, locale: Locale): string {
-  const datePart = dt.slice(0, 10)
-  const [y, m, day] = datePart.split('-')
-  const month = AUDIT_MONTHS[locale][Number(m) - 1] ?? m
-  return `${Number(day)} ${month} ${y}`
+function toDiff(changes: Record<string, AuditChange> | null): AuditDiffView[] {
+  if (!changes) return []
+  return Object.entries(changes).map(([field, c]) => {
+    const hasBefore = c.before != null
+    const hasAfter = c.after != null
+    return {
+      field,
+      before: hasBefore ? String(c.before) : '',
+      after: hasAfter ? String(c.after) : '',
+      hasBefore,
+      hasAfter,
+      hasArrow: hasBefore && hasAfter
+    }
+  })
 }
 
-function resolve(log: AuditLog, locale: Locale): AuditRow {
+function toRow(d: AuditDTO): AuditRow {
+  const name = d.actor?.name ?? ''
   return {
-    id: log.id,
-    date: formatDate(log.dt, locale),
-    time: log.dt.slice(11),
-    dateKey: log.dt.slice(0, 10),
-    actor: log.actor,
-    initials: initials(log.actor),
-    role: log.role[locale] ?? log.role.id,
-    action: log.action,
-    entity: log.entity,
-    summary: log.summary[locale] ?? log.summary.id,
-    office: log.office,
-    ip: log.ip,
-    ref: log.ref,
-    diff: log.diff.map(x => ({
-      field: x.field,
-      before: x.before ?? '',
-      after: x.after ?? '',
-      hasBefore: x.before != null,
-      hasAfter: x.after != null,
-      hasArrow: x.before != null && x.after != null
-    }))
+    id: d.id,
+    created_at: d.created_at,
+    date: (d.created_at ?? '').slice(0, 10),
+    time: (d.created_at ?? '').slice(11, 16),
+    actor: name,
+    actor_email: d.actor?.email ?? '',
+    initials: initials(name),
+    action: d.action,
+    entity_type: d.entity_type,
+    entity_id: d.entity_id,
+    ip: d.ip,
+    diff: toDiff(d.changes)
   }
 }
 
 /**
- * Audit log reader (read-only). Mock-first; the seam a real implementation swaps behind
- * (`/audit/logs`). Returns all resolved rows; the page filters/paginates over them.
+ * Audit log reader (read-only), wired to GET /api/v1/audit. Filtering and
+ * pagination are server-side; the actor name comes from the response (no lookup).
  */
 export function useAudit() {
-  async function list(locale: Locale = 'id'): Promise<AuditRow[]> {
-    await fakeLatency()
-    return auditSeed.map(l => resolve(l, locale))
+  const { request } = useApiClient()
+
+  async function list(params: AuditListParams): Promise<{ rows: AuditRow[], total: number }> {
+    const q = new URLSearchParams()
+    q.set('limit', String(params.limit))
+    q.set('offset', String(params.offset))
+    if (params.search) q.set('search', params.search)
+    if (params.entity_type) q.set('entity_type', params.entity_type)
+    if (params.action) q.set('action', params.action)
+    if (params.from) q.set('from', params.from)
+    if (params.to) q.set('to', params.to)
+    const res = await request<{ data: AuditDTO[], total: number, limit: number, offset: number }>(`/audit?${q.toString()}`)
+    return { rows: res.data.map(toRow), total: res.total }
   }
 
-  /** Distinct actor names (for the actor filter), in first-seen order. */
-  function actors(): string[] {
-    return Array.from(new Set(auditSeed.map(l => l.actor)))
-  }
-
-  return { list, actors }
+  return { list }
 }
