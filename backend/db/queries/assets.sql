@@ -90,3 +90,20 @@ SELECT * FROM asset.asset_attachments WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: SoftDeleteAttachment :execrows
 UPDATE asset.asset_attachments SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL;
+
+-- name: GetAssetByTag :one
+SELECT * FROM asset.assets WHERE asset_tag = $1 AND deleted_at IS NULL;
+
+-- name: GetAssetLabelByID :one
+SELECT a.asset_tag, a.name, o.code AS office_code, c.name AS category_name, a.purchase_date
+FROM asset.assets a
+JOIN masterdata.offices o ON o.id = a.office_id
+JOIN masterdata.categories c ON c.id = a.category_id
+WHERE a.id = $1 AND a.deleted_at IS NULL;
+
+-- name: GetAssetLabelByTag :one
+SELECT a.asset_tag, a.name, o.code AS office_code, c.name AS category_name, a.purchase_date
+FROM asset.assets a
+JOIN masterdata.offices o ON o.id = a.office_id
+JOIN masterdata.categories c ON c.id = a.category_id
+WHERE a.asset_tag = $1 AND a.deleted_at IS NULL;

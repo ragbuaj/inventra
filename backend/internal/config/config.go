@@ -69,6 +69,9 @@ type Config struct {
 	// (use direct RemoteAddr, which cannot be spoofed). Set to your load-balancer
 	// CIDR(s) in production via TRUSTED_PROXIES (comma-separated).
 	TrustedProxies []string
+
+	// Label printing.
+	LabelLogoPath string
 }
 
 // Load reads configuration from the environment, applying sensible development
@@ -120,6 +123,8 @@ func Load() *Config {
 		RateLimitRefreshPerMin: getEnvInt("RATELIMIT_REFRESH_PER_MIN", 30),
 
 		TrustedProxies: splitCSV(getEnv("TRUSTED_PROXIES", "")),
+
+		LabelLogoPath: getEnv("LABEL_LOGO_PATH", "assets/logo-btn.png"),
 	}
 }
 

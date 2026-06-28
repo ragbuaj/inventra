@@ -228,6 +228,12 @@ func svcError(c *gin.Context, err error) {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
 	case ErrRoomRequired:
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	// C-2: belt-and-suspenders — any path that reaches svcError with these
+	// barcode sentinels gets the correct status rather than falling through to 500.
+	case ErrNoAssets:
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+	case ErrUnknownSize:
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
 	default:
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 	}

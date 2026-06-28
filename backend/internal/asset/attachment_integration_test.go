@@ -117,7 +117,7 @@ func attNewHarness(t *testing.T, maxBytes int64) *attHarness {
 		 VALUES ($1, $2, $3, $4, 'active') RETURNING id`,
 		"att-caller", "att-caller@test.local", roleID, officeID).Scan(&userID))
 
-	svc := asset.NewService(q, pool, minioStore, maxBytes)
+	svc := asset.NewService(q, pool, minioStore, maxBytes, "")
 	fieldSvc := authz.NewFieldService(q, rdb)
 	scopeSvc := authz.NewScopeService(q, rdb)
 	scoped := common.ScopedDeps{Q: q, Scope: scopeSvc}
@@ -350,7 +350,7 @@ func TestAttachment_ScopeEnforcement(t *testing.T) {
 		 VALUES ($1, $2, $3, $4, 'active') RETURNING id`,
 		"excluded-caller", "excluded-caller@test.local", restrictedRoleID, officeB).Scan(&excludedUserID))
 
-	svc := asset.NewService(q, pool, minioStore, 5<<20)
+	svc := asset.NewService(q, pool, minioStore, 5<<20, "")
 	fieldSvc := authz.NewFieldService(q, rdb)
 	scopeSvc := authz.NewScopeService(q, rdb)
 	scoped := common.ScopedDeps{Q: q, Scope: scopeSvc}
@@ -432,7 +432,7 @@ func TestAttachment_DBRollback(t *testing.T) {
 	// ── sub-case 1: PDF — document, no thumbnail ──────────────────────────────
 	t.Run("pdf_no_orphan", func(t *testing.T) {
 		fake := storage.NewFake()
-		svc := asset.NewService(q, pool, fake, 5<<20)
+		svc := asset.NewService(q, pool, fake, 5<<20, "")
 
 		_, uploadErr := svc.UploadAttachment(ctx, asset.UploadInput{
 			AssetID:     nonExistentAssetID,
@@ -460,7 +460,7 @@ func TestAttachment_DBRollback(t *testing.T) {
 	// ── sub-case 2: PNG — image, thumbnail is generated then both must be removed ─
 	t.Run("image_no_orphan", func(t *testing.T) {
 		fake := storage.NewFake()
-		svc := asset.NewService(q, pool, fake, 5<<20)
+		svc := asset.NewService(q, pool, fake, 5<<20, "")
 
 		_, uploadErr := svc.UploadAttachment(ctx, asset.UploadInput{
 			AssetID:     nonExistentAssetID,
@@ -525,7 +525,7 @@ func TestAttachment_CrossAssetRejected(t *testing.T) {
 		 VALUES ($1, $2, $3, $4, 'active') RETURNING id`,
 		"cross-asset-caller", "cross-asset-caller@test.local", roleID, officeID).Scan(&userID))
 
-	svc := asset.NewService(q, pool, minioStore, 5<<20)
+	svc := asset.NewService(q, pool, minioStore, 5<<20, "")
 	fieldSvc := authz.NewFieldService(q, rdb)
 	scopeSvc := authz.NewScopeService(q, rdb)
 	scoped := common.ScopedDeps{Q: q, Scope: scopeSvc}

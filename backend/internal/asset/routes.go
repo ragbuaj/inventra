@@ -7,7 +7,10 @@ import "github.com/gin-gonic/gin"
 func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW, requireView, requireManage gin.HandlerFunc) {
 	g := rg.Group("/assets")
 	g.GET("", authMW, requireView, h.list)
+	g.GET("/by-tag/:tag", authMW, requireView, h.getByTag)
 	g.GET("/:id", authMW, requireView, h.get)
+	g.GET("/:id/barcode", authMW, requireView, h.getBarcode)
+	g.POST("/labels", authMW, requireView, h.generateLabels)
 	g.PUT("/:id", authMW, requireManage, h.update)
 
 	a := g.Group("/:id/attachments")

@@ -54,6 +54,17 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Identit
 	return i, err
 }
 
+const getAppSetting = `-- name: GetAppSetting :one
+SELECT value FROM identity.app_settings WHERE key = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) GetAppSetting(ctx context.Context, key string) (string, error) {
+	row := q.db.QueryRow(ctx, getAppSetting, key)
+	var value string
+	err := row.Scan(&value)
+	return value, err
+}
+
 const getRoleByCode = `-- name: GetRoleByCode :one
 
 SELECT id, code, name, description, is_system, created_at, updated_at, deleted_at FROM identity.roles

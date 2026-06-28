@@ -3,9 +3,11 @@ module github.com/ragbuaj/inventra
 go 1.25.11
 
 require (
+	github.com/boombuler/barcode v1.1.0
 	github.com/coreos/go-oidc/v3 v3.19.0
 	github.com/disintegration/imaging v1.6.2
 	github.com/gin-gonic/gin v1.12.0
+	github.com/go-pdf/fpdf v0.9.0
 	github.com/go-redis/redis_rate/v10 v10.0.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/golang-migrate/migrate/v4 v4.19.1
