@@ -4,7 +4,6 @@ import type { ModuleView } from '~/composables/api/useRbac'
 const props = defineProps<{
   module: ModuleView
   granted: string[]
-  readonly?: boolean
 }>()
 
 defineEmits<{ toggle: [code: string], toggleAll: [] }>()
@@ -43,7 +42,6 @@ const allOn = computed(() => grantedCount.value === props.module.perms.length)
         </div>
       </div>
       <button
-        v-if="!readonly"
         type="button"
         class="text-[11.5px] font-semibold text-primary px-1.5 py-1 rounded-md cursor-pointer hover:bg-primary/10 transition-colors"
         @click="$emit('toggleAll')"
@@ -58,16 +56,12 @@ const allOn = computed(() => grantedCount.value === props.module.perms.length)
         v-for="p in module.perms"
         :key="p.code"
         type="button"
-        :disabled="readonly"
-        class="flex items-center gap-[11px] w-full px-2 py-[9px] rounded-lg text-left transition-colors"
-        :class="readonly ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-muted'"
-        @click="!readonly && $emit('toggle', p.code)"
+        class="flex items-center gap-[11px] w-full px-2 py-[9px] rounded-lg text-left transition-colors cursor-pointer hover:bg-muted"
+        @click="$emit('toggle', p.code)"
       >
         <USwitch
           :model-value="grantedSet.has(p.code)"
-          :disabled="readonly"
           class="pointer-events-none flex-none"
-          :class="readonly ? 'opacity-55' : ''"
         />
         <span class="flex-1 min-w-0">
           <span
