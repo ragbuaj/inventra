@@ -55,7 +55,7 @@ function toggleView(field: string, roleId: string) {
   ensure(field)
   const fr = rules.value[field]
   if (!fr) return
-  const cur: CellRule = { ...(fr[roleId] ?? { view: false, edit: false }) }
+  const cur: CellRule = { ...(fr[roleId] ?? { view: true, edit: true }) }
   cur.view = !cur.view
   if (!cur.view) cur.edit = false
   fr[roleId] = cur
@@ -65,7 +65,7 @@ function toggleEdit(field: string, roleId: string) {
   ensure(field)
   const fr = rules.value[field]
   if (!fr) return
-  const cur: CellRule = { ...(fr[roleId] ?? { view: false, edit: false }) }
+  const cur: CellRule = { ...(fr[roleId] ?? { view: true, edit: true }) }
   cur.edit = !cur.edit
   if (cur.edit) cur.view = true
   fr[roleId] = cur
