@@ -113,3 +113,18 @@ func pdfPageCount(b []byte) int {
 	}
 	return count
 }
+
+func TestLabelRequest_Validate(t *testing.T) {
+	if err := (LabelRequest{}).validate(); err == nil {
+		t.Fatal("need ids or tags")
+	}
+	if err := (LabelRequest{Tags: []string{"A"}, Layout: "weird"}).validate(); err == nil {
+		t.Fatal("bad layout")
+	}
+	if err := (LabelRequest{Tags: []string{"A"}, Template: "nope"}).validate(); err == nil {
+		t.Fatal("bad template")
+	}
+	if err := (LabelRequest{Tags: []string{"A"}, Template: "btn", Layout: "roll"}).validate(); err != nil {
+		t.Fatalf("valid: %v", err)
+	}
+}
