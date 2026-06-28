@@ -17,12 +17,107 @@ test.describe('Settings cluster (mock-backed)', () => {
     await expect(page.getByText('Superadmin').first()).toBeVisible()
     await expect(page.getByText('Lihat aset').first()).toBeVisible()
   })
+})
 
-  test('Audit trail screen loads', async ({ page }) => {
+// ---------------------------------------------------------------------------
+// Audit Trail screen — real backend (GET /api/v1/audit)
+// The seeded admin (admin@inventra.local) must have audit.view permission.
+// Admin login + createadmin actions write audit_logs rows, so at least one
+// row should be present; we assert the heading + table OR empty-state renders
+// without error. If rows exist we also test the action-type filter.
+// NOTE: pnpm test:e2e requires the full backend stack (see CLAUDE.md). This
+// spec compiles + lints here; it runs in CI's e2e job.
+// ---------------------------------------------------------------------------
+test.describe('Audit Trail screen — real backend', () => {
+  test.beforeEach(async ({ page }) => {
     await login(page)
     await page.goto('/settings/audit')
+    // Wait for loading to resolve (spinner disappears, heading is visible).
+    await expect(page.getByRole('heading', { name: 'Audit Trail' })).toBeVisible({ timeout: 10_000 })
+  })
+
+  test('page heading and URL are correct', async ({ page }) => {
     await expect(page).toHaveURL(/\/settings\/audit$/)
     await expect(page.getByRole('heading', { name: 'Audit Trail' })).toBeVisible()
+  })
+
+  test('renders table rows or empty-state without error', async ({ page }) => {
+    // The page shows either a table (rows > 0) or the empty-state — never an error
+    // (loadFailed = false after a successful 200 response from GET /api/v1/audit).
+    // The error state renders a "Coba lagi" retry button — assert it is absent.
+    await expect(page.getByRole('button', { name: 'Coba lagi' })).not.toBeVisible({ timeout: 8_000 })
+
+    // Either the table or the empty-state icon must be visible.
+    const tableVisible = await page.locator('table').isVisible()
+    const emptyIconVisible = await page.locator('text=Tidak ada log').isVisible()
+    expect(tableVisible || emptyIconVisible).toBe(true)
+  })
+
+  test('action filter narrows rows when rows are present', async ({ page }) => {
+    // Only run the filter assertion when the table is actually populated.
+    // The seeded admin's login + createadmin writes audit rows, so this should pass.
+    const table = page.locator('table')
+    const hasRows = await table.isVisible()
+    if (!hasRows) {
+      // Empty database — skip the filter interaction; heading test already covers the screen.
+      return
+    }
+
+    // The action filter is a Nuxt UI USelect (custom listbox, NOT a native <select>).
+    // Interaction pattern: click the trigger (located by its current label text),
+    // then click an option by role="option" / visible text.
+    // The trigger currently shows "Semua Aksi" (id locale default: allActions).
+    const actionTrigger = page.getByText('Semua Aksi', { exact: true }).first()
+    await expect(actionTrigger).toBeVisible()
+    await actionTrigger.click()
+
+    // Pick "Buat" (create) from the open listbox — located by role="option" or visible text.
+    const createOption = page.getByRole('option', { name: 'Buat' })
+      .or(page.getByText('Buat', { exact: true }).first())
+    await createOption.first().click()
+
+    // Wait for the list to refresh (loading spinner → table or empty-state).
+    await expect(page.getByRole('button', { name: 'Coba lagi' })).not.toBeVisible({ timeout: 8_000 })
+
+    // After filtering to "create" only, the table or empty-state must render (no crash).
+    const tableAfter = await page.locator('table').isVisible()
+    const emptyAfter = await page.locator('text=Tidak ada log').isVisible()
+    expect(tableAfter || emptyAfter).toBe(true)
+
+    // If rows remain, assert none of the visible action badges show "Ubah" or "Hapus"
+    // (i.e. only "Buat" create badges appear in the filtered result).
+    if (tableAfter) {
+      const ubahBadges = await page.getByText('Ubah').count()
+      const hapusBadges = await page.getByText('Hapus').count()
+      expect(ubahBadges).toBe(0)
+      expect(hapusBadges).toBe(0)
+    }
+  })
+
+  test('filter reset button clears active filters', async ({ page }) => {
+    // Activate at least one filter (entity-type USelect: open → pick first non-all option).
+    const entityTrigger = page.getByText('Semua Entitas', { exact: true }).first()
+    await expect(entityTrigger).toBeVisible()
+    await entityTrigger.click()
+
+    // Pick the first entity option that is NOT "Semua Entitas" — locate by role="option".
+    // The catalog entity types are resolved to i18n labels (e.g. "Aset", "User", …).
+    const firstEntityOption = page.getByRole('option').first()
+    await firstEntityOption.click()
+
+    // After selecting an entity, the Reset button must appear (anyFilter = true).
+    const resetBtn = page.getByRole('button', { name: /Reset|Hapus Filter/i })
+      .or(page.locator('button').filter({ hasText: /Reset|Hapus Filter/i }).first())
+    await expect(resetBtn.first()).toBeVisible({ timeout: 5_000 })
+
+    // Click the reset button — filters clear, "Semua Entitas" label reappears.
+    await resetBtn.first().click()
+    await expect(page.getByText('Semua Entitas', { exact: true }).first()).toBeVisible({ timeout: 5_000 })
+  })
+
+  test('retry button is absent on a successful load', async ({ page }) => {
+    // On a clean successful load, loadFailed = false → retry button must not be visible.
+    await expect(page.getByRole('button', { name: 'Coba lagi' })).not.toBeVisible()
   })
 })
 

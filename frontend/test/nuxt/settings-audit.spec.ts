@@ -124,7 +124,7 @@ async function mountAndWait() {
 // Helper — set a page-level reactive ref (exposed via vm) and wait for the
 // resulting watcher → load() cycle to complete.
 async function setVmRef(wrapper: Awaited<ReturnType<typeof mountAndWait>>, key: string, value: unknown) {
-  ;(wrapper.vm as Record<string, unknown>)[key] = value
+  ;(wrapper.vm as unknown as Record<string, unknown>)[key] = value
   await wrapper.vm.$nextTick()
   await new Promise(r => setTimeout(r, 400))
   await wrapper.vm.$nextTick()
