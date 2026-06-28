@@ -285,6 +285,8 @@ describe('Audit Trail page — action filter', () => {
 
     const filtered = capturedQueries.find(q => q['action'] === 'delete')
     expect(filtered).toBeDefined()
+    // Filter change must reset to page 1
+    expect(filtered!['offset']).toBe('0')
   })
 })
 
@@ -356,18 +358,22 @@ describe('Audit Trail page — pagination', () => {
     // total=25, PAGE_SIZE=20 → 2 pages; on page 2 the next button is disabled
     const wrapper = await mountAndWait()
 
-    // Go to page 2
+    // On page 1 (not the last page) the next button must be ENABLED
+    const nextBtnPage1 = wrapper.find('[data-testid="audit-next-page"]')
+    expect(nextBtnPage1.exists()).toBe(true)
+    expect(nextBtnPage1.attributes('disabled')).toBeUndefined()
+
+    // Go to page 2 (the last page)
     const page2Btn = wrapper.findAll('button').find(b => b.text().trim() === '2')
     expect(page2Btn).toBeDefined()
     await page2Btn!.trigger('click')
     await new Promise(r => setTimeout(r, 400))
     await wrapper.vm.$nextTick()
 
-    // The chevron-right next button should be disabled
-    const allBtns = wrapper.findAll('button')
-    // Find disabled buttons (navigation chevrons)
-    const disabledBtns = allBtns.filter(b => b.attributes('disabled') !== undefined)
-    expect(disabledBtns.length).toBeGreaterThan(0)
+    // On the last page the next (chevron-right) button must be disabled
+    const nextBtnPage2 = wrapper.find('[data-testid="audit-next-page"]')
+    expect(nextBtnPage2.exists()).toBe(true)
+    expect(nextBtnPage2.attributes('disabled')).toBeDefined()
   })
 })
 

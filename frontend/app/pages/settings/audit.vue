@@ -357,6 +357,7 @@ onMounted(() => load())
             {{ p }}
           </UButton>
           <UButton
+            data-testid="audit-next-page"
             icon="i-lucide-chevron-right"
             color="neutral"
             variant="outline"
