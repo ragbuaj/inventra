@@ -607,7 +607,22 @@
       "overrideTag": "Override",
       "followDefault": "Ikuti Default",
       "inherits": "Mewarisi: {level}",
-      "footNote": "Contoh: peran Manager memakai default office, namun di-override menjadi office_subtree untuk Aset dan own untuk Pengajuan — menunjukkan lingkup berbeda per modul dalam satu peran."
+      "footNote": "Contoh: peran Manager memakai default office, namun di-override menjadi office_subtree untuk Aset dan own untuk Pengajuan — menunjukkan lingkup berbeda per modul dalam satu peran.",
+      "level": {
+        "global": "Semua data lintas kantor",
+        "office_subtree": "Kantor sendiri + seluruh turunannya",
+        "office": "Hanya kantor sendiri",
+        "own": "Hanya data miliknya"
+      },
+      "module": {
+        "offices": "Kantor",
+        "employees": "Pegawai",
+        "assets": "Aset",
+        "requests": "Pengajuan",
+        "audit": "Audit"
+      },
+      "loadError": "Gagal memuat kebijakan data scope.",
+      "retry": "Coba lagi"
     },
     "fieldPermission": {
       "title": "Field-Permission",
