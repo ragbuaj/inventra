@@ -214,7 +214,7 @@ func renderLabelPDF(items []labelItem, opts labelOpts) ([]byte, error) {
 		const pageW, pageH = 210.0, 297.0
 		margin, gutter := 8.0, 3.0
 		cols := opts.Columns
-		if cols < 2 {
+		if cols < 1 {
 			cols = 3
 		}
 		cellW, cellH := opts.LabelW, opts.LabelH
@@ -255,8 +255,9 @@ func renderLabelPDF(items []labelItem, opts labelOpts) ([]byte, error) {
 }
 
 func trunc(s string, n int) string {
-	if len(s) > n {
-		return s[:n]
+	r := []rune(s)
+	if len(r) > n {
+		return string(r[:n])
 	}
 	return s
 }

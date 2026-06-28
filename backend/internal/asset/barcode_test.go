@@ -3,7 +3,26 @@ package asset
 import (
 	"bytes"
 	"testing"
+	"unicode/utf8"
 )
+
+func TestTrunc_MultiByteUTF8(t *testing.T) {
+	// "Perabot Kantor" contains only ASCII, but company names / disclaimers may
+	// contain non-ASCII characters (e.g. Thai, Arabic, CJK). Byte-slicing would
+	// corrupt a multi-byte sequence; rune-safe trunc must return valid UTF-8.
+	s := "ทดสอบภาษาไทย" // 13 Thai runes, each 3 bytes (39 bytes total)
+	got := trunc(s, 5)
+	if !utf8.ValidString(got) {
+		t.Fatalf("trunc returned invalid UTF-8: %q", got)
+	}
+	if utf8.RuneCountInString(got) != 5 {
+		t.Fatalf("trunc: want 5 runes, got %d in %q", utf8.RuneCountInString(got), got)
+	}
+	// Short string is returned unchanged.
+	if trunc("AB", 10) != "AB" {
+		t.Fatal("trunc modified string shorter than limit")
+	}
+}
 
 func TestResolveLabelDims_Defaults(t *testing.T) {
 	w, h, media, err := resolveLabelDims("", 0, 0, 0)
@@ -58,6 +77,9 @@ func TestRenderLabelPDF_BTN_Roll_OnePagePerAsset(t *testing.T) {
 	if oneCount == 0 {
 		t.Fatal("single-asset PDF has no /Type /Page entries")
 	}
+	// fpdf emits a fixed number of page-tree objects per logical label; linear
+	// scaling (3× asset count → 3× object count) proves one page per asset
+	// without hardcoding fpdf internals.
 	if threeCount != 3*oneCount {
 		t.Fatalf("roll: want 3×%d=%d /Type /Page entries, got %d", oneCount, 3*oneCount, threeCount)
 	}
