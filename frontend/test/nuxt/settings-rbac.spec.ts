@@ -77,7 +77,7 @@ function defaultHandler(path: string, opts?: Record<string, unknown>): unknown {
 
   const permsMatch = path.match(/^\/authz\/roles\/([\w-]+)\/permissions$/)
   if (permsMatch) {
-    const id = permsMatch[1]
+    const id = permsMatch[1]!
     if (opts?.method === 'PUT') return { permissions: (opts.body as { permissions: string[] }).permissions }
     return { permissions: PERMS[id] ?? [] }
   }
@@ -161,8 +161,8 @@ describe('RBAC page — default selection', () => {
     expect(text).toContain('Manager')
     // System badge appears (manager is_system = true)
     expect(text).toContain('Sistem')
-    // Lock note for system role
-    expect(text).toContain('Peran sistem bersifat bawaan')
+    // Lock note for system role (updated text: name/code locked, perms configurable)
+    expect(text).toContain('tetap dapat dikonfigurasi')
   })
 
   it('Save is disabled when first loaded (no dirty changes)', async () => {
@@ -235,20 +235,58 @@ describe('RBAC page — toggling permissions', () => {
 // ---------------------------------------------------------------------------
 
 describe('RBAC page — system role', () => {
-  it('shows lock badge and lock note for a system role', async () => {
+  it('shows lock badge and updated lock note for a system role', async () => {
     const wrapper = await mountAndWait()
     // Manager is selected by default (is_system = true)
     expect(wrapper.text()).toContain('Sistem')
-    expect(wrapper.text()).toContain('Peran sistem bersifat bawaan')
+    // New note: name/code locked, but permissions configurable
+    expect(wrapper.text()).toContain('tetap dapat dikonfigurasi')
   })
 
-  it('system role does NOT show the unsaved indicator (read-only)', async () => {
+  it('Save is disabled initially for a system role (no changes yet)', async () => {
     const wrapper = await mountAndWait()
-    // No dirty state on load
+    // No dirty state on load — clean state, save should be disabled
     expect(wrapper.text()).not.toContain('Perubahan belum disimpan')
-    // Save button is disabled
     const save = wrapper.findAll('button').find(b => b.text().includes('Simpan Perubahan'))
     expect(save!.attributes('disabled')).toBeDefined()
+  })
+
+  it('toggling a permission on a system role enables Save and issues PUT', async () => {
+    const capturedRequests: Array<{ path: string, opts: Record<string, unknown> }> = []
+    setHandler((path, opts = {}) => {
+      capturedRequests.push({ path, opts })
+      return defaultHandler(path, opts)
+    })
+
+    const wrapper = await mountAndWait()
+    // Manager is auto-selected (is_system = true); it has asset.view + asset.manage
+    // Toggle user.manage ON (manager does not have it initially)
+    const permBtn = wrapper.findAll('button').find(b => b.text().includes('user.manage'))
+    expect(permBtn).toBeDefined()
+    await permBtn!.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    // (a) Dirty indicator appears and Save becomes enabled
+    expect(wrapper.text()).toContain('Perubahan belum disimpan')
+    const save = wrapper.findAll('button').find(b => b.text().includes('Simpan Perubahan'))
+    expect(save!.attributes('disabled')).toBeUndefined()
+
+    // (b) Click Save → PUT /authz/roles/r-manager/permissions is issued
+    await save!.trigger('click')
+    await new Promise(r => setTimeout(r, 350))
+    await wrapper.vm.$nextTick()
+
+    const putReq = capturedRequests.find(
+      r => r.path === '/authz/roles/r-manager/permissions' && r.opts.method === 'PUT'
+    )
+    expect(putReq).toBeDefined()
+    const body = putReq!.opts.body as { permissions: string[] }
+    expect(body.permissions).toContain('asset.view')
+    expect(body.permissions).toContain('asset.manage')
+    expect(body.permissions).toContain('user.manage')
+
+    // Dirty state clears after successful save
+    expect(wrapper.text()).not.toContain('Perubahan belum disimpan')
   })
 })
 

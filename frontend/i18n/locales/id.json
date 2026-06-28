@@ -538,7 +538,7 @@
       "addRole": "Tambah Peran",
       "systemBadge": "Sistem",
       "customBadge": "Kustom",
-      "lockNote": "Peran sistem bersifat bawaan dan tidak dapat diubah. Duplikat sebagai peran kustom untuk menyesuaikan izin.",
+      "lockNote": "Peran bawaan: nama & kode terkunci, tetapi izin tetap dapat dikonfigurasi.",
       "unsavedChanges": "Perubahan belum disimpan",
       "saveChanges": "Simpan Perubahan",
       "savedToast": "Perubahan izin disimpan",

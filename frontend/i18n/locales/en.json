@@ -538,7 +538,7 @@
       "addRole": "Add Role",
       "systemBadge": "System",
       "customBadge": "Custom",
-      "lockNote": "System roles are built-in and cannot be edited. Duplicate as a custom role to adjust permissions.",
+      "lockNote": "Built-in role: its name & code are locked, but permissions remain configurable.",
       "unsavedChanges": "Unsaved changes",
       "saveChanges": "Save Changes",
       "savedToast": "Permission changes saved",

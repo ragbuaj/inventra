@@ -235,7 +235,6 @@ onMounted(() => load())
               :key="m.key"
               :module="m"
               :granted="draft"
-              :readonly="selectedRole?.is_system"
               @toggle="togglePerm"
               @toggle-all="toggleModule(m.key)"
             />
