@@ -35,3 +35,6 @@ WHERE role_id = $1 AND deleted_at IS NULL;
 UPDATE identity.users
 SET google_id = $2, updated_at = now()
 WHERE id = $1 AND deleted_at IS NULL;
+
+-- name: GetAppSetting :one
+SELECT value FROM identity.app_settings WHERE key = $1 AND deleted_at IS NULL;
