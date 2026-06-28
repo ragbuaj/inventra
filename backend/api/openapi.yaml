@@ -843,6 +843,69 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
 
+  /api/v1/assets/by-tag/{tag}:
+    parameters:
+      - name: tag
+        in: path
+        required: true
+        schema: { type: string }
+        description: Asset tag (barcode / QR value) to look up.
+    get:
+      tags: [Assets]
+      operationId: getAssetByTag
+      summary: Scan-lookup — get asset by tag
+      description: |
+        Resolves an asset by its `asset_tag` value (scanned from a barcode or QR code).
+        Requires the `asset.view` permission. Out-of-scope assets return 404 (not 403)
+        to avoid tag enumeration.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The asset
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Asset" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Tag not found or out of caller's scope
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/assets/labels:
+    post:
+      tags: [Assets]
+      operationId: generateLabels
+      summary: Generate a label PDF for one or more assets
+      description: |
+        Renders a printable label PDF for the supplied assets (by id or tag).
+        Requires the `asset.manage` permission.
+        Returns 422 when none of the requested assets fall within the caller's scope.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LabelRequest" }
+      responses:
+        "200":
+          description: Label PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422":
+          description: No in-scope assets matched the request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/v1/assets/{id}:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -892,6 +955,43 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404":
           description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/assets/{id}/barcode:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Assets]
+      operationId: getAssetBarcode
+      summary: Get barcode/QR image for an asset
+      description: |
+        Returns a PNG image of the asset's barcode (Code-128) or QR code.
+        Requires the `asset.view` permission. Out-of-scope assets return 403.
+      security:
+        - bearerJWT: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [code128, qr]
+            default: code128
+          description: Barcode symbology to render.
+      responses:
+        "200":
+          description: PNG barcode image
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Asset not found
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
@@ -2045,3 +2145,63 @@ components:
         mime_type: { type: string }
         has_thumbnail: { type: boolean }
         created_at: { type: string, format: date-time }
+
+    LabelRequest:
+      type: object
+      description: |
+        Request body for `POST /assets/labels`. Supply either `asset_ids` or `tags`
+        (or both). All dimensional fields are in millimetres. When `size` is a known
+        preset the individual `w_mm`/`h_mm` fields are ignored; supply them when using
+        a custom size.
+      properties:
+        asset_ids:
+          type: array
+          items: { type: string, format: uuid }
+          description: Asset UUIDs to include in the label sheet.
+        tags:
+          type: array
+          items: { type: string }
+          description: Asset tags (barcode values) to include.
+        template:
+          type: string
+          enum: [btn, generic]
+          default: btn
+          description: Label template. `btn` uses the Bank BTN house style; `generic` is a plain layout.
+        layout:
+          type: string
+          enum: [roll, sheet]
+          default: roll
+          description: "`roll` outputs a single-column continuous roll; `sheet` tiles labels in a grid."
+        size:
+          type: string
+          description: Named preset size (e.g. `50x30`). When omitted, supply `w_mm` and `h_mm`.
+        w_mm:
+          type: number
+          format: double
+          description: Label width in mm (used when `size` is absent or unknown).
+        h_mm:
+          type: number
+          format: double
+          description: Label height in mm (used when `size` is absent or unknown).
+        media_w_mm:
+          type: number
+          format: double
+          description: Media (paper/roll) width in mm — required for `sheet` layout.
+        columns:
+          type: integer
+          description: Number of label columns per row (`sheet` layout only).
+        mode:
+          type: string
+          enum: [barcode, qr, both]
+          default: barcode
+          description: Which symbol to print on each label.
+        fields:
+          type: object
+          description: Optional fields to print on each label alongside the barcode.
+          properties:
+            name:
+              type: boolean
+              description: Print the asset name.
+            office:
+              type: boolean
+              description: Print the office name.
