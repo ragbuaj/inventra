@@ -83,15 +83,15 @@ test.describe('RBAC screen — real backend', () => {
   test('toggling a permission marks dirty and Save persists across a page reload', async ({ page }) => {
     // Work with a non-system role to avoid interfering with seeded system roles.
     // If no custom role exists, this sub-test creates one first.
-    const roleList = page.locator('button').filter({ hasText: /izin$/ })
-    const count = await roleList.count()
+    // Verify the role list has at least one role before proceeding.
+    await expect(page.locator('button').filter({ hasText: 'Manager' }).first()).toBeVisible()
 
     // Try to find a custom role (no lock icon). If none, skip the toggle/persist test.
     // The seeded admin setup may or may not have custom roles — we guard here.
     // If a custom role "Auditor Internal" is seeded, use it; otherwise create one.
     let targetRoleName = 'Auditor Internal'
     const auditorBtn = page.locator('button').filter({ hasText: /Auditor Internal/ }).first()
-    const auditorExists = await auditorBtn.isVisible().catch(() => false)
+    const auditorExists = await auditorBtn.isVisible()
 
     if (!auditorExists) {
       // Create a temporary custom role for the toggle/persist test
@@ -109,9 +109,9 @@ test.describe('RBAC screen — real backend', () => {
     const targetBtn = page.locator('button').filter({ hasText: new RegExp(targetRoleName) }).first()
     await targetBtn.click()
 
-    // Find the first permission switch that is currently OFF and toggle it ON
-    const permButtons = page.locator('button[class*="rounded-lg"][class*="text-left"]')
-    const firstPermBtn = permButtons.first()
+    // Find the first permission toggle row (button containing a mono permission code span)
+    // and toggle it. Located by text content of a known permission code rather than CSS classes.
+    const firstPermBtn = page.locator('button', { hasText: 'asset.view' }).first()
     await firstPermBtn.click()
 
     // Dirty indicator must appear
@@ -141,7 +141,6 @@ test.describe('RBAC screen — real backend', () => {
       await saveBtn.click()
       await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible({ timeout: 5_000 })
     }
-    expect(count).toBeGreaterThanOrEqual(0) // keep var used
   })
 
   test('Add Role modal opens, slugifies the code, and the new role appears in the list', async ({ page }) => {

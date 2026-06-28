@@ -24,7 +24,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > 5. ~~**Barcode/QR + label PDF**~~ ✅ **DONE (2026-06-28).**
 > 6. ~~**Asset documents (BAST)**~~ ✅ **DONE (2026-06-28).**
 > 7. ~~**Authorization admin endpoints**~~ ✅ **DONE (2026-06-28).** `internal/authzadmin` — role CRUD, replace-set permissions/scope/fields, Redis cache invalidation, permission catalog, seed RBAC drift fix, integration tests, OpenAPI spec.
-> 8. ~~**Wire Peran & RBAC screen to real `/authz` APIs**~~ ✅ **DONE (2026-06-28).** `useRbac` composable rewritten to `/authz/catalog` + `/authz/roles` + `/authz/roles/:id/permissions`; English DTO; UUID `id` identity; system-role permissions now editable (product decision — lock note reworded, switches active); e2e spec updated against real seeded backend. (#31-series)
+> 8. ~~**Wire Peran & RBAC screen to real `/authz` APIs**~~ ✅ **DONE (2026-06-28).** `useRbac` composable rewritten to `/authz/catalog` + `/authz/roles` + `/authz/roles/:id/permissions`; English DTO; UUID `id` identity; system-role permissions now editable (product decision — lock note reworded, switches active); e2e spec updated against real seeded backend.
 > 9. **Next priorities (pick one):**
 >    - **Wire frontend Data Scope screen** (`/settings/data-scope`) to the real `/api/v1/authz/roles/:id/scope` endpoints — next screen in the Settings API-wiring sequence.
 >    - **Wire frontend Field Permission screen** (`/settings/field-permission`) to `/api/v1/authz/roles/:id/fields`.
