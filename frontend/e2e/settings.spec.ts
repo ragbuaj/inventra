@@ -17,12 +17,32 @@ test.describe('Settings cluster (mock-backed)', () => {
     await expect(page.getByText('Superadmin').first()).toBeVisible()
     await expect(page.getByText('Lihat aset').first()).toBeVisible()
   })
+})
 
-  test('Audit trail screen loads', async ({ page }) => {
+// ---------------------------------------------------------------------------
+// Audit Trail screen — real backend (GET /api/v1/audit)
+// The seeded admin (admin@inventra.local) must have audit.view permission.
+// On a fresh CI stack the audit table may be EMPTY: createadmin bypasses audit
+// logging and login does not write audit rows. The single test below is
+// deterministic regardless of whether rows exist.
+// NOTE: pnpm test:e2e requires the full backend stack (see CLAUDE.md). This
+// spec compiles + lints here; it runs in CI's e2e job.
+// ---------------------------------------------------------------------------
+test.describe('Audit Trail screen — real backend', () => {
+  test('loads against the real backend (table or empty-state)', async ({ page }) => {
     await login(page)
     await page.goto('/settings/audit')
-    await expect(page).toHaveURL(/\/settings\/audit$/)
-    await expect(page.getByRole('heading', { name: 'Audit Trail' })).toBeVisible()
+    // Heading renders (proves the page mounted and auth resolved).
+    await expect(page.getByRole('heading', { name: 'Audit Trail' })).toBeVisible({ timeout: 10_000 })
+    // Content settles to EITHER the table OR the empty-state — a single auto-waiting
+    // assertion that is deterministic regardless of whether the seeded backend has
+    // audit rows yet.
+    await expect(
+      page.locator('table').or(page.getByText('Tidak ada log', { exact: true }))
+    ).toBeVisible({ timeout: 10_000 })
+    // The search input is always rendered regardless of data, proving the filter
+    // bar wired up correctly. i18n key: settings.audit.searchPlaceholder.
+    await expect(page.getByPlaceholder('Cari entity atau ID…')).toBeVisible({ timeout: 5_000 })
   })
 })
 
