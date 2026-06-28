@@ -20,8 +20,9 @@ import (
 )
 
 var (
-	ErrNoAssets    = errors.New("no assets selected for labels")
-	ErrUnknownSize = errors.New("unknown label size preset")
+	ErrNoAssets      = errors.New("no assets selected for labels")
+	ErrUnknownSize   = errors.New("unknown label size preset")
+	ErrSheetOverflow = errors.New("label columns overflow A4 page width — reduce columns or label width")
 )
 
 const (
@@ -96,6 +97,13 @@ func composeQRWithLogo(tag string, logoPNG []byte) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+// sheetFits reports whether cols labels of width labelW mm fit across A4 (210 mm)
+// with the layout's fixed margins (8 mm each side) and gutters (3 mm between cols).
+func sheetFits(cols int, labelW float64) bool {
+	const pageW, margin, gutter = 210.0, 8.0, 3.0
+	return float64(cols)*labelW+float64(cols-1)*gutter+2*margin <= pageW
 }
 
 func renderLabelPDF(items []labelItem, opts labelOpts) ([]byte, error) {
@@ -217,6 +225,9 @@ func renderLabelPDF(items []labelItem, opts labelOpts) ([]byte, error) {
 		if cols < 1 {
 			cols = 3
 		}
+		if !sheetFits(cols, opts.LabelW) {
+			return nil, ErrSheetOverflow
+		}
 		cellW, cellH := opts.LabelW, opts.LabelH
 		rows := int((pageH - 2*margin + gutter) / (cellH + gutter))
 		if rows < 1 {
@@ -231,9 +242,6 @@ func renderLabelPDF(items []labelItem, opts labelOpts) ([]byte, error) {
 			r, cc := slot/cols, slot%cols
 			x := margin + float64(cc)*(cellW+gutter)
 			y := margin + float64(r)*(cellH+gutter)
-			if x+cellW > pageW-margin {
-				continue
-			}
 			if err := draw(x, y, it); err != nil {
 				return nil, err
 			}

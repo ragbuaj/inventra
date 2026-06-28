@@ -144,8 +144,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       `purchase_cost`/`book_value`/`accumulated_depreciation`); `asset_tag` generator (atomic
       per-office/category/year, Postgres advisory lock); status state machine (valid transitions
       enforced); valuation-exclusion flag. Asset create/disposal/exclusion go through the approval
-      engine (not direct write). ⚠️ Attachments (MinIO) and barcode/QR still pending (see below).
-      **Done — (2026-06-28).**
+      engine (not direct write). **Done — (2026-06-28).**
 - [x] **Asset attachments (MinIO)** — Storage interface; upload + size/type validation; image thumbnail (original preserved); proxy download/thumbnail; integration-test coverage (MinIO round-trip + scope + rollback). **Done — (2026-06-28).**
 - [x] **Barcode / QR** — Code128 + QR PNG from `asset_tag`; scan-lookup `GET /assets/by-tag/:tag`; barcode PNG `GET /assets/:id/barcode`; label PDF `POST /assets/labels` — **BTN template** (QR+logo + bank header + asset code + office/category/name/TP + disclaimer; `company_name`/`disclaimer` from `app_settings`; logo via `LABEL_LOGO_PATH`) + **generic** template; layout **roll** (page-per-label, default 60×24 mm on 64 mm media for Epson C4050) + **sheet** (A4 grid); scope-gated; integration tests. **Done — (2026-06-28).**
 - [x] **Approval (maker-checker)** — generic `request_approvals` table; threshold-driven chain

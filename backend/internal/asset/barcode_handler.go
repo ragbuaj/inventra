@@ -28,9 +28,14 @@ type LabelRequest struct {
 	} `json:"fields"`
 }
 
+const maxLabelsPerRequest = 500
+
 func (r LabelRequest) validate() error {
 	if len(r.AssetIDs) == 0 && len(r.Tags) == 0 {
 		return errors.New("provide asset_ids or tags")
+	}
+	if len(r.AssetIDs)+len(r.Tags) > maxLabelsPerRequest {
+		return errors.New("too many labels in one request (max 500)")
 	}
 	switch r.Template {
 	case "", "btn", "generic":
@@ -184,6 +189,8 @@ func (h *Handler) generateLabels(c *gin.Context) {
 		switch {
 		case errors.Is(err, ErrNoAssets):
 			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+		case errors.Is(err, ErrSheetOverflow):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		case errors.Is(err, common.ErrForbidden):
 			common.WriteError(c, common.ErrForbidden)
 		default:

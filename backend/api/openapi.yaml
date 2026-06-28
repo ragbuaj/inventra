@@ -880,7 +880,8 @@ paths:
       summary: Generate a label PDF for one or more assets
       description: |
         Renders a printable label PDF for the supplied assets (by id or tag).
-        Requires the `asset.manage` permission.
+        Provide `asset_ids` OR `tags`; if both are given, `asset_ids` takes precedence.
+        Requires the `asset.view` permission.
         Returns 422 when none of the requested assets fall within the caller's scope.
       security:
         - bearerJWT: []

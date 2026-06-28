@@ -2,6 +2,7 @@ package asset
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 	"unicode/utf8"
 )
@@ -126,5 +127,58 @@ func TestLabelRequest_Validate(t *testing.T) {
 	}
 	if err := (LabelRequest{Tags: []string{"A"}, Template: "btn", Layout: "roll"}).validate(); err != nil {
 		t.Fatalf("valid: %v", err)
+	}
+
+	// cap: 501 tags → error; 500 → ok.
+	tags501 := make([]string, 501)
+	for i := range tags501 {
+		tags501[i] = "T"
+	}
+	if err := (LabelRequest{Tags: tags501}).validate(); err == nil {
+		t.Fatal("501 tags should exceed cap")
+	}
+	tags500 := tags501[:500]
+	if err := (LabelRequest{Tags: tags500}).validate(); err != nil {
+		t.Fatalf("500 tags should be within cap: %v", err)
+	}
+	// cap counts asset_ids + tags combined.
+	ids300 := make([]string, 300)
+	tags300 := make([]string, 300)
+	if err := (LabelRequest{AssetIDs: ids300, Tags: tags300}).validate(); err == nil {
+		t.Fatal("300+300=600 combined should exceed cap")
+	}
+}
+
+func TestSheetFits(t *testing.T) {
+	// 3 cols × 60 mm + 2 gutters × 3 mm + 2 margins × 8 mm = 180+6+16 = 202 ≤ 210 → fits
+	if !sheetFits(3, 60) {
+		t.Fatal("3 cols × 60 mm should fit on A4")
+	}
+	// 4 cols × 60 mm + 3 gutters × 3 mm + 2 margins × 8 mm = 240+9+16 = 265 > 210 → overflow
+	if sheetFits(4, 60) {
+		t.Fatal("4 cols × 60 mm should overflow A4")
+	}
+}
+
+func TestRenderLabelPDF_Sheet_OverflowReturnsError(t *testing.T) {
+	// 4 cols × 60 mm width — sheetFits says no → must return ErrSheetOverflow.
+	opts := labelOpts{
+		Template: "generic", Layout: "sheet",
+		LabelW: 60, LabelH: 24, Columns: 4, Mode: "barcode",
+	}
+	_, err := renderLabelPDF(itemsN(1), opts)
+	if !errors.Is(err, ErrSheetOverflow) {
+		t.Fatalf("want ErrSheetOverflow, got %v", err)
+	}
+}
+
+func TestComposeQRWithLogo_CorruptLogoFallback(t *testing.T) {
+	// Passing corrupt (non-PNG) logo bytes must fall back to plain QR and return a valid PNG.
+	out, err := composeQRWithLogo("TAG-1", []byte("not a png"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !bytes.HasPrefix(out, []byte("\x89PNG")) {
+		t.Fatal("result is not a valid PNG")
 	}
 }
