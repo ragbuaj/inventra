@@ -12,10 +12,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -36,6 +36,7 @@ type docHarness struct {
 	router   *gin.Engine
 	svc      *asset.Service
 	store    *storage.MinIOStorage
+	pool     *pgxpool.Pool
 	assetID  uuid.UUID
 	officeID uuid.UUID
 	userID   uuid.UUID
@@ -102,6 +103,7 @@ func docNewHarness(t *testing.T, maxBytes int64) *docHarness {
 		router:   router,
 		svc:      svc,
 		store:    minioStore,
+		pool:     pool,
 		assetID:  assetID,
 		officeID: officeID,
 		userID:   userID,
@@ -271,9 +273,6 @@ func TestDocument(t *testing.T) {
 		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &r1))
 		docID1 := r1["id"].(string)
 
-		// Small sleep to ensure different created_at timestamps for ordering.
-		time.Sleep(10 * time.Millisecond)
-
 		// Create second doc.
 		body2 := bytes.NewBufferString(`{"doc_type":"invoice","doc_no":"INV-B"}`)
 		w = h.do(t, http.MethodPost, base, body2, "application/json")
@@ -281,6 +280,13 @@ func TestDocument(t *testing.T) {
 		var r2 map[string]any
 		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &r2))
 		docID2 := r2["id"].(string)
+
+		// Force doc1 to have a created_at 1 minute in the past so ordering is deterministic.
+		ctx := context.Background()
+		_, err := h.pool.Exec(ctx,
+			`UPDATE asset.asset_documents SET created_at = created_at - interval '1 minute' WHERE id = $1`,
+			docID1)
+		require.NoError(t, err, "backdate doc1 created_at for deterministic ordering")
 
 		// List → total=2.
 		w = h.do(t, http.MethodGet, base, nil, "")
@@ -380,7 +386,7 @@ func TestDocument(t *testing.T) {
 
 	// ── Case 6: Scope_Forbidden ───────────────────────────────────────────────
 	// Caller whose office scope excludes the asset's office gets 403 on
-	// POST (create), GET (list), and GET .../file.
+	// POST (create), GET (list), and GET .../file (tested against a real doc).
 	t.Run("Scope_Forbidden", func(t *testing.T) {
 		ctx := context.Background()
 		pool := testsupport.NewPostgres(t)
@@ -408,7 +414,7 @@ func TestDocument(t *testing.T) {
 		catID := seedCategory(t, pool, "DSC")
 		assetID := seedAssetDirect(t, pool, "DSCA-DSC-2026-00001", "Scoped Doc Asset", catID, officeA)
 
-		// Create a doc on this asset using a superadmin first, to test file download scope.
+		// Superadmin (global scope) lives in officeA — used to create a real doc with a file.
 		superRoleID := lookupRole(t, pool, "Superadmin")
 		var superUserID uuid.UUID
 		require.NoError(t, pool.QueryRow(ctx,
@@ -420,7 +426,7 @@ func TestDocument(t *testing.T) {
 		restrictedRoleID := testsupport.SeedRole(t, pool, "DocScopeEnfRole")
 		testsupport.SeedScopePolicy(t, pool, restrictedRoleID, "*", sqlc.SharedScopeLevelOffice)
 
-		// Caller is placed in officeB — scope is {officeB}, excluding officeA.
+		// Excluded caller is placed in officeB — scope is {officeB}, excluding officeA.
 		var excludedUserID uuid.UUID
 		require.NoError(t, pool.QueryRow(ctx,
 			`INSERT INTO identity.users (name, email, role_id, office_id, status)
@@ -434,18 +440,57 @@ func TestDocument(t *testing.T) {
 		audSvc := audit.NewService(q)
 		handler := asset.NewHandler(svc, fieldSvc, scoped, audSvc)
 
-		gin.SetMode(gin.TestMode)
-		router := gin.New()
-		rg := router.Group("/api/v1")
+		passThrough := func(c *gin.Context) { c.Next() }
+		basePath := "/api/v1/assets/" + assetID.String() + "/documents"
 
-		// Use excluded caller for scope enforcement tests.
-		stubAuth := func(c *gin.Context) {
+		gin.SetMode(gin.TestMode)
+
+		// ── Step 1: create a real doc + attach a file as the in-scope superadmin. ──
+		// Wire a separate router with superadmin auth to create the document.
+		superRouter := gin.New()
+		superRg := superRouter.Group("/api/v1")
+		superAuth := func(c *gin.Context) {
+			c.Set(middleware.CtxUserID, superUserID.String())
+			c.Set(middleware.CtxRoleID, superRoleID.String())
+			c.Next()
+		}
+		asset.RegisterRoutes(superRg, handler, superAuth, passThrough, passThrough)
+
+		doSuper := func(method, path string, body io.Reader, ct string) *httptest.ResponseRecorder {
+			req := httptest.NewRequest(method, path, body)
+			if ct != "" {
+				req.Header.Set("Content-Type", ct)
+			}
+			w := httptest.NewRecorder()
+			superRouter.ServeHTTP(w, req)
+			return w
+		}
+
+		// Create doc via superadmin.
+		createBody := bytes.NewBufferString(`{"doc_type":"invoice","doc_no":"SCOPE-INV-001"}`)
+		wCreate := doSuper(http.MethodPost, basePath, createBody, "application/json")
+		require.Equal(t, http.StatusCreated, wCreate.Code,
+			"pre-condition: superadmin creates doc → 201; body: %s", wCreate.Body.String())
+		var createResp map[string]any
+		require.NoError(t, json.Unmarshal(wCreate.Body.Bytes(), &createResp))
+		realDocID := createResp["id"].(string)
+
+		// Attach a file to the doc so it has a real object_key.
+		pdfData := attMakePDF()
+		fileBody, fileCT := attBuildMultipart(t, "scope-test.pdf", "application/pdf", pdfData)
+		wUpload := doSuper(http.MethodPut, basePath+"/"+realDocID+"/file", fileBody, fileCT)
+		require.Equal(t, http.StatusOK, wUpload.Code,
+			"pre-condition: superadmin attaches file → 200; body: %s", wUpload.Body.String())
+
+		// ── Step 2: switch to excluded caller and assert 403 on every verb. ───────
+		excludedRouter := gin.New()
+		excludedRg := excludedRouter.Group("/api/v1")
+		excludedAuth := func(c *gin.Context) {
 			c.Set(middleware.CtxUserID, excludedUserID.String())
 			c.Set(middleware.CtxRoleID, restrictedRoleID.String())
 			c.Next()
 		}
-		passThrough := func(c *gin.Context) { c.Next() }
-		asset.RegisterRoutes(rg, handler, stubAuth, passThrough, passThrough)
+		asset.RegisterRoutes(excludedRg, handler, excludedAuth, passThrough, passThrough)
 
 		do := func(method, path string, body io.Reader, ct string) *httptest.ResponseRecorder {
 			req := httptest.NewRequest(method, path, body)
@@ -453,16 +498,13 @@ func TestDocument(t *testing.T) {
 				req.Header.Set("Content-Type", ct)
 			}
 			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
+			excludedRouter.ServeHTTP(w, req)
 			return w
 		}
 
-		basePath := "/api/v1/assets/" + assetID.String() + "/documents"
-		fakeDocID := uuid.New().String()
-
 		// POST (create) → 403.
-		createBody := bytes.NewBufferString(`{"doc_type":"invoice"}`)
-		w := do(http.MethodPost, basePath, createBody, "application/json")
+		scopeCreateBody := bytes.NewBufferString(`{"doc_type":"invoice"}`)
+		w := do(http.MethodPost, basePath, scopeCreateBody, "application/json")
 		assert.Equal(t, http.StatusForbidden, w.Code,
 			"create from out-of-scope caller → 403; body: %s", w.Body.String())
 
@@ -471,10 +513,10 @@ func TestDocument(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, w.Code,
 			"list from out-of-scope caller → 403; body: %s", w.Body.String())
 
-		// GET .../file → 403.
-		w = do(http.MethodGet, basePath+"/"+fakeDocID+"/file", nil, "")
+		// GET .../file on a REAL existing document → 403 (scope enforced before row lookup).
+		w = do(http.MethodGet, basePath+"/"+realDocID+"/file", nil, "")
 		assert.Equal(t, http.StatusForbidden, w.Code,
-			"file download from out-of-scope caller → 403; body: %s", w.Body.String())
+			"file download from out-of-scope caller on real doc → 403; body: %s", w.Body.String())
 	})
 
 	// ── Case 7: Delete_RemovesObject ─────────────────────────────────────────
