@@ -168,6 +168,17 @@ test.describe('RBAC screen — real backend', () => {
 // offices, employees, assets, requests, audit) — intentionally different from
 // the old mock fixture keys (aset, pengajuan, …); this is an approved decision.
 // ---------------------------------------------------------------------------
+
+// i18n (id locale) descriptions for each scope level — these render in the legend
+// and inside each popover option, but NOT on the bare table pills, so they uniquely
+// disambiguate a popover option from a table cell pill.
+const LEVEL_DESC: Record<string, string> = {
+  global: 'Semua data lintas kantor',
+  office_subtree: 'Kantor sendiri + seluruh turunannya',
+  office: 'Hanya kantor sendiri',
+  own: 'Hanya data miliknya'
+}
+
 test.describe('Data Scope screen — real backend', () => {
   test.beforeEach(async ({ page }) => {
     await login(page)
@@ -194,17 +205,15 @@ test.describe('Data Scope screen — real backend', () => {
   })
 
   test('legend renders all four scope levels with descriptions', async ({ page }) => {
-    // Scope the assertions to the legend card to avoid matching stray text (e.g. pill cells)
-    // The legend section is identified by its title text
-    const legendCard = page.locator('div').filter({ hasText: 'Level lingkup data' }).last()
-    await expect(legendCard).toBeVisible()
-    // Legend title
-    await expect(legendCard.getByText('Level lingkup data').first()).toBeVisible()
-    // Legend must show the four scope level keys inside the legend region
-    await expect(legendCard.getByText('global').first()).toBeVisible()
-    await expect(legendCard.getByText('office_subtree').first()).toBeVisible()
-    await expect(legendCard.getByText('office').first()).toBeVisible()
-    await expect(legendCard.getByText('own').first()).toBeVisible()
+    // The legend title + the four level descriptions render only in the legend card.
+    // The table pills show the bare level KEYS (global/office/…), not the descriptions,
+    // so asserting the descriptions reliably proves the legend rendered without needing
+    // a fragile container locator.
+    await expect(page.getByText('Level lingkup data').first()).toBeVisible()
+    await expect(page.getByText(LEVEL_DESC.global).first()).toBeVisible()
+    await expect(page.getByText(LEVEL_DESC.office_subtree).first()).toBeVisible()
+    await expect(page.getByText(LEVEL_DESC.office).first()).toBeVisible()
+    await expect(page.getByText(LEVEL_DESC.own).first()).toBeVisible()
   })
 
   test('Save button is disabled with no changes (clean state)', async ({ page }) => {
@@ -241,9 +250,10 @@ test.describe('Data Scope screen — real backend', () => {
     // Pick a different level deterministically: 'own' if currently 'global', else 'global'
     const targetLevel = currentLevel === 'own' ? 'global' : 'own'
 
-    // Popover option buttons each contain the level key as visible text (font-mono span).
-    // Locate by the exact level key text scoped to buttons — unique among the four options.
-    const levelOption = page.locator('button[type="button"]').filter({ hasText: new RegExp(`^${targetLevel}`) }).first()
+    // Popover option buttons contain the level key AND its description; the description
+    // text is unique to the open popover (table pills render only the bare key), so
+    // scoping by description targets the popover option, never a table pill button.
+    const levelOption = page.getByRole('button').filter({ hasText: LEVEL_DESC[targetLevel] }).first()
     await levelOption.click()
 
     // Dirty indicator should appear
@@ -268,7 +278,7 @@ test.describe('Data Scope screen — real backend', () => {
 
     // Clean up: revert to original level (best-effort; not a hard failure)
     await defaultPillAfter.click()
-    const revertOption = page.locator('button[type="button"]').filter({ hasText: new RegExp(`^${currentLevel}`) }).first()
+    const revertOption = page.getByRole('button').filter({ hasText: LEVEL_DESC[currentLevel] }).first()
     await revertOption.click()
     const saveBtnCleanup = page.getByRole('button', { name: /Simpan/ })
     if (await saveBtnCleanup.isEnabled()) {
