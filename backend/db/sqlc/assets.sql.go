@@ -178,6 +178,53 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 	return i, err
 }
 
+const createAssetDocument = `-- name: CreateAssetDocument :one
+INSERT INTO asset.asset_documents (
+  asset_id, doc_type, doc_no, doc_date, counterparty, related_request_id, created_by_id
+) VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING id, asset_id, doc_type, doc_no, doc_date, counterparty, object_key, related_request_id, related_transfer_id, related_disposal_id, created_by_id, created_at, updated_at, deleted_at
+`
+
+type CreateAssetDocumentParams struct {
+	AssetID          uuid.UUID               `json:"asset_id"`
+	DocType          SharedAssetDocumentType `json:"doc_type"`
+	DocNo            *string                 `json:"doc_no"`
+	DocDate          pgtype.Date             `json:"doc_date"`
+	Counterparty     *string                 `json:"counterparty"`
+	RelatedRequestID *uuid.UUID              `json:"related_request_id"`
+	CreatedByID      *uuid.UUID              `json:"created_by_id"`
+}
+
+func (q *Queries) CreateAssetDocument(ctx context.Context, arg CreateAssetDocumentParams) (AssetAssetDocument, error) {
+	row := q.db.QueryRow(ctx, createAssetDocument,
+		arg.AssetID,
+		arg.DocType,
+		arg.DocNo,
+		arg.DocDate,
+		arg.Counterparty,
+		arg.RelatedRequestID,
+		arg.CreatedByID,
+	)
+	var i AssetAssetDocument
+	err := row.Scan(
+		&i.ID,
+		&i.AssetID,
+		&i.DocType,
+		&i.DocNo,
+		&i.DocDate,
+		&i.Counterparty,
+		&i.ObjectKey,
+		&i.RelatedRequestID,
+		&i.RelatedTransferID,
+		&i.RelatedDisposalID,
+		&i.CreatedByID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const createAttachment = `-- name: CreateAttachment :one
 INSERT INTO asset.asset_attachments (
   asset_id, kind, object_key, thumbnail_key, original_filename, size_bytes, mime_type, created_by_id
@@ -322,6 +369,32 @@ func (q *Queries) GetAssetByTag(ctx context.Context, assetTag string) (AssetAsse
 	return i, err
 }
 
+const getAssetDocument = `-- name: GetAssetDocument :one
+SELECT id, asset_id, doc_type, doc_no, doc_date, counterparty, object_key, related_request_id, related_transfer_id, related_disposal_id, created_by_id, created_at, updated_at, deleted_at FROM asset.asset_documents WHERE id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) GetAssetDocument(ctx context.Context, id uuid.UUID) (AssetAssetDocument, error) {
+	row := q.db.QueryRow(ctx, getAssetDocument, id)
+	var i AssetAssetDocument
+	err := row.Scan(
+		&i.ID,
+		&i.AssetID,
+		&i.DocType,
+		&i.DocNo,
+		&i.DocDate,
+		&i.Counterparty,
+		&i.ObjectKey,
+		&i.RelatedRequestID,
+		&i.RelatedTransferID,
+		&i.RelatedDisposalID,
+		&i.CreatedByID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const getAssetLabelByID = `-- name: GetAssetLabelByID :one
 SELECT a.asset_tag, a.name, o.code AS office_code, c.name AS category_name, a.purchase_date
 FROM asset.assets a
@@ -424,6 +497,47 @@ func (q *Queries) GetOfficeCode(ctx context.Context, id uuid.UUID) (string, erro
 	var code string
 	err := row.Scan(&code)
 	return code, err
+}
+
+const listAssetDocuments = `-- name: ListAssetDocuments :many
+SELECT id, asset_id, doc_type, doc_no, doc_date, counterparty, object_key, related_request_id, related_transfer_id, related_disposal_id, created_by_id, created_at, updated_at, deleted_at FROM asset.asset_documents
+WHERE asset_id = $1 AND deleted_at IS NULL
+ORDER BY created_at DESC
+`
+
+func (q *Queries) ListAssetDocuments(ctx context.Context, assetID uuid.UUID) ([]AssetAssetDocument, error) {
+	rows, err := q.db.Query(ctx, listAssetDocuments, assetID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AssetAssetDocument{}
+	for rows.Next() {
+		var i AssetAssetDocument
+		if err := rows.Scan(
+			&i.ID,
+			&i.AssetID,
+			&i.DocType,
+			&i.DocNo,
+			&i.DocDate,
+			&i.Counterparty,
+			&i.ObjectKey,
+			&i.RelatedRequestID,
+			&i.RelatedTransferID,
+			&i.RelatedDisposalID,
+			&i.CreatedByID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listAssets = `-- name: ListAssets :many
@@ -563,6 +677,40 @@ func (q *Queries) ListAttachments(ctx context.Context, assetID uuid.UUID) ([]Ass
 	return items, nil
 }
 
+const setAssetDocumentObjectKey = `-- name: SetAssetDocumentObjectKey :one
+UPDATE asset.asset_documents
+SET object_key = $2
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, asset_id, doc_type, doc_no, doc_date, counterparty, object_key, related_request_id, related_transfer_id, related_disposal_id, created_by_id, created_at, updated_at, deleted_at
+`
+
+type SetAssetDocumentObjectKeyParams struct {
+	ID        uuid.UUID `json:"id"`
+	ObjectKey *string   `json:"object_key"`
+}
+
+func (q *Queries) SetAssetDocumentObjectKey(ctx context.Context, arg SetAssetDocumentObjectKeyParams) (AssetAssetDocument, error) {
+	row := q.db.QueryRow(ctx, setAssetDocumentObjectKey, arg.ID, arg.ObjectKey)
+	var i AssetAssetDocument
+	err := row.Scan(
+		&i.ID,
+		&i.AssetID,
+		&i.DocType,
+		&i.DocNo,
+		&i.DocDate,
+		&i.Counterparty,
+		&i.ObjectKey,
+		&i.RelatedRequestID,
+		&i.RelatedTransferID,
+		&i.RelatedDisposalID,
+		&i.CreatedByID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const setAssetStatus = `-- name: SetAssetStatus :one
 UPDATE asset.assets SET status = $2 WHERE id = $1 AND deleted_at IS NULL RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at
 `
@@ -673,6 +821,18 @@ func (q *Queries) SetAssetValuationExclusion(ctx context.Context, arg SetAssetVa
 	return i, err
 }
 
+const softDeleteAssetDocument = `-- name: SoftDeleteAssetDocument :execrows
+UPDATE asset.asset_documents SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) SoftDeleteAssetDocument(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, softDeleteAssetDocument, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const softDeleteAttachment = `-- name: SoftDeleteAttachment :execrows
 UPDATE asset.asset_attachments SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL
 `
@@ -768,6 +928,51 @@ func (q *Queries) UpdateAsset(ctx context.Context, arg UpdateAssetParams) (Asset
 		&i.ValuationExclusionReason,
 		&i.CreatedByID,
 		&i.Notes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const updateAssetDocument = `-- name: UpdateAssetDocument :one
+UPDATE asset.asset_documents
+SET doc_type = $2, doc_no = $3, doc_date = $4, counterparty = $5, related_request_id = $6
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, asset_id, doc_type, doc_no, doc_date, counterparty, object_key, related_request_id, related_transfer_id, related_disposal_id, created_by_id, created_at, updated_at, deleted_at
+`
+
+type UpdateAssetDocumentParams struct {
+	ID               uuid.UUID               `json:"id"`
+	DocType          SharedAssetDocumentType `json:"doc_type"`
+	DocNo            *string                 `json:"doc_no"`
+	DocDate          pgtype.Date             `json:"doc_date"`
+	Counterparty     *string                 `json:"counterparty"`
+	RelatedRequestID *uuid.UUID              `json:"related_request_id"`
+}
+
+func (q *Queries) UpdateAssetDocument(ctx context.Context, arg UpdateAssetDocumentParams) (AssetAssetDocument, error) {
+	row := q.db.QueryRow(ctx, updateAssetDocument,
+		arg.ID,
+		arg.DocType,
+		arg.DocNo,
+		arg.DocDate,
+		arg.Counterparty,
+		arg.RelatedRequestID,
+	)
+	var i AssetAssetDocument
+	err := row.Scan(
+		&i.ID,
+		&i.AssetID,
+		&i.DocType,
+		&i.DocNo,
+		&i.DocDate,
+		&i.Counterparty,
+		&i.ObjectKey,
+		&i.RelatedRequestID,
+		&i.RelatedTransferID,
+		&i.RelatedDisposalID,
+		&i.CreatedByID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
