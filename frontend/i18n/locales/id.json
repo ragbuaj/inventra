@@ -558,7 +558,39 @@
         "descPlaceholder": "Deskripsi singkat peran…",
         "required": "Wajib diisi.",
         "create": "Buat Peran",
-        "createdToast": "Peran kustom dibuat"
+        "createdToast": "Peran kustom dibuat",
+        "conflict": "Nama peran sudah dipakai."
+      },
+      "loadError": "Gagal memuat data peran.",
+      "retry": "Coba lagi",
+      "catalog": {
+        "group": {
+          "Sistem": "Sistem",
+          "Master Data": "Master Data",
+          "Aset": "Aset",
+          "Persetujuan": "Persetujuan",
+          "Cadangan": "Cadangan"
+        },
+        "perm": {
+          "user.manage": "Kelola user",
+          "role.manage": "Kelola peran & RBAC",
+          "scope.manage": "Kelola data scope",
+          "fieldperm.manage": "Kelola field permission",
+          "audit.view": "Lihat audit trail",
+          "masterdata.global.manage": "Kelola master data global",
+          "masterdata.office.manage": "Kelola kantor & pegawai",
+          "asset.view": "Lihat aset",
+          "asset.manage": "Kelola aset",
+          "request.create": "Buat pengajuan",
+          "request.decide": "Setujui/tolak pengajuan",
+          "approval.config.manage": "Kelola ambang persetujuan",
+          "report.view": "Lihat laporan",
+          "report.export": "Ekspor laporan",
+          "maintenance.manage": "Kelola maintenance",
+          "depreciation.manage": "Kelola penyusutan",
+          "valuation.exclude.approve": "Setujui pengecualian valuasi",
+          "assignment.manage": "Kelola penugasan aset"
+        }
       }
     },
     "dataScope": {

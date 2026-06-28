@@ -558,7 +558,39 @@
         "descPlaceholder": "Short role description…",
         "required": "Required.",
         "create": "Create Role",
-        "createdToast": "Custom role created"
+        "createdToast": "Custom role created",
+        "conflict": "Role name already in use."
+      },
+      "loadError": "Failed to load roles.",
+      "retry": "Retry",
+      "catalog": {
+        "group": {
+          "Sistem": "System",
+          "Master Data": "Master Data",
+          "Aset": "Asset",
+          "Persetujuan": "Approval",
+          "Cadangan": "Reserved"
+        },
+        "perm": {
+          "user.manage": "Manage users",
+          "role.manage": "Manage roles & RBAC",
+          "scope.manage": "Manage data scope",
+          "fieldperm.manage": "Manage field permissions",
+          "audit.view": "View audit trail",
+          "masterdata.global.manage": "Manage global master data",
+          "masterdata.office.manage": "Manage offices & employees",
+          "asset.view": "View assets",
+          "asset.manage": "Manage assets",
+          "request.create": "Create requests",
+          "request.decide": "Approve/reject requests",
+          "approval.config.manage": "Manage approval thresholds",
+          "report.view": "View reports",
+          "report.export": "Export reports",
+          "maintenance.manage": "Manage maintenance",
+          "depreciation.manage": "Manage depreciation",
+          "valuation.exclude.approve": "Approve valuation exclusion",
+          "assignment.manage": "Manage asset assignment"
+        }
       }
     },
     "dataScope": {
