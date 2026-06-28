@@ -26,6 +26,13 @@ tags:
     description: Authentication & session
   - name: Users
     description: User management (requires the user.manage permission)
+  - name: Authorization Admin
+    description: |
+      Superadmin management of the configurable authorization layer: roles,
+      role-permissions, data-scope policies, and field-permissions.
+      Role CRUD requires `role.manage`; scope management requires `scope.manage`;
+      field-permission management requires `fieldperm.manage`. System roles
+      (`is_system: true`) cannot be updated or deleted (returns 409).
   - name: Master Data
     description: |
       Reference master data. Read is open to authenticated users; writes require
@@ -1633,6 +1640,326 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/v1/authz/catalog:
+    get:
+      tags: [Authorization Admin]
+      operationId: getAuthzCatalog
+      summary: Get the canonical authorization catalog
+      description: |
+        Returns the complete set of assignable permission keys (grouped for the admin UI),
+        valid data-scope levels, and known scope-module strings. Used to drive the
+        Peran & RBAC / Data Scope / Field Permission admin screens.
+        Requires the `role.manage` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The authorization catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthzCatalog"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/authz/roles:
+    get:
+      tags: [Authorization Admin]
+      operationId: listRoles
+      summary: List roles
+      description: Returns all non-deleted roles. Requires the `role.manage` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: All roles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleList"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Authorization Admin]
+      operationId: createRole
+      summary: Create a role
+      description: Creates a new non-system role. Requires the `role.manage` permission.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleCreateRequest"
+      responses:
+        "201":
+          description: Created role
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Role" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: Duplicate role code
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/authz/roles/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Authorization Admin]
+      operationId: getRole
+      summary: Get a role by id
+      description: Requires the `role.manage` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The role
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Role" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    put:
+      tags: [Authorization Admin]
+      operationId: updateRole
+      summary: Update a role (full replace of mutable fields)
+      description: |
+        Replaces `code`, `name`, and `description`. System roles (`is_system: true`)
+        cannot be updated and return 409. Requires the `role.manage` permission.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleUpdateRequest"
+      responses:
+        "200":
+          description: Updated role
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Role" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Duplicate code or attempt to mutate a system role
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    delete:
+      tags: [Authorization Admin]
+      operationId: deleteRole
+      summary: Soft-delete a role
+      description: |
+        Marks the role deleted. System roles (`is_system: true`) and roles still
+        assigned to any user cannot be deleted (both return 409).
+        Requires the `role.manage` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: System role or role is still assigned to one or more users
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/authz/roles/{id}/permissions:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Authorization Admin]
+      operationId: getRolePermissions
+      summary: Get the permission keys assigned to a role
+      description: Requires the `role.manage` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Permission set for this role
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PermissionSet" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Role not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    put:
+      tags: [Authorization Admin]
+      operationId: setRolePermissions
+      summary: Replace the full permission set of a role
+      description: |
+        Atomically replaces all `role_permissions` rows for this role with the
+        supplied list (replace-set semantics). Deduplicates the input. All keys
+        must be in the canonical catalog; unknown keys return 400.
+        Invalidates the Redis RBAC cache for this role.
+        Requires the `role.manage` permission.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PermissionSet"
+      responses:
+        "200":
+          description: Updated permission set
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PermissionSet" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Role not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/authz/roles/{id}/scope:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Authorization Admin]
+      operationId: getRoleScope
+      summary: Get the data-scope policies for a role
+      description: Requires the `scope.manage` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Scope-policy set for this role
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScopePolicySet" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Role not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    put:
+      tags: [Authorization Admin]
+      operationId: setRoleScope
+      summary: Replace the full data-scope policy set of a role
+      description: |
+        Atomically replaces all `data_scope_policies` rows for this role with the
+        supplied list (replace-set semantics). `scope_level` must be one of the
+        values returned by `GET /authz/catalog` (`scope_levels`); `module` must be
+        one of the `scope_modules` values or `*` (the default catch-all).
+        Invalidates the Redis scope cache for this role.
+        Requires the `scope.manage` permission.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScopePolicySet"
+      responses:
+        "200":
+          description: Updated scope-policy set
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScopePolicySet" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Role not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/authz/roles/{id}/fields:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Authorization Admin]
+      operationId: getRoleFields
+      summary: Get the field-permission entries for a role
+      description: Requires the `fieldperm.manage` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Field-permission set for this role
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FieldPermissionSet" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Role not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    put:
+      tags: [Authorization Admin]
+      operationId: setRoleFields
+      summary: Replace the full field-permission set of a role
+      description: |
+        Atomically replaces all `field_permissions` rows for this role with the
+        supplied list (replace-set semantics). Each entry identifies an `(entity, field)`
+        pair with `can_view` and `can_edit` booleans. The default policy is allow-all —
+        only entries that restrict access need to be included, but supplying a full
+        explicit set is valid and idiomatic.
+        Invalidates the Redis field-permission cache for this role.
+        Requires the `fieldperm.manage` permission.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FieldPermissionSet"
+      responses:
+        "200":
+          description: Updated field-permission set
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FieldPermissionSet" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Role not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/v1/audit:
     get:
       tags: [Audit]
@@ -2492,3 +2819,166 @@ components:
             office:
               type: boolean
               description: Print the office name.
+
+    Role:
+      type: object
+      description: A configurable role in the identity & authorization layer.
+      required: [id, code, name, is_system, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        description: { type: [string, "null"] }
+        is_system:
+          type: boolean
+          description: System roles cannot be updated or deleted.
+        created_at: { type: [string, "null"], format: date-time }
+        updated_at: { type: [string, "null"], format: date-time }
+
+    RoleCreateRequest:
+      type: object
+      required: [code, name]
+      properties:
+        code:
+          type: string
+          description: Unique short identifier for the role (e.g. `branch_manager`).
+        name:
+          type: string
+          description: Human-readable display name.
+        description: { type: [string, "null"] }
+
+    RoleUpdateRequest:
+      type: object
+      required: [name]
+      properties:
+        code:
+          type: string
+          description: Unique short identifier. Omit to keep the existing value.
+        name:
+          type: string
+          description: Human-readable display name.
+        description: { type: [string, "null"] }
+
+    RoleList:
+      type: object
+      required: [data, total]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/Role" }
+        total: { type: integer }
+
+    PermissionSet:
+      type: object
+      description: The full set of permission keys assigned to a role.
+      required: [permissions]
+      properties:
+        permissions:
+          type: array
+          items:
+            type: string
+          description: |
+            Permission keys from the catalog (e.g. `asset.view`, `role.manage`).
+            All supplied keys must appear in the catalog returned by `GET /authz/catalog`.
+
+    ScopePolicySet:
+      type: object
+      description: The full set of data-scope policies for a role.
+      required: [policies]
+      properties:
+        policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScopePolicy"
+
+    ScopePolicy:
+      type: object
+      required: [module, scope_level]
+      properties:
+        module:
+          type: string
+          description: |
+            Module key (e.g. `assets`, `offices`, `employees`, `requests`) or
+            `*` for the default catch-all policy.
+        scope_level:
+          type: string
+          enum: [global, office_subtree, office, own]
+          description: Data visibility level for this role and module.
+
+    FieldPermissionSet:
+      type: object
+      description: The full set of field-permission entries for a role.
+      required: [fields]
+      properties:
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/FieldPermission"
+
+    FieldPermission:
+      type: object
+      required: [entity, field, can_view, can_edit]
+      properties:
+        entity:
+          type: string
+          description: Entity name the restriction applies to (e.g. `assets`).
+        field:
+          type: string
+          description: Field name within the entity (e.g. `purchase_cost`).
+        can_view:
+          type: boolean
+          description: Whether the role may read this field.
+        can_edit:
+          type: boolean
+          description: Whether the role may write this field.
+
+    AuthzCatalog:
+      type: object
+      description: |
+        The canonical authorization catalog. Returned by `GET /authz/catalog` for
+        use by admin screens to populate permission pickers, scope-level dropdowns,
+        and module selectors.
+      required: [permissions, scope_levels, scope_modules]
+      properties:
+        permissions:
+          type: array
+          description: Permission groups, each containing assignable permission keys.
+          items:
+            $ref: "#/components/schemas/PermissionGroup"
+        scope_levels:
+          type: array
+          description: Valid data-scope level values.
+          items:
+            type: string
+          examples:
+            - ["global", "office_subtree", "office", "own"]
+        scope_modules:
+          type: array
+          description: Known data-scope module strings (plus `*` for the default policy).
+          items:
+            type: string
+          examples:
+            - ["*", "offices", "employees", "assets", "requests"]
+
+    PermissionGroup:
+      type: object
+      required: [group, items]
+      properties:
+        group:
+          type: string
+          description: Display group name (e.g. `Aset`, `Sistem`).
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PermissionItem"
+
+    PermissionItem:
+      type: object
+      required: [key, label]
+      properties:
+        key:
+          type: string
+          description: The permission key used in `role_permissions` and `RequirePermission`.
+        label:
+          type: string
+          description: Human-readable label in Indonesian (used by the admin UI).
