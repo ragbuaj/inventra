@@ -656,7 +656,7 @@
       "subtitle": "Telusuri seluruh aktivitas sistem (hanya-baca).",
       "export": "Ekspor",
       "exportComingSoon": "Ekspor belum tersedia.",
-      "searchPlaceholder": "Cari aktivitas / aktor…",
+      "searchPlaceholder": "Cari entity atau ID…",
       "reset": "Reset",
       "diffTitle": "Perubahan (before → after)",
       "dateFrom": "Dari tanggal",
@@ -681,7 +681,25 @@
       },
       "emptyTitle": "Tidak ada log",
       "emptySub": "Tidak ada aktivitas yang cocok dengan filter atau rentang tanggal.",
-      "showing": "Menampilkan {from}–{to} dari {total} aktivitas"
+      "showing": "Menampilkan {from}–{to} dari {total} aktivitas",
+      "entity": {
+        "assets": "Aset",
+        "users": "User",
+        "roles": "Peran",
+        "role_permissions": "Hak Peran",
+        "data_scope_policies": "Kebijakan Scope",
+        "field_permissions": "Field Permission",
+        "offices": "Kantor",
+        "employees": "Pegawai",
+        "categories": "Kategori",
+        "floors": "Lantai",
+        "rooms": "Ruangan",
+        "requests": "Pengajuan",
+        "asset_attachments": "Lampiran Aset",
+        "asset_documents": "Dokumen Aset"
+      },
+      "loadError": "Gagal memuat audit trail.",
+      "retry": "Coba lagi"
     }
   },
   "dashboard": {

@@ -656,7 +656,7 @@
       "subtitle": "Browse all system activity (read-only).",
       "export": "Export",
       "exportComingSoon": "Export isn't available yet.",
-      "searchPlaceholder": "Search activity / actor…",
+      "searchPlaceholder": "Search by entity or ID…",
       "reset": "Reset",
       "diffTitle": "Changes (before → after)",
       "dateFrom": "From date",
@@ -681,7 +681,25 @@
       },
       "emptyTitle": "No logs",
       "emptySub": "No activity matches the filter or date range.",
-      "showing": "Showing {from}–{to} of {total} activities"
+      "showing": "Showing {from}–{to} of {total} activities",
+      "entity": {
+        "assets": "Assets",
+        "users": "User",
+        "roles": "Roles",
+        "role_permissions": "Role permissions",
+        "data_scope_policies": "Data scope policies",
+        "field_permissions": "Field permissions",
+        "offices": "Offices",
+        "employees": "Employees",
+        "categories": "Categories",
+        "floors": "Floors",
+        "rooms": "Rooms",
+        "requests": "Requests",
+        "asset_attachments": "Asset attachments",
+        "asset_documents": "Asset documents"
+      },
+      "loadError": "Failed to load the audit trail.",
+      "retry": "Retry"
     }
   },
   "dashboard": {
