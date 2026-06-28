@@ -124,7 +124,7 @@ func Load() *Config {
 
 		TrustedProxies: splitCSV(getEnv("TRUSTED_PROXIES", "")),
 
-		LabelLogoPath: getEnv("LABEL_LOGO_PATH", "assets/btn-logo.png"),
+		LabelLogoPath: getEnv("LABEL_LOGO_PATH", "assets/logo-btn.png"),
 	}
 }
 
