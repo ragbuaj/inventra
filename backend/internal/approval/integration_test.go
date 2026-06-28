@@ -25,6 +25,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
 	"github.com/ragbuaj/inventra/internal/middleware"
+	"github.com/ragbuaj/inventra/internal/storage"
 	"github.com/ragbuaj/inventra/internal/testsupport"
 )
 
@@ -181,7 +182,7 @@ func TestApproval_AssetCreate_ThreeStep(t *testing.T) {
 	q := sqlc.New(pool)
 	scopeSvc := authz.NewScopeService(q, rdb)
 	svc := approval.NewService(q, pool, scopeSvc, rdb)
-	assetSvc := asset.NewService(q, pool)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0)
 	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
 
 	officeID := tr.CabangID
@@ -255,7 +256,7 @@ func TestApproval_SoD_MakerCannotApprove(t *testing.T) {
 	q := sqlc.New(pool)
 	scopeSvc := authz.NewScopeService(q, rdb)
 	svc := approval.NewService(q, pool, scopeSvc, rdb)
-	assetSvc := asset.NewService(q, pool)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0)
 	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
 
 	officeIDStr := tr.CabangID.String()
@@ -306,7 +307,7 @@ func TestApproval_SoD_PriorApproverCannotApproveNextStep(t *testing.T) {
 	q := sqlc.New(pool)
 	scopeSvc := authz.NewScopeService(q, rdb)
 	svc := approval.NewService(q, pool, scopeSvc, rdb)
-	assetSvc := asset.NewService(q, pool)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0)
 	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
 
 	catIDStr := catID.String()
@@ -364,7 +365,7 @@ func TestApproval_RejectMidChain_NoAssetCreated(t *testing.T) {
 	q := sqlc.New(pool)
 	scopeSvc := authz.NewScopeService(q, rdb)
 	svc := approval.NewService(q, pool, scopeSvc, rdb)
-	assetSvc := asset.NewService(q, pool)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0)
 	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
 
 	catIDStr := catID.String()
@@ -425,7 +426,7 @@ func TestApproval_AssetDisposal_ApproveChain(t *testing.T) {
 	q := sqlc.New(pool)
 	scopeSvc := authz.NewScopeService(q, rdb)
 	svc := approval.NewService(q, pool, scopeSvc, rdb)
-	assetSvc := asset.NewService(q, pool)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0)
 	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, assetSvc.DisposalExecutor())
 
 	targetEntity := "assets"
@@ -479,7 +480,7 @@ func TestApproval_AssetDisposal_CrossOfficeRejected(t *testing.T) {
 	q := sqlc.New(pool)
 	scopeSvc := authz.NewScopeService(q, rdb)
 	svc := approval.NewService(q, pool, scopeSvc, rdb)
-	assetSvc := asset.NewService(q, pool)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0)
 	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, assetSvc.DisposalExecutor())
 
 	targetEntity := "assets"
@@ -524,7 +525,7 @@ func TestApproval_ValuationExclusion_SetsFlag(t *testing.T) {
 	q := sqlc.New(pool)
 	scopeSvc := authz.NewScopeService(q, rdb)
 	svc := approval.NewService(q, pool, scopeSvc, rdb)
-	assetSvc := asset.NewService(q, pool)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0)
 	svc.RegisterExecutor(sqlc.SharedRequestTypeValuationExclusion, assetSvc.ExclusionExecutor())
 
 	targetEntity := "assets"
@@ -578,7 +579,7 @@ func TestApproval_ValuationExclusion_CrossOfficeRejected(t *testing.T) {
 	q := sqlc.New(pool)
 	scopeSvc := authz.NewScopeService(q, rdb)
 	svc := approval.NewService(q, pool, scopeSvc, rdb)
-	assetSvc := asset.NewService(q, pool)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0)
 	svc.RegisterExecutor(sqlc.SharedRequestTypeValuationExclusion, assetSvc.ExclusionExecutor())
 
 	targetEntity := "assets"
@@ -622,7 +623,7 @@ func TestApproval_Cancel_MakerOnly(t *testing.T) {
 	q := sqlc.New(pool)
 	scopeSvc := authz.NewScopeService(q, rdb)
 	svc := approval.NewService(q, pool, scopeSvc, rdb)
-	assetSvc := asset.NewService(q, pool)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0)
 	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
 
 	catIDStr := catID.String()
@@ -679,7 +680,7 @@ func TestApproval_ListRequests_ScopeFiltered(t *testing.T) {
 	q := sqlc.New(pool)
 	scopeSvc := authz.NewScopeService(q, rdb)
 	svc := approval.NewService(q, pool, scopeSvc, rdb)
-	assetSvc := asset.NewService(q, pool)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0)
 	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
 
 	catIDStr := catID.String()
@@ -739,7 +740,7 @@ func TestApproval_ThresholdEdit_TakesEffect(t *testing.T) {
 	q := sqlc.New(pool)
 	scopeSvc := authz.NewScopeService(q, rdb)
 	svc := approval.NewService(q, pool, scopeSvc, rdb)
-	assetSvc := asset.NewService(q, pool)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0)
 	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
 
 	// Wipe existing thresholds and install a 1-step config
@@ -830,7 +831,7 @@ func TestApproval_ExecutorAtomicity_RollbackOnError(t *testing.T) {
 	q := sqlc.New(pool)
 	scopeSvc := authz.NewScopeService(q, rdb)
 	svc := approval.NewService(q, pool, scopeSvc, rdb)
-	assetSvc := asset.NewService(q, pool)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0)
 	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, assetSvc.DisposalExecutor())
 
 	// Use 1-step disposal threshold: amount < 5M

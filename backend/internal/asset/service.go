@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	sqlc "github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/storage"
 )
 
 var (
@@ -24,11 +25,15 @@ var (
 
 // Service holds the data-access layer for the asset module.
 type Service struct {
-	q    *sqlc.Queries
-	pool *pgxpool.Pool
+	q        *sqlc.Queries
+	pool     *pgxpool.Pool
+	store    storage.Storage
+	maxBytes int64
 }
 
-func NewService(q *sqlc.Queries, pool *pgxpool.Pool) *Service { return &Service{q: q, pool: pool} }
+func NewService(q *sqlc.Queries, pool *pgxpool.Pool, store storage.Storage, maxBytes int64) *Service {
+	return &Service{q: q, pool: pool, store: store, maxBytes: maxBytes}
+}
 
 // allowedTransitions defines the valid status transitions for assets.
 // Only transitions present in this map are permitted; everything else is rejected.

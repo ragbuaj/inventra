@@ -896,6 +896,154 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/v1/assets/{id}/attachments:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: Asset id }
+    post:
+      tags: [Assets]
+      operationId: uploadAttachment
+      summary: Upload an attachment to an asset
+      description: |
+        Attaches a file (photo or document) to the given asset.
+        Requires the `asset.manage` permission.
+        Returns 413 if the file exceeds the server size limit; 415 if the MIME type is not accepted.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to upload.
+      responses:
+        "201":
+          description: Attachment created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Attachment" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "413":
+          description: File too large
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "415":
+          description: Unsupported media type
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    get:
+      tags: [Assets]
+      operationId: listAttachments
+      summary: List attachments for an asset
+      description: Returns all non-deleted attachments for the given asset. Requires the `asset.view` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Attachment list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, total]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Attachment" }
+                  total: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/assets/{id}/attachments/{aid}/content:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: Asset id }
+      - { name: aid, in: path, required: true, schema: { type: string, format: uuid }, description: Attachment id }
+    get:
+      tags: [Assets]
+      operationId: getAttachmentContent
+      summary: Download the raw content of an attachment
+      description: Streams the original file bytes. Requires the `asset.view` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: File contents
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+            image/png:
+              schema: { type: string, format: binary }
+            image/webp:
+              schema: { type: string, format: binary }
+            application/pdf:
+              schema: { type: string, format: binary }
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Attachment not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/assets/{id}/attachments/{aid}/thumbnail:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: Asset id }
+      - { name: aid, in: path, required: true, schema: { type: string, format: uuid }, description: Attachment id }
+    get:
+      tags: [Assets]
+      operationId: getAttachmentThumbnail
+      summary: Download the JPEG thumbnail of an attachment
+      description: |
+        Streams the thumbnail image (JPEG). Only available when `has_thumbnail` is true on the
+        attachment. Requires the `asset.view` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Thumbnail image
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Attachment or thumbnail not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/assets/{id}/attachments/{aid}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: Asset id }
+      - { name: aid, in: path, required: true, schema: { type: string, format: uuid }, description: Attachment id }
+    delete:
+      tags: [Assets]
+      operationId: deleteAttachment
+      summary: Delete an attachment
+      description: Soft-deletes the attachment record and removes the backing object from storage. Requires the `asset.manage` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Attachment not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/v1/requests:
     post:
       tags: [Requests]
@@ -1876,3 +2024,24 @@ components:
       properties:
         data: { type: array, items: { $ref: "#/components/schemas/Threshold" } }
         total: { type: integer }
+
+    Attachment:
+      type: object
+      description: |
+        An asset attachment (photo or document). Storage-internal fields (`object_key`,
+        `thumbnail_key`) are intentionally omitted; use `has_thumbnail` to conditionally
+        render thumbnails via `GET /assets/{id}/attachments/{aid}/thumbnail`.
+      required: [id, asset_id, kind, original_filename, size_bytes, mime_type, has_thumbnail, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        asset_id: { type: string, format: uuid }
+        kind:
+          type: string
+          enum: [photo, document]
+        original_filename: { type: string }
+        size_bytes:
+          type: integer
+          format: int64
+        mime_type: { type: string }
+        has_thumbnail: { type: boolean }
+        created_at: { type: string, format: date-time }

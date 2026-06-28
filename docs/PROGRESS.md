@@ -28,16 +28,21 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >    `docs/design/Kategori Aset.dc.html`. (All 23 frontend mockup screens are now implemented.)
 > 3. ~~**Approval engine + Asset core backend**~~ ✅ **DONE (2026-06-28).** See *Bank-FAM* and
 >    *Backend — Feature modules* below for details.
-> 4. **Next priorities (pick one):**
->    - **Asset attachments (MinIO)** — storage interface, presigned upload/download, image thumbnail
->      (see *Backend — Feature modules* below); enables BAST documents later.
+> 4. ~~**Asset attachments (MinIO)**~~ ✅ **DONE (2026-06-28).** Storage interface + MinIO impl;
+>    proxied upload/list/download/thumbnail/delete; MIME whitelist (jpeg/png/webp/pdf) +
+>    `ATTACHMENT_MAX_BYTES` (5 MB); image thumbnails (original preserved); scope-gated (per-asset
+>    office) + `Content-Disposition` sanitized + `nosniff`/CSP; integration tests (MinIO testcontainer).
+>    `internal/storage` interface ready for BAST/`asset_documents` reuse.
+> 5. **Next priorities (pick one):**
 >    - **Barcode/QR** — Code128 from `asset_tag`, printable label endpoint; scan lookup.
 >    - **Wire frontend Asset & Approval screens** to the real `/api/v1/assets` and `/api/v1/requests`
 >      endpoints (replace `mock/*` fixtures behind the existing `composables/api/use*` interface);
 >      do the **ADR-0007 composable refactor** first (rename Indonesian DTO keys).
+>    - **Asset documents (BAST)** — acquisition/transfer/disposal docs in MinIO (reuses
+>      `internal/storage` interface now landed).
 >    - **Disposal accounting** — once depreciation lands, derive disposal `amount` from server-side
->      `book_value` (currently maker-supplied); wire gain/loss journal entries.
-> 5. **ADR-0007 composable refactor** (still pending) — before wiring screens to real APIs: rename the
+>      `book_value`; wire gain/loss journal entries.
+> 6. **ADR-0007 composable refactor** (still pending) — before wiring screens to real APIs: rename the
 >    Indonesian DTO keys (`nama`/`kode`/`alamat`) to the backend's English `snake_case` contract and
 >    regroup `composables/api/` + `mock/` into module subfolders. Avoids a mapping shim later.
 
@@ -141,7 +146,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       enforced); valuation-exclusion flag. Asset create/disposal/exclusion go through the approval
       engine (not direct write). ⚠️ Attachments (MinIO) and barcode/QR still pending (see below).
       **Done — (2026-06-28).**
-- [ ] **Asset attachments (MinIO)** — Storage interface; upload + size/type validation; image compress + thumbnail; presigned/proxy access
+- [x] **Asset attachments (MinIO)** — Storage interface; upload + size/type validation; image thumbnail (original preserved); proxy download/thumbnail; integration-test coverage (MinIO round-trip + scope + rollback). **Done — (2026-06-28).**
 - [ ] **Barcode / QR** — Code128 from `asset_tag` + QR; printable labels (single/batch); scan lookup
 - [x] **Approval (maker-checker)** — generic `request_approvals` table; threshold-driven chain
       construction; SoD enforcement (maker cannot approve own request); pull-model eligibility
@@ -225,6 +230,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       - **Authz:** `ScopeService.Resolve` — 4 levels + fallback + Redis caching (#25); field-permission `ForEntity`/`FilterView` + caching (#26).
       - **Cross-module:** audit office-scoped `List` + `Log`/`Diff` round-trip (#27); reference engine generic CRUD + `coerce` (white-box) (#27).
       - **Approval engine + asset core** (#28 ← task-21): 11 approval scenarios (3-step chain, SoD, reject mid-chain, disposal/exclusion with cross-office security bypass, cancel, scope filter, threshold edit, executor atomicity/rollback) + 4 asset scenarios (field masking by role, tag atomicity sequential + per-year, read scope). 15 integration tests, all PASS.
+      - **Asset attachments (MinIO)** (task-11): image round-trip, PDF upload, oversize rejection, disallowed type, scope enforcement, DB rollback (no orphan in MinIO). 6 integration tests (MinIO testcontainer), all PASS.
       - Remaining backend targets (minor): category sub-package, full HTTP+JWT request path.
 - [ ] Optional seed data (provinces/cities, office types, etc.)
 

@@ -14,6 +14,7 @@ import (
 	"github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/asset"
 	"github.com/ragbuaj/inventra/internal/authz"
+	"github.com/ragbuaj/inventra/internal/storage"
 	"github.com/ragbuaj/inventra/internal/testsupport"
 )
 
@@ -183,7 +184,7 @@ func TestAsset_TagAtomicity_Sequential(t *testing.T) {
 	catID := seedCategory(t, pool, "ELK")
 
 	q := sqlc.New(pool)
-	svc := asset.NewService(q, pool)
+	svc := asset.NewService(q, pool, storage.NewFake(), 0)
 
 	const n = 5
 	tags := make([]string, n)
@@ -222,7 +223,7 @@ func TestAsset_TagAtomicity_PerYearReset(t *testing.T) {
 	catID := seedCategory(t, pool, "FRN")
 
 	q := sqlc.New(pool)
-	svc := asset.NewService(q, pool)
+	svc := asset.NewService(q, pool, storage.NewFake(), 0)
 
 	genTag := func(year int32) string {
 		tx, err := pool.Begin(ctx)
@@ -269,7 +270,7 @@ func TestAsset_ReadScope_OfficeFiltered(t *testing.T) {
 	catID := seedCategory(t, pool, "SCO")
 
 	q := sqlc.New(pool)
-	svc := asset.NewService(q, pool)
+	svc := asset.NewService(q, pool, storage.NewFake(), 0)
 
 	// Seed 2 assets in office1, 1 in office2
 	seedAssetDirect(t, pool, "OFF1-SCO-2026-00001", "Asset A", catID, office1ID)

@@ -74,3 +74,19 @@ SELECT code FROM masterdata.offices WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: GetCategoryCode :one
 SELECT code FROM masterdata.categories WHERE id = $1 AND deleted_at IS NULL;
+
+-- name: CreateAttachment :one
+INSERT INTO asset.asset_attachments (
+  asset_id, kind, object_key, thumbnail_key, original_filename, size_bytes, mime_type, created_by_id
+) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *;
+
+-- name: ListAttachments :many
+SELECT * FROM asset.asset_attachments
+WHERE asset_id = $1 AND deleted_at IS NULL
+ORDER BY created_at DESC;
+
+-- name: GetAttachment :one
+SELECT * FROM asset.asset_attachments WHERE id = $1 AND deleted_at IS NULL;
+
+-- name: SoftDeleteAttachment :execrows
+UPDATE asset.asset_attachments SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL;

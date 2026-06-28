@@ -16,19 +16,20 @@ import (
 	apidocs "github.com/ragbuaj/inventra/api"
 	"github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/approval"
+	"github.com/ragbuaj/inventra/internal/asset"
 	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/auth"
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/cache"
 	"github.com/ragbuaj/inventra/internal/config"
 	"github.com/ragbuaj/inventra/internal/db"
-	"github.com/ragbuaj/inventra/internal/asset"
 	"github.com/ragbuaj/inventra/internal/identity"
 	"github.com/ragbuaj/inventra/internal/masterdata"
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
 	"github.com/ragbuaj/inventra/internal/middleware"
 	"github.com/ragbuaj/inventra/internal/oauth"
 	"github.com/ragbuaj/inventra/internal/ratelimit"
+	"github.com/ragbuaj/inventra/internal/storage"
 	"github.com/ragbuaj/inventra/internal/user"
 )
 
@@ -39,6 +40,7 @@ type Deps struct {
 	Redis   *redis.Client
 	Log     *slog.Logger
 	Limiter *ratelimit.Limiter
+	Storage storage.Storage
 }
 
 // NewRouter builds the Gin engine with base middleware, health, and readiness probes.
@@ -146,7 +148,7 @@ func NewRouter(d Deps) *gin.Engine {
 
 		masterdata.RegisterRoutes(api, queries, d.Pool, permSvc, scopeSvc, auditSvc, requireAuth)
 
-		assetSvc := asset.NewService(queries, d.Pool)
+		assetSvc := asset.NewService(queries, d.Pool, d.Storage, d.Cfg.AttachmentMaxBytes)
 		assetHandler := asset.NewHandler(assetSvc, fieldSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)
 		asset.RegisterRoutes(api, assetHandler,
 			requireAuth,

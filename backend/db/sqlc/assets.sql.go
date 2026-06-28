@@ -178,6 +178,52 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 	return i, err
 }
 
+const createAttachment = `-- name: CreateAttachment :one
+INSERT INTO asset.asset_attachments (
+  asset_id, kind, object_key, thumbnail_key, original_filename, size_bytes, mime_type, created_by_id
+) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id, asset_id, kind, object_key, thumbnail_key, original_filename, size_bytes, mime_type, created_by_id, created_at, updated_at, deleted_at
+`
+
+type CreateAttachmentParams struct {
+	AssetID          uuid.UUID            `json:"asset_id"`
+	Kind             SharedAttachmentKind `json:"kind"`
+	ObjectKey        string               `json:"object_key"`
+	ThumbnailKey     *string              `json:"thumbnail_key"`
+	OriginalFilename string               `json:"original_filename"`
+	SizeBytes        int64                `json:"size_bytes"`
+	MimeType         string               `json:"mime_type"`
+	CreatedByID      *uuid.UUID           `json:"created_by_id"`
+}
+
+func (q *Queries) CreateAttachment(ctx context.Context, arg CreateAttachmentParams) (AssetAssetAttachment, error) {
+	row := q.db.QueryRow(ctx, createAttachment,
+		arg.AssetID,
+		arg.Kind,
+		arg.ObjectKey,
+		arg.ThumbnailKey,
+		arg.OriginalFilename,
+		arg.SizeBytes,
+		arg.MimeType,
+		arg.CreatedByID,
+	)
+	var i AssetAssetAttachment
+	err := row.Scan(
+		&i.ID,
+		&i.AssetID,
+		&i.Kind,
+		&i.ObjectKey,
+		&i.ThumbnailKey,
+		&i.OriginalFilename,
+		&i.SizeBytes,
+		&i.MimeType,
+		&i.CreatedByID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const getAsset = `-- name: GetAsset :one
 SELECT id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at FROM asset.assets WHERE id = $1 AND deleted_at IS NULL
 `
@@ -220,6 +266,30 @@ func (q *Queries) GetAsset(ctx context.Context, id uuid.UUID) (AssetAsset, error
 		&i.ValuationExclusionReason,
 		&i.CreatedByID,
 		&i.Notes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getAttachment = `-- name: GetAttachment :one
+SELECT id, asset_id, kind, object_key, thumbnail_key, original_filename, size_bytes, mime_type, created_by_id, created_at, updated_at, deleted_at FROM asset.asset_attachments WHERE id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) GetAttachment(ctx context.Context, id uuid.UUID) (AssetAssetAttachment, error) {
+	row := q.db.QueryRow(ctx, getAttachment, id)
+	var i AssetAssetAttachment
+	err := row.Scan(
+		&i.ID,
+		&i.AssetID,
+		&i.Kind,
+		&i.ObjectKey,
+		&i.ThumbnailKey,
+		&i.OriginalFilename,
+		&i.SizeBytes,
+		&i.MimeType,
+		&i.CreatedByID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
@@ -347,6 +417,45 @@ func (q *Queries) ListAssets(ctx context.Context, arg ListAssetsParams) ([]Asset
 	return items, nil
 }
 
+const listAttachments = `-- name: ListAttachments :many
+SELECT id, asset_id, kind, object_key, thumbnail_key, original_filename, size_bytes, mime_type, created_by_id, created_at, updated_at, deleted_at FROM asset.asset_attachments
+WHERE asset_id = $1 AND deleted_at IS NULL
+ORDER BY created_at DESC
+`
+
+func (q *Queries) ListAttachments(ctx context.Context, assetID uuid.UUID) ([]AssetAssetAttachment, error) {
+	rows, err := q.db.Query(ctx, listAttachments, assetID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AssetAssetAttachment{}
+	for rows.Next() {
+		var i AssetAssetAttachment
+		if err := rows.Scan(
+			&i.ID,
+			&i.AssetID,
+			&i.Kind,
+			&i.ObjectKey,
+			&i.ThumbnailKey,
+			&i.OriginalFilename,
+			&i.SizeBytes,
+			&i.MimeType,
+			&i.CreatedByID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setAssetStatus = `-- name: SetAssetStatus :one
 UPDATE asset.assets SET status = $2 WHERE id = $1 AND deleted_at IS NULL RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at
 `
@@ -455,6 +564,18 @@ func (q *Queries) SetAssetValuationExclusion(ctx context.Context, arg SetAssetVa
 		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const softDeleteAttachment = `-- name: SoftDeleteAttachment :execrows
+UPDATE asset.asset_attachments SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) SoftDeleteAttachment(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, softDeleteAttachment, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const updateAsset = `-- name: UpdateAsset :one

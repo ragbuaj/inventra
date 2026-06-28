@@ -32,11 +32,12 @@ type Config struct {
 	RedisDB       int
 
 	// MinIO — S3-compatible object storage for asset attachments.
-	MinIOEndpoint  string
-	MinIOAccessKey string
-	MinIOSecretKey string
-	MinIOBucket    string
-	MinIOUseSSL    bool
+	MinIOEndpoint      string
+	MinIOAccessKey     string
+	MinIOSecretKey     string
+	MinIOBucket        string
+	MinIOUseSSL        bool
+	AttachmentMaxBytes int64
 
 	// Auth.
 	JWTSecret     string
@@ -90,11 +91,12 @@ func Load() *Config {
 		RedisPassword: getEnv("REDIS_PASSWORD", ""),
 		RedisDB:       getEnvInt("REDIS_DB", 0),
 
-		MinIOEndpoint:  getEnv("MINIO_ENDPOINT", "localhost:9000"),
-		MinIOAccessKey: getEnv("MINIO_ACCESS_KEY", "minioadmin"),
-		MinIOSecretKey: getEnv("MINIO_SECRET_KEY", "minioadmin123"),
-		MinIOBucket:    getEnv("MINIO_BUCKET", "inventra"),
-		MinIOUseSSL:    getEnvBool("MINIO_USE_SSL", false),
+		MinIOEndpoint:      getEnv("MINIO_ENDPOINT", "localhost:9000"),
+		MinIOAccessKey:     getEnv("MINIO_ACCESS_KEY", "minioadmin"),
+		MinIOSecretKey:     getEnv("MINIO_SECRET_KEY", "minioadmin123"),
+		MinIOBucket:        getEnv("MINIO_BUCKET", "inventra"),
+		MinIOUseSSL:        getEnvBool("MINIO_USE_SSL", false),
+		AttachmentMaxBytes: int64(getEnvInt("ATTACHMENT_MAX_BYTES", 5*1024*1024)),
 
 		JWTSecret:     getEnv("JWT_SECRET", "change-me-in-production"),
 		JWTAccessTTL:  getEnvDuration("JWT_ACCESS_TTL", 15*time.Minute),
