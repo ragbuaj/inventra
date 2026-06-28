@@ -371,8 +371,7 @@ test.describe('Field Permission screen — real backend', () => {
     //    FieldPermToggle renders two <button> elements containing the letter "L" (view) and "E" (edit).
     //    We grab all L buttons in the row — first one corresponds to the first role column (Superadmin).
     const lBtns = purchaseCostRow.locator('button', { hasText: 'L' })
-    const lBtnCount = await lBtns.count()
-    expect(lBtnCount).toBeGreaterThan(0)
+    await expect(lBtns).not.toHaveCount(0)
 
     // Read the aria/visual state before toggling: check if the first L is "on" (view=true).
     // We cannot reliably read the semantic state, so we just note that we toggled it once.
@@ -390,27 +389,36 @@ test.describe('Field Permission screen — real backend', () => {
     // 5. Dirty indicator must disappear after save
     await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible({ timeout: 8_000 })
 
-    // 6. Reload the page and verify the grid loaded (persistence confirmed by absence of dirty indicator
-    //    and the clean load of the same data — the field row still exists)
+    // 6. Reload the page and verify the change actually persisted.
+    //    After toggling and saving, the purchase_cost field now has an EXPLICIT restriction —
+    //    meaning the "Default" badge (i18n defaultTag = "Default") must NO LONGER appear in that row.
     await page.reload()
     await expect(page.getByText('Superadmin').first()).toBeVisible({ timeout: 10_000 })
     // purchase_cost must still be visible (row exists in the catalog)
-    await expect(page.locator('tr', { hasText: 'purchase_cost' }).first()).toBeVisible({ timeout: 8_000 })
+    const purchaseCostRowAfterReload = page.locator('tr', { hasText: 'purchase_cost' }).first()
+    await expect(purchaseCostRowAfterReload).toBeVisible({ timeout: 8_000 })
+    // KEY PERSISTENCE ASSERTION: the field now has an explicit restriction, so the
+    // "Default" badge must be absent — proving the toggled value round-tripped through the backend.
+    await expect(purchaseCostRowAfterReload.getByText('Default')).toHaveCount(0)
     // No dirty state on fresh load
     await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible()
     const saveBtnAfter = page.getByRole('button', { name: /Simpan/ })
     await expect(saveBtnAfter).toBeDisabled()
 
-    // 7. Cleanup: toggle the same cell back to restore the original state (best-effort)
-    const purchaseCostRowAfter = page.locator('tr', { hasText: 'purchase_cost' }).first()
-    await expect(purchaseCostRowAfter).toBeVisible({ timeout: 8_000 })
-    const lBtnsAfter = purchaseCostRowAfter.locator('button', { hasText: 'L' })
-    await lBtnsAfter.first().click()
-    const saveBtnCleanup = page.getByRole('button', { name: /Simpan/ })
-    if (await saveBtnCleanup.isEnabled()) {
+    // 7. Cleanup: toggle the same cell back to restore the original state (best-effort).
+    //    Uses try/catch so a flaky cleanup never fails the test.
+    //    Playwright's click auto-waits for actionability; we also wait for Save to be enabled
+    //    before clicking it, avoiding the non-waiting isEnabled() snapshot anti-pattern.
+    try {
+      const purchaseCostRowCleanup = page.locator('tr', { hasText: 'purchase_cost' }).first()
+      await expect(purchaseCostRowCleanup).toBeVisible({ timeout: 8_000 })
+      const lBtnsCleanup = purchaseCostRowCleanup.locator('button', { hasText: 'L' })
+      await lBtnsCleanup.first().click()
+      const saveBtnCleanup = page.getByRole('button', { name: /Simpan/ })
+      await expect(saveBtnCleanup).toBeEnabled()
       await saveBtnCleanup.click()
       await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible({ timeout: 8_000 })
-    }
+    } catch { /* best-effort cleanup — not a hard failure */ }
   })
 
   test('switching entity to users shows users fields (e.g. email)', async ({ page }) => {
