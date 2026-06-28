@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { ScopeLevel, ScopeTone } from '~/mock/dataScope'
-import { SCOPE_LEVELS, SCOPE_LEVEL_KEYS } from '~/mock/dataScope'
+import type { ScopeLevel, ScopeTone } from '~/constants/dataScope'
+import { SCOPE_LEVEL_KEYS, SCOPE_LEVEL_TONE } from '~/constants/dataScope'
 
 const props = defineProps<{
   /** level shown on the pill (override || role default) */
@@ -13,7 +13,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ select: [level: ScopeLevel], clear: [] }>()
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const open = ref(false)
 
 const toneClasses: Record<ScopeTone, { pill: string, dot: string }> = {
@@ -25,12 +25,11 @@ const toneClasses: Record<ScopeTone, { pill: string, dot: string }> = {
 
 const isOverride = computed(() => props.isModule && props.selected !== null)
 const isInheriting = computed(() => props.isModule && props.selected === null)
-const effTone = computed(() => SCOPE_LEVELS[props.effective].tone)
+const effTone = computed(() => SCOPE_LEVEL_TONE[props.effective])
 const effDot = computed(() => toneClasses[effTone.value].dot)
 
 function levelDesc(level: ScopeLevel): string {
-  const d = SCOPE_LEVELS[level].desc
-  return d[locale.value as 'id' | 'en'] ?? d.id
+  return t(`settings.dataScope.level.${level}`)
 }
 
 function pick(level: ScopeLevel) {
@@ -102,7 +101,7 @@ function follow() {
         >
           <span
             class="size-2 rounded-full mt-[5px] flex-none"
-            :class="toneClasses[SCOPE_LEVELS[lvl].tone].dot"
+            :class="toneClasses[SCOPE_LEVEL_TONE[lvl]].dot"
           />
           <span class="flex-1 min-w-0">
             <span class="block text-[12.5px] font-semibold font-mono">{{ lvl }}</span>

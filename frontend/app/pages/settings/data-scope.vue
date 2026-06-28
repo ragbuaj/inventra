@@ -1,22 +1,22 @@
 <script setup lang="ts">
-import type { ScopeLevel, ScopeTone } from '~/mock/dataScope'
 import type { ScopeRoleView, ScopeModuleView } from '~/composables/api/useDataScope'
 import { useDataScope } from '~/composables/api/useDataScope'
-import { SCOPE_LEVELS, SCOPE_LEVEL_KEYS } from '~/mock/dataScope'
+import type { ScopeLevel, ScopeTone } from '~/constants/dataScope'
+import { SCOPE_LEVEL_KEYS, SCOPE_LEVEL_TONE } from '~/constants/dataScope'
 
 definePageMeta({ middleware: 'can', permission: 'user.manage' })
 
-type Locale = 'id' | 'en'
-
-const { t, locale } = useI18n()
+const { t, te } = useI18n()
 const toast = useToast()
-const { getModules, listRoles, saveScopes } = useDataScope()
+const { getModules, listRoles, saveRoleScope } = useDataScope()
 
 const roles = ref<ScopeRoleView[]>([])
 const modules = ref<ScopeModuleView[]>([])
 const loading = ref(true)
+const loadFailed = ref(false)
 const saving = ref(false)
-const dirty = ref(false)
+const dirtyIds = ref(new Set<string>())
+const dirty = computed(() => dirtyIds.value.size > 0)
 
 const toneDot: Record<ScopeTone, string> = {
   info: 'bg-info',
@@ -25,55 +25,71 @@ const toneDot: Record<ScopeTone, string> = {
   neutral: 'bg-[var(--ui-text-dimmed)]'
 }
 
-const legend = computed(() => SCOPE_LEVEL_KEYS.map((k) => {
-  const def = SCOPE_LEVELS[k]
-  return { key: k, dot: toneDot[def.tone], desc: def.desc[locale.value as Locale] ?? def.desc.id }
-}))
+const legend = computed(() => SCOPE_LEVEL_KEYS.map(k => ({
+  key: k,
+  dot: toneDot[SCOPE_LEVEL_TONE[k]],
+  desc: t(`settings.dataScope.level.${k}`)
+})))
+
+function moduleLabel(key: string): string {
+  const k = `settings.dataScope.module.${key}`
+  return te(k) ? t(k) : key
+}
 
 async function load() {
   loading.value = true
-  modules.value = getModules(locale.value as Locale)
-  roles.value = await listRoles(locale.value as Locale)
-  dirty.value = false
-  loading.value = false
+  loadFailed.value = false
+  try {
+    const [mods, roleList] = await Promise.all([getModules(), listRoles()])
+    modules.value = mods
+    roles.value = roleList
+    dirtyIds.value = new Set()
+  } catch {
+    loadFailed.value = true
+  } finally {
+    loading.value = false
+  }
 }
 
-function findRole(key: string) {
-  return roles.value.find(r => r.key === key)
+function findRole(id: string) {
+  return roles.value.find(r => r.id === id)
 }
-function setDefault(key: string, level: ScopeLevel) {
-  const r = findRole(key)
+function setDefault(id: string, level: ScopeLevel) {
+  const r = findRole(id)
   if (!r) return
   r.def = level
-  dirty.value = true
+  dirtyIds.value.add(id)
 }
-function setOverride(key: string, mod: string, level: ScopeLevel) {
-  const r = findRole(key)
+function setOverride(id: string, mod: string, level: ScopeLevel) {
+  const r = findRole(id)
   if (!r) return
   r.ov = { ...r.ov, [mod]: level }
-  dirty.value = true
+  dirtyIds.value.add(id)
 }
-function clearOverride(key: string, mod: string) {
-  const r = findRole(key)
+function clearOverride(id: string, mod: string) {
+  const r = findRole(id)
   if (!r) return
   const { [mod]: _omit, ...rest } = r.ov
   r.ov = rest
-  dirty.value = true
+  dirtyIds.value.add(id)
 }
 
 async function save() {
   if (!dirty.value) return
   saving.value = true
   try {
-    await saveScopes(roles.value)
-    dirty.value = false
+    const ids = [...dirtyIds.value]
+    await Promise.all(ids.map((id) => {
+      const r = findRole(id)
+      return r ? saveRoleScope(id, r.def, r.ov) : Promise.resolve()
+    }))
+    dirtyIds.value = new Set()
     toast.add({ title: t('settings.dataScope.savedToast'), color: 'success', icon: 'i-lucide-save' })
   } finally {
     saving.value = false
   }
 }
 
-watch(locale, () => load())
 onMounted(() => load())
 </script>
 
@@ -116,6 +132,24 @@ onMounted(() => load())
         name="i-lucide-loader-circle"
         class="size-6 animate-spin text-muted"
       />
+    </div>
+
+    <div
+      v-else-if="loadFailed"
+      class="flex flex-col items-center justify-center gap-3 py-20 text-muted"
+    >
+      <UIcon
+        name="i-lucide-circle-alert"
+        class="size-6"
+      />
+      <span class="text-sm">{{ t('settings.dataScope.loadError') }}</span>
+      <UButton
+        color="neutral"
+        variant="subtle"
+        @click="load"
+      >
+        {{ t('settings.dataScope.retry') }}
+      </UButton>
     </div>
 
     <template v-else>
@@ -186,19 +220,19 @@ onMounted(() => load())
                   :key="m.key"
                   class="text-left px-3.5 py-3 text-xs font-semibold uppercase text-muted"
                 >
-                  {{ m.label }}
+                  {{ moduleLabel(m.key) }}
                 </th>
               </tr>
             </thead>
             <tbody>
               <tr
                 v-for="r in roles"
-                :key="r.key"
+                :key="r.id"
                 class="border-t border-default"
               >
                 <td class="px-4 py-3 sticky left-0 bg-default z-[1]">
                   <div class="text-[13.5px] font-semibold">
-                    {{ r.nama }}
+                    {{ r.name }}
                   </div>
                   <div class="text-[11.5px] text-dimmed">
                     {{ r.sub }}
@@ -210,7 +244,7 @@ onMounted(() => load())
                     :selected="r.def"
                     :is-module="false"
                     :role-default="r.def"
-                    @select="setDefault(r.key, $event)"
+                    @select="setDefault(r.id, $event)"
                   />
                 </td>
                 <td
@@ -223,8 +257,8 @@ onMounted(() => load())
                     :selected="r.ov[m.key] ?? null"
                     :is-module="true"
                     :role-default="r.def"
-                    @select="setOverride(r.key, m.key, $event)"
-                    @clear="clearOverride(r.key, m.key)"
+                    @select="setOverride(r.id, m.key, $event)"
+                    @clear="clearOverride(r.id, m.key)"
                   />
                 </td>
               </tr>
