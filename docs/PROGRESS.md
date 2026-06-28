@@ -26,10 +26,12 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > 7. ~~**Authorization admin endpoints**~~ ✅ **DONE (2026-06-28).** `internal/authzadmin` — role CRUD, replace-set permissions/scope/fields, Redis cache invalidation, permission catalog, seed RBAC drift fix, integration tests, OpenAPI spec.
 > 8. ~~**Wire Peran & RBAC screen to real `/authz` APIs**~~ ✅ **DONE (2026-06-28).** `useRbac` composable rewritten to `/authz/catalog` + `/authz/roles` + `/authz/roles/:id/permissions`; English DTO; UUID `id` identity; system-role permissions now editable (product decision — lock note reworded, switches active); e2e spec updated against real seeded backend.
 > 9. ~~**Wire frontend Data Scope screen** (`/settings/data-scope`) to real `/authz` APIs~~ ✅ **DONE (2026-06-28).** `useDataScope` composable rewritten to `/authz/catalog` (scope_modules, filters `*`) + `/authz/roles` + `/authz/roles/:id/scope`; English DTO; UUID `id` identity; save only changed roles (dirtyIds set); e2e spec added against real seeded backend; orphaned `mock/dataScope.ts` deleted.
-> 10. **Next priorities (pick one):**
->    - **Wire frontend Field Permission screen** (`/settings/field-permission`) to `/api/v1/authz/roles/:id/fields` — next screen in the Settings API-wiring sequence.
->    - **Wire frontend Asset & Approval screens** to `/api/v1/assets` and `/api/v1/requests`; ADR-0007 composable refactor (rename Indonesian DTO keys → English `snake_case` contract + regroup `composables/api/` + `mock/` into module subfolders).
->    - **Asset transfer (mutasi)** — inter-office transfer + BAST doc linkage + history; updates `assets.office_id`; reuses the asset-documents + storage + approval engine already built.
+> 10. ~~**Wire frontend Field Permission screen** (`/settings/field-permission`) to real `/authz` APIs~~ ✅ **DONE (2026-06-28).** `useFieldPermission` composable rewritten to `/authz/roles` + `/authz/roles/:id/fields`; catalog `assets`+`users` (English field keys); UUID `id` identity; default-allow (no stored policy = view+edit); save preserves other-entity rows + only PUTs changed roles; e2e spec added against real seeded backend; orphaned `mock/fieldPermission.ts` deleted. **Authz-screen wiring trio (RBAC + Data Scope + Field Permission) now complete.**
+>    - **TODO — extend field-permission ENFORCEMENT (`FilterView`) beyond `assets`+`users`:** `requests` (approval handler already injects `fieldSvc` + has `requestToMap`; add `ForEntity`/`FilterView` calls), `employees` (needs `fieldSvc`+map wiring), and other masterdata modules. Until then the Field Permission screen configures rules but they only take effect for `assets`+`users`. Add each new entity to `frontend/app/constants/fieldCatalog.ts` once its backend enforcement lands.
+> 11. **Next priorities (pick one):**
+>    - **Asset transfer (mutasi)** — inter-office transfer + BAST doc linkage + history; updates `assets.office_id`; reuses asset-documents + storage + approval engine already built.
+>    - **Extend field-permission enforcement** — wire `FilterView` into `requests` (approval handler) and `employees` (masterdata handler); add entities to `fieldCatalog.ts`.
+>    - **Wire frontend Asset & Approval screens** to `/api/v1/assets` and `/api/v1/requests`; ADR-0007 composable refactor (rename Indonesian DTO keys → English `snake_case` contract).
 
 ## ✅ Done
 
@@ -203,7 +205,8 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
         English DTO; UUID `id` identity; system-role permissions editable per product decision; e2e updated. **Done (2026-06-28).**
   - [x] **Data Scope** (`/settings/data-scope`) → wired to `/authz` (catalog scope_modules + per-role scope policies);
         English DTO; UUID `id` identity; save only changed roles (dirtyIds); e2e spec updated against real seeded backend; orphaned mock deleted. **Done (2026-06-28).**
-  - [ ] **Field Permission** (`/settings/field-permission`) — wire to `/authz/roles/:id/fields` — **next**
+  - [x] **Field Permission** (`/settings/field-permission`) → wired to `/authz/roles` + `/authz/roles/:id/fields`; catalog
+        `assets`+`users` (English field keys); UUID `id` identity; default-allow; save preserves other-entity rows + only PUTs changed roles; e2e spec added against real seeded backend; orphaned `mock/fieldPermission.ts` deleted. **Done (2026-06-28).** ⚠️ TODO: extend `FilterView` enforcement to `requests`/`employees`/other modules (see *Next session* §10 TODO).
 - [ ] **Lokasi & Geografi** — office-location **map** screen (`nav.geography`); provinces/cities already live in Referensi, so this just plots offices on a map. No mockup yet; design prompt at `DESIGN_BRIEF.md` §5.21
 - [ ] **Staff role menus** — wire staff nav (`myAssets`, staff `assignment`/`approval`) to pages/variants
 - [x] **Google OAuth login** button + flow (UI) — login redirect + `?oauth=success/error` landing

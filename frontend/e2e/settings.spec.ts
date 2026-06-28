@@ -298,3 +298,140 @@ test.describe('Data Scope screen — real backend', () => {
     await expect(page.locator('table')).toBeVisible()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Field Permission screen — real backend (/api/v1/authz)
+// These tests run against the seeded admin (admin@inventra.local) and the
+// actual authzadmin endpoints. CI's e2e job brings up the full stack and seeds
+// the admin before this suite runs.
+// Entity/field set intentionally differs from the old mock (aset/pegawai/…):
+// the real catalog exposes "assets" + "users" with English field keys — this
+// is an approved decision, not a regression.
+// ---------------------------------------------------------------------------
+test.describe('Field Permission screen — real backend', () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page)
+    await page.goto('/settings/field-permission')
+    // Wait for the grid to load (role column headers populated from /authz/roles)
+    await expect(page.getByText('Superadmin').first()).toBeVisible({ timeout: 10_000 })
+  })
+
+  test('grid renders with seeded role columns and real field rows (e.g. purchase_cost)', async ({ page }) => {
+    // Seeded roles should appear as column headers
+    await expect(page.getByText('Superadmin').first()).toBeVisible()
+    await expect(page.getByText('Manager').first()).toBeVisible()
+
+    // Real catalog field key for the "assets" entity — this field is in fieldCatalog.ts
+    // and appears as the mono-font field code in the sticky left column
+    const purchaseCostRow = page.locator('tr', { hasText: 'purchase_cost' }).first()
+    await expect(purchaseCostRow).toBeVisible({ timeout: 8_000 })
+
+    // The "assets" entity should be selected by default (first entity in FIELD_CATALOG)
+    // and the entity select should be visible
+    await expect(page.getByText('Aset').first()).toBeVisible()
+  })
+
+  test('field column shows mono field key and i18n label below it', async ({ page }) => {
+    // Each field row shows the field key in mono font + a localized label beneath it
+    const purchaseCostRow = page.locator('tr', { hasText: 'purchase_cost' }).first()
+    await expect(purchaseCostRow).toBeVisible({ timeout: 8_000 })
+    // The i18n label for purchase_cost is "Harga beli" (id locale)
+    await expect(purchaseCostRow.getByText('Harga beli')).toBeVisible()
+  })
+
+  test('fields without explicit rules show the Default badge', async ({ page }) => {
+    // Fields with no stored restriction are shown dimmed with a "Default" badge (i18n: defaultTag)
+    // At least one field should show the Default badge on first load
+    await expect(page.getByText('Default').first()).toBeVisible({ timeout: 8_000 })
+  })
+
+  test('Save button is disabled on clean load (no dirty changes)', async ({ page }) => {
+    const saveBtn = page.getByRole('button', { name: /Simpan/ })
+    await expect(saveBtn).toBeDisabled()
+    // Dirty indicator must NOT be visible
+    await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible()
+  })
+
+  test('retry button is absent on successful load (grid visible)', async ({ page }) => {
+    // On a clean load the load-error state is not shown, so "Coba lagi" is not visible
+    await expect(page.getByRole('button', { name: 'Coba lagi' })).not.toBeVisible()
+    await expect(page.locator('table')).toBeVisible()
+  })
+
+  test('toggle a cell, Save, reload — change persists', async ({ page }) => {
+    // Strategy: locate the purchase_cost row, find the first role column's "L" (view) toggle button,
+    // toggle it, save, reload, and verify the change persisted.
+    // We use robust text/row locators — NO Tailwind class selectors.
+
+    // 1. Find the purchase_cost row in the matrix tbody
+    const purchaseCostRow = page.locator('tr', { hasText: 'purchase_cost' }).first()
+    await expect(purchaseCostRow).toBeVisible({ timeout: 8_000 })
+
+    // 2. Within that row, find the "L" (view) toggle buttons.
+    //    FieldPermToggle renders two <button> elements containing the letter "L" (view) and "E" (edit).
+    //    We grab all L buttons in the row — first one corresponds to the first role column (Superadmin).
+    const lBtns = purchaseCostRow.locator('button', { hasText: 'L' })
+    await expect(lBtns).not.toHaveCount(0)
+
+    // Read the aria/visual state before toggling: check if the first L is "on" (view=true).
+    // We cannot reliably read the semantic state, so we just note that we toggled it once.
+    const firstLBtn = lBtns.first()
+    await firstLBtn.click()
+
+    // 3. Dirty indicator must appear
+    await expect(page.getByText('Perubahan belum disimpan').first()).toBeVisible({ timeout: 5_000 })
+
+    // 4. Save must be enabled; click it
+    const saveBtn = page.getByRole('button', { name: /Simpan/ })
+    await expect(saveBtn).toBeEnabled()
+    await saveBtn.click()
+
+    // 5. Dirty indicator must disappear after save
+    await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible({ timeout: 8_000 })
+
+    // 6. Reload the page and verify the change actually persisted.
+    //    After toggling and saving, the purchase_cost field now has an EXPLICIT restriction —
+    //    meaning the "Default" badge (i18n defaultTag = "Default") must NO LONGER appear in that row.
+    await page.reload()
+    await expect(page.getByText('Superadmin').first()).toBeVisible({ timeout: 10_000 })
+    // purchase_cost must still be visible (row exists in the catalog)
+    const purchaseCostRowAfterReload = page.locator('tr', { hasText: 'purchase_cost' }).first()
+    await expect(purchaseCostRowAfterReload).toBeVisible({ timeout: 8_000 })
+    // KEY PERSISTENCE ASSERTION: the field now has an explicit restriction, so the
+    // "Default" badge must be absent — proving the toggled value round-tripped through the backend.
+    await expect(purchaseCostRowAfterReload.getByText('Default')).toHaveCount(0)
+    // No dirty state on fresh load
+    await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible()
+    const saveBtnAfter = page.getByRole('button', { name: /Simpan/ })
+    await expect(saveBtnAfter).toBeDisabled()
+
+    // 7. Cleanup: toggle the same cell back to restore the original state (best-effort).
+    //    Uses try/catch so a flaky cleanup never fails the test.
+    //    Playwright's click auto-waits for actionability; we also wait for Save to be enabled
+    //    before clicking it, avoiding the non-waiting isEnabled() snapshot anti-pattern.
+    try {
+      const purchaseCostRowCleanup = page.locator('tr', { hasText: 'purchase_cost' }).first()
+      await expect(purchaseCostRowCleanup).toBeVisible({ timeout: 8_000 })
+      const lBtnsCleanup = purchaseCostRowCleanup.locator('button', { hasText: 'L' })
+      await lBtnsCleanup.first().click()
+      const saveBtnCleanup = page.getByRole('button', { name: /Simpan/ })
+      await expect(saveBtnCleanup).toBeEnabled()
+      await saveBtnCleanup.click()
+      await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible({ timeout: 8_000 })
+    } catch { /* best-effort cleanup — not a hard failure */ }
+  })
+
+  test('switching entity to users shows users fields (e.g. email)', async ({ page }) => {
+    // The entity selector is a Nuxt UI USelect (custom listbox, NOT a native <select>):
+    // a trigger button showing the current entity label ("Aset") plus a popover of options
+    // with role="option". Open it by clicking the trigger (located by its current value text),
+    // then pick the "User" option.
+    await page.getByText('Aset', { exact: true }).first().click()
+    await page.getByRole('option', { name: 'User' })
+      .or(page.getByText('User', { exact: true }))
+      .first().click()
+    // The "users" entity has field "email" in FIELD_CATALOG; its i18n label is "Email".
+    await expect(page.locator('tr', { hasText: 'email' }).first()).toBeVisible({ timeout: 8_000 })
+    await expect(page.locator('tr', { hasText: 'email' }).first().getByText('Email')).toBeVisible()
+  })
+})

@@ -638,7 +638,18 @@
       "defaultTag": "Default",
       "resetField": "Kembalikan ke default",
       "empty": "Tidak ada field yang cocok.",
-      "footNote": "Contoh pada entitas Aset: harga_beli hanya dapat dilihat oleh Superadmin & Manager (diedit Superadmin), sedangkan nilai_buku hanya untuk Superadmin. Klik ikon putar untuk mengembalikan field ke default."
+      "footNote": "Field tanpa aturan eksplisit mengikuti default (boleh lihat & ubah). Atur per peran untuk menyembunyikan atau mengunci field sensitif.",
+      "entity": { "assets": "Aset", "users": "User" },
+      "field": {
+        "name": "Nama", "category_id": "Kategori", "office_id": "Kantor", "serial_number": "Nomor seri",
+        "purchase_date": "Tanggal beli", "purchase_cost": "Harga beli", "book_value": "Nilai buku",
+        "accumulated_depreciation": "Akumulasi penyusutan", "salvage_value": "Nilai residu",
+        "impairment_loss": "Rugi penurunan nilai", "depreciation_method": "Metode penyusutan",
+        "po_number": "Nomor PO", "funding_source": "Sumber dana", "warranty_expiry": "Akhir garansi",
+        "status": "Status", "notes": "Catatan", "email": "Email", "role_id": "Peran", "employee_id": "Pegawai"
+      },
+      "loadError": "Gagal memuat field permission.",
+      "retry": "Coba lagi"
     },
     "audit": {
       "title": "Audit Trail",

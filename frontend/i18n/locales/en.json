@@ -638,7 +638,18 @@
       "defaultTag": "Default",
       "resetField": "Revert to default",
       "empty": "No matching field.",
-      "footNote": "Example on the Asset entity: harga_beli is viewable only by Superadmin & Manager (edited by Superadmin), while nilai_buku is Superadmin-only. Click the reset icon to revert a field to default."
+      "footNote": "Fields without an explicit rule follow the default (view & edit allowed). Configure per role to hide or lock sensitive fields.",
+      "entity": { "assets": "Assets", "users": "User" },
+      "field": {
+        "name": "Name", "category_id": "Category", "office_id": "Office", "serial_number": "Serial number",
+        "purchase_date": "Purchase date", "purchase_cost": "Purchase cost", "book_value": "Book value",
+        "accumulated_depreciation": "Accumulated depreciation", "salvage_value": "Salvage value",
+        "impairment_loss": "Impairment loss", "depreciation_method": "Depreciation method",
+        "po_number": "PO number", "funding_source": "Funding source", "warranty_expiry": "Warranty expiry",
+        "status": "Status", "notes": "Notes", "email": "Email", "role_id": "Role", "employee_id": "Employee"
+      },
+      "loadError": "Failed to load field permissions.",
+      "retry": "Retry"
     },
     "audit": {
       "title": "Audit Trail",
