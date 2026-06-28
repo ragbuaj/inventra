@@ -33,18 +33,18 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >    `ATTACHMENT_MAX_BYTES` (5 MB); image thumbnails (original preserved); scope-gated (per-asset
 >    office) + `Content-Disposition` sanitized + `nosniff`/CSP; integration tests (MinIO testcontainer).
 >    `internal/storage` interface ready for BAST/`asset_documents` reuse.
-> 5. **Next priorities (pick one):**
->    - **Barcode/QR** — Code128 from `asset_tag`, printable label endpoint; scan lookup.
->    - **Wire frontend Asset & Approval screens** to the real `/api/v1/assets` and `/api/v1/requests`
->      endpoints (replace `mock/*` fixtures behind the existing `composables/api/use*` interface);
->      do the **ADR-0007 composable refactor** first (rename Indonesian DTO keys).
+> 5. ~~**Barcode/QR + label PDF**~~ ✅ **DONE (2026-06-28).** Code128 + QR PNG from `asset_tag`;
+>    scan-lookup; barcode endpoint; BTN + generic label templates; roll + sheet layouts; scope-gated;
+>    integration tests. `go build/vet/test` + Spectral green; `boombuler/barcode` + `go-pdf/fpdf` as direct deps.
+> 6. **Next priorities (pick one):**
 >    - **Asset documents (BAST)** — acquisition/transfer/disposal docs in MinIO (reuses
->      `internal/storage` interface now landed).
+>      `internal/storage` interface now landed); follow the same 4-file module split.
+>    - **Wire frontend Asset & Approval screens** to the real `/api/v1/assets` and `/api/v1/requests`
+>      endpoints; do the **ADR-0007 composable refactor** first (rename Indonesian DTO keys from
+>      `nama`/`kode`/`alamat` to the backend's English `snake_case` contract + regroup
+>      `composables/api/` + `mock/` into module subfolders).
 >    - **Disposal accounting** — once depreciation lands, derive disposal `amount` from server-side
 >      `book_value`; wire gain/loss journal entries.
-> 6. **ADR-0007 composable refactor** (still pending) — before wiring screens to real APIs: rename the
->    Indonesian DTO keys (`nama`/`kode`/`alamat`) to the backend's English `snake_case` contract and
->    regroup `composables/api/` + `mock/` into module subfolders. Avoids a mapping shim later.
 
 ## ✅ Done
 
@@ -147,7 +147,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       engine (not direct write). ⚠️ Attachments (MinIO) and barcode/QR still pending (see below).
       **Done — (2026-06-28).**
 - [x] **Asset attachments (MinIO)** — Storage interface; upload + size/type validation; image thumbnail (original preserved); proxy download/thumbnail; integration-test coverage (MinIO round-trip + scope + rollback). **Done — (2026-06-28).**
-- [ ] **Barcode / QR** — Code128 from `asset_tag` + QR; printable labels (single/batch); scan lookup
+- [x] **Barcode / QR** — Code128 + QR PNG from `asset_tag`; scan-lookup `GET /assets/by-tag/:tag`; barcode PNG `GET /assets/:id/barcode`; label PDF `POST /assets/labels` — **BTN template** (QR+logo + bank header + asset code + office/category/name/TP + disclaimer; `company_name`/`disclaimer` from `app_settings`; logo via `LABEL_LOGO_PATH`) + **generic** template; layout **roll** (page-per-label, default 60×24 mm on 64 mm media for Epson C4050) + **sheet** (A4 grid); scope-gated; integration tests. **Done — (2026-06-28).**
 - [x] **Approval (maker-checker)** — generic `request_approvals` table; threshold-driven chain
       construction; SoD enforcement (maker cannot approve own request); pull-model eligibility
       (pending step scoped to checker's office); executors: `asset_create`, `asset_disposal`,
@@ -231,6 +231,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       - **Cross-module:** audit office-scoped `List` + `Log`/`Diff` round-trip (#27); reference engine generic CRUD + `coerce` (white-box) (#27).
       - **Approval engine + asset core** (#28 ← task-21): 11 approval scenarios (3-step chain, SoD, reject mid-chain, disposal/exclusion with cross-office security bypass, cancel, scope filter, threshold edit, executor atomicity/rollback) + 4 asset scenarios (field masking by role, tag atomicity sequential + per-year, read scope). 15 integration tests, all PASS.
       - **Asset attachments (MinIO)** (task-11): image round-trip, PDF upload, oversize rejection, disallowed type, scope enforcement, DB rollback (no orphan in MinIO). 6 integration tests (MinIO testcontainer), all PASS.
+      - **Barcode / QR + label PDF** (task-9): Code128 PNG, QR PNG, BTN + generic label PDF (roll + sheet), scan-lookup, scope gate. Integration tests (`-tags=integration`) green.
       - Remaining backend targets (minor): category sub-package, full HTTP+JWT request path.
 - [ ] Optional seed data (provinces/cities, office types, etc.)
 
