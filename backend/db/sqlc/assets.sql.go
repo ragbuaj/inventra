@@ -273,6 +273,55 @@ func (q *Queries) GetAsset(ctx context.Context, id uuid.UUID) (AssetAsset, error
 	return i, err
 }
 
+const getAssetByTag = `-- name: GetAssetByTag :one
+SELECT id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at FROM asset.assets WHERE asset_tag = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) GetAssetByTag(ctx context.Context, assetTag string) (AssetAsset, error) {
+	row := q.db.QueryRow(ctx, getAssetByTag, assetTag)
+	var i AssetAsset
+	err := row.Scan(
+		&i.ID,
+		&i.AssetTag,
+		&i.Name,
+		&i.CategoryID,
+		&i.BrandID,
+		&i.ModelID,
+		&i.RoomID,
+		&i.OfficeID,
+		&i.UnitID,
+		&i.Status,
+		&i.SerialNumber,
+		&i.PurchaseDate,
+		&i.PurchaseCost,
+		&i.VendorID,
+		&i.PoNumber,
+		&i.FundingSource,
+		&i.WarrantyExpiry,
+		&i.Specifications,
+		&i.AssetClass,
+		&i.Capitalized,
+		&i.DepreciationMethod,
+		&i.UsefulLifeMonths,
+		&i.SalvageValue,
+		&i.FiscalGroup,
+		&i.FiscalLifeMonths,
+		&i.AccumulatedDepreciation,
+		&i.BookValue,
+		&i.ImpairmentLoss,
+		&i.AcquisitionBastNo,
+		&i.CurrentHolderEmployeeID,
+		&i.ExcludedFromValuation,
+		&i.ValuationExclusionReason,
+		&i.CreatedByID,
+		&i.Notes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const getAttachment = `-- name: GetAttachment :one
 SELECT id, asset_id, kind, object_key, thumbnail_key, original_filename, size_bytes, mime_type, created_by_id, created_at, updated_at, deleted_at FROM asset.asset_attachments WHERE id = $1 AND deleted_at IS NULL
 `

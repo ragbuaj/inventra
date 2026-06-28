@@ -36,6 +36,7 @@ type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (IdentityUser, error)
 	DecideRequestApproval(ctx context.Context, arg DecideRequestApprovalParams) (ApprovalRequestApproval, error)
 	GetAsset(ctx context.Context, id uuid.UUID) (AssetAsset, error)
+	GetAssetByTag(ctx context.Context, assetTag string) (AssetAsset, error)
 	GetAttachment(ctx context.Context, id uuid.UUID) (AssetAssetAttachment, error)
 	GetCategory(ctx context.Context, id uuid.UUID) (MasterdataCategory, error)
 	GetCategoryCode(ctx context.Context, id uuid.UUID) (*string, error)

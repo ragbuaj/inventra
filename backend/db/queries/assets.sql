@@ -90,3 +90,6 @@ SELECT * FROM asset.asset_attachments WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: SoftDeleteAttachment :execrows
 UPDATE asset.asset_attachments SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL;
+
+-- name: GetAssetByTag :one
+SELECT * FROM asset.assets WHERE asset_tag = $1 AND deleted_at IS NULL;
