@@ -1,98 +1,109 @@
 <script setup lang="ts">
-import type { AuditRow } from '~/composables/api/useAudit'
+import type { AuditRow, AuditAction } from '~/composables/api/useAudit'
 import { useAudit } from '~/composables/api/useAudit'
-import { AUDIT_ACTION_META, AUDIT_ENTITIES } from '~/mock/audit'
+import { AUDIT_ENTITY_TYPES } from '~/constants/auditCatalog'
 
-definePageMeta({ middleware: 'can', permission: 'user.manage' })
+definePageMeta({ middleware: 'can', permission: 'audit.view' })
 
-type Locale = 'id' | 'en'
-const PAGE_SIZE = 8
+const PAGE_SIZE = 20
 const ALL = '__all__'
 
-const { t, locale } = useI18n()
-const toast = useToast()
-const { list, actors } = useAudit()
+const { t, te } = useI18n()
+const { list } = useAudit()
 
 const rows = ref<AuditRow[]>([])
+const total = ref(0)
 const loading = ref(true)
+const loadFailed = ref(false)
 const search = ref('')
 const dateFrom = ref('')
 const dateTo = ref('')
-const fActor = ref(ALL)
 const fAction = ref(ALL)
 const fEntity = ref(ALL)
 const page = ref(1)
-const openId = ref<number | null>(null)
+const openId = ref<string | null>(null)
 
-const actorOptions = computed(() => [{ value: ALL, label: t('settings.audit.filter.allActors') }, ...actors().map(a => ({ value: a, label: a }))])
+// Action display metadata (tone + icon), inlined (was imported from the mock).
+const ACTION_META: Record<AuditAction, { tone: 'success' | 'warning' | 'error', icon: string }> = {
+  create: { tone: 'success', icon: 'i-lucide-plus' },
+  update: { tone: 'warning', icon: 'i-lucide-pencil' },
+  delete: { tone: 'error', icon: 'i-lucide-trash-2' }
+}
+
+function entityLabel(key: string): string {
+  const k = `settings.audit.entity.${key}`
+  return te(k) ? t(k) : key
+}
+
 const actionOptions = computed(() => [
   { value: ALL, label: t('settings.audit.filter.allActions') },
   { value: 'create', label: t('settings.audit.action.create') },
   { value: 'update', label: t('settings.audit.action.update') },
   { value: 'delete', label: t('settings.audit.action.delete') }
 ])
-const entityOptions = computed(() => [{ value: ALL, label: t('settings.audit.filter.allEntities') }, ...AUDIT_ENTITIES.map(e => ({ value: e, label: e }))])
+const entityOptions = computed(() => [
+  { value: ALL, label: t('settings.audit.filter.allEntities') },
+  ...AUDIT_ENTITY_TYPES.map(e => ({ value: e, label: entityLabel(e) }))
+])
 
 const anyFilter = computed(() =>
-  !!(search.value.trim() || dateFrom.value || dateTo.value || fActor.value !== ALL || fAction.value !== ALL || fEntity.value !== ALL)
+  !!(search.value.trim() || dateFrom.value || dateTo.value || fAction.value !== ALL || fEntity.value !== ALL)
 )
-
-const filtered = computed(() => {
-  const q = search.value.trim().toLowerCase()
-  return rows.value.filter((r) => {
-    if (q && !r.summary.toLowerCase().includes(q) && !r.actor.toLowerCase().includes(q) && !r.ref.toLowerCase().includes(q)) return false
-    if (fActor.value !== ALL && r.actor !== fActor.value) return false
-    if (fAction.value !== ALL && r.action !== fAction.value) return false
-    if (fEntity.value !== ALL && r.entity !== fEntity.value) return false
-    if (dateFrom.value && r.dateKey < dateFrom.value) return false
-    if (dateTo.value && r.dateKey > dateTo.value) return false
-    return true
-  })
-})
-
-const total = computed(() => filtered.value.length)
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
-const pageRows = computed(() => {
-  const p = Math.min(page.value, totalPages.value)
-  const start = (p - 1) * PAGE_SIZE
-  return filtered.value.slice(start, start + PAGE_SIZE)
-})
 const pageInfo = computed(() => {
-  const p = Math.min(page.value, totalPages.value)
-  const from = total.value === 0 ? 0 : (p - 1) * PAGE_SIZE + 1
-  const to = Math.min(p * PAGE_SIZE, total.value)
+  const from = total.value === 0 ? 0 : (page.value - 1) * PAGE_SIZE + 1
+  const to = Math.min(page.value * PAGE_SIZE, total.value)
   return t('settings.audit.showing', { from, to, total: total.value })
 })
 
-function actionMeta(action: AuditRow['action']) {
-  return AUDIT_ACTION_META[action]
+// A 'YYYY-MM-DD' date input → an RFC3339 day bound for the backend from/to filter.
+function toRfc(d: string, endOfDay: boolean): string | undefined {
+  if (!d) return undefined
+  return new Date(`${d}T${endOfDay ? '23:59:59' : '00:00:00'}Z`).toISOString()
 }
-function toggle(id: number) {
+
+function actionMeta(action: AuditAction) {
+  return ACTION_META[action]
+}
+function toggle(id: string) {
   openId.value = openId.value === id ? null : id
 }
 function resetFilters() {
   search.value = ''
   dateFrom.value = ''
   dateTo.value = ''
-  fActor.value = ALL
   fAction.value = ALL
   fEntity.value = ALL
   page.value = 1
 }
-function comingSoon() {
-  toast.add({ title: t('settings.audit.exportComingSoon'), color: 'neutral', icon: 'i-lucide-info' })
-}
 
 async function load() {
   loading.value = true
-  rows.value = await list(locale.value as Locale)
-  loading.value = false
+  loadFailed.value = false
+  try {
+    const res = await list({
+      search: search.value.trim() || undefined,
+      entity_type: fEntity.value !== ALL ? fEntity.value : undefined,
+      action: fAction.value !== ALL ? (fAction.value as AuditAction) : undefined,
+      from: toRfc(dateFrom.value, false),
+      to: toRfc(dateTo.value, true),
+      limit: PAGE_SIZE,
+      offset: (page.value - 1) * PAGE_SIZE
+    })
+    rows.value = res.rows
+    total.value = res.total
+  } catch {
+    loadFailed.value = true
+  } finally {
+    loading.value = false
+  }
 }
 
-watch([search, dateFrom, dateTo, fActor, fAction, fEntity], () => {
+watch([search, dateFrom, dateTo, fAction, fEntity], () => {
   page.value = 1
+  load()
 })
-watch(locale, () => load())
+watch(page, () => load())
 onMounted(() => load())
 </script>
 
@@ -112,8 +123,8 @@ onMounted(() => load())
         icon="i-lucide-download"
         color="neutral"
         variant="outline"
+        disabled
         :label="t('settings.audit.export')"
-        @click="comingSoon"
       />
     </div>
 
@@ -138,11 +149,6 @@ onMounted(() => load())
           :aria-label="t('settings.audit.dateTo')"
         />
       </div>
-      <USelect
-        v-model="fActor"
-        :items="actorOptions"
-        class="min-w-[150px] max-w-[180px]"
-      />
       <USelect
         v-model="fAction"
         :items="actionOptions"
@@ -174,9 +180,27 @@ onMounted(() => load())
       />
     </div>
 
+    <div
+      v-else-if="loadFailed"
+      class="flex flex-col items-center justify-center gap-3 py-20 text-muted"
+    >
+      <UIcon
+        name="i-lucide-circle-alert"
+        class="size-6"
+      />
+      <span class="text-sm">{{ t('settings.audit.loadError') }}</span>
+      <UButton
+        color="neutral"
+        variant="subtle"
+        @click="load"
+      >
+        {{ t('settings.audit.retry') }}
+      </UButton>
+    </div>
+
     <!-- Table -->
     <div
-      v-else-if="pageRows.length > 0"
+      v-else-if="rows.length > 0"
       class="bg-default border border-default rounded-[13px] shadow-sm overflow-hidden"
     >
       <div class="overflow-x-auto">
@@ -197,16 +221,13 @@ onMounted(() => load())
                 {{ t('settings.audit.columns.entity') }}
               </th>
               <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase text-muted">
-                {{ t('settings.audit.columns.summary') }}
-              </th>
-              <th class="text-left px-4 py-[11px] text-xs font-semibold uppercase text-muted whitespace-nowrap">
-                {{ t('settings.audit.columns.office') }}
+                IP
               </th>
             </tr>
           </thead>
           <tbody>
             <template
-              v-for="r in pageRows"
+              v-for="r in rows"
               :key="r.id"
             >
               <tr
@@ -238,9 +259,6 @@ onMounted(() => load())
                       <div class="text-[13px] font-medium whitespace-nowrap">
                         {{ r.actor }}
                       </div>
-                      <div class="text-[11.5px] text-dimmed whitespace-nowrap">
-                        {{ r.role }}
-                      </div>
                     </div>
                   </div>
                 </td>
@@ -258,18 +276,10 @@ onMounted(() => load())
                   </UBadge>
                 </td>
                 <td class="px-3.5 py-3 text-muted whitespace-nowrap">
-                  {{ r.entity }}
+                  {{ entityLabel(r.entity_type) }}
                 </td>
-                <td class="px-3.5 py-3 max-w-[320px]">
-                  <span class="block truncate">{{ r.summary }}</span>
-                </td>
-                <td class="px-4 py-3 whitespace-nowrap">
-                  <div class="text-[13px] text-muted">
-                    {{ r.office }}
-                  </div>
-                  <div class="text-[11.5px] font-mono text-dimmed">
-                    {{ r.ip }}
-                  </div>
+                <td class="px-3.5 py-3 font-mono text-[12px] text-dimmed whitespace-nowrap">
+                  {{ r.ip }}
                 </td>
               </tr>
               <tr
@@ -277,7 +287,7 @@ onMounted(() => load())
                 class="bg-muted"
               >
                 <td
-                  colspan="7"
+                  colspan="6"
                   class="px-4 pb-4 ps-[47px]"
                 >
                   <div class="bg-elevated border border-default rounded-[10px] overflow-hidden">
@@ -287,7 +297,7 @@ onMounted(() => load())
                         class="size-3.5 text-muted"
                       />
                       <span class="text-xs font-semibold text-muted">{{ t('settings.audit.diffTitle') }}</span>
-                      <span class="text-[11.5px] font-mono text-dimmed">{{ r.ref }}</span>
+                      <span class="text-[11.5px] font-mono text-dimmed">{{ r.entity_id }}</span>
                     </div>
                     <div class="px-3.5 pt-1.5 pb-2.5">
                       <div
