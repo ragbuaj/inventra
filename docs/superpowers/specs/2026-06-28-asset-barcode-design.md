@@ -175,3 +175,51 @@ g.POST("/labels",      authMW, requireView, h.generateLabels)
 - Frontend `label.vue` wiring to these endpoints — separate frontend item (after ADR-0007 refactor).
 - PDF label typography polish (font embedding for non-ASCII names) — `fpdf` core fonts cover Latin-1;
   if asset names need full Unicode, register a TTF later. Tags are ASCII (`A-Z0-9-`), so codes/tags are safe.
+
+---
+
+## REVISION (2026-06-28) — BTN label template (user-supplied layout)
+
+The user supplied a concrete BTN asset-label layout. This supersedes the simple "barcode + tag"
+label of §4. Confirmed decisions: logo provided as a file (embed; QR-center overlay + header) with
+graceful fallback if absent; bank name + disclaimer in `app_settings`; the label's "asset code" is the
+stored `asset_tag` verbatim (tag format unchanged); **two templates** — `btn` (default) and `generic`.
+
+### Label layout (template = `btn`, 60×24 mm landscape)
+```
+┌──────────┬─────────────────────────────────────────────┐
+│          │ [logo] <company_name>                        │
+│   QR     │ <asset_tag>                                  │
+│ (+logo   │─────────────────────────────────────────────│
+│  center) │ <office_code>            TP: <purchase_year> │
+│          │ <category_name>                             │
+│          │ <asset_name>                                │
+│          │ (red, small) <disclaimer>                   │
+└──────────┴─────────────────────────────────────────────┘
+```
+- Left: QR of `asset_tag`, BTN logo composited at center (QR error-correction **High** so the center
+  may be obscured). Logo loaded from a configured path; if the file is absent, render a plain QR (no
+  overlay) — must not break build/tests/CI.
+- Right: small logo + `company_name` (app_settings), `asset_tag`; divider; `office_code` (bold left) +
+  `TP: <year>` (right, from `purchase_date`); `category_name`; `asset_name`; red `disclaimer`
+  (app_settings), wrapped.
+
+### Data & config
+- New `app_settings` rows (seed migration `000017`): `label.company_name`
+  (default `PT Bank Tabungan Negara (Persero) Tbk`) and `label.disclaimer`
+  (default `Tidak Untuk Diperjualbelikan & Apabila Dipindah posisi untuk disampaikan ke Pengelola Gedung`).
+  Read via a sqlc `GetAppSetting(key)` query (returns value; missing → fall back to the default constant).
+- New join query for label data per asset (by id and by tag): `asset_tag, name (asset), office_code,
+  category_name, purchase_date`. `asset_tag` format is NOT changed.
+- Logo: config `LABEL_LOGO_PATH` (default `assets/btn-logo.png`, relative to the backend working dir);
+  loaded at request time (or cached); if the file does not exist, skip the logo (plain QR + no header
+  logo). Compositing uses `disintegration/imaging` (already a dependency).
+
+### Template selection
+- `LabelRequest.template`: `"btn"` (default) | `"generic"`. `generic` keeps the original `mode`
+  (barcode/qr/both) + field toggles. Both honor the `layout` (roll/sheet) + size params.
+- `btn` template ignores `mode` (always QR) and renders the fixed BTN field layout.
+
+### Revised authorization / errors
+Unchanged from §Authorization. Missing `app_settings` value → default constant (not an error). Missing
+logo file → plain QR (not an error). All else as before.
