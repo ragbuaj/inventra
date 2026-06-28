@@ -24,6 +24,7 @@ type Querier interface {
 	CountRoomsByFloor(ctx context.Context, arg CountRoomsByFloorParams) (int64, error)
 	CountUsers(ctx context.Context, search string) (int64, error)
 	CreateAsset(ctx context.Context, arg CreateAssetParams) (AssetAsset, error)
+	CreateAssetDocument(ctx context.Context, arg CreateAssetDocumentParams) (AssetAssetDocument, error)
 	CreateAttachment(ctx context.Context, arg CreateAttachmentParams) (AssetAssetAttachment, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (MasterdataCategory, error)
 	CreateEmployee(ctx context.Context, arg CreateEmployeeParams) (MasterdataEmployee, error)
@@ -38,6 +39,7 @@ type Querier interface {
 	GetAppSetting(ctx context.Context, key string) (string, error)
 	GetAsset(ctx context.Context, id uuid.UUID) (AssetAsset, error)
 	GetAssetByTag(ctx context.Context, assetTag string) (AssetAsset, error)
+	GetAssetDocument(ctx context.Context, id uuid.UUID) (AssetAssetDocument, error)
 	GetAssetLabelByID(ctx context.Context, id uuid.UUID) (GetAssetLabelByIDRow, error)
 	GetAssetLabelByTag(ctx context.Context, assetTag string) (GetAssetLabelByTagRow, error)
 	GetAttachment(ctx context.Context, id uuid.UUID) (AssetAssetAttachment, error)
@@ -64,6 +66,7 @@ type Querier interface {
 	// only to all-scope callers.
 	InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) (AuditAuditLog, error)
 	LinkGoogleID(ctx context.Context, arg LinkGoogleIDParams) error
+	ListAssetDocuments(ctx context.Context, assetID uuid.UUID) ([]AssetAssetDocument, error)
 	// Asset core queries (asset.assets + asset.asset_tag_counters).
 	// Respects soft delete and caller data scope (all_scope / office_ids).
 	ListAssets(ctx context.Context, arg ListAssetsParams) ([]AssetAsset, error)
@@ -94,9 +97,11 @@ type Querier interface {
 	// Approval / maker-checker queries (approval schema).
 	// See docs/DATABASE.md §4.5 and PRD §3.6 for schema context.
 	MatchThresholdSteps(ctx context.Context, arg MatchThresholdStepsParams) ([]ApprovalApprovalThreshold, error)
+	SetAssetDocumentObjectKey(ctx context.Context, arg SetAssetDocumentObjectKeyParams) (AssetAssetDocument, error)
 	SetAssetStatus(ctx context.Context, arg SetAssetStatusParams) (AssetAsset, error)
 	SetAssetValuationExclusion(ctx context.Context, arg SetAssetValuationExclusionParams) (AssetAsset, error)
 	SetRequestDecision(ctx context.Context, arg SetRequestDecisionParams) (ApprovalRequest, error)
+	SoftDeleteAssetDocument(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteAttachment(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteCategory(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteEmployee(ctx context.Context, arg SoftDeleteEmployeeParams) (int64, error)
@@ -106,6 +111,7 @@ type Querier interface {
 	SoftDeleteThreshold(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteUser(ctx context.Context, id uuid.UUID) (int64, error)
 	UpdateAsset(ctx context.Context, arg UpdateAssetParams) (AssetAsset, error)
+	UpdateAssetDocument(ctx context.Context, arg UpdateAssetDocumentParams) (AssetAssetDocument, error)
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (MasterdataCategory, error)
 	UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) (MasterdataEmployee, error)
 	UpdateFloor(ctx context.Context, arg UpdateFloorParams) (MasterdataFloor, error)

@@ -19,4 +19,13 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW, requireView, requir
 	a.GET("/:aid/content", authMW, requireView, h.downloadAttachment)
 	a.GET("/:aid/thumbnail", authMW, requireView, h.downloadThumbnail)
 	a.DELETE("/:aid", authMW, requireManage, h.deleteAttachment)
+
+	d := g.Group("/:id/documents")
+	d.POST("", authMW, requireManage, h.createDocument)
+	d.GET("", authMW, requireView, h.listDocuments)
+	d.GET("/:docId", authMW, requireView, h.getDocument)
+	d.PUT("/:docId", authMW, requireManage, h.updateDocument)
+	d.DELETE("/:docId", authMW, requireManage, h.deleteDocument)
+	d.PUT("/:docId/file", authMW, requireManage, h.uploadDocumentFile)
+	d.GET("/:docId/file", authMW, requireView, h.downloadDocumentFile)
 }

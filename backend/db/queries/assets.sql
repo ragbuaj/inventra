@@ -91,6 +91,35 @@ SELECT * FROM asset.asset_attachments WHERE id = $1 AND deleted_at IS NULL;
 -- name: SoftDeleteAttachment :execrows
 UPDATE asset.asset_attachments SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL;
 
+-- name: CreateAssetDocument :one
+INSERT INTO asset.asset_documents (
+  asset_id, doc_type, doc_no, doc_date, counterparty, related_request_id, created_by_id
+) VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING *;
+
+-- name: ListAssetDocuments :many
+SELECT * FROM asset.asset_documents
+WHERE asset_id = $1 AND deleted_at IS NULL
+ORDER BY created_at DESC;
+
+-- name: GetAssetDocument :one
+SELECT * FROM asset.asset_documents WHERE id = $1 AND deleted_at IS NULL;
+
+-- name: UpdateAssetDocument :one
+UPDATE asset.asset_documents
+SET doc_type = $2, doc_no = $3, doc_date = $4, counterparty = $5, related_request_id = $6
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING *;
+
+-- name: SetAssetDocumentObjectKey :one
+UPDATE asset.asset_documents
+SET object_key = $2
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING *;
+
+-- name: SoftDeleteAssetDocument :execrows
+UPDATE asset.asset_documents SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL;
+
 -- name: GetAssetByTag :one
 SELECT * FROM asset.assets WHERE asset_tag = $1 AND deleted_at IS NULL;
 

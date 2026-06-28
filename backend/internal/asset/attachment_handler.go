@@ -66,6 +66,8 @@ func (h *Handler) handleErr(c *gin.Context, err error) {
 		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": err.Error()})
 	case errors.Is(err, ErrNotFound):
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+	case errors.Is(err, ErrInvalidRef):
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	default:
 		common.WriteError(c, err)
 	}

@@ -36,13 +36,14 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > 5. ~~**Barcode/QR + label PDF**~~ ✅ **DONE (2026-06-28).** Code128 + QR PNG from `asset_tag`;
 >    scan-lookup; barcode endpoint; BTN + generic label templates; roll + sheet layouts; scope-gated;
 >    integration tests. `go build/vet/test` + Spectral green; `boombuler/barcode` + `go-pdf/fpdf` as direct deps.
-> 6. **Next priorities (pick one):**
->    - **Asset documents (BAST)** — acquisition/transfer/disposal docs in MinIO (reuses
->      `internal/storage` interface now landed); follow the same 4-file module split.
+> 6. ~~**Asset documents (BAST)**~~ ✅ **DONE (2026-06-28).** metadata CRUD + optional MinIO file (reuses `internal/storage`); scope-gated + audited; integration tests (10 cases); OpenAPI spec updated.
+> 7. **Next priorities (pick one):**
 >    - **Wire frontend Asset & Approval screens** to the real `/api/v1/assets` and `/api/v1/requests`
 >      endpoints; do the **ADR-0007 composable refactor** first (rename Indonesian DTO keys from
 >      `nama`/`kode`/`alamat` to the backend's English `snake_case` contract + regroup
 >      `composables/api/` + `mock/` into module subfolders).
+>    - **Asset transfer (mutasi)** — inter-office transfer + BAST doc linkage + history; updates
+>      `assets.office_id`; reuses the asset-documents + storage + approval engine already built.
 >    - **Disposal accounting** — once depreciation lands, derive disposal `amount` from server-side
 >      `book_value`; wire gain/loss journal entries.
 
@@ -132,7 +133,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       (asset_disposal flow). Gain/loss accounting + journal entries still pending (requires depreciation
       to derive server-side `book_value`; currently disposal `amount` is maker-supplied — ⚠️ value-tier
       hardening needed once depreciation lands).
-- [ ] **Asset documents (BAST)** — acquisition/transfer/disposal docs in MinIO
+- [x] **Asset documents (BAST)** — metadata CRUD + optional MinIO file; scope-gated + audited; integration tests (10 cases). **Done — (2026-06-28).**
 - [ ] **Journal-ready export** — GL-account rollup (depreciation expense, disposal gain/loss)
 - [ ] **Capitalization threshold** — `app_settings` global default + per-category override; below
       threshold → expensed, not capitalized
@@ -231,6 +232,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       - **Approval engine + asset core** (#28 ← task-21): 11 approval scenarios (3-step chain, SoD, reject mid-chain, disposal/exclusion with cross-office security bypass, cancel, scope filter, threshold edit, executor atomicity/rollback) + 4 asset scenarios (field masking by role, tag atomicity sequential + per-year, read scope). 15 integration tests, all PASS.
       - **Asset attachments (MinIO)** (task-11): image round-trip, PDF upload, oversize rejection, disallowed type, scope enforcement, DB rollback (no orphan in MinIO). 6 integration tests (MinIO testcontainer), all PASS.
       - **Barcode / QR + label PDF** (task-9): Code128 PNG, QR PNG, BTN + generic label PDF (roll + sheet), scan-lookup, scope gate. Integration tests (`-tags=integration`) green.
+      - **Asset documents (BAST)** (task-5): list, create, get, update, delete, file-upload (multipart), file-download; scope-gated + audited; rollback on MinIO failure. 10 integration tests (MinIO testcontainer), all PASS.
       - Remaining backend targets (minor): category sub-package, full HTTP+JWT request path.
 - [ ] Optional seed data (provinces/cities, office types, etc.)
 

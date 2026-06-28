@@ -1145,6 +1145,205 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/v1/assets/{id}/documents:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: Asset id }
+    get:
+      tags: [Assets]
+      operationId: listDocuments
+      summary: List documents for an asset
+      description: Returns all non-deleted documents (BAST and other) for the given asset. Requires the `asset.view` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Document list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, total]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/AssetDocument" }
+                  total: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Assets]
+      operationId: createDocument
+      summary: Create a document record for an asset
+      description: |
+        Creates a document metadata record (BAST or other). A file may be attached separately
+        via `PUT /assets/{id}/documents/{docId}/file`. Requires the `asset.manage` permission.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DocumentCreateRequest" }
+      responses:
+        "201":
+          description: Document created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssetDocument" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/assets/{id}/documents/{docId}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: Asset id }
+      - { name: docId, in: path, required: true, schema: { type: string, format: uuid }, description: Document id }
+    get:
+      tags: [Assets]
+      operationId: getDocument
+      summary: Get a document record
+      description: Returns a single document belonging to the given asset. Requires the `asset.view` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The document
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssetDocument" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Document not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    put:
+      tags: [Assets]
+      operationId: updateDocument
+      summary: Update document metadata
+      description: Edits the metadata fields of a document. Does not affect any attached file. Requires the `asset.manage` permission.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DocumentUpdateRequest" }
+      responses:
+        "200":
+          description: Updated document
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssetDocument" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Document not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    delete:
+      tags: [Assets]
+      operationId: deleteDocument
+      summary: Delete a document record
+      description: Soft-deletes the document record and removes any backing file from storage. Requires the `asset.manage` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Document not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/assets/{id}/documents/{docId}/file:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: Asset id }
+      - { name: docId, in: path, required: true, schema: { type: string, format: uuid }, description: Document id }
+    put:
+      tags: [Assets]
+      operationId: uploadDocumentFile
+      summary: Attach a file to a document record
+      description: |
+        Uploads (or replaces) the file associated with the document. Accepted MIME types mirror
+        the asset-attachment endpoint (image/jpeg, image/png, image/webp, application/pdf).
+        Returns 413 if the file exceeds the server size limit; 415 if
+        the MIME type is not accepted. Requires the `asset.manage` permission.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to attach.
+      responses:
+        "200":
+          description: Document with file attached
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssetDocument" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Document not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "413":
+          description: File too large
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "415":
+          description: Unsupported media type
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    get:
+      tags: [Assets]
+      operationId: downloadDocumentFile
+      summary: Download the file attached to a document
+      description: |
+        Streams the raw file bytes with `Content-Disposition: attachment` and security headers
+        (`X-Content-Type-Options: nosniff`, `Content-Security-Policy: sandbox`).
+        Returns 404 when no file has been attached (`has_file` is false). Requires the `asset.view` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: File contents
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+            image/png:
+              schema: { type: string, format: binary }
+            image/webp:
+              schema: { type: string, format: binary }
+            application/pdf:
+              schema: { type: string, format: binary }
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Document or file not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/v1/requests:
     post:
       tags: [Requests]
@@ -2146,6 +2345,93 @@ components:
         mime_type: { type: string }
         has_thumbnail: { type: boolean }
         created_at: { type: string, format: date-time }
+
+    AssetDocument:
+      type: object
+      description: |
+        A document record attached to an asset (e.g. BAST acquisition, BAST transfer, invoice).
+        Storage-internal fields (`object_key`) are intentionally omitted; use `has_file` to
+        conditionally offer a download via `GET /assets/{id}/documents/{docId}/file`.
+      required: [id, asset_id, doc_type, has_file, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        asset_id: { type: string, format: uuid }
+        doc_type:
+          type: string
+          enum: [bast_acquisition, bast_transfer, bast_disposal, invoice, contract, other]
+        doc_no:
+          type: string
+          nullable: true
+        doc_date:
+          type: string
+          format: date
+          nullable: true
+        counterparty:
+          type: string
+          nullable: true
+        related_request_id:
+          type: string
+          format: uuid
+          nullable: true
+        related_transfer_id:
+          type: string
+          format: uuid
+          nullable: true
+        related_disposal_id:
+          type: string
+          format: uuid
+          nullable: true
+        has_file: { type: boolean }
+        created_by_id:
+          type: string
+          format: uuid
+          nullable: true
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    DocumentCreateRequest:
+      type: object
+      required: [doc_type]
+      properties:
+        doc_type:
+          type: string
+          enum: [bast_acquisition, bast_transfer, bast_disposal, invoice, contract, other]
+        doc_no:
+          type: string
+          nullable: true
+        doc_date:
+          type: string
+          format: date
+          nullable: true
+        counterparty:
+          type: string
+          nullable: true
+        related_request_id:
+          type: string
+          format: uuid
+          nullable: true
+
+    DocumentUpdateRequest:
+      type: object
+      required: [doc_type]
+      properties:
+        doc_type:
+          type: string
+          enum: [bast_acquisition, bast_transfer, bast_disposal, invoice, contract, other]
+        doc_no:
+          type: string
+          nullable: true
+        doc_date:
+          type: string
+          format: date
+          nullable: true
+        counterparty:
+          type: string
+          nullable: true
+        related_request_id:
+          type: string
+          format: uuid
+          nullable: true
 
     LabelRequest:
       type: object
