@@ -1,8 +1,4 @@
-import type { ModuleDef, Role } from '~/mock/rbac'
-import { RBAC_MODULES, roleStore } from '~/mock/rbac'
-import { fakeLatency } from '~/mock/helpers'
-
-type Locale = 'id' | 'en'
+import { iconForGroup } from '~/constants/authzCatalog'
 
 export interface PermissionView {
   code: string
@@ -17,76 +13,80 @@ export interface ModuleView {
 }
 
 export interface RoleView {
-  key: string
-  nama: string
-  system: boolean
-  desc: string
+  id: string
+  code: string
+  name: string
+  is_system: boolean
+  description?: string
   perms: string[]
 }
 
 export interface CreateRoleInput {
-  nama: string
-  copyFromKey?: string
-  desc?: string
+  name: string
+  description?: string
+  copyFromId?: string
 }
 
-let seq = 1
-
-function resolveModule(m: ModuleDef, locale: Locale): ModuleView {
-  return {
-    key: m.key,
-    label: m.label[locale] ?? m.label.id,
-    icon: m.icon,
-    perms: m.perms.map(p => ({ code: p.code, label: p.label[locale] ?? p.label.id }))
-  }
+interface CatalogResponse {
+  permissions: { group: string, items: { key: string, label: string }[] }[]
 }
 
-function resolveRole(r: Role, locale: Locale): RoleView {
-  return {
-    key: r.key,
-    nama: r.nama[locale] ?? r.nama.id,
-    system: r.system,
-    desc: r.desc[locale] ?? r.desc.id,
-    perms: [...r.perms]
-  }
+interface RoleDTO {
+  id: string
+  code: string
+  name: string
+  is_system: boolean
+  description?: string
+}
+
+// slugifyRoleCode derives a backend role `code` from a human name:
+// lowercase, runs of non-alphanumerics collapse to a single '_', trimmed.
+export function slugifyRoleCode(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
 }
 
 /**
- * RBAC data source. Mock-first; the seam a real implementation swaps behind
- * (`/auth/roles`, `/auth/role-permissions`). The module/permission catalog is static metadata, so
- * `getModules` is synchronous; role reads/writes go through the mock store.
+ * RBAC data source, wired to /api/v1/authz. The catalog supplies the
+ * authoritative permission key set + grouping; display labels are resolved by
+ * the UI via i18n (with fallback to the catalog label), icons via iconForGroup.
  */
 export function useRbac() {
-  function getModules(locale: Locale = 'id'): ModuleView[] {
-    return RBAC_MODULES.map(m => resolveModule(m, locale))
+  const { request } = useApiClient()
+
+  async function getCatalog(): Promise<ModuleView[]> {
+    const cat = await request<CatalogResponse>('/authz/catalog')
+    return cat.permissions.map(g => ({
+      key: g.group,
+      label: g.group,
+      icon: iconForGroup(g.group),
+      perms: g.items.map(i => ({ code: i.key, label: i.label }))
+    }))
   }
 
-  async function listRoles(locale: Locale = 'id'): Promise<RoleView[]> {
-    await fakeLatency()
-    return roleStore.all().map(r => resolveRole(r, locale))
+  async function listRoles(): Promise<RoleView[]> {
+    const res = await request<{ data: RoleDTO[], total: number }>('/authz/roles')
+    return res.data.map(r => ({ ...r, perms: [] }))
   }
 
-  async function createRole(input: CreateRoleInput, locale: Locale = 'id'): Promise<RoleView> {
-    await fakeLatency()
-    const base = input.copyFromKey ? (roleStore.find(input.copyFromKey)?.perms ?? []) : []
-    const nama = input.nama.trim()
-    const desc = input.desc?.trim() || (locale === 'en' ? 'Custom role.' : 'Peran kustom.')
-    const key = `custom-${seq++}`
-    const role: Role = {
-      key,
-      nama: { id: nama, en: nama },
-      system: false,
-      desc: { id: desc, en: desc },
-      perms: [...base]
-    }
-    roleStore.insert(role)
-    return resolveRole(role, locale)
+  async function getRolePermissions(id: string): Promise<string[]> {
+    const res = await request<{ permissions: string[] }>(`/authz/roles/${id}/permissions`)
+    return res.permissions
   }
 
-  async function updateRolePermissions(key: string, perms: string[]): Promise<void> {
-    await fakeLatency()
-    roleStore.setPerms(key, perms)
+  async function updateRolePermissions(id: string, perms: string[]): Promise<void> {
+    await request(`/authz/roles/${id}/permissions`, { method: 'PUT', body: { permissions: perms } })
   }
 
-  return { getModules, listRoles, createRole, updateRolePermissions }
+  async function createRole(input: CreateRoleInput): Promise<RoleView> {
+    let copied: string[] = []
+    if (input.copyFromId) copied = await getRolePermissions(input.copyFromId)
+    const role = await request<RoleDTO>('/authz/roles', {
+      method: 'POST',
+      body: { code: slugifyRoleCode(input.name), name: input.name.trim(), description: input.description?.trim() || undefined }
+    })
+    if (copied.length) await updateRolePermissions(role.id, copied)
+    return { ...role, perms: copied }
+  }
+
+  return { getCatalog, listRoles, getRolePermissions, createRole, updateRolePermissions }
 }
