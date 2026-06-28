@@ -1,56 +1,71 @@
-import type { ScopeModuleDef, ScopeRole } from '~/mock/dataScope'
-import { DATA_SCOPE_MODULES, dataScopeStore } from '~/mock/dataScope'
-import { fakeLatency } from '~/mock/helpers'
-
-type Locale = 'id' | 'en'
+import type { ScopeLevel } from '~/constants/dataScope'
 
 export interface ScopeModuleView {
   key: string
-  label: string
 }
 
 export interface ScopeRoleView {
-  key: string
-  nama: string
+  id: string
+  code: string
+  name: string
   sub: string
-  def: ScopeRole['def']
-  ov: Record<string, ScopeRole['def']>
+  def: ScopeLevel
+  ov: Record<string, ScopeLevel>
 }
 
-function resolveRole(r: ScopeRole, locale: Locale): ScopeRoleView {
-  return {
-    key: r.key,
-    nama: r.nama[locale] ?? r.nama.id,
-    sub: r.sub[locale] ?? r.sub.id,
-    def: r.def,
-    ov: { ...r.ov }
-  }
+interface CatalogResponse {
+  scope_modules: string[]
+}
+
+interface RoleDTO {
+  id: string
+  code: string
+  name: string
+  description?: string
+}
+
+interface PolicyItem {
+  module: string
+  scope_level: ScopeLevel
+}
+
+interface ScopeResponse {
+  policies: PolicyItem[]
 }
 
 /**
- * Data-scope policies. Mock-first; the seam a real implementation swaps behind
- * (`/auth/data-scope-policies`). The module catalog is static metadata, so `getModules` is sync.
+ * Data-scope policies, wired to /api/v1/authz. Module columns come from the
+ * catalog's scope_modules; each role's default (module "*") + per-module
+ * overrides come from /authz/roles/:id/scope.
  */
 export function useDataScope() {
-  function getModules(locale: Locale = 'id'): ScopeModuleView[] {
-    return DATA_SCOPE_MODULES.map((m: ScopeModuleDef) => ({ key: m.key, label: m.label[locale] ?? m.label.id }))
+  const { request } = useApiClient()
+
+  async function getModules(): Promise<ScopeModuleView[]> {
+    const cat = await request<CatalogResponse>('/authz/catalog')
+    return cat.scope_modules.filter(m => m !== '*').map(key => ({ key }))
   }
 
-  async function listRoles(locale: Locale = 'id'): Promise<ScopeRoleView[]> {
-    await fakeLatency()
-    return dataScopeStore.all().map(r => resolveRole(r, locale))
+  async function listRoles(): Promise<ScopeRoleView[]> {
+    const res = await request<{ data: RoleDTO[], total: number }>('/authz/roles')
+    return Promise.all(res.data.map(async (r) => {
+      const sc = await request<ScopeResponse>(`/authz/roles/${r.id}/scope`)
+      const def: ScopeLevel = sc.policies.find(p => p.module === '*')?.scope_level ?? 'own'
+      const ov: Record<string, ScopeLevel> = {}
+      for (const p of sc.policies) {
+        if (p.module !== '*') ov[p.module] = p.scope_level
+      }
+      return { id: r.id, code: r.code, name: r.name, sub: r.description ?? '', def, ov }
+    }))
   }
 
-  async function saveScopes(roleViews: ScopeRoleView[]): Promise<void> {
-    await fakeLatency()
-    dataScopeStore.replace(roleViews.map(r => ({
-      key: r.key,
-      nama: { id: r.nama, en: r.nama },
-      sub: { id: r.sub, en: r.sub },
-      def: r.def,
-      ov: { ...r.ov }
-    })))
+  async function saveRoleScope(id: string, def: ScopeLevel, ov: Record<string, ScopeLevel>): Promise<void> {
+    const policies = [
+      { module: '*', scope_level: def },
+      ...Object.entries(ov).map(([module, scope_level]) => ({ module, scope_level }))
+    ]
+    await request(`/authz/roles/${id}/scope`, { method: 'PUT', body: { policies } })
   }
 
-  return { getModules, listRoles, saveScopes }
+  return { getModules, listRoles, saveRoleScope }
 }

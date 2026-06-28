@@ -607,7 +607,22 @@
       "overrideTag": "Override",
       "followDefault": "Follow Default",
       "inherits": "Inherits: {level}",
-      "footNote": "Example: the Manager role uses the office default but is overridden to office_subtree for Assets and own for Requests — showing different scope per module within one role."
+      "footNote": "Example: the Manager role uses the office default but is overridden to office_subtree for Assets and own for Requests — showing different scope per module within one role.",
+      "level": {
+        "global": "All data across offices",
+        "office_subtree": "Own office + all its descendants",
+        "office": "Own office only",
+        "own": "Only their own data"
+      },
+      "module": {
+        "offices": "Offices",
+        "employees": "Employees",
+        "assets": "Assets",
+        "requests": "Requests",
+        "audit": "Audit"
+      },
+      "loadError": "Failed to load data-scope policies.",
+      "retry": "Retry"
     },
     "fieldPermission": {
       "title": "Field Permission",
