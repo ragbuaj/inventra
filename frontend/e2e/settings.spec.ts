@@ -422,13 +422,16 @@ test.describe('Field Permission screen — real backend', () => {
   })
 
   test('switching entity to users shows users fields (e.g. email)', async ({ page }) => {
-    // The entity select is a USelect. Open it and pick "User" (the localized label for "users").
-    // The entity select shows "Aset" by default. We locate the USelect near the "Entitas" label
-    // and change it to "User".
-    const entitySelect = page.locator('select').first()
-    await entitySelect.selectOption({ label: 'User' })
+    // The entity selector is a Nuxt UI USelect (custom listbox, NOT a native <select>):
+    // a trigger button showing the current entity label ("Aset") plus a popover of options
+    // with role="option". Open it by clicking the trigger (located by its current value text),
+    // then pick the "User" option.
+    await page.getByText('Aset', { exact: true }).first().click()
+    await page.getByRole('option', { name: 'User' })
+      .or(page.getByText('User', { exact: true }))
+      .first().click()
+    // The "users" entity has field "email" in FIELD_CATALOG; its i18n label is "Email".
     await expect(page.locator('tr', { hasText: 'email' }).first()).toBeVisible({ timeout: 8_000 })
-    // The "users" entity has field "email" in FIELD_CATALOG; its i18n label is "Email"
     await expect(page.locator('tr', { hasText: 'email' }).first().getByText('Email')).toBeVisible()
   })
 })
