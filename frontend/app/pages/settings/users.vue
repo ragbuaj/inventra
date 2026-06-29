@@ -254,7 +254,10 @@ onMounted(() => load())
       v-if="loadFailed"
       class="flex flex-col items-center justify-center gap-3 py-20 text-muted"
     >
-      <UIcon name="i-lucide-circle-alert" class="size-6" />
+      <UIcon
+        name="i-lucide-circle-alert"
+        class="size-6"
+      />
       <span class="text-sm">{{ t('settings.users.loadError') }}</span>
       <UButton
         color="neutral"
