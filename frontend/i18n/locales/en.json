@@ -1093,7 +1093,9 @@
     "openMaps": "Open in Maps",
     "registeredAssets": "registered assets",
     "summary": "{o} offices · {k} cities · {p} provinces",
-    "jenis": { "pusat": "HQ", "wilayah": "Regional", "cabang": "Branch", "outlet": "Outlet" }
+    "tier": { "pusat": "Head Office", "wilayah": "Region", "office": "Branch" },
+    "loadError": "Failed to load office map.",
+    "retry": "Retry"
   },
   "account": {
     "title": "Profile & Account Settings",
