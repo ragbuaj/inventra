@@ -24,14 +24,14 @@ test.describe('Peta Lokasi screen — real backend', () => {
     // deterministic regardless of whether offices with coordinates are seeded.
     // i18n key: map.emptyListTitle → "Tidak ada kantor"
     await expect(
-      page.getByText('Tidak ada kantor', { exact: false })
+      page.getByText('Tidak ada kantor', { exact: true })
         .or(page.locator('[data-testid="office-row"]').first())
     ).toBeVisible({ timeout: 10_000 })
 
     // Map panel header: the legend renders the tier category labels regardless of data.
     // TIER_ORDER renders Pusat/Wilayah/Cabang (3 tiers; Outlet folded into Cabang — approved deviation).
     // i18n key: map.tier.pusat → "Pusat"
-    await expect(page.getByText('Pusat', { exact: false })).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByText('Pusat', { exact: true })).toBeVisible({ timeout: 5_000 })
   })
 
   test('filter bar renders search input and two select controls', async ({ page }) => {
