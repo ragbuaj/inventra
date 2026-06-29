@@ -63,8 +63,8 @@ const form = reactive<EmployeeInput>({
 const columns = [
   { accessorKey: 'code', header: t('masterdata.employees.columns.nip'), sortable: true },
   { accessorKey: 'name', header: t('masterdata.employees.columns.nama'), sortable: true },
-  { accessorKey: 'departemen', header: t('masterdata.employees.columns.departemen'), sortable: true },
-  { accessorKey: 'jabatan', header: t('masterdata.employees.columns.jabatan'), sortable: true },
+  { accessorKey: 'departemen', header: t('masterdata.employees.columns.departemen') },
+  { accessorKey: 'jabatan', header: t('masterdata.employees.columns.jabatan') },
   { accessorKey: 'kantor', header: t('masterdata.employees.columns.kantor') },
   { accessorKey: 'kontak', header: t('masterdata.employees.columns.kontak') },
   { accessorKey: 'status', header: t('masterdata.employees.columns.status'), sortable: true }
