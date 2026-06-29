@@ -175,6 +175,7 @@ function resetView() {
             <button
               v-for="office in filtered"
               :key="office.id"
+              data-testid="office-row"
               class="flex items-start gap-2.5 w-full px-2.5 py-2.5 mb-1 rounded-[10px] border text-left cursor-pointer transition-colors hover:border-primary"
               :class="selId === office.id
                 ? 'bg-primary/10 border-primary'

@@ -19,13 +19,13 @@ test.describe('Peta Lokasi screen — real backend', () => {
     // i18n key: map.title → "Peta Lokasi Kantor"
     await expect(page.getByRole('heading', { name: 'Peta Lokasi Kantor' })).toBeVisible({ timeout: 10_000 })
 
-    // Left list panel: either office rows (button elements with a tier badge + mono code)
+    // Left list panel: either office rows (stable data-testid="office-row" hook)
     // or the empty-state message — a single auto-waiting .or() assertion that is
     // deterministic regardless of whether offices with coordinates are seeded.
     // i18n key: map.emptyListTitle → "Tidak ada kantor"
     await expect(
       page.getByText('Tidak ada kantor', { exact: false })
-        .or(page.locator('button').filter({ hasText: /[A-Z]{2,}/ }).first())
+        .or(page.locator('[data-testid="office-row"]').first())
     ).toBeVisible({ timeout: 10_000 })
 
     // Map panel header: the legend renders the tier category labels regardless of data.
@@ -63,11 +63,12 @@ test.describe('Peta Lokasi screen — real backend', () => {
     // Robust: click the trigger by its visible label text, not a CSS selector.
     await page.getByText('Semua Jenis', { exact: true }).click()
 
-    // After opening, the option list renders via role="option" or as visible text.
+    // After opening, the option list renders inside a listbox; assert the scoped option.
+    // Scoping to the open listbox ensures this only passes when the dropdown is genuinely open
+    // (avoids the vacuous fallback where the legend's "Pusat" text satisfies the assertion).
     // i18n keys: map.tier.pusat → "Pusat", map.tier.wilayah → "Wilayah", map.tier.office → "Cabang"
     await expect(
-      page.getByRole('option', { name: 'Pusat' })
-        .or(page.getByText('Pusat', { exact: true }).first())
+      page.getByRole('listbox').getByRole('option', { name: 'Pusat' })
     ).toBeVisible({ timeout: 5_000 })
   })
 
