@@ -16,6 +16,8 @@ import (
 	"github.com/ragbuaj/inventra/internal/testsupport"
 )
 
+func strptr(s string) *string { return &s }
+
 func empIDs(rows []sqlc.MasterdataEmployee) map[uuid.UUID]bool {
 	m := make(map[uuid.UUID]bool, len(rows))
 	for _, r := range rows {
@@ -131,4 +133,36 @@ func TestEmployeeDataScope(t *testing.T) {
 		})
 		assert.NoError(t, err, "code reusable after soft delete")
 	})
+}
+
+func TestEmployeePhone(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	q := sqlc.New(pool)
+	svc := employee.NewService(q)
+	ctx := context.Background()
+
+	testsupport.Reset(t, pool)
+	tree := testsupport.SeedOfficeTree(t, pool)
+
+	created, err := svc.Create(ctx, true, nil, employee.CreateInput{
+		Code: "EP-1", Name: "Phone Emp", OfficeID: tree.Cabang,
+		Status: sqlc.SharedUserStatus("active"), Phone: strptr("0812-1111"),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, created.Phone)
+	assert.Equal(t, "0812-1111", *created.Phone)
+
+	_, after, err := svc.Update(ctx, created.ID, true, nil, employee.UpdateInput{CreateInput: employee.CreateInput{
+		Code: "EP-1", Name: "Phone Emp", OfficeID: tree.Cabang,
+		Status: sqlc.SharedUserStatus("active"), Phone: strptr("0813-2222"),
+	}})
+	require.NoError(t, err)
+	require.NotNil(t, after.Phone)
+	assert.Equal(t, "0813-2222", *after.Phone)
+
+	created2, err := svc.Create(ctx, true, nil, employee.CreateInput{
+		Code: "EP-2", Name: "No Phone", OfficeID: tree.Cabang, Status: sqlc.SharedUserStatus("active"),
+	})
+	require.NoError(t, err)
+	assert.Nil(t, created2.Phone)
 }

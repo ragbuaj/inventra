@@ -37,15 +37,16 @@ func (q *Queries) CountEmployees(ctx context.Context, arg CountEmployeesParams) 
 
 const createEmployee = `-- name: CreateEmployee :one
 INSERT INTO masterdata.employees (
-  code, name, email, avatar_key, department_id, position_id, office_id, status
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at
+  code, name, email, phone, avatar_key, department_id, position_id, office_id, status
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+RETURNING id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at, phone
 `
 
 type CreateEmployeeParams struct {
 	Code         string           `json:"code"`
 	Name         string           `json:"name"`
 	Email        *string          `json:"email"`
+	Phone        *string          `json:"phone"`
 	AvatarKey    *string          `json:"avatar_key"`
 	DepartmentID *uuid.UUID       `json:"department_id"`
 	PositionID   *uuid.UUID       `json:"position_id"`
@@ -58,6 +59,7 @@ func (q *Queries) CreateEmployee(ctx context.Context, arg CreateEmployeeParams) 
 		arg.Code,
 		arg.Name,
 		arg.Email,
+		arg.Phone,
 		arg.AvatarKey,
 		arg.DepartmentID,
 		arg.PositionID,
@@ -78,12 +80,13 @@ func (q *Queries) CreateEmployee(ctx context.Context, arg CreateEmployeeParams) 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Phone,
 	)
 	return i, err
 }
 
 const getEmployee = `-- name: GetEmployee :one
-SELECT id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at FROM masterdata.employees
+SELECT id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at, phone FROM masterdata.employees
 WHERE id = $1 AND deleted_at IS NULL
   AND ($2::bool OR office_id = ANY($3::uuid[]))
 `
@@ -110,13 +113,14 @@ func (q *Queries) GetEmployee(ctx context.Context, arg GetEmployeeParams) (Maste
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Phone,
 	)
 	return i, err
 }
 
 const listEmployees = `-- name: ListEmployees :many
 
-SELECT id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at FROM masterdata.employees
+SELECT id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at, phone FROM masterdata.employees
 WHERE deleted_at IS NULL
   AND ($1::bool OR office_id = ANY($2::uuid[]))
   AND (
@@ -165,6 +169,7 @@ func (q *Queries) ListEmployees(ctx context.Context, arg ListEmployeesParams) ([
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.Phone,
 		); err != nil {
 			return nil, err
 		}
@@ -201,20 +206,22 @@ UPDATE masterdata.employees
 SET code = $1,
     name = $2,
     email = $3,
-    avatar_key = $4,
-    department_id = $5,
-    position_id = $6,
-    office_id = $7,
-    status = $8
-WHERE id = $9 AND deleted_at IS NULL
-  AND ($10::bool OR office_id = ANY($11::uuid[]))
-RETURNING id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at
+    phone = $4,
+    avatar_key = $5,
+    department_id = $6,
+    position_id = $7,
+    office_id = $8,
+    status = $9
+WHERE id = $10 AND deleted_at IS NULL
+  AND ($11::bool OR office_id = ANY($12::uuid[]))
+RETURNING id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at, phone
 `
 
 type UpdateEmployeeParams struct {
 	Code         string           `json:"code"`
 	Name         string           `json:"name"`
 	Email        *string          `json:"email"`
+	Phone        *string          `json:"phone"`
 	AvatarKey    *string          `json:"avatar_key"`
 	DepartmentID *uuid.UUID       `json:"department_id"`
 	PositionID   *uuid.UUID       `json:"position_id"`
@@ -230,6 +237,7 @@ func (q *Queries) UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) 
 		arg.Code,
 		arg.Name,
 		arg.Email,
+		arg.Phone,
 		arg.AvatarKey,
 		arg.DepartmentID,
 		arg.PositionID,
@@ -253,6 +261,7 @@ func (q *Queries) UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Phone,
 	)
 	return i, err
 }

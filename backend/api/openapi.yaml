@@ -2451,6 +2451,7 @@ components:
         code: { type: string }
         name: { type: string }
         email: { type: [string, "null"], format: email }
+        phone: { type: [string, "null"] }
         avatar_key: { type: [string, "null"] }
         department_id: { type: [string, "null"], format: uuid }
         position_id: { type: [string, "null"], format: uuid }
@@ -2466,6 +2467,7 @@ components:
         code: { type: string }
         name: { type: string }
         email: { type: [string, "null"], format: email }
+        phone: { type: [string, "null"] }
         avatar_key: { type: [string, "null"] }
         department_id: { type: [string, "null"], format: uuid }
         position_id: { type: [string, "null"], format: uuid }

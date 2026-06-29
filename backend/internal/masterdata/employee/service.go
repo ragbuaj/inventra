@@ -26,6 +26,7 @@ type CreateInput struct {
 	Code         string
 	Name         string
 	Email        *string
+	Phone        *string
 	AvatarKey    *string
 	DepartmentID *uuid.UUID
 	PositionID   *uuid.UUID
@@ -63,6 +64,7 @@ func (s *Service) Create(ctx context.Context, all bool, ids []uuid.UUID, in Crea
 		Code:         in.Code,
 		Name:         in.Name,
 		Email:        in.Email,
+		Phone:        in.Phone,
 		AvatarKey:    in.AvatarKey,
 		DepartmentID: in.DepartmentID,
 		PositionID:   in.PositionID,
@@ -87,6 +89,7 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, all bool, ids []uuid
 		Code:         in.Code,
 		Name:         in.Name,
 		Email:        in.Email,
+		Phone:        in.Phone,
 		AvatarKey:    in.AvatarKey,
 		DepartmentID: in.DepartmentID,
 		PositionID:   in.PositionID,
