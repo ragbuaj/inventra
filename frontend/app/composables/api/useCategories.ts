@@ -1,36 +1,39 @@
 import type { Category, ListQuery, Paginated } from '~/types'
-import { fakeLatency, filterBy, generateId, paginate } from '~/mock/helpers'
-import { categoryStore } from '~/mock/categories'
 
-export type CategoryInput = Omit<Category, 'id' | 'created_at'>
+export type CategoryInput = Omit<Category, 'id' | 'created_at' | 'updated_at'>
 
+/** Asset categories, wired to /api/v1/categories. `tree()` loads the full set. */
 export function useCategories() {
+  const { request } = useApiClient()
+
   async function list(query: ListQuery = {}): Promise<Paginated<Category>> {
-    await fakeLatency()
-    return paginate(filterBy(categoryStore.all(), query, ['name', 'code']), query)
+    const q = new URLSearchParams()
+    q.set('limit', String(query.limit ?? 20))
+    q.set('offset', String(query.offset ?? 0))
+    if (query.search) q.set('search', String(query.search))
+    return request<Paginated<Category>>(`/categories?${q.toString()}`)
   }
 
-  async function get(id: string): Promise<Category | undefined> {
-    await fakeLatency()
-    return categoryStore.find(id)
+  async function tree(): Promise<Category[]> {
+    const res = await request<{ data: Category[] }>('/categories/tree')
+    return res.data
+  }
+
+  async function get(id: string): Promise<Category> {
+    return request<Category>(`/categories/${id}`)
   }
 
   async function create(input: CategoryInput): Promise<Category> {
-    await fakeLatency()
-    return categoryStore.insert({ id: generateId(), created_at: new Date().toISOString(), ...input })
+    return request<Category>('/categories', { method: 'POST', body: input })
   }
 
   async function update(id: string, input: CategoryInput): Promise<Category> {
-    await fakeLatency()
-    const row = categoryStore.patch(id, input)
-    if (!row) throw new Error('masterdata.categories.errNotFound')
-    return row
+    return request<Category>(`/categories/${id}`, { method: 'PUT', body: input })
   }
 
   async function remove(id: string): Promise<void> {
-    await fakeLatency()
-    categoryStore.remove(id)
+    await request(`/categories/${id}`, { method: 'DELETE' })
   }
 
-  return { list, get, create, update, remove }
+  return { list, get, create, update, remove, tree }
 }
