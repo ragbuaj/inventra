@@ -1,29 +1,31 @@
 import type { ListQuery, Paginated, ReferenceRow } from '~/types'
 import type { ReferenceKey } from './referenceResources'
-import { fakeLatency, filterBy, generateId, paginate } from '~/mock/helpers'
-import { referenceStores } from '~/mock/reference'
 
+/**
+ * Reference master data, wired to the generic engine at /api/v1/<key>.
+ * The descriptor key is the backend path. List is server-side search+pagination.
+ */
 export function useReference() {
+  const { request } = useApiClient()
+
   async function list(key: ReferenceKey, query: ListQuery = {}): Promise<Paginated<ReferenceRow>> {
-    await fakeLatency()
-    return paginate(filterBy(referenceStores[key].all(), query, ['name', 'code']), query)
+    const q = new URLSearchParams()
+    q.set('limit', String(query.limit ?? 20))
+    q.set('offset', String(query.offset ?? 0))
+    if (query.search) q.set('search', String(query.search))
+    return request<Paginated<ReferenceRow>>(`/${key}?${q.toString()}`)
   }
 
   async function create(key: ReferenceKey, input: Record<string, unknown>): Promise<ReferenceRow> {
-    await fakeLatency()
-    return referenceStores[key].insert({ id: generateId(), name: '', ...input } as ReferenceRow)
+    return request<ReferenceRow>(`/${key}`, { method: 'POST', body: input })
   }
 
   async function update(key: ReferenceKey, id: string, input: Record<string, unknown>): Promise<ReferenceRow> {
-    await fakeLatency()
-    const row = referenceStores[key].patch(id, input as Partial<ReferenceRow>)
-    if (!row) throw new Error('masterdata.reference.errNotFound')
-    return row
+    return request<ReferenceRow>(`/${key}/${id}`, { method: 'PUT', body: input })
   }
 
   async function remove(key: ReferenceKey, id: string): Promise<void> {
-    await fakeLatency()
-    referenceStores[key].remove(id)
+    await request(`/${key}/${id}`, { method: 'DELETE' })
   }
 
   return { list, create, update, remove }
