@@ -92,14 +92,7 @@ function parseQuery(path: string): Record<string, string> {
   return result
 }
 
-// Last captured request opts (method + body) from the most recent mutating call
-let _lastCapturedOpts: Record<string, unknown> = {}
-let _lastCapturedPath = ''
-
 function defaultHandler(path: string, opts?: Record<string, unknown>): unknown {
-  _lastCapturedOpts = opts ?? {}
-  _lastCapturedPath = path
-
   if (path === '/authz/roles') return { data: ROLES }
   if (path.startsWith('/offices')) return { data: OFFICES }
   if (path.startsWith('/employees')) return { data: EMPLOYEES }
@@ -124,8 +117,6 @@ function grantAdmin() {
 }
 
 beforeEach(() => {
-  _lastCapturedOpts = {}
-  _lastCapturedPath = ''
   setHandler(defaultHandler)
   grantAdmin()
 })
@@ -181,6 +172,9 @@ describe('User Management page — loaded rows', () => {
     const text = wrapper.text()
     expect(text).toContain('Pusat')
     expect(text).toContain('Cabang')
+    // UUIDs must not appear as rendered text (resolved to names in table cells)
+    expect(text).not.toContain('o1')
+    expect(text).not.toContain('o2')
   })
 
   it('resolves employee_id to employee name (Budi not UUID)', async () => {
@@ -188,6 +182,9 @@ describe('User Management page — loaded rows', () => {
     const text = wrapper.text()
     expect(text).toContain('Budi')
     expect(text).toContain('Sari')
+    // UUIDs must not appear as rendered text (resolved to names in table cells)
+    expect(text).not.toContain('e1')
+    expect(text).not.toContain('e2')
   })
 
   it('renders login badge: Email for non-google, Google for google_linked', async () => {
@@ -428,9 +425,12 @@ describe('User Management page — create form', () => {
     await new Promise(r => setTimeout(r, 200))
     await wrapper.vm.$nextTick()
 
-    // The inline error is set on errors.email
+    // The inline error is set on errors.email (internal state check)
     const errors = vm['errors'] as Record<string, string | undefined>
     expect(errors['email']).toBe('Email sudah dipakai.')
+    // The error must also be rendered in the DOM so the user actually sees it.
+    // USlideover teleports to document.body, so query there rather than wrapper.text().
+    expect(document.body.textContent).toContain('Email sudah dipakai.')
   })
 
   it('employee picker filtered by selected office: o1 → only Budi, not Sari', async () => {
@@ -540,6 +540,9 @@ describe('User Management page — edit form', () => {
     expect(body['name']).toBe('Andi Updated')
     expect(body['role_id']).toBe('r1')
     expect(body['status']).toBe('inactive')
+    // optional FK fields from the pre-filled row must be forwarded
+    expect(body['office_id']).toBe('o1')
+    expect(body['employee_id']).toBe('e1')
     // no email or password in PUT body
     expect(body['email']).toBeUndefined()
     expect(body['password']).toBeUndefined()
