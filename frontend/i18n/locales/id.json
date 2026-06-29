@@ -956,13 +956,13 @@
         "office": "Kantor",
         "status": "Status"
       },
-      “status”: { “active”: “Aktif”, “inactive”: “Nonaktif”, “suspended”: “Ditangguhkan” },
-      “createTitle”: “Tambah Pegawai”,
-      “editTitle”: “Ubah Pegawai”,
-      “deleteConfirm”: “Pegawai “{nama}” (NIP {nip}) akan dihapus. Tindakan ini tidak dapat dibatalkan.”,
-      “errNotFound”: “Pegawai tidak ditemukan.”,
-      “loadError”: “Gagal memuat pegawai.”,
-      “required”: “NIP, Nama, dan Kantor wajib diisi.”
+      "status": { "active": "Aktif", "inactive": "Nonaktif", "suspended": "Ditangguhkan" },
+      "createTitle": "Tambah Pegawai",
+      "editTitle": "Ubah Pegawai",
+      "deleteConfirm": "Pegawai “{nama}” (NIP {nip}) akan dihapus. Tindakan ini tidak dapat dibatalkan.",
+      "errNotFound": "Pegawai tidak ditemukan.",
+      "loadError": "Gagal memuat pegawai.",
+      "required": "NIP, Nama, dan Kantor wajib diisi."
     },
     "categories": {
       "title": "Kategori Aset",
