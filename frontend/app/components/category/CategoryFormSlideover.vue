@@ -189,6 +189,7 @@ defineExpose({ form, isIntangible, isBuilding, onSubmit })
               v-model="form.parent_id"
               :items="[{ value: '__none__', label: t('masterdata.categories.placeholders.parentNone') }, ...props.parentOptions]"
               class="w-full"
+              data-testid="category-parent-select"
             />
           </UFormField>
 
