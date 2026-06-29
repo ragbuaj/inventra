@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const request = vi.fn()
-// eslint-disable-next-line import/first
 vi.mock('~/composables/useApiClient', () => ({ useApiClient: () => ({ request }) }))
 
 // eslint-disable-next-line import/first
