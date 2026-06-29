@@ -1,6 +1,21 @@
 // @vitest-environment nuxt
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
+
+// The employees page consumes the (now HTTP-backed) useReference for its
+// department/jabatan pickers via loadReferenceOptions(). Stub it so the test
+// never hits the real backend (:8080) — these tests exercise the employee
+// table/filters/form, not the reference pickers.
+vi.mock('~/composables/api/useReference', () => ({
+  useReference: () => ({
+    list: vi.fn().mockResolvedValue({ data: [], total: 0, limit: 100, offset: 0 }),
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn()
+  })
+}))
+
+// eslint-disable-next-line import/first
 import EmployeesPage from '~/pages/master/employees.vue'
 
 describe('Master Data Pegawai page', () => {
