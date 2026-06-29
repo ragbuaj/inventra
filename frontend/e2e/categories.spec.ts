@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test'
 import { login } from './helpers'
 
 // ---------------------------------------------------------------------------
-// Master Data Kategori Aset — real backend (GET /api/v1/masterdata/categories/tree,
-// POST/PUT/DELETE /api/v1/masterdata/categories). The seeded admin
+// Master Data Kategori Aset — real backend (GET /api/v1/categories/tree,
+// POST/PUT/DELETE /api/v1/categories). The seeded admin
 // (admin@inventra.local) has `masterdata.global.manage`.
 //
 // IMPORTANT: `pnpm test:e2e` requires the full backend stack + seeded admin
