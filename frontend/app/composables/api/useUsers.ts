@@ -1,64 +1,92 @@
-import type { User, ListQuery, Paginated } from '~/types'
-import { fakeLatency, filterBy, generateId, paginate } from '~/mock/helpers'
-import { userStore } from '~/mock/users'
+export type UserStatus = 'active' | 'inactive' | 'suspended'
 
-export interface UserInput {
-  nama: string
+export interface UserView {
+  id: string
+  name: string
   email: string
-  /** write-only; never stored on the row (a real API would hash it) */
+  role_id: string
+  office_id: string | null
+  employee_id: string | null
+  status: UserStatus
+  avatar_url: string | null
+  google_linked: boolean
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface CreateUserInput {
+  name: string
+  email: string
   password?: string
-  peran: string
-  kantor: string
-  pegawai: string
-  login: User['login']
-  status: User['status']
+  role_id: string
+  office_id?: string
+  employee_id?: string
 }
 
-/** Strip the write-only password before it touches the store. */
-function toRow(input: UserInput): Omit<User, 'id' | 'created_at'> {
-  const { password: _password, ...rest } = input
-  return rest
+export interface UpdateUserInput {
+  name: string
+  role_id: string
+  status: UserStatus
+  office_id?: string
+  employee_id?: string
 }
 
+export interface Option { id: string, name: string }
+export interface EmployeeOption extends Option { office_id: string }
+export interface Lookups { roles: Option[], offices: Option[], employees: EmployeeOption[] }
+
+interface RoleDTO { id: string, name: string }
+interface OfficeDTO { id: string, name: string }
+interface EmployeeDTO { id: string, name: string, office_id: string }
+
+/**
+ * User management, wired to /api/v1/users. List is server-side search+pagination
+ * (the backend supports only search/limit/offset). Role/office/employee NAMES are
+ * resolved client-side from lookups() (the list returns FK UUIDs only).
+ */
 export function useUsers() {
-  async function list(query: ListQuery = {}): Promise<Paginated<User>> {
-    await fakeLatency()
-    return paginate(filterBy(userStore.all(), query, ['nama', 'email']), query)
+  const { request } = useApiClient()
+
+  async function list(params: { search?: string, limit: number, offset: number }): Promise<{ rows: UserView[], total: number }> {
+    const q = new URLSearchParams()
+    q.set('limit', String(params.limit))
+    q.set('offset', String(params.offset))
+    if (params.search) q.set('search', params.search)
+    const res = await request<{ data: UserView[], total: number }>(`/users?${q.toString()}`)
+    return { rows: res.data, total: res.total }
   }
 
-  async function get(id: string): Promise<User | undefined> {
-    await fakeLatency()
-    return userStore.find(id)
+  async function create(input: CreateUserInput): Promise<UserView> {
+    const body: Record<string, unknown> = { name: input.name, email: input.email, role_id: input.role_id }
+    if (input.password) body.password = input.password
+    if (input.office_id) body.office_id = input.office_id
+    if (input.employee_id) body.employee_id = input.employee_id
+    return request<UserView>('/users', { method: 'POST', body })
   }
 
-  async function create(input: UserInput): Promise<User> {
-    await fakeLatency()
-    return userStore.insert({ id: generateId(), created_at: new Date().toISOString(), ...toRow(input) })
-  }
-
-  async function update(id: string, input: UserInput): Promise<User> {
-    await fakeLatency()
-    const row = userStore.patch(id, toRow(input))
-    if (!row) throw new Error('settings.users.errNotFound')
-    return row
-  }
-
-  async function setStatus(id: string, status: User['status']): Promise<User> {
-    await fakeLatency()
-    const row = userStore.patch(id, { status })
-    if (!row) throw new Error('settings.users.errNotFound')
-    return row
-  }
-
-  /** Mock reset-password seam — no email/token flow yet. */
-  async function resetPassword(_id: string): Promise<void> {
-    await fakeLatency()
+  async function update(id: string, input: UpdateUserInput): Promise<UserView> {
+    const body: Record<string, unknown> = { name: input.name, role_id: input.role_id, status: input.status }
+    if (input.office_id) body.office_id = input.office_id
+    if (input.employee_id) body.employee_id = input.employee_id
+    return request<UserView>(`/users/${id}`, { method: 'PUT', body })
   }
 
   async function remove(id: string): Promise<void> {
-    await fakeLatency()
-    userStore.remove(id)
+    await request(`/users/${id}`, { method: 'DELETE' })
   }
 
-  return { list, get, create, update, setStatus, resetPassword, remove }
+  async function lookups(): Promise<Lookups> {
+    const [roles, offices, employees] = await Promise.all([
+      request<{ data: RoleDTO[] }>('/authz/roles'),
+      request<{ data: OfficeDTO[] }>('/offices?limit=100'),
+      request<{ data: EmployeeDTO[] }>('/employees?limit=100')
+    ])
+    return {
+      roles: roles.data.map(r => ({ id: r.id, name: r.name })),
+      offices: offices.data.map(o => ({ id: o.id, name: o.name })),
+      employees: employees.data.map(e => ({ id: e.id, name: e.name, office_id: e.office_id }))
+    }
+  }
+
+  return { list, create, update, remove, lookups }
 }
