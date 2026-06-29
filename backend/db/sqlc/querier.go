@@ -80,6 +80,8 @@ type Querier interface {
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]ListAuditLogsRow, error)
 	// Asset category master data (masterdata.categories). Respects soft delete.
 	ListCategories(ctx context.Context, arg ListCategoriesParams) ([]MasterdataCategory, error)
+	// The full non-deleted category set (no pagination) for client-side tree building.
+	ListCategoryTree(ctx context.Context) ([]MasterdataCategory, error)
 	ListDataScopePolicies(ctx context.Context, roleID uuid.UUID) ([]IdentityDataScopePolicy, error)
 	// Employees (asset custodians) with data-scoping by office.
 	ListEmployees(ctx context.Context, arg ListEmployeesParams) ([]MasterdataEmployee, error)

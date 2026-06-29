@@ -6,6 +6,7 @@ import "github.com/gin-gonic/gin"
 // authenticated user; writes require the global-manage permission.
 func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW, requireManage gin.HandlerFunc) {
 	g := rg.Group("/categories")
+	g.GET("/tree", authMW, h.tree)
 	g.GET("", authMW, h.list)
 	g.GET("/:id", authMW, h.get)
 	g.POST("", authMW, requireManage, h.create)
