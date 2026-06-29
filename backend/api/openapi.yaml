@@ -42,9 +42,9 @@ tags:
       The following reference resources share the **same generic CRUD contract**
       as `brands` (`GET/POST /api/v1/{resource}`, `GET/PUT/DELETE /api/v1/{resource}/{id}`),
       differing only in their writable fields:
-      `office-types`, `departments`, `positions`, `units`, `maintenance-categories`,
-      `problem-categories`, `brands`, `vendors`, `provinces`, `cities` (field `province_id`),
-      `models` (field `brand_id`).
+      `office-types` (field `tier`: `pusat|wilayah|office|null`), `departments`, `positions`,
+      `units`, `maintenance-categories`, `problem-categories`, `brands`, `vendors`, `provinces`,
+      `cities` (field `province_id`), `models` (field `brand_id`).
 
       **Offices & employees** (documented in full) are data-scoped per row.
       **Floors** (`GET /api/v1/floors?office_id=...`) and **rooms**
@@ -2326,6 +2326,10 @@ components:
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
+        tier:
+          type: [string, "null"]
+          enum: [pusat, wilayah, office]
+          description: Office tier (drives the office-map pin category). Applies to `office-types` only.
         is_active: { type: boolean }
         created_at: { type: [string, "null"], format: date-time }
         updated_at: { type: [string, "null"], format: date-time }
@@ -2337,6 +2341,10 @@ components:
       required: [name]
       properties:
         name: { type: string }
+        tier:
+          type: [string, "null"]
+          enum: [pusat, wilayah, office]
+          description: Office tier (drives the office-map pin category). Applies to `office-types` only.
         is_active: { type: boolean, default: true }
       additionalProperties: true
 

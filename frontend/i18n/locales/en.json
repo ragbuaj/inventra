@@ -1058,7 +1058,9 @@
       "aktifHint": "Visible & selectable across the system",
       "nonaktif": "Inactive",
       "entitySubtitle": "Manage reference data",
-      "fields": { "name": "Name", "code": "Code", "symbol": "Symbol", "email": "Email", "phone": "Phone", "active": "Status" },
+      "requiredField": "{field} is required.",
+      "fkEmpty": "No options yet — create one in the related resource first.",
+      "fields": { "name": "Name", "code": "Code", "symbol": "Symbol", "email": "Email", "phone": "Phone", "province": "Province", "brand": "Brand", "contact_name": "Contact name", "address": "Address", "tier": "Tier" },
       "resources": {
         "office-types": "Office Types", "departments": "Departments", "positions": "Positions",
         "units": "Units", "maintenance-categories": "Maintenance Categories",

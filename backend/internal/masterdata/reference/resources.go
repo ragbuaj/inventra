@@ -6,6 +6,7 @@ package reference
 var referenceResources = []resource{
 	{Path: "office-types", Table: "office_types", OrderBy: "name", Columns: []column{
 		{Name: "name", Type: typeText, Required: true, Search: true},
+		{Name: "tier", Type: typeEnum, EnumType: "shared.approver_level", Enum: []string{"pusat", "wilayah", "office"}},
 		{Name: "is_active", Type: typeBool, Default: true},
 	}},
 	{Path: "departments", Table: "departments", OrderBy: "name", Columns: []column{

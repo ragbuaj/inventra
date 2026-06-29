@@ -2,7 +2,6 @@
 export * from './helpers'
 export * from './offices'
 export * from './employees'
-export * from './reference'
 export * from './dashboard'
 export * from './users'
 // `./rbac` is imported directly (it re-declares a `Localized` helper that would

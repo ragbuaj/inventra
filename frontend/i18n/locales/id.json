@@ -1058,11 +1058,13 @@
       "aktifHint": "Tampil & dapat dipilih di seluruh sistem",
       "nonaktif": "Nonaktif",
       "entitySubtitle": "Kelola data referensi",
-      "fields": { "name": "Nama", "code": "Kode", "symbol": "Simbol", "email": "Email", "phone": "Telepon", "active": "Status" },
+      "requiredField": "{field} wajib diisi.",
+      "fkEmpty": "Belum ada data — buat dulu di resource terkait.",
+      "fields": { "name": "Nama", "code": "Kode", "symbol": "Simbol", "email": "Email", "phone": "Telepon", "province": "Provinsi", "brand": "Brand", "contact_name": "Nama Kontak", "address": "Alamat", "tier": "Tingkat" },
       "resources": {
         "office-types": "Jenis Kantor", "departments": "Departemen", "positions": "Jabatan",
         "units": "Satuan", "maintenance-categories": "Kategori Pemeliharaan",
-        "problem-categories": "Kategori Masalah", "brands": "Merek", "vendors": "Vendor",
+        "problem-categories": "Kategori Masalah", "brands": "Brand", "vendors": "Vendor",
         "provinces": "Provinsi", "cities": "Kota", "models": "Model"
       }
     },

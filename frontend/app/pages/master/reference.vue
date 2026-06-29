@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ReferenceRow, RowAction, TableSorting } from '~/types'
-import type { ReferenceKey, ReferenceDescriptor } from '~/composables/api/referenceResources'
+import type { ReferenceKey, ReferenceDescriptor, ReferenceField } from '~/composables/api/referenceResources'
 import { referenceResources } from '~/composables/api/referenceResources'
 
 definePageMeta({ middleware: 'can', permission: 'masterdata.global.manage' })
@@ -11,16 +11,13 @@ const can = useCan()
 const { open: confirm } = useConfirm()
 const api = useReference()
 
-// Active resource
 const resourceKey = ref<ReferenceKey>(referenceResources[0]!.key)
 const descriptor = computed<ReferenceDescriptor>(() =>
   referenceResources.find(r => r.key === resourceKey.value) ?? referenceResources[0]!
 )
 
-// Per-entity counts (fetched on mount)
 const entityCounts = ref<Partial<Record<ReferenceKey, number>>>({})
 
-// Main table state
 const rows = ref<ReferenceRow[]>([])
 const total = ref(0)
 const limit = ref(20)
@@ -29,36 +26,63 @@ const search = ref('')
 const sorting = ref<TableSorting>([])
 const loading = ref(true)
 
-// Form state
+// FK option data, keyed by the FK field key (e.g. 'province_id' → province rows).
+// Used for BOTH the form picker and the table name resolution.
+const fkData = ref<Record<string, { id: string, name: string }[]>>({})
+
 const formOpen = ref(false)
 const saving = ref(false)
 const editingId = ref<string>()
-const form = reactive<Record<string, unknown>>({ active: true })
+const form = reactive<Record<string, unknown>>({ is_active: true })
 
-// Table columns (descriptor fields + Status column)
-const columns = computed(() => [
-  ...descriptor.value.fields.map(f => ({
-    accessorKey: f.key,
-    header: t(f.labelKey),
-    sortable: true
-  })),
-  {
-    accessorKey: 'active',
-    header: t('masterdata.reference.statusColumn'),
-    sortable: true
+const columns = computed(() => {
+  const cols = descriptor.value.fields.map(f => ({ accessorKey: f.key, header: t(f.labelKey), sortable: true }))
+  if (descriptor.value.hasActive) {
+    cols.push({ accessorKey: 'is_active', header: t('masterdata.reference.statusColumn'), sortable: true })
   }
-])
+  return cols
+})
+
+// Items for a fk/select field's USelect ({ label, value }).
+function fieldSelectItems(field: ReferenceField): { label: string, value: string }[] {
+  if (field.type === 'fk') return (fkData.value[field.key] ?? []).map(o => ({ label: o.name, value: o.id }))
+  if (field.type === 'select') return (field.options ?? []).map(o => ({ label: t(o.labelKey), value: o.value }))
+  return []
+}
+
+// Resolve a FK id to its display name for the table cell.
+function fkName(fieldKey: string, id: unknown): string {
+  const found = (fkData.value[fieldKey] ?? []).find(o => o.id === id)
+  return found?.name ?? '—'
+}
+
+// Resolve the tier enum value to its i18n label for the table cell.
+function tierLabel(value: unknown): string {
+  const field = descriptor.value.fields.find(f => f.key === 'tier')
+  const opt = field?.options?.find(o => o.value === value)
+  return opt ? t(opt.labelKey) : '—'
+}
 
 async function refresh() {
   loading.value = true
-  const res = await api.list(resourceKey.value, {
-    search: search.value,
-    limit: limit.value,
-    offset: offset.value
-  })
-  rows.value = res.data
-  total.value = res.total
-  loading.value = false
+  try {
+    const res = await api.list(resourceKey.value, { search: search.value, limit: limit.value, offset: offset.value })
+    rows.value = res.data
+    total.value = res.total
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadFkOptions() {
+  const next: Record<string, { id: string, name: string }[]> = {}
+  for (const f of descriptor.value.fields) {
+    if (f.type === 'fk' && f.fkResource) {
+      const res = await api.list(f.fkResource, { limit: 100 })
+      next[f.key] = res.data.map(r => ({ id: r.id, name: r.name }))
+    }
+  }
+  fkData.value = next
 }
 
 async function fetchAllCounts() {
@@ -75,7 +99,7 @@ function resetForm() {
   // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
   for (const k of Object.keys(form)) delete form[k]
   for (const f of descriptor.value.fields) form[f.key] = ''
-  form.active = true
+  form.is_active = true
 }
 
 function openCreate() {
@@ -88,11 +112,22 @@ function openEdit(row: ReferenceRow) {
   editingId.value = row.id
   resetForm()
   for (const f of descriptor.value.fields) form[f.key] = row[f.key] ?? ''
-  form.active = row.active !== false
+  form.is_active = row.is_active !== false
   formOpen.value = true
 }
 
+function validate(): boolean {
+  for (const f of descriptor.value.fields) {
+    if (f.required && !String(form[f.key] ?? '').trim()) {
+      toast.add({ title: t('masterdata.reference.requiredField', { field: t(f.labelKey) }), color: 'error' })
+      return false
+    }
+  }
+  return true
+}
+
 async function onSubmit() {
+  if (!validate()) return
   saving.value = true
   try {
     if (editingId.value) {
@@ -101,11 +136,8 @@ async function onSubmit() {
       await api.create(resourceKey.value, { ...form })
     }
     formOpen.value = false
-    await refresh()
-    await fetchAllCounts()
-  } catch (err) {
-    toast.add({ title: t((err as Error).message), color: 'error' })
-  } finally {
+    await Promise.all([refresh(), fetchAllCounts()])
+  } catch { /* useApiClient surfaces the error toast */ } finally {
     saving.value = false
   }
 }
@@ -116,9 +148,10 @@ async function onDelete(row: ReferenceRow) {
     description: t('masterdata.reference.deleteConfirm', { name: row.name })
   })
   if (!ok) return
-  await api.remove(resourceKey.value, row.id)
-  await refresh()
-  await fetchAllCounts()
+  try {
+    await api.remove(resourceKey.value, row.id)
+    await Promise.all([refresh(), fetchAllCounts()])
+  } catch { /* useApiClient surfaces the error toast */ }
 }
 
 function rowActions(row: Record<string, unknown>): RowAction[] {
@@ -131,15 +164,12 @@ function rowActions(row: Record<string, unknown>): RowAction[] {
 }
 
 async function toggleActive(row: ReferenceRow) {
-  // Optimistic local flip — no full refetch, so the table never flashes a
-  // skeleton just to update a single status cell.
-  const prev = row.active !== false
-  row.active = !prev
+  const prev = row.is_active !== false
+  row.is_active = !prev
   try {
-    await api.update(resourceKey.value, row.id, { active: !prev })
-  } catch (err) {
-    row.active = prev
-    toast.add({ title: t((err as Error).message), color: 'error' })
+    await api.update(resourceKey.value, row.id, { is_active: !prev })
+  } catch {
+    row.is_active = prev
   }
 }
 
@@ -147,14 +177,14 @@ function selectResource(key: ReferenceKey) {
   resourceKey.value = key
 }
 
-watch(resourceKey, () => {
+watch(resourceKey, async () => {
   offset.value = 0
   search.value = ''
-  refresh()
+  await Promise.all([refresh(), loadFkOptions()])
 })
 watch([search, offset], refresh)
 onMounted(async () => {
-  await Promise.all([refresh(), fetchAllCounts()])
+  await Promise.all([refresh(), loadFkOptions(), fetchAllCounts()])
 })
 </script>
 
@@ -164,7 +194,10 @@ onMounted(async () => {
     <aside class="w-[218px] flex-none border-e border-default bg-default flex flex-col overflow-hidden">
       <!-- Panel header -->
       <div class="flex-none px-4 pt-4 pb-2">
-        <div class="font-bold text-sm">
+        <div
+          class="font-bold text-sm"
+          data-testid="reference-panel-title"
+        >
           {{ t('masterdata.reference.panelTitle') }}
         </div>
         <div class="text-xs text-muted mt-0.5">
@@ -176,6 +209,7 @@ onMounted(async () => {
         <button
           v-for="res in referenceResources"
           :key="res.key"
+          :data-testid="`ref-nav-${res.key}`"
           class="flex items-center justify-between gap-2 w-full px-[11px] py-2 mb-0.5 text-[13px] rounded-lg border-none cursor-pointer text-left transition-colors"
           :class="resourceKey === res.key
             ? 'bg-primary/10 text-primary font-semibold'
@@ -240,27 +274,36 @@ onMounted(async () => {
           :actions="rowActions"
           @update:offset="offset = $event"
         >
-          <!-- Status toggle cell -->
-          <template #active-cell="{ row }">
+          <!-- FK name + tier label + status cells -->
+          <template #province_id-cell="{ row }">
+            {{ fkName('province_id', (row as Record<string, unknown>).province_id) }}
+          </template>
+          <template #brand_id-cell="{ row }">
+            {{ fkName('brand_id', (row as Record<string, unknown>).brand_id) }}
+          </template>
+          <template #tier-cell="{ row }">
+            {{ tierLabel((row as Record<string, unknown>).tier) }}
+          </template>
+          <template #is_active-cell="{ row }">
             <button
               class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border cursor-pointer transition-colors text-[11.5px] font-semibold"
-              :class="(row as unknown as ReferenceRow).active !== false
+              :class="(row as unknown as ReferenceRow).is_active !== false
                 ? 'border-success/30 bg-success/10 text-success'
                 : 'border-muted text-muted bg-muted'"
               @click="toggleActive(row as unknown as ReferenceRow)"
             >
               <span>
-                {{ (row as unknown as ReferenceRow).active !== false
+                {{ (row as unknown as ReferenceRow).is_active !== false
                   ? t('masterdata.reference.aktif')
                   : t('masterdata.reference.nonaktif') }}
               </span>
               <span
                 class="relative flex-none w-7 h-[17px] rounded-full transition-colors"
-                :class="(row as unknown as ReferenceRow).active !== false ? 'bg-success' : 'bg-muted'"
+                :class="(row as unknown as ReferenceRow).is_active !== false ? 'bg-success' : 'bg-muted'"
               >
                 <span
                   class="absolute top-0.5 w-[13px] h-[13px] rounded-full bg-default shadow-sm transition-all"
-                  :class="(row as unknown as ReferenceRow).active !== false ? 'left-[13px]' : 'left-0.5'"
+                  :class="(row as unknown as ReferenceRow).is_active !== false ? 'left-[13px]' : 'left-0.5'"
                 />
               </span>
             </button>
@@ -283,15 +326,34 @@ onMounted(async () => {
           :key="field.key"
           :label="t(field.labelKey)"
         >
-          <UInput
+          <USelect
+            v-if="field.type === 'fk' || field.type === 'select'"
             :model-value="form[field.key] as string"
+            :items="fieldSelectItems(field)"
+            :data-testid="`ref-field-${field.key}`"
             class="w-full"
             @update:model-value="form[field.key] = $event"
           />
+          <UInput
+            v-else
+            :model-value="form[field.key] as string"
+            :data-testid="`ref-field-${field.key}`"
+            class="w-full"
+            @update:model-value="form[field.key] = $event"
+          />
+          <p
+            v-if="field.type === 'fk' && fieldSelectItems(field).length === 0"
+            class="text-xs text-warning mt-1"
+          >
+            {{ t('masterdata.reference.fkEmpty') }}
+          </p>
         </UFormField>
 
-        <!-- Aktif toggle row -->
-        <label class="flex items-center justify-between gap-2.5 px-[13px] py-[11px] rounded-[11px] bg-muted cursor-pointer">
+        <!-- Aktif toggle row (only for resources that have is_active) -->
+        <label
+          v-if="descriptor.hasActive"
+          class="flex items-center justify-between gap-2.5 px-[13px] py-[11px] rounded-[11px] bg-muted cursor-pointer"
+        >
           <span>
             <span class="block text-[13.5px] font-semibold text-default">
               {{ t('masterdata.reference.aktif') }}
@@ -301,8 +363,8 @@ onMounted(async () => {
             </span>
           </span>
           <USwitch
-            :model-value="form.active as boolean"
-            @update:model-value="form.active = $event"
+            :model-value="form.is_active as boolean"
+            @update:model-value="form.is_active = $event"
           />
         </label>
       </div>

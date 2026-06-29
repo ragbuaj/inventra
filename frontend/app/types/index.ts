@@ -140,7 +140,7 @@ export interface ReferenceRow {
   id: string
   name: string
   code?: string
-  active?: boolean
+  is_active?: boolean
   [key: string]: unknown
 }
 
