@@ -3,7 +3,7 @@ import { login } from './helpers'
 
 // ---------------------------------------------------------------------------
 // Master Data Referensi screen — real backend (GET/POST/PUT/DELETE via
-// the generic reference engine at /api/v1/masterdata/reference/:resource).
+// the generic reference engine at /api/v1/<resource>, e.g. /api/v1/office-types).
 // The seeded admin (admin@inventra.local) has `masterdata.global.manage`.
 //
 // IMPORTANT: `pnpm test:e2e` requires the full backend stack + seeded admin
