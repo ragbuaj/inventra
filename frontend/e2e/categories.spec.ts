@@ -8,22 +8,45 @@ import { login } from './helpers'
 //
 // IMPORTANT: `pnpm test:e2e` requires the full backend stack + seeded admin
 // (see CLAUDE.md). This spec compiles + lints here; CI runs it in the e2e job.
+//
+// Robustness notes:
+//  - e2e rows PERSIST in the real backend. Category `code` has a global
+//    partial-unique index, so every name AND code must be unique per test AND
+//    per CI run (uniqueSuffix()), otherwise create returns 409 on later runs.
+//  - The table paginates 7 rows/page sorted by name, so a freshly-created row
+//    may land on a later page. We always filter via the search box (client-side
+//    over the full tree() set) before asserting a created row is visible.
 // ---------------------------------------------------------------------------
 
-// Unique suffix so repeated CI runs don't collide on the same name.
-const SUFFIX = Date.now()
-const PARENT_NAME = `E2E Induk ${SUFFIX}`
-const PARENT_CODE = 'EI2'
-const CHILD_NAME = `E2E Sub ${SUFFIX}`
-const CHILD_CODE = 'ES2'
+const SEARCH_PLACEHOLDER = 'Cari nama atau kode…'
 
-// ---------------------------------------------------------------------------
-// Helper: open the "Tambah Kategori" slideover and wait for it to appear.
-// ---------------------------------------------------------------------------
+// Unique suffix per call — disambiguates across tests in this file AND across
+// repeated CI runs (Date.now() + an in-process counter).
+let seq = 0
+function uniqueSuffix(): string {
+  seq += 1
+  return `${Date.now()}${seq}`
+}
+
 async function openAddSlideover(page: import('@playwright/test').Page) {
   await page.getByRole('button', { name: 'Tambah Kategori', exact: true }).click()
-  // Wait for the slideover title (i18n: masterdata.categories.createTitle)
+  // Slideover title (i18n: masterdata.categories.createTitle)
   await expect(page.getByText('Tambah Kategori Aset', { exact: true })).toBeVisible({ timeout: 8_000 })
+}
+
+// Fill name + code and submit; wait for the slideover to close (a successful
+// save closes it) so the next openAddSlideover is not blocked by a backdrop.
+async function fillAndSubmit(page: import('@playwright/test').Page, name: string, code: string) {
+  await page.getByLabel('Nama Kategori', { exact: true }).fill(name)
+  await page.getByLabel('Kode', { exact: true }).fill(code)
+  await page.getByRole('button', { name: 'Simpan', exact: true }).click()
+  await expect(page.getByText('Tambah Kategori Aset', { exact: true })).toBeHidden({ timeout: 8_000 })
+}
+
+async function searchFor(page: import('@playwright/test').Page, term: string) {
+  const input = page.getByPlaceholder(SEARCH_PLACEHOLDER, { exact: true })
+  await input.fill('')
+  await input.fill(term)
 }
 
 // ---------------------------------------------------------------------------
@@ -34,14 +57,9 @@ test.describe('Master Data Kategori Aset — page load', () => {
     await login(page)
     await page.goto('/master/categories')
 
-    // Page heading (i18n: masterdata.categories.title)
     await expect(page.getByRole('heading', { name: 'Kategori Aset', exact: true })).toBeVisible({ timeout: 10_000 })
-
-    // "Tambah Kategori" add button is visible (admin has masterdata.global.manage)
     await expect(page.getByRole('button', { name: 'Tambah Kategori', exact: true })).toBeVisible({ timeout: 8_000 })
-
-    // Filter bar: search input, class select, group select, active toggle
-    await expect(page.getByPlaceholder('Cari nama atau kode…', { exact: true })).toBeVisible()
+    await expect(page.getByPlaceholder(SEARCH_PLACEHOLDER, { exact: true })).toBeVisible()
   })
 })
 
@@ -54,20 +72,15 @@ test.describe('Master Data Kategori Aset — create parent', () => {
     await page.goto('/master/categories')
     await expect(page.getByRole('heading', { name: 'Kategori Aset', exact: true })).toBeVisible({ timeout: 10_000 })
 
-    // Open the create slideover.
+    const s = uniqueSuffix()
+    const name = `E2E Induk ${s}`
+
     await openAddSlideover(page)
+    await fillAndSubmit(page, name, `EI${s}`)
 
-    // Fill Nama Kategori (required).
-    await page.getByLabel('Nama Kategori', { exact: true }).fill(PARENT_NAME)
-
-    // Fill Kode (required).
-    await page.getByLabel('Kode', { exact: true }).fill(PARENT_CODE)
-
-    // Submit: the FormSlideover footer "Simpan" button.
-    await page.getByRole('button', { name: 'Simpan', exact: true }).click()
-
-    // Slideover closes; new category row appears in the table.
-    await expect(page.getByText(PARENT_NAME, { exact: true })).toBeVisible({ timeout: 10_000 })
+    // Filter to the new row so pagination can't hide it.
+    await searchFor(page, name)
+    await expect(page.getByText(name, { exact: true })).toBeVisible({ timeout: 10_000 })
   })
 })
 
@@ -80,52 +93,41 @@ test.describe('Master Data Kategori Aset — create child with parent picker', (
     await page.goto('/master/categories')
     await expect(page.getByRole('heading', { name: 'Kategori Aset', exact: true })).toBeVisible({ timeout: 10_000 })
 
-    // --- Step 1: create the parent category ---
-    await openAddSlideover(page)
-    await page.getByLabel('Nama Kategori', { exact: true }).fill(PARENT_NAME)
-    await page.getByLabel('Kode', { exact: true }).fill(PARENT_CODE)
-    await page.getByRole('button', { name: 'Simpan', exact: true }).click()
-    // Wait for the parent row to appear before proceeding.
-    await expect(page.getByText(PARENT_NAME, { exact: true })).toBeVisible({ timeout: 10_000 })
+    const s = uniqueSuffix()
+    const parentName = `E2E Induk ${s}`
+    const childName = `E2E Sub ${s}`
 
-    // --- Step 2: create the child category ---
+    // --- Step 1: create the parent ---
     await openAddSlideover(page)
-    await page.getByLabel('Nama Kategori', { exact: true }).fill(CHILD_NAME)
-    await page.getByLabel('Kode', { exact: true }).fill(CHILD_CODE)
+    await fillAndSubmit(page, parentName, `EI${s}`)
 
-    // Open the parent USelect via its stable data-testid (the trigger button is
-    // rendered inside the testid wrapper; clicking the wrapper opens the dropdown).
-    // NEVER use selectOption — USelect renders a custom popover, not a native <select>.
+    // --- Step 2: create the child, selecting the parent via the picker ---
+    await openAddSlideover(page)
+    await page.getByLabel('Nama Kategori', { exact: true }).fill(childName)
+    await page.getByLabel('Kode', { exact: true }).fill(`ES${s}`)
+
+    // Open the parent USelect via its stable data-testid. NEVER use selectOption —
+    // USelect renders a custom popover, not a native <select>.
     const parentSelect = page.getByTestId('category-parent-select')
     await expect(parentSelect).toBeVisible({ timeout: 5_000 })
     await parentSelect.click()
 
-    // The dropdown listbox renders options as role="option" inside a popover.
-    // Wait for the parent option we just created to appear.
-    await expect(page.getByRole('option', { name: PARENT_NAME, exact: true })).toBeVisible({ timeout: 8_000 })
+    // The dropdown renders options as role="option"; pick the parent we just created.
+    await expect(page.getByRole('option', { name: parentName, exact: true })).toBeVisible({ timeout: 8_000 })
+    await page.getByRole('option', { name: parentName, exact: true }).click()
 
-    // Click the parent option.
-    await page.getByRole('option', { name: PARENT_NAME, exact: true }).click()
-
-    // Submit.
     await page.getByRole('button', { name: 'Simpan', exact: true }).click()
+    await expect(page.getByText('Tambah Kategori Aset', { exact: true })).toBeHidden({ timeout: 8_000 })
 
-    // --- Step 3: assert the child row appears in the table ---
-    await expect(page.getByText(CHILD_NAME, { exact: true })).toBeVisible({ timeout: 10_000 })
+    // --- Step 3: filter to this run's rows (parent + child both contain the suffix)
+    // so both render on a single page and the child sits directly under its parent. ---
+    await searchFor(page, s)
+    await expect(page.getByText(childName, { exact: true })).toBeVisible({ timeout: 10_000 })
 
-    // --- Step 4: assert the child row is indented (has the corner-down-right icon)
-    // The indented cell wraps the name in a div with class ps-6 and an icon.
-    // We find the table row containing the child name and assert it contains the
-    // indented-child indicator — a Lucide corner-down-right SVG icon (UIcon).
-    // The page inserts this icon only when parent_id is set.
-    const childRow = page.locator('tr').filter({ hasText: CHILD_NAME })
-    await expect(childRow).toBeVisible({ timeout: 8_000 })
-    // The icon has the class 'i-lucide-corner-down-right' rendered as an inline SVG or
-    // as a <span> with that class. Either way the row's first cell contains padding-start.
-    // Assert that the indentation wrapper (ps-6 class) is present in the child row's
-    // name cell — this verifies the parent_id branch renders correctly.
-    const nameCell = childRow.locator('td').first()
-    await expect(nameCell.locator('.ps-6')).toBeVisible()
+    // --- Step 4: the child row is indented (the parent_id branch renders the
+    // ps-6 wrapper + corner-down-right icon). Scope to the unique child row. ---
+    const childRow = page.locator('tr').filter({ hasText: childName })
+    await expect(childRow.locator('.ps-6')).toBeVisible()
   })
 })
 
@@ -138,24 +140,18 @@ test.describe('Master Data Kategori Aset — search filter', () => {
     await page.goto('/master/categories')
     await expect(page.getByRole('heading', { name: 'Kategori Aset', exact: true })).toBeVisible({ timeout: 10_000 })
 
-    // Create a unique category so we have something deterministic to search for.
-    const searchName = `E2E Search ${SUFFIX}`
+    const s = uniqueSuffix()
+    const name = `E2E Search ${s}`
+
     await openAddSlideover(page)
-    await page.getByLabel('Nama Kategori', { exact: true }).fill(searchName)
-    await page.getByLabel('Kode', { exact: true }).fill('ES3')
-    await page.getByRole('button', { name: 'Simpan', exact: true }).click()
-    await expect(page.getByText(searchName, { exact: true })).toBeVisible({ timeout: 10_000 })
+    await fillAndSubmit(page, name, `ES${s}`)
 
-    // Type the search term.
-    await page.getByPlaceholder('Cari nama atau kode…', { exact: true }).fill(searchName)
+    // Filtering by the unique name shows it on the (single) filtered page.
+    await searchFor(page, name)
+    await expect(page.getByText(name, { exact: true })).toBeVisible({ timeout: 10_000 })
 
-    // The created category must still be visible.
-    await expect(page.getByText(searchName, { exact: true })).toBeVisible({ timeout: 5_000 })
-
-    // Clear the filter via the reset button (i18n: common.reset → "Reset").
+    // Reset clears the search input (i18n: common.reset → "Reset").
     await page.getByRole('button', { name: 'Reset', exact: true }).click()
-
-    // The search input is now empty.
-    await expect(page.getByPlaceholder('Cari nama atau kode…', { exact: true })).toHaveValue('')
+    await expect(page.getByPlaceholder(SEARCH_PLACEHOLDER, { exact: true })).toHaveValue('')
   })
 })
