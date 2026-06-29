@@ -21,6 +21,7 @@ const filterGroup = ref<string>(ALL)
 const activeOnly = ref(false)
 const offset = ref(0)
 const loading = ref(true)
+const loadFailed = ref(false)
 
 const formOpen = ref(false)
 const saving = ref(false)
@@ -115,9 +116,14 @@ const parentOptions = computed(() => {
 
 async function refresh() {
   loading.value = true
-  const res = await api.list({ limit: 100 })
-  allRows.value = res.data
-  loading.value = false
+  loadFailed.value = false
+  try {
+    allRows.value = await api.tree()
+  } catch {
+    loadFailed.value = true
+  } finally {
+    loading.value = false
+  }
 }
 
 function openCreate() {
@@ -235,7 +241,25 @@ defineExpose({ openCreate, openEdit, filterClass, filterGroup, activeOnly, formO
       </UButton>
     </div>
 
+    <div
+      v-if="loadFailed"
+      class="flex flex-col items-center justify-center gap-3 py-16 text-muted"
+    >
+      <UIcon
+        name="i-lucide-circle-alert"
+        class="size-6"
+      />
+      <span class="text-sm">{{ t('masterdata.categories.loadError') }}</span>
+      <UButton
+        color="neutral"
+        variant="subtle"
+        @click="refresh"
+      >
+        {{ t('common.retry') }}
+      </UButton>
+    </div>
     <ResourceTable
+      v-else
       :rows="pagedRows"
       :columns="columns"
       :loading="loading"

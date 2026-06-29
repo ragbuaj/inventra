@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Category, FiscalGroup } from '~/types'
 import type { CategoryInput } from '~/composables/api/useCategories'
-import { FISCAL_GROUPS, isBuildingGroup, formatThousands, parseThousands } from '~/mock/categories'
+import { FISCAL_GROUPS, isBuildingGroup, formatThousands, parseThousands } from '~/constants/categoryMeta'
 
 const props = defineProps<{
   category: Category | null
