@@ -29,8 +29,8 @@ WHERE id = sqlc.arg(id) AND deleted_at IS NULL
 
 -- name: CreateEmployee :one
 INSERT INTO masterdata.employees (
-  code, name, email, avatar_key, department_id, position_id, office_id, status
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+  code, name, email, phone, avatar_key, department_id, position_id, office_id, status
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 RETURNING *;
 
 -- name: UpdateEmployee :one
@@ -38,6 +38,7 @@ UPDATE masterdata.employees
 SET code = sqlc.arg(code),
     name = sqlc.arg(name),
     email = sqlc.narg(email),
+    phone = sqlc.narg(phone),
     avatar_key = sqlc.narg(avatar_key),
     department_id = sqlc.narg(department_id),
     position_id = sqlc.narg(position_id),

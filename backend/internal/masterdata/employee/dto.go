@@ -12,6 +12,7 @@ type Request struct {
 	Code         string  `json:"code" binding:"required"`
 	Name         string  `json:"name" binding:"required"`
 	Email        *string `json:"email" binding:"omitempty,email"`
+	Phone        *string `json:"phone"`
 	AvatarKey    *string `json:"avatar_key"`
 	DepartmentID *string `json:"department_id" binding:"omitempty,uuid"`
 	PositionID   *string `json:"position_id" binding:"omitempty,uuid"`
@@ -34,6 +35,7 @@ func (r Request) toInput() (CreateInput, error) {
 		Code:         r.Code,
 		Name:         r.Name,
 		Email:        r.Email,
+		Phone:        r.Phone,
 		AvatarKey:    r.AvatarKey,
 		DepartmentID: dept,
 		PositionID:   pos,
@@ -55,6 +57,7 @@ type Response struct {
 	Code         string  `json:"code"`
 	Name         string  `json:"name"`
 	Email        *string `json:"email"`
+	Phone        *string `json:"phone"`
 	AvatarKey    *string `json:"avatar_key"`
 	DepartmentID *string `json:"department_id"`
 	PositionID   *string `json:"position_id"`
@@ -70,6 +73,7 @@ func toResponse(e sqlc.MasterdataEmployee) Response {
 		Code:         e.Code,
 		Name:         e.Name,
 		Email:        e.Email,
+		Phone:        e.Phone,
 		AvatarKey:    e.AvatarKey,
 		DepartmentID: common.UUIDPtrStr(e.DepartmentID),
 		PositionID:   common.UUIDPtrStr(e.PositionID),

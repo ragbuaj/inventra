@@ -956,11 +956,13 @@
         "office": "Office",
         "status": "Status"
       },
-      "status": { "active": "Active", "inactive": "Inactive" },
+      "status": { "active": "Active", "inactive": "Inactive", "suspended": "Suspended" },
       "createTitle": "Add Employee",
       "editTitle": "Edit Employee",
       "deleteConfirm": "Employee “{nama}” (NIP {nip}) will be deleted. This cannot be undone.",
-      "errNotFound": "Employee not found."
+      "errNotFound": "Employee not found.",
+      "loadError": "Failed to load employees.",
+      "required": "NIP, Name, and Office are required."
     },
     "categories": {
       "title": "Asset Categories",
