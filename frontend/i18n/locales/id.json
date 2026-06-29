@@ -1058,7 +1058,7 @@
       "aktifHint": "Tampil & dapat dipilih di seluruh sistem",
       "nonaktif": "Nonaktif",
       "entitySubtitle": "Kelola data referensi",
-      "fields": { "name": "Nama", "code": "Kode", "symbol": "Simbol", "email": "Email", "phone": "Telepon", "active": "Status" },
+      "fields": { "name": "Nama", "code": "Kode", "symbol": "Simbol", "email": "Email", "phone": "Telepon", "active": "Status", "province": "Provinsi", "brand": "Brand", "contact_name": "Nama Kontak", "address": "Alamat", "tier": "Tingkat" },
       "resources": {
         "office-types": "Jenis Kantor", "departments": "Departemen", "positions": "Jabatan",
         "units": "Satuan", "maintenance-categories": "Kategori Pemeliharaan",
