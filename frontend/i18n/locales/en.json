@@ -529,7 +529,10 @@
       "deleteConfirm": "Account “{nama}” ({email}) will be permanently deleted. This cannot be undone.",
       "errNotFound": "User not found.",
       "required": "Required.",
-      "invalidEmail": "Invalid email format."
+      "invalidEmail": "Invalid email format.",
+      "loadError": "Failed to load users.",
+      "retry": "Retry",
+      "conflict": "Email already in use."
     },
     "rbac": {
       "title": "Roles & RBAC",

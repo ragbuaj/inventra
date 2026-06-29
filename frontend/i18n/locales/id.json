@@ -529,7 +529,10 @@
       "deleteConfirm": "Akun “{nama}” ({email}) akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.",
       "errNotFound": "Pengguna tidak ditemukan.",
       "required": "Wajib diisi.",
-      "invalidEmail": "Format email tidak valid."
+      "invalidEmail": "Format email tidak valid.",
+      "loadError": "Gagal memuat data user.",
+      "retry": "Coba lagi",
+      "conflict": "Email sudah dipakai."
     },
     "rbac": {
       "title": "Peran & RBAC",
