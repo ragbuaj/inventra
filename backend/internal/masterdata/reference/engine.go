@@ -7,6 +7,7 @@ package reference
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -22,14 +23,17 @@ const (
 	typeText colType = iota
 	typeBool
 	typeUUID
+	typeEnum
 )
 
 type column struct {
-	Name     string  // db column
-	Type     colType // text / bool / uuid
-	Required bool    // must be present (non-empty) on write
-	Search   bool    // included in the ILIKE search filter
-	Default  bool    // default for typeBool when absent
+	Name     string   // db column
+	Type     colType  // text / bool / uuid / enum
+	Required bool     // must be present (non-empty) on write
+	Search   bool     // included in the ILIKE search filter
+	Default  bool     // default for typeBool when absent
+	Enum     []string // allowed values for typeEnum
+	EnumType string   // postgres enum type name for the cast, e.g. "shared.approver_level"
 }
 
 type resource struct {
@@ -47,7 +51,7 @@ type engine struct {
 func (r resource) selectExpr() string {
 	parts := []string{"id::text AS id"}
 	for _, c := range r.Columns {
-		if c.Type == typeUUID {
+		if c.Type == typeUUID || c.Type == typeEnum {
 			parts = append(parts, c.Name+"::text AS "+c.Name)
 		} else {
 			parts = append(parts, c.Name)
@@ -117,7 +121,7 @@ func (e *engine) write(ctx context.Context, r resource, id *uuid.UUID, body map[
 		ph := make([]string, len(r.Columns))
 		for i, c := range r.Columns {
 			cols[i] = c.Name
-			ph[i] = placeholder(i+1, c.Type)
+			ph[i] = placeholder(i+1, c)
 			args = append(args, vals[i])
 		}
 		q = fmt.Sprintf("INSERT INTO masterdata.%s (%s) VALUES (%s) RETURNING %s",
@@ -126,7 +130,7 @@ func (e *engine) write(ctx context.Context, r resource, id *uuid.UUID, body map[
 		sets := make([]string, len(r.Columns))
 		args = append(args, *id)
 		for i, c := range r.Columns {
-			sets[i] = fmt.Sprintf("%s = %s", c.Name, placeholder(i+2, c.Type))
+			sets[i] = fmt.Sprintf("%s = %s", c.Name, placeholder(i+2, c))
 			args = append(args, vals[i])
 		}
 		q = fmt.Sprintf("UPDATE masterdata.%s SET %s WHERE id = $1 AND deleted_at IS NULL RETURNING %s",
@@ -153,11 +157,15 @@ func (e *engine) del(ctx context.Context, r resource, id uuid.UUID) (bool, error
 	return tag.RowsAffected() > 0, nil
 }
 
-func placeholder(n int, t colType) string {
-	if t == typeUUID {
+func placeholder(n int, c column) string {
+	switch c.Type {
+	case typeUUID:
 		return fmt.Sprintf("$%d::uuid", n)
+	case typeEnum:
+		return fmt.Sprintf("$%d::%s", n, c.EnumType)
+	default:
+		return fmt.Sprintf("$%d", n)
 	}
-	return fmt.Sprintf("$%d", n)
 }
 
 // coerce validates and converts the JSON body into ordered column arguments.
@@ -201,6 +209,23 @@ func coerce(r resource, body map[string]any) ([]any, error) {
 				return nil, fmt.Errorf("%s must be a boolean", c.Name)
 			}
 			out[i] = b
+		case typeEnum:
+			if !present || raw == nil {
+				out[i] = nil
+				continue
+			}
+			s, ok := raw.(string)
+			if !ok {
+				return nil, fmt.Errorf("%s must be a string", c.Name)
+			}
+			if strings.TrimSpace(s) == "" {
+				out[i] = nil
+				continue
+			}
+			if !slices.Contains(c.Enum, s) {
+				return nil, fmt.Errorf("%s must be one of %s", c.Name, strings.Join(c.Enum, ", "))
+			}
+			out[i] = s
 		}
 	}
 	return out, nil
