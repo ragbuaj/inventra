@@ -70,17 +70,21 @@ export interface Room {
   created_at: string
 }
 
+export type EmployeeStatus = 'active' | 'inactive' | 'suspended'
+
 export interface Employee {
   id: string
-  nip: string
-  nama: string
-  email: string
-  telepon: string
-  jabatan: string
-  departemen: string
+  code: string
+  name: string
+  email: string | null
+  phone: string | null
+  department_id: string | null
+  position_id: string | null
   office_id: string
-  status: 'active' | 'inactive'
-  created_at: string
+  status: EmployeeStatus
+  avatar_key?: string | null
+  created_at: string | null
+  updated_at: string | null
 }
 
 export type AssetClass = 'tangible' | 'intangible'
