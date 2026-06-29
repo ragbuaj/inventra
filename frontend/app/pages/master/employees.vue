@@ -396,6 +396,7 @@ onMounted(() => {
               :items="deptOptions"
               :placeholder="t('masterdata.employees.placeholders.pilih')"
               class="w-full"
+              data-testid="employee-dept-select"
             />
           </UFormField>
           <UFormField :label="t('masterdata.employees.fields.jabatan')">
@@ -404,6 +405,7 @@ onMounted(() => {
               :items="positionOptions"
               :placeholder="t('masterdata.employees.placeholders.pilih')"
               class="w-full"
+              data-testid="employee-position-select"
             />
           </UFormField>
         </div>
@@ -415,6 +417,7 @@ onMounted(() => {
             :items="officeOptions"
             :placeholder="t('masterdata.employees.placeholders.pilih')"
             class="w-full"
+            data-testid="employee-office-select"
           />
           <template #hint>
             <span class="flex items-center gap-1 text-xs text-dimmed mt-1">
