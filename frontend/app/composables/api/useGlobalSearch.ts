@@ -35,8 +35,8 @@ export function useGlobalSearch() {
       }
     }
     for (const e of employeeStore.all()) {
-      if (match(q, e.nama, e.nip, e.jabatan)) {
-        byType.pegawai.push({ type: 'pegawai', title: e.nama, sub: `${e.jabatan} · ${e.departemen}`, status: null, icon: ICON.pegawai, to: '/master/employees' })
+      if (match(q, e.name, e.code)) {
+        byType.pegawai.push({ type: 'pegawai', title: e.name, sub: e.code, status: null, icon: ICON.pegawai, to: '/master/employees' })
       }
     }
     for (const o of officeStore.all()) {

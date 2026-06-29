@@ -9,8 +9,8 @@ const toast = useToast()
 const can = useCan()
 const { open: confirm } = useConfirm()
 const api = useEmployees()
-const officesApi = useOffices()
 const refApi = useReference()
+const { request } = useApiClient()
 
 const ALL = '__all__'
 
@@ -18,14 +18,14 @@ const allRows = ref<Employee[]>([])
 const limit = ref(20)
 const offset = ref(0)
 const search = ref('')
-const filterKantor = ref(ALL)
+const filterOffice = ref(ALL)
 const filterDept = ref(ALL)
-const filterJabatan = ref(ALL)
+const filterPosition = ref(ALL)
 const filterStatus = ref(ALL)
 const sorting = ref<TableSorting>([])
 const loading = ref(true)
+const loadFailed = ref(false)
 
-// Brief loading pulse on filter/search so the table shows its inline loading bar.
 const filtering = ref(false)
 let filterTimer: ReturnType<typeof setTimeout> | undefined
 function pulseFilterLoading() {
@@ -36,21 +36,33 @@ function pulseFilterLoading() {
   }, 300)
 }
 
-const officeMap = ref<Record<string, string>>({})
+// FK option lists + id→name maps (offices via inline scoped /offices; dept/position via wired useReference).
 const officeOptions = ref<{ value: string, label: string }[]>([])
 const deptOptions = ref<{ value: string, label: string }[]>([])
-const jabatanOptions = ref<{ value: string, label: string }[]>([])
+const positionOptions = ref<{ value: string, label: string }[]>([])
+const officeMap = computed(() => new Map(officeOptions.value.map(o => [o.value, o.label])))
+const deptMap = computed(() => new Map(deptOptions.value.map(o => [o.value, o.label])))
+const positionMap = computed(() => new Map(positionOptions.value.map(o => [o.value, o.label])))
+function officeName(id: string | null): string {
+  return id ? (officeMap.value.get(id) ?? id) : '—'
+}
+function deptName(id: string | null): string {
+  return id ? (deptMap.value.get(id) ?? id) : '—'
+}
+function positionName(id: string | null): string {
+  return id ? (positionMap.value.get(id) ?? id) : '—'
+}
 
 const formOpen = ref(false)
 const saving = ref(false)
 const editingId = ref<string>()
 const form = reactive<EmployeeInput>({
-  nip: '', nama: '', email: '', telepon: '', jabatan: '', departemen: '', office_id: '', status: 'active'
+  code: '', name: '', email: '', phone: '', department_id: '', position_id: '', office_id: '', status: 'active'
 })
 
 const columns = [
-  { accessorKey: 'nip', header: t('masterdata.employees.columns.nip'), sortable: true },
-  { accessorKey: 'nama', header: t('masterdata.employees.columns.nama'), sortable: true },
+  { accessorKey: 'code', header: t('masterdata.employees.columns.nip'), sortable: true },
+  { accessorKey: 'name', header: t('masterdata.employees.columns.nama'), sortable: true },
   { accessorKey: 'departemen', header: t('masterdata.employees.columns.departemen'), sortable: true },
   { accessorKey: 'jabatan', header: t('masterdata.employees.columns.jabatan'), sortable: true },
   { accessorKey: 'kantor', header: t('masterdata.employees.columns.kantor') },
@@ -58,88 +70,88 @@ const columns = [
   { accessorKey: 'status', header: t('masterdata.employees.columns.status'), sortable: true }
 ]
 
-function initials(nama: string): string {
-  const parts = nama.trim().split(' ')
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/)
   return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase()
 }
 
 const anyFilterActive = computed(() =>
-  !!(search.value.trim() || filterKantor.value !== ALL || filterDept.value !== ALL || filterJabatan.value !== ALL || filterStatus.value !== ALL)
+  !!(search.value.trim() || filterOffice.value !== ALL || filterDept.value !== ALL || filterPosition.value !== ALL || filterStatus.value !== ALL)
 )
 
 const filteredRows = computed(() => {
   const q = search.value.trim().toLowerCase()
   return allRows.value.filter((r) => {
-    if (q && !r.nama.toLowerCase().includes(q) && !r.nip.includes(q) && !r.email.toLowerCase().includes(q)) return false
-    if (filterKantor.value !== ALL && r.office_id !== filterKantor.value) return false
-    if (filterDept.value !== ALL && r.departemen !== filterDept.value) return false
-    if (filterJabatan.value !== ALL && r.jabatan !== filterJabatan.value) return false
+    if (q && !r.name.toLowerCase().includes(q) && !r.code.toLowerCase().includes(q) && !(r.email ?? '').toLowerCase().includes(q)) return false
+    if (filterOffice.value !== ALL && r.office_id !== filterOffice.value) return false
+    if (filterDept.value !== ALL && r.department_id !== filterDept.value) return false
+    if (filterPosition.value !== ALL && r.position_id !== filterPosition.value) return false
     if (filterStatus.value !== ALL && r.status !== filterStatus.value) return false
     return true
   })
 })
 
 const sortedRows = computed(() => sortRows(filteredRows.value, sorting.value))
-
-const paginatedRows = computed(() =>
-  sortedRows.value.slice(offset.value, offset.value + limit.value)
-)
-
-const tableRows = computed(() =>
-  paginatedRows.value.map(r => ({ ...r }))
-)
+const paginatedRows = computed(() => sortedRows.value.slice(offset.value, offset.value + limit.value))
+const tableRows = computed(() => paginatedRows.value.map(r => ({ ...r })))
 
 async function refresh() {
   loading.value = true
-  const res = await api.list({ limit: 100 })
-  allRows.value = res.data
-  loading.value = false
-}
-
-async function loadOffices() {
-  const res = await officesApi.list({ limit: 100 })
-  const map: Record<string, string> = {}
-  for (const o of res.data) {
-    map[o.id] = o.nama
+  loadFailed.value = false
+  try {
+    const res = await api.list({ limit: 100 })
+    allRows.value = res.data
+  } catch {
+    loadFailed.value = true
+  } finally {
+    loading.value = false
   }
-  officeMap.value = map
-  officeOptions.value = res.data.map(o => ({ value: o.id, label: o.nama }))
 }
 
-async function loadReferenceOptions() {
-  const [depts, jabatan] = await Promise.all([
+async function loadFkData() {
+  const [offices, depts, positions] = await Promise.all([
+    request<{ data: { id: string, name: string }[] }>('/offices?limit=100'),
     refApi.list('departments', { limit: 100 }),
     refApi.list('positions', { limit: 100 })
   ])
-  deptOptions.value = depts.data.map(d => ({ value: d.name, label: d.name }))
-  jabatanOptions.value = jabatan.data.map(j => ({ value: j.name, label: j.name }))
+  officeOptions.value = offices.data.map(o => ({ value: o.id, label: o.name }))
+  deptOptions.value = depts.data.map(d => ({ value: d.id, label: d.name }))
+  positionOptions.value = positions.data.map(p => ({ value: p.id, label: p.name }))
 }
 
 function openCreate() {
   editingId.value = undefined
-  Object.assign(form, { nip: '', nama: '', email: '', telepon: '', jabatan: '', departemen: '', office_id: officeOptions.value[0]?.value ?? '', status: 'active' })
+  Object.assign(form, { code: '', name: '', email: '', phone: '', department_id: '', position_id: '', office_id: officeOptions.value[0]?.value ?? '', status: 'active' })
   formOpen.value = true
 }
 
 function openEdit(row: Employee) {
   editingId.value = row.id
   Object.assign(form, {
-    nip: row.nip, nama: row.nama, email: row.email, telepon: row.telepon,
-    jabatan: row.jabatan, departemen: row.departemen, office_id: row.office_id, status: row.status
+    code: row.code, name: row.name, email: row.email ?? '', phone: row.phone ?? '',
+    department_id: row.department_id ?? '', position_id: row.position_id ?? '', office_id: row.office_id,
+    status: row.status === 'suspended' ? 'suspended' : row.status
   })
   formOpen.value = true
 }
 
 async function onSubmit() {
+  if (!form.code.trim() || !form.name.trim() || !form.office_id) {
+    toast.add({ title: t('masterdata.employees.required'), color: 'error' })
+    return
+  }
   saving.value = true
   try {
-    if (editingId.value) await api.update(editingId.value, { ...form })
-    else await api.create({ ...form })
+    const input: EmployeeInput = {
+      code: form.code, name: form.name, office_id: form.office_id, status: form.status,
+      email: form.email || undefined, phone: form.phone || undefined,
+      department_id: form.department_id || undefined, position_id: form.position_id || undefined
+    }
+    if (editingId.value) await api.update(editingId.value, input)
+    else await api.create(input)
     formOpen.value = false
     await refresh()
-  } catch (err) {
-    toast.add({ title: t((err as Error).message), color: 'error' })
-  } finally {
+  } catch { /* useApiClient surfaces the error toast */ } finally {
     saving.value = false
   }
 }
@@ -147,11 +159,13 @@ async function onSubmit() {
 async function onDelete(row: Employee) {
   const ok = await confirm({
     title: t('common.delete'),
-    description: t('masterdata.employees.deleteConfirm', { nama: row.nama, nip: row.nip })
+    description: t('masterdata.employees.deleteConfirm', { nama: row.name, nip: row.code })
   })
   if (!ok) return
-  await api.remove(row.id)
-  await refresh()
+  try {
+    await api.remove(row.id)
+    await refresh()
+  } catch { /* useApiClient surfaces the error toast */ }
 }
 
 function rowActions(row: Record<string, unknown>): RowAction[] {
@@ -165,26 +179,24 @@ function rowActions(row: Record<string, unknown>): RowAction[] {
 
 function resetFilters() {
   search.value = ''
-  filterKantor.value = ALL
+  filterOffice.value = ALL
   filterDept.value = ALL
-  filterJabatan.value = ALL
+  filterPosition.value = ALL
   filterStatus.value = ALL
   offset.value = 0
 }
 
-watch([search, filterKantor, filterDept, filterJabatan, filterStatus], () => {
+watch([search, filterOffice, filterDept, filterPosition, filterStatus], () => {
   offset.value = 0
   pulseFilterLoading()
 })
-
 watch(sorting, () => {
   offset.value = 0
 })
 
 onMounted(() => {
   refresh()
-  loadOffices()
-  loadReferenceOptions()
+  loadFkData()
 })
 </script>
 
@@ -216,7 +228,7 @@ onMounted(() => {
       />
 
       <USelect
-        v-model="filterKantor"
+        v-model="filterOffice"
         :items="[{ value: ALL, label: t('masterdata.employees.filter.allKantor') }, ...officeOptions]"
         class="min-w-[150px]"
       />
@@ -228,8 +240,8 @@ onMounted(() => {
       />
 
       <USelect
-        v-model="filterJabatan"
-        :items="[{ value: ALL, label: t('masterdata.employees.filter.allJabatan') }, ...jabatanOptions]"
+        v-model="filterPosition"
+        :items="[{ value: ALL, label: t('masterdata.employees.filter.allJabatan') }, ...positionOptions]"
         class="min-w-[150px]"
       />
 
@@ -254,7 +266,25 @@ onMounted(() => {
       </UButton>
     </div>
 
+    <div
+      v-if="loadFailed"
+      class="flex flex-col items-center justify-center gap-3 py-16 text-muted"
+    >
+      <UIcon
+        name="i-lucide-circle-alert"
+        class="size-6"
+      />
+      <span class="text-sm">{{ t('masterdata.employees.loadError') }}</span>
+      <UButton
+        color="neutral"
+        variant="subtle"
+        @click="refresh"
+      >
+        {{ t('common.retry') }}
+      </UButton>
+    </div>
     <ResourceTable
+      v-else
       v-model:sorting="sorting"
       :rows="(tableRows as unknown as Record<string, unknown>[])"
       :columns="columns"
@@ -266,23 +296,23 @@ onMounted(() => {
       :actions="rowActions"
       @update:offset="offset = $event"
     >
-      <template #nip-cell="{ row }">
+      <template #code-cell="{ row }">
         <span class="font-mono text-sm text-muted">
-          {{ (row as unknown as Employee).nip }}
+          {{ (row as unknown as Employee).code }}
         </span>
       </template>
 
-      <template #nama-cell="{ row }">
+      <template #name-cell="{ row }">
         <div class="flex items-center gap-[10px]">
           <span class="w-[30px] h-[30px] rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[11px] flex-none">
-            {{ initials((row as unknown as Employee).nama) }}
+            {{ initials((row as unknown as Employee).name) }}
           </span>
-          <span class="font-medium">{{ (row as unknown as Employee).nama }}</span>
+          <span class="font-medium">{{ (row as unknown as Employee).name }}</span>
         </div>
       </template>
 
       <template #departemen-cell="{ row }">
-        <span class="text-muted">{{ (row as unknown as Employee).departemen }}</span>
+        <span class="text-muted">{{ deptName((row as unknown as Employee).department_id) }}</span>
       </template>
 
       <template #jabatan-cell="{ row }">
@@ -290,21 +320,21 @@ onMounted(() => {
           color="neutral"
           variant="subtle"
         >
-          {{ (row as unknown as Employee).jabatan }}
+          {{ positionName((row as unknown as Employee).position_id) }}
         </UBadge>
       </template>
 
       <template #kantor-cell="{ row }">
-        <span class="text-muted">{{ officeMap[(row as unknown as Employee).office_id] ?? (row as unknown as Employee).office_id }}</span>
+        <span class="text-muted">{{ officeName((row as unknown as Employee).office_id) }}</span>
       </template>
 
       <template #kontak-cell="{ row }">
         <div>
           <div class="text-sm">
-            {{ (row as unknown as Employee).email }}
+            {{ (row as unknown as Employee).email ?? '—' }}
           </div>
           <div class="text-xs text-dimmed">
-            {{ (row as unknown as Employee).telepon }}
+            {{ (row as unknown as Employee).phone ?? '—' }}
           </div>
         </div>
       </template>
@@ -314,7 +344,7 @@ onMounted(() => {
           :color="(row as unknown as Employee).status === 'active' ? 'success' : 'neutral'"
           variant="subtle"
         >
-          {{ t(`masterdata.employees.status.${(row as unknown as Employee).status}`) }}
+          {{ t('masterdata.employees.status.' + (row as unknown as Employee).status) }}
         </UBadge>
       </template>
     </ResourceTable>
@@ -331,7 +361,7 @@ onMounted(() => {
         <div class="grid grid-cols-2 gap-[14px]">
           <UFormField :label="t('masterdata.employees.fields.nip')">
             <UInput
-              v-model="form.nip"
+              v-model="form.code"
               placeholder="mis. 1990…"
               class="w-full font-mono"
             />
@@ -352,7 +382,7 @@ onMounted(() => {
         <!-- Row 2: Nama full-width -->
         <UFormField :label="t('masterdata.employees.fields.nama')">
           <UInput
-            v-model="form.nama"
+            v-model="form.name"
             :placeholder="t('masterdata.employees.placeholders.nama')"
             class="w-full"
           />
@@ -362,7 +392,7 @@ onMounted(() => {
         <div class="grid grid-cols-2 gap-[14px]">
           <UFormField :label="t('masterdata.employees.fields.departemen')">
             <USelect
-              v-model="form.departemen"
+              v-model="form.department_id"
               :items="deptOptions"
               :placeholder="t('masterdata.employees.placeholders.pilih')"
               class="w-full"
@@ -370,8 +400,8 @@ onMounted(() => {
           </UFormField>
           <UFormField :label="t('masterdata.employees.fields.jabatan')">
             <USelect
-              v-model="form.jabatan"
-              :items="jabatanOptions"
+              v-model="form.position_id"
+              :items="positionOptions"
               :placeholder="t('masterdata.employees.placeholders.pilih')"
               class="w-full"
             />
@@ -409,7 +439,7 @@ onMounted(() => {
           </UFormField>
           <UFormField :label="t('masterdata.employees.fields.telepon')">
             <UInput
-              v-model="form.telepon"
+              v-model="form.phone"
               placeholder="08xx-xxxx-xxxx"
               class="w-full"
             />
