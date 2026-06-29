@@ -56,6 +56,11 @@ func (s *Service) List(ctx context.Context, all bool, ids []uuid.UUID, search st
 	return rows, total, nil
 }
 
+// MapList returns geo-enriched offices within the caller's scope for the map screen.
+func (s *Service) MapList(ctx context.Context, all bool, ids []uuid.UUID) ([]sqlc.ListOfficesMapRow, error) {
+	return s.q.ListOfficesMap(ctx, sqlc.ListOfficesMapParams{AllScope: all, OfficeIds: ids})
+}
+
 // Get returns one office within the caller's scope.
 func (s *Service) Get(ctx context.Context, id uuid.UUID, all bool, ids []uuid.UUID) (sqlc.MasterdataOffice, error) {
 	o, err := s.q.GetOffice(ctx, sqlc.GetOfficeParams{ID: id, AllScope: all, OfficeIds: ids})

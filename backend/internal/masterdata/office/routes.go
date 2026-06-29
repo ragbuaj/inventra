@@ -6,6 +6,7 @@ import "github.com/gin-gonic/gin"
 // user; writes require the office-manage permission (applied via requireManage).
 func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW, requireManage gin.HandlerFunc) {
 	g := rg.Group("/offices")
+	g.GET("/map", authMW, h.mapList)
 	g.GET("", authMW, h.list)
 	g.GET("/:id", authMW, h.get)
 	g.POST("", authMW, requireManage, h.create)

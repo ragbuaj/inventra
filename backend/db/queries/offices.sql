@@ -55,6 +55,26 @@ UPDATE masterdata.offices SET deleted_at = now()
 WHERE id = sqlc.arg(id) AND deleted_at IS NULL
   AND (sqlc.arg(all_scope)::bool OR id = ANY(sqlc.arg(office_ids)::uuid[]));
 
+-- name: ListOfficesMap :many
+-- Geo-enriched, scoped office list for the Peta Lokasi screen: resolves
+-- office-type/province/city names + a per-office (non-deleted) asset count.
+SELECT
+  o.id, o.name, o.code, o.address, o.latitude, o.longitude,
+  ot.name AS office_type_name,
+  ot.tier AS tier,
+  p.name  AS province_name,
+  c.name  AS city_name,
+  (SELECT count(*) FROM asset.assets a
+     WHERE a.office_id = o.id AND a.deleted_at IS NULL) AS asset_count
+FROM masterdata.offices o
+LEFT JOIN masterdata.office_types ot ON ot.id = o.office_type_id AND ot.deleted_at IS NULL
+LEFT JOIN masterdata.provinces    p  ON p.id  = o.province_id    AND p.deleted_at IS NULL
+LEFT JOIN masterdata.cities       c  ON c.id  = o.city_id        AND c.deleted_at IS NULL
+WHERE o.deleted_at IS NULL
+  AND o.is_active = true
+  AND (sqlc.arg(all_scope)::bool OR o.id = ANY(sqlc.arg(office_ids)::uuid[]))
+ORDER BY o.name;
+
 -- name: GetOfficeAncestors :many
 WITH RECURSIVE anc AS (
   SELECT o.id, o.parent_id, o.office_type_id

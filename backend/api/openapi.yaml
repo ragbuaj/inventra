@@ -691,6 +691,30 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
 
+  /api/v1/offices/map:
+    get:
+      tags: [Master Data]
+      operationId: listOfficesMap
+      summary: Office map
+      description: |
+        Returns a geo-enriched list of active offices within the caller's **data scope**,
+        with resolved office-type name, province/city names, and per-office asset count.
+        No pagination — returns all in-scope offices. Used by the Peta Lokasi screen.
+      security: [{ bearerJWT: [] }]
+      responses:
+        "200":
+          description: List of in-scope offices for the map
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/OfficeMapItem" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
   /api/v1/offices/{id}:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -2340,6 +2364,8 @@ components:
         code: { type: string }
         address: { type: [string, "null"] }
         is_active: { type: boolean }
+        latitude: { type: [number, "null"], minimum: -90, maximum: 90 }
+        longitude: { type: [number, "null"], minimum: -180, maximum: 180 }
         created_at: { type: [string, "null"], format: date-time }
         updated_at: { type: [string, "null"], format: date-time }
 
@@ -2355,6 +2381,27 @@ components:
         code: { type: string }
         address: { type: [string, "null"] }
         is_active: { type: boolean, default: true }
+        latitude: { type: [number, "null"], minimum: -90, maximum: 90 }
+        longitude: { type: [number, "null"], minimum: -180, maximum: 180 }
+
+    OfficeMapItem:
+      type: object
+      required: [id, name, code, asset_count]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        code: { type: string }
+        office_type_name: { type: [string, "null"] }
+        tier:
+          type: [string, "null"]
+          enum: [pusat, wilayah, office, office_subtree]
+          nullable: true
+        province_name: { type: [string, "null"] }
+        city_name: { type: [string, "null"] }
+        address: { type: [string, "null"] }
+        asset_count: { type: integer, minimum: 0 }
+        latitude: { type: [number, "null"], minimum: -90, maximum: 90 }
+        longitude: { type: [number, "null"], minimum: -180, maximum: 180 }
 
     OfficeList:
       type: object

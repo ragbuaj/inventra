@@ -172,6 +172,74 @@ func TestOfficeDataScope(t *testing.T) {
 	})
 }
 
+func TestOfficeMapList(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	q := sqlc.New(pool)
+	svc := office.NewService(q)
+	ctx := context.Background()
+
+	t.Run("resolves names + coords, asset_count zero without assets", func(t *testing.T) {
+		testsupport.Reset(t, pool)
+		tree := testsupport.SeedOfficeTree(t, pool)
+
+		provID := uuid.New()
+		cityID := uuid.New()
+		_, err := pool.Exec(ctx, `INSERT INTO masterdata.provinces (id, name, code) VALUES ($1,$2,$3)`, provID, "DKI Jakarta", "31")
+		require.NoError(t, err)
+		_, err = pool.Exec(ctx, `INSERT INTO masterdata.cities (id, province_id, name, code) VALUES ($1,$2,$3,$4)`, cityID, provID, "Jakarta Pusat", "3171")
+		require.NoError(t, err)
+
+		created, err := svc.Create(ctx, true, nil, office.CreateInput{
+			ParentID: &tree.Pusat, OfficeTypeID: tree.OfficeTypeID,
+			ProvinceID: &provID, CityID: &cityID,
+			Name: "Map Office", Code: "MAP1", IsActive: true,
+			Latitude: f64(-6.1754), Longitude: f64(106.8272),
+		})
+		require.NoError(t, err)
+
+		rows, err := svc.MapList(ctx, true, nil)
+		require.NoError(t, err)
+
+		var got *sqlc.ListOfficesMapRow
+		for i := range rows {
+			if rows[i].ID == created.ID {
+				got = &rows[i]
+			}
+		}
+		require.NotNil(t, got, "created office present in map list")
+		require.NotNil(t, got.OfficeTypeName)
+		assert.NotEmpty(t, *got.OfficeTypeName)
+		require.NotNil(t, got.ProvinceName)
+		assert.Equal(t, "DKI Jakarta", *got.ProvinceName)
+		require.NotNil(t, got.CityName)
+		assert.Equal(t, "Jakarta Pusat", *got.CityName)
+		require.NotNil(t, got.Latitude)
+		assert.InDelta(t, -6.1754, *got.Latitude, 1e-9)
+		assert.Equal(t, int64(0), got.AssetCount)
+	})
+
+	t.Run("respects data scope", func(t *testing.T) {
+		testsupport.Reset(t, pool)
+		tree := testsupport.SeedOfficeTree(t, pool)
+
+		outOfScope, err := svc.Create(ctx, true, nil, office.CreateInput{
+			ParentID: &tree.Pusat, OfficeTypeID: tree.OfficeTypeID,
+			Name: "Under Pusat", Code: "UP1", IsActive: true,
+		})
+		require.NoError(t, err)
+
+		rows, err := svc.MapList(ctx, false, []uuid.UUID{tree.Wilayah, tree.Cabang})
+		require.NoError(t, err)
+		ids := make(map[uuid.UUID]bool, len(rows))
+		for _, r := range rows {
+			ids[r.ID] = true
+		}
+		assert.True(t, ids[tree.Cabang], "in-scope office present")
+		assert.False(t, ids[outOfScope.ID], "out-of-scope office absent")
+		assert.False(t, ids[tree.Pusat], "ancestor out of scope absent")
+	})
+}
+
 func TestOfficeCoordinates(t *testing.T) {
 	pool := testsupport.NewPostgres(t)
 	q := sqlc.New(pool)

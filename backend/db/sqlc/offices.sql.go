@@ -230,6 +230,78 @@ func (q *Queries) ListOffices(ctx context.Context, arg ListOfficesParams) ([]Mas
 	return items, nil
 }
 
+const listOfficesMap = `-- name: ListOfficesMap :many
+SELECT
+  o.id, o.name, o.code, o.address, o.latitude, o.longitude,
+  ot.name AS office_type_name,
+  ot.tier AS tier,
+  p.name  AS province_name,
+  c.name  AS city_name,
+  (SELECT count(*) FROM asset.assets a
+     WHERE a.office_id = o.id AND a.deleted_at IS NULL) AS asset_count
+FROM masterdata.offices o
+LEFT JOIN masterdata.office_types ot ON ot.id = o.office_type_id AND ot.deleted_at IS NULL
+LEFT JOIN masterdata.provinces    p  ON p.id  = o.province_id    AND p.deleted_at IS NULL
+LEFT JOIN masterdata.cities       c  ON c.id  = o.city_id        AND c.deleted_at IS NULL
+WHERE o.deleted_at IS NULL
+  AND o.is_active = true
+  AND ($1::bool OR o.id = ANY($2::uuid[]))
+ORDER BY o.name
+`
+
+type ListOfficesMapParams struct {
+	AllScope  bool        `json:"all_scope"`
+	OfficeIds []uuid.UUID `json:"office_ids"`
+}
+
+type ListOfficesMapRow struct {
+	ID             uuid.UUID            `json:"id"`
+	Name           string               `json:"name"`
+	Code           string               `json:"code"`
+	Address        *string              `json:"address"`
+	Latitude       *float64             `json:"latitude"`
+	Longitude      *float64             `json:"longitude"`
+	OfficeTypeName *string              `json:"office_type_name"`
+	Tier           *SharedApproverLevel `json:"tier"`
+	ProvinceName   *string              `json:"province_name"`
+	CityName       *string              `json:"city_name"`
+	AssetCount     int64                `json:"asset_count"`
+}
+
+// Geo-enriched, scoped office list for the Peta Lokasi screen: resolves
+// office-type/province/city names + a per-office (non-deleted) asset count.
+func (q *Queries) ListOfficesMap(ctx context.Context, arg ListOfficesMapParams) ([]ListOfficesMapRow, error) {
+	rows, err := q.db.Query(ctx, listOfficesMap, arg.AllScope, arg.OfficeIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListOfficesMapRow{}
+	for rows.Next() {
+		var i ListOfficesMapRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Code,
+			&i.Address,
+			&i.Latitude,
+			&i.Longitude,
+			&i.OfficeTypeName,
+			&i.Tier,
+			&i.ProvinceName,
+			&i.CityName,
+			&i.AssetCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const softDeleteOffice = `-- name: SoftDeleteOffice :execrows
 UPDATE masterdata.offices SET deleted_at = now()
 WHERE id = $1 AND deleted_at IS NULL
