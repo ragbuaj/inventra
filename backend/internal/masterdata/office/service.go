@@ -36,6 +36,8 @@ type CreateInput struct {
 	Code         string
 	Address      *string
 	IsActive     bool
+	Latitude     *float64
+	Longitude    *float64
 }
 
 // UpdateInput mirrors CreateInput for updates.
@@ -78,6 +80,8 @@ func (s *Service) Create(ctx context.Context, all bool, ids []uuid.UUID, in Crea
 		Code:         in.Code,
 		Address:      in.Address,
 		IsActive:     in.IsActive,
+		Latitude:     in.Latitude,
+		Longitude:    in.Longitude,
 	})
 	if err != nil {
 		return o, common.MapDBError(err)
@@ -104,6 +108,8 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, all bool, ids []uuid
 		Code:         in.Code,
 		Address:      in.Address,
 		IsActive:     in.IsActive,
+		Latitude:     in.Latitude,
+		Longitude:    in.Longitude,
 		ID:           id,
 		AllScope:     all,
 		OfficeIds:    ids,

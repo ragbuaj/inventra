@@ -37,9 +37,9 @@ func (q *Queries) CountOffices(ctx context.Context, arg CountOfficesParams) (int
 
 const createOffice = `-- name: CreateOffice :one
 INSERT INTO masterdata.offices (
-  parent_id, office_type_id, province_id, city_id, name, code, address, is_active
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at
+  parent_id, office_type_id, province_id, city_id, name, code, address, is_active, latitude, longitude
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+RETURNING id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at, latitude, longitude
 `
 
 type CreateOfficeParams struct {
@@ -51,6 +51,8 @@ type CreateOfficeParams struct {
 	Code         string     `json:"code"`
 	Address      *string    `json:"address"`
 	IsActive     bool       `json:"is_active"`
+	Latitude     *float64   `json:"latitude"`
+	Longitude    *float64   `json:"longitude"`
 }
 
 func (q *Queries) CreateOffice(ctx context.Context, arg CreateOfficeParams) (MasterdataOffice, error) {
@@ -63,6 +65,8 @@ func (q *Queries) CreateOffice(ctx context.Context, arg CreateOfficeParams) (Mas
 		arg.Code,
 		arg.Address,
 		arg.IsActive,
+		arg.Latitude,
+		arg.Longitude,
 	)
 	var i MasterdataOffice
 	err := row.Scan(
@@ -79,12 +83,14 @@ func (q *Queries) CreateOffice(ctx context.Context, arg CreateOfficeParams) (Mas
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Latitude,
+		&i.Longitude,
 	)
 	return i, err
 }
 
 const getOffice = `-- name: GetOffice :one
-SELECT id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at FROM masterdata.offices
+SELECT id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at, latitude, longitude FROM masterdata.offices
 WHERE id = $1 AND deleted_at IS NULL
   AND ($2::bool OR id = ANY($3::uuid[]))
 `
@@ -112,6 +118,8 @@ func (q *Queries) GetOffice(ctx context.Context, arg GetOfficeParams) (Masterdat
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Latitude,
+		&i.Longitude,
 	)
 	return i, err
 }
@@ -158,7 +166,7 @@ func (q *Queries) GetOfficeAncestors(ctx context.Context, id uuid.UUID) ([]GetOf
 
 const listOffices = `-- name: ListOffices :many
 
-SELECT id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at FROM masterdata.offices
+SELECT id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at, latitude, longitude FROM masterdata.offices
 WHERE deleted_at IS NULL
   AND ($1::bool OR id = ANY($2::uuid[]))
   AND (
@@ -209,6 +217,8 @@ func (q *Queries) ListOffices(ctx context.Context, arg ListOfficesParams) ([]Mas
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.Latitude,
+			&i.Longitude,
 		); err != nil {
 			return nil, err
 		}
@@ -249,10 +259,12 @@ SET parent_id = $1,
     name = $5,
     code = $6,
     address = $7,
-    is_active = $8
-WHERE id = $9 AND deleted_at IS NULL
-  AND ($10::bool OR id = ANY($11::uuid[]))
-RETURNING id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at
+    is_active = $8,
+    latitude = $9,
+    longitude = $10
+WHERE id = $11 AND deleted_at IS NULL
+  AND ($12::bool OR id = ANY($13::uuid[]))
+RETURNING id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at, latitude, longitude
 `
 
 type UpdateOfficeParams struct {
@@ -264,6 +276,8 @@ type UpdateOfficeParams struct {
 	Code         string      `json:"code"`
 	Address      *string     `json:"address"`
 	IsActive     bool        `json:"is_active"`
+	Latitude     *float64    `json:"latitude"`
+	Longitude    *float64    `json:"longitude"`
 	ID           uuid.UUID   `json:"id"`
 	AllScope     bool        `json:"all_scope"`
 	OfficeIds    []uuid.UUID `json:"office_ids"`
@@ -279,6 +293,8 @@ func (q *Queries) UpdateOffice(ctx context.Context, arg UpdateOfficeParams) (Mas
 		arg.Code,
 		arg.Address,
 		arg.IsActive,
+		arg.Latitude,
+		arg.Longitude,
 		arg.ID,
 		arg.AllScope,
 		arg.OfficeIds,
@@ -298,6 +314,8 @@ func (q *Queries) UpdateOffice(ctx context.Context, arg UpdateOfficeParams) (Mas
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Latitude,
+		&i.Longitude,
 	)
 	return i, err
 }

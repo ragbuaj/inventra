@@ -1349,6 +1349,8 @@ type MasterdataOffice struct {
 	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt      pgtype.Timestamptz `json:"deleted_at"`
+	Latitude       *float64           `json:"latitude"`
+	Longitude      *float64           `json:"longitude"`
 }
 
 type MasterdataOfficeType struct {

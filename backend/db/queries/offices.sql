@@ -30,8 +30,8 @@ WHERE id = sqlc.arg(id) AND deleted_at IS NULL
 
 -- name: CreateOffice :one
 INSERT INTO masterdata.offices (
-  parent_id, office_type_id, province_id, city_id, name, code, address, is_active
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+  parent_id, office_type_id, province_id, city_id, name, code, address, is_active, latitude, longitude
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 RETURNING *;
 
 -- name: UpdateOffice :one
@@ -43,7 +43,9 @@ SET parent_id = sqlc.narg(parent_id),
     name = sqlc.arg(name),
     code = sqlc.arg(code),
     address = sqlc.narg(address),
-    is_active = sqlc.arg(is_active)
+    is_active = sqlc.arg(is_active),
+    latitude = sqlc.narg(latitude),
+    longitude = sqlc.narg(longitude)
 WHERE id = sqlc.arg(id) AND deleted_at IS NULL
   AND (sqlc.arg(all_scope)::bool OR id = ANY(sqlc.arg(office_ids)::uuid[]))
 RETURNING *;

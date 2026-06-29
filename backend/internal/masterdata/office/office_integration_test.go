@@ -32,6 +32,8 @@ func rowIDs(rows []sqlc.MasterdataOffice) map[uuid.UUID]bool {
 	return m
 }
 
+func f64(v float64) *float64 { return &v }
+
 func TestOfficeDataScope(t *testing.T) {
 	pool := testsupport.NewPostgres(t)
 	q := sqlc.New(pool)
@@ -167,5 +169,44 @@ func TestOfficeDataScope(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "Cabang 1 Renamed", after.Name)
 		assert.False(t, after.UpdatedAt.Time.Before(before.UpdatedAt.Time), "updated_at must not regress")
+	})
+}
+
+func TestOfficeCoordinates(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	q := sqlc.New(pool)
+	svc := office.NewService(q)
+	ctx := context.Background()
+
+	t.Run("create stores and returns coordinates", func(t *testing.T) {
+		testsupport.Reset(t, pool)
+		tree := testsupport.SeedOfficeTree(t, pool)
+
+		created, err := svc.Create(ctx, true, nil, office.CreateInput{
+			ParentID: &tree.Pusat, OfficeTypeID: tree.OfficeTypeID,
+			Name: "Coord Office", Code: "COORD", IsActive: true,
+			Latitude: f64(-6.1754), Longitude: f64(106.8272),
+		})
+		require.NoError(t, err)
+		require.NotNil(t, created.Latitude)
+		require.NotNil(t, created.Longitude)
+		assert.InDelta(t, -6.1754, *created.Latitude, 1e-9)
+		assert.InDelta(t, 106.8272, *created.Longitude, 1e-9)
+	})
+
+	t.Run("update changes coordinates", func(t *testing.T) {
+		testsupport.Reset(t, pool)
+		tree := testsupport.SeedOfficeTree(t, pool)
+
+		_, after, err := svc.Update(ctx, tree.Cabang, true, nil, office.UpdateInput{
+			CreateInput: office.CreateInput{
+				ParentID: &tree.Wilayah, OfficeTypeID: tree.OfficeTypeID,
+				Name: "Cabang 1", Code: "C1", IsActive: true,
+				Latitude: f64(-6.29), Longitude: f64(106.80),
+			},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, after.Latitude)
+		assert.InDelta(t, -6.29, *after.Latitude, 1e-9)
 	})
 }
