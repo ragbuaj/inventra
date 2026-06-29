@@ -194,7 +194,10 @@ onMounted(async () => {
     <aside class="w-[218px] flex-none border-e border-default bg-default flex flex-col overflow-hidden">
       <!-- Panel header -->
       <div class="flex-none px-4 pt-4 pb-2">
-        <div class="font-bold text-sm">
+        <div
+          class="font-bold text-sm"
+          data-testid="reference-panel-title"
+        >
           {{ t('masterdata.reference.panelTitle') }}
         </div>
         <div class="text-xs text-muted mt-0.5">
@@ -326,12 +329,14 @@ onMounted(async () => {
             v-if="field.type === 'fk' || field.type === 'select'"
             :model-value="form[field.key] as string"
             :items="fieldSelectItems(field)"
+            :data-testid="`ref-field-${field.key}`"
             class="w-full"
             @update:model-value="form[field.key] = $event"
           />
           <UInput
             v-else
             :model-value="form[field.key] as string"
+            :data-testid="`ref-field-${field.key}`"
             class="w-full"
             @update:model-value="form[field.key] = $event"
           />

@@ -47,7 +47,7 @@ test.describe('Master Data Referensi — sidebar', () => {
     await page.goto('/master/reference')
 
     // Wait for the panel to mount (heading "Master Data" is always visible).
-    await expect(page.getByText('Master Data', { exact: true })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByTestId('reference-panel-title')).toBeVisible({ timeout: 10_000 })
 
     // Assert a representative subset of the 11 sidebar labels (exact text to avoid
     // multi-match strict-mode failures — e.g. "Provinsi" also appears as a table column
@@ -67,7 +67,7 @@ test.describe('Master Data Referensi — sidebar', () => {
   test('Add button is visible for masterdata.global.manage holder', async ({ page }) => {
     await login(page)
     await page.goto('/master/reference')
-    await expect(page.getByText('Master Data', { exact: true })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByTestId('reference-panel-title')).toBeVisible({ timeout: 10_000 })
     // "Tambah" button (i18n: masterdata.reference.add) is gated by can('masterdata.global.manage').
     await expect(page.getByRole('button', { name: 'Tambah', exact: true })).toBeVisible({ timeout: 8_000 })
   })
@@ -84,7 +84,7 @@ test.describe('Master Data Referensi — provinces CRUD', () => {
   test('create a province and assert the row appears in the table', async ({ page }) => {
     await login(page)
     await page.goto('/master/reference')
-    await expect(page.getByText('Master Data', { exact: true })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByTestId('reference-panel-title')).toBeVisible({ timeout: 10_000 })
 
     // Select "Provinsi" resource in the sidebar.
     await selectResource(page, RESOURCES.provinces)
@@ -123,7 +123,7 @@ test.describe('Master Data Referensi — cities FK picker (provinces)', () => {
   test('create a province then create a city referencing it via FK picker', async ({ page }) => {
     await login(page)
     await page.goto('/master/reference')
-    await expect(page.getByText('Master Data', { exact: true })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByTestId('reference-panel-title')).toBeVisible({ timeout: 10_000 })
 
     // --- Step 1: create a province ---
     await selectResource(page, RESOURCES.provinces)
@@ -145,18 +145,14 @@ test.describe('Master Data Referensi — cities FK picker (provinces)', () => {
     await expect(page.getByText('Tambah Data', { exact: true })).toBeVisible({ timeout: 5_000 })
 
     // --- Step 4: assert the Provinsi FK picker is present ---
-    // The USelect trigger for province_id renders with the label "Provinsi" above it
-    // (UFormField :label="t(field.labelKey)"). The trigger button renders the placeholder
-    // or selected value as its accessible text.
-    // Locate the form field by its label, then find the trigger button within it.
-    const provinsiField = page.locator('div').filter({ has: page.getByText('Provinsi', { exact: true }) }).first()
-    await expect(provinsiField).toBeVisible({ timeout: 5_000 })
+    // The USelect for province_id renders with data-testid="ref-field-province_id"
+    // (added to reference.vue so this locator is deterministic — no broad div/button filter).
+    const provinsiTrigger = page.getByTestId('ref-field-province_id')
+    await expect(provinsiTrigger).toBeVisible({ timeout: 5_000 })
 
-    // The USelect trigger is a button inside the form field that opens the listbox.
-    // Click it to open the dropdown (USelect renders a popover with role="listbox").
-    // We locate the trigger by its role within the field container, not by class.
-    const provinsiTrigger = provinsiField.getByRole('button').first()
-    await expect(provinsiTrigger).toBeVisible()
+    // Click the trigger (or its inner button if the testid lands on the wrapper).
+    // Scoping getByRole('button') to a single testid element is acceptable — it is
+    // not a broad filter; there is exactly one element with this testid in the DOM.
     await provinsiTrigger.click()
 
     // The dropdown listbox should appear with the province we just created.
@@ -195,7 +191,7 @@ test.describe('Master Data Referensi — search', () => {
   test('search input is visible on every resource', async ({ page }) => {
     await login(page)
     await page.goto('/master/reference')
-    await expect(page.getByText('Master Data', { exact: true })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByTestId('reference-panel-title')).toBeVisible({ timeout: 10_000 })
 
     // Default resource (office-types) — the search input placeholder is i18n 'common.search' → "Cari"
     // We locate by placeholder; Nuxt UI UInput with icon renders as <input>.
