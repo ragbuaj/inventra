@@ -39,7 +39,7 @@ export const referenceResources: ReferenceDescriptor[] = [
       { value: 'office', labelKey: 'map.tier.office' }
     ] }
   ] },
-  { key: 'departments', labelKey: 'masterdata.reference.resources.departments', hasActive: true, fields: [nameField] },
+  { key: 'departments', labelKey: 'masterdata.reference.resources.departments', hasActive: true, fields: [nameField, codeField] },
   { key: 'positions', labelKey: 'masterdata.reference.resources.positions', hasActive: true, fields: [nameField] },
   { key: 'units', labelKey: 'masterdata.reference.resources.units', hasActive: true, fields: [nameField, { key: 'symbol', labelKey: 'masterdata.reference.fields.symbol' }] },
   { key: 'maintenance-categories', labelKey: 'masterdata.reference.resources.maintenance-categories', hasActive: true, fields: [nameField] },

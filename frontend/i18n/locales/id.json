@@ -1064,7 +1064,7 @@
       "resources": {
         "office-types": "Jenis Kantor", "departments": "Departemen", "positions": "Jabatan",
         "units": "Satuan", "maintenance-categories": "Kategori Pemeliharaan",
-        "problem-categories": "Kategori Masalah", "brands": "Merek", "vendors": "Vendor",
+        "problem-categories": "Kategori Masalah", "brands": "Brand", "vendors": "Vendor",
         "provinces": "Provinsi", "cities": "Kota", "models": "Model"
       }
     },

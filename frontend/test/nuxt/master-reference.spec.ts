@@ -161,7 +161,7 @@ describe('Master Data Referensi — default load', () => {
     expect(text).toContain('Satuan')
     expect(text).toContain('Kategori Pemeliharaan')
     expect(text).toContain('Kategori Masalah')
-    expect(text).toContain('Merek')
+    expect(text).toContain('Brand')
     expect(text).toContain('Vendor')
     expect(text).toContain('Provinsi')
     expect(text).toContain('Kota')
