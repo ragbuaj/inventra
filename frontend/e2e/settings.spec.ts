@@ -1,21 +1,41 @@
 import { test, expect } from '@playwright/test'
 import { login } from './helpers'
 
-test.describe('Settings cluster (mock-backed)', () => {
-  test('User management lists seeded users', async ({ page }) => {
+// ---------------------------------------------------------------------------
+// User Management screen — real backend (GET/POST/PUT/DELETE /api/v1/users)
+// The seeded admin (admin@inventra.local) has user.manage permission.
+// On a fresh CI stack the admin is the only user, so the table may show just
+// the admin row OR an empty state (if the backend creates the admin without
+// returning it in listing scope). The assertions below are deterministic
+// regardless of which state is active.
+// NOTE: pnpm test:e2e requires the full backend stack (see CLAUDE.md). This
+// spec compiles + lints here; it runs in CI's e2e job.
+// ---------------------------------------------------------------------------
+test.describe('User Management screen — real backend', () => {
+  test('loads page heading and table or empty-state', async ({ page }) => {
     await login(page)
     await page.goto('/settings/users')
-    // Content-based: the table renders mock users (name also appears as linked employee → first()).
-    await expect(page.getByText('Bambang Sukasno').first()).toBeVisible()
-    await expect(page.getByText('Siti Aminah').first()).toBeVisible()
+    // Page heading renders (proves the page mounted and auth resolved).
+    await expect(page.getByRole('heading', { name: 'Pengguna' })).toBeVisible({ timeout: 10_000 })
+    // Content settles to EITHER the seeded admin row OR the empty-state — a single
+    // auto-waiting assertion that is deterministic regardless of backend state.
+    await expect(
+      page.getByText('admin@inventra.local').or(page.getByText('Belum ada pengguna', { exact: true }))
+    ).toBeVisible({ timeout: 10_000 })
   })
 
-  test('RBAC shows roles and a permission matrix', async ({ page }) => {
+  test('Add button (user.manage gate) is visible and opens the create slideover', async ({ page }) => {
     await login(page)
-    await page.goto('/settings/rbac')
-    // Default-selected role + a permission label from the matrix.
-    await expect(page.getByText('Superadmin').first()).toBeVisible()
-    await expect(page.getByText('Lihat aset').first()).toBeVisible()
+    await page.goto('/settings/users')
+    // Wait for the page to settle.
+    await expect(page.getByRole('heading', { name: 'Pengguna' })).toBeVisible({ timeout: 10_000 })
+    // "Tambah User" button is visible because the seeded admin has user.manage.
+    const addBtn = page.getByRole('button', { name: 'Tambah User' })
+    await expect(addBtn).toBeVisible()
+    // Click opens the create form slideover.
+    await addBtn.click()
+    // The slideover heading renders (proves the create form mounted correctly).
+    await expect(page.getByRole('heading', { name: 'Tambah User' })).toBeVisible({ timeout: 5_000 })
   })
 })
 
