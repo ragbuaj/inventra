@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Category, FiscalGroup } from '~/types'
 import type { CategoryInput } from '~/composables/api/useCategories'
-import { FISCAL_GROUPS, isBuildingGroup, formatThousands, parseThousands } from '~/mock/categories'
+import { FISCAL_GROUPS, isBuildingGroup, formatThousands, parseThousands } from '~/constants/categoryMeta'
 
 const props = defineProps<{
   category: Category | null
@@ -189,6 +189,7 @@ defineExpose({ form, isIntangible, isBuilding, onSubmit })
               v-model="form.parent_id"
               :items="[{ value: '__none__', label: t('masterdata.categories.placeholders.parentNone') }, ...props.parentOptions]"
               class="w-full"
+              data-testid="category-parent-select"
             />
           </UFormField>
 

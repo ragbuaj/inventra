@@ -834,7 +834,8 @@
     "showingRange": "Showing {from}–{to} of {total}",
     "error": "Something went wrong",
     "active": "Active",
-    "inactive": "Inactive"
+    "inactive": "Inactive",
+    "retry": "Retry"
   },
   "status": {
     "asset": {
@@ -974,6 +975,7 @@
       "editSub": "Update category parameters.",
       "deleteConfirm": "“{name}” will be removed from the category master. Ensure no asset still uses this category.",
       "errNotFound": "Category not found.",
+      "loadError": "Failed to load categories.",
       "req": "Required.",
       "months": "months",
       "columns": {
@@ -1005,7 +1007,8 @@
         "kelompok_3": "Group 3",
         "kelompok_4": "Group 4",
         "bangunan_permanen": "Permanent Building",
-        "bangunan_non_permanen": "Non-Permanent Building"
+        "bangunan_non_permanen": "Non-Permanent Building",
+        "non_susut": "Non-Depreciable"
       },
       "section": {
         "general": "General",

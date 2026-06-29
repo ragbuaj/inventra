@@ -39,6 +39,11 @@ type CreateInput struct {
 // UpdateInput mirrors CreateInput for updates.
 type UpdateInput struct{ CreateInput }
 
+// Tree returns the full non-deleted category set (no pagination) for the tree view.
+func (s *Service) Tree(ctx context.Context) ([]sqlc.MasterdataCategory, error) {
+	return s.q.ListCategoryTree(ctx)
+}
+
 func (s *Service) List(ctx context.Context, search string, limit, offset int32) ([]sqlc.MasterdataCategory, int64, error) {
 	rows, err := s.q.ListCategories(ctx, sqlc.ListCategoriesParams{Search: search, Lim: limit, Off: offset})
 	if err != nil {

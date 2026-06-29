@@ -54,3 +54,9 @@ RETURNING *;
 UPDATE masterdata.categories
 SET deleted_at = now()
 WHERE id = $1 AND deleted_at IS NULL;
+
+-- name: ListCategoryTree :many
+-- The full non-deleted category set (no pagination) for client-side tree building.
+SELECT * FROM masterdata.categories
+WHERE deleted_at IS NULL
+ORDER BY name;

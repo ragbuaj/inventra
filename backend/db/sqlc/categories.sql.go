@@ -176,6 +176,50 @@ func (q *Queries) ListCategories(ctx context.Context, arg ListCategoriesParams) 
 	return items, nil
 }
 
+const listCategoryTree = `-- name: ListCategoryTree :many
+SELECT id, name, code, parent_id, default_depreciation_method, default_useful_life_months, default_salvage_rate, asset_class, default_fiscal_group, default_fiscal_life_months, gl_account_code, capitalization_threshold, is_active, created_at, updated_at, deleted_at FROM masterdata.categories
+WHERE deleted_at IS NULL
+ORDER BY name
+`
+
+// The full non-deleted category set (no pagination) for client-side tree building.
+func (q *Queries) ListCategoryTree(ctx context.Context) ([]MasterdataCategory, error) {
+	rows, err := q.db.Query(ctx, listCategoryTree)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []MasterdataCategory{}
+	for rows.Next() {
+		var i MasterdataCategory
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Code,
+			&i.ParentID,
+			&i.DefaultDepreciationMethod,
+			&i.DefaultUsefulLifeMonths,
+			&i.DefaultSalvageRate,
+			&i.AssetClass,
+			&i.DefaultFiscalGroup,
+			&i.DefaultFiscalLifeMonths,
+			&i.GlAccountCode,
+			&i.CapitalizationThreshold,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const softDeleteCategory = `-- name: SoftDeleteCategory :execrows
 UPDATE masterdata.categories
 SET deleted_at = now()

@@ -834,7 +834,8 @@
     "showingRange": "Menampilkan {from}–{to} dari {total}",
     "error": "Terjadi kesalahan",
     "active": "Aktif",
-    "inactive": "Nonaktif"
+    "inactive": "Nonaktif",
+    "retry": "Coba lagi"
   },
   "status": {
     "asset": {
@@ -974,6 +975,7 @@
       "editSub": "Perbarui parameter kategori.",
       "deleteConfirm": "“{name}” akan dihapus dari master kategori. Pastikan tidak ada aset yang masih memakai kategori ini.",
       "errNotFound": "Kategori tidak ditemukan.",
+      "loadError": "Gagal memuat kategori.",
       "req": "Wajib diisi.",
       "months": "bulan",
       "columns": {
@@ -1005,7 +1007,8 @@
         "kelompok_3": "Kelompok 3",
         "kelompok_4": "Kelompok 4",
         "bangunan_permanen": "Bangunan Permanen",
-        "bangunan_non_permanen": "Bangunan Non-Permanen"
+        "bangunan_non_permanen": "Bangunan Non-Permanen",
+        "non_susut": "Non-Penyusutan"
       },
       "section": {
         "general": "Umum",

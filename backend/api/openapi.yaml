@@ -433,6 +433,29 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/v1/categories/tree:
+    get:
+      tags: [Master Data]
+      operationId: listCategoryTree
+      summary: Category tree (full)
+      description: Returns the full non-deleted category set, unpaginated, for client-side tree building. Readable by any authenticated user.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Full category list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Category"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
   /api/v1/categories:
     get:
       tags: [Master Data]

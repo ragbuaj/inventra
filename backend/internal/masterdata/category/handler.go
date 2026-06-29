@@ -21,6 +21,19 @@ func NewHandler(q *sqlc.Queries, aud *audit.Service) *Handler {
 	return &Handler{svc: NewService(q), aud: aud}
 }
 
+func (h *Handler) tree(c *gin.Context) {
+	rows, err := h.svc.Tree(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list category tree"})
+		return
+	}
+	data := make([]Response, 0, len(rows))
+	for _, cat := range rows {
+		data = append(data, toResponse(cat))
+	}
+	c.JSON(http.StatusOK, gin.H{"data": data})
+}
+
 func (h *Handler) list(c *gin.Context) {
 	search := c.Query("search")
 	limit := common.ClampInt(c.Query("limit"), 20, 1, 100)
