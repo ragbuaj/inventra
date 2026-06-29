@@ -42,6 +42,24 @@ func (h *Handler) svcError(c *gin.Context, err error) {
 	}
 }
 
+func (h *Handler) mapList(c *gin.Context) {
+	all, ids, err := h.scoped.CallerOfficeScope(c, scopeModule)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
+		return
+	}
+	rows, err := h.svc.MapList(c.Request.Context(), all, ids)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list office map"})
+		return
+	}
+	data := make([]MapResponse, 0, len(rows))
+	for _, r := range rows {
+		data = append(data, toMapResponse(r))
+	}
+	c.JSON(http.StatusOK, gin.H{"data": data})
+}
+
 func (h *Handler) list(c *gin.Context) {
 	all, ids, err := h.scoped.CallerOfficeScope(c, scopeModule)
 	if err != nil {

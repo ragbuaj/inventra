@@ -1093,7 +1093,9 @@
     "openMaps": "Buka di Maps",
     "registeredAssets": "aset terdaftar",
     "summary": "{o} kantor · {k} kota · {p} provinsi",
-    "jenis": { "pusat": "Pusat", "wilayah": "Wilayah", "cabang": "Cabang", "outlet": "Outlet" }
+    "tier": { "pusat": "Pusat", "wilayah": "Wilayah", "office": "Cabang" },
+    "loadError": "Gagal memuat peta kantor.",
+    "retry": "Coba lagi"
   },
   "account": {
     "title": "Profil & Pengaturan Akun",

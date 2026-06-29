@@ -1,86 +1,78 @@
 // @vitest-environment nuxt
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
+
+const request = vi.fn()
+vi.mock('~/composables/useApiClient', () => ({ useApiClient: () => ({ request }) }))
+
+// eslint-disable-next-line import/first
 import { useAuthStore } from '~/stores/auth'
+// eslint-disable-next-line import/first
 import MapPage from '~/pages/master/map.vue'
 
-/**
- * Stub the client-only OfficeMap (Leaflet) so it never loads in JSDOM.
- * The stub renders a placeholder div so the rest of the page renders normally.
- */
-const stubs = {
-  OfficeMap: { template: '<div class="office-map-stub" />' }
-}
-
-// Grant a superadmin session so the `can` middleware (masterdata.office.manage) passes.
-function admin() {
-  useAuthStore().setSession(
-    't',
-    { id: '1', name: 'A', email: 'a@e.com', role_id: 'r', role_name: 'Superadmin' },
-    ['*']
-  )
-}
+const OFFICES = [
+  { id: 'o1', name: 'Kantor Pusat', code: 'PST', office_type_name: 'Kantor Pusat', tier: 'pusat', province_name: 'DKI Jakarta', city_name: 'Jakarta Pusat', address: 'Jl. Merdeka 1', asset_count: 12, latitude: -6.1754, longitude: 106.8272 },
+  { id: 'o2', name: 'Cabang Bekasi', code: 'BKS01', office_type_name: 'Kantor Cabang', tier: 'office', province_name: 'Jawa Barat', city_name: 'Bekasi', address: 'Jl. A. Yani 1', asset_count: 3, latitude: -6.2383, longitude: 106.9756 },
+  { id: 'o3', name: 'Cabang Tanpa Koordinat', code: 'NOC', office_type_name: 'Kantor Cabang', tier: 'office', province_name: 'Banten', city_name: 'Tangerang', address: 'Jl. X', asset_count: 0, latitude: null, longitude: null }
+]
 
 beforeEach(() => {
-  useAuthStore().clear()
-  admin()
+  request.mockReset()
+  useAuthStore().setSession('t', { id: 'u', name: 'Admin', email: 'a@x.id', role_id: 'r', role_name: '' }, ['*'])
 })
 
-async function mountAndWait() {
-  const wrapper = await mountSuspended(MapPage, { global: { stubs } })
-  // Wait for fakeLatency (500ms) + one tick
-  await new Promise(r => setTimeout(r, 600))
-  await wrapper.vm.$nextTick()
+async function mountMap() {
+  const wrapper = await mountSuspended(MapPage, { global: { stubs: { OfficeMap: true } } })
+  await new Promise(r => setTimeout(r, 50))
   return wrapper
 }
 
-describe('Peta Lokasi (Office Map) page', () => {
-  it('renders office rows after loading', async () => {
-    const wrapper = await mountAndWait()
-    const html = wrapper.html()
-    // All 9 mock offices should be visible
-    expect(html).toContain('Kantor Pusat')
-    expect(html).toContain('Cabang Jakarta Selatan')
-    expect(html).toContain('Cabang Bekasi')
-    // Summary strip is rendered
-    expect(html).toContain('kantor')
+describe('Peta Lokasi page', () => {
+  it('renders office rows with resolved names + tier labels', async () => {
+    request.mockResolvedValueOnce({ data: OFFICES })
+    const wrapper = await mountMap()
+    const text = wrapper.text()
+    expect(request).toHaveBeenCalledWith('/offices/map')
+    expect(text).toContain('Kantor Pusat')
+    expect(text).toContain('Cabang Bekasi')
+    expect(text).toContain('Jakarta Pusat')
+    expect(text).toContain('Bekasi')
   })
 
-  it('filters offices by search query', async () => {
-    const wrapper = await mountAndWait()
-    const input = wrapper.find('input')
-    await input.setValue('Bekasi')
+  it('filters the list by province', async () => {
+    request.mockResolvedValueOnce({ data: OFFICES })
+    const wrapper = await mountMap()
+    ;(wrapper.vm as unknown as { fProv: string }).fProv = 'Jawa Barat'
     await wrapper.vm.$nextTick()
-    const html = wrapper.html()
-    expect(html).toContain('Cabang Bekasi')
-    // Offices not matching should be absent from the list area
-    expect(html).not.toContain('Kantor Pusat')
+    const text = wrapper.text()
+    expect(text).toContain('Cabang Bekasi')
+    expect(text).not.toContain('Kantor Pusat')
   })
 
-  it('shows the detail card when an office row is clicked', async () => {
-    const wrapper = await mountAndWait()
-    // Find the office-row button for Kantor Pusat
-    const buttons = wrapper.findAll('button')
-    const pusatBtn = buttons.find(b => b.text().includes('Kantor Pusat'))
-    expect(pusatBtn).toBeDefined()
-    await pusatBtn!.trigger('click')
+  it('selecting an office shows its detail (address + asset count)', async () => {
+    request.mockResolvedValueOnce({ data: OFFICES })
+    const wrapper = await mountMap()
+    ;(wrapper.vm as unknown as { selId: string | null }).selId = 'o1'
     await wrapper.vm.$nextTick()
-    const html = wrapper.html()
-    // Detail card shows name, kode, and asset count
-    expect(html).toContain('Kantor Pusat')
-    expect(html).toContain('PST')
-    expect(html).toContain('94')
-    // Action buttons present
-    expect(html).toContain('Lihat Kantor')
-    expect(html).toContain('Buka di Maps')
+    const card = wrapper.find('[data-testid="office-detail-card"]')
+    expect(card.exists()).toBe(true)
+    expect(card.text()).toContain('Jl. Merdeka 1')
+    expect(card.text()).toContain('12')
   })
 
-  it('shows empty state when no offices match the filter', async () => {
-    const wrapper = await mountAndWait()
-    const input = wrapper.find('input')
-    await input.setValue('xxxxxxnotfound')
-    await wrapper.vm.$nextTick()
-    const html = wrapper.html()
-    expect(html).toContain('Tidak ada kantor')
+  it('shows the error state + retry on load failure, then recovers', async () => {
+    request.mockRejectedValueOnce(new Error('500'))
+    const wrapper = await mountMap()
+    expect(wrapper.text()).toContain('Gagal memuat peta kantor.')
+    request.mockResolvedValueOnce({ data: OFFICES })
+    await wrapper.find('[data-testid="map-retry"]').trigger('click')
+    await new Promise(r => setTimeout(r, 50))
+    expect(wrapper.text()).toContain('Kantor Pusat')
+  })
+
+  it('renders the empty state when no offices', async () => {
+    request.mockResolvedValueOnce({ data: [] })
+    const wrapper = await mountMap()
+    expect(wrapper.text()).toContain('Tidak ada kantor')
   })
 })

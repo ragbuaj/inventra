@@ -36,6 +36,8 @@ type CreateInput struct {
 	Code         string
 	Address      *string
 	IsActive     bool
+	Latitude     *float64
+	Longitude    *float64
 }
 
 // UpdateInput mirrors CreateInput for updates.
@@ -52,6 +54,11 @@ func (s *Service) List(ctx context.Context, all bool, ids []uuid.UUID, search st
 		return nil, 0, err
 	}
 	return rows, total, nil
+}
+
+// MapList returns geo-enriched offices within the caller's scope for the map screen.
+func (s *Service) MapList(ctx context.Context, all bool, ids []uuid.UUID) ([]sqlc.ListOfficesMapRow, error) {
+	return s.q.ListOfficesMap(ctx, sqlc.ListOfficesMapParams{AllScope: all, OfficeIds: ids})
 }
 
 // Get returns one office within the caller's scope.
@@ -78,6 +85,8 @@ func (s *Service) Create(ctx context.Context, all bool, ids []uuid.UUID, in Crea
 		Code:         in.Code,
 		Address:      in.Address,
 		IsActive:     in.IsActive,
+		Latitude:     in.Latitude,
+		Longitude:    in.Longitude,
 	})
 	if err != nil {
 		return o, common.MapDBError(err)
@@ -104,6 +113,8 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, all bool, ids []uuid
 		Code:         in.Code,
 		Address:      in.Address,
 		IsActive:     in.IsActive,
+		Latitude:     in.Latitude,
+		Longitude:    in.Longitude,
 		ID:           id,
 		AllScope:     all,
 		OfficeIds:    ids,

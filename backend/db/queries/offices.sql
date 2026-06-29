@@ -30,8 +30,8 @@ WHERE id = sqlc.arg(id) AND deleted_at IS NULL
 
 -- name: CreateOffice :one
 INSERT INTO masterdata.offices (
-  parent_id, office_type_id, province_id, city_id, name, code, address, is_active
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+  parent_id, office_type_id, province_id, city_id, name, code, address, is_active, latitude, longitude
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 RETURNING *;
 
 -- name: UpdateOffice :one
@@ -43,7 +43,9 @@ SET parent_id = sqlc.narg(parent_id),
     name = sqlc.arg(name),
     code = sqlc.arg(code),
     address = sqlc.narg(address),
-    is_active = sqlc.arg(is_active)
+    is_active = sqlc.arg(is_active),
+    latitude = sqlc.narg(latitude),
+    longitude = sqlc.narg(longitude)
 WHERE id = sqlc.arg(id) AND deleted_at IS NULL
   AND (sqlc.arg(all_scope)::bool OR id = ANY(sqlc.arg(office_ids)::uuid[]))
 RETURNING *;
@@ -52,6 +54,26 @@ RETURNING *;
 UPDATE masterdata.offices SET deleted_at = now()
 WHERE id = sqlc.arg(id) AND deleted_at IS NULL
   AND (sqlc.arg(all_scope)::bool OR id = ANY(sqlc.arg(office_ids)::uuid[]));
+
+-- name: ListOfficesMap :many
+-- Geo-enriched, scoped office list for the Peta Lokasi screen: resolves
+-- office-type/province/city names + a per-office (non-deleted) asset count.
+SELECT
+  o.id, o.name, o.code, o.address, o.latitude, o.longitude,
+  ot.name AS office_type_name,
+  ot.tier AS tier,
+  p.name  AS province_name,
+  c.name  AS city_name,
+  (SELECT count(*) FROM asset.assets a
+     WHERE a.office_id = o.id AND a.deleted_at IS NULL) AS asset_count
+FROM masterdata.offices o
+LEFT JOIN masterdata.office_types ot ON ot.id = o.office_type_id AND ot.deleted_at IS NULL
+LEFT JOIN masterdata.provinces    p  ON p.id  = o.province_id    AND p.deleted_at IS NULL
+LEFT JOIN masterdata.cities       c  ON c.id  = o.city_id        AND c.deleted_at IS NULL
+WHERE o.deleted_at IS NULL
+  AND o.is_active = true
+  AND (sqlc.arg(all_scope)::bool OR o.id = ANY(sqlc.arg(office_ids)::uuid[]))
+ORDER BY o.name;
 
 -- name: GetOfficeAncestors :many
 WITH RECURSIVE anc AS (

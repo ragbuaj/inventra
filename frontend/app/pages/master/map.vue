@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { MapOffice, OfficeJenis } from '~/types'
-import { jenisMeta, JENIS_ORDER } from '~/mock/officeMap'
+import type { MapOffice, OfficeTier } from '~/types'
+import { tierMeta, TIER_ORDER } from '~/constants/officeMapMeta'
 import { googleMapsUrl } from '~/utils/googleMapsUrl'
 
 definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
@@ -10,42 +10,53 @@ const { list } = useOfficeMap()
 
 // --- State ---
 const loading = ref(true)
+const loadFailed = ref(false)
 const offices = ref<MapOffice[]>([])
 const q = ref('')
-const fJenis = ref<'all' | OfficeJenis>('all')
+const fTier = ref<'all' | OfficeTier>('all')
 const fProv = ref<string>('all')
 const selId = ref<string | null>(null)
 const mapRef = ref<{ resetView: () => void, zoomIn: () => void, zoomOut: () => void } | null>(null)
 
-onMounted(async () => {
-  offices.value = await list()
-  loading.value = false
-})
+async function reload() {
+  loading.value = true
+  loadFailed.value = false
+  try {
+    offices.value = await list()
+  } catch {
+    loadFailed.value = true
+  } finally {
+    loading.value = false
+  }
+}
+onMounted(reload)
 
 // --- Derived ---
-const provinces = computed(() => Array.from(new Set(offices.value.map(o => o.prov))).sort())
+const provinces = computed(() => Array.from(new Set(offices.value.map(o => o.province_name).filter((p): p is string => !!p))).sort())
 
 const filtered = computed(() => {
   const sq = q.value.trim().toLowerCase()
   return offices.value.filter((o) => {
-    if (sq && !o.nama.toLowerCase().includes(sq) && !o.kode.toLowerCase().includes(sq)) return false
-    if (fJenis.value !== 'all' && o.jenis !== fJenis.value) return false
-    if (fProv.value !== 'all' && o.prov !== fProv.value) return false
+    if (sq && !o.name.toLowerCase().includes(sq) && !o.code.toLowerCase().includes(sq)) return false
+    if (fTier.value !== 'all' && o.tier !== fTier.value) return false
+    if (fProv.value !== 'all' && o.province_name !== fProv.value) return false
     return true
   })
 })
 
+const mapped = computed(() => filtered.value.filter(o => o.latitude != null && o.longitude != null))
+
 const summaryText = computed(() => {
-  const cities = new Set(filtered.value.map(o => o.kota)).size
-  const provs = new Set(filtered.value.map(o => o.prov)).size
+  const cities = new Set(filtered.value.map(o => o.city_name).filter(Boolean)).size
+  const provs = new Set(filtered.value.map(o => o.province_name).filter(Boolean)).size
   return t('map.summary', { o: filtered.value.length, k: cities, p: provs })
 })
 
 const selected = computed(() => filtered.value.find(o => o.id === selId.value) ?? null)
 
-const jenisItems = computed(() => [
+const tierItems = computed(() => [
   { value: 'all', label: t('map.jenisAll') },
-  ...JENIS_ORDER.map(j => ({ value: j, label: t(jenisMeta[j].labelKey) }))
+  ...TIER_ORDER.map(j => ({ value: j, label: t(tierMeta[j].labelKey) }))
 ])
 
 const provItems = computed(() => [
@@ -54,7 +65,7 @@ const provItems = computed(() => [
 ])
 
 // Reset selection when filters change
-watch(fJenis, () => {
+watch(fTier, () => {
   selId.value = null
 })
 watch(fProv, () => {
@@ -106,11 +117,11 @@ function resetView() {
             size="sm"
             class="mb-2 w-full"
           />
-          <!-- Jenis + Provinsi selects -->
+          <!-- Tier + Provinsi selects -->
           <div class="flex gap-2">
             <USelect
-              v-model="fJenis"
-              :items="jenisItems"
+              v-model="fTier"
+              :items="tierItems"
               size="sm"
               class="flex-1"
             />
@@ -140,11 +151,31 @@ function resetView() {
             </div>
           </template>
 
+          <!-- Error state -->
+          <div
+            v-else-if="loadFailed"
+            class="px-4 py-10 text-center"
+          >
+            <p class="text-[13.5px] font-semibold mb-2">
+              {{ $t('map.loadError') }}
+            </p>
+            <UButton
+              color="neutral"
+              variant="subtle"
+              size="sm"
+              data-testid="map-retry"
+              @click="reload"
+            >
+              {{ $t('map.retry') }}
+            </UButton>
+          </div>
+
           <!-- Populated rows -->
           <template v-else>
             <button
               v-for="office in filtered"
               :key="office.id"
+              data-testid="office-row"
               class="flex items-start gap-2.5 w-full px-2.5 py-2.5 mb-1 rounded-[10px] border text-left cursor-pointer transition-colors hover:border-primary"
               :class="selId === office.id
                 ? 'bg-primary/10 border-primary'
@@ -154,7 +185,7 @@ function resetView() {
               <!-- Pin icon -->
               <span
                 class="size-[30px] rounded-lg flex items-center justify-center flex-none mt-0.5"
-                :class="[jenisMeta[office.jenis].softBg, jenisMeta[office.jenis].softText]"
+                :class="[tierMeta[office.tier].softBg, tierMeta[office.tier].softText]"
               >
                 <UIcon
                   name="i-lucide-map-pin"
@@ -167,20 +198,20 @@ function resetView() {
                     class="text-[13px] font-semibold truncate"
                     :class="selId === office.id ? 'text-primary' : ''"
                   >
-                    {{ office.nama }}
+                    {{ office.name }}
                   </span>
                 </div>
                 <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
                   <span
                     class="px-1.5 py-px text-[10px] font-semibold rounded-full"
-                    :class="[jenisMeta[office.jenis].softBg, jenisMeta[office.jenis].softText]"
+                    :class="[tierMeta[office.tier].softBg, tierMeta[office.tier].softText]"
                   >
-                    {{ $t(jenisMeta[office.jenis].labelKey) }}
+                    {{ $t(tierMeta[office.tier].labelKey) }}
                   </span>
-                  <span class="font-mono text-[11px] text-dimmed">{{ office.kode }}</span>
+                  <span class="font-mono text-[11px] text-dimmed">{{ office.code }}</span>
                 </div>
                 <div class="text-[11.5px] text-muted mt-0.5 truncate">
-                  {{ office.kota }}, {{ office.prov }}
+                  {{ office.city_name }}{{ office.province_name ? ', ' + office.province_name : '' }}
                 </div>
               </div>
             </button>
@@ -221,16 +252,16 @@ function resetView() {
           <div class="flex items-center gap-3.5 flex-wrap">
             <div class="flex items-center gap-3">
               <span
-                v-for="j in JENIS_ORDER"
+                v-for="j in TIER_ORDER"
                 :key="j"
                 class="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-muted"
               >
                 <span
                   class="size-2 rounded-full"
-                  :class="jenisMeta[j].softBg"
-                  :style="{ background: `var(${jenisMeta[j].pinVar})` }"
+                  :class="tierMeta[j].softBg"
+                  :style="{ background: `var(${tierMeta[j].pinVar})` }"
                 />
-                {{ $t(jenisMeta[j].labelKey) }}
+                {{ $t(tierMeta[j].labelKey) }}
               </span>
             </div>
           </div>
@@ -250,7 +281,7 @@ function resetView() {
             <ClientOnly>
               <OfficeMap
                 ref="mapRef"
-                :offices="filtered"
+                :offices="mapped"
                 :selected-id="selId"
                 @select="(id) => selId = id"
               />
@@ -258,7 +289,7 @@ function resetView() {
 
             <!-- Empty map overlay -->
             <div
-              v-if="filtered.length === 0"
+              v-if="mapped.length === 0"
               class="absolute inset-0 flex flex-col items-center justify-center gap-2.5"
               style="background: color-mix(in srgb, var(--ui-bg) 55%, transparent)"
             >
@@ -321,29 +352,29 @@ function resetView() {
                 data-testid="office-detail-card"
                 class="absolute left-4 bottom-4 w-[312px] max-w-[calc(100%-32px)] bg-elevated border border-default rounded-[14px] shadow-xl overflow-hidden"
               >
-                <!-- Header row: icon + name/jenis/kode + close -->
+                <!-- Header row: icon + name/tier/code + close -->
                 <div class="flex items-start gap-3 px-4 pt-4 pb-3">
                   <span
                     class="size-9 rounded-[9px] flex items-center justify-center flex-none"
-                    :class="[jenisMeta[selected.jenis].softBg, jenisMeta[selected.jenis].softText]"
+                    :class="[tierMeta[selected.tier].softBg, tierMeta[selected.tier].softText]"
                   >
                     <UIcon
-                      :name="jenisMeta[selected.jenis].icon"
+                      :name="tierMeta[selected.tier].icon"
                       class="size-[17px]"
                     />
                   </span>
                   <div class="flex-1 min-w-0">
                     <div class="text-[15px] font-bold leading-snug">
-                      {{ selected.nama }}
+                      {{ selected.name }}
                     </div>
                     <div class="flex items-center gap-2 mt-1">
                       <span
                         class="px-2 py-px text-[10.5px] font-semibold rounded-full"
-                        :class="[jenisMeta[selected.jenis].softBg, jenisMeta[selected.jenis].softText]"
+                        :class="[tierMeta[selected.tier].softBg, tierMeta[selected.tier].softText]"
                       >
-                        {{ $t(jenisMeta[selected.jenis].labelKey) }}
+                        {{ $t(tierMeta[selected.tier].labelKey) }}
                       </span>
-                      <span class="font-mono text-[11px] text-dimmed">{{ selected.kode }}</span>
+                      <span class="font-mono text-[11px] text-dimmed">{{ selected.code }}</span>
                     </div>
                   </div>
                   <button
@@ -365,7 +396,7 @@ function resetView() {
                       class="size-3.5 text-dimmed flex-none mt-0.5"
                     />
                     <div class="text-[12.5px] leading-relaxed text-muted">
-                      {{ selected.alamat }}
+                      {{ selected.address }}
                     </div>
                   </div>
                   <div class="flex items-center gap-2">
@@ -374,7 +405,7 @@ function resetView() {
                       class="size-3.5 text-dimmed flex-none"
                     />
                     <div class="text-[12.5px] font-medium">
-                      {{ selected.kota }}, {{ selected.prov }}
+                      {{ selected.city_name }}{{ selected.province_name ? ', ' + selected.province_name : '' }}
                     </div>
                   </div>
                   <div class="flex items-center gap-2 px-3 py-2.5 rounded-[9px] bg-muted">
@@ -382,7 +413,7 @@ function resetView() {
                       name="i-lucide-package"
                       class="size-[15px] text-primary flex-none"
                     />
-                    <span class="text-[13px] font-semibold">{{ selected.aset }}</span>
+                    <span class="text-[13px] font-semibold">{{ selected.asset_count }}</span>
                     <span class="text-[12px] text-muted">{{ $t('map.registeredAssets') }}</span>
                   </div>
                 </div>
@@ -399,18 +430,20 @@ function resetView() {
                     />
                     {{ $t('map.viewOffice') }}
                   </NuxtLink>
-                  <a
-                    :href="googleMapsUrl(selected.lat, selected.lng)"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-2 text-[12.5px] font-medium text-default bg-default border border-strong rounded-[9px] hover:bg-muted transition-colors"
-                  >
-                    <UIcon
-                      name="i-lucide-map-pin"
-                      class="size-3.5"
-                    />
-                    {{ $t('map.openMaps') }}
-                  </a>
+                  <template v-if="selected.latitude != null && selected.longitude != null">
+                    <a
+                      :href="googleMapsUrl(selected.latitude, selected.longitude)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-2 text-[12.5px] font-medium text-default bg-default border border-strong rounded-[9px] hover:bg-muted transition-colors"
+                    >
+                      <UIcon
+                        name="i-lucide-map-pin"
+                        class="size-3.5"
+                      />
+                      {{ $t('map.openMaps') }}
+                    </a>
+                  </template>
                 </div>
               </div>
             </Transition>

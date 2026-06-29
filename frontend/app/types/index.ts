@@ -188,19 +188,20 @@ export interface SearchGroup {
   items: SearchItem[]
 }
 
-export type OfficeJenis = 'Pusat' | 'Wilayah' | 'Cabang' | 'Outlet'
+export type OfficeTier = 'pusat' | 'wilayah' | 'office'
 
 export interface MapOffice {
   id: string
-  nama: string
-  kode: string
-  jenis: OfficeJenis
-  kota: string
-  prov: string
-  alamat: string
-  aset: number
-  lat: number
-  lng: number
+  name: string
+  code: string
+  office_type_name: string | null
+  tier: OfficeTier
+  province_name: string | null
+  city_name: string | null
+  address: string | null
+  asset_count: number
+  latitude: number | null
+  longitude: number | null
 }
 
 export interface AccountProfile {

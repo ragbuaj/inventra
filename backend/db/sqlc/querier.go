@@ -91,6 +91,9 @@ type Querier interface {
 	// Offices (hierarchy) with data-scoping. all_scope bypasses the office filter
 	// (global scope); otherwise only offices whose id is in office_ids are returned.
 	ListOffices(ctx context.Context, arg ListOfficesParams) ([]MasterdataOffice, error)
+	// Geo-enriched, scoped office list for the Peta Lokasi screen: resolves
+	// office-type/province/city names + a per-office (non-deleted) asset count.
+	ListOfficesMap(ctx context.Context, arg ListOfficesMapParams) ([]ListOfficesMapRow, error)
 	ListRequestApprovals(ctx context.Context, requestID uuid.UUID) ([]ApprovalRequestApproval, error)
 	ListRequests(ctx context.Context, arg ListRequestsParams) ([]ApprovalRequest, error)
 	ListRolePermissions(ctx context.Context, roleID uuid.UUID) ([]string, error)
