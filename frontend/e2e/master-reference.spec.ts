@@ -27,15 +27,15 @@ const RESOURCES = {
 }
 
 // ---------------------------------------------------------------------------
-// Helper: click a sidebar resource button by its exact i18n label.
-// The sidebar renders each resource as a <button> with a <span class="truncate">
-// containing the label text. We locate by role+name which auto-waits + avoids
-// `.first()` on an ambiguous query.
+// Helper: click a sidebar resource button by its resource key.
+// The sidebar renders each resource as a <button data-testid="ref-nav-<key>">
+// whose accessible name is label + count badge (e.g. "Provinsi 9"), so a
+// name-based match is unreliable — we target the stable per-resource testid.
 // ---------------------------------------------------------------------------
-async function selectResource(page: import('@playwright/test').Page, label: string) {
-  // The sidebar button contains the label in a truncate <span>.
-  // getByRole('button', { name }) matches button accessible name (text content).
-  await page.getByRole('button', { name: label, exact: true }).click()
+type ReferenceKey = keyof typeof RESOURCES
+
+async function selectResource(page: import('@playwright/test').Page, key: ReferenceKey) {
+  await page.getByTestId(`ref-nav-${key}`).click()
 }
 
 // ---------------------------------------------------------------------------
@@ -49,19 +49,15 @@ test.describe('Master Data Referensi — sidebar', () => {
     // Wait for the panel to mount (heading "Master Data" is always visible).
     await expect(page.getByTestId('reference-panel-title')).toBeVisible({ timeout: 10_000 })
 
-    // Assert a representative subset of the 11 sidebar labels (exact text to avoid
-    // multi-match strict-mode failures — e.g. "Provinsi" also appears as a table column
-    // header on a different resource; the sidebar button is the only button with that name).
-    await expect(page.getByRole('button', { name: RESOURCES.provinces, exact: true })).toBeVisible()
-    await expect(page.getByRole('button', { name: RESOURCES.departments, exact: true })).toBeVisible()
-    await expect(page.getByRole('button', { name: RESOURCES.brands, exact: true })).toBeVisible()
-    await expect(page.getByRole('button', { name: RESOURCES['maintenance-categories'], exact: true })).toBeVisible()
-
-    // Verify count badges render for at least the first resource (office-types).
-    // The count is a mono-font span; it renders as "…" while loading and a number when settled.
-    // We wait until it is NOT "…" (numeric or 0), proving the API call resolved.
-    const officeTypesBtn = page.getByRole('button', { name: RESOURCES['office-types'], exact: true })
-    await expect(officeTypesBtn).toBeVisible()
+    // Assert a representative subset of the 11 sidebar nav buttons via their stable
+    // per-resource testid, and that each renders its i18n label text. (The button's
+    // accessible name also includes the count badge, so we assert the label as a
+    // substring via toContainText rather than an exact name match.)
+    await expect(page.getByTestId('ref-nav-provinces')).toContainText(RESOURCES.provinces)
+    await expect(page.getByTestId('ref-nav-departments')).toContainText(RESOURCES.departments)
+    await expect(page.getByTestId('ref-nav-brands')).toContainText(RESOURCES.brands)
+    await expect(page.getByTestId('ref-nav-maintenance-categories')).toContainText(RESOURCES['maintenance-categories'])
+    await expect(page.getByTestId('ref-nav-office-types')).toContainText(RESOURCES['office-types'])
   })
 
   test('Add button is visible for masterdata.global.manage holder', async ({ page }) => {
@@ -87,7 +83,7 @@ test.describe('Master Data Referensi — provinces CRUD', () => {
     await expect(page.getByTestId('reference-panel-title')).toBeVisible({ timeout: 10_000 })
 
     // Select "Provinsi" resource in the sidebar.
-    await selectResource(page, RESOURCES.provinces)
+    await selectResource(page, 'provinces')
 
     // Wait for the page heading to update to the selected resource label.
     await expect(page.getByRole('heading', { name: RESOURCES.provinces, exact: true })).toBeVisible({ timeout: 8_000 })
@@ -126,7 +122,7 @@ test.describe('Master Data Referensi — cities FK picker (provinces)', () => {
     await expect(page.getByTestId('reference-panel-title')).toBeVisible({ timeout: 10_000 })
 
     // --- Step 1: create a province ---
-    await selectResource(page, RESOURCES.provinces)
+    await selectResource(page, 'provinces')
     await expect(page.getByRole('heading', { name: RESOURCES.provinces, exact: true })).toBeVisible({ timeout: 8_000 })
     await page.getByRole('button', { name: 'Tambah', exact: true }).click()
     await expect(page.getByText('Tambah Data', { exact: true })).toBeVisible({ timeout: 5_000 })
@@ -137,7 +133,7 @@ test.describe('Master Data Referensi — cities FK picker (provinces)', () => {
     await expect(page.getByText(provinceName2, { exact: true })).toBeVisible({ timeout: 10_000 })
 
     // --- Step 2: switch to "Kota" ---
-    await selectResource(page, RESOURCES.cities)
+    await selectResource(page, 'cities')
     await expect(page.getByRole('heading', { name: RESOURCES.cities, exact: true })).toBeVisible({ timeout: 8_000 })
 
     // --- Step 3: open the create modal ---
@@ -199,7 +195,7 @@ test.describe('Master Data Referensi — search', () => {
     await expect(searchInput).toBeVisible({ timeout: 8_000 })
 
     // Switch to departments and verify the search persists.
-    await selectResource(page, RESOURCES.departments)
+    await selectResource(page, 'departments')
     await expect(page.getByRole('heading', { name: RESOURCES.departments, exact: true })).toBeVisible({ timeout: 8_000 })
     await expect(searchInput).toBeVisible()
   })

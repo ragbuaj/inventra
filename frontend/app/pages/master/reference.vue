@@ -209,6 +209,7 @@ onMounted(async () => {
         <button
           v-for="res in referenceResources"
           :key="res.key"
+          :data-testid="`ref-nav-${res.key}`"
           class="flex items-center justify-between gap-2 w-full px-[11px] py-2 mb-0.5 text-[13px] rounded-lg border-none cursor-pointer text-left transition-colors"
           :class="resourceKey === res.key
             ? 'bg-primary/10 text-primary font-semibold'
