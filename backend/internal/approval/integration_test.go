@@ -23,6 +23,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/asset"
 	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/authz"
+	"github.com/ragbuaj/inventra/internal/disposal"
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
 	"github.com/ragbuaj/inventra/internal/middleware"
 	"github.com/ragbuaj/inventra/internal/storage"
@@ -427,15 +428,19 @@ func TestApproval_AssetDisposal_ApproveChain(t *testing.T) {
 	scopeSvc := authz.NewScopeService(q, rdb)
 	svc := approval.NewService(q, pool, scopeSvc, rdb)
 	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0, "")
-	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, assetSvc.DisposalExecutor())
+	disposalSvc := disposal.NewService(q, pool, svc)
+	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, disposalSvc.Executor())
 
 	targetEntity := "assets"
+	disposalPayload, err := json.Marshal(disposal.DisposalPayload{Method: "write_off", DisposalDate: "2026-07-01"})
+	require.NoError(t, err)
 	req, err := svc.Submit(ctx, approval.SubmitInput{
 		Type:         sqlc.SharedRequestTypeAssetDisposal,
 		Amount:       "1000000", // 1M < 5M → 1-step office chain
 		OfficeID:     tr.CabangID,
 		TargetEntity: &targetEntity,
 		TargetID:     &assetID,
+		Payload:      disposalPayload,
 		Maker:        maker,
 	})
 	require.NoError(t, err)
@@ -481,9 +486,12 @@ func TestApproval_AssetDisposal_CrossOfficeRejected(t *testing.T) {
 	scopeSvc := authz.NewScopeService(q, rdb)
 	svc := approval.NewService(q, pool, scopeSvc, rdb)
 	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0, "")
-	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, assetSvc.DisposalExecutor())
+	disposalSvc := disposal.NewService(q, pool, svc)
+	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, disposalSvc.Executor())
 
 	targetEntity := "assets"
+	disposalPayload, err := json.Marshal(disposal.DisposalPayload{Method: "write_off", DisposalDate: "2026-07-01"})
+	require.NoError(t, err)
 	// Submit the disposal referencing otherOfficeID but asset lives in CabangID
 	req, err := svc.Submit(ctx, approval.SubmitInput{
 		Type:         sqlc.SharedRequestTypeAssetDisposal,
@@ -491,13 +499,14 @@ func TestApproval_AssetDisposal_CrossOfficeRejected(t *testing.T) {
 		OfficeID:     otherOfficeID, // mismatch!
 		TargetEntity: &targetEntity,
 		TargetID:     &assetID,
+		Payload:      disposalPayload,
 		Maker:        maker,
 	})
 	require.NoError(t, err)
 
 	caller := buildCaller(approver, officeRoleID, false, []uuid.UUID{otherOfficeID, tr.CabangID, tr.WilayahID})
 	_, err = svc.Decide(ctx, req.ID, caller, true, nil)
-	require.ErrorIs(t, err, asset.ErrInvalidRef, "cross-office disposal should fail with ErrInvalidRef at executor")
+	require.ErrorIs(t, err, approval.ErrInvalidRef, "cross-office disposal should fail with ErrInvalidRef at executor")
 
 	// Asset must remain unchanged — still available, not disposed.
 	reloaded, rerr := assetSvc.Get(ctx, assetID)
@@ -832,7 +841,8 @@ func TestApproval_ExecutorAtomicity_RollbackOnError(t *testing.T) {
 	scopeSvc := authz.NewScopeService(q, rdb)
 	svc := approval.NewService(q, pool, scopeSvc, rdb)
 	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0, "")
-	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, assetSvc.DisposalExecutor())
+	disposalSvc := disposal.NewService(q, pool, svc)
+	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, disposalSvc.Executor())
 
 	// Use 1-step disposal threshold: amount < 5M
 	_, err := pool.Exec(ctx, `TRUNCATE approval.approval_thresholds`)
@@ -844,12 +854,15 @@ func TestApproval_ExecutorAtomicity_RollbackOnError(t *testing.T) {
 	require.NoError(t, err)
 
 	targetEntity := "assets"
+	disposalPayload, err := json.Marshal(disposal.DisposalPayload{Method: "write_off", DisposalDate: "2026-07-01"})
+	require.NoError(t, err)
 	req, err := svc.Submit(ctx, approval.SubmitInput{
 		Type:         sqlc.SharedRequestTypeAssetDisposal,
 		Amount:       "1000000",
 		OfficeID:     tr.CabangID,
 		TargetEntity: &targetEntity,
 		TargetID:     &assetID,
+		Payload:      disposalPayload,
 		Maker:        maker,
 	})
 	require.NoError(t, err)
@@ -858,8 +871,9 @@ func TestApproval_ExecutorAtomicity_RollbackOnError(t *testing.T) {
 	caller := buildCaller(approver, officeRoleID, false, []uuid.UUID{tr.CabangID})
 	_, err = svc.Decide(ctx, req.ID, caller, true, nil)
 	require.Error(t, err, "executor should fail on invalid transition disposed→disposed")
-	// Verify the error is the expected invalid state error
-	assert.True(t, errors.Is(err, asset.ErrInvalidState), "expected ErrInvalidState, got: %v", err)
+	// Verify the error is the expected invalid-reference error (the disposal executor
+	// treats an illegal status transition as approval.ErrInvalidRef).
+	assert.True(t, errors.Is(err, approval.ErrInvalidRef), "expected approval.ErrInvalidRef, got: %v", err)
 
 	// The request must still be pending (transaction was rolled back)
 	reloaded, err := q.GetRequest(ctx, req.ID)

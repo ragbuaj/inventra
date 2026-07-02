@@ -44,6 +44,10 @@ var permissionCatalog = []PermissionGroup{
 		{"transfer.view", "Lihat mutasi aset"},
 		{"transfer.manage", "Kelola mutasi aset (ajukan/kirim/terima)"},
 	}},
+	{Group: "Penghapusan Aset", Items: []PermissionItem{
+		{"disposal.view", "Lihat penghapusan aset"},
+		{"disposal.manage", "Kelola penghapusan aset (ajukan/BAST)"},
+	}},
 	{Group: "Cadangan", Items: []PermissionItem{
 		{"report.view", "Lihat laporan"},
 		{"report.export", "Ekspor laporan"},

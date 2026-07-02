@@ -17,9 +17,11 @@ type Querier interface {
 	CountAssets(ctx context.Context, arg CountAssetsParams) (int64, error)
 	CountAuditLogs(ctx context.Context, arg CountAuditLogsParams) (int64, error)
 	CountCategories(ctx context.Context, search string) (int64, error)
+	CountDisposals(ctx context.Context, arg CountDisposalsParams) (int64, error)
 	CountEmployees(ctx context.Context, arg CountEmployeesParams) (int64, error)
 	CountFloorsByOffice(ctx context.Context, arg CountFloorsByOfficeParams) (int64, error)
 	CountOffices(ctx context.Context, arg CountOfficesParams) (int64, error)
+	CountPendingDisposalRequestsForAsset(ctx context.Context, assetID *uuid.UUID) (int64, error)
 	// Guard: an asset may have at most one pending asset_transfer approval request.
 	CountPendingTransferRequestsForAsset(ctx context.Context, assetID *uuid.UUID) (int64, error)
 	CountRequests(ctx context.Context, arg CountRequestsParams) (int64, error)
@@ -31,6 +33,8 @@ type Querier interface {
 	CreateAssetDocument(ctx context.Context, arg CreateAssetDocumentParams) (AssetAssetDocument, error)
 	CreateAttachment(ctx context.Context, arg CreateAttachmentParams) (AssetAssetAttachment, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (MasterdataCategory, error)
+	// gain_loss is computed here (null-propagating): null when either input is null.
+	CreateDisposal(ctx context.Context, arg CreateDisposalParams) (DisposalDisposal, error)
 	CreateEmployee(ctx context.Context, arg CreateEmployeeParams) (MasterdataEmployee, error)
 	CreateFloor(ctx context.Context, arg CreateFloorParams) (MasterdataFloor, error)
 	CreateOffice(ctx context.Context, arg CreateOfficeParams) (MasterdataOffice, error)
@@ -51,6 +55,10 @@ type Querier interface {
 	GetAttachment(ctx context.Context, id uuid.UUID) (AssetAssetAttachment, error)
 	GetCategory(ctx context.Context, id uuid.UUID) (MasterdataCategory, error)
 	GetCategoryCode(ctx context.Context, id uuid.UUID) (*string, error)
+	// Scoped: caller must have the asset's office in scope (disposals have no office_id).
+	GetDisposal(ctx context.Context, arg GetDisposalParams) (DisposalDisposal, error)
+	// Guard (office-unscoped): at most one live disposal per asset.
+	GetDisposalByAsset(ctx context.Context, assetID uuid.UUID) (DisposalDisposal, error)
 	GetEmployee(ctx context.Context, arg GetEmployeeParams) (MasterdataEmployee, error)
 	GetFloor(ctx context.Context, arg GetFloorParams) (MasterdataFloor, error)
 	GetOffice(ctx context.Context, arg GetOfficeParams) (MasterdataOffice, error)
@@ -91,6 +99,8 @@ type Querier interface {
 	// The full non-deleted category set (no pagination) for client-side tree building.
 	ListCategoryTree(ctx context.Context) ([]MasterdataCategory, error)
 	ListDataScopePolicies(ctx context.Context, roleID uuid.UUID) ([]IdentityDataScopePolicy, error)
+	ListDisposals(ctx context.Context, arg ListDisposalsParams) ([]DisposalDisposal, error)
+	ListDisposalsByAsset(ctx context.Context, arg ListDisposalsByAssetParams) ([]DisposalDisposal, error)
 	// Employees (asset custodians) with data-scoping by office.
 	ListEmployees(ctx context.Context, arg ListEmployeesParams) ([]MasterdataEmployee, error)
 	ListFieldPermissionsByRole(ctx context.Context, roleID uuid.UUID) ([]ListFieldPermissionsByRoleRow, error)
@@ -124,6 +134,7 @@ type Querier interface {
 	SetAssetOffice(ctx context.Context, arg SetAssetOfficeParams) (AssetAsset, error)
 	SetAssetStatus(ctx context.Context, arg SetAssetStatusParams) (AssetAsset, error)
 	SetAssetValuationExclusion(ctx context.Context, arg SetAssetValuationExclusionParams) (AssetAsset, error)
+	SetDisposalBastNo(ctx context.Context, arg SetDisposalBastNoParams) (DisposalDisposal, error)
 	SetRequestDecision(ctx context.Context, arg SetRequestDecisionParams) (ApprovalRequest, error)
 	SetTransferReceived(ctx context.Context, arg SetTransferReceivedParams) (TransferAssetTransfer, error)
 	SetTransferShipped(ctx context.Context, arg SetTransferShippedParams) (TransferAssetTransfer, error)

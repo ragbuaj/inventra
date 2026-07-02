@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -27,8 +28,14 @@ func NewMinIO(t *testing.T) *storage.MinIOStorage {
 			"MINIO_ROOT_USER":     "minioadmin",
 			"MINIO_ROOT_PASSWORD": "minioadmin123",
 		},
-		Cmd:        []string{"server", "/data"},
-		WaitingFor: wait.ForListeningPort("9000/tcp"),
+		Cmd: []string{"server", "/data"},
+		// Wait for the S3 API to actually serve HTTP, not just for the TCP port to
+		// open — MinIO starts listening before the API is ready, which otherwise
+		// races the first bucket call into a "connection reset by peer" in CI.
+		WaitingFor: wait.ForAll(
+			wait.ForListeningPort("9000/tcp"),
+			wait.ForHTTP("/minio/health/live").WithPort("9000/tcp"),
+		).WithStartupTimeoutDefault(60 * time.Second),
 	}
 
 	ctr, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{

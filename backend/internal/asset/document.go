@@ -16,13 +16,14 @@ import (
 
 // DocumentInput holds the metadata for creating an asset document.
 type DocumentInput struct {
-	AssetID          uuid.UUID
-	DocType          sqlc.SharedAssetDocumentType
-	DocNo            *string
-	DocDate          pgtype.Date
-	Counterparty     *string
-	RelatedRequestID *uuid.UUID
-	CreatedBy        uuid.UUID
+	AssetID           uuid.UUID
+	DocType           sqlc.SharedAssetDocumentType
+	DocNo             *string
+	DocDate           pgtype.Date
+	Counterparty      *string
+	RelatedRequestID  *uuid.UUID
+	RelatedDisposalID *uuid.UUID
+	CreatedBy         uuid.UUID
 }
 
 // DocumentUpdateInput holds the editable metadata for an asset document.
@@ -44,13 +45,14 @@ type DocumentFileInput struct {
 func (s *Service) CreateDocument(ctx context.Context, in DocumentInput) (sqlc.AssetAssetDocument, error) {
 	cb := in.CreatedBy
 	row, err := s.q.CreateAssetDocument(ctx, sqlc.CreateAssetDocumentParams{
-		AssetID:          in.AssetID,
-		DocType:          in.DocType,
-		DocNo:            in.DocNo,
-		DocDate:          in.DocDate,
-		Counterparty:     in.Counterparty,
-		RelatedRequestID: in.RelatedRequestID,
-		CreatedByID:      &cb,
+		AssetID:           in.AssetID,
+		DocType:           in.DocType,
+		DocNo:             in.DocNo,
+		DocDate:           in.DocDate,
+		Counterparty:      in.Counterparty,
+		RelatedRequestID:  in.RelatedRequestID,
+		RelatedDisposalID: in.RelatedDisposalID,
+		CreatedByID:       &cb,
 	})
 	return row, mapDBError(err)
 }

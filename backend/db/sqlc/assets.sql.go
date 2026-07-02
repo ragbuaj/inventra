@@ -180,19 +180,20 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 
 const createAssetDocument = `-- name: CreateAssetDocument :one
 INSERT INTO asset.asset_documents (
-  asset_id, doc_type, doc_no, doc_date, counterparty, related_request_id, created_by_id
-) VALUES ($1, $2, $3, $4, $5, $6, $7)
+  asset_id, doc_type, doc_no, doc_date, counterparty, related_request_id, related_disposal_id, created_by_id
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING id, asset_id, doc_type, doc_no, doc_date, counterparty, object_key, related_request_id, related_transfer_id, related_disposal_id, created_by_id, created_at, updated_at, deleted_at
 `
 
 type CreateAssetDocumentParams struct {
-	AssetID          uuid.UUID               `json:"asset_id"`
-	DocType          SharedAssetDocumentType `json:"doc_type"`
-	DocNo            *string                 `json:"doc_no"`
-	DocDate          pgtype.Date             `json:"doc_date"`
-	Counterparty     *string                 `json:"counterparty"`
-	RelatedRequestID *uuid.UUID              `json:"related_request_id"`
-	CreatedByID      *uuid.UUID              `json:"created_by_id"`
+	AssetID           uuid.UUID               `json:"asset_id"`
+	DocType           SharedAssetDocumentType `json:"doc_type"`
+	DocNo             *string                 `json:"doc_no"`
+	DocDate           pgtype.Date             `json:"doc_date"`
+	Counterparty      *string                 `json:"counterparty"`
+	RelatedRequestID  *uuid.UUID              `json:"related_request_id"`
+	RelatedDisposalID *uuid.UUID              `json:"related_disposal_id"`
+	CreatedByID       *uuid.UUID              `json:"created_by_id"`
 }
 
 func (q *Queries) CreateAssetDocument(ctx context.Context, arg CreateAssetDocumentParams) (AssetAssetDocument, error) {
@@ -203,6 +204,7 @@ func (q *Queries) CreateAssetDocument(ctx context.Context, arg CreateAssetDocume
 		arg.DocDate,
 		arg.Counterparty,
 		arg.RelatedRequestID,
+		arg.RelatedDisposalID,
 		arg.CreatedByID,
 	)
 	var i AssetAssetDocument
