@@ -108,41 +108,6 @@ func (e createExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.App
 	return mapDBError(err)
 }
 
-// --- disposalExec --------------------------------------------------------
-
-type disposalExec struct{ s *Service }
-
-func (e disposalExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.ApprovalRequest) error {
-	if req.TargetID == nil {
-		return ErrInvalidRef
-	}
-	cur, err := qtx.GetAsset(ctx, *req.TargetID)
-	if err != nil {
-		return mapDBError(err)
-	}
-
-	// Defense-in-depth: the asset's home office must match the office on the
-	// approval request so a maker cannot dispose of an out-of-scope asset.
-	// SECURITY/TODO: The `amount` used for value-tier routing is maker-supplied
-	// (from the submission payload). The correct basis for disposal is the
-	// asset's current book value (server-derived). Once the depreciation module
-	// computes book_value, the engine should derive `amount` from the asset
-	// record rather than trusting the submitted amount to prevent threshold
-	// manipulation.
-	if req.OfficeID == nil || cur.OfficeID != *req.OfficeID {
-		return ErrInvalidRef
-	}
-
-	if !validTransition(cur.Status, sqlc.SharedAssetStatusDisposed) {
-		return ErrInvalidState
-	}
-	_, err = qtx.SetAssetStatus(ctx, sqlc.SetAssetStatusParams{
-		ID:     *req.TargetID,
-		Status: sqlc.SharedAssetStatusDisposed,
-	})
-	return mapDBError(err)
-}
-
 // --- exclusionExec -------------------------------------------------------
 
 type exclusionExec struct{ s *Service }
@@ -175,10 +140,6 @@ func (e exclusionExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.
 // CreateExecutor returns an Executor that creates a new asset inside the
 // approval commit transaction.
 func (s *Service) CreateExecutor() approval.Executor { return createExec{s} }
-
-// DisposalExecutor returns an Executor that marks an asset as disposed inside
-// the approval commit transaction.
-func (s *Service) DisposalExecutor() approval.Executor { return disposalExec{s} }
 
 // ExclusionExecutor returns an Executor that excludes an asset from valuation
 // inside the approval commit transaction.
