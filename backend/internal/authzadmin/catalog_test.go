@@ -24,7 +24,7 @@ func TestCatalog_NoDuplicatesAndLabeled(t *testing.T) {
 }
 
 func TestIsKnownPermission(t *testing.T) {
-	for _, k := range []string{"asset.view", "asset.manage", "role.manage", "request.decide", "approval.config.manage"} {
+	for _, k := range []string{"asset.view", "asset.manage", "role.manage", "request.decide", "approval.config.manage", "disposal.view", "disposal.manage"} {
 		if !IsKnownPermission(k) {
 			t.Errorf("%s should be known", k)
 		}
