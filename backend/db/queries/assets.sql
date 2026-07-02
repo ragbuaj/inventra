@@ -93,8 +93,8 @@ UPDATE asset.asset_attachments SET deleted_at = now() WHERE id = $1 AND deleted_
 
 -- name: CreateAssetDocument :one
 INSERT INTO asset.asset_documents (
-  asset_id, doc_type, doc_no, doc_date, counterparty, related_request_id, created_by_id
-) VALUES ($1, $2, $3, $4, $5, $6, $7)
+  asset_id, doc_type, doc_no, doc_date, counterparty, related_request_id, related_disposal_id, created_by_id
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING *;
 
 -- name: ListAssetDocuments :many

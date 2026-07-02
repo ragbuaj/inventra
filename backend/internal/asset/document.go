@@ -44,13 +44,14 @@ type DocumentFileInput struct {
 func (s *Service) CreateDocument(ctx context.Context, in DocumentInput) (sqlc.AssetAssetDocument, error) {
 	cb := in.CreatedBy
 	row, err := s.q.CreateAssetDocument(ctx, sqlc.CreateAssetDocumentParams{
-		AssetID:          in.AssetID,
-		DocType:          in.DocType,
-		DocNo:            in.DocNo,
-		DocDate:          in.DocDate,
-		Counterparty:     in.Counterparty,
-		RelatedRequestID: in.RelatedRequestID,
-		CreatedByID:      &cb,
+		AssetID:           in.AssetID,
+		DocType:           in.DocType,
+		DocNo:             in.DocNo,
+		DocDate:           in.DocDate,
+		Counterparty:      in.Counterparty,
+		RelatedRequestID:  in.RelatedRequestID,
+		RelatedDisposalID: nil,
+		CreatedByID:       &cb,
 	})
 	return row, mapDBError(err)
 }
