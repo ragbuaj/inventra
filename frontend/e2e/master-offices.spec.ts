@@ -73,7 +73,9 @@ test.describe('Master Data Kantor — create office', () => {
     // name renders as the detail-panel heading (unique <h1>).
     await expect(dialog).toBeHidden({ timeout: 8_000 })
     await expect(page.getByRole('heading', { name: officeName, exact: true })).toBeVisible({ timeout: 10_000 })
-    // The resolved office-type name appears in the detail (FK id → name resolution).
-    await expect(page.getByText(typeName, { exact: true })).toBeVisible({ timeout: 8_000 })
+    // The resolved office-type name appears in the detail info card (FK id → name
+    // resolution). Scoped to the stable per-field testid — the name also renders in
+    // the header type badge, so a plain getByText would strict-mode-violate.
+    await expect(page.getByTestId('office-detail-type')).toHaveText(typeName, { timeout: 8_000 })
   })
 })

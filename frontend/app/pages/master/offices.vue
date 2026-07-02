@@ -578,7 +578,10 @@ onMounted(() => {
               <div class="text-[12px] text-muted mb-[3px]">
                 {{ t('masterdata.offices.fields.tipe') }}
               </div>
-              <div class="text-[14px] font-medium">
+              <div
+                class="text-[14px] font-medium"
+                data-testid="office-detail-type"
+              >
                 {{ officeTypeName(selected.office_type_id) }}
               </div>
             </div>
