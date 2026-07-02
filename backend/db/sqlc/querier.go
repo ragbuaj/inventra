@@ -20,8 +20,11 @@ type Querier interface {
 	CountEmployees(ctx context.Context, arg CountEmployeesParams) (int64, error)
 	CountFloorsByOffice(ctx context.Context, arg CountFloorsByOfficeParams) (int64, error)
 	CountOffices(ctx context.Context, arg CountOfficesParams) (int64, error)
+	// Guard: an asset may have at most one pending asset_transfer approval request.
+	CountPendingTransferRequestsForAsset(ctx context.Context, assetID *uuid.UUID) (int64, error)
 	CountRequests(ctx context.Context, arg CountRequestsParams) (int64, error)
 	CountRoomsByFloor(ctx context.Context, arg CountRoomsByFloorParams) (int64, error)
+	CountTransfers(ctx context.Context, arg CountTransfersParams) (int64, error)
 	CountUsers(ctx context.Context, search string) (int64, error)
 	CountUsersByRole(ctx context.Context, roleID uuid.UUID) (int64, error)
 	CreateAsset(ctx context.Context, arg CreateAssetParams) (AssetAsset, error)
@@ -36,6 +39,7 @@ type Querier interface {
 	CreateRole(ctx context.Context, arg CreateRoleParams) (IdentityRole, error)
 	CreateRoom(ctx context.Context, arg CreateRoomParams) (MasterdataRoom, error)
 	CreateThreshold(ctx context.Context, arg CreateThresholdParams) (ApprovalApprovalThreshold, error)
+	CreateTransfer(ctx context.Context, arg CreateTransferParams) (TransferAssetTransfer, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (IdentityUser, error)
 	DecideRequestApproval(ctx context.Context, arg DecideRequestApprovalParams) (ApprovalRequestApproval, error)
 	GetAppSetting(ctx context.Context, key string) (string, error)
@@ -55,12 +59,16 @@ type Querier interface {
 	// Authorization queries: office subtree (scoping) and field permissions.
 	// Returns an office plus all of its descendants (Pusat -> Wilayah -> Cabang -> Outlet).
 	GetOfficeSubtree(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error)
+	// Guard: an asset may have at most one non-terminal transfer row.
+	GetOpenTransferForAsset(ctx context.Context, assetID uuid.UUID) (TransferAssetTransfer, error)
 	GetRequest(ctx context.Context, id uuid.UUID) (ApprovalRequest, error)
 	GetRequestForUpdate(ctx context.Context, id uuid.UUID) (ApprovalRequest, error)
 	GetRole(ctx context.Context, id uuid.UUID) (IdentityRole, error)
 	// Identity module queries. Schema-qualified (see DATABASE.md §1.2).
 	GetRoleByCode(ctx context.Context, code string) (IdentityRole, error)
 	GetRoom(ctx context.Context, arg GetRoomParams) (MasterdataRoom, error)
+	// Scoped: caller must have the from- or to-office in scope.
+	GetTransfer(ctx context.Context, arg GetTransferParams) (TransferAssetTransfer, error)
 	GetUserByEmail(ctx context.Context, email string) (IdentityUser, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (IdentityUser, error)
 	// Audit log: append-only writes + an office-scoped, filterable read model.
@@ -103,15 +111,22 @@ type Querier interface {
 	// Rooms (within a floor). Scope is derived from the room's floor -> office.
 	ListRoomsByFloor(ctx context.Context, arg ListRoomsByFloorParams) ([]MasterdataRoom, error)
 	ListThresholds(ctx context.Context) ([]ApprovalApprovalThreshold, error)
+	ListTransfers(ctx context.Context, arg ListTransfersParams) ([]TransferAssetTransfer, error)
+	// Per-asset history, scoped by from- or to-office.
+	ListTransfersByAsset(ctx context.Context, arg ListTransfersByAssetParams) ([]TransferAssetTransfer, error)
 	// User management queries (Superadmin). All respect soft delete.
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]IdentityUser, error)
 	// Approval / maker-checker queries (approval schema).
 	// See docs/DATABASE.md §4.5 and PRD §3.6 for schema context.
 	MatchThresholdSteps(ctx context.Context, arg MatchThresholdStepsParams) ([]ApprovalApprovalThreshold, error)
 	SetAssetDocumentObjectKey(ctx context.Context, arg SetAssetDocumentObjectKeyParams) (AssetAssetDocument, error)
+	// Relocate an asset to a new office/room (used by the transfer receive step).
+	SetAssetOffice(ctx context.Context, arg SetAssetOfficeParams) (AssetAsset, error)
 	SetAssetStatus(ctx context.Context, arg SetAssetStatusParams) (AssetAsset, error)
 	SetAssetValuationExclusion(ctx context.Context, arg SetAssetValuationExclusionParams) (AssetAsset, error)
 	SetRequestDecision(ctx context.Context, arg SetRequestDecisionParams) (ApprovalRequest, error)
+	SetTransferReceived(ctx context.Context, arg SetTransferReceivedParams) (TransferAssetTransfer, error)
+	SetTransferShipped(ctx context.Context, arg SetTransferShippedParams) (TransferAssetTransfer, error)
 	SoftDeleteAssetDocument(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteAttachment(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteCategory(ctx context.Context, id uuid.UUID) (int64, error)

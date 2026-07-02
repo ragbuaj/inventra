@@ -136,3 +136,10 @@ FROM asset.assets a
 JOIN masterdata.offices o ON o.id = a.office_id
 JOIN masterdata.categories c ON c.id = a.category_id
 WHERE a.asset_tag = $1 AND a.deleted_at IS NULL;
+
+-- name: SetAssetOffice :one
+-- Relocate an asset to a new office/room (used by the transfer receive step).
+UPDATE asset.assets
+SET office_id = sqlc.arg(office_id), room_id = sqlc.narg(room_id)
+WHERE id = sqlc.arg(id) AND deleted_at IS NULL
+RETURNING *;
