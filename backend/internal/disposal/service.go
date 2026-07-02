@@ -136,3 +136,9 @@ func (s *Service) ListByAsset(ctx context.Context, assetID uuid.UUID, all bool, 
 	rows, err := s.q.ListDisposalsByAsset(ctx, sqlc.ListDisposalsByAssetParams{AssetID: assetID, AllScope: all, OfficeIds: ids})
 	return rows, mapDBError(err)
 }
+
+// setBastNo persists the BAST document number on a disposal row (used by the handler's
+// attachDocument endpoint when the caller supplies bast_no).
+func (s *Service) setBastNo(ctx context.Context, id uuid.UUID, bast string) (sqlc.DisposalDisposal, error) {
+	return s.q.SetDisposalBastNo(ctx, sqlc.SetDisposalBastNoParams{ID: id, BastNo: &bast})
+}

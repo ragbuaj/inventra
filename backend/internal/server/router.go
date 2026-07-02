@@ -24,6 +24,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/cache"
 	"github.com/ragbuaj/inventra/internal/config"
 	"github.com/ragbuaj/inventra/internal/db"
+	"github.com/ragbuaj/inventra/internal/disposal"
 	"github.com/ragbuaj/inventra/internal/identity"
 	"github.com/ragbuaj/inventra/internal/masterdata"
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
@@ -163,7 +164,8 @@ func NewRouter(d Deps) *gin.Engine {
 
 		approvalSvc := approval.NewService(queries, d.Pool, scopeSvc, d.Redis)
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
-		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, assetSvc.DisposalExecutor())
+		disposalSvc := disposal.NewService(queries, d.Pool, approvalSvc)
+		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, disposalSvc.Executor())
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeValuationExclusion, assetSvc.ExclusionExecutor())
 		transferSvc := transfer.NewService(queries, d.Pool, approvalSvc)
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetTransfer, transferSvc.Executor())
@@ -175,6 +177,13 @@ func NewRouter(d Deps) *gin.Engine {
 			requireAuth,
 			middleware.RequirePermission(permSvc, "transfer.manage"),
 			middleware.RequirePermission(permSvc, "transfer.view"),
+		)
+
+		disposalHandler := disposal.NewHandler(disposalSvc, assetSvc, scopeSvc, queries, auditSvc)
+		disposal.RegisterRoutes(api, disposalHandler,
+			requireAuth,
+			middleware.RequirePermission(permSvc, "disposal.manage"),
+			middleware.RequirePermission(permSvc, "disposal.view"),
 		)
 
 		authzAdminSvc := authzadmin.NewService(queries, d.Pool, permSvc, scopeSvc, fieldSvc)
