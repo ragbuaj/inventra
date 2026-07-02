@@ -90,6 +90,15 @@ func TsStr(t pgtype.Timestamptz) *string {
 	return &s
 }
 
+// DateStr renders a nullable date as an optional "2006-01-02" string.
+func DateStr(d pgtype.Date) *string {
+	if !d.Valid {
+		return nil
+	}
+	s := d.Time.Format("2006-01-02")
+	return &s
+}
+
 // BoolOr returns *p or def when p is nil.
 func BoolOr(p *bool, def bool) bool {
 	if p == nil {
