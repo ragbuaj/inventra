@@ -418,6 +418,106 @@ func TestDisposal_Submit_Guards(t *testing.T) {
 	})
 }
 
+// TestDisposal_Submit_Guard_DisposalExists_LiveRowDirect verifies the
+// GetDisposalByAsset guard in Submit fires ErrDisposalExists when a live
+// disposal row already exists for an asset that is (artificially, for test
+// purposes) still `available`. In normal flow this state is unreachable
+// because creating a disposal row always flips the asset to `disposed`,
+// which would trip ErrAlreadyDisposed first; here we seed the row directly
+// via q.CreateDisposal without touching asset status, to exercise the guard
+// on its own.
+func TestDisposal_Submit_Guard_DisposalExists_LiveRowDirect(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	assetID := seedAssetWithCost(t, h.pool, "DIS-2026-00010", "Inkonsisten Live Row", h.catID, h.office, "1000000")
+	maker := seedUser(t, h.pool, h.officeRoleID, h.office, "maker.liverow@test.local")
+	makerCaller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.office})
+
+	// Seed a live disposal row directly, leaving the asset status untouched
+	// (still `available`) — the intentionally inconsistent state the guard
+	// defends against.
+	disposalDate := pgtype.Date{Time: mustParseDate(t, "2026-06-01"), Valid: true}
+	_, err := h.q.CreateDisposal(ctx, sqlc.CreateDisposalParams{
+		AssetID:      assetID,
+		Method:       sqlc.SharedDisposalMethodWriteOff,
+		DisposalDate: disposalDate,
+	})
+	require.NoError(t, err)
+
+	a, err := h.q.GetAsset(ctx, assetID)
+	require.NoError(t, err)
+	require.Equal(t, sqlc.SharedAssetStatusAvailable, a.Status, "precondition: asset must still be available")
+
+	_, err = h.dsvc.Submit(ctx, makerCaller, disposal.SubmitInput{
+		AssetID: assetID, Method: "sale", DisposalDate: "2026-07-01",
+	})
+	require.ErrorIs(t, err, disposal.ErrDisposalExists)
+}
+
+// TestDisposal_Executor_Guard_ErrConflict_PreexistingRow verifies the
+// executor's own GetDisposalByAsset guard (defense-in-depth against a live
+// disposal row it did not expect) fires approval.ErrConflict on final
+// approval, and that the transaction rolls back cleanly: no second disposal
+// row is created and the asset status is left unchanged. As with the
+// service-level guard above, this state (a live disposal row on an
+// `available` asset) is only reachable by seeding it directly — in normal
+// flow the asset would already be `disposed` and Submit's own
+// ErrAlreadyDisposed/ErrDisposalExists guards would reject the second
+// request before an approval chain could even be opened.
+func TestDisposal_Executor_Guard_ErrConflict_PreexistingRow(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	assetID := seedAssetWithCost(t, h.pool, "DIS-2026-00011", "Inkonsisten Executor", h.catID, h.office, "1000000")
+	maker := seedUser(t, h.pool, h.officeRoleID, h.office, "maker.execconflict@test.local")
+	checker := seedUser(t, h.pool, h.officeRoleID, h.office, "checker.execconflict@test.local")
+
+	makerCaller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.office})
+	checkerCaller := buildCaller(checker, h.officeRoleID, false, []uuid.UUID{h.office})
+
+	// Submit a legitimate request FIRST, while the asset has no disposal row
+	// yet — Submit's own guards pass normally.
+	req, err := h.dsvc.Submit(ctx, makerCaller, disposal.SubmitInput{
+		AssetID: assetID, Method: "write_off", DisposalDate: "2026-07-01", Reason: strptr("conflict test"),
+	})
+	require.NoError(t, err)
+
+	// Now seed a live disposal row directly, out from under the pending
+	// request, without touching asset status — reproducing the inconsistent
+	// state the executor's own guard defends against.
+	disposalDate := pgtype.Date{Time: mustParseDate(t, "2026-06-01"), Valid: true}
+	_, err = h.q.CreateDisposal(ctx, sqlc.CreateDisposalParams{
+		AssetID:      assetID,
+		Method:       sqlc.SharedDisposalMethodWriteOff,
+		DisposalDate: disposalDate,
+	})
+	require.NoError(t, err)
+
+	a, err := h.q.GetAsset(ctx, assetID)
+	require.NoError(t, err)
+	require.Equal(t, sqlc.SharedAssetStatusAvailable, a.Status, "precondition: asset must still be available")
+
+	// Drive the (single, office-tier) decision step directly so we can
+	// assert on the error Decide returns — approveThroughChain calls
+	// require.NoError on every Decide and would fail the test here instead.
+	_, err = h.apprSvc.Decide(ctx, req.ID, checkerCaller, true, nil)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, approval.ErrConflict)
+
+	// The executor's tx must have rolled back: still exactly one disposal
+	// row (the one we seeded directly) and the asset status unchanged.
+	rows, err := h.q.ListDisposalsByAsset(ctx, sqlc.ListDisposalsByAssetParams{
+		AssetID: assetID, AllScope: true, OfficeIds: []uuid.UUID{},
+	})
+	require.NoError(t, err)
+	assert.Len(t, rows, 1, "executor rollback must not leave a second disposal row")
+
+	a, err = h.q.GetAsset(ctx, assetID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedAssetStatusAvailable, a.Status, "executor rollback must leave asset status unchanged")
+}
+
 // TestDisposal_Scope_Reads verifies Get/List respect caller office scope: a
 // caller scoped to the asset's office sees the row; a caller scoped to an
 // unrelated office does not.

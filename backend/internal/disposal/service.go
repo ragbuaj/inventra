@@ -77,11 +77,11 @@ func (s *Service) Submit(ctx context.Context, caller approval.Caller, in SubmitI
 	if _, err := s.q.GetDisposalByAsset(ctx, in.AssetID); err == nil {
 		return sqlc.ApprovalRequest{}, ErrDisposalExists
 	} else if !errors.Is(err, pgx.ErrNoRows) {
-		return sqlc.ApprovalRequest{}, err
+		return sqlc.ApprovalRequest{}, mapDBError(err)
 	}
 	pending, err := s.q.CountPendingDisposalRequestsForAsset(ctx, &in.AssetID)
 	if err != nil {
-		return sqlc.ApprovalRequest{}, err
+		return sqlc.ApprovalRequest{}, mapDBError(err)
 	}
 	if pending > 0 {
 		return sqlc.ApprovalRequest{}, ErrDisposalExists
