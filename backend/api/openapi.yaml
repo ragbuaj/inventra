@@ -70,6 +70,14 @@ tags:
       `approved` → `in_transit` → `received`. Reads require `transfer.view`; writes
       (`submit`, `ship`, `receive`) require `transfer.manage`. Receiving optionally attaches
       a BAST (`bast_transfer`) document via `POST /assets/{id}/documents` semantics.
+  - name: Disposals
+    description: |
+      Asset disposal (sale, auction, donation, or write-off). A `disposals` row is created
+      only once an `asset_disposal` approval request is approved (see the Requests tag),
+      with `gain_loss` computed from `proceeds` and `book_value_at_disposal`. Reads require
+      `disposal.view`; writes (`submit`, `document`) require `disposal.manage`. Attaching the
+      BAST creates a `bast_disposal` asset document (see `POST /assets/{id}/documents`
+      semantics) and optionally persists `bast_no` on the disposal.
   - name: Audit
     description: Read-only audit trail (requires the `audit.view` permission)
 
@@ -1901,6 +1909,169 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/v1/disposals:
+    post:
+      tags: [Disposals]
+      operationId: submitDisposal
+      summary: Submit an asset disposal (sale, auction, donation, or write-off)
+      description: |
+        Creates an `asset_disposal` approval request for disposing of an asset. A
+        `disposals` row is only created once the request is approved — see
+        `POST /requests/{id}/approve`. Requires the `disposal.manage` permission.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DisposalSubmitRequest" }
+      responses:
+        "201":
+          description: Created approval request for the disposal
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [request_id, status]
+                properties:
+                  request_id: { type: string, format: uuid }
+                  status:
+                    type: string
+                    enum: [pending, approved, rejected, cancelled]
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422":
+          description: Asset already disposed, already has a pending disposal, or an invalid reference was supplied
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    get:
+      tags: [Disposals]
+      operationId: listDisposals
+      summary: List asset disposals (data-scoped)
+      description: |
+        Returns disposals within the caller's **data scope** (module `disposals`).
+        Requires the `disposal.view` permission.
+      security:
+        - bearerJWT: []
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, default: 20, minimum: 1, maximum: 100 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0, minimum: 0 } }
+      responses:
+        "200":
+          description: A page of disposals in scope
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DisposalList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/disposals/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Disposals]
+      operationId: getDisposal
+      summary: Get a disposal by id
+      description: Requires the `disposal.view` permission; the disposal must be within the caller's data scope.
+      security:
+        - bearerJWT: []
+      responses:
+        "200": { description: The disposal, content: { application/json: { schema: { $ref: "#/components/schemas/Disposal" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { description: Not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/v1/disposals/{id}/document:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Disposals]
+      operationId: attachDisposalDocument
+      summary: Attach the BAST (berita acara serah terima) document for a disposal
+      description: |
+        Creates a `bast_disposal` asset-document record for the disposal and, if a `file`
+        part is supplied, stores it in object storage (best-effort — a storage failure does
+        not fail the metadata creation). If `bast_no` is supplied, it is also persisted on
+        the disposal. Requires the `disposal.manage` permission; the disposal must be within
+        the caller's data scope.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: false
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                bast_no:
+                  type: string
+                  description: BAST (berita acara serah terima) document number.
+                doc_no:
+                  type: string
+                  description: Document number, if different from bast_no.
+                doc_date:
+                  type: string
+                  format: date
+                  description: 'Format: YYYY-MM-DD.'
+                counterparty:
+                  type: string
+                  description: The buyer/recipient/auction house, as applicable to the disposal method.
+                file:
+                  type: string
+                  format: binary
+                  description: Optional scanned BAST file, attached to the created bast_disposal document.
+      responses:
+        "200":
+          description: Created document reference
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [document_id, disposal_id]
+                properties:
+                  document_id: { type: string, format: uuid }
+                  disposal_id: { type: string, format: uuid }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/assets/{id}/disposal:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: Asset id }
+    get:
+      tags: [Disposals]
+      operationId: listAssetDisposals
+      summary: List disposal history for an asset
+      description: Returns all disposals for the given asset within the caller's data scope. Requires the `disposal.view` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Disposal history
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Disposal" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Asset not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/v1/authz/catalog:
     get:
       tags: [Authorization Admin]
@@ -2996,6 +3167,64 @@ components:
       required: [data, total, limit, offset]
       properties:
         data: { type: array, items: { $ref: "#/components/schemas/Transfer" } }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+
+    Disposal:
+      type: object
+      description: |
+        An asset disposal (sale, auction, donation, or write-off). Created only once its
+        `asset_disposal` approval request is approved; `gain_loss` is computed in SQL from
+        `proceeds` minus `book_value_at_disposal`.
+      required: [id, asset_id, method, disposal_date, request_id, created_by_id, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        asset_id: { type: string, format: uuid }
+        method:
+          type: string
+          enum: [sale, auction, donation, write_off]
+        disposal_date: { type: string, format: date }
+        proceeds:
+          type: [string, "null"]
+          description: Decimal string (IDR).
+        book_value_at_disposal:
+          type: [string, "null"]
+          description: Decimal string (IDR).
+        gain_loss:
+          type: [string, "null"]
+          description: Decimal string (IDR). Computed as proceeds minus book_value_at_disposal.
+        bast_no: { type: [string, "null"] }
+        approved_by_id: { type: [string, "null"], format: uuid }
+        request_id: { type: [string, "null"], format: uuid }
+        created_by_id: { type: [string, "null"], format: uuid }
+        created_at: { type: [string, "null"], format: date-time }
+        updated_at: { type: [string, "null"], format: date-time }
+
+    DisposalSubmitRequest:
+      type: object
+      description: Body for POST /disposals.
+      required: [asset_id, method, disposal_date]
+      properties:
+        asset_id: { type: string, format: uuid }
+        method:
+          type: string
+          enum: [sale, auction, donation, write_off]
+        disposal_date: { type: string, format: date }
+        proceeds:
+          type: [string, "null"]
+          description: Decimal string (IDR).
+        book_value_at_disposal:
+          type: [string, "null"]
+          description: Decimal string (IDR).
+        bast_no: { type: [string, "null"] }
+        reason: { type: [string, "null"] }
+
+    DisposalList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/Disposal" } }
         total: { type: integer }
         limit: { type: integer }
         offset: { type: integer }
