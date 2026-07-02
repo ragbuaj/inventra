@@ -31,6 +31,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/oauth"
 	"github.com/ragbuaj/inventra/internal/ratelimit"
 	"github.com/ragbuaj/inventra/internal/storage"
+	"github.com/ragbuaj/inventra/internal/transfer"
 	"github.com/ragbuaj/inventra/internal/user"
 )
 
@@ -164,8 +165,17 @@ func NewRouter(d Deps) *gin.Engine {
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, assetSvc.DisposalExecutor())
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeValuationExclusion, assetSvc.ExclusionExecutor())
+		transferSvc := transfer.NewService(queries, d.Pool, approvalSvc)
+		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetTransfer, transferSvc.Executor())
 		approvalHandler := approval.NewHandler(approvalSvc, fieldSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)
 		approval.RegisterRoutes(api, approvalHandler, requireAuth, permSvc)
+
+		transferHandler := transfer.NewHandler(transferSvc, assetSvc, scopeSvc, queries, auditSvc)
+		transfer.RegisterRoutes(api, transferHandler,
+			requireAuth,
+			middleware.RequirePermission(permSvc, "transfer.manage"),
+			middleware.RequirePermission(permSvc, "transfer.view"),
+		)
 
 		authzAdminSvc := authzadmin.NewService(queries, d.Pool, permSvc, scopeSvc, fieldSvc)
 		authzAdminHandler := authzadmin.NewHandler(authzAdminSvc, auditSvc)

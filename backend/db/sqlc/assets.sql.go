@@ -711,6 +711,65 @@ func (q *Queries) SetAssetDocumentObjectKey(ctx context.Context, arg SetAssetDoc
 	return i, err
 }
 
+const setAssetOffice = `-- name: SetAssetOffice :one
+UPDATE asset.assets
+SET office_id = $1, room_id = $2
+WHERE id = $3 AND deleted_at IS NULL
+RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at
+`
+
+type SetAssetOfficeParams struct {
+	OfficeID uuid.UUID  `json:"office_id"`
+	RoomID   *uuid.UUID `json:"room_id"`
+	ID       uuid.UUID  `json:"id"`
+}
+
+// Relocate an asset to a new office/room (used by the transfer receive step).
+func (q *Queries) SetAssetOffice(ctx context.Context, arg SetAssetOfficeParams) (AssetAsset, error) {
+	row := q.db.QueryRow(ctx, setAssetOffice, arg.OfficeID, arg.RoomID, arg.ID)
+	var i AssetAsset
+	err := row.Scan(
+		&i.ID,
+		&i.AssetTag,
+		&i.Name,
+		&i.CategoryID,
+		&i.BrandID,
+		&i.ModelID,
+		&i.RoomID,
+		&i.OfficeID,
+		&i.UnitID,
+		&i.Status,
+		&i.SerialNumber,
+		&i.PurchaseDate,
+		&i.PurchaseCost,
+		&i.VendorID,
+		&i.PoNumber,
+		&i.FundingSource,
+		&i.WarrantyExpiry,
+		&i.Specifications,
+		&i.AssetClass,
+		&i.Capitalized,
+		&i.DepreciationMethod,
+		&i.UsefulLifeMonths,
+		&i.SalvageValue,
+		&i.FiscalGroup,
+		&i.FiscalLifeMonths,
+		&i.AccumulatedDepreciation,
+		&i.BookValue,
+		&i.ImpairmentLoss,
+		&i.AcquisitionBastNo,
+		&i.CurrentHolderEmployeeID,
+		&i.ExcludedFromValuation,
+		&i.ValuationExclusionReason,
+		&i.CreatedByID,
+		&i.Notes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const setAssetStatus = `-- name: SetAssetStatus :one
 UPDATE asset.assets SET status = $2 WHERE id = $1 AND deleted_at IS NULL RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at
 `
