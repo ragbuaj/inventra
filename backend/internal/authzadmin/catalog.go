@@ -40,6 +40,10 @@ var permissionCatalog = []PermissionGroup{
 		{"request.decide", "Setujui/tolak pengajuan"},
 		{"approval.config.manage", "Kelola ambang persetujuan"},
 	}},
+	{Group: "Mutasi Aset", Items: []PermissionItem{
+		{"transfer.view", "Lihat mutasi aset"},
+		{"transfer.manage", "Kelola mutasi aset (ajukan/kirim/terima)"},
+	}},
 	{Group: "Cadangan", Items: []PermissionItem{
 		{"report.view", "Lihat laporan"},
 		{"report.export", "Ekspor laporan"},
