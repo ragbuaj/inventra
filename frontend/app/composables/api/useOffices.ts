@@ -1,58 +1,63 @@
-import type { ListQuery, Office, Paginated, TreeNode } from '~/types'
-import { fakeLatency, filterBy, generateId, paginate } from '~/mock/helpers'
-import { buildOfficeTree, officeStore } from '~/mock/offices'
+import type { ListQuery, Office, Paginated } from '~/types'
 
 export interface OfficeInput {
-  nama: string
-  kode: string
-  tipe: Office['tipe']
   parent_id: string | null
-  provinsi: string
-  kota: string
-  alamat: string
-  active?: boolean
+  office_type_id: string
+  province_id: string | null
+  city_id: string | null
+  name: string
+  code: string
+  address?: string | null
+  is_active: boolean
+  latitude?: number | null
+  longitude?: number | null
 }
 
-function assertValidParent(parentId: string | null) {
-  if (parentId && !officeStore.find(parentId)) {
-    throw new Error('masterdata.offices.errInvalidParent')
-  }
-}
-
+/** Offices, wired to /api/v1/offices (server-enforced `offices` data-scope). */
 export function useOffices() {
+  const { request } = useApiClient()
+
   async function list(query: ListQuery = {}): Promise<Paginated<Office>> {
-    await fakeLatency()
-    return paginate(filterBy(officeStore.all(), query, ['nama', 'kode', 'kota']), query)
+    const q = new URLSearchParams()
+    q.set('limit', String(query.limit ?? 20))
+    q.set('offset', String(query.offset ?? 0))
+    if (query.search) q.set('search', String(query.search))
+    return request<Paginated<Office>>(`/offices?${q.toString()}`)
   }
 
-  async function get(id: string): Promise<Office | undefined> {
-    await fakeLatency()
-    return officeStore.find(id)
+  async function get(id: string): Promise<Office> {
+    return request<Office>(`/offices/${id}`)
   }
 
-  async function tree(): Promise<TreeNode[]> {
-    await fakeLatency()
-    return buildOfficeTree(officeStore.all())
+  // parent_id is sent as-is (null → head office); the backend validates it as an
+  // optional UUID. Empty optional FKs / coordinates are omitted so they stay null.
+  function toBody(input: OfficeInput): Record<string, unknown> {
+    const body: Record<string, unknown> = {
+      parent_id: input.parent_id,
+      office_type_id: input.office_type_id,
+      name: input.name,
+      code: input.code,
+      is_active: input.is_active
+    }
+    if (input.province_id) body.province_id = input.province_id
+    if (input.city_id) body.city_id = input.city_id
+    if (input.address) body.address = input.address
+    if (input.latitude != null) body.latitude = input.latitude
+    if (input.longitude != null) body.longitude = input.longitude
+    return body
   }
 
   async function create(input: OfficeInput): Promise<Office> {
-    await fakeLatency()
-    assertValidParent(input.parent_id)
-    return officeStore.insert({ id: generateId(), created_at: new Date().toISOString(), active: true, ...input })
+    return request<Office>('/offices', { method: 'POST', body: toBody(input) })
   }
 
   async function update(id: string, input: OfficeInput): Promise<Office> {
-    await fakeLatency()
-    assertValidParent(input.parent_id)
-    const row = officeStore.patch(id, input)
-    if (!row) throw new Error('masterdata.offices.errNotFound')
-    return row
+    return request<Office>(`/offices/${id}`, { method: 'PUT', body: toBody(input) })
   }
 
   async function remove(id: string): Promise<void> {
-    await fakeLatency()
-    officeStore.remove(id)
+    await request(`/offices/${id}`, { method: 'DELETE' })
   }
 
-  return { list, get, tree, create, update, remove }
+  return { list, get, create, update, remove }
 }
