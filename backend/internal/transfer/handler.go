@@ -86,13 +86,27 @@ func (h *Handler) submit(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
 		return
 	}
+	assetID, err := uuid.Parse(req.AssetID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid asset_id"})
+		return
+	}
+	toOfficeID, err := uuid.Parse(req.ToOfficeID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid to_office_id"})
+		return
+	}
 	in := SubmitInput{
-		AssetID:    uuid.MustParse(req.AssetID),
-		ToOfficeID: uuid.MustParse(req.ToOfficeID),
+		AssetID:    assetID,
+		ToOfficeID: toOfficeID,
 		Reason:     req.Reason,
 	}
 	if req.ToRoomID != nil {
-		r := uuid.MustParse(*req.ToRoomID)
+		r, rerr := uuid.Parse(*req.ToRoomID)
+		if rerr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid to_room_id"})
+			return
+		}
 		in.ToRoomID = &r
 	}
 	out, err := h.svc.Submit(c.Request.Context(), caller, in)
@@ -151,7 +165,11 @@ func (h *Handler) receive(c *gin.Context) {
 	}
 	in := ReceiveInput{BastNo: body.BastNo, ReceivedDate: recvDate}
 	if body.ToRoomID != nil {
-		r := uuid.MustParse(*body.ToRoomID)
+		r, rerr := uuid.Parse(*body.ToRoomID)
+		if rerr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid to_room_id"})
+			return
+		}
 		in.ToRoomID = &r
 	}
 	before, after, err := h.svc.Receive(c.Request.Context(), all, ids, caller.UserID, id, in)

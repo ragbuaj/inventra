@@ -39,7 +39,10 @@ func (e transferExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.A
 	}
 	asset, err := qtx.GetAsset(ctx, *req.TargetID)
 	if err != nil {
-		return approval.ErrInvalidRef
+		if errors.Is(err, pgx.ErrNoRows) {
+			return approval.ErrInvalidRef
+		}
+		return err
 	}
 	if asset.OfficeID != fromOffice || toOffice == fromOffice {
 		return approval.ErrInvalidRef

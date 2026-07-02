@@ -230,6 +230,10 @@ func TestTransfer_HappyPath_SubmitApproveShipReceive(t *testing.T) {
 	checker := seedUser(t, h.pool, h.officeRoleID, h.fromOffice, "checker.happy@test.local")
 	receiverID := seedUser(t, h.pool, h.officeRoleID, h.toOffice, "receiver.happy@test.local")
 
+	// Destination room, so receive can also relocate the asset's room_id.
+	destFloor := testsupport.SeedFloor(t, h.pool, h.toOffice, "Lantai 1")
+	destRoomID := testsupport.SeedRoom(t, h.pool, destFloor, "Ruang IT")
+
 	makerCaller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.fromOffice})
 	checkerCaller := buildCaller(checker, h.officeRoleID, false, []uuid.UUID{h.fromOffice, h.toOffice})
 
@@ -263,8 +267,8 @@ func TestTransfer_HappyPath_SubmitApproveShipReceive(t *testing.T) {
 	assert.Equal(t, sqlc.SharedTransferStatusInTransit, shipped.Status)
 	require.True(t, shipped.ShippedDate.Valid)
 
-	// receive → asset moved
-	before, after, err := h.tsvc.Receive(ctx, true, nil, receiverID, row.ID, transfer.ReceiveInput{BastNo: strptr("BAST-001")})
+	// receive → asset moved (office + room)
+	before, after, err := h.tsvc.Receive(ctx, true, nil, receiverID, row.ID, transfer.ReceiveInput{BastNo: strptr("BAST-001"), ToRoomID: &destRoomID})
 	require.NoError(t, err)
 	assert.Equal(t, sqlc.SharedTransferStatusInTransit, before.Status)
 	assert.Equal(t, sqlc.SharedTransferStatusReceived, after.Status)
@@ -277,6 +281,8 @@ func TestTransfer_HappyPath_SubmitApproveShipReceive(t *testing.T) {
 	movedAsset, err := h.q.GetAsset(ctx, assetID)
 	require.NoError(t, err)
 	assert.Equal(t, h.toOffice, movedAsset.OfficeID)
+	require.NotNil(t, movedAsset.RoomID, "asset room_id must be relocated on receive")
+	assert.Equal(t, destRoomID, *movedAsset.RoomID)
 }
 
 // TestTransfer_Reject_NoTransferRow verifies that rejecting the final step
