@@ -1,74 +1,67 @@
-import type { Floor, Room } from '~/types'
-import { floorStore, roomStore } from '~/mock/floors'
-import { generateId } from '~/mock/helpers'
+import type { Floor, Paginated, Room } from '~/types'
 
+export interface FloorInput {
+  office_id: string
+  name: string
+  level?: number | null
+}
+
+export interface RoomInput {
+  floor_id: string
+  name: string
+  code?: string | null
+}
+
+/**
+ * Floors + rooms, wired to /api/v1/floors and /api/v1/rooms (server-enforced
+ * `offices` data-scope; rooms scope transitively through their floor's office).
+ * Floors are listed per office (`?office_id=`), rooms per floor (`?floor_id=`).
+ * Note: floor/room updates must resend office_id/floor_id (required by the API).
+ */
 export function useFloors() {
-  function listByOffice(officeId: string): Floor[] {
-    return floorStore.all().filter(f => f.office_id === officeId)
-      .sort((a, b) => a.lantai - b.lantai)
+  const { request } = useApiClient()
+
+  async function listByOffice(officeId: string): Promise<Floor[]> {
+    const res = await request<Paginated<Floor>>(`/floors?office_id=${officeId}&limit=100`)
+    return res.data
   }
 
-  function getFloor(floorId: string): Floor | undefined {
-    return floorStore.find(floorId)
+  async function roomsByFloor(floorId: string): Promise<Room[]> {
+    const res = await request<Paginated<Room>>(`/rooms?floor_id=${floorId}&limit=100`)
+    return res.data
   }
 
-  function createFloor(officeId: string, nama: string, lantai: number): Floor {
-    const floor: Floor = {
-      id: generateId(),
-      office_id: officeId,
-      nama,
-      lantai,
-      created_at: new Date().toISOString().slice(0, 10)
-    }
-    return floorStore.insert(floor)
+  async function createFloor(input: FloorInput): Promise<Floor> {
+    const body: Record<string, unknown> = { office_id: input.office_id, name: input.name }
+    if (input.level != null) body.level = input.level
+    return request<Floor>('/floors', { method: 'POST', body })
   }
 
-  function removeFloor(floorId: string): boolean {
-    // Also remove all rooms on this floor
-    const rooms = roomsByFloor(floorId)
-    for (const r of rooms) {
-      roomStore.remove(r.id)
-    }
-    return floorStore.remove(floorId)
+  async function updateFloor(id: string, input: FloorInput): Promise<Floor> {
+    const body: Record<string, unknown> = { office_id: input.office_id, name: input.name }
+    if (input.level != null) body.level = input.level
+    return request<Floor>(`/floors/${id}`, { method: 'PUT', body })
   }
 
-  function roomsByFloor(floorId: string): Room[] {
-    return roomStore.all().filter(r => r.floor_id === floorId)
+  async function removeFloor(id: string): Promise<void> {
+    await request(`/floors/${id}`, { method: 'DELETE' })
   }
 
-  function createRoom(floorId: string, officeId: string, nama: string, kode: string): Room {
-    const room: Room = {
-      id: generateId(),
-      floor_id: floorId,
-      office_id: officeId,
-      nama,
-      kode,
-      created_at: new Date().toISOString().slice(0, 10)
-    }
-    return roomStore.insert(room)
+  async function createRoom(input: RoomInput): Promise<Room> {
+    const body: Record<string, unknown> = { floor_id: input.floor_id, name: input.name }
+    if (input.code) body.code = input.code
+    return request<Room>('/rooms', { method: 'POST', body })
   }
 
-  function updateFloor(floorId: string, patch: Partial<Pick<Floor, 'nama'>>): Floor | undefined {
-    return floorStore.patch(floorId, patch)
+  async function updateRoom(id: string, input: RoomInput): Promise<Room> {
+    const body: Record<string, unknown> = { floor_id: input.floor_id, name: input.name }
+    if (input.code) body.code = input.code
+    return request<Room>(`/rooms/${id}`, { method: 'PUT', body })
   }
 
-  function updateRoom(roomId: string, patch: Partial<Pick<Room, 'nama'>>): Room | undefined {
-    return roomStore.patch(roomId, patch)
+  async function removeRoom(id: string): Promise<void> {
+    await request(`/rooms/${id}`, { method: 'DELETE' })
   }
 
-  function removeRoom(roomId: string): boolean {
-    return roomStore.remove(roomId)
-  }
-
-  return {
-    listByOffice,
-    getFloor,
-    createFloor,
-    updateFloor,
-    removeFloor,
-    roomsByFloor,
-    createRoom,
-    updateRoom,
-    removeRoom
-  }
+  return { listByOffice, roomsByFloor, createFloor, updateFloor, removeFloor, createRoom, updateRoom, removeRoom }
 }

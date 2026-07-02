@@ -903,19 +903,25 @@
       "fields": {
         "nama": "Office Name",
         "kode": "Code",
-        "tipe": "Tier",
+        "tipe": "Office Type",
         "parent": "Parent",
         "provinsi": "Province",
         "kota": "City",
         "alamat": "Address",
-        "active": "Status"
+        "active": "Status",
+        "latitude": "Latitude",
+        "longitude": "Longitude"
       },
       "tipe": { "pusat": "Head Office", "kanwil": "Regional", "cabang": "Branch", "unit": "Unit" },
       "noParent": "No parent (Head Office)",
       "createTitle": "Add Office",
       "editTitle": "Edit Office",
       "errInvalidParent": "Invalid parent office.",
-      "errNotFound": "Office not found."
+      "errNotFound": "Office not found.",
+      "required": "Name, Code, and Office Type are required.",
+      "loadError": "Failed to load offices.",
+      "selectPlaceholder": "Select…",
+      "coordHint": "Optional — used to show the office on the Location Map."
     },
     "employees": {
       "title": "Employees",

@@ -42,32 +42,36 @@ export type TableSorting = SortState[]
 
 export interface Office {
   id: string
-  nama: string
-  kode: string
-  tipe: 'pusat' | 'kanwil' | 'cabang' | 'unit'
   parent_id: string | null
-  provinsi: string
-  kota: string
-  alamat: string
-  active: boolean
-  created_at: string
+  office_type_id: string
+  province_id: string | null
+  city_id: string | null
+  name: string
+  code: string
+  address: string | null
+  is_active: boolean
+  latitude: number | null
+  longitude: number | null
+  created_at: string | null
+  updated_at: string | null
 }
 
 export interface Floor {
   id: string
   office_id: string
-  nama: string
-  lantai: number
-  created_at: string
+  name: string
+  level: number | null
+  created_at: string | null
+  updated_at: string | null
 }
 
 export interface Room {
   id: string
   floor_id: string
-  office_id: string
-  nama: string
-  kode: string
-  created_at: string
+  name: string
+  code: string | null
+  created_at: string | null
+  updated_at: string | null
 }
 
 export type EmployeeStatus = 'active' | 'inactive' | 'suspended'

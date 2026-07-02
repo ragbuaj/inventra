@@ -903,19 +903,25 @@
       "fields": {
         "nama": "Nama Kantor",
         "kode": "Kode",
-        "tipe": "Jenjang",
+        "tipe": "Jenis Kantor",
         "parent": "Induk",
         "provinsi": "Provinsi",
         "kota": "Kota",
         "alamat": "Alamat",
-        "active": "Status"
+        "active": "Status",
+        "latitude": "Latitude",
+        "longitude": "Longitude"
       },
       "tipe": { "pusat": "Pusat", "kanwil": "Kanwil", "cabang": "Cabang", "unit": "Unit" },
       "noParent": "Tanpa induk (Pusat)",
       "createTitle": "Tambah Kantor",
       "editTitle": "Ubah Kantor",
       "errInvalidParent": "Induk kantor tidak valid.",
-      "errNotFound": "Kantor tidak ditemukan."
+      "errNotFound": "Kantor tidak ditemukan.",
+      "required": "Nama, Kode, dan Jenis Kantor wajib diisi.",
+      "loadError": "Gagal memuat kantor.",
+      "selectPlaceholder": "Pilih…",
+      "coordHint": "Opsional — untuk menampilkan kantor pada Peta Lokasi."
     },
     "employees": {
       "title": "Pegawai",
