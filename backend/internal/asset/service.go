@@ -50,6 +50,10 @@ func validTransition(from, to sqlc.SharedAssetStatus) bool {
 	return allowedTransitions[from][to]
 }
 
+// ValidTransition reports whether an asset may move from status `from` to `to`.
+// Exported for the disposal module's executor, which shares the transition matrix.
+func ValidTransition(from, to sqlc.SharedAssetStatus) bool { return validTransition(from, to) }
+
 // formatAssetTag formats an asset tag as <officeCode>-<categoryCode>-<year>-<seq:%05d>.
 // Example: JKT01-ELK-2026-00001
 func formatAssetTag(officeCode, categoryCode string, year int, seq int64) string {
@@ -103,14 +107,14 @@ func mapDBError(err error) error {
 
 // ListInput holds the parameters for a scoped asset list query.
 type ListInput struct {
-	Search       *string
-	CategoryID   *uuid.UUID
-	OfficeFilter *uuid.UUID
-	Status       *sqlc.SharedAssetStatus
-	AssetClass   *sqlc.SharedAssetClass
+	Search        *string
+	CategoryID    *uuid.UUID
+	OfficeFilter  *uuid.UUID
+	Status        *sqlc.SharedAssetStatus
+	AssetClass    *sqlc.SharedAssetClass
 	Limit, Offset int32
-	AllScope     bool
-	OfficeIDs    []uuid.UUID
+	AllScope      bool
+	OfficeIDs     []uuid.UUID
 }
 
 // List returns a page of assets matching the given filters, scoped to the
