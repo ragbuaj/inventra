@@ -63,6 +63,13 @@ tags:
     description: |
       Value-tiered approval-threshold configuration. All operations require
       the `approval.config.manage` permission.
+  - name: Transfers
+    description: |
+      Inter-office asset transfers (mutasi). A transfer row is created only once an
+      `asset_transfer` approval request is approved (see the Requests tag); it then moves
+      `approved` → `in_transit` → `received`. Reads require `transfer.view`; writes
+      (`submit`, `ship`, `receive`) require `transfer.manage`. Receiving optionally attaches
+      a BAST (`bast_transfer`) document via `POST /assets/{id}/documents` semantics.
   - name: Audit
     description: Read-only audit trail (requires the `audit.view` permission)
 
@@ -1687,6 +1694,213 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/v1/transfers:
+    post:
+      tags: [Transfers]
+      operationId: submitTransfer
+      summary: Submit an inter-office asset transfer (mutasi)
+      description: |
+        Creates an `asset_transfer` approval request for moving an asset to another office
+        (and optionally a specific room). A `transfers` row is only created once the request
+        is approved — see `POST /requests/{id}/approve`. Requires the `transfer.manage`
+        permission.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TransferSubmitRequest" }
+      responses:
+        "201":
+          description: Created approval request for the transfer
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [request_id, status]
+                properties:
+                  request_id: { type: string, format: uuid }
+                  status:
+                    type: string
+                    enum: [pending, approved, rejected, cancelled]
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422":
+          description: Asset already in transit, source and destination office are the same, or an invalid reference was supplied
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    get:
+      tags: [Transfers]
+      operationId: listTransfers
+      summary: List asset transfers (data-scoped)
+      description: |
+        Returns transfers within the caller's **data scope** (module `transfers`).
+        Requires the `transfer.view` permission.
+      security:
+        - bearerJWT: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [approved, in_transit, received]
+          description: Filter by transfer status.
+        - { name: limit, in: query, schema: { type: integer, default: 20, minimum: 1, maximum: 100 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0, minimum: 0 } }
+      responses:
+        "200":
+          description: A page of transfers in scope
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TransferList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/transfers/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Transfers]
+      operationId: getTransfer
+      summary: Get a transfer by id
+      description: Requires the `transfer.view` permission; the transfer must be within the caller's data scope.
+      security:
+        - bearerJWT: []
+      responses:
+        "200": { description: The transfer, content: { application/json: { schema: { $ref: "#/components/schemas/Transfer" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { description: Not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/v1/transfers/{id}/ship:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Transfers]
+      operationId: shipTransfer
+      summary: Mark an approved transfer as shipped (in_transit)
+      description: |
+        Transitions the transfer from `approved` to `in_transit`. Requires the
+        `transfer.manage` permission; the transfer's origin office must be within the
+        caller's data scope.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TransferShipRequest" }
+      responses:
+        "200":
+          description: Updated transfer
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Transfer" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Transfer is not `approved`, so it cannot be shipped
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/transfers/{id}/receive:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Transfers]
+      operationId: receiveTransfer
+      summary: Mark an in-transit transfer as received and relocate the asset
+      description: |
+        Transitions the transfer from `in_transit` to `received`, atomically moving the asset
+        to `to_office_id` (and `to_room_id`, if supplied here or overriding the one submitted
+        with the request). Also creates a `bast_transfer` asset-document record and, if a
+        `file` part is supplied, stores it in object storage (best-effort — a storage failure
+        does not roll back the receive). Requires the `transfer.manage` permission; the
+        transfer's destination office must be within the caller's data scope.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: false
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                bast_no:
+                  type: string
+                  description: BAST (berita acara serah terima) document number.
+                received_date:
+                  type: string
+                  format: date
+                  description: 'Defaults to today if omitted. Format: YYYY-MM-DD.'
+                to_room_id:
+                  type: string
+                  format: uuid
+                  description: Overrides the room submitted with the original request, if provided.
+                file:
+                  type: string
+                  format: binary
+                  description: Optional scanned BAST file, attached to the created bast_transfer document.
+      responses:
+        "200":
+          description: Updated (received) transfer
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Transfer" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Transfer is not `in_transit`, so it cannot be received
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/assets/{id}/transfers:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: Asset id }
+    get:
+      tags: [Transfers]
+      operationId: listAssetTransfers
+      summary: List transfer history for an asset
+      description: Returns all transfers for the given asset within the caller's data scope. Requires the `transfer.view` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Transfer history
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Transfer" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Asset not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/v1/authz/catalog:
     get:
       tags: [Authorization Admin]
@@ -2731,6 +2945,60 @@ components:
       properties:
         data: { type: array, items: { $ref: "#/components/schemas/Threshold" } }
         total: { type: integer }
+
+    Transfer:
+      type: object
+      description: |
+        An inter-office asset transfer (mutasi). Created only once its `asset_transfer`
+        approval request is approved, then moves `approved` → `in_transit` → `received`.
+      required: [id, asset_id, from_office_id, to_office_id, status, requested_by_id, request_id, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        asset_id: { type: string, format: uuid }
+        from_office_id: { type: string, format: uuid }
+        to_office_id: { type: string, format: uuid }
+        to_room_id: { type: [string, "null"], format: uuid }
+        status:
+          type: string
+          enum: [approved, in_transit, received]
+        reason: { type: [string, "null"] }
+        requested_by_id: { type: string, format: uuid }
+        approved_by_id: { type: [string, "null"], format: uuid }
+        shipped_date: { type: [string, "null"], format: date }
+        received_date: { type: [string, "null"], format: date }
+        received_by_id: { type: [string, "null"], format: uuid }
+        bast_no: { type: [string, "null"] }
+        request_id: { type: [string, "null"], format: uuid }
+        created_at: { type: [string, "null"], format: date-time }
+        updated_at: { type: [string, "null"], format: date-time }
+
+    TransferSubmitRequest:
+      type: object
+      description: Body for POST /transfers.
+      required: [asset_id, to_office_id]
+      properties:
+        asset_id: { type: string, format: uuid }
+        to_office_id: { type: string, format: uuid }
+        to_room_id: { type: [string, "null"], format: uuid }
+        reason: { type: [string, "null"] }
+
+    TransferShipRequest:
+      type: object
+      description: Body for POST /transfers/{id}/ship. Entirely optional.
+      properties:
+        shipped_date:
+          type: [string, "null"]
+          format: date
+          description: 'Defaults to today if omitted. Format: YYYY-MM-DD.'
+
+    TransferList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/Transfer" } }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
 
     Attachment:
       type: object
