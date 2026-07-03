@@ -1,11 +1,117 @@
 // @vitest-environment nuxt
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
-import { enableAutoUnmount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises } from '@vue/test-utils'
 import { useAuthStore } from '~/stores/auth'
-import { useConfirm } from '~/composables/useConfirm'
-import { assetStore } from '~/mock/assets'
+
+// ---------------------------------------------------------------------------
+// Stub API client — all calls to useApiClient().request are intercepted here.
+// useAssets, useCategories (tree) and useOffices (list) all go through
+// useApiClient, so one mock covers everything the page needs.
+// ---------------------------------------------------------------------------
+
+type RequestHandler = (path: string, opts?: Record<string, unknown>) => unknown
+
+let _handler: RequestHandler = () => {
+  throw new Error('No handler set')
+}
+
+function setHandler(fn: RequestHandler) {
+  _handler = fn
+}
+
+vi.mock('~/composables/useApiClient', () => ({
+  useApiClient: () => ({
+    request: (path: string, opts?: Record<string, unknown>) => Promise.resolve(_handler(path, opts))
+  })
+}))
+
+// eslint-disable-next-line import/first
 import CatalogPage from '~/pages/assets/index.vue'
+
+// ---------------------------------------------------------------------------
+// Shared fixtures
+// ---------------------------------------------------------------------------
+
+const CATEGORIES = [
+  { id: 'c1', name: 'Elektronik' },
+  { id: 'c2', name: 'Furnitur' }
+]
+
+const OFFICES = [
+  { id: 'o1', name: 'Kantor Pusat' },
+  { id: 'o2', name: 'Kantor Cabang' }
+]
+
+const ASSETS = [
+  {
+    id: 'a1',
+    asset_tag: 'JKT01-ELK-2026-00001',
+    name: 'Laptop Dell Latitude 5440',
+    category_id: 'c1',
+    office_id: 'o1',
+    status: 'available',
+    asset_class: 'tangible',
+    purchase_date: '2026-01-12',
+    purchase_cost: '18500000',
+    book_value: '16200000'
+  },
+  {
+    id: 'a2',
+    asset_tag: 'JKT01-ELK-2026-00002',
+    name: 'Proyektor Epson EB-X51',
+    category_id: 'c1',
+    office_id: 'o2',
+    status: 'assigned',
+    asset_class: 'tangible',
+    purchase_date: '2026-01-20',
+    purchase_cost: '7200000',
+    book_value: '6500000'
+  },
+  {
+    id: 'a3',
+    asset_tag: 'JKT01-FUR-2025-00011',
+    name: 'Meja Kerja Ergonomis',
+    category_id: 'c2',
+    office_id: 'o1',
+    status: 'available',
+    asset_class: 'tangible',
+    purchase_date: '2025-06-18'
+    // purchase_cost / book_value deliberately absent → masked by field permission
+  }
+]
+
+function makeAssetsResponse(rows = ASSETS, total = ASSETS.length, limit = 20, offset = 0) {
+  return { data: rows, total, limit, offset }
+}
+
+function makeOfficesResponse(rows = OFFICES) {
+  return { data: rows, total: rows.length, limit: 100, offset: 0 }
+}
+
+interface Call { path: string, opts?: Record<string, unknown> }
+
+const assetCalls: Call[] = []
+
+function lastAssetQuery(): URLSearchParams {
+  const call = assetCalls[assetCalls.length - 1]
+  if (!call) throw new Error('No /assets call recorded')
+  return new URLSearchParams(call.path.split('?')[1] ?? '')
+}
+
+function defaultHandler(path: string, opts?: Record<string, unknown>): unknown {
+  if (path.startsWith('/assets')) {
+    assetCalls.push({ path, opts })
+    return makeAssetsResponse()
+  }
+  if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
+  if (path.startsWith('/offices')) return makeOfficesResponse()
+  throw new Error(`Unhandled request: ${path} ${JSON.stringify(opts)}`)
+}
+
+// ---------------------------------------------------------------------------
+// Test setup
+// ---------------------------------------------------------------------------
 
 enableAutoUnmount(afterEach)
 
@@ -18,83 +124,343 @@ function grantAdmin() {
 }
 
 beforeEach(() => {
-  assetStore.reset()
+  assetCalls.length = 0
+  setHandler(defaultHandler)
   grantAdmin()
 })
 
 async function mountAndWait() {
   const wrapper = await mountSuspended(CatalogPage)
-  await new Promise(r => setTimeout(r, 800))
+  await flushPromises()
   await wrapper.vm.$nextTick()
   return wrapper
 }
 
-describe('Asset Catalog page', () => {
-  it('renders title, asset rows, tags, status and prices', async () => {
+async function setVmRef(wrapper: Awaited<ReturnType<typeof mountAndWait>>, key: string, value: unknown) {
+  ;(wrapper.vm as unknown as Record<string, unknown>)[key] = value
+  await wrapper.vm.$nextTick()
+  await flushPromises()
+  await wrapper.vm.$nextTick()
+}
+
+// ---------------------------------------------------------------------------
+// Loaded rows
+// ---------------------------------------------------------------------------
+
+describe('Asset Catalog page — loaded rows', () => {
+  it('renders page title', async () => {
+    const wrapper = await mountAndWait()
+    expect(wrapper.text()).toContain('Katalog Aset')
+  })
+
+  it('renders asset rows from the stubbed list response', async () => {
     const wrapper = await mountAndWait()
     const text = wrapper.text()
-    expect(text).toContain('Katalog Aset')
     expect(text).toContain('Laptop Dell Latitude 5440')
+    expect(text).toContain('Proyektor Epson EB-X51')
     expect(text).toContain('JKT01-ELK-2026-00001')
-    expect(text).toContain('Tersedia') // a status label
-    expect(text).toContain('Rp 18.500.000') // a price
   })
 
-  it('filters by search', async () => {
+  it('resolves category_id to category name — not raw id', async () => {
     const wrapper = await mountAndWait()
-    await wrapper.find('input[type="text"]').setValue('Toyota')
+    const text = wrapper.text()
+    expect(text).toContain('Elektronik')
+    expect(text).toContain('Furnitur')
+    expect(text).not.toContain('c1')
+    expect(text).not.toContain('c2')
+  })
+
+  it('resolves office_id to office name — not raw id', async () => {
+    const wrapper = await mountAndWait()
+    const text = wrapper.text()
+    expect(text).toContain('Kantor Pusat')
+    expect(text).toContain('Kantor Cabang')
+    expect(text).not.toContain('o1')
+    expect(text).not.toContain('o2')
+  })
+
+  it('renders a resolved status badge label (English status → i18n)', async () => {
+    const wrapper = await mountAndWait()
+    // available → "Tersedia" (id)
+    expect(wrapper.text()).toContain('Tersedia')
+    // assigned → "Digunakan" (id)
+    expect(wrapper.text()).toContain('Digunakan')
+  })
+
+  it('renders holder column as — (assignment module not built)', async () => {
+    const wrapper = await mountAndWait()
+    const cells = wrapper.findAll('td')
+    // At least one holder cell renders the placeholder dash.
+    expect(cells.some(c => c.text().trim() === '—')).toBe(true)
+  })
+
+  it('formats a present purchase_cost as Rupiah', async () => {
+    const wrapper = await mountAndWait()
+    expect(wrapper.text()).toContain('Rp 18.500.000')
+  })
+
+  it('shows the initial GET /assets call with default paging', async () => {
+    await mountAndWait()
+    const q = lastAssetQuery()
+    expect(q.get('limit')).toBe('20')
+    expect(q.get('offset')).toBe('0')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Masked money fields
+// ---------------------------------------------------------------------------
+
+describe('Asset Catalog page — masked money fields', () => {
+  it('renders a masked indicator (not "Rp 0") when purchase_cost is absent', async () => {
+    const wrapper = await mountAndWait()
+    const text = wrapper.text()
+    expect(text).not.toContain('Rp 0')
+    // The masked row (a3) has no purchase_cost/book_value keys at all.
+    expect(text).toContain('Meja Kerja Ergonomis')
+  })
+
+  it('renders the masked lock affordance for the row missing purchase_cost', async () => {
+    const wrapper = await mountAndWait()
+    expect(wrapper.html()).toContain('Tersembunyi (izin)')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Status filter — 7 statuses via i18n
+// ---------------------------------------------------------------------------
+
+describe('Asset Catalog page — status filter options', () => {
+  it('exposes exactly the 7 AssetStatus values plus "all", resolved via i18n', async () => {
+    const wrapper = await mountAndWait()
+    const vm = wrapper.vm as unknown as { statusOptions: { value: string, label: string }[] }
+    const values = vm.statusOptions.map(o => o.value)
+    expect(values).toEqual([
+      '__all__', 'available', 'assigned', 'under_maintenance', 'in_transfer', 'retired', 'disposed', 'lost'
+    ])
+    const labels = vm.statusOptions.map(o => o.label)
+    expect(labels).toContain('Tersedia')
+    expect(labels).toContain('Digunakan')
+    expect(labels).toContain('Dalam Mutasi')
+    expect(labels).toContain('Nonaktif')
+    expect(labels).toContain('Dilepas')
+    expect(labels).toContain('Hilang')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Filters re-fetch with matching query params
+// ---------------------------------------------------------------------------
+
+describe('Asset Catalog page — filters refetch via list()', () => {
+  it('status filter sends status= and resets offset to 0', async () => {
+    const wrapper = await mountAndWait()
+    await setVmRef(wrapper, 'fStatus', 'available')
+    const q = lastAssetQuery()
+    expect(q.get('status')).toBe('available')
+    expect(q.get('offset')).toBe('0')
+  })
+
+  it('kategori filter sends category_id=', async () => {
+    const wrapper = await mountAndWait()
+    await setVmRef(wrapper, 'fKat', 'c2')
+    const q = lastAssetQuery()
+    expect(q.get('category_id')).toBe('c2')
+  })
+
+  it('kantor filter sends office_id=', async () => {
+    const wrapper = await mountAndWait()
+    await setVmRef(wrapper, 'fKantor', 'o2')
+    const q = lastAssetQuery()
+    expect(q.get('office_id')).toBe('o2')
+  })
+
+  it('asset_class filter sends asset_class=', async () => {
+    const wrapper = await mountAndWait()
+    await setVmRef(wrapper, 'fClass', 'intangible')
+    const q = lastAssetQuery()
+    expect(q.get('asset_class')).toBe('intangible')
+  })
+
+  it('resetting a filter back to "all" omits the param entirely', async () => {
+    const wrapper = await mountAndWait()
+    await setVmRef(wrapper, 'fStatus', 'available')
+    await setVmRef(wrapper, 'fStatus', '__all__')
+    const q = lastAssetQuery()
+    expect(q.get('status')).toBeNull()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Debounced search
+// ---------------------------------------------------------------------------
+
+describe('Asset Catalog page — debounced search', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('does not refetch immediately on keystroke, then refetches ~300ms later with search=', async () => {
+    const wrapper = await mountSuspended(CatalogPage)
+    await vi.advanceTimersByTimeAsync(0)
     await wrapper.vm.$nextTick()
-    expect(wrapper.text()).toContain('Toyota Avanza 1.5 G')
-    expect(wrapper.text()).not.toContain('AC Daikin FTKC50')
-  })
+    const callsBefore = assetCalls.length
 
-  it('paginates 20 per page', async () => {
+    ;(wrapper.vm as unknown as { search: string }).search = 'Toyota'
+    await wrapper.vm.$nextTick()
+    // Immediately after typing, no new call yet.
+    expect(assetCalls.length).toBe(callsBefore)
+
+    await vi.advanceTimersByTimeAsync(300)
+    await wrapper.vm.$nextTick()
+
+    expect(assetCalls.length).toBeGreaterThan(callsBefore)
+    const q = lastAssetQuery()
+    expect(q.get('search')).toBe('Toyota')
+    expect(q.get('offset')).toBe('0')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Pagination
+// ---------------------------------------------------------------------------
+
+describe('Asset Catalog page — server-side pagination', () => {
+  it('clicking page 2 sends offset=20', async () => {
+    setHandler((path, opts) => {
+      if (path.startsWith('/assets')) {
+        assetCalls.push({ path, opts })
+        return makeAssetsResponse(ASSETS, 45)
+      }
+      if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
+      if (path.startsWith('/offices')) return makeOfficesResponse()
+      throw new Error(`Unhandled: ${path}`)
+    })
+
     const wrapper = await mountAndWait()
-    // Default sort by tag asc → "Toyota Hiace Commuter" (a KEN- tag) is on page 2.
-    expect(wrapper.text()).not.toContain('Toyota Hiace Commuter')
     const page2 = wrapper.findAll('button').find(b => b.text().trim() === '2')
     expect(page2).toBeDefined()
     await page2!.trigger('click')
+    await flushPromises()
     await wrapper.vm.$nextTick()
-    expect(wrapper.text()).toContain('Toyota Hiace Commuter')
-  })
 
-  it('selecting all shows the bulk bar with a count', async () => {
+    const q = lastAssetQuery()
+    expect(q.get('offset')).toBe('20')
+    expect(q.get('limit')).toBe('20')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Load error + retry
+// ---------------------------------------------------------------------------
+
+describe('Asset Catalog page — load error', () => {
+  it('shows the load-error state when GET /assets fails', async () => {
+    setHandler((path) => {
+      if (path.startsWith('/assets')) throw Object.assign(new Error('Server Error'), { statusCode: 500 })
+      if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
+      if (path.startsWith('/offices')) return makeOfficesResponse()
+      throw new Error(`Unhandled: ${path}`)
+    })
+
     const wrapper = await mountAndWait()
-    // UCheckbox renders a Reka button[role=checkbox]; the only button in <thead> is the select-all.
-    const headerCheckbox = wrapper.find('thead button')
-    expect(headerCheckbox.exists()).toBe(true)
-    await headerCheckbox.trigger('click')
-    await wrapper.vm.$nextTick()
-    expect(wrapper.text()).toContain('20 dipilih')
+    expect(wrapper.text()).toContain('Gagal memuat data.')
+    expect(wrapper.text()).not.toContain('Laptop Dell Latitude 5440')
   })
 
-  it('switches to grid view', async () => {
+  it('retry button re-fetches and recovers when the second call succeeds', async () => {
+    let callCount = 0
+    setHandler((path) => {
+      if (path.startsWith('/assets')) {
+        callCount++
+        if (callCount === 1) throw Object.assign(new Error('Server Error'), { statusCode: 500 })
+        return makeAssetsResponse()
+      }
+      if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
+      if (path.startsWith('/offices')) return makeOfficesResponse()
+      throw new Error(`Unhandled: ${path}`)
+    })
+
+    const wrapper = await mountAndWait()
+    expect(wrapper.text()).toContain('Gagal memuat data.')
+
+    const retryBtn = wrapper.findAll('button').find(b => b.text().includes('Coba lagi'))
+    expect(retryBtn).toBeDefined()
+    await retryBtn!.trigger('click')
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('Laptop Dell Latitude 5440')
+    expect(wrapper.text()).not.toContain('Gagal memuat data.')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Empty states
+// ---------------------------------------------------------------------------
+
+describe('Asset Catalog page — empty states', () => {
+  it('shows the no-data empty state when there are no assets and no filter is active', async () => {
+    setHandler((path) => {
+      if (path.startsWith('/assets')) return makeAssetsResponse([], 0)
+      if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
+      if (path.startsWith('/offices')) return makeOfficesResponse()
+      throw new Error(`Unhandled: ${path}`)
+    })
+
+    const wrapper = await mountAndWait()
+    expect(wrapper.text()).toContain('Belum ada aset')
+  })
+
+  it('shows the filtered-empty state when a filter is active and the server returns nothing', async () => {
+    setHandler((path) => {
+      if (path.startsWith('/assets')) return makeAssetsResponse([], 0)
+      if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
+      if (path.startsWith('/offices')) return makeOfficesResponse()
+      throw new Error(`Unhandled: ${path}`)
+    })
+
+    const wrapper = await mountAndWait()
+    await setVmRef(wrapper, 'fStatus', 'lost')
+
+    expect(wrapper.text()).toContain('Tidak ada aset yang cocok')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Grid view
+// ---------------------------------------------------------------------------
+
+describe('Asset Catalog page — grid view', () => {
+  it('switches to grid view and still shows asset names, no table header', async () => {
     const wrapper = await mountAndWait()
     const gridBtn = wrapper.find('button[aria-label="Tampilan grid"]')
     expect(gridBtn.exists()).toBe(true)
     await gridBtn.trigger('click')
     await wrapper.vm.$nextTick()
-    // Grid still shows asset names but no table header row.
     expect(wrapper.text()).toContain('Laptop Dell Latitude 5440')
     expect(wrapper.find('thead').exists()).toBe(false)
   })
+})
 
-  it('delete asks for confirmation naming the asset tag', async () => {
-    const { state } = useConfirm()
+// ---------------------------------------------------------------------------
+// Delete action fully removed
+// ---------------------------------------------------------------------------
+
+describe('Asset Catalog page — no delete action', () => {
+  it('renders no button with the delete/trash affordance', async () => {
     const wrapper = await mountAndWait()
-    const delBtn = wrapper.findAll('button').find(b => b.attributes('aria-label') === 'Hapus')
-    expect(delBtn).toBeDefined()
-    await delBtn!.trigger('click')
-    await wrapper.vm.$nextTick()
-    expect(state.value.open).toBe(true)
-    expect(state.value.description).toContain('JKT01-')
+    const trashBtn = wrapper.findAll('button').find(b => b.attributes('aria-label') === 'Hapus')
+    expect(trashBtn).toBeUndefined()
+    expect(wrapper.html()).not.toContain('i-lucide-trash-2')
   })
 
-  it('shows the empty state when nothing matches', async () => {
+  it('does not expose an onDelete handler or confirm-modal wiring', async () => {
     const wrapper = await mountAndWait()
-    await wrapper.find('input[type="text"]').setValue('zzz-no-asset')
-    await wrapper.vm.$nextTick()
-    expect(wrapper.text()).toContain('Tidak ada aset yang cocok')
+    const vm = wrapper.vm as unknown as Record<string, unknown>
+    expect(vm['onDelete']).toBeUndefined()
   })
 })

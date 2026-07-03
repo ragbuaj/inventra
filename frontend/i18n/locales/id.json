@@ -12,8 +12,6 @@
     "printLabels": "Cetak Label",
     "selected": "{n} dipilih",
     "showing": "Menampilkan {from}–{to} dari {total} aset",
-    "dateFrom": "Dari tanggal beli",
-    "dateTo": "Sampai tanggal beli",
     "viewTable": "Tampilan tabel",
     "viewGrid": "Tampilan grid",
     "comingSoon": "Fitur ini belum tersedia.",
@@ -41,7 +39,7 @@
       "allStatus": "Semua Status",
       "allCategory": "Semua Kategori",
       "allOffice": "Semua Kantor",
-      "allLocation": "Semua Lokasi"
+      "allClass": "Semua Kelas"
     },
     "status": {
       "tersedia": "Tersedia",
@@ -847,7 +845,8 @@
     "error": "Terjadi kesalahan",
     "active": "Aktif",
     "inactive": "Nonaktif",
-    "retry": "Coba lagi"
+    "retry": "Coba lagi",
+    "loadError": "Gagal memuat data."
   },
   "status": {
     "asset": {

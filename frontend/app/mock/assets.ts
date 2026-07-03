@@ -20,12 +20,6 @@ export interface MockAsset {
   buku: number
 }
 
-/** Old Indonesian-keyed status values still used by the not-yet-rewritten mock pages. */
-export const ASSET_STATUS_KEYS: string[] = ['tersedia', 'dipinjam', 'maintenance', 'dilepas', 'hilang']
-export const ASSET_CATEGORIES = ['Elektronik', 'Furnitur', 'Kendaraan', 'Perangkat IT']
-export const ASSET_OFFICES = ['Cabang Jakarta Selatan', 'Outlet Blok M', 'Outlet Kemang']
-export const ASSET_LOCATIONS = ['Lantai 3 — IT', 'Lantai 2 — Operasional', 'Ruang Server', 'Ruang Rapat A', 'Gudang Aset', 'Parkir Basement', 'Lobi']
-
 const a = (
   tag: string, nama: string, kategori: string, brand: string, status: string,
   kantor: string, lokasi: string, holder: string, tgl: string, harga: number, buku: number

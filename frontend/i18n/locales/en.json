@@ -12,8 +12,6 @@
     "printLabels": "Print Labels",
     "selected": "{n} selected",
     "showing": "Showing {from}–{to} of {total} assets",
-    "dateFrom": "Buy date from",
-    "dateTo": "Buy date to",
     "viewTable": "Table view",
     "viewGrid": "Grid view",
     "comingSoon": "This feature isn't available yet.",
@@ -41,7 +39,7 @@
       "allStatus": "All Status",
       "allCategory": "All Categories",
       "allOffice": "All Offices",
-      "allLocation": "All Locations"
+      "allClass": "All Classes"
     },
     "status": {
       "tersedia": "Available",
@@ -847,7 +845,8 @@
     "error": "Something went wrong",
     "active": "Active",
     "inactive": "Inactive",
-    "retry": "Retry"
+    "retry": "Retry",
+    "loadError": "Failed to load data."
   },
   "status": {
     "asset": {
