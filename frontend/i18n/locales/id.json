@@ -204,7 +204,9 @@
       "count": "{n} label",
       "perPage": "≈ {n} label / halaman A4",
       "emptyTitle": "Belum ada aset dipilih",
-      "emptySub": "Centang aset di panel kiri untuk melihat pratinjau label."
+      "emptySub": "Centang aset di panel kiri untuk melihat pratinjau label.",
+      "pickerEmpty": "Tidak ada aset yang cocok.",
+      "maxSelected": "Maksimum {n} aset dapat dipilih sekaligus."
     }
   },
   "assignment": {

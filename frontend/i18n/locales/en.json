@@ -204,7 +204,9 @@
       "count": "{n} labels",
       "perPage": "≈ {n} labels / A4 page",
       "emptyTitle": "No asset selected",
-      "emptySub": "Check assets in the left panel to preview labels."
+      "emptySub": "Check assets in the left panel to preview labels.",
+      "pickerEmpty": "No matching assets.",
+      "maxSelected": "You can select up to {n} assets at a time."
     }
   },
   "assignment": {

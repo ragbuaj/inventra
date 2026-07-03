@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { assetStore } from '~/mock/assets'
+import type { Asset } from '~/types'
 
 definePageMeta({ middleware: 'can', permission: 'asset.view' })
 
-const { t } = useI18n()
-const route = useRoute()
-const toast = useToast()
+type BarcodeType = 'code128' | 'qr'
+
+const MAX_SELECTED = 500
+const PICKER_LIMIT = 50
+const DEBOUNCE_MS = 300
 
 const SIZES: Record<string, { w: number, h: number, qr: number, bar: number }> = {
   '50x30': { w: 196, h: 116, qr: 60, bar: 30 },
@@ -13,16 +15,18 @@ const SIZES: Record<string, { w: number, h: number, qr: number, bar: number }> =
   '100x50': { w: 320, h: 168, qr: 88, bar: 42 }
 }
 
-const all = assetStore.all().map(a => ({ tag: a.tag, nama: a.nama, kantor: a.kantor }))
+const { t } = useI18n()
+const route = useRoute()
+const toast = useToast()
+const assetsApi = useAssets()
+const officesApi = useOffices()
+const { requestBlob } = useApiClient()
 
-const search = ref('')
 const size = ref('70x40')
 const cols = ref(3)
 const mode = ref<'barcode' | 'qr' | 'both'>('both')
 const fields = reactive({ nama: true, kode: true, kantor: true })
-
-const initialTags = String(route.query.tags ?? '').split(',').map(s => s.trim()).filter(Boolean)
-const selected = ref<Set<string>>(new Set(initialTags))
+const downloading = ref(false)
 
 const sizeOptions = [
   { value: '50x30', label: '50 × 30 mm' },
@@ -39,34 +43,206 @@ const sz = computed(() => SIZES[size.value] ?? SIZES['70x40']!)
 const showQr = computed(() => mode.value === 'qr' || mode.value === 'both')
 const showBarcode = computed(() => mode.value === 'barcode' || mode.value === 'both')
 
-const filtered = computed(() => {
-  const q = search.value.trim().toLowerCase()
-  return all.filter(a => !q || a.nama.toLowerCase().includes(q) || a.tag.toLowerCase().includes(q))
-})
-const filteredTags = computed(() => filtered.value.map(a => a.tag))
-const allChecked = computed(() => filteredTags.value.length > 0 && filteredTags.value.every(tag => selected.value.has(tag)))
+// --- Picker: server search over /assets (debounced), independent of selection. ---
+const pickerQuery = ref('')
+const debouncedPickerQuery = ref('')
+const pickerResults = ref<Asset[]>([])
+const pickerLoading = ref(true)
+const pickerError = ref(false)
 
-const selectedLabels = computed(() => all.filter(a => selected.value.has(a.tag)))
+const pickerIds = computed(() => pickerResults.value.map(a => a.id))
+const allChecked = computed(() =>
+  pickerIds.value.length > 0 && pickerIds.value.every(id => selectedMap.value.has(id)))
+
+let pickerSeq = 0
+async function loadPicker() {
+  const mine = ++pickerSeq
+  pickerLoading.value = true
+  pickerError.value = false
+  try {
+    const res = await assetsApi.list({ search: debouncedPickerQuery.value.trim() || undefined, limit: PICKER_LIMIT })
+    if (mine !== pickerSeq) return
+    pickerResults.value = res.data
+    pickerLoading.value = false
+  } catch {
+    if (mine !== pickerSeq) return
+    pickerError.value = true
+    pickerLoading.value = false
+  }
+}
+
+let pickerTimer: ReturnType<typeof setTimeout> | undefined
+watch(pickerQuery, (v) => {
+  if (pickerTimer) clearTimeout(pickerTimer)
+  pickerTimer = setTimeout(() => {
+    debouncedPickerQuery.value = v
+  }, DEBOUNCE_MS)
+})
+watch(debouncedPickerQuery, () => loadPicker())
+
+// --- Selection: Map keyed by asset id so we hold real Asset objects. ---
+const selectedMap = ref<Map<string, Asset>>(new Map())
+const selectedLabels = computed(() => Array.from(selectedMap.value.values()))
 const perPage = computed(() => {
   const rowsPer = Math.max(1, Math.floor(1040 / (sz.value.h + 12)))
   return cols.value * rowsPer
 })
 
-function toggle(tag: string) {
-  const next = new Set(selected.value)
-  if (next.has(tag)) next.delete(tag)
-  else next.add(tag)
-  selected.value = next
+function warnCap() {
+  toast.add({ title: t('assets.label.maxSelected', { n: MAX_SELECTED }), color: 'warning', icon: 'i-lucide-triangle-alert' })
 }
+
+function toggle(asset: Asset) {
+  const next = new Map(selectedMap.value)
+  if (next.has(asset.id)) {
+    next.delete(asset.id)
+    selectedMap.value = next
+    return
+  }
+  if (next.size >= MAX_SELECTED) {
+    warnCap()
+    return
+  }
+  next.set(asset.id, asset)
+  selectedMap.value = next
+}
+
+function addMany(assets: Asset[]) {
+  const next = new Map(selectedMap.value)
+  let overflow = false
+  for (const a of assets) {
+    if (next.has(a.id)) continue
+    if (next.size >= MAX_SELECTED) {
+      overflow = true
+      break
+    }
+    next.set(a.id, a)
+  }
+  selectedMap.value = next
+  if (overflow) warnCap()
+}
+
 function toggleAll() {
-  const next = new Set(selected.value)
-  if (allChecked.value) filteredTags.value.forEach(tag => next.delete(tag))
-  else filteredTags.value.forEach(tag => next.add(tag))
-  selected.value = next
+  if (allChecked.value) {
+    const next = new Map(selectedMap.value)
+    for (const id of pickerIds.value) next.delete(id)
+    selectedMap.value = next
+  } else {
+    addMany(pickerResults.value)
+  }
 }
-function comingSoon() {
-  toast.add({ title: t('assets.comingSoon'), color: 'neutral', icon: 'i-lucide-info' })
+
+// --- Office names for the printed label's "kantor" field (like the Katalog page). ---
+const officeMap = ref(new Map<string, string>())
+async function loadOffices() {
+  try {
+    const res = await officesApi.list({ limit: 100 })
+    officeMap.value = new Map(res.data.map(o => [o.id, o.name]))
+  } catch {
+    // Office resolution is optional — labels still render with a "—" placeholder.
+  }
 }
+function officeName(id: string): string {
+  return officeMap.value.get(id) ?? '—'
+}
+
+// --- Barcode/QR previews: lazy-fetched per (asset id, type), cached so mode
+// toggles or re-renders never refetch an image already retrieved. ---
+const barcodeUrls = ref(new Map<string, string>())
+const barcodeInFlight = new Set<string>()
+
+function barcodeKey(id: string, type: BarcodeType): string {
+  return `${id}:${type}`
+}
+function qrSrcFor(id: string): string | undefined {
+  return barcodeUrls.value.get(barcodeKey(id, 'qr'))
+}
+function barcodeSrcFor(id: string): string | undefined {
+  return barcodeUrls.value.get(barcodeKey(id, 'code128'))
+}
+
+async function ensureBarcode(id: string, type: BarcodeType) {
+  const key = barcodeKey(id, type)
+  if (barcodeInFlight.has(key)) return
+  barcodeInFlight.add(key)
+  try {
+    const blob = await requestBlob(`/assets/${id}/barcode?type=${type}`)
+    const url = URL.createObjectURL(blob)
+    const next = new Map(barcodeUrls.value)
+    next.set(key, url)
+    barcodeUrls.value = next
+  } catch {
+    // Allow a retry later (e.g. after switching modes back and forth).
+    barcodeInFlight.delete(key)
+  }
+}
+
+const neededTypes = computed<BarcodeType[]>(() => {
+  if (mode.value === 'barcode') return ['code128']
+  if (mode.value === 'qr') return ['qr']
+  return ['code128', 'qr']
+})
+
+watch([selectedLabels, neededTypes], () => {
+  for (const asset of selectedLabels.value) {
+    for (const type of neededTypes.value) {
+      ensureBarcode(asset.id, type)
+    }
+  }
+}, { immediate: true })
+
+// --- Initial selection from ?tags=... (e.g. navigated from the catalog). ---
+const initialTags = String(route.query.tags ?? '').split(',').map(s => s.trim()).filter(Boolean)
+async function resolveInitialTags() {
+  if (initialTags.length === 0) return
+  const results = await Promise.allSettled(initialTags.map(tagValue => assetsApi.getByTag(tagValue)))
+  const next = new Map(selectedMap.value)
+  for (const r of results) {
+    if (r.status === 'fulfilled' && next.size < MAX_SELECTED) next.set(r.value.id, r.value)
+  }
+  selectedMap.value = next
+}
+
+// --- Generate + download the label PDF. ---
+async function downloadLabels() {
+  if (selectedLabels.value.length === 0) return
+  downloading.value = true
+  try {
+    const blob = await requestBlob('/assets/labels', {
+      method: 'POST',
+      body: {
+        asset_ids: selectedLabels.value.map(a => a.id),
+        template: 'btn',
+        layout: 'roll',
+        mode: mode.value,
+        fields: { name: fields.nama, office: fields.kantor }
+      }
+    })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = 'labels.pdf'
+    document.body.appendChild(anchor)
+    anchor.click()
+    document.body.removeChild(anchor)
+    URL.revokeObjectURL(url)
+  } catch {
+    // Failure is already surfaced by useApiClient's error toast.
+  } finally {
+    downloading.value = false
+  }
+}
+
+onMounted(() => {
+  loadPicker()
+  loadOffices()
+  resolveInitialTags()
+})
+
+onUnmounted(() => {
+  if (pickerTimer) clearTimeout(pickerTimer)
+  for (const url of barcodeUrls.value.values()) URL.revokeObjectURL(url)
+})
 </script>
 
 <template>
@@ -86,11 +262,11 @@ function comingSoon() {
         <div class="bg-default border border-default rounded-[14px] shadow-sm overflow-hidden">
           <div class="px-4 py-3 border-b border-default flex items-center justify-between">
             <span class="text-[13px] font-semibold">{{ t('assets.label.selectAssets') }}</span>
-            <span class="text-[11.5px] text-muted">{{ t('assets.label.selected', { n: selected.size }) }}</span>
+            <span class="text-[11.5px] text-muted">{{ t('assets.label.selected', { n: selectedMap.size }) }}</span>
           </div>
           <div class="p-3 border-b border-default">
             <UInput
-              v-model="search"
+              v-model="pickerQuery"
               icon="i-lucide-search"
               :placeholder="t('assets.label.searchPlaceholder')"
               class="w-full"
@@ -99,25 +275,67 @@ function comingSoon() {
             <label class="flex items-center gap-2 mt-2.5 text-[12.5px] cursor-pointer">
               <UCheckbox
                 :model-value="allChecked"
+                :disabled="pickerLoading || pickerIds.length === 0"
                 @update:model-value="toggleAll"
               />
               {{ t('assets.label.selectAll') }}
             </label>
           </div>
-          <div class="max-h-[280px] overflow-y-auto p-2">
+
+          <div
+            v-if="pickerLoading"
+            class="p-3 space-y-2"
+          >
+            <USkeleton
+              v-for="n in 5"
+              :key="n"
+              class="h-[38px] w-full rounded-lg"
+            />
+          </div>
+
+          <div
+            v-else-if="pickerError"
+            class="flex flex-col items-center gap-2.5 py-8 text-muted"
+          >
+            <UIcon
+              name="i-lucide-circle-alert"
+              class="size-5"
+            />
+            <span class="text-xs">{{ t('common.loadError') }}</span>
+            <UButton
+              color="neutral"
+              variant="subtle"
+              size="xs"
+              @click="loadPicker"
+            >
+              {{ t('common.retry') }}
+            </UButton>
+          </div>
+
+          <div
+            v-else-if="pickerResults.length === 0"
+            class="py-8 px-4 text-center text-xs text-muted"
+          >
+            {{ t('assets.label.pickerEmpty') }}
+          </div>
+
+          <div
+            v-else
+            class="max-h-[280px] overflow-y-auto p-2"
+          >
             <label
-              v-for="a in filtered"
-              :key="a.tag"
+              v-for="a in pickerResults"
+              :key="a.id"
               class="flex items-start gap-2.5 px-2 py-2 rounded-lg cursor-pointer hover:bg-muted"
             >
               <UCheckbox
-                :model-value="selected.has(a.tag)"
+                :model-value="selectedMap.has(a.id)"
                 class="mt-0.5"
-                @update:model-value="toggle(a.tag)"
+                @update:model-value="toggle(a)"
               />
               <span class="min-w-0">
-                <span class="block text-[12.5px] font-medium truncate">{{ a.nama }}</span>
-                <span class="block text-[11px] font-mono text-dimmed truncate">{{ a.tag }}</span>
+                <span class="block text-[12.5px] font-medium truncate">{{ a.name }}</span>
+                <span class="block text-[11px] font-mono text-dimmed truncate">{{ a.asset_tag }}</span>
               </span>
             </label>
           </div>
@@ -209,14 +427,16 @@ function comingSoon() {
               size="sm"
               :label="t('assets.label.pdf')"
               :disabled="selectedLabels.length === 0"
-              @click="comingSoon"
+              :loading="downloading"
+              @click="downloadLabels"
             />
             <UButton
               icon="i-lucide-printer"
               size="sm"
               :label="t('assets.label.print')"
               :disabled="selectedLabels.length === 0"
-              @click="comingSoon"
+              :loading="downloading"
+              @click="downloadLabels"
             />
           </div>
         </div>
@@ -249,14 +469,16 @@ function comingSoon() {
           >
             <AssetLabel
               v-for="lbl in selectedLabels"
-              :key="lbl.tag"
-              :tag="lbl.tag"
-              :nama="lbl.nama"
-              :kantor="lbl.kantor"
+              :key="lbl.id"
+              :tag="lbl.asset_tag"
+              :nama="lbl.name"
+              :kantor="officeName(lbl.office_id)"
               :size="sz"
               :show-qr="showQr"
               :show-barcode="showBarcode"
               :fields="fields"
+              :qr-src="qrSrcFor(lbl.id)"
+              :barcode-src="barcodeSrcFor(lbl.id)"
             />
           </div>
         </div>
