@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import type { AssetCondition, MockAsset } from '~/mock/assets'
-import { useAssets } from '~/composables/api/useAssets'
+// TODO(Task 6): rewire this page to useAssets()/the real /assets API; until then it
+// reads/writes the mock assetStore directly (useAssets.ts now targets the real backend).
 import {
   ASSET_CONDITION_TONE, MAINTENANCE_TYPE_TONE, MAINTENANCE_STATUS_TONE,
-  sampleAssignments, sampleMaintenance, depreciationSchedule
+  sampleAssignments, sampleMaintenance, depreciationSchedule, assetStore
 } from '~/mock/assets'
 
 definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
@@ -14,7 +15,6 @@ const { t } = useI18n()
 const route = useRoute()
 const toast = useToast()
 const { open: confirm } = useConfirm()
-const api = useAssets()
 const localePath = useLocalePath()
 
 const tag = computed(() => String(route.params.tag))
@@ -113,14 +113,14 @@ async function onDelete() {
   if (!asset.value) return
   const ok = await confirm({ title: t('assets.deleteTitle'), description: t('assets.deleteBody', { tag: asset.value.tag }) })
   if (!ok) return
-  await api.remove(asset.value.tag)
+  assetStore.remove(asset.value.tag)
   toast.add({ title: t('assets.detail.deletedToast'), color: 'success', icon: 'i-lucide-trash-2' })
   navigateTo(localePath('/assets'))
 }
 
 onMounted(async () => {
   loading.value = true
-  asset.value = (await api.get(tag.value)) ?? null
+  asset.value = assetStore.find(tag.value) ?? null
   loading.value = false
 })
 </script>

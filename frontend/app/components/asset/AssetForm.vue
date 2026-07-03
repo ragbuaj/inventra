@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { MockAsset } from '~/mock/assets'
-import type { AssetInput } from '~/composables/api/useAssets'
-import { useAssets } from '~/composables/api/useAssets'
+// TODO(Task 6-8): rewire this form to useAssets()/the real /assets API; until then it
+// reads/writes the mock assetStore directly (useAssets.ts now targets the real backend).
+import { assetStore } from '~/mock/assets'
 
 const props = defineProps<{
   mode: 'new' | 'edit'
@@ -10,7 +11,6 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const toast = useToast()
-const api = useAssets()
 const localePath = useLocalePath()
 
 const KATEGORI = ['Elektronik', 'Furnitur', 'Kendaraan', 'Perangkat IT']
@@ -97,16 +97,16 @@ async function save() {
     const lokasi = [form.lantai, form.ruangan].filter(Boolean).join(' — ') || form.ruangan
     const harga = Number(form.harga) || 0
     if (props.mode === 'edit' && props.initial) {
-      const input: Partial<AssetInput> = {
+      const input: Partial<MockAsset> = {
         nama: form.nama, kategori: form.kategori, brand: brandModel,
         kantor: form.kantor, lokasi, holder: form.pemegang || '—', tgl: form.tglBeli, harga
       }
-      await api.update(props.initial.tag, input)
+      assetStore.update(props.initial.tag, input)
       toast.add({ title: t('assets.form.savedToast'), color: 'success', icon: 'i-lucide-save' })
       navigateTo(localePath(`/assets/${props.initial.tag}`))
     } else {
       const tag = kodePreview.value === '—' ? `NEW-${Date.now()}` : kodePreview.value
-      await api.create({
+      assetStore.insert({
         tag, nama: form.nama, kategori: form.kategori, brand: brandModel, status: 'tersedia',
         kantor: form.kantor, lokasi, holder: form.pemegang || '—', tgl: form.tglBeli, harga, buku: harga
       })

@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import type { MockAsset } from '~/mock/assets'
-import { useAssets } from '~/composables/api/useAssets'
+// TODO(Task 6): rewire this page to useAssets()/the real /assets API; until then it
+// reads the mock assetStore directly (useAssets.ts now targets the real backend).
+import { assetStore } from '~/mock/assets'
 
 definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
 
 const { t } = useI18n()
 const route = useRoute()
-const { get } = useAssets()
 const localePath = useLocalePath()
 
 const asset = ref<MockAsset | null>(null)
@@ -14,7 +15,7 @@ const loading = ref(true)
 
 onMounted(async () => {
   loading.value = true
-  asset.value = (await get(String(route.params.tag))) ?? null
+  asset.value = assetStore.find(String(route.params.tag)) ?? null
   loading.value = false
 })
 </script>

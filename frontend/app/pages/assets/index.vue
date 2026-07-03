@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { MockAsset } from '~/mock/assets'
-import { useAssets } from '~/composables/api/useAssets'
-import { ASSET_STATUS_KEYS, ASSET_CATEGORIES, ASSET_OFFICES, ASSET_LOCATIONS } from '~/mock/assets'
+// TODO(Task 6): rewire this page to useAssets()/the real /assets API; until then it
+// reads/writes the mock assetStore directly (useAssets.ts now targets the real backend).
+import { ASSET_STATUS_KEYS, ASSET_CATEGORIES, ASSET_OFFICES, ASSET_LOCATIONS, assetStore } from '~/mock/assets'
 
 definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
 
@@ -12,7 +13,6 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', '
 const { t } = useI18n()
 const toast = useToast()
 const { open: confirm } = useConfirm()
-const api = useAssets()
 const localePath = useLocalePath()
 
 const allRows = ref<MockAsset[]>([])
@@ -152,15 +152,14 @@ async function onDelete(asset: MockAsset) {
     description: t('assets.deleteBody', { tag: asset.tag })
   })
   if (!ok) return
-  await api.remove(asset.tag)
+  assetStore.remove(asset.tag)
   toggle(asset.tag) // drop from selection if present
   selected.value.delete(asset.tag)
   await refresh()
 }
 
 async function refresh() {
-  const res = await api.list({ limit: 100 })
-  allRows.value = res.data
+  allRows.value = assetStore.all()
 }
 
 watch([search, fStatus, fKat, fKantor, fLokasi, dateFrom, dateTo], () => {
