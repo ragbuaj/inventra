@@ -159,6 +159,16 @@ test.describe('Assets — real backend (maker-checker e2e)', () => {
 
     // --- Approve as the checker (SoD: different user than the maker). ---
     const checkerToken = await login_(api, checkerEmail, checkerPassword)
+
+    // First exercise the checker-facing inbox endpoint: the submitted request
+    // must show up there before we approve it, otherwise the inbox listing
+    // itself would go untested by this e2e flow.
+    const inboxRes = await api.get('requests/inbox', {
+      headers: authHeader(checkerToken)
+    })
+    const inbox = await apiJson<{ data: { id: string }[] }>(inboxRes)
+    expect(inbox.data.some(r => r.id === submitted.id)).toBe(true)
+
     const approveRes = await api.post(`requests/${submitted.id}/approve`, {
       headers: authHeader(checkerToken),
       data: { decision: 'approve' }
