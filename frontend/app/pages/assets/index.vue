@@ -494,7 +494,10 @@ onUnmounted(() => {
                   {{ categoryName(r.category_id) }}
                 </UBadge>
               </td>
-              <td class="px-3.5 py-3 text-muted">
+              <td
+                data-testid="asset-brand-cell"
+                class="px-3.5 py-3 text-muted"
+              >
                 {{ brandModelLabel(r.brand_id, r.model_id) }}
               </td>
               <td class="px-3.5 py-3">

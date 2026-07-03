@@ -207,18 +207,30 @@ describe('Asset Catalog page — loaded rows', () => {
 
   it('resolves brand_id/model_id to a combined brand + model name — not raw ids', async () => {
     const wrapper = await mountAndWait()
-    const text = wrapper.text()
-    expect(text).toContain('Dell Latitude 5440')
-    expect(text).toContain('Epson EB-X51')
-    expect(text).not.toContain('b1')
-    expect(text).not.toContain('m1')
+    const rows = wrapper.findAll('tr')
+    // a1 (Laptop Dell) should have brand cell with 'Dell Latitude 5440'
+    const a1Row = rows.find(tr => tr.text().includes('Laptop Dell Latitude 5440'))
+    const a1BrandCell = a1Row?.find('[data-testid="asset-brand-cell"]')
+    expect(a1BrandCell?.text()).toContain('Dell Latitude 5440')
+    // a2 (Proyektor Epson) should have brand cell with 'Epson EB-X51'
+    const a2Row = rows.find(tr => tr.text().includes('Proyektor Epson EB-X51'))
+    const a2BrandCell = a2Row?.find('[data-testid="asset-brand-cell"]')
+    expect(a2BrandCell?.text()).toContain('Epson EB-X51')
+    // Raw ids should not appear
+    expect(wrapper.text()).not.toContain('b1')
+    expect(wrapper.text()).not.toContain('m1')
   })
 
   it('shows — for a row whose brand_id/model_id are null', async () => {
     const wrapper = await mountAndWait()
     // a3 (Meja Kerja Ergonomis) has brand_id/model_id null.
-    const rowText = wrapper.findAll('tr').find(tr => tr.text().includes('Meja Kerja Ergonomis'))?.text() ?? ''
-    expect(rowText).toContain('—')
+    const rows = wrapper.findAll('tr')
+    const a3Row = rows.find(tr => tr.text().includes('Meja Kerja Ergonomis'))
+    const a3BrandCell = a3Row?.find('[data-testid="asset-brand-cell"]')
+    expect(a3BrandCell?.text()).toBe('—')
+    // Ensure it doesn't contain any stubbed brand name
+    expect(a3BrandCell?.text()).not.toContain('Dell')
+    expect(a3BrandCell?.text()).not.toContain('Epson')
   })
 
   it('renders a resolved status badge label (English status → i18n)', async () => {
