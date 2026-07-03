@@ -1,93 +1,152 @@
 <script setup lang="ts">
-import type { AssetCondition, MockAsset } from '~/mock/assets'
-// TODO(Task 6): rewire this page to useAssets()/the real /assets API; until then it
-// reads/writes the mock assetStore directly (useAssets.ts now targets the real backend).
-import {
-  ASSET_CONDITION_TONE, MAINTENANCE_TYPE_TONE, MAINTENANCE_STATUS_TONE,
-  sampleAssignments, sampleMaintenance, depreciationSchedule, assetStore
-} from '~/mock/assets'
+import type { Asset } from '~/types'
+import { classMeta } from '~/constants/assetMeta'
 
-definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
+definePageMeta({ middleware: 'can', permission: 'asset.view' })
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
 
 const { t } = useI18n()
 const route = useRoute()
 const toast = useToast()
-const { open: confirm } = useConfirm()
 const localePath = useLocalePath()
 
+const assetsApi = useAssets()
+const attachmentsApi = useAssetAttachments()
+const categoriesApi = useCategories()
+const officesApi = useOffices()
+const floorsApi = useFloors()
+const referenceApi = useReference()
+
 const tag = computed(() => String(route.params.tag))
-const asset = ref<MockAsset | null>(null)
+const asset = ref<Asset | null>(null)
 const loading = ref(true)
+const loadError = ref(false)
+const notFound = ref(false)
 const tab = ref<'info' | 'assign' | 'maint' | 'depr'>('info')
 
-function formatRp(v: number): string {
-  return v ? `Rp ${v.toLocaleString('id-ID')}` : 'Rp 0'
-}
-function formatDate(tgl: string): string {
+// FK id → name maps, populated by loadLookups() once the asset itself is
+// known. Missing/unresolved ids render as "—" (see `name()` below).
+const categoryMap = ref(new Map<string, string>())
+const officeMap = ref(new Map<string, string>())
+const brandMap = ref(new Map<string, string>())
+const modelMap = ref(new Map<string, string>())
+const vendorMap = ref(new Map<string, string>())
+const unitMap = ref(new Map<string, string>())
+const roomLabel = ref('—')
+
+interface Photo { id: string, url: string }
+const photos = ref<Photo[]>([])
+const activeIndex = ref(0)
+
+function formatDate(tgl: string | null | undefined): string {
+  if (!tgl) return '—'
   const [y, m, day] = tgl.split('-')
   return `${Number(day)} ${MONTHS[Number(m) - 1] ?? m} ${y}`
 }
-function plusYears(tgl: string, years: number): string {
-  const [y, m, day] = tgl.split('-')
-  return formatDate(`${Number(y) + years}-${m}-${day}`)
+
+function name(id: string | null | undefined, map: Map<string, string>): string {
+  if (!id) return '—'
+  return map.get(id) ?? '—'
 }
 
-const condition = computed<AssetCondition>(() => asset.value?.status === 'maintenance' ? 'Perlu Servis' : 'Baik')
-const brandModel = computed(() => {
-  const parts = (asset.value?.brand ?? '').split(' ')
-  return { brand: parts[0] ?? '', model: parts.slice(1).join(' ') || (parts[0] ?? '') }
-})
+function brandModelLabel(): string {
+  const a = asset.value
+  if (!a) return '—'
+  const brand = a.brand_id ? brandMap.value.get(a.brand_id) : undefined
+  const model = a.model_id ? modelMap.value.get(a.model_id) : undefined
+  const parts = [brand, model].filter((v): v is string => !!v)
+  return parts.length > 0 ? parts.join(' ') : '—'
+}
+
+function boolText(v: boolean | undefined): string {
+  if (v === true) return t('common.yes')
+  if (v === false) return t('common.no')
+  return '—'
+}
+
+interface MoneyCell { text: string, masked: boolean }
+// Sensitive money fields (harga perolehan / akumulasi penyusutan / nilai buku)
+// are stripped server-side by field-permission when the caller's role can't
+// view them — the key comes back `undefined`, not `null` or `"0"`. Only that
+// exact absence means "masked"; an explicit zero/negative value still prints.
+function moneyCell(v: string | null | undefined): MoneyCell {
+  if (v === undefined) return { text: '—', masked: true }
+  if (v === null) return { text: '—', masked: false }
+  const n = Number(v)
+  return { text: Number.isFinite(n) ? `Rp ${n.toLocaleString('id-ID')}` : '—', masked: false }
+}
+
+const DEPR_METHOD_KEY: Record<string, string> = {
+  straight_line: 'assets.detail.deprMethodValue.straight_line',
+  declining_balance: 'assets.detail.deprMethodValue.declining_balance'
+}
+function deprMethodLabel(v: string | null | undefined): string {
+  if (!v) return '—'
+  const key = DEPR_METHOD_KEY[v]
+  return key ? t(key) : v
+}
+
+function usefulLifeLabel(months: number | null | undefined): string {
+  if (months == null) return '—'
+  return t('assets.detail.months', { n: months })
+}
 
 const ringkas = computed(() => {
   const a = asset.value
   if (!a) return []
   return [
-    { label: t('assets.detail.fields.kategori'), value: a.kategori },
-    { label: t('assets.detail.fields.brandModel'), value: a.brand },
-    { label: t('assets.detail.fields.kantor'), value: a.kantor },
-    { label: t('assets.detail.fields.lokasi'), value: a.lokasi },
-    { label: t('assets.detail.fields.vendor'), value: 'PT Sinar Komputindo' },
-    { label: t('assets.detail.fields.kondisi'), value: t(condition.value === 'Baik' ? 'assets.detail.condition.baik' : 'assets.detail.condition.perluServis') }
+    { label: t('assets.detail.fields.kategori'), value: name(a.category_id, categoryMap.value) },
+    { label: t('assets.detail.fields.brandModel'), value: brandModelLabel() },
+    { label: t('assets.detail.fields.kantor'), value: name(a.office_id, officeMap.value) },
+    { label: t('assets.detail.fields.lokasi'), value: roomLabel.value },
+    { label: t('assets.detail.fields.vendor'), value: name(a.vendor_id, vendorMap.value) }
   ]
 })
 
-interface InfoField { label: string, value: string, sensitive?: boolean }
+interface InfoField { label: string, value: string, masked?: boolean }
 const infoSections = computed<{ title: string, rows: InfoField[] }[]>(() => {
   const a = asset.value
   if (!a) return []
+  const buy = moneyCell(a.purchase_cost)
+  const accum = moneyCell(a.accumulated_depreciation)
+  const book = moneyCell(a.book_value)
   return [
     { title: t('assets.detail.sections.identity'), rows: [
-      { label: t('assets.detail.fields.kategori'), value: a.kategori },
-      { label: t('assets.detail.fields.brand'), value: brandModel.value.brand },
-      { label: t('assets.detail.fields.model'), value: brandModel.value.model },
-      { label: t('assets.detail.fields.serial'), value: `SN-${a.tag.split('-').slice(-2).join('-')}` }
+      { label: t('assets.detail.fields.kategori'), value: name(a.category_id, categoryMap.value) },
+      { label: t('assets.detail.fields.brand'), value: name(a.brand_id, brandMap.value) },
+      { label: t('assets.detail.fields.model'), value: name(a.model_id, modelMap.value) },
+      { label: t('assets.detail.fields.serial'), value: a.serial_number || '—' },
+      { label: t('assets.detail.fields.unit'), value: name(a.unit_id, unitMap.value) },
+      { label: t('assets.detail.fields.assetClass'), value: t(classMeta[a.asset_class].labelKey) }
     ] },
     { title: t('assets.detail.sections.placement'), rows: [
-      { label: t('assets.detail.fields.kantor'), value: a.kantor },
-      { label: t('assets.detail.fields.lokasi'), value: a.lokasi },
-      { label: t('assets.detail.fields.holder'), value: a.holder },
-      { label: t('assets.detail.fields.kondisi'), value: t(condition.value === 'Baik' ? 'assets.detail.condition.baik' : 'assets.detail.condition.perluServis') }
+      { label: t('assets.detail.fields.kantor'), value: name(a.office_id, officeMap.value) },
+      { label: t('assets.detail.fields.lokasi'), value: roomLabel.value },
+      { label: t('assets.detail.fields.holder'), value: '—' }
     ] },
     { title: t('assets.detail.sections.procurement'), rows: [
-      { label: t('assets.detail.fields.vendor'), value: 'PT Sinar Komputindo' },
-      { label: t('assets.detail.fields.buyDate'), value: formatDate(a.tgl) },
-      { label: t('assets.detail.fields.invoice'), value: `INV/${a.tgl.slice(0, 4)}/${a.tag.slice(-4)}` },
-      { label: t('assets.detail.fields.warranty'), value: plusYears(a.tgl, 3) }
+      { label: t('assets.detail.fields.vendor'), value: name(a.vendor_id, vendorMap.value) },
+      { label: t('assets.detail.fields.buyDate'), value: formatDate(a.purchase_date) },
+      { label: t('assets.detail.fields.poNumber'), value: a.po_number || '—' },
+      { label: t('assets.detail.fields.fundingSource'), value: a.funding_source || '—' },
+      { label: t('assets.detail.fields.warranty'), value: formatDate(a.warranty_expiry) },
+      { label: t('assets.detail.fields.acquisitionBastNo'), value: a.acquisition_bast_no || '—' }
     ] },
     { title: t('assets.detail.sections.valuation'), rows: [
-      { label: t('assets.detail.fields.buyPrice'), value: formatRp(a.harga), sensitive: true },
-      { label: t('assets.detail.fields.deprMethod'), value: t('assets.detail.straightLine') },
-      { label: t('assets.detail.fields.usefulLife'), value: t('assets.detail.years', { n: 4 }) },
-      { label: t('assets.detail.fields.accumDepr'), value: formatRp(Math.max(0, a.harga - a.buku)), sensitive: true },
-      { label: t('assets.detail.fields.bookValue'), value: formatRp(a.buku), sensitive: true }
+      { label: t('assets.detail.fields.buyPrice'), value: buy.text, masked: buy.masked },
+      { label: t('assets.detail.fields.deprMethod'), value: deprMethodLabel(a.depreciation_method) },
+      { label: t('assets.detail.fields.usefulLife'), value: usefulLifeLabel(a.useful_life_months) },
+      { label: t('assets.detail.fields.accumDepr'), value: accum.text, masked: accum.masked },
+      { label: t('assets.detail.fields.bookValue'), value: book.text, masked: book.masked },
+      { label: t('assets.detail.fields.capitalized'), value: boolText(a.capitalized) },
+      { label: t('assets.detail.fields.excludedFromValuation'), value: boolText(a.excluded_from_valuation) }
+    ] },
+    { title: t('assets.detail.sections.notes'), rows: [
+      { label: t('assets.detail.fields.notes'), value: a.notes || '—' }
     ] }
   ]
 })
-
-const depr = computed(() => asset.value ? depreciationSchedule(asset.value) : [])
-const annualDepr = computed(() => asset.value ? formatRp(Math.round(asset.value.harga / 4)) : '')
 
 const tabs = [
   { key: 'info', label: () => t('assets.detail.tabs.info') },
@@ -100,28 +159,100 @@ const moreItems = computed(() => [
   [
     { label: t('assets.detail.requestMaintenance'), icon: 'i-lucide-wrench', onSelect: comingSoon },
     { label: t('assets.detail.requestValuationException'), icon: 'i-lucide-badge-dollar-sign', onSelect: comingSoon }
-  ],
-  [
-    { label: t('assets.detail.deleteAsset'), icon: 'i-lucide-trash-2', color: 'error' as const, onSelect: onDelete }
   ]
 ])
 
 function comingSoon() {
   toast.add({ title: t('assets.comingSoon'), color: 'neutral', icon: 'i-lucide-info' })
 }
-async function onDelete() {
-  if (!asset.value) return
-  const ok = await confirm({ title: t('assets.deleteTitle'), description: t('assets.deleteBody', { tag: asset.value.tag }) })
-  if (!ok) return
-  assetStore.remove(asset.value.tag)
-  toast.add({ title: t('assets.detail.deletedToast'), color: 'success', icon: 'i-lucide-trash-2' })
-  navigateTo(localePath('/assets'))
+
+async function resolveRoom(a: Asset) {
+  if (!a.room_id) {
+    roomLabel.value = '—'
+    return
+  }
+  try {
+    const floors = await floorsApi.listByOffice(a.office_id)
+    const perFloor = await Promise.all(floors.map(async floor => ({ floor, rooms: await floorsApi.roomsByFloor(floor.id) })))
+    for (const { floor, rooms } of perFloor) {
+      const room = rooms.find(r => r.id === a.room_id)
+      if (room) {
+        roomLabel.value = `${floor.name} — ${room.name}`
+        return
+      }
+    }
+    roomLabel.value = '—'
+  } catch {
+    roomLabel.value = '—'
+  }
 }
 
-onMounted(async () => {
+async function loadLookups(a: Asset) {
+  await Promise.all([
+    categoriesApi.tree().then((cats) => { categoryMap.value = new Map(cats.map(c => [c.id, c.name])) }).catch(() => {}),
+    officesApi.list({ limit: 100 }).then((res) => { officeMap.value = new Map(res.data.map(o => [o.id, o.name])) }).catch(() => {}),
+    referenceApi.list('brands', { limit: 100 }).then((res) => { brandMap.value = new Map(res.data.map(b => [b.id, b.name])) }).catch(() => {}),
+    referenceApi.list('models', { limit: 100 }).then((res) => { modelMap.value = new Map(res.data.map(m => [m.id, m.name])) }).catch(() => {}),
+    referenceApi.list('vendors', { limit: 100 }).then((res) => { vendorMap.value = new Map(res.data.map(v => [v.id, v.name])) }).catch(() => {}),
+    referenceApi.list('units', { limit: 100 }).then((res) => { unitMap.value = new Map(res.data.map(u => [u.id, u.name])) }).catch(() => {}),
+    resolveRoom(a)
+  ])
+}
+
+function revokePhotos() {
+  for (const p of photos.value) URL.revokeObjectURL(p.url)
+}
+
+async function loadGallery(assetId: string) {
+  revokePhotos()
+  photos.value = []
+  activeIndex.value = 0
+  try {
+    const res = await attachmentsApi.list(assetId)
+    const imageRows = res.data.filter(r => r.kind === 'photo' && r.has_thumbnail)
+    const loaded = await Promise.all(imageRows.map(async (row): Promise<Photo | null> => {
+      try {
+        const blob = await attachmentsApi.thumbnailBlob(assetId, row.id)
+        return { id: row.id, url: URL.createObjectURL(blob) }
+      } catch {
+        return null
+      }
+    }))
+    photos.value = loaded.filter((p): p is Photo => p !== null)
+  } catch {
+    photos.value = []
+  }
+}
+
+// Guards against a stale, out-of-order response overwriting a newer load
+// (e.g. a fast route-param change re-triggers the fetch).
+let seq = 0
+async function load() {
+  const mine = ++seq
   loading.value = true
-  asset.value = assetStore.find(tag.value) ?? null
-  loading.value = false
+  loadError.value = false
+  notFound.value = false
+  try {
+    const a = await assetsApi.getByTag(tag.value)
+    if (mine !== seq) return
+    asset.value = a
+    loading.value = false
+    loadLookups(a)
+    loadGallery(a.id)
+  } catch (err) {
+    if (mine !== seq) return
+    const status = (err as { statusCode?: number } | undefined)?.statusCode
+    if (status === 404) notFound.value = true
+    else loadError.value = true
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  load()
+})
+onUnmounted(() => {
+  revokePhotos()
 })
 </script>
 
@@ -138,7 +269,7 @@ onMounted(async () => {
     </div>
 
     <div
-      v-else-if="!asset"
+      v-else-if="notFound"
       class="bg-default border border-default rounded-2xl shadow-sm py-16 px-6 text-center"
     >
       <div class="text-[17px] font-semibold mb-2">
@@ -153,25 +284,43 @@ onMounted(async () => {
       />
     </div>
 
-    <template v-else>
+    <div
+      v-else-if="loadError"
+      class="bg-default border border-default rounded-[13px] shadow-sm flex flex-col items-center justify-center gap-3 py-16 text-muted"
+    >
+      <UIcon
+        name="i-lucide-circle-alert"
+        class="size-6"
+      />
+      <span class="text-sm">{{ t('common.loadError') }}</span>
+      <UButton
+        color="neutral"
+        variant="subtle"
+        @click="load"
+      >
+        {{ t('common.retry') }}
+      </UButton>
+    </div>
+
+    <template v-else-if="asset">
       <!-- Header block -->
       <div class="flex items-start justify-between gap-5 flex-wrap mb-5">
         <div class="min-w-0">
           <div class="flex items-center gap-2.5 flex-wrap mb-1.5">
             <h1 class="text-2xl font-bold tracking-tight">
-              {{ asset.nama }}
+              {{ asset.name }}
             </h1>
             <AssetStatusBadge :status="asset.status" />
           </div>
           <div class="flex items-center gap-3">
-            <span class="font-mono text-[13px] text-muted">{{ asset.tag }}</span>
+            <span class="font-mono text-[13px] text-muted">{{ asset.asset_tag }}</span>
           </div>
         </div>
         <div class="flex items-center gap-2.5 flex-wrap">
           <UButton
             icon="i-lucide-pencil"
             :label="t('common.edit')"
-            :to="localePath(`/assets/${asset.tag}/edit`)"
+            :to="localePath(`/assets/${asset.asset_tag}/edit`)"
           />
           <UButton
             icon="i-lucide-clipboard-check"
@@ -185,7 +334,7 @@ onMounted(async () => {
             color="neutral"
             variant="outline"
             :label="t('assets.detail.printLabel')"
-            :to="localePath(`/assets/label?tags=${asset.tag}`)"
+            :to="localePath(`/assets/label?tags=${asset.asset_tag}`)"
           />
           <UDropdownMenu
             :items="moreItems"
@@ -207,16 +356,37 @@ onMounted(async () => {
         <div class="flex flex-col gap-4">
           <div class="bg-default border border-default rounded-[14px] p-3.5 shadow-sm">
             <div class="relative h-[200px] rounded-[11px] overflow-hidden bg-muted flex items-center justify-center [background-image:repeating-linear-gradient(45deg,var(--ui-bg-muted),var(--ui-bg-muted)_11px,var(--ui-bg-elevated)_11px,var(--ui-bg-elevated)_22px)]">
-              <span class="px-3 py-1.5 text-xs font-mono text-muted bg-default border border-default rounded-md">
-                {{ t('assets.detail.gallery') }}
+              <img
+                v-if="photos.length"
+                :src="photos[activeIndex]?.url"
+                :alt="t('assets.detail.gallery')"
+                class="absolute inset-0 w-full h-full object-cover"
+              >
+              <span
+                v-else
+                class="px-3 py-1.5 text-xs font-mono text-muted bg-default border border-default rounded-md"
+              >
+                {{ t('assets.detail.noPhotos') }}
               </span>
             </div>
-            <div class="flex gap-2 mt-2.5">
-              <div
-                v-for="n in 4"
-                :key="n"
-                class="flex-1 h-[52px] rounded-[9px] bg-muted border-2 border-transparent"
-              />
+            <div
+              v-if="photos.length"
+              class="flex gap-2 mt-2.5"
+            >
+              <button
+                v-for="(p, i) in photos"
+                :key="p.id"
+                type="button"
+                class="flex-1 h-[52px] rounded-[9px] overflow-hidden border-2 p-0 cursor-pointer"
+                :class="i === activeIndex ? 'border-primary' : 'border-transparent'"
+                @click="activeIndex = i"
+              >
+                <img
+                  :src="p.url"
+                  :alt="t('assets.detail.gallery')"
+                  class="w-full h-full object-cover"
+                >
+              </button>
             </div>
           </div>
           <div class="bg-default border border-default rounded-[14px] shadow-sm overflow-hidden">
@@ -274,221 +444,35 @@ onMounted(async () => {
                   <span class="inline-flex items-center gap-1.5 text-xs text-muted">
                     {{ f.label }}
                     <UIcon
-                      v-if="f.sensitive"
+                      v-if="f.masked"
                       name="i-lucide-lock"
                       class="size-2.5 text-dimmed"
                     />
                   </span>
-                  <span class="text-sm font-medium">{{ f.value }}</span>
+                  <span
+                    class="text-sm font-medium"
+                    :class="f.masked ? 'text-dimmed' : ''"
+                    :title="f.masked ? t('assets.masked') : undefined"
+                  >{{ f.value }}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Assignment tab -->
+          <!-- Assignment / Maintenance / Depreciation tabs — module not yet built (Phase: Assignment/Maintenance/Depreciation). -->
           <div
-            v-else-if="tab === 'assign'"
-            class="overflow-x-auto"
+            v-else
+            class="p-5"
           >
-            <table class="w-full border-collapse text-[13.5px] whitespace-nowrap">
-              <thead>
-                <tr class="bg-muted text-muted">
-                  <th class="text-left px-[18px] py-[11px] text-xs font-semibold uppercase">
-                    {{ t('assets.detail.assignmentCols.holder') }}
-                  </th>
-                  <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase">
-                    {{ t('assets.detail.assignmentCols.from') }}
-                  </th>
-                  <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase">
-                    {{ t('assets.detail.assignmentCols.to') }}
-                  </th>
-                  <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase">
-                    {{ t('assets.detail.assignmentCols.cond') }}
-                  </th>
-                  <th class="text-left px-[18px] py-[11px] text-xs font-semibold uppercase">
-                    {{ t('assets.detail.assignmentCols.note') }}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="(a, i) in sampleAssignments"
-                  :key="i"
-                  class="border-t border-default hover:bg-muted"
-                >
-                  <td class="px-[18px] py-3">
-                    <div class="flex items-center gap-2.5">
-                      <span class="size-7 rounded-full bg-muted text-muted flex items-center justify-center text-[11px] font-semibold">{{ a.initials }}</span>
-                      <span class="font-medium">{{ a.holder }}</span>
-                    </div>
-                  </td>
-                  <td class="px-3.5 py-3 text-muted">
-                    {{ a.from }}
-                  </td>
-                  <td
-                    class="px-3.5 py-3"
-                    :class="a.to ? 'text-muted' : 'text-primary font-medium'"
-                  >
-                    {{ a.to ?? t('assets.detail.assignmentCols.now') }}
-                  </td>
-                  <td class="px-3.5 py-3">
-                    <UBadge
-                      :color="ASSET_CONDITION_TONE[a.cond]"
-                      variant="subtle"
-                      class="rounded-full"
-                    >
-                      {{ t(a.cond === 'Baik' ? 'assets.detail.condition.baik' : 'assets.detail.condition.perluServis') }}
-                    </UBadge>
-                  </td>
-                  <td class="px-[18px] py-3 text-muted">
-                    {{ a.note }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Maintenance tab -->
-          <div
-            v-else-if="tab === 'maint'"
-            class="overflow-x-auto"
-          >
-            <table class="w-full border-collapse text-[13.5px] whitespace-nowrap">
-              <thead>
-                <tr class="bg-muted text-muted">
-                  <th class="text-left px-[18px] py-[11px] text-xs font-semibold uppercase">
-                    {{ t('assets.detail.maintenanceCols.date') }}
-                  </th>
-                  <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase">
-                    {{ t('assets.detail.maintenanceCols.type') }}
-                  </th>
-                  <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase">
-                    {{ t('assets.detail.maintenanceCols.status') }}
-                  </th>
-                  <th class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase">
-                    {{ t('assets.detail.maintenanceCols.cost') }}
-                  </th>
-                  <th class="text-left px-[18px] py-[11px] text-xs font-semibold uppercase">
-                    {{ t('assets.detail.maintenanceCols.vendor') }}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="(m, i) in sampleMaintenance"
-                  :key="i"
-                  class="border-t border-default hover:bg-muted"
-                >
-                  <td class="px-[18px] py-3 font-medium">
-                    {{ m.date }}
-                  </td>
-                  <td class="px-3.5 py-3">
-                    <UBadge
-                      :color="MAINTENANCE_TYPE_TONE[m.type]"
-                      variant="subtle"
-                      class="rounded-full"
-                    >
-                      {{ t(`assets.detail.maintenanceType.${m.type}`) }}
-                    </UBadge>
-                  </td>
-                  <td class="px-3.5 py-3">
-                    <UBadge
-                      :color="MAINTENANCE_STATUS_TONE[m.status]"
-                      variant="subtle"
-                      class="rounded-full"
-                    >
-                      {{ t(`assets.detail.maintenanceStatus.${m.status}`) }}
-                    </UBadge>
-                  </td>
-                  <td class="px-3.5 py-3 text-right tabular-nums">
-                    {{ m.cost ? formatRp(m.cost) : '—' }}
-                  </td>
-                  <td class="px-[18px] py-3 text-muted">
-                    {{ m.vendor }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Depreciation tab -->
-          <div v-else>
-            <div class="flex flex-wrap gap-[18px] px-5 py-4 border-b border-default bg-muted">
-              <div>
-                <div class="text-xs text-muted">
-                  {{ t('assets.detail.deprMethodLabel') }}
-                </div>
-                <div class="text-sm font-semibold">
-                  {{ t('assets.detail.straightLine') }}
-                </div>
+            <UCard>
+              <div class="flex flex-col items-center gap-2.5 py-10 text-center">
+                <UIcon
+                  name="i-lucide-inbox"
+                  class="size-6 text-dimmed"
+                />
+                <span class="text-sm text-muted">{{ t('assets.detail.moduleNotAvailable') }}</span>
               </div>
-              <div>
-                <div class="text-xs text-muted">
-                  {{ t('assets.detail.usefulLifeLabel') }}
-                </div>
-                <div class="text-sm font-semibold">
-                  {{ t('assets.detail.years', { n: 4 }) }}
-                </div>
-              </div>
-              <div>
-                <div class="text-xs text-muted">
-                  {{ t('assets.detail.annualLabel') }}
-                </div>
-                <div class="text-sm font-semibold">
-                  {{ annualDepr }}
-                </div>
-              </div>
-            </div>
-            <div class="overflow-x-auto">
-              <table class="w-full border-collapse text-[13.5px] whitespace-nowrap">
-                <thead>
-                  <tr class="bg-muted text-muted">
-                    <th class="text-left px-[18px] py-[11px] text-xs font-semibold uppercase">
-                      {{ t('assets.detail.depreciationCols.period') }}
-                    </th>
-                    <th class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase">
-                      {{ t('assets.detail.depreciationCols.opening') }}
-                    </th>
-                    <th class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase">
-                      {{ t('assets.detail.depreciationCols.depreciation') }}
-                    </th>
-                    <th class="text-right px-[18px] py-[11px] text-xs font-semibold uppercase">
-                      {{ t('assets.detail.depreciationCols.bookValue') }}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    v-for="d in depr"
-                    :key="d.period"
-                    class="border-t border-default"
-                    :class="d.current ? 'bg-primary/5' : ''"
-                  >
-                    <td class="px-[18px] py-3 font-medium">
-                      <span class="inline-flex items-center gap-2">
-                        {{ d.period }}
-                        <UBadge
-                          v-if="d.current"
-                          color="primary"
-                          variant="subtle"
-                          size="sm"
-                          class="rounded-full"
-                        >{{ t('assets.detail.depreciationCols.current') }}</UBadge>
-                      </span>
-                    </td>
-                    <td class="px-3.5 py-3 text-right tabular-nums text-muted">
-                      {{ formatRp(d.open) }}
-                    </td>
-                    <td class="px-3.5 py-3 text-right tabular-nums text-muted">
-                      {{ formatRp(d.deprec) }}
-                    </td>
-                    <td class="px-[18px] py-3 text-right tabular-nums font-medium">
-                      {{ formatRp(d.close) }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            </UCard>
           </div>
         </div>
       </div>
