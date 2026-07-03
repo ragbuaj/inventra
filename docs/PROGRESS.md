@@ -305,6 +305,17 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       of scope here — deletion goes through the Disposal screen/module; **field "Pemegang" (holder)
       dropped from the Form** per user decision (holder assignment belongs to the future Penugasan
       module) — Katalog's "Pemegang" column shows "—" until that module lands.
+      ⚠️ **TODO (security follow-up, from the branch's final review):** the approval submit trusts the
+      client-supplied `amount` and never cross-checks it against `payload.purchase_cost` — a maker could
+      send `amount: "0"` with a huge `purchase_cost` and route an `asset_create` through the lowest
+      approval band (same "maker-supplied" class as the disposal `book_value_at_disposal` caveat). Add a
+      server-side `amount == payload.purchase_cost` check (or derive `amount` from the payload) in the
+      `POST /requests` handler for `asset_create`.
+      ⚠️ **TODO (cleanup when Reports screen is wired):** old Indonesian `assets.status.*` i18n keys are
+      still consumed by the mock Laporan screen (`pages/reports.vue` + `mock/reports.ts`) — delete them,
+      tighten `AssetStatusBadge`'s prop from `AssetStatus | string` to `AssetStatus`, and drop the badge's
+      legacy-status fallback in the same sweep. Also extract a shared `moneyCell`/rupiah formatter util
+      (now duplicated across Katalog/Detail/AssetForm) before the Disposal/Depresiasi screens add copies.
       🐛 **Bug fixed during verification:** `pages/assets/[tag].vue` + the `pages/assets/[tag]/` folder
       made `[tag].vue` an unintended parent route for `[tag]/edit.vue` (no `<NuxtPage/>` to render the
       child), so `/assets/:tag/edit` silently showed the Detail page. Fixed by moving `[tag].vue` →
