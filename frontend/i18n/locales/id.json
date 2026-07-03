@@ -189,6 +189,7 @@
       "layout": "Tata Letak",
       "size": "Ukuran label",
       "columns": "Kolom per baris",
+      "maxColsHint": "Maks. {n} kolom untuk ukuran label ini (batas lembar A4).",
       "show": "Tampilkan",
       "fields": "Field dicetak",
       "fieldNama": "Nama aset",

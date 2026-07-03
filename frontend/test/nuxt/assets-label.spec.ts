@@ -404,7 +404,9 @@ describe('Asset Label/Barcode page — Cetak / Unduh PDF', () => {
           template: 'btn',
           layout: 'sheet',
           size: '70x40',
-          columns: 3,
+          // Default columns preset is 3, but 70mm labels only fit 2 across an
+          // A4 page (backend sheetFits check) — the UI clamps it on mount.
+          columns: 2,
           mode: 'both',
           fields: { name: true, office: true }
         }
@@ -416,7 +418,7 @@ describe('Asset Label/Barcode page — Cetak / Unduh PDF', () => {
     }
   })
 
-  it('transmits a non-default size preset and column count for a batch print', async () => {
+  it('falls back to a continuous roll (no columns) for a 100x50 batch print — only 1 column fits an A4 sheet', async () => {
     const wrapper = await mountAndWait()
     const boxes = checkboxes(wrapper)
     await boxes[1]!.trigger('click') // a1
@@ -428,9 +430,15 @@ describe('Asset Label/Barcode page — Cetak / Unduh PDF', () => {
     // elsewhere in this suite (e.g. `addMany`, `toast`) and in the catalog
     // spec (`fStatus`).
     ;(wrapper.vm as unknown as { size: string }).size = '100x50'
+    await wrapper.vm.$nextTick()
+
+    // 100mm labels only fit 1 column on an A4 sheet — every offered preset
+    // above that is disabled, and clicking one must not select it.
     const colBtn = wrapper.findAll('button').find(b => b.text().trim() === '4')
+    expect(colBtn!.attributes('disabled')).toBeDefined()
     await colBtn!.trigger('click')
     await wrapper.vm.$nextTick()
+    expect((wrapper.vm as unknown as { cols: number }).cols).toBe(1)
 
     const printBtn = wrapper.findAll('button').find(b => b.text().includes('Cetak'))
     await printBtn!.trigger('click')
@@ -443,9 +451,8 @@ describe('Asset Label/Barcode page — Cetak / Unduh PDF', () => {
       body: {
         asset_ids: ['a1', 'a2'],
         template: 'btn',
-        layout: 'sheet',
+        layout: 'roll',
         size: '100x50',
-        columns: 4,
         mode: 'both',
         fields: { name: true, office: true }
       }
@@ -480,6 +487,83 @@ describe('Asset Label/Barcode page — Cetak / Unduh PDF', () => {
     const pdfBtn = wrapper.findAll('button').find(b => b.text().includes('Unduh PDF'))
     expect(printBtn!.attributes('disabled')).toBeDefined()
     expect(pdfBtn!.attributes('disabled')).toBeDefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// A4 sheet-fit clamp (regression — cols*labelW + (cols-1)*3 + 16 <= 210,
+// mirrors backend/internal/asset/barcode.go's sheetFits check).
+// ---------------------------------------------------------------------------
+
+describe('Asset Label/Barcode page — A4 sheet-fit clamp (regression)', () => {
+  const SIZE_MM: Record<string, number> = { '50x30': 50, '70x40': 70, '100x50': 100 }
+  const ALL_SIZES = Object.keys(SIZE_MM)
+  const COL_OPTIONS = [2, 3, 4]
+
+  it('clamps the default 70x40 column count from 3 to 2 on mount and shows the max-columns hint', async () => {
+    const wrapper = await mountAndWait()
+    expect((wrapper.vm as unknown as { cols: number }).cols).toBe(2)
+    expect(wrapper.text()).toContain('Maks. 2 kolom')
+  })
+
+  it('clamps the column count when switching from a size that fits 3 columns to one that only fits 1', async () => {
+    const wrapper = await mountAndWait()
+
+    ;(wrapper.vm as unknown as { size: string }).size = '50x30'
+    await wrapper.vm.$nextTick()
+    const col3Btn = wrapper.findAll('button').find(b => b.text().trim() === '3')
+    await col3Btn!.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect((wrapper.vm as unknown as { cols: number }).cols).toBe(3)
+
+    ;(wrapper.vm as unknown as { size: string }).size = '100x50'
+    await wrapper.vm.$nextTick()
+    expect((wrapper.vm as unknown as { cols: number }).cols).toBe(1)
+    expect(wrapper.text()).toContain('Maks. 1 kolom')
+  })
+
+  it('every UI-reachable size × columns combo prints a body that fits an A4 sheet, or falls back to roll', async () => {
+    const wrapper = await mountAndWait()
+    const boxes = checkboxes(wrapper)
+    await boxes[1]!.trigger('click') // a1
+    await boxes[2]!.trigger('click') // a2
+    await flushPromises()
+
+    for (const sizeKey of ALL_SIZES) {
+      ;(wrapper.vm as unknown as { size: string }).size = sizeKey
+      await wrapper.vm.$nextTick()
+
+      for (const n of COL_OPTIONS) {
+        const colBtn = wrapper.findAll('button').find(b => b.text().trim() === String(n))
+        const disabled = colBtn!.attributes('disabled') !== undefined
+        if (!disabled) {
+          await colBtn!.trigger('click')
+          await wrapper.vm.$nextTick()
+        }
+
+        blobCalls.length = 0
+        const printBtn = wrapper.findAll('button').find(b => b.text().includes('Cetak'))
+        await printBtn!.trigger('click')
+        await flushPromises()
+
+        const labelCall = blobCalls.find(c => c.path === '/assets/labels')
+        expect(labelCall).toBeDefined()
+        const body = labelCall!.opts!.body as { layout: string, size: string, columns?: number }
+        const w = SIZE_MM[sizeKey]!
+
+        if (body.layout === 'sheet') {
+          expect(body.columns).toBeDefined()
+          const cols = body.columns!
+          // The exact inequality the backend enforces (barcode.go sheetFits) —
+          // pins the regression where the UI could send a column count that
+          // overflows an A4 page and got a 400 ErrSheetOverflow.
+          expect(cols * w + (cols - 1) * 3 + 16).toBeLessThanOrEqual(210)
+        } else {
+          expect(body.layout).toBe('roll')
+          expect(body.columns).toBeUndefined()
+        }
+      }
+    }
   })
 })
 

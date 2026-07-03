@@ -189,6 +189,7 @@
       "layout": "Layout",
       "size": "Label size",
       "columns": "Columns per row",
+      "maxColsHint": "Max {n} columns for this label size (A4 sheet limit).",
       "show": "Show",
       "fields": "Printed fields",
       "fieldNama": "Asset name",
