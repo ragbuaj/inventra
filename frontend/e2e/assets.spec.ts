@@ -66,6 +66,7 @@ test.describe('Assets — real backend (maker-checker e2e)', () => {
   let adminToken: string
   let checkerEmail: string
   let checkerPassword: string
+  let checkerId: string | undefined
 
   let officeId: string
   let officeName: string
@@ -133,7 +134,7 @@ test.describe('Assets — real backend (maker-checker e2e)', () => {
       headers: authHeader(adminToken),
       data: { name: `E2E Checker ${RUN}`, email: checkerEmail, password: checkerPassword, role_id: superadminRole.id }
     })
-    await apiJson(userRes)
+    checkerId = (await apiJson<{ id: string }>(userRes)).id
 
     // --- Submit the asset_create request as the maker (admin). Amount stays
     // in the lowest threshold band (0–10,000,000 → office level, single step). ---
@@ -171,7 +172,7 @@ test.describe('Assets — real backend (maker-checker e2e)', () => {
 
     const approveRes = await api.post(`requests/${submitted.id}/approve`, {
       headers: authHeader(checkerToken),
-      data: { note: 'e2e approve' }
+      data: { decision: 'approve', note: 'e2e approve' }
     })
     const approved = await apiJson<{ status: string }>(approveRes)
     expect(approved.status).toBe('approved')
@@ -186,6 +187,12 @@ test.describe('Assets — real backend (maker-checker e2e)', () => {
   })
 
   test.afterAll(async () => {
+    // Best-effort cleanup: repeated local runs otherwise accumulate one checker
+    // user per run, pushing the seeded admin off page 1 of /settings/users and
+    // breaking that screen's e2e on dev databases (CI resets its DB per run).
+    if (checkerId) {
+      await api.delete(`users/${checkerId}`, { headers: authHeader(adminToken) }).catch(() => {})
+    }
     await api.dispose()
   })
 
@@ -300,7 +307,10 @@ test.describe('Assets — real backend (maker-checker e2e)', () => {
 
     await page.getByRole('button', { name: 'Simpan', exact: true }).click()
 
-    await expect(page.getByText('Pengajuan terkirim', { exact: false })).toBeVisible({ timeout: 10_000 })
+    // Exact match targets the visible toast title only — the toast also renders a
+    // hidden aria-live announcer whose text is prefixed ("Notification …"), which
+    // a substring match would ambiguously hit (strict-mode violation).
+    await expect(page.getByText('Pengajuan terkirim — menunggu persetujuan', { exact: true })).toBeVisible({ timeout: 10_000 })
     await expect(page).toHaveURL(/\/assets$/, { timeout: 10_000 })
 
     // Verify server-side: a pending asset_create request now exists carrying
