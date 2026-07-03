@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
+definePageMeta({ middleware: 'can', permission: 'request.create' })
 </script>
 
 <template>
