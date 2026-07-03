@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;}
+input::placeholder,textarea::placeholder{color:var(--text-dimmed);}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:9px;border:2px solid transparent;background-clip:padding-box;}
+:root{
+  --bg:#f8fafc; --bg-base:#ffffff; --bg-muted:#f1f5f9; --bg-el:#ffffff;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#0f172a; --text-muted:#64748b; --text-dimmed:#94a3b8;
+  --primary:#16a34a; --primary-hover:#15803d; --primary-fg:#ffffff;
+  --primary-soft-bg:#dcfce7; --primary-soft-text:#15803d;
+  --success:#16a34a; --success-soft-bg:#dcfce7; --success-soft-text:#15803d;
+  --warning:#d97706; --warning-soft-bg:#fef3c7; --warning-soft-text:#b45309;
+  --error:#dc2626; --error-soft-bg:#fee2e2; --error-soft-text:#b91c1c;
+  --info:#2563eb; --info-soft-bg:#dbeafe; --info-soft-text:#1d4ed8;
+  --violet:#7c3aed; --violet-soft-bg:#ede9fe; --violet-soft-text:#6d28d9;
+  --neutral-soft-bg:#eef2f6; --neutral-soft-text:#475569;
+  --ring:color-mix(in srgb, var(--primary) 28%, transparent);
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
+  --shadow-lg:0 18px 50px rgba(15,23,42,.18);
+}
+[data-theme="dark"]{
+  --bg:#020617; --bg-base:#0b1220; --bg-muted:#1e293b; --bg-el:#0f172a;
+  --border:#1e293b; --border-strong:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8; --text-dimmed:#64748b;
+  --primary:#22c55e; --primary-hover:#16a34a; --primary-fg:#052e16;
+  --primary-soft-bg:#14331f; --primary-soft-text:#4ade80;
+  --success:#22c55e; --success-soft-bg:#14331f; --success-soft-text:#4ade80;
+  --warning:#f59e0b; --warning-soft-bg:#3a2a08; --warning-soft-text:#fbbf24;
+  --error:#ef4444; --error-soft-bg:#3a1414; --error-soft-text:#f87171;
+  --info:#3b82f6; --info-soft-bg:#13243f; --info-soft-text:#60a5fa;
+  --violet:#a78bfa; --violet-soft-bg:#241a44; --violet-soft-text:#a78bfa;
+  --neutral-soft-bg:#1e293b; --neutral-soft-text:#cbd5e1;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 18px 50px rgba(0,0,0,.6);
+}
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" data-theme="{{ theme }}" style="font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--text);">
+  <div style="display:flex;height:100vh;overflow:hidden;background:var(--bg);">
+
+    <!-- SIDEBAR -->
+    <aside style="width:{{ sidebarW }};flex:none;display:flex;flex-direction:column;background:var(--bg-base);border-right:1px solid var(--border);transition:width .2s ease;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:11px;height:61px;padding:0 18px;border-bottom:1px solid var(--border);flex:none;">
+        <div style="width:34px;height:34px;border-radius:9px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--primary-fg);flex:none;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13h6"/></svg></div>
+        <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="font:700 18px Inter;letter-spacing:-.01em;white-space:nowrap;">Inventra</span></sc-if>
+      </div>
+      <nav style="flex:1;overflow-y:auto;overflow-x:hidden;padding:12px;">
+        <sc-for list="{{ nav }}" as="g" hint-placeholder-count="2">
+          <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><div style="padding:14px 12px 6px;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dimmed);white-space:nowrap;">{{ g.label }}</div></sc-if>
+          <sc-if value="{{ collapsed }}" hint-placeholder-val="{{ false }}"><div style="height:1px;background:var(--border);margin:10px 8px;"></div></sc-if>
+          <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+            <button title="{{ it.label }}" style="position:relative;display:flex;align-items:center;justify-content:{{ navJustify }};gap:11px;width:100%;padding:9px 12px;margin-bottom:2px;font-family:Inter;font-size:14px;font-weight:{{ it.weight }};color:{{ it.fg }};background:{{ it.bg }};border:none;border-radius:9px;cursor:pointer;text-align:left;box-shadow:inset 3px 0 0 {{ it.accent }};white-space:nowrap;" style-hover="background:{{ it.hoverBg }};">
+              {{ it.icon }}
+              <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;">{{ it.label }}</span></sc-if>
+            </button>
+          </sc-for>
+        </sc-for>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <header style="display:flex;align-items:center;gap:14px;height:61px;flex:none;padding:0 20px;background:var(--bg-base);border-bottom:1px solid var(--border);">
+        <button onClick="{{ toggleCollapse }}" title="Collapse" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex:none;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg></button>
+        <div style="display:flex;align-items:center;gap:6px;font:400 12px Inter;color:var(--text-muted);"><span>Inventra</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span style="color:var(--text);font-weight:500;">{{ pageTitle }}</span></div>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex:none;">
+          <div style="display:flex;gap:2px;padding:3px;background:var(--bg-muted);border-radius:9px;">
+            <button onClick="{{ setId }}" style="padding:5px 9px;font:600 12px Inter;color:{{ idFg }};background:{{ idBg }};border:none;border-radius:6px;cursor:pointer;">ID</button>
+            <button onClick="{{ setEn }}" style="padding:5px 9px;font:600 12px Inter;color:{{ enFg }};background:{{ enBg }};border:none;border-radius:6px;cursor:pointer;">EN</button>
+          </div>
+          <button onClick="{{ toggleTheme }}" title="Tema" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">
+            <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></sc-if>
+            <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></sc-if>
+          </button>
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;background:transparent;border:1px solid var(--border);border-radius:999px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--primary);color:var(--primary-fg);display:flex;align-items:center;justify-content:center;font:700 12px Inter;">SA</span><span style="display:flex;color:var(--text-dimmed);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+        </div>
+      </header>
+
+      <main style="flex:1;overflow-y:auto;padding:26px 32px 40px;">
+        <div style="max-width:1060px;margin:0 auto;">
+          <!-- header + basis toggle -->
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px;">
+            <div><h1 style="margin:0 0 5px;font:700 23px Inter;letter-spacing:-.02em;">{{ pageTitle }}</h1><p style="margin:0;font:400 14px Inter;color:var(--text-muted);">{{ pageSub }}</p></div>
+            <div style="display:flex;gap:3px;padding:4px;background:var(--bg-muted);border-radius:11px;">
+              <sc-for list="{{ basisSeg }}" as="b" hint-placeholder-count="2"><button onClick="{{ b.on }}" style="display:inline-flex;align-items:center;gap:7px;padding:8px 16px;font:600 13px Inter;color:{{ b.fg }};background:{{ b.bg }};border:none;border-radius:8px;cursor:pointer;box-shadow:{{ b.sh }};">{{ b.icon }}{{ b.label }}<span style="padding:0 6px;font:600 9px Inter;border-radius:4px;background:{{ b.tagBg }};color:{{ b.tagFg }};">{{ b.ref }}</span></button></sc-for>
+            </div>
+          </div>
+
+          <!-- KPI -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px;">
+            <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+              <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;padding:16px 18px;box-shadow:var(--shadow);">
+                <div style="display:flex;align-items:center;gap:8px;"><span style="width:30px;height:30px;border-radius:8px;background:{{ k.iconBg }};color:{{ k.iconFg }};display:flex;align-items:center;justify-content:center;flex:none;">{{ k.icon }}</span><span style="font:500 12px Inter;color:var(--text-muted);">{{ k.label }}</span></div>
+                <div style="font:700 22px Inter;letter-spacing:-.02em;margin-top:9px;color:{{ k.valColor }};">{{ k.value }}</div>
+                <div style="font:400 11.5px Inter;color:var(--text-dimmed);margin-top:2px;">{{ k.sub }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- RUN PERIOD PANEL -->
+          <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:18px 20px;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:11px;flex:1;min-width:260px;">
+                <span style="width:40px;height:40px;border-radius:11px;background:var(--primary-soft-bg);color:var(--primary-soft-text);display:flex;align-items:center;justify-content:center;flex:none;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M9 16l2 2 4-4"/></svg></span>
+                <div><div style="font:600 15px Inter;">{{ runTitle }}</div><div style="display:flex;align-items:center;gap:8px;margin-top:3px;"><span style="font:400 12.5px Inter;color:var(--text-muted);">{{ periodePrefix }}</span><span style="display:inline-flex;align-items:center;gap:5px;padding:2px 10px;font:600 11.5px Inter;border-radius:999px;background:{{ pStatBg }};color:{{ pStatFg }};"><span style="width:5px;height:5px;border-radius:50%;background:{{ pStatDot }};"></span>{{ pStatLabel }}</span></div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <div style="position:relative;"><select value="{{ period }}" onChange="{{ onPeriod }}" disabled="{{ periodLocked }}" style="appearance:none;padding:9px 34px 9px 13px;font:600 13.5px Inter;color:var(--text);background:{{ periodBg }};border:1px solid var(--border-strong);border-radius:9px;outline:none;cursor:{{ periodCursor }};" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><sc-for list="{{ periodOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+                <sc-if value="{{ canHitung }}" hint-placeholder-val="{{ true }}"><button onClick="{{ hitung }}" style="display:inline-flex;align-items:center;gap:7px;padding:9px 16px;font:600 13.5px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9"/><path d="M8 7h4M8 11h8M8 15h8"/><path d="M15 3l4 4"/></svg>{{ hitungLbl }}</button></sc-if>
+                <sc-if value="{{ canTutup }}" hint-placeholder-val="{{ false }}"><button onClick="{{ tutup }}" style="display:inline-flex;align-items:center;gap:7px;padding:9px 16px;font:600 13.5px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>{{ tutupLbl }}</button></sc-if>
+                <sc-if value="{{ isClosed }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:7px;padding:9px 15px;font:500 13px Inter;color:var(--neutral-soft-text);background:var(--neutral-soft-bg);border-radius:9px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>{{ closedLbl }}</span></sc-if>
+              </div>
+            </div>
+            <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:15px;padding-top:15px;border-top:1px solid var(--border);">
+              <div style="display:flex;align-items:center;gap:8px;"><span style="font:400 12.5px Inter;color:var(--text-muted);">{{ previewAset }}</span><span style="font:700 15px Inter;">{{ previewAsetVal }}</span></div>
+              <div style="display:flex;align-items:center;gap:8px;"><span style="font:400 12.5px Inter;color:var(--text-muted);">{{ previewBeban }}</span><span style="font:700 15px Inter;color:var(--info);">{{ previewBebanVal }}</span></div>
+              <sc-if value="{{ isComputed }}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:6px;font:500 12.5px Inter;color:var(--success-soft-text);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8.5 12 11 14.5 15.5 9.5"/></svg>{{ computedNote }}</div></sc-if>
+            </div>
+          </div>
+
+          <!-- SECTION TABS -->
+          <div style="display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:18px;">
+            <sc-for list="{{ sectionTabs }}" as="t" hint-placeholder-count="2">
+              <button onClick="{{ t.on }}" style="display:inline-flex;align-items:center;gap:8px;padding:12px 16px;margin-bottom:-1px;font-family:Inter;font-size:14px;font-weight:{{ t.weight }};color:{{ t.color }};background:transparent;border:none;border-bottom:{{ t.border }};cursor:pointer;">{{ t.icon }}{{ t.label }}</button>
+            </sc-for>
+          </div>
+
+          <!-- ===== SCHEDULE ===== -->
+          <sc-if value="{{ secSchedule }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:13px;">
+                <div style="position:relative;flex:1;min-width:180px;max-width:300px;"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span><input value="{{ q }}" onInput="{{ onSearch }}" placeholder="{{ searchPh }}" style="width:100%;padding:8px 12px 8px 34px;font:400 13.5px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" /></div>
+                <sc-for list="{{ filters }}" as="f" hint-placeholder-count="2"><div style="position:relative;"><select value="{{ f.value }}" onChange="{{ f.on }}" style="appearance:none;padding:8px 30px 8px 11px;font:500 12.5px Inter;color:{{ f.color }};background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;cursor:pointer;max-width:180px;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><sc-for list="{{ f.opts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select><span style="position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div></sc-for>
+              </div>
+              <sc-if value="{{ hasRows }}" hint-placeholder-val="{{ true }}">
+                <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow);overflow:hidden;">
+                  <div style="overflow-x:auto;">
+                    <table style="width:100%;border-collapse:collapse;font:400 13px Inter;white-space:nowrap;">
+                      <thead><tr style="background:var(--bg-muted);">
+                        <th style="text-align:left;padding:11px 16px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cAset }}</th>
+                        <th style="text-align:left;padding:11px 12px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cMetode }}</th>
+                        <th style="text-align:right;padding:11px 12px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cMasa }}</th>
+                        <th style="text-align:right;padding:11px 12px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cAwal }}</th>
+                        <th style="text-align:right;padding:11px 12px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cBeban }}</th>
+                        <th style="text-align:right;padding:11px 12px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cAkum }}</th>
+                        <th style="text-align:right;padding:11px 12px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cAkhir }}</th>
+                        <th style="text-align:right;padding:11px 16px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cAksi }}</th>
+                      </tr></thead>
+                      <tbody>
+                        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+                          <tr style="border-top:1px solid var(--border);" style-hover="background:var(--bg-muted);">
+                            <td style="padding:11px 16px;"><div style="display:flex;align-items:center;gap:7px;"><span style="font:500 13px Inter;color:var(--text);">{{ r.nama }}</span><sc-if value="{{ r.impaired }}" hint-placeholder-val="{{ false }}"><span title="{{ impairedTip }}" style="display:flex;color:var(--violet);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10M17 9v8H9"/></svg></span></sc-if></div><div style="font:400 11px 'JetBrains Mono',monospace;color:var(--text-dimmed);">{{ r.tag }}</div></td>
+                            <td style="padding:11px 12px;"><span style="padding:2px 8px;font:600 11px Inter;border-radius:999px;background:{{ r.metBg }};color:{{ r.metFg }};">{{ r.metode }}</span></td>
+                            <td style="padding:11px 12px;text-align:right;color:var(--text-muted);font-variant-numeric:tabular-nums;">{{ r.masa }}</td>
+                            <td style="padding:11px 12px;text-align:right;font-variant-numeric:tabular-nums;color:var(--text-muted);">{{ r.awal }}</td>
+                            <td style="padding:11px 12px;text-align:right;font-variant-numeric:tabular-nums;color:var(--error);font-weight:500;">{{ r.beban }}</td>
+                            <td style="padding:11px 12px;text-align:right;font-variant-numeric:tabular-nums;color:var(--text-muted);">{{ r.akum }}</td>
+                            <td style="padding:11px 12px;text-align:right;font-variant-numeric:tabular-nums;color:var(--text);font-weight:600;">{{ r.akhir }}</td>
+                            <td style="padding:11px 16px;text-align:right;"><button onClick="{{ r.impair }}" title="{{ impairLbl }}" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;color:var(--text-muted);background:transparent;border:1px solid var(--border-strong);border-radius:8px;cursor:pointer;" style-hover="background:var(--violet-soft-bg);color:var(--violet-soft-text);border-color:transparent;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10M17 9v8H9"/></svg></button></td>
+                          </tr>
+                        </sc-for>
+                      </tbody>
+                      <tfoot><tr style="border-top:2px solid var(--border-strong);background:var(--bg-muted);">
+                        <td style="padding:12px 16px;font:700 12.5px Inter;">{{ totalLbl }}</td><td></td><td></td>
+                        <td style="padding:12px;text-align:right;font:700 12.5px Inter;font-variant-numeric:tabular-nums;">{{ tAwal }}</td>
+                        <td style="padding:12px;text-align:right;font:700 12.5px Inter;font-variant-numeric:tabular-nums;color:var(--error);">{{ tBeban }}</td>
+                        <td style="padding:12px;text-align:right;font:700 12.5px Inter;font-variant-numeric:tabular-nums;">{{ tAkum }}</td>
+                        <td style="padding:12px;text-align:right;font:700 12.5px Inter;font-variant-numeric:tabular-nums;">{{ tAkhir }}</td>
+                        <td></td>
+                      </tr></tfoot>
+                    </table>
+                  </div>
+                  <sc-if value="{{ rowsFilteredEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:34px;text-align:center;font:400 13px Inter;color:var(--text-dimmed);">{{ noMatchMsg }}</div></sc-if>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <!-- ===== JOURNAL RECAP ===== -->
+          <sc-if value="{{ secJurnal }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+                <div style="font:400 13px Inter;color:var(--text-muted);">{{ jurnalSub }}</div>
+                <div style="display:flex;gap:9px;">
+                  <button style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;font:500 13px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>{{ pdfLbl }}</button>
+                  <button style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;font:500 13px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13l6 6M15 13l-6 6"/></svg>{{ excelLbl }}</button>
+                </div>
+              </div>
+              <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow);overflow:hidden;">
+                <div style="padding:14px 18px;border-bottom:1px solid var(--border);"><div style="font:600 14px Inter;">{{ jurnalTitle }}</div><div style="font:400 12px Inter;color:var(--text-muted);margin-top:2px;">{{ jurnalPeriode }}</div></div>
+                <div style="overflow-x:auto;">
+                  <table style="width:100%;border-collapse:collapse;font:400 13.5px Inter;white-space:nowrap;">
+                    <thead><tr style="background:var(--bg-muted);">
+                      <th style="text-align:left;padding:11px 18px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ jAkun }}</th>
+                      <th style="text-align:left;padding:11px 14px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ jNama }}</th>
+                      <th style="text-align:right;padding:11px 14px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ jDebit }}</th>
+                      <th style="text-align:right;padding:11px 18px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ jKredit }}</th>
+                    </tr></thead>
+                    <tbody>
+                      <sc-for list="{{ jurnalRows }}" as="j" hint-placeholder-count="4">
+                        <tr style="border-top:1px solid var(--border);" style-hover="background:var(--bg-muted);">
+                          <td style="padding:12px 18px;font:500 12.5px 'JetBrains Mono',monospace;color:var(--text-muted);">{{ j.akun }}</td>
+                          <td style="padding:12px 14px;color:var(--text);">{{ j.nama }}</td>
+                          <td style="padding:12px 14px;text-align:right;font-variant-numeric:tabular-nums;color:{{ j.debitColor }};">{{ j.debit }}</td>
+                          <td style="padding:12px 18px;text-align:right;font-variant-numeric:tabular-nums;color:{{ j.kreditColor }};">{{ j.kredit }}</td>
+                        </tr>
+                      </sc-for>
+                    </tbody>
+                    <tfoot><tr style="border-top:2px solid var(--border-strong);background:var(--bg-muted);">
+                      <td style="padding:13px 18px;font:700 13px Inter;" colspan="2">{{ totalLbl }}</td>
+                      <td style="padding:13px 14px;text-align:right;font:700 13px Inter;font-variant-numeric:tabular-nums;">{{ jTotalDebit }}</td>
+                      <td style="padding:13px 18px;text-align:right;font:700 13px Inter;font-variant-numeric:tabular-nums;">{{ jTotalKredit }}</td>
+                    </tr></tfoot>
+                  </table>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:13px 18px;border-top:1px solid var(--border);background:{{ balanceBg }};"><span style="color:{{ balanceColor }};display:flex;">{{ balanceIcon }}</span><span style="font:500 12.5px Inter;color:{{ balanceColor }};">{{ balanceNote }}</span></div>
+              </div>
+            </div>
+          </sc-if>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- IMPAIRMENT MODAL -->
+  <sc-if value="{{ impairOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeImpair }}" style="position:fixed;inset:0;z-index:60;background:rgba(2,6,23,.5);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:24px;">
+      <div onClick="{{ stop }}" style="width:100%;max-width:440px;background:var(--bg-el);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-lg);overflow:hidden;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border);"><div style="display:flex;align-items:center;gap:11px;"><span style="width:34px;height:34px;border-radius:9px;background:var(--violet-soft-bg);color:var(--violet-soft-text);display:flex;align-items:center;justify-content:center;flex:none;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10M17 9v8H9"/></svg></span><div><div style="font:600 16px Inter;">{{ impairTitle }}</div><div style="font:400 12px Inter;color:var(--text-muted);margin-top:1px;">{{ impairRef }}</div></div></div><button onClick="{{ closeImpair }}" style="display:flex;padding:5px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:15px;">
+          <div style="padding:12px 14px;border-radius:10px;background:var(--bg-muted);"><div style="font:600 13.5px Inter;">{{ impAssetName }}</div><div style="font:400 11.5px 'JetBrains Mono',monospace;color:var(--text-dimmed);margin-top:1px;">{{ impAssetTag }}</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:9px;"><span style="font:400 12px Inter;color:var(--text-muted);">{{ impCurrentLbl }}</span><span style="font:600 14px Inter;">{{ impCurrentVal }}</span></div></div>
+          <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ impRecoverLbl }} <span style="color:var(--error);">*</span></label><div style="position:relative;"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font:500 13px Inter;color:var(--text-dimmed);">Rp</span><input value="{{ impRecoverFmt }}" onInput="{{ onImpRecover }}" inputmode="numeric" placeholder="0" style="width:100%;padding:10px 12px 10px 36px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" /></div></div>
+          <sc-if value="{{ impShowResult }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-radius:10px;background:var(--error-soft-bg);"><span style="font:500 12.5px Inter;color:var(--error-soft-text);">{{ impLossLbl }}</span><span style="font:700 15px Inter;color:var(--error);">− {{ impLossVal }}</span></div></sc-if>
+          <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ impReasonLbl }}</label><textarea value="{{ impReason }}" onInput="{{ onImpReason }}" placeholder="{{ impReasonPh }}" style="width:100%;min-height:64px;resize:vertical;padding:10px 12px;font:400 14px/1.5 Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"></textarea></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border);"><button onClick="{{ closeImpair }}" style="padding:9px 15px;font:500 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);">{{ cancelLbl }}</button><button onClick="{{ saveImpair }}" style="padding:9px 18px;font:600 14px Inter;color:#fff;background:var(--violet);border:1px solid var(--violet);border-radius:9px;cursor:pointer;" style-hover="filter:brightness(.95);">{{ impSaveLbl }}</button></div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;id&quot;,&quot;en&quot;],&quot;default&quot;:&quot;id&quot;,&quot;tsType&quot;:&quot;'id' | 'en'&quot;},&quot;basis&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;kom&quot;,&quot;fis&quot;],&quot;default&quot;:&quot;kom&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;periodState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;open&quot;,&quot;computed&quot;,&quot;closed&quot;],&quot;default&quot;:&quot;open&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;collapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;primaryColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#16a34a&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const ICONS={
+  dashboard:[['rect',{x:3,y:3,width:7,height:9,rx:1}],['rect',{x:14,y:3,width:7,height:5,rx:1}],['rect',{x:14,y:12,width:7,height:9,rx:1}],['rect',{x:3,y:16,width:7,height:5,rx:1}]],
+  box:[['path',{d:'M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2'}],['path',{d:'M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'}],['path',{d:'M9 13h6'}]],
+  clipboard:[['rect',{x:5,y:4,width:14,height:17,rx:2}],['path',{d:'M9 4V3h6v1'}],['path',{d:'M9 13l2 2 4-4'}]],
+  wrench:[['path',{d:'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.7 2.7-2-2z'}]],
+  approval:[['path',{d:'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'}],['path',{d:'M9 11l3 3 8-8'}]],
+  chart:[['path',{d:'M3 3v18h18'}],['path',{d:'M7 16v-5M12 16V8M17 16v-3'}]],
+  database:[['path',{d:'M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3z'}],['path',{d:'M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6'}],['path',{d:'M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6'}]],
+  settings:[['circle',{cx:12,cy:12,r:3}],['path',{d:'M19.4 15a1.6 1.6 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0 1.6 1.6 0 0 0-2.7-1.1 2 2 0 1 1-2.8-2.8A1.6 1.6 0 0 0 3 13.6a2 2 0 0 1 0-3.2A1.6 1.6 0 0 0 4.6 7a2 2 0 1 1 2.8-2.8A1.6 1.6 0 0 0 10 4.6V3a2 2 0 0 1 4 0 1.6 1.6 0 0 0 2.7 1.1A2 2 0 1 1 19.5 7a1.6 1.6 0 0 0-1 2.4 2 2 0 0 1 0 3.2z'}]],
+  trendDown:[['path',{d:'M3 7l6 6 4-4 8 8'}],['path',{d:'M21 17v-6h-6'}]],
+  wallet:[['path',{d:'M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2'}],['path',{d:'M3 7v10a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-3'}],['path',{d:'M21 11v4h-4a2 2 0 0 1 0-4z'}]],
+  book:[['path',{d:'M4 19.5A2.5 2.5 0 0 1 6.5 17H20'}],['path',{d:'M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'}]],
+  receipt:[['path',{d:'M5 3v18l2-1 2 1 2-1 2 1 2-1 2 1V3l-2 1-2-1-2 1-2-1-2 1z'}],['path',{d:'M9 8h6M9 12h6'}]],
+  scales:[['path',{d:'M12 3v18'}],['path',{d:'M7 7h10'}],['path',{d:'M5 7l-3 6h6z'}],['path',{d:'M19 7l-3 6h6z'}],['path',{d:'M7 21h10'}]],
+  gavel:[['path',{d:'M14 13l-7.8 7.8a2 2 0 0 1-2.8-2.8L11 10'}],['path',{d:'M9 8l7 7'}],['path',{d:'M13 4l7 7'}],['path',{d:'M11 6l7 7'}]],
+  ledger:[['path',{d:'M4 19.5A2.5 2.5 0 0 1 6.5 17H20'}],['path',{d:'M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'}],['path',{d:'M9 7h6M9 11h6'}]],
+  check:[['circle',{cx:12,cy:12,r:9}],['polyline',{points:'8.5 12 11 14.5 15.5 9.5'}]],
+};
+function mk(key,size,sw){const d=ICONS[key]||ICONS.box;return React.createElement('svg',{width:size||16,height:size||16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:sw||1.9,strokeLinecap:'round',strokeLinejoin:'round',style:{flex:'none'}},d.map((x,i)=>React.createElement(x[0],{...x[1],key:i})));}
+const L=(id,en)=>({id,en});
+const NAV=[
+  { label:L('Operasional','Operational'), items:[
+    { label:L('Dashboard','Dashboard'), icon:'dashboard' },{ label:L('Aset','Assets'), icon:'box' },{ label:L('Penugasan','Assignments'), icon:'clipboard' },
+    { label:L('Depresiasi','Depreciation'), icon:'trendDown', active:true },
+    { label:L('Maintenance','Maintenance'), icon:'wrench' },{ label:L('Laporan','Reports'), icon:'chart' },
+  ]},
+  { label:L('Administrasi','Administration'), items:[{ label:L('Master Data','Master Data'), icon:'database' },{ label:L('Pengaturan','Settings'), icon:'settings' }]},
+];
+// per-asset base data; komersial & fiskal differ in life/method
+const ASSETS=[
+  {tag:'JKT01-ELK-2026-00001',nama:'Laptop Dell Latitude 5440',kat:'Elektronik',kantor:'Cab. Jakarta Selatan',perolehan:18500000,kom:{metode:'gl',masa:48,akumStart:2312500},fis:{metode:'gl',masa:48,akumStart:2312500},impaired:false},
+  {tag:'JKT01-KEN-2025-00007',nama:'Toyota Avanza 1.5 G',kat:'Kendaraan',kantor:'Cab. Jakarta Selatan',perolehan:235000000,kom:{metode:'sm',masa:96,akumStart:37000000},fis:{metode:'sm',masa:96,akumStart:44000000},impaired:false},
+  {tag:'JKT01-ELK-2025-00028',nama:'Genset Cummins C22 D5',kat:'Elektronik',kantor:'Cab. Jakarta Selatan',perolehan:78000000,kom:{metode:'gl',masa:96,akumStart:9750000},fis:{metode:'gl',masa:96,akumStart:9750000},impaired:true},
+  {tag:'JKT01-ATM-2024-00005',nama:'Mesin ATM Wincor',kat:'Elektronik',kantor:'Cab. Jakarta Selatan',perolehan:145000000,kom:{metode:'gl',masa:96,akumStart:30208000},fis:{metode:'sm',masa:96,akumStart:38000000},impaired:false},
+  {tag:'JKT01-MBL-2024-00033',nama:'Kursi Ergonomis (20 unit)',kat:'Furnitur',kantor:'Cab. Jakarta Selatan',perolehan:24000000,kom:{metode:'gl',masa:48,akumStart:5000000},fis:{metode:'gl',masa:48,akumStart:5000000},impaired:false},
+  {tag:'JKT01-BGN-2020-00001',nama:'Gedung Kantor Cabang',kat:'Bangunan',kantor:'Cab. Jakarta Selatan',perolehan:4800000000,kom:{metode:'gl',masa:240,akumStart:1200000000},fis:{metode:'gl',masa:240,akumStart:1200000000},impaired:false},
+];
+const KAT=['Elektronik','Kendaraan','Furnitur','Bangunan'];
+const KANTOR=['Cab. Jakarta Selatan'];
+const MON=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const rp=(v)=>'Rp '+Math.round(v).toLocaleString('id-ID');
+const rpShort=(v)=>{ const a=Math.abs(v); if(a>=1e9)return 'Rp '+(v/1e9).toLocaleString('id-ID',{maximumFractionDigits:2})+' M'; if(a>=1e6)return 'Rp '+(v/1e6).toLocaleString('id-ID',{maximumFractionDigits:1})+' Jt'; return rp(v); };
+const CH={
+  id:{ pageTitle:'Depresiasi', pageSub:'Jalankan & tutup perhitungan penyusutan per periode untuk basis komersial dan fiskal.',
+    basisKom:'Komersial', basisFis:'Fiskal', refKom:'PSAK 16', refFis:'PMK 72/2023',
+    kpiPerolehan:'Total Nilai Perolehan', kpiAkum:'Akumulasi Penyusutan', kpiBuku:'Nilai Buku', kpiBeban:'Beban Periode Berjalan', kpiBebanSub:'periode berjalan',
+    runTitle:'Jalankan Periode', periodePrefix:'Periode',
+    pOpen:'Terbuka', pComputed:'Terhitung', pClosed:'Ditutup',
+    hitungLbl:'Hitung Periode', tutupLbl:'Tutup Periode', closedLbl:'Periode Ditutup',
+    previewAset:'Aset disusutkan:', previewBeban:'Total beban:', computedNote:'Sudah dihitung — tinjau lalu tutup periode.',
+    secSchedule:'Jadwal per Aset', secJurnal:'Rekap Siap-Jurnal',
+    searchPh:'Cari aset…', fKatAll:'Semua Kategori', fKantorAll:'Semua Kantor', noMatchMsg:'Tidak ada aset yang cocok.',
+    cAset:'Aset', cMetode:'Metode', cMasa:'Masa (bln)', cAwal:'Nilai Awal', cBeban:'Beban Periode', cAkum:'Akumulasi', cAkhir:'Nilai Akhir', cAksi:'Aksi',
+    metGL:'Garis Lurus', metSM:'Saldo Menurun', totalLbl:'TOTAL',
+    impairLbl:'Catat Penurunan Nilai', impairedTip:'Aset telah di-impair',
+    jurnalSub:'Ringkasan jurnal penyusutan periode berjalan per akun GL.', jurnalTitle:'Jurnal Penyusutan', jAkun:'Kode Akun', jNama:'Nama Akun', jDebit:'Debit', jKredit:'Kredit',
+    jBebanNama:'Beban Penyusutan', jAkumNama:'Akumulasi Penyusutan', balanceNote:'Jurnal seimbang — debit = kredit.', pdfLbl:'Ekspor PDF', excelLbl:'Ekspor Excel',
+    impairTitle:'Catat Penurunan Nilai', impairRef:'Impairment — PSAK 48', impCurrentLbl:'Nilai buku saat ini', impRecoverLbl:'Nilai Terpulihkan (recoverable)', impLossLbl:'Rugi Penurunan Nilai', impReasonLbl:'Alasan', impReasonPh:'mis. Kerusakan permanen akibat banjir; nilai pasar turun signifikan…', impSaveLbl:'Simpan & Sesuaikan', cancelLbl:'Batal',
+    monShort:(m,y)=>MON[m]+' '+y },
+  en:{ pageTitle:'Depreciation', pageSub:'Run & close depreciation for each period on commercial and fiscal bases.',
+    basisKom:'Commercial', basisFis:'Fiscal', refKom:'IAS 16', refFis:'PMK 72/2023',
+    kpiPerolehan:'Total Acquisition', kpiAkum:'Accumulated Deprec.', kpiBuku:'Book Value', kpiBeban:'Current Period Expense', kpiBebanSub:'current period',
+    runTitle:'Run Period', periodePrefix:'Period',
+    pOpen:'Open', pComputed:'Computed', pClosed:'Closed',
+    hitungLbl:'Compute Period', tutupLbl:'Close Period', closedLbl:'Period Closed',
+    previewAset:'Assets depreciated:', previewBeban:'Total expense:', computedNote:'Computed — review then close the period.',
+    secSchedule:'Per-Asset Schedule', secJurnal:'Journal-Ready Recap',
+    searchPh:'Search asset…', fKatAll:'All Categories', fKantorAll:'All Offices', noMatchMsg:'No matching asset.',
+    cAset:'Asset', cMetode:'Method', cMasa:'Life (mo)', cAwal:'Opening', cBeban:'Period Expense', cAkum:'Accumulated', cAkhir:'Closing', cAksi:'Actions',
+    metGL:'Straight Line', metSM:'Declining Balance', totalLbl:'TOTAL',
+    impairLbl:'Record Impairment', impairedTip:'Asset has been impaired',
+    jurnalSub:'Depreciation journal summary for the current period per GL account.', jurnalTitle:'Depreciation Journal', jAkun:'Account', jNama:'Account Name', jDebit:'Debit', jKredit:'Credit',
+    jBebanNama:'Depreciation Expense', jAkumNama:'Accumulated Depreciation', balanceNote:'Journal balanced — debit = credit.', pdfLbl:'Export PDF', excelLbl:'Export Excel',
+    impairTitle:'Record Impairment', impairRef:'Impairment — IAS 36', impCurrentLbl:'Current book value', impRecoverLbl:'Recoverable Amount', impLossLbl:'Impairment Loss', impReasonLbl:'Reason', impReasonPh:'e.g. Permanent damage from flooding; market value dropped significantly…', impSaveLbl:'Save & Adjust', cancelLbl:'Cancel',
+    monShort:(m,y)=>['January','February','March','April','May','June','July','August','September','October','November','December'][m]+' '+y },
+};
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef=React.createRef();
+    this.state={
+      theme:(props.theme==='dark'?'dark':'light'), lang:(props.lang==='en'?'en':'id'), collapsed:!!props.collapsed,
+      basis:(props.basis||'kom'), section:'schedule',
+      period:'2026-07', periodState:(props.periodState||'open'),
+      q:'', fKat:'all', fKantor:'all',
+      impairFor:null, impRecover:'', impReason:'', impaired:{},
+    };
+    this._tt=false;this._tl=false;this._tc=false;this._lastThemeProp=props.theme;this._lastLangProp=props.lang;
+  }
+  componentDidMount(){ this.applyPrimary(); }
+  componentDidUpdate(){ this.applyPrimary();
+    if(this.props.theme!==this._lastThemeProp){ this._lastThemeProp=this.props.theme; this._tt=false; if(this.props.theme) this.setState({theme:this.props.theme}); }
+    if(this.props.lang!==this._lastLangProp){ this._lastLangProp=this.props.lang; this._tl=false; if(this.props.lang) this.setState({lang:this.props.lang}); }
+  }
+  applyPrimary(){ const c=this.props.primaryColor,el=this.rootRef.current; if(el&&c) el.style.setProperty('--primary',c); }
+  effTheme(){ return this._tt?this.state.theme:(this.props.theme||'light'); }
+  effLang(){ return this._tl?this.state.lang:(this.props.lang||'id'); }
+  effCollapsed(){ return this._tc?this.state.collapsed:!!this.props.collapsed; }
+  basisData(a){ return this.state.basis==='fis'?a.fis:a.kom; }
+  // monthly expense per asset for current basis
+  calc(a){
+    const b=this.basisData(a); const impairMul = this.state.impaired[a.tag]?0.6:(a.impaired?0.72:1);
+    const acqAdj=a.perolehan;
+    let awal, beban;
+    if(b.metode==='sm'){ // declining balance: rate = 2/life(years); monthly = annual/12 on opening book
+      const bookOpen=acqAdj - b.akumStart; awal=bookOpen*impairMul;
+      const annualRate=2/(b.masa/12); beban=awal*annualRate/12;
+    } else { const base=acqAdj*impairMul; awal=(acqAdj - b.akumStart)*(impairMul); beban=base/b.masa; if(a.tag.indexOf('BGN')>=0) beban=acqAdj/b.masa; }
+    // normalize: keep it simple & positive
+    beban=Math.max(0,Math.round(beban/1000)*1000);
+    const akumEnd=b.akumStart+beban; const akhir=Math.max(0,acqAdj*impairMul - akumEnd);
+    return { metode:b.metode, masa:b.masa, awal:Math.max(0,acqAdj - b.akumStart), beban, akum:akumEnd, akhir };
+  }
+  renderVals(){
+    const s=this.state; const theme=this.effTheme(),lang=this.effLang(),collapsed=this.effCollapsed();
+    const isDark=theme==='dark'; const ch=CH[lang];
+    const nav=NAV.map(g=>({label:g.label[lang],items:g.items.map(it=>({
+      label:it.label[lang],icon:mk(it.icon,18,1.9),
+      bg:it.active?'var(--primary-soft-bg)':'transparent',fg:it.active?'var(--primary-soft-text)':'var(--text-muted)',
+      weight:it.active?'600':'500',accent:it.active?'var(--primary)':'transparent',hoverBg:it.active?'var(--primary-soft-bg)':'var(--bg-muted)',
+    }))}));
+
+    const basisSeg=[['kom',ch.basisKom,ch.refKom,'scales'],['fis',ch.basisFis,ch.refFis,'gavel']].map(([v,label,ref,ic])=>{ const act=s.basis===v; return {
+      label, ref, icon:mk(ic,14,2), on:()=>this.setState({basis:v}),
+      bg:act?'var(--bg-base)':'transparent', fg:act?'var(--text)':'var(--text-muted)', sh:act?'var(--shadow)':'none',
+      tagBg:act?(v==='fis'?'var(--neutral-soft-bg)':'var(--info-soft-bg)'):'transparent', tagFg:act?(v==='fis'?'var(--neutral-soft-text)':'var(--info-soft-text)'):'var(--text-dimmed)' };
+    });
+
+    // compute all
+    const calcs=ASSETS.map(a=>({a,c:this.calc(a)}));
+    const totalPerolehan=ASSETS.reduce((x,a)=>x+a.perolehan,0);
+    const totalAkum=calcs.reduce((x,o)=>x+o.c.akum,0);
+    const totalBuku=calcs.reduce((x,o)=>x+o.c.akhir,0);
+    const totalBeban=calcs.reduce((x,o)=>x+o.c.beban,0);
+
+    const kpis=[
+      {label:ch.kpiPerolehan,value:rpShort(totalPerolehan),sub:ASSETS.length+(lang==='id'?' aset':' assets'),icon:mk('wallet',15,2),iconBg:'var(--info-soft-bg)',iconFg:'var(--info-soft-text)',valColor:'var(--text)'},
+      {label:ch.kpiAkum,value:rpShort(totalAkum),sub:s.basis==='fis'?ch.refFis:ch.refKom,icon:mk('trendDown',15,2),iconBg:'var(--neutral-soft-bg)',iconFg:'var(--neutral-soft-text)',valColor:'var(--text)'},
+      {label:ch.kpiBuku,value:rpShort(totalBuku),sub:ch.monShort(6,2026),icon:mk('book',15,2),iconBg:'var(--primary-soft-bg)',iconFg:'var(--primary-soft-text)',valColor:'var(--text)'},
+      {label:ch.kpiBeban,value:rpShort(totalBeban),sub:ch.kpiBebanSub,icon:mk('receipt',15,2),iconBg:'var(--warning-soft-bg)',iconFg:'var(--warning-soft-text)',valColor:'var(--error)'},
+    ];
+
+    // period state
+    const ps=s.periodState;
+    const PSTAT={open:{label:ch.pOpen,bg:'var(--warning-soft-bg)',fg:'var(--warning-soft-text)',dot:'var(--warning)'},computed:{label:ch.pComputed,bg:'var(--info-soft-bg)',fg:'var(--info-soft-text)',dot:'var(--info)'},closed:{label:ch.pClosed,bg:'var(--neutral-soft-bg)',fg:'var(--neutral-soft-text)',dot:'var(--text-dimmed)'}};
+    const pst=PSTAT[ps];
+
+    // schedule rows
+    const q=s.q.trim().toLowerCase();
+    let rows=calcs.filter(({a})=>{ if(q&&!(a.nama.toLowerCase().includes(q)||a.tag.toLowerCase().includes(q)))return false; if(s.fKat!=='all'&&a.kat!==s.fKat)return false; if(s.fKantor!=='all'&&a.kantor!==s.fKantor)return false; return true; });
+    const metLabel=(m)=>m==='sm'?ch.metSM:ch.metGL;
+    const metC=(m)=>m==='sm'?{bg:'var(--warning-soft-bg)',fg:'var(--warning-soft-text)'}:{bg:'var(--info-soft-bg)',fg:'var(--info-soft-text)'};
+    const rowVals=rows.map(({a,c})=>{ const impaired=s.impaired[a.tag]||a.impaired; const mc=metC(c.metode); return {
+      nama:a.nama, tag:a.tag, impaired, impairedTip:ch.impairedTip,
+      metode:metLabel(c.metode), metBg:mc.bg, metFg:mc.fg, masa:String(c.masa),
+      awal:rp(c.awal), beban:rp(c.beban), akum:rp(c.akum), akhir:rp(c.akhir),
+      impair:()=>this.setState({impairFor:a.tag,impRecover:'',impReason:''}), impairLbl:ch.impairLbl };
+    });
+    const fT=(sel)=>rows.reduce((x,o)=>x+o.c[sel],0);
+
+    const filters=[
+      {value:s.fKat,color:s.fKat==='all'?'var(--text-muted)':'var(--text)',on:(e)=>this.setState({fKat:e.target.value}),opts:[{v:'all',label:ch.fKatAll}].concat(KAT.map(k=>({v:k,label:k})))},
+      {value:s.fKantor,color:s.fKantor==='all'?'var(--text-muted)':'var(--text)',on:(e)=>this.setState({fKantor:e.target.value}),opts:[{v:'all',label:ch.fKantorAll}].concat(KANTOR.map(k=>({v:k,label:k})))},
+    ];
+
+    // journal recap
+    const jurnalRows=[
+      {akun:'8.1.01.001',nama:ch.jBebanNama+' — '+(lang==='id'?'Elektronik':'Electronics'),debit:rp(totalBeban*0.34),kredit:'—',debitColor:'var(--text)',kreditColor:'var(--text-dimmed)'},
+      {akun:'8.1.01.002',nama:ch.jBebanNama+' — '+(lang==='id'?'Kendaraan':'Vehicles'),debit:rp(totalBeban*0.18),kredit:'—',debitColor:'var(--text)',kreditColor:'var(--text-dimmed)'},
+      {akun:'8.1.01.003',nama:ch.jBebanNama+' — '+(lang==='id'?'Bangunan':'Buildings'),debit:rp(totalBeban*0.46),kredit:'—',debitColor:'var(--text)',kreditColor:'var(--text-dimmed)'},
+      {akun:'1.2.9.001',nama:ch.jAkumNama,debit:'—',kredit:rp(totalBeban),debitColor:'var(--text-dimmed)',kreditColor:'var(--text)'},
+    ];
+
+    // impairment modal
+    const impA=ASSETS.find(a=>a.tag===s.impairFor); let impVals={impairOpen:false};
+    if(impA){ const c=this.calc(impA); const rec=Number(String(s.impRecover).replace(/\D/g,''))||0; const loss=Math.max(0,c.akhir-rec);
+      impVals={ impairOpen:true, impAssetName:impA.nama, impAssetTag:impA.tag, impCurrentLbl:ch.impCurrentLbl, impCurrentVal:rp(c.akhir),
+        impRecoverLbl:ch.impRecoverLbl, impRecoverFmt:(rec?rec.toLocaleString('id-ID'):''), onImpRecover:(e)=>this.setState({impRecover:e.target.value.replace(/\D/g,'')}),
+        impShowResult:rec>0, impLossLbl:ch.impLossLbl, impLossVal:rp(loss),
+        impReasonLbl:ch.impReasonLbl, impReasonPh:ch.impReasonPh, impReason:s.impReason, onImpReason:(e)=>this.setState({impReason:e.target.value}),
+        impairTitle:ch.impairTitle, impairRef:ch.impairRef, impSaveLbl:ch.impSaveLbl, cancelLbl:ch.cancelLbl };
+    }
+
+    return {
+      rootRef:this.rootRef, theme, isDark, isLight:!isDark, scheme:isDark?'dark':'light',
+      sidebarW:collapsed?'76px':'264px', expanded:!collapsed, collapsed, navJustify:collapsed?'center':'flex-start',
+      toggleCollapse:()=>{this._tc=true;this.setState(x=>({collapsed:!this.effCollapsed()}));},
+      toggleTheme:()=>{this._tt=true;const cur=this.effTheme();this.setState({theme:cur==='light'?'dark':'light'});},
+      setId:()=>{this._tl=true;this.setState({lang:'id'});}, setEn:()=>{this._tl=true;this.setState({lang:'en'});},
+      idBg:lang==='id'?'var(--bg-base)':'transparent', idFg:lang==='id'?'var(--text)':'var(--text-muted)',
+      enBg:lang==='en'?'var(--bg-base)':'transparent', enFg:lang==='en'?'var(--text)':'var(--text-muted)',
+      nav, pageTitle:ch.pageTitle, pageSub:ch.pageSub, basisSeg, kpis,
+      // run panel
+      runTitle:ch.runTitle, periodePrefix:ch.periodePrefix,
+      period:s.period, onPeriod:(e)=>this.setState({period:e.target.value}), periodOpts:[{v:'2026-07',label:ch.monShort(6,2026)},{v:'2026-06',label:ch.monShort(5,2026)},{v:'2026-05',label:ch.monShort(4,2026)}],
+      periodLocked:ps!=='open', periodBg:ps!=='open'?'var(--bg-muted)':'var(--bg-base)', periodCursor:ps!=='open'?'not-allowed':'pointer',
+      pStatLabel:pst.label, pStatBg:pst.bg, pStatFg:pst.fg, pStatDot:pst.dot,
+      canHitung:ps==='open', canTutup:ps==='computed', isClosed:ps==='closed', isComputed:ps==='computed',
+      hitung:()=>this.setState({periodState:'computed'}), tutup:()=>this.setState({periodState:'closed'}),
+      hitungLbl:ch.hitungLbl, tutupLbl:ch.tutupLbl, closedLbl:ch.closedLbl, computedNote:ch.computedNote,
+      previewAset:ch.previewAset, previewAsetVal:String(ASSETS.length), previewBeban:ch.previewBeban, previewBebanVal:rp(totalBeban),
+      // section tabs
+      sectionTabs:[['schedule',ch.secSchedule,'ledger'],['jurnal',ch.secJurnal,'book']].map(([k,label,icon])=>({label,on:()=>this.setState({section:k}),icon:mk(icon,15,2),color:s.section===k?'var(--text)':'var(--text-muted)',border:s.section===k?'2px solid var(--primary)':'2px solid transparent',weight:s.section===k?'600':'500'})),
+      secSchedule:s.section==='schedule', secJurnal:s.section==='jurnal',
+      // schedule
+      q:s.q, onSearch:(e)=>this.setState({q:e.target.value}), searchPh:ch.searchPh, filters,
+      cAset:ch.cAset, cMetode:ch.cMetode, cMasa:ch.cMasa, cAwal:ch.cAwal, cBeban:ch.cBeban, cAkum:ch.cAkum, cAkhir:ch.cAkhir, cAksi:ch.cAksi,
+      rows:rowVals, hasRows:calcs.length>0, rowsFilteredEmpty:rowVals.length===0, noMatchMsg:ch.noMatchMsg, impairLbl:ch.impairLbl,
+      totalLbl:ch.totalLbl, tAwal:rp(fT('awal')), tBeban:rp(fT('beban')), tAkum:rp(fT('akum')), tAkhir:rp(fT('akhir')),
+      // jurnal
+      jurnalSub:ch.jurnalSub, jurnalTitle:ch.jurnalTitle, jurnalPeriode:(s.basis==='fis'?ch.basisFis:ch.basisKom)+' · '+ch.monShort(6,2026),
+      jAkun:ch.jAkun, jNama:ch.jNama, jDebit:ch.jDebit, jKredit:ch.jKredit, jurnalRows,
+      jTotalDebit:rp(totalBeban), jTotalKredit:rp(totalBeban), pdfLbl:ch.pdfLbl, excelLbl:ch.excelLbl,
+      balanceBg:'var(--success-soft-bg)', balanceColor:'var(--success-soft-text)', balanceIcon:mk('check',15,2.2), balanceNote:ch.balanceNote,
+      // impairment
+      stop:(e)=>e.stopPropagation(), closeImpair:()=>this.setState({impairFor:null}), saveImpair:()=>{ const t=s.impairFor; this.setState(st=>({impaired:{...st.impaired,[t]:true},impairFor:null})); },
+      ...impVals,
+    };
+  }
+}
+</script>
+</body>
+</html>

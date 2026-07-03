@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;}
+input::placeholder,textarea::placeholder{color:var(--text-dimmed);}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:9px;border:2px solid transparent;background-clip:padding-box;}
+:root{
+  --bg:#f8fafc; --bg-base:#ffffff; --bg-muted:#f1f5f9; --bg-el:#ffffff;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#0f172a; --text-muted:#64748b; --text-dimmed:#94a3b8;
+  --primary:#16a34a; --primary-hover:#15803d; --primary-fg:#ffffff;
+  --primary-soft-bg:#dcfce7; --primary-soft-text:#15803d;
+  --success:#16a34a; --warning:#d97706; --warning-soft-bg:#fef3c7; --warning-soft-text:#b45309;
+  --error:#dc2626; --error-soft-bg:#fee2e2; --error-soft-text:#b91c1c;
+  --info:#2563eb; --info-soft-bg:#dbeafe; --info-soft-text:#1d4ed8;
+  --violet:#7c3aed; --violet-soft-bg:#ede9fe; --violet-soft-text:#6d28d9;
+  --neutral-soft-bg:#eef2f6; --neutral-soft-text:#475569;
+  --ring:color-mix(in srgb, var(--primary) 28%, transparent);
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
+  --shadow-lg:0 18px 50px rgba(15,23,42,.18);
+}
+[data-theme="dark"]{
+  --bg:#020617; --bg-base:#0b1220; --bg-muted:#1e293b; --bg-el:#0f172a;
+  --border:#1e293b; --border-strong:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8; --text-dimmed:#64748b;
+  --primary:#22c55e; --primary-hover:#16a34a; --primary-fg:#052e16;
+  --primary-soft-bg:#14331f; --primary-soft-text:#4ade80;
+  --success:#22c55e; --warning:#f59e0b; --warning-soft-bg:#3a2a08; --warning-soft-text:#fbbf24;
+  --error:#ef4444; --error-soft-bg:#3a1414; --error-soft-text:#f87171;
+  --info:#3b82f6; --info-soft-bg:#13243f; --info-soft-text:#60a5fa;
+  --violet:#a78bfa; --violet-soft-bg:#241a44; --violet-soft-text:#a78bfa;
+  --neutral-soft-bg:#1e293b; --neutral-soft-text:#cbd5e1;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 18px 50px rgba(0,0,0,.6);
+}
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" data-theme="{{ theme }}" style="font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--text);">
+  <div style="display:flex;height:100vh;overflow:hidden;background:var(--bg);">
+
+    <!-- SIDEBAR -->
+    <aside style="width:{{ sidebarW }};flex:none;display:flex;flex-direction:column;background:var(--bg-base);border-right:1px solid var(--border);transition:width .2s ease;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:11px;height:61px;padding:0 18px;border-bottom:1px solid var(--border);flex:none;">
+        <div style="width:34px;height:34px;border-radius:9px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--primary-fg);flex:none;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13h6"/></svg></div>
+        <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="font:700 18px Inter;letter-spacing:-.01em;white-space:nowrap;">Inventra</span></sc-if>
+      </div>
+      <nav style="flex:1;overflow-y:auto;overflow-x:hidden;padding:12px;">
+        <sc-for list="{{ nav }}" as="g" hint-placeholder-count="2">
+          <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><div style="padding:14px 12px 6px;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dimmed);white-space:nowrap;">{{ g.label }}</div></sc-if>
+          <sc-if value="{{ collapsed }}" hint-placeholder-val="{{ false }}"><div style="height:1px;background:var(--border);margin:10px 8px;"></div></sc-if>
+          <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+            <button title="{{ it.label }}" style="position:relative;display:flex;align-items:center;justify-content:{{ navJustify }};gap:11px;width:100%;padding:9px 12px;margin-bottom:2px;font-family:Inter;font-size:14px;font-weight:{{ it.weight }};color:{{ it.fg }};background:{{ it.bg }};border:none;border-radius:9px;cursor:pointer;text-align:left;box-shadow:inset 3px 0 0 {{ it.accent }};white-space:nowrap;" style-hover="background:{{ it.hoverBg }};">
+              {{ it.icon }}
+              <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;">{{ it.label }}</span></sc-if>
+            </button>
+          </sc-for>
+        </sc-for>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <header style="display:flex;align-items:center;gap:14px;height:61px;flex:none;padding:0 20px;background:var(--bg-base);border-bottom:1px solid var(--border);">
+        <button onClick="{{ toggleCollapse }}" title="Collapse" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex:none;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg></button>
+        <div style="display:flex;align-items:center;gap:6px;font:400 12px Inter;color:var(--text-muted);"><span>Inventra</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span>{{ bcSetting }}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span style="color:var(--text);font-weight:500;">{{ pageTitle }}</span></div>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex:none;">
+          <div style="display:flex;gap:2px;padding:3px;background:var(--bg-muted);border-radius:9px;">
+            <button onClick="{{ setId }}" style="padding:5px 9px;font:600 12px Inter;color:{{ idFg }};background:{{ idBg }};border:none;border-radius:6px;cursor:pointer;">ID</button>
+            <button onClick="{{ setEn }}" style="padding:5px 9px;font:600 12px Inter;color:{{ enFg }};background:{{ enBg }};border:none;border-radius:6px;cursor:pointer;">EN</button>
+          </div>
+          <button onClick="{{ toggleTheme }}" title="Tema" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">
+            <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></sc-if>
+            <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></sc-if>
+          </button>
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;background:transparent;border:1px solid var(--border);border-radius:999px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--primary);color:var(--primary-fg);display:flex;align-items:center;justify-content:center;font:700 12px Inter;">SA</span><span style="display:flex;color:var(--text-dimmed);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+        </div>
+      </header>
+
+      <main style="flex:1;overflow-y:auto;padding:26px 32px 40px;">
+        <div style="max-width:1000px;margin:0 auto;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px;">
+            <div><h1 style="margin:0 0 5px;font:700 23px Inter;letter-spacing:-.02em;">{{ pageTitle }}</h1><p style="margin:0;max-width:600px;font:400 14px/1.5 Inter;color:var(--text-muted);">{{ pageSub }}</p></div>
+          </div>
+
+          <!-- placeholder banner -->
+          <div style="display:flex;gap:11px;align-items:flex-start;padding:12px 15px;margin-bottom:18px;border-radius:12px;background:var(--warning-soft-bg);border:1px solid color-mix(in srgb,var(--warning) 32%,transparent);">
+            <span style="color:var(--warning-soft-text);flex:none;margin-top:1px;display:flex;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span>
+            <span style="font:500 13px/1.5 Inter;color:var(--warning-soft-text);">{{ placeholderNote }}</span>
+          </div>
+
+          <!-- transaction type tabs -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+            <sc-for list="{{ typeTabs }}" as="t" hint-placeholder-count="4">
+              <button onClick="{{ t.on }}" style="display:inline-flex;align-items:center;gap:8px;padding:10px 15px;font:600 13px Inter;color:{{ t.fg }};background:{{ t.bg }};border:1px solid {{ t.bd }};border-radius:10px;cursor:pointer;">{{ t.icon }}{{ t.label }}<span style="min-width:19px;height:19px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;font:700 11px Inter;border-radius:999px;background:{{ t.countBg }};color:{{ t.countFg }};">{{ t.count }}</span></button>
+            </sc-for>
+          </div>
+
+          <!-- overlap warning -->
+          <sc-if value="{{ overlapShow }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:11px;align-items:flex-start;padding:12px 15px;margin-bottom:16px;border-radius:12px;background:var(--error-soft-bg);border:1px solid color-mix(in srgb,var(--error) 32%,transparent);">
+              <span style="color:var(--error-soft-text);flex:none;margin-top:1px;display:flex;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg></span>
+              <div><div style="font:600 13px Inter;color:var(--error-soft-text);">{{ overlapTitle }}</div><div style="font:400 12.5px/1.5 Inter;color:var(--text-muted);margin-top:2px;">{{ overlapMsg }}</div></div>
+            </div>
+          </sc-if>
+
+          <!-- rules table -->
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
+            <div style="font:600 15px Inter;">{{ tableTitle }}</div>
+            <button onClick="{{ openAdd }}" style="display:inline-flex;align-items:center;gap:7px;padding:9px 15px;font:600 13.5px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>{{ addLbl }}</button>
+          </div>
+
+          <sc-if value="{{ hasRules }}" hint-placeholder-val="{{ true }}">
+            <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:22px;">
+              <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font:400 13px Inter;white-space:nowrap;">
+                  <thead><tr style="background:var(--bg-muted);">
+                    <th style="text-align:left;padding:11px 16px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cStep }}</th>
+                    <th style="text-align:right;padding:11px 12px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cDari }}</th>
+                    <th style="text-align:right;padding:11px 12px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cSampai }}</th>
+                    <th style="text-align:left;padding:11px 12px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cApprover }}</th>
+                    <th style="text-align:center;padding:11px 12px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cAktif }}</th>
+                    <th style="text-align:right;padding:11px 16px;font:600 11.5px Inter;text-transform:uppercase;color:var(--text-muted);">{{ cAksi }}</th>
+                  </tr></thead>
+                  <tbody>
+                    <sc-for list="{{ ruleRows }}" as="r" hint-placeholder-count="4">
+                      <tr style="border-top:1px solid var(--border);background:{{ r.rowBg }};cursor:pointer;" style-hover="background:var(--bg-muted);" onClick="{{ r.select }}">
+                        <td style="padding:12px 16px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:var(--neutral-soft-bg);color:var(--neutral-soft-text);font:700 12px Inter;">{{ r.step }}</span></td>
+                        <td style="padding:12px 12px;text-align:right;font-variant-numeric:tabular-nums;color:var(--text);font-weight:500;">{{ r.dari }}</td>
+                        <td style="padding:12px 12px;text-align:right;font-variant-numeric:tabular-nums;color:{{ r.sampaiColor }};font-weight:500;">{{ r.sampai }}</td>
+                        <td style="padding:12px 12px;"><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;font:600 11.5px Inter;border-radius:999px;background:{{ r.apBg }};color:{{ r.apFg }};">{{ r.apIcon }}{{ r.approver }}</span></td>
+                        <td style="padding:12px 12px;text-align:center;"><button onClick="{{ r.toggle }}" style="display:inline-block;width:38px;height:22px;border-radius:99px;background:{{ r.track }};position:relative;border:none;cursor:pointer;transition:background .15s;"><span style="position:absolute;top:3px;left:{{ r.knob }};width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.3);"></span></button></td>
+                        <td style="padding:12px 16px;text-align:right;white-space:nowrap;"><button onClick="{{ r.edit }}" title="Edit" style="display:inline-flex;padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--bg-base);color:var(--text);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button onClick="{{ r.del }}" title="Hapus" style="display:inline-flex;padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--error-soft-bg);color:var(--error);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button></td>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ noRules }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:52px 24px;text-align:center;margin-bottom:22px;">
+              <div style="width:52px;height:52px;margin:0 auto 13px;border-radius:14px;background:var(--bg-muted);color:var(--text-dimmed);display:flex;align-items:center;justify-content:center;"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg></div>
+              <div style="font:600 15px Inter;margin-bottom:5px;">{{ emptyTitle }}</div>
+              <div style="font:400 13px/1.5 Inter;color:var(--text-muted);max-width:320px;margin:0 auto 16px;">{{ emptySub }}</div>
+              <button onClick="{{ openAdd }}" style="display:inline-flex;align-items:center;gap:7px;padding:9px 15px;font:500 13.5px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>{{ addLbl }}</button>
+            </div>
+          </sc-if>
+
+          <!-- chain illustration -->
+          <sc-if value="{{ hasSelected }}" hint-placeholder-val="{{ true }}">
+            <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:20px;">
+              <div style="display:flex;align-items:center;gap:9px;margin-bottom:4px;"><span style="width:28px;height:28px;border-radius:8px;background:var(--violet-soft-bg);color:var(--violet-soft-text);display:flex;align-items:center;justify-content:center;flex:none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9v6M12 5v14M18 9v6"/><circle cx="6" cy="7" r="2"/><circle cx="12" cy="3" r="0"/><circle cx="18" cy="7" r="2"/></svg></span><div style="font:600 14px Inter;">{{ chainTitle }}</div></div>
+              <div style="font:400 12.5px Inter;color:var(--text-muted);margin:0 0 16px 37px;">{{ chainSub }}</div>
+              <div style="display:flex;align-items:stretch;gap:0;flex-wrap:wrap;">
+                <sc-for list="{{ chainNodes }}" as="c" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;min-width:112px;padding:0 4px;">
+                      <span style="width:44px;height:44px;border-radius:12px;background:{{ c.iconBg }};color:{{ c.iconFg }};display:flex;align-items:center;justify-content:center;flex:none;">{{ c.icon }}</span>
+                      <div style="text-align:center;"><div style="font:600 12.5px Inter;color:var(--text);">{{ c.role }}</div><div style="font:500 10px Inter;color:var(--text-dimmed);letter-spacing:.06em;text-transform:uppercase;margin-top:2px;">{{ c.tag }}</div></div>
+                    </div>
+                    <sc-if value="{{ c.arrow }}" hint-placeholder-val="{{ true }}"><div style="display:flex;align-items:center;padding:0 2px;margin-bottom:26px;color:var(--text-dimmed);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div></sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ADD/EDIT SLIDEOVER -->
+  <sc-if value="{{ formOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeForm }}" style="position:fixed;inset:0;z-index:60;background:rgba(2,6,23,.5);backdrop-filter:blur(2px);display:flex;justify-content:flex-end;">
+      <div onClick="{{ stop }}" style="width:460px;max-width:94vw;height:100%;background:var(--bg-el);border-left:1px solid var(--border);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;">
+        <div style="flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:20px 24px;border-bottom:1px solid var(--border);"><div><div style="font:700 18px Inter;letter-spacing:-.01em;">{{ formTitle }}</div><div style="font:400 13px Inter;color:var(--text-muted);margin-top:2px;">{{ formSub }}</div></div><button onClick="{{ closeForm }}" style="display:flex;padding:6px;color:var(--text-muted);background:transparent;border:none;border-radius:8px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+        <div style="flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:15px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lDari }} <span style="color:var(--error);">*</span></label><div style="position:relative;"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font:500 12.5px Inter;color:var(--text-dimmed);">Rp</span><input value="{{ fDari }}" onInput="{{ onFDari }}" inputmode="numeric" placeholder="0" style="width:100%;padding:10px 12px 10px 36px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid {{ fDariBorder }};border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" /></div></div>
+            <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lSampai }}</label><div style="position:relative;"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font:500 12.5px Inter;color:var(--text-dimmed);">Rp</span><input value="{{ fSampai }}" onInput="{{ onFSampai }}" inputmode="numeric" placeholder="{{ unlimitedPh }}" style="width:100%;padding:10px 12px 10px 36px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" /></div><div style="margin-top:5px;font:400 11px Inter;color:var(--text-dimmed);">{{ sampaiHint }}</div></div>
+          </div>
+          <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lApprover }} <span style="color:var(--error);">*</span></label><div style="position:relative;"><select value="{{ fApprover }}" onChange="{{ onFApprover }}" style="width:100%;appearance:none;padding:10px 32px 10px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;cursor:pointer;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><sc-for list="{{ approverOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div><div style="margin-top:5px;font:400 11px Inter;color:var(--text-dimmed);">{{ approverHint }}</div></div>
+          <div style="display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:end;">
+            <div><label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lStep }}</label><input value="{{ fStep }}" onInput="{{ onFStep }}" inputmode="numeric" style="width:100%;padding:10px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;text-align:center;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" /></div>
+            <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 13px;border-radius:10px;background:var(--bg-muted);cursor:pointer;"><span style="font:600 13px Inter;color:var(--text);">{{ lAktif }}</span><button onClick="{{ toggleFActive }}" style="width:42px;height:24px;border-radius:99px;background:{{ fActiveTrack }};position:relative;border:none;cursor:pointer;flex:none;transition:background .15s;"><span style="position:absolute;top:3px;left:{{ fActiveKnob }};width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.3);"></span></button></label>
+          </div>
+          <sc-if value="{{ formOverlap }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:9px;align-items:flex-start;padding:11px 13px;border-radius:10px;background:var(--error-soft-bg);border:1px solid color-mix(in srgb,var(--error) 30%,transparent);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--error-soft-text)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:1px;"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg><span style="font:500 12px/1.45 Inter;color:var(--error-soft-text);">{{ formOverlapMsg }}</span></div></sc-if>
+        </div>
+        <div style="flex:none;display:flex;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid var(--border);background:var(--bg-el);"><button onClick="{{ closeForm }}" style="padding:10px 16px;font:500 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;cursor:pointer;" style-hover="background:var(--bg-muted);">{{ cancelLbl }}</button><button onClick="{{ saveForm }}" style="padding:10px 20px;font:600 14px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:10px;cursor:pointer;" style-hover="background:var(--primary-hover);">{{ saveLbl }}</button></div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;id&quot;,&quot;en&quot;],&quot;default&quot;:&quot;id&quot;,&quot;tsType&quot;:&quot;'id' | 'en'&quot;},&quot;type&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;disposal&quot;,&quot;registrasi&quot;,&quot;mutasi&quot;,&quot;valuasi&quot;],&quot;default&quot;:&quot;disposal&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;collapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;primaryColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#16a34a&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const ICONS={
+  dashboard:[['rect',{x:3,y:3,width:7,height:9,rx:1}],['rect',{x:14,y:3,width:7,height:5,rx:1}],['rect',{x:14,y:12,width:7,height:9,rx:1}],['rect',{x:3,y:16,width:7,height:5,rx:1}]],
+  box:[['path',{d:'M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2'}],['path',{d:'M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'}],['path',{d:'M9 13h6'}]],
+  clipboard:[['rect',{x:5,y:4,width:14,height:17,rx:2}],['path',{d:'M9 4V3h6v1'}],['path',{d:'M9 13l2 2 4-4'}]],
+  wrench:[['path',{d:'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.7 2.7-2-2z'}]],
+  approval:[['path',{d:'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'}],['path',{d:'M9 11l3 3 8-8'}]],
+  chart:[['path',{d:'M3 3v18h18'}],['path',{d:'M7 16v-5M12 16V8M17 16v-3'}]],
+  database:[['path',{d:'M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3z'}],['path',{d:'M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6'}],['path',{d:'M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6'}]],
+  settings:[['circle',{cx:12,cy:12,r:3}],['path',{d:'M19.4 15a1.6 1.6 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0 1.6 1.6 0 0 0-2.7-1.1 2 2 0 1 1-2.8-2.8A1.6 1.6 0 0 0 3 13.6a2 2 0 0 1 0-3.2A1.6 1.6 0 0 0 4.6 7a2 2 0 1 1 2.8-2.8A1.6 1.6 0 0 0 10 4.6V3a2 2 0 0 1 4 0 1.6 1.6 0 0 0 2.7 1.1A2 2 0 1 1 19.5 7a1.6 1.6 0 0 0-1 2.4 2 2 0 0 1 0 3.2z'}]],
+  trash:[['path',{d:'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6'}]],
+  box2:[['path',{d:'M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'}],['path',{d:'M3.3 7 12 12l8.7-5M12 22V12'}]],
+  transfer:[['path',{d:'M5 9l4-4M5 9l4 4M5 9h11a3 3 0 0 1 0 6h-1'}]],
+  coins:[['circle',{cx:8,cy:8,r:6}],['path',{d:'M18.1 10.4a6 6 0 1 1-8.7 8.7'}],['path',{d:'M7 6h1v4M16.7 14H18v4'}]],
+  user:[['circle',{cx:12,cy:8,r:4}],['path',{d:'M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1'}]],
+  building:[['path',{d:'M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18M2 22h20M9 7h0M9 11h0M15 7h0M15 11h0'}]],
+  tower:[['path',{d:'M3 21h18M5 21V8l7-4 7 4v13M9 9h0M9 13h0M9 17h0M15 9h0M15 13h0M15 17h0'}]],
+  edit:[['path',{d:'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z'}]],
+  check2:[['path',{d:'M9 11l3 3 8-8'}],['path',{d:'M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'}]],
+};
+function mk(key,size,sw){const d=ICONS[key]||ICONS.box;return React.createElement('svg',{width:size||16,height:size||16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:sw||1.9,strokeLinecap:'round',strokeLinejoin:'round',style:{flex:'none'}},d.map((x,i)=>React.createElement(x[0],{...x[1],key:i})));}
+const L=(id,en)=>({id,en});
+const NAV=[
+  { label:L('Operasional','Operational'), items:[
+    { label:L('Dashboard','Dashboard'), icon:'dashboard' },{ label:L('Aset','Assets'), icon:'box' },{ label:L('Penugasan','Assignments'), icon:'clipboard' },
+    { label:L('Maintenance','Maintenance'), icon:'wrench' },{ label:L('Pengajuan','Requests'), icon:'approval' },{ label:L('Laporan','Reports'), icon:'chart' },
+  ]},
+  { label:L('Administrasi','Administration'), items:[{ label:L('Master Data','Master Data'), icon:'database' },{ label:L('Pengaturan','Settings'), icon:'settings', active:true }]},
+];
+const TYPES=[
+  {key:'disposal',label:L('Penghapusan','Disposal'),icon:'trash'},
+  {key:'registrasi',label:L('Registrasi / Pengadaan','Registration / Procurement'),icon:'box2'},
+  {key:'mutasi',label:L('Mutasi Antar-Wilayah','Inter-Region Transfer'),icon:'transfer'},
+  {key:'valuasi',label:L('Pengecualian Valuasi','Valuation Exception'),icon:'coins'},
+];
+const APPROVER={
+  kaunit:{label:L('Kepala Unit','Unit Head'),icon:'user',bg:'var(--info-soft-bg)',fg:'var(--info-soft-text)'},
+  kanwil:{label:L('Kepala Kanwil','Regional Head'),icon:'building',bg:'var(--warning-soft-bg)',fg:'var(--warning-soft-text)'},
+  pusat:{label:L('Kantor Pusat','Head Office'),icon:'tower',bg:'var(--violet-soft-bg)',fg:'var(--violet-soft-text)'},
+};
+const APPROVER_LEVEL={kaunit:1,kanwil:2,pusat:3};
+// default seed per §2.4
+const SEED={
+  disposal:[
+    {id:'d1',step:1,dari:0,sampai:10000000,approver:'kaunit',active:true},
+    {id:'d2',step:2,dari:10000000,sampai:50000000,approver:'kanwil',active:true},
+    {id:'d3',step:3,dari:50000000,sampai:null,approver:'pusat',active:true},
+  ],
+  registrasi:[
+    {id:'r1',step:1,dari:0,sampai:25000000,approver:'kaunit',active:true},
+    {id:'r2',step:2,dari:25000000,sampai:100000000,approver:'kanwil',active:true},
+    {id:'r3',step:3,dari:100000000,sampai:null,approver:'pusat',active:true},
+  ],
+  mutasi:[
+    {id:'m1',step:1,dari:0,sampai:null,approver:'kanwil',active:true},
+  ],
+  valuasi:[
+    {id:'v1',step:1,dari:0,sampai:20000000,approver:'kanwil',active:true},
+    {id:'v2',step:2,dari:20000000,sampai:null,approver:'pusat',active:true},
+  ],
+};
+const rp=(v)=>'Rp '+Number(v).toLocaleString('id-ID');
+const fmtNum=(v)=>{const n=Number(String(v).replace(/\D/g,''));return n?n.toLocaleString('id-ID'):'';};
+const CH={
+  id:{ bcSetting:'Pengaturan', pageTitle:'Limit Otorisasi', pageSub:'Atur jenjang approver wajib berdasarkan rentang nilai untuk transaksi sensitif — dapat diubah tanpa deploy.',
+    placeholderNote:'Angka default masih placeholder — sesuaikan dengan kebijakan otorisasi bank sebelum digunakan di produksi.',
+    tableTitle:'Aturan Rentang Nilai', addLbl:'Tambah Aturan',
+    cStep:'Langkah', cDari:'Nilai Dari', cSampai:'Nilai Sampai', cApprover:'Approver Tertinggi Wajib', cAktif:'Aktif', cAksi:'Aksi',
+    unlimited:'Tak terbatas', emptyTitle:'Belum ada aturan', emptySub:'Belum ada aturan limit untuk jenis transaksi ini. Tambahkan aturan pertama.',
+    overlapTitle:'Rentang tumpang-tindih terdeteksi', overlapMsg:'Ada rentang nilai yang tumpang-tindih atau bercelah antar-aturan. Perbaiki agar setiap nilai transaksi memetakan tepat ke satu jenjang.',
+    chainTitle:'Rantai Persetujuan', chainSubF:(a,b)=>'Untuk transaksi bernilai '+a+' — '+b+', urutan persetujuan wajib:',
+    tagMaker:'Maker', tagChecker:'Checker', tagApprover:'Approver', roleMaker:'Pengaju', 
+    formAddTitle:'Tambah Aturan', formEditTitle:'Edit Aturan', formSubF:(t)=>'Jenis: '+t,
+    lDari:'Nilai Dari', lSampai:'Nilai Sampai', unlimitedPh:'Kosong = tak terbatas', sampaiHint:'Kosongkan untuk rentang tanpa batas atas.',
+    lApprover:'Approver Tertinggi Wajib', approverHint:'Jenjang approver tertinggi yang wajib menyetujui pada rentang ini.', lStep:'Urutan', lAktif:'Aktif',
+    reqMsg:'Wajib diisi.', cancelLbl:'Batal', saveLbl:'Simpan Aturan',
+    formOverlapMsg:'Rentang ini tumpang-tindih dengan aturan lain pada jenis transaksi yang sama.' },
+  en:{ bcSetting:'Settings', pageTitle:'Authorization Limits', pageSub:'Set the required approver tier by value range for sensitive transactions — editable without deploy.',
+    placeholderNote:'Default figures are placeholders — align them with the bank\u2019s authorization policy before production use.',
+    tableTitle:'Value Range Rules', addLbl:'Add Rule',
+    cStep:'Step', cDari:'From', cSampai:'To', cApprover:'Required Top Approver', cAktif:'Active', cAksi:'Actions',
+    unlimited:'Unlimited', emptyTitle:'No rules yet', emptySub:'No limit rule for this transaction type. Add the first one.',
+    overlapTitle:'Overlapping range detected', overlapMsg:'Some value ranges overlap or leave gaps between rules. Fix them so each transaction value maps to exactly one tier.',
+    chainTitle:'Approval Chain', chainSubF:(a,b)=>'For transactions valued '+a+' — '+b+', the required approval order is:',
+    tagMaker:'Maker', tagChecker:'Checker', tagApprover:'Approver', roleMaker:'Requester',
+    formAddTitle:'Add Rule', formEditTitle:'Edit Rule', formSubF:(t)=>'Type: '+t,
+    lDari:'Value From', lSampai:'Value To', unlimitedPh:'Empty = unlimited', sampaiHint:'Leave empty for an open-ended upper range.',
+    lApprover:'Required Top Approver', approverHint:'The highest approver tier required to approve within this range.', lStep:'Order', lAktif:'Active',
+    reqMsg:'Required.', cancelLbl:'Cancel', saveLbl:'Save Rule',
+    formOverlapMsg:'This range overlaps another rule in the same transaction type.' },
+};
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef=React.createRef();
+    this.state={
+      theme:(props.theme==='dark'?'dark':'light'), lang:(props.lang==='en'?'en':'id'), collapsed:!!props.collapsed,
+      type:(props.type||'disposal'),
+      data:JSON.parse(JSON.stringify(SEED)),
+      selId:'d2',
+      formOpen:false, editId:null, fDari:'', fSampai:'', fApprover:'kaunit', fStep:'1', fActive:true, fErr:{},
+      seq:1,
+    };
+    this._tt=false;this._tl=false;this._tc=false;this._lastThemeProp=props.theme;this._lastLangProp=props.lang;
+  }
+  componentDidMount(){ this.applyPrimary(); }
+  componentDidUpdate(){ this.applyPrimary();
+    if(this.props.theme!==this._lastThemeProp){ this._lastThemeProp=this.props.theme; this._tt=false; if(this.props.theme) this.setState({theme:this.props.theme}); }
+    if(this.props.lang!==this._lastLangProp){ this._lastLangProp=this.props.lang; this._tl=false; if(this.props.lang) this.setState({lang:this.props.lang}); }
+  }
+  applyPrimary(){ const c=this.props.primaryColor,el=this.rootRef.current; if(el&&c) el.style.setProperty('--primary',c); }
+  effTheme(){ return this._tt?this.state.theme:(this.props.theme||'light'); }
+  effLang(){ return this._tl?this.state.lang:(this.props.lang||'id'); }
+  effCollapsed(){ return this._tc?this.state.collapsed:!!this.props.collapsed; }
+  rules(){ return (this.state.data[this.state.type]||[]).slice().sort((a,b)=>a.step-b.step); }
+  hasOverlap(list){ const sorted=list.slice().sort((a,b)=>a.dari-b.dari); for(let i=1;i<sorted.length;i++){ const prevEnd=sorted[i-1].sampai==null?Infinity:sorted[i-1].sampai; if(sorted[i].dari<prevEnd) return true; } return false; }
+  toggleActive(id){ const t=this.state.type; this.setState(s=>({data:{...s.data,[t]:s.data[t].map(r=>r.id===id?{...r,active:!r.active}:r)}})); }
+  openAdd(){ const list=this.rules(); const nextStep=list.length?Math.max(...list.map(r=>r.step))+1:1; this.setState({formOpen:true,editId:null,fDari:'',fSampai:'',fApprover:'kaunit',fStep:String(nextStep),fActive:true,fErr:{}}); }
+  openEdit(r){ this.setState({formOpen:true,editId:r.id,fDari:r.dari?String(r.dari):'',fSampai:r.sampai!=null?String(r.sampai):'',fApprover:r.approver,fStep:String(r.step),fActive:r.active,fErr:{}}); }
+  saveForm(){ const s=this.state; const errs={}; if(!String(s.fDari).trim())errs.dari=1; if(Object.keys(errs).length){ this.setState({fErr:errs}); return; }
+    const t=s.type; const rec={dari:Number(String(s.fDari).replace(/\D/g,''))||0, sampai:String(s.fSampai).trim()?Number(String(s.fSampai).replace(/\D/g,'')):null, approver:s.fApprover, step:Number(s.fStep)||1, active:s.fActive};
+    if(s.editId) this.setState(st=>({data:{...st.data,[t]:st.data[t].map(r=>r.id===st.editId?{...r,...rec}:r)},formOpen:false}));
+    else this.setState(st=>({data:{...st.data,[t]:[...st.data[t],{id:'n'+st.seq,...rec}]},formOpen:false,seq:st.seq+1}));
+  }
+  doDelete(id){ const t=this.state.type; this.setState(s=>({data:{...s.data,[t]:s.data[t].filter(r=>r.id!==id)}})); }
+  renderVals(){
+    const s=this.state; const theme=this.effTheme(),lang=this.effLang(),collapsed=this.effCollapsed();
+    const isDark=theme==='dark'; const ch=CH[lang];
+    const nav=NAV.map(g=>({label:g.label[lang],items:g.items.map(it=>({
+      label:it.label[lang],icon:mk(it.icon,18,1.9),
+      bg:it.active?'var(--primary-soft-bg)':'transparent',fg:it.active?'var(--primary-soft-text)':'var(--text-muted)',
+      weight:it.active?'600':'500',accent:it.active?'var(--primary)':'transparent',hoverBg:it.active?'var(--primary-soft-bg)':'var(--bg-muted)',
+    }))}));
+
+    const typeTabs=TYPES.map(t=>{ const act=s.type===t.key; const cnt=(s.data[t.key]||[]).length; return {
+      label:t.label[lang], icon:mk(t.icon,15,2), on:()=>this.setState({type:t.key,selId:(s.data[t.key][0]||{}).id||null}),
+      bg:act?'var(--primary-soft-bg)':'var(--bg-base)', fg:act?'var(--primary-soft-text)':'var(--text-muted)', bd:act?'var(--primary)':'var(--border-strong)',
+      count:String(cnt), countBg:act?'color-mix(in srgb,var(--primary) 22%,transparent)':'var(--neutral-soft-bg)', countFg:act?'var(--primary-soft-text)':'var(--text-muted)' };
+    });
+
+    const list=this.rules();
+    const overlap=this.hasOverlap(list);
+    const ruleRows=list.map(r=>{ const ap=APPROVER[r.approver]; const seld=r.id===s.selId; return {
+      step:String(r.step), dari:rp(r.dari), sampai:r.sampai==null?ch.unlimited:rp(r.sampai), sampaiColor:r.sampai==null?'var(--text-dimmed)':'var(--text)',
+      approver:ap.label[lang], apIcon:mk(ap.icon,12,2), apBg:ap.bg, apFg:ap.fg,
+      track:r.active?'var(--primary)':'var(--border-strong)', knob:r.active?'19px':'3px', toggle:(e)=>{e.stopPropagation();this.toggleActive(r.id);},
+      rowBg:seld?'color-mix(in srgb,var(--primary) 7%,transparent)':'transparent',
+      select:()=>this.setState({selId:r.id}), edit:(e)=>{e.stopPropagation();this.openEdit(r);}, del:(e)=>{e.stopPropagation();this.doDelete(r.id);},
+    };});
+
+    // chain illustration for selected rule
+    const sel=list.find(r=>r.id===s.selId)||list[0];
+    let chainVals={hasSelected:false};
+    if(sel){ const topLevel=APPROVER_LEVEL[sel.approver];
+      const nodes=[{role:ch.roleMaker,tag:ch.tagMaker,icon:mk('user',20,2),iconBg:'var(--neutral-soft-bg)',iconFg:'var(--neutral-soft-text)'}];
+      // build tiers up to top
+      const tierOrder=['kaunit','kanwil','pusat'];
+      tierOrder.forEach(k=>{ if(APPROVER_LEVEL[k]<=topLevel){ const ap=APPROVER[k]; nodes.push({role:ap.label[lang],tag:(k===sel.approver?ch.tagApprover:ch.tagChecker),icon:mk(ap.icon,20,2),iconBg:ap.bg,iconFg:ap.fg}); } });
+      const chainNodes=nodes.map((n,i)=>({...n,arrow:i<nodes.length-1}));
+      chainVals={ hasSelected:true, chainTitle:ch.chainTitle, chainSub:ch.chainSubF(rp(sel.dari), sel.sampai==null?ch.unlimited:rp(sel.sampai)), chainNodes };
+    }
+
+    // form overlap check (live)
+    let formOverlap=false;
+    if(s.formOpen){ const dari=Number(String(s.fDari).replace(/\D/g,''))||0; const sampai=String(s.fSampai).trim()?Number(String(s.fSampai).replace(/\D/g,'')):Infinity;
+      formOverlap=list.some(r=>{ if(r.id===s.editId)return false; const rEnd=r.sampai==null?Infinity:r.sampai; return dari<rEnd && r.dari<sampai; });
+    }
+    const typeLabel=(TYPES.find(t=>t.key===s.type)||{}).label[lang]||'';
+
+    return {
+      rootRef:this.rootRef, theme, isDark, isLight:!isDark,
+      sidebarW:collapsed?'76px':'264px', expanded:!collapsed, collapsed, navJustify:collapsed?'center':'flex-start',
+      toggleCollapse:()=>{this._tc=true;this.setState(x=>({collapsed:!this.effCollapsed()}));},
+      toggleTheme:()=>{this._tt=true;const cur=this.effTheme();this.setState({theme:cur==='light'?'dark':'light'});},
+      setId:()=>{this._tl=true;this.setState({lang:'id'});}, setEn:()=>{this._tl=true;this.setState({lang:'en'});},
+      idBg:lang==='id'?'var(--bg-base)':'transparent', idFg:lang==='id'?'var(--text)':'var(--text-muted)',
+      enBg:lang==='en'?'var(--bg-base)':'transparent', enFg:lang==='en'?'var(--text)':'var(--text-muted)',
+      nav, bcSetting:ch.bcSetting, pageTitle:ch.pageTitle, pageSub:ch.pageSub, placeholderNote:ch.placeholderNote,
+      typeTabs, tableTitle:ch.tableTitle, addLbl:ch.addLbl, openAdd:()=>this.openAdd(),
+      overlapShow:overlap, overlapTitle:ch.overlapTitle, overlapMsg:ch.overlapMsg,
+      cStep:ch.cStep, cDari:ch.cDari, cSampai:ch.cSampai, cApprover:ch.cApprover, cAktif:ch.cAktif, cAksi:ch.cAksi,
+      ruleRows, hasRules:list.length>0, noRules:list.length===0, emptyTitle:ch.emptyTitle, emptySub:ch.emptySub,
+      ...chainVals,
+      // form
+      formOpen:s.formOpen, closeForm:()=>this.setState({formOpen:false}), stop:(e)=>e.stopPropagation(),
+      formTitle:s.editId?ch.formEditTitle:ch.formAddTitle, formSub:ch.formSubF(typeLabel),
+      lDari:ch.lDari, lSampai:ch.lSampai, unlimitedPh:ch.unlimitedPh, sampaiHint:ch.sampaiHint, lApprover:ch.lApprover, approverHint:ch.approverHint, lStep:ch.lStep, lAktif:ch.lAktif, reqMsg:ch.reqMsg, cancelLbl:ch.cancelLbl, saveLbl:ch.saveLbl,
+      approverOpts:Object.keys(APPROVER).map(k=>({v:k,label:APPROVER[k].label[lang]})),
+      fDari:fmtNum(s.fDari), onFDari:(e)=>this.setState({fDari:e.target.value.replace(/\D/g,''),fErr:{}}), fDariBorder:s.fErr.dari?'var(--error)':'var(--border-strong)',
+      fSampai:fmtNum(s.fSampai), onFSampai:(e)=>this.setState({fSampai:e.target.value.replace(/\D/g,'')}),
+      fApprover:s.fApprover, onFApprover:(e)=>this.setState({fApprover:e.target.value}),
+      fStep:s.fStep, onFStep:(e)=>this.setState({fStep:e.target.value.replace(/\D/g,'')}),
+      fActiveTrack:s.fActive?'var(--primary)':'var(--border-strong)', fActiveKnob:s.fActive?'21px':'3px', toggleFActive:()=>this.setState(x=>({fActive:!x.fActive})),
+      formOverlap, formOverlapMsg:ch.formOverlapMsg, saveForm:()=>this.saveForm(),
+    };
+  }
+}
+</script>
+</body>
+</html>

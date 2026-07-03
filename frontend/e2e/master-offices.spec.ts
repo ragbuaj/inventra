@@ -49,6 +49,10 @@ test.describe('Master Data Kantor — create office', () => {
     await expect(page.getByText('Tambah Data', { exact: true })).toBeVisible({ timeout: 5_000 })
     await page.getByLabel('Nama', { exact: true }).fill(typeName)
     await page.getByRole('button', { name: 'Simpan', exact: true }).click()
+    // Assert-after-search (project e2e rule): reference rows accumulate across
+    // runs on a dev database, so the new row may land beyond page 1 — search
+    // narrows the table to it before asserting.
+    await page.getByPlaceholder('Cari', { exact: true }).fill(typeName)
     await expect(page.getByText(typeName, { exact: true })).toBeVisible({ timeout: 10_000 })
 
     // --- Step 2: create a root office selecting that type. ---

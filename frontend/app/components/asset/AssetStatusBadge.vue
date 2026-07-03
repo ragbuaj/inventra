@@ -1,23 +1,36 @@
 <script setup lang="ts">
 import type { AssetStatus } from '~/types'
-import { ASSET_STATUS_META } from '~/mock/assets'
+import { statusMeta } from '~/constants/assetMeta'
 
-const props = defineProps<{ status: AssetStatus }>()
+// `status` is typed AssetStatus but stays tolerant of the old Indonesian
+// mock-status strings (tersedia/dipinjam/...) still passed by not-yet-rewired
+// pages (Tasks 6–9 rewire those pages to the real AssetStatus values).
+const props = defineProps<{ status: AssetStatus | string }>()
 const { t } = useI18n()
 
-const meta = computed(() => ASSET_STATUS_META[props.status])
+const DOT_CLASS: Record<string, string> = {
+  success: 'bg-success',
+  info: 'bg-info',
+  warning: 'bg-warning',
+  error: 'bg-error',
+  neutral: 'bg-[var(--ui-text-dimmed)]'
+}
+
+const meta = computed(() => statusMeta[props.status as AssetStatus])
+const color = computed(() => meta.value?.color ?? 'neutral')
+const dotClass = computed(() => DOT_CLASS[color.value] ?? DOT_CLASS.neutral)
 </script>
 
 <template>
   <UBadge
-    :color="meta.tone"
+    :color="color"
     variant="subtle"
     class="rounded-full gap-1.5"
   >
     <span
       class="size-1.5 rounded-full"
-      :class="meta.dot"
+      :class="dotClass"
     />
-    {{ t(`assets.status.${status}`) }}
+    {{ t(meta?.labelKey ?? `assets.status.${status}`) }}
   </UBadge>
 </template>

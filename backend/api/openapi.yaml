@@ -2975,6 +2975,35 @@ components:
         limit: { type: integer }
         offset: { type: integer }
 
+    AssetCreatePayload:
+      type: object
+      description: >-
+        Shape of `SubmitRequest.payload` when `type=asset_create`. Stored as-is
+        in `approval_requests.payload` and unmarshaled by the asset_create
+        executor on final approve to create the asset row.
+      required: [name, category_id, office_id, asset_class]
+      properties:
+        name: { type: string }
+        category_id: { type: string, format: uuid }
+        office_id: { type: string, format: uuid }
+        room_id: { type: [string, "null"], format: uuid }
+        asset_class:
+          type: string
+          enum: [tangible, intangible]
+        purchase_cost:
+          type: [string, "null"]
+          description: Decimal string (IDR).
+        purchase_date: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
+        serial_number: { type: [string, "null"] }
+        brand_id: { type: [string, "null"], format: uuid }
+        model_id: { type: [string, "null"], format: uuid }
+        unit_id: { type: [string, "null"], format: uuid }
+        vendor_id: { type: [string, "null"], format: uuid }
+        po_number: { type: [string, "null"] }
+        funding_source: { type: [string, "null"] }
+        warranty_expiry: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
+        notes: { type: [string, "null"] }
+
     SubmitRequest:
       type: object
       description: Body for POST /requests.
@@ -2997,7 +3026,9 @@ components:
         payload:
           type: [object, "null"]
           additionalProperties: true
-          description: Arbitrary request payload (e.g. asset details for asset_create).
+          description: >-
+            Arbitrary request payload (e.g. asset details for asset_create —
+            see the AssetCreatePayload schema for its shape).
         reason:
           type: [string, "null"]
           description: Optional narrative justification.

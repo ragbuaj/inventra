@@ -1,3 +1,12 @@
+// Single-flight guard for POST /auth/refresh. The backend refresh token is
+// SINGLE-USE (rotated on every refresh): two concurrent refresh calls with the
+// same cookie mean the first consumes the JTI and the second gets a 401 that
+// nukes the whole session (auth.clear + redirect to /login). Every concurrent
+// caller — the boot-time rehydration and any 401-retrying request — must
+// therefore share one in-flight refresh. Module-scoped on purpose: the guard
+// has to span all useApiClient() instances.
+let refreshInFlight: Promise<boolean> | null = null
+
 export function useApiClient() {
   const config = useRuntimeConfig()
   const auth = useAuthStore()
@@ -24,7 +33,7 @@ export function useApiClient() {
     }
   }
 
-  async function refreshToken(): Promise<boolean> {
+  async function doRefresh(): Promise<boolean> {
     try {
       const res = await $fetch<{ access_token: string }>(`${base}/auth/refresh`, {
         method: 'POST',
@@ -37,7 +46,16 @@ export function useApiClient() {
     }
   }
 
-  async function request<T>(path: string, opts: Record<string, unknown> = {}): Promise<T> {
+  function refreshToken(): Promise<boolean> {
+    if (!refreshInFlight) {
+      refreshInFlight = doRefresh().finally(() => {
+        refreshInFlight = null
+      })
+    }
+    return refreshInFlight
+  }
+
+  async function doFetch<T>(path: string, opts: Record<string, unknown> = {}): Promise<T> {
     const headers: Record<string, string> = { ...(opts.headers as Record<string, string> || {}) }
     if (auth.accessToken) headers.Authorization = `Bearer ${auth.accessToken}`
     if (!headers['X-Request-ID']) headers['X-Request-ID'] = crypto.randomUUID()
@@ -59,5 +77,13 @@ export function useApiClient() {
     }
   }
 
-  return { request, refreshToken }
+  async function request<T>(path: string, opts: Record<string, unknown> = {}): Promise<T> {
+    return doFetch<T>(path, opts)
+  }
+
+  async function requestBlob(path: string, opts: Record<string, unknown> = {}): Promise<Blob> {
+    return doFetch<Blob>(path, { ...opts, responseType: 'blob' })
+  }
+
+  return { request, requestBlob, refreshToken }
 }

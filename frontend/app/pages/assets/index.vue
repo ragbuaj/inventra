@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { Asset } from '~/types'
-import { useAssets } from '~/composables/api/useAssets'
-import { ASSET_STATUS_KEYS, ASSET_CATEGORIES, ASSET_OFFICES, ASSET_LOCATIONS } from '~/mock/assets'
+import type { Asset, AssetClass, AssetStatus } from '~/types'
+import type { CatalogCardAsset } from '~/components/asset/AssetCard.vue'
+import { ASSET_CLASSES, ASSET_STATUSES, classMeta, statusMeta } from '~/constants/assetMeta'
 
-definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
+definePageMeta({ middleware: 'can', permission: 'asset.view' })
 
 const PAGE_SIZE = 20
 const ALL = '__all__'
@@ -11,102 +11,113 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', '
 
 const { t } = useI18n()
 const toast = useToast()
-const { open: confirm } = useConfirm()
-const api = useAssets()
 const localePath = useLocalePath()
+const assetsApi = useAssets()
+const categoriesApi = useCategories()
+const officesApi = useOffices()
+const referenceApi = useReference()
 
-const allRows = ref<Asset[]>([])
+const rows = ref<Asset[]>([])
+const total = ref(0)
+const page = ref(1)
 const loading = ref(true)
+const loadError = ref(false)
 
 const search = ref('')
-const fStatus = ref(ALL)
-const fKat = ref(ALL)
-const fKantor = ref(ALL)
-const fLokasi = ref(ALL)
-const dateFrom = ref('')
-const dateTo = ref('')
+const debouncedSearch = ref('')
+const fStatus = ref<string>(ALL)
+const fKat = ref<string>(ALL)
+const fKantor = ref<string>(ALL)
+const fClass = ref<string>(ALL)
 const view = ref<'table' | 'grid'>('table')
-const sortKey = ref<keyof Asset>('tag')
-const sortDir = ref<'asc' | 'desc'>('asc')
-const page = ref(1)
 const selected = ref<Set<string>>(new Set())
 
-// Price columns: shown by default (admin). Per-role/field masking is the backend
-// field-permission concern (see spec) — the mockup's "preview role" widget is a demo control, omitted.
+// Price columns: shown by default (admin). Per-role/per-field masking is the
+// backend field-permission concern — a row's purchase_cost/book_value simply
+// comes back absent when the caller can't view it (see moneyCell below).
 const showPrice = true
 
-function formatRp(v: number): string {
-  return v ? `Rp ${v.toLocaleString('id-ID')}` : '—'
+// Filter option lists + id→name maps (categories via useCategories().tree(),
+// offices via the scoped useOffices().list(), brands/models via the generic
+// useReference() engine).
+const categoryOptions = ref<{ value: string, label: string }[]>([])
+const officeOptions = ref<{ value: string, label: string }[]>([])
+const brandOptions = ref<{ value: string, label: string }[]>([])
+const modelOptions = ref<{ value: string, label: string }[]>([])
+const categoryMap = computed(() => new Map(categoryOptions.value.map(o => [o.value, o.label])))
+const officeMap = computed(() => new Map(officeOptions.value.map(o => [o.value, o.label])))
+const brandMap = computed(() => new Map(brandOptions.value.map(o => [o.value, o.label])))
+const modelMap = computed(() => new Map(modelOptions.value.map(o => [o.value, o.label])))
+function categoryName(id: string): string {
+  return categoryMap.value.get(id) ?? '—'
 }
-function formatDate(tgl: string): string {
-  const [y, m, day] = tgl.split('-')
+function officeName(id: string): string {
+  return officeMap.value.get(id) ?? '—'
+}
+function brandModelLabel(brandId: string | null | undefined, modelId: string | null | undefined): string {
+  const brand = brandId ? brandMap.value.get(brandId) : undefined
+  const model = modelId ? modelMap.value.get(modelId) : undefined
+  const parts = [brand, model].filter((v): v is string => !!v)
+  return parts.length > 0 ? parts.join(' ') : '—'
+}
+
+interface MoneyCell { text: string, masked: boolean }
+function moneyCell(v: string | null | undefined): MoneyCell {
+  if (v === undefined) return { text: '—', masked: true }
+  if (v === null) return { text: '—', masked: false }
+  const n = Number(v)
+  return { text: Number.isFinite(n) ? `Rp ${n.toLocaleString('id-ID')}` : '—', masked: false }
+}
+function formatDate(d: string | null | undefined): string {
+  if (!d) return '—'
+  const [y, m, day] = d.split('-')
   return `${Number(day)} ${MONTHS[Number(m) - 1] ?? m} ${y}`
 }
 
-const statusOptions = computed(() => [{ value: ALL, label: t('assets.filter.allStatus') }, ...ASSET_STATUS_KEYS.map(s => ({ value: s, label: t(`assets.status.${s}`) }))])
-const katOptions = computed(() => [{ value: ALL, label: t('assets.filter.allCategory') }, ...ASSET_CATEGORIES.map(k => ({ value: k, label: k }))])
-const kantorOptions = computed(() => [{ value: ALL, label: t('assets.filter.allOffice') }, ...ASSET_OFFICES.map(k => ({ value: k, label: k }))])
-const lokasiOptions = computed(() => [{ value: ALL, label: t('assets.filter.allLocation') }, ...ASSET_LOCATIONS.map(k => ({ value: k, label: k }))])
+const statusOptions = computed(() => [
+  { value: ALL, label: t('assets.filter.allStatus') },
+  ...ASSET_STATUSES.map(s => ({ value: s, label: t(statusMeta[s].labelKey) }))
+])
+const katOptions = computed(() => [{ value: ALL, label: t('assets.filter.allCategory') }, ...categoryOptions.value])
+const kantorOptions = computed(() => [{ value: ALL, label: t('assets.filter.allOffice') }, ...officeOptions.value])
+const classOptions = computed(() => [
+  { value: ALL, label: t('assets.filter.allClass') },
+  ...ASSET_CLASSES.map(c => ({ value: c, label: t(classMeta[c].labelKey) }))
+])
 
 const anyFilter = computed(() =>
-  !!(search.value.trim() || fStatus.value !== ALL || fKat.value !== ALL || fKantor.value !== ALL || fLokasi.value !== ALL || dateFrom.value || dateTo.value)
+  !!(search.value.trim() || fStatus.value !== ALL || fKat.value !== ALL || fKantor.value !== ALL || fClass.value !== ALL)
 )
 
-const filtered = computed(() => {
-  const q = search.value.trim().toLowerCase()
-  return allRows.value.filter((r) => {
-    if (q && !r.nama.toLowerCase().includes(q) && !r.tag.toLowerCase().includes(q) && !r.brand.toLowerCase().includes(q)) return false
-    if (fStatus.value !== ALL && r.status !== fStatus.value) return false
-    if (fKat.value !== ALL && r.kategori !== fKat.value) return false
-    if (fKantor.value !== ALL && r.kantor !== fKantor.value) return false
-    if (fLokasi.value !== ALL && r.lokasi !== fLokasi.value) return false
-    if (dateFrom.value && r.tgl < dateFrom.value) return false
-    if (dateTo.value && r.tgl > dateTo.value) return false
-    return true
-  })
-})
-
-const sorted = computed(() => {
-  const key = sortKey.value
-  const dir = sortDir.value === 'asc' ? 1 : -1
-  return [...filtered.value].sort((a, b) => {
-    const x = a[key]
-    const y = b[key]
-    if (typeof x === 'number' && typeof y === 'number') return (x - y) * dir
-    return String(x).localeCompare(String(y), undefined, { numeric: true }) * dir
-  })
-})
-
-const total = computed(() => sorted.value.length)
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
-const pageRows = computed(() => {
-  const p = Math.min(page.value, totalPages.value)
-  const start = (p - 1) * PAGE_SIZE
-  return sorted.value.slice(start, start + PAGE_SIZE)
-})
 const pageInfo = computed(() => {
-  const p = Math.min(page.value, totalPages.value)
-  const from = total.value === 0 ? 0 : (p - 1) * PAGE_SIZE + 1
-  const to = Math.min(p * PAGE_SIZE, total.value)
+  const from = total.value === 0 ? 0 : (page.value - 1) * PAGE_SIZE + 1
+  const to = Math.min(page.value * PAGE_SIZE, total.value)
   return t('assets.showing', { from, to, total: total.value })
 })
 
-const pageTags = computed(() => pageRows.value.map(r => r.tag))
+const pageTags = computed(() => rows.value.map(r => r.asset_tag))
 const allChecked = computed(() => pageTags.value.length > 0 && pageTags.value.every(tag => selected.value.has(tag)))
 const selectionCount = computed(() => selected.value.size)
 
-function setSort(key: keyof Asset) {
-  if (sortKey.value === key) {
-    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
-  } else {
-    sortKey.value = key
-    sortDir.value = 'asc'
+// Grid-view cards: resolved lookups + formatted labels, decoupled from the
+// raw Asset shape (see AssetCard's CatalogCardAsset).
+const cardRows = computed<CatalogCardAsset[]>(() => rows.value.map((r) => {
+  const money = moneyCell(r.purchase_cost)
+  return {
+    tag: r.asset_tag,
+    nama: r.name,
+    kategori: categoryName(r.category_id),
+    brand: brandModelLabel(r.brand_id, r.model_id),
+    kantor: officeName(r.office_id),
+    status: r.status,
+    holder: '—',
+    tglLabel: formatDate(r.purchase_date),
+    hargaLabel: money.text,
+    hargaMasked: money.masked
   }
-}
-function sortIcon(key: keyof Asset): string | undefined {
-  if (sortKey.value !== key) return undefined
-  return sortDir.value === 'asc' ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'
-}
+}))
+
 function toggle(tag: string) {
   const next = new Set(selected.value)
   if (next.has(tag)) next.delete(tag)
@@ -124,12 +135,11 @@ function clearSelection() {
 }
 function resetFilters() {
   search.value = ''
+  debouncedSearch.value = ''
   fStatus.value = ALL
   fKat.value = ALL
   fKantor.value = ALL
-  fLokasi.value = ALL
-  dateFrom.value = ''
-  dateTo.value = ''
+  fClass.value = ALL
   page.value = 1
 }
 
@@ -146,31 +156,73 @@ function comingSoon() {
   toast.add({ title: t('assets.comingSoon'), color: 'neutral', icon: 'i-lucide-info' })
 }
 
-async function onDelete(asset: Asset) {
-  const ok = await confirm({
-    title: t('assets.deleteTitle'),
-    description: t('assets.deleteBody', { tag: asset.tag })
-  })
-  if (!ok) return
-  await api.remove(asset.tag)
-  toggle(asset.tag) // drop from selection if present
-  selected.value.delete(asset.tag)
-  await refresh()
+// Guards against a stale, out-of-order response: only the most recently
+// *started* load() is allowed to write rows/total/loadError/loading.
+let seq = 0
+async function load() {
+  const mine = ++seq
+  loading.value = true
+  loadError.value = false
+  try {
+    const res = await assetsApi.list({
+      limit: PAGE_SIZE,
+      offset: (page.value - 1) * PAGE_SIZE,
+      search: debouncedSearch.value.trim() || undefined,
+      status: fStatus.value !== ALL ? (fStatus.value as AssetStatus) : undefined,
+      category_id: fKat.value !== ALL ? fKat.value : undefined,
+      office_id: fKantor.value !== ALL ? fKantor.value : undefined,
+      asset_class: fClass.value !== ALL ? (fClass.value as AssetClass) : undefined
+    })
+    if (mine !== seq) return
+    rows.value = res.data
+    total.value = res.total
+    loading.value = false
+  } catch {
+    if (mine !== seq) return
+    loadError.value = true
+    loading.value = false
+  }
 }
 
-async function refresh() {
-  const res = await api.list({ limit: 100 })
-  allRows.value = res.data
+async function loadFilterOptions() {
+  // Each lookup is independent — one failing (network error, permission
+  // gap, ...) must not reject the whole Promise.all and must not blank out
+  // the other three dropdowns that did succeed (same guard pattern as the
+  // Detail page's loadLookups).
+  await Promise.all([
+    categoriesApi.tree().then((cats) => { categoryOptions.value = cats.map(c => ({ value: c.id, label: c.name })) }).catch(() => {}),
+    officesApi.list({ limit: 100 }).then((res) => { officeOptions.value = res.data.map(o => ({ value: o.id, label: o.name })) }).catch(() => {}),
+    referenceApi.list('brands', { limit: 100 }).then((res) => { brandOptions.value = res.data.map(b => ({ value: b.id, label: b.name })) }).catch(() => {}),
+    referenceApi.list('models', { limit: 100 }).then((res) => { modelOptions.value = res.data.map(m => ({ value: m.id, label: m.name })) }).catch(() => {})
+  ])
 }
 
-watch([search, fStatus, fKat, fKantor, fLokasi, dateFrom, dateTo], () => {
-  page.value = 1
+let searchTimer: ReturnType<typeof setTimeout> | undefined
+watch(search, (v) => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    debouncedSearch.value = v
+  }, 300)
 })
 
-onMounted(async () => {
-  loading.value = true
-  await refresh()
-  loading.value = false
+watch([debouncedSearch, fStatus, fKat, fKantor, fClass], () => {
+  // If we're already on page 1, resetting it below is a no-op that won't
+  // trigger the `page` watcher — so this watcher must load() itself. If
+  // we're on any other page, the reset *does* trigger the `page` watcher,
+  // which already calls load() — avoid firing it twice for one filter change.
+  const alreadyFirstPage = page.value === 1
+  page.value = 1
+  if (alreadyFirstPage) load()
+})
+watch(page, () => load())
+
+onMounted(() => {
+  load()
+  loadFilterOptions()
+})
+
+onUnmounted(() => {
+  if (searchTimer) clearTimeout(searchTimer)
 })
 </script>
 
@@ -233,23 +285,10 @@ onMounted(async () => {
         class="min-w-[160px]"
       />
       <USelect
-        v-model="fLokasi"
-        :items="lokasiOptions"
+        v-model="fClass"
+        :items="classOptions"
         class="min-w-[150px]"
       />
-      <div class="flex items-center gap-1.5 ps-2 border-s border-default">
-        <UInput
-          v-model="dateFrom"
-          type="date"
-          :aria-label="t('assets.dateFrom')"
-        />
-        <span class="text-dimmed">–</span>
-        <UInput
-          v-model="dateTo"
-          type="date"
-          :aria-label="t('assets.dateTo')"
-        />
-      </div>
       <UButton
         v-if="anyFilter"
         color="error"
@@ -332,6 +371,25 @@ onMounted(async () => {
       </div>
     </div>
 
+    <!-- Load error -->
+    <div
+      v-else-if="loadError"
+      class="bg-default border border-default rounded-[13px] shadow-sm flex flex-col items-center justify-center gap-3 py-16 text-muted"
+    >
+      <UIcon
+        name="i-lucide-circle-alert"
+        class="size-6"
+      />
+      <span class="text-sm">{{ t('common.loadError') }}</span>
+      <UButton
+        color="neutral"
+        variant="subtle"
+        @click="load"
+      >
+        {{ t('common.retry') }}
+      </UButton>
+    </div>
+
     <!-- Empty -->
     <div
       v-else-if="total === 0"
@@ -381,55 +439,26 @@ onMounted(async () => {
               </th>
               <th
                 v-for="col in [
-                  { key: 'tag', label: t('assets.columns.tag'), sortable: true },
-                  { key: 'nama', label: t('assets.columns.nama'), sortable: true },
-                  { key: 'kategori', label: t('assets.columns.kategori'), sortable: true },
-                  { key: 'brand', label: t('assets.columns.brand'), sortable: false },
-                  { key: 'status', label: t('assets.columns.status'), sortable: true },
-                  { key: 'kantor', label: t('assets.columns.kantor'), sortable: false },
-                  { key: 'holder', label: t('assets.columns.holder'), sortable: false },
-                  { key: 'tgl', label: t('assets.columns.date'), sortable: true }
+                  { key: 'tag', label: t('assets.columns.tag') },
+                  { key: 'nama', label: t('assets.columns.nama') },
+                  { key: 'kategori', label: t('assets.columns.kategori') },
+                  { key: 'brand', label: t('assets.columns.brand') },
+                  { key: 'status', label: t('assets.columns.status') },
+                  { key: 'kantor', label: t('assets.columns.kantor') },
+                  { key: 'holder', label: t('assets.columns.holder') },
+                  { key: 'tgl', label: t('assets.columns.date') }
                 ]"
                 :key="col.key"
                 class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide"
-                :class="col.sortable ? 'cursor-pointer select-none' : ''"
-                @click="col.sortable && setSort(col.key as keyof Asset)"
               >
-                <span class="inline-flex items-center gap-1.5">
-                  {{ col.label }}
-                  <UIcon
-                    v-if="col.sortable && sortIcon(col.key as keyof Asset)"
-                    :name="sortIcon(col.key as keyof Asset)!"
-                    class="size-3.5 text-primary"
-                  />
-                </span>
+                {{ col.label }}
               </th>
               <template v-if="showPrice">
-                <th
-                  class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide cursor-pointer select-none"
-                  @click="setSort('harga')"
-                >
-                  <span class="inline-flex items-center gap-1.5">
-                    {{ t('assets.columns.harga') }}
-                    <UIcon
-                      v-if="sortIcon('harga')"
-                      :name="sortIcon('harga')!"
-                      class="size-3.5 text-primary"
-                    />
-                  </span>
+                <th class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                  {{ t('assets.columns.harga') }}
                 </th>
-                <th
-                  class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide cursor-pointer select-none"
-                  @click="setSort('buku')"
-                >
-                  <span class="inline-flex items-center gap-1.5">
-                    {{ t('assets.columns.buku') }}
-                    <UIcon
-                      v-if="sortIcon('buku')"
-                      :name="sortIcon('buku')!"
-                      class="size-3.5 text-primary"
-                    />
-                  </span>
+                <th class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                  {{ t('assets.columns.buku') }}
                 </th>
               </template>
               <th class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
@@ -439,27 +468,27 @@ onMounted(async () => {
           </thead>
           <tbody>
             <tr
-              v-for="r in pageRows"
-              :key="r.tag"
+              v-for="r in rows"
+              :key="r.asset_tag"
               class="border-t border-default hover:bg-muted transition-colors"
-              :class="selected.has(r.tag) ? 'bg-primary/5' : ''"
+              :class="selected.has(r.asset_tag) ? 'bg-primary/5' : ''"
             >
               <td class="px-3.5 py-3">
                 <UCheckbox
-                  :model-value="selected.has(r.tag)"
-                  @update:model-value="toggle(r.tag)"
+                  :model-value="selected.has(r.asset_tag)"
+                  @update:model-value="toggle(r.asset_tag)"
                 />
               </td>
               <td class="px-3.5 py-3 font-mono text-[12.5px] text-muted">
                 <NuxtLink
-                  :to="localePath(`/assets/${r.tag}`)"
+                  :to="localePath(`/assets/${r.asset_tag}`)"
                   class="hover:text-primary"
                 >
-                  {{ r.tag }}
+                  {{ r.asset_tag }}
                 </NuxtLink>
               </td>
               <td class="px-3.5 py-3 font-medium">
-                {{ r.nama }}
+                {{ r.name }}
               </td>
               <td class="px-3.5 py-3">
                 <UBadge
@@ -467,33 +496,59 @@ onMounted(async () => {
                   variant="subtle"
                   class="rounded-full"
                 >
-                  {{ r.kategori }}
+                  {{ categoryName(r.category_id) }}
                 </UBadge>
               </td>
-              <td class="px-3.5 py-3 text-muted">
-                {{ r.brand }}
+              <td
+                data-testid="asset-brand-cell"
+                class="px-3.5 py-3 text-muted"
+              >
+                {{ brandModelLabel(r.brand_id, r.model_id) }}
               </td>
               <td class="px-3.5 py-3">
                 <AssetStatusBadge :status="r.status" />
               </td>
               <td class="px-3.5 py-3 text-muted">
-                {{ r.kantor }}
+                {{ officeName(r.office_id) }}
               </td>
-              <td
-                class="px-3.5 py-3"
-                :class="r.holder === '—' ? 'text-dimmed' : ''"
-              >
-                {{ r.holder }}
+              <td class="px-3.5 py-3 text-dimmed">
+                —
               </td>
               <td class="px-3.5 py-3 text-muted">
-                {{ formatDate(r.tgl) }}
+                {{ formatDate(r.purchase_date) }}
               </td>
               <template v-if="showPrice">
                 <td class="px-3.5 py-3 text-right tabular-nums">
-                  {{ formatRp(r.harga) }}
+                  <span
+                    v-if="moneyCell(r.purchase_cost).masked"
+                    class="inline-flex items-center gap-1 text-dimmed justify-end"
+                    :title="t('assets.masked')"
+                  >
+                    {{ moneyCell(r.purchase_cost).text }}
+                    <UIcon
+                      name="i-lucide-lock"
+                      class="size-3"
+                    />
+                  </span>
+                  <template v-else>
+                    {{ moneyCell(r.purchase_cost).text }}
+                  </template>
                 </td>
                 <td class="px-3.5 py-3 text-right tabular-nums text-muted">
-                  {{ formatRp(r.buku) }}
+                  <span
+                    v-if="moneyCell(r.book_value).masked"
+                    class="inline-flex items-center gap-1 text-dimmed justify-end"
+                    :title="t('assets.masked')"
+                  >
+                    {{ moneyCell(r.book_value).text }}
+                    <UIcon
+                      name="i-lucide-lock"
+                      class="size-3"
+                    />
+                  </span>
+                  <template v-else>
+                    {{ moneyCell(r.book_value).text }}
+                  </template>
                 </td>
               </template>
               <td class="px-3.5 py-3 text-right">
@@ -504,7 +559,7 @@ onMounted(async () => {
                     variant="ghost"
                     size="xs"
                     :aria-label="t('common.view', 'Lihat')"
-                    @click="openDetail(r.tag)"
+                    @click="openDetail(r.asset_tag)"
                   />
                   <UButton
                     icon="i-lucide-pencil"
@@ -512,7 +567,7 @@ onMounted(async () => {
                     variant="ghost"
                     size="xs"
                     :aria-label="t('common.edit')"
-                    @click="openEdit(r.tag)"
+                    @click="openEdit(r.asset_tag)"
                   />
                   <UButton
                     icon="i-lucide-printer"
@@ -520,15 +575,7 @@ onMounted(async () => {
                     variant="ghost"
                     size="xs"
                     :aria-label="t('assets.printLabels')"
-                    @click="openLabel([r.tag])"
-                  />
-                  <UButton
-                    icon="i-lucide-trash-2"
-                    color="error"
-                    variant="ghost"
-                    size="xs"
-                    :aria-label="t('common.delete')"
-                    @click="onDelete(r)"
+                    @click="openLabel([r.asset_tag])"
                   />
                 </div>
               </td>
@@ -578,13 +625,11 @@ onMounted(async () => {
     <div v-else>
       <div class="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
         <AssetCard
-          v-for="r in pageRows"
+          v-for="r in cardRows"
           :key="r.tag"
           :asset="r"
           :selected="selected.has(r.tag)"
           :show-price="showPrice"
-          :format-date="formatDate"
-          :format-rp="formatRp"
           @toggle="toggle(r.tag)"
           @open="openDetail(r.tag)"
         />

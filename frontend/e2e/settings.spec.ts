@@ -134,8 +134,12 @@ test.describe('RBAC screen — real backend', () => {
     const auditorExists = await auditorBtn.isVisible()
 
     if (!auditorExists) {
-      // Create a temporary custom role for the toggle/persist test
-      targetRoleName = 'E2E Test Role'
+      // Create a temporary custom role for the toggle/persist test. The name
+      // must be unique per run: roles.name has a partial unique index and this
+      // spec never deletes the role it creates, so a fixed name passes once and
+      // then breaks every later run on a dev database (duplicate → the create
+      // modal stays open and intercepts the next click).
+      targetRoleName = `E2E Test Role ${Date.now()}`
       const addBtn = page.locator('button').filter({ hasText: /Tambah Peran/ }).first()
       await addBtn.click()
       await page.waitForSelector('input[placeholder="mis. Operator Lapangan"]')

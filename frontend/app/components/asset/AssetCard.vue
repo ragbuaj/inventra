@@ -1,12 +1,25 @@
 <script setup lang="ts">
-import type { Asset } from '~/types'
+import type { AssetStatus } from '~/types'
+
+/** Catalog-page view-model for a grid card — decoupled from the raw `Asset`
+ * shape so lookups (category/office names) are resolved once by the page. */
+export interface CatalogCardAsset {
+  tag: string
+  nama: string
+  kategori: string
+  brand: string
+  kantor: string
+  status: AssetStatus
+  holder: string
+  tglLabel: string
+  hargaLabel: string
+  hargaMasked: boolean
+}
 
 defineProps<{
-  asset: Asset
+  asset: CatalogCardAsset
   selected: boolean
   showPrice: boolean
-  formatDate: (tgl: string) => string
-  formatRp: (v: number) => string
 }>()
 
 defineEmits<{ toggle: [], open: [] }>()
@@ -57,13 +70,26 @@ defineEmits<{ toggle: [], open: [] }>()
       </div>
       <div class="flex items-center justify-between text-[12.5px] text-muted pt-[11px] border-t border-default">
         <span :class="asset.holder === '—' ? 'text-dimmed' : 'text-default'">{{ asset.holder }}</span>
-        <span>{{ formatDate(asset.tgl) }}</span>
+        <span>{{ asset.tglLabel }}</span>
       </div>
       <div
         v-if="showPrice"
-        class="mt-2 text-[13.5px] font-semibold"
+        class="mt-2 flex items-center gap-1.5 text-[13.5px] font-semibold"
       >
-        {{ formatRp(asset.harga) }}
+        <span
+          v-if="asset.hargaMasked"
+          class="inline-flex items-center gap-1 text-dimmed font-normal"
+          :title="$t('assets.masked')"
+        >
+          {{ asset.hargaLabel }}
+          <UIcon
+            name="i-lucide-lock"
+            class="size-3"
+          />
+        </span>
+        <template v-else>
+          {{ asset.hargaLabel }}
+        </template>
       </div>
     </button>
   </div>

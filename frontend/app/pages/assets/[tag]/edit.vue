@@ -1,21 +1,45 @@
 <script setup lang="ts">
 import type { Asset } from '~/types'
-import { useAssets } from '~/composables/api/useAssets'
 
-definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
+definePageMeta({ middleware: 'can', permission: 'asset.manage' })
 
 const { t } = useI18n()
 const route = useRoute()
-const { get } = useAssets()
 const localePath = useLocalePath()
+const assetsApi = useAssets()
 
 const asset = ref<Asset | null>(null)
 const loading = ref(true)
+const notFound = ref(false)
+const loadError = ref(false)
 
-onMounted(async () => {
+async function load() {
   loading.value = true
-  asset.value = (await get(String(route.params.tag))) ?? null
-  loading.value = false
+  notFound.value = false
+  loadError.value = false
+  try {
+    asset.value = await assetsApi.getByTag(String(route.params.tag))
+  } catch (err) {
+    const status = (err as { statusCode?: number } | undefined)?.statusCode
+    if (status === 404) notFound.value = true
+    else loadError.value = true
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  load()
+})
+
+// Detail→detail navigation (e.g. via the global search palette) reuses this
+// same route component — a plain onMounted() only fires once, so without
+// this watcher the page would keep showing the previously-loaded asset's
+// edit form. Guard against `undefined` on route-leave (params are cleared
+// briefly while Vue Router tears the route down).
+watch(() => route.params.tag, (newTag) => {
+  if (!newTag) return
+  load()
 })
 </script>
 
@@ -30,7 +54,7 @@ onMounted(async () => {
     />
   </div>
   <div
-    v-else-if="!asset"
+    v-else-if="notFound"
     class="bg-default border border-default rounded-2xl shadow-sm py-16 px-6 text-center"
   >
     <div class="text-[17px] font-semibold mb-2">
@@ -44,8 +68,25 @@ onMounted(async () => {
       :label="t('assets.detail.backToCatalog')"
     />
   </div>
+  <div
+    v-else-if="loadError"
+    class="bg-default border border-default rounded-[13px] shadow-sm flex flex-col items-center justify-center gap-3 py-16 text-muted"
+  >
+    <UIcon
+      name="i-lucide-circle-alert"
+      class="size-6"
+    />
+    <span class="text-sm">{{ t('common.loadError') }}</span>
+    <UButton
+      color="neutral"
+      variant="subtle"
+      @click="load"
+    >
+      {{ t('common.retry') }}
+    </UButton>
+  </div>
   <AssetForm
-    v-else
+    v-else-if="asset"
     mode="edit"
     :initial="asset"
   />

@@ -1,25 +1,29 @@
-import type { Asset, AssetStatus, BadgeColor } from '~/types'
-
-/** Status → semantic badge tone + dot class (ported from the mockup's STATUS map). */
-export const ASSET_STATUS_META: Record<AssetStatus, { tone: BadgeColor, dot: string }> = {
-  tersedia: { tone: 'success', dot: 'bg-success' },
-  dipinjam: { tone: 'info', dot: 'bg-info' },
-  maintenance: { tone: 'warning', dot: 'bg-warning' },
-  dilepas: { tone: 'neutral', dot: 'bg-[var(--ui-text-dimmed)]' },
-  hilang: { tone: 'error', dot: 'bg-error' }
+/**
+ * Standalone mock asset shape for the mock catalog/import/global-search
+ * aggregators. Deliberately independent of the real `Asset` type (the
+ * English backend contract) — delete this file once the asset screens are
+ * wired to the real `/assets` endpoints (Tasks 6–9).
+ */
+export interface MockAsset {
+  tag: string
+  nama: string
+  kategori: string
+  brand: string
+  status: string
+  kantor: string
+  lokasi: string
+  holder: string
+  tgl: string
+  harga: number
+  buku: number
 }
 
-export const ASSET_STATUS_KEYS: AssetStatus[] = ['tersedia', 'dipinjam', 'maintenance', 'dilepas', 'hilang']
-export const ASSET_CATEGORIES = ['Elektronik', 'Furnitur', 'Kendaraan', 'Perangkat IT']
-export const ASSET_OFFICES = ['Cabang Jakarta Selatan', 'Outlet Blok M', 'Outlet Kemang']
-export const ASSET_LOCATIONS = ['Lantai 3 — IT', 'Lantai 2 — Operasional', 'Ruang Server', 'Ruang Rapat A', 'Gudang Aset', 'Parkir Basement', 'Lobi']
-
 const a = (
-  tag: string, nama: string, kategori: string, brand: string, status: AssetStatus,
+  tag: string, nama: string, kategori: string, brand: string, status: string,
   kantor: string, lokasi: string, holder: string, tgl: string, harga: number, buku: number
-): Asset => ({ tag, nama, kategori, brand, status, kantor, lokasi, holder, tgl, harga, buku })
+): MockAsset => ({ tag, nama, kategori, brand, status, kantor, lokasi, holder, tgl, harga, buku })
 
-export const assetSeed: Asset[] = [
+export const assetSeed: MockAsset[] = [
   a('JKT01-ELK-2026-00001', 'Laptop Dell Latitude 5440', 'Elektronik', 'Dell Latitude 5440', 'tersedia', 'Cabang Jakarta Selatan', 'Lantai 3 — IT', '—', '2026-01-12', 18500000, 16200000),
   a('JKT01-ELK-2026-00002', 'Proyektor Epson EB-X51', 'Elektronik', 'Epson EB-X51', 'dipinjam', 'Cabang Jakarta Selatan', 'Ruang Rapat A', 'Andi Saputra', '2026-01-20', 7200000, 6500000),
   a('JKT01-KEN-2025-00007', 'Toyota Avanza 1.5 G', 'Kendaraan', 'Toyota Avanza', 'maintenance', 'Cabang Jakarta Selatan', 'Parkir Basement', '—', '2025-03-04', 235000000, 198000000),
@@ -47,65 +51,6 @@ export const assetSeed: Asset[] = [
   a('JKT01-FUR-2026-00018', 'Filing Cabinet 4-Laci', 'Furnitur', 'Datascrip FC-4', 'tersedia', 'Outlet Blok M', 'Gudang Aset', '—', '2026-02-19', 2100000, 2000000),
   a('JKT01-ELK-2024-00033', 'Printer Epson L3210', 'Elektronik', 'Epson L3210', 'tersedia', 'Cabang Jakarta Selatan', 'Lantai 2 — Operasional', 'Rina Putri', '2024-10-14', 2750000, 1900000)
 ]
-
-// ── Detail-screen supplementary sample data (mock; same for any asset) ──────────
-export type AssetCondition = 'Baik' | 'Perlu Servis'
-export const ASSET_CONDITION_TONE: Record<AssetCondition, BadgeColor> = { 'Baik': 'success', 'Perlu Servis': 'warning' }
-
-export interface AssignmentRecord {
-  initials: string
-  holder: string
-  from: string
-  to: string | null
-  cond: AssetCondition
-  note: string
-}
-export interface MaintenanceRecord {
-  date: string
-  type: 'preventive' | 'corrective'
-  status: 'selesai' | 'berjalan' | 'dijadwalkan'
-  cost: number
-  vendor: string
-}
-export interface DepreciationRow {
-  period: string
-  open: number
-  deprec: number
-  close: number
-  current: boolean
-}
-
-export const MAINTENANCE_TYPE_TONE: Record<MaintenanceRecord['type'], BadgeColor> = { preventive: 'info', corrective: 'warning' }
-export const MAINTENANCE_STATUS_TONE: Record<MaintenanceRecord['status'], BadgeColor> = { selesai: 'success', berjalan: 'info', dijadwalkan: 'neutral' }
-
-export const sampleAssignments: AssignmentRecord[] = [
-  { initials: 'RP', holder: 'Rina Putri', from: '01 Feb 2026', to: '18 Feb 2026', cond: 'Baik', note: 'Dukungan presentasi cabang' },
-  { initials: 'AS', holder: 'Andi Saputra', from: '20 Jan 2026', to: '31 Jan 2026', cond: 'Baik', note: 'Kerja lapangan' },
-  { initials: '—', holder: 'Tersedia di gudang', from: '18 Feb 2026', to: null, cond: 'Baik', note: 'Belum ditugaskan' }
-]
-
-export const sampleMaintenance: MaintenanceRecord[] = [
-  { date: '15 Feb 2026', type: 'preventive', status: 'selesai', cost: 350000, vendor: 'PT Sinar Komputindo' },
-  { date: '03 Jan 2026', type: 'corrective', status: 'selesai', cost: 1200000, vendor: 'Teknisi Internal — Eko' },
-  { date: '28 Mar 2026', type: 'preventive', status: 'dijadwalkan', cost: 0, vendor: 'PT Sinar Komputindo' }
-]
-
-/** Straight-line depreciation schedule derived from an asset's buy price over a useful life. */
-export function depreciationSchedule(asset: Asset, life = 4): DepreciationRow[] {
-  const startYear = Number(asset.tgl.slice(0, 4)) || 2026
-  const currentYear = 2026
-  const annual = Math.round(asset.harga / life)
-  const rows: DepreciationRow[] = []
-  let open = asset.harga
-  for (let i = 0; i < life; i++) {
-    const period = String(startYear + i)
-    const deprec = i === life - 1 ? open : annual
-    const close = Math.max(0, open - deprec)
-    rows.push({ period, open, deprec, close, current: Number(period) === currentYear })
-    open = close
-  }
-  return rows
-}
 
 // ── Bulk-import sample rows (mock validation preview) ───────────────────────────
 export interface ImportRow {
@@ -145,24 +90,24 @@ export const IMPORT_COLUMNS: [string, boolean][] = [
   ['tgl_beli', true], ['harga', true], ['vendor', false], ['lokasi', false]
 ]
 
-function clone(list: Asset[]): Asset[] {
+function clone(list: MockAsset[]): MockAsset[] {
   return list.map(x => ({ ...x }))
 }
 
-let rows: Asset[] = clone(assetSeed)
+let rows: MockAsset[] = clone(assetSeed)
 
 export const assetStore = {
-  all(): Asset[] {
+  all(): MockAsset[] {
     return rows
   },
-  find(tag: string): Asset | undefined {
+  find(tag: string): MockAsset | undefined {
     return rows.find(r => r.tag === tag)
   },
-  insert(asset: Asset): Asset {
+  insert(asset: MockAsset): MockAsset {
     rows.unshift(asset)
     return asset
   },
-  update(tag: string, changes: Partial<Asset>): Asset | undefined {
+  update(tag: string, changes: Partial<MockAsset>): MockAsset | undefined {
     const r = rows.find(x => x.tag === tag)
     if (r) Object.assign(r, changes)
     return r

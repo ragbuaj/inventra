@@ -91,7 +91,7 @@ Checklist. Untuk tiap item, kirim template di §3.
 13. Kantor — tampilan pohon hierarki (Pusat→Wilayah→Cabang→Outlet) + lantai/ruangan bertingkat
 14. Pegawai (list + form, scoped per kantor)
 
-> **Layar/komponen yang belum ada mockup-nya** (prompt siap-pakai sudah disiapkan):
+> **Layar/komponen tambahan — mockup sudah tersedia** di `docs/design/` (prompt siap-pakai di §5.21–§5.24):
 > - **Lokasi & Geografi** (`nav.geography`, anak Master Data) — **peta lokasi kantor** (provinsi/kota sudah di Referensi) → **§5.21**
 > - **Profil & Pengaturan Akun** (menu profil topbar: `nav.profile` + `nav.accountSettings`) → **§5.22**
 > - **Global Search** (command palette dari search topbar) → **§5.23**
@@ -106,6 +106,16 @@ Checklist. Untuk tiap item, kirim template di §3.
 
 **Laporan**
 20. Laporan (daftar aset + nilai buku, depresiasi per periode, utilisasi, biaya maintenance) + tombol ekspor PDF/Excel
+
+> **Layar v1.1 bank-grade — mockup sudah tersedia** di `docs/design/` (prompt siap-pakai di **§6**):
+> - **Mutasi Aset** (transfer antar-kantor) — PRD §3.8 → **§6.1** · `Mutasi Aset.dc.html`
+> - **Stock Opname** (inventarisasi fisik) — PRD §3.9 → **§6.2** · `Stock Opname.dc.html`
+> - **Penghapusan / Disposal** (laba-rugi, approval berjenjang) — PRD §3.6 & §2.4 → **§6.3** · `Penghapusan Aset.dc.html`
+> - **Depresiasi** (jadwal & run dua-basis komersial+fiskal, rekap siap-jurnal) — PRD §3.5 → **§6.4** · `Depresiasi.dc.html`
+> - **Dokumen & BAST** aset — PRD §3.10 → **§6.5** · `Dokumen BAST.dc.html`
+> - **Konfigurasi Limit Otorisasi** (`approval_thresholds`) — PRD §2.4 → **§6.6** · `Limit Otorisasi.dc.html`
+>
+> Impairment (PSAK 48) = modal di §6.4; laporan baru v1.1 = tab tambahan di Laporan (§5.20).
 
 ---
 
@@ -778,4 +788,187 @@ GL 1.2.3.01), "Kendaraan Bermotor" (KEN · Saldo Menurun · 96 bln · Kelompok 2
 "Mesin ATM" (ATM · Kelompok 2), "Mebel & Inventaris Kantor" (MBL · Kelompok 1),
 "Software / Lisensi" (SFT · Takberwujud · Amortisasi Garis Lurus · 48 bln).
 Patuhi master brief.
+```
+
+---
+
+## 6. Layar v1.1 bank-grade (prompt siap-pakai — mockup sudah tersedia)
+
+> Fitur yang diperkaya di **PRD v1.1** (mutasi, stock opname, disposal, depresiasi
+> dua-basis, BAST, limit otorisasi) tidak tercakup di §5.1–5.24; mockup hasilnya
+> kini ada di `docs/design/` (lihat daftar file di catatan §2). Prompt di bawah
+> mengasumsikan master brief (§1) sudah ditempel di awal percakapan. Impairment
+> (PSAK 48) dijadikan modal di dalam §6.4 (Depresiasi), bukan layar tersendiri;
+> laporan-laporan baru v1.1 menjadi tab tambahan di Laporan (§5.20), bukan mockup baru.
+
+### 6.1 Mutasi Aset (Transfer Antar-Kantor) — PRD §3.8
+
+```
+Sekarang desain layar: Mutasi Aset (Transfer Antar-Kantor).
+
+Tujuan layar: Memindahkan aset antar kantor/unit (bukan check-out ke pegawai),
+mengajukan mutasi, menerima di kantor tujuan, dan melihat riwayat.
+Pengguna utama: Manager / Kepala Unit (pengaju & penerima).
+Elemen yang harus ada:
+- Tabs/segment: "Ajukan Mutasi", "Kotak Masuk (Perlu Diterima)", "Riwayat".
+- Ajukan Mutasi: form pilih Aset (search, hanya status available; assigned harus
+  di-check-in dulu), Kantor Asal (auto dari aset, read-only), Kantor Tujuan
+  (select hierarki), Ruangan tujuan (opsional), Tanggal, Alasan, Kondisi saat
+  dikirim; catatan "antar-wilayah butuh persetujuan Kepala Kanwil kedua sisi";
+  tombol "Ajukan Mutasi".
+- Badge status alur: Diajukan → Disetujui → in_transfer → Diterima.
+- Kotak Masuk: daftar aset in_transfer menuju kantor pengguna; tiap baris tombol
+  "Terima" (konfirmasi kondisi diterima → office_id aset diperbarui, status kembali
+  available) dan "Tolak Terima".
+- Riwayat: data table (Aset, Asal → Tujuan, Tanggal, Pelaku, Status, No. BAST).
+  Filter status & search. Kolom No. BAST bisa diklik (buka dokumen BAST).
+- Panel/badge menandai mutasi "antar-wilayah" (butuh approval berlapis) vs
+  "dalam-subtree".
+States: form kosong, form terisi, kotak masuk dengan item, kotak masuk kosong
+(empty state), riwayat dengan data, satu aset in_transfer ditonjolkan.
+Tampilkan versi light dan dark.
+
+Pakai data contoh realistis berbahasa Indonesia (nama kantor cabang/kanwil BTN).
+Patuhi master brief.
+```
+
+### 6.2 Stock Opname (Inventarisasi Fisik) — PRD §3.9
+
+```
+Sekarang desain layar: Stock Opname (Inventarisasi Fisik).
+
+Tujuan layar: Menjalankan sesi inventarisasi fisik per kantor, mencocokkan aset
+tercatat vs fisik lewat scan barcode, dan merekonsiliasi selisih.
+Pengguna utama: Manager / Kepala Unit.
+Elemen yang harus ada:
+- Daftar Sesi Opname (list): kolom Nama Sesi, Kantor/Lingkup, Periode, Progres
+  (mis. 128/150 tercocokkan, progress bar), Status (draft/berjalan/selesai badge);
+  tombol "Buat Sesi Opname" (pilih kantor/lingkup & periode → snapshot aset).
+- Detail Sesi (layar utama): header ringkasan angka — Total, Ditemukan, Belum
+  dicek, Selisih (kartu KPI). Tombol besar "Scan Barcode/QR" + input manual kode.
+- Data table item opname: Aset (kode+nama), Lokasi tercatat, Hasil
+  (found / not_found / damaged / misplaced — badge/segmented per baris), Catatan.
+  Filter per hasil & per ruangan; search.
+- Panel Selisih (Variance): aset tercatat tapi tak ditemukan + aset fisik tak
+  terdaftar, dengan tombol tindak lanjut per baris ("Ajukan Penghapusan" untuk
+  hilang, "Ajukan Mutasi" untuk salah lokasi, "Laporkan Kerusakan" untuk rusak).
+- Tombol "Selesaikan Sesi" → menghasilkan Berita Acara (preview PDF) + ekspor
+  PDF/Excel.
+States: daftar sesi (dengan & tanpa data), detail sesi sedang berjalan (sebagian
+tercocokkan), sesi selesai (read-only + berita acara), state scan (aset baru saja
+ditemukan disorot), empty state.
+Tampilkan versi light dan dark.
+
+Pakai data contoh realistis berbahasa Indonesia. Patuhi master brief.
+```
+
+### 6.3 Penghapusan / Disposal Aset (dengan laba-rugi) — PRD §3.6, §2.4
+
+```
+Sekarang desain layar: Penghapusan / Disposal Aset.
+
+Tujuan layar: Mengajukan pelepasan aset (jual/hibah/scrap) dengan perhitungan
+laba/rugi terhadap nilai buku, lalu masuk approval berjenjang per nilai.
+Pengguna utama: Manager (pengaju); persetujuan oleh Kepala Unit/Kanwil/Pusat
+sesuai nilai.
+Elemen yang harus ada:
+- Form pengajuan: pilih Aset (search; assigned harus di-check-in dulu), tampilkan
+  ringkasan read-only (nilai perolehan, akumulasi penyusutan, NILAI BUKU saat ini
+  — komersial & fiskal).
+- Metode pelepasan (select: Dijual / Hibah / Scrap / Musnah), Nilai Jual/Terima
+  [Rp], Tanggal, Alasan/keterangan, lampiran dokumen & foto, No. BAST penghapusan.
+- Kartu perhitungan otomatis: Laba/Rugi Pelepasan = Nilai Jual − Nilai Buku
+  (hijau bila laba, merah bila rugi), dengan rincian per basis.
+- Panel "Jenjang persetujuan yang diperlukan" yang otomatis muncul berdasarkan
+  nilai buku (mis. > Rp 50 jt → wajib sampai Kantor Pusat) — mengacu limit
+  otorisasi §2.4; tandai sebagai tindakan sensitif.
+- Setelah diajukan: status pengajuan + timeline approval berlapis.
+- Daftar riwayat penghapusan (data table): Aset, Metode, Nilai Jual, Laba/Rugi,
+  Tanggal, Status. Filter & search.
+States: form kosong, form terisi dengan hasil laba (hijau), varian rugi (merah),
+pengajuan menunggu approval berlapis, riwayat dengan data, empty state.
+Tampilkan versi light dan dark.
+
+Pakai data contoh realistis berbahasa Indonesia, rupiah Rp. Patuhi master brief.
+```
+
+### 6.4 Depresiasi — Jadwal & Run (komersial + fiskal) — PRD §3.5
+
+```
+Sekarang desain layar: Depresiasi (Jadwal & Proses Perhitungan).
+
+Tujuan layar: Menjalankan/menutup perhitungan penyusutan per periode untuk dua
+basis (komersial PSAK 16 & fiskal PMK 72/2023) dan menyiapkan rekap siap-jurnal.
+Pengguna utama: Superadmin (fungsi keuangan).
+Elemen yang harus ada:
+- Toggle basis di atas: "Komersial" vs "Fiskal" (mengubah kolom & angka).
+- Kartu KPI: Total Nilai Perolehan, Akumulasi Penyusutan, Nilai Buku, Beban
+  Penyusutan periode berjalan.
+- Panel "Jalankan Periode": pilih Periode (bulan/tahun), preview jumlah aset &
+  total beban, tombol "Hitung Periode" lalu "Tutup Periode" (badge status periode:
+  terbuka/terhitung/ditutup).
+- Data table jadwal per aset: Aset, Metode (garis lurus/saldo menurun), Masa
+  Manfaat, Nilai Awal, Beban Periode, Akumulasi, Nilai Akhir. Filter kategori &
+  kantor; search.
+- Tab/Section "Rekap Siap-Jurnal": ringkasan per akun GL (Beban Penyusutan,
+  Akumulasi Penyusutan) dengan total debit/kredit; tombol ekspor Excel & PDF.
+- Aksi baris tambahan: "Catat Penurunan Nilai (Impairment)" membuka modal
+  write-down (nilai terpulihkan, alasan) yang menyesuaikan nilai buku & jadwal.
+States: periode terbuka (bisa dihitung), periode terhitung (bisa ditutup), periode
+ditutup (read-only), tampilan basis komersial vs fiskal, empty state.
+Tampilkan versi light dan dark.
+
+Pakai data contoh realistis berbahasa Indonesia, rupiah Rp. Patuhi master brief.
+```
+
+### 6.5 Dokumen & BAST Aset — PRD §3.10
+
+```
+Sekarang desain layar: Dokumen & BAST (Berita Acara Serah Terima) Aset.
+
+Tujuan layar: Mengelola dokumen yang menaut ke aset & transaksinya (perolehan,
+mutasi, penghapusan, penugasan) — daftar, unggah, dan pratinjau BAST.
+Pengguna utama: Manager / Kepala Unit.
+Elemen yang harus ada:
+- Data table dokumen: Jenis (BAST Perolehan / BAST Mutasi / BAST Penghapusan /
+  Lampiran — badge), No. Dokumen, Tanggal, Aset terkait, Transaksi terkait,
+  Pihak (dari → ke), Berkas (ikon PDF/gambar), diunggah oleh.
+- Filter jenis dokumen, kantor, rentang tanggal; search No. Dokumen/aset.
+- Tombol "Unggah Dokumen" (slideover: jenis, no., tanggal, tautkan ke aset &
+  transaksi, unggah berkas ke penyimpanan).
+- Panel/drawer pratinjau BAST: layout dokumen resmi (kop, No. BAST, tanggal,
+  pihak penyerah & penerima, tabel aset & kondisi, kolom tanda tangan), tombol
+  "Cetak / Unduh PDF".
+- Catatan bahwa akses dokumen mengikuti scope & hak akses aset terkait.
+States: daftar dengan data, empty state, form unggah, pratinjau satu BAST penuh.
+Tampilkan versi light dan dark.
+
+Pakai data contoh realistis berbahasa Indonesia. Patuhi master brief.
+```
+
+### 6.6 Konfigurasi Limit Otorisasi (approval_thresholds) — PRD §2.4
+
+```
+Sekarang desain layar: Konfigurasi Limit Otorisasi (Approval Thresholds).
+
+Tujuan layar: Superadmin mengatur jenjang approver wajib berdasarkan rentang nilai
+untuk transaksi sensitif (penghapusan, registrasi/pengadaan, mutasi antar-wilayah)
+— dapat diubah tanpa deploy.
+Pengguna utama: Superadmin.
+Elemen yang harus ada:
+- Pemilih Jenis Transaksi (tabs/select): "Penghapusan/Disposal", "Registrasi/
+  Pengadaan", "Mutasi Antar-Wilayah", "Pengecualian Valuasi".
+- Data table aturan per jenis: Nilai Dari [Rp], Nilai Sampai [Rp] (kosong = tak
+  terbatas), Jenjang Approver Tertinggi Wajib (select: Kepala Unit / Kepala Kanwil /
+  Kantor Pusat), Urutan Langkah (step_order), Aktif (toggle).
+- Ilustrasi rantai persetujuan berurutan (maker → checker → approver berlapis) untuk
+  baris terpilih.
+- Tombol "Tambah Aturan"; edit inline atau via slideover; validasi rentang tidak
+  tumpang-tindih (peringatan bila overlap/celah).
+- Banner "Angka default masih placeholder — sesuaikan dengan kebijakan bank".
+States: tabel terisi (contoh tabel default §2.4 PRD), form tambah/edit, peringatan
+rentang tumpang-tindih, empty state per jenis.
+Tampilkan versi light dan dark.
+
+Pakai data contoh realistis berbahasa Indonesia, rupiah Rp. Patuhi master brief.
 ```

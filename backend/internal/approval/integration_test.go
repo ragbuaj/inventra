@@ -156,6 +156,43 @@ func seedAsset(t *testing.T, pool *pgxpool.Pool, tag, name string, categoryID, o
 	return id
 }
 
+// seedBrand inserts a masterdata.brands row and returns its id.
+func seedBrand(t *testing.T, pool *pgxpool.Pool, name string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO masterdata.brands (name) VALUES ($1) RETURNING id`, name).Scan(&id))
+	return id
+}
+
+// seedModel inserts a masterdata.models row under the given brand and returns its id.
+func seedModel(t *testing.T, pool *pgxpool.Pool, brandID uuid.UUID, name string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO masterdata.models (brand_id, name) VALUES ($1, $2) RETURNING id`,
+		brandID, name).Scan(&id))
+	return id
+}
+
+// seedUnit inserts a masterdata.units row and returns its id.
+func seedUnit(t *testing.T, pool *pgxpool.Pool, name string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO masterdata.units (name) VALUES ($1) RETURNING id`, name).Scan(&id))
+	return id
+}
+
+// seedVendor inserts a masterdata.vendors row and returns its id.
+func seedVendor(t *testing.T, pool *pgxpool.Pool, name string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO masterdata.vendors (name) VALUES ($1) RETURNING id`, name).Scan(&id))
+	return id
+}
+
 // ─── tests ───────────────────────────────────────────────────────────────────
 
 // TestApproval_AssetCreate_ThreeStep submits an asset_create request for 150M
@@ -238,6 +275,152 @@ func TestApproval_AssetCreate_ThreeStep(t *testing.T) {
 	// Office "CBG" (Cabang Alpha), category "ELK", current year, first sequence.
 	expectedTag := fmt.Sprintf("%s-%s-%d-%05d", tr.CabangCode, "ELK", time.Now().Year(), 1)
 	assert.Equal(t, expectedTag, assets[0].AssetTag)
+}
+
+// TestApproval_AssetCreate_FullFieldSet submits an asset_create request whose
+// payload carries every optional field the create form supports
+// (brand/model/unit/vendor ids, PO number, funding source, warranty expiry,
+// notes) and verifies the created asset row persists all of them. It also
+// covers the sad path: a malformed brand_id in the payload fails the
+// final-step approve with asset.ErrInvalidRef and leaves no asset behind.
+func TestApproval_AssetCreate_FullFieldSet(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	ctx := context.Background()
+	resetAll(t, pool)
+
+	tr := seedTieredOfficeTree(t, pool)
+	catID := seedCategory(t, pool, "ELK")
+
+	brandID := seedBrand(t, pool, "Acme")
+	modelID := seedModel(t, pool, brandID, "X100")
+	unitID := seedUnit(t, pool, "Unit")
+	vendorID := seedVendor(t, pool, "Acme Supplier")
+
+	officeRoleID := lookupRole(t, pool, "Kepala Unit")
+	maker := seedUser(t, pool, officeRoleID, "makerfull@test.local")
+	approver1 := seedUser(t, pool, officeRoleID, "approverfull@test.local")
+
+	q := sqlc.New(pool)
+	scopeSvc := authz.NewScopeService(q, rdb)
+	svc := approval.NewService(q, pool, scopeSvc, rdb)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0, "")
+	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
+
+	officeID := tr.CabangID
+	catIDStr := catID.String()
+	officeIDStr := officeID.String()
+	brandIDStr := brandID.String()
+	modelIDStr := modelID.String()
+	unitIDStr := unitID.String()
+	vendorIDStr := vendorID.String()
+	poNumber := "PO-2026-001"
+	fundingSource := "capex"
+	warrantyExpiry := "2028-01-15"
+	notes := "Full field-set integration test"
+	serialNumber := "SN-FULL-001"
+	purchaseCost := "5000000"
+	purchaseDate := "2026-01-10"
+
+	payload, err := json.Marshal(asset.AssetCreatePayload{
+		Name:           "Full Field Laptop",
+		CategoryID:     catIDStr,
+		OfficeID:       officeIDStr,
+		AssetClass:     "intangible",
+		PurchaseCost:   &purchaseCost,
+		PurchaseDate:   &purchaseDate,
+		SerialNumber:   &serialNumber,
+		BrandID:        &brandIDStr,
+		ModelID:        &modelIDStr,
+		UnitID:         &unitIDStr,
+		VendorID:       &vendorIDStr,
+		PONumber:       &poNumber,
+		FundingSource:  &fundingSource,
+		WarrantyExpiry: &warrantyExpiry,
+		Notes:          &notes,
+	})
+	require.NoError(t, err)
+
+	req, err := svc.Submit(ctx, approval.SubmitInput{
+		Type:     sqlc.SharedRequestTypeAssetCreate,
+		Amount:   purchaseCost, // 5,000,000 falls in the 0-10M single-step (office) band
+		OfficeID: officeID,
+		Payload:  payload,
+		Maker:    maker,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedRequestStatusPending, req.Status)
+	assert.Equal(t, int32(1), req.CurrentStep)
+
+	caller1 := buildCaller(approver1, officeRoleID, false, []uuid.UUID{tr.CabangID})
+	req, err = svc.Decide(ctx, req.ID, caller1, true, nil)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedRequestStatusApproved, req.Status)
+
+	assets, total, err := assetSvc.List(ctx, asset.ListInput{AllScope: true, OfficeIDs: nil, Limit: 10, Offset: 0})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), total)
+	got := assets[0]
+	assert.Equal(t, "Full Field Laptop", got.Name)
+	if assert.NotNil(t, got.BrandID) {
+		assert.Equal(t, brandID, *got.BrandID)
+	}
+	if assert.NotNil(t, got.ModelID) {
+		assert.Equal(t, modelID, *got.ModelID)
+	}
+	if assert.NotNil(t, got.UnitID) {
+		assert.Equal(t, unitID, *got.UnitID)
+	}
+	if assert.NotNil(t, got.VendorID) {
+		assert.Equal(t, vendorID, *got.VendorID)
+	}
+	if assert.NotNil(t, got.PoNumber) {
+		assert.Equal(t, poNumber, *got.PoNumber)
+	}
+	if assert.NotNil(t, got.FundingSource) {
+		assert.Equal(t, fundingSource, *got.FundingSource)
+	}
+	if assert.True(t, got.WarrantyExpiry.Valid) {
+		assert.Equal(t, warrantyExpiry, got.WarrantyExpiry.Time.Format("2006-01-02"))
+	}
+	if assert.NotNil(t, got.Notes) {
+		assert.Equal(t, notes, *got.Notes)
+	}
+
+	// Sad path: a malformed brand_id fails the final-step approve with
+	// asset.ErrInvalidRef, and no new asset row is created for this request.
+	t.Run("malformed brand_id fails approve with invalid reference", func(t *testing.T) {
+		badBrandID := "not-a-uuid"
+		badPayload, err := json.Marshal(asset.AssetCreatePayload{
+			Name:       "Bad Brand Asset",
+			CategoryID: catIDStr,
+			OfficeID:   officeIDStr,
+			AssetClass: "intangible",
+			BrandID:    &badBrandID,
+		})
+		require.NoError(t, err)
+
+		maker2 := seedUser(t, pool, officeRoleID, "makerbadbrand@test.local")
+		approver2 := seedUser(t, pool, officeRoleID, "approverbadbrand@test.local")
+
+		req2, err := svc.Submit(ctx, approval.SubmitInput{
+			Type:     sqlc.SharedRequestTypeAssetCreate,
+			Amount:   "5000000",
+			OfficeID: officeID,
+			Payload:  badPayload,
+			Maker:    maker2,
+		})
+		require.NoError(t, err)
+
+		caller2 := buildCaller(approver2, officeRoleID, false, []uuid.UUID{tr.CabangID})
+		_, err = svc.Decide(ctx, req2.ID, caller2, true, nil)
+		require.Error(t, err)
+		assert.ErrorIs(t, err, asset.ErrInvalidRef)
+
+		_, total, err := assetSvc.List(ctx, asset.ListInput{AllScope: true, OfficeIDs: nil, Limit: 10, Offset: 0})
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), total, "no new asset should have been created for the failed request")
+	})
 }
 
 // TestApproval_SoD_MakerCannotApprove verifies that the maker of a request cannot
