@@ -207,6 +207,26 @@ describe('Asset Detail page — header and Info tab', () => {
     const text = wrapper.text()
     expect(text).toContain('—')
   })
+
+  it('still resolves the room when one floor\'s rooms fetch rejects but another floor has the room', async () => {
+    // Two floors on the asset's office: f1's rooms fetch fails outright, f2's
+    // succeeds and contains the asset's room. Resolution must not be
+    // all-or-nothing — the successful floor's room should still be found.
+    const floorsTwo = [
+      { id: 'f1', office_id: 'o1', name: 'Lantai 1', level: 1 },
+      { id: 'f2', office_id: 'o1', name: 'Lantai 2', level: 2 }
+    ]
+    const roomsF2 = [{ id: 'r2', floor_id: 'f2', name: 'Ruang Server', code: null }]
+    const assetOnF2 = { ...FULL_ASSET, room_id: 'r2' }
+    setHandler((path: string) => {
+      if (path.startsWith('/rooms?floor_id=f1')) throw Object.assign(new Error('Server Error'), { statusCode: 500 })
+      if (path.startsWith('/rooms?floor_id=f2')) return { data: roomsF2, total: roomsF2.length, limit: 100, offset: 0 }
+      if (path.startsWith('/floors')) return { data: floorsTwo, total: floorsTwo.length, limit: 100, offset: 0 }
+      return defaultHandler(assetOnF2)(path)
+    })
+    const wrapper = await mountTag('JKT01-ELK-2026-00001')
+    expect(wrapper.text()).toContain('Lantai 2 — Ruang Server')
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -293,6 +313,66 @@ describe('Asset Detail page — photo gallery', () => {
     const wrapper = await mountTag('JKT01-ELK-2026-00001')
     expect(wrapper.text()).toContain('Belum ada foto aset.')
     expect(wrapper.findAll('img').length).toBe(0)
+  })
+
+  it('discards a late-resolving stale gallery load and revokes its object URLs, keeping the newer photos', async () => {
+    // Two overlapping loads of the same mounted page (e.g. a fast route-param
+    // change re-triggering `load()`): the older load's attachments *list*
+    // resolves promptly (so it gets past the first staleness check and into
+    // the per-photo thumbnail fetch, creating an object URL), but its
+    // thumbnail blob resolves late — AFTER the newer load has already
+    // populated `photos.value`. The stale response must not overwrite the
+    // fresher photos, and the object URL it created must be revoked.
+    let thumbnailCall = 0
+    let resolveOldThumbnail!: (v: Blob) => void
+    const oldThumbnailPromise = new Promise<Blob>((resolve) => {
+      resolveOldThumbnail = resolve
+    })
+
+    setHandler(defaultHandler(FULL_ASSET))
+    setBlobHandler(() => {
+      thumbnailCall++
+      if (thumbnailCall === 1) return oldThumbnailPromise
+      return new Blob(['new-thumb'], { type: 'image/jpeg' })
+    })
+
+    // Only one row (att1) is a photo with a thumbnail, so each load's gallery
+    // creates exactly one object URL: the first call chronologically belongs
+    // to the newer (second) load — since the old load's thumbnail fetch is
+    // still pending — the second call belongs to the stale load once its
+    // thumbnail resolves late.
+    const createObjectURLMock = vi.fn()
+      .mockReturnValueOnce('blob:new-1')
+      .mockReturnValue('blob:old-1')
+    URL.createObjectURL = createObjectURLMock
+    const revokeObjectURLMock = vi.fn()
+    URL.revokeObjectURL = revokeObjectURLMock
+
+    const wrapper = await mountSuspended(DetailPage, { route: '/assets/JKT01-ELK-2026-00001' })
+    // Let the initial (stale) load's attachments list resolve, then hang on
+    // its thumbnail-blob fetch.
+    await flushPromises()
+
+    // Trigger a second, newer load whose thumbnail fetch resolves immediately
+    // — it should win and populate photos.value first.
+    const vm = wrapper.vm as unknown as { load: () => Promise<void> }
+    await vm.load()
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+    await flushPromises()
+
+    expect(wrapper.findAll('img').every(img => img.attributes('src') === 'blob:new-1')).toBe(true)
+
+    // Now let the stale first load's thumbnail resolve late.
+    resolveOldThumbnail(new Blob(['old-thumb'], { type: 'image/jpeg' }))
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+    await flushPromises()
+
+    // Newer photos must survive — the stale response must not overwrite them.
+    expect(wrapper.findAll('img').every(img => img.attributes('src') === 'blob:new-1')).toBe(true)
+    // The stale load's own object URL must have been revoked, not leaked.
+    expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:old-1')
   })
 })
 

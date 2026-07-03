@@ -166,14 +166,24 @@ function comingSoon() {
   toast.add({ title: t('assets.comingSoon'), color: 'neutral', icon: 'i-lucide-info' })
 }
 
-async function resolveRoom(a: Asset) {
+// Guards against a stale, out-of-order response overwriting a newer load
+// (e.g. a fast route-param change re-triggers the fetch). `mine` is threaded
+// into every downstream async helper (loadLookups/resolveRoom/loadGallery) so
+// each bails after its own awaits if a newer load has since started.
+let seq = 0
+
+async function resolveRoom(a: Asset, mine: number) {
   if (!a.room_id) {
-    roomLabel.value = '—'
+    if (mine === seq) roomLabel.value = '—'
     return
   }
   try {
     const floors = await floorsApi.listByOffice(a.office_id)
-    const perFloor = await Promise.all(floors.map(async floor => ({ floor, rooms: await floorsApi.roomsByFloor(floor.id) })))
+    if (mine !== seq) return
+    // Each floor's room lookup is independent — one floor's rejection must
+    // not abort resolution of a room that lives on another floor.
+    const perFloor = await Promise.all(floors.map(async floor => ({ floor, rooms: await floorsApi.roomsByFloor(floor.id).catch(() => []) })))
+    if (mine !== seq) return
     for (const { floor, rooms } of perFloor) {
       const room = rooms.find(r => r.id === a.room_id)
       if (room) {
@@ -183,19 +193,19 @@ async function resolveRoom(a: Asset) {
     }
     roomLabel.value = '—'
   } catch {
-    roomLabel.value = '—'
+    if (mine === seq) roomLabel.value = '—'
   }
 }
 
-async function loadLookups(a: Asset) {
+async function loadLookups(a: Asset, mine: number) {
   await Promise.all([
-    categoriesApi.tree().then((cats) => { categoryMap.value = new Map(cats.map(c => [c.id, c.name])) }).catch(() => {}),
-    officesApi.list({ limit: 100 }).then((res) => { officeMap.value = new Map(res.data.map(o => [o.id, o.name])) }).catch(() => {}),
-    referenceApi.list('brands', { limit: 100 }).then((res) => { brandMap.value = new Map(res.data.map(b => [b.id, b.name])) }).catch(() => {}),
-    referenceApi.list('models', { limit: 100 }).then((res) => { modelMap.value = new Map(res.data.map(m => [m.id, m.name])) }).catch(() => {}),
-    referenceApi.list('vendors', { limit: 100 }).then((res) => { vendorMap.value = new Map(res.data.map(v => [v.id, v.name])) }).catch(() => {}),
-    referenceApi.list('units', { limit: 100 }).then((res) => { unitMap.value = new Map(res.data.map(u => [u.id, u.name])) }).catch(() => {}),
-    resolveRoom(a)
+    categoriesApi.tree().then((cats) => { if (mine === seq) categoryMap.value = new Map(cats.map(c => [c.id, c.name])) }).catch(() => {}),
+    officesApi.list({ limit: 100 }).then((res) => { if (mine === seq) officeMap.value = new Map(res.data.map(o => [o.id, o.name])) }).catch(() => {}),
+    referenceApi.list('brands', { limit: 100 }).then((res) => { if (mine === seq) brandMap.value = new Map(res.data.map(b => [b.id, b.name])) }).catch(() => {}),
+    referenceApi.list('models', { limit: 100 }).then((res) => { if (mine === seq) modelMap.value = new Map(res.data.map(m => [m.id, m.name])) }).catch(() => {}),
+    referenceApi.list('vendors', { limit: 100 }).then((res) => { if (mine === seq) vendorMap.value = new Map(res.data.map(v => [v.id, v.name])) }).catch(() => {}),
+    referenceApi.list('units', { limit: 100 }).then((res) => { if (mine === seq) unitMap.value = new Map(res.data.map(u => [u.id, u.name])) }).catch(() => {}),
+    resolveRoom(a, mine)
   ])
 }
 
@@ -203,12 +213,13 @@ function revokePhotos() {
   for (const p of photos.value) URL.revokeObjectURL(p.url)
 }
 
-async function loadGallery(assetId: string) {
+async function loadGallery(assetId: string, mine: number) {
   revokePhotos()
   photos.value = []
   activeIndex.value = 0
   try {
     const res = await attachmentsApi.list(assetId)
+    if (mine !== seq) return
     const imageRows = res.data.filter(r => r.kind === 'photo' && r.has_thumbnail)
     const loaded = await Promise.all(imageRows.map(async (row): Promise<Photo | null> => {
       try {
@@ -218,15 +229,20 @@ async function loadGallery(assetId: string) {
         return null
       }
     }))
+    if (mine !== seq) {
+      // A newer load has since taken over — discard these object URLs so
+      // they don't leak, and leave the current (newer) photos.value alone.
+      for (const p of loaded) {
+        if (p) URL.revokeObjectURL(p.url)
+      }
+      return
+    }
     photos.value = loaded.filter((p): p is Photo => p !== null)
   } catch {
-    photos.value = []
+    if (mine === seq) photos.value = []
   }
 }
 
-// Guards against a stale, out-of-order response overwriting a newer load
-// (e.g. a fast route-param change re-triggers the fetch).
-let seq = 0
 async function load() {
   const mine = ++seq
   loading.value = true
@@ -237,8 +253,8 @@ async function load() {
     if (mine !== seq) return
     asset.value = a
     loading.value = false
-    loadLookups(a)
-    loadGallery(a.id)
+    loadLookups(a, mine)
+    loadGallery(a.id, mine)
   } catch (err) {
     if (mine !== seq) return
     const status = (err as { statusCode?: number } | undefined)?.statusCode
