@@ -18,14 +18,22 @@ import (
 // AssetCreatePayload is the JSON stored in approval_requests.payload for the
 // asset_create request type.
 type AssetCreatePayload struct {
-	Name         string  `json:"name"`
-	CategoryID   string  `json:"category_id"`
-	OfficeID     string  `json:"office_id"`
-	RoomID       *string `json:"room_id"`
-	AssetClass   string  `json:"asset_class"`
-	PurchaseCost *string `json:"purchase_cost"`
-	PurchaseDate *string `json:"purchase_date"` // RFC3339 date "2006-01-02"
-	SerialNumber *string `json:"serial_number"`
+	Name           string  `json:"name"`
+	CategoryID     string  `json:"category_id"`
+	OfficeID       string  `json:"office_id"`
+	RoomID         *string `json:"room_id"`
+	AssetClass     string  `json:"asset_class"`
+	PurchaseCost   *string `json:"purchase_cost"`
+	PurchaseDate   *string `json:"purchase_date"` // "2006-01-02"
+	SerialNumber   *string `json:"serial_number"`
+	BrandID        *string `json:"brand_id"`
+	ModelID        *string `json:"model_id"`
+	UnitID         *string `json:"unit_id"`
+	VendorID       *string `json:"vendor_id"`
+	PONumber       *string `json:"po_number"`
+	FundingSource  *string `json:"funding_source"`
+	WarrantyExpiry *string `json:"warranty_expiry"` // "2006-01-02"
+	Notes          *string `json:"notes"`
 }
 
 // parsePurchaseDate parses an optional "2006-01-02" date string into a pgtype.Date.
@@ -89,19 +97,48 @@ func (e createExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.App
 		return ErrInvalidRef
 	}
 
+	brandID, err := common.ParseUUIDPtr(p.BrandID)
+	if err != nil {
+		return ErrInvalidRef
+	}
+	modelID, err := common.ParseUUIDPtr(p.ModelID)
+	if err != nil {
+		return ErrInvalidRef
+	}
+	unitID, err := common.ParseUUIDPtr(p.UnitID)
+	if err != nil {
+		return ErrInvalidRef
+	}
+	vendorID, err := common.ParseUUIDPtr(p.VendorID)
+	if err != nil {
+		return ErrInvalidRef
+	}
+	warrantyExpiry, derr := parsePurchaseDate(p.WarrantyExpiry)
+	if derr != nil {
+		return fmt.Errorf("invalid warranty_expiry: %w", derr)
+	}
+
 	requesterID := req.RequestedByID
 	_, err = qtx.CreateAsset(ctx, sqlc.CreateAssetParams{
-		AssetTag:     tag,
-		Name:         p.Name,
-		CategoryID:   categoryID,
-		OfficeID:     officeID,
-		RoomID:       roomID,
-		AssetClass:   sqlc.SharedAssetClass(p.AssetClass),
-		Capitalized:  true,
-		CreatedByID:  &requesterID,
-		SerialNumber: p.SerialNumber,
-		PurchaseCost: p.PurchaseCost,
-		PurchaseDate: purchaseDate,
+		AssetTag:       tag,
+		Name:           p.Name,
+		CategoryID:     categoryID,
+		OfficeID:       officeID,
+		RoomID:         roomID,
+		AssetClass:     sqlc.SharedAssetClass(p.AssetClass),
+		Capitalized:    true,
+		CreatedByID:    &requesterID,
+		SerialNumber:   p.SerialNumber,
+		PurchaseCost:   p.PurchaseCost,
+		PurchaseDate:   purchaseDate,
+		BrandID:        brandID,
+		ModelID:        modelID,
+		UnitID:         unitID,
+		VendorID:       vendorID,
+		PoNumber:       p.PONumber,
+		FundingSource:  p.FundingSource,
+		WarrantyExpiry: warrantyExpiry,
+		Notes:          p.Notes,
 		// Unset optional fields — leave as zero values (nil / false / empty).
 		Specifications: []byte("{}"),
 	})
