@@ -402,7 +402,9 @@ describe('Asset Label/Barcode page — Cetak / Unduh PDF', () => {
         body: {
           asset_ids: ['a1', 'a2'],
           template: 'btn',
-          layout: 'roll',
+          layout: 'sheet',
+          size: '70x40',
+          columns: 3,
           mode: 'both',
           fields: { name: true, office: true }
         }
@@ -412,6 +414,42 @@ describe('Asset Label/Barcode page — Cetak / Unduh PDF', () => {
     } finally {
       spy.mockRestore()
     }
+  })
+
+  it('transmits a non-default size preset and column count for a batch print', async () => {
+    const wrapper = await mountAndWait()
+    const boxes = checkboxes(wrapper)
+    await boxes[1]!.trigger('click') // a1
+    await boxes[2]!.trigger('click') // a2
+    await flushPromises()
+
+    // USelect is a custom popover, not a native <select> — drive the page's
+    // own reactive state directly, the same access pattern already used
+    // elsewhere in this suite (e.g. `addMany`, `toast`) and in the catalog
+    // spec (`fStatus`).
+    ;(wrapper.vm as unknown as { size: string }).size = '100x50'
+    const colBtn = wrapper.findAll('button').find(b => b.text().trim() === '4')
+    await colBtn!.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    const printBtn = wrapper.findAll('button').find(b => b.text().includes('Cetak'))
+    await printBtn!.trigger('click')
+    await flushPromises()
+
+    const labelCall = blobCalls.find(c => c.path === '/assets/labels')
+    expect(labelCall).toBeDefined()
+    expect(labelCall!.opts).toEqual({
+      method: 'POST',
+      body: {
+        asset_ids: ['a1', 'a2'],
+        template: 'btn',
+        layout: 'sheet',
+        size: '100x50',
+        columns: 4,
+        mode: 'both',
+        fields: { name: true, office: true }
+      }
+    })
   })
 
   it('Unduh PDF uses the same download flow', async () => {

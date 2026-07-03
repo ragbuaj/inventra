@@ -185,16 +185,16 @@ async function load() {
 }
 
 async function loadFilterOptions() {
-  const [categories, offices, brands, models] = await Promise.all([
-    categoriesApi.tree(),
-    officesApi.list({ limit: 100 }),
-    referenceApi.list('brands', { limit: 100 }),
-    referenceApi.list('models', { limit: 100 })
+  // Each lookup is independent — one failing (network error, permission
+  // gap, ...) must not reject the whole Promise.all and must not blank out
+  // the other three dropdowns that did succeed (same guard pattern as the
+  // Detail page's loadLookups).
+  await Promise.all([
+    categoriesApi.tree().then((cats) => { categoryOptions.value = cats.map(c => ({ value: c.id, label: c.name })) }).catch(() => {}),
+    officesApi.list({ limit: 100 }).then((res) => { officeOptions.value = res.data.map(o => ({ value: o.id, label: o.name })) }).catch(() => {}),
+    referenceApi.list('brands', { limit: 100 }).then((res) => { brandOptions.value = res.data.map(b => ({ value: b.id, label: b.name })) }).catch(() => {}),
+    referenceApi.list('models', { limit: 100 }).then((res) => { modelOptions.value = res.data.map(m => ({ value: m.id, label: m.name })) }).catch(() => {})
   ])
-  categoryOptions.value = categories.map(c => ({ value: c.id, label: c.name }))
-  officeOptions.value = offices.data.map(o => ({ value: o.id, label: o.name }))
-  brandOptions.value = brands.data.map(b => ({ value: b.id, label: b.name }))
-  modelOptions.value = models.data.map(m => ({ value: m.id, label: m.name }))
 }
 
 let searchTimer: ReturnType<typeof setTimeout> | undefined
@@ -206,8 +206,13 @@ watch(search, (v) => {
 })
 
 watch([debouncedSearch, fStatus, fKat, fKantor, fClass], () => {
+  // If we're already on page 1, resetting it below is a no-op that won't
+  // trigger the `page` watcher — so this watcher must load() itself. If
+  // we're on any other page, the reset *does* trigger the `page` watcher,
+  // which already calls load() — avoid firing it twice for one filter change.
+  const alreadyFirstPage = page.value === 1
   page.value = 1
-  load()
+  if (alreadyFirstPage) load()
 })
 watch(page, () => load())
 

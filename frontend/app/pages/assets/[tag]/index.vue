@@ -267,6 +267,17 @@ async function load() {
 onMounted(() => {
   load()
 })
+
+// Detail→detail navigation (e.g. via the global search palette) reuses this
+// same route component — a plain onMounted() only fires once, so without
+// this watcher the page would keep showing the previously-loaded asset.
+// Guard against `undefined` on route-leave (params are cleared briefly
+// while Vue Router tears the route down).
+watch(() => route.params.tag, (newTag) => {
+  if (!newTag) return
+  load()
+})
+
 onUnmounted(() => {
   revokePhotos()
 })

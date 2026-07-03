@@ -208,12 +208,18 @@ async function downloadLabels() {
   if (selectedLabels.value.length === 0) return
   downloading.value = true
   try {
+    // A single selected label prints on a continuous roll; more than one
+    // uses the on-screen column count as a tiled sheet grid (matches the
+    // "Label Tunggal"/"Label Batch" preview distinction above).
+    const isBatch = selectedLabels.value.length > 1
     const blob = await requestBlob('/assets/labels', {
       method: 'POST',
       body: {
         asset_ids: selectedLabels.value.map(a => a.id),
         template: 'btn',
-        layout: 'roll',
+        layout: isBatch ? 'sheet' : 'roll',
+        size: size.value,
+        ...(isBatch ? { columns: cols.value } : {}),
         mode: mode.value,
         fields: { name: fields.nama, office: fields.kantor }
       }

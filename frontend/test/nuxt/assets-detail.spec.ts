@@ -412,6 +412,39 @@ describe('Asset Detail page — not-found and load-error', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Route-param reactivity (detail→detail navigation, e.g. via the global
+// search palette, reuses this same mounted route component)
+// ---------------------------------------------------------------------------
+
+describe('Asset Detail page — reacts to tag route-param changes', () => {
+  it('re-fetches and renders the new asset when route.params.tag changes without remounting', async () => {
+    const OTHER_ASSET = { ...FULL_ASSET, id: 'a2', asset_tag: 'JKT01-ELK-2026-00099', name: 'Proyektor Epson EB-X51', serial_number: 'SN-EPS-2026-0099' }
+    setHandler((path: string) => {
+      if (path.startsWith('/assets/by-tag/')) {
+        const requestedTag = decodeURIComponent(path.split('/assets/by-tag/')[1] ?? '')
+        if (requestedTag === FULL_ASSET.asset_tag) return FULL_ASSET
+        if (requestedTag === OTHER_ASSET.asset_tag) return OTHER_ASSET
+        throw Object.assign(new Error('not found'), { statusCode: 404 })
+      }
+      return defaultHandler(FULL_ASSET)(path)
+    })
+
+    const wrapper = await mountTag(FULL_ASSET.asset_tag)
+    expect(wrapper.text()).toContain('Laptop Dell Latitude 5440')
+
+    const router = useRouter()
+    await router.push(`/assets/${OTHER_ASSET.asset_tag}`)
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Proyektor Epson EB-X51')
+    expect(wrapper.text()).toContain(OTHER_ASSET.asset_tag)
+    expect(wrapper.text()).not.toContain('Laptop Dell Latitude 5440')
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Delete action fully removed
 // ---------------------------------------------------------------------------
 

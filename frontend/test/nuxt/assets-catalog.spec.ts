@@ -303,6 +303,49 @@ describe('Asset Catalog page — status filter options', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Resilient filter-option loading — one lookup failing must not blank the
+// others or leave an unhandled rejection (each lookup is guarded with its
+// own .catch(), same pattern as the Detail page's loadLookups).
+// ---------------------------------------------------------------------------
+
+describe('Asset Catalog page — resilient filter option loading', () => {
+  it('one failing lookup (offices) still renders rows and populates the other dropdowns, without an unhandled rejection', async () => {
+    const unhandled: unknown[] = []
+    const onUnhandledRejection = (reason: unknown) => unhandled.push(reason)
+    process.on('unhandledRejection', onUnhandledRejection)
+    try {
+      setHandler((path, opts) => {
+        if (path.startsWith('/offices')) throw Object.assign(new Error('Server Error'), { statusCode: 500 })
+        return defaultHandler(path, opts)
+      })
+
+      const wrapper = await mountAndWait()
+
+      // Rows still render — the catalog's own list() load() is independent
+      // of the filter-option lookups.
+      expect(wrapper.text()).toContain('Laptop Dell Latitude 5440')
+
+      const vm = wrapper.vm as unknown as {
+        categoryOptions: { value: string, label: string }[]
+        officeOptions: { value: string, label: string }[]
+        brandOptions: { value: string, label: string }[]
+        modelOptions: { value: string, label: string }[]
+      }
+      // The failing lookup's options stay empty...
+      expect(vm.officeOptions.length).toBe(0)
+      // ...but the other three still populate from their own successful calls.
+      expect(vm.categoryOptions.length).toBeGreaterThan(0)
+      expect(vm.brandOptions.length).toBeGreaterThan(0)
+      expect(vm.modelOptions.length).toBeGreaterThan(0)
+
+      expect(unhandled).toEqual([])
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection)
+    }
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Filters re-fetch with matching query params
 // ---------------------------------------------------------------------------
 
