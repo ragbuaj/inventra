@@ -15,6 +15,7 @@ const localePath = useLocalePath()
 const assetsApi = useAssets()
 const categoriesApi = useCategories()
 const officesApi = useOffices()
+const referenceApi = useReference()
 
 const rows = ref<Asset[]>([])
 const total = ref(0)
@@ -37,16 +38,27 @@ const selected = ref<Set<string>>(new Set())
 const showPrice = true
 
 // Filter option lists + id→name maps (categories via useCategories().tree(),
-// offices via the scoped useOffices().list()).
+// offices via the scoped useOffices().list(), brands/models via the generic
+// useReference() engine).
 const categoryOptions = ref<{ value: string, label: string }[]>([])
 const officeOptions = ref<{ value: string, label: string }[]>([])
+const brandOptions = ref<{ value: string, label: string }[]>([])
+const modelOptions = ref<{ value: string, label: string }[]>([])
 const categoryMap = computed(() => new Map(categoryOptions.value.map(o => [o.value, o.label])))
 const officeMap = computed(() => new Map(officeOptions.value.map(o => [o.value, o.label])))
+const brandMap = computed(() => new Map(brandOptions.value.map(o => [o.value, o.label])))
+const modelMap = computed(() => new Map(modelOptions.value.map(o => [o.value, o.label])))
 function categoryName(id: string): string {
   return categoryMap.value.get(id) ?? '—'
 }
 function officeName(id: string): string {
   return officeMap.value.get(id) ?? '—'
+}
+function brandModelLabel(brandId: string | null | undefined, modelId: string | null | undefined): string {
+  const brand = brandId ? brandMap.value.get(brandId) : undefined
+  const model = modelId ? modelMap.value.get(modelId) : undefined
+  const parts = [brand, model].filter((v): v is string => !!v)
+  return parts.length > 0 ? parts.join(' ') : '—'
 }
 
 interface MoneyCell { text: string, masked: boolean }
@@ -96,6 +108,7 @@ const cardRows = computed<CatalogCardAsset[]>(() => rows.value.map((r) => {
     tag: r.asset_tag,
     nama: r.name,
     kategori: categoryName(r.category_id),
+    brand: brandModelLabel(r.brand_id, r.model_id),
     kantor: officeName(r.office_id),
     status: r.status,
     holder: '—',
@@ -143,7 +156,11 @@ function comingSoon() {
   toast.add({ title: t('assets.comingSoon'), color: 'neutral', icon: 'i-lucide-info' })
 }
 
+// Guards against a stale, out-of-order response: only the most recently
+// *started* load() is allowed to write rows/total/loadError/loading.
+let seq = 0
 async function load() {
+  const mine = ++seq
   loading.value = true
   loadError.value = false
   try {
@@ -156,22 +173,28 @@ async function load() {
       office_id: fKantor.value !== ALL ? fKantor.value : undefined,
       asset_class: fClass.value !== ALL ? (fClass.value as AssetClass) : undefined
     })
+    if (mine !== seq) return
     rows.value = res.data
     total.value = res.total
+    loading.value = false
   } catch {
+    if (mine !== seq) return
     loadError.value = true
-  } finally {
     loading.value = false
   }
 }
 
 async function loadFilterOptions() {
-  const [categories, offices] = await Promise.all([
+  const [categories, offices, brands, models] = await Promise.all([
     categoriesApi.tree(),
-    officesApi.list({ limit: 100 })
+    officesApi.list({ limit: 100 }),
+    referenceApi.list('brands', { limit: 100 }),
+    referenceApi.list('models', { limit: 100 })
   ])
   categoryOptions.value = categories.map(c => ({ value: c.id, label: c.name }))
   officeOptions.value = offices.data.map(o => ({ value: o.id, label: o.name }))
+  brandOptions.value = brands.data.map(b => ({ value: b.id, label: b.name }))
+  modelOptions.value = models.data.map(m => ({ value: m.id, label: m.name }))
 }
 
 let searchTimer: ReturnType<typeof setTimeout> | undefined
@@ -191,6 +214,10 @@ watch(page, () => load())
 onMounted(() => {
   load()
   loadFilterOptions()
+})
+
+onUnmounted(() => {
+  if (searchTimer) clearTimeout(searchTimer)
 })
 </script>
 
@@ -468,7 +495,7 @@ onMounted(() => {
                 </UBadge>
               </td>
               <td class="px-3.5 py-3 text-muted">
-                —
+                {{ brandModelLabel(r.brand_id, r.model_id) }}
               </td>
               <td class="px-3.5 py-3">
                 <AssetStatusBadge :status="r.status" />

@@ -7,6 +7,7 @@ export interface CatalogCardAsset {
   tag: string
   nama: string
   kategori: string
+  brand: string
   kantor: string
   status: AssetStatus
   holder: string
@@ -49,7 +50,7 @@ defineEmits<{ toggle: [], open: [] }>()
         {{ asset.nama }}
       </div>
       <div class="text-[12.5px] text-muted mb-[11px]">
-        —
+        {{ asset.brand }}
       </div>
       <div class="flex flex-wrap gap-1.5 mb-3">
         <UBadge

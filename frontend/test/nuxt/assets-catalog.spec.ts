@@ -43,6 +43,16 @@ const OFFICES = [
   { id: 'o2', name: 'Kantor Cabang' }
 ]
 
+const BRANDS = [
+  { id: 'b1', name: 'Dell' },
+  { id: 'b2', name: 'Epson' }
+]
+
+const MODELS = [
+  { id: 'm1', name: 'Latitude 5440', brand_id: 'b1' },
+  { id: 'm2', name: 'EB-X51', brand_id: 'b2' }
+]
+
 const ASSETS = [
   {
     id: 'a1',
@@ -50,6 +60,8 @@ const ASSETS = [
     name: 'Laptop Dell Latitude 5440',
     category_id: 'c1',
     office_id: 'o1',
+    brand_id: 'b1',
+    model_id: 'm1',
     status: 'available',
     asset_class: 'tangible',
     purchase_date: '2026-01-12',
@@ -62,6 +74,8 @@ const ASSETS = [
     name: 'Proyektor Epson EB-X51',
     category_id: 'c1',
     office_id: 'o2',
+    brand_id: 'b2',
+    model_id: 'm2',
     status: 'assigned',
     asset_class: 'tangible',
     purchase_date: '2026-01-20',
@@ -74,6 +88,8 @@ const ASSETS = [
     name: 'Meja Kerja Ergonomis',
     category_id: 'c2',
     office_id: 'o1',
+    brand_id: null,
+    model_id: null,
     status: 'available',
     asset_class: 'tangible',
     purchase_date: '2025-06-18'
@@ -86,6 +102,14 @@ function makeAssetsResponse(rows = ASSETS, total = ASSETS.length, limit = 20, of
 }
 
 function makeOfficesResponse(rows = OFFICES) {
+  return { data: rows, total: rows.length, limit: 100, offset: 0 }
+}
+
+function makeBrandsResponse(rows = BRANDS) {
+  return { data: rows, total: rows.length, limit: 100, offset: 0 }
+}
+
+function makeModelsResponse(rows = MODELS) {
   return { data: rows, total: rows.length, limit: 100, offset: 0 }
 }
 
@@ -105,6 +129,8 @@ function defaultHandler(path: string, opts?: Record<string, unknown>): unknown {
     return makeAssetsResponse()
   }
   if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
+  if (path.startsWith('/brands')) return makeBrandsResponse()
+  if (path.startsWith('/models')) return makeModelsResponse()
   if (path.startsWith('/offices')) return makeOfficesResponse()
   throw new Error(`Unhandled request: ${path} ${JSON.stringify(opts)}`)
 }
@@ -177,6 +203,22 @@ describe('Asset Catalog page — loaded rows', () => {
     expect(text).toContain('Kantor Cabang')
     expect(text).not.toContain('o1')
     expect(text).not.toContain('o2')
+  })
+
+  it('resolves brand_id/model_id to a combined brand + model name — not raw ids', async () => {
+    const wrapper = await mountAndWait()
+    const text = wrapper.text()
+    expect(text).toContain('Dell Latitude 5440')
+    expect(text).toContain('Epson EB-X51')
+    expect(text).not.toContain('b1')
+    expect(text).not.toContain('m1')
+  })
+
+  it('shows — for a row whose brand_id/model_id are null', async () => {
+    const wrapper = await mountAndWait()
+    // a3 (Meja Kerja Ergonomis) has brand_id/model_id null.
+    const rowText = wrapper.findAll('tr').find(tr => tr.text().includes('Meja Kerja Ergonomis'))?.text() ?? ''
+    expect(rowText).toContain('—')
   })
 
   it('renders a resolved status badge label (English status → i18n)', async () => {
@@ -336,6 +378,8 @@ describe('Asset Catalog page — server-side pagination', () => {
         return makeAssetsResponse(ASSETS, 45)
       }
       if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
+      if (path.startsWith('/brands')) return makeBrandsResponse()
+      if (path.startsWith('/models')) return makeModelsResponse()
       if (path.startsWith('/offices')) return makeOfficesResponse()
       throw new Error(`Unhandled: ${path}`)
     })
@@ -362,6 +406,8 @@ describe('Asset Catalog page — load error', () => {
     setHandler((path) => {
       if (path.startsWith('/assets')) throw Object.assign(new Error('Server Error'), { statusCode: 500 })
       if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
+      if (path.startsWith('/brands')) return makeBrandsResponse()
+      if (path.startsWith('/models')) return makeModelsResponse()
       if (path.startsWith('/offices')) return makeOfficesResponse()
       throw new Error(`Unhandled: ${path}`)
     })
@@ -380,6 +426,8 @@ describe('Asset Catalog page — load error', () => {
         return makeAssetsResponse()
       }
       if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
+      if (path.startsWith('/brands')) return makeBrandsResponse()
+      if (path.startsWith('/models')) return makeModelsResponse()
       if (path.startsWith('/offices')) return makeOfficesResponse()
       throw new Error(`Unhandled: ${path}`)
     })
@@ -407,6 +455,8 @@ describe('Asset Catalog page — empty states', () => {
     setHandler((path) => {
       if (path.startsWith('/assets')) return makeAssetsResponse([], 0)
       if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
+      if (path.startsWith('/brands')) return makeBrandsResponse()
+      if (path.startsWith('/models')) return makeModelsResponse()
       if (path.startsWith('/offices')) return makeOfficesResponse()
       throw new Error(`Unhandled: ${path}`)
     })
@@ -419,6 +469,8 @@ describe('Asset Catalog page — empty states', () => {
     setHandler((path) => {
       if (path.startsWith('/assets')) return makeAssetsResponse([], 0)
       if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
+      if (path.startsWith('/brands')) return makeBrandsResponse()
+      if (path.startsWith('/models')) return makeModelsResponse()
       if (path.startsWith('/offices')) return makeOfficesResponse()
       throw new Error(`Unhandled: ${path}`)
     })
@@ -443,6 +495,72 @@ describe('Asset Catalog page — grid view', () => {
     await wrapper.vm.$nextTick()
     expect(wrapper.text()).toContain('Laptop Dell Latitude 5440')
     expect(wrapper.find('thead').exists()).toBe(false)
+  })
+
+  it('grid cards also show the resolved brand/model name', async () => {
+    const wrapper = await mountAndWait()
+    const gridBtn = wrapper.find('button[aria-label="Tampilan grid"]')
+    await gridBtn.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('Dell Latitude 5440')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Stale-response race guard
+// ---------------------------------------------------------------------------
+
+describe('Asset Catalog page — stale response race guard', () => {
+  it('ignores a late-resolving older /assets response after a newer request has started', async () => {
+    let resolveFirst!: (v: unknown) => void
+    let resolveSecond!: (v: unknown) => void
+    let assetCallCount = 0
+
+    setHandler((path) => {
+      if (path.startsWith('/assets')) {
+        assetCallCount++
+        if (assetCallCount === 1) {
+          return new Promise((resolve) => {
+            resolveFirst = resolve as (v: unknown) => void
+          })
+        }
+        return new Promise((resolve) => {
+          resolveSecond = resolve as (v: unknown) => void
+        })
+      }
+      if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
+      if (path.startsWith('/brands')) return makeBrandsResponse()
+      if (path.startsWith('/models')) return makeModelsResponse()
+      if (path.startsWith('/offices')) return makeOfficesResponse()
+      throw new Error(`Unhandled: ${path}`)
+    })
+
+    const wrapper = await mountSuspended(CatalogPage)
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    // Mounted load() (call #1) is now in-flight. Trigger a second, newer
+    // load() (call #2) before the first resolves — e.g. a fast filter change.
+    ;(wrapper.vm as unknown as { fStatus: string }).fStatus = 'available'
+    await wrapper.vm.$nextTick()
+    await flushPromises()
+
+    // Newer request (#2) resolves first with its own rows.
+    resolveSecond(makeAssetsResponse([ASSETS[1]!], 1))
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('Proyektor Epson EB-X51')
+    expect(wrapper.text()).not.toContain('Laptop Dell Latitude 5440')
+
+    // Older, stale request (#1) resolves late with different rows — must be
+    // discarded, not overwrite the newer result already rendered.
+    resolveFirst(makeAssetsResponse([ASSETS[0]!], 1))
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('Proyektor Epson EB-X51')
+    expect(wrapper.text()).not.toContain('Laptop Dell Latitude 5440')
   })
 })
 
