@@ -40,7 +40,7 @@ vi.mock('~/composables/useApiClient', () => ({
 }))
 
 // eslint-disable-next-line import/first
-import DetailPage from '~/pages/assets/[tag].vue'
+import DetailPage from '~/pages/assets/[tag]/index.vue'
 
 // ---------------------------------------------------------------------------
 // Shared fixtures
