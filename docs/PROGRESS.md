@@ -43,7 +43,45 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >    - **TODO — `mock/offices.ts`:** delete when `useGlobalSearch` is wired to the real `/search` endpoint.
 > 18. ~~**Asset transfer (mutasi) — backend module**~~ ✅ **DONE (2026-07-02).** `internal/transfer` (service/executor/handler/routes) wired end-to-end: `asset_transfer` approval executor creates the `transfers` row on approval; `approved → in_transit → received` state machine (`POST /transfers`, `GET /transfers`, `GET /transfers/:id`, `POST /transfers/:id/ship`, `POST /transfers/:id/receive`, `GET /assets/:id/transfers`); receive atomically relocates the asset + records a `bast_transfer` asset-document (optional MinIO file); `transfer.view`/`transfer.manage` + `transfers` data-scope enforced on every verb; OpenAPI documented; 15 tests green. **Frontend Mutasi screen not started — mockup now available at `docs/design/Mutasi Aset.dc.html` (2026-07-03).**
 > 19. ~~**Asset disposal — backend module**~~ ✅ **DONE (2026-07-02).** `internal/disposal` (service/executor/handler/routes) wired end-to-end; the `asset_disposal` approval executor was moved out of the asset package into this module, creating the `disposal.disposals` row only on approval with SQL-computed `gain_loss`; BAST attached via the shared asset-documents mechanism (`bast_disposal` doc type, `related_disposal_id`); `disposal.view`/`disposal.manage` + `disposals` data-scope enforced on every verb; `POST /disposals`, `GET /disposals`, `GET /disposals/:id`, `POST /disposals/:id/document`, `GET /assets/:id/disposal`; OpenAPI documented (`Disposal` schema + 5 paths); 9 tests green. **Deferred:** gain/loss GL export + depreciation-derived `book_value_at_disposal` (both wait on the depreciation module). **Frontend Disposal screen not started — mockup now available at `docs/design/Penghapusan Aset.dc.html` (2026-07-03).**
-> 20. **Next session — pick the next real step.** Candidates (see *Remaining* below): **(a)** build the last core Bank-FAM backend module — **Stock opname** (session + item reconciliation: found/not_found/damaged/misplaced + report), following the same pattern as `internal/transfer`/`internal/disposal` (approval executor where applicable + scoped module + OpenAPI); **(b)** build the frontend **Mutasi** and/or **Disposal** screens against the now-complete backends — mockups prepared 2026-07-03 for **all six v1.1 screens** (`Mutasi Aset` / `Stock Opname` / `Penghapusan Aset` / `Depresiasi` / `Dokumen BAST` / `Limit Otorisasi` `.dc.html`, per DESIGN_BRIEF §6); **(c)** build **Assignment** (check-out/in) or **Maintenance**; **(d)** wire **global search** backend (`/search`) + drop the last `mock/*` files; **(e)** start the **depreciation** module, which several deferred items (disposal book_value, GL export) depend on. Confirm priority before starting.
+> 20. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-04): wire the Assets cluster.**
+> 21. ~~**Wire Assets cluster** (Katalog/Detail/Form/Label) to real `/api/v1` + real-backend e2e~~ ✅ **DONE
+>     (2026-07-04).** `AssetCreatePayload` widened to the full create-form field set; Katalog → real
+>     `GET /assets` (server-side list/search/filter, FK name resolution); Detail → `GET
+>     /assets/by-tag/:tag` (field-permission money masking, attachments gallery, tab empty-states for
+>     Assignment/Maintenance/Depreciation — none of those modules exist yet); Form → create submits
+>     `POST /requests` type `asset_create` (maker-checker — **no direct create**), edit is restricted to
+>     mutable fields via `PUT /assets/:id`; Label/Barcode → real barcode/label-PDF endpoints. Real-backend
+>     e2e (`frontend/e2e/assets.spec.ts`, rewritten): API setup (office/floor/room/category prereqs,
+>     unique per run) → submit `asset_create` → approve as a second SoD-eligible user (maker ≠ checker)
+>     → UI assertions across Katalog/Detail/Edit/Label + the `/assets/new` form flow (verified via a
+>     follow-up API call, left pending/unapproved) + a negative empty-state search. All gates green:
+>     backend build/vet/test/integration, Spectral, frontend lint/typecheck/test/build, full e2e suite
+>     (57/57).
+>     - **Bug found + fixed during e2e verification:** `pages/assets/[tag].vue` co-existed with the
+>       `pages/assets/[tag]/` folder, which made Nuxt treat `[tag].vue` as the **parent route** for
+>       `[tag]/edit.vue` — without a `<NuxtPage/>` in `[tag].vue`, `/assets/:tag/edit` silently rendered
+>       the Detail page instead of the edit form (both via `page.goto` and via clicking "Ubah"). Fixed by
+>       moving `[tag].vue` → `[tag]/index.vue` so Detail and Edit are sibling routes. This was a real,
+>       previously-unnoticed regression — not a test artifact — so it's called out explicitly here.
+>     - **Deliberate deferrals:** Import wizard still mock (no backend bulk-import endpoint yet);
+>       Approval screen still mock (only the **submit** side is wired, via this task's `POST /requests`
+>       call — the inbox/decide UI is still fixture-backed); asset **delete** is out of scope for this
+>       screen — deletion goes through the Disposal screen/module instead; **field "Pemegang" (holder)
+>       was dropped from the Form** per user decision — the holder is set via the future **Penugasan**
+>       (assignment) module, not at asset creation/edit — Katalog's "Pemegang" column renders "—" until
+>       that module lands.
+> 22. **Next session — pick the next real step.** Candidates (see *Remaining* below): **(a)** wire the
+>     **Pengajuan & Approval** screen's inbox/decide UI to real `/api/v1/requests` (submit is already
+>     wired from Task 21 above — inbox listing + approve/reject decisions are the remaining mock-backed
+>     slice); **(b)** build the last core Bank-FAM backend module — **Stock opname** (session + item
+>     reconciliation: found/not_found/damaged/misplaced + report), following the same pattern as
+>     `internal/transfer`/`internal/disposal` (approval executor where applicable + scoped module +
+>     OpenAPI); **(c)** start the **depreciation** module, which several deferred items (disposal
+>     book_value, GL export) depend on; **(d)** build the frontend **Mutasi** and/or **Disposal** screens
+>     against the now-complete backends — mockups prepared 2026-07-03 for all six v1.1 screens; **(e)**
+>     build **Assignment** (check-out/in, and the natural home for the deferred "Pemegang" field) or
+>     **Maintenance**; **(f)** wire **global search** backend (`/search`) + drop the last `mock/*` files.
+>     Confirm priority before starting.
 
 ## ✅ Done
 
@@ -247,6 +285,29 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 - [x] **Master Data Referensi** (`/master/reference`) ✅ wired to generic reference engine (`GET/POST/PUT/DELETE /api/v1/masterdata/reference/:resource`) — 11 resources (office-types, departments, positions, units, maintenance-categories, problem-categories, brands, vendors, provinces, cities, models); FK pickers (cities→provinces, models→brands); `office-types` `tier` editable (select: pusat/wilayah/office) — **office map now meaningful** (tier settable → real Pusat/Wilayah/Cabang pins); `vendors` gains `contact_name` + `address` fields; `is_active` toggle/column hidden for provinces & cities (no `is_active` column); `departments` `code` field restored; `brands` label corrected to "Brand". Backend: `typeEnum` + `tier` column in reference engine. Orphaned `mock/reference.ts` deleted; e2e spec added (`frontend/e2e/master-reference.spec.ts`). **Done (2026-06-29).** ⚠️ TODO: cities and models need at least one province/brand created first (no production seed); empty FK picker shows a warning.
 - [x] **Pegawai** (`/master/employees`) ✅ wired to `GET/POST/PUT/DELETE /api/v1/employees` — server-enforced `employees` data-scope; `useEmployees` composable rewritten (real `$fetch`, CRUD); `Employee`/`EmployeeInput` English DTO; UUID FK pickers for office (required), department, position with table name-resolution; inline `GET /offices?limit=100` for office options; backend `phone` column added (migration + DTO + query + OpenAPI); `data-testid` on office/dept/position USelects; e2e spec (`frontend/e2e/employees.spec.ts`); mockup comparison 1:1 (7 cols, 4-filter bar, slideover); `mock/employees.ts` retained (still used by `useGlobalSearch`). **Done (2026-06-30).** ⚠️ TODO: `mock/employees.ts` — delete when `useGlobalSearch` is wired to real `/search` endpoint.
 - [x] **Kantor + Lantai + Ruangan** (`/master/offices`) ✅ wired to `/api/v1/offices` + `/api/v1/floors` (`?office_id=`) + `/api/v1/rooms` (`?floor_id=`) — split-panel tree (built client-side from the flat scoped list) + detail + inline floor/room CRUD; server-enforced `offices` data-scope. `useOffices`/`useFloors` rewritten (real `$fetch`); `Office`/`Floor`/`Room` English DTO; FK pickers (office-type/province/city via `useReference`, city filtered by province) + optional `latitude`/`longitude` inputs (product decision → Peta Lokasi pins); tree icon/colour from office-type **tier** (`tierMeta`); FK id → name resolution in detail; floor/room updates resend required `office_id`/`floor_id`; load-error/retry; `data-testid` on office-type/province/city USelects. Deleted `mock/floors.ts` + `floors-mock.spec.ts` + `offices-mock.spec.ts`; `mock/offices.ts` retained (decoupled `MockOffice`, used by `useGlobalSearch`). Unit + 20-case component spec + real-backend e2e (create office-type via Referensi → create office). **Done (2026-07-02). Master-data screen-wiring batch complete.** ⚠️ TODO: delete `mock/offices.ts` when `useGlobalSearch` is wired to real `/search`.
+- [x] **Assets cluster** (`/assets`, `/assets/:tag`, `/assets/:tag/edit`, `/assets/label`, `/assets/new`) ✅
+      wired to real `/api/v1/assets` + `/api/v1/requests` — Katalog: server-side list/search/filter +
+      FK name resolution (category/office/brand/model); Detail: `GET /assets/by-tag/:tag`,
+      field-permission money masking (`purchase_cost`/`accumulated_depreciation`/`book_value`), real
+      attachments gallery, tab empty-states for the not-yet-built Assignment/Maintenance/Depreciation
+      modules; Form: **create submits `POST /requests` type `asset_create`** (maker-checker — no direct
+      create endpoint), edit is restricted to mutable fields via `PUT /assets/:id` (office/purchase
+      cost/date stay read-only post-creation); Label/Barcode: real barcode/label-PDF endpoints
+      (`GET /assets/:id/barcode`, `POST /assets/labels`). `AssetCreatePayload` (backend) widened to the
+      full create-form field set. Real-backend e2e rewritten (`frontend/e2e/assets.spec.ts`): API setup
+      (office/floor/room/category prereqs, unique per run) → submit `asset_create` → approve as a second
+      SoD-eligible user (maker ≠ checker) → UI assertions across Katalog/Detail/Edit/Label + the
+      `/assets/new` form flow (verified via a follow-up API call) + a negative empty-state search.
+      **Done (2026-07-04).**
+      ⚠️ **Deliberate deferrals:** Import wizard still mock (no backend bulk-import endpoint); Approval
+      screen still mock (only the submit call is wired — see *Next session* above); asset delete is out
+      of scope here — deletion goes through the Disposal screen/module; **field "Pemegang" (holder)
+      dropped from the Form** per user decision (holder assignment belongs to the future Penugasan
+      module) — Katalog's "Pemegang" column shows "—" until that module lands.
+      🐛 **Bug fixed during verification:** `pages/assets/[tag].vue` + the `pages/assets/[tag]/` folder
+      made `[tag].vue` an unintended parent route for `[tag]/edit.vue` (no `<NuxtPage/>` to render the
+      child), so `/assets/:tag/edit` silently showed the Detail page. Fixed by moving `[tag].vue` →
+      `[tag]/index.vue` (siblings).
 - [ ] **Staff role menus** — wire staff nav (`myAssets`, staff `assignment`/`approval`) to pages/variants
 - [x] **Google OAuth login** button + flow (UI) — login redirect + `?oauth=success/error` landing
       (refresh → fetchMe → navigate; i18n error reasons). **Done — PR #21.**
