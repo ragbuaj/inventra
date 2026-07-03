@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { assetStore } from '~/mock/assets'
 
-definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
+definePageMeta({ middleware: 'can', permission: 'asset.view' })
 
 const { t } = useI18n()
 const route = useRoute()
