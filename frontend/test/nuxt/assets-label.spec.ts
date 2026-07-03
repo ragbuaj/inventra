@@ -227,6 +227,77 @@ describe('Asset Label/Barcode page — debounced picker search', () => {
     expect(wrapper.text()).toContain('Proyektor Epson EB-X51')
     expect(wrapper.text()).not.toContain('Laptop Dell Latitude 5440')
   })
+
+  it('discards a late-resolving stale picker response after a newer search completes', async () => {
+    let resolveFirstSearch!: (v: unknown) => void
+    let resolveSecondSearch!: (v: unknown) => void
+    let searchCallCount = 0
+
+    setHandler((path: string) => {
+      if (path.startsWith('/assets?')) {
+        searchCallCount++
+        if (searchCallCount === 1) {
+          return { data: PICKER_ASSETS, total: PICKER_ASSETS.length, limit: 50, offset: 0 }
+        }
+        if (searchCallCount === 2) {
+          return new Promise((resolve) => {
+            resolveFirstSearch = resolve as (v: unknown) => void
+          })
+        }
+        if (searchCallCount === 3) {
+          return new Promise((resolve) => {
+            resolveSecondSearch = resolve as (v: unknown) => void
+          })
+        }
+      }
+      if (path.startsWith('/assets/by-tag/')) {
+        const tag = decodeURIComponent(path.split('/assets/by-tag/')[1] ?? '')
+        const found = PICKER_ASSETS.find(a => a.asset_tag === tag)
+        if (!found) throw Object.assign(new Error('not found'), { statusCode: 404 })
+        return found
+      }
+      if (path.startsWith('/offices')) {
+        return { data: OFFICES, total: OFFICES.length, limit: 100, offset: 0 }
+      }
+      throw new Error(`Unhandled request: ${path}`)
+    })
+
+    const wrapper = await mountSuspended(LabelPage, { route: '/assets/label' })
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    // Mounted load (call #1) completed. Now trigger first search (call #2)
+    // for 'Proyektor' which will be left in-flight.
+    vi.useFakeTimers()
+    const input = wrapper.find('input[placeholder]')
+    await input.setValue('Proyektor')
+    await wrapper.vm.$nextTick()
+    await vi.advanceTimersByTimeAsync(300)
+    await wrapper.vm.$nextTick()
+
+    // Now trigger search #3 (call #3) for 'Meja' while #2 is still pending.
+    await input.setValue('Meja')
+    await wrapper.vm.$nextTick()
+    await vi.advanceTimersByTimeAsync(300)
+    await wrapper.vm.$nextTick()
+
+    // Resolve search #3 (newer) first with Meja results.
+    resolveSecondSearch({ data: [ASSET_C], total: 1, limit: 50, offset: 0 })
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('Meja Kerja Ergonomis')
+    expect(wrapper.text()).not.toContain('Proyektor Epson EB-X51')
+
+    // Resolve search #2 (older, stale) late with Proyektor results — must NOT
+    // overwrite the newer Meja results already rendered.
+    resolveFirstSearch({ data: [ASSET_B], total: 1, limit: 50, offset: 0 })
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('Meja Kerja Ergonomis')
+    expect(wrapper.text()).not.toContain('Proyektor Epson EB-X51')
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -311,32 +382,36 @@ describe('Asset Label/Barcode page — Cetak / Unduh PDF', () => {
     await flushPromises()
 
     let captured: { href: string, download: string } | undefined
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+    const spy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
       captured = { href: this.href, download: this.download }
     })
-    setBlobHandler((path: string) => {
-      if (path === '/assets/labels') return new Blob(['%PDF'], { type: 'application/pdf' })
-      return new Blob(['barcode'], { type: 'image/png' })
-    })
+    try {
+      setBlobHandler((path: string) => {
+        if (path === '/assets/labels') return new Blob(['%PDF'], { type: 'application/pdf' })
+        return new Blob(['barcode'], { type: 'image/png' })
+      })
 
-    const printBtn = wrapper.findAll('button').find(b => b.text().includes('Cetak'))
-    await printBtn!.trigger('click')
-    await flushPromises()
+      const printBtn = wrapper.findAll('button').find(b => b.text().includes('Cetak'))
+      await printBtn!.trigger('click')
+      await flushPromises()
 
-    const labelCall = blobCalls.find(c => c.path === '/assets/labels')
-    expect(labelCall).toBeDefined()
-    expect(labelCall!.opts).toEqual({
-      method: 'POST',
-      body: {
-        asset_ids: ['a1', 'a2'],
-        template: 'btn',
-        layout: 'roll',
-        mode: 'both',
-        fields: { name: true, office: true }
-      }
-    })
-    expect(captured?.download).toBe('labels.pdf')
-    expect(captured?.href).toBe('blob:mock-url')
+      const labelCall = blobCalls.find(c => c.path === '/assets/labels')
+      expect(labelCall).toBeDefined()
+      expect(labelCall!.opts).toEqual({
+        method: 'POST',
+        body: {
+          asset_ids: ['a1', 'a2'],
+          template: 'btn',
+          layout: 'roll',
+          mode: 'both',
+          fields: { name: true, office: true }
+        }
+      })
+      expect(captured?.download).toBe('labels.pdf')
+      expect(captured?.href).toBe('blob:mock-url')
+    } finally {
+      spy.mockRestore()
+    }
   })
 
   it('Unduh PDF uses the same download flow', async () => {
@@ -346,16 +421,19 @@ describe('Asset Label/Barcode page — Cetak / Unduh PDF', () => {
     await flushPromises()
 
     let captured: { href: string, download: string } | undefined
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+    const spy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
       captured = { href: this.href, download: this.download }
     })
+    try {
+      const pdfBtn = wrapper.findAll('button').find(b => b.text().includes('Unduh PDF'))
+      await pdfBtn!.trigger('click')
+      await flushPromises()
 
-    const pdfBtn = wrapper.findAll('button').find(b => b.text().includes('Unduh PDF'))
-    await pdfBtn!.trigger('click')
-    await flushPromises()
-
-    expect(blobCalls.some(c => c.path === '/assets/labels')).toBe(true)
-    expect(captured?.download).toBe('labels.pdf')
+      expect(blobCalls.some(c => c.path === '/assets/labels')).toBe(true)
+      expect(captured?.download).toBe('labels.pdf')
+    } finally {
+      spy.mockRestore()
+    }
   })
 
   it('the Cetak/Unduh PDF buttons are disabled while no asset is selected', async () => {
