@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;}
+input::placeholder,textarea::placeholder{color:var(--text-dimmed);}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:9px;border:2px solid transparent;background-clip:padding-box;}
+:root{
+  --bg:#f8fafc; --bg-base:#ffffff; --bg-muted:#f1f5f9; --bg-el:#ffffff;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#0f172a; --text-muted:#64748b; --text-dimmed:#94a3b8;
+  --primary:#16a34a; --primary-hover:#15803d; --primary-fg:#ffffff;
+  --primary-soft-bg:#dcfce7; --primary-soft-text:#15803d;
+  --success:#16a34a; --success-soft-bg:#dcfce7; --success-soft-text:#15803d;
+  --warning:#d97706; --warning-soft-bg:#fef3c7; --warning-soft-text:#b45309;
+  --error:#dc2626; --error-soft-bg:#fee2e2; --error-soft-text:#b91c1c;
+  --info:#2563eb; --info-soft-bg:#dbeafe; --info-soft-text:#1d4ed8;
+  --violet:#7c3aed; --violet-soft-bg:#ede9fe; --violet-soft-text:#6d28d9;
+  --neutral-soft-bg:#eef2f6; --neutral-soft-text:#475569;
+  --ring:color-mix(in srgb, var(--primary) 28%, transparent);
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
+  --shadow-lg:0 12px 34px rgba(15,23,42,.16);
+}
+[data-theme="dark"]{
+  --bg:#020617; --bg-base:#0b1220; --bg-muted:#1e293b; --bg-el:#0f172a;
+  --border:#1e293b; --border-strong:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8; --text-dimmed:#64748b;
+  --primary:#22c55e; --primary-hover:#16a34a; --primary-fg:#052e16;
+  --primary-soft-bg:#14331f; --primary-soft-text:#4ade80;
+  --success:#22c55e; --success-soft-bg:#14331f; --success-soft-text:#4ade80;
+  --warning:#f59e0b; --warning-soft-bg:#3a2a08; --warning-soft-text:#fbbf24;
+  --error:#ef4444; --error-soft-bg:#3a1414; --error-soft-text:#f87171;
+  --info:#3b82f6; --info-soft-bg:#13243f; --info-soft-text:#60a5fa;
+  --violet:#a78bfa; --violet-soft-bg:#241a44; --violet-soft-text:#a78bfa;
+  --neutral-soft-bg:#1e293b; --neutral-soft-text:#cbd5e1;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 12px 34px rgba(0,0,0,.55);
+}
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" data-theme="{{ theme }}" style="font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--text);">
+  <div style="display:flex;height:100vh;overflow:hidden;background:var(--bg);">
+
+    <!-- SIDEBAR -->
+    <aside style="width:{{ sidebarW }};flex:none;display:flex;flex-direction:column;background:var(--bg-base);border-right:1px solid var(--border);transition:width .2s ease;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:11px;height:61px;padding:0 18px;border-bottom:1px solid var(--border);flex:none;">
+        <div style="width:34px;height:34px;border-radius:9px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--primary-fg);flex:none;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13h6"/></svg></div>
+        <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="font:700 18px Inter;letter-spacing:-.01em;white-space:nowrap;">Inventra</span></sc-if>
+      </div>
+      <nav style="flex:1;overflow-y:auto;overflow-x:hidden;padding:12px;">
+        <sc-for list="{{ nav }}" as="g" hint-placeholder-count="2">
+          <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><div style="padding:14px 12px 6px;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dimmed);white-space:nowrap;">{{ g.label }}</div></sc-if>
+          <sc-if value="{{ collapsed }}" hint-placeholder-val="{{ false }}"><div style="height:1px;background:var(--border);margin:10px 8px;"></div></sc-if>
+          <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+            <button title="{{ it.label }}" style="position:relative;display:flex;align-items:center;justify-content:{{ navJustify }};gap:11px;width:100%;padding:9px 12px;margin-bottom:2px;font-family:Inter;font-size:14px;font-weight:{{ it.weight }};color:{{ it.fg }};background:{{ it.bg }};border:none;border-radius:9px;cursor:pointer;text-align:left;box-shadow:inset 3px 0 0 {{ it.accent }};white-space:nowrap;" style-hover="background:{{ it.hoverBg }};">
+              {{ it.icon }}
+              <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;">{{ it.label }}</span></sc-if>
+              <sc-if value="{{ it.badgeExp }}" hint-placeholder-val="{{ false }}"><span style="flex:none;min-width:20px;height:20px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;font:700 11px Inter;color:#fff;background:var(--error);border-radius:999px;">{{ it.badge }}</span></sc-if>
+            </button>
+          </sc-for>
+        </sc-for>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <header style="display:flex;align-items:center;gap:14px;height:61px;flex:none;padding:0 20px;background:var(--bg-base);border-bottom:1px solid var(--border);">
+        <button onClick="{{ toggleCollapse }}" title="Collapse" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex:none;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg></button>
+        <div style="display:flex;align-items:center;gap:6px;font:400 12px Inter;color:var(--text-muted);"><span>Inventra</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span style="color:var(--text);font-weight:500;">{{ pageTitle }}</span></div>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex:none;">
+          <div style="display:flex;gap:2px;padding:3px;background:var(--bg-muted);border-radius:9px;">
+            <button onClick="{{ setId }}" style="padding:5px 9px;font:600 12px Inter;color:{{ idFg }};background:{{ idBg }};border:none;border-radius:6px;cursor:pointer;">ID</button>
+            <button onClick="{{ setEn }}" style="padding:5px 9px;font:600 12px Inter;color:{{ enFg }};background:{{ enBg }};border:none;border-radius:6px;cursor:pointer;">EN</button>
+          </div>
+          <button onClick="{{ toggleTheme }}" title="Tema" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">
+            <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></sc-if>
+            <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></sc-if>
+          </button>
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;background:transparent;border:1px solid var(--border);border-radius:999px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--primary);color:var(--primary-fg);display:flex;align-items:center;justify-content:center;font:700 12px Inter;">DL</span><span style="display:flex;color:var(--text-dimmed);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+        </div>
+      </header>
+
+      <main style="flex:1;overflow-y:auto;padding:26px 32px 40px;">
+        <div style="max-width:1000px;margin:0 auto;">
+          <div style="margin-bottom:16px;">
+            <h1 style="margin:0 0 5px;font:700 23px Inter;letter-spacing:-.02em;">{{ pageTitle }}</h1>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="display:inline-flex;align-items:center;gap:6px;font:500 13px Inter;color:var(--text-muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l5-4v16M19 21V13l-9-4"/></svg>{{ myOffice }}</span>
+            </div>
+          </div>
+
+          <!-- STATUS FLOW LEGEND -->
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 15px;margin-bottom:18px;background:var(--bg-base);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);">
+            <span style="font:600 11px Inter;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dimmed);margin-right:2px;">{{ flowLabel }}</span>
+            <sc-for list="{{ flowSteps }}" as="f" hint-placeholder-count="4">
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;font:600 11.5px Inter;border-radius:999px;background:{{ f.bg }};color:{{ f.fg }};"><span style="width:6px;height:6px;border-radius:50%;background:{{ f.dot }};"></span>{{ f.label }}</span>
+              <sc-if value="{{ f.arrow }}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></sc-if>
+            </sc-for>
+          </div>
+
+          <!-- TABS -->
+          <div style="display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:22px;">
+            <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+              <button onClick="{{ t.on }}" style="display:inline-flex;align-items:center;gap:8px;padding:12px 16px;margin-bottom:-1px;font-family:Inter;font-size:14px;font-weight:{{ t.weight }};color:{{ t.color }};background:transparent;border:none;border-bottom:{{ t.border }};cursor:pointer;">{{ t.icon }}{{ t.label }}<sc-if value="{{ t.hasBadge }}" hint-placeholder-val="{{ false }}"><span style="min-width:19px;height:19px;padding:0 5px;display:inline-flex;align-items:center;justify-content:center;font:700 11px Inter;border-radius:999px;background:{{ t.badgeBg }};color:{{ t.badgeFg }};">{{ t.badge }}</span></sc-if></button>
+            </sc-for>
+          </div>
+
+          <!-- ============ AJUKAN MUTASI ============ -->
+          <sc-if value="{{ tabAjukan }}" hint-placeholder-val="{{ true }}">
+            <div style="max-width:640px;">
+              <sc-if value="{{ ajMsgShow }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;gap:11px;align-items:center;padding:12px 14px;margin-bottom:18px;border-radius:11px;background:{{ ajMsgBg }};border:1px solid {{ ajMsgBd }};"><span style="color:{{ ajMsgFg }};flex:none;display:flex;">{{ ajMsgIcon }}</span><span style="font:500 13px/1.45 Inter;color:{{ ajMsgFg }};">{{ ajMsg }}</span></div>
+              </sc-if>
+              <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:22px;display:flex;flex-direction:column;gap:16px;">
+                <!-- ASSET COMBOBOX -->
+                <div style="position:relative;">
+                  <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lAset }} <span style="color:var(--error);">*</span></label>
+                  <div style="position:relative;">
+                    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);display:flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>
+                    <input value="{{ coQuery }}" onInput="{{ onCoInput }}" onFocus="{{ openCombo }}" placeholder="{{ phAset }}" style="width:100%;padding:10px 12px 10px 36px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+                    <span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+                  </div>
+                  <div style="margin-top:5px;font:400 12px Inter;color:var(--text-dimmed);">{{ asetHint }}</div>
+                  <sc-if value="{{ comboOpen }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute;top:calc(100% - 14px);left:0;right:0;z-index:20;max-height:250px;overflow-y:auto;background:var(--bg-el);border:1px solid var(--border);border-radius:11px;box-shadow:var(--shadow-lg);padding:5px;">
+                      <sc-for list="{{ availList }}" as="a" hint-placeholder-count="4">
+                        <button onClick="{{ a.pick }}" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;background:transparent;border:none;border-radius:8px;cursor:pointer;text-align:left;" style-hover="background:var(--bg-muted);">
+                          <span style="width:9px;height:9px;border-radius:50%;background:var(--success);flex:none;"></span>
+                          <span style="flex:1;min-width:0;"><span style="display:block;font:500 13.5px Inter;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ a.nama }}</span><span style="display:block;font:400 11px 'JetBrains Mono',monospace;color:var(--text-dimmed);">{{ a.tag }} · {{ a.asal }}</span></span>
+                        </button>
+                      </sc-for>
+                      <sc-if value="{{ availEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:16px;text-align:center;font:400 13px Inter;color:var(--text-dimmed);">{{ noAvail }}</div></sc-if>
+                    </div>
+                  </sc-if>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                  <div>
+                    <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lAsal }}</label>
+                    <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;font:500 13.5px Inter;color:var(--text-muted);background:var(--bg-muted);border:1px dashed var(--border-strong);border-radius:10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="M3 21h18M5 21V9l5-4v16M19 21V13l-9-4"/></svg><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ asalKantor }}</span></div>
+                  </div>
+                  <div>
+                    <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lTujuan }} <span style="color:var(--error);">*</span></label>
+                    <div style="position:relative;"><select value="{{ coTujuan }}" onChange="{{ onCoTujuan }}" style="width:100%;appearance:none;padding:10px 32px 10px 12px;font:400 14px Inter;color:{{ tujuanColor }};background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;cursor:pointer;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><option value="">{{ phPilih }}</option><sc-for list="{{ tujuanOpts }}" as="o" hint-placeholder-count="5"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+                  </div>
+                </div>
+
+                <!-- inter-region alert -->
+                <sc-if value="{{ interRegion }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border-radius:11px;background:var(--violet-soft-bg);border:1px solid color-mix(in srgb,var(--violet) 32%,transparent);">
+                    <span style="color:var(--violet-soft-text);flex:none;margin-top:1px;display:flex;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span>
+                    <div><div style="font:600 13px Inter;color:var(--violet-soft-text);">{{ interRegionTitle }}</div><div style="font:400 12.5px/1.5 Inter;color:var(--text-muted);margin-top:2px;">{{ interRegionNote }}</div></div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ inSubtree }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;gap:10px;align-items:center;padding:10px 14px;border-radius:11px;background:var(--primary-soft-bg);border:1px solid color-mix(in srgb,var(--primary) 26%,transparent);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary-soft-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="M20 6 9 17l-5-5"/></svg><span style="font:500 12.5px Inter;color:var(--primary-soft-text);">{{ inSubtreeNote }}</span></div>
+                </sc-if>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                  <div>
+                    <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lRuangan }}</label>
+                    <div style="position:relative;"><select value="{{ coRuangan }}" onChange="{{ onCoRuangan }}" style="width:100%;appearance:none;padding:10px 32px 10px 12px;font:400 14px Inter;color:{{ ruanganColor }};background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;cursor:pointer;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><option value="">{{ ruanganNone }}</option><sc-for list="{{ ruanganOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o }}">{{ o }}</option></sc-for></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+                  </div>
+                  <div>
+                    <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lTanggal }} <span style="color:var(--error);">*</span></label>
+                    <input type="date" value="{{ coTgl }}" onInput="{{ onCoTgl }}" style="width:100%;padding:9px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;color-scheme:{{ scheme }};" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+                  </div>
+                </div>
+
+                <div>
+                  <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lKondisi }}</label>
+                  <div style="position:relative;"><select value="{{ coKondisi }}" onChange="{{ onCoKondisi }}" style="width:100%;appearance:none;padding:10px 32px 10px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;cursor:pointer;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><sc-for list="{{ kondisiOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+                </div>
+                <div>
+                  <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lAlasan }}</label>
+                  <textarea value="{{ coAlasan }}" onInput="{{ onCoAlasan }}" placeholder="{{ phAlasan }}" style="width:100%;min-height:72px;resize:vertical;padding:10px 12px;font:400 14px/1.5 Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"></textarea>
+                </div>
+                <div style="display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--border);padding-top:16px;">
+                  <button onClick="{{ resetAj }}" style="padding:10px 16px;font:500 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;cursor:pointer;" style-hover="background:var(--bg-muted);">{{ resetLbl }}</button>
+                  <button onClick="{{ submitMutasi }}" style="display:inline-flex;align-items:center;gap:7px;padding:10px 20px;font:600 14px Inter;color:var(--primary-fg);background:{{ ajBtnBg }};border:1px solid {{ ajBtnBg }};border-radius:10px;cursor:{{ ajBtnCursor }};opacity:{{ ajBtnOpacity }};" style-hover="background:var(--primary-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l4-4M5 9l4 4M5 9h11a3 3 0 0 1 0 6h-1"/></svg>{{ submitLbl }}</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- ============ KOTAK MASUK ============ -->
+          <sc-if value="{{ tabInbox }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <sc-if value="{{ inboxMsgShow }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;gap:11px;align-items:center;padding:12px 14px;margin-bottom:16px;border-radius:11px;background:{{ inboxMsgBg }};border:1px solid {{ inboxMsgBd }};"><span style="color:{{ inboxMsgFg }};flex:none;display:flex;">{{ inboxMsgIcon }}</span><span style="font:500 13px/1.45 Inter;color:{{ inboxMsgFg }};">{{ inboxMsg }}</span></div>
+              </sc-if>
+              <sc-if value="{{ hasInbox }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                  <sc-for list="{{ inboxRows }}" as="m" hint-placeholder-count="2">
+                    <div style="background:var(--bg-base);border:1px solid {{ m.cardBd }};border-radius:13px;box-shadow:var(--shadow);overflow:hidden;">
+                      <div style="display:flex;align-items:flex-start;gap:14px;padding:16px 18px;">
+                        <span style="width:42px;height:42px;border-radius:11px;background:var(--info-soft-bg);color:var(--info-soft-text);display:flex;align-items:center;justify-content:center;flex:none;">{{ m.icon }}</span>
+                        <div style="flex:1;min-width:0;">
+                          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font:600 14.5px Inter;">{{ m.nama }}</span><span style="display:inline-flex;align-items:center;gap:5px;padding:2px 9px;font:600 11px Inter;border-radius:999px;background:var(--info-soft-bg);color:var(--info-soft-text);"><span style="width:5px;height:5px;border-radius:50%;background:var(--info);"></span>{{ inTransferLbl }}</span><sc-if value="{{ m.inter }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;font:600 11px Inter;border-radius:999px;background:var(--violet-soft-bg);color:var(--violet-soft-text);"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>{{ interBadge }}</span></sc-if></div>
+                          <div style="font:400 12px 'JetBrains Mono',monospace;color:var(--text-dimmed);margin-top:3px;">{{ m.tag }}</div>
+                          <div style="display:flex;align-items:center;gap:9px;margin-top:9px;flex-wrap:wrap;">
+                            <span style="display:inline-flex;align-items:center;gap:6px;font:500 13px Inter;color:var(--text-muted);">{{ m.asal }}</span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                            <span style="display:inline-flex;align-items:center;gap:6px;font:600 13px Inter;color:var(--text);">{{ m.tujuan }}</span>
+                          </div>
+                          <div style="display:flex;align-items:center;gap:14px;margin-top:9px;flex-wrap:wrap;font:400 12.5px Inter;color:var(--text-muted);">
+                            <span>{{ m.byLabel }} <span style="color:var(--text);font-weight:500;">{{ m.by }}</span></span>
+                            <span>{{ m.tgl }}</span>
+                            <span style="display:inline-flex;align-items:center;gap:5px;">{{ kondisiLabel }} <span style="padding:1px 8px;font:600 11px Inter;border-radius:999px;background:{{ m.kondBg }};color:{{ m.kondFg }};">{{ m.kondisi }}</span></span>
+                          </div>
+                          <sc-if value="{{ m.hasAlasan }}" hint-placeholder-val="{{ true }}"><div style="margin-top:9px;padding:9px 12px;border-radius:9px;background:var(--bg-muted);font:400 12.5px/1.5 Inter;color:var(--text-muted);">“{{ m.alasan }}”</div></sc-if>
+                        </div>
+                      </div>
+                      <div style="display:flex;justify-content:flex-end;gap:9px;padding:12px 18px;border-top:1px solid var(--border);background:var(--bg-muted);">
+                        <button onClick="{{ m.reject }}" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font:500 13px Inter;color:var(--error);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--error-soft-bg);border-color:transparent;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>{{ rejectLbl }}</button>
+                        <button onClick="{{ m.accept }}" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;font:600 13px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>{{ acceptLbl }}</button>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ inboxEmpty }}" hint-placeholder-val="{{ false }}">
+                <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:56px 24px;text-align:center;">
+                  <div style="width:54px;height:54px;margin:0 auto 14px;border-radius:14px;background:var(--bg-muted);color:var(--text-dimmed);display:flex;align-items:center;justify-content:center;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.5 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.5A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.5z"/></svg></div>
+                  <div style="font:600 16px Inter;margin-bottom:6px;">{{ inboxEmptyTitle }}</div>
+                  <div style="font:400 14px Inter;color:var(--text-muted);">{{ inboxEmptySub }}</div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <!-- ============ RIWAYAT ============ -->
+          <sc-if value="{{ tabHistory }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+                <div style="position:relative;flex:1;min-width:220px;">
+                  <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);display:flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>
+                  <input value="{{ hq }}" onInput="{{ onHq }}" placeholder="{{ phHistory }}" style="width:100%;padding:9px 12px 9px 35px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+                </div>
+                <div style="position:relative;"><select value="{{ hStatus }}" onChange="{{ onHStatus }}" style="appearance:none;padding:9px 32px 9px 12px;font:500 13.5px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;outline:none;cursor:pointer;" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"><sc-for list="{{ statusFilterOpts }}" as="o" hint-placeholder-count="5"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-dimmed);pointer-events:none;display:flex;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>
+              </div>
+              <sc-if value="{{ hasHistory }}" hint-placeholder-val="{{ true }}">
+                <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow);overflow:hidden;">
+                  <div style="overflow-x:auto;">
+                    <table style="width:100%;border-collapse:collapse;font:400 13.5px Inter;white-space:nowrap;">
+                      <thead><tr style="background:var(--bg-muted);">
+                        <th style="text-align:left;padding:11px 16px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ thAset }}</th>
+                        <th style="text-align:left;padding:11px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ thRute }}</th>
+                        <th style="text-align:left;padding:11px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ thTanggal }}</th>
+                        <th style="text-align:left;padding:11px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ thPelaku }}</th>
+                        <th style="text-align:left;padding:11px 14px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ thStatus }}</th>
+                        <th style="text-align:left;padding:11px 16px;font:600 12px Inter;text-transform:uppercase;color:var(--text-muted);">{{ thBast }}</th>
+                      </tr></thead>
+                      <tbody>
+                        <sc-for list="{{ histRows }}" as="h" hint-placeholder-count="5">
+                          <tr style="border-top:1px solid var(--border);background:{{ h.rowBg }};" style-hover="background:var(--bg-muted);">
+                            <td style="padding:12px 16px;"><div style="display:flex;align-items:center;gap:6px;"><span style="font:500 13.5px Inter;color:var(--text);">{{ h.nama }}</span><sc-if value="{{ h.inter }}" hint-placeholder-val="{{ false }}"><span title="{{ interBadge }}" style="display:flex;color:var(--violet);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg></span></sc-if></div><div style="font:400 11.5px 'JetBrains Mono',monospace;color:var(--text-dimmed);">{{ h.tag }}</div></td>
+                            <td style="padding:12px 14px;"><div style="display:flex;align-items:center;gap:7px;"><span style="color:var(--text-muted);">{{ h.asal }}</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span style="color:var(--text);font-weight:500;">{{ h.tujuan }}</span></div></td>
+                            <td style="padding:12px 14px;color:var(--text-muted);">{{ h.tgl }}</td>
+                            <td style="padding:12px 14px;"><div style="display:flex;align-items:center;gap:8px;"><span style="width:26px;height:26px;border-radius:50%;background:var(--bg-muted);color:var(--text-muted);display:flex;align-items:center;justify-content:center;font:600 10px Inter;flex:none;">{{ h.ini }}</span><span style="color:var(--text);">{{ h.by }}</span></div></td>
+                            <td style="padding:12px 14px;"><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;font:600 12px Inter;border-radius:999px;background:{{ h.stBg }};color:{{ h.stFg }};"><span style="width:6px;height:6px;border-radius:50%;background:{{ h.stDot }};"></span>{{ h.stLabel }}</span></td>
+                            <td style="padding:12px 16px;"><sc-if value="{{ h.hasBast }}" hint-placeholder-val="{{ true }}"><button style="display:inline-flex;align-items:center;gap:6px;font:500 12.5px 'JetBrains Mono',monospace;color:var(--primary);background:transparent;border:none;cursor:pointer;padding:0;" style-hover="text-decoration:underline;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>{{ h.bast }}</button></sc-if><sc-if value="{{ h.noBast }}" hint-placeholder-val="{{ false }}"><span style="font:400 12.5px Inter;color:var(--text-dimmed);">—</span></sc-if></td>
+                          </tr>
+                        </sc-for>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div style="padding:12px 16px;border-top:1px solid var(--border);font:400 13px Inter;color:var(--text-muted);">{{ histInfo }}</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ noHistory }}" hint-placeholder-val="{{ false }}">
+                <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:54px 24px;text-align:center;">
+                  <div style="width:54px;height:54px;margin:0 auto 14px;border-radius:14px;background:var(--bg-muted);color:var(--text-dimmed);display:flex;align-items:center;justify-content:center;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></div>
+                  <div style="font:600 16px Inter;margin-bottom:6px;">{{ noHistTitle }}</div>
+                  <div style="font:400 14px Inter;color:var(--text-muted);">{{ noHistSub }}</div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <sc-if value="{{ comboOpen }}" hint-placeholder-val="{{ false }}"><div onClick="{{ closeCombo }}" style="position:fixed;inset:0;z-index:15;"></div></sc-if>
+</div>
+</x-dc>
+<template id="__bundler_thumbnail" data-bg-color="#0b1220">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#0b1220"/>
+    <circle cx="470" cy="400" r="70" fill="none" stroke="#22c55e" stroke-width="16"/>
+    <circle cx="730" cy="400" r="70" fill="none" stroke="#3b82f6" stroke-width="16"/>
+    <path d="M545 400 h110 M615 365 l40 35 -40 35" fill="none" stroke="#4ade80" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</template>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;id&quot;,&quot;en&quot;],&quot;default&quot;:&quot;id&quot;,&quot;tsType&quot;:&quot;'id' | 'en'&quot;},&quot;tab&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ajukan&quot;,&quot;inbox&quot;,&quot;history&quot;],&quot;default&quot;:&quot;ajukan&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;collapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;primaryColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#16a34a&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const ICONS={
+  dashboard:[['rect',{x:3,y:3,width:7,height:9,rx:1}],['rect',{x:14,y:3,width:7,height:5,rx:1}],['rect',{x:14,y:12,width:7,height:9,rx:1}],['rect',{x:3,y:16,width:7,height:5,rx:1}]],
+  box:[['path',{d:'M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2'}],['path',{d:'M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'}],['path',{d:'M9 13h6'}]],
+  clipboard:[['rect',{x:5,y:4,width:14,height:17,rx:2}],['path',{d:'M9 4V3h6v1'}],['path',{d:'M9 13l2 2 4-4'}]],
+  wrench:[['path',{d:'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.7 2.7-2-2z'}]],
+  approval:[['path',{d:'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'}],['path',{d:'M9 11l3 3 8-8'}]],
+  chart:[['path',{d:'M3 3v18h18'}],['path',{d:'M7 16v-5M12 16V8M17 16v-3'}]],
+  database:[['path',{d:'M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3z'}],['path',{d:'M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6'}],['path',{d:'M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6'}]],
+  settings:[['circle',{cx:12,cy:12,r:3}],['path',{d:'M19.4 15a1.6 1.6 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0 1.6 1.6 0 0 0-2.7-1.1 2 2 0 1 1-2.8-2.8A1.6 1.6 0 0 0 3 13.6a2 2 0 0 1 0-3.2A1.6 1.6 0 0 0 4.6 7a2 2 0 1 1 2.8-2.8A1.6 1.6 0 0 0 10 4.6V3a2 2 0 0 1 4 0 1.6 1.6 0 0 0 2.7 1.1A2 2 0 1 1 19.5 7a1.6 1.6 0 0 0-1 2.4 2 2 0 0 1 0 3.2z'}]],
+  transfer:[['path',{d:'M5 9l4-4M5 9l4 4M5 9h11a3 3 0 0 1 0 6h-1'}]],
+  inbox:[['path',{d:'M22 12h-6l-2 3h-4l-2-3H2'}],['path',{d:'M5.5 5.5 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.5A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.5z'}]],
+  history:[['path',{d:'M3 12a9 9 0 1 0 3-6.7L3 8'}],['path',{d:'M3 3v5h5'}],['path',{d:'M12 8v4l3 2'}]],
+  check:[['circle',{cx:12,cy:12,r:9}],['polyline',{points:'8.5 12 11 14.5 15.5 9.5'}]],
+  alert:[['circle',{cx:12,cy:12,r:9}],['path',{d:'M12 8v4M12 16h.01'}]],
+  projector:[['rect',{x:2,y:7,width:20,height:11,rx:2}],['circle',{cx:14,cy:12.5,r:3}],['path',{d:'M6 11h.01'}]],
+  server:[['rect',{x:3,y:4,width:18,height:7,rx:2}],['rect',{x:3,y:13,width:18,height:7,rx:2}],['path',{d:'M7 7.5h.01M7 16.5h.01'}]],
+  printer:[['path',{d:'M6 9V3h12v6'}],['rect',{x:4,y:9,width:16,height:8,rx:2}],['path',{d:'M7 17h10v4H7z'}]],
+};
+function mk(key,size,sw){const d=ICONS[key]||ICONS.box;return React.createElement('svg',{width:size||18,height:size||18,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:sw||2,strokeLinecap:'round',strokeLinejoin:'round',style:{flex:'none'}},d.map((x,i)=>React.createElement(x[0],{...x[1],key:i})));}
+const L=(id,en)=>({id,en});
+const NAV=[
+  { label:L('Operasional','Operational'), items:[
+    { label:L('Dashboard','Dashboard'), icon:'dashboard' },{ label:L('Aset','Assets'), icon:'box' },{ label:L('Penugasan','Assignments'), icon:'clipboard' },
+    { label:L('Mutasi Aset','Transfers'), icon:'transfer', active:true, badge:2 },
+    { label:L('Maintenance','Maintenance'), icon:'wrench' },{ label:L('Pengajuan','Requests'), icon:'approval' },{ label:L('Laporan','Reports'), icon:'chart' },
+  ]},
+  { label:L('Administrasi','Administration'), items:[{ label:L('Master Data','Master Data'), icon:'database' },{ label:L('Pengaturan','Settings'), icon:'settings' }]},
+];
+// office tree with region for inter-region detection
+const MY='Kantor Cabang Jakarta Selatan'; const MY_REGION='Kanwil III Jakarta';
+const OFFICES=[
+  {v:'Kantor Cabang Jakarta Pusat',region:'Kanwil III Jakarta'},
+  {v:'Kantor Cabang Pembantu Kemang',region:'Kanwil III Jakarta'},
+  {v:'Kantor Cabang Bekasi',region:'Kanwil III Jakarta'},
+  {v:'Kantor Cabang Bandung',region:'Kanwil IV Bandung'},
+  {v:'Kantor Cabang Surabaya',region:'Kanwil VI Surabaya'},
+  {v:'Kantor Cabang Medan',region:'Kanwil I Medan'},
+];
+const AVAILABLE=[
+  {tag:'JKT01-ELK-2026-00002',nama:'Proyektor Epson EB-X51',asal:MY,icon:'projector'},
+  {tag:'JKT01-ITX-2025-00014',nama:'Server Dell PowerEdge R750',asal:MY,icon:'server'},
+  {tag:'JKT01-ELK-2025-00025',nama:'Scanner Fujitsu fi-7160',asal:MY,icon:'printer'},
+  {tag:'JKT01-ITX-2025-00022',nama:'Switch Cisco Catalyst 1000',asal:MY,icon:'server'},
+];
+const KOND={baik:{label:L('Baik','Good'),bg:'var(--success-soft-bg)',fg:'var(--success-soft-text)'},ringan:{label:L('Rusak Ringan','Minor Damage'),bg:'var(--warning-soft-bg)',fg:'var(--warning-soft-text)'},berat:{label:L('Rusak Berat','Major Damage'),bg:'var(--error-soft-bg)',fg:'var(--error-soft-text)'}};
+const RUANG=['Ruang Server','Ruang Operasional','Ruang IT','Gudang Aset','Lobi'];
+const ST={
+  diajukan:{label:L('Diajukan','Submitted'),bg:'var(--warning-soft-bg)',fg:'var(--warning-soft-text)',dot:'var(--warning)'},
+  disetujui:{label:L('Disetujui','Approved'),bg:'var(--info-soft-bg)',fg:'var(--info-soft-text)',dot:'var(--info)'},
+  in_transfer:{label:L('in_transfer','in_transfer'),bg:'var(--info-soft-bg)',fg:'var(--info-soft-text)',dot:'var(--info)'},
+  diterima:{label:L('Diterima','Received'),bg:'var(--success-soft-bg)',fg:'var(--success-soft-text)',dot:'var(--success)'},
+  ditolak:{label:L('Ditolak','Rejected'),bg:'var(--error-soft-bg)',fg:'var(--error-soft-text)',dot:'var(--error)'},
+};
+const INBOX0=[
+  {id:'i1',tag:'BDG02-ELK-2025-00031',nama:'Proyektor BenQ MW550',asal:'Kantor Cabang Bandung',asalRegion:'Kanwil IV Bandung',by:'Hendra Wijaya',ini:'HW',tgl:'30 Jun 2026',kondisi:'baik',alasan:'Realokasi untuk ruang rapat cabang Jakarta Selatan.',icon:'projector'},
+  {id:'i2',tag:'JKT02-ITX-2024-00088',nama:'Firewall FortiGate 100F',asal:'Kantor Cabang Jakarta Pusat',asalRegion:'Kanwil III Jakarta',by:'Fajar Nugroho',ini:'FN',tgl:'01 Jul 2026',kondisi:'baik',alasan:'Konsolidasi perangkat jaringan.',icon:'server'},
+];
+const HIST0=[
+  {id:'h1',tag:'JKT01-ELK-2026-00008',nama:'Laptop MacBook Air M3',asal:MY,asalRegion:MY_REGION,tujuan:'Kantor Cabang Bekasi',tujuanRegion:'Kanwil III Jakarta',tgl:'28 Jun 2026',by:'Dewi Lestari',ini:'DL',status:'diterima',bast:'BAST/2026/06/0142'},
+  {id:'h2',tag:'JKT01-KEN-2024-00004',nama:'Honda Vario 160',asal:MY,asalRegion:MY_REGION,tujuan:'Kantor Cabang Surabaya',tujuanRegion:'Kanwil VI Surabaya',tgl:'25 Jun 2026',by:'Dewi Lestari',ini:'DL',status:'in_transfer',bast:'BAST/2026/06/0138'},
+  {id:'h3',tag:'JKT01-ELK-2025-00018',nama:'UPS APC Smart-UPS 1500',asal:MY,asalRegion:MY_REGION,tujuan:'Kantor Cabang Pembantu Kemang',tujuanRegion:'Kanwil III Jakarta',tgl:'20 Jun 2026',by:'Andi Saputra',ini:'AS',status:'diterima',bast:'BAST/2026/06/0125'},
+  {id:'h4',tag:'JKT01-ELK-2024-00021',nama:'Printer HP LaserJet Pro',asal:MY,asalRegion:MY_REGION,tujuan:'Kantor Cabang Medan',tujuanRegion:'Kanwil I Medan',tgl:'18 Jun 2026',by:'Dewi Lestari',ini:'DL',status:'diajukan',bast:null},
+  {id:'h5',tag:'JKT01-FUR-2023-00007',nama:'Meja Rapat Kayu 10-Seat',asal:MY,asalRegion:MY_REGION,tujuan:'Kantor Cabang Bandung',tujuanRegion:'Kanwil IV Bandung',tgl:'12 Jun 2026',by:'Andi Saputra',ini:'AS',status:'ditolak',bast:null},
+];
+const MON=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const CH={
+  id:{ pageTitle:'Mutasi Aset', myOfficeF:(o)=>o,
+    flowLabel:'Alur', flow:[['diajukan','Diajukan'],['disetujui','Disetujui'],['in_transfer','in_transfer'],['diterima','Diterima']],
+    tabs:[['ajukan','Ajukan Mutasi','transfer'],['inbox','Kotak Masuk','inbox'],['history','Riwayat','history']],
+    lAset:'Aset (hanya status tersedia)', phAset:'Cari nama / kode aset…', asetHint:'Aset berstatus "Dipinjam" harus di-check-in dulu sebelum bisa dimutasi.', noAvail:'Tidak ada aset tersedia',
+    lAsal:'Kantor Asal', lTujuan:'Kantor Tujuan', lRuangan:'Ruangan Tujuan', ruanganNone:'— (Belum ditentukan)', lTanggal:'Tanggal Mutasi', lKondisi:'Kondisi Saat Dikirim', lAlasan:'Alasan Mutasi',
+    phPilih:'Pilih kantor tujuan…', phAlasan:'mis. Realokasi perangkat sesuai kebutuhan cabang tujuan…', resetLbl:'Reset', submitLbl:'Ajukan Mutasi',
+    interRegionTitle:'Mutasi antar-wilayah', interRegionNote:'Tujuan berada di wilayah berbeda. Mutasi ini memerlukan persetujuan Kepala Kanwil kedua sisi sebelum aset dikirim.',
+    inSubtreeNote:'Mutasi dalam satu wilayah — cukup persetujuan Kepala Unit.',
+    coErr:'Lengkapi aset, kantor tujuan, dan tanggal mutasi.', coOkF:(n,t)=>'Mutasi "'+n+'" ke '+t+' berhasil diajukan.',
+    inTransferLbl:'in_transfer', interBadge:'Antar-Wilayah', byLabel:'Diajukan oleh', kondisiLabel:'Kondisi kirim:',
+    rejectLbl:'Tolak Terima', acceptLbl:'Terima', acceptOkF:(n)=>'Aset "'+n+'" diterima. Lokasi & status diperbarui menjadi Tersedia di kantor Anda.', rejectOkF:(n)=>'Penerimaan "'+n+'" ditolak dan dikembalikan ke kantor asal.',
+    inboxEmptyTitle:'Kotak masuk kosong', inboxEmptySub:'Tidak ada aset yang sedang dikirim ke kantor Anda.',
+    phHistory:'Cari aset / kantor…', thAset:'Aset', thRute:'Asal → Tujuan', thTanggal:'Tanggal', thPelaku:'Pelaku', thStatus:'Status', thBast:'No. BAST',
+    noHistTitle:'Belum ada riwayat', noHistSub:'Belum ada mutasi yang cocok dengan filter.',
+    statusFilter:[['all','Semua Status'],['diajukan','Diajukan'],['in_transfer','in_transfer'],['diterima','Diterima'],['ditolak','Ditolak']],
+    histInfoF:(n)=>'Total '+n+' mutasi', kondisiOptsUse:true },
+  en:{ pageTitle:'Asset Transfers', myOfficeF:(o)=>o,
+    flowLabel:'Flow', flow:[['diajukan','Submitted'],['disetujui','Approved'],['in_transfer','in_transfer'],['diterima','Received']],
+    tabs:[['ajukan','New Transfer','transfer'],['inbox','Inbox','inbox'],['history','History','history']],
+    lAset:'Asset (available only)', phAset:'Search asset name / code…', asetHint:'Assets with status "In use" must be checked in before they can be transferred.', noAvail:'No available assets',
+    lAsal:'Origin Office', lTujuan:'Destination Office', lRuangan:'Destination Room', ruanganNone:'— (Not set)', lTanggal:'Transfer Date', lKondisi:'Condition When Sent', lAlasan:'Transfer Reason',
+    phPilih:'Select destination…', phAlasan:'e.g. Reallocate equipment to the destination branch…', resetLbl:'Reset', submitLbl:'Submit Transfer',
+    interRegionTitle:'Inter-region transfer', interRegionNote:'The destination is in a different region. This transfer needs approval from the Regional Head on both sides before the asset ships.',
+    inSubtreeNote:'Within-region transfer — Unit Head approval is enough.',
+    coErr:'Complete asset, destination, and transfer date.', coOkF:(n,t)=>'Transfer of "'+n+'" to '+t+' submitted.',
+    inTransferLbl:'in_transfer', interBadge:'Inter-Region', byLabel:'Submitted by', kondisiLabel:'Sent condition:',
+    rejectLbl:'Reject', acceptLbl:'Accept', acceptOkF:(n)=>'Asset "'+n+'" received. Location & status updated to Available at your office.', rejectOkF:(n)=>'Receipt of "'+n+'" rejected and returned to origin.',
+    inboxEmptyTitle:'Inbox is empty', inboxEmptySub:'No assets are currently being shipped to your office.',
+    phHistory:'Search asset / office…', thAset:'Asset', thRute:'Origin → Destination', thTanggal:'Date', thPelaku:'Actor', thStatus:'Status', thBast:'BAST No.',
+    noHistTitle:'No history', noHistSub:'No transfer matches the filter.',
+    statusFilter:[['all','All Status'],['diajukan','Submitted'],['in_transfer','in_transfer'],['diterima','Received'],['ditolak','Rejected']],
+    histInfoF:(n)=>'Total '+n+' transfers', kondisiOptsUse:true },
+};
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef=React.createRef();
+    this.state={
+      theme:(props.theme==='dark'?'dark':'light'), lang:(props.lang==='en'?'en':'id'), collapsed:!!props.collapsed,
+      tab:(props.tab||'ajukan'),
+      coTag:'', coQuery:'', comboOpen:false, coTujuan:'', coRuangan:'', coTgl:'', coKondisi:'baik', coAlasan:'', ajMsg:null,
+      inbox:INBOX0.slice(), inboxMsg:null,
+      hist:HIST0.slice(), hq:'', hStatus:'all',
+      seq:1,
+    };
+    this._tt=false;this._tl=false;this._tc=false;this._t1=null;this._t2=null;
+  }
+  componentDidMount(){ this.applyPrimary(); }
+  componentDidUpdate(){ this.applyPrimary(); }
+  componentWillUnmount(){ if(this._t1)clearTimeout(this._t1); if(this._t2)clearTimeout(this._t2); }
+  applyPrimary(){ const c=this.props.primaryColor,el=this.rootRef.current; if(el&&c) el.style.setProperty('--primary',c); }
+  effTheme(){ return this._tt?this.state.theme:(this.props.theme||'light'); }
+  effLang(){ return this._tl?this.state.lang:(this.props.lang||'id'); }
+  effCollapsed(){ return this._tc?this.state.collapsed:!!this.props.collapsed; }
+  fmt(t){ if(!t)return ''; const d=new Date(t); return d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear(); }
+  regionOf(office){ const o=OFFICES.find(x=>x.v===office); return o?o.region:MY_REGION; }
+  submitMutasi(){
+    const lang=this.effLang(); const ch=CH[lang]; const s=this.state;
+    if(!s.coTag||!s.coTujuan||!s.coTgl){ this.setState({ajMsg:{text:ch.coErr,type:'error'}}); return; }
+    const av=AVAILABLE.find(a=>a.tag===s.coTag);
+    const inter=this.regionOf(s.coTujuan)!==MY_REGION;
+    const rec={id:'n'+s.seq,tag:av.tag,nama:av.nama,asal:MY,asalRegion:MY_REGION,tujuan:s.coTujuan,tujuanRegion:this.regionOf(s.coTujuan),tgl:s.coTgl,by:'Dewi Lestari',ini:'DL',status:'diajukan',bast:null};
+    this.setState(st=>({ hist:[rec,...st.hist], seq:st.seq+1, coTag:'',coQuery:'',comboOpen:false,coTujuan:'',coRuangan:'',coTgl:'',coKondisi:'baik',coAlasan:'',
+      ajMsg:{text:ch.coOkF(av.nama,s.coTujuan),type:'ok'} }));
+    if(this._t1)clearTimeout(this._t1); this._t1=setTimeout(()=>this.setState({ajMsg:null}),4500);
+  }
+  acceptInbox(item){ const lang=this.effLang(); const ch=CH[lang];
+    this.setState(st=>({ inbox:st.inbox.filter(x=>x.id!==item.id),
+      hist:[{id:'r'+st.seq,tag:item.tag,nama:item.nama,asal:item.asal,asalRegion:item.asalRegion,tujuan:MY,tujuanRegion:MY_REGION,tgl:this.fmt(new Date().toISOString().slice(0,10)),by:'Dewi Lestari',ini:'DL',status:'diterima',bast:'BAST/2026/07/0'+(150+st.seq)},...st.hist],
+      seq:st.seq+1, inboxMsg:{text:ch.acceptOkF(item.nama),type:'ok'} }));
+    if(this._t2)clearTimeout(this._t2); this._t2=setTimeout(()=>this.setState({inboxMsg:null}),4500);
+  }
+  rejectInbox(item){ const lang=this.effLang(); const ch=CH[lang];
+    this.setState(st=>({ inbox:st.inbox.filter(x=>x.id!==item.id), inboxMsg:{text:ch.rejectOkF(item.nama),type:'error'} }));
+    if(this._t2)clearTimeout(this._t2); this._t2=setTimeout(()=>this.setState({inboxMsg:null}),4500);
+  }
+  renderVals(){
+    const s=this.state; const theme=this.effTheme(),lang=this.effLang(),collapsed=this.effCollapsed();
+    const isDark=theme==='dark'; const ch=CH[lang];
+    const nav=NAV.map(g=>({label:g.label[lang],items:g.items.map(it=>({
+      label:it.label[lang],icon:mk(it.icon,18,1.9),badge:it.badge,badgeExp:!!it.badge&&!collapsed,
+      bg:it.active?'var(--primary-soft-bg)':'transparent',fg:it.active?'var(--primary-soft-text)':'var(--text-muted)',
+      weight:it.active?'600':'500',accent:it.active?'var(--primary)':'transparent',hoverBg:it.active?'var(--primary-soft-bg)':'var(--bg-muted)',
+    }))}));
+
+    const flowSteps=ch.flow.map((f,i)=>{ const st=ST[f[0]]; return {label:f[1],bg:st.bg,fg:st.fg,dot:st.dot,arrow:i<ch.flow.length-1}; });
+
+    const inboxCount=s.inbox.length;
+    const tabs=ch.tabs.map(([k,label,icon])=>({
+      label, on:()=>this.setState({tab:k}), icon:mk(icon,15,2),
+      color:s.tab===k?'var(--text)':'var(--text-muted)', border:s.tab===k?'2px solid var(--primary)':'2px solid transparent', weight:s.tab===k?'600':'500',
+      hasBadge:k==='inbox'&&inboxCount>0, badge:String(inboxCount),
+      badgeBg:s.tab===k?'var(--primary-soft-bg)':'var(--bg-muted)', badgeFg:s.tab===k?'var(--primary-soft-text)':'var(--text-muted)',
+    }));
+
+    const kondisiOpts=Object.keys(KOND).map(k=>({v:k,label:KOND[k].label[lang]}));
+
+    // combobox
+    const q=s.coQuery.trim().toLowerCase();
+    const availFiltered=AVAILABLE.filter(a=>!q||a.nama.toLowerCase().includes(q)||a.tag.toLowerCase().includes(q)||(s.coTag===a.tag));
+    const availList=availFiltered.map(a=>({nama:a.nama,tag:a.tag,asal:a.asal,pick:()=>this.setState({coTag:a.tag,coQuery:a.nama,comboOpen:false})}));
+    const coReady=!!(s.coTag&&s.coTujuan&&s.coTgl);
+    const inter = s.coTujuan && this.regionOf(s.coTujuan)!==MY_REGION;
+    const inSub = s.coTujuan && this.regionOf(s.coTujuan)===MY_REGION;
+
+    // inbox
+    const inboxRows=s.inbox.map(m=>{ const kd=KOND[m.kondisi]||KOND.baik; const inter=m.asalRegion!==MY_REGION; return {
+      nama:m.nama, tag:m.tag, icon:mk(m.icon,20,1.9), asal:m.asal, tujuan:MY, by:m.by, byLabel:ch.byLabel, tgl:m.tgl,
+      kondisi:kd.label[lang], kondBg:kd.bg, kondFg:kd.fg, hasAlasan:!!m.alasan, alasan:m.alasan, inter,
+      cardBd:inter?'color-mix(in srgb,var(--violet) 32%,transparent)':'var(--border)',
+      accept:()=>this.acceptInbox(m), reject:()=>this.rejectInbox(m),
+    };});
+
+    // history
+    const hq=s.hq.trim().toLowerCase();
+    let hist=s.hist.slice();
+    if(s.hStatus!=='all') hist=hist.filter(h=>h.status===s.hStatus || (s.hStatus==='in_transfer'&&h.status==='in_transfer'));
+    if(hq) hist=hist.filter(h=>h.nama.toLowerCase().includes(hq)||h.tag.toLowerCase().includes(hq)||h.tujuan.toLowerCase().includes(hq)||h.asal.toLowerCase().includes(hq));
+    const histRows=hist.map(h=>{ const st=ST[h.status]; const inter=h.tujuanRegion!==h.asalRegion; const hot=h.status==='in_transfer'; return {
+      nama:h.nama, tag:h.tag, asal:h.asal, tujuan:h.tujuan, tgl:h.tgl, by:h.by, ini:h.ini, inter,
+      stLabel:st.label[lang], stBg:st.bg, stFg:st.fg, stDot:st.dot,
+      hasBast:!!h.bast, noBast:!h.bast, bast:h.bast||'',
+      rowBg: hot?'color-mix(in srgb,var(--info) 7%,transparent)':'transparent',
+    };});
+
+    const msgVis=(m)=> m?{show:true,text:m.text,bg:m.type==='ok'?'var(--success-soft-bg)':'var(--error-soft-bg)',fg:m.type==='ok'?'var(--success-soft-text)':'var(--error-soft-text)',bd:m.type==='ok'?'color-mix(in srgb,var(--success) 30%,transparent)':'color-mix(in srgb,var(--error) 30%,transparent)',icon:mk(m.type==='ok'?'check':'alert',17)}:{show:false};
+    const ajM=msgVis(s.ajMsg), inM=msgVis(s.inboxMsg);
+
+    return {
+      rootRef:this.rootRef, theme, isDark, isLight:!isDark, scheme:isDark?'dark':'light',
+      sidebarW:collapsed?'76px':'264px', expanded:!collapsed, collapsed, navJustify:collapsed?'center':'flex-start',
+      toggleCollapse:()=>{this._tc=true;this.setState(x=>({collapsed:!this.effCollapsed()}));},
+      toggleTheme:()=>{this._tt=true;const cur=this.effTheme();this.setState({theme:cur==='light'?'dark':'light'});},
+      setId:()=>{this._tl=true;this.setState({lang:'id'});}, setEn:()=>{this._tl=true;this.setState({lang:'en'});},
+      idBg:lang==='id'?'var(--bg-base)':'transparent', idFg:lang==='id'?'var(--text)':'var(--text-muted)',
+      enBg:lang==='en'?'var(--bg-base)':'transparent', enFg:lang==='en'?'var(--text)':'var(--text-muted)',
+      nav, pageTitle:ch.pageTitle, myOffice:MY,
+      flowLabel:ch.flowLabel, flowSteps,
+      tabs, tabAjukan:s.tab==='ajukan', tabInbox:s.tab==='inbox', tabHistory:s.tab==='history',
+      kondisiOpts, kondisiLabel:ch.kondisiLabel, interBadge:ch.interBadge, inTransferLbl:ch.inTransferLbl,
+      // ajukan
+      lAset:ch.lAset, phAset:ch.phAset, asetHint:ch.asetHint, noAvail:ch.noAvail,
+      coQuery:s.coQuery, onCoInput:(e)=>this.setState({coQuery:e.target.value,comboOpen:true,coTag:''}),
+      openCombo:()=>this.setState({comboOpen:true}), closeCombo:()=>this.setState({comboOpen:false}), comboOpen:s.comboOpen, availList, availEmpty:availList.length===0,
+      lAsal:ch.lAsal, asalKantor:MY, lTujuan:ch.lTujuan, phPilih:ch.phPilih,
+      coTujuan:s.coTujuan, tujuanColor:s.coTujuan?'var(--text)':'var(--text-dimmed)', onCoTujuan:(e)=>this.setState({coTujuan:e.target.value}),
+      tujuanOpts:OFFICES.map(o=>({v:o.v,label:o.v})),
+      interRegion:inter, inSubtree:inSub, interRegionTitle:ch.interRegionTitle, interRegionNote:ch.interRegionNote, inSubtreeNote:ch.inSubtreeNote,
+      lRuangan:ch.lRuangan, ruanganNone:ch.ruanganNone, ruanganOpts:RUANG, coRuangan:s.coRuangan, ruanganColor:s.coRuangan?'var(--text)':'var(--text-dimmed)', onCoRuangan:(e)=>this.setState({coRuangan:e.target.value}),
+      lTanggal:ch.lTanggal, coTgl:s.coTgl, onCoTgl:(e)=>this.setState({coTgl:e.target.value}),
+      lKondisi:ch.lKondisi, coKondisi:s.coKondisi, onCoKondisi:(e)=>this.setState({coKondisi:e.target.value}),
+      lAlasan:ch.lAlasan, phAlasan:ch.phAlasan, coAlasan:s.coAlasan, onCoAlasan:(e)=>this.setState({coAlasan:e.target.value}),
+      resetLbl:ch.resetLbl, resetAj:()=>this.setState({coTag:'',coQuery:'',coTujuan:'',coRuangan:'',coTgl:'',coKondisi:'baik',coAlasan:'',ajMsg:null}),
+      submitLbl:ch.submitLbl, submitMutasi:()=>this.submitMutasi(),
+      ajBtnBg:coReady?'var(--primary)':'var(--text-dimmed)', ajBtnCursor:coReady?'pointer':'not-allowed', ajBtnOpacity:coReady?'1':'.6',
+      ajMsgShow:ajM.show, ajMsg:ajM.text, ajMsgBg:ajM.bg, ajMsgFg:ajM.fg, ajMsgBd:ajM.bd, ajMsgIcon:ajM.icon,
+      // inbox
+      hasInbox:inboxRows.length>0, inboxEmpty:inboxRows.length===0, inboxRows, rejectLbl:ch.rejectLbl, acceptLbl:ch.acceptLbl,
+      inboxEmptyTitle:ch.inboxEmptyTitle, inboxEmptySub:ch.inboxEmptySub,
+      inboxMsgShow:inM.show, inboxMsg:inM.text, inboxMsgBg:inM.bg, inboxMsgFg:inM.fg, inboxMsgBd:inM.bd, inboxMsgIcon:inM.icon,
+      // history
+      hq:s.hq, onHq:(e)=>this.setState({hq:e.target.value}), phHistory:ch.phHistory,
+      hStatus:s.hStatus, onHStatus:(e)=>this.setState({hStatus:e.target.value}), statusFilterOpts:ch.statusFilter.map(o=>({v:o[0],label:o[1]})),
+      thAset:ch.thAset, thRute:ch.thRute, thTanggal:ch.thTanggal, thPelaku:ch.thPelaku, thStatus:ch.thStatus, thBast:ch.thBast,
+      histRows, hasHistory:histRows.length>0, noHistory:histRows.length===0, histInfo:ch.histInfoF(histRows.length),
+      noHistTitle:ch.noHistTitle, noHistSub:ch.noHistSub,
+    };
+  }
+}
+</script>
+</body>
+</html>
