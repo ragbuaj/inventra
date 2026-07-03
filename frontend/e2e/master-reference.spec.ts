@@ -73,9 +73,13 @@ test.describe('Master Data Referensi — sidebar', () => {
 // Province CRUD (no FK dependency)
 // ---------------------------------------------------------------------------
 test.describe('Master Data Referensi — provinces CRUD', () => {
-  // Unique suffix so repeated CI runs don't collide on the same name.
+  // Unique suffix so repeated runs don't collide on the same name — the CODE
+  // must be unique per run too: provinces.code has a partial unique index
+  // (WHERE deleted_at IS NULL) and this spec never deletes its rows, so a
+  // fixed code passes once and then fails every later run on a dev database
+  // with a 23505 duplicate (the modal stays open on the error toast).
   const provinceName = `E2E Provinsi ${Date.now()}`
-  const provinceCode = 'E2'
+  const provinceCode = `E2-${String(Date.now()).slice(-7)}`
 
   test('create a province and assert the row appears in the table', async ({ page }) => {
     await login(page)
@@ -102,7 +106,9 @@ test.describe('Master Data Referensi — provinces CRUD', () => {
     await page.getByRole('button', { name: 'Simpan', exact: true }).click()
 
     // The modal closes and the new province row appears in the table.
-    // Wait for the row containing the province name.
+    // Assert-after-search (project e2e rule): provinces accumulate across runs
+    // on a dev database, so the new row may land beyond page 1.
+    await page.getByPlaceholder('Cari', { exact: true }).fill(provinceName)
     await expect(page.getByText(provinceName, { exact: true })).toBeVisible({ timeout: 10_000 })
   })
 })
@@ -127,9 +133,12 @@ test.describe('Master Data Referensi — cities FK picker (provinces)', () => {
     await page.getByRole('button', { name: 'Tambah', exact: true }).click()
     await expect(page.getByText('Tambah Data', { exact: true })).toBeVisible({ timeout: 5_000 })
     await page.getByLabel('Nama', { exact: true }).fill(provinceName2)
-    await page.getByLabel('Kode', { exact: true }).fill('E3')
+    // Unique per run — same partial-unique-index reasoning as provinceCode above.
+    await page.getByLabel('Kode', { exact: true }).fill(`E3-${String(Date.now()).slice(-7)}`)
     await page.getByRole('button', { name: 'Simpan', exact: true }).click()
-    // Province row must appear before switching resources.
+    // Province row must appear before switching resources (assert-after-search:
+    // rows accumulate across runs, the new one may land beyond page 1).
+    await page.getByPlaceholder('Cari', { exact: true }).fill(provinceName2)
     await expect(page.getByText(provinceName2, { exact: true })).toBeVisible({ timeout: 10_000 })
 
     // --- Step 2: switch to "Kota" ---
@@ -158,14 +167,16 @@ test.describe('Master Data Referensi — cities FK picker (provinces)', () => {
     // Pick the province by clicking its option.
     await page.getByRole('option', { name: provinceName2, exact: true }).click()
 
-    // --- Step 5: fill the city name + code ---
+    // --- Step 5: fill the city name + code (code unique per run — see above) ---
     await page.getByLabel('Nama', { exact: true }).fill(cityName)
-    await page.getByLabel('Kode', { exact: true }).fill('E31')
+    await page.getByLabel('Kode', { exact: true }).fill(`E31-${String(Date.now()).slice(-7)}`)
 
     // --- Step 6: submit ---
     await page.getByRole('button', { name: 'Simpan', exact: true }).click()
 
-    // The modal closes and the city row appears.
+    // The modal closes and the city row appears (assert-after-search — same
+    // accumulation reasoning as the province asserts above).
+    await page.getByPlaceholder('Cari', { exact: true }).fill(cityName)
     await expect(page.getByText(cityName, { exact: true })).toBeVisible({ timeout: 10_000 })
 
     // --- Step 7: assert the city row shows the province NAME (not raw UUID) ---
