@@ -83,3 +83,119 @@ describe('useApiClient requestBlob', () => {
     expect((snapshots[2]!.headers as Record<string, string>).Authorization).toBe('Bearer tok2')
   })
 })
+
+describe('useApiClient refresh single-flight', () => {
+  beforeEach(() => {
+    fetchMock.mockReset()
+    useAuthStore().setSession('tok', { id: '1', name: 'A', email: 'a@b.com', role_id: 'r', role_name: 'Superadmin' }, ['*'])
+  })
+
+  afterEach(() => {
+    useAuthStore().clear()
+  })
+
+  it('concurrent refreshToken calls share ONE /auth/refresh request', async () => {
+    // The backend refresh token is single-use (rotated on each refresh):
+    // two concurrent POST /auth/refresh with the same cookie means the second
+    // 401s and the session is nuked. Concurrent callers MUST share one call.
+    let resolveRefresh!: (v: { access_token: string }) => void
+    fetchMock.mockImplementation((path?: string) => {
+      if (String(path).includes('/auth/refresh')) {
+        return new Promise((resolve) => {
+          resolveRefresh = resolve
+        })
+      }
+      return Promise.resolve({})
+    })
+
+    const w = await mountSuspended(Harness)
+    const api = (w.vm as unknown as { api: ReturnType<typeof useApiClient> }).api
+
+    const p1 = api.refreshToken()
+    const p2 = api.refreshToken()
+    resolveRefresh({ access_token: 'tok-new' })
+
+    const [r1, r2] = await Promise.all([p1, p2])
+    expect(r1).toBe(true)
+    expect(r2).toBe(true)
+    const refreshCalls = fetchMock.mock.calls.filter(c => String(c[0]).includes('/auth/refresh'))
+    expect(refreshCalls).toHaveLength(1)
+    expect(useAuthStore().accessToken).toBe('tok-new')
+  })
+
+  it('concurrent 401-triggered requests share one refresh and both retry successfully', async () => {
+    let resolveRefresh!: (v: { access_token: string }) => void
+    let firstAttempts = 0
+    fetchMock.mockImplementation((path?: string, opts?: Record<string, unknown>) => {
+      const p = String(path)
+      if (p.includes('/auth/refresh')) {
+        return new Promise((resolve) => {
+          resolveRefresh = resolve
+        })
+      }
+      const authz = (opts?.headers as Record<string, string>)?.Authorization
+      if (authz === 'Bearer tok') {
+        firstAttempts += 1
+        return Promise.reject(Object.assign(new Error('unauthorized'), { statusCode: 401 }))
+      }
+      return Promise.resolve({ ok: p })
+    })
+
+    const w = await mountSuspended(Harness)
+    const api = (w.vm as unknown as { api: ReturnType<typeof useApiClient> }).api
+
+    const q1 = api.request<{ ok: string }>('/a')
+    const q2 = api.request<{ ok: string }>('/b')
+    // Let both first attempts 401 and enter the refresh path before resolving it.
+    await new Promise(r => setTimeout(r, 0))
+    resolveRefresh({ access_token: 'tok-new' })
+
+    const [a, b] = await Promise.all([q1, q2])
+    expect(firstAttempts).toBe(2)
+    expect(a.ok).toContain('/a')
+    expect(b.ok).toContain('/b')
+    const refreshCalls = fetchMock.mock.calls.filter(c => String(c[0]).includes('/auth/refresh'))
+    expect(refreshCalls).toHaveLength(1)
+  })
+
+  it('a refresh after a completed one issues a new request (no stale sharing)', async () => {
+    fetchMock.mockImplementation((path?: string) => {
+      if (String(path).includes('/auth/refresh')) {
+        return Promise.resolve({ access_token: 'tok-n' })
+      }
+      return Promise.resolve({})
+    })
+
+    const w = await mountSuspended(Harness)
+    const api = (w.vm as unknown as { api: ReturnType<typeof useApiClient> }).api
+
+    expect(await api.refreshToken()).toBe(true)
+    expect(await api.refreshToken()).toBe(true)
+    const refreshCalls = fetchMock.mock.calls.filter(c => String(c[0]).includes('/auth/refresh'))
+    expect(refreshCalls).toHaveLength(2)
+  })
+
+  it('shared refresh failure propagates false to all concurrent callers', async () => {
+    let rejectRefresh!: (e: unknown) => void
+    fetchMock.mockImplementation((path?: string) => {
+      if (String(path).includes('/auth/refresh')) {
+        return new Promise((_r, reject) => {
+          rejectRefresh = reject
+        })
+      }
+      return Promise.resolve({})
+    })
+
+    const w = await mountSuspended(Harness)
+    const api = (w.vm as unknown as { api: ReturnType<typeof useApiClient> }).api
+
+    const p1 = api.refreshToken()
+    const p2 = api.refreshToken()
+    rejectRefresh(Object.assign(new Error('unauthorized'), { statusCode: 401 }))
+
+    expect(await p1).toBe(false)
+    expect(await p2).toBe(false)
+    const refreshCalls = fetchMock.mock.calls.filter(c => String(c[0]).includes('/auth/refresh'))
+    expect(refreshCalls).toHaveLength(1)
+  })
+})
