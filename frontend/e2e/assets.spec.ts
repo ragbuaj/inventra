@@ -171,7 +171,7 @@ test.describe('Assets — real backend (maker-checker e2e)', () => {
 
     const approveRes = await api.post(`requests/${submitted.id}/approve`, {
       headers: authHeader(checkerToken),
-      data: { decision: 'approve' }
+      data: { note: 'e2e approve' }
     })
     const approved = await apiJson<{ status: string }>(approveRes)
     expect(approved.status).toBe('approved')

@@ -291,8 +291,9 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       field-permission money masking (`purchase_cost`/`accumulated_depreciation`/`book_value`), real
       attachments gallery, tab empty-states for the not-yet-built Assignment/Maintenance/Depreciation
       modules; Form: **create submits `POST /requests` type `asset_create`** (maker-checker — no direct
-      create endpoint), edit is restricted to mutable fields via `PUT /assets/:id` (office/purchase
-      cost/date stay read-only post-creation); Label/Barcode: real barcode/label-PDF endpoints
+      create endpoint), edit is restricted to mutable fields via `PUT /assets/:id` (only `office_id`,
+      `purchase_cost`, `asset_class`, `status` and `tag` stay read-only post-creation — `purchase_date`
+      IS editable in edit mode); Label/Barcode: real barcode/label-PDF endpoints
       (`GET /assets/:id/barcode`, `POST /assets/labels`). `AssetCreatePayload` (backend) widened to the
       full create-form field set. Real-backend e2e rewritten (`frontend/e2e/assets.spec.ts`): API setup
       (office/floor/room/category prereqs, unique per run) → submit `asset_create` → approve as a second
