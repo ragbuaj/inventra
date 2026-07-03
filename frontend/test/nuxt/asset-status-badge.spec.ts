@@ -2,6 +2,8 @@
 import { describe, it, expect } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import AssetStatusBadge from '~/components/asset/AssetStatusBadge.vue'
+import { statusMeta } from '~/constants/assetMeta'
+import type { AssetStatus } from '~/types'
 
 const EXPECTED_ID_LABEL: Record<string, string> = {
   available: 'Tersedia',
@@ -18,6 +20,14 @@ describe('AssetStatusBadge', () => {
     it(`renders the resolved Indonesian label for status "${status}"`, async () => {
       const wrapper = await mountSuspended(AssetStatusBadge, { props: { status } })
       expect(wrapper.text().trim()).toBe(label)
+    })
+  }
+
+  for (const [status, _] of Object.entries(EXPECTED_ID_LABEL)) {
+    it(`renders with the correct color for status "${status}"`, async () => {
+      const wrapper = await mountSuspended(AssetStatusBadge, { props: { status } })
+      const badge = wrapper.findComponent({ name: 'UBadge' })
+      expect(badge.props('color')).toBe(statusMeta[status as AssetStatus].color)
     })
   }
 

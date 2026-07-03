@@ -31,6 +31,6 @@ const dotClass = computed(() => DOT_CLASS[color.value] ?? DOT_CLASS.neutral)
       class="size-1.5 rounded-full"
       :class="dotClass"
     />
-    {{ t(`assets.status.${status}`) }}
+    {{ t(meta?.labelKey ?? `assets.status.${status}`) }}
   </UBadge>
 </template>
