@@ -127,22 +127,77 @@ export interface User {
   created_at: string
 }
 
-export type AssetStatus = 'tersedia' | 'dipinjam' | 'maintenance' | 'dilepas' | 'hilang'
+export type AssetStatus = 'available' | 'assigned' | 'under_maintenance'
+  | 'in_transfer' | 'retired' | 'disposed' | 'lost'
 
 export interface Asset {
-  tag: string
-  nama: string
-  kategori: string
-  brand: string
+  id: string
+  asset_tag: string
+  name: string
+  category_id: string
+  office_id: string
+  brand_id?: string | null
+  model_id?: string | null
+  room_id?: string | null
+  unit_id?: string | null
+  vendor_id?: string | null
+  current_holder_employee_id?: string | null
+  created_by_id?: string | null
   status: AssetStatus
-  kantor: string
-  lokasi: string
-  /** holder name, or '—' when unassigned */
-  holder: string
-  /** buy date YYYY-MM-DD */
-  tgl: string
-  harga: number
-  buku: number
+  asset_class: AssetClass
+  serial_number?: string | null
+  purchase_date?: string | null
+  purchase_cost?: string | null // absent ⇒ masked by field permission
+  book_value?: string | null // absent ⇒ masked
+  accumulated_depreciation?: string | null // absent ⇒ masked
+  salvage_value?: string | null
+  po_number?: string | null
+  funding_source?: string | null
+  warranty_expiry?: string | null
+  capitalized?: boolean
+  depreciation_method?: string | null
+  useful_life_months?: number | null
+  fiscal_group?: string | null
+  fiscal_life_months?: number | null
+  acquisition_bast_no?: string | null
+  excluded_from_valuation?: boolean
+  valuation_exclusion_reason?: string | null
+  notes?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+export interface AssetUpdateInput {
+  name: string
+  category_id: string
+  brand_id?: string | null
+  model_id?: string | null
+  room_id?: string | null
+  unit_id?: string | null
+  vendor_id?: string | null
+  serial_number?: string | null
+  po_number?: string | null
+  funding_source?: string | null
+  purchase_date?: string | null
+  warranty_expiry?: string | null
+  notes?: string | null
+}
+
+export interface AssetCreateInput extends AssetUpdateInput {
+  office_id: string
+  asset_class: AssetClass
+  purchase_cost?: string | null
+}
+
+export interface AssetAttachment {
+  id: string
+  asset_id: string
+  kind: string
+  original_filename: string
+  size_bytes: number
+  mime_type: string
+  has_thumbnail: boolean
+  created_at: string
 }
 
 export interface ReferenceRow {

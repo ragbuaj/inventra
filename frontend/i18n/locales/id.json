@@ -48,8 +48,20 @@
       "dipinjam": "Dipinjam",
       "maintenance": "Maintenance",
       "dilepas": "Dilepas",
-      "hilang": "Hilang"
+      "hilang": "Hilang",
+      "available": "Tersedia",
+      "assigned": "Digunakan",
+      "under_maintenance": "Maintenance",
+      "in_transfer": "Dalam Mutasi",
+      "retired": "Nonaktif",
+      "disposed": "Dilepas",
+      "lost": "Hilang"
     },
+    "class": {
+      "tangible": "Berwujud",
+      "intangible": "Takberwujud"
+    },
+    "masked": "Tersembunyi (izin)",
     "detail": {
       "checkout": "Check-out",
       "printLabel": "Cetak Label",

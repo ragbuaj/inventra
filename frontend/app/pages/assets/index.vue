@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Asset } from '~/types'
+import type { MockAsset } from '~/mock/assets'
 import { useAssets } from '~/composables/api/useAssets'
 import { ASSET_STATUS_KEYS, ASSET_CATEGORIES, ASSET_OFFICES, ASSET_LOCATIONS } from '~/mock/assets'
 
@@ -15,7 +15,7 @@ const { open: confirm } = useConfirm()
 const api = useAssets()
 const localePath = useLocalePath()
 
-const allRows = ref<Asset[]>([])
+const allRows = ref<MockAsset[]>([])
 const loading = ref(true)
 
 const search = ref('')
@@ -26,7 +26,7 @@ const fLokasi = ref(ALL)
 const dateFrom = ref('')
 const dateTo = ref('')
 const view = ref<'table' | 'grid'>('table')
-const sortKey = ref<keyof Asset>('tag')
+const sortKey = ref<keyof MockAsset>('tag')
 const sortDir = ref<'asc' | 'desc'>('asc')
 const page = ref(1)
 const selected = ref<Set<string>>(new Set())
@@ -95,7 +95,7 @@ const pageTags = computed(() => pageRows.value.map(r => r.tag))
 const allChecked = computed(() => pageTags.value.length > 0 && pageTags.value.every(tag => selected.value.has(tag)))
 const selectionCount = computed(() => selected.value.size)
 
-function setSort(key: keyof Asset) {
+function setSort(key: keyof MockAsset) {
   if (sortKey.value === key) {
     sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
   } else {
@@ -103,7 +103,7 @@ function setSort(key: keyof Asset) {
     sortDir.value = 'asc'
   }
 }
-function sortIcon(key: keyof Asset): string | undefined {
+function sortIcon(key: keyof MockAsset): string | undefined {
   if (sortKey.value !== key) return undefined
   return sortDir.value === 'asc' ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'
 }
@@ -146,7 +146,7 @@ function comingSoon() {
   toast.add({ title: t('assets.comingSoon'), color: 'neutral', icon: 'i-lucide-info' })
 }
 
-async function onDelete(asset: Asset) {
+async function onDelete(asset: MockAsset) {
   const ok = await confirm({
     title: t('assets.deleteTitle'),
     description: t('assets.deleteBody', { tag: asset.tag })
@@ -393,13 +393,13 @@ onMounted(async () => {
                 :key="col.key"
                 class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide"
                 :class="col.sortable ? 'cursor-pointer select-none' : ''"
-                @click="col.sortable && setSort(col.key as keyof Asset)"
+                @click="col.sortable && setSort(col.key as keyof MockAsset)"
               >
                 <span class="inline-flex items-center gap-1.5">
                   {{ col.label }}
                   <UIcon
-                    v-if="col.sortable && sortIcon(col.key as keyof Asset)"
-                    :name="sortIcon(col.key as keyof Asset)!"
+                    v-if="col.sortable && sortIcon(col.key as keyof MockAsset)"
+                    :name="sortIcon(col.key as keyof MockAsset)!"
                     class="size-3.5 text-primary"
                   />
                 </span>

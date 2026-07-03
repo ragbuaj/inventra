@@ -1,4 +1,5 @@
-import type { Asset, ListQuery, Paginated } from '~/types'
+import type { ListQuery, Paginated } from '~/types'
+import type { MockAsset } from '~/mock/assets'
 import { fakeLatency, filterBy, paginate } from '~/mock/helpers'
 import { assetStore } from '~/mock/assets'
 
@@ -7,7 +8,7 @@ export interface AssetInput {
   nama: string
   kategori: string
   brand: string
-  status: Asset['status']
+  status: MockAsset['status']
   kantor: string
   lokasi: string
   holder: string
@@ -17,22 +18,22 @@ export interface AssetInput {
 }
 
 export function useAssets() {
-  async function list(query: ListQuery = {}): Promise<Paginated<Asset>> {
+  async function list(query: ListQuery = {}): Promise<Paginated<MockAsset>> {
     await fakeLatency(700)
     return paginate(filterBy(assetStore.all(), query, ['nama', 'tag', 'brand']), query)
   }
 
-  async function get(tag: string): Promise<Asset | undefined> {
+  async function get(tag: string): Promise<MockAsset | undefined> {
     await fakeLatency()
     return assetStore.find(tag)
   }
 
-  async function create(input: AssetInput): Promise<Asset> {
+  async function create(input: AssetInput): Promise<MockAsset> {
     await fakeLatency()
     return assetStore.insert({ ...input })
   }
 
-  async function update(tag: string, input: Partial<AssetInput>): Promise<Asset> {
+  async function update(tag: string, input: Partial<AssetInput>): Promise<MockAsset> {
     await fakeLatency()
     const row = assetStore.update(tag, input)
     if (!row) throw new Error('assets.errNotFound')

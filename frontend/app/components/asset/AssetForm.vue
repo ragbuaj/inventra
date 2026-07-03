@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { Asset } from '~/types'
+import type { MockAsset } from '~/mock/assets'
 import type { AssetInput } from '~/composables/api/useAssets'
 import { useAssets } from '~/composables/api/useAssets'
 
 const props = defineProps<{
   mode: 'new' | 'edit'
-  initial?: Asset | null
+  initial?: MockAsset | null
 }>()
 
 const { t } = useI18n()

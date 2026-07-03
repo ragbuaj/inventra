@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Asset } from '~/types'
+import type { MockAsset } from '~/mock/assets'
 import { useAssets } from '~/composables/api/useAssets'
 
 definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
@@ -9,7 +9,7 @@ const route = useRoute()
 const { get } = useAssets()
 const localePath = useLocalePath()
 
-const asset = ref<Asset | null>(null)
+const asset = ref<MockAsset | null>(null)
 const loading = ref(true)
 
 onMounted(async () => {

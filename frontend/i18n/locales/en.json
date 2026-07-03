@@ -48,8 +48,20 @@
       "dipinjam": "In use",
       "maintenance": "Maintenance",
       "dilepas": "Disposed",
-      "hilang": "Lost"
+      "hilang": "Lost",
+      "available": "Available",
+      "assigned": "Assigned",
+      "under_maintenance": "Under Maintenance",
+      "in_transfer": "In Transfer",
+      "retired": "Retired",
+      "disposed": "Disposed",
+      "lost": "Lost"
     },
+    "class": {
+      "tangible": "Tangible",
+      "intangible": "Intangible"
+    },
+    "masked": "Hidden (permission)",
     "detail": {
       "checkout": "Check-out",
       "printLabel": "Print Label",

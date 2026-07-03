@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { Asset } from '~/types'
+import type { MockAsset } from '~/mock/assets'
 
 defineProps<{
-  asset: Asset
+  asset: MockAsset
   selected: boolean
   showPrice: boolean
   formatDate: (tgl: string) => string

@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import type { Asset } from '~/types'
-import type { AssetCondition } from '~/mock/assets'
+import type { AssetCondition, MockAsset } from '~/mock/assets'
 import { useAssets } from '~/composables/api/useAssets'
 import {
   ASSET_CONDITION_TONE, MAINTENANCE_TYPE_TONE, MAINTENANCE_STATUS_TONE,
@@ -19,7 +18,7 @@ const api = useAssets()
 const localePath = useLocalePath()
 
 const tag = computed(() => String(route.params.tag))
-const asset = ref<Asset | null>(null)
+const asset = ref<MockAsset | null>(null)
 const loading = ref(true)
 const tab = ref<'info' | 'assign' | 'maint' | 'depr'>('info')
 
