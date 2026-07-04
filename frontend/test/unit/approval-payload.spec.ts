@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatRupiah } from '~/utils/money'
+import { formatRupiah } from '~/utils/format'
 import { payloadToView } from '~/utils/approvalPayload'
 import type { ApprovalRequestDetail } from '~/composables/api/useApproval'
 

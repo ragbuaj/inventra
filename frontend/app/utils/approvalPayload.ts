@@ -1,5 +1,5 @@
 import type { ApprovalRequestDetail } from '~/composables/api/useApproval'
-import { formatRupiah } from '~/utils/money'
+import { formatRupiah } from '~/utils/format'
 
 export interface SummaryRow { label: string, value: string }
 export interface DiffRow { label: string, before: string, after: string }
