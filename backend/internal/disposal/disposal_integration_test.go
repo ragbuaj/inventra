@@ -507,7 +507,7 @@ func TestDisposal_Executor_Guard_ErrConflict_PreexistingRow(t *testing.T) {
 
 	// The executor's tx must have rolled back: still exactly one disposal
 	// row (the one we seeded directly) and the asset status unchanged.
-	rows, err := h.q.ListDisposalsByAsset(ctx, sqlc.ListDisposalsByAssetParams{
+	rows, err := h.q.ListDisposalsByAssetEnriched(ctx, sqlc.ListDisposalsByAssetEnrichedParams{
 		AssetID: assetID, AllScope: true, OfficeIds: []uuid.UUID{},
 	})
 	require.NoError(t, err)
@@ -546,7 +546,7 @@ func TestDisposal_Scope_Reads(t *testing.T) {
 	// Get: in-scope caller sees the row.
 	got, err := h.dsvc.Get(ctx, row.ID, false, []uuid.UUID{h.office})
 	require.NoError(t, err)
-	assert.Equal(t, row.ID, got.ID)
+	assert.Equal(t, row.ID, got.DisposalDisposal.ID)
 
 	// Get: out-of-scope caller gets not found.
 	_, err = h.dsvc.Get(ctx, row.ID, false, []uuid.UUID{h.otherOffice})
@@ -557,7 +557,7 @@ func TestDisposal_Scope_Reads(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 1, total)
 	require.Len(t, rows, 1)
-	assert.Equal(t, row.ID, rows[0].ID)
+	assert.Equal(t, row.ID, rows[0].DisposalDisposal.ID)
 
 	// List: out-of-scope caller sees nothing.
 	rows, total, err = h.dsvc.List(ctx, false, []uuid.UUID{h.otherOffice}, 20, 0)
@@ -644,4 +644,57 @@ func TestDisposal_BAST_DocumentAndBastNo(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, refetched.BastNo)
 	assert.Equal(t, "BAST-DISP-001", *refetched.BastNo)
+}
+
+// TestDisposal_EnrichedReads verifies List/Get/ListByAsset return resolved
+// asset/office/actor display names alongside the raw disposal columns.
+// asset_name/asset_tag come from the INNER-joined asset row (never nil, per
+// the disposal-scope join), while office_name/created_by_name are LEFT-joined
+// and exposed as *string.
+func TestDisposal_EnrichedReads(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	assetID := seedAssetWithCost(t, h.pool, "DSP-ENR-1", "Printer HP Lama", h.catID, h.office, "2000000")
+	maker := seedUser(t, h.pool, h.officeRoleID, h.office, "maker.dspenr@test.local")
+	checker := seedUser(t, h.pool, h.officeRoleID, h.office, "checker.dspenr@test.local")
+	makerCaller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.office})
+	checkerCaller := buildCaller(checker, h.officeRoleID, false, []uuid.UUID{h.office})
+
+	req, err := h.dsvc.Submit(ctx, makerCaller, disposal.SubmitInput{
+		AssetID: assetID, Method: "sale", DisposalDate: "2026-07-05",
+	})
+	require.NoError(t, err)
+	final := approveThroughChain(t, h.apprSvc, req.ID, checkerCaller)
+	require.Equal(t, sqlc.SharedRequestStatusApproved, final.Status)
+
+	// List: enriched names resolved for the caller's scope.
+	rows, total, err := h.dsvc.List(ctx, true, nil, 20, 0)
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, total, int64(1))
+	require.NotEmpty(t, rows)
+	assert.Equal(t, "Printer HP Lama", rows[0].AssetName)
+	assert.Equal(t, "DSP-ENR-1", rows[0].AssetTag)
+	require.NotNil(t, rows[0].OfficeName)
+	assert.Equal(t, "Disposal Office", *rows[0].OfficeName)
+	require.NotNil(t, rows[0].CreatedByName)
+	assert.Equal(t, "maker.dspenr@test.local", *rows[0].CreatedByName)
+
+	// Get: same enrichment for a single row.
+	got, err := h.dsvc.Get(ctx, rows[0].DisposalDisposal.ID, true, nil)
+	require.NoError(t, err)
+	assert.Equal(t, "Printer HP Lama", got.AssetName)
+	assert.Equal(t, "DSP-ENR-1", got.AssetTag)
+	require.NotNil(t, got.OfficeName)
+	assert.Equal(t, "Disposal Office", *got.OfficeName)
+	require.NotNil(t, got.CreatedByName)
+	assert.Equal(t, "maker.dspenr@test.local", *got.CreatedByName)
+
+	// ListByAsset: same enrichment scoped to the asset's disposal history.
+	history, err := h.dsvc.ListByAsset(ctx, assetID, true, nil)
+	require.NoError(t, err)
+	require.Len(t, history, 1)
+	assert.Equal(t, "Printer HP Lama", history[0].AssetName)
+	require.NotNil(t, history[0].CreatedByName)
+	assert.Equal(t, "maker.dspenr@test.local", *history[0].CreatedByName)
 }

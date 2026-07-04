@@ -102,42 +102,6 @@ func (q *Queries) CreateDisposal(ctx context.Context, arg CreateDisposalParams) 
 	return i, err
 }
 
-const getDisposal = `-- name: GetDisposal :one
-SELECT d.id, d.asset_id, d.method, d.disposal_date, d.proceeds, d.book_value_at_disposal, d.gain_loss, d.bast_no, d.approved_by_id, d.request_id, d.created_by_id, d.created_at, d.updated_at, d.deleted_at FROM disposal.disposals d
-JOIN asset.assets a ON a.id = d.asset_id
-WHERE d.id = $1 AND d.deleted_at IS NULL
-  AND ($2::boolean OR a.office_id = ANY($3::uuid[]))
-`
-
-type GetDisposalParams struct {
-	ID        uuid.UUID   `json:"id"`
-	AllScope  bool        `json:"all_scope"`
-	OfficeIds []uuid.UUID `json:"office_ids"`
-}
-
-// Scoped: caller must have the asset's office in scope (disposals have no office_id).
-func (q *Queries) GetDisposal(ctx context.Context, arg GetDisposalParams) (DisposalDisposal, error) {
-	row := q.db.QueryRow(ctx, getDisposal, arg.ID, arg.AllScope, arg.OfficeIds)
-	var i DisposalDisposal
-	err := row.Scan(
-		&i.ID,
-		&i.AssetID,
-		&i.Method,
-		&i.DisposalDate,
-		&i.Proceeds,
-		&i.BookValueAtDisposal,
-		&i.GainLoss,
-		&i.BastNo,
-		&i.ApprovedByID,
-		&i.RequestID,
-		&i.CreatedByID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.DeletedAt,
-	)
-	return i, err
-}
-
 const getDisposalByAsset = `-- name: GetDisposalByAsset :one
 SELECT id, asset_id, method, disposal_date, proceeds, book_value_at_disposal, gain_loss, bast_no, approved_by_id, request_id, created_by_id, created_at, updated_at, deleted_at FROM disposal.disposals
 WHERE asset_id = $1 AND deleted_at IS NULL
@@ -167,51 +131,121 @@ func (q *Queries) GetDisposalByAsset(ctx context.Context, assetID uuid.UUID) (Di
 	return i, err
 }
 
-const listDisposals = `-- name: ListDisposals :many
-SELECT d.id, d.asset_id, d.method, d.disposal_date, d.proceeds, d.book_value_at_disposal, d.gain_loss, d.bast_no, d.approved_by_id, d.request_id, d.created_by_id, d.created_at, d.updated_at, d.deleted_at FROM disposal.disposals d
-JOIN asset.assets a ON a.id = d.asset_id
-WHERE d.deleted_at IS NULL
-  AND ($1::boolean OR a.office_id = ANY($2::uuid[]))
-ORDER BY d.created_at DESC
-LIMIT $4 OFFSET $3
+const getDisposalEnriched = `-- name: GetDisposalEnriched :one
+SELECT d.id, d.asset_id, d.method, d.disposal_date, d.proceeds, d.book_value_at_disposal, d.gain_loss, d.bast_no, d.approved_by_id, d.request_id, d.created_by_id, d.created_at, d.updated_at, d.deleted_at,
+       a.name      AS asset_name,
+       a.asset_tag AS asset_tag,
+       o.name      AS office_name,
+       cu.name     AS created_by_name
+FROM disposal.disposals d
+JOIN asset.assets a             ON a.id = d.asset_id
+LEFT JOIN masterdata.offices o  ON o.id = a.office_id       AND o.deleted_at IS NULL
+LEFT JOIN identity.users cu     ON cu.id = d.created_by_id  AND cu.deleted_at IS NULL
+WHERE d.id = $1 AND d.deleted_at IS NULL
+  AND ($2::boolean OR a.office_id = ANY($3::uuid[]))
 `
 
-type ListDisposalsParams struct {
+type GetDisposalEnrichedParams struct {
+	ID        uuid.UUID   `json:"id"`
 	AllScope  bool        `json:"all_scope"`
 	OfficeIds []uuid.UUID `json:"office_ids"`
-	Off       int32       `json:"off"`
-	Lim       int32       `json:"lim"`
 }
 
-func (q *Queries) ListDisposals(ctx context.Context, arg ListDisposalsParams) ([]DisposalDisposal, error) {
-	rows, err := q.db.Query(ctx, listDisposals,
-		arg.AllScope,
-		arg.OfficeIds,
-		arg.Off,
-		arg.Lim,
+type GetDisposalEnrichedRow struct {
+	DisposalDisposal DisposalDisposal `json:"disposal_disposal"`
+	AssetName        string           `json:"asset_name"`
+	AssetTag         string           `json:"asset_tag"`
+	OfficeName       *string          `json:"office_name"`
+	CreatedByName    *string          `json:"created_by_name"`
+}
+
+// Scoped: caller must have the asset's office in scope (disposals have no office_id).
+// The asset JOIN stays the scope anchor (INNER — a disposal always has a live
+// asset) and doubles as the source of asset_name/asset_tag. LEFT JOINs keep the
+// row visible (with nil names) even when a joined office/user was soft-deleted.
+func (q *Queries) GetDisposalEnriched(ctx context.Context, arg GetDisposalEnrichedParams) (GetDisposalEnrichedRow, error) {
+	row := q.db.QueryRow(ctx, getDisposalEnriched, arg.ID, arg.AllScope, arg.OfficeIds)
+	var i GetDisposalEnrichedRow
+	err := row.Scan(
+		&i.DisposalDisposal.ID,
+		&i.DisposalDisposal.AssetID,
+		&i.DisposalDisposal.Method,
+		&i.DisposalDisposal.DisposalDate,
+		&i.DisposalDisposal.Proceeds,
+		&i.DisposalDisposal.BookValueAtDisposal,
+		&i.DisposalDisposal.GainLoss,
+		&i.DisposalDisposal.BastNo,
+		&i.DisposalDisposal.ApprovedByID,
+		&i.DisposalDisposal.RequestID,
+		&i.DisposalDisposal.CreatedByID,
+		&i.DisposalDisposal.CreatedAt,
+		&i.DisposalDisposal.UpdatedAt,
+		&i.DisposalDisposal.DeletedAt,
+		&i.AssetName,
+		&i.AssetTag,
+		&i.OfficeName,
+		&i.CreatedByName,
 	)
+	return i, err
+}
+
+const listDisposalsByAssetEnriched = `-- name: ListDisposalsByAssetEnriched :many
+SELECT d.id, d.asset_id, d.method, d.disposal_date, d.proceeds, d.book_value_at_disposal, d.gain_loss, d.bast_no, d.approved_by_id, d.request_id, d.created_by_id, d.created_at, d.updated_at, d.deleted_at,
+       a.name      AS asset_name,
+       a.asset_tag AS asset_tag,
+       o.name      AS office_name,
+       cu.name     AS created_by_name
+FROM disposal.disposals d
+JOIN asset.assets a             ON a.id = d.asset_id
+LEFT JOIN masterdata.offices o  ON o.id = a.office_id       AND o.deleted_at IS NULL
+LEFT JOIN identity.users cu     ON cu.id = d.created_by_id  AND cu.deleted_at IS NULL
+WHERE d.asset_id = $1 AND d.deleted_at IS NULL
+  AND ($2::boolean OR a.office_id = ANY($3::uuid[]))
+ORDER BY d.created_at DESC
+`
+
+type ListDisposalsByAssetEnrichedParams struct {
+	AssetID   uuid.UUID   `json:"asset_id"`
+	AllScope  bool        `json:"all_scope"`
+	OfficeIds []uuid.UUID `json:"office_ids"`
+}
+
+type ListDisposalsByAssetEnrichedRow struct {
+	DisposalDisposal DisposalDisposal `json:"disposal_disposal"`
+	AssetName        string           `json:"asset_name"`
+	AssetTag         string           `json:"asset_tag"`
+	OfficeName       *string          `json:"office_name"`
+	CreatedByName    *string          `json:"created_by_name"`
+}
+
+func (q *Queries) ListDisposalsByAssetEnriched(ctx context.Context, arg ListDisposalsByAssetEnrichedParams) ([]ListDisposalsByAssetEnrichedRow, error) {
+	rows, err := q.db.Query(ctx, listDisposalsByAssetEnriched, arg.AssetID, arg.AllScope, arg.OfficeIds)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []DisposalDisposal{}
+	items := []ListDisposalsByAssetEnrichedRow{}
 	for rows.Next() {
-		var i DisposalDisposal
+		var i ListDisposalsByAssetEnrichedRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.AssetID,
-			&i.Method,
-			&i.DisposalDate,
-			&i.Proceeds,
-			&i.BookValueAtDisposal,
-			&i.GainLoss,
-			&i.BastNo,
-			&i.ApprovedByID,
-			&i.RequestID,
-			&i.CreatedByID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.DeletedAt,
+			&i.DisposalDisposal.ID,
+			&i.DisposalDisposal.AssetID,
+			&i.DisposalDisposal.Method,
+			&i.DisposalDisposal.DisposalDate,
+			&i.DisposalDisposal.Proceeds,
+			&i.DisposalDisposal.BookValueAtDisposal,
+			&i.DisposalDisposal.GainLoss,
+			&i.DisposalDisposal.BastNo,
+			&i.DisposalDisposal.ApprovedByID,
+			&i.DisposalDisposal.RequestID,
+			&i.DisposalDisposal.CreatedByID,
+			&i.DisposalDisposal.CreatedAt,
+			&i.DisposalDisposal.UpdatedAt,
+			&i.DisposalDisposal.DeletedAt,
+			&i.AssetName,
+			&i.AssetTag,
+			&i.OfficeName,
+			&i.CreatedByName,
 		); err != nil {
 			return nil, err
 		}
@@ -223,44 +257,70 @@ func (q *Queries) ListDisposals(ctx context.Context, arg ListDisposalsParams) ([
 	return items, nil
 }
 
-const listDisposalsByAsset = `-- name: ListDisposalsByAsset :many
-SELECT d.id, d.asset_id, d.method, d.disposal_date, d.proceeds, d.book_value_at_disposal, d.gain_loss, d.bast_no, d.approved_by_id, d.request_id, d.created_by_id, d.created_at, d.updated_at, d.deleted_at FROM disposal.disposals d
-JOIN asset.assets a ON a.id = d.asset_id
-WHERE d.asset_id = $1 AND d.deleted_at IS NULL
-  AND ($2::boolean OR a.office_id = ANY($3::uuid[]))
+const listDisposalsEnriched = `-- name: ListDisposalsEnriched :many
+SELECT d.id, d.asset_id, d.method, d.disposal_date, d.proceeds, d.book_value_at_disposal, d.gain_loss, d.bast_no, d.approved_by_id, d.request_id, d.created_by_id, d.created_at, d.updated_at, d.deleted_at,
+       a.name      AS asset_name,
+       a.asset_tag AS asset_tag,
+       o.name      AS office_name,
+       cu.name     AS created_by_name
+FROM disposal.disposals d
+JOIN asset.assets a             ON a.id = d.asset_id
+LEFT JOIN masterdata.offices o  ON o.id = a.office_id       AND o.deleted_at IS NULL
+LEFT JOIN identity.users cu     ON cu.id = d.created_by_id  AND cu.deleted_at IS NULL
+WHERE d.deleted_at IS NULL
+  AND ($1::boolean OR a.office_id = ANY($2::uuid[]))
 ORDER BY d.created_at DESC
+LIMIT $4 OFFSET $3
 `
 
-type ListDisposalsByAssetParams struct {
-	AssetID   uuid.UUID   `json:"asset_id"`
+type ListDisposalsEnrichedParams struct {
 	AllScope  bool        `json:"all_scope"`
 	OfficeIds []uuid.UUID `json:"office_ids"`
+	Off       int32       `json:"off"`
+	Lim       int32       `json:"lim"`
 }
 
-func (q *Queries) ListDisposalsByAsset(ctx context.Context, arg ListDisposalsByAssetParams) ([]DisposalDisposal, error) {
-	rows, err := q.db.Query(ctx, listDisposalsByAsset, arg.AssetID, arg.AllScope, arg.OfficeIds)
+type ListDisposalsEnrichedRow struct {
+	DisposalDisposal DisposalDisposal `json:"disposal_disposal"`
+	AssetName        string           `json:"asset_name"`
+	AssetTag         string           `json:"asset_tag"`
+	OfficeName       *string          `json:"office_name"`
+	CreatedByName    *string          `json:"created_by_name"`
+}
+
+func (q *Queries) ListDisposalsEnriched(ctx context.Context, arg ListDisposalsEnrichedParams) ([]ListDisposalsEnrichedRow, error) {
+	rows, err := q.db.Query(ctx, listDisposalsEnriched,
+		arg.AllScope,
+		arg.OfficeIds,
+		arg.Off,
+		arg.Lim,
+	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []DisposalDisposal{}
+	items := []ListDisposalsEnrichedRow{}
 	for rows.Next() {
-		var i DisposalDisposal
+		var i ListDisposalsEnrichedRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.AssetID,
-			&i.Method,
-			&i.DisposalDate,
-			&i.Proceeds,
-			&i.BookValueAtDisposal,
-			&i.GainLoss,
-			&i.BastNo,
-			&i.ApprovedByID,
-			&i.RequestID,
-			&i.CreatedByID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.DeletedAt,
+			&i.DisposalDisposal.ID,
+			&i.DisposalDisposal.AssetID,
+			&i.DisposalDisposal.Method,
+			&i.DisposalDisposal.DisposalDate,
+			&i.DisposalDisposal.Proceeds,
+			&i.DisposalDisposal.BookValueAtDisposal,
+			&i.DisposalDisposal.GainLoss,
+			&i.DisposalDisposal.BastNo,
+			&i.DisposalDisposal.ApprovedByID,
+			&i.DisposalDisposal.RequestID,
+			&i.DisposalDisposal.CreatedByID,
+			&i.DisposalDisposal.CreatedAt,
+			&i.DisposalDisposal.UpdatedAt,
+			&i.DisposalDisposal.DeletedAt,
+			&i.AssetName,
+			&i.AssetTag,
+			&i.OfficeName,
+			&i.CreatedByName,
 		); err != nil {
 			return nil, err
 		}

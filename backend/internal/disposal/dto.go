@@ -70,6 +70,18 @@ func toResponse(d sqlc.DisposalDisposal) map[string]any {
 	}
 }
 
+// enrichDisposalMap adds resolved asset/office/actor display names to a
+// serialized disposal. asset_name/asset_tag come from an INNER-joined,
+// non-nullable column (a disposal always has a live asset) so they take plain
+// strings; office_name/created_by_name are LEFT-joined and may be nil.
+func enrichDisposalMap(m map[string]any, assetName, assetTag string, officeName, createdByName *string) map[string]any {
+	m["asset_name"] = assetName
+	m["asset_tag"] = assetTag
+	m["office_name"] = officeName
+	m["created_by_name"] = createdByName
+	return m
+}
+
 // marshalPayload builds the approval payload JSON for a submit.
 func marshalPayload(in SubmitInput) ([]byte, error) {
 	return json.Marshal(DisposalPayload{

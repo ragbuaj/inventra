@@ -55,10 +55,13 @@ type Querier interface {
 	GetAttachment(ctx context.Context, id uuid.UUID) (AssetAssetAttachment, error)
 	GetCategory(ctx context.Context, id uuid.UUID) (MasterdataCategory, error)
 	GetCategoryCode(ctx context.Context, id uuid.UUID) (*string, error)
-	// Scoped: caller must have the asset's office in scope (disposals have no office_id).
-	GetDisposal(ctx context.Context, arg GetDisposalParams) (DisposalDisposal, error)
 	// Guard (office-unscoped): at most one live disposal per asset.
 	GetDisposalByAsset(ctx context.Context, assetID uuid.UUID) (DisposalDisposal, error)
+	// Scoped: caller must have the asset's office in scope (disposals have no office_id).
+	// The asset JOIN stays the scope anchor (INNER — a disposal always has a live
+	// asset) and doubles as the source of asset_name/asset_tag. LEFT JOINs keep the
+	// row visible (with nil names) even when a joined office/user was soft-deleted.
+	GetDisposalEnriched(ctx context.Context, arg GetDisposalEnrichedParams) (GetDisposalEnrichedRow, error)
 	GetEmployee(ctx context.Context, arg GetEmployeeParams) (MasterdataEmployee, error)
 	GetFloor(ctx context.Context, arg GetFloorParams) (MasterdataFloor, error)
 	GetOffice(ctx context.Context, arg GetOfficeParams) (MasterdataOffice, error)
@@ -108,8 +111,8 @@ type Querier interface {
 	// The full non-deleted category set (no pagination) for client-side tree building.
 	ListCategoryTree(ctx context.Context) ([]MasterdataCategory, error)
 	ListDataScopePolicies(ctx context.Context, roleID uuid.UUID) ([]IdentityDataScopePolicy, error)
-	ListDisposals(ctx context.Context, arg ListDisposalsParams) ([]DisposalDisposal, error)
-	ListDisposalsByAsset(ctx context.Context, arg ListDisposalsByAssetParams) ([]DisposalDisposal, error)
+	ListDisposalsByAssetEnriched(ctx context.Context, arg ListDisposalsByAssetEnrichedParams) ([]ListDisposalsByAssetEnrichedRow, error)
+	ListDisposalsEnriched(ctx context.Context, arg ListDisposalsEnrichedParams) ([]ListDisposalsEnrichedRow, error)
 	// Employees (asset custodians) with data-scoping by office.
 	ListEmployees(ctx context.Context, arg ListEmployeesParams) ([]MasterdataEmployee, error)
 	ListFieldPermissionsByRole(ctx context.Context, roleID uuid.UUID) ([]ListFieldPermissionsByRoleRow, error)
