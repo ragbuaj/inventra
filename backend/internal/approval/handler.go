@@ -1,6 +1,7 @@
 package approval
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -40,6 +41,24 @@ func (h *Handler) callerFromCtx(c *gin.Context) (Caller, error) {
 		return Caller{}, err
 	}
 	return Caller{UserID: uid, RoleID: rid, AllScope: all, OfficeIDs: ids}, nil
+}
+
+// filterMap applies field-permission masking for the caller's role on the
+// "requests" entity. Fails closed on ForEntity errors so sensitive amounts
+// are never leaked when the policy store is unavailable.
+func (h *Handler) filterMap(c *gin.Context, m map[string]any) (map[string]any, error) {
+	roleID, err := uuid.Parse(c.GetString(middleware.CtxRoleID))
+	if err != nil {
+		return m, nil
+	}
+	policies, err := h.fieldSvc.ForEntity(c.Request.Context(), roleID, "requests")
+	if err != nil {
+		return nil, err
+	}
+	if policies != nil {
+		authz.FilterView(policies, m)
+	}
+	return m, nil
 }
 
 // svcError maps approval sentinel errors to HTTP status codes.
@@ -171,7 +190,12 @@ func (h *Handler) inbox(c *gin.Context) {
 	}
 	data := make([]map[string]any, 0, len(rows))
 	for _, r := range rows {
-		data = append(data, requestToMap(r))
+		m, err := h.filterMap(c, enrichRequestMap(requestToMap(r.ApprovalRequest), r.RequestedByName, r.RequestedByRole, r.OfficeName))
+		if err != nil {
+			common.WriteError(c, err)
+			return
+		}
+		data = append(data, m)
 	}
 	c.JSON(http.StatusOK, gin.H{"data": data, "total": len(data)})
 }
@@ -192,23 +216,29 @@ func (h *Handler) list(c *gin.Context) {
 	}
 	data := make([]map[string]any, 0, len(rows))
 	for _, r := range rows {
-		data = append(data, requestToMap(r))
+		m, err := h.filterMap(c, enrichRequestMap(requestToMap(r.ApprovalRequest), r.RequestedByName, r.RequestedByRole, r.OfficeName))
+		if err != nil {
+			common.WriteError(c, err)
+			return
+		}
+		data = append(data, m)
 	}
 	c.JSON(http.StatusOK, gin.H{"data": data, "total": total, "limit": limit, "offset": offset})
 }
 
-// get handles GET /requests/:id (returns request + its approval steps).
+// get handles GET /requests/:id (returns enriched request + payload + its approval steps).
 func (h *Handler) get(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	r, steps, err := h.svc.GetWithSteps(c, id)
+	row, steps, err := h.svc.GetWithSteps(c, id)
 	if err != nil {
 		h.svcError(c, err)
 		return
 	}
+	r := row.ApprovalRequest
 	// Enforce data scope: the caller may only view requests within their office scope.
 	all, ids, err := h.scoped.CallerOfficeScope(c, "requests")
 	if err != nil {
@@ -219,8 +249,22 @@ func (h *Handler) get(c *gin.Context) {
 		common.WriteError(c, common.ErrForbidden)
 		return
 	}
-	out := requestToMap(r)
-	out["steps"] = steps
+	out := enrichRequestMap(requestToMap(r), row.RequestedByName, row.RequestedByRole, row.OfficeName)
+	var payload any
+	if len(r.Payload) > 0 {
+		_ = json.Unmarshal(r.Payload, &payload)
+	}
+	out["payload"] = payload
+	stepMaps := make([]map[string]any, 0, len(steps))
+	for _, st := range steps {
+		stepMaps = append(stepMaps, stepToMap(st))
+	}
+	out["steps"] = stepMaps
+	out, err = h.filterMap(c, out)
+	if err != nil {
+		common.WriteError(c, err)
+		return
+	}
 	c.JSON(http.StatusOK, out)
 }
 

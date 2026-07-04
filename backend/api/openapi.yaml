@@ -1444,7 +1444,7 @@ paths:
       tags: [Requests]
       operationId: listRequests
       summary: List approval requests (data-scoped)
-      description: Returns requests within the caller's data scope. No special permission beyond authentication required for listing.
+      description: Returns requests within the caller's data scope. No special permission beyond authentication required for listing. Fields `amount`/`payload`/`reason` may be omitted per role field-permissions.
       security:
         - bearerJWT: []
       parameters:
@@ -1475,7 +1475,7 @@ paths:
       tags: [Requests]
       operationId: listRequestsInbox
       summary: Pending requests awaiting the caller's decision
-      description: Returns requests currently at a step the caller is eligible to approve or reject. Requires the `request.decide` permission.
+      description: Returns requests currently at a step the caller is eligible to approve or reject. Requires the `request.decide` permission. Fields `amount`/`payload`/`reason` may be omitted per role field-permissions.
       security:
         - bearerJWT: []
       responses:
@@ -1494,7 +1494,7 @@ paths:
       tags: [Requests]
       operationId: getRequest
       summary: Get a request by id (with approval steps)
-      description: Returns the request and its full approval step history.
+      description: Returns the request and its full approval step history. Fields `amount`/`payload`/`reason` may be omitted per role field-permissions.
       security:
         - bearerJWT: []
       responses:
@@ -1502,7 +1502,7 @@ paths:
           description: The request with steps
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/RequestWithSteps" }
+              schema: { $ref: "#/components/schemas/RequestDetail" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404":
@@ -3049,7 +3049,7 @@ components:
     Request:
       type: object
       description: An approval request record.
-      required: [id, type, status, amount, current_step, requested_by_id, created_at]
+      required: [id, type, status, current_step, requested_by_id, created_at]
       properties:
         id: { type: string, format: uuid }
         type:
@@ -3067,21 +3067,51 @@ components:
         target_entity: { type: [string, "null"] }
         reason: { type: [string, "null"] }
         requested_by_id: { type: string, format: uuid }
+        requested_by_name:
+          type: [string, "null"]
+          description: Resolved maker display name (null if the user was deleted).
+        requested_by_role:
+          type: [string, "null"]
+          description: Resolved maker role name.
+        office_name:
+          type: [string, "null"]
+          description: Resolved originating office name.
         decided_by_id: { type: [string, "null"], format: uuid }
         decision_note: { type: [string, "null"] }
         created_at: { type: [string, "null"], format: date-time }
 
-    RequestWithSteps:
+    RequestStep:
+      type: object
+      description: One approval-chain step of a request.
+      properties:
+        step_order: { type: integer }
+        required_level:
+          type: string
+          enum: [office, office_subtree, wilayah, pusat]
+        approver_id: { type: [string, "null"], format: uuid }
+        approver_name: { type: [string, "null"] }
+        decision:
+          type: string
+          enum: [pending, approved, rejected, cancelled]
+        note: { type: [string, "null"] }
+        decided_at: { type: [string, "null"], format: date-time }
+
+    RequestDetail:
       allOf:
         - $ref: "#/components/schemas/Request"
         - type: object
           properties:
+            payload:
+              type: [object, "null"]
+              additionalProperties: true
+              description: >-
+                Raw request payload as submitted (AssetCreatePayload /
+                DisposalPayload / TransferPayload shape by type). Absent when
+                masked by field permissions.
             steps:
               type: array
               description: Ordered approval-step history for this request.
-              items:
-                type: object
-                additionalProperties: true
+              items: { $ref: "#/components/schemas/RequestStep" }
 
     RequestList:
       type: object

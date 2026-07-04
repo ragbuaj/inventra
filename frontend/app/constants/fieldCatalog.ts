@@ -19,5 +19,9 @@ export const FIELD_CATALOG: CatalogEntity[] = [
   {
     entity: 'users',
     fields: ['name', 'email', 'role_id', 'office_id', 'employee_id', 'status']
+  },
+  {
+    entity: 'requests',
+    fields: ['amount', 'payload', 'reason']
   }
 ]

@@ -46,7 +46,7 @@ describe('pure helpers', () => {
 describe('useFieldPermission', () => {
   it('getEntities comes from the catalog', () => {
     const ents = useFieldPermission().getEntities()
-    expect(ents.map(e => e.key)).toEqual(['assets', 'users'])
+    expect(ents.map(e => e.key)).toEqual(['assets', 'users', 'requests'])
   })
 
   it('load fetches roles then each role fields; getRules derives restrictions', async () => {

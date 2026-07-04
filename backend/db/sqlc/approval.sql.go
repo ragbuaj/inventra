@@ -298,6 +298,56 @@ func (q *Queries) GetRequest(ctx context.Context, id uuid.UUID) (ApprovalRequest
 	return i, err
 }
 
+const getRequestEnriched = `-- name: GetRequestEnriched :one
+
+SELECT r.id, r.type, r.office_id, r.amount, r.current_step, r.target_entity, r.target_id, r.payload, r.reason, r.status, r.requested_by_id, r.decided_by_id, r.decision_note, r.decided_at, r.created_at, r.updated_at, r.deleted_at,
+       u.name  AS requested_by_name,
+       ro.name AS requested_by_role,
+       o.name  AS office_name
+FROM approval.requests r
+LEFT JOIN identity.users u    ON u.id = r.requested_by_id AND u.deleted_at IS NULL
+LEFT JOIN identity.roles ro   ON ro.id = u.role_id        AND ro.deleted_at IS NULL
+LEFT JOIN masterdata.offices o ON o.id = r.office_id       AND o.deleted_at IS NULL
+WHERE r.id = $1 AND r.deleted_at IS NULL
+`
+
+type GetRequestEnrichedRow struct {
+	ApprovalRequest ApprovalRequest `json:"approval_request"`
+	RequestedByName *string         `json:"requested_by_name"`
+	RequestedByRole *string         `json:"requested_by_role"`
+	OfficeName      *string         `json:"office_name"`
+}
+
+// Enriched read variants: request row + resolved maker/role/office names.
+// LEFT JOINs keep rows visible even when the user/office was soft-deleted.
+func (q *Queries) GetRequestEnriched(ctx context.Context, id uuid.UUID) (GetRequestEnrichedRow, error) {
+	row := q.db.QueryRow(ctx, getRequestEnriched, id)
+	var i GetRequestEnrichedRow
+	err := row.Scan(
+		&i.ApprovalRequest.ID,
+		&i.ApprovalRequest.Type,
+		&i.ApprovalRequest.OfficeID,
+		&i.ApprovalRequest.Amount,
+		&i.ApprovalRequest.CurrentStep,
+		&i.ApprovalRequest.TargetEntity,
+		&i.ApprovalRequest.TargetID,
+		&i.ApprovalRequest.Payload,
+		&i.ApprovalRequest.Reason,
+		&i.ApprovalRequest.Status,
+		&i.ApprovalRequest.RequestedByID,
+		&i.ApprovalRequest.DecidedByID,
+		&i.ApprovalRequest.DecisionNote,
+		&i.ApprovalRequest.DecidedAt,
+		&i.ApprovalRequest.CreatedAt,
+		&i.ApprovalRequest.UpdatedAt,
+		&i.ApprovalRequest.DeletedAt,
+		&i.RequestedByName,
+		&i.RequestedByRole,
+		&i.OfficeName,
+	)
+	return i, err
+}
+
 const getRequestForUpdate = `-- name: GetRequestForUpdate :one
 SELECT id, type, office_id, amount, current_step, target_entity, target_id, payload, reason, status, requested_by_id, decided_by_id, decision_note, decided_at, created_at, updated_at, deleted_at FROM approval.requests WHERE id = $1 AND deleted_at IS NULL FOR UPDATE
 `
@@ -371,6 +421,67 @@ func (q *Queries) ListInboxCandidates(ctx context.Context) ([]ApprovalRequest, e
 	return items, nil
 }
 
+const listInboxCandidatesEnriched = `-- name: ListInboxCandidatesEnriched :many
+SELECT r.id, r.type, r.office_id, r.amount, r.current_step, r.target_entity, r.target_id, r.payload, r.reason, r.status, r.requested_by_id, r.decided_by_id, r.decision_note, r.decided_at, r.created_at, r.updated_at, r.deleted_at,
+       u.name  AS requested_by_name,
+       ro.name AS requested_by_role,
+       o.name  AS office_name
+FROM approval.requests r
+LEFT JOIN identity.users u    ON u.id = r.requested_by_id AND u.deleted_at IS NULL
+LEFT JOIN identity.roles ro   ON ro.id = u.role_id        AND ro.deleted_at IS NULL
+LEFT JOIN masterdata.offices o ON o.id = r.office_id       AND o.deleted_at IS NULL
+WHERE r.deleted_at IS NULL AND r.status = 'pending'
+ORDER BY r.created_at ASC
+`
+
+type ListInboxCandidatesEnrichedRow struct {
+	ApprovalRequest ApprovalRequest `json:"approval_request"`
+	RequestedByName *string         `json:"requested_by_name"`
+	RequestedByRole *string         `json:"requested_by_role"`
+	OfficeName      *string         `json:"office_name"`
+}
+
+func (q *Queries) ListInboxCandidatesEnriched(ctx context.Context) ([]ListInboxCandidatesEnrichedRow, error) {
+	rows, err := q.db.Query(ctx, listInboxCandidatesEnriched)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListInboxCandidatesEnrichedRow{}
+	for rows.Next() {
+		var i ListInboxCandidatesEnrichedRow
+		if err := rows.Scan(
+			&i.ApprovalRequest.ID,
+			&i.ApprovalRequest.Type,
+			&i.ApprovalRequest.OfficeID,
+			&i.ApprovalRequest.Amount,
+			&i.ApprovalRequest.CurrentStep,
+			&i.ApprovalRequest.TargetEntity,
+			&i.ApprovalRequest.TargetID,
+			&i.ApprovalRequest.Payload,
+			&i.ApprovalRequest.Reason,
+			&i.ApprovalRequest.Status,
+			&i.ApprovalRequest.RequestedByID,
+			&i.ApprovalRequest.DecidedByID,
+			&i.ApprovalRequest.DecisionNote,
+			&i.ApprovalRequest.DecidedAt,
+			&i.ApprovalRequest.CreatedAt,
+			&i.ApprovalRequest.UpdatedAt,
+			&i.ApprovalRequest.DeletedAt,
+			&i.RequestedByName,
+			&i.RequestedByRole,
+			&i.OfficeName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listRequestApprovals = `-- name: ListRequestApprovals :many
 SELECT id, request_id, step_order, required_level, approver_id, decision, note, decided_at, created_at, updated_at, deleted_at FROM approval.request_approvals
 WHERE request_id=$1 AND deleted_at IS NULL ORDER BY step_order
@@ -397,6 +508,52 @@ func (q *Queries) ListRequestApprovals(ctx context.Context, requestID uuid.UUID)
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRequestApprovalsEnriched = `-- name: ListRequestApprovalsEnriched :many
+SELECT a.id, a.request_id, a.step_order, a.required_level, a.approver_id, a.decision, a.note, a.decided_at, a.created_at, a.updated_at, a.deleted_at, u.name AS approver_name
+FROM approval.request_approvals a
+LEFT JOIN identity.users u ON u.id = a.approver_id AND u.deleted_at IS NULL
+WHERE a.request_id = $1 AND a.deleted_at IS NULL
+ORDER BY a.step_order
+`
+
+type ListRequestApprovalsEnrichedRow struct {
+	ApprovalRequestApproval ApprovalRequestApproval `json:"approval_request_approval"`
+	ApproverName            *string                 `json:"approver_name"`
+}
+
+func (q *Queries) ListRequestApprovalsEnriched(ctx context.Context, requestID uuid.UUID) ([]ListRequestApprovalsEnrichedRow, error) {
+	rows, err := q.db.Query(ctx, listRequestApprovalsEnriched, requestID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListRequestApprovalsEnrichedRow{}
+	for rows.Next() {
+		var i ListRequestApprovalsEnrichedRow
+		if err := rows.Scan(
+			&i.ApprovalRequestApproval.ID,
+			&i.ApprovalRequestApproval.RequestID,
+			&i.ApprovalRequestApproval.StepOrder,
+			&i.ApprovalRequestApproval.RequiredLevel,
+			&i.ApprovalRequestApproval.ApproverID,
+			&i.ApprovalRequestApproval.Decision,
+			&i.ApprovalRequestApproval.Note,
+			&i.ApprovalRequestApproval.DecidedAt,
+			&i.ApprovalRequestApproval.CreatedAt,
+			&i.ApprovalRequestApproval.UpdatedAt,
+			&i.ApprovalRequestApproval.DeletedAt,
+			&i.ApproverName,
 		); err != nil {
 			return nil, err
 		}
@@ -461,6 +618,87 @@ func (q *Queries) ListRequests(ctx context.Context, arg ListRequestsParams) ([]A
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRequestsEnriched = `-- name: ListRequestsEnriched :many
+SELECT r.id, r.type, r.office_id, r.amount, r.current_step, r.target_entity, r.target_id, r.payload, r.reason, r.status, r.requested_by_id, r.decided_by_id, r.decision_note, r.decided_at, r.created_at, r.updated_at, r.deleted_at,
+       u.name  AS requested_by_name,
+       ro.name AS requested_by_role,
+       o.name  AS office_name
+FROM approval.requests r
+LEFT JOIN identity.users u    ON u.id = r.requested_by_id AND u.deleted_at IS NULL
+LEFT JOIN identity.roles ro   ON ro.id = u.role_id        AND ro.deleted_at IS NULL
+LEFT JOIN masterdata.offices o ON o.id = r.office_id       AND o.deleted_at IS NULL
+WHERE r.deleted_at IS NULL
+  AND ($1::boolean OR r.office_id = ANY($2::uuid[]))
+  AND ($3::shared.request_status IS NULL OR r.status = $3)
+  AND ($4::shared.request_type IS NULL OR r.type = $4)
+ORDER BY r.created_at DESC
+LIMIT $6 OFFSET $5
+`
+
+type ListRequestsEnrichedParams struct {
+	AllScope  bool                 `json:"all_scope"`
+	OfficeIds []uuid.UUID          `json:"office_ids"`
+	Status    *SharedRequestStatus `json:"status"`
+	Type      *SharedRequestType   `json:"type"`
+	Off       int32                `json:"off"`
+	Lim       int32                `json:"lim"`
+}
+
+type ListRequestsEnrichedRow struct {
+	ApprovalRequest ApprovalRequest `json:"approval_request"`
+	RequestedByName *string         `json:"requested_by_name"`
+	RequestedByRole *string         `json:"requested_by_role"`
+	OfficeName      *string         `json:"office_name"`
+}
+
+func (q *Queries) ListRequestsEnriched(ctx context.Context, arg ListRequestsEnrichedParams) ([]ListRequestsEnrichedRow, error) {
+	rows, err := q.db.Query(ctx, listRequestsEnriched,
+		arg.AllScope,
+		arg.OfficeIds,
+		arg.Status,
+		arg.Type,
+		arg.Off,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListRequestsEnrichedRow{}
+	for rows.Next() {
+		var i ListRequestsEnrichedRow
+		if err := rows.Scan(
+			&i.ApprovalRequest.ID,
+			&i.ApprovalRequest.Type,
+			&i.ApprovalRequest.OfficeID,
+			&i.ApprovalRequest.Amount,
+			&i.ApprovalRequest.CurrentStep,
+			&i.ApprovalRequest.TargetEntity,
+			&i.ApprovalRequest.TargetID,
+			&i.ApprovalRequest.Payload,
+			&i.ApprovalRequest.Reason,
+			&i.ApprovalRequest.Status,
+			&i.ApprovalRequest.RequestedByID,
+			&i.ApprovalRequest.DecidedByID,
+			&i.ApprovalRequest.DecisionNote,
+			&i.ApprovalRequest.DecidedAt,
+			&i.ApprovalRequest.CreatedAt,
+			&i.ApprovalRequest.UpdatedAt,
+			&i.ApprovalRequest.DeletedAt,
+			&i.RequestedByName,
+			&i.RequestedByRole,
+			&i.OfficeName,
 		); err != nil {
 			return nil, err
 		}

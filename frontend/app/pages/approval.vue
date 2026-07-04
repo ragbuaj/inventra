@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import type { ApprovalRequest, ReqType, ReqStatus, TimelineAction } from '~/mock/approval'
+import type { ApprovalRequestRow, ApprovalRequestDetail } from '~/composables/api/useApproval'
+import type { RequestType, RequestStatus } from '~/constants/approvalMeta'
 import type { BadgeColor } from '~/types'
 import { useApproval } from '~/composables/api/useApproval'
-import { loc, TYPE_META, STATUS_TONE, REQ_TYPE_KEYS, STATUS_FILTERS, YOU_ACTOR } from '~/mock/approval'
+import { TYPE_META, STATUS_TONE, REQUEST_TYPE_KEYS, STATUS_FILTERS } from '~/constants/approvalMeta'
+import { payloadToView } from '~/utils/approvalPayload'
 
-definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
+definePageMeta({ middleware: 'can', permission: 'request.decide' })
 
 const TONE_SOFT: Record<BadgeColor, string> = {
   primary: 'bg-primary/15 text-primary',
@@ -14,131 +16,256 @@ const TONE_SOFT: Record<BadgeColor, string> = {
   error: 'bg-error/15 text-error',
   neutral: 'bg-muted text-muted'
 }
-const TIMELINE_DOT: Record<TimelineAction | 'pending', string> = {
+const TIMELINE_DOT: Record<string, string> = {
   submitted: 'bg-info',
   approved: 'bg-success',
   rejected: 'bg-error',
+  cancelled: 'bg-muted',
   pending: 'bg-warning'
 }
 
 const { t, locale } = useI18n()
 const api = useApproval()
+const categoriesApi = useCategories()
+const officesApi = useOffices()
 
-const requests = ref<ApprovalRequest[]>([])
+const rows = ref<ApprovalRequestRow[]>([])
+const inboxRows = ref<ApprovalRequestRow[]>([])
 const loading = ref(true)
-const filter = ref<ReqStatus | 'all'>('pending')
-const tipeFilter = ref<ReqType | 'all'>('all')
-const selectedId = ref<string | null>('r1')
+const loadError = ref(false)
+const filter = ref<RequestStatus | 'all'>('pending')
+const typeFilter = ref<RequestType | 'all'>('all')
+const selectedId = ref<string | null>(null)
+const detail = ref<ApprovalRequestDetail | null>(null)
+const detailLoading = ref(false)
 const note = ref('')
 const deciding = ref(false)
 
-const pendingCount = computed(() => requests.value.filter(r => r.status === 'pending').length)
+// FK name lookups for the Data section (same inline pattern as master/employees).
+const categoryMap = ref(new Map<string, string>())
+const officeMap = ref(new Map<string, string>())
+
+const inboxIds = computed(() => new Set(inboxRows.value.map(r => r.id)))
+const pendingCount = computed(() => inboxRows.value.length)
 
 const filterTabs = computed(() => STATUS_FILTERS.map(k => ({ key: k, label: t(`approval.filter.${k}`) })))
 const tipeItems = computed(() => [
   { value: 'all', label: t('approval.allTypes') },
-  ...REQ_TYPE_KEYS.map(k => ({ value: k, label: t(`approval.type.${k}`) }))
+  ...REQUEST_TYPE_KEYS.map(k => ({ value: k, label: t(`approval.type.${k}`) }))
 ])
 
-const filteredList = computed(() => requests.value.filter((r) => {
-  if (filter.value !== 'all' && r.status !== filter.value) return false
-  if (tipeFilter.value !== 'all' && r.tipe !== tipeFilter.value) return false
-  return true
-}))
+function fmtDate(iso: string | null): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'id-ID', {
+    day: '2-digit', month: 'short', year: 'numeric'
+  }).format(d)
+}
+function fmtDateTime(iso: string | null): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  const date = fmtDate(iso)
+  const time = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }).format(d)
+  return `${date} · ${time}`
+}
 
-const listRows = computed(() => filteredList.value.map((r) => {
-  const meta = TYPE_META[r.tipe]
+function rowTitle(r: ApprovalRequestRow): string {
+  return `${t(`approval.type.${r.type}`)} · ${r.office_name ?? '—'}`
+}
+
+const listRows = computed(() => rows.value.map((r) => {
+  const meta = TYPE_META[r.type]
   return {
     id: r.id,
-    icon: meta.icon,
-    iconSoft: TONE_SOFT[meta.tone],
-    tipeLabel: t(`approval.type.${r.tipe}`),
-    sensitive: meta.sensitive,
-    judul: r.judul,
-    pengaju: r.pengaju,
-    tgl: r.tgl,
-    statusTone: STATUS_TONE[r.status],
+    icon: meta?.icon ?? 'i-lucide-file-question',
+    iconSoft: TONE_SOFT[meta?.tone ?? 'neutral'],
+    tipeLabel: t(`approval.type.${r.type}`),
+    sensitive: meta?.sensitive ?? false,
+    judul: rowTitle(r),
+    pengaju: r.requested_by_name ?? '—',
+    tgl: fmtDate(r.created_at),
+    statusTone: STATUS_TONE[r.status] ?? 'neutral',
     statusLabel: t(`approval.status.${r.status}`),
     selected: r.id === selectedId.value
   }
 }))
 
-const selected = computed(() => requests.value.find(r => r.id === selectedId.value) ?? null)
-
-const detail = computed(() => {
-  const r = selected.value
-  if (!r) return null
-  const meta = TYPE_META[r.tipe]
-  const summary = (r.summary ?? []).map(s => ({ label: loc(s.label, locale.value), value: loc(s.value, locale.value) }))
-  const diff = (r.diff ?? []).map(d => ({ label: loc(d.label, locale.value), before: loc(d.before, locale.value), after: loc(d.after, locale.value) }))
-
-  const tl = r.timeline.map(e => ({
-    action: t(`approval.action.${e.action}`),
-    actor: `${loc(e.actor, locale.value)} · ${loc(e.role, locale.value)}`,
-    date: e.date,
-    note: loc(e.note, locale.value),
-    dot: TIMELINE_DOT[e.action],
-    line: true
-  }))
-  if (r.status === 'pending') {
-    tl.push({ action: t('approval.action.pending'), actor: loc(YOU_ACTOR, locale.value), date: '—', note: '', dot: TIMELINE_DOT.pending, line: false })
-  } else if (tl.length) {
-    tl[tl.length - 1]!.line = false
-  }
-
-  const decided = r.status !== 'pending'
-  const last = decided ? r.timeline[r.timeline.length - 1] : null
-  const resultText = decided && last
-    ? (r.status === 'approved'
-        ? t('approval.resultApproved', { actor: loc(last.actor, locale.value), date: last.date })
-        : t('approval.resultRejected', { actor: loc(last.actor, locale.value), date: last.date }))
-    : ''
-
-  return {
-    req: r,
-    icon: meta.icon,
-    iconSoft: TONE_SOFT[meta.tone],
-    tipeLabel: t(`approval.type.${r.tipe}`),
-    sensitive: meta.sensitive,
-    statusTone: STATUS_TONE[r.status],
-    statusLabel: t(`approval.status.${r.status}`),
-    role: loc(r.role, locale.value),
-    isDiff: !!r.diff,
-    summary,
-    diff,
-    alasan: loc(r.alasan, locale.value),
-    timeline: tl,
-    pending: r.status === 'pending',
-    decided,
-    resultText,
-    resultTone: r.status === 'approved' ? 'success' as const : 'error' as const,
-    resultIcon: r.status === 'approved' ? 'i-lucide-check' : 'i-lucide-x'
-  }
-})
-
-function selectRequest(id: string) {
-  selectedId.value = id
-  note.value = ''
+async function loadInbox() {
+  inboxRows.value = await api.inbox()
 }
 
-watch([filter, tipeFilter], () => {
-  selectedId.value = null
+async function loadTab() {
+  loading.value = true
+  loadError.value = false
+  try {
+    if (filter.value === 'pending') {
+      await loadInbox()
+      rows.value = typeFilter.value === 'all'
+        ? inboxRows.value
+        : inboxRows.value.filter(r => r.type === typeFilter.value)
+    } else {
+      const q = filter.value === 'all' ? {} : { status: filter.value }
+      const page = await api.list({ ...q, type: typeFilter.value === 'all' ? undefined : typeFilter.value, limit: 100 })
+      rows.value = page.data
+    }
+  } catch {
+    loadError.value = true
+    rows.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+async function selectRequest(id: string) {
+  selectedId.value = id
   note.value = ''
+  detailLoading.value = true
+  try {
+    detail.value = await api.get(id)
+  } catch {
+    detail.value = null
+  } finally {
+    detailLoading.value = false
+  }
+}
+
+watch([filter, typeFilter], async () => {
+  selectedId.value = null
+  detail.value = null
+  note.value = ''
+  await loadTab()
 })
 
-async function decide(action: 'approved' | 'rejected') {
-  if (!selected.value || deciding.value) return
+const view = computed(() => {
+  const d = detail.value
+  if (!d) return null
+  const meta = TYPE_META[d.type]
+  const dataView = payloadToView(d, t, {
+    categoryName: id => categoryMap.value.get(id),
+    officeName: id => officeMap.value.get(id)
+  })
+
+  const initials = (d.requested_by_name ?? '—').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase()
+
+  type TimelineEntry = { action: string, actor: string, date: string, note: string, dot: string, line: boolean }
+  const tl: TimelineEntry[] = [{
+    action: t('approval.action.submitted'),
+    actor: `${d.requested_by_name ?? '—'} · ${d.requested_by_role ?? '—'}`,
+    date: fmtDateTime(d.created_at),
+    note: '',
+    dot: TIMELINE_DOT.submitted!,
+    line: true
+  }]
+  for (const s of d.steps) {
+    if (s.decision === 'approved' || s.decision === 'rejected') {
+      tl.push({
+        action: t(`approval.action.${s.decision}`),
+        actor: `${s.approver_name ?? '—'} · ${t(`approval.level.${s.required_level}`)}`,
+        date: fmtDateTime(s.decided_at),
+        note: s.note ?? '',
+        dot: TIMELINE_DOT[s.decision]!,
+        line: true
+      })
+    }
+  }
+  if (d.status === 'cancelled') {
+    tl.push({
+      action: t('approval.action.cancelled'),
+      actor: d.requested_by_name ?? '—',
+      date: '—',
+      note: d.decision_note ?? '',
+      dot: TIMELINE_DOT.cancelled!,
+      line: false
+    })
+  } else if (d.status === 'pending') {
+    const cur = d.steps.find(s => s.step_order === d.current_step)
+    tl.push({
+      action: cur
+        ? t('approval.action.pendingStep', { n: cur.step_order, level: t(`approval.level.${cur.required_level}`) })
+        : t('approval.action.pending'),
+      actor: '—',
+      date: '—',
+      note: '',
+      dot: TIMELINE_DOT.pending!,
+      line: false
+    })
+  }
+  if (tl.length && d.status !== 'pending' && d.status !== 'cancelled') tl[tl.length - 1]!.line = false
+
+  const decided = d.status === 'approved' || d.status === 'rejected'
+  const lastStep = [...d.steps].reverse().find(s => s.decision === 'approved' || s.decision === 'rejected')
+  const resultText = d.status === 'cancelled'
+    ? t('approval.resultCancelled')
+    : decided && lastStep
+      ? (d.status === 'approved'
+          ? t('approval.resultApproved', { actor: lastStep.approver_name ?? '—', date: fmtDateTime(lastStep.decided_at) })
+          : t('approval.resultRejected', { actor: lastStep.approver_name ?? '—', date: fmtDateTime(lastStep.decided_at) }))
+      : ''
+
+  return {
+    req: d,
+    icon: meta?.icon ?? 'i-lucide-file-question',
+    tone: meta?.tone ?? 'neutral',
+    iconSoft: TONE_SOFT[meta?.tone ?? 'neutral'],
+    tipeLabel: t(`approval.type.${d.type}`),
+    sensitive: meta?.sensitive ?? false,
+    statusTone: STATUS_TONE[d.status] ?? 'neutral',
+    statusLabel: t(`approval.status.${d.status}`),
+    judul: rowTitle(d),
+    pengaju: d.requested_by_name ?? '—',
+    role: d.requested_by_role ?? '—',
+    kantor: d.office_name ?? '—',
+    ini: initials || '—',
+    tgl: fmtDate(d.created_at),
+    isDiff: dataView.layout === 'diff',
+    dataRows: dataView.rows,
+    alasan: d.reason ?? '—',
+    timeline: tl,
+    pending: d.status === 'pending',
+    eligible: d.status === 'pending' && inboxIds.value.has(d.id),
+    decided: decided || d.status === 'cancelled',
+    resultText,
+    resultTone: d.status === 'approved' ? 'success' as const : d.status === 'rejected' ? 'error' as const : 'neutral' as const,
+    resultIcon: d.status === 'approved' ? 'i-lucide-check' : d.status === 'rejected' ? 'i-lucide-x' : 'i-lucide-ban'
+  }
+})
+
+async function decide(action: 'approve' | 'reject') {
+  const d = detail.value
+  if (!d || deciding.value) return
   deciding.value = true
-  await api.decide(selected.value.id, action, note.value)
-  requests.value = await api.list()
-  note.value = ''
-  deciding.value = false
+  try {
+    if (action === 'approve') await api.approve(d.id, note.value || undefined)
+    else await api.reject(d.id, note.value || undefined)
+    note.value = ''
+    await loadTab()
+    await selectRequest(d.id)
+  } catch {
+    // useApiClient already raised a toast; re-sync state (403 SoD / 409 stale step).
+    await loadTab()
+    if (selectedId.value) await selectRequest(selectedId.value)
+  } finally {
+    deciding.value = false
+  }
+}
+
+async function loadLookups() {
+  try {
+    const [cats, offs] = await Promise.all([
+      categoriesApi.tree(),
+      officesApi.list({ limit: 100 })
+    ])
+    categoryMap.value = new Map(cats.map(c => [c.id, c.name]))
+    officeMap.value = new Map(offs.data.map(o => [o.id, o.name]))
+  } catch {
+    // Lookups are best-effort; the mapper falls back to raw ids.
+  }
 }
 
 onMounted(async () => {
-  loading.value = true
-  requests.value = await api.list()
-  loading.value = false
+  await Promise.all([loadTab(), loadLookups()])
 })
 </script>
 
@@ -170,13 +297,14 @@ onMounted(async () => {
               :key="f.key"
               class="flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors"
               :class="filter === f.key ? 'bg-default text-default shadow-sm' : 'text-muted hover:text-default'"
+              :data-testid="`approval-tab-${f.key}`"
               @click="filter = f.key"
             >
               {{ f.label }}
             </button>
           </div>
           <USelect
-            v-model="tipeFilter"
+            v-model="typeFilter"
             value-key="value"
             :items="tipeItems"
             class="w-full"
@@ -201,6 +329,7 @@ onMounted(async () => {
               :key="r.id"
               class="flex gap-2.5 w-full p-3 mb-2 rounded-[11px] border text-left transition-colors hover:border-primary"
               :class="r.selected ? 'border-primary bg-primary/5' : 'border-default bg-default'"
+              data-testid="approval-card"
               @click="selectRequest(r.id)"
             >
               <span
@@ -240,6 +369,22 @@ onMounted(async () => {
           </template>
 
           <div
+            v-else-if="loadError"
+            class="py-[50px] px-5 text-center"
+            data-testid="approval-load-error"
+          >
+            <div class="text-sm font-semibold mb-2">
+              {{ t('approval.loadError') }}
+            </div>
+            <UButton
+              size="sm"
+              variant="soft"
+              :label="t('approval.retry')"
+              @click="loadTab"
+            />
+          </div>
+
+          <div
             v-else
             class="py-[50px] px-5 text-center"
           >
@@ -261,24 +406,33 @@ onMounted(async () => {
 
       <!-- RIGHT: detail -->
       <div class="flex-1 flex flex-col min-w-0 bg-muted/30">
-        <template v-if="detail">
+        <template v-if="detailLoading">
+          <div class="flex-1 overflow-y-auto p-6">
+            <div class="max-w-[680px] space-y-4">
+              <USkeleton class="h-8 w-2/3 rounded-lg" />
+              <USkeleton class="h-20 w-full rounded-xl" />
+              <USkeleton class="h-40 w-full rounded-xl" />
+            </div>
+          </div>
+        </template>
+        <template v-else-if="view">
           <div class="flex-1 overflow-y-auto p-6">
             <div class="max-w-[680px]">
               <!-- header -->
               <div class="flex items-center gap-2 flex-wrap mb-2.5">
                 <UBadge
-                  :color="TYPE_META[detail.req.tipe].tone"
+                  :color="view.tone"
                   variant="subtle"
                   class="rounded-full gap-1.5"
                 >
                   <UIcon
-                    :name="detail.icon"
+                    :name="view.icon"
                     class="size-3.5"
                   />
-                  {{ detail.tipeLabel }}
+                  {{ view.tipeLabel }}
                 </UBadge>
                 <UBadge
-                  v-if="detail.sensitive"
+                  v-if="view.sensitive"
                   color="warning"
                   variant="subtle"
                   class="rounded-full gap-1.5"
@@ -291,26 +445,26 @@ onMounted(async () => {
                 </UBadge>
                 <div class="flex-1" />
                 <UBadge
-                  :color="detail.statusTone"
+                  :color="view.statusTone"
                   variant="subtle"
                   class="rounded-full"
                 >
-                  {{ detail.statusLabel }}
+                  {{ view.statusLabel }}
                 </UBadge>
               </div>
               <h2 class="text-[21px] font-bold tracking-tight mb-4">
-                {{ detail.req.judul }}
+                {{ view.judul }}
               </h2>
 
               <!-- pengaju -->
               <div class="flex items-center gap-3 px-[15px] py-3.5 rounded-xl bg-default border border-default shadow-sm mb-[18px]">
-                <span class="size-10 rounded-full bg-primary/15 text-primary flex items-center justify-center text-sm font-bold flex-none">{{ detail.req.ini }}</span>
+                <span class="size-10 rounded-full bg-primary/15 text-primary flex items-center justify-center text-sm font-bold flex-none">{{ view.ini }}</span>
                 <div class="flex-1 min-w-0">
                   <div class="text-sm font-semibold">
-                    {{ detail.req.pengaju }}
+                    {{ view.pengaju }}
                   </div>
                   <div class="text-[12.5px] text-muted">
-                    {{ detail.role }} · {{ detail.req.kantor }}
+                    {{ view.role }} · {{ view.kantor }}
                   </div>
                 </div>
                 <div class="text-right flex-none">
@@ -318,7 +472,7 @@ onMounted(async () => {
                     {{ t('approval.submitted') }}
                   </div>
                   <div class="text-[12.5px] font-medium text-muted">
-                    {{ detail.req.tgl }}
+                    {{ view.tgl }}
                   </div>
                 </div>
               </div>
@@ -327,8 +481,17 @@ onMounted(async () => {
               <div class="text-xs font-semibold uppercase tracking-wider text-muted mb-2.5">
                 {{ t('approval.dataSection') }}
               </div>
-              <div class="bg-default border border-default rounded-xl shadow-sm overflow-hidden mb-[18px]">
-                <template v-if="detail.isDiff">
+              <div
+                v-if="view.dataRows.length === 0"
+                class="px-4 py-3.5 rounded-xl bg-default border border-default shadow-sm text-[13px] text-dimmed mb-[18px]"
+              >
+                {{ t('approval.noData') }}
+              </div>
+              <div
+                v-else
+                class="bg-default border border-default rounded-xl shadow-sm overflow-hidden mb-[18px]"
+              >
+                <template v-if="view.isDiff">
                   <div class="grid grid-cols-[140px_1fr_22px_1fr] items-center px-4 py-2.5 bg-muted text-[11px] font-semibold uppercase text-dimmed">
                     <span>{{ t('approval.thField') }}</span>
                     <span>{{ t('approval.thBefore') }}</span>
@@ -336,27 +499,27 @@ onMounted(async () => {
                     <span>{{ t('approval.thAfter') }}</span>
                   </div>
                   <div
-                    v-for="(f, i) in detail.diff"
+                    v-for="(f, i) in view.dataRows"
                     :key="i"
                     class="grid grid-cols-[140px_1fr_22px_1fr] items-center px-4 py-2.5 border-t border-default text-[13.5px]"
                   >
                     <span class="text-muted">{{ f.label }}</span>
-                    <span class="text-dimmed line-through">{{ f.before }}</span>
+                    <span class="text-dimmed line-through">{{ 'before' in f ? f.before : '' }}</span>
                     <UIcon
                       name="i-lucide-arrow-right"
                       class="size-3.5 text-dimmed"
                     />
-                    <span class="font-semibold">{{ f.after }}</span>
+                    <span class="font-semibold">{{ 'after' in f ? f.after : '' }}</span>
                   </div>
                 </template>
                 <template v-else>
                   <div
-                    v-for="(f, i) in detail.summary"
+                    v-for="(f, i) in view.dataRows"
                     :key="i"
                     class="flex items-center justify-between gap-3.5 px-4 py-2.5 border-t border-default first:border-t-0 text-[13.5px]"
                   >
                     <span class="text-muted">{{ f.label }}</span>
-                    <span class="font-medium text-right">{{ f.value }}</span>
+                    <span class="font-medium text-right">{{ 'value' in f ? f.value : '' }}</span>
                   </div>
                 </template>
               </div>
@@ -366,33 +529,14 @@ onMounted(async () => {
                 {{ t('approval.reasonSection') }}
               </div>
               <div class="px-4 py-3.5 rounded-xl bg-default border border-default shadow-sm text-sm leading-relaxed mb-[18px]">
-                {{ detail.alasan }}
+                {{ view.alasan }}
               </div>
 
               <!-- lampiran -->
               <div class="text-xs font-semibold uppercase tracking-wider text-muted mb-2.5">
                 {{ t('approval.attachSection') }}
               </div>
-              <div
-                v-if="detail.req.files.length > 0"
-                class="flex flex-wrap gap-2 mb-5"
-              >
-                <span
-                  v-for="(f, i) in detail.req.files"
-                  :key="i"
-                  class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12.5px] font-medium rounded-[9px] bg-default border border-default"
-                >
-                  <UIcon
-                    name="i-lucide-file-text"
-                    class="size-3.5 text-muted"
-                  />
-                  {{ f }}
-                </span>
-              </div>
-              <div
-                v-else
-                class="text-[13px] text-dimmed mb-5"
-              >
+              <div class="text-[13px] text-dimmed mb-5">
                 {{ t('approval.noAttach') }}
               </div>
 
@@ -402,7 +546,7 @@ onMounted(async () => {
               </div>
               <div class="ps-1.5">
                 <div
-                  v-for="(e, i) in detail.timeline"
+                  v-for="(e, i) in view.timeline"
                   :key="i"
                   class="flex gap-3"
                 >
@@ -437,45 +581,61 @@ onMounted(async () => {
 
           <!-- footer action -->
           <div
-            v-if="detail.pending"
+            v-if="view.pending"
             class="flex-none border-t border-default bg-default p-4 px-7"
           >
             <div class="max-w-[680px]">
               <div
-                v-if="detail.sensitive"
-                class="flex gap-2.5 items-center px-3 py-2.5 mb-3 rounded-[10px] bg-warning/10 border border-warning/30 text-warning text-[12.5px] leading-snug font-medium"
+                v-if="!view.eligible"
+                class="flex gap-2.5 items-center px-3 py-2.5 rounded-[10px] bg-muted border border-default text-muted text-[12.5px] leading-snug font-medium"
+                data-testid="approval-not-eligible"
               >
                 <UIcon
-                  name="i-lucide-triangle-alert"
+                  name="i-lucide-lock"
                   class="size-4 flex-none"
                 />
-                {{ t('approval.sensitiveWarn') }}
+                {{ t('approval.notEligible') }}
               </div>
-              <div class="flex gap-3 items-end">
-                <UFormField
-                  :label="t('approval.noteLabel')"
-                  class="flex-1"
+              <template v-else>
+                <div
+                  v-if="view.sensitive"
+                  class="flex gap-2.5 items-center px-3 py-2.5 mb-3 rounded-[10px] bg-warning/10 border border-warning/30 text-warning text-[12.5px] leading-snug font-medium"
                 >
-                  <UInput
-                    v-model="note"
-                    :placeholder="t('approval.notePlaceholder')"
-                    class="w-full"
+                  <UIcon
+                    name="i-lucide-triangle-alert"
+                    class="size-4 flex-none"
                   />
-                </UFormField>
-                <UButton
-                  icon="i-lucide-x"
-                  color="error"
-                  :label="t('approval.reject')"
-                  :loading="deciding"
-                  @click="decide('rejected')"
-                />
-                <UButton
-                  icon="i-lucide-check"
-                  :label="t('approval.approve')"
-                  :loading="deciding"
-                  @click="decide('approved')"
-                />
-              </div>
+                  {{ t('approval.sensitiveWarn') }}
+                </div>
+                <div class="flex gap-3 items-end">
+                  <UFormField
+                    :label="t('approval.noteLabel')"
+                    class="flex-1"
+                  >
+                    <UInput
+                      v-model="note"
+                      :placeholder="t('approval.notePlaceholder')"
+                      class="w-full"
+                      data-testid="approval-note"
+                    />
+                  </UFormField>
+                  <UButton
+                    icon="i-lucide-x"
+                    color="error"
+                    :label="t('approval.reject')"
+                    :loading="deciding"
+                    data-testid="approval-reject"
+                    @click="decide('reject')"
+                  />
+                  <UButton
+                    icon="i-lucide-check"
+                    :label="t('approval.approve')"
+                    :loading="deciding"
+                    data-testid="approval-approve"
+                    @click="decide('approve')"
+                  />
+                </div>
+              </template>
             </div>
           </div>
           <div
@@ -484,13 +644,15 @@ onMounted(async () => {
           >
             <div
               class="max-w-[680px] flex items-center gap-2.5 px-3.5 py-3 rounded-[11px] border"
-              :class="detail.resultTone === 'success' ? 'bg-success/10 border-success/30 text-success' : 'bg-error/10 border-error/30 text-error'"
+              :class="view.resultTone === 'success' ? 'bg-success/10 border-success/30 text-success'
+                : view.resultTone === 'error' ? 'bg-error/10 border-error/30 text-error'
+                  : 'bg-muted border-default text-muted'"
             >
               <UIcon
-                :name="detail.resultIcon"
+                :name="view.resultIcon"
                 class="size-[17px] flex-none"
               />
-              <span class="text-[13.5px] font-semibold">{{ detail.resultText }}</span>
+              <span class="text-[13.5px] font-semibold">{{ view.resultText }}</span>
             </div>
           </div>
         </template>

@@ -156,6 +156,29 @@ func requestToMap(r sqlc.ApprovalRequest) map[string]any {
 	}
 }
 
+// enrichRequestMap adds the resolved maker/role/office names to a serialized request.
+func enrichRequestMap(m map[string]any, requestedByName, requestedByRole, officeName *string) map[string]any {
+	m["requested_by_name"] = requestedByName
+	m["requested_by_role"] = requestedByRole
+	m["office_name"] = officeName
+	return m
+}
+
+// stepToMap serializes an enriched approval step for API responses. Internal
+// row-keeping columns (id, request_id, timestamps' bookkeeping) are omitted.
+func stepToMap(row sqlc.ListRequestApprovalsEnrichedRow) map[string]any {
+	a := row.ApprovalRequestApproval
+	return map[string]any{
+		"step_order":     a.StepOrder,
+		"required_level": string(a.RequiredLevel),
+		"approver_id":    common.UUIDPtrStr(a.ApproverID),
+		"approver_name":  row.ApproverName,
+		"decision":       string(a.Decision),
+		"note":           a.Note,
+		"decided_at":     common.TsStr(a.DecidedAt),
+	}
+}
+
 // thresholdToMap serializes an ApprovalApprovalThreshold for API responses.
 func thresholdToMap(t sqlc.ApprovalApprovalThreshold) map[string]any {
 	return map[string]any{

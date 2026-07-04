@@ -903,7 +903,7 @@ func TestApproval_ListRequests_ScopeFiltered(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), total)
 	assert.Len(t, rows, 1)
-	assert.Equal(t, &tr.CabangID, rows[0].OfficeID)
+	assert.Equal(t, &tr.CabangID, rows[0].ApprovalRequest.OfficeID)
 
 	// Global scope sees all
 	rows, total, err = svc.List(ctx, true, nil, "", "", 10, 0)
@@ -1166,4 +1166,343 @@ func TestApproval_GetRequest_ScopeEnforced(t *testing.T) {
 	// cabangUser is placed in Cabang (same office as request) → 200.
 	assert.Equal(t, http.StatusOK, callGet(cabangUserID, cabangRoleID),
 		"caller scoped to the request's own office must receive 200")
+}
+
+// strPtr returns a pointer to the given string.
+func strPtr(s string) *string { return &s }
+
+// TestApproval_EnrichedReads verifies List/Inbox/GetWithSteps return maker name,
+// maker role, office name, and (detail) payload + per-step approver names.
+func TestApproval_EnrichedReads(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	ctx := context.Background()
+	resetAll(t, pool)
+
+	tr := seedTieredOfficeTree(t, pool)
+	catID := seedCategory(t, pool, "ENR")
+
+	officeRoleID := lookupRole(t, pool, "Kepala Unit")
+	maker := seedUser(t, pool, officeRoleID, "maker.enriched@test.local")
+	approver := seedUser(t, pool, officeRoleID, "approver.enriched@test.local")
+
+	q := sqlc.New(pool)
+	scopeSvc := authz.NewScopeService(q, rdb)
+	svc := approval.NewService(q, pool, scopeSvc, rdb)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0, "")
+	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
+
+	catIDStr := catID.String()
+	officeIDStr := tr.CabangID.String()
+	payload, _ := json.Marshal(asset.AssetCreatePayload{
+		Name: "Enriched Laptop", CategoryID: catIDStr, OfficeID: officeIDStr,
+		AssetClass: "intangible", PurchaseCost: strPtr("1500000"),
+	})
+	req, err := svc.Submit(ctx, approval.SubmitInput{
+		Type: sqlc.SharedRequestTypeAssetCreate, Amount: "1500000",
+		OfficeID: tr.CabangID, Payload: payload, Maker: maker,
+	})
+	require.NoError(t, err)
+
+	t.Run("List rows carry names", func(t *testing.T) {
+		rows, total, err := svc.List(ctx, true, nil, "pending", "asset_create", 20, 0)
+		require.NoError(t, err)
+		require.GreaterOrEqual(t, total, int64(1))
+		require.NotEmpty(t, rows)
+		row := rows[0]
+		require.NotNil(t, row.RequestedByName)
+		assert.Equal(t, "maker.enriched@test.local", *row.RequestedByName)
+		require.NotNil(t, row.RequestedByRole)
+		assert.Equal(t, "Kepala Unit", *row.RequestedByRole)
+		require.NotNil(t, row.OfficeName)
+		assert.Equal(t, "Cabang Alpha", *row.OfficeName)
+	})
+
+	t.Run("Inbox rows carry names", func(t *testing.T) {
+		caller := buildCaller(approver, officeRoleID, true, nil)
+		rows, err := svc.Inbox(ctx, caller)
+		require.NoError(t, err)
+		require.NotEmpty(t, rows)
+		require.NotNil(t, rows[0].RequestedByName)
+		assert.Equal(t, "maker.enriched@test.local", *rows[0].RequestedByName)
+	})
+
+	t.Run("GetWithSteps carries names, payload and approver name", func(t *testing.T) {
+		// decide step 1 so a step has an approver
+		caller := buildCaller(approver, officeRoleID, true, nil)
+		_, err := svc.Decide(ctx, req.ID, caller, true, strPtr("ok"))
+		require.NoError(t, err)
+
+		row, steps, err := svc.GetWithSteps(ctx, req.ID)
+		require.NoError(t, err)
+		require.NotNil(t, row.RequestedByName)
+		assert.Equal(t, "maker.enriched@test.local", *row.RequestedByName)
+		require.NotNil(t, row.OfficeName)
+
+		var p asset.AssetCreatePayload
+		require.NoError(t, json.Unmarshal(row.ApprovalRequest.Payload, &p))
+		assert.Equal(t, "Enriched Laptop", p.Name)
+
+		require.NotEmpty(t, steps)
+		decided := steps[0]
+		require.NotNil(t, decided.ApproverName)
+		assert.Equal(t, "approver.enriched@test.local", *decided.ApproverName)
+		assert.Equal(t, int32(1), decided.ApprovalRequestApproval.StepOrder)
+	})
+}
+
+// TestApproval_EnrichedReads_SoftDeletedActors verifies that soft-deleting the
+// maker user and the request's office does not hide the request itself — the
+// enrichment LEFT JOINs simply resolve to nil names, per the LEFT JOIN
+// visibility contract (a soft-deleted actor/office must not orphan the
+// request from list views).
+func TestApproval_EnrichedReads_SoftDeletedActors(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	ctx := context.Background()
+	resetAll(t, pool)
+
+	tr := seedTieredOfficeTree(t, pool)
+	catID := seedCategory(t, pool, "SDA")
+
+	officeRoleID := lookupRole(t, pool, "Kepala Unit")
+	maker := seedUser(t, pool, officeRoleID, "maker.softdel@test.local")
+
+	q := sqlc.New(pool)
+	scopeSvc := authz.NewScopeService(q, rdb)
+	svc := approval.NewService(q, pool, scopeSvc, rdb)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0, "")
+	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
+
+	catIDStr := catID.String()
+	officeIDStr := tr.CabangID.String()
+	payload, _ := json.Marshal(asset.AssetCreatePayload{
+		Name: "Soft Delete Test Asset", CategoryID: catIDStr, OfficeID: officeIDStr,
+		AssetClass: "intangible",
+	})
+	req, err := svc.Submit(ctx, approval.SubmitInput{
+		Type: sqlc.SharedRequestTypeAssetCreate, Amount: "1000000",
+		OfficeID: tr.CabangID, Payload: payload, Maker: maker,
+	})
+	require.NoError(t, err)
+
+	// Soft-delete the maker user and the office.
+	_, err = pool.Exec(ctx, `UPDATE identity.users SET deleted_at = now() WHERE id = $1`, maker)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `UPDATE masterdata.offices SET deleted_at = now() WHERE id = $1`, tr.CabangID)
+	require.NoError(t, err)
+
+	rows, total, err := svc.List(ctx, true, nil, "", "", 20, 0)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, total, int64(1))
+
+	var found *sqlc.ListRequestsEnrichedRow
+	for i := range rows {
+		if rows[i].ApprovalRequest.ID == req.ID {
+			found = &rows[i]
+			break
+		}
+	}
+	require.NotNil(t, found, "request must still appear in List after its maker/office are soft-deleted")
+	assert.Nil(t, found.RequestedByName, "requested_by_name must be nil once the maker is soft-deleted")
+	assert.Nil(t, found.OfficeName, "office_name must be nil once the office is soft-deleted")
+}
+
+// TestApproval_FieldMasking_Requests verifies FilterView on entity "requests":
+// a role denied view on amount/payload loses those keys; default-allow otherwise.
+func TestApproval_FieldMasking_Requests(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	ctx := context.Background()
+	resetAll(t, pool)
+
+	q := sqlc.New(pool)
+	fieldSvc := authz.NewFieldService(q, rdb)
+
+	stafRoleID := lookupRole(t, pool, "Staf")
+	adminRoleID := lookupRole(t, pool, "Superadmin")
+
+	// Deny view on amount + payload for Staf on entity "requests".
+	_, err := pool.Exec(ctx, `
+		INSERT INTO identity.field_permissions (role_id, entity, field, can_view, can_edit)
+		VALUES ($1, 'requests', 'amount', false, false),
+		       ($1, 'requests', 'payload', false, false)`, stafRoleID)
+	require.NoError(t, err)
+
+	sample := func() map[string]any {
+		return map[string]any{
+			"id": uuid.New().String(), "type": "asset_create", "status": "pending",
+			"amount": "5000000", "payload": map[string]any{"name": "X"}, "reason": "r",
+		}
+	}
+
+	t.Run("denied role loses amount and payload", func(t *testing.T) {
+		rec := sample()
+		pol, err := fieldSvc.ForEntity(ctx, stafRoleID, "requests")
+		require.NoError(t, err)
+		authz.FilterView(pol, rec)
+		assert.NotContains(t, rec, "amount")
+		assert.NotContains(t, rec, "payload")
+		assert.Contains(t, rec, "reason") // no policy → default-allow
+	})
+
+	t.Run("role without policy keeps everything", func(t *testing.T) {
+		rec := sample()
+		pol, err := fieldSvc.ForEntity(ctx, adminRoleID, "requests")
+		require.NoError(t, err)
+		authz.FilterView(pol, rec)
+		assert.Contains(t, rec, "amount")
+		assert.Contains(t, rec, "payload")
+	})
+}
+
+// TestApproval_FieldMasking_HandlerWiring drives the real HTTP handler (gin
+// engine built via approval.RegisterRoutes, exactly like
+// TestApproval_GetRequest_ScopeEnforced) end-to-end and proves that
+// h.filterMap actually executes on the list/get response path — not just that
+// the underlying authz.FilterView helper works in isolation (that is already
+// covered by TestApproval_FieldMasking_Requests). If someone deleted the
+// h.filterMap call sites in list/get, this test must fail.
+func TestApproval_FieldMasking_HandlerWiring(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	ctx := context.Background()
+	resetAll(t, pool)
+
+	tr := seedTieredOfficeTree(t, pool)
+	catID := seedCategory(t, pool, "HWM")
+
+	makerRoleID := lookupRole(t, pool, "Kepala Unit")
+	maker := seedUser(t, pool, makerRoleID, "maker.handlerwiring@test.local")
+
+	q := sqlc.New(pool)
+	scopeSvc := authz.NewScopeService(q, rdb)
+	svc := approval.NewService(q, pool, scopeSvc, rdb)
+
+	// Submit a request against Cabang. No executor is registered and the
+	// request is never decided — only read paths (list/get) are under test.
+	req, err := svc.Submit(ctx, approval.SubmitInput{
+		Type:     sqlc.SharedRequestTypeAssetCreate,
+		Amount:   "1000000",
+		OfficeID: tr.CabangID,
+		Payload:  []byte(`{"name":"Handler Wiring Asset","category_id":"` + catID.String() + `","office_id":"` + tr.CabangID.String() + `","asset_class":"intangible"}`),
+		Reason:   strPtr("handler wiring regression test"),
+		Maker:    maker,
+	})
+	require.NoError(t, err)
+
+	// Staf: real seeded role, default data-scope "own" (module '*'). Per
+	// common.ScopedDeps.CallerOfficeScope, "own" resolves to the caller's own
+	// office — so placing the Staf user in Cabang (the request's office) is
+	// enough for them to see the row on both list and get, with no need to
+	// seed an extra data_scope_policies override.
+	stafRoleID := lookupRole(t, pool, "Staf")
+	stafUser := seedUser(t, pool, stafRoleID, "staf.handlerwiring@test.local")
+	_, err = pool.Exec(ctx,
+		`UPDATE identity.users SET office_id = $1 WHERE id = $2`, tr.CabangID, stafUser)
+	require.NoError(t, err)
+
+	// Deny view on amount + payload for Staf on entity "requests" (same
+	// INSERT shape as TestApproval_FieldMasking_Requests above).
+	_, err = pool.Exec(ctx, `
+		INSERT INTO identity.field_permissions (role_id, entity, field, can_view, can_edit)
+		VALUES ($1, 'requests', 'amount', false, false),
+		       ($1, 'requests', 'payload', false, false)`, stafRoleID)
+	require.NoError(t, err)
+
+	// Superadmin: global scope + no field-permission policy for "requests" →
+	// default-allow control. Global scope means no office placement is needed.
+	adminRoleID := lookupRole(t, pool, "Superadmin")
+	adminUser := seedUser(t, pool, adminRoleID, "admin.handlerwiring@test.local")
+
+	gin.SetMode(gin.TestMode)
+	auditSvc := audit.NewService(q)
+	fieldSvc := authz.NewFieldService(q, rdb)
+	scoped := common.ScopedDeps{Q: q, Scope: scopeSvc}
+	h := approval.NewHandler(svc, fieldSvc, scoped, auditSvc)
+	permSvc := authz.NewPermissionService(q, rdb)
+
+	// doGet builds a fresh gin engine with a stub auth MW injecting the given
+	// user/role IDs (bypassing real JWT) and drives a GET against path,
+	// decoding the JSON body into a map for inspection.
+	doGet := func(path string, userID, roleID uuid.UUID) (int, map[string]any) {
+		stubAuth := func(c *gin.Context) {
+			c.Set(middleware.CtxUserID, userID.String())
+			c.Set(middleware.CtxRoleID, roleID.String())
+			c.Next()
+		}
+		r := gin.New()
+		v1 := r.Group("/api/v1")
+		approval.RegisterRoutes(v1, h, stubAuth, permSvc)
+		w := httptest.NewRecorder()
+		httpReq, err := http.NewRequest(http.MethodGet, path, nil)
+		require.NoError(t, err)
+		r.ServeHTTP(w, httpReq)
+		var body map[string]any
+		if w.Body.Len() > 0 {
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+		}
+		return w.Code, body
+	}
+
+	t.Run("list masks amount for Staf but keeps id/status", func(t *testing.T) {
+		code, body := doGet("/api/v1/requests", stafUser, stafRoleID)
+		require.Equal(t, http.StatusOK, code)
+		rows, ok := body["data"].([]any)
+		require.True(t, ok)
+		require.NotEmpty(t, rows, "Staf placed in Cabang must see the Cabang request on list")
+		for _, raw := range rows {
+			row, ok := raw.(map[string]any)
+			require.True(t, ok)
+			assert.NotContains(t, row, "amount")
+			assert.Contains(t, row, "id")
+			assert.Contains(t, row, "status")
+		}
+	})
+
+	t.Run("get masks amount and payload for Staf but keeps steps", func(t *testing.T) {
+		code, body := doGet("/api/v1/requests/"+req.ID.String(), stafUser, stafRoleID)
+		require.Equal(t, http.StatusOK, code)
+		assert.NotContains(t, body, "amount")
+		assert.NotContains(t, body, "payload")
+		assert.Contains(t, body, "steps")
+	})
+
+	t.Run("list keeps amount for Superadmin (default-allow control)", func(t *testing.T) {
+		code, body := doGet("/api/v1/requests", adminUser, adminRoleID)
+		require.Equal(t, http.StatusOK, code)
+		rows, ok := body["data"].([]any)
+		require.True(t, ok)
+		require.NotEmpty(t, rows)
+		found := false
+		for _, raw := range rows {
+			row, ok := raw.(map[string]any)
+			require.True(t, ok)
+			if row["id"] == req.ID.String() {
+				found = true
+				assert.Contains(t, row, "amount")
+			}
+		}
+		assert.True(t, found, "Superadmin (global scope) must see the request on list")
+	})
+
+	t.Run("get keeps amount and payload for Superadmin (default-allow control)", func(t *testing.T) {
+		code, body := doGet("/api/v1/requests/"+req.ID.String(), adminUser, adminRoleID)
+		require.Equal(t, http.StatusOK, code)
+		assert.Contains(t, body, "amount")
+		assert.Contains(t, body, "payload")
+		assert.Contains(t, body, "steps")
+	})
+
+	// /requests/inbox additionally requires the request.decide permission
+	// (RegisterRoutes attaches middleware.RequirePermission for it) and,
+	// beyond that, ListInboxCandidatesEnriched only returns rows whose
+	// current pending step matches the caller's approver eligibility
+	// (role/office tier) — a third orthogonal condition on top of scope and
+	// field permissions. Reproducing that eligibility setup here would
+	// duplicate large parts of TestApproval_AssetCreate_ThreeStep without
+	// adding coverage for the field-masking wiring itself (inbox calls the
+	// exact same h.filterMap as list), so it is intentionally left to the
+	// existing approval-flow tests. list + get above already exercise every
+	// call site of h.filterMap in the handler.
 }
