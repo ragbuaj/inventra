@@ -67,8 +67,9 @@ tags:
     description: |
       Inter-office asset transfers (mutasi). A transfer row is created only once an
       `asset_transfer` approval request is approved (see the Requests tag); it then moves
-      `approved` → `in_transit` → `received`. Reads require `transfer.view`; writes
-      (`submit`, `ship`, `receive`) require `transfer.manage`. Receiving optionally attaches
+      `approved` → `in_transit` → either `received` or `returned` (destination declines).
+      Reads require `transfer.view`; writes (`submit`, `ship`, `receive`, `reject-receive`)
+      require `transfer.manage`. Receiving optionally attaches
       a BAST (`bast_transfer`) document via `POST /assets/{id}/documents` semantics.
   - name: Disposals
     description: |
@@ -1925,12 +1926,13 @@ paths:
     post:
       tags: [Transfers]
       operationId: rejectReceiveTransfer
-      summary: Reject a received transfer and return it to in_transit
+      summary: Decline an in-transit shipment (terminal status returned)
       description: |
-        Transitions an `in_transit` transfer back to `in_transit` with status `returned`,
-        recording a rejection note. The asset remains at the destination office (asset does
-        not move). Requires the `transfer.manage` permission; the transfer's destination
-        office must be within the caller's data scope.
+        The destination office declines an `in_transit` shipment: the transfer terminates
+        with status `returned` (409 when the transfer is not `in_transit`), recording an
+        optional note. The asset never moved and remains at the origin (from) office.
+        Requires the `transfer.manage` permission; the transfer's destination office must
+        be within the caller's data scope.
       security:
         - bearerJWT: []
       requestBody:
@@ -3280,8 +3282,10 @@ components:
     Transfer:
       type: object
       description: |
-        An inter-office asset transfer (mutasi). Created only once its `asset_transfer`
-        approval request is approved, then moves `approved` → `in_transit` → `received` → `returned`.
+        An inter-office asset transfer (mutasi). Created at final approval of its
+        `asset_transfer` request with status `approved`; then `approved` → `in_transit`
+        (ship) → either `received` (destination accepts; the asset relocates there) or
+        `returned` (destination declines; terminal — the asset never moved).
       required: [id, asset_id, from_office_id, to_office_id, status, requested_by_id, request_id, created_at, updated_at]
       properties:
         id: { type: string, format: uuid }
