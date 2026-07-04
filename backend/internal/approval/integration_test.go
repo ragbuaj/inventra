@@ -1250,3 +1250,108 @@ func TestApproval_EnrichedReads(t *testing.T) {
 		assert.Equal(t, int32(1), decided.ApprovalRequestApproval.StepOrder)
 	})
 }
+
+// TestApproval_EnrichedReads_SoftDeletedActors verifies that soft-deleting the
+// maker user and the request's office does not hide the request itself — the
+// enrichment LEFT JOINs simply resolve to nil names, per the LEFT JOIN
+// visibility contract (a soft-deleted actor/office must not orphan the
+// request from list views).
+func TestApproval_EnrichedReads_SoftDeletedActors(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	ctx := context.Background()
+	resetAll(t, pool)
+
+	tr := seedTieredOfficeTree(t, pool)
+	catID := seedCategory(t, pool, "SDA")
+
+	officeRoleID := lookupRole(t, pool, "Kepala Unit")
+	maker := seedUser(t, pool, officeRoleID, "maker.softdel@test.local")
+
+	q := sqlc.New(pool)
+	scopeSvc := authz.NewScopeService(q, rdb)
+	svc := approval.NewService(q, pool, scopeSvc, rdb)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0, "")
+	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
+
+	catIDStr := catID.String()
+	officeIDStr := tr.CabangID.String()
+	payload, _ := json.Marshal(asset.AssetCreatePayload{
+		Name: "Soft Delete Test Asset", CategoryID: catIDStr, OfficeID: officeIDStr,
+		AssetClass: "intangible",
+	})
+	req, err := svc.Submit(ctx, approval.SubmitInput{
+		Type: sqlc.SharedRequestTypeAssetCreate, Amount: "1000000",
+		OfficeID: tr.CabangID, Payload: payload, Maker: maker,
+	})
+	require.NoError(t, err)
+
+	// Soft-delete the maker user and the office.
+	_, err = pool.Exec(ctx, `UPDATE identity.users SET deleted_at = now() WHERE id = $1`, maker)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `UPDATE masterdata.offices SET deleted_at = now() WHERE id = $1`, tr.CabangID)
+	require.NoError(t, err)
+
+	rows, total, err := svc.List(ctx, true, nil, "", "", 20, 0)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, total, int64(1))
+
+	var found *sqlc.ListRequestsEnrichedRow
+	for i := range rows {
+		if rows[i].ApprovalRequest.ID == req.ID {
+			found = &rows[i]
+			break
+		}
+	}
+	require.NotNil(t, found, "request must still appear in List after its maker/office are soft-deleted")
+	assert.Nil(t, found.RequestedByName, "requested_by_name must be nil once the maker is soft-deleted")
+	assert.Nil(t, found.OfficeName, "office_name must be nil once the office is soft-deleted")
+}
+
+// TestApproval_FieldMasking_Requests verifies FilterView on entity "requests":
+// a role denied view on amount/payload loses those keys; default-allow otherwise.
+func TestApproval_FieldMasking_Requests(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	ctx := context.Background()
+	resetAll(t, pool)
+
+	q := sqlc.New(pool)
+	fieldSvc := authz.NewFieldService(q, rdb)
+
+	stafRoleID := lookupRole(t, pool, "Staf")
+	adminRoleID := lookupRole(t, pool, "Superadmin")
+
+	// Deny view on amount + payload for Staf on entity "requests".
+	_, err := pool.Exec(ctx, `
+		INSERT INTO identity.field_permissions (role_id, entity, field, can_view, can_edit)
+		VALUES ($1, 'requests', 'amount', false, false),
+		       ($1, 'requests', 'payload', false, false)`, stafRoleID)
+	require.NoError(t, err)
+
+	sample := func() map[string]any {
+		return map[string]any{
+			"id": uuid.New().String(), "type": "asset_create", "status": "pending",
+			"amount": "5000000", "payload": map[string]any{"name": "X"}, "reason": "r",
+		}
+	}
+
+	t.Run("denied role loses amount and payload", func(t *testing.T) {
+		rec := sample()
+		pol, err := fieldSvc.ForEntity(ctx, stafRoleID, "requests")
+		require.NoError(t, err)
+		authz.FilterView(pol, rec)
+		assert.NotContains(t, rec, "amount")
+		assert.NotContains(t, rec, "payload")
+		assert.Contains(t, rec, "reason") // no policy → default-allow
+	})
+
+	t.Run("role without policy keeps everything", func(t *testing.T) {
+		rec := sample()
+		pol, err := fieldSvc.ForEntity(ctx, adminRoleID, "requests")
+		require.NoError(t, err)
+		authz.FilterView(pol, rec)
+		assert.Contains(t, rec, "amount")
+		assert.Contains(t, rec, "payload")
+	})
+}

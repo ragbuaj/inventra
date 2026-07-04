@@ -43,6 +43,24 @@ func (h *Handler) callerFromCtx(c *gin.Context) (Caller, error) {
 	return Caller{UserID: uid, RoleID: rid, AllScope: all, OfficeIDs: ids}, nil
 }
 
+// filterMap applies field-permission masking for the caller's role on the
+// "requests" entity. Fails closed on ForEntity errors so sensitive amounts
+// are never leaked when the policy store is unavailable.
+func (h *Handler) filterMap(c *gin.Context, m map[string]any) (map[string]any, error) {
+	roleID, err := uuid.Parse(c.GetString(middleware.CtxRoleID))
+	if err != nil {
+		return m, nil
+	}
+	policies, err := h.fieldSvc.ForEntity(c.Request.Context(), roleID, "requests")
+	if err != nil {
+		return nil, err
+	}
+	if policies != nil {
+		authz.FilterView(policies, m)
+	}
+	return m, nil
+}
+
 // svcError maps approval sentinel errors to HTTP status codes.
 func (h *Handler) svcError(c *gin.Context, err error) {
 	switch err {
@@ -172,7 +190,12 @@ func (h *Handler) inbox(c *gin.Context) {
 	}
 	data := make([]map[string]any, 0, len(rows))
 	for _, r := range rows {
-		data = append(data, enrichRequestMap(requestToMap(r.ApprovalRequest), r.RequestedByName, r.RequestedByRole, r.OfficeName))
+		m, err := h.filterMap(c, enrichRequestMap(requestToMap(r.ApprovalRequest), r.RequestedByName, r.RequestedByRole, r.OfficeName))
+		if err != nil {
+			common.WriteError(c, err)
+			return
+		}
+		data = append(data, m)
 	}
 	c.JSON(http.StatusOK, gin.H{"data": data, "total": len(data)})
 }
@@ -193,7 +216,12 @@ func (h *Handler) list(c *gin.Context) {
 	}
 	data := make([]map[string]any, 0, len(rows))
 	for _, r := range rows {
-		data = append(data, enrichRequestMap(requestToMap(r.ApprovalRequest), r.RequestedByName, r.RequestedByRole, r.OfficeName))
+		m, err := h.filterMap(c, enrichRequestMap(requestToMap(r.ApprovalRequest), r.RequestedByName, r.RequestedByRole, r.OfficeName))
+		if err != nil {
+			common.WriteError(c, err)
+			return
+		}
+		data = append(data, m)
 	}
 	c.JSON(http.StatusOK, gin.H{"data": data, "total": total, "limit": limit, "offset": offset})
 }
@@ -232,6 +260,11 @@ func (h *Handler) get(c *gin.Context) {
 		stepMaps = append(stepMaps, stepToMap(st))
 	}
 	out["steps"] = stepMaps
+	out, err = h.filterMap(c, out)
+	if err != nil {
+		common.WriteError(c, err)
+		return
+	}
 	c.JSON(http.StatusOK, out)
 }
 
