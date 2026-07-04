@@ -301,7 +301,8 @@
       "reasonPlaceholder": "mis. Realokasi perangkat sesuai kebutuhan cabang tujuan…",
       "reset": "Reset",
       "submit": "Ajukan Mutasi",
-      "error": "Lengkapi aset, kantor tujuan, dan tanggal mutasi."
+      "error": "Lengkapi aset, kantor tujuan, dan tanggal mutasi.",
+      "noManagePermission": "Anda tidak punya izin untuk mengajukan mutasi."
     },
     "interRegion": {
       "title": "Mutasi antar-wilayah",

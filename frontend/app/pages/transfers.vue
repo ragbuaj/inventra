@@ -159,6 +159,7 @@ const interRegionResult = computed<boolean | null>(() => {
   return isInterRegion(fromOfficeId.value, toOfficeId.value, officeNodes.value, tierOf)
 })
 
+const canManage = computed(() => can('transfer.manage'))
 const ajReady = computed(() => !!(selectedAsset.value && toOfficeId.value && transferDate.value && condition.value))
 
 function onSelectAsset(asset: Asset) {
@@ -191,10 +192,12 @@ function resetForm() {
   transferDate.value = ''
   condition.value = 'baik'
   reason.value = ''
+  ajMsg.value = null
   pickerKey.value++
 }
 
 async function submitTransfer() {
+  if (!canManage.value) return
   if (!ajReady.value || submitting.value) {
     ajMsg.value = { text: t('transfer.form.error'), type: 'error' }
     return
@@ -678,21 +681,34 @@ onBeforeUnmount(() => {
           />
         </UFormField>
 
-        <div class="flex justify-end gap-2.5 border-t border-default pt-4">
-          <UButton
-            color="neutral"
-            variant="outline"
-            :label="t('transfer.form.reset')"
-            @click="resetForm"
-          />
-          <UButton
-            icon="i-lucide-repeat"
-            :label="t('transfer.form.submit')"
-            :loading="submitting"
-            :disabled="!ajReady"
-            data-testid="transfer-submit"
-            @click="submitTransfer"
-          />
+        <div class="border-t border-default pt-4">
+          <div
+            v-if="!canManage"
+            data-testid="transfer-no-manage"
+            class="flex gap-2 items-center px-3 py-2.5 mb-3 rounded-[10px] bg-muted border border-default text-muted text-[12.5px] leading-snug font-medium"
+          >
+            <UIcon
+              name="i-lucide-lock"
+              class="size-4 flex-none"
+            />
+            {{ t('transfer.form.noManagePermission') }}
+          </div>
+          <div class="flex justify-end gap-2.5">
+            <UButton
+              color="neutral"
+              variant="outline"
+              :label="t('transfer.form.reset')"
+              @click="resetForm"
+            />
+            <UButton
+              icon="i-lucide-repeat"
+              :label="t('transfer.form.submit')"
+              :loading="submitting"
+              :disabled="!ajReady || !canManage"
+              data-testid="transfer-submit"
+              @click="submitTransfer"
+            />
+          </div>
         </div>
       </div>
     </div>

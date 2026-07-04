@@ -301,7 +301,8 @@
       "reasonPlaceholder": "e.g. Reallocate equipment to the destination branch…",
       "reset": "Reset",
       "submit": "Submit Transfer",
-      "error": "Complete asset, destination, and transfer date."
+      "error": "Complete asset, destination, and transfer date.",
+      "noManagePermission": "You do not have permission to submit transfers."
     },
     "interRegion": {
       "title": "Inter-region transfer",

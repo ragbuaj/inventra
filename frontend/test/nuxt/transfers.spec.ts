@@ -276,6 +276,44 @@ describe('pages/transfers — Ajukan Mutasi form', () => {
     expect(w.text()).toContain('Proyektor Epson EB-X51')
     expect(w.text()).toContain('berhasil diajukan')
   })
+
+  it('keeps submit disabled and shows the no-permission note without transfer.manage', async () => {
+    grantSession('o-mine', ['transfer.view'])
+    const w = await mountAndWait()
+    // Even with a complete form, a view-only caller cannot submit.
+    await setVmRef(w, 'selectedAsset', ASSET)
+    await setVmRef(w, 'toOfficeId', 'o-same')
+    await w.find('[data-testid="transfer-date"]').setValue('2026-07-10')
+
+    expect(w.find('[data-testid="transfer-submit"]').attributes('disabled')).toBeDefined()
+    expect(w.find('[data-testid="transfer-no-manage"]').text()).toContain('Anda tidak punya izin untuk mengajukan mutasi.')
+
+    await w.find('[data-testid="transfer-submit"]').trigger('click')
+    await flushPromises()
+    expect(transfersSubmitMock).not.toHaveBeenCalled()
+  })
+
+  it('hides the no-permission note when the caller has transfer.manage', async () => {
+    const w = await mountAndWait()
+    expect(w.find('[data-testid="transfer-no-manage"]').exists()).toBe(false)
+  })
+
+  it('Reset clears the form and any visible banner', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET)
+    await setVmRef(w, 'toOfficeId', 'o-same')
+    await w.find('[data-testid="transfer-date"]').setValue('2026-07-10')
+    await w.find('[data-testid="transfer-submit"]').trigger('click')
+    await flushPromises()
+    expect(w.text()).toContain('berhasil diajukan')
+
+    const reset = w.findAll('button').find(b => b.text().trim() === 'Reset')
+    await reset!.trigger('click')
+    await w.vm.$nextTick()
+
+    expect(w.text()).not.toContain('berhasil diajukan')
+    expect((w.vm as unknown as { ajMsg: unknown }).ajMsg).toBeNull()
+  })
 })
 
 describe('pages/transfers — Kotak Masuk', () => {
