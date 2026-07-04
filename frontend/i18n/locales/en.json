@@ -408,8 +408,10 @@
       "reasonPlaceholder": "e.g. Severely damaged & uneconomical to repair…",
       "attachments": "Document & Photo Attachments",
       "dropText": "Upload report, condition photos, supporting docs",
+      "evidenceHint": "Attachments are visible to the approver in Asset Detail.",
       "submit": "Submit Disposal",
-      "error": "Complete asset, date, and disposal method."
+      "error": "Complete asset, date, and disposal method.",
+      "noManagePermission": "You do not have permission to submit a disposal."
     },
     "valuation": {
       "title": "Valuation Summary (read-only)",
@@ -430,7 +432,8 @@
       "empty": "Select an asset and enter a sale value to see the automatic gain/loss calculation.",
       "gain": "Disposal Gain",
       "loss": "Disposal Loss",
-      "breakEven": "Break-even"
+      "breakEven": "Break-even",
+      "bookValueHidden": "Book value hidden for your role."
     },
     "chain": {
       "title": "Required Approval Chain",
@@ -466,7 +469,8 @@
       "done": "Approved",
       "current": "Awaiting",
       "queued": "Queued",
-      "awaitingReview": "Awaiting review"
+      "awaitingReview": "Awaiting review",
+      "queuedNote": "Waiting for previous step"
     },
     "history": {
       "searchPlaceholder": "Search asset / code…",
@@ -505,8 +509,14 @@
     "attachBast": {
       "title": "Attach Disposal Report",
       "hint": "Upload the asset disposal handover report document.",
+      "bastNo": "Report No.",
+      "docNo": "Document No.",
+      "docDate": "Document Date",
+      "counterparty": "Counterparty",
+      "file": "Document File",
       "confirm": "Save Attachment",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "success": "The disposal report for \"{name}\" was saved."
     }
   },
   "maintenance": {

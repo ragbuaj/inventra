@@ -408,8 +408,10 @@
       "reasonPlaceholder": "mis. Aset rusak berat & tidak ekonomis diperbaiki…",
       "attachments": "Lampiran Dokumen & Foto",
       "dropText": "Unggah BAST, foto kondisi, dokumen pendukung",
+      "evidenceHint": "Lampiran akan terlihat approver di Detail Aset.",
       "submit": "Ajukan Penghapusan",
-      "error": "Lengkapi aset, tanggal, dan metode pelepasan."
+      "error": "Lengkapi aset, tanggal, dan metode pelepasan.",
+      "noManagePermission": "Anda tidak punya izin untuk mengajukan penghapusan."
     },
     "valuation": {
       "title": "Ringkasan Valuasi (read-only)",
@@ -430,7 +432,8 @@
       "empty": "Pilih aset dan isi nilai jual untuk melihat perhitungan laba/rugi otomatis.",
       "gain": "Laba Pelepasan",
       "loss": "Rugi Pelepasan",
-      "breakEven": "Impas (nihil)"
+      "breakEven": "Impas (nihil)",
+      "bookValueHidden": "Nilai buku tersembunyi untuk peran Anda."
     },
     "chain": {
       "title": "Jenjang Persetujuan Diperlukan",
@@ -466,7 +469,8 @@
       "done": "Disetujui",
       "current": "Menunggu",
       "queued": "Antre",
-      "awaitingReview": "Menunggu tinjauan"
+      "awaitingReview": "Menunggu tinjauan",
+      "queuedNote": "Menunggu tahap sebelumnya"
     },
     "history": {
       "searchPlaceholder": "Cari aset / kode…",
@@ -505,8 +509,14 @@
     "attachBast": {
       "title": "Lampirkan BAST Penghapusan",
       "hint": "Unggah dokumen Berita Acara Serah Terima penghapusan aset.",
+      "bastNo": "No. BAST",
+      "docNo": "No. Dokumen",
+      "docDate": "Tanggal Dokumen",
+      "counterparty": "Pihak Terkait",
+      "file": "File Dokumen",
       "confirm": "Simpan Lampiran",
-      "cancel": "Batal"
+      "cancel": "Batal",
+      "success": "Lampiran BAST untuk \"{name}\" berhasil disimpan."
     }
   },
   "maintenance": {
