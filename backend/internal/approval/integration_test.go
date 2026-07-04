@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -1588,6 +1589,21 @@ func TestApproval_ThresholdPreview(t *testing.T) {
 
 	t.Run("HTTP: 400 for invalid request_type", func(t *testing.T) {
 		code, _ := doGet("/api/v1/approval-thresholds/preview?request_type=bogus&amount=500000")
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+
+	t.Run("HTTP: 400 for fraction amount (would reach DB as invalid numeric)", func(t *testing.T) {
+		code, _ := doGet("/api/v1/approval-thresholds/preview?request_type=asset_disposal&amount=" + url.QueryEscape("1/3"))
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+
+	t.Run("HTTP: 400 for non-numeric amount", func(t *testing.T) {
+		code, _ := doGet("/api/v1/approval-thresholds/preview?request_type=asset_disposal&amount=abc")
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+
+	t.Run("HTTP: 400 for missing amount", func(t *testing.T) {
+		code, _ := doGet("/api/v1/approval-thresholds/preview?request_type=asset_disposal")
 		assert.Equal(t, http.StatusBadRequest, code)
 	})
 }

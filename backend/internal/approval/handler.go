@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"math/big"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -334,7 +333,7 @@ func (h *Handler) previewThresholds(c *gin.Context) {
 		return
 	}
 	amount := c.Query("amount")
-	if _, ok := new(big.Rat).SetString(amount); !ok || amount == "" {
+	if _, ok := parsePlainDecimal(amount); !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid amount"})
 		return
 	}

@@ -39,6 +39,9 @@ func TestSubmitRequest_Validate_AssetCreateAmount(t *testing.T) {
 		{"malformed payload rejected", "0", `{not-json`, true},
 		{"non-numeric amount rejected", "abc", `{"purchase_cost":"1000"}`, true},
 		{"non-numeric purchase_cost rejected", "1000", `{"purchase_cost":"abc"}`, true},
+		{"fraction amount rejected despite matching fraction purchase_cost", "1/3", `{"purchase_cost":"1/3"}`, true},
+		{"exponent amount rejected despite numeric equality with purchase_cost", "1e6", `{"purchase_cost":"1000000"}`, true},
+		{"fraction purchase_cost rejected", "1000", `{"purchase_cost":"1/3"}`, true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
