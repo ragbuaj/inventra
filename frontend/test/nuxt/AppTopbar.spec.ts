@@ -9,7 +9,7 @@ import { notificationStore } from '~/mock/notifications'
 function setupSuperadmin() {
   useAuthStore().setSession(
     'tok',
-    { id: '1', name: 'Admin Inventra', email: 'admin@inventra.local', role_id: 'r1', role_name: 'Superadmin' },
+    { id: '1', name: 'Admin Inventra', email: 'admin@inventra.local', role_id: 'r1', role_name: 'Superadmin', office_id: null },
     ['*']
   )
 }

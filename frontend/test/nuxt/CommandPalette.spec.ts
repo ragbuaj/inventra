@@ -8,11 +8,11 @@ import { useCommandPalette } from '~/composables/useCommandPalette'
 import { useAuthStore } from '~/stores/auth'
 
 function admin() {
-  useAuthStore().setSession('t', { id: '1', name: 'A', email: 'a@e.com', role_id: 'r', role_name: 'Superadmin' }, ['*'])
+  useAuthStore().setSession('t', { id: '1', name: 'A', email: 'a@e.com', role_id: 'r', role_name: 'Superadmin', office_id: null }, ['*'])
 }
 
 function nonAdmin() {
-  useAuthStore().setSession('t', { id: '2', name: 'B', email: 'b@e.com', role_id: 'r2', role_name: 'Viewer' }, ['reports.read'])
+  useAuthStore().setSession('t', { id: '2', name: 'B', email: 'b@e.com', role_id: 'r2', role_name: 'Viewer', office_id: null }, ['reports.read'])
 }
 
 // Teleport sends the overlay to document.body, so query there rather than the wrapper.

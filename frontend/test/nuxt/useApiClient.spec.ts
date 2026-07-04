@@ -39,7 +39,7 @@ describe('useApiClient X-Request-ID propagation', () => {
 describe('useApiClient requestBlob', () => {
   beforeEach(() => {
     fetchMock.mockReset()
-    useAuthStore().setSession('tok', { id: '1', name: 'A', email: 'a@b.com', role_id: 'r', role_name: 'Superadmin' }, ['*'])
+    useAuthStore().setSession('tok', { id: '1', name: 'A', email: 'a@b.com', role_id: 'r', role_name: 'Superadmin', office_id: null }, ['*'])
   })
 
   afterEach(() => {
@@ -87,7 +87,7 @@ describe('useApiClient requestBlob', () => {
 describe('useApiClient refresh single-flight', () => {
   beforeEach(() => {
     fetchMock.mockReset()
-    useAuthStore().setSession('tok', { id: '1', name: 'A', email: 'a@b.com', role_id: 'r', role_name: 'Superadmin' }, ['*'])
+    useAuthStore().setSession('tok', { id: '1', name: 'A', email: 'a@b.com', role_id: 'r', role_name: 'Superadmin', office_id: null }, ['*'])
   })
 
   afterEach(() => {

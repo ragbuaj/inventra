@@ -271,6 +271,223 @@
       "emptySub": "Belum ada penugasan yang cocok dengan filter."
     }
   },
+  "transfer": {
+    "pageTitle": "Mutasi Aset",
+    "flow": {
+      "label": "Alur",
+      "diajukan": "Diajukan",
+      "approved": "Disetujui",
+      "in_transit": "Dalam Pengiriman",
+      "received": "Diterima"
+    },
+    "tabs": {
+      "ajukan": "Ajukan Mutasi",
+      "inbox": "Kotak Masuk",
+      "history": "Riwayat"
+    },
+    "form": {
+      "asset": "Aset (hanya status tersedia)",
+      "assetPlaceholder": "Cari nama / kode aset…",
+      "assetHint": "Aset berstatus \"Dipinjam\" harus di-check-in dulu sebelum bisa dimutasi.",
+      "noAvailable": "Tidak ada aset tersedia",
+      "fromOffice": "Kantor Asal",
+      "toOffice": "Kantor Tujuan",
+      "toRoom": "Ruangan Tujuan",
+      "roomNone": "— (Belum ditentukan)",
+      "date": "Tanggal Mutasi",
+      "condition": "Kondisi Saat Dikirim",
+      "reason": "Alasan Mutasi",
+      "toOfficePlaceholder": "Pilih kantor tujuan…",
+      "reasonPlaceholder": "mis. Realokasi perangkat sesuai kebutuhan cabang tujuan…",
+      "reset": "Reset",
+      "submit": "Ajukan Mutasi",
+      "error": "Lengkapi aset, kantor tujuan, dan tanggal mutasi."
+    },
+    "interRegion": {
+      "title": "Mutasi antar-wilayah",
+      "note": "Tujuan berada di wilayah berbeda. Mutasi ini memerlukan persetujuan Kepala Kanwil kedua sisi sebelum aset dikirim.",
+      "badge": "Antar-Wilayah"
+    },
+    "inSubtreeNote": "Mutasi dalam satu wilayah — cukup persetujuan Kepala Unit.",
+    "submitSuccess": "Mutasi \"{name}\" ke {office} berhasil diajukan.",
+    "byLabel": "Diajukan oleh",
+    "conditionSentLabel": "Kondisi kirim:",
+    "inbox": {
+      "reject": "Tolak Terima",
+      "accept": "Terima",
+      "acceptSuccess": "Aset \"{name}\" diterima. Lokasi & status diperbarui menjadi Tersedia di kantor Anda.",
+      "rejectSuccess": "Penerimaan \"{name}\" ditolak dan dikembalikan ke kantor asal.",
+      "emptyTitle": "Kotak masuk kosong",
+      "emptySub": "Tidak ada aset yang sedang dikirim ke kantor Anda."
+    },
+    "history": {
+      "searchPlaceholder": "Cari aset / kantor…",
+      "column": {
+        "asset": "Aset",
+        "route": "Asal → Tujuan",
+        "date": "Tanggal",
+        "actor": "Pelaku",
+        "status": "Status",
+        "bast": "No. BAST"
+      },
+      "emptyTitle": "Belum ada riwayat",
+      "emptySub": "Belum ada mutasi yang cocok dengan filter.",
+      "info": "Total {n} mutasi"
+    },
+    "statusFilter": {
+      "all": "Semua Status",
+      "diajukan": "Diajukan",
+      "in_transit": "Dalam Pengiriman",
+      "received": "Diterima",
+      "rejected": "Ditolak"
+    },
+    "status": {
+      "diajukan": "Diajukan",
+      "approved": "Disetujui",
+      "in_transit": "Dalam Pengiriman",
+      "received": "Diterima",
+      "returned": "Dikembalikan",
+      "rejected": "Ditolak",
+      "cancelled": "Dibatalkan"
+    },
+    "condition": {
+      "baik": "Baik",
+      "rusak_ringan": "Rusak Ringan",
+      "rusak_berat": "Rusak Berat"
+    },
+    "ship": {
+      "title": "Konfirmasi Pengiriman",
+      "subtitle": "Catat kondisi aset saat dikirim sebelum status berubah menjadi Dalam Pengiriman.",
+      "conditionLabel": "Kondisi Saat Dikirim",
+      "confirm": "Konfirmasi Kirim",
+      "cancel": "Batal",
+      "success": "Aset \"{name}\" dikirim. Status diperbarui menjadi Dalam Pengiriman."
+    }
+  },
+  "disposal": {
+    "pageTitle": "Penghapusan Aset",
+    "pageSub": "Ajukan pelepasan aset (jual/lelang/hibah/musnah) dengan perhitungan laba/rugi dan approval berjenjang.",
+    "tabs": {
+      "ajukan": "Ajukan Penghapusan",
+      "history": "Riwayat"
+    },
+    "form": {
+      "assetSection": "Aset yang Dilepas",
+      "asset": "Pilih Aset (status tersedia)",
+      "assetPlaceholder": "Cari nama / kode aset…",
+      "assetHint": "Aset yang sedang dipinjam harus di-check-in dulu sebelum dapat dihapus.",
+      "noAvailable": "Tidak ada aset tersedia",
+      "detailSection": "Detail Pelepasan",
+      "method": "Metode Pelepasan",
+      "value": "Nilai Jual / Terima",
+      "valueHint": "Isi 0 untuk hibah/musnah tanpa nilai.",
+      "date": "Tanggal Pelepasan",
+      "bastNo": "No. BAST Penghapusan",
+      "reason": "Alasan / Keterangan",
+      "reasonPlaceholder": "mis. Aset rusak berat & tidak ekonomis diperbaiki…",
+      "attachments": "Lampiran Dokumen & Foto",
+      "dropText": "Unggah BAST, foto kondisi, dokumen pendukung",
+      "submit": "Ajukan Penghapusan",
+      "error": "Lengkapi aset, tanggal, dan metode pelepasan."
+    },
+    "valuation": {
+      "title": "Ringkasan Valuasi (read-only)",
+      "acquisition": "Nilai Perolehan",
+      "accumulatedDepreciation": "Akumulasi Penyusutan",
+      "bookValueCommercial": "Nilai Buku",
+      "bookValueFiscal": "Nilai Buku",
+      "psakChip": "PSAK",
+      "fiscalChip": "FISKAL",
+      "fiscalTooltip": "Nilai buku fiskal menunggu modul depresiasi."
+    },
+    "gainLoss": {
+      "title": "Laba / Rugi Pelepasan",
+      "short": "Laba/Rugi",
+      "value": "Nilai Jual/Terima",
+      "bookValue": "Nilai Buku (komersial)",
+      "fiscal": "Laba/rugi fiskal",
+      "empty": "Pilih aset dan isi nilai jual untuk melihat perhitungan laba/rugi otomatis.",
+      "gain": "Laba Pelepasan",
+      "loss": "Rugi Pelepasan",
+      "breakEven": "Impas (nihil)"
+    },
+    "chain": {
+      "title": "Jenjang Persetujuan Diperlukan",
+      "ref": "Limit Otorisasi §2.4",
+      "sensitiveNote": "Tindakan sensitif — penghapusan aset mengubah catatan aktiva tetap dan memerlukan approval berjenjang sesuai nilai buku.",
+      "basedOnBookValue": "berdasar nilai perolehan: {value}",
+      "notConfigured": "Band approval belum dikonfigurasi.",
+      "acquisitionHidden": "Nilai perolehan tersembunyi untuk peran Anda.",
+      "role": {
+        "maker": "Maker — Asset Manager",
+        "kaunit": "Kepala Unit",
+        "kanwil": "Kepala Kanwil",
+        "pusat": "Divisi Aset — Kantor Pusat"
+      },
+      "note": {
+        "maker": "Pengaju",
+        "always": "Wajib",
+        "mid": "Nilai buku {value}",
+        "high": "Nilai > Rp 50 jt"
+      }
+    },
+    "submitted": {
+      "title": "Pengajuan penghapusan terkirim",
+      "sub": "Menunggu persetujuan berjenjang sesuai limit otorisasi.",
+      "status": "Menunggu Approval",
+      "method": "Metode",
+      "value": "Nilai Jual",
+      "gainLoss": "Laba/Rugi"
+    },
+    "timeline": {
+      "title": "Timeline Approval Berlapis",
+      "newRequest": "Ajukan Penghapusan Lain",
+      "done": "Disetujui",
+      "current": "Menunggu",
+      "queued": "Antre",
+      "awaitingReview": "Menunggu tinjauan"
+    },
+    "history": {
+      "searchPlaceholder": "Cari aset / kode…",
+      "column": {
+        "asset": "Aset",
+        "method": "Metode",
+        "value": "Nilai Jual",
+        "gainLoss": "Laba/Rugi",
+        "date": "Tanggal",
+        "status": "Status"
+      },
+      "emptyTitle": "Belum ada riwayat",
+      "emptySub": "Belum ada pengajuan penghapusan yang cocok.",
+      "info": "Total {n} pengajuan"
+    },
+    "statusFilter": {
+      "all": "Semua Status",
+      "menunggu": "Menunggu Approval",
+      "disetujui": "Disetujui",
+      "ditolak": "Ditolak",
+      "selesai": "Selesai"
+    },
+    "status": {
+      "menunggu": "Menunggu Approval",
+      "disetujui": "Disetujui",
+      "ditolak": "Ditolak",
+      "dibatalkan": "Dibatalkan",
+      "selesai": "Selesai"
+    },
+    "method": {
+      "sale": "Dijual",
+      "auction": "Lelang",
+      "donation": "Hibah",
+      "write_off": "Musnah"
+    },
+    "attachBast": {
+      "title": "Lampirkan BAST Penghapusan",
+      "hint": "Unggah dokumen Berita Acara Serah Terima penghapusan aset.",
+      "confirm": "Simpan Lampiran",
+      "cancel": "Batal"
+    }
+  },
   "maintenance": {
     "title": "Maintenance",
     "subtitle": "Kelola jadwal, catatan perawatan, dan laporan kerusakan aset.",
@@ -855,6 +1072,8 @@
     "assetLabel": "Label & Barcode",
     "myAssets": "Aset Saya",
     "assignment": "Penugasan",
+    "transfers": "Mutasi Aset",
+    "disposals": "Penghapusan",
     "maintenance": "Maintenance",
     "approval": "Pengajuan & Approval",
     "approvalStaff": "Pengajuan",
