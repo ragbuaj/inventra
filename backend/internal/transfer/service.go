@@ -202,6 +202,31 @@ func (s *Service) Receive(ctx context.Context, all bool, ids []uuid.UUID, receiv
 	return before, after, nil
 }
 
+// RejectReceive declines an in-transit shipment on behalf of the destination office.
+// The asset never moved, so nothing is relocated; the row terminates as 'returned'.
+func (s *Service) RejectReceive(ctx context.Context, all bool, ids []uuid.UUID, actor, id uuid.UUID, note *string) (sqlc.TransferAssetTransfer, error) {
+	cur, err := s.q.GetTransfer(ctx, sqlc.GetTransferParams{ID: id, AllScope: all, OfficeIds: ids})
+	if err != nil {
+		return cur, mapDBError(err)
+	}
+	if !common.InScope(all, ids, cur.ToOfficeID) {
+		return cur, ErrOutOfScope
+	}
+	if cur.Status != sqlc.SharedTransferStatusInTransit {
+		return cur, ErrInvalidState
+	}
+	out, err := s.q.SetTransferReturned(ctx, sqlc.SetTransferReturnedParams{
+		ID: id, ReturnNote: note, ActorID: &actor,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return cur, ErrInvalidState // status raced away from in_transit
+		}
+		return cur, mapDBError(err)
+	}
+	return out, nil
+}
+
 // Get returns one scoped transfer.
 func (s *Service) Get(ctx context.Context, id uuid.UUID, all bool, ids []uuid.UUID) (sqlc.TransferAssetTransfer, error) {
 	t, err := s.q.GetTransfer(ctx, sqlc.GetTransferParams{ID: id, AllScope: all, OfficeIds: ids})

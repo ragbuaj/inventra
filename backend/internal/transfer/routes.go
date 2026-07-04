@@ -11,6 +11,7 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW, requireManage, requ
 	g.POST("", authMW, requireManage, h.submit)
 	g.POST("/:id/ship", authMW, requireManage, h.ship)
 	g.POST("/:id/receive", authMW, requireManage, h.receive)
+	g.POST("/:id/reject-receive", authMW, requireManage, h.rejectReceive)
 
 	rg.GET("/assets/:id/transfers", authMW, requireView, h.listByAsset)
 }

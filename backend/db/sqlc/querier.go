@@ -143,6 +143,8 @@ type Querier interface {
 	SetDisposalBastNo(ctx context.Context, arg SetDisposalBastNoParams) (DisposalDisposal, error)
 	SetRequestDecision(ctx context.Context, arg SetRequestDecisionParams) (ApprovalRequest, error)
 	SetTransferReceived(ctx context.Context, arg SetTransferReceivedParams) (TransferAssetTransfer, error)
+	// Receiving side declines the shipment: terminal 'returned', asset never moved.
+	SetTransferReturned(ctx context.Context, arg SetTransferReturnedParams) (TransferAssetTransfer, error)
 	SetTransferShipped(ctx context.Context, arg SetTransferShippedParams) (TransferAssetTransfer, error)
 	SoftDeleteAssetDocument(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteAttachment(ctx context.Context, id uuid.UUID) (int64, error)

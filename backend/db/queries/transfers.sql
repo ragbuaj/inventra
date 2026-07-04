@@ -60,6 +60,15 @@ SET status = 'received',
 WHERE id = sqlc.arg(id) AND status = 'in_transit' AND deleted_at IS NULL
 RETURNING *;
 
+-- name: SetTransferReturned :one
+-- Receiving side declines the shipment: terminal 'returned', asset never moved.
+UPDATE transfer.asset_transfers
+SET status = 'returned',
+    return_note = sqlc.narg(return_note),
+    received_by_id = sqlc.arg(actor_id)
+WHERE id = sqlc.arg(id) AND status = 'in_transit' AND deleted_at IS NULL
+RETURNING *;
+
 -- name: GetOpenTransferForAsset :one
 -- Guard: an asset may have at most one non-terminal transfer row.
 SELECT * FROM transfer.asset_transfers

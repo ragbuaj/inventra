@@ -525,6 +525,89 @@ func TestTransfer_ConditionAndDate_RoundTrip(t *testing.T) {
 	assert.Equal(t, "2026-07-10", row.TransferDate.Time.Format("2006-01-02"))
 }
 
+// TestTransfer_RejectReceive covers the destination office declining an in-transit
+// shipment: the row terminates as 'returned' with a note, and the asset never moves.
+func TestTransfer_RejectReceive(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	t.Run("happy path: returned, note stored, asset stays at origin", func(t *testing.T) {
+		assetID := seedAssetWithCost(t, h.pool, "FROM-TRF-2026-00009", "Scanner Fujitsu", h.catID, h.fromOffice, "500000")
+		maker := seedUser(t, h.pool, h.officeRoleID, h.fromOffice, "maker.ret1@test.local")
+		checker := seedUser(t, h.pool, h.officeRoleID, h.fromOffice, "checker.ret1@test.local")
+		receiver := seedUser(t, h.pool, h.officeRoleID, h.toOffice, "receiver.ret1@test.local")
+
+		makerCaller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.fromOffice})
+		checkerCaller := buildCaller(checker, h.officeRoleID, false, []uuid.UUID{h.fromOffice, h.toOffice})
+
+		req, err := h.tsvc.Submit(ctx, makerCaller, transfer.SubmitInput{AssetID: assetID, ToOfficeID: h.toOffice})
+		require.NoError(t, err)
+		final := approveThroughChain(t, h.apprSvc, req.ID, checkerCaller)
+		require.Equal(t, sqlc.SharedRequestStatusApproved, final.Status)
+
+		row, err := h.q.GetOpenTransferForAsset(ctx, assetID)
+		require.NoError(t, err)
+		_, err = h.tsvc.Ship(ctx, true, nil, row.ID, transfer.ShipInput{})
+		require.NoError(t, err)
+
+		note := "kondisi tidak sesuai"
+		out, err := h.tsvc.RejectReceive(ctx, true, nil, receiver, row.ID, &note)
+		require.NoError(t, err)
+		assert.Equal(t, sqlc.SharedTransferStatusReturned, out.Status)
+		require.NotNil(t, out.ReturnNote)
+		assert.Equal(t, note, *out.ReturnNote)
+
+		// Asset must still live at the origin office.
+		a, err := h.q.GetAsset(ctx, assetID)
+		require.NoError(t, err)
+		assert.Equal(t, h.fromOffice, a.OfficeID)
+	})
+
+	t.Run("guard: only in_transit can be returned", func(t *testing.T) {
+		assetID := seedAssetWithCost(t, h.pool, "FROM-TRF-2026-00010", "Switch Cisco", h.catID, h.fromOffice, "500000")
+		maker := seedUser(t, h.pool, h.officeRoleID, h.fromOffice, "maker.ret2@test.local")
+		checker := seedUser(t, h.pool, h.officeRoleID, h.fromOffice, "checker.ret2@test.local")
+
+		makerCaller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.fromOffice})
+		checkerCaller := buildCaller(checker, h.officeRoleID, false, []uuid.UUID{h.fromOffice, h.toOffice})
+
+		req, err := h.tsvc.Submit(ctx, makerCaller, transfer.SubmitInput{AssetID: assetID, ToOfficeID: h.toOffice})
+		require.NoError(t, err)
+		final := approveThroughChain(t, h.apprSvc, req.ID, checkerCaller)
+		require.Equal(t, sqlc.SharedRequestStatusApproved, final.Status)
+
+		row, err := h.q.GetOpenTransferForAsset(ctx, assetID)
+		require.NoError(t, err)
+		// still status=approved (not shipped)
+		_, err = h.tsvc.RejectReceive(ctx, true, nil, maker, row.ID, nil)
+		assert.ErrorIs(t, err, transfer.ErrInvalidState)
+	})
+
+	t.Run("guard: to-office scope enforced", func(t *testing.T) {
+		assetID := seedAssetWithCost(t, h.pool, "FROM-TRF-2026-00011", "UPS APC", h.catID, h.fromOffice, "500000")
+		maker := seedUser(t, h.pool, h.officeRoleID, h.fromOffice, "maker.ret3@test.local")
+		checker := seedUser(t, h.pool, h.officeRoleID, h.fromOffice, "checker.ret3@test.local")
+
+		makerCaller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.fromOffice})
+		checkerCaller := buildCaller(checker, h.officeRoleID, false, []uuid.UUID{h.fromOffice, h.toOffice})
+
+		req, err := h.tsvc.Submit(ctx, makerCaller, transfer.SubmitInput{AssetID: assetID, ToOfficeID: h.toOffice})
+		require.NoError(t, err)
+		final := approveThroughChain(t, h.apprSvc, req.ID, checkerCaller)
+		require.Equal(t, sqlc.SharedRequestStatusApproved, final.Status)
+
+		row, err := h.q.GetOpenTransferForAsset(ctx, assetID)
+		require.NoError(t, err)
+		_, err = h.tsvc.Ship(ctx, true, nil, row.ID, transfer.ShipInput{})
+		require.NoError(t, err)
+
+		// caller scoped ONLY to the from-office (not destination) → out of scope
+		outsider := seedUser(t, h.pool, h.officeRoleID, h.fromOffice, "outsider.ret3@test.local")
+		_, err = h.tsvc.RejectReceive(ctx, false, []uuid.UUID{h.fromOffice}, outsider, row.ID, nil)
+		assert.ErrorIs(t, err, transfer.ErrOutOfScope)
+	})
+}
+
 // TestTransfer_ListByAsset_History verifies that ListByAsset returns the
 // asset's transfer(s), scoped by the caller's office IDs.
 func TestTransfer_ListByAsset_History(t *testing.T) {

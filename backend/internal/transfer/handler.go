@@ -187,6 +187,33 @@ func (h *Handler) receive(c *gin.Context) {
 	c.JSON(http.StatusOK, toResponse(after))
 }
 
+// rejectReceive handles POST /transfers/:id/reject-receive: the destination office declines
+// an in-transit shipment. The asset never moved; the row terminates as 'returned'.
+func (h *Handler) rejectReceive(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	var body RejectReceiveRequest
+	if err := c.ShouldBindJSON(&body); err != nil && !errors.Is(err, io.EOF) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	caller, all, ids, err := h.caller(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
+		return
+	}
+	out, err := h.svc.RejectReceive(c.Request.Context(), all, ids, caller.UserID, id, body.Note)
+	if err != nil {
+		h.svcError(c, err)
+		return
+	}
+	audit.Record(c, h.aud, audit.ActionUpdate, "transfers", out.ID, &out.ToOfficeID, audit.Diff(map[string]any{"status": "in_transit"}, map[string]any{"status": "returned"}))
+	c.JSON(http.StatusOK, toResponse(out))
+}
+
 // recordBAST creates an asset_documents(bast_transfer) row and, if a file part is present,
 // stores it in MinIO via the asset document service.
 func (h *Handler) recordBAST(c *gin.Context, t sqlc.TransferAssetTransfer) {

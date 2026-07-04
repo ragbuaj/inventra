@@ -373,6 +373,51 @@ func (q *Queries) SetTransferReceived(ctx context.Context, arg SetTransferReceiv
 	return i, err
 }
 
+const setTransferReturned = `-- name: SetTransferReturned :one
+UPDATE transfer.asset_transfers
+SET status = 'returned',
+    return_note = $1,
+    received_by_id = $2
+WHERE id = $3 AND status = 'in_transit' AND deleted_at IS NULL
+RETURNING id, asset_id, from_office_id, to_office_id, to_room_id, status, reason, requested_by_id, approved_by_id, shipped_date, received_date, received_by_id, bast_no, request_id, notes, created_at, updated_at, deleted_at, condition_sent, transfer_date, return_note
+`
+
+type SetTransferReturnedParams struct {
+	ReturnNote *string    `json:"return_note"`
+	ActorID    *uuid.UUID `json:"actor_id"`
+	ID         uuid.UUID  `json:"id"`
+}
+
+// Receiving side declines the shipment: terminal 'returned', asset never moved.
+func (q *Queries) SetTransferReturned(ctx context.Context, arg SetTransferReturnedParams) (TransferAssetTransfer, error) {
+	row := q.db.QueryRow(ctx, setTransferReturned, arg.ReturnNote, arg.ActorID, arg.ID)
+	var i TransferAssetTransfer
+	err := row.Scan(
+		&i.ID,
+		&i.AssetID,
+		&i.FromOfficeID,
+		&i.ToOfficeID,
+		&i.ToRoomID,
+		&i.Status,
+		&i.Reason,
+		&i.RequestedByID,
+		&i.ApprovedByID,
+		&i.ShippedDate,
+		&i.ReceivedDate,
+		&i.ReceivedByID,
+		&i.BastNo,
+		&i.RequestID,
+		&i.Notes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.ConditionSent,
+		&i.TransferDate,
+		&i.ReturnNote,
+	)
+	return i, err
+}
+
 const setTransferShipped = `-- name: SetTransferShipped :one
 UPDATE transfer.asset_transfers
 SET status = 'in_transit', shipped_date = $1

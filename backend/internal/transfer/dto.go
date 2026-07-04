@@ -32,6 +32,11 @@ type ReceiveRequest struct {
 	ToRoomID     *string `json:"to_room_id" form:"to_room_id" binding:"omitempty,uuid"`
 }
 
+// RejectReceiveRequest is the POST /transfers/:id/reject-receive body.
+type RejectReceiveRequest struct {
+	Note *string `json:"note"`
+}
+
 // TransferPayload is the JSON stored in approval.requests.payload for asset_transfer.
 type TransferPayload struct {
 	FromOfficeID  string  `json:"from_office_id"`
