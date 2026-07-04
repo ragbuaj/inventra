@@ -1475,7 +1475,7 @@ paths:
       tags: [Requests]
       operationId: listRequestsInbox
       summary: Pending requests awaiting the caller's decision
-      description: Returns requests currently at a step the caller is eligible to approve or reject. Requires the `request.decide` permission.
+      description: Returns requests currently at a step the caller is eligible to approve or reject. Requires the `request.decide` permission. Fields `amount`/`payload`/`reason` may be omitted per role field-permissions.
       security:
         - bearerJWT: []
       responses:
@@ -1494,7 +1494,7 @@ paths:
       tags: [Requests]
       operationId: getRequest
       summary: Get a request by id (with approval steps)
-      description: Returns the request and its full approval step history.
+      description: Returns the request and its full approval step history. Fields `amount`/`payload`/`reason` may be omitted per role field-permissions.
       security:
         - bearerJWT: []
       responses:
@@ -3049,7 +3049,7 @@ components:
     Request:
       type: object
       description: An approval request record.
-      required: [id, type, status, amount, current_step, requested_by_id, created_at]
+      required: [id, type, status, current_step, requested_by_id, created_at]
       properties:
         id: { type: string, format: uuid }
         type:
