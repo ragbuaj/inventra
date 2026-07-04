@@ -270,6 +270,46 @@ describe('AssetSearchPicker — selection', () => {
 
     expect(items(wrapper)).toHaveLength(0)
   })
+
+  it('does not re-search or reopen the dropdown after a selection (regression)', async () => {
+    // Filling the input with the chosen name mutates `query`; the watcher
+    // must NOT treat that programmatic write as a new user search — the bug
+    // was a stray list() call ~300ms later that reopened the dropdown.
+    const wrapper = await mountWithResults([ASSET_A])
+    await items(wrapper)[0]!.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    const callsAfterSelect = listMock.mock.calls.length
+    await new Promise(resolve => setTimeout(resolve, 350))
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    expect(listMock.mock.calls.length).toBe(callsAfterSelect)
+    expect(listMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ search: ASSET_A.name })
+    )
+    expect(items(wrapper)).toHaveLength(0)
+  })
+
+  it('typing again after a selection still searches normally (suppression is one-shot)', async () => {
+    const wrapper = await mountWithResults([ASSET_A])
+    await items(wrapper)[0]!.trigger('click')
+    await wrapper.vm.$nextTick()
+    await new Promise(resolve => setTimeout(resolve, 350))
+    await flushPromises()
+    const callsAfterSelect = listMock.mock.calls.length
+
+    listMock.mockResolvedValue(pageOf([ASSET_B]))
+    await input(wrapper).setValue('Proyektor')
+    await new Promise(resolve => setTimeout(resolve, 350))
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    expect(listMock.mock.calls.length).toBeGreaterThan(callsAfterSelect)
+    expect(listMock).toHaveBeenCalledWith({ search: 'Proyektor', status: 'available', limit: 20 })
+    expect(items(wrapper)).toHaveLength(1)
+    expect(items(wrapper)[0]!.text()).toContain('Proyektor Epson EB-X51')
+  })
 })
 
 describe('AssetSearchPicker — disabled', () => {

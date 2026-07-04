@@ -30,6 +30,12 @@ const containerRef = ref<HTMLElement | null>(null)
 
 let debounceTimer: ReturnType<typeof setTimeout> | undefined
 let seq = 0
+// Set by select(): filling the input with the chosen asset's name mutates
+// `query`, which would otherwise re-fire the watcher and re-search (and
+// reopen the dropdown) ~300ms after every selection. Consumed by the very
+// next watcher run only, so manually retyping the same name later (after
+// clearing) still searches normally.
+let suppressNextSearch = false
 
 async function runSearch(term: string) {
   const mine = ++seq
@@ -54,6 +60,10 @@ async function runSearch(term: string) {
 
 watch(query, (value) => {
   if (debounceTimer) clearTimeout(debounceTimer)
+  if (suppressNextSearch) {
+    suppressNextSearch = false
+    return
+  }
   if (props.disabled) return
 
   const term = value.trim()
@@ -73,6 +83,14 @@ function officeLabel(asset: Asset): string {
 }
 
 function select(asset: Asset) {
+  // Cancel any still-pending debounced search from typing. Usually the
+  // watcher below re-clears it, but when the typed query already equals the
+  // asset's name the watcher never fires and the stale timer would still run.
+  if (debounceTimer) clearTimeout(debounceTimer)
+  // Only arm the suppression when the set below actually changes `query`
+  // (Vue skips the watcher on same-value writes, which would leave the flag
+  // armed and swallow the user's next real keystroke).
+  suppressNextSearch = query.value !== asset.name
   query.value = asset.name
   isOpen.value = false
   results.value = []
