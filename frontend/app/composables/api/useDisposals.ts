@@ -12,8 +12,8 @@ export interface Disposal {
   approved_by_id: string | null
   request_id: string | null
   created_by_id: string | null
-  asset_name: string | null
-  asset_tag: string | null
+  asset_name: string
+  asset_tag: string
   office_name: string | null
   created_by_name: string | null
   created_at: string | null
@@ -86,7 +86,7 @@ export function useDisposals() {
       if (input.doc_date) formData.append('doc_date', input.doc_date)
       if (input.counterparty) formData.append('counterparty', input.counterparty)
       formData.append('file', input.file)
-      return request<AttachDocumentResponse>(`/disposals/${id}/attach-document`, {
+      return request<AttachDocumentResponse>(`/disposals/${id}/document`, {
         method: 'POST',
         body: formData
       })
@@ -97,7 +97,7 @@ export function useDisposals() {
       if (input.doc_no) body.doc_no = input.doc_no
       if (input.doc_date) body.doc_date = input.doc_date
       if (input.counterparty) body.counterparty = input.counterparty
-      return request<AttachDocumentResponse>(`/disposals/${id}/attach-document`, {
+      return request<AttachDocumentResponse>(`/disposals/${id}/document`, {
         method: 'POST',
         body
       })
