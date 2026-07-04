@@ -3080,18 +3080,6 @@ components:
         decision_note: { type: [string, "null"] }
         created_at: { type: [string, "null"], format: date-time }
 
-    RequestWithSteps:
-      allOf:
-        - $ref: "#/components/schemas/Request"
-        - type: object
-          properties:
-            steps:
-              type: array
-              description: Ordered approval-step history for this request.
-              items:
-                type: object
-                additionalProperties: true
-
     RequestStep:
       type: object
       description: One approval-chain step of a request.
@@ -3122,6 +3110,7 @@ components:
                 masked by field permissions.
             steps:
               type: array
+              description: Ordered approval-step history for this request.
               items: { $ref: "#/components/schemas/RequestStep" }
 
     RequestList:
