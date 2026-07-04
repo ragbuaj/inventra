@@ -318,7 +318,22 @@
       "acceptSuccess": "Asset \"{name}\" received. Location & status updated to Available at your office.",
       "rejectSuccess": "Receipt of \"{name}\" rejected and returned to origin.",
       "emptyTitle": "Inbox is empty",
-      "emptySub": "No assets are currently being shipped to your office."
+      "emptySub": "No assets are currently being shipped to your office.",
+      "acceptModal": {
+        "title": "Confirm Receipt",
+        "receivedDate": "Received Date",
+        "room": "Receiving Room",
+        "bastNo": "Receipt BAST No.",
+        "bastNoPlaceholder": "e.g. BAST/2026/07/0150",
+        "file": "BAST Attachment (optional)",
+        "confirm": "Confirm Receipt"
+      },
+      "rejectModal": {
+        "title": "Reject Receipt",
+        "note": "Rejection Note",
+        "notePlaceholder": "e.g. Item condition doesn't match BAST…",
+        "confirm": "Confirm Rejection"
+      }
     },
     "history": {
       "searchPlaceholder": "Search asset / office…",
@@ -337,9 +352,12 @@
     "statusFilter": {
       "all": "All Status",
       "diajukan": "Submitted",
+      "approved": "Approved",
       "in_transit": "In Transit",
       "received": "Received",
-      "rejected": "Rejected"
+      "returned": "Returned",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
     },
     "status": {
       "diajukan": "Submitted",
@@ -356,9 +374,11 @@
       "rusak_berat": "Major Damage"
     },
     "ship": {
+      "action": "Ship",
       "title": "Confirm Shipment",
       "subtitle": "Record the asset's condition when shipped before the status changes to In Transit.",
       "conditionLabel": "Condition When Sent",
+      "dateLabel": "Shipping Date (optional)",
       "confirm": "Confirm Shipment",
       "cancel": "Cancel",
       "success": "Asset \"{name}\" shipped. Status updated to In Transit."

@@ -318,7 +318,22 @@
       "acceptSuccess": "Aset \"{name}\" diterima. Lokasi & status diperbarui menjadi Tersedia di kantor Anda.",
       "rejectSuccess": "Penerimaan \"{name}\" ditolak dan dikembalikan ke kantor asal.",
       "emptyTitle": "Kotak masuk kosong",
-      "emptySub": "Tidak ada aset yang sedang dikirim ke kantor Anda."
+      "emptySub": "Tidak ada aset yang sedang dikirim ke kantor Anda.",
+      "acceptModal": {
+        "title": "Konfirmasi Penerimaan",
+        "receivedDate": "Tanggal Diterima",
+        "room": "Ruangan Penerimaan",
+        "bastNo": "No. BAST Penerimaan",
+        "bastNoPlaceholder": "mis. BAST/2026/07/0150",
+        "file": "Lampiran BAST (opsional)",
+        "confirm": "Konfirmasi Terima"
+      },
+      "rejectModal": {
+        "title": "Tolak Penerimaan",
+        "note": "Catatan Penolakan",
+        "notePlaceholder": "mis. Kondisi barang tidak sesuai BAST…",
+        "confirm": "Konfirmasi Tolak"
+      }
     },
     "history": {
       "searchPlaceholder": "Cari aset / kantor…",
@@ -337,9 +352,12 @@
     "statusFilter": {
       "all": "Semua Status",
       "diajukan": "Diajukan",
+      "approved": "Disetujui",
       "in_transit": "Dalam Pengiriman",
       "received": "Diterima",
-      "rejected": "Ditolak"
+      "returned": "Dikembalikan",
+      "rejected": "Ditolak",
+      "cancelled": "Dibatalkan"
     },
     "status": {
       "diajukan": "Diajukan",
@@ -356,9 +374,11 @@
       "rusak_berat": "Rusak Berat"
     },
     "ship": {
+      "action": "Kirim",
       "title": "Konfirmasi Pengiriman",
       "subtitle": "Catat kondisi aset saat dikirim sebelum status berubah menjadi Dalam Pengiriman.",
       "conditionLabel": "Kondisi Saat Dikirim",
+      "dateLabel": "Tanggal Pengiriman (opsional)",
       "confirm": "Konfirmasi Kirim",
       "cancel": "Batal",
       "success": "Aset \"{name}\" dikirim. Status diperbarui menjadi Dalam Pengiriman."
