@@ -1653,6 +1653,46 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/v1/approval-thresholds/preview:
+    get:
+      tags: [Approval Thresholds]
+      operationId: previewThresholdChain
+      summary: Preview the approval chain for a request type and amount
+      description: |
+        Resolves the approval chain the engine would build for the given `request_type` and
+        `amount` without creating anything — used by submit-side UIs to show the maker the
+        chain their request will follow before they submit it. Only step order and required
+        level are returned (band amounts are not exposed to non-admin callers). Requires the
+        `request.create` permission.
+      security:
+        - bearerJWT: []
+      parameters:
+        - name: request_type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [asset_create, asset_disposal, asset_transfer, assignment, maintenance, valuation_exclusion]
+        - name: amount
+          in: query
+          required: true
+          schema: { type: string }
+          description: IDR decimal string.
+      responses:
+        "200":
+          description: The resolved approval chain
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ThresholdPreview" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422":
+          description: No threshold band configured for this request type/amount
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/v1/approval-thresholds/{id}:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -3182,6 +3222,21 @@ components:
       properties:
         data: { type: array, items: { $ref: "#/components/schemas/Threshold" } }
         total: { type: integer }
+
+    ThresholdPreviewStep:
+      type: object
+      required: [step_order, required_level]
+      properties:
+        step_order: { type: integer }
+        required_level:
+          type: string
+          enum: [office, office_subtree, wilayah, pusat]
+
+    ThresholdPreview:
+      type: object
+      required: [steps]
+      properties:
+        steps: { type: array, items: { $ref: "#/components/schemas/ThresholdPreviewStep" } }
 
     Transfer:
       type: object

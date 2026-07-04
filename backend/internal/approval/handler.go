@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"math/big"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -323,6 +324,26 @@ func (h *Handler) updateThreshold(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, thresholdToMap(out))
+}
+
+// previewThresholds handles GET /approval-thresholds/preview.
+func (h *Handler) previewThresholds(c *gin.Context) {
+	rt := c.Query("request_type")
+	if !validRequestTypes[rt] {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request_type"})
+		return
+	}
+	amount := c.Query("amount")
+	if _, ok := new(big.Rat).SetString(amount); !ok || amount == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid amount"})
+		return
+	}
+	steps, err := h.svc.PreviewChain(c, sqlc.SharedRequestType(rt), amount)
+	if err != nil {
+		h.svcError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"steps": steps})
 }
 
 // deleteThreshold handles DELETE /approval-thresholds/:id.
