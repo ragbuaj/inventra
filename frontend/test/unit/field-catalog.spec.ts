@@ -3,7 +3,7 @@ import { FIELD_CATALOG } from '~/constants/fieldCatalog'
 
 describe('FIELD_CATALOG', () => {
   it('lists the real backend-enforced entities', () => {
-    expect(FIELD_CATALOG.map(e => e.entity)).toEqual(['assets', 'users'])
+    expect(FIELD_CATALOG.map(e => e.entity)).toEqual(['assets', 'users', 'requests'])
   })
   it('uses real serialization field keys (no Indonesian mock codes)', () => {
     const assets = FIELD_CATALOG.find(e => e.entity === 'assets')!

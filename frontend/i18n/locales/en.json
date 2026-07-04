@@ -354,29 +354,72 @@
     "title": "Requests & Approval",
     "pending": "{n} pending",
     "allTypes": "All Types",
-    "filter": {
-      "pending": "Pending",
-      "approved": "Approved",
-      "rejected": "Rejected",
-      "all": "All"
-    },
     "type": {
+      "asset_create": "Asset Registration",
+      "asset_disposal": "Asset Disposal",
+      "asset_transfer": "Asset Transfer",
+      "valuation_exclusion": "Valuation Exclusion",
       "registrasi": "Asset Registration",
       "penghapusan": "Asset Disposal",
       "peminjaman": "Lending",
       "maintenance": "Maintenance",
       "valuasi": "Valuation Exception"
     },
+    "filter": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled",
+      "all": "All"
+    },
     "status": {
       "pending": "Pending",
       "approved": "Approved",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
     },
     "action": {
       "submitted": "Submitted the request",
       "approved": "Approved the request",
       "rejected": "Rejected the request",
-      "pending": "Awaiting your approval"
+      "cancelled": "Cancelled the request",
+      "pending": "Awaiting your approval",
+      "pendingStep": "Awaiting step {n} approval ({level})"
+    },
+    "notEligible": "This request is awaiting another approver or is outside your authority.",
+    "noData": "Request data unavailable.",
+    "resultCancelled": "Cancelled by requester",
+    "loadError": "Failed to load requests.",
+    "retry": "Retry",
+    "level": {
+      "office": "Office",
+      "office_subtree": "Office & Subtree",
+      "wilayah": "Regional Office",
+      "pusat": "Head Office"
+    },
+    "field": {
+      "assetName": "Asset Name",
+      "category": "Category",
+      "assetClass": "Asset Class",
+      "purchaseCost": "Purchase Cost",
+      "purchaseDate": "Purchase Date",
+      "serialNumber": "Serial Number",
+      "poNumber": "PO Number",
+      "fundingSource": "Funding Source",
+      "assetStatus": "Asset Status",
+      "method": "Method",
+      "disposalDate": "Disposal Date",
+      "proceeds": "Proceeds",
+      "bookValue": "Book Value",
+      "bastNo": "BAST No.",
+      "fromOffice": "From Office",
+      "toOffice": "To Office",
+      "toRoom": "To Room",
+      "valuation": "Valuation Status",
+      "active": "Active",
+      "disposed": "Disposed",
+      "included": "Included",
+      "excluded": "Excluded"
     },
     "sensitive": "Sensitive",
     "sensitiveWarn": "Sensitive action — please review the data carefully before deciding.",

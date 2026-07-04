@@ -354,29 +354,72 @@
     "title": "Pengajuan & Approval",
     "pending": "{n} menunggu",
     "allTypes": "Semua Tipe",
-    "filter": {
-      "pending": "Menunggu",
-      "approved": "Disetujui",
-      "rejected": "Ditolak",
-      "all": "Semua"
-    },
     "type": {
+      "asset_create": "Registrasi Aset",
+      "asset_disposal": "Penghapusan Aset",
+      "asset_transfer": "Mutasi Aset",
+      "valuation_exclusion": "Pengecualian Valuasi",
       "registrasi": "Registrasi Aset",
       "penghapusan": "Penghapusan Aset",
       "peminjaman": "Peminjaman",
       "maintenance": "Maintenance",
       "valuasi": "Pengecualian Valuasi"
     },
+    "filter": {
+      "pending": "Menunggu",
+      "approved": "Disetujui",
+      "rejected": "Ditolak",
+      "cancelled": "Dibatalkan",
+      "all": "Semua"
+    },
     "status": {
       "pending": "Menunggu",
       "approved": "Disetujui",
-      "rejected": "Ditolak"
+      "rejected": "Ditolak",
+      "cancelled": "Dibatalkan"
     },
     "action": {
       "submitted": "Mengajukan permintaan",
       "approved": "Menyetujui pengajuan",
       "rejected": "Menolak pengajuan",
-      "pending": "Menunggu persetujuan Anda"
+      "cancelled": "Membatalkan pengajuan",
+      "pending": "Menunggu persetujuan Anda",
+      "pendingStep": "Menunggu persetujuan step {n} ({level})"
+    },
+    "notEligible": "Pengajuan ini menunggu approver lain atau di luar wewenang Anda.",
+    "noData": "Data pengajuan tidak tersedia.",
+    "resultCancelled": "Dibatalkan oleh pengaju",
+    "loadError": "Gagal memuat pengajuan.",
+    "retry": "Coba lagi",
+    "level": {
+      "office": "Kantor",
+      "office_subtree": "Kantor & Bawahan",
+      "wilayah": "Kanwil",
+      "pusat": "Kantor Pusat"
+    },
+    "field": {
+      "assetName": "Nama Aset",
+      "category": "Kategori",
+      "assetClass": "Kelas Aset",
+      "purchaseCost": "Biaya Perolehan",
+      "purchaseDate": "Tanggal Perolehan",
+      "serialNumber": "Nomor Seri",
+      "poNumber": "Nomor PO",
+      "fundingSource": "Sumber Dana",
+      "assetStatus": "Status Aset",
+      "method": "Metode",
+      "disposalDate": "Tanggal Penghapusan",
+      "proceeds": "Hasil Penjualan",
+      "bookValue": "Nilai Buku",
+      "bastNo": "No. BAST",
+      "fromOffice": "Kantor Asal",
+      "toOffice": "Kantor Tujuan",
+      "toRoom": "Ruangan Tujuan",
+      "valuation": "Status Valuasi",
+      "active": "Aktif",
+      "disposed": "Dihapus",
+      "included": "Dihitung",
+      "excluded": "Dikecualikan"
     },
     "sensitive": "Sensitif",
     "sensitiveWarn": "Tindakan sensitif — pastikan Anda meninjau data dengan saksama sebelum memutuskan.",
