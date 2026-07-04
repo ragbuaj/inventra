@@ -70,7 +70,12 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >       was dropped from the Form** per user decision — the holder is set via the future **Penugasan**
 >       (assignment) module, not at asset creation/edit — Katalog's "Pemegang" column renders "—" until
 >       that module lands.
-> 22. **Next session — pick the next real step.** Candidates (see *Remaining* below): **(a)** wire the
+> 22. ~~**Security follow-up (from Task 21 review)** — server-side `amount == payload.purchase_cost`
+>     cross-check for `asset_create` on `POST /requests`~~ ✅ **DONE (2026-07-04).** Enforced in
+>     `SubmitRequest.validate()` (numeric big.Rat equality; zero when payload has no cost; malformed
+>     payload/amount rejected). Unit tests + OpenAPI updated. See the resolved note under *Assets
+>     cluster* in §Remaining.
+> 23. **Next session — pick the next real step.** Candidates (see *Remaining* below): **(a)** wire the
 >     **Pengajuan & Approval** screen's inbox/decide UI to real `/api/v1/requests` (submit is already
 >     wired from Task 21 above — inbox listing + approve/reject decisions are the remaining mock-backed
 >     slice); **(b)** build the last core Bank-FAM backend module — **Stock opname** (session + item
@@ -305,12 +310,15 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       of scope here — deletion goes through the Disposal screen/module; **field "Pemegang" (holder)
       dropped from the Form** per user decision (holder assignment belongs to the future Penugasan
       module) — Katalog's "Pemegang" column shows "—" until that module lands.
-      ⚠️ **TODO (security follow-up, from the branch's final review):** the approval submit trusts the
-      client-supplied `amount` and never cross-checks it against `payload.purchase_cost` — a maker could
-      send `amount: "0"` with a huge `purchase_cost` and route an `asset_create` through the lowest
-      approval band (same "maker-supplied" class as the disposal `book_value_at_disposal` caveat). Add a
-      server-side `amount == payload.purchase_cost` check (or derive `amount` from the payload) in the
-      `POST /requests` handler for `asset_create`.
+      ✅ **RESOLVED (2026-07-04) — security follow-up from the branch's final review:** the approval
+      submit used to trust the client-supplied `amount` without cross-checking `payload.purchase_cost` —
+      a maker could send `amount: "0"` with a huge `purchase_cost` and route an `asset_create` through
+      the lowest approval band. Fixed in `SubmitRequest.validate()` (`internal/approval/dto.go`): for
+      `asset_create`, `amount` must **numerically** equal `payload.purchase_cost` (big.Rat comparison, so
+      `"1000"` == `"1000.00"`), or equal 0 when the payload carries no `purchase_cost`; malformed
+      payload/amount/cost strings are rejected too → 400. Unit-tested (12 table cases + other-types
+      passthrough); OpenAPI `SubmitRequest.amount` description updated. (The disposal
+      `book_value_at_disposal` sibling caveat still waits on the depreciation module.)
       ⚠️ **TODO (cleanup when Reports screen is wired):** old Indonesian `assets.status.*` i18n keys are
       still consumed by the mock Laporan screen (`pages/reports.vue` + `mock/reports.ts`) — delete them,
       tighten `AssetStatusBadge`'s prop from `AssetStatus | string` to `AssetStatus`, and drop the badge's

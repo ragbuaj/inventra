@@ -3,6 +3,7 @@ package approval
 import (
 	"encoding/json"
 	"errors"
+	"math/big"
 
 	"github.com/google/uuid"
 
@@ -28,6 +29,37 @@ func (r SubmitRequest) validate() error {
 		if _, err := uuid.Parse(*r.TargetID); err != nil {
 			return errors.New("invalid target_id")
 		}
+	}
+	if r.Type == "asset_create" {
+		return r.validateAssetCreateAmount()
+	}
+	return nil
+}
+
+// validateAssetCreateAmount enforces amount == payload.purchase_cost (zero when the
+// payload carries no cost), so a maker cannot understate the amount to route an
+// asset_create through a lower approval band than its real purchase cost requires.
+func (r SubmitRequest) validateAssetCreateAmount() error {
+	var p struct {
+		PurchaseCost *string `json:"purchase_cost"`
+	}
+	if len(r.Payload) > 0 {
+		if err := json.Unmarshal(r.Payload, &p); err != nil {
+			return errors.New("invalid payload")
+		}
+	}
+	amount, ok := new(big.Rat).SetString(r.Amount)
+	if !ok {
+		return errors.New("invalid amount")
+	}
+	cost := new(big.Rat) // zero when purchase_cost is absent
+	if p.PurchaseCost != nil {
+		if cost, ok = new(big.Rat).SetString(*p.PurchaseCost); !ok {
+			return errors.New("invalid purchase_cost")
+		}
+	}
+	if amount.Cmp(cost) != 0 {
+		return errors.New("amount must equal payload.purchase_cost")
 	}
 	return nil
 }
