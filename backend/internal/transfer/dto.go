@@ -11,10 +11,12 @@ import (
 
 // SubmitRequest is the POST /transfers body.
 type SubmitRequest struct {
-	AssetID    string  `json:"asset_id" binding:"required,uuid"`
-	ToOfficeID string  `json:"to_office_id" binding:"required,uuid"`
-	ToRoomID   *string `json:"to_room_id" binding:"omitempty,uuid"`
-	Reason     *string `json:"reason"`
+	AssetID       string  `json:"asset_id" binding:"required,uuid"`
+	ToOfficeID    string  `json:"to_office_id" binding:"required,uuid"`
+	ToRoomID      *string `json:"to_room_id" binding:"omitempty,uuid"`
+	Reason        *string `json:"reason"`
+	ConditionSent *string `json:"condition_sent" binding:"omitempty,oneof=baik rusak_ringan rusak_berat"`
+	TransferDate  *string `json:"transfer_date"` // "2006-01-02"; UI requires it, API keeps it optional (spec deviation (i))
 }
 
 // ShipRequest is the POST /transfers/:id/ship body (all optional).
@@ -32,10 +34,12 @@ type ReceiveRequest struct {
 
 // TransferPayload is the JSON stored in approval.requests.payload for asset_transfer.
 type TransferPayload struct {
-	FromOfficeID string  `json:"from_office_id"`
-	ToOfficeID   string  `json:"to_office_id"`
-	ToRoomID     *string `json:"to_room_id"`
-	Reason       *string `json:"reason"`
+	FromOfficeID  string  `json:"from_office_id"`
+	ToOfficeID    string  `json:"to_office_id"`
+	ToRoomID      *string `json:"to_room_id"`
+	Reason        *string `json:"reason"`
+	ConditionSent *string `json:"condition_sent"`
+	TransferDate  *string `json:"transfer_date"`
 }
 
 // toResponse serializes a transfer row for API responses (no sensitive columns).
@@ -57,12 +61,30 @@ func toResponse(t sqlc.TransferAssetTransfer) map[string]any {
 		"request_id":      common.UUIDPtrStr(t.RequestID),
 		"created_at":      common.TsStr(t.CreatedAt),
 		"updated_at":      common.TsStr(t.UpdatedAt),
+		"condition_sent":  condStr(t.ConditionSent),
+		"transfer_date":   common.DateStr(t.TransferDate),
+		"return_note":     t.ReturnNote,
 	}
 }
 
+// condStr renders the nullable condition enum as *string for JSON.
+func condStr(c *sqlc.SharedTransferCondition) *string {
+	if c == nil {
+		return nil
+	}
+	s := string(*c)
+	return &s
+}
+
 // marshalPayload builds the approval payload JSON for a submit.
-func marshalPayload(fromOffice, toOffice uuid.UUID, toRoom *uuid.UUID, reason *string) ([]byte, error) {
-	p := TransferPayload{FromOfficeID: fromOffice.String(), ToOfficeID: toOffice.String(), Reason: reason}
+func marshalPayload(fromOffice, toOffice uuid.UUID, toRoom *uuid.UUID, reason, conditionSent, transferDate *string) ([]byte, error) {
+	p := TransferPayload{
+		FromOfficeID:  fromOffice.String(),
+		ToOfficeID:    toOffice.String(),
+		Reason:        reason,
+		ConditionSent: conditionSent,
+		TransferDate:  transferDate,
+	}
 	if toRoom != nil {
 		s := toRoom.String()
 		p.ToRoomID = &s

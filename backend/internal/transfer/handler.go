@@ -97,9 +97,11 @@ func (h *Handler) submit(c *gin.Context) {
 		return
 	}
 	in := SubmitInput{
-		AssetID:    assetID,
-		ToOfficeID: toOfficeID,
-		Reason:     req.Reason,
+		AssetID:       assetID,
+		ToOfficeID:    toOfficeID,
+		Reason:        req.Reason,
+		ConditionSent: req.ConditionSent,
+		TransferDate:  req.TransferDate,
 	}
 	if req.ToRoomID != nil {
 		r, rerr := uuid.Parse(*req.ToRoomID)

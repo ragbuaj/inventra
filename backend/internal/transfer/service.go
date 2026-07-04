@@ -57,10 +57,12 @@ func NewService(q *sqlc.Queries, pool *pgxpool.Pool, appr *approval.Service) *Se
 
 // Input structs.
 type SubmitInput struct {
-	AssetID    uuid.UUID
-	ToOfficeID uuid.UUID
-	ToRoomID   *uuid.UUID
-	Reason     *string
+	AssetID       uuid.UUID
+	ToOfficeID    uuid.UUID
+	ToRoomID      *uuid.UUID
+	Reason        *string
+	ConditionSent *string
+	TransferDate  *string // "2006-01-02"
 }
 type ShipInput struct{ ShippedDate pgtype.Date }
 type ReceiveInput struct {
@@ -99,8 +101,13 @@ func (s *Service) Submit(ctx context.Context, caller approval.Caller, in SubmitI
 	if pending > 0 {
 		return sqlc.ApprovalRequest{}, ErrAssetInTransit
 	}
+	if in.TransferDate != nil {
+		if _, perr := time.Parse("2006-01-02", *in.TransferDate); perr != nil {
+			return sqlc.ApprovalRequest{}, ErrInvalidRef
+		}
+	}
 
-	payload, err := marshalPayload(asset.OfficeID, in.ToOfficeID, in.ToRoomID, in.Reason)
+	payload, err := marshalPayload(asset.OfficeID, in.ToOfficeID, in.ToRoomID, in.Reason, in.ConditionSent, in.TransferDate)
 	if err != nil {
 		return sqlc.ApprovalRequest{}, err
 	}

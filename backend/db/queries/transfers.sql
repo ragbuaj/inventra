@@ -1,10 +1,11 @@
 -- name: CreateTransfer :one
 INSERT INTO transfer.asset_transfers (
   asset_id, from_office_id, to_office_id, to_room_id, status,
-  reason, requested_by_id, approved_by_id, request_id
+  reason, requested_by_id, approved_by_id, request_id, condition_sent, transfer_date
 ) VALUES (
   sqlc.arg(asset_id), sqlc.arg(from_office_id), sqlc.arg(to_office_id), sqlc.narg(to_room_id),
-  'approved', sqlc.narg(reason), sqlc.arg(requested_by_id), sqlc.narg(approved_by_id), sqlc.narg(request_id)
+  'approved', sqlc.narg(reason), sqlc.arg(requested_by_id), sqlc.narg(approved_by_id), sqlc.narg(request_id),
+  sqlc.narg(condition_sent), sqlc.narg(transfer_date)
 )
 RETURNING *;
 

@@ -495,6 +495,36 @@ func TestTransfer_BAST_DocumentCreated(t *testing.T) {
 	assert.Equal(t, "BAST-XYZ", *docs[0].DocNo)
 }
 
+// TestTransfer_ConditionAndDate_RoundTrip: submit carries condition_sent+transfer_date
+// through the approval payload into the transfer row created by the executor.
+func TestTransfer_ConditionAndDate_RoundTrip(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	assetID := seedAssetWithCost(t, h.pool, "FROM-TRF-2026-00008", "Proyektor Epson", h.catID, h.fromOffice, "1000000")
+	maker := seedUser(t, h.pool, h.officeRoleID, h.fromOffice, "maker.cond@test.local")
+	checker := seedUser(t, h.pool, h.officeRoleID, h.fromOffice, "checker.cond@test.local")
+
+	makerCaller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.fromOffice})
+	checkerCaller := buildCaller(checker, h.officeRoleID, false, []uuid.UUID{h.fromOffice, h.toOffice})
+
+	cond := "rusak_ringan"
+	date := "2026-07-10"
+	req, err := h.tsvc.Submit(ctx, makerCaller, transfer.SubmitInput{
+		AssetID: assetID, ToOfficeID: h.toOffice, ConditionSent: &cond, TransferDate: &date,
+	})
+	require.NoError(t, err)
+	final := approveThroughChain(t, h.apprSvc, req.ID, checkerCaller)
+	require.Equal(t, sqlc.SharedRequestStatusApproved, final.Status)
+
+	row, err := h.q.GetOpenTransferForAsset(ctx, assetID)
+	require.NoError(t, err)
+	require.NotNil(t, row.ConditionSent)
+	assert.Equal(t, sqlc.SharedTransferConditionRusakRingan, *row.ConditionSent)
+	require.True(t, row.TransferDate.Valid)
+	assert.Equal(t, "2026-07-10", row.TransferDate.Time.Format("2006-01-02"))
+}
+
 // TestTransfer_ListByAsset_History verifies that ListByAsset returns the
 // asset's transfer(s), scoped by the caller's office IDs.
 func TestTransfer_ListByAsset_History(t *testing.T) {

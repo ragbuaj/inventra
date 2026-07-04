@@ -51,23 +51,26 @@ func (q *Queries) CountTransfers(ctx context.Context, arg CountTransfersParams) 
 const createTransfer = `-- name: CreateTransfer :one
 INSERT INTO transfer.asset_transfers (
   asset_id, from_office_id, to_office_id, to_room_id, status,
-  reason, requested_by_id, approved_by_id, request_id
+  reason, requested_by_id, approved_by_id, request_id, condition_sent, transfer_date
 ) VALUES (
   $1, $2, $3, $4,
-  'approved', $5, $6, $7, $8
+  'approved', $5, $6, $7, $8,
+  $9, $10
 )
-RETURNING id, asset_id, from_office_id, to_office_id, to_room_id, status, reason, requested_by_id, approved_by_id, shipped_date, received_date, received_by_id, bast_no, request_id, notes, created_at, updated_at, deleted_at
+RETURNING id, asset_id, from_office_id, to_office_id, to_room_id, status, reason, requested_by_id, approved_by_id, shipped_date, received_date, received_by_id, bast_no, request_id, notes, created_at, updated_at, deleted_at, condition_sent, transfer_date, return_note
 `
 
 type CreateTransferParams struct {
-	AssetID       uuid.UUID  `json:"asset_id"`
-	FromOfficeID  uuid.UUID  `json:"from_office_id"`
-	ToOfficeID    uuid.UUID  `json:"to_office_id"`
-	ToRoomID      *uuid.UUID `json:"to_room_id"`
-	Reason        *string    `json:"reason"`
-	RequestedByID uuid.UUID  `json:"requested_by_id"`
-	ApprovedByID  *uuid.UUID `json:"approved_by_id"`
-	RequestID     *uuid.UUID `json:"request_id"`
+	AssetID       uuid.UUID                `json:"asset_id"`
+	FromOfficeID  uuid.UUID                `json:"from_office_id"`
+	ToOfficeID    uuid.UUID                `json:"to_office_id"`
+	ToRoomID      *uuid.UUID               `json:"to_room_id"`
+	Reason        *string                  `json:"reason"`
+	RequestedByID uuid.UUID                `json:"requested_by_id"`
+	ApprovedByID  *uuid.UUID               `json:"approved_by_id"`
+	RequestID     *uuid.UUID               `json:"request_id"`
+	ConditionSent *SharedTransferCondition `json:"condition_sent"`
+	TransferDate  pgtype.Date              `json:"transfer_date"`
 }
 
 func (q *Queries) CreateTransfer(ctx context.Context, arg CreateTransferParams) (TransferAssetTransfer, error) {
@@ -80,6 +83,8 @@ func (q *Queries) CreateTransfer(ctx context.Context, arg CreateTransferParams) 
 		arg.RequestedByID,
 		arg.ApprovedByID,
 		arg.RequestID,
+		arg.ConditionSent,
+		arg.TransferDate,
 	)
 	var i TransferAssetTransfer
 	err := row.Scan(
@@ -101,12 +106,15 @@ func (q *Queries) CreateTransfer(ctx context.Context, arg CreateTransferParams) 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.ConditionSent,
+		&i.TransferDate,
+		&i.ReturnNote,
 	)
 	return i, err
 }
 
 const getOpenTransferForAsset = `-- name: GetOpenTransferForAsset :one
-SELECT id, asset_id, from_office_id, to_office_id, to_room_id, status, reason, requested_by_id, approved_by_id, shipped_date, received_date, received_by_id, bast_no, request_id, notes, created_at, updated_at, deleted_at FROM transfer.asset_transfers
+SELECT id, asset_id, from_office_id, to_office_id, to_room_id, status, reason, requested_by_id, approved_by_id, shipped_date, received_date, received_by_id, bast_no, request_id, notes, created_at, updated_at, deleted_at, condition_sent, transfer_date, return_note FROM transfer.asset_transfers
 WHERE asset_id = $1 AND deleted_at IS NULL
   AND status IN ('approved', 'in_transit')
 LIMIT 1
@@ -135,12 +143,15 @@ func (q *Queries) GetOpenTransferForAsset(ctx context.Context, assetID uuid.UUID
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.ConditionSent,
+		&i.TransferDate,
+		&i.ReturnNote,
 	)
 	return i, err
 }
 
 const getTransfer = `-- name: GetTransfer :one
-SELECT id, asset_id, from_office_id, to_office_id, to_room_id, status, reason, requested_by_id, approved_by_id, shipped_date, received_date, received_by_id, bast_no, request_id, notes, created_at, updated_at, deleted_at FROM transfer.asset_transfers
+SELECT id, asset_id, from_office_id, to_office_id, to_room_id, status, reason, requested_by_id, approved_by_id, shipped_date, received_date, received_by_id, bast_no, request_id, notes, created_at, updated_at, deleted_at, condition_sent, transfer_date, return_note FROM transfer.asset_transfers
 WHERE id = $1 AND deleted_at IS NULL
   AND ($2::boolean
        OR from_office_id = ANY($3::uuid[])
@@ -176,12 +187,15 @@ func (q *Queries) GetTransfer(ctx context.Context, arg GetTransferParams) (Trans
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.ConditionSent,
+		&i.TransferDate,
+		&i.ReturnNote,
 	)
 	return i, err
 }
 
 const listTransfers = `-- name: ListTransfers :many
-SELECT id, asset_id, from_office_id, to_office_id, to_room_id, status, reason, requested_by_id, approved_by_id, shipped_date, received_date, received_by_id, bast_no, request_id, notes, created_at, updated_at, deleted_at FROM transfer.asset_transfers
+SELECT id, asset_id, from_office_id, to_office_id, to_room_id, status, reason, requested_by_id, approved_by_id, shipped_date, received_date, received_by_id, bast_no, request_id, notes, created_at, updated_at, deleted_at, condition_sent, transfer_date, return_note FROM transfer.asset_transfers
 WHERE deleted_at IS NULL
   AND ($1::boolean
        OR from_office_id = ANY($2::uuid[])
@@ -233,6 +247,9 @@ func (q *Queries) ListTransfers(ctx context.Context, arg ListTransfersParams) ([
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.ConditionSent,
+			&i.TransferDate,
+			&i.ReturnNote,
 		); err != nil {
 			return nil, err
 		}
@@ -245,7 +262,7 @@ func (q *Queries) ListTransfers(ctx context.Context, arg ListTransfersParams) ([
 }
 
 const listTransfersByAsset = `-- name: ListTransfersByAsset :many
-SELECT id, asset_id, from_office_id, to_office_id, to_room_id, status, reason, requested_by_id, approved_by_id, shipped_date, received_date, received_by_id, bast_no, request_id, notes, created_at, updated_at, deleted_at FROM transfer.asset_transfers
+SELECT id, asset_id, from_office_id, to_office_id, to_room_id, status, reason, requested_by_id, approved_by_id, shipped_date, received_date, received_by_id, bast_no, request_id, notes, created_at, updated_at, deleted_at, condition_sent, transfer_date, return_note FROM transfer.asset_transfers
 WHERE asset_id = $1 AND deleted_at IS NULL
   AND ($2::boolean
        OR from_office_id = ANY($3::uuid[])
@@ -288,6 +305,9 @@ func (q *Queries) ListTransfersByAsset(ctx context.Context, arg ListTransfersByA
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.ConditionSent,
+			&i.TransferDate,
+			&i.ReturnNote,
 		); err != nil {
 			return nil, err
 		}
@@ -307,7 +327,7 @@ SET status = 'received',
     bast_no = $3,
     to_room_id = COALESCE($4, to_room_id)
 WHERE id = $5 AND status = 'in_transit' AND deleted_at IS NULL
-RETURNING id, asset_id, from_office_id, to_office_id, to_room_id, status, reason, requested_by_id, approved_by_id, shipped_date, received_date, received_by_id, bast_no, request_id, notes, created_at, updated_at, deleted_at
+RETURNING id, asset_id, from_office_id, to_office_id, to_room_id, status, reason, requested_by_id, approved_by_id, shipped_date, received_date, received_by_id, bast_no, request_id, notes, created_at, updated_at, deleted_at, condition_sent, transfer_date, return_note
 `
 
 type SetTransferReceivedParams struct {
@@ -346,6 +366,9 @@ func (q *Queries) SetTransferReceived(ctx context.Context, arg SetTransferReceiv
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.ConditionSent,
+		&i.TransferDate,
+		&i.ReturnNote,
 	)
 	return i, err
 }
@@ -354,7 +377,7 @@ const setTransferShipped = `-- name: SetTransferShipped :one
 UPDATE transfer.asset_transfers
 SET status = 'in_transit', shipped_date = $1
 WHERE id = $2 AND status = 'approved' AND deleted_at IS NULL
-RETURNING id, asset_id, from_office_id, to_office_id, to_room_id, status, reason, requested_by_id, approved_by_id, shipped_date, received_date, received_by_id, bast_no, request_id, notes, created_at, updated_at, deleted_at
+RETURNING id, asset_id, from_office_id, to_office_id, to_room_id, status, reason, requested_by_id, approved_by_id, shipped_date, received_date, received_by_id, bast_no, request_id, notes, created_at, updated_at, deleted_at, condition_sent, transfer_date, return_note
 `
 
 type SetTransferShippedParams struct {
@@ -384,6 +407,9 @@ func (q *Queries) SetTransferShipped(ctx context.Context, arg SetTransferShipped
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.ConditionSent,
+		&i.TransferDate,
+		&i.ReturnNote,
 	)
 	return i, err
 }
