@@ -75,18 +75,47 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     `SubmitRequest.validate()` (numeric big.Rat equality; zero when payload has no cost; malformed
 >     payload/amount rejected). Unit tests + OpenAPI updated. See the resolved note under *Assets
 >     cluster* in §Remaining.
-> 23. **Next session — pick the next real step.** Candidates (see *Remaining* below): **(a)** wire the
->     **Pengajuan & Approval** screen's inbox/decide UI to real `/api/v1/requests` (submit is already
->     wired from Task 21 above — inbox listing + approve/reject decisions are the remaining mock-backed
->     slice); **(b)** build the last core Bank-FAM backend module — **Stock opname** (session + item
->     reconciliation: found/not_found/damaged/misplaced + report), following the same pattern as
->     `internal/transfer`/`internal/disposal` (approval executor where applicable + scoped module +
->     OpenAPI); **(c)** start the **depreciation** module, which several deferred items (disposal
->     book_value, GL export) depend on; **(d)** build the frontend **Mutasi** and/or **Disposal** screens
->     against the now-complete backends — mockups prepared 2026-07-03 for all six v1.1 screens; **(e)**
->     build **Assignment** (check-out/in, and the natural home for the deferred "Pemegang" field) or
->     **Maintenance**; **(f)** wire **global search** backend (`/search`) + drop the last `mock/*` files.
->     Confirm priority before starting.
+> 23. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-04): wire the Pengajuan &
+>     Approval screen** (candidate (a) below — see item 24). Remaining candidates (see *Remaining*
+>     below) for the *next* session: **(b)** build the last core Bank-FAM backend module — **Stock
+>     opname** (session + item reconciliation: found/not_found/damaged/misplaced + report), following the
+>     same pattern as `internal/transfer`/`internal/disposal` (approval executor where applicable +
+>     scoped module + OpenAPI); **(c)** start the **depreciation** module, which several deferred items
+>     (disposal book_value, GL export) depend on; **(d)** build the frontend **Mutasi** and/or
+>     **Disposal** screens against the now-complete backends — mockups prepared 2026-07-03 for all six
+>     v1.1 screens; **(e)** build **Assignment** (check-out/in, and the natural home for the deferred
+>     "Pemegang" field) or **Maintenance**; **(f)** wire **global search** backend (`/search`) + drop the
+>     last `mock/*` files. Confirm priority before starting.
+> 24. ~~**Wire Pengajuan & Approval screen** (`/approval`) to real `/api/v1/requests`~~ ✅ **DONE
+>     (2026-07-04).** `app/pages/approval.vue` rewritten off `~/mock/approval` onto `useApproval`
+>     (inbox/list/get/approve/reject), `~/constants/approvalMeta` (`TYPE_META`/`STATUS_TONE`/
+>     `REQUEST_TYPE_KEYS`/`STATUS_FILTERS`), and `payloadToView` for the Data section (summary rows for
+>     `asset_create`/`asset_transfer`, before→after diff rows for `asset_disposal`/`valuation_exclusion`,
+>     with an empty-state when the payload is masked/absent). Category/office FK names resolved via the
+>     real `useCategories().tree()` + `useOffices().list({limit:100})` composables (best-effort — a
+>     lookup failure falls back to raw ids, never blocks the screen). Pending tab reads the caller's
+>     scoped inbox (`GET /requests/inbox`); other tabs (approved/rejected/cancelled/all) read `GET
+>     /requests` with a `status` filter; a pending request **not** in the caller's inbox (SoD/scope
+>     ineligible) renders a disabled "not eligible" lock instead of decide buttons — `view.eligible`
+>     checks membership in the inbox id set, not just `status === 'pending'`. Approve/reject call
+>     `POST /requests/:id/approve|reject`, then reload the tab + re-fetch the detail (the decide
+>     response is the plain unenriched request row, so the page never renders off it directly).
+>     Load-error + retry state added for the inbox/list fetch; a `detailLoading` skeleton covers the
+>     detail-pane fetch. `nav.ts`'s `approval` item: removed the mock-era hardcoded `badgeCount: 8` and
+>     added `permission: 'request.decide'` — confirmed `AppSidebar.vue` filters nav items on `.permission`
+>     via `can()`, so the item now hides for roles without decide rights. Component test rewritten
+>     (`test/nuxt/approval.spec.ts`, 14 cases: inbox load/empty/error, tab switching incl. cancelled,
+>     detail fetch + payload/timeline rendering, approve/reject with note, not-eligible lock, cancelled
+>     neutral result banner, sensitive-type warning banner, approved result banner hides decide buttons,
+>     tab switch clears selection). Orphaned mock-era i18n keys (`approval.type.registrasi/penghapusan/
+>     peminjaman/maintenance/valuasi`) deleted from both locale files — confirmed nothing (`mock/approval.ts`
+>     itself, `useGlobalSearch.ts`, `approval-mock.spec.ts`) does an i18n lookup against them. `test/unit/
+>     nav-model.spec.ts`'s stale `badgeCount: 8` assertion updated to assert the new `permission` gate
+>     instead. `mock/approval.ts` **retained** — still imported by `useGlobalSearch.ts` for the mock
+>     global-search result list (same pattern as the other pending `mock/*` cleanups; drop when global
+>     search wires to a real `/search` endpoint, item (f) above).
+>     - **Real badge count is still out of scope:** the sidebar no longer shows a hardcoded pending count;
+>       a live one needs a global inbox-count store/poll, deferred until there's a cross-page need for it.
 
 ## ✅ Done
 

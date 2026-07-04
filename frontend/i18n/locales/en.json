@@ -358,12 +358,7 @@
       "asset_create": "Asset Registration",
       "asset_disposal": "Asset Disposal",
       "asset_transfer": "Asset Transfer",
-      "valuation_exclusion": "Valuation Exclusion",
-      "registrasi": "Asset Registration",
-      "penghapusan": "Asset Disposal",
-      "peminjaman": "Lending",
-      "maintenance": "Maintenance",
-      "valuasi": "Valuation Exception"
+      "valuation_exclusion": "Valuation Exclusion"
     },
     "filter": {
       "pending": "Pending",

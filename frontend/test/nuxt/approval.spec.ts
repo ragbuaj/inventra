@@ -1,0 +1,195 @@
+// @vitest-environment nuxt
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mountSuspended } from '@nuxt/test-utils/runtime'
+import { flushPromises } from '@vue/test-utils'
+import type { ApprovalRequestRow, ApprovalRequestDetail } from '~/composables/api/useApproval'
+
+const row = (over: Partial<ApprovalRequestRow> = {}): ApprovalRequestRow => ({
+  id: 'r1', type: 'asset_create', status: 'pending', amount: '1500000',
+  current_step: 1, office_id: 'o1', office_name: 'Cabang Alpha',
+  target_id: null, target_entity: null, reason: 'pengadaan',
+  requested_by_id: 'u1', requested_by_name: 'Andi Saputra', requested_by_role: 'Kepala Unit',
+  decided_by_id: null, decision_note: null, created_at: '2026-07-04T09:00:00Z',
+  ...over
+})
+const detail = (over: Partial<ApprovalRequestDetail> = {}): ApprovalRequestDetail => ({
+  ...row(), payload: { name: 'Laptop A', purchase_cost: '1500000' },
+  steps: [{ step_order: 1, required_level: 'office', approver_id: null, approver_name: null, decision: 'pending', note: null, decided_at: null }],
+  ...over
+})
+
+const inboxMock = vi.fn()
+const listMock = vi.fn()
+const getMock = vi.fn()
+const approveMock = vi.fn()
+const rejectMock = vi.fn()
+
+vi.mock('~/composables/api/useApproval', () => ({
+  useApproval: () => ({ inbox: inboxMock, list: listMock, get: getMock, approve: approveMock, reject: rejectMock })
+}))
+// useCategories()/useOffices() lookups both go through useApiClient — stub it to avoid network.
+vi.mock('~/composables/useApiClient', () => ({
+  useApiClient: () => ({
+    request: vi.fn().mockResolvedValue({ data: [] }),
+    requestBlob: vi.fn(),
+    refreshToken: vi.fn()
+  })
+}))
+
+// eslint-disable-next-line import/first
+import ApprovalPage from '~/pages/approval.vue'
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  inboxMock.mockResolvedValue([row()])
+  listMock.mockResolvedValue({ data: [], total: 0, limit: 100, offset: 0 })
+  getMock.mockResolvedValue(detail())
+  approveMock.mockResolvedValue(row({ status: 'approved' }))
+  rejectMock.mockResolvedValue(row({ status: 'rejected' }))
+})
+
+describe('pages/approval — wired', () => {
+  it('loads the inbox on mount and renders a request card', async () => {
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    expect(inboxMock).toHaveBeenCalled()
+    expect(w.text()).toContain('Andi Saputra')
+    expect(w.text()).toContain('Cabang Alpha')
+  })
+
+  it('shows the empty state when the inbox is empty', async () => {
+    inboxMock.mockResolvedValue([])
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    expect(w.text()).toContain('Tidak ada pengajuan')
+  })
+
+  it('shows the load-error state with retry when the inbox call fails', async () => {
+    inboxMock.mockRejectedValue(new Error('boom'))
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    expect(w.find('[data-testid="approval-load-error"]').exists()).toBe(true)
+  })
+
+  it('switching to the approved tab queries the list endpoint with status', async () => {
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    await w.find('[data-testid="approval-tab-approved"]').trigger('click')
+    await flushPromises()
+    expect(listMock).toHaveBeenCalledWith(expect.objectContaining({ status: 'approved' }))
+  })
+
+  it('has a cancelled tab that queries status=cancelled', async () => {
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    await w.find('[data-testid="approval-tab-cancelled"]').trigger('click')
+    await flushPromises()
+    expect(listMock).toHaveBeenCalledWith(expect.objectContaining({ status: 'cancelled' }))
+  })
+
+  it('selecting a card fetches the detail and renders payload data + timeline', async () => {
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    await w.find('[data-testid="approval-card"]').trigger('click')
+    await flushPromises()
+    expect(getMock).toHaveBeenCalledWith('r1')
+    expect(w.text()).toContain('Laptop A')
+    expect(w.text()).toContain('Mengajukan permintaan')
+  })
+
+  it('approve sends the note and refreshes', async () => {
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    await w.find('[data-testid="approval-card"]').trigger('click')
+    await flushPromises()
+    await w.find('[data-testid="approval-note"]').setValue('ok!')
+    await w.find('[data-testid="approval-approve"]').trigger('click')
+    await flushPromises()
+    expect(approveMock).toHaveBeenCalledWith('r1', 'ok!')
+    expect(inboxMock.mock.calls.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('reject sends the note', async () => {
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    await w.find('[data-testid="approval-card"]').trigger('click')
+    await flushPromises()
+    await w.find('[data-testid="approval-reject"]').trigger('click')
+    await flushPromises()
+    expect(rejectMock).toHaveBeenCalledWith('r1', undefined)
+  })
+
+  it('a pending request NOT in the inbox shows the not-eligible lock instead of buttons', async () => {
+    inboxMock.mockResolvedValue([])
+    listMock.mockResolvedValue({ data: [row()], total: 1, limit: 100, offset: 0 })
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    await w.find('[data-testid="approval-tab-all"]').trigger('click')
+    await flushPromises()
+    await w.find('[data-testid="approval-card"]').trigger('click')
+    await flushPromises()
+    expect(w.find('[data-testid="approval-not-eligible"]').exists()).toBe(true)
+    expect(w.find('[data-testid="approval-approve"]').exists()).toBe(false)
+  })
+
+  it('a cancelled request renders the neutral result banner', async () => {
+    inboxMock.mockResolvedValue([])
+    listMock.mockResolvedValue({ data: [row({ status: 'cancelled' })], total: 1, limit: 100, offset: 0 })
+    getMock.mockResolvedValue(detail({ status: 'cancelled' }))
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    await w.find('[data-testid="approval-tab-cancelled"]').trigger('click')
+    await flushPromises()
+    await w.find('[data-testid="approval-card"]').trigger('click')
+    await flushPromises()
+    expect(w.text()).toContain('Dibatalkan oleh pengaju')
+  })
+
+  it('lampiran section always renders the permanent empty state', async () => {
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    await w.find('[data-testid="approval-card"]').trigger('click')
+    await flushPromises()
+    expect(w.text()).toContain('Tidak ada lampiran')
+  })
+
+  it('a sensitive-type request shows the sensitive warning banner in detail', async () => {
+    inboxMock.mockResolvedValue([row({ id: 'r2', type: 'asset_disposal' })])
+    getMock.mockResolvedValue(detail({ id: 'r2', type: 'asset_disposal', payload: { method: 'lelang' } }))
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    await w.find('[data-testid="approval-card"]').trigger('click')
+    await flushPromises()
+    expect(w.text()).toContain('Tindakan sensitif')
+  })
+
+  it('an approved request shows the result banner with the actor and hides the decision buttons', async () => {
+    inboxMock.mockResolvedValue([])
+    listMock.mockResolvedValue({ data: [row({ id: 'r9', status: 'approved' })], total: 1, limit: 100, offset: 0 })
+    getMock.mockResolvedValue(detail({
+      id: 'r9',
+      status: 'approved',
+      steps: [{ step_order: 1, required_level: 'office', approver_id: 'u2', approver_name: 'Rudi Hartono', decision: 'approved', note: null, decided_at: '2026-07-02T08:00:00Z' }]
+    }))
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    await w.find('[data-testid="approval-tab-approved"]').trigger('click')
+    await flushPromises()
+    await w.find('[data-testid="approval-card"]').trigger('click')
+    await flushPromises()
+    expect(w.text()).toContain('Rudi Hartono')
+    expect(w.find('[data-testid="approval-approve"]').exists()).toBe(false)
+    expect(w.find('[data-testid="approval-reject"]').exists()).toBe(false)
+  })
+
+  it('switching tabs clears the selection and shows the placeholder again', async () => {
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    await w.find('[data-testid="approval-card"]').trigger('click')
+    await flushPromises()
+    expect(w.text()).toContain('Laptop A')
+    await w.find('[data-testid="approval-tab-approved"]').trigger('click')
+    await flushPromises()
+    expect(w.text()).toContain('Tidak ada pengajuan dipilih')
+  })
+})

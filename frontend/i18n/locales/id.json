@@ -358,12 +358,7 @@
       "asset_create": "Registrasi Aset",
       "asset_disposal": "Penghapusan Aset",
       "asset_transfer": "Mutasi Aset",
-      "valuation_exclusion": "Pengecualian Valuasi",
-      "registrasi": "Registrasi Aset",
-      "penghapusan": "Penghapusan Aset",
-      "peminjaman": "Peminjaman",
-      "maintenance": "Maintenance",
-      "valuasi": "Pengecualian Valuasi"
+      "valuation_exclusion": "Pengecualian Valuasi"
     },
     "filter": {
       "pending": "Menunggu",

@@ -67,10 +67,11 @@ describe('superadminNav — built items have `to`, unbuilt are disabled', () => 
   })
 })
 
-describe('superadminNav — approval badge', () => {
-  it('approval item has badgeCount 8', () => {
+describe('superadminNav — approval', () => {
+  it('approval item is gated by the request.decide permission and has no hardcoded badge', () => {
     const approval = superadminNav[0].items.find(i => i.labelKey === 'nav.approval')
-    expect(approval?.badgeCount).toBe(8)
+    expect(approval?.permission).toBe('request.decide')
+    expect(approval?.badgeCount).toBeUndefined()
   })
 })
 
