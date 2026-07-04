@@ -10,21 +10,61 @@ INSERT INTO transfer.asset_transfers (
 RETURNING *;
 
 -- name: GetTransfer :one
--- Scoped: caller must have the from- or to-office in scope.
+-- Scoped: caller must have the from- or to-office in scope. Plain (unenriched)
+-- row — used internally by Ship/Receive/RejectReceive, which only need the
+-- base columns to validate state + perform the update.
 SELECT * FROM transfer.asset_transfers
 WHERE id = sqlc.arg(id) AND deleted_at IS NULL
   AND (sqlc.arg(all_scope)::boolean
        OR from_office_id = ANY(sqlc.arg(office_ids)::uuid[])
        OR to_office_id   = ANY(sqlc.arg(office_ids)::uuid[]));
 
--- name: ListTransfers :many
-SELECT * FROM transfer.asset_transfers
-WHERE deleted_at IS NULL
+-- name: GetTransferEnriched :one
+-- Scoped: caller must have the from- or to-office in scope. Adds resolved
+-- asset/office/room/actor display names for the detail view. LEFT JOINs keep
+-- the row visible (with nil names) even when a joined entity was soft-deleted.
+SELECT sqlc.embed(tr),
+       a.name     AS asset_name,
+       a.asset_tag AS asset_tag,
+       fo.name    AS from_office_name,
+       tof.name   AS to_office_name,
+       rm.name    AS to_room_name,
+       ru.name    AS requested_by_name,
+       rcu.name   AS received_by_name
+FROM transfer.asset_transfers tr
+LEFT JOIN asset.assets a        ON a.id  = tr.asset_id        AND a.deleted_at IS NULL
+LEFT JOIN masterdata.offices fo ON fo.id = tr.from_office_id  AND fo.deleted_at IS NULL
+LEFT JOIN masterdata.offices tof ON tof.id = tr.to_office_id  AND tof.deleted_at IS NULL
+LEFT JOIN masterdata.rooms rm   ON rm.id = tr.to_room_id      AND rm.deleted_at IS NULL
+LEFT JOIN identity.users ru     ON ru.id = tr.requested_by_id AND ru.deleted_at IS NULL
+LEFT JOIN identity.users rcu    ON rcu.id = tr.received_by_id AND rcu.deleted_at IS NULL
+WHERE tr.id = sqlc.arg(id) AND tr.deleted_at IS NULL
   AND (sqlc.arg(all_scope)::boolean
-       OR from_office_id = ANY(sqlc.arg(office_ids)::uuid[])
-       OR to_office_id   = ANY(sqlc.arg(office_ids)::uuid[]))
-  AND (sqlc.narg(status)::shared.transfer_status IS NULL OR status = sqlc.narg(status))
-ORDER BY created_at DESC
+       OR tr.from_office_id = ANY(sqlc.arg(office_ids)::uuid[])
+       OR tr.to_office_id   = ANY(sqlc.arg(office_ids)::uuid[]));
+
+-- name: ListTransfersEnriched :many
+SELECT sqlc.embed(tr),
+       a.name     AS asset_name,
+       a.asset_tag AS asset_tag,
+       fo.name    AS from_office_name,
+       tof.name   AS to_office_name,
+       rm.name    AS to_room_name,
+       ru.name    AS requested_by_name,
+       rcu.name   AS received_by_name
+FROM transfer.asset_transfers tr
+LEFT JOIN asset.assets a        ON a.id  = tr.asset_id        AND a.deleted_at IS NULL
+LEFT JOIN masterdata.offices fo ON fo.id = tr.from_office_id  AND fo.deleted_at IS NULL
+LEFT JOIN masterdata.offices tof ON tof.id = tr.to_office_id  AND tof.deleted_at IS NULL
+LEFT JOIN masterdata.rooms rm   ON rm.id = tr.to_room_id      AND rm.deleted_at IS NULL
+LEFT JOIN identity.users ru     ON ru.id = tr.requested_by_id AND ru.deleted_at IS NULL
+LEFT JOIN identity.users rcu    ON rcu.id = tr.received_by_id AND rcu.deleted_at IS NULL
+WHERE tr.deleted_at IS NULL
+  AND (sqlc.arg(all_scope)::boolean
+       OR tr.from_office_id = ANY(sqlc.arg(office_ids)::uuid[])
+       OR tr.to_office_id   = ANY(sqlc.arg(office_ids)::uuid[]))
+  AND (sqlc.narg(status)::shared.transfer_status IS NULL OR tr.status = sqlc.narg(status))
+ORDER BY tr.created_at DESC
 LIMIT sqlc.arg(lim) OFFSET sqlc.arg(off);
 
 -- name: CountTransfers :one
@@ -35,14 +75,29 @@ WHERE deleted_at IS NULL
        OR to_office_id   = ANY(sqlc.arg(office_ids)::uuid[]))
   AND (sqlc.narg(status)::shared.transfer_status IS NULL OR status = sqlc.narg(status));
 
--- name: ListTransfersByAsset :many
--- Per-asset history, scoped by from- or to-office.
-SELECT * FROM transfer.asset_transfers
-WHERE asset_id = sqlc.arg(asset_id) AND deleted_at IS NULL
+-- name: ListTransfersByAssetEnriched :many
+-- Per-asset history, scoped by from- or to-office. Same enrichment as
+-- GetTransferEnriched/ListTransfersEnriched.
+SELECT sqlc.embed(tr),
+       a.name     AS asset_name,
+       a.asset_tag AS asset_tag,
+       fo.name    AS from_office_name,
+       tof.name   AS to_office_name,
+       rm.name    AS to_room_name,
+       ru.name    AS requested_by_name,
+       rcu.name   AS received_by_name
+FROM transfer.asset_transfers tr
+LEFT JOIN asset.assets a        ON a.id  = tr.asset_id        AND a.deleted_at IS NULL
+LEFT JOIN masterdata.offices fo ON fo.id = tr.from_office_id  AND fo.deleted_at IS NULL
+LEFT JOIN masterdata.offices tof ON tof.id = tr.to_office_id  AND tof.deleted_at IS NULL
+LEFT JOIN masterdata.rooms rm   ON rm.id = tr.to_room_id      AND rm.deleted_at IS NULL
+LEFT JOIN identity.users ru     ON ru.id = tr.requested_by_id AND ru.deleted_at IS NULL
+LEFT JOIN identity.users rcu    ON rcu.id = tr.received_by_id AND rcu.deleted_at IS NULL
+WHERE tr.asset_id = sqlc.arg(asset_id) AND tr.deleted_at IS NULL
   AND (sqlc.arg(all_scope)::boolean
-       OR from_office_id = ANY(sqlc.arg(office_ids)::uuid[])
-       OR to_office_id   = ANY(sqlc.arg(office_ids)::uuid[]))
-ORDER BY created_at DESC;
+       OR tr.from_office_id = ANY(sqlc.arg(office_ids)::uuid[])
+       OR tr.to_office_id   = ANY(sqlc.arg(office_ids)::uuid[]))
+ORDER BY tr.created_at DESC;
 
 -- name: SetTransferShipped :one
 UPDATE transfer.asset_transfers

@@ -78,8 +78,14 @@ type Querier interface {
 	// Identity module queries. Schema-qualified (see DATABASE.md §1.2).
 	GetRoleByCode(ctx context.Context, code string) (IdentityRole, error)
 	GetRoom(ctx context.Context, arg GetRoomParams) (MasterdataRoom, error)
-	// Scoped: caller must have the from- or to-office in scope.
+	// Scoped: caller must have the from- or to-office in scope. Plain (unenriched)
+	// row — used internally by Ship/Receive/RejectReceive, which only need the
+	// base columns to validate state + perform the update.
 	GetTransfer(ctx context.Context, arg GetTransferParams) (TransferAssetTransfer, error)
+	// Scoped: caller must have the from- or to-office in scope. Adds resolved
+	// asset/office/room/actor display names for the detail view. LEFT JOINs keep
+	// the row visible (with nil names) even when a joined entity was soft-deleted.
+	GetTransferEnriched(ctx context.Context, arg GetTransferEnrichedParams) (GetTransferEnrichedRow, error)
 	GetUserByEmail(ctx context.Context, email string) (IdentityUser, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (IdentityUser, error)
 	// Audit log: append-only writes + an office-scoped, filterable read model.
@@ -127,9 +133,10 @@ type Querier interface {
 	// Rooms (within a floor). Scope is derived from the room's floor -> office.
 	ListRoomsByFloor(ctx context.Context, arg ListRoomsByFloorParams) ([]MasterdataRoom, error)
 	ListThresholds(ctx context.Context) ([]ApprovalApprovalThreshold, error)
-	ListTransfers(ctx context.Context, arg ListTransfersParams) ([]TransferAssetTransfer, error)
-	// Per-asset history, scoped by from- or to-office.
-	ListTransfersByAsset(ctx context.Context, arg ListTransfersByAssetParams) ([]TransferAssetTransfer, error)
+	// Per-asset history, scoped by from- or to-office. Same enrichment as
+	// GetTransferEnriched/ListTransfersEnriched.
+	ListTransfersByAssetEnriched(ctx context.Context, arg ListTransfersByAssetEnrichedParams) ([]ListTransfersByAssetEnrichedRow, error)
+	ListTransfersEnriched(ctx context.Context, arg ListTransfersEnrichedParams) ([]ListTransfersEnrichedRow, error)
 	// User management queries (Superadmin). All respect soft delete.
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]IdentityUser, error)
 	// Approval / maker-checker queries (approval schema).

@@ -164,7 +164,9 @@ type GetTransferParams struct {
 	OfficeIds []uuid.UUID `json:"office_ids"`
 }
 
-// Scoped: caller must have the from- or to-office in scope.
+// Scoped: caller must have the from- or to-office in scope. Plain (unenriched)
+// row — used internally by Ship/Receive/RejectReceive, which only need the
+// base columns to validate state + perform the update.
 func (q *Queries) GetTransfer(ctx context.Context, arg GetTransferParams) (TransferAssetTransfer, error) {
 	row := q.db.QueryRow(ctx, getTransfer, arg.ID, arg.AllScope, arg.OfficeIds)
 	var i TransferAssetTransfer
@@ -194,62 +196,164 @@ func (q *Queries) GetTransfer(ctx context.Context, arg GetTransferParams) (Trans
 	return i, err
 }
 
-const listTransfers = `-- name: ListTransfers :many
-SELECT id, asset_id, from_office_id, to_office_id, to_room_id, status, reason, requested_by_id, approved_by_id, shipped_date, received_date, received_by_id, bast_no, request_id, notes, created_at, updated_at, deleted_at, condition_sent, transfer_date, return_note FROM transfer.asset_transfers
-WHERE deleted_at IS NULL
-  AND ($1::boolean
-       OR from_office_id = ANY($2::uuid[])
-       OR to_office_id   = ANY($2::uuid[]))
-  AND ($3::shared.transfer_status IS NULL OR status = $3)
-ORDER BY created_at DESC
-LIMIT $5 OFFSET $4
+const getTransferEnriched = `-- name: GetTransferEnriched :one
+SELECT tr.id, tr.asset_id, tr.from_office_id, tr.to_office_id, tr.to_room_id, tr.status, tr.reason, tr.requested_by_id, tr.approved_by_id, tr.shipped_date, tr.received_date, tr.received_by_id, tr.bast_no, tr.request_id, tr.notes, tr.created_at, tr.updated_at, tr.deleted_at, tr.condition_sent, tr.transfer_date, tr.return_note,
+       a.name     AS asset_name,
+       a.asset_tag AS asset_tag,
+       fo.name    AS from_office_name,
+       tof.name   AS to_office_name,
+       rm.name    AS to_room_name,
+       ru.name    AS requested_by_name,
+       rcu.name   AS received_by_name
+FROM transfer.asset_transfers tr
+LEFT JOIN asset.assets a        ON a.id  = tr.asset_id        AND a.deleted_at IS NULL
+LEFT JOIN masterdata.offices fo ON fo.id = tr.from_office_id  AND fo.deleted_at IS NULL
+LEFT JOIN masterdata.offices tof ON tof.id = tr.to_office_id  AND tof.deleted_at IS NULL
+LEFT JOIN masterdata.rooms rm   ON rm.id = tr.to_room_id      AND rm.deleted_at IS NULL
+LEFT JOIN identity.users ru     ON ru.id = tr.requested_by_id AND ru.deleted_at IS NULL
+LEFT JOIN identity.users rcu    ON rcu.id = tr.received_by_id AND rcu.deleted_at IS NULL
+WHERE tr.id = $1 AND tr.deleted_at IS NULL
+  AND ($2::boolean
+       OR tr.from_office_id = ANY($3::uuid[])
+       OR tr.to_office_id   = ANY($3::uuid[]))
 `
 
-type ListTransfersParams struct {
-	AllScope  bool                  `json:"all_scope"`
-	OfficeIds []uuid.UUID           `json:"office_ids"`
-	Status    *SharedTransferStatus `json:"status"`
-	Off       int32                 `json:"off"`
-	Lim       int32                 `json:"lim"`
+type GetTransferEnrichedParams struct {
+	ID        uuid.UUID   `json:"id"`
+	AllScope  bool        `json:"all_scope"`
+	OfficeIds []uuid.UUID `json:"office_ids"`
 }
 
-func (q *Queries) ListTransfers(ctx context.Context, arg ListTransfersParams) ([]TransferAssetTransfer, error) {
-	rows, err := q.db.Query(ctx, listTransfers,
-		arg.AllScope,
-		arg.OfficeIds,
-		arg.Status,
-		arg.Off,
-		arg.Lim,
+type GetTransferEnrichedRow struct {
+	TransferAssetTransfer TransferAssetTransfer `json:"transfer_asset_transfer"`
+	AssetName             *string               `json:"asset_name"`
+	AssetTag              *string               `json:"asset_tag"`
+	FromOfficeName        *string               `json:"from_office_name"`
+	ToOfficeName          *string               `json:"to_office_name"`
+	ToRoomName            *string               `json:"to_room_name"`
+	RequestedByName       *string               `json:"requested_by_name"`
+	ReceivedByName        *string               `json:"received_by_name"`
+}
+
+// Scoped: caller must have the from- or to-office in scope. Adds resolved
+// asset/office/room/actor display names for the detail view. LEFT JOINs keep
+// the row visible (with nil names) even when a joined entity was soft-deleted.
+func (q *Queries) GetTransferEnriched(ctx context.Context, arg GetTransferEnrichedParams) (GetTransferEnrichedRow, error) {
+	row := q.db.QueryRow(ctx, getTransferEnriched, arg.ID, arg.AllScope, arg.OfficeIds)
+	var i GetTransferEnrichedRow
+	err := row.Scan(
+		&i.TransferAssetTransfer.ID,
+		&i.TransferAssetTransfer.AssetID,
+		&i.TransferAssetTransfer.FromOfficeID,
+		&i.TransferAssetTransfer.ToOfficeID,
+		&i.TransferAssetTransfer.ToRoomID,
+		&i.TransferAssetTransfer.Status,
+		&i.TransferAssetTransfer.Reason,
+		&i.TransferAssetTransfer.RequestedByID,
+		&i.TransferAssetTransfer.ApprovedByID,
+		&i.TransferAssetTransfer.ShippedDate,
+		&i.TransferAssetTransfer.ReceivedDate,
+		&i.TransferAssetTransfer.ReceivedByID,
+		&i.TransferAssetTransfer.BastNo,
+		&i.TransferAssetTransfer.RequestID,
+		&i.TransferAssetTransfer.Notes,
+		&i.TransferAssetTransfer.CreatedAt,
+		&i.TransferAssetTransfer.UpdatedAt,
+		&i.TransferAssetTransfer.DeletedAt,
+		&i.TransferAssetTransfer.ConditionSent,
+		&i.TransferAssetTransfer.TransferDate,
+		&i.TransferAssetTransfer.ReturnNote,
+		&i.AssetName,
+		&i.AssetTag,
+		&i.FromOfficeName,
+		&i.ToOfficeName,
+		&i.ToRoomName,
+		&i.RequestedByName,
+		&i.ReceivedByName,
 	)
+	return i, err
+}
+
+const listTransfersByAssetEnriched = `-- name: ListTransfersByAssetEnriched :many
+SELECT tr.id, tr.asset_id, tr.from_office_id, tr.to_office_id, tr.to_room_id, tr.status, tr.reason, tr.requested_by_id, tr.approved_by_id, tr.shipped_date, tr.received_date, tr.received_by_id, tr.bast_no, tr.request_id, tr.notes, tr.created_at, tr.updated_at, tr.deleted_at, tr.condition_sent, tr.transfer_date, tr.return_note,
+       a.name     AS asset_name,
+       a.asset_tag AS asset_tag,
+       fo.name    AS from_office_name,
+       tof.name   AS to_office_name,
+       rm.name    AS to_room_name,
+       ru.name    AS requested_by_name,
+       rcu.name   AS received_by_name
+FROM transfer.asset_transfers tr
+LEFT JOIN asset.assets a        ON a.id  = tr.asset_id        AND a.deleted_at IS NULL
+LEFT JOIN masterdata.offices fo ON fo.id = tr.from_office_id  AND fo.deleted_at IS NULL
+LEFT JOIN masterdata.offices tof ON tof.id = tr.to_office_id  AND tof.deleted_at IS NULL
+LEFT JOIN masterdata.rooms rm   ON rm.id = tr.to_room_id      AND rm.deleted_at IS NULL
+LEFT JOIN identity.users ru     ON ru.id = tr.requested_by_id AND ru.deleted_at IS NULL
+LEFT JOIN identity.users rcu    ON rcu.id = tr.received_by_id AND rcu.deleted_at IS NULL
+WHERE tr.asset_id = $1 AND tr.deleted_at IS NULL
+  AND ($2::boolean
+       OR tr.from_office_id = ANY($3::uuid[])
+       OR tr.to_office_id   = ANY($3::uuid[]))
+ORDER BY tr.created_at DESC
+`
+
+type ListTransfersByAssetEnrichedParams struct {
+	AssetID   uuid.UUID   `json:"asset_id"`
+	AllScope  bool        `json:"all_scope"`
+	OfficeIds []uuid.UUID `json:"office_ids"`
+}
+
+type ListTransfersByAssetEnrichedRow struct {
+	TransferAssetTransfer TransferAssetTransfer `json:"transfer_asset_transfer"`
+	AssetName             *string               `json:"asset_name"`
+	AssetTag              *string               `json:"asset_tag"`
+	FromOfficeName        *string               `json:"from_office_name"`
+	ToOfficeName          *string               `json:"to_office_name"`
+	ToRoomName            *string               `json:"to_room_name"`
+	RequestedByName       *string               `json:"requested_by_name"`
+	ReceivedByName        *string               `json:"received_by_name"`
+}
+
+// Per-asset history, scoped by from- or to-office. Same enrichment as
+// GetTransferEnriched/ListTransfersEnriched.
+func (q *Queries) ListTransfersByAssetEnriched(ctx context.Context, arg ListTransfersByAssetEnrichedParams) ([]ListTransfersByAssetEnrichedRow, error) {
+	rows, err := q.db.Query(ctx, listTransfersByAssetEnriched, arg.AssetID, arg.AllScope, arg.OfficeIds)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []TransferAssetTransfer{}
+	items := []ListTransfersByAssetEnrichedRow{}
 	for rows.Next() {
-		var i TransferAssetTransfer
+		var i ListTransfersByAssetEnrichedRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.AssetID,
-			&i.FromOfficeID,
-			&i.ToOfficeID,
-			&i.ToRoomID,
-			&i.Status,
-			&i.Reason,
-			&i.RequestedByID,
-			&i.ApprovedByID,
-			&i.ShippedDate,
-			&i.ReceivedDate,
-			&i.ReceivedByID,
-			&i.BastNo,
-			&i.RequestID,
-			&i.Notes,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.DeletedAt,
-			&i.ConditionSent,
-			&i.TransferDate,
-			&i.ReturnNote,
+			&i.TransferAssetTransfer.ID,
+			&i.TransferAssetTransfer.AssetID,
+			&i.TransferAssetTransfer.FromOfficeID,
+			&i.TransferAssetTransfer.ToOfficeID,
+			&i.TransferAssetTransfer.ToRoomID,
+			&i.TransferAssetTransfer.Status,
+			&i.TransferAssetTransfer.Reason,
+			&i.TransferAssetTransfer.RequestedByID,
+			&i.TransferAssetTransfer.ApprovedByID,
+			&i.TransferAssetTransfer.ShippedDate,
+			&i.TransferAssetTransfer.ReceivedDate,
+			&i.TransferAssetTransfer.ReceivedByID,
+			&i.TransferAssetTransfer.BastNo,
+			&i.TransferAssetTransfer.RequestID,
+			&i.TransferAssetTransfer.Notes,
+			&i.TransferAssetTransfer.CreatedAt,
+			&i.TransferAssetTransfer.UpdatedAt,
+			&i.TransferAssetTransfer.DeletedAt,
+			&i.TransferAssetTransfer.ConditionSent,
+			&i.TransferAssetTransfer.TransferDate,
+			&i.TransferAssetTransfer.ReturnNote,
+			&i.AssetName,
+			&i.AssetTag,
+			&i.FromOfficeName,
+			&i.ToOfficeName,
+			&i.ToRoomName,
+			&i.RequestedByName,
+			&i.ReceivedByName,
 		); err != nil {
 			return nil, err
 		}
@@ -261,53 +365,94 @@ func (q *Queries) ListTransfers(ctx context.Context, arg ListTransfersParams) ([
 	return items, nil
 }
 
-const listTransfersByAsset = `-- name: ListTransfersByAsset :many
-SELECT id, asset_id, from_office_id, to_office_id, to_room_id, status, reason, requested_by_id, approved_by_id, shipped_date, received_date, received_by_id, bast_no, request_id, notes, created_at, updated_at, deleted_at, condition_sent, transfer_date, return_note FROM transfer.asset_transfers
-WHERE asset_id = $1 AND deleted_at IS NULL
-  AND ($2::boolean
-       OR from_office_id = ANY($3::uuid[])
-       OR to_office_id   = ANY($3::uuid[]))
-ORDER BY created_at DESC
+const listTransfersEnriched = `-- name: ListTransfersEnriched :many
+SELECT tr.id, tr.asset_id, tr.from_office_id, tr.to_office_id, tr.to_room_id, tr.status, tr.reason, tr.requested_by_id, tr.approved_by_id, tr.shipped_date, tr.received_date, tr.received_by_id, tr.bast_no, tr.request_id, tr.notes, tr.created_at, tr.updated_at, tr.deleted_at, tr.condition_sent, tr.transfer_date, tr.return_note,
+       a.name     AS asset_name,
+       a.asset_tag AS asset_tag,
+       fo.name    AS from_office_name,
+       tof.name   AS to_office_name,
+       rm.name    AS to_room_name,
+       ru.name    AS requested_by_name,
+       rcu.name   AS received_by_name
+FROM transfer.asset_transfers tr
+LEFT JOIN asset.assets a        ON a.id  = tr.asset_id        AND a.deleted_at IS NULL
+LEFT JOIN masterdata.offices fo ON fo.id = tr.from_office_id  AND fo.deleted_at IS NULL
+LEFT JOIN masterdata.offices tof ON tof.id = tr.to_office_id  AND tof.deleted_at IS NULL
+LEFT JOIN masterdata.rooms rm   ON rm.id = tr.to_room_id      AND rm.deleted_at IS NULL
+LEFT JOIN identity.users ru     ON ru.id = tr.requested_by_id AND ru.deleted_at IS NULL
+LEFT JOIN identity.users rcu    ON rcu.id = tr.received_by_id AND rcu.deleted_at IS NULL
+WHERE tr.deleted_at IS NULL
+  AND ($1::boolean
+       OR tr.from_office_id = ANY($2::uuid[])
+       OR tr.to_office_id   = ANY($2::uuid[]))
+  AND ($3::shared.transfer_status IS NULL OR tr.status = $3)
+ORDER BY tr.created_at DESC
+LIMIT $5 OFFSET $4
 `
 
-type ListTransfersByAssetParams struct {
-	AssetID   uuid.UUID   `json:"asset_id"`
-	AllScope  bool        `json:"all_scope"`
-	OfficeIds []uuid.UUID `json:"office_ids"`
+type ListTransfersEnrichedParams struct {
+	AllScope  bool                  `json:"all_scope"`
+	OfficeIds []uuid.UUID           `json:"office_ids"`
+	Status    *SharedTransferStatus `json:"status"`
+	Off       int32                 `json:"off"`
+	Lim       int32                 `json:"lim"`
 }
 
-// Per-asset history, scoped by from- or to-office.
-func (q *Queries) ListTransfersByAsset(ctx context.Context, arg ListTransfersByAssetParams) ([]TransferAssetTransfer, error) {
-	rows, err := q.db.Query(ctx, listTransfersByAsset, arg.AssetID, arg.AllScope, arg.OfficeIds)
+type ListTransfersEnrichedRow struct {
+	TransferAssetTransfer TransferAssetTransfer `json:"transfer_asset_transfer"`
+	AssetName             *string               `json:"asset_name"`
+	AssetTag              *string               `json:"asset_tag"`
+	FromOfficeName        *string               `json:"from_office_name"`
+	ToOfficeName          *string               `json:"to_office_name"`
+	ToRoomName            *string               `json:"to_room_name"`
+	RequestedByName       *string               `json:"requested_by_name"`
+	ReceivedByName        *string               `json:"received_by_name"`
+}
+
+func (q *Queries) ListTransfersEnriched(ctx context.Context, arg ListTransfersEnrichedParams) ([]ListTransfersEnrichedRow, error) {
+	rows, err := q.db.Query(ctx, listTransfersEnriched,
+		arg.AllScope,
+		arg.OfficeIds,
+		arg.Status,
+		arg.Off,
+		arg.Lim,
+	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []TransferAssetTransfer{}
+	items := []ListTransfersEnrichedRow{}
 	for rows.Next() {
-		var i TransferAssetTransfer
+		var i ListTransfersEnrichedRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.AssetID,
-			&i.FromOfficeID,
-			&i.ToOfficeID,
-			&i.ToRoomID,
-			&i.Status,
-			&i.Reason,
-			&i.RequestedByID,
-			&i.ApprovedByID,
-			&i.ShippedDate,
-			&i.ReceivedDate,
-			&i.ReceivedByID,
-			&i.BastNo,
-			&i.RequestID,
-			&i.Notes,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.DeletedAt,
-			&i.ConditionSent,
-			&i.TransferDate,
-			&i.ReturnNote,
+			&i.TransferAssetTransfer.ID,
+			&i.TransferAssetTransfer.AssetID,
+			&i.TransferAssetTransfer.FromOfficeID,
+			&i.TransferAssetTransfer.ToOfficeID,
+			&i.TransferAssetTransfer.ToRoomID,
+			&i.TransferAssetTransfer.Status,
+			&i.TransferAssetTransfer.Reason,
+			&i.TransferAssetTransfer.RequestedByID,
+			&i.TransferAssetTransfer.ApprovedByID,
+			&i.TransferAssetTransfer.ShippedDate,
+			&i.TransferAssetTransfer.ReceivedDate,
+			&i.TransferAssetTransfer.ReceivedByID,
+			&i.TransferAssetTransfer.BastNo,
+			&i.TransferAssetTransfer.RequestID,
+			&i.TransferAssetTransfer.Notes,
+			&i.TransferAssetTransfer.CreatedAt,
+			&i.TransferAssetTransfer.UpdatedAt,
+			&i.TransferAssetTransfer.DeletedAt,
+			&i.TransferAssetTransfer.ConditionSent,
+			&i.TransferAssetTransfer.TransferDate,
+			&i.TransferAssetTransfer.ReturnNote,
+			&i.AssetName,
+			&i.AssetTag,
+			&i.FromOfficeName,
+			&i.ToOfficeName,
+			&i.ToRoomName,
+			&i.RequestedByName,
+			&i.ReceivedByName,
 		); err != nil {
 			return nil, err
 		}

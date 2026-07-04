@@ -72,6 +72,20 @@ func toResponse(t sqlc.TransferAssetTransfer) map[string]any {
 	}
 }
 
+// enrichTransferMap adds resolved asset/office/room/actor display names to a
+// serialized transfer. Takes plain *string args (rather than a row type) so it
+// works uniformly across List/Get/ListByAsset's distinct sqlc row types.
+func enrichTransferMap(m map[string]any, assetName, assetTag, fromOfficeName, toOfficeName, toRoomName, requestedByName, receivedByName *string) map[string]any {
+	m["asset_name"] = assetName
+	m["asset_tag"] = assetTag
+	m["from_office_name"] = fromOfficeName
+	m["to_office_name"] = toOfficeName
+	m["to_room_name"] = toRoomName
+	m["requested_by_name"] = requestedByName
+	m["received_by_name"] = receivedByName
+	return m
+}
+
 // condStr renders the nullable condition enum as *string for JSON.
 func condStr(c *sqlc.SharedTransferCondition) *string {
 	if c == nil {

@@ -271,7 +271,7 @@ func (h *Handler) get(c *gin.Context) {
 		h.svcError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, toResponse(t))
+	c.JSON(http.StatusOK, enrichTransferMap(toResponse(t.TransferAssetTransfer), t.AssetName, t.AssetTag, t.FromOfficeName, t.ToOfficeName, t.ToRoomName, t.RequestedByName, t.ReceivedByName))
 }
 
 func (h *Handler) list(c *gin.Context) {
@@ -290,7 +290,7 @@ func (h *Handler) list(c *gin.Context) {
 	}
 	data := make([]map[string]any, 0, len(rows))
 	for _, t := range rows {
-		data = append(data, toResponse(t))
+		data = append(data, enrichTransferMap(toResponse(t.TransferAssetTransfer), t.AssetName, t.AssetTag, t.FromOfficeName, t.ToOfficeName, t.ToRoomName, t.RequestedByName, t.ReceivedByName))
 	}
 	c.JSON(http.StatusOK, gin.H{"data": data, "total": total, "limit": limit, "offset": offset})
 }
@@ -313,7 +313,7 @@ func (h *Handler) listByAsset(c *gin.Context) {
 	}
 	data := make([]map[string]any, 0, len(rows))
 	for _, t := range rows {
-		data = append(data, toResponse(t))
+		data = append(data, enrichTransferMap(toResponse(t.TransferAssetTransfer), t.AssetName, t.AssetTag, t.FromOfficeName, t.ToOfficeName, t.ToRoomName, t.RequestedByName, t.ReceivedByName))
 	}
 	c.JSON(http.StatusOK, gin.H{"data": data})
 }

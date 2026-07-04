@@ -608,6 +608,76 @@ func TestTransfer_RejectReceive(t *testing.T) {
 	})
 }
 
+// TestTransfer_EnrichedReads verifies list/get carry resolved asset/office/user
+// names; soft-deleted join targets keep the row visible with nil names.
+func TestTransfer_EnrichedReads(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	assetID := seedAssetWithCost(t, h.pool, "TRF-ENR-1", "Server Dell R750", h.catID, h.fromOffice, "9000000")
+	maker := seedUser(t, h.pool, h.officeRoleID, h.fromOffice, "maker.enr@test.local")
+	checker := seedUser(t, h.pool, h.officeRoleID, h.fromOffice, "checker.enr@test.local")
+
+	makerCaller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.fromOffice})
+	checkerCaller := buildCaller(checker, h.officeRoleID, false, []uuid.UUID{h.fromOffice, h.toOffice})
+
+	req, err := h.tsvc.Submit(ctx, makerCaller, transfer.SubmitInput{AssetID: assetID, ToOfficeID: h.toOffice})
+	require.NoError(t, err)
+	final := approveThroughChain(t, h.apprSvc, req.ID, checkerCaller)
+	require.Equal(t, sqlc.SharedRequestStatusApproved, final.Status)
+
+	rows, total, err := h.tsvc.List(ctx, true, nil, "", 20, 0)
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, total, int64(1))
+	require.NotEmpty(t, rows)
+
+	var row sqlc.ListTransfersEnrichedRow
+	found := false
+	for _, r := range rows {
+		if r.TransferAssetTransfer.AssetID == assetID {
+			row = r
+			found = true
+		}
+	}
+	require.True(t, found, "seeded transfer must appear in List")
+	require.NotNil(t, row.AssetName)
+	assert.Equal(t, "Server Dell R750", *row.AssetName)
+	require.NotNil(t, row.AssetTag)
+	assert.Equal(t, "TRF-ENR-1", *row.AssetTag)
+	require.NotNil(t, row.FromOfficeName)
+	require.NotNil(t, row.ToOfficeName)
+	require.NotNil(t, row.RequestedByName)
+	assert.Equal(t, "maker.enr@test.local", *row.RequestedByName)
+
+	// Get should carry the same enrichment.
+	got, err := h.tsvc.Get(ctx, row.TransferAssetTransfer.ID, true, nil)
+	require.NoError(t, err)
+	require.NotNil(t, got.AssetName)
+	assert.Equal(t, "Server Dell R750", *got.AssetName)
+
+	// ListByAsset should carry the same enrichment.
+	histRows, err := h.tsvc.ListByAsset(ctx, assetID, true, nil)
+	require.NoError(t, err)
+	require.NotEmpty(t, histRows)
+	require.NotNil(t, histRows[0].AssetName)
+	assert.Equal(t, "Server Dell R750", *histRows[0].AssetName)
+
+	t.Run("soft-deleted asset keeps row visible with nil name", func(t *testing.T) {
+		_, err := h.pool.Exec(ctx, `UPDATE asset.assets SET deleted_at = now() WHERE id = $1`, assetID)
+		require.NoError(t, err)
+		rows, _, err := h.tsvc.List(ctx, true, nil, "", 20, 0)
+		require.NoError(t, err)
+		found := false
+		for _, r := range rows {
+			if r.TransferAssetTransfer.AssetID == assetID {
+				found = true
+				assert.Nil(t, r.AssetName)
+			}
+		}
+		assert.True(t, found, "row must remain visible after the joined asset is soft-deleted")
+	})
+}
+
 // TestTransfer_ListByAsset_History verifies that ListByAsset returns the
 // asset's transfer(s), scoped by the caller's office IDs.
 func TestTransfer_ListByAsset_History(t *testing.T) {
@@ -630,7 +700,7 @@ func TestTransfer_ListByAsset_History(t *testing.T) {
 	rows, err := h.tsvc.ListByAsset(ctx, assetID, true, nil)
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(rows), 1)
-	assert.Equal(t, assetID, rows[0].AssetID)
+	assert.Equal(t, assetID, rows[0].TransferAssetTransfer.AssetID)
 
 	// Scoped caller covering from_office also sees it.
 	rows, err = h.tsvc.ListByAsset(ctx, assetID, false, []uuid.UUID{h.fromOffice})
