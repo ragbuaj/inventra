@@ -277,6 +277,15 @@ describe('pages/disposals — Jenjang Persetujuan (chain) card', () => {
 })
 
 describe('pages/disposals — Ajukan Penghapusan form', () => {
+  it('keeps the right summary column sticky on large screens (mockup parity)', async () => {
+    const w = await mountAndWait()
+    const col = w.find('[data-testid="disposal-summary-column"]')
+    expect(col.exists()).toBe(true)
+    expect(col.classes()).toContain('lg:sticky')
+    expect(col.classes()).toContain('lg:top-4')
+    expect(col.classes()).toContain('self-start')
+  })
+
   it('disables submit until asset + date + method are set, then enables it', async () => {
     const w = await mountAndWait()
     const submit = () => w.find('[data-testid="disposal-submit"]')
@@ -460,12 +469,16 @@ describe('pages/disposals — Riwayat', () => {
     for (const r of requestRows) expect(r.text()).toContain('—')
   })
 
-  it('excludes "Disetujui" from the status filter options (deviation h)', async () => {
+  it('excludes "Disetujui" from the status filter options (deviation h) and resolves every label', async () => {
     const w = await mountAndWait()
     await clickTab(w, 'history')
-    const vm = w.vm as unknown as { statusFilterItems: Array<{ value: string }> }
+    const vm = w.vm as unknown as { statusFilterItems: Array<{ value: string, label: string }> }
     const values = vm.statusFilterItems.map(i => i.value)
     expect(values).toEqual(['all', 'menunggu', 'ditolak', 'dibatalkan', 'selesai'])
+    // Labels must be the resolved i18n strings — a missing locale key would
+    // surface here as the raw key path (e.g. "disposal.statusFilter.dibatalkan").
+    const labels = vm.statusFilterItems.map(i => i.label)
+    expect(labels).toEqual(['Semua Status', 'Menunggu Approval', 'Ditolak', 'Dibatalkan', 'Selesai'])
   })
 
   it('filters rows by status', async () => {

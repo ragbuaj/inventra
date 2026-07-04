@@ -867,8 +867,11 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- RIGHT: gain/loss + approval chain -->
-        <div class="flex flex-col gap-4">
+        <!-- RIGHT: gain/loss + approval chain (sticky per mockup) -->
+        <div
+          data-testid="disposal-summary-column"
+          class="flex flex-col gap-4 lg:sticky lg:top-4 self-start"
+        >
           <!-- Laba/Rugi -->
           <div
             data-testid="disposal-gainloss-card"

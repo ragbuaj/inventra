@@ -489,8 +489,8 @@
     "statusFilter": {
       "all": "All Status",
       "menunggu": "Awaiting Approval",
-      "disetujui": "Approved",
       "ditolak": "Rejected",
+      "dibatalkan": "Cancelled",
       "selesai": "Completed"
     },
     "status": {

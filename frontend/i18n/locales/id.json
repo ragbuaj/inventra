@@ -489,8 +489,8 @@
     "statusFilter": {
       "all": "Semua Status",
       "menunggu": "Menunggu Approval",
-      "disetujui": "Disetujui",
       "ditolak": "Ditolak",
+      "dibatalkan": "Dibatalkan",
       "selesai": "Selesai"
     },
     "status": {
