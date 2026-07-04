@@ -70,6 +70,9 @@ type Querier interface {
 	// Guard: an asset may have at most one non-terminal transfer row.
 	GetOpenTransferForAsset(ctx context.Context, assetID uuid.UUID) (TransferAssetTransfer, error)
 	GetRequest(ctx context.Context, id uuid.UUID) (ApprovalRequest, error)
+	// Enriched read variants: request row + resolved maker/role/office names.
+	// LEFT JOINs keep rows visible even when the user/office was soft-deleted.
+	GetRequestEnriched(ctx context.Context, id uuid.UUID) (GetRequestEnrichedRow, error)
 	GetRequestForUpdate(ctx context.Context, id uuid.UUID) (ApprovalRequest, error)
 	GetRole(ctx context.Context, id uuid.UUID) (IdentityRole, error)
 	// Identity module queries. Schema-qualified (see DATABASE.md §1.2).
@@ -108,6 +111,7 @@ type Querier interface {
 	// office scope (all_scope OR office_id = ANY(office_ids)).
 	ListFloorsByOffice(ctx context.Context, arg ListFloorsByOfficeParams) ([]MasterdataFloor, error)
 	ListInboxCandidates(ctx context.Context) ([]ApprovalRequest, error)
+	ListInboxCandidatesEnriched(ctx context.Context) ([]ListInboxCandidatesEnrichedRow, error)
 	// Offices (hierarchy) with data-scoping. all_scope bypasses the office filter
 	// (global scope); otherwise only offices whose id is in office_ids are returned.
 	ListOffices(ctx context.Context, arg ListOfficesParams) ([]MasterdataOffice, error)
@@ -115,7 +119,9 @@ type Querier interface {
 	// office-type/province/city names + a per-office (non-deleted) asset count.
 	ListOfficesMap(ctx context.Context, arg ListOfficesMapParams) ([]ListOfficesMapRow, error)
 	ListRequestApprovals(ctx context.Context, requestID uuid.UUID) ([]ApprovalRequestApproval, error)
+	ListRequestApprovalsEnriched(ctx context.Context, requestID uuid.UUID) ([]ListRequestApprovalsEnrichedRow, error)
 	ListRequests(ctx context.Context, arg ListRequestsParams) ([]ApprovalRequest, error)
+	ListRequestsEnriched(ctx context.Context, arg ListRequestsEnrichedParams) ([]ListRequestsEnrichedRow, error)
 	ListRolePermissions(ctx context.Context, roleID uuid.UUID) ([]string, error)
 	ListRoles(ctx context.Context) ([]IdentityRole, error)
 	// Rooms (within a floor). Scope is derived from the room's floor -> office.

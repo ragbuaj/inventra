@@ -400,22 +400,23 @@ func (s *Service) invalidateThresholdCache(ctx context.Context) error {
 	return s.rdb.Del(ctx, "approval:thresholds").Err()
 }
 
-// GetWithSteps fetches a single approval request and its ordered approval steps.
-func (s *Service) GetWithSteps(ctx context.Context, id uuid.UUID) (sqlc.ApprovalRequest, []sqlc.ApprovalRequestApproval, error) {
-	r, err := s.q.GetRequest(ctx, id)
+// GetWithSteps fetches a single enriched approval request and its ordered,
+// approver-name-enriched approval steps.
+func (s *Service) GetWithSteps(ctx context.Context, id uuid.UUID) (sqlc.GetRequestEnrichedRow, []sqlc.ListRequestApprovalsEnrichedRow, error) {
+	r, err := s.q.GetRequestEnriched(ctx, id)
 	if err != nil {
 		return r, nil, mapDBError(err)
 	}
-	steps, err := s.q.ListRequestApprovals(ctx, id)
+	steps, err := s.q.ListRequestApprovalsEnriched(ctx, id)
 	if err != nil {
 		return r, nil, mapDBError(err)
 	}
 	return r, steps, nil
 }
 
-// List returns a paginated, scope-filtered slice of requests plus the total count.
+// List returns a paginated, scope-filtered slice of enriched requests plus the total count.
 // Empty status/typ strings are treated as "no filter" (nil).
-func (s *Service) List(ctx context.Context, all bool, ids []uuid.UUID, status, typ string, limit, offset int32) ([]sqlc.ApprovalRequest, int64, error) {
+func (s *Service) List(ctx context.Context, all bool, ids []uuid.UUID, status, typ string, limit, offset int32) ([]sqlc.ListRequestsEnrichedRow, int64, error) {
 	officeIDs := ids
 	if officeIDs == nil {
 		officeIDs = []uuid.UUID{}
@@ -430,7 +431,7 @@ func (s *Service) List(ctx context.Context, all bool, ids []uuid.UUID, status, t
 		v := sqlc.SharedRequestType(typ)
 		typPtr = &v
 	}
-	rows, err := s.q.ListRequests(ctx, sqlc.ListRequestsParams{
+	rows, err := s.q.ListRequestsEnriched(ctx, sqlc.ListRequestsEnrichedParams{
 		AllScope:  all,
 		OfficeIds: officeIDs,
 		Status:    statusPtr,
@@ -453,14 +454,16 @@ func (s *Service) List(ctx context.Context, all bool, ids []uuid.UUID, status, t
 	return rows, total, nil
 }
 
-// Inbox returns all pending requests for which the caller is currently eligible to decide.
-func (s *Service) Inbox(ctx context.Context, caller Caller) ([]sqlc.ApprovalRequest, error) {
-	candidates, err := s.q.ListInboxCandidates(ctx)
+// Inbox returns all pending enriched requests for which the caller is currently
+// eligible to decide.
+func (s *Service) Inbox(ctx context.Context, caller Caller) ([]sqlc.ListInboxCandidatesEnrichedRow, error) {
+	candidates, err := s.q.ListInboxCandidatesEnriched(ctx)
 	if err != nil {
 		return nil, mapDBError(err)
 	}
-	out := make([]sqlc.ApprovalRequest, 0)
-	for _, req := range candidates {
+	out := make([]sqlc.ListInboxCandidatesEnrichedRow, 0)
+	for _, row := range candidates {
+		req := row.ApprovalRequest
 		approvals, err := s.q.ListRequestApprovals(ctx, req.ID)
 		if err != nil {
 			return nil, mapDBError(err)
@@ -487,7 +490,7 @@ func (s *Service) Inbox(ctx context.Context, caller Caller) ([]sqlc.ApprovalRequ
 		}
 		to, ok := resolveTierOffice(anc, *req.OfficeID, step.RequiredLevel)
 		if eligibleToDecide(caller, req, step, prior, to, ok) == nil {
-			out = append(out, req)
+			out = append(out, row)
 		}
 	}
 	return out, nil

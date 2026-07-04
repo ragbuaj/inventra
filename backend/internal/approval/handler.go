@@ -1,6 +1,7 @@
 package approval
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -171,7 +172,7 @@ func (h *Handler) inbox(c *gin.Context) {
 	}
 	data := make([]map[string]any, 0, len(rows))
 	for _, r := range rows {
-		data = append(data, requestToMap(r))
+		data = append(data, enrichRequestMap(requestToMap(r.ApprovalRequest), r.RequestedByName, r.RequestedByRole, r.OfficeName))
 	}
 	c.JSON(http.StatusOK, gin.H{"data": data, "total": len(data)})
 }
@@ -192,23 +193,24 @@ func (h *Handler) list(c *gin.Context) {
 	}
 	data := make([]map[string]any, 0, len(rows))
 	for _, r := range rows {
-		data = append(data, requestToMap(r))
+		data = append(data, enrichRequestMap(requestToMap(r.ApprovalRequest), r.RequestedByName, r.RequestedByRole, r.OfficeName))
 	}
 	c.JSON(http.StatusOK, gin.H{"data": data, "total": total, "limit": limit, "offset": offset})
 }
 
-// get handles GET /requests/:id (returns request + its approval steps).
+// get handles GET /requests/:id (returns enriched request + payload + its approval steps).
 func (h *Handler) get(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	r, steps, err := h.svc.GetWithSteps(c, id)
+	row, steps, err := h.svc.GetWithSteps(c, id)
 	if err != nil {
 		h.svcError(c, err)
 		return
 	}
+	r := row.ApprovalRequest
 	// Enforce data scope: the caller may only view requests within their office scope.
 	all, ids, err := h.scoped.CallerOfficeScope(c, "requests")
 	if err != nil {
@@ -219,8 +221,17 @@ func (h *Handler) get(c *gin.Context) {
 		common.WriteError(c, common.ErrForbidden)
 		return
 	}
-	out := requestToMap(r)
-	out["steps"] = steps
+	out := enrichRequestMap(requestToMap(r), row.RequestedByName, row.RequestedByRole, row.OfficeName)
+	var payload any
+	if len(r.Payload) > 0 {
+		_ = json.Unmarshal(r.Payload, &payload)
+	}
+	out["payload"] = payload
+	stepMaps := make([]map[string]any, 0, len(steps))
+	for _, st := range steps {
+		stepMaps = append(stepMaps, stepToMap(st))
+	}
+	out["steps"] = stepMaps
 	c.JSON(http.StatusOK, out)
 }
 

@@ -903,7 +903,7 @@ func TestApproval_ListRequests_ScopeFiltered(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), total)
 	assert.Len(t, rows, 1)
-	assert.Equal(t, &tr.CabangID, rows[0].OfficeID)
+	assert.Equal(t, &tr.CabangID, rows[0].ApprovalRequest.OfficeID)
 
 	// Global scope sees all
 	rows, total, err = svc.List(ctx, true, nil, "", "", 10, 0)
@@ -1166,4 +1166,87 @@ func TestApproval_GetRequest_ScopeEnforced(t *testing.T) {
 	// cabangUser is placed in Cabang (same office as request) → 200.
 	assert.Equal(t, http.StatusOK, callGet(cabangUserID, cabangRoleID),
 		"caller scoped to the request's own office must receive 200")
+}
+
+// strPtr returns a pointer to the given string.
+func strPtr(s string) *string { return &s }
+
+// TestApproval_EnrichedReads verifies List/Inbox/GetWithSteps return maker name,
+// maker role, office name, and (detail) payload + per-step approver names.
+func TestApproval_EnrichedReads(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	ctx := context.Background()
+	resetAll(t, pool)
+
+	tr := seedTieredOfficeTree(t, pool)
+	catID := seedCategory(t, pool, "ENR")
+
+	officeRoleID := lookupRole(t, pool, "Kepala Unit")
+	maker := seedUser(t, pool, officeRoleID, "maker.enriched@test.local")
+	approver := seedUser(t, pool, officeRoleID, "approver.enriched@test.local")
+
+	q := sqlc.New(pool)
+	scopeSvc := authz.NewScopeService(q, rdb)
+	svc := approval.NewService(q, pool, scopeSvc, rdb)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0, "")
+	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
+
+	catIDStr := catID.String()
+	officeIDStr := tr.CabangID.String()
+	payload, _ := json.Marshal(asset.AssetCreatePayload{
+		Name: "Enriched Laptop", CategoryID: catIDStr, OfficeID: officeIDStr,
+		AssetClass: "intangible", PurchaseCost: strPtr("1500000"),
+	})
+	req, err := svc.Submit(ctx, approval.SubmitInput{
+		Type: sqlc.SharedRequestTypeAssetCreate, Amount: "1500000",
+		OfficeID: tr.CabangID, Payload: payload, Maker: maker,
+	})
+	require.NoError(t, err)
+
+	t.Run("List rows carry names", func(t *testing.T) {
+		rows, total, err := svc.List(ctx, true, nil, "pending", "asset_create", 20, 0)
+		require.NoError(t, err)
+		require.GreaterOrEqual(t, total, int64(1))
+		require.NotEmpty(t, rows)
+		row := rows[0]
+		require.NotNil(t, row.RequestedByName)
+		assert.Equal(t, "maker.enriched@test.local", *row.RequestedByName)
+		require.NotNil(t, row.RequestedByRole)
+		assert.Equal(t, "Kepala Unit", *row.RequestedByRole)
+		require.NotNil(t, row.OfficeName)
+		assert.Equal(t, "Cabang Alpha", *row.OfficeName)
+	})
+
+	t.Run("Inbox rows carry names", func(t *testing.T) {
+		caller := buildCaller(approver, officeRoleID, true, nil)
+		rows, err := svc.Inbox(ctx, caller)
+		require.NoError(t, err)
+		require.NotEmpty(t, rows)
+		require.NotNil(t, rows[0].RequestedByName)
+		assert.Equal(t, "maker.enriched@test.local", *rows[0].RequestedByName)
+	})
+
+	t.Run("GetWithSteps carries names, payload and approver name", func(t *testing.T) {
+		// decide step 1 so a step has an approver
+		caller := buildCaller(approver, officeRoleID, true, nil)
+		_, err := svc.Decide(ctx, req.ID, caller, true, strPtr("ok"))
+		require.NoError(t, err)
+
+		row, steps, err := svc.GetWithSteps(ctx, req.ID)
+		require.NoError(t, err)
+		require.NotNil(t, row.RequestedByName)
+		assert.Equal(t, "maker.enriched@test.local", *row.RequestedByName)
+		require.NotNil(t, row.OfficeName)
+
+		var p asset.AssetCreatePayload
+		require.NoError(t, json.Unmarshal(row.ApprovalRequest.Payload, &p))
+		assert.Equal(t, "Enriched Laptop", p.Name)
+
+		require.NotEmpty(t, steps)
+		decided := steps[0]
+		require.NotNil(t, decided.ApproverName)
+		assert.Equal(t, "approver.enriched@test.local", *decided.ApproverName)
+		assert.Equal(t, int32(1), decided.ApprovalRequestApproval.StepOrder)
+	})
 }
