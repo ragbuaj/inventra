@@ -131,15 +131,19 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > 25. **Next session — pick the next real step.** Remaining candidates (see *Remaining* below,
 >     unchanged from item 23): **(b)** Stock opname backend module; **(c)** Depreciation module;
 >     **(d)** frontend Mutasi/Disposal screens; **(e)** Assignment/Maintenance; **(f)** global
->     search backend + drop the last `mock/*` files. **Prerequisite before trusting another local
->     full `pnpm test:e2e` run:** the dev-stack backend container was found serving **stale
->     source** (predates this session's approval-enrichment commits — `docker compose ... watch`
->     wasn't actively syncing) and the **Superadmin role's default (`*`) data-scope policy** was
->     found corrupted to `own` (a parallel-worker e2e run of the Data Scope settings test failed
->     mid-mutation and never reverted it) — both block root-office creation used by several e2e
->     `beforeAll`s. Neither is a code regression; see `.superpowers/sdd/task-9-report.md` for exact
->     repro + fix commands (redeploy the already-rebuilt backend image; restore the scope policy),
->     then re-run the full e2e suite before picking (b)–(f).
+>     search backend + drop the last `mock/*` files. **Dev-stack notes from this session's e2e
+>     verification (both issues found, fixed, and re-verified — full suite 61/61 green after):**
+>     (1) the backend container had drifted to **stale source** (`docker compose ... watch` wasn't
+>     actively syncing after a container recreate) — fixed by rebuilding + redeploying the backend
+>     image; if e2e results ever look impossible, check container source freshness first.
+>     (2) the **Superadmin default (`*`) data-scope policy** was found corrupted to `own` — a
+>     parallel-worker run of the Data Scope settings e2e failed mid-mutation and never reverted it
+>     (that test mutates live RBAC config as its subject; its cleanup is not failure-safe —
+>     **follow-up: make that e2e revert via `afterEach`/API instead of in-test steps**). Restored
+>     to `global` (user-approved). (3) local full `pnpm test:e2e` needs `RATELIMIT_ENABLED=false`
+>     on the backend (now set via `backend/.env`; CI's e2e job already sets it). (4) the legacy
+>     mock-backed approval test in `e2e/operasional.spec.ts` was deleted — superseded by the
+>     real-backend `e2e/approval.spec.ts`.
 
 ## ✅ Done
 
@@ -395,9 +399,10 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       rewritten (`test/nuxt/approval.spec.ts`, 14 cases). `mock/approval.ts` **retained** — still
       imported by `useGlobalSearch.ts` for the mock global-search result list (drop when global
       search wires to a real `/search` endpoint, item (f) in *Next session*). **Done (2026-07-04).**
-      See item 24/25 in *Next session* above for the full deviation list (a)–(d) and the
-      backend-container-staleness/data-scope-corruption caveat found during this task's e2e
-      verification (`.superpowers/sdd/task-9-report.md`).
+      See item 24/25 in *Next session* above for the full deviation list (a)–(d) and the dev-stack
+      issues found & fixed during this task's e2e verification (stale container source; corrupted
+      Superadmin data-scope from a flaky settings e2e; RATELIMIT_ENABLED=false for local e2e).
+      Full local e2e re-verified green (61/61) after the fixes.
 - [ ] **Staff role menus** — wire staff nav (`myAssets`, staff `assignment`/`approval`) to pages/variants
 - [x] **Google OAuth login** button + flow (UI) — login redirect + `?oauth=success/error` landing
       (refresh → fetchMe → navigate; i18n error reasons). **Done — PR #21.**
