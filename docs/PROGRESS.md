@@ -116,6 +116,30 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     search wires to a real `/search` endpoint, item (f) above).
 >     - **Real badge count is still out of scope:** the sidebar no longer shows a hardcoded pending count;
 >       a live one needs a global inbox-count store/poll, deferred until there's a cross-page need for it.
+>     - **Approved deviations from the mockup** (per the *catat-deviasi* convention), confirmed 1:1
+>       against `docs/design/Pengajuan Approval.dc.html` in both light and dark mode: **(a)** a 5th
+>       **Dibatalkan (Cancelled)** tab was added (mockup has 4: Menunggu/Disetujui/Ditolak/Semua) —
+>       `cancelled` is a real backend `request_status`, so it needed a home in the UI; **(b)** the
+>       **Lampiran (attachments)** section is a permanent empty-state ("Tidak ada lampiran.") — the
+>       request payload has no attachment/file list yet, so the mockup's file-chip UI has nothing to
+>       bind to; **(c)** the type filter lists only the **4 real backend types** (`asset_create`,
+>       `asset_disposal`, `asset_transfer`, `valuation_exclusion` → Registrasi/Penghapusan/Mutasi/
+>       Pengecualian Valuasi) instead of the mockup's 5 fictional ones — `peminjaman`/`maintenance`
+>       have no submit path yet; **(d)** card/detail **titles are built from `type + office`**
+>       (`rowTitle()`) rather than an asset/item name, because the list row payload is absent on
+>       `GET /requests`/`GET /requests/inbox` (only the detail fetch resolves the full payload).
+> 25. **Next session — pick the next real step.** Remaining candidates (see *Remaining* below,
+>     unchanged from item 23): **(b)** Stock opname backend module; **(c)** Depreciation module;
+>     **(d)** frontend Mutasi/Disposal screens; **(e)** Assignment/Maintenance; **(f)** global
+>     search backend + drop the last `mock/*` files. **Prerequisite before trusting another local
+>     full `pnpm test:e2e` run:** the dev-stack backend container was found serving **stale
+>     source** (predates this session's approval-enrichment commits — `docker compose ... watch`
+>     wasn't actively syncing) and the **Superadmin role's default (`*`) data-scope policy** was
+>     found corrupted to `own` (a parallel-worker e2e run of the Data Scope settings test failed
+>     mid-mutation and never reverted it) — both block root-office creation used by several e2e
+>     `beforeAll`s. Neither is a code regression; see `.superpowers/sdd/task-9-report.md` for exact
+>     repro + fix commands (redeploy the already-rebuilt backend image; restore the scope policy),
+>     then re-run the full e2e suite before picking (b)–(f).
 
 ## ✅ Done
 
@@ -312,7 +336,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
   - [x] **Data Scope** (`/settings/data-scope`) → wired to `/authz` (catalog scope_modules + per-role scope policies);
         English DTO; UUID `id` identity; save only changed roles (dirtyIds); e2e spec updated against real seeded backend; orphaned mock deleted. **Done (2026-06-28).**
   - [x] **Field Permission** (`/settings/field-permission`) → wired to `/authz/roles` + `/authz/roles/:id/fields`; catalog
-        `assets`+`users` (English field keys); UUID `id` identity; default-allow; save preserves other-entity rows + only PUTs changed roles; e2e spec added against real seeded backend; orphaned `mock/fieldPermission.ts` deleted. **Done (2026-06-28).** ⚠️ TODO: extend `FilterView` enforcement to `requests`/`employees`/other modules (see *Next session* §10 TODO).
+        `assets`+`users` (English field keys); UUID `id` identity; default-allow; save preserves other-entity rows + only PUTs changed roles; e2e spec added against real seeded backend; orphaned `mock/fieldPermission.ts` deleted. **Done (2026-06-28).** ⚠️ TODO: `FilterView` enforcement now also covers `requests` (see the Pengajuan & Approval entry below); remaining: `employees` + other masterdata entities.
   - [x] **Audit Trail** (`/settings/audit`) ✅ wired to `GET /api/v1/audit` — server-side filter + pagination (limit/offset); gate `audit.view`; entity-type filter from frontend `AUDIT_ENTITY_TYPES` catalog; expandable diff viewer; e2e spec against real backend; orphaned `mock/audit.ts` deleted. **Done (2026-06-29).** ⚠️ TODO: actor filter + role/summary/office-name columns dropped — backend response has no role/summary; resolving actor/office names requires `user.manage`/masterdata reads that an `audit.view`-only viewer may lack. Revisit if a viewer-accessible name lookup or enriched audit response lands.
   - [x] **User Management** (`/settings/users`) ✅ wired to `/api/v1/users` — CRUD (GET list with server-side search+pagination, POST create, PUT update, DELETE remove); gate `user.manage`; role/office/employee pickers from real API lookups; employee picker filtered by selected office (office_id-aware `employeeFormOptions`); e2e spec against real seeded backend; status toggled via update endpoint. **Done (2026-06-29). Authz/settings screen wiring batch complete (RBAC + Data Scope + Field Permission + Audit Trail + User Management).** ⚠️ TODO: server-side role/office/status filter dropdowns + reset-password action dropped pending backend support; office/employee lookup capped at 100 (searchable async picker is a follow-up if counts grow); `mock/users.ts` retained until `useGlobalSearch` is wired to the real `/search` endpoint.
 - [x] **Peta Lokasi** (`/master/map`) ✅ wired to `GET /api/v1/offices/map` — office lat/lng columns + geo endpoint with resolved type/province/city names + per-office asset count; data-scoped. `useOfficeMap` rewritten (real `$fetch`); types `MapOffice`/`OfficeTier`; 3-tier legend (Pusat/Wilayah/Cabang; Outlet folded into Cabang — `office_types.tier` not yet editable); coord-filtered Leaflet pins; load-error/retry; e2e spec added; orphaned `mock/officeMap.ts` deleted. **Done (2026-06-29).** ⚠️ TODO: map shows empty-state until offices have coordinates (no production seed); asset count real but 0 until asset module populated. (`office_types.tier` now editable via Referensi screen — resolved as part of §Referensi wiring below.)
@@ -357,6 +381,23 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       made `[tag].vue` an unintended parent route for `[tag]/edit.vue` (no `<NuxtPage/>` to render the
       child), so `/assets/:tag/edit` silently showed the Detail page. Fixed by moving `[tag].vue` →
       `[tag]/index.vue` (siblings).
+- [x] **Pengajuan & Approval** (`/approval`) ✅ wired to real `/api/v1/requests` — inbox
+      (`GET /requests/inbox`, scoped to the caller's pending steps) + list-by-status
+      (`GET /requests` with a `status` filter) for the other four tabs; detail fetch resolves the
+      full payload + approval-step timeline; approve/reject via `POST /requests/:id/approve|reject`;
+      a pending request outside the caller's inbox (SoD/scope-ineligible) renders a disabled
+      "not eligible" lock instead of decide buttons. Category/office FK names resolved via
+      `useCategories().tree()` + `useOffices().list()` (best-effort, falls back to raw ids).
+      Backend: `internal/approval` responses enriched with maker/office names + the full payload
+      (`enrichRequestMap`), and **field-permission `FilterView` now covers the `requests` entity**
+      (first entity beyond `assets`/`users`). `nav.ts`'s `approval` item: removed the mock-era
+      hardcoded `badgeCount: 8`, gated on `permission: 'request.decide'`. Component test suite
+      rewritten (`test/nuxt/approval.spec.ts`, 14 cases). `mock/approval.ts` **retained** — still
+      imported by `useGlobalSearch.ts` for the mock global-search result list (drop when global
+      search wires to a real `/search` endpoint, item (f) in *Next session*). **Done (2026-07-04).**
+      See item 24/25 in *Next session* above for the full deviation list (a)–(d) and the
+      backend-container-staleness/data-scope-corruption caveat found during this task's e2e
+      verification (`.superpowers/sdd/task-9-report.md`).
 - [ ] **Staff role menus** — wire staff nav (`myAssets`, staff `assignment`/`approval`) to pages/variants
 - [x] **Google OAuth login** button + flow (UI) — login redirect + `?oauth=success/error` landing
       (refresh → fetchMe → navigate; i18n error reasons). **Done — PR #21.**
