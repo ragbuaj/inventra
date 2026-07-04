@@ -1109,7 +1109,8 @@
     "retry": "Coba lagi",
     "loadError": "Gagal memuat data.",
     "yes": "Ya",
-    "no": "Tidak"
+    "no": "Tidak",
+    "assetPickerEmpty": "Tidak ada aset tersedia"
   },
   "status": {
     "asset": {

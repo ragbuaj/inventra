@@ -1109,7 +1109,8 @@
     "retry": "Retry",
     "loadError": "Failed to load data.",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "assetPickerEmpty": "No assets available"
   },
   "status": {
     "asset": {
