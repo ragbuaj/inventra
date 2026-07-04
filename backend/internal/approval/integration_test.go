@@ -1355,3 +1355,154 @@ func TestApproval_FieldMasking_Requests(t *testing.T) {
 		assert.Contains(t, rec, "payload")
 	})
 }
+
+// TestApproval_FieldMasking_HandlerWiring drives the real HTTP handler (gin
+// engine built via approval.RegisterRoutes, exactly like
+// TestApproval_GetRequest_ScopeEnforced) end-to-end and proves that
+// h.filterMap actually executes on the list/get response path — not just that
+// the underlying authz.FilterView helper works in isolation (that is already
+// covered by TestApproval_FieldMasking_Requests). If someone deleted the
+// h.filterMap call sites in list/get, this test must fail.
+func TestApproval_FieldMasking_HandlerWiring(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	ctx := context.Background()
+	resetAll(t, pool)
+
+	tr := seedTieredOfficeTree(t, pool)
+	catID := seedCategory(t, pool, "HWM")
+
+	makerRoleID := lookupRole(t, pool, "Kepala Unit")
+	maker := seedUser(t, pool, makerRoleID, "maker.handlerwiring@test.local")
+
+	q := sqlc.New(pool)
+	scopeSvc := authz.NewScopeService(q, rdb)
+	svc := approval.NewService(q, pool, scopeSvc, rdb)
+
+	// Submit a request against Cabang. No executor is registered and the
+	// request is never decided — only read paths (list/get) are under test.
+	req, err := svc.Submit(ctx, approval.SubmitInput{
+		Type:     sqlc.SharedRequestTypeAssetCreate,
+		Amount:   "1000000",
+		OfficeID: tr.CabangID,
+		Payload:  []byte(`{"name":"Handler Wiring Asset","category_id":"` + catID.String() + `","office_id":"` + tr.CabangID.String() + `","asset_class":"intangible"}`),
+		Reason:   strPtr("handler wiring regression test"),
+		Maker:    maker,
+	})
+	require.NoError(t, err)
+
+	// Staf: real seeded role, default data-scope "own" (module '*'). Per
+	// common.ScopedDeps.CallerOfficeScope, "own" resolves to the caller's own
+	// office — so placing the Staf user in Cabang (the request's office) is
+	// enough for them to see the row on both list and get, with no need to
+	// seed an extra data_scope_policies override.
+	stafRoleID := lookupRole(t, pool, "Staf")
+	stafUser := seedUser(t, pool, stafRoleID, "staf.handlerwiring@test.local")
+	_, err = pool.Exec(ctx,
+		`UPDATE identity.users SET office_id = $1 WHERE id = $2`, tr.CabangID, stafUser)
+	require.NoError(t, err)
+
+	// Deny view on amount + payload for Staf on entity "requests" (same
+	// INSERT shape as TestApproval_FieldMasking_Requests above).
+	_, err = pool.Exec(ctx, `
+		INSERT INTO identity.field_permissions (role_id, entity, field, can_view, can_edit)
+		VALUES ($1, 'requests', 'amount', false, false),
+		       ($1, 'requests', 'payload', false, false)`, stafRoleID)
+	require.NoError(t, err)
+
+	// Superadmin: global scope + no field-permission policy for "requests" →
+	// default-allow control. Global scope means no office placement is needed.
+	adminRoleID := lookupRole(t, pool, "Superadmin")
+	adminUser := seedUser(t, pool, adminRoleID, "admin.handlerwiring@test.local")
+
+	gin.SetMode(gin.TestMode)
+	auditSvc := audit.NewService(q)
+	fieldSvc := authz.NewFieldService(q, rdb)
+	scoped := common.ScopedDeps{Q: q, Scope: scopeSvc}
+	h := approval.NewHandler(svc, fieldSvc, scoped, auditSvc)
+	permSvc := authz.NewPermissionService(q, rdb)
+
+	// doGet builds a fresh gin engine with a stub auth MW injecting the given
+	// user/role IDs (bypassing real JWT) and drives a GET against path,
+	// decoding the JSON body into a map for inspection.
+	doGet := func(path string, userID, roleID uuid.UUID) (int, map[string]any) {
+		stubAuth := func(c *gin.Context) {
+			c.Set(middleware.CtxUserID, userID.String())
+			c.Set(middleware.CtxRoleID, roleID.String())
+			c.Next()
+		}
+		r := gin.New()
+		v1 := r.Group("/api/v1")
+		approval.RegisterRoutes(v1, h, stubAuth, permSvc)
+		w := httptest.NewRecorder()
+		httpReq, err := http.NewRequest(http.MethodGet, path, nil)
+		require.NoError(t, err)
+		r.ServeHTTP(w, httpReq)
+		var body map[string]any
+		if w.Body.Len() > 0 {
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+		}
+		return w.Code, body
+	}
+
+	t.Run("list masks amount for Staf but keeps id/status", func(t *testing.T) {
+		code, body := doGet("/api/v1/requests", stafUser, stafRoleID)
+		require.Equal(t, http.StatusOK, code)
+		rows, ok := body["data"].([]any)
+		require.True(t, ok)
+		require.NotEmpty(t, rows, "Staf placed in Cabang must see the Cabang request on list")
+		for _, raw := range rows {
+			row, ok := raw.(map[string]any)
+			require.True(t, ok)
+			assert.NotContains(t, row, "amount")
+			assert.Contains(t, row, "id")
+			assert.Contains(t, row, "status")
+		}
+	})
+
+	t.Run("get masks amount and payload for Staf but keeps steps", func(t *testing.T) {
+		code, body := doGet("/api/v1/requests/"+req.ID.String(), stafUser, stafRoleID)
+		require.Equal(t, http.StatusOK, code)
+		assert.NotContains(t, body, "amount")
+		assert.NotContains(t, body, "payload")
+		assert.Contains(t, body, "steps")
+	})
+
+	t.Run("list keeps amount for Superadmin (default-allow control)", func(t *testing.T) {
+		code, body := doGet("/api/v1/requests", adminUser, adminRoleID)
+		require.Equal(t, http.StatusOK, code)
+		rows, ok := body["data"].([]any)
+		require.True(t, ok)
+		require.NotEmpty(t, rows)
+		found := false
+		for _, raw := range rows {
+			row, ok := raw.(map[string]any)
+			require.True(t, ok)
+			if row["id"] == req.ID.String() {
+				found = true
+				assert.Contains(t, row, "amount")
+			}
+		}
+		assert.True(t, found, "Superadmin (global scope) must see the request on list")
+	})
+
+	t.Run("get keeps amount and payload for Superadmin (default-allow control)", func(t *testing.T) {
+		code, body := doGet("/api/v1/requests/"+req.ID.String(), adminUser, adminRoleID)
+		require.Equal(t, http.StatusOK, code)
+		assert.Contains(t, body, "amount")
+		assert.Contains(t, body, "payload")
+		assert.Contains(t, body, "steps")
+	})
+
+	// /requests/inbox additionally requires the request.decide permission
+	// (RegisterRoutes attaches middleware.RequirePermission for it) and,
+	// beyond that, ListInboxCandidatesEnriched only returns rows whose
+	// current pending step matches the caller's approver eligibility
+	// (role/office tier) — a third orthogonal condition on top of scope and
+	// field permissions. Reproducing that eligibility setup here would
+	// duplicate large parts of TestApproval_AssetCreate_ThreeStep without
+	// adding coverage for the field-masking wiring itself (inbox calls the
+	// exact same h.filterMap as list), so it is intentionally left to the
+	// existing approval-flow tests. list + get above already exercise every
+	// call site of h.filterMap in the handler.
+}
