@@ -1,6 +1,8 @@
 # Environment files (keep *.env.example)
 **/.env
+**/.env.prod
 !**/.env.example
+!**/.env.prod.example
 
 # Go
 backend/bin/
