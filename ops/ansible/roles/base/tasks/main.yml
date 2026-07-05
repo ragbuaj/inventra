@@ -1,0 +1,5 @@
+---
+# Diisi pada task berikutnya.
+- name: Placeholder
+  ansible.builtin.debug:
+    msg: "role belum diimplementasikan"

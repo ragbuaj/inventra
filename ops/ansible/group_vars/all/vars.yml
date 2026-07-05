@@ -1,0 +1,16 @@
+---
+# Konfigurasi non-rahasia + pemetaan ke variabel Vault.
+deploy_user: deploy
+app_dir: "/home/{{ deploy_user }}/inventra"
+repo_url: "https://github.com/ragbuaj/inventra.git"
+repo_version: main
+swap_size_mb: 2048
+
+# Nilai berikut berasal dari Vault (group_vars/all/vault.yml, di-gitignore).
+domain: "{{ vault_domain }}"
+acme_email: "{{ vault_acme_email }}"
+db_password: "{{ vault_db_password }}"
+jwt_secret: "{{ vault_jwt_secret }}"
+minio_user: "{{ vault_minio_user }}"
+minio_password: "{{ vault_minio_password }}"
+deploy_pubkey: "{{ vault_deploy_pubkey }}"

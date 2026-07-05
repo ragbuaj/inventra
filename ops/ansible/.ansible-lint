@@ -1,0 +1,5 @@
+---
+# Jangan lint dependency vendor (collections di-download oleh requirements.yml).
+exclude_paths:
+  - collections/
+  - .cache/

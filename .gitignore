@@ -4,6 +4,12 @@
 !**/.env.example
 !**/.env.prod.example
 
+# Ansible — jangan commit host & rahasia nyata (repo publik)
+ops/ansible/inventory.ini
+ops/ansible/group_vars/all/vault.yml
+ops/ansible/collections/
+ops/ansible/.ansible/
+
 # Go
 backend/bin/
 backend/tmp/
