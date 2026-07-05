@@ -270,27 +270,49 @@ func (s *Service) regenerateBasis(ctx context.Context, qtx *sqlc.Queries, a sqlc
 			lp := last.Period.Time
 			lastPeriod = &lp
 			closing := last.ClosingValue
-			// Commercial-only impairment override: the (Task 5) impairment
-			// endpoint writes asset.book_value down directly without adding a
-			// depreciation entry, since impairment is a separate loss, not a
-			// depreciation expense. If that has left book_value BELOW the
-			// last entry's closing, depreciation must resume from the lower
-			// value — otherwise the impairment would be silently undone on
-			// the next compute. Fiscal never recognizes impairment.
-			if basis == sqlc.SharedDepreciationBasisCommercial && a.BookValue != nil {
-				bv, errBV := parseMoney(*a.BookValue)
-				cv, errCV := parseMoney(closing)
-				if errBV == nil && errCV == nil && bv.Cmp(cv) < 0 {
-					closing = *a.BookValue
-				}
-			}
 			lastClosing = &closing
 		case errors.Is(err, pgx.ErrNoRows):
 			// No entry at/before the watermark for this asset+basis (e.g. the
 			// asset's own depreciation started after the watermark) — Walk
-			// starts fresh from params.Start.
+			// starts fresh from params.Start (lastPeriod/lastClosing stay nil).
 		default:
 			return nil, err
+		}
+	}
+
+	// Commercial-only impairment resumption override. The impairment endpoint
+	// (RecordImpairment) writes asset.impaired_book_value down directly without
+	// posting a depreciation entry — impairment is a separate loss, not a
+	// depreciation expense. When that floor is BELOW the natural resumption
+	// base (the entry closing we resume from, or Cost when there is no such
+	// entry — i.e. an asset that started after the watermark, or the
+	// watermark==nil "nothing closed yet" case), depreciation must resume from
+	// the lower floor, else the impairment would be silently undone on the next
+	// compute.
+	//
+	// Why the STABLE impaired_book_value, not asset.book_value: book_value is
+	// DERIVED — refreshAssetSummary rewrites it to the latest computed closing
+	// on every compute, so it ratchets DOWN as months are computed. Deriving
+	// the "impairment happened" signal from it misfired on an idempotent re-run
+	// (the second compute saw book_value already below the watermark closing
+	// and double-depreciated) and on the watermark==nil path (a genesis
+	// impairment was reverted). impaired_book_value is written ONLY by an
+	// impairment, so it is a stable input, not derived state.
+	//
+	// It never needs clearing: as periods close, the watermark closing keeps
+	// dropping; once it reaches/undershoots the floor, floor < naturalBase is
+	// false and the override stops firing (the write-down is now baked into
+	// closed history). Leaving impaired_book_value set forever is harmless.
+	if basis == sqlc.SharedDepreciationBasisCommercial && a.ImpairedBookValue != nil {
+		if floor, errFloor := parseMoney(*a.ImpairedBookValue); errFloor == nil {
+			naturalBase := params.Cost
+			if lastClosing != nil {
+				naturalBase = *lastClosing
+			}
+			if nb, errNB := parseMoney(naturalBase); errNB == nil && floor.Cmp(nb) < 0 {
+				f := *a.ImpairedBookValue
+				lastClosing = &f
+			}
 		}
 	}
 
@@ -882,9 +904,10 @@ func (s *Service) GetAssetSummary(ctx context.Context, assetID uuid.UUID) (sqlc.
 // This does NOT post a depreciation entry — impairment is a separate loss,
 // not a depreciation expense — so depreciation history is untouched by
 // construction; the next ComputePeriod resumes depreciation from the lower
-// book_value via regenerateBasis's commercial resumption override (it
-// compares the last closed entry's closing against asset.book_value and
-// takes whichever is lower). reason is caller-supplied context for the audit
+// value via regenerateBasis's commercial resumption override, which reads the
+// STABLE impaired_book_value floor written here (not the derived book_value)
+// and resumes from it when it is below the natural resumption base. reason is
+// caller-supplied context for the audit
 // trail (there is no dedicated schema column for it) — the handler folds it
 // into the audit.Diff payload, not this method (ADR-0008: no Gin/audit
 // wiring in the service layer).
@@ -956,11 +979,19 @@ func (s *Service) RecordImpairment(ctx context.Context, assetID uuid.UUID, recov
 	}
 	newImpairment := roundHalfUp2(new(big.Rat).Add(existingImpairment, loss))
 	newBookValue := roundHalfUp2(recoverableRat)
+	// impaired_book_value is the STABLE resume floor consumed by the compute's
+	// commercial resumption override. Unlike book_value (derived — rewritten to
+	// the latest closing on every compute), it is written ONLY here, so an
+	// ordinary recompute never mistakes ratcheting derived state for a fresh
+	// impairment. A later, deeper impairment lowers this floor further (the
+	// recoverable is strictly below the current book value by the guard above).
+	newImpairedFloor := newBookValue
 
 	updated, err := qtx.ApplyAssetImpairment(ctx, sqlc.ApplyAssetImpairmentParams{
-		ID:             assetID,
-		ImpairmentLoss: &newImpairment,
-		BookValue:      &newBookValue,
+		ID:                assetID,
+		ImpairmentLoss:    &newImpairment,
+		BookValue:         &newBookValue,
+		ImpairedBookValue: &newImpairedFloor,
 	})
 	if err != nil {
 		return sqlc.AssetAsset{}, err

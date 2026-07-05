@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -568,6 +569,186 @@ func TestDepreciation_Compute_BeforeWatermark(t *testing.T) {
 
 	_, err = h.q.GetDepreciationPeriod(ctx, pgDate(month0))
 	require.ErrorIs(t, err, pgx.ErrNoRows, "no period row may be created for a pre-watermark month")
+}
+
+// mustParseRat parses a decimal string into an exact rational for magnitude
+// comparisons in the tests below.
+func mustParseRat(t *testing.T, s string) *big.Rat {
+	t.Helper()
+	r, ok := new(big.Rat).SetString(s)
+	require.True(t, ok, "parse decimal %q", s)
+	return r
+}
+
+// commercialEntryForPeriod returns the single commercial entry for the given
+// asset+period (fatal if absent).
+func commercialEntryForPeriod(t *testing.T, h *harness, assetID uuid.UUID, period time.Time) sqlc.DepreciationDepreciationEntry {
+	t.Helper()
+	entries, err := h.q.ListAssetEntries(context.Background(), assetID)
+	require.NoError(t, err)
+	for _, e := range entries {
+		if e.Basis == sqlc.SharedDepreciationBasisCommercial && e.Period.Time.Equal(period) {
+			return e
+		}
+	}
+	t.Fatalf("no commercial entry for period %s", period.Format("2006-01"))
+	return sqlc.DepreciationDepreciationEntry{}
+}
+
+// commercialEntriesOf returns all commercial entries for an asset, ordered as
+// ListAssetEntries returns them (basis, period).
+func commercialEntriesOf(t *testing.T, h *harness, assetID uuid.UUID) []sqlc.DepreciationDepreciationEntry {
+	t.Helper()
+	entries, err := h.q.ListAssetEntries(context.Background(), assetID)
+	require.NoError(t, err)
+	var out []sqlc.DepreciationDepreciationEntry
+	for _, e := range entries {
+		if e.Basis == sqlc.SharedDepreciationBasisCommercial {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
+// TestDepreciation_Recompute_AfterClose_Idempotent is the F1 regression: after
+// closing month1, computing the open month2 TWICE must produce a byte-identical
+// month2 entry. The buggy override derived "an impairment happened" from
+// asset.book_value — which refreshAssetSummary rewrites to the latest computed
+// closing on every compute — so the SECOND compute saw a lower book_value than
+// month1's (immutable) closing and wrongly resumed from the already-depreciated
+// value, DOUBLE-depreciating the fleet. No impairment occurs here, so the two
+// runs must be identical ordinary straight-line months.
+func TestDepreciation_Recompute_AfterClose_Idempotent(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+	// cost 9,600,000; category salvage 10% -> 960,000; SL 48m; purchased 6mo ago.
+	assetID := seedAssetMonthsAgo(t, h.pool, "DPR-2026-00032", "Aset Idempoten Setelah Tutup", h.catID, h.office, "9600000.00", 6)
+
+	month1 := firstOfMonthUTC(time.Now()).AddDate(0, -1, 0)
+	month2 := firstOfMonthUTC(time.Now())
+
+	_, err := h.svc.ComputePeriod(ctx, month1, h.actorID)
+	require.NoError(t, err)
+	require.NoError(t, h.svc.ClosePeriod(ctx, month1, h.actorID))
+
+	// Run 1 of the open month2.
+	_, err = h.svc.ComputePeriod(ctx, month2, h.actorID)
+	require.NoError(t, err)
+	run1 := commercialEntryForPeriod(t, h, assetID, month2)
+	assert.Equal(t, "8520000.00", run1.OpeningValue, "opens from month1 closing (9,600,000 - 6*180,000)")
+	assert.Equal(t, "180000.00", run1.DepreciationAmount, "ordinary SL month: (8,520,000 - 960,000)/42")
+	assert.Equal(t, "8340000.00", run1.ClosingValue)
+
+	// Run 2 of the SAME open month2 (idempotent re-run, explicitly supported).
+	// Must be byte-identical: no impairment happened, so the compute must NOT
+	// ratchet down from the book_value that run1's refreshAssetSummary wrote.
+	_, err = h.svc.ComputePeriod(ctx, month2, h.actorID)
+	require.NoError(t, err)
+	run2 := commercialEntryForPeriod(t, h, assetID, month2)
+
+	assert.Equal(t,
+		valuesOf([]sqlc.DepreciationDepreciationEntry{run1}),
+		valuesOf([]sqlc.DepreciationDepreciationEntry{run2}),
+		"F1: second compute of an open period after a close must be idempotent (no double depreciation)")
+	assert.Equal(t, "180000.00", run2.DepreciationAmount, "must stay 180,000.00, not the double-depreciated 175,714.29")
+	assert.Equal(t, "8340000.00", run2.ClosingValue)
+}
+
+// TestDepreciation_Impairment_Prospective_AfterClose verifies that impairment
+// resumes from the STABLE floor and stays idempotent across repeated computes:
+// close month1, impair well below the current book value, then compute the open
+// month2 TWICE — both runs must open from the impaired floor and be identical
+// (the buggy version double-depreciated on the second run because book_value
+// had already dropped below the floor).
+func TestDepreciation_Impairment_Prospective_AfterClose(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+	assetID := seedAssetMonthsAgo(t, h.pool, "DPR-2026-00033", "Aset Impairment Idempoten", h.catID, h.office, "9600000.00", 6)
+
+	month1 := firstOfMonthUTC(time.Now()).AddDate(0, -1, 0)
+	month2 := firstOfMonthUTC(time.Now())
+
+	_, err := h.svc.ComputePeriod(ctx, month1, h.actorID)
+	require.NoError(t, err)
+	require.NoError(t, h.svc.ClosePeriod(ctx, month1, h.actorID))
+
+	// Impair from book 8,520,000 down to recoverable 8,000,000.
+	_, err = h.svc.RecordImpairment(ctx, assetID, "8000000.00", "uji penurunan nilai", h.actorID)
+	require.NoError(t, err)
+
+	// Recompute the open month2: must resume prospectively from the impaired floor.
+	_, err = h.svc.ComputePeriod(ctx, month2, h.actorID)
+	require.NoError(t, err)
+	run1 := commercialEntryForPeriod(t, h, assetID, month2)
+	assert.Equal(t, "8000000.00", run1.OpeningValue, "opens from impaired floor, not month1 closing 8,520,000")
+	// remaining = 48 - 6 = 42; amount = (8,000,000 - 960,000)/42 = 167,619.047... -> 167,619.05
+	assert.Equal(t, "167619.05", run1.DepreciationAmount)
+	assert.Equal(t, "7832380.95", run1.ClosingValue)
+
+	// Closed month1 stays byte-identical (impairment is prospective).
+	m1 := commercialEntryForPeriod(t, h, assetID, month1)
+	assert.Equal(t, "8520000.00", m1.ClosingValue, "closed history must not be rewritten")
+
+	// Second recompute of the open month2 must be byte-identical (idempotent
+	// even WITH an impairment in force — the floor is stable, not ratcheted).
+	_, err = h.svc.ComputePeriod(ctx, month2, h.actorID)
+	require.NoError(t, err)
+	run2 := commercialEntryForPeriod(t, h, assetID, month2)
+	assert.Equal(t,
+		valuesOf([]sqlc.DepreciationDepreciationEntry{run1}),
+		valuesOf([]sqlc.DepreciationDepreciationEntry{run2}),
+		"impairment recompute must be idempotent (second run must not double-depreciate)")
+}
+
+// TestDepreciation_Impairment_BeforeAnyClose_Persists is the F2 regression: an
+// impairment recorded when NO period was ever closed (watermark == nil) must
+// survive a recompute. The buggy override only ran on the watermark!=nil path,
+// so a recompute regenerated entries from cost and refreshAssetSummary raised
+// book_value back above the recoverable while impairment_loss stayed positive —
+// an inconsistent carrying amount. After the fix the recompute resumes from the
+// impaired floor, so book_value stays at/below the recoverable, the loss is
+// retained, and repeated computes are idempotent.
+func TestDepreciation_Impairment_BeforeAnyClose_Persists(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+	assetID := seedAssetMonthsAgo(t, h.pool, "DPR-2026-00034", "Aset Impairment Pra-Tutup", h.catID, h.office, "9600000.00", 6)
+
+	month := firstOfMonthUTC(time.Now())
+
+	// Compute (but never CLOSE) — genesis, no closed watermark exists.
+	_, err := h.svc.ComputePeriod(ctx, month, h.actorID)
+	require.NoError(t, err)
+
+	a, err := h.q.GetAsset(ctx, assetID)
+	require.NoError(t, err)
+	require.NotNil(t, a.BookValue)
+	// 7 entries (purchase month .. current, inclusive): 9,600,000 - 7*180,000 = 8,340,000.
+	require.Equal(t, "8340000.00", *a.BookValue)
+
+	// Impair to recoverable 7,000,000 (below current book value).
+	_, err = h.svc.RecordImpairment(ctx, assetID, "7000000.00", "uji penurunan pra-tutup", h.actorID)
+	require.NoError(t, err)
+
+	// Recompute (still no close; watermark stays nil). Impairment must persist.
+	_, err = h.svc.ComputePeriod(ctx, month, h.actorID)
+	require.NoError(t, err)
+
+	recomputed, err := h.q.GetAsset(ctx, assetID)
+	require.NoError(t, err)
+	require.NotNil(t, recomputed.BookValue)
+	assert.LessOrEqual(t, mustParseRat(t, *recomputed.BookValue).Cmp(mustParseRat(t, "7000000.00")), 0,
+		"F2: book_value must stay at/below the recoverable after recompute (not ratcheted back to 8,340,000)")
+	require.NotNil(t, recomputed.ImpairmentLoss)
+	assert.Equal(t, 1, mustParseRat(t, *recomputed.ImpairmentLoss).Sign(), "impairment_loss must be retained (positive)")
+	assert.Equal(t, "1340000.00", *recomputed.ImpairmentLoss, "8,340,000 - 7,000,000")
+
+	// Idempotent on a third compute (the floor is stable).
+	before := commercialEntriesOf(t, h, assetID)
+	require.NotEmpty(t, before)
+	_, err = h.svc.ComputePeriod(ctx, month, h.actorID)
+	require.NoError(t, err)
+	after := commercialEntriesOf(t, h, assetID)
+	assert.Equal(t, valuesOf(before), valuesOf(after), "third compute must be idempotent")
 }
 
 // keyOf builds a stable map key (basis+period) for comparing entries across

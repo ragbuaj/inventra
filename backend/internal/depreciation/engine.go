@@ -83,7 +83,9 @@ var FiscalRules = map[sqlc.SharedFiscalAssetGroup]FiscalRule{
 
 // Walk generates the months AFTER lastPeriod (nil ⇒ from p.Start) through
 // target inclusive. lastClosing (nil ⇒ p.Cost) is the opening balance for the
-// first generated month. Returns nil (no error) when the asset is already
+// first generated month — honored whether we resume after lastPeriod or start
+// fresh from p.Start (see the firstMonth/opening block for why the impairment
+// override depends on this). Returns nil (no error) when the asset is already
 // fully depreciated (opening has reached salvage) or target is before the
 // first month to generate.
 //
@@ -120,19 +122,25 @@ func Walk(p Params, lastPeriod *time.Time, lastClosing *string, target time.Time
 	target = firstOfMonth(target)
 
 	var firstMonth time.Time
-	var opening *big.Rat
 	if lastPeriod == nil {
 		firstMonth = start
-		opening = cost
 	} else {
 		firstMonth = addMonths(firstOfMonth(*lastPeriod), 1)
-		if lastClosing == nil {
-			opening = cost
-		} else {
-			opening, err = parseMoney(*lastClosing)
-			if err != nil {
-				return nil, fmt.Errorf("depreciation: lastClosing: %w", err)
-			}
+	}
+	// lastClosing (nil ⇒ p.Cost) is the opening balance for the first generated
+	// month, INDEPENDENT of whether we resume after lastPeriod or start fresh
+	// from p.Start. The impairment resumption override (service.go) relies on
+	// this: it passes an impaired-floor lastClosing with a nil lastPeriod to
+	// open the genesis walk from the floor when nothing has been closed yet.
+	// `remaining` is always measured from p.Start (not lastPeriod), so a lower
+	// opening never distorts the useful-life clock.
+	var opening *big.Rat
+	if lastClosing == nil {
+		opening = cost
+	} else {
+		opening, err = parseMoney(*lastClosing)
+		if err != nil {
+			return nil, fmt.Errorf("depreciation: lastClosing: %w", err)
 		}
 	}
 

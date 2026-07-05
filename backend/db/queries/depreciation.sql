@@ -115,12 +115,17 @@ ORDER BY a.name;
 SELECT * FROM asset.assets WHERE id = $1 AND deleted_at IS NULL FOR UPDATE;
 
 -- name: ApplyAssetImpairment :one
--- PSAK 48 impairment write-down: sets both money fields directly. No
+-- PSAK 48 impairment write-down: sets the money fields directly. No
 -- depreciation entry is posted here — impairment is a separate loss, not a
--- depreciation expense (see RecordImpairment / regenerateBasis's commercial
--- resumption override, which picks this lower book_value up prospectively).
+-- depreciation expense. book_value is the DERIVED carrying amount (compute
+-- rewrites it every run); impaired_book_value is the STABLE resume floor that
+-- the compute's commercial resumption override picks up prospectively (see
+-- RecordImpairment / regenerateBasis). Both are set to the recoverable amount
+-- here; a later, deeper impairment lowers the floor further (correct).
 UPDATE asset.assets
-SET impairment_loss = sqlc.arg(impairment_loss), book_value = sqlc.arg(book_value)
+SET impairment_loss = sqlc.arg(impairment_loss),
+    book_value = sqlc.arg(book_value),
+    impaired_book_value = sqlc.arg(impaired_book_value)
 WHERE id = sqlc.arg(id) AND deleted_at IS NULL
 RETURNING *;
 

@@ -1107,6 +1107,7 @@ type AssetAsset struct {
 	CreatedAt                pgtype.Timestamptz        `json:"created_at"`
 	UpdatedAt                pgtype.Timestamptz        `json:"updated_at"`
 	DeletedAt                pgtype.Timestamptz        `json:"deleted_at"`
+	ImpairedBookValue        *string                   `json:"impaired_book_value"`
 }
 
 type AssetAssetAttachment struct {
