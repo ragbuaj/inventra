@@ -158,8 +158,10 @@ services:
   caddy:
     build:
       context: ..
+    # Host port 18080 (bukan 8080) agar tak bentrok dengan backend app yang
+    # mungkin sedang jalan di 8080. Port internal container tetap 8080.
     ports:
-      - "8080:8080"
+      - "18080:8080"
     volumes:
       - ./Caddyfile.test:/etc/caddy/Caddyfile:ro
     depends_on:
@@ -220,7 +222,7 @@ Run:
 ```bash
 docker compose -f ops/caddy/test/docker-compose.test.yml up -d --build
 sleep 5
-ops/waf-smoketest.sh http://localhost:8080
+ops/waf-smoketest.sh http://localhost:18080
 ```
 Expected: `SMOKE TEST LULUS` — tiga serangan `403`, dua request sah `200`.
 
@@ -377,7 +379,7 @@ Run (harness Task 2 sudah `SecRuleEngine On`, jadi ini regresi):
 ```bash
 docker compose -f ops/caddy/test/docker-compose.test.yml up -d --build
 sleep 5
-ops/waf-smoketest.sh http://localhost:8080
+ops/waf-smoketest.sh http://localhost:18080
 docker compose -f ops/caddy/test/docker-compose.test.yml down
 ```
 Expected: `SMOKE TEST LULUS`.
