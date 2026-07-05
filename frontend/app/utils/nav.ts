@@ -50,6 +50,12 @@ export const superadminNav: NavGroup[] = [
         permission: 'disposal.view'
       },
       {
+        labelKey: 'nav.depreciation',
+        icon: 'i-lucide-trending-down',
+        to: '/depreciation',
+        permission: 'depreciation.view'
+      },
+      {
         labelKey: 'nav.maintenance',
         icon: 'i-lucide-wrench',
         to: '/maintenance'

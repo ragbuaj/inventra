@@ -519,6 +519,98 @@
       "success": "The disposal report for \"{name}\" was saved."
     }
   },
+  "depreciation": {
+    "title": "Depreciation",
+    "subtitle": "Run & close depreciation for each period on commercial and fiscal bases.",
+    "total": "TOTAL",
+    "noManageNote": "You do not have permission to manage depreciation.",
+    "basis": {
+      "commercial": "Commercial",
+      "fiscal": "Fiscal",
+      "refCommercial": "IAS 16",
+      "refFiscal": "PMK 72/2023"
+    },
+    "kpi": {
+      "acquisition": "Total Acquisition",
+      "accumulated": "Accumulated Deprec.",
+      "bookValue": "Book Value",
+      "periodExpense": "Current Period Expense",
+      "periodExpenseSub": "current period"
+    },
+    "period": {
+      "runTitle": "Run Period",
+      "prefix": "Period",
+      "status": {
+        "open": "Open",
+        "computed": "Computed",
+        "closed": "Closed"
+      },
+      "compute": "Compute Period",
+      "close": "Close Period",
+      "closed": "Period Closed",
+      "previewAssets": "Assets depreciated:",
+      "previewExpense": "Total expense:",
+      "computedNote": "Computed — review then close the period.",
+      "reminderTitle": "Current period not yet computed",
+      "reminderBody": "Run the depreciation computation for this period before continuing to the journal or reports."
+    },
+    "section": {
+      "schedule": "Per-Asset Schedule",
+      "journal": "Journal-Ready Recap"
+    },
+    "schedule": {
+      "searchPlaceholder": "Search asset…",
+      "filterCategoryAll": "All Categories",
+      "filterOfficeAll": "All Offices",
+      "noMatch": "No matching asset.",
+      "column": {
+        "asset": "Asset",
+        "method": "Method",
+        "life": "Life (mo)",
+        "opening": "Opening",
+        "expense": "Period Expense",
+        "accumulated": "Accumulated",
+        "closing": "Closing",
+        "actions": "Actions"
+      },
+      "methodStraightLine": "Straight Line",
+      "methodDecliningBalance": "Declining Balance",
+      "impairAction": "Record Impairment",
+      "impairedTooltip": "Asset has been impaired",
+      "impairDisabledFiscalTooltip": "Fiscal does not recognize impairment — IAS 36 impairment applies to the commercial basis only"
+    },
+    "journal": {
+      "subtitle": "Depreciation journal summary for the current period per GL account.",
+      "title": "Depreciation Journal",
+      "column": {
+        "account": "Account",
+        "name": "Account Name",
+        "debit": "Debit",
+        "credit": "Credit"
+      },
+      "expenseAccountName": "Depreciation Expense",
+      "accumulatedAccountName": "Accumulated Depreciation",
+      "balanced": "Journal balanced — debit = credit.",
+      "exportPdf": "Export PDF",
+      "exportExcel": "Export Excel"
+    },
+    "impairment": {
+      "title": "Record Impairment",
+      "ref": "Impairment — IAS 36",
+      "currentBookValue": "Current book value",
+      "recoverableAmount": "Recoverable Amount",
+      "loss": "Impairment Loss",
+      "reason": "Reason",
+      "reasonPlaceholder": "e.g. Permanent damage from flooding; market value dropped significantly…",
+      "save": "Save & Adjust",
+      "cancel": "Cancel"
+    },
+    "assetDetail": {
+      "title": "Depreciation History",
+      "masked": "Depreciation values are masked for your role.",
+      "empty": "Never computed"
+    }
+  },
   "maintenance": {
     "title": "Maintenance",
     "subtitle": "Manage schedules, maintenance notes, and damage reports.",
@@ -1105,6 +1197,7 @@
     "assignment": "Assignments",
     "transfers": "Transfers",
     "disposals": "Disposal",
+    "depreciation": "Depreciation",
     "maintenance": "Maintenance",
     "approval": "Requests & Approval",
     "approvalStaff": "Requests",
