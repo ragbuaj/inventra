@@ -66,6 +66,22 @@ function scheduleResponse(rows: ScheduleRow[] = SCHEDULE_ROWS): ScheduleResponse
   }
 }
 
+// A *filtered* schedule response: fewer rows AND a smaller KPI block. The page
+// must never surface this KPI block on the tiles (those come from the unfiltered
+// call) — so if the tiles ever read from a filtered call, this distinct value
+// would leak and the KPI-invariance test would fail.
+function filteredScheduleResponse(): ScheduleResponse {
+  return {
+    kpi: { total_cost: '67437500', total_accumulated: '10562500', total_book_value: '67437500', period_expense: '1687000' },
+    rows: [SCHEDULE_ROWS[1]!],
+    totals: { opening: '67437500', amount: '1687000', accumulated: '10562500', closing: '67437500' }
+  }
+}
+
+function isFilteredScheduleCall(q: { search?: string, category_id?: string, office_id?: string }): boolean {
+  return Boolean(q.search || q.category_id || q.office_id)
+}
+
 function journalResponse(balanced = true): JournalResponse {
   return {
     rows: [
@@ -155,7 +171,8 @@ beforeEach(() => {
   periodsMock.mockResolvedValue([...PERIODS])
   categoriesTreeMock.mockResolvedValue(CATEGORIES)
   officesListMock.mockResolvedValue(page(OFFICES))
-  scheduleMock.mockResolvedValue(scheduleResponse())
+  scheduleMock.mockImplementation(async (q: { search?: string, category_id?: string, office_id?: string }) =>
+    isFilteredScheduleCall(q) ? filteredScheduleResponse() : scheduleResponse())
   journalMock.mockResolvedValue(journalResponse())
   computeMock.mockImplementation(async (p: string) => ({ period: p, status: 'computed', asset_count: 6, total_amount: '1198917', skipped_count: 0 }))
   closeMock.mockImplementation(async (p: string) => ({ period: p, status: 'closed' }))
@@ -178,6 +195,28 @@ describe('pages/depreciation — mount + KPI', () => {
     expect(w.find('[data-testid="depr-kpi-accumulated"]').text()).toContain('37.260.417')
     expect(w.find('[data-testid="depr-kpi-book-value"]').text()).toContain('83.239.583')
     expect(w.find('[data-testid="depr-kpi-period-expense"]').text()).toContain('1.198.917')
+  })
+
+  it('fetches KPIs from an UNFILTERED schedule() call (period + basis only)', async () => {
+    await mountAndWait()
+    // The KPI fetch carries no search/category/office keys.
+    expect(scheduleMock).toHaveBeenCalledWith({ period: '2026-07', basis: 'commercial' })
+  })
+
+  it('keeps the KPI tiles unchanged when a table filter is applied (only the rows shrink)', async () => {
+    const w = await mountAndWait()
+    expect(w.findAll('[data-testid="depr-schedule-row"]').length).toBe(3)
+    const kpiBefore = w.find('[data-testid="depr-kpi-acquisition"]').text()
+    expect(kpiBefore).toContain('120.500.000')
+
+    // Apply a category filter — the table now uses the filtered call (1 row,
+    // a different KPI block), but the tiles must stay on the unfiltered totals.
+    await setVmRef(w, 'categoryId', 'c1')
+    expect(w.findAll('[data-testid="depr-schedule-row"]').length).toBe(1)
+    const kpiAfter = w.find('[data-testid="depr-kpi-acquisition"]').text()
+    expect(kpiAfter).toContain('120.500.000')
+    expect(kpiAfter).not.toContain('67.437.500') // the filtered call's total_cost
+    expect(kpiAfter).toBe(kpiBefore)
   })
 })
 
@@ -232,12 +271,17 @@ describe('pages/depreciation — compute/close', () => {
     expect(w.find('[data-testid="depr-close"]').exists()).toBe(true)
   })
 
-  it('calling Tutup Periode invokes close() and shows the closed state', async () => {
+  it('calling Tutup Periode invokes close(), refreshes schedule + journal, and shows the closed state', async () => {
     const w = await mountAndWait()
     await setVmRef(w, 'period', '2026-06')
+    scheduleMock.mockClear()
+    journalMock.mockClear()
     await w.find('[data-testid="depr-close"]').trigger('click')
     await flushPromises()
     expect(closeMock).toHaveBeenCalledWith('2026-06')
+    // Close refreshes symmetrically with compute.
+    expect(scheduleMock).toHaveBeenCalled()
+    expect(journalMock).toHaveBeenCalled()
     expect(w.text()).toContain('Periode Ditutup')
   })
 })
@@ -270,6 +314,22 @@ describe('pages/depreciation — manage gate', () => {
     const w = await mountAndWait()
     expect(w.find('[data-testid="depr-compute"]').attributes('disabled')).toBeUndefined()
     expect(w.find('[data-testid="depr-no-manage"]').exists()).toBe(false)
+  })
+
+  it('disables the Tutup Periode button on a computed period without depreciation.manage', async () => {
+    grantSession(['depreciation.view'])
+    const w = await mountAndWait()
+    await setVmRef(w, 'period', '2026-06')
+    expect(w.find('[data-testid="depr-close"]').exists()).toBe(true)
+    expect(w.find('[data-testid="depr-close"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('disables the impairment row action without depreciation.manage (commercial basis)', async () => {
+    grantSession(['depreciation.view'])
+    const w = await mountAndWait()
+    const btn = w.findAll('[data-testid="depr-impair"]')[0]!
+    expect(btn.attributes('disabled')).toBeDefined()
+    expect(btn.attributes('title')).toBe('Anda tidak punya izin untuk mengelola depresiasi.')
   })
 })
 
@@ -360,6 +420,35 @@ describe('pages/depreciation — Rekap Siap-Jurnal', () => {
     await w.find('[data-testid="depr-tab-journal"]').trigger('click')
     await flushPromises()
     expect(w.text()).not.toContain('Jurnal seimbang — debit = kredit.')
+  })
+
+  it('ignores a stale journal response from a superseded basis (seq guard)', async () => {
+    const deferred: Record<string, (v: JournalResponse) => void> = {}
+    journalMock.mockImplementation((_period: string, b: string) =>
+      new Promise<JournalResponse>((resolve) => { deferred[b] = resolve }))
+
+    const w = await mountAndWait() // issues the commercial journal (pending)
+    await w.find('[data-testid="depr-tab-journal"]').trigger('click')
+    await w.find('[data-testid="depr-basis-fiscal"]').trigger('click') // issues the fiscal journal (pending)
+    await flushPromises()
+
+    const fiscalResp: JournalResponse = {
+      rows: [{ account_code: 'F', account_name: 'FISCAL JOURNAL ROW', debit: '1', credit: '0' }],
+      total_debit: '1', total_credit: '1', balanced: true
+    }
+    const commercialResp: JournalResponse = {
+      rows: [{ account_code: 'C', account_name: 'COMMERCIAL JOURNAL ROW', debit: '1', credit: '0' }],
+      total_debit: '1', total_credit: '1', balanced: true
+    }
+
+    // Resolve the latest (fiscal) request first, then the stale (commercial) one.
+    deferred.fiscal!(fiscalResp)
+    await flushPromises()
+    deferred.commercial!(commercialResp)
+    await flushPromises()
+
+    expect(w.text()).toContain('FISCAL JOURNAL ROW')
+    expect(w.text()).not.toContain('COMMERCIAL JOURNAL ROW')
   })
 
   it('exports the journal as a blob download via a temporary anchor', async () => {

@@ -100,7 +100,7 @@ async function computePeriod() {
   try {
     const updated = await depApi.compute(period.value)
     upsertPeriod(updated)
-    await Promise.all([loadSchedule(), loadJournal()])
+    await Promise.all([loadSchedule(), loadJournal(), loadKpis()])
   } catch {
     // useApiClient surfaces the error toast
   } finally {
@@ -114,6 +114,7 @@ async function closePeriod() {
   try {
     const updated = await depApi.close(period.value)
     upsertPeriod(updated)
+    await Promise.all([loadSchedule(), loadJournal(), loadKpis()])
   } catch {
     // useApiClient surfaces the error toast
   } finally {
@@ -159,7 +160,6 @@ const officeId = ref('all')
 let searchTimer: ReturnType<typeof setTimeout> | undefined
 
 const scheduleRows = computed(() => scheduleResp.value?.rows ?? [])
-const assetCount = computed(() => scheduleRows.value.length)
 
 watch(search, (v) => {
   if (searchTimer) clearTimeout(searchTimer)
@@ -197,15 +197,41 @@ async function loadSchedule() {
 }
 
 // ---------------------------------------------------------------------------
-// KPI tiles — sourced from the schedule response (same filtered scope).
+// KPI tiles — driven by an UNFILTERED schedule() call (period + basis only).
+// The mockup computes KPIs across the full asset set unconditionally, so the
+// table filters (search/category/office) must never shrink the tiles.
 // ---------------------------------------------------------------------------
+const kpiResp = ref<ScheduleResponse | null>(null)
+const kpiLoading = ref(true)
+
+let kpiSeq = 0
+async function loadKpis() {
+  if (!period.value) {
+    kpiLoading.value = false
+    return
+  }
+  const mine = ++kpiSeq
+  kpiLoading.value = true
+  try {
+    const res = await depApi.schedule({ period: period.value, basis: basis.value })
+    if (mine !== kpiSeq) return
+    kpiResp.value = res
+  } catch {
+    if (mine !== kpiSeq) return
+    kpiResp.value = null
+  } finally {
+    if (mine === kpiSeq) kpiLoading.value = false
+  }
+}
+
 const kpiItems = computed(() => {
-  const kpi = scheduleResp.value?.kpi ?? null
+  const kpi = kpiResp.value?.kpi ?? null
+  const kpiAssetCount = kpiResp.value?.rows.length ?? 0
   return [
     {
       key: 'acquisition', testid: 'depr-kpi-acquisition', icon: 'i-lucide-wallet', tone: 'info',
       label: t('depreciation.kpi.acquisition'), value: formatRupiah(kpi?.total_cost),
-      sub: t('depreciation.kpi.acquisitionSub', { n: assetCount.value }), valueClass: ''
+      sub: t('depreciation.kpi.acquisitionSub', { n: kpiAssetCount }), valueClass: ''
     },
     {
       key: 'accumulated', testid: 'depr-kpi-accumulated', icon: 'i-lucide-trending-down', tone: 'neutral',
@@ -254,20 +280,25 @@ const journalError = ref(false)
 const exportingPdf = ref(false)
 const exportingXlsx = ref(false)
 
+let journalSeq = 0
 async function loadJournal() {
   if (!period.value) {
     journalLoading.value = false
     return
   }
+  const mine = ++journalSeq
   journalLoading.value = true
   journalError.value = false
   try {
-    journalResp.value = await depApi.journal(period.value, basis.value)
+    const res = await depApi.journal(period.value, basis.value)
+    if (mine !== journalSeq) return
+    journalResp.value = res
   } catch {
+    if (mine !== journalSeq) return
     journalError.value = true
     journalResp.value = null
   } finally {
-    journalLoading.value = false
+    if (mine === journalSeq) journalLoading.value = false
   }
 }
 
@@ -295,7 +326,10 @@ async function doExport(format: 'pdf' | 'xlsx') {
 watch([period, basis], () => {
   loadSchedule()
   loadJournal()
+  loadKpis()
 })
+// KPIs are intentionally NOT refetched here — the table filters must never
+// shrink the tiles (they stay period+basis scoped).
 watch([debouncedSearch, categoryId, officeId], () => loadSchedule())
 
 // ---------------------------------------------------------------------------
@@ -446,7 +480,7 @@ onBeforeUnmount(() => {
           <span class="text-xs font-medium text-muted">{{ k.label }}</span>
         </div>
         <USkeleton
-          v-if="scheduleLoading"
+          v-if="kpiLoading"
           class="h-6 w-24 rounded mt-2"
         />
         <div
