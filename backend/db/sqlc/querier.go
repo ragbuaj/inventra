@@ -8,10 +8,14 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
 	AdvanceRequestStep(ctx context.Context, id uuid.UUID) (ApprovalRequest, error)
+	// Depreciation engine queries. See docs/DATABASE.md §4.4 and spec 2026-07-05.
+	// Transaction-scoped exclusive lock; released automatically at COMMIT/ROLLBACK.
+	AdvisoryLockDepreciation(ctx context.Context) error
 	BumpAssetTagCounter(ctx context.Context, arg BumpAssetTagCounterParams) (int32, error)
 	CancelRequest(ctx context.Context, arg CancelRequestParams) (ApprovalRequest, error)
 	CountAssets(ctx context.Context, arg CountAssetsParams) (int64, error)
@@ -21,6 +25,7 @@ type Querier interface {
 	CountEmployees(ctx context.Context, arg CountEmployeesParams) (int64, error)
 	CountFloorsByOffice(ctx context.Context, arg CountFloorsByOfficeParams) (int64, error)
 	CountOffices(ctx context.Context, arg CountOfficesParams) (int64, error)
+	CountOpenEarlierPeriods(ctx context.Context, period pgtype.Date) (int64, error)
 	CountPendingDisposalRequestsForAsset(ctx context.Context, assetID *uuid.UUID) (int64, error)
 	// Guard: an asset may have at most one pending asset_transfer approval request.
 	CountPendingTransferRequestsForAsset(ctx context.Context, assetID *uuid.UUID) (int64, error)
@@ -46,6 +51,10 @@ type Querier interface {
 	CreateTransfer(ctx context.Context, arg CreateTransferParams) (TransferAssetTransfer, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (IdentityUser, error)
 	DecideRequestApproval(ctx context.Context, arg DecideRequestApprovalParams) (ApprovalRequestApproval, error)
+	// Regeneration window: everything past the closed watermark up to the target period.
+	DeleteEntriesAfterWatermark(ctx context.Context, arg DeleteEntriesAfterWatermarkParams) error
+	// First-ever run (no watermark): clear everything ≤ target.
+	DeleteEntriesThrough(ctx context.Context, target pgtype.Date) error
 	GetAppSetting(ctx context.Context, key string) (string, error)
 	GetAsset(ctx context.Context, id uuid.UUID) (AssetAsset, error)
 	GetAssetByTag(ctx context.Context, assetTag string) (AssetAsset, error)
@@ -55,6 +64,7 @@ type Querier interface {
 	GetAttachment(ctx context.Context, id uuid.UUID) (AssetAssetAttachment, error)
 	GetCategory(ctx context.Context, id uuid.UUID) (MasterdataCategory, error)
 	GetCategoryCode(ctx context.Context, id uuid.UUID) (*string, error)
+	GetDepreciationPeriod(ctx context.Context, period pgtype.Date) (DepreciationDepreciationPeriod, error)
 	// Guard (office-unscoped): at most one live disposal per asset.
 	GetDisposalByAsset(ctx context.Context, assetID uuid.UUID) (DisposalDisposal, error)
 	// Scoped: caller must have the asset's office in scope (disposals have no office_id).
@@ -97,13 +107,19 @@ type Querier interface {
 	// only to all-scope callers.
 	InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) (AuditAuditLog, error)
 	InsertDataScopePolicy(ctx context.Context, arg InsertDataScopePolicyParams) (IdentityDataScopePolicy, error)
+	InsertDepreciationEntry(ctx context.Context, arg InsertDepreciationEntryParams) error
 	InsertFieldPermission(ctx context.Context, arg InsertFieldPermissionParams) (IdentityFieldPermission, error)
 	InsertRolePermission(ctx context.Context, arg InsertRolePermissionParams) (IdentityRolePermission, error)
+	LastClosedPeriod(ctx context.Context) (pgtype.Date, error)
+	LastEntryAtOrBefore(ctx context.Context, arg LastEntryAtOrBeforeParams) (DepreciationDepreciationEntry, error)
 	LinkGoogleID(ctx context.Context, arg LinkGoogleIDParams) error
 	ListAssetDocuments(ctx context.Context, assetID uuid.UUID) ([]AssetAssetDocument, error)
+	ListAssetEntries(ctx context.Context, assetID uuid.UUID) ([]DepreciationDepreciationEntry, error)
 	// Asset core queries (asset.assets + asset.asset_tag_counters).
 	// Respects soft delete and caller data scope (all_scope / office_ids).
 	ListAssets(ctx context.Context, arg ListAssetsParams) ([]AssetAsset, error)
+	// Every capitalized, non-deleted asset with its category (engine resolves/skips per-asset).
+	ListAssetsForDepreciation(ctx context.Context) ([]ListAssetsForDepreciationRow, error)
 	ListAttachments(ctx context.Context, assetID uuid.UUID) ([]AssetAssetAttachment, error)
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]ListAuditLogsRow, error)
 	// Asset category master data (masterdata.categories). Respects soft delete.
@@ -111,10 +127,13 @@ type Querier interface {
 	// The full non-deleted category set (no pagination) for client-side tree building.
 	ListCategoryTree(ctx context.Context) ([]MasterdataCategory, error)
 	ListDataScopePolicies(ctx context.Context, roleID uuid.UUID) ([]IdentityDataScopePolicy, error)
+	ListDepreciationPeriods(ctx context.Context) ([]DepreciationDepreciationPeriod, error)
 	ListDisposalsByAssetEnriched(ctx context.Context, arg ListDisposalsByAssetEnrichedParams) ([]ListDisposalsByAssetEnrichedRow, error)
 	ListDisposalsEnriched(ctx context.Context, arg ListDisposalsEnrichedParams) ([]ListDisposalsEnrichedRow, error)
 	// Employees (asset custodians) with data-scoping by office.
 	ListEmployees(ctx context.Context, arg ListEmployeesParams) ([]MasterdataEmployee, error)
+	// Schedule/journal source: entries of one period+basis joined to asset+category+office.
+	ListEntriesForPeriod(ctx context.Context, arg ListEntriesForPeriodParams) ([]ListEntriesForPeriodRow, error)
 	ListFieldPermissionsByRole(ctx context.Context, roleID uuid.UUID) ([]ListFieldPermissionsByRoleRow, error)
 	// Floors (within an office). Listed per office; single-row ops carry the
 	// office scope (all_scope OR office_id = ANY(office_ids)).
@@ -151,6 +170,7 @@ type Querier interface {
 	SetAssetStatus(ctx context.Context, arg SetAssetStatusParams) (AssetAsset, error)
 	SetAssetValuationExclusion(ctx context.Context, arg SetAssetValuationExclusionParams) (AssetAsset, error)
 	SetDisposalBastNo(ctx context.Context, arg SetDisposalBastNoParams) (DisposalDisposal, error)
+	SetPeriodClosed(ctx context.Context, arg SetPeriodClosedParams) (DepreciationDepreciationPeriod, error)
 	SetRequestDecision(ctx context.Context, arg SetRequestDecisionParams) (ApprovalRequest, error)
 	SetTransferReceived(ctx context.Context, arg SetTransferReceivedParams) (TransferAssetTransfer, error)
 	// Receiving side declines the shipment: terminal 'returned', asset never moved.
@@ -169,7 +189,9 @@ type Querier interface {
 	SoftDeleteRoom(ctx context.Context, arg SoftDeleteRoomParams) (int64, error)
 	SoftDeleteThreshold(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteUser(ctx context.Context, id uuid.UUID) (int64, error)
+	SumAssetAmounts(ctx context.Context, arg SumAssetAmountsParams) (string, error)
 	UpdateAsset(ctx context.Context, arg UpdateAssetParams) (AssetAsset, error)
+	UpdateAssetDepreciationSummary(ctx context.Context, arg UpdateAssetDepreciationSummaryParams) error
 	UpdateAssetDocument(ctx context.Context, arg UpdateAssetDocumentParams) (AssetAssetDocument, error)
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (MasterdataCategory, error)
 	UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) (MasterdataEmployee, error)
@@ -179,6 +201,7 @@ type Querier interface {
 	UpdateRoom(ctx context.Context, arg UpdateRoomParams) (MasterdataRoom, error)
 	UpdateThreshold(ctx context.Context, arg UpdateThresholdParams) (ApprovalApprovalThreshold, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (IdentityUser, error)
+	UpsertPeriodComputed(ctx context.Context, arg UpsertPeriodComputedParams) (DepreciationDepreciationPeriod, error)
 }
 
 var _ Querier = (*Queries)(nil)
