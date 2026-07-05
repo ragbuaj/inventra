@@ -92,9 +92,10 @@ File: `engine.go` (kalkulasi murni, tanpa DB — unit-testable), `service.go`, `
 - **Konstanta PMK 72/2023** (Lampiran A.1): kelompok_1 48 bln (GL 25%/SM 50%), kelompok_2 96
   (12,5%/25%), kelompok_3 192 (6,25%/12,5%), kelompok_4 240 (5%/10%), bangunan_permanen 240
   (GL 5% saja), bangunan_non_permanen 120 (GL 10% saja), non_susut → tanpa entri fiskal.
-  Fiskal **tanpa residu**; bangunan wajib garis lurus (method fiskal SM pada bangunan → dilewati +
-  dilaporkan skipped, jangan salah hitung); metode fiskal mengikuti metode komersial aset bila
-  valid untuk kelompoknya, else garis lurus.
+  Fiskal **tanpa residu**; bangunan wajib garis lurus (method saldo menurun pada bangunan →
+  **fallback ke garis lurus**, bukan skip — sesuai implementasi engine); metode fiskal mengikuti
+  metode komersial aset bila valid untuk kelompoknya, else garis lurus. Bila `salvage_value` aset
+  DAN `default_salvage_rate` kategori sama-sama kosong, residu komersial default 0.
 - **Konvensi mulai**: bulan `purchase_date` (full-month).
 - **Algoritme iteratif per (aset, basis)**: mulai dari bulan setelah entri terakhir (atau bulan
   perolehan), jalan bulan-demi-bulan hingga periode target:

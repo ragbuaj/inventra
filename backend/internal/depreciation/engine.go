@@ -18,6 +18,9 @@ import (
 // either the commercial (PSAK 16) or fiscal (PMK 72/2023) view of the same
 // asset. Money fields are plain decimal strings (no thousands separators),
 // matching the Postgres numeric/string convention used across the backend.
+// Cost and Salvage MUST carry at most 2 decimal places (the resolvers guarantee
+// this via numeric(18,2)) — the exactness invariant SUM(amounts)+salvage == cost
+// holds only for 2dp-clean inputs, so never hand-build Params with finer values.
 type Params struct {
 	Method     sqlc.SharedDepreciationMethod
 	LifeMonths int32
