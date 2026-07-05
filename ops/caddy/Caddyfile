@@ -1,19 +1,27 @@
-# Reverse proxy + HTTPS otomatis (Let's Encrypt) untuk Inventra.
-# Satu domain: frontend di root, backend di /api/* dan /health.
 {
 	email {$ACME_EMAIL}
+	order coraza_waf first
 }
 
 {$DOMAIN} {
 	encode gzip zstd
 
-	# API + healthcheck → backend Go
+	coraza_waf {
+		load_owasp_crs
+		directives `
+			Include @coraza.conf-recommended
+			Include @crs-setup.conf.example
+			Include @owasp_crs/*.conf
+			Include /etc/caddy/coraza-exclusions.conf
+			SecRuleEngine DetectionOnly
+		`
+	}
+
 	@api path /api/* /health
 	handle @api {
 		reverse_proxy backend:8080
 	}
 
-	# Sisanya → frontend Nuxt
 	handle {
 		reverse_proxy frontend:3000
 	}

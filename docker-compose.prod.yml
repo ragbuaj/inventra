@@ -134,6 +134,7 @@ services:
       ACME_EMAIL: ${ACME_EMAIL}
     volumes:
       - ./ops/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./ops/caddy/coraza-exclusions.conf:/etc/caddy/coraza-exclusions.conf:ro
       - caddy-data:/data
       - caddy-config:/config
 
