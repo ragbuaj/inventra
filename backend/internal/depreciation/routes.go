@@ -14,6 +14,7 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW, requireManage, requ
 	g.POST("/periods/:period/close", authMW, requireManage, h.close)
 	g.GET("/schedule", authMW, requireView, h.schedule)
 	g.GET("/journal", authMW, requireView, h.journal)
+	g.GET("/journal/export", authMW, requireView, h.journalExport)
 
 	a := rg.Group("/assets")
 	a.GET("/:id/depreciation", authMW, requireAssetView, h.assetSchedule)

@@ -715,6 +715,30 @@ func (hh *httpHarness) doReq(method, path string, userID, roleID uuid.UUID) (int
 	return w.Code, body
 }
 
+// doReqRaw is doReq's sibling for binary endpoints (the journal export's
+// xlsx/pdf downloads) — same stub-auth/fresh-engine wiring, but returns the
+// raw status, headers, and body bytes instead of JSON-decoding the body
+// (which would fail on non-JSON payloads).
+func (hh *httpHarness) doReqRaw(method, path string, userID, roleID uuid.UUID) (int, http.Header, []byte) {
+	gin.SetMode(gin.TestMode)
+	stubAuth := func(c *gin.Context) {
+		c.Set(middleware.CtxUserID, userID.String())
+		c.Set(middleware.CtxRoleID, roleID.String())
+		c.Next()
+	}
+	r := gin.New()
+	v1 := r.Group("/api/v1")
+	depreciation.RegisterRoutes(v1, hh.handler, stubAuth,
+		middleware.RequirePermission(hh.permSvc, "depreciation.manage"),
+		middleware.RequirePermission(hh.permSvc, "depreciation.view"),
+		middleware.RequirePermission(hh.permSvc, "asset.view"),
+	)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(method, path, nil)
+	r.ServeHTTP(w, req)
+	return w.Code, w.Header().Clone(), w.Body.Bytes()
+}
+
 // doReqBody is doReq's sibling for requests that carry a JSON body (the
 // impairment endpoint's POST /assets/:id/impairment) — same stub-auth/fresh-
 // engine wiring, plus a Content-Type header and a non-nil request body.
@@ -1344,4 +1368,72 @@ func TestDepreciation_Impairment_BlocksOnComputeLock(t *testing.T) {
 	require.NotNil(t, final.ImpairmentLoss)
 	assert.Equal(t, "8000000.00", *final.BookValue)
 	assert.Equal(t, "520000.00", *final.ImpairmentLoss, "8,520,000 − 8,000,000")
+}
+
+// ─── HTTP-wiring tests (Task 6 — journal export xlsx/PDF) ─────────────────
+
+// TestDepreciation_HTTP_JournalExport drives GET /depreciation/journal/export
+// end-to-end for both supported formats: the xlsx body must be a well-formed
+// zip container (PK magic bytes) of non-trivial size with the documented
+// content-type + Content-Disposition; the pdf body must start with the PDF
+// magic bytes. An unrecognized format is rejected with 400 (same as an
+// invalid period), and the view permission gate matches the plain journal
+// endpoint (Staf lacks depreciation.view → 403).
+func TestDepreciation_HTTP_JournalExport(t *testing.T) {
+	hh := newHTTPHarness(t)
+	seedAssetMonthsAgo(t, hh.pool, "DPR-2026-00031", "Aset Ekspor Jurnal", hh.catID, hh.office, "12000000.00", 2)
+
+	target := firstOfMonthUTC(time.Now())
+	period := target.Format("2006-01")
+
+	code, _ := hh.doReq(http.MethodPost, "/api/v1/depreciation/periods/"+period+"/compute", hh.actorID, hh.roleID)
+	require.Equal(t, http.StatusOK, code)
+
+	t.Run("xlsx format", func(t *testing.T) {
+		code, headers, body := hh.doReqRaw(http.MethodGet,
+			"/api/v1/depreciation/journal/export?period="+period+"&basis=commercial&format=xlsx", hh.actorID, hh.roleID)
+		require.Equal(t, http.StatusOK, code)
+		require.Greater(t, len(body), 100, "xlsx body must be non-trivial")
+		assert.Equal(t, []byte("PK\x03\x04"), body[:4], "xlsx is a zip container (PK magic bytes)")
+		assert.Equal(t, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers.Get("Content-Type"))
+		wantDisposition := fmt.Sprintf(`attachment; filename="jurnal-penyusutan-%s-commercial.xlsx"`, period)
+		assert.Equal(t, wantDisposition, headers.Get("Content-Disposition"))
+	})
+
+	t.Run("pdf format", func(t *testing.T) {
+		code, headers, body := hh.doReqRaw(http.MethodGet,
+			"/api/v1/depreciation/journal/export?period="+period+"&basis=commercial&format=pdf", hh.actorID, hh.roleID)
+		require.Equal(t, http.StatusOK, code)
+		require.Greater(t, len(body), 100, "pdf body must be non-trivial")
+		assert.Equal(t, []byte("%PDF"), body[:4], "pdf magic bytes")
+		assert.Equal(t, "application/pdf", headers.Get("Content-Type"))
+		wantDisposition := fmt.Sprintf(`attachment; filename="jurnal-penyusutan-%s-commercial.pdf"`, period)
+		assert.Equal(t, wantDisposition, headers.Get("Content-Disposition"))
+	})
+
+	t.Run("unknown format -> 400", func(t *testing.T) {
+		code, _, _ := hh.doReqRaw(http.MethodGet,
+			"/api/v1/depreciation/journal/export?period="+period+"&basis=commercial&format=bogus", hh.actorID, hh.roleID)
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+
+	t.Run("invalid period -> 400", func(t *testing.T) {
+		code, _, _ := hh.doReqRaw(http.MethodGet,
+			"/api/v1/depreciation/journal/export?period=not-a-period&basis=commercial&format=xlsx", hh.actorID, hh.roleID)
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+
+	t.Run("invalid basis -> 400", func(t *testing.T) {
+		code, _, _ := hh.doReqRaw(http.MethodGet,
+			"/api/v1/depreciation/journal/export?period="+period+"&basis=bogus&format=xlsx", hh.actorID, hh.roleID)
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+
+	t.Run("permission gate: Staf lacks depreciation.view -> 403", func(t *testing.T) {
+		stafRoleID := lookupRole(t, hh.pool, "Staf")
+		stafUser := seedUser(t, hh.pool, stafRoleID, hh.office, "staf.journalexport."+uuid.New().String()[:8]+"@test.local")
+		code, _, _ := hh.doReqRaw(http.MethodGet,
+			"/api/v1/depreciation/journal/export?period="+period+"&basis=commercial&format=xlsx", stafUser, stafRoleID)
+		assert.Equal(t, http.StatusForbidden, code)
+	})
 }

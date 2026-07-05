@@ -1,6 +1,7 @@
 package depreciation
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -206,6 +207,57 @@ func (h *Handler) journal(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, journalToMap(result))
+}
+
+// journalExport handles GET /depreciation/journal/export?period=&basis=&format=xlsx|pdf.
+// Gated by the same view permission + "depreciation" data scope as the plain
+// journal endpoint (h.journal above) — it renders the identical JournalResult,
+// just as a downloadable file instead of JSON.
+func (h *Handler) journalExport(c *gin.Context) {
+	period, ok := parsePeriodQuery(c)
+	if !ok {
+		return
+	}
+	basis, err := parseBasis(c.Query("basis"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	format, err := parseExportFormat(c.Query("format"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	all, ids, err := h.scoped.CallerOfficeScope(c, scopeModule)
+	if err != nil {
+		common.WriteError(c, err)
+		return
+	}
+	result, err := h.svc.Journal(c.Request.Context(), period, basis, all, ids)
+	if err != nil {
+		h.svcError(c, err)
+		return
+	}
+
+	filename := journalExportFilename(period, basis)
+	switch format {
+	case "xlsx":
+		body, err := BuildJournalXLSX(result)
+		if err != nil {
+			h.svcError(c, err)
+			return
+		}
+		c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.xlsx"`, filename))
+		c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", body)
+	case "pdf":
+		body, err := h.svc.BuildJournalPDF(c.Request.Context(), period, basis, result)
+		if err != nil {
+			h.svcError(c, err)
+			return
+		}
+		c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.pdf"`, filename))
+		c.Data(http.StatusOK, "application/pdf", body)
+	}
 }
 
 // assetSchedule handles GET /assets/:id/depreciation.
