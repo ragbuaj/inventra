@@ -497,6 +497,7 @@ ON CONFLICT (period) WHERE deleted_at IS NULL
 DO UPDATE SET status = 'computed', computed_at = now(), computed_by = EXCLUDED.computed_by,
               asset_count = EXCLUDED.asset_count, total_amount = EXCLUDED.total_amount,
               skipped_count = EXCLUDED.skipped_count
+WHERE depreciation.depreciation_periods.status <> 'closed'
 RETURNING id, period, status, computed_at, computed_by, closed_at, closed_by, asset_count, total_amount, skipped_count, created_at, updated_at, deleted_at
 `
 
@@ -508,6 +509,10 @@ type UpsertPeriodComputedParams struct {
 	SkippedCount int32       `json:"skipped_count"`
 }
 
+// The DO UPDATE's WHERE guard makes a closed period unmatchable (0 rows →
+// pgx.ErrNoRows): even if a ComputePeriod raced past its status pre-check, it
+// can never flip a closed period back to 'computed'. The service maps that
+// ErrNoRows to ErrPeriodClosed and rolls back the regenerated entries.
 func (q *Queries) UpsertPeriodComputed(ctx context.Context, arg UpsertPeriodComputedParams) (DepreciationDepreciationPeriod, error) {
 	row := q.db.QueryRow(ctx, upsertPeriodComputed,
 		arg.Period,

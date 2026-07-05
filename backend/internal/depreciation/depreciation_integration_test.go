@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
@@ -424,6 +425,138 @@ func TestDepreciation_ClosedWatermark_Immutable(t *testing.T) {
 	require.NotEmpty(t, m1Commercial.ID)
 	require.NotEmpty(t, m2Commercial.ID)
 	assert.Equal(t, m1Commercial.ClosingValue, m2Commercial.OpeningValue, "m2 opening must continue from m1 closing")
+}
+
+// TestDepreciation_UpsertGuard_ClosedPeriodNotReopened exercises the SQL-level
+// guard on UpsertPeriodComputed directly: once a period is closed, the upsert's
+// DO UPDATE must not match (0 rows → pgx.ErrNoRows) so a racing ComputePeriod
+// that lost the close/compute race can never flip a closed period back to
+// 'computed'. Also re-asserts the service-level outcome: ComputePeriod on the
+// closed period returns ErrPeriodClosed and leaves its entries byte-identical.
+func TestDepreciation_UpsertGuard_ClosedPeriodNotReopened(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+	assetID := seedAssetMonthsAgo(t, h.pool, "DPR-2026-00012", "Aset Reopen Guard", h.catID, h.office, "6000000.00", 3)
+
+	target := firstOfMonthUTC(time.Now())
+	_, err := h.svc.ComputePeriod(ctx, target, h.actorID)
+	require.NoError(t, err)
+	require.NoError(t, h.svc.ClosePeriod(ctx, target, h.actorID))
+
+	before, err := h.q.ListAssetEntries(ctx, assetID)
+	require.NoError(t, err)
+	require.NotEmpty(t, before)
+
+	// Layer (b): the raw upsert against a closed period must return 0 rows.
+	_, err = h.q.UpsertPeriodComputed(ctx, sqlc.UpsertPeriodComputedParams{
+		Period:     pgDate(target),
+		ComputedBy: &h.actorID,
+		AssetCount: 99, TotalAmount: "999999.00", SkippedCount: 9,
+	})
+	require.ErrorIs(t, err, pgx.ErrNoRows, "DO UPDATE must not match a closed period row")
+
+	row, err := h.q.GetDepreciationPeriod(ctx, pgDate(target))
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedDepreciationPeriodStatusClosed, row.Status, "period must stay closed")
+	assert.NotEqualValues(t, 99, row.AssetCount, "closed period summary must be untouched")
+
+	// Service level: recompute is rejected and entries survive unchanged.
+	_, err = h.svc.ComputePeriod(ctx, target, h.actorID)
+	require.ErrorIs(t, err, depreciation.ErrPeriodClosed)
+
+	after, err := h.q.ListAssetEntries(ctx, assetID)
+	require.NoError(t, err)
+	assert.Equal(t, before, after, "entries of a closed period must be byte-identical after a rejected recompute")
+}
+
+// TestDepreciation_ClosePeriod_BlocksOnComputeLock verifies ClosePeriod
+// serializes against ComputePeriod: while another transaction holds the
+// depreciation advisory lock (as ComputePeriod does for its whole run),
+// ClosePeriod must block, and complete successfully once the lock is released.
+func TestDepreciation_ClosePeriod_BlocksOnComputeLock(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+	seedAssetMonthsAgo(t, h.pool, "DPR-2026-00013", "Aset Close Lock", h.catID, h.office, "2400000.00", 2)
+
+	target := firstOfMonthUTC(time.Now())
+	_, err := h.svc.ComputePeriod(ctx, target, h.actorID)
+	require.NoError(t, err)
+
+	// Hold the compute advisory lock in a foreign transaction, standing in for
+	// an in-flight ComputePeriod.
+	lockTx, err := h.pool.Begin(ctx)
+	require.NoError(t, err)
+	_, err = lockTx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('depreciation.compute'))`)
+	require.NoError(t, err)
+
+	done := make(chan error, 1)
+	go func() { done <- h.svc.ClosePeriod(ctx, target, h.actorID) }()
+
+	select {
+	case err := <-done:
+		require.NoError(t, lockTx.Rollback(ctx))
+		t.Fatalf("ClosePeriod completed (err=%v) while the compute advisory lock was held — it must block", err)
+	case <-time.After(750 * time.Millisecond):
+		// Still blocked — the desired behavior.
+	}
+
+	require.NoError(t, lockTx.Rollback(ctx), "release the advisory lock")
+
+	select {
+	case err := <-done:
+		require.NoError(t, err, "ClosePeriod must succeed once the lock is released")
+	case <-time.After(5 * time.Second):
+		t.Fatal("ClosePeriod still blocked after the advisory lock was released")
+	}
+
+	row, err := h.q.GetDepreciationPeriod(ctx, pgDate(target))
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedDepreciationPeriodStatusClosed, row.Status)
+}
+
+// TestDepreciation_ClosePeriod_Twice verifies the close/close path: the second
+// ClosePeriod for the same period returns ErrPeriodClosed (never a leaked
+// driver error such as pgx.ErrNoRows from the guarded UPDATE).
+func TestDepreciation_ClosePeriod_Twice(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+	seedAssetMonthsAgo(t, h.pool, "DPR-2026-00014", "Aset Close Twice", h.catID, h.office, "1200000.00", 1)
+
+	target := firstOfMonthUTC(time.Now())
+	_, err := h.svc.ComputePeriod(ctx, target, h.actorID)
+	require.NoError(t, err)
+
+	require.NoError(t, h.svc.ClosePeriod(ctx, target, h.actorID))
+	err = h.svc.ClosePeriod(ctx, target, h.actorID)
+	require.ErrorIs(t, err, depreciation.ErrPeriodClosed)
+}
+
+// TestDepreciation_Compute_BeforeWatermark verifies that computing a period at
+// or before the closed watermark — a month that was skipped and never computed
+// before later months closed — is rejected with ErrPeriodBeforeWatermark and
+// creates NO period row (previously it silently produced a hollow 'computed'
+// row with zero entries).
+func TestDepreciation_Compute_BeforeWatermark(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+	seedAssetMonthsAgo(t, h.pool, "DPR-2026-00015", "Aset Skipped Month", h.catID, h.office, "3600000.00", 6)
+
+	month0 := firstOfMonthUTC(time.Now()).AddDate(0, -2, 0) // skipped, never computed
+	month1 := firstOfMonthUTC(time.Now()).AddDate(0, -1, 0)
+	month2 := firstOfMonthUTC(time.Now())
+
+	_, err := h.svc.ComputePeriod(ctx, month1, h.actorID)
+	require.NoError(t, err)
+	require.NoError(t, h.svc.ClosePeriod(ctx, month1, h.actorID))
+	_, err = h.svc.ComputePeriod(ctx, month2, h.actorID)
+	require.NoError(t, err)
+	require.NoError(t, h.svc.ClosePeriod(ctx, month2, h.actorID))
+
+	_, err = h.svc.ComputePeriod(ctx, month0, h.actorID)
+	require.ErrorIs(t, err, depreciation.ErrPeriodBeforeWatermark)
+
+	_, err = h.q.GetDepreciationPeriod(ctx, pgDate(month0))
+	require.ErrorIs(t, err, pgx.ErrNoRows, "no period row may be created for a pre-watermark month")
 }
 
 // keyOf builds a stable map key (basis+period) for comparing entries across

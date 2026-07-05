@@ -19,12 +19,17 @@ SELECT count(*) FROM depreciation.depreciation_periods
 WHERE deleted_at IS NULL AND period < $1 AND status <> 'closed';
 
 -- name: UpsertPeriodComputed :one
+-- The DO UPDATE's WHERE guard makes a closed period unmatchable (0 rows →
+-- pgx.ErrNoRows): even if a ComputePeriod raced past its status pre-check, it
+-- can never flip a closed period back to 'computed'. The service maps that
+-- ErrNoRows to ErrPeriodClosed and rolls back the regenerated entries.
 INSERT INTO depreciation.depreciation_periods (period, status, computed_at, computed_by, asset_count, total_amount, skipped_count)
 VALUES (sqlc.arg(period), 'computed', now(), sqlc.arg(computed_by), sqlc.arg(asset_count), sqlc.arg(total_amount), sqlc.arg(skipped_count))
 ON CONFLICT (period) WHERE deleted_at IS NULL
 DO UPDATE SET status = 'computed', computed_at = now(), computed_by = EXCLUDED.computed_by,
               asset_count = EXCLUDED.asset_count, total_amount = EXCLUDED.total_amount,
               skipped_count = EXCLUDED.skipped_count
+WHERE depreciation.depreciation_periods.status <> 'closed'
 RETURNING *;
 
 -- name: SetPeriodClosed :one

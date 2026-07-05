@@ -29,6 +29,12 @@ var (
 	// ErrPriorPeriodOpen is returned by ClosePeriod when an earlier period
 	// has a row that is not yet `closed` (sequential close guard).
 	ErrPriorPeriodOpen = errors.New("depreciation: an earlier period has not been closed")
+	// ErrPeriodBeforeWatermark is returned by ComputePeriod when the target
+	// period is at or before the closed watermark: those months are immutable
+	// closed history, so a skipped month that was never computed before later
+	// months closed cannot be computed retroactively (it would only produce a
+	// hollow 'computed' row — its regeneration window is empty by definition).
+	ErrPeriodBeforeWatermark = errors.New("depreciation: period precedes the closed watermark; entries for it live in closed history")
 	// ErrNotFound is returned when a referenced asset does not exist.
 	ErrNotFound = errors.New("depreciation: not found")
 )
@@ -133,6 +139,15 @@ func (s *Service) ComputePeriod(ctx context.Context, period time.Time, actor uui
 		return RunSummary{}, err
 	}
 
+	// A target at/before the watermark is immutable closed history: nothing in
+	// its regeneration window can be (re)generated, so computing it would only
+	// mint a hollow 'computed' row. (target == watermark normally hits the
+	// ErrPeriodClosed guard above first; this also covers the skipped-month
+	// case, where the target has no row at all.)
+	if watermark != nil && !target.After(watermark.Time) {
+		return RunSummary{}, ErrPeriodBeforeWatermark
+	}
+
 	if watermark != nil {
 		if err := qtx.DeleteEntriesAfterWatermark(ctx, sqlc.DeleteEntriesAfterWatermarkParams{
 			Watermark: *watermark, Target: targetDate,
@@ -210,6 +225,14 @@ func (s *Service) ComputePeriod(ctx context.Context, period time.Time, actor uui
 		TotalAmount:  summary.TotalAmount,
 		SkippedCount: int32(summary.SkippedCount),
 	}); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			// The upsert's own status guard refused to touch a closed period
+			// (defense-in-depth against a close committing between our status
+			// pre-check and here). Returning the sentinel triggers the
+			// deferred rollback, discarding every entry regenerated above —
+			// the closed period's entries must not be replaced.
+			return RunSummary{}, ErrPeriodClosed
+		}
 		return RunSummary{}, err
 	}
 
@@ -340,6 +363,14 @@ func (s *Service) ClosePeriod(ctx context.Context, period time.Time, actor uuid.
 	defer tx.Rollback(ctx) //nolint:errcheck
 	qtx := s.q.WithTx(tx)
 
+	// Serialize against ComputePeriod (and other closes): closing must never
+	// interleave with an in-flight recompute, or the compute's UpsertPeriod-
+	// Computed could land after our commit and silently reopen the period.
+	// Same transaction-scoped lock key as ComputePeriod.
+	if err := qtx.AdvisoryLockDepreciation(ctx); err != nil {
+		return err
+	}
+
 	row, err := qtx.GetDepreciationPeriod(ctx, targetDate)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrPeriodNotComputed
@@ -363,6 +394,12 @@ func (s *Service) ClosePeriod(ctx context.Context, period time.Time, actor uuid.
 	}
 
 	if _, err := qtx.SetPeriodClosed(ctx, sqlc.SetPeriodClosedParams{Period: targetDate, ClosedBy: &actor}); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			// The guarded UPDATE (status = 'computed' only) matched nothing:
+			// the period was closed out from under us (close/close TOCTOU).
+			// Surface the domain sentinel, never the raw driver error.
+			return ErrPeriodClosed
+		}
 		return err
 	}
 	return tx.Commit(ctx)
