@@ -279,6 +279,27 @@ gunakan domain agar dapat HTTPS.
 
 ---
 
+## WAF (Coraza + OWASP CRS)
+
+Reverse-proxy Caddy menjalankan WAF Coraza dengan OWASP CRS (image Caddy kustom
+di `ops/caddy/`). Mode diatur oleh `SecRuleEngine` di `ops/caddy/Caddyfile`:
+`DetectionOnly` (mencatat) atau `On` (memblokir, default produksi).
+
+**Tuning false-positive** — bila alur sah terblokir (mis. upload lampiran):
+1. `docker compose -f docker-compose.prod.yml logs caddy | grep -i coraza` untuk
+   menemukan rule id yang terpicu.
+2. Tambahkan exclusion di `ops/caddy/coraza-exclusions.conf`
+   (mis. `SecRuleRemoveById <id>`), lalu redeploy.
+
+**Uji WAF lokal (tanpa menyentuh produksi):**
+```bash
+docker compose -f ops/caddy/test/docker-compose.test.yml up -d --build
+ops/waf-smoketest.sh http://localhost:18080
+docker compose -f ops/caddy/test/docker-compose.test.yml down
+```
+
+---
+
 ## Referensi perintah cepat
 
 ```bash

@@ -27,6 +27,8 @@ domain genuinely needs custom, and document the trade-off either way.
 | [0007](0007-frontend-api-composable-convention.md) | Frontend API composables: module subfolders + English snake_case DTOs | Accepted | discovered (frontend) |
 | [0008](0008-backend-masterdata-module-convention.md) | Backend masterdata: 4-file split (dto/service/handler/routes) per resource | Accepted | backlog #3 |
 | [0009](0009-third-party-signin.md) | Third-party sign-in: `oauth2` + `go-oidc` (not goth) | Accepted | backlog #4 |
+| [0010](0010-background-job-execution.md) | Background job execution: staged adoption (contract-first, pluggable trigger) | Accepted | depreciation module |
+| [0012](0012-waf.md) | WAF: Coraza + OWASP CRS as a Caddy module (DetectionOnly → Blocking rollout) | Accepted | ops hardening — Phase 1 |
 
 > ADRs are **decisions**, not implementation. Code lands in follow-up work; each ADR notes the libraries
 > and the integration points. ADR-0007's refactor (folder regroup + field-key rename) is tracked as

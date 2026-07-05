@@ -16,7 +16,7 @@
 			Include @crs-setup.conf.example
 			Include @owasp_crs/*.conf
 			Include /etc/caddy/coraza-exclusions.conf
-			SecRuleEngine DetectionOnly
+			SecRuleEngine On
 		`
 	}
 
