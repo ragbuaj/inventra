@@ -50,3 +50,33 @@ func TestCatalogResponse_Shape(t *testing.T) {
 		t.Errorf("scope_modules should start with '*', got %v", mods)
 	}
 }
+
+func TestCatalog_DepreciationPermissions(t *testing.T) {
+	if !IsKnownPermission("depreciation.view") {
+		t.Fatal("depreciation.view must be a known permission")
+	}
+	if !IsKnownPermission("depreciation.manage") {
+		t.Fatal("depreciation.manage must be a known permission")
+	}
+	found := false
+	for _, m := range ScopeModules() {
+		if m == "depreciation" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("scope module 'depreciation' missing")
+	}
+	// The key must not be duplicated (it used to live in the Cadangan group).
+	count := 0
+	for _, g := range permissionCatalog {
+		for _, it := range g.Items {
+			if it.Key == "depreciation.manage" {
+				count++
+			}
+		}
+	}
+	if count != 1 {
+		t.Fatalf("depreciation.manage appears %d times, want 1", count)
+	}
+}

@@ -402,6 +402,49 @@ func (ns NullSharedDepreciationMethod) Value() (driver.Value, error) {
 	return string(ns.SharedDepreciationMethod), nil
 }
 
+type SharedDepreciationPeriodStatus string
+
+const (
+	SharedDepreciationPeriodStatusOpen     SharedDepreciationPeriodStatus = "open"
+	SharedDepreciationPeriodStatusComputed SharedDepreciationPeriodStatus = "computed"
+	SharedDepreciationPeriodStatusClosed   SharedDepreciationPeriodStatus = "closed"
+)
+
+func (e *SharedDepreciationPeriodStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedDepreciationPeriodStatus(s)
+	case string:
+		*e = SharedDepreciationPeriodStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedDepreciationPeriodStatus: %T", src)
+	}
+	return nil
+}
+
+type NullSharedDepreciationPeriodStatus struct {
+	SharedDepreciationPeriodStatus SharedDepreciationPeriodStatus `json:"shared_depreciation_period_status"`
+	Valid                          bool                           `json:"valid"` // Valid is true if SharedDepreciationPeriodStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedDepreciationPeriodStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedDepreciationPeriodStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedDepreciationPeriodStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedDepreciationPeriodStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedDepreciationPeriodStatus), nil
+}
+
 type SharedDisposalMethod string
 
 const (
@@ -1149,6 +1192,22 @@ type DepreciationDepreciationEntry struct {
 	CreatedAt          pgtype.Timestamptz       `json:"created_at"`
 	UpdatedAt          pgtype.Timestamptz       `json:"updated_at"`
 	DeletedAt          pgtype.Timestamptz       `json:"deleted_at"`
+}
+
+type DepreciationDepreciationPeriod struct {
+	ID           uuid.UUID                      `json:"id"`
+	Period       pgtype.Date                    `json:"period"`
+	Status       SharedDepreciationPeriodStatus `json:"status"`
+	ComputedAt   pgtype.Timestamptz             `json:"computed_at"`
+	ComputedBy   *uuid.UUID                     `json:"computed_by"`
+	ClosedAt     pgtype.Timestamptz             `json:"closed_at"`
+	ClosedBy     *uuid.UUID                     `json:"closed_by"`
+	AssetCount   int32                          `json:"asset_count"`
+	TotalAmount  string                         `json:"total_amount"`
+	SkippedCount int32                          `json:"skipped_count"`
+	CreatedAt    pgtype.Timestamptz             `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz             `json:"updated_at"`
+	DeletedAt    pgtype.Timestamptz             `json:"deleted_at"`
 }
 
 type DisposalDisposal struct {
