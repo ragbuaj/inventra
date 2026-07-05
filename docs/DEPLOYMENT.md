@@ -389,6 +389,29 @@ Bila rollback juga menyangkut perubahan migrasi/compose, lakukan
 
 ---
 
+## 15. Provisioning otomatis (Ansible / IaC)
+
+Alih-alih langkah 2–8 manual, seluruh setup server tersedia sebagai playbook
+Ansible di `ops/ansible/` (lihat `ops/ansible/README.md`). Tooling berjalan
+ter-container — host cukup punya Docker.
+
+```bash
+cd ops/ansible
+cp inventory.example.ini inventory.ini                          # isi IP VPS
+cp group_vars/all/vault.example.yml group_vars/all/vault.yml    # isi rahasia
+docker build -t inventra-ansible-tools ./tools
+docker run --rm -it -v "$PWD:/work" -w /work inventra-ansible-tools \
+  ansible-vault encrypt group_vars/all/vault.yml                # enkripsi vault
+# Dry-run lalu apply (jalankan 2x → run kedua changed=0):
+docker run --rm -it -v "$PWD:/work" -w /work -v ~/.ssh:/root/.ssh:ro \
+  inventra-ansible-tools ansible-playbook -i inventory.ini site.yml --ask-vault-pass --check
+```
+
+`inventory.ini` & `vault.yml` di-gitignore (rahasia). WAF ikut ter-provision
+karena role `app` menjalankan `docker compose up --build` (image Caddy+Coraza).
+
+---
+
 ## Referensi perintah cepat
 
 ```bash

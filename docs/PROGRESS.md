@@ -325,12 +325,15 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > 30. ~~**Ops hardening Phase 1 — WAF (Coraza + OWASP CRS)**~~ ✅ **DONE (2026-07-06).** Custom Caddy
 >     image + isolated smoke-test harness + prod Caddyfile rolled out DetectionOnly → tuned →
 >     **Blocking**; ADR-0012 + `docs/DEPLOYMENT.md` WAF section. See *Foundation & DevOps* above.
-> 31. **Next session — pick the next real step.** Ops hardening **Phase 2: IaC (Ansible)** —
->     provision the VPS declaratively (Docker install, firewall/ufw, swap, `.env.prod` secrets
->     handling) per the ops-hardening design doc, replacing the manual `docs/DEPLOYMENT.md` steps
->     where practical. Other remaining candidates (see *Remaining* below): **(b)** Stock opname
->     backend module (found/not_found/damaged/misplaced + report); **(e)** Assignment (check-out/in)
->     and/or Maintenance; **(f)** global search backend (`/search`) + drop the last `mock/*` files;
+> 31. ~~**Ops hardening Phase 2 — IaC (Ansible)**~~ ✅ **DONE (2026-07-06).** `ops/ansible/` playbook
+>     (`base` + `docker` + `app` roles, idempotent, containerized tooling — host needs only Docker),
+>     secrets via Ansible Vault (`*.example` committed, real `inventory.ini`/`vault.yml` gitignored);
+>     ADR-0013 + `docs/DEPLOYMENT.md` §15 IaC sub-section. See *Foundation & DevOps* above.
+> 32. **Next session — pick the next real step.** Ops hardening **Phase 3: Monitoring/observability**
+>     (metrics/logs/alerting per the ops-hardening design doc — ADR-0011 is reserved for this). Other
+>     remaining candidates (see *Remaining* below): **(b)** Stock opname backend module
+>     (found/not_found/damaged/misplaced + report); **(e)** Assignment (check-out/in) and/or
+>     Maintenance; **(f)** global search backend (`/search`) + drop the last `mock/*` files;
 >     **(g)** Reporting & Dashboard (PDF/Excel export, reading from the pre-aggregated read layer).
 >     Confirm priority before starting.
 
@@ -349,6 +352,15 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       SQLi/XSS/path-traversal while legit traffic passes, prod Caddyfile wired
       DetectionOnly → tuned → **Blocking** (`SecRuleEngine On`, default produksi).
       ADR-0012 + `docs/DEPLOYMENT.md` WAF sub-section. **Done (2026-07-06).**
+- [x] **Ops hardening Phase 2 — IaC (Ansible)** ✅ `ops/ansible/` playbook: `base`
+      (users/ufw/swap/hardening), `docker` (Engine + Compose plugin), `app`
+      (`.env.prod` template + `docker compose up --build`, WAF included via the
+      `app`-role compose stack — no separate WAF role) roles; idempotent
+      (`changed=0` on second run); tooling containerized (`ops/ansible/tools/`,
+      host needs only Docker); secrets via Ansible Vault (`*.example` files
+      committed, real `inventory.ini`/`vault.yml` gitignored); `ops/ansible/lint.sh`
+      (`--syntax-check` + `ansible-lint`) green in CI-less dev. ADR-0013 +
+      `docs/DEPLOYMENT.md` §15 IaC sub-section. **Done (2026-07-06).**
 
 ### Database (15 migrations · 12 schemas)
 - [x] enums + `set_updated_at` + per-module schemas (`shared/identity/audit/masterdata/asset/import/approval/assignment/maintenance/depreciation` + v1.1 `transfer/stockopname/disposal`)
