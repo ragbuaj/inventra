@@ -24,6 +24,7 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW gin.HandlerFunc, per
 	g.POST("/:id/cancel", authMW, h.cancel)
 
 	t := rg.Group("/approval-thresholds")
+	t.GET("/preview", authMW, create, h.previewThresholds)
 	t.GET("", authMW, cfg, h.listThresholds)
 	t.POST("", authMW, cfg, h.createThreshold)
 	t.PUT("/:id", authMW, cfg, h.updateThreshold)

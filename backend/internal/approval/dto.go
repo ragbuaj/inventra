@@ -48,13 +48,13 @@ func (r SubmitRequest) validateAssetCreateAmount() error {
 			return errors.New("invalid payload")
 		}
 	}
-	amount, ok := new(big.Rat).SetString(r.Amount)
+	amount, ok := parsePlainDecimal(r.Amount)
 	if !ok {
 		return errors.New("invalid amount")
 	}
 	cost := new(big.Rat) // zero when purchase_cost is absent
 	if p.PurchaseCost != nil {
-		if cost, ok = new(big.Rat).SetString(*p.PurchaseCost); !ok {
+		if cost, ok = parsePlainDecimal(*p.PurchaseCost); !ok {
 			return errors.New("invalid purchase_cost")
 		}
 	}
@@ -62,6 +62,26 @@ func (r SubmitRequest) validateAssetCreateAmount() error {
 		return errors.New("amount must equal payload.purchase_cost")
 	}
 	return nil
+}
+
+// parsePlainDecimal parses a non-negative plain decimal string ("1000", "1000.50").
+// Unlike bare big.Rat parsing it rejects fractions ("1/3"), exponents ("1e5"),
+// signs and whitespace — anything Postgres numeric input would not accept here.
+func parsePlainDecimal(s string) (*big.Rat, bool) {
+	if s == "" {
+		return nil, false
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if (c < '0' || c > '9') && c != '.' {
+			return nil, false
+		}
+	}
+	r, ok := new(big.Rat).SetString(s)
+	if !ok {
+		return nil, false
+	}
+	return r, true
 }
 
 // DecideRequest is the request body for POST /requests/:id/approve|reject.

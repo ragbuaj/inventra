@@ -67,8 +67,9 @@ tags:
     description: |
       Inter-office asset transfers (mutasi). A transfer row is created only once an
       `asset_transfer` approval request is approved (see the Requests tag); it then moves
-      `approved` → `in_transit` → `received`. Reads require `transfer.view`; writes
-      (`submit`, `ship`, `receive`) require `transfer.manage`. Receiving optionally attaches
+      `approved` → `in_transit` → either `received` or `returned` (destination declines).
+      Reads require `transfer.view`; writes (`submit`, `ship`, `receive`, `reject-receive`)
+      require `transfer.manage`. Receiving optionally attaches
       a BAST (`bast_transfer`) document via `POST /assets/{id}/documents` semantics.
   - name: Disposals
     description: |
@@ -1653,6 +1654,46 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/v1/approval-thresholds/preview:
+    get:
+      tags: [Approval Thresholds]
+      operationId: previewThresholdChain
+      summary: Preview the approval chain for a request type and amount
+      description: |
+        Resolves the approval chain the engine would build for the given `request_type` and
+        `amount` without creating anything — used by submit-side UIs to show the maker the
+        chain their request will follow before they submit it. Only step order and required
+        level are returned (band amounts are not exposed to non-admin callers). Requires the
+        `request.create` permission.
+      security:
+        - bearerJWT: []
+      parameters:
+        - name: request_type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [asset_create, asset_disposal, asset_transfer, assignment, maintenance, valuation_exclusion]
+        - name: amount
+          in: query
+          required: true
+          schema: { type: string }
+          description: IDR decimal string.
+      responses:
+        "200":
+          description: The resolved approval chain
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ThresholdPreview" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422":
+          description: No threshold band configured for this request type/amount
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/v1/approval-thresholds/{id}:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -1875,6 +1916,46 @@ paths:
               schema: { $ref: "#/components/schemas/Error" }
         "409":
           description: Transfer is not `in_transit`, so it cannot be received
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/transfers/{id}/reject-receive:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Transfers]
+      operationId: rejectReceiveTransfer
+      summary: Decline an in-transit shipment (terminal status returned)
+      description: |
+        The destination office declines an `in_transit` shipment: the transfer terminates
+        with status `returned` (409 when the transfer is not `in_transit`), recording an
+        optional note. The asset never moved and remains at the origin (from) office.
+        Requires the `transfer.manage` permission; the transfer's destination office must
+        be within the caller's data scope.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RejectReceiveRequest" }
+      responses:
+        "200":
+          description: Updated transfer with returned status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Transfer" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Transfer is not in a state that allows rejection
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
@@ -3183,11 +3264,28 @@ components:
         data: { type: array, items: { $ref: "#/components/schemas/Threshold" } }
         total: { type: integer }
 
+    ThresholdPreviewStep:
+      type: object
+      required: [step_order, required_level]
+      properties:
+        step_order: { type: integer }
+        required_level:
+          type: string
+          enum: [office, office_subtree, wilayah, pusat]
+
+    ThresholdPreview:
+      type: object
+      required: [steps]
+      properties:
+        steps: { type: array, items: { $ref: "#/components/schemas/ThresholdPreviewStep" } }
+
     Transfer:
       type: object
       description: |
-        An inter-office asset transfer (mutasi). Created only once its `asset_transfer`
-        approval request is approved, then moves `approved` → `in_transit` → `received`.
+        An inter-office asset transfer (mutasi). Created at final approval of its
+        `asset_transfer` request with status `approved`; then `approved` → `in_transit`
+        (ship) → either `received` (destination accepts; the asset relocates there) or
+        `returned` (destination declines; terminal — the asset never moved).
       required: [id, asset_id, from_office_id, to_office_id, status, requested_by_id, request_id, created_at, updated_at]
       properties:
         id: { type: string, format: uuid }
@@ -3197,7 +3295,7 @@ components:
         to_room_id: { type: [string, "null"], format: uuid }
         status:
           type: string
-          enum: [approved, in_transit, received]
+          enum: [approved, in_transit, received, returned]
         reason: { type: [string, "null"] }
         requested_by_id: { type: string, format: uuid }
         approved_by_id: { type: [string, "null"], format: uuid }
@@ -3206,6 +3304,19 @@ components:
         received_by_id: { type: [string, "null"], format: uuid }
         bast_no: { type: [string, "null"] }
         request_id: { type: [string, "null"], format: uuid }
+        condition_sent:
+          type: [string, "null"]
+          enum: [baik, rusak_ringan, rusak_berat]
+          description: Asset physical condition at the time of transfer.
+        transfer_date: { type: [string, "null"], format: date }
+        return_note: { type: [string, "null"] }
+        asset_name: { type: [string, "null"] }
+        asset_tag: { type: [string, "null"] }
+        from_office_name: { type: [string, "null"] }
+        to_office_name: { type: [string, "null"] }
+        to_room_name: { type: [string, "null"] }
+        requested_by_name: { type: [string, "null"] }
+        received_by_name: { type: [string, "null"] }
         created_at: { type: [string, "null"], format: date-time }
         updated_at: { type: [string, "null"], format: date-time }
 
@@ -3218,6 +3329,14 @@ components:
         to_office_id: { type: string, format: uuid }
         to_room_id: { type: [string, "null"], format: uuid }
         reason: { type: [string, "null"] }
+        condition_sent:
+          type: [string, "null"]
+          enum: [baik, rusak_ringan, rusak_berat]
+          description: Asset physical condition at the time of transfer.
+        transfer_date:
+          type: [string, "null"]
+          format: date
+          description: 'Date of transfer. Format: YYYY-MM-DD.'
 
     TransferShipRequest:
       type: object
@@ -3227,6 +3346,12 @@ components:
           type: [string, "null"]
           format: date
           description: 'Defaults to today if omitted. Format: YYYY-MM-DD.'
+
+    RejectReceiveRequest:
+      type: object
+      description: Body for POST /transfers/{id}/reject-receive.
+      properties:
+        note: { type: [string, "null"] }
 
     TransferList:
       type: object
@@ -3243,7 +3368,7 @@ components:
         An asset disposal (sale, auction, donation, or write-off). Created only once its
         `asset_disposal` approval request is approved; `gain_loss` is computed in SQL from
         `proceeds` minus `book_value_at_disposal`.
-      required: [id, asset_id, method, disposal_date, request_id, created_by_id, created_at, updated_at]
+      required: [id, asset_id, method, disposal_date, request_id, created_by_id, created_at, updated_at, asset_name, asset_tag]
       properties:
         id: { type: string, format: uuid }
         asset_id: { type: string, format: uuid }
@@ -3264,6 +3389,10 @@ components:
         approved_by_id: { type: [string, "null"], format: uuid }
         request_id: { type: [string, "null"], format: uuid }
         created_by_id: { type: [string, "null"], format: uuid }
+        asset_name: { type: string }
+        asset_tag: { type: string }
+        office_name: { type: [string, "null"] }
+        created_by_name: { type: [string, "null"] }
         created_at: { type: [string, "null"], format: date-time }
         updated_at: { type: [string, "null"], format: date-time }
 

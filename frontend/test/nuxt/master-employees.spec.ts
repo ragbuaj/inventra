@@ -118,7 +118,7 @@ enableAutoUnmount(afterEach)
 function grantAdmin() {
   useAuthStore().setSession(
     'tok',
-    { id: '1', name: 'Admin', email: 'admin@test.com', role_id: 'r1', role_name: 'Superadmin' },
+    { id: '1', name: 'Admin', email: 'admin@test.com', role_id: 'r1', role_name: 'Superadmin', office_id: null },
     ['*']
   )
 }

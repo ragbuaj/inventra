@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	sqlc "github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/approval"
@@ -64,7 +66,7 @@ func (e transferExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.A
 	}
 	reqID := req.ID
 	approver := req.DecidedByID
-	_, err = qtx.CreateTransfer(ctx, sqlc.CreateTransferParams{
+	params := sqlc.CreateTransferParams{
 		AssetID:       *req.TargetID,
 		FromOfficeID:  fromOffice,
 		ToOfficeID:    toOffice,
@@ -73,7 +75,19 @@ func (e transferExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.A
 		RequestedByID: req.RequestedByID,
 		ApprovedByID:  approver,
 		RequestID:     &reqID,
-	})
+	}
+	if p.ConditionSent != nil {
+		cond := sqlc.SharedTransferCondition(*p.ConditionSent)
+		params.ConditionSent = &cond
+	}
+	if p.TransferDate != nil {
+		td, perr := time.Parse("2006-01-02", *p.TransferDate)
+		if perr != nil {
+			return approval.ErrInvalidRef
+		}
+		params.TransferDate = pgtype.Date{Time: td, Valid: true}
+	}
+	_, err = qtx.CreateTransfer(ctx, params)
 	return err
 }
 

@@ -846,6 +846,49 @@ func (ns NullSharedScopeLevel) Value() (driver.Value, error) {
 	return string(ns.SharedScopeLevel), nil
 }
 
+type SharedTransferCondition string
+
+const (
+	SharedTransferConditionBaik        SharedTransferCondition = "baik"
+	SharedTransferConditionRusakRingan SharedTransferCondition = "rusak_ringan"
+	SharedTransferConditionRusakBerat  SharedTransferCondition = "rusak_berat"
+)
+
+func (e *SharedTransferCondition) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedTransferCondition(s)
+	case string:
+		*e = SharedTransferCondition(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedTransferCondition: %T", src)
+	}
+	return nil
+}
+
+type NullSharedTransferCondition struct {
+	SharedTransferCondition SharedTransferCondition `json:"shared_transfer_condition"`
+	Valid                   bool                    `json:"valid"` // Valid is true if SharedTransferCondition is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedTransferCondition) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedTransferCondition, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedTransferCondition.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedTransferCondition) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedTransferCondition), nil
+}
+
 type SharedTransferStatus string
 
 const (
@@ -855,6 +898,7 @@ const (
 	SharedTransferStatusReceived  SharedTransferStatus = "received"
 	SharedTransferStatusRejected  SharedTransferStatus = "rejected"
 	SharedTransferStatusCancelled SharedTransferStatus = "cancelled"
+	SharedTransferStatusReturned  SharedTransferStatus = "returned"
 )
 
 func (e *SharedTransferStatus) Scan(src interface{}) error {
@@ -1454,22 +1498,25 @@ type StockopnameStockOpnameSession struct {
 }
 
 type TransferAssetTransfer struct {
-	ID            uuid.UUID            `json:"id"`
-	AssetID       uuid.UUID            `json:"asset_id"`
-	FromOfficeID  uuid.UUID            `json:"from_office_id"`
-	ToOfficeID    uuid.UUID            `json:"to_office_id"`
-	ToRoomID      *uuid.UUID           `json:"to_room_id"`
-	Status        SharedTransferStatus `json:"status"`
-	Reason        *string              `json:"reason"`
-	RequestedByID uuid.UUID            `json:"requested_by_id"`
-	ApprovedByID  *uuid.UUID           `json:"approved_by_id"`
-	ShippedDate   pgtype.Date          `json:"shipped_date"`
-	ReceivedDate  pgtype.Date          `json:"received_date"`
-	ReceivedByID  *uuid.UUID           `json:"received_by_id"`
-	BastNo        *string              `json:"bast_no"`
-	RequestID     *uuid.UUID           `json:"request_id"`
-	Notes         *string              `json:"notes"`
-	CreatedAt     pgtype.Timestamptz   `json:"created_at"`
-	UpdatedAt     pgtype.Timestamptz   `json:"updated_at"`
-	DeletedAt     pgtype.Timestamptz   `json:"deleted_at"`
+	ID            uuid.UUID                `json:"id"`
+	AssetID       uuid.UUID                `json:"asset_id"`
+	FromOfficeID  uuid.UUID                `json:"from_office_id"`
+	ToOfficeID    uuid.UUID                `json:"to_office_id"`
+	ToRoomID      *uuid.UUID               `json:"to_room_id"`
+	Status        SharedTransferStatus     `json:"status"`
+	Reason        *string                  `json:"reason"`
+	RequestedByID uuid.UUID                `json:"requested_by_id"`
+	ApprovedByID  *uuid.UUID               `json:"approved_by_id"`
+	ShippedDate   pgtype.Date              `json:"shipped_date"`
+	ReceivedDate  pgtype.Date              `json:"received_date"`
+	ReceivedByID  *uuid.UUID               `json:"received_by_id"`
+	BastNo        *string                  `json:"bast_no"`
+	RequestID     *uuid.UUID               `json:"request_id"`
+	Notes         *string                  `json:"notes"`
+	CreatedAt     pgtype.Timestamptz       `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz       `json:"updated_at"`
+	DeletedAt     pgtype.Timestamptz       `json:"deleted_at"`
+	ConditionSent *SharedTransferCondition `json:"condition_sent"`
+	TransferDate  pgtype.Date              `json:"transfer_date"`
+	ReturnNote    *string                  `json:"return_note"`
 }

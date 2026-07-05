@@ -18,6 +18,7 @@ export interface AuthUser {
   email: string
   role_id: string
   role_name: string
+  office_id: string | null
 }
 
 export type BadgeColor = 'primary' | 'success' | 'warning' | 'error' | 'neutral' | 'info'

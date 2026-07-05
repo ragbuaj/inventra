@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -1505,4 +1506,104 @@ func TestApproval_FieldMasking_HandlerWiring(t *testing.T) {
 	// exact same h.filterMap as list), so it is intentionally left to the
 	// existing approval-flow tests. list + get above already exercise every
 	// call site of h.filterMap in the handler.
+}
+
+// TestApproval_ThresholdPreview covers Service.PreviewChain directly against a
+// deterministic 2-band asset_disposal configuration, then drives the real
+// GET /api/v1/approval-thresholds/preview endpoint end-to-end (stub auth +
+// approval.RegisterRoutes + httptest, exactly like
+// TestApproval_FieldMasking_HandlerWiring) to prove the handler + route wiring.
+func TestApproval_ThresholdPreview(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	ctx := context.Background()
+	resetAll(t, pool)
+
+	q := sqlc.New(pool)
+	scopeSvc := authz.NewScopeService(q, rdb)
+	svc := approval.NewService(q, pool, scopeSvc, rdb)
+
+	// Deterministic bands: wipe seed, install 2-band config for asset_disposal.
+	_, err := pool.Exec(ctx, `TRUNCATE approval.approval_thresholds`)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `
+		INSERT INTO approval.approval_thresholds (request_type, amount_from, amount_to, required_level, step_order, is_active) VALUES
+		('asset_disposal', 0, 10000000, 'office', 1, true),
+		('asset_disposal', 10000000, NULL, 'office', 1, true),
+		('asset_disposal', 10000000, NULL, 'wilayah', 2, true)`)
+	require.NoError(t, err)
+	require.NoError(t, rdb.Del(ctx, "approval:thresholds").Err())
+
+	t.Run("low amount → single office step", func(t *testing.T) {
+		steps, err := svc.PreviewChain(ctx, sqlc.SharedRequestTypeAssetDisposal, "500000")
+		require.NoError(t, err)
+		require.Len(t, steps, 1)
+		assert.Equal(t, int32(1), steps[0].StepOrder)
+		assert.Equal(t, "office", steps[0].RequiredLevel)
+	})
+	t.Run("high amount → two steps ordered", func(t *testing.T) {
+		steps, err := svc.PreviewChain(ctx, sqlc.SharedRequestTypeAssetDisposal, "82000000")
+		require.NoError(t, err)
+		require.Len(t, steps, 2)
+		assert.Equal(t, "wilayah", steps[1].RequiredLevel)
+	})
+	t.Run("no matching band → ErrNoThreshold", func(t *testing.T) {
+		_, err := svc.PreviewChain(ctx, sqlc.SharedRequestTypeMaintenance, "100")
+		assert.ErrorIs(t, err, approval.ErrNoThreshold)
+	})
+
+	// HTTP wiring: real gin engine via approval.RegisterRoutes + stub auth MW.
+	// The seeded Superadmin role already has request.create (the gate on this
+	// route), so no extra permission seeding is needed.
+	gin.SetMode(gin.TestMode)
+	auditSvc := audit.NewService(q)
+	fieldSvc := authz.NewFieldService(q, rdb)
+	scoped := common.ScopedDeps{Q: q, Scope: scopeSvc}
+	h := approval.NewHandler(svc, fieldSvc, scoped, auditSvc)
+	permSvc := authz.NewPermissionService(q, rdb)
+
+	adminRoleID := lookupRole(t, pool, "Superadmin")
+	adminUser := seedUser(t, pool, adminRoleID, "admin.thresholdpreview@test.local")
+
+	doGet := func(path string) (int, []byte) {
+		stubAuth := func(c *gin.Context) {
+			c.Set(middleware.CtxUserID, adminUser.String())
+			c.Set(middleware.CtxRoleID, adminRoleID.String())
+			c.Next()
+		}
+		r := gin.New()
+		v1 := r.Group("/api/v1")
+		approval.RegisterRoutes(v1, h, stubAuth, permSvc)
+		w := httptest.NewRecorder()
+		httpReq, err := http.NewRequest(http.MethodGet, path, nil)
+		require.NoError(t, err)
+		r.ServeHTTP(w, httpReq)
+		return w.Code, w.Body.Bytes()
+	}
+
+	t.Run("HTTP: 200 with matching step for valid type+amount", func(t *testing.T) {
+		code, body := doGet("/api/v1/approval-thresholds/preview?request_type=asset_disposal&amount=500000")
+		require.Equal(t, http.StatusOK, code)
+		assert.Contains(t, string(body), `"required_level":"office"`)
+	})
+
+	t.Run("HTTP: 400 for invalid request_type", func(t *testing.T) {
+		code, _ := doGet("/api/v1/approval-thresholds/preview?request_type=bogus&amount=500000")
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+
+	t.Run("HTTP: 400 for fraction amount (would reach DB as invalid numeric)", func(t *testing.T) {
+		code, _ := doGet("/api/v1/approval-thresholds/preview?request_type=asset_disposal&amount=" + url.QueryEscape("1/3"))
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+
+	t.Run("HTTP: 400 for non-numeric amount", func(t *testing.T) {
+		code, _ := doGet("/api/v1/approval-thresholds/preview?request_type=asset_disposal&amount=abc")
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+
+	t.Run("HTTP: 400 for missing amount", func(t *testing.T) {
+		code, _ := doGet("/api/v1/approval-thresholds/preview?request_type=asset_disposal")
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
 }

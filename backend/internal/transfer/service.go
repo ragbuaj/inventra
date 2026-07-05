@@ -57,10 +57,12 @@ func NewService(q *sqlc.Queries, pool *pgxpool.Pool, appr *approval.Service) *Se
 
 // Input structs.
 type SubmitInput struct {
-	AssetID    uuid.UUID
-	ToOfficeID uuid.UUID
-	ToRoomID   *uuid.UUID
-	Reason     *string
+	AssetID       uuid.UUID
+	ToOfficeID    uuid.UUID
+	ToRoomID      *uuid.UUID
+	Reason        *string
+	ConditionSent *string
+	TransferDate  *string // "2006-01-02"
 }
 type ShipInput struct{ ShippedDate pgtype.Date }
 type ReceiveInput struct {
@@ -99,8 +101,13 @@ func (s *Service) Submit(ctx context.Context, caller approval.Caller, in SubmitI
 	if pending > 0 {
 		return sqlc.ApprovalRequest{}, ErrAssetInTransit
 	}
+	if in.TransferDate != nil {
+		if _, perr := time.Parse("2006-01-02", *in.TransferDate); perr != nil {
+			return sqlc.ApprovalRequest{}, ErrInvalidRef
+		}
+	}
 
-	payload, err := marshalPayload(asset.OfficeID, in.ToOfficeID, in.ToRoomID, in.Reason)
+	payload, err := marshalPayload(asset.OfficeID, in.ToOfficeID, in.ToRoomID, in.Reason, in.ConditionSent, in.TransferDate)
 	if err != nil {
 		return sqlc.ApprovalRequest{}, err
 	}
@@ -195,14 +202,39 @@ func (s *Service) Receive(ctx context.Context, all bool, ids []uuid.UUID, receiv
 	return before, after, nil
 }
 
-// Get returns one scoped transfer.
-func (s *Service) Get(ctx context.Context, id uuid.UUID, all bool, ids []uuid.UUID) (sqlc.TransferAssetTransfer, error) {
-	t, err := s.q.GetTransfer(ctx, sqlc.GetTransferParams{ID: id, AllScope: all, OfficeIds: ids})
+// RejectReceive declines an in-transit shipment on behalf of the destination office.
+// The asset never moved, so nothing is relocated; the row terminates as 'returned'.
+func (s *Service) RejectReceive(ctx context.Context, all bool, ids []uuid.UUID, actor, id uuid.UUID, note *string) (sqlc.TransferAssetTransfer, error) {
+	cur, err := s.q.GetTransfer(ctx, sqlc.GetTransferParams{ID: id, AllScope: all, OfficeIds: ids})
+	if err != nil {
+		return cur, mapDBError(err)
+	}
+	if !common.InScope(all, ids, cur.ToOfficeID) {
+		return cur, ErrOutOfScope
+	}
+	if cur.Status != sqlc.SharedTransferStatusInTransit {
+		return cur, ErrInvalidState
+	}
+	out, err := s.q.SetTransferReturned(ctx, sqlc.SetTransferReturnedParams{
+		ID: id, ReturnNote: note, ActorID: &actor,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return cur, ErrInvalidState // status raced away from in_transit
+		}
+		return cur, mapDBError(err)
+	}
+	return out, nil
+}
+
+// Get returns one scoped, enriched transfer (asset/office/room/actor display names).
+func (s *Service) Get(ctx context.Context, id uuid.UUID, all bool, ids []uuid.UUID) (sqlc.GetTransferEnrichedRow, error) {
+	t, err := s.q.GetTransferEnriched(ctx, sqlc.GetTransferEnrichedParams{ID: id, AllScope: all, OfficeIds: ids})
 	return t, mapDBError(err)
 }
 
-// List returns a scoped, paginated page + total. Empty status = no filter.
-func (s *Service) List(ctx context.Context, all bool, ids []uuid.UUID, status string, limit, offset int32) ([]sqlc.TransferAssetTransfer, int64, error) {
+// List returns a scoped, paginated, enriched page + total. Empty status = no filter.
+func (s *Service) List(ctx context.Context, all bool, ids []uuid.UUID, status string, limit, offset int32) ([]sqlc.ListTransfersEnrichedRow, int64, error) {
 	if ids == nil {
 		ids = []uuid.UUID{}
 	}
@@ -211,7 +243,7 @@ func (s *Service) List(ctx context.Context, all bool, ids []uuid.UUID, status st
 		v := sqlc.SharedTransferStatus(status)
 		st = &v
 	}
-	rows, err := s.q.ListTransfers(ctx, sqlc.ListTransfersParams{AllScope: all, OfficeIds: ids, Status: st, Lim: limit, Off: offset})
+	rows, err := s.q.ListTransfersEnriched(ctx, sqlc.ListTransfersEnrichedParams{AllScope: all, OfficeIds: ids, Status: st, Lim: limit, Off: offset})
 	if err != nil {
 		return nil, 0, mapDBError(err)
 	}
@@ -222,11 +254,11 @@ func (s *Service) List(ctx context.Context, all bool, ids []uuid.UUID, status st
 	return rows, total, nil
 }
 
-// ListByAsset returns a scoped transfer history for one asset.
-func (s *Service) ListByAsset(ctx context.Context, assetID uuid.UUID, all bool, ids []uuid.UUID) ([]sqlc.TransferAssetTransfer, error) {
+// ListByAsset returns a scoped, enriched transfer history for one asset.
+func (s *Service) ListByAsset(ctx context.Context, assetID uuid.UUID, all bool, ids []uuid.UUID) ([]sqlc.ListTransfersByAssetEnrichedRow, error) {
 	if ids == nil {
 		ids = []uuid.UUID{}
 	}
-	rows, err := s.q.ListTransfersByAsset(ctx, sqlc.ListTransfersByAssetParams{AssetID: assetID, AllScope: all, OfficeIds: ids})
+	rows, err := s.q.ListTransfersByAssetEnriched(ctx, sqlc.ListTransfersByAssetEnrichedParams{AssetID: assetID, AllScope: all, OfficeIds: ids})
 	return rows, mapDBError(err)
 }

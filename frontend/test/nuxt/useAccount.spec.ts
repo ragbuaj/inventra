@@ -6,7 +6,7 @@ import { useAuthStore } from '~/stores/auth'
 describe('useAccount', () => {
   beforeEach(() => {
     localStorage.clear()
-    useAuthStore().setSession('t', { id: '1', name: 'Andi Saputra', email: 'andi@inventra.local', role_id: 'r', role_name: 'Asset Manager' }, ['*'])
+    useAuthStore().setSession('t', { id: '1', name: 'Andi Saputra', email: 'andi@inventra.local', role_id: 'r', role_name: 'Asset Manager', office_id: null }, ['*'])
   })
 
   it('builds a profile from the auth user merged with mock fields', async () => {

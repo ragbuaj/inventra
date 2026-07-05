@@ -107,7 +107,7 @@ func (h *Handler) get(c *gin.Context) {
 		h.svcError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, toResponse(d))
+	c.JSON(http.StatusOK, enrichDisposalMap(toResponse(d.DisposalDisposal), d.AssetName, d.AssetTag, d.OfficeName, d.CreatedByName))
 }
 
 func (h *Handler) list(c *gin.Context) {
@@ -125,7 +125,7 @@ func (h *Handler) list(c *gin.Context) {
 	}
 	data := make([]map[string]any, 0, len(rows))
 	for _, d := range rows {
-		data = append(data, toResponse(d))
+		data = append(data, enrichDisposalMap(toResponse(d.DisposalDisposal), d.AssetName, d.AssetTag, d.OfficeName, d.CreatedByName))
 	}
 	c.JSON(http.StatusOK, gin.H{"data": data, "total": total, "limit": limit, "offset": offset})
 }
@@ -148,7 +148,7 @@ func (h *Handler) listByAsset(c *gin.Context) {
 	}
 	data := make([]map[string]any, 0, len(rows))
 	for _, d := range rows {
-		data = append(data, toResponse(d))
+		data = append(data, enrichDisposalMap(toResponse(d.DisposalDisposal), d.AssetName, d.AssetTag, d.OfficeName, d.CreatedByName))
 	}
 	c.JSON(http.StatusOK, gin.H{"data": data})
 }
@@ -178,16 +178,16 @@ func (h *Handler) attachDocument(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid doc_date"})
 		return
 	}
-	disposalID := d.ID
+	disposalID := d.DisposalDisposal.ID
 	doc, err := h.assetSvc.CreateDocument(c.Request.Context(), asset.DocumentInput{
-		AssetID:           d.AssetID,
+		AssetID:           d.DisposalDisposal.AssetID,
 		DocType:           sqlc.SharedAssetDocumentTypeBastDisposal,
 		DocNo:             body.DocNo,
 		DocDate:           docDate,
 		Counterparty:      body.Counterparty,
-		RelatedRequestID:  d.RequestID,
+		RelatedRequestID:  d.DisposalDisposal.RequestID,
 		RelatedDisposalID: &disposalID,
-		CreatedBy:         derefUUID(d.CreatedByID),
+		CreatedBy:         derefUUID(d.DisposalDisposal.CreatedByID),
 	})
 	if err != nil {
 		h.svcError(c, err)

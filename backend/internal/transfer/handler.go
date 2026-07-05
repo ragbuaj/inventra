@@ -97,9 +97,11 @@ func (h *Handler) submit(c *gin.Context) {
 		return
 	}
 	in := SubmitInput{
-		AssetID:    assetID,
-		ToOfficeID: toOfficeID,
-		Reason:     req.Reason,
+		AssetID:       assetID,
+		ToOfficeID:    toOfficeID,
+		Reason:        req.Reason,
+		ConditionSent: req.ConditionSent,
+		TransferDate:  req.TransferDate,
 	}
 	if req.ToRoomID != nil {
 		r, rerr := uuid.Parse(*req.ToRoomID)
@@ -185,6 +187,33 @@ func (h *Handler) receive(c *gin.Context) {
 	c.JSON(http.StatusOK, toResponse(after))
 }
 
+// rejectReceive handles POST /transfers/:id/reject-receive: the destination office declines
+// an in-transit shipment. The asset never moved; the row terminates as 'returned'.
+func (h *Handler) rejectReceive(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	var body RejectReceiveRequest
+	if err := c.ShouldBindJSON(&body); err != nil && !errors.Is(err, io.EOF) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	caller, all, ids, err := h.caller(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
+		return
+	}
+	out, err := h.svc.RejectReceive(c.Request.Context(), all, ids, caller.UserID, id, body.Note)
+	if err != nil {
+		h.svcError(c, err)
+		return
+	}
+	audit.Record(c, h.aud, audit.ActionUpdate, "transfers", out.ID, &out.ToOfficeID, audit.Diff(map[string]any{"status": "in_transit"}, map[string]any{"status": "returned"}))
+	c.JSON(http.StatusOK, toResponse(out))
+}
+
 // recordBAST creates an asset_documents(bast_transfer) row and, if a file part is present,
 // stores it in MinIO via the asset document service.
 func (h *Handler) recordBAST(c *gin.Context, t sqlc.TransferAssetTransfer) {
@@ -242,7 +271,7 @@ func (h *Handler) get(c *gin.Context) {
 		h.svcError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, toResponse(t))
+	c.JSON(http.StatusOK, enrichTransferMap(toResponse(t.TransferAssetTransfer), t.AssetName, t.AssetTag, t.FromOfficeName, t.ToOfficeName, t.ToRoomName, t.RequestedByName, t.ReceivedByName))
 }
 
 func (h *Handler) list(c *gin.Context) {
@@ -261,7 +290,7 @@ func (h *Handler) list(c *gin.Context) {
 	}
 	data := make([]map[string]any, 0, len(rows))
 	for _, t := range rows {
-		data = append(data, toResponse(t))
+		data = append(data, enrichTransferMap(toResponse(t.TransferAssetTransfer), t.AssetName, t.AssetTag, t.FromOfficeName, t.ToOfficeName, t.ToRoomName, t.RequestedByName, t.ReceivedByName))
 	}
 	c.JSON(http.StatusOK, gin.H{"data": data, "total": total, "limit": limit, "offset": offset})
 }
@@ -284,7 +313,7 @@ func (h *Handler) listByAsset(c *gin.Context) {
 	}
 	data := make([]map[string]any, 0, len(rows))
 	for _, t := range rows {
-		data = append(data, toResponse(t))
+		data = append(data, enrichTransferMap(toResponse(t.TransferAssetTransfer), t.AssetName, t.AssetTag, t.FromOfficeName, t.ToOfficeName, t.ToRoomName, t.RequestedByName, t.ReceivedByName))
 	}
 	c.JSON(http.StatusOK, gin.H{"data": data})
 }

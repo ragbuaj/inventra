@@ -271,6 +271,254 @@
       "emptySub": "No assignment matches the filter."
     }
   },
+  "transfer": {
+    "pageTitle": "Asset Transfers",
+    "flow": {
+      "label": "Flow",
+      "diajukan": "Submitted",
+      "approved": "Approved",
+      "in_transit": "In Transit",
+      "received": "Received"
+    },
+    "tabs": {
+      "ajukan": "New Transfer",
+      "inbox": "Inbox",
+      "history": "History"
+    },
+    "form": {
+      "asset": "Asset (available only)",
+      "assetPlaceholder": "Search asset name / code…",
+      "assetHint": "Assets with status \"In use\" must be checked in before they can be transferred.",
+      "noAvailable": "No available assets",
+      "fromOffice": "Origin Office",
+      "toOffice": "Destination Office",
+      "toRoom": "Destination Room",
+      "roomNone": "— (Not set)",
+      "date": "Transfer Date",
+      "condition": "Condition When Sent",
+      "reason": "Transfer Reason",
+      "toOfficePlaceholder": "Select destination…",
+      "reasonPlaceholder": "e.g. Reallocate equipment to the destination branch…",
+      "reset": "Reset",
+      "submit": "Submit Transfer",
+      "error": "Complete asset, destination, and transfer date.",
+      "noManagePermission": "You do not have permission to submit transfers."
+    },
+    "interRegion": {
+      "title": "Inter-region transfer",
+      "note": "The destination is in a different region. This transfer needs approval from the Regional Head on both sides before the asset ships.",
+      "badge": "Inter-Region"
+    },
+    "inSubtreeNote": "Within-region transfer — Unit Head approval is enough.",
+    "submitSuccess": "Transfer of \"{name}\" to {office} submitted.",
+    "byLabel": "Submitted by",
+    "conditionSentLabel": "Sent condition:",
+    "inbox": {
+      "reject": "Reject",
+      "accept": "Accept",
+      "acceptSuccess": "Asset \"{name}\" received. Location & status updated to Available at your office.",
+      "rejectSuccess": "Receipt of \"{name}\" rejected and returned to origin.",
+      "emptyTitle": "Inbox is empty",
+      "emptySub": "No assets are currently being shipped to your office.",
+      "acceptModal": {
+        "title": "Confirm Receipt",
+        "receivedDate": "Received Date",
+        "room": "Receiving Room",
+        "bastNo": "Receipt BAST No.",
+        "bastNoPlaceholder": "e.g. BAST/2026/07/0150",
+        "file": "BAST Attachment (optional)",
+        "confirm": "Confirm Receipt"
+      },
+      "rejectModal": {
+        "title": "Reject Receipt",
+        "note": "Rejection Note",
+        "notePlaceholder": "e.g. Item condition doesn't match BAST…",
+        "confirm": "Confirm Rejection"
+      }
+    },
+    "history": {
+      "searchPlaceholder": "Search asset / office…",
+      "column": {
+        "asset": "Asset",
+        "route": "Origin → Destination",
+        "date": "Date",
+        "actor": "Actor",
+        "status": "Status",
+        "bast": "BAST No."
+      },
+      "emptyTitle": "No history",
+      "emptySub": "No transfer matches the filter.",
+      "info": "Total {n} transfers"
+    },
+    "statusFilter": {
+      "all": "All Status",
+      "diajukan": "Submitted",
+      "approved": "Approved",
+      "in_transit": "In Transit",
+      "received": "Received",
+      "returned": "Returned",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
+    "status": {
+      "diajukan": "Submitted",
+      "approved": "Approved",
+      "in_transit": "In Transit",
+      "received": "Received",
+      "returned": "Returned",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
+    "condition": {
+      "baik": "Good",
+      "rusak_ringan": "Minor Damage",
+      "rusak_berat": "Major Damage"
+    },
+    "ship": {
+      "action": "Ship",
+      "title": "Confirm Shipment",
+      "subtitle": "Record the asset's condition when shipped before the status changes to In Transit.",
+      "conditionLabel": "Condition When Sent",
+      "dateLabel": "Shipping Date (optional)",
+      "confirm": "Confirm Shipment",
+      "cancel": "Cancel",
+      "success": "Asset \"{name}\" shipped. Status updated to In Transit."
+    }
+  },
+  "disposal": {
+    "pageTitle": "Asset Disposal",
+    "pageSub": "Submit asset disposal (sale/auction/grant/destroy) with gain/loss calculation and tiered approval.",
+    "tabs": {
+      "ajukan": "New Disposal",
+      "history": "History"
+    },
+    "form": {
+      "assetSection": "Asset to Dispose",
+      "asset": "Select Asset (available)",
+      "assetPlaceholder": "Search asset name / code…",
+      "assetHint": "Assets currently in use must be checked in before they can be disposed.",
+      "noAvailable": "No available assets",
+      "detailSection": "Disposal Detail",
+      "method": "Disposal Method",
+      "value": "Sale / Receipt Value",
+      "valueHint": "Enter 0 for grant/destroy with no value.",
+      "date": "Disposal Date",
+      "bastNo": "Disposal Report No.",
+      "reason": "Reason / Notes",
+      "reasonPlaceholder": "e.g. Severely damaged & uneconomical to repair…",
+      "attachments": "Document & Photo Attachments",
+      "dropText": "Upload report, condition photos, supporting docs",
+      "evidenceHint": "Attachments are visible to the approver in Asset Detail.",
+      "submit": "Submit Disposal",
+      "error": "Complete asset, date, and disposal method.",
+      "noManagePermission": "You do not have permission to submit a disposal."
+    },
+    "valuation": {
+      "title": "Valuation Summary (read-only)",
+      "acquisition": "Acquisition Value",
+      "accumulatedDepreciation": "Accumulated Depreciation",
+      "bookValueCommercial": "Book Value",
+      "bookValueFiscal": "Book Value",
+      "psakChip": "PSAK",
+      "fiscalChip": "FISCAL",
+      "fiscalTooltip": "Fiscal book value awaits the depreciation module."
+    },
+    "gainLoss": {
+      "title": "Disposal Gain / Loss",
+      "short": "Gain/Loss",
+      "value": "Sale/Receipt value",
+      "bookValue": "Book value (commercial)",
+      "fiscal": "Fiscal gain/loss",
+      "empty": "Select an asset and enter a sale value to see the automatic gain/loss calculation.",
+      "gain": "Disposal Gain",
+      "loss": "Disposal Loss",
+      "breakEven": "Break-even",
+      "bookValueHidden": "Book value hidden for your role."
+    },
+    "chain": {
+      "title": "Required Approval Chain",
+      "ref": "Authorization Limit §2.4",
+      "sensitiveNote": "Sensitive action — asset disposal alters the fixed-asset records and requires tiered approval based on book value.",
+      "basedOnBookValue": "based on acquisition value: {value}",
+      "notConfigured": "Approval band not configured.",
+      "acquisitionHidden": "Acquisition value hidden for your role.",
+      "role": {
+        "maker": "Maker — Asset Manager",
+        "kaunit": "Unit Head",
+        "kanwil": "Regional Head",
+        "pusat": "Asset Division — HQ"
+      },
+      "note": {
+        "maker": "Requester",
+        "always": "Required",
+        "mid": "Book value {value}",
+        "high": "Value > Rp 50m"
+      }
+    },
+    "submitted": {
+      "title": "Disposal request submitted",
+      "sub": "Awaiting tiered approval per authorization limit.",
+      "status": "Awaiting Approval",
+      "method": "Method",
+      "value": "Sale Value",
+      "gainLoss": "Gain/Loss"
+    },
+    "timeline": {
+      "title": "Tiered Approval Timeline",
+      "newRequest": "Submit Another Disposal",
+      "done": "Approved",
+      "current": "Awaiting",
+      "queued": "Queued",
+      "awaitingReview": "Awaiting review",
+      "queuedNote": "Waiting for previous step"
+    },
+    "history": {
+      "searchPlaceholder": "Search asset / code…",
+      "column": {
+        "asset": "Asset",
+        "method": "Method",
+        "value": "Sale Value",
+        "gainLoss": "Gain/Loss",
+        "date": "Date",
+        "status": "Status"
+      },
+      "emptyTitle": "No history",
+      "emptySub": "No matching disposal request.",
+      "info": "Total {n} requests"
+    },
+    "statusFilter": {
+      "all": "All Status",
+      "menunggu": "Awaiting Approval",
+      "ditolak": "Rejected",
+      "dibatalkan": "Cancelled",
+      "selesai": "Completed"
+    },
+    "status": {
+      "menunggu": "Awaiting Approval",
+      "disetujui": "Approved",
+      "ditolak": "Rejected",
+      "dibatalkan": "Cancelled",
+      "selesai": "Completed"
+    },
+    "method": {
+      "sale": "Sold",
+      "auction": "Auctioned",
+      "donation": "Granted",
+      "write_off": "Destroyed"
+    },
+    "attachBast": {
+      "title": "Attach Disposal Report",
+      "hint": "Upload the asset disposal handover report document.",
+      "bastNo": "Report No.",
+      "docNo": "Document No.",
+      "docDate": "Document Date",
+      "counterparty": "Counterparty",
+      "file": "Document File",
+      "confirm": "Save Attachment",
+      "cancel": "Cancel",
+      "success": "The disposal report for \"{name}\" was saved."
+    }
+  },
   "maintenance": {
     "title": "Maintenance",
     "subtitle": "Manage schedules, maintenance notes, and damage reports.",
@@ -855,6 +1103,8 @@
     "assetLabel": "Label & Barcode",
     "myAssets": "My Assets",
     "assignment": "Assignments",
+    "transfers": "Transfers",
+    "disposals": "Disposal",
     "maintenance": "Maintenance",
     "approval": "Requests & Approval",
     "approvalStaff": "Requests",
@@ -890,7 +1140,8 @@
     "retry": "Retry",
     "loadError": "Failed to load data.",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "assetPickerEmpty": "No assets available"
   },
   "status": {
     "asset": {

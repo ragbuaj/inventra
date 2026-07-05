@@ -55,10 +55,13 @@ type Querier interface {
 	GetAttachment(ctx context.Context, id uuid.UUID) (AssetAssetAttachment, error)
 	GetCategory(ctx context.Context, id uuid.UUID) (MasterdataCategory, error)
 	GetCategoryCode(ctx context.Context, id uuid.UUID) (*string, error)
-	// Scoped: caller must have the asset's office in scope (disposals have no office_id).
-	GetDisposal(ctx context.Context, arg GetDisposalParams) (DisposalDisposal, error)
 	// Guard (office-unscoped): at most one live disposal per asset.
 	GetDisposalByAsset(ctx context.Context, assetID uuid.UUID) (DisposalDisposal, error)
+	// Scoped: caller must have the asset's office in scope (disposals have no office_id).
+	// The asset JOIN stays the scope anchor (INNER — a disposal always has a live
+	// asset) and doubles as the source of asset_name/asset_tag. LEFT JOINs keep the
+	// row visible (with nil names) even when a joined office/user was soft-deleted.
+	GetDisposalEnriched(ctx context.Context, arg GetDisposalEnrichedParams) (GetDisposalEnrichedRow, error)
 	GetEmployee(ctx context.Context, arg GetEmployeeParams) (MasterdataEmployee, error)
 	GetFloor(ctx context.Context, arg GetFloorParams) (MasterdataFloor, error)
 	GetOffice(ctx context.Context, arg GetOfficeParams) (MasterdataOffice, error)
@@ -78,8 +81,14 @@ type Querier interface {
 	// Identity module queries. Schema-qualified (see DATABASE.md §1.2).
 	GetRoleByCode(ctx context.Context, code string) (IdentityRole, error)
 	GetRoom(ctx context.Context, arg GetRoomParams) (MasterdataRoom, error)
-	// Scoped: caller must have the from- or to-office in scope.
+	// Scoped: caller must have the from- or to-office in scope. Plain (unenriched)
+	// row — used internally by Ship/Receive/RejectReceive, which only need the
+	// base columns to validate state + perform the update.
 	GetTransfer(ctx context.Context, arg GetTransferParams) (TransferAssetTransfer, error)
+	// Scoped: caller must have the from- or to-office in scope. Adds resolved
+	// asset/office/room/actor display names for the detail view. LEFT JOINs keep
+	// the row visible (with nil names) even when a joined entity was soft-deleted.
+	GetTransferEnriched(ctx context.Context, arg GetTransferEnrichedParams) (GetTransferEnrichedRow, error)
 	GetUserByEmail(ctx context.Context, email string) (IdentityUser, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (IdentityUser, error)
 	// Audit log: append-only writes + an office-scoped, filterable read model.
@@ -102,8 +111,8 @@ type Querier interface {
 	// The full non-deleted category set (no pagination) for client-side tree building.
 	ListCategoryTree(ctx context.Context) ([]MasterdataCategory, error)
 	ListDataScopePolicies(ctx context.Context, roleID uuid.UUID) ([]IdentityDataScopePolicy, error)
-	ListDisposals(ctx context.Context, arg ListDisposalsParams) ([]DisposalDisposal, error)
-	ListDisposalsByAsset(ctx context.Context, arg ListDisposalsByAssetParams) ([]DisposalDisposal, error)
+	ListDisposalsByAssetEnriched(ctx context.Context, arg ListDisposalsByAssetEnrichedParams) ([]ListDisposalsByAssetEnrichedRow, error)
+	ListDisposalsEnriched(ctx context.Context, arg ListDisposalsEnrichedParams) ([]ListDisposalsEnrichedRow, error)
 	// Employees (asset custodians) with data-scoping by office.
 	ListEmployees(ctx context.Context, arg ListEmployeesParams) ([]MasterdataEmployee, error)
 	ListFieldPermissionsByRole(ctx context.Context, roleID uuid.UUID) ([]ListFieldPermissionsByRoleRow, error)
@@ -127,9 +136,10 @@ type Querier interface {
 	// Rooms (within a floor). Scope is derived from the room's floor -> office.
 	ListRoomsByFloor(ctx context.Context, arg ListRoomsByFloorParams) ([]MasterdataRoom, error)
 	ListThresholds(ctx context.Context) ([]ApprovalApprovalThreshold, error)
-	ListTransfers(ctx context.Context, arg ListTransfersParams) ([]TransferAssetTransfer, error)
-	// Per-asset history, scoped by from- or to-office.
-	ListTransfersByAsset(ctx context.Context, arg ListTransfersByAssetParams) ([]TransferAssetTransfer, error)
+	// Per-asset history, scoped by from- or to-office. Same enrichment as
+	// GetTransferEnriched/ListTransfersEnriched.
+	ListTransfersByAssetEnriched(ctx context.Context, arg ListTransfersByAssetEnrichedParams) ([]ListTransfersByAssetEnrichedRow, error)
+	ListTransfersEnriched(ctx context.Context, arg ListTransfersEnrichedParams) ([]ListTransfersEnrichedRow, error)
 	// User management queries (Superadmin). All respect soft delete.
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]IdentityUser, error)
 	// Approval / maker-checker queries (approval schema).
@@ -143,6 +153,8 @@ type Querier interface {
 	SetDisposalBastNo(ctx context.Context, arg SetDisposalBastNoParams) (DisposalDisposal, error)
 	SetRequestDecision(ctx context.Context, arg SetRequestDecisionParams) (ApprovalRequest, error)
 	SetTransferReceived(ctx context.Context, arg SetTransferReceivedParams) (TransferAssetTransfer, error)
+	// Receiving side declines the shipment: terminal 'returned', asset never moved.
+	SetTransferReturned(ctx context.Context, arg SetTransferReturnedParams) (TransferAssetTransfer, error)
 	SetTransferShipped(ctx context.Context, arg SetTransferShippedParams) (TransferAssetTransfer, error)
 	SoftDeleteAssetDocument(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteAttachment(ctx context.Context, id uuid.UUID) (int64, error)

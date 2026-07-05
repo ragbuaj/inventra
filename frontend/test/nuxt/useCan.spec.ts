@@ -28,7 +28,7 @@ describe('useCan', () => {
   it('returns true for a permission the user has', async () => {
     useAuthStore().setSession(
       'tok',
-      { id: '1', name: 'Test', email: 'test@e.com', role_id: 'r1', role_name: 'Role' },
+      { id: '1', name: 'Test', email: 'test@e.com', role_id: 'r1', role_name: 'Role', office_id: null },
       ['asset.read']
     )
 
@@ -39,7 +39,7 @@ describe('useCan', () => {
   it('returns false for a permission the user does not have', async () => {
     useAuthStore().setSession(
       'tok',
-      { id: '1', name: 'Test', email: 'test@e.com', role_id: 'r1', role_name: 'Role' },
+      { id: '1', name: 'Test', email: 'test@e.com', role_id: 'r1', role_name: 'Role', office_id: null },
       ['asset.read']
     )
 
@@ -50,7 +50,7 @@ describe('useCan', () => {
   it('returns true for any permission when wildcard * is present', async () => {
     useAuthStore().setSession(
       'tok',
-      { id: '1', name: 'Test', email: 'test@e.com', role_id: 'r1', role_name: 'Role' },
+      { id: '1', name: 'Test', email: 'test@e.com', role_id: 'r1', role_name: 'Role', office_id: null },
       ['*']
     )
 
@@ -61,7 +61,7 @@ describe('useCan', () => {
   it('returns false when permissions are empty', async () => {
     useAuthStore().setSession(
       'tok',
-      { id: '1', name: 'Test', email: 'test@e.com', role_id: 'r1', role_name: 'Role' },
+      { id: '1', name: 'Test', email: 'test@e.com', role_id: 'r1', role_name: 'Role', office_id: null },
       []
     )
 

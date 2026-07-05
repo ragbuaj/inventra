@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { superadminNav, staffNav } from '~/utils/nav'
 import type { NavItem } from '~/types'
 
-const BUILT_ROUTES = ['/', '/master/offices', '/master/employees', '/master/categories', '/master/map', '/master/reference', '/settings/users', '/settings/rbac', '/settings/data-scope', '/settings/field-permission', '/settings/audit', '/assets', '/assets/import', '/assets/label', '/assignment', '/maintenance', '/approval', '/reports']
+const BUILT_ROUTES = ['/', '/master/offices', '/master/employees', '/master/categories', '/master/map', '/master/reference', '/settings/users', '/settings/rbac', '/settings/data-scope', '/settings/field-permission', '/settings/audit', '/assets', '/assets/import', '/assets/label', '/assignment', '/transfers', '/disposals', '/maintenance', '/approval', '/reports']
 
 function collectItems(items: NavItem[]): NavItem[] {
   return items.flatMap(item => [item, ...(item.children ? collectItems(item.children) : [])])
@@ -25,8 +25,8 @@ describe('superadminNav — structure', () => {
     expect(superadminNav[1].labelKey).toBe('nav.group.administrasi')
   })
 
-  it('Operasional has 6 top-level items', () => {
-    expect(superadminNav[0].items).toHaveLength(6)
+  it('Operasional has 8 top-level items', () => {
+    expect(superadminNav[0].items).toHaveLength(8)
   })
 
   it('Administrasi has 2 top-level items (Master Data, Pengaturan)', () => {
@@ -72,6 +72,31 @@ describe('superadminNav — approval', () => {
     const approval = superadminNav[0].items.find(i => i.labelKey === 'nav.approval')
     expect(approval?.permission).toBe('request.decide')
     expect(approval?.badgeCount).toBeUndefined()
+  })
+})
+
+describe('superadminNav — transfers and disposals', () => {
+  it('transfers item links to /transfers and is gated by transfer.view', () => {
+    const transfers = superadminNav[0].items.find(i => i.labelKey === 'nav.transfers')
+    expect(transfers?.to).toBe('/transfers')
+    expect(transfers?.permission).toBe('transfer.view')
+  })
+
+  it('disposals item links to /disposals and is gated by disposal.view', () => {
+    const disposals = superadminNav[0].items.find(i => i.labelKey === 'nav.disposals')
+    expect(disposals?.to).toBe('/disposals')
+    expect(disposals?.permission).toBe('disposal.view')
+  })
+
+  it('transfers appears after assignment and before maintenance', () => {
+    const keys = superadminNav[0].items.map(i => i.labelKey)
+    const assignmentIdx = keys.indexOf('nav.assignment')
+    const transfersIdx = keys.indexOf('nav.transfers')
+    const disposalsIdx = keys.indexOf('nav.disposals')
+    const maintenanceIdx = keys.indexOf('nav.maintenance')
+    expect(assignmentIdx).toBeLessThan(transfersIdx)
+    expect(transfersIdx).toBeLessThan(disposalsIdx)
+    expect(disposalsIdx).toBeLessThan(maintenanceIdx)
   })
 })
 

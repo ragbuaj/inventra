@@ -38,6 +38,18 @@ export const superadminNav: NavGroup[] = [
         to: '/assignment'
       },
       {
+        labelKey: 'nav.transfers',
+        icon: 'i-lucide-arrow-right-left',
+        to: '/transfers',
+        permission: 'transfer.view'
+      },
+      {
+        labelKey: 'nav.disposals',
+        icon: 'i-lucide-trash-2',
+        to: '/disposals',
+        permission: 'disposal.view'
+      },
+      {
         labelKey: 'nav.maintenance',
         icon: 'i-lucide-wrench',
         to: '/maintenance'

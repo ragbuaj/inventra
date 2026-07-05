@@ -6,7 +6,7 @@ import Akun from '~/pages/account.vue'
 import { useAuthStore } from '~/stores/auth'
 
 function user() {
-  useAuthStore().setSession('t', { id: '1', name: 'Andi Saputra', email: 'andi@inventra.local', role_id: 'r', role_name: 'Asset Manager' }, ['*'])
+  useAuthStore().setSession('t', { id: '1', name: 'Andi Saputra', email: 'andi@inventra.local', role_id: 'r', role_name: 'Asset Manager', office_id: null }, ['*'])
 }
 async function mountLoaded() {
   const w = await mountSuspended(Akun, { props: {} })

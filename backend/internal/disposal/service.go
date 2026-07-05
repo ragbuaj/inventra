@@ -109,16 +109,18 @@ func (s *Service) Submit(ctx context.Context, caller approval.Caller, in SubmitI
 	})
 }
 
-func (s *Service) Get(ctx context.Context, id uuid.UUID, all bool, ids []uuid.UUID) (sqlc.DisposalDisposal, error) {
-	d, err := s.q.GetDisposal(ctx, sqlc.GetDisposalParams{ID: id, AllScope: all, OfficeIds: ids})
+// Get returns one scoped, enriched disposal (asset/office/actor display names).
+func (s *Service) Get(ctx context.Context, id uuid.UUID, all bool, ids []uuid.UUID) (sqlc.GetDisposalEnrichedRow, error) {
+	d, err := s.q.GetDisposalEnriched(ctx, sqlc.GetDisposalEnrichedParams{ID: id, AllScope: all, OfficeIds: ids})
 	return d, mapDBError(err)
 }
 
-func (s *Service) List(ctx context.Context, all bool, ids []uuid.UUID, limit, offset int32) ([]sqlc.DisposalDisposal, int64, error) {
+// List returns a scoped, paginated, enriched page + total.
+func (s *Service) List(ctx context.Context, all bool, ids []uuid.UUID, limit, offset int32) ([]sqlc.ListDisposalsEnrichedRow, int64, error) {
 	if ids == nil {
 		ids = []uuid.UUID{}
 	}
-	rows, err := s.q.ListDisposals(ctx, sqlc.ListDisposalsParams{AllScope: all, OfficeIds: ids, Lim: limit, Off: offset})
+	rows, err := s.q.ListDisposalsEnriched(ctx, sqlc.ListDisposalsEnrichedParams{AllScope: all, OfficeIds: ids, Lim: limit, Off: offset})
 	if err != nil {
 		return nil, 0, mapDBError(err)
 	}
@@ -129,11 +131,12 @@ func (s *Service) List(ctx context.Context, all bool, ids []uuid.UUID, limit, of
 	return rows, total, nil
 }
 
-func (s *Service) ListByAsset(ctx context.Context, assetID uuid.UUID, all bool, ids []uuid.UUID) ([]sqlc.DisposalDisposal, error) {
+// ListByAsset returns a scoped, enriched disposal history for one asset.
+func (s *Service) ListByAsset(ctx context.Context, assetID uuid.UUID, all bool, ids []uuid.UUID) ([]sqlc.ListDisposalsByAssetEnrichedRow, error) {
 	if ids == nil {
 		ids = []uuid.UUID{}
 	}
-	rows, err := s.q.ListDisposalsByAsset(ctx, sqlc.ListDisposalsByAssetParams{AssetID: assetID, AllScope: all, OfficeIds: ids})
+	rows, err := s.q.ListDisposalsByAssetEnriched(ctx, sqlc.ListDisposalsByAssetEnrichedParams{AssetID: assetID, AllScope: all, OfficeIds: ids})
 	return rows, mapDBError(err)
 }
 

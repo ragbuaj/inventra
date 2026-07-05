@@ -1,0 +1,551 @@
+// @vitest-environment nuxt
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { mountSuspended } from '@nuxt/test-utils/runtime'
+import { flushPromises, enableAutoUnmount } from '@vue/test-utils'
+import type { Asset, Office, Paginated } from '~/types'
+import type { Disposal } from '~/composables/api/useDisposals'
+import type { ApprovalRequestRow, ApprovalRequestDetail, ApprovalStep } from '~/composables/api/useApproval'
+import type { PreviewStep } from '~/composables/api/useApprovalPreview'
+import { useAuthStore } from '~/stores/auth'
+
+// ---------------------------------------------------------------------------
+// Fixtures
+// ---------------------------------------------------------------------------
+
+const OFFICES: Office[] = [
+  { id: 'o1', parent_id: null, office_type_id: 'ot1', province_id: null, city_id: null, name: 'Kantor Cabang Jakarta Selatan', code: 'JKS', address: null, is_active: true, latitude: null, longitude: null, created_at: null, updated_at: null }
+]
+
+const ASSET_LABA: Asset = {
+  id: 'a1', asset_tag: 'JKT01-ELK-2024-00021', name: 'Printer HP LaserJet Pro',
+  category_id: 'c1', office_id: 'o1', status: 'available', asset_class: 'tangible',
+  purchase_cost: '6800000', accumulated_depreciation: '6120000', book_value: '680000'
+}
+
+const ASSET_RUGI: Asset = {
+  id: 'a2', asset_tag: 'JKT01-KEN-2019-00003', name: 'Toyota Innova 2019',
+  category_id: 'c1', office_id: 'o1', status: 'available', asset_class: 'tangible',
+  purchase_cost: '315000000', accumulated_depreciation: '236000000', book_value: '79000000'
+}
+
+// Fully masked (purchase_cost/book_value/accumulated_depreciation all absent).
+const ASSET_MASKED: Asset = {
+  id: 'a3', asset_tag: 'JKT01-ELK-2022-00099', name: 'Server IBM System x3650 (Lama)',
+  category_id: 'c1', office_id: 'o1', status: 'under_maintenance', asset_class: 'tangible'
+}
+
+// purchase_cost visible, book_value specifically masked (a rarer but valid field-permission split).
+const ASSET_BV_MASKED: Asset = {
+  id: 'a4', asset_tag: 'JKT01-MBL-2020-00040', name: 'Partisi Kubikel (30 unit)',
+  category_id: 'c1', office_id: 'o1', status: 'available', asset_class: 'tangible',
+  purchase_cost: '42000000', accumulated_depreciation: '33600000'
+}
+
+function disposal(over: Partial<Disposal> = {}): Disposal {
+  return {
+    id: 'd1', asset_id: 'a9', method: 'sale', disposal_date: '2026-06-15',
+    proceeds: '1200000', book_value_at_disposal: '450000', gain_loss: '750000',
+    bast_no: 'BAP/2026/06/010', approved_by_id: 'u2', request_id: 'req-old', created_by_id: 'u1',
+    asset_name: 'Laptop Asus X441 (Lama)', asset_tag: 'JKT01-ELK-2021-00055', office_name: 'Kantor Cabang Jakarta Selatan',
+    created_by_name: 'Dewi Lestari', created_at: '2026-06-15T09:00:00Z', updated_at: '2026-06-15T09:00:00Z',
+    ...over
+  }
+}
+
+function reqRow(over: Partial<ApprovalRequestRow> = {}): ApprovalRequestRow {
+  return {
+    id: 'req1', type: 'asset_disposal', status: 'pending', amount: '79000000', current_step: 1,
+    office_id: 'o1', office_name: 'Kantor Cabang Jakarta Selatan', target_id: 'a9', target_entity: 'asset',
+    reason: 'Rusak berat', requested_by_id: 'u1', requested_by_name: 'Dewi Lestari', requested_by_role: 'Kepala Unit',
+    decided_by_id: null, decision_note: null, created_at: '2026-07-02T09:00:00Z',
+    ...over
+  }
+}
+
+function page<T>(data: T[]): Paginated<T> {
+  return { data, total: data.length, limit: 100, offset: 0 }
+}
+
+// ---------------------------------------------------------------------------
+// Composable mocks
+// ---------------------------------------------------------------------------
+
+const disposalsListMock = vi.fn()
+const disposalsSubmitMock = vi.fn()
+const disposalsAttachDocumentMock = vi.fn()
+vi.mock('~/composables/api/useDisposals', () => ({
+  useDisposals: () => ({
+    list: disposalsListMock,
+    get: vi.fn(),
+    submit: disposalsSubmitMock,
+    attachDocument: disposalsAttachDocumentMock
+  })
+}))
+
+const approvalListMock = vi.fn()
+const approvalGetMock = vi.fn()
+vi.mock('~/composables/api/useApproval', () => ({
+  useApproval: () => ({ inbox: vi.fn(), list: approvalListMock, get: approvalGetMock, approve: vi.fn(), reject: vi.fn() })
+}))
+
+const previewMock = vi.fn()
+vi.mock('~/composables/api/useApprovalPreview', () => ({
+  useApprovalPreview: () => ({ preview: previewMock })
+}))
+
+const attachmentsUploadMock = vi.fn()
+const attachmentsRemoveMock = vi.fn()
+vi.mock('~/composables/api/useAssetAttachments', () => ({
+  useAssetAttachments: () => ({
+    list: vi.fn(), upload: attachmentsUploadMock, remove: attachmentsRemoveMock,
+    thumbnailBlob: vi.fn(), contentBlob: vi.fn()
+  })
+}))
+
+const officesListMock = vi.fn()
+vi.mock('~/composables/api/useOffices', () => ({
+  useOffices: () => ({ list: officesListMock, get: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() })
+}))
+
+const assetsListMock = vi.fn()
+vi.mock('~/composables/api/useAssets', () => ({
+  useAssets: () => ({ list: assetsListMock, get: vi.fn(), getByTag: vi.fn(), update: vi.fn() })
+}))
+
+// eslint-disable-next-line import/first
+import DisposalsPage from '~/pages/disposals.vue'
+
+enableAutoUnmount(afterEach)
+
+function grantSession(permissions: string[] = ['disposal.view', 'disposal.manage']) {
+  useAuthStore().setSession(
+    'tok',
+    { id: 'u1', name: 'Dewi Lestari', email: 'dewi@test.com', role_id: 'r1', role_name: 'Kepala Unit', office_id: 'o1' },
+    permissions
+  )
+}
+
+async function mountAndWait() {
+  const wrapper = await mountSuspended(DisposalsPage, { route: '/disposals' })
+  await flushPromises()
+  await new Promise(r => setTimeout(r, 50))
+  await flushPromises()
+  await wrapper.vm.$nextTick()
+  return wrapper
+}
+
+type Wrapper = Awaited<ReturnType<typeof mountAndWait>>
+
+async function setVmRef(wrapper: Wrapper, key: string, value: unknown) {
+  ;(wrapper.vm as unknown as Record<string, unknown>)[key] = value
+  await wrapper.vm.$nextTick()
+  await flushPromises()
+  await wrapper.vm.$nextTick()
+}
+
+function clickTab(wrapper: Wrapper, key: 'ajukan' | 'history') {
+  return wrapper.find(`[data-testid="disposal-tab-${key}"]`).trigger('click')
+}
+
+function bodyButton(testid: string): HTMLButtonElement {
+  const el = document.body.querySelector(`[data-testid="${testid}"]`)
+  expect(el, `expected [data-testid="${testid}"] in document.body`).toBeTruthy()
+  return el as HTMLButtonElement
+}
+
+function previewStep(over: Partial<PreviewStep> = {}): PreviewStep {
+  return { step_order: 2, required_level: 'wilayah', ...over }
+}
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  officesListMock.mockResolvedValue(page(OFFICES))
+  assetsListMock.mockResolvedValue(page([]))
+  disposalsListMock.mockResolvedValue(page([disposal()]))
+  approvalListMock.mockResolvedValue(page([reqRow()]))
+  previewMock.mockResolvedValue([previewStep({ step_order: 2, required_level: 'wilayah' })])
+  disposalsSubmitMock.mockResolvedValue({ request_id: 'req9', status: 'pending' })
+  disposalsAttachDocumentMock.mockResolvedValue({ document_id: 'doc1', disposal_id: 'd1' })
+  attachmentsUploadMock.mockResolvedValue({ id: 'att1', asset_id: 'a1', kind: 'evidence', original_filename: 'foto.jpg', size_bytes: 1024, mime_type: 'image/jpeg', has_thumbnail: false, created_at: '2026-07-04T00:00:00Z' })
+  attachmentsRemoveMock.mockResolvedValue(undefined)
+  grantSession()
+})
+
+// ---------------------------------------------------------------------------
+
+describe('pages/disposals — Ringkasan Valuasi', () => {
+  it('renders acquisition, accumulated depreciation and book value once an asset is selected', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    expect(w.find('[data-testid="disposal-valuation-acquisition"]').text()).toContain('6.800.000')
+    expect(w.find('[data-testid="disposal-valuation-accum"]').text()).toContain('6.120.000')
+    expect(w.find('[data-testid="disposal-valuation-book-commercial"]').text()).toContain('680.000')
+  })
+
+  it('renders masked "•••" for absent money fields instead of Rp 0', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_MASKED)
+    expect(w.find('[data-testid="disposal-valuation-acquisition"]').text()).toContain('•••')
+    expect(w.find('[data-testid="disposal-valuation-accum"]').text()).toContain('•••')
+    expect(w.find('[data-testid="disposal-valuation-book-commercial"]').text()).toContain('•••')
+  })
+
+  it('always shows "—" for the fiscal book value chip regardless of masking', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    expect(w.find('[data-testid="disposal-valuation-book-fiscal"]').text()).toBe('—')
+  })
+})
+
+describe('pages/disposals — Laba/Rugi card', () => {
+  it('shows the empty state when no asset is selected', async () => {
+    const w = await mountAndWait()
+    expect(w.find('[data-testid="disposal-gainloss-empty"]').exists()).toBe(true)
+  })
+
+  it('shows the empty state when an asset is selected but no proceeds are entered', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    expect(w.find('[data-testid="disposal-gainloss-empty"]').exists()).toBe(true)
+  })
+
+  it('renders a green gain (+ Rp) when proceeds exceed book value', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    await setVmRef(w, 'proceedsRaw', '1500000')
+    const value = w.find('[data-testid="disposal-gainloss-value"]')
+    expect(value.text()).toContain('+')
+    expect(value.classes()).toContain('text-success')
+  })
+
+  it('renders a red loss (− Rp) when proceeds are below book value', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_RUGI)
+    await setVmRef(w, 'proceedsRaw', '50000000')
+    const value = w.find('[data-testid="disposal-gainloss-value"]')
+    expect(value.text()).toContain('−')
+    expect(value.classes()).toContain('text-error')
+  })
+
+  it('renders a neutral break-even when proceeds equal book value', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    await setVmRef(w, 'proceedsRaw', '680000')
+    const value = w.find('[data-testid="disposal-gainloss-value"]')
+    expect(value.classes()).not.toContain('text-success')
+    expect(value.classes()).not.toContain('text-error')
+  })
+
+  it('shows a masked "—" + note when book value is hidden for the caller\'s role', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_BV_MASKED)
+    await setVmRef(w, 'proceedsRaw', '1000000')
+    expect(w.find('[data-testid="disposal-gainloss-masked"]').text()).toBe('—')
+    expect(w.text()).toContain('Nilai buku tersembunyi untuk peran Anda.')
+  })
+
+  it('always shows "—" for the fiscal gain/loss row', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    await setVmRef(w, 'proceedsRaw', '1500000')
+    expect(w.text()).toContain('Laba/rugi fiskal')
+  })
+})
+
+describe('pages/disposals — Jenjang Persetujuan (chain) card', () => {
+  it('calls the preview API with asset_disposal + purchase_cost and renders maker + step rows', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    expect(previewMock).toHaveBeenCalledWith('asset_disposal', '6800000')
+    expect(w.find('[data-testid="disposal-chain-card"]').text()).toContain('Dewi Lestari')
+    expect(w.find('[data-testid="disposal-chain-steps"]').text()).toContain('Kanwil')
+  })
+
+  it('falls back to "band belum dikonfigurasi" on a 422 from the preview endpoint', async () => {
+    previewMock.mockRejectedValue(Object.assign(new Error('no band'), { statusCode: 422 }))
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    expect(w.find('[data-testid="disposal-chain-not-configured"]').text()).toContain('belum dikonfigurasi')
+  })
+
+  it('skips the preview call and shows "nilai perolehan tersembunyi" when purchase_cost is masked', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_MASKED)
+    expect(previewMock).not.toHaveBeenCalled()
+    expect(w.find('[data-testid="disposal-chain-masked"]').text()).toContain('tersembunyi')
+  })
+})
+
+describe('pages/disposals — Ajukan Penghapusan form', () => {
+  it('keeps the right summary column sticky on large screens (mockup parity)', async () => {
+    const w = await mountAndWait()
+    const col = w.find('[data-testid="disposal-summary-column"]')
+    expect(col.exists()).toBe(true)
+    expect(col.classes()).toContain('lg:sticky')
+    expect(col.classes()).toContain('lg:top-4')
+    expect(col.classes()).toContain('self-start')
+  })
+
+  it('disables submit until asset + date + method are set, then enables it', async () => {
+    const w = await mountAndWait()
+    const submit = () => w.find('[data-testid="disposal-submit"]')
+    expect(submit().attributes('disabled')).toBeDefined()
+
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    expect(submit().attributes('disabled')).toBeDefined()
+
+    await w.find('[data-testid="disposal-date"]').setValue('2026-07-04')
+    expect(submit().attributes('disabled')).toBeUndefined()
+  })
+
+  it('submits the exact body, including the read-only book_value_at_disposal snapshot', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    await setVmRef(w, 'proceedsRaw', '1500000')
+    await w.find('[data-testid="disposal-date"]').setValue('2026-07-04')
+    await w.find('[data-testid="disposal-bast-no"]').setValue('BAP/2026/07/200')
+
+    await w.find('[data-testid="disposal-submit"]').trigger('click')
+    await flushPromises()
+
+    expect(disposalsSubmitMock).toHaveBeenCalledWith({
+      asset_id: 'a1',
+      method: 'sale',
+      disposal_date: '2026-07-04',
+      proceeds: '1500000',
+      book_value_at_disposal: '680000',
+      bast_no: 'BAP/2026/07/200',
+      reason: null
+    })
+  })
+
+  it('sends book_value_at_disposal as null when the asset\'s book_value is masked/absent', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_MASKED)
+    await w.find('[data-testid="disposal-date"]').setValue('2026-07-04')
+
+    await w.find('[data-testid="disposal-submit"]').trigger('click')
+    await flushPromises()
+
+    expect(disposalsSubmitMock).toHaveBeenCalledWith(expect.objectContaining({ book_value_at_disposal: null }))
+  })
+
+  it('switches to the post-submit view showing the summary card on success', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    await setVmRef(w, 'proceedsRaw', '1500000')
+    await w.find('[data-testid="disposal-date"]').setValue('2026-07-04')
+
+    await w.find('[data-testid="disposal-submit"]').trigger('click')
+    await flushPromises()
+
+    expect(w.text()).toContain('Printer HP LaserJet Pro')
+    expect(w.text()).toContain('Menunggu Approval')
+  })
+
+  it('keeps submit disabled and shows the no-permission note without disposal.manage', async () => {
+    grantSession(['disposal.view'])
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    await w.find('[data-testid="disposal-date"]').setValue('2026-07-04')
+
+    expect(w.find('[data-testid="disposal-submit"]').attributes('disabled')).toBeDefined()
+    expect(w.find('[data-testid="disposal-no-manage"]').text()).toContain('Anda tidak punya izin untuk mengajukan penghapusan.')
+    expect(w.find('[data-testid="disposal-evidence-dropzone"]').attributes('disabled')).toBeDefined()
+
+    await w.find('[data-testid="disposal-submit"]').trigger('click')
+    await flushPromises()
+    expect(disposalsSubmitMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('pages/disposals — Timeline Approval Berlapis', () => {
+  function stepFixture(over: Partial<ApprovalStep> = {}): ApprovalStep {
+    return { step_order: 1, required_level: 'office', approver_id: null, approver_name: null, decision: 'pending', note: null, decided_at: null, ...over }
+  }
+  function detailFixture(over: Partial<ApprovalRequestDetail> = {}): ApprovalRequestDetail {
+    return {
+      ...reqRow({ id: 'req9' }),
+      steps: [],
+      ...over
+    }
+  }
+
+  it('maps steps to done / current / queued from decision + current_step', async () => {
+    approvalGetMock.mockResolvedValue(detailFixture({
+      current_step: 2,
+      requested_by_name: 'Dewi Lestari',
+      created_at: '2026-07-02T09:00:00Z',
+      steps: [
+        stepFixture({ step_order: 1, required_level: 'office', decision: 'approved', approver_name: 'Kepala Unit A', decided_at: '2026-07-03T10:00:00Z' }),
+        stepFixture({ step_order: 2, required_level: 'wilayah', decision: 'pending' }),
+        stepFixture({ step_order: 3, required_level: 'pusat', decision: 'pending' })
+      ]
+    }))
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    await setVmRef(w, 'proceedsRaw', '1500000')
+    await w.find('[data-testid="disposal-date"]').setValue('2026-07-04')
+    await w.find('[data-testid="disposal-submit"]').trigger('click')
+    await flushPromises()
+
+    const rows = w.findAll('[data-testid="disposal-timeline-row"]')
+    // maker + 3 steps
+    expect(rows).toHaveLength(4)
+    expect(rows.map(r => r.attributes('data-status'))).toEqual(['done', 'done', 'current', 'queued'])
+    expect(rows[1]!.text()).toContain('Kepala Unit A')
+    expect(rows[2]!.text()).toContain('Menunggu tinjauan')
+    expect(rows[3]!.text()).toContain('Menunggu tahap sebelumnya')
+  })
+
+  it('"Ajukan Penghapusan Lain" resets to the empty pre-submit form', async () => {
+    approvalGetMock.mockResolvedValue(detailFixture({ current_step: 1, steps: [stepFixture()] }))
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    await w.find('[data-testid="disposal-date"]').setValue('2026-07-04')
+    await w.find('[data-testid="disposal-submit"]').trigger('click')
+    await flushPromises()
+    expect(w.text()).toContain('Menunggu Approval')
+
+    await w.find('[data-testid="disposal-reset"]').trigger('click')
+    await w.vm.$nextTick()
+
+    expect(w.find('[data-testid="disposal-submit"]').exists()).toBe(true)
+    expect((w.vm as unknown as { selectedAsset: unknown }).selectedAsset).toBeNull()
+  })
+})
+
+describe('pages/disposals — evidence dropzone', () => {
+  it('uploads each selected file immediately to the asset\'s attachments and renders a chip', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+
+    const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' })
+    const vm = w.vm as unknown as { onEvidenceFileChange: (e: unknown) => Promise<void> }
+    await vm.onEvidenceFileChange({ target: { files: [file], value: '' } })
+    await flushPromises()
+
+    expect(attachmentsUploadMock).toHaveBeenCalledWith('a1', file)
+    expect(w.find('[data-testid="disposal-evidence-chip"]').text()).toContain('foto.jpg')
+  })
+
+  it('removes an uploaded chip via remove()', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' })
+    const vm = w.vm as unknown as { onEvidenceFileChange: (e: unknown) => Promise<void> }
+    await vm.onEvidenceFileChange({ target: { files: [file], value: '' } })
+    await flushPromises()
+
+    await w.find('[data-testid="disposal-evidence-remove"]').trigger('click')
+    await flushPromises()
+
+    expect(attachmentsRemoveMock).toHaveBeenCalledWith('a1', 'att1')
+    expect(w.find('[data-testid="disposal-evidence-chip"]').exists()).toBe(false)
+  })
+
+  it('is disabled until an asset is selected', async () => {
+    const w = await mountAndWait()
+    expect(w.find('[data-testid="disposal-evidence-dropzone"]').attributes('disabled')).toBeDefined()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    expect(w.find('[data-testid="disposal-evidence-dropzone"]').attributes('disabled')).toBeUndefined()
+  })
+})
+
+describe('pages/disposals — Riwayat', () => {
+  it('merges request-sourced (menunggu/ditolak) and disposal-sourced (selesai) rows, method "—" on request rows', async () => {
+    approvalListMock.mockResolvedValue(page([
+      reqRow({ id: 'req-pending', status: 'pending' }),
+      reqRow({ id: 'req-rejected', status: 'rejected' })
+    ]))
+    const w = await mountAndWait()
+    await clickTab(w, 'history')
+    const rows = w.findAll('[data-testid="disposal-history-row"]')
+    expect(rows).toHaveLength(3)
+    const disposalRow = rows.find(r => r.text().includes('Laptop Asus X441 (Lama)'))!
+    expect(disposalRow.text()).toContain('Dijual')
+    const requestRows = rows.filter(r => !r.text().includes('Laptop Asus X441 (Lama)'))
+    expect(requestRows).toHaveLength(2)
+    for (const r of requestRows) expect(r.text()).toContain('—')
+  })
+
+  it('excludes "Disetujui" from the status filter options (deviation h) and resolves every label', async () => {
+    const w = await mountAndWait()
+    await clickTab(w, 'history')
+    const vm = w.vm as unknown as { statusFilterItems: Array<{ value: string, label: string }> }
+    const values = vm.statusFilterItems.map(i => i.value)
+    expect(values).toEqual(['all', 'menunggu', 'ditolak', 'dibatalkan', 'selesai'])
+    // Labels must be the resolved i18n strings — a missing locale key would
+    // surface here as the raw key path (e.g. "disposal.statusFilter.dibatalkan").
+    const labels = vm.statusFilterItems.map(i => i.label)
+    expect(labels).toEqual(['Semua Status', 'Menunggu Approval', 'Ditolak', 'Dibatalkan', 'Selesai'])
+  })
+
+  it('filters rows by status', async () => {
+    approvalListMock.mockResolvedValue(page([reqRow({ id: 'req-pending', status: 'pending' })]))
+    const w = await mountAndWait()
+    await clickTab(w, 'history')
+    await setVmRef(w, 'historyStatus', 'selesai')
+    const rows = w.findAll('[data-testid="disposal-history-row"]')
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.text()).toContain('Laptop Asus X441 (Lama)')
+  })
+
+  it('filters rows by search text', async () => {
+    const w = await mountAndWait()
+    await clickTab(w, 'history')
+    await setVmRef(w, 'historyQuery', 'nonexistent-xyz')
+    expect(w.text()).toContain('Belum ada riwayat')
+  })
+
+  it('shows the empty state when there is no history', async () => {
+    disposalsListMock.mockResolvedValue(page([]))
+    approvalListMock.mockResolvedValue(page([]))
+    const w = await mountAndWait()
+    await clickTab(w, 'history')
+    expect(w.text()).toContain('Belum ada riwayat')
+  })
+
+  it('shows the load-error state with retry when the history call fails', async () => {
+    disposalsListMock.mockRejectedValue(new Error('boom'))
+    const w = await mountAndWait()
+    await clickTab(w, 'history')
+    expect(w.text()).toContain('Gagal memuat data.')
+  })
+
+  it('shows the footer total count', async () => {
+    const w = await mountAndWait()
+    await clickTab(w, 'history')
+    expect(w.text()).toContain('Total 2 pengajuan')
+  })
+
+  it('shows the "Lampirkan BAST" action only on Selesai rows and sends multipart via attachDocument', async () => {
+    const w = await mountAndWait()
+    await clickTab(w, 'history')
+    const attachButtons = w.findAll('[data-testid="disposal-attach-bast"]')
+    expect(attachButtons).toHaveLength(1)
+
+    await attachButtons[0]!.trigger('click')
+    await w.vm.$nextTick()
+    expect(document.body.textContent).toContain('Lampirkan BAST Penghapusan')
+
+    const file = new File(['x'], 'bast.pdf', { type: 'application/pdf' })
+    await setVmRef(w, 'attachFile', file)
+    await setVmRef(w, 'attachBastNo', 'BAP/2026/07/300')
+
+    bodyButton('disposal-attach-confirm').click()
+    await flushPromises()
+
+    expect(disposalsAttachDocumentMock).toHaveBeenCalledWith('d1', expect.objectContaining({
+      bast_no: 'BAP/2026/07/300',
+      file
+    }))
+  })
+
+  it('hides the "Lampirkan BAST" action without disposal.manage', async () => {
+    grantSession(['disposal.view'])
+    const w = await mountAndWait()
+    await clickTab(w, 'history')
+    expect(w.findAll('[data-testid="disposal-attach-bast"]')).toHaveLength(0)
+  })
+})

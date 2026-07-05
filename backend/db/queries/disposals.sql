@@ -11,16 +11,33 @@ INSERT INTO disposal.disposals (
 )
 RETURNING *;
 
--- name: GetDisposal :one
+-- name: GetDisposalEnriched :one
 -- Scoped: caller must have the asset's office in scope (disposals have no office_id).
-SELECT d.* FROM disposal.disposals d
-JOIN asset.assets a ON a.id = d.asset_id
+-- The asset JOIN stays the scope anchor (INNER — a disposal always has a live
+-- asset) and doubles as the source of asset_name/asset_tag. LEFT JOINs keep the
+-- row visible (with nil names) even when a joined office/user was soft-deleted.
+SELECT sqlc.embed(d),
+       a.name      AS asset_name,
+       a.asset_tag AS asset_tag,
+       o.name      AS office_name,
+       cu.name     AS created_by_name
+FROM disposal.disposals d
+JOIN asset.assets a             ON a.id = d.asset_id
+LEFT JOIN masterdata.offices o  ON o.id = a.office_id       AND o.deleted_at IS NULL
+LEFT JOIN identity.users cu     ON cu.id = d.created_by_id  AND cu.deleted_at IS NULL
 WHERE d.id = sqlc.arg(id) AND d.deleted_at IS NULL
   AND (sqlc.arg(all_scope)::boolean OR a.office_id = ANY(sqlc.arg(office_ids)::uuid[]));
 
--- name: ListDisposals :many
-SELECT d.* FROM disposal.disposals d
-JOIN asset.assets a ON a.id = d.asset_id
+-- name: ListDisposalsEnriched :many
+SELECT sqlc.embed(d),
+       a.name      AS asset_name,
+       a.asset_tag AS asset_tag,
+       o.name      AS office_name,
+       cu.name     AS created_by_name
+FROM disposal.disposals d
+JOIN asset.assets a             ON a.id = d.asset_id
+LEFT JOIN masterdata.offices o  ON o.id = a.office_id       AND o.deleted_at IS NULL
+LEFT JOIN identity.users cu     ON cu.id = d.created_by_id  AND cu.deleted_at IS NULL
 WHERE d.deleted_at IS NULL
   AND (sqlc.arg(all_scope)::boolean OR a.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
 ORDER BY d.created_at DESC
@@ -32,9 +49,16 @@ JOIN asset.assets a ON a.id = d.asset_id
 WHERE d.deleted_at IS NULL
   AND (sqlc.arg(all_scope)::boolean OR a.office_id = ANY(sqlc.arg(office_ids)::uuid[]));
 
--- name: ListDisposalsByAsset :many
-SELECT d.* FROM disposal.disposals d
-JOIN asset.assets a ON a.id = d.asset_id
+-- name: ListDisposalsByAssetEnriched :many
+SELECT sqlc.embed(d),
+       a.name      AS asset_name,
+       a.asset_tag AS asset_tag,
+       o.name      AS office_name,
+       cu.name     AS created_by_name
+FROM disposal.disposals d
+JOIN asset.assets a             ON a.id = d.asset_id
+LEFT JOIN masterdata.offices o  ON o.id = a.office_id       AND o.deleted_at IS NULL
+LEFT JOIN identity.users cu     ON cu.id = d.created_by_id  AND cu.deleted_at IS NULL
 WHERE d.asset_id = sqlc.arg(asset_id) AND d.deleted_at IS NULL
   AND (sqlc.arg(all_scope)::boolean OR a.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
 ORDER BY d.created_at DESC;

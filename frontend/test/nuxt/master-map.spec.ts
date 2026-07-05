@@ -18,7 +18,7 @@ const OFFICES = [
 
 beforeEach(() => {
   request.mockReset()
-  useAuthStore().setSession('t', { id: 'u', name: 'Admin', email: 'a@x.id', role_id: 'r', role_name: '' }, ['*'])
+  useAuthStore().setSession('t', { id: 'u', name: 'Admin', email: 'a@x.id', role_id: 'r', role_name: '', office_id: null }, ['*'])
 })
 
 async function mountMap() {

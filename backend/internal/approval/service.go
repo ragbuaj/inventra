@@ -134,6 +134,31 @@ func (s *Service) Submit(ctx context.Context, in SubmitInput) (sqlc.ApprovalRequ
 	return req, nil
 }
 
+// PreviewStep is one step of a previewed approval chain (order + level only —
+// band amounts are deliberately not exposed to non-admin callers).
+type PreviewStep struct {
+	StepOrder     int32  `json:"step_order"`
+	RequiredLevel string `json:"required_level"`
+}
+
+// PreviewChain resolves the approval chain the engine would build for the given
+// request type and amount, without creating anything.
+func (s *Service) PreviewChain(ctx context.Context, t sqlc.SharedRequestType, amount string) ([]PreviewStep, error) {
+	rows, err := s.q.MatchThresholdSteps(ctx, sqlc.MatchThresholdStepsParams{RequestType: t, Amount: amount})
+	if err != nil {
+		return nil, mapDBError(err)
+	}
+	chain := buildChain(rows)
+	if len(chain) == 0 {
+		return nil, ErrNoThreshold
+	}
+	out := make([]PreviewStep, 0, len(chain))
+	for _, st := range chain {
+		out = append(out, PreviewStep{StepOrder: st.Order, RequiredLevel: string(st.Level)})
+	}
+	return out, nil
+}
+
 // Caller carries the resolved identity and scope of the acting user.
 type Caller struct {
 	UserID    uuid.UUID
