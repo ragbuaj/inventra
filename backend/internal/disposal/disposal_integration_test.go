@@ -459,6 +459,50 @@ func TestDisposal_BookValue_MakerCannotInject(t *testing.T) {
 	assert.Equal(t, "1200000.00", *row.BookValueAtDisposal, "book_value_at_disposal must be server-computed, not the caller-supplied value")
 }
 
+// TestDisposal_Submit_MalformedDisposalDate verifies Submit rejects a
+// disposal_date that does not parse as "2006-01-02" with ErrInvalidRef —
+// BEFORE any approval request is opened (the book-value computation needs a
+// valid as-of date, so the parse guard runs ahead of appr.Submit).
+func TestDisposal_Submit_MalformedDisposalDate(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	assetID := seedAssetWithCost(t, h.pool, "DIS-2026-00015", "Aset Tanggal Rusak", h.catID, h.office, "1000000.00")
+	maker := seedUser(t, h.pool, h.officeRoleID, h.office, "maker.baddate@test.local")
+	makerCaller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.office})
+
+	for _, tc := range []struct {
+		name string
+		date string
+	}{
+		{"Garbage", "not-a-date"},
+		{"WrongFormat_DDMMYYYY", "01/07/2026"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := h.dsvc.Submit(ctx, makerCaller, disposal.SubmitInput{
+				AssetID:      assetID,
+				Method:       "write_off",
+				DisposalDate: tc.date,
+				Reason:       strptr("tanggal tidak valid"),
+			})
+			require.ErrorIs(t, err, disposal.ErrInvalidRef)
+
+			// No approval request may have been opened for the asset — count
+			// ALL requests (any status) directly, stronger than the
+			// pending-only sqlc guard query.
+			var reqCount int64
+			require.NoError(t, h.pool.QueryRow(ctx,
+				`SELECT count(*) FROM approval.requests WHERE target_id = $1 AND deleted_at IS NULL`,
+				assetID).Scan(&reqCount))
+			assert.EqualValues(t, 0, reqCount, "a malformed disposal_date must not open an approval request")
+		})
+	}
+
+	// And of course no disposal row either.
+	_, err := h.q.GetDisposalByAsset(ctx, assetID)
+	require.ErrorIs(t, err, pgx.ErrNoRows)
+}
+
 // TestDisposal_Reject_NoDisposalRow verifies that rejecting the final step
 // finalises the request as rejected, creates NO disposal row, and leaves the
 // asset's status unchanged.
