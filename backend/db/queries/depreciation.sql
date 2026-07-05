@@ -107,6 +107,13 @@ WHERE a.deleted_at IS NULL AND a.capitalized = true
   )
 ORDER BY a.name;
 
+-- name: GetAssetForUpdate :one
+-- Row-locked read for RecordImpairment's read-modify-write (precedent:
+-- approval.sql GetRequestForUpdate): a second concurrent impairment blocks
+-- here until the first commits, then re-reads the post-commit book_value/
+-- impairment_loss so deltas accumulate instead of clobbering (lost update).
+SELECT * FROM asset.assets WHERE id = $1 AND deleted_at IS NULL FOR UPDATE;
+
 -- name: ApplyAssetImpairment :one
 -- PSAK 48 impairment write-down: sets both money fields directly. No
 -- depreciation entry is posted here — impairment is a separate loss, not a

@@ -125,6 +125,59 @@ func (q *Queries) DeleteEntriesThrough(ctx context.Context, target pgtype.Date) 
 	return err
 }
 
+const getAssetForUpdate = `-- name: GetAssetForUpdate :one
+SELECT id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at FROM asset.assets WHERE id = $1 AND deleted_at IS NULL FOR UPDATE
+`
+
+// Row-locked read for RecordImpairment's read-modify-write (precedent:
+// approval.sql GetRequestForUpdate): a second concurrent impairment blocks
+// here until the first commits, then re-reads the post-commit book_value/
+// impairment_loss so deltas accumulate instead of clobbering (lost update).
+func (q *Queries) GetAssetForUpdate(ctx context.Context, id uuid.UUID) (AssetAsset, error) {
+	row := q.db.QueryRow(ctx, getAssetForUpdate, id)
+	var i AssetAsset
+	err := row.Scan(
+		&i.ID,
+		&i.AssetTag,
+		&i.Name,
+		&i.CategoryID,
+		&i.BrandID,
+		&i.ModelID,
+		&i.RoomID,
+		&i.OfficeID,
+		&i.UnitID,
+		&i.Status,
+		&i.SerialNumber,
+		&i.PurchaseDate,
+		&i.PurchaseCost,
+		&i.VendorID,
+		&i.PoNumber,
+		&i.FundingSource,
+		&i.WarrantyExpiry,
+		&i.Specifications,
+		&i.AssetClass,
+		&i.Capitalized,
+		&i.DepreciationMethod,
+		&i.UsefulLifeMonths,
+		&i.SalvageValue,
+		&i.FiscalGroup,
+		&i.FiscalLifeMonths,
+		&i.AccumulatedDepreciation,
+		&i.BookValue,
+		&i.ImpairmentLoss,
+		&i.AcquisitionBastNo,
+		&i.CurrentHolderEmployeeID,
+		&i.ExcludedFromValuation,
+		&i.ValuationExclusionReason,
+		&i.CreatedByID,
+		&i.Notes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const getDepreciationPeriod = `-- name: GetDepreciationPeriod :one
 SELECT id, period, status, computed_at, computed_by, closed_at, closed_by, asset_count, total_amount, skipped_count, created_at, updated_at, deleted_at FROM depreciation.depreciation_periods WHERE period = $1 AND deleted_at IS NULL
 `

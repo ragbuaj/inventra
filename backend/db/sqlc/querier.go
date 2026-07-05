@@ -64,6 +64,11 @@ type Querier interface {
 	GetAsset(ctx context.Context, id uuid.UUID) (AssetAsset, error)
 	GetAssetByTag(ctx context.Context, assetTag string) (AssetAsset, error)
 	GetAssetDocument(ctx context.Context, id uuid.UUID) (AssetAssetDocument, error)
+	// Row-locked read for RecordImpairment's read-modify-write (precedent:
+	// approval.sql GetRequestForUpdate): a second concurrent impairment blocks
+	// here until the first commits, then re-reads the post-commit book_value/
+	// impairment_loss so deltas accumulate instead of clobbering (lost update).
+	GetAssetForUpdate(ctx context.Context, id uuid.UUID) (AssetAsset, error)
 	GetAssetLabelByID(ctx context.Context, id uuid.UUID) (GetAssetLabelByIDRow, error)
 	GetAssetLabelByTag(ctx context.Context, assetTag string) (GetAssetLabelByTagRow, error)
 	GetAttachment(ctx context.Context, id uuid.UUID) (AssetAssetAttachment, error)

@@ -252,6 +252,22 @@ func (h *Handler) assetSchedule(c *gin.Context) {
 // RecordImpairment (which has no scope params of its own — see service.go);
 // unlike assetSchedule's read-only scope check, this guards a mutation, so
 // the pre-fetch must happen ahead of, not after, the write.
+//
+// Known-accepted (reviewer Minor notes):
+//   - TOCTOU on the scope pre-check: GetAssetSummary's office read and
+//     RecordImpairment's own row-locked read are separate, so a concurrent
+//     transfer could in principle move the asset between them. Unexploitable
+//     today — depreciation.manage is seeded Superadmin-only (migration
+//     000023) and Superadmin's depreciation scope is global, so the scope
+//     check can never be the thing a race defeats. Revisit (move the check
+//     inside the service's tx, against the locked row) if manage is ever
+//     delegated to office-scoped roles.
+//   - Response-masking inconsistency: this response returns book_value/
+//     accumulated_depreciation unmasked, while assetSchedule masks
+//     book_value for roles denied view on assets.book_value. Acceptable
+//     while only manage-holders (Superadmin, who carries no deny policies)
+//     can reach this endpoint; align with the fieldSvc masking if manage is
+//     ever delegated.
 func (h *Handler) recordImpairment(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {

@@ -1166,3 +1166,127 @@ func TestDepreciation_Impairment_ProspectiveRecompute(t *testing.T) {
 	assert.Equal(t, "167619.05", m2Commercial.DepreciationAmount)
 	assert.Equal(t, "7832380.95", m2Commercial.ClosingValue, "8,000,000.00 - 167,619.05")
 }
+
+// TestDepreciation_Impairment_RowLock_NoLostUpdate is the deterministic
+// concurrent-impairment guard (the held-tx pattern from
+// TestDepreciation_ClosePeriod_BlocksOnComputeLock): a foreign transaction
+// row-locks the asset (standing in for an in-flight first impairment),
+// launches RecordImpairment concurrently, applies the "first" impairment's
+// values from the holding tx, commits, and then requires the concurrent call
+// to have re-read the POST-commit book_value — i.e. it must be rejected with
+// ErrInvalidRecoverable (its recoverable 8,000,000 >= the new book 7,000,000)
+// and the first impairment's values must survive untouched. Without the
+// FOR UPDATE read inside RecordImpairment, the concurrent call reads the
+// stale pre-commit book (8,520,000) up front, blocks only at the UPDATE, and
+// then clobbers the first write (book back UP to 8,000,000, loss understated
+// at 520,000) — a silent lost update.
+func TestDepreciation_Impairment_RowLock_NoLostUpdate(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	assetID := seedAssetMonthsAgo(t, h.pool, "DPR-2026-00028", "Aset Lock Impairment", h.catID, h.office, "9600000.00", 6)
+	month1 := firstOfMonthUTC(time.Now()).AddDate(0, -1, 0)
+	_, err := h.svc.ComputePeriod(ctx, month1, h.actorID)
+	require.NoError(t, err)
+
+	a, err := h.q.GetAsset(ctx, assetID)
+	require.NoError(t, err)
+	require.NotNil(t, a.BookValue)
+	require.Equal(t, "8520000.00", *a.BookValue)
+
+	// Foreign tx: row-lock the asset, as RecordImpairment's own tx would.
+	lockTx, err := h.pool.Begin(ctx)
+	require.NoError(t, err)
+	_, err = lockTx.Exec(ctx, `SELECT 1 FROM asset.assets WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`, assetID)
+	require.NoError(t, err)
+
+	done := make(chan error, 1)
+	go func() {
+		_, errImp := h.svc.RecordImpairment(ctx, assetID, "8000000.00", "uji konkuren", h.actorID)
+		done <- errImp
+	}()
+
+	select {
+	case errImp := <-done:
+		require.NoError(t, lockTx.Rollback(ctx))
+		t.Fatalf("RecordImpairment completed (err=%v) while the asset row lock was held — it must block", errImp)
+	case <-time.After(750 * time.Millisecond):
+		// Still blocked — desired. (Note: even WITHOUT the FOR UPDATE read it
+		// blocks here too, at its UPDATE; the discriminating assertion is the
+		// post-commit outcome below, not the blocking itself.)
+	}
+
+	// "First impairment" wins the race: write exactly what RecordImpairment
+	// to recoverable 7,000,000 would persist, then commit (releasing the lock).
+	_, err = lockTx.Exec(ctx,
+		`UPDATE asset.assets SET book_value = '7000000.00', impairment_loss = '1520000.00' WHERE id = $1`, assetID)
+	require.NoError(t, err)
+	require.NoError(t, lockTx.Commit(ctx))
+
+	select {
+	case errImp := <-done:
+		// The concurrent call must have re-read book_value AFTER the commit:
+		// its recoverable 8,000,000 >= the new book 7,000,000 → rejected.
+		require.ErrorIs(t, errImp, depreciation.ErrInvalidRecoverable,
+			"concurrent impairment must re-read the post-commit book value, not clobber from a stale read")
+	case <-time.After(5 * time.Second):
+		t.Fatal("RecordImpairment still blocked after the row lock was released")
+	}
+
+	final, err := h.q.GetAsset(ctx, assetID)
+	require.NoError(t, err)
+	require.NotNil(t, final.BookValue)
+	require.NotNil(t, final.ImpairmentLoss)
+	assert.Equal(t, "7000000.00", *final.BookValue, "first impairment's book_value must survive (no lost update)")
+	assert.Equal(t, "1520000.00", *final.ImpairmentLoss, "first impairment's cumulative loss must survive (not understated)")
+}
+
+// TestDepreciation_Impairment_ConcurrentInvariant races two real
+// RecordImpairment calls (recoverables 8,000,000 and 7,000,000 against book
+// 8,520,000) and asserts the serial-equivalence invariant that must hold
+// under EITHER lock-acquisition ordering:
+//   - 8M first, then 7M: both succeed (deltas 520,000 then 1,000,000).
+//   - 7M first, then 8M: 7M succeeds (delta 1,520,000); 8M is rejected with
+//     ErrInvalidRecoverable (8,000,000 >= new book 7,000,000).
+//
+// In both orderings the final state is identical — book_value 7,000,000 and
+// impairment_loss 1,520,000 (== original book − final book) — and the ONLY
+// permissible error is ErrInvalidRecoverable on the 8M call. A lost update
+// (book 8,000,000 / loss 520,000 with no error) fails these assertions.
+func TestDepreciation_Impairment_ConcurrentInvariant(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	assetID := seedAssetMonthsAgo(t, h.pool, "DPR-2026-00029", "Aset Invarian Impairment", h.catID, h.office, "9600000.00", 6)
+	month1 := firstOfMonthUTC(time.Now()).AddDate(0, -1, 0)
+	_, err := h.svc.ComputePeriod(ctx, month1, h.actorID)
+	require.NoError(t, err)
+
+	var wg sync.WaitGroup
+	var err8M, err7M error
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		_, err8M = h.svc.RecordImpairment(ctx, assetID, "8000000.00", "uji balapan 8M", h.actorID)
+	}()
+	go func() {
+		defer wg.Done()
+		_, err7M = h.svc.RecordImpairment(ctx, assetID, "7000000.00", "uji balapan 7M", h.actorID)
+	}()
+	wg.Wait()
+
+	// The 7M call must always succeed (7,000,000 is below the book value it
+	// observes under either ordering); the 8M call either succeeded (it ran
+	// first) or was rejected because 7M had already lowered the book.
+	require.NoError(t, err7M)
+	if err8M != nil {
+		require.ErrorIs(t, err8M, depreciation.ErrInvalidRecoverable)
+	}
+
+	final, err := h.q.GetAsset(ctx, assetID)
+	require.NoError(t, err)
+	require.NotNil(t, final.BookValue)
+	require.NotNil(t, final.ImpairmentLoss)
+	assert.Equal(t, "7000000.00", *final.BookValue, "final book must equal the lowest applied recoverable")
+	assert.Equal(t, "1520000.00", *final.ImpairmentLoss, "loss must equal original book (8,520,000) − final book (7,000,000) — never a silently-lost delta")
+}

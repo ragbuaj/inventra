@@ -905,7 +905,13 @@ func (s *Service) RecordImpairment(ctx context.Context, assetID uuid.UUID, recov
 	defer tx.Rollback(ctx) //nolint:errcheck
 	qtx := s.q.WithTx(tx)
 
-	a, err := qtx.GetAsset(ctx, assetID)
+	// Row-locked read (FOR UPDATE): this method is a read-modify-write over
+	// book_value/impairment_loss, so a second concurrent impairment of the
+	// same asset must block HERE and re-read the post-commit values once the
+	// first commits — a plain read would compute its delta from a stale book
+	// value and silently clobber the first write (lost update; understated
+	// cumulative write-down).
+	a, err := qtx.GetAssetForUpdate(ctx, assetID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return sqlc.AssetAsset{}, ErrNotFound
