@@ -67,6 +67,9 @@ services:
     restart: "no"
 
   backend:
+    # CD memakai image pra-build dari GHCR (di-pull di VPS). `build` tetap ada
+    # sebagai fallback untuk build manual di host bila diperlukan.
+    image: ghcr.io/ragbuaj/inventra-backend:latest
     build:
       context: ./backend
     container_name: inventra-backend
@@ -107,6 +110,7 @@ services:
       LOG_FORMAT: json
 
   frontend:
+    image: ghcr.io/ragbuaj/inventra-frontend:latest
     build:
       context: ./frontend
     container_name: inventra-frontend

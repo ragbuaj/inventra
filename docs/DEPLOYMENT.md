@@ -208,6 +208,11 @@ HTTPS hijau (sertifikat Let's Encrypt).
 
 ## 10. Update / redeploy
 
+> **Otomatis?** Kalau auto-deploy (CD) sudah diaktifkan (§13), setiap merge ke
+> `main` yang lolos CI akan otomatis ter-deploy — Anda tidak perlu menjalankan
+> perintah di bawah secara manual. Bagian ini untuk redeploy manual / server
+> tanpa CD.
+
 ```bash
 cd ~/inventra
 git pull
@@ -279,7 +284,7 @@ gunakan domain agar dapat HTTPS.
 
 ---
 
-## WAF (Coraza + OWASP CRS)
+## 13. WAF (Coraza + OWASP CRS)
 
 Reverse-proxy Caddy menjalankan WAF Coraza dengan OWASP CRS (image Caddy kustom
 di `ops/caddy/`). Mode diatur oleh `SecRuleEngine` di `ops/caddy/Caddyfile`:
@@ -307,6 +312,80 @@ docker compose -f ops/caddy/test/docker-compose.test.yml up -d --build
 ops/waf-smoketest.sh http://localhost:18080
 docker compose -f ops/caddy/test/docker-compose.test.yml down
 ```
+
+---
+
+## 14. Auto-deploy (CD) via GitHub Actions
+
+Alur setelah diaktifkan:
+
+```
+merge ke main ─▶ CI (test/lint/e2e) ─▶ workflow "Deploy":
+                                          build image backend+frontend
+                                          push ke GHCR
+                                          SSH ke VPS ─▶ git pull ─▶ compose pull ─▶ up -d
+                                        ─▶ live (otomatis)
+```
+
+Build berat (Nuxt) terjadi di runner GitHub (7 GB RAM), **bukan** di VPS. VPS
+hanya `docker pull` — tanpa build, tanpa swap. Definisi pipeline ada di
+[`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml); ia dipicu
+`workflow_run` sehingga **hanya jalan bila workflow CI sukses** di `main`.
+
+### Setup satu kali
+
+**a. Buat SSH key khusus CI** (di komputer lokal atau VPS):
+```bash
+ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/gha_deploy -N ""
+```
+Tambahkan **public key** ke daftar yang diizinkan login di VPS (user `deploy`):
+```bash
+# jalankan di VPS, tempel isi gha_deploy.pub
+echo "ssh-ed25519 AAAA...isi-public-key... github-actions-deploy" >> ~/.ssh/authorized_keys
+```
+
+**b. Tambah GitHub Secrets** (repo → Settings → Secrets and variables → Actions → New repository secret):
+
+| Secret | Isi |
+| --- | --- |
+| `VPS_HOST` | IP publik VPS (atau `inventra.ragilbuaj.web.id`) |
+| `VPS_USER` | `deploy` |
+| `VPS_SSH_KEY` | **isi lengkap private key** `~/.ssh/gha_deploy` (termasuk baris `-----BEGIN/END-----`) |
+| `VPS_PORT` | *(opsional; default 22)* |
+
+**c. Jadikan image GHCR publik** (agar VPS bisa `pull` tanpa login). Setelah
+workflow Deploy sukses pertama kali, image muncul di tab **Packages** akun Anda.
+Untuk masing-masing (`inventra-backend`, `inventra-frontend`): buka package →
+**Package settings** → **Change visibility** → **Public**.
+> Alternatif (kalau ingin tetap privat): jalankan `docker login ghcr.io` di VPS
+> dengan PAT ber-scope `read:packages`.
+
+**d. Pastikan `~/inventra` di VPS** adalah checkout `main` yang bersih dan berisi
+`.env.prod`. Karena repo publik, `git pull` tidak butuh autentikasi.
+
+### Menjalankan & memantau
+
+- **Otomatis**: merge/push ke `main` → tunggu CI hijau → Deploy jalan sendiri.
+- **Manual**: tab **Actions → Deploy → Run workflow** (memakai `workflow_dispatch`).
+- Pantau progres di tab **Actions**; verifikasi hasil dengan
+  `curl -fsS https://<DOMAIN>/health`.
+
+### Rollback
+
+Selain `:latest`, tiap build diberi tag **commit SHA**
+(`ghcr.io/ragbuaj/inventra-backend:<sha>`), jadi versi lama selalu tersedia untuk
+dikembalikan. Cara termudah di VPS — tarik image versi lama lalu jalankan sebagai
+`latest`:
+```bash
+OLD=<sha-commit-lama>
+docker pull ghcr.io/ragbuaj/inventra-backend:$OLD
+docker pull ghcr.io/ragbuaj/inventra-frontend:$OLD
+docker tag ghcr.io/ragbuaj/inventra-backend:$OLD  ghcr.io/ragbuaj/inventra-backend:latest
+docker tag ghcr.io/ragbuaj/inventra-frontend:$OLD ghcr.io/ragbuaj/inventra-frontend:latest
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+```
+Bila rollback juga menyangkut perubahan migrasi/compose, lakukan
+`git checkout <commit-lama>` di `~/inventra` lebih dulu, lalu jalankan langkah di atas.
 
 ---
 
