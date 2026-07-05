@@ -199,6 +199,11 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     behavior to Mutasi history once the Dokumen BAST screen is built; fold
 >     the transfer/disposal money fields (`proceeds`, `book_value_at_disposal`, transfer
 >     `condition`/`reason`) into the field-permission catalog if a future role needs them masked.
+>     From the final whole-branch review (all non-gating): apply `parsePlainDecimal` to
+>     `ThresholdRequest.amount_from/to` (admin CRUD still accepts non-numeric → DB 500); client-side
+>     from-office check on the Riwayat **Kirim** button (backend enforces; UX-only gap);
+>     distinguish 422 from network/500 in the disposal chain-preview card's fallback message;
+>     delete ~11 dead mockup-era i18n key pairs (`disposal.chain.role.*`, `*.form.noAvailable`, …).
 >     **Gate sweep (task-13):** backend build/vet/test + full integration, Spectral, frontend
 >     lint/typecheck/test (826 unit)/build all green. Full e2e: a first run (auto-parallel workers,
 >     matching Task 12's mode) was **69/69 green**; a later same-session rerun at `--workers=1`
