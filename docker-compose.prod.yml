@@ -1,0 +1,153 @@
+# Inventra — stack PRODUKSI (image terkompilasi + reverse proxy TLS).
+#
+#   cp .env.prod.example .env.prod && nano .env.prod   # isi rahasia + DOMAIN
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# Beda dengan docker-compose.yml (dev/CI):
+#   - Postgres/Redis/MinIO TIDAK diekspos ke host (hanya jaringan internal).
+#   - Rahasia dibaca dari .env.prod, bukan hardcoded.
+#   - Caddy mengurus HTTPS otomatis; hanya port 80/443 yang terbuka.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: inventra-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: inventra
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: inventra
+    volumes:
+      - inventra-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inventra -d inventra"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: inventra-redis
+    restart: unless-stopped
+    volumes:
+      - inventra-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: inventra-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - inventra-minio:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    image: migrate/migrate:v4.19.1
+    container_name: inventra-migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/db/migrations:/migrations:ro
+    command:
+      - "-path=/migrations"
+      - "-database=postgres://inventra:${DB_PASSWORD}@postgres:5432/inventra?sslmode=disable"
+      - "up"
+    restart: "no"
+
+  backend:
+    build:
+      context: ./backend
+    container_name: inventra-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      ENV: production
+      SERVER_PORT: "8080"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: inventra
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: inventra
+      DB_SSLMODE: disable
+      REDIS_ADDR: redis:6379
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: inventra
+      MINIO_USE_SSL: "false"
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: https://${DOMAIN}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URL: https://${DOMAIN}/api/v1/auth/google/callback
+      # Caddy meneruskan X-Forwarded-For; percayai subnet jaringan compose ini
+      # agar rate-limit memakai IP klien asli, bukan IP proxy.
+      TRUSTED_PROXIES: 172.28.0.0/16
+      RATELIMIT_ENABLED: "true"
+      LOG_FORMAT: json
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: inventra-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      # API base yang dipanggil BROWSER pengguna — harus URL publik HTTPS.
+      NUXT_PUBLIC_API_BASE: https://${DOMAIN}/api/v1
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: inventra-caddy
+    restart: unless-stopped
+    depends_on:
+      - frontend
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./ops/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  inventra-postgres:
+  inventra-redis:
+  inventra-minio:
+  caddy-data:
+  caddy-config:
+
+# Nama & subnet jaringan dipatok agar cocok dengan TRUSTED_PROXIES di atas dan
+# agar perintah one-off (seed admin) bisa join lewat `--network inventra-net`.
+networks:
+  default:
+    name: inventra-net
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
