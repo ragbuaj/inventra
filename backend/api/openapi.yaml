@@ -79,6 +79,19 @@ tags:
       `disposal.view`; writes (`submit`, `document`) require `disposal.manage`. Attaching the
       BAST creates a `bast_disposal` asset document (see `POST /assets/{id}/documents`
       semantics) and optionally persists `bast_no` on the disposal.
+  - name: Depreciation
+    description: |
+      Monthly depreciation compute/close, per-asset/portfolio schedules, and the
+      general-ledger journal — computed on **two bases**: commercial (PSAK 16, straight-line
+      or declining-balance per category) and fiscal (PMK 72/2023). Reading periods,
+      schedule, and journal (incl. export) requires `depreciation.view`; the schedule and
+      journal (+ export) are additionally scoped to the `depreciation` data-scope module,
+      while the periods list is a global (non-office-scoped) read of period aggregates.
+      Computing/closing a period and recording an impairment (PSAK 48 write-down) require
+      `depreciation.manage`. **Closing a period is immutable** — a later compute never
+      regenerates entries at or before the closed watermark. `GET /assets/{id}/depreciation`
+      instead reuses the `assets` data scope and masks `book_value`-derived fields per the
+      caller's field permissions.
   - name: Audit
     description: Read-only audit trail (requires the `audit.view` permission)
 
@@ -2153,6 +2166,291 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/v1/depreciation/periods:
+    get:
+      tags: [Depreciation]
+      operationId: listDepreciationPeriods
+      summary: List depreciation periods
+      description: |
+        Returns every persisted period (newest first), plus a synthetic current-calendar-
+        month row with `status: open` when it has never been computed. Requires the
+        `depreciation.view` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Depreciation periods
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/DepreciationPeriod" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/depreciation/periods/{period}/compute:
+    parameters:
+      - { name: period, in: path, required: true, schema: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }, description: 'Format: YYYY-MM.' }
+    post:
+      tags: [Depreciation]
+      operationId: computeDepreciationPeriod
+      summary: Compute (or recompute) a depreciation period
+      description: |
+        Idempotent: regenerates every non-closed depreciation entry (strictly after the
+        closed watermark, through the target period) for every eligible asset, on BOTH
+        bases (commercial PSAK 16 and fiscal PMK 72/2023), and upserts the period to
+        `computed`. Safe to re-run while the period is not yet closed. Requires the
+        `depreciation.manage` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The computed period
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DepreciationPeriod" }
+        "400":
+          description: Malformed `period` path parameter (expected YYYY-MM)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: The period is already closed (immutable)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          description: The period is at or before the closed watermark and cannot be (re)computed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/depreciation/periods/{period}/close:
+    parameters:
+      - { name: period, in: path, required: true, schema: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }, description: 'Format: YYYY-MM.' }
+    post:
+      tags: [Depreciation]
+      operationId: closeDepreciationPeriod
+      summary: Close a computed depreciation period
+      description: |
+        Finalizes a `computed` period as `closed`, making its entries immutable — no later
+        compute will ever regenerate them. Only allowed from `computed`, and only when every
+        earlier period that has a row is already `closed` (sequential close). Requires the
+        `depreciation.manage` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The closed period
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [period, status]
+                properties:
+                  period: { type: string, description: 'Format: YYYY-MM.' }
+                  status: { type: string, enum: [closed] }
+        "400":
+          description: Malformed `period` path parameter (expected YYYY-MM)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: The period is already closed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          description: The period has never been computed (no row, or still `open`), or an earlier period has not been closed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/depreciation/schedule:
+    get:
+      tags: [Depreciation]
+      operationId: getDepreciationSchedule
+      summary: Get the per-asset depreciation schedule for a period
+      description: |
+        Rows are the union of (a) entries actually posted for the period and (b) capitalized,
+        parameterized assets with no entry this period because they were already fully
+        depreciated earlier (rendered with `fully_depreciated: true`, `amount: "0.00"`).
+        Scoped to the caller's offices (data-scope module `depreciation`); `category_id` and
+        `office_id` are additional exact-match filters on top of that scope, and `search`
+        matches asset name/tag case-insensitively. Requires the `depreciation.view` permission.
+      security:
+        - bearerJWT: []
+      parameters:
+        - { name: period, in: query, required: true, schema: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }, description: 'Required. Format: YYYY-MM.' }
+        - { name: basis, in: query, schema: { type: string, enum: [commercial, fiscal], default: commercial }, description: Depreciation basis. Defaults to commercial when omitted. }
+        - { name: search, in: query, schema: { type: string }, description: Case-insensitive match on asset name/tag. }
+        - { name: category_id, in: query, schema: { type: string, format: uuid } }
+        - { name: office_id, in: query, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: The schedule for the requested period/basis
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DepreciationScheduleResponse" }
+        "400":
+          description: Malformed `period`, `basis`, `category_id`, or `office_id`
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/depreciation/journal:
+    get:
+      tags: [Depreciation]
+      operationId: getDepreciationJournal
+      summary: Get the depreciation general-ledger journal entry for a period
+      description: |
+        One debit row per distinct category GL account ("Beban Penyusutan — {category}";
+        categories with no configured GL account fold into a single "(tanpa akun GL)" row),
+        and one credit row for the configured accumulated-depreciation GL account
+        (`app_settings` key `depreciation.accumulated_gl_account`). Always balances by
+        construction. Scoped to the caller's offices (data-scope module `depreciation`).
+        Requires the `depreciation.view` permission.
+      security:
+        - bearerJWT: []
+      parameters:
+        - { name: period, in: query, required: true, schema: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }, description: 'Required. Format: YYYY-MM.' }
+        - { name: basis, in: query, schema: { type: string, enum: [commercial, fiscal], default: commercial }, description: Depreciation basis. Defaults to commercial when omitted. }
+      responses:
+        "200":
+          description: The journal entry for the requested period/basis
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DepreciationJournalResponse" }
+        "400":
+          description: Malformed `period` or `basis`
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/depreciation/journal/export:
+    get:
+      tags: [Depreciation]
+      operationId: exportDepreciationJournal
+      summary: Download the depreciation journal as xlsx or PDF
+      description: |
+        Renders the identical journal as `GET /depreciation/journal`, as a downloadable file
+        instead of JSON. Streams with `Content-Disposition: attachment` and
+        `X-Content-Type-Options: nosniff`. Gated by the same `depreciation.view` permission
+        and `depreciation` data scope as the plain journal endpoint.
+      security:
+        - bearerJWT: []
+      parameters:
+        - { name: period, in: query, required: true, schema: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }, description: 'Required. Format: YYYY-MM.' }
+        - { name: basis, in: query, schema: { type: string, enum: [commercial, fiscal], default: commercial }, description: Depreciation basis. Defaults to commercial when omitted. }
+        - { name: format, in: query, required: true, schema: { type: string, enum: [xlsx, pdf] } }
+      responses:
+        "200":
+          description: Journal file
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+        "400":
+          description: Malformed `period`, `basis`, or `format`
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/assets/{id}/depreciation:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: Asset id }
+    get:
+      tags: [Depreciation]
+      operationId: getAssetDepreciation
+      summary: Get one asset's full depreciation history and current book value
+      description: |
+        Returns every posted entry (both bases) plus the asset's current computed
+        (commercial) book value. Requires the `asset.view` permission; the asset must be
+        within the caller's data scope (module `assets`, same as the asset module). When the
+        caller's role is denied view on `assets.book_value`, the response is masked:
+        `masked: true`, `computed_book_value: null`, `entries: []`.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The asset's depreciation history (or a masked response — see description)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssetDepreciationResponse" }
+        "400":
+          description: Malformed `id`
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Asset not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/assets/{id}/impairment:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: Asset id }
+    post:
+      tags: [Depreciation]
+      operationId: recordAssetImpairment
+      summary: Record an impairment write-down for an asset (PSAK 48)
+      description: |
+        Writes the asset's book value down to a tested recoverable amount:
+        `impairment_loss` accumulates the shortfall (previous book value minus
+        `recoverable_amount`) and `book_value` drops to `recoverable_amount`. Does not post
+        a depreciation entry — impairment is a separate loss, not a depreciation expense; the
+        next period compute resumes depreciation from the lower book value. Requires the
+        `depreciation.manage` permission; the asset must be within the caller's data scope
+        (module `depreciation`).
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ImpairmentRequest" }
+      responses:
+        "200":
+          description: The asset's updated money fields
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImpairmentResponse" }
+        "400":
+          description: Malformed `id`, request body, or `recoverable_amount`
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Asset not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          description: The asset has no computed book value yet, or `recoverable_amount` is negative or not strictly below the current book value
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/v1/authz/catalog:
     get:
       tags: [Authorization Admin]
@@ -3398,7 +3696,11 @@ components:
 
     DisposalSubmitRequest:
       type: object
-      description: Body for POST /disposals.
+      description: |
+        Body for POST /disposals. book_value_at_disposal is not part of this request —
+        the server computes it (and the approval amount) from the depreciation schedule
+        as of disposal_date's month (last commercial closing, falling back to
+        purchase_cost, then "0"); a caller cannot supply or override it.
       required: [asset_id, method, disposal_date]
       properties:
         asset_id: { type: string, format: uuid }
@@ -3407,9 +3709,6 @@ components:
           enum: [sale, auction, donation, write_off]
         disposal_date: { type: string, format: date }
         proceeds:
-          type: [string, "null"]
-          description: Decimal string (IDR).
-        book_value_at_disposal:
           type: [string, "null"]
           description: Decimal string (IDR).
         bast_no: { type: [string, "null"] }
@@ -3754,3 +4053,189 @@ components:
         label:
           type: string
           description: Human-readable label in Indonesian (used by the admin UI).
+
+    DepreciationPeriod:
+      type: object
+      description: |
+        One row of `GET /depreciation/periods`, and also the response body of
+        `POST /depreciation/periods/{period}/compute`: either a persisted period row, or (list
+        endpoint only) the synthetic current-calendar-month row when it has never been
+        computed (`status: open`, all counts/amounts zero).
+      required: [period, status, asset_count, total_amount, skipped_count]
+      properties:
+        period:
+          type: string
+          description: 'Format: YYYY-MM.'
+        status:
+          type: string
+          enum: [open, computed, closed]
+        asset_count:
+          type: integer
+          description: Number of assets with a nonzero commercial depreciation amount posted for this period.
+        total_amount:
+          type: string
+          description: |
+            Decimal string (IDR). Sum of commercial depreciation amounts posted for this
+            period; empty string for the synthetic never-computed current-month row.
+        skipped_count:
+          type: integer
+          description: 'Assets skipped this run — reasons: not capitalized, disposed, missing purchase_cost/purchase_date, or missing depreciation parameters (no method/useful life on asset or category).'
+
+    DepreciationScheduleRow:
+      type: object
+      required: [asset_id, asset_name, asset_tag, category_name, office_name, method, life_months, opening, amount, accumulated, closing, impaired, fully_depreciated]
+      properties:
+        asset_id: { type: string, format: uuid }
+        asset_name: { type: string }
+        asset_tag: { type: string }
+        category_name: { type: string }
+        office_name: { type: [string, "null"] }
+        method:
+          type: string
+          enum: [straight_line, declining_balance]
+        life_months: { type: integer }
+        opening:
+          type: string
+          description: Decimal string (IDR).
+        amount:
+          type: string
+          description: Decimal string (IDR).
+        accumulated:
+          type: string
+          description: Decimal string (IDR).
+        closing:
+          type: string
+          description: Decimal string (IDR).
+        impaired:
+          type: boolean
+          description: True when the asset carries a positive impairment_loss.
+        fully_depreciated:
+          type: boolean
+          description: |
+            True for a synthetic row: the asset had no entry posted for the requested period
+            because it already reached full depreciation in an earlier period. For these rows
+            `amount` is "0.00" and `opening`/`closing` both equal the asset's current book value.
+
+    DepreciationScheduleResponse:
+      type: object
+      required: [kpi, rows, totals]
+      properties:
+        kpi:
+          type: object
+          description: Dashboard KPI tiles, summed across every in-scope row (not just the current page — this endpoint is unpaginated).
+          required: [total_cost, total_accumulated, total_book_value, period_expense]
+          properties:
+            total_cost: { type: string, description: Decimal string (IDR). }
+            total_accumulated: { type: string, description: Decimal string (IDR). }
+            total_book_value: { type: string, description: Decimal string (IDR). }
+            period_expense: { type: string, description: Decimal string (IDR). Sum of `amount` across rows. }
+        rows:
+          type: array
+          items: { $ref: "#/components/schemas/DepreciationScheduleRow" }
+        totals:
+          type: object
+          description: Table footer totals (sum of the `rows` array's own columns).
+          required: [opening, amount, accumulated, closing]
+          properties:
+            opening: { type: string, description: Decimal string (IDR). }
+            amount: { type: string, description: Decimal string (IDR). }
+            accumulated: { type: string, description: Decimal string (IDR). }
+            closing: { type: string, description: Decimal string (IDR). }
+
+    DepreciationJournalRow:
+      type: object
+      required: [account_code, account_name, debit, credit]
+      properties:
+        account_code:
+          type: string
+          description: GL account code, or "-" when the category has none configured (or for the credit row's fallback).
+        account_name: { type: string }
+        debit:
+          type: string
+          description: Decimal string (IDR). "0.00" on the single credit row.
+        credit:
+          type: string
+          description: Decimal string (IDR). "0.00" on every debit row.
+
+    DepreciationJournalResponse:
+      type: object
+      required: [rows, total_debit, total_credit, balanced]
+      properties:
+        rows:
+          type: array
+          description: One debit row per distinct category GL account, plus one credit row for the configured accumulated-depreciation account.
+          items: { $ref: "#/components/schemas/DepreciationJournalRow" }
+        total_debit: { type: string, description: Decimal string (IDR). }
+        total_credit: { type: string, description: Decimal string (IDR). }
+        balanced:
+          type: boolean
+          description: Always true — the credit is constructed as exactly the sum of the debits.
+
+    AssetDepreciationEntry:
+      type: object
+      required: [basis, period, opening, amount, closing, method]
+      properties:
+        basis:
+          type: string
+          enum: [commercial, fiscal]
+        period:
+          type: string
+          description: 'Format: YYYY-MM.'
+        opening:
+          type: string
+          description: Decimal string (IDR).
+        amount:
+          type: string
+          description: Decimal string (IDR).
+        closing:
+          type: string
+          description: Decimal string (IDR).
+        method:
+          type: string
+          enum: [straight_line, declining_balance]
+
+    AssetDepreciationResponse:
+      type: object
+      description: |
+        Response body of `GET /assets/{id}/depreciation`. When the caller's role is denied
+        view on `assets.book_value`, the response is masked: `masked: true`,
+        `computed_book_value: null`, `entries: []`.
+      required: [masked, computed_book_value, entries]
+      properties:
+        masked: { type: boolean }
+        computed_book_value:
+          type: [string, "null"]
+          description: Decimal string (IDR). The asset's current computed commercial book value; null when masked.
+        entries:
+          type: array
+          description: Every posted entry for the asset, both bases, oldest first.
+          items: { $ref: "#/components/schemas/AssetDepreciationEntry" }
+
+    ImpairmentRequest:
+      type: object
+      description: Body for `POST /assets/{id}/impairment` (PSAK 48 impairment test / write-down).
+      required: [recoverable_amount, reason]
+      properties:
+        recoverable_amount:
+          type: string
+          description: |
+            Decimal string (IDR), plain (no exponents/fractions/signs). Must be non-negative
+            and strictly less than the asset's current book value.
+        reason:
+          type: string
+          description: Caller-supplied justification, recorded in the audit trail.
+
+    ImpairmentResponse:
+      type: object
+      description: The asset's money fields after applying the impairment write-down.
+      required: [book_value, impairment_loss, accumulated_depreciation]
+      properties:
+        book_value:
+          type: [string, "null"]
+          description: Decimal string (IDR). Dropped to recoverable_amount.
+        impairment_loss:
+          type: [string, "null"]
+          description: Decimal string (IDR). Accumulates the shortfall (previous book value minus recoverable_amount).
+        accumulated_depreciation:
+          type: string
+          description: Decimal string (IDR). Unaffected by impairment — it is not a depreciation expense.

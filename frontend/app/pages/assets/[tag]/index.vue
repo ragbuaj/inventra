@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { Asset } from '~/types'
+import type { AssetDepreciationEntry, AssetDepreciationResponse } from '~/composables/api/useDepreciation'
 import { classMeta } from '~/constants/assetMeta'
+import { BASIS_META, type DepreciationBasis } from '~/constants/depreciationMeta'
+import { formatRupiah } from '~/utils/format'
 
 definePageMeta({ middleware: 'can', permission: 'asset.view' })
 
@@ -17,6 +20,7 @@ const categoriesApi = useCategories()
 const officesApi = useOffices()
 const floorsApi = useFloors()
 const referenceApi = useReference()
+const deprApi = useDepreciation()
 
 const tag = computed(() => String(route.params.tag))
 const asset = ref<Asset | null>(null)
@@ -91,6 +95,45 @@ function usefulLifeLabel(months: number | null | undefined): string {
   if (months == null) return '—'
   return t('assets.detail.months', { n: months })
 }
+
+// ---------------------------------------------------------------------------
+// Depreciation tab — fetched once on first activation (and re-fetched if the
+// route swaps to a different asset while the tab is already active).
+// ---------------------------------------------------------------------------
+const DEPR_BASIS_OPTIONS: DepreciationBasis[] = ['commercial', 'fiscal']
+const deprBasis = ref<DepreciationBasis>('commercial')
+const deprLoading = ref(false)
+const deprError = ref(false)
+const deprResp = ref<AssetDepreciationResponse | null>(null)
+let deprLoadedForAssetId: string | null = null
+
+const deprEntriesForBasis = computed<AssetDepreciationEntry[]>(() => {
+  return (deprResp.value?.entries ?? []).filter(e => e.basis === deprBasis.value)
+})
+
+async function loadDepr() {
+  const a = asset.value
+  if (!a) return
+  deprLoading.value = true
+  deprError.value = false
+  try {
+    deprResp.value = await deprApi.assetSchedule(a.id)
+    deprLoadedForAssetId = a.id
+  } catch {
+    deprError.value = true
+    deprResp.value = null
+  } finally {
+    deprLoading.value = false
+  }
+}
+
+function ensureDeprLoaded() {
+  if (tab.value !== 'depr' || !asset.value) return
+  if (deprLoadedForAssetId === asset.value.id) return
+  loadDepr()
+}
+
+watch(tab, ensureDeprLoaded)
 
 const ringkas = computed(() => {
   const a = asset.value
@@ -253,8 +296,11 @@ async function load() {
     if (mine !== seq) return
     asset.value = a
     loading.value = false
+    deprLoadedForAssetId = null
+    deprResp.value = null
     loadLookups(a, mine)
     loadGallery(a.id, mine)
+    ensureDeprLoaded()
   } catch (err) {
     if (mine !== seq) return
     const status = (err as { statusCode?: number } | undefined)?.statusCode
@@ -486,7 +532,146 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- Assignment / Maintenance / Depreciation tabs — module not yet built (Phase: Assignment/Maintenance/Depreciation). -->
+          <!-- Depreciation tab -->
+          <div
+            v-else-if="tab === 'depr'"
+            class="p-5"
+          >
+            <div
+              v-if="deprLoading"
+              class="flex items-center justify-center py-16"
+            >
+              <UIcon
+                name="i-lucide-loader-circle"
+                class="size-6 animate-spin text-muted"
+              />
+            </div>
+
+            <div
+              v-else-if="deprError"
+              data-testid="depr-tab-error"
+              class="flex flex-col items-center gap-3 py-16 text-center"
+            >
+              <UIcon
+                name="i-lucide-circle-alert"
+                class="size-6 text-muted"
+              />
+              <span class="text-sm text-muted">{{ t('common.loadError') }}</span>
+              <UButton
+                color="neutral"
+                variant="subtle"
+                @click="loadDepr"
+              >
+                {{ t('common.retry') }}
+              </UButton>
+            </div>
+
+            <div
+              v-else-if="deprResp?.masked"
+              data-testid="depr-tab-masked"
+              class="flex flex-col items-center gap-2.5 py-16 text-center"
+            >
+              <UIcon
+                name="i-lucide-lock"
+                class="size-6 text-dimmed"
+              />
+              <span class="text-sm text-muted">{{ t('depreciation.assetDetail.masked') }}</span>
+            </div>
+
+            <div
+              v-else-if="!deprResp || deprResp.entries.length === 0"
+              data-testid="depr-tab-empty"
+              class="flex flex-col items-center gap-2.5 py-16 text-center"
+            >
+              <UIcon
+                name="i-lucide-inbox"
+                class="size-6 text-dimmed"
+              />
+              <span class="text-sm text-muted">{{ t('depreciation.assetDetail.empty') }}</span>
+            </div>
+
+            <div v-else>
+              <div class="flex items-center justify-between gap-3 flex-wrap mb-3.5">
+                <span class="text-[13px] font-semibold">{{ t('depreciation.assetDetail.title') }}</span>
+                <div
+                  class="flex gap-0.5 p-1 bg-muted rounded-[11px]"
+                  data-testid="depr-tab-basis-toggle"
+                >
+                  <button
+                    v-for="opt in DEPR_BASIS_OPTIONS"
+                    :key="opt"
+                    type="button"
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                    :class="deprBasis === opt ? 'bg-default shadow-sm text-default' : 'text-muted hover:text-default'"
+                    :data-testid="`depr-tab-basis-${opt}`"
+                    @click="deprBasis = opt"
+                  >
+                    {{ t(BASIS_META[opt].labelKey) }}
+                  </button>
+                </div>
+              </div>
+
+              <div
+                v-if="deprEntriesForBasis.length === 0"
+                data-testid="depr-tab-basis-empty"
+                class="py-10 text-center text-sm text-dimmed"
+              >
+                {{ t('depreciation.assetDetail.empty') }}
+              </div>
+              <div
+                v-else
+                class="overflow-x-auto"
+              >
+                <table class="w-full border-collapse text-[13px] whitespace-nowrap">
+                  <thead>
+                    <tr class="bg-muted text-muted">
+                      <th class="text-left px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                        {{ t('depreciation.assetDetail.column.period') }}
+                      </th>
+                      <th class="text-right px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                        {{ t('depreciation.assetDetail.column.opening') }}
+                      </th>
+                      <th class="text-right px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                        {{ t('depreciation.assetDetail.column.expense') }}
+                      </th>
+                      <th class="text-right px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                        {{ t('depreciation.assetDetail.column.closing') }}
+                      </th>
+                      <th class="text-left px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                        {{ t('depreciation.assetDetail.column.method') }}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="(e, i) in deprEntriesForBasis"
+                      :key="i"
+                      data-testid="depr-tab-row"
+                      class="border-t border-default"
+                    >
+                      <td class="px-4 py-3 font-medium">
+                        {{ e.period }}
+                      </td>
+                      <td class="px-3 py-3 text-right tabular-nums text-muted">
+                        {{ formatRupiah(e.opening) }}
+                      </td>
+                      <td class="px-3 py-3 text-right tabular-nums text-error">
+                        {{ formatRupiah(e.amount) }}
+                      </td>
+                      <td class="px-3 py-3 text-right tabular-nums font-semibold">
+                        {{ formatRupiah(e.closing) }}
+                      </td>
+                      <td class="px-4 py-3">
+                        {{ deprMethodLabel(e.method) }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Assignment / Maintenance tabs — module not yet built (Phase: Assignment/Maintenance). -->
           <div
             v-else
             class="p-5"

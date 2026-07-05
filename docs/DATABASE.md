@@ -514,6 +514,30 @@ Index: `idx_depr_asset_basis_period`.
 > memakai jalur **amortisasi** (entri `basis='commercial'`, istilah laporan = amortisasi). Aset dengan
 > `capitalized=false` atau `fiscal_group='non_susut'` tidak menghasilkan entri.
 
+#### `depreciation_periods` — status periode penyusutan bulanan (read model) 🆕 v1.1 (migrasi `000023`)
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| id | uuid | no | gen_random_uuid() | **PK** |
+| period | date | no | | hari pertama bulan |
+| status | shared.depreciation_period_status | no | 'open' | enum `open` → `computed` → `closed` (state machine satu arah) |
+| computed_at | timestamptz? | yes | | waktu run "Hitung Periode" terakhir |
+| computed_by | uuid? | yes | | **FK** users |
+| closed_at | timestamptz? | yes | | waktu "Tutup Periode" |
+| closed_by | uuid? | yes | | **FK** users |
+| asset_count | int | no | 0 | ringkasan run terakhir: jumlah aset dgn beban > 0 (aset tersusut penuh, beban 0, tidak dihitung) |
+| total_amount | numeric(18,2) | no | 0 | total beban **komersial** run terakhir |
+| skipped_count | int | no | 0 | aset dilewati (parameter tak lengkap, belum kapitalisasi, dsb.) |
+
+Index: partial `UNIQUE(period) WHERE deleted_at IS NULL`. Satu baris = satu bulan kalender, lintas
+kedua basis (bukan per-aset, bukan per-basis) — singleton global, bukan data-scoped. Aturan: `ComputePeriod`
+idempotent (boleh diulang selagi status belum `closed`; regenerasi menghapus & menulis ulang entri
+**non-closed** milik periode itu di `depreciation_entries`) dan diserialkan via `pg_advisory_xact_lock`
+(kunci konstanta modul) agar dua run bersamaan tidak balapan; `ClosePeriod` hanya dari `computed`,
+**sekuensial** (semua periode lebih awal yang punya entri harus `closed` lebih dulu), dan setelah
+`closed` baris itu immutable — compute berikutnya ditolak (409 `ErrPeriodClosed`). Bila baris bulan
+berjalan belum ada, service menyisipkan status virtual `open` (tidak ditulis ke DB) agar frontend bisa
+menampilkan banner pengingat sebelum run pertama.
+
 ### 4.5 Approval, Audit & Import
 
 #### `requests` — maker-checker generik (§3.6 PRD)
@@ -788,6 +812,9 @@ Tiap fase roadmap (PRD §10) menambah migrasi `golang-migrate` di `backend/db/mi
 | `000013_depreciation` | 8 | `depreciation`: depreciation_entries (read model) ✅ |
 | `000014_audit_office` | 2 | `audit`: tambah `audit_logs.office_id` (scoping audit) ✅ |
 | **`000015_fam_tables`** 🆕 | v1.1 | skema/tabel **baru**: `transfer.asset_transfers`, `disposal.disposals`, `stockopname.stock_opname_{sessions,items}`, `asset.asset_documents` (BAST) ✅ |
+| `000016`–`000022` 🆕 | v1.1 | migrasi inkremental modul transaksi v1.1: kolom akuntansi/fiskal/intangible via `ALTER TABLE` (offices/categories/assets/requests, lihat catatan inline §4 di atas), `approval_thresholds` + `request_approvals`, `depreciation_entries.basis`, dan tabel/kolom pendukung modul transfer/disposal (mis. `000022_transfer_condition_return`: `asset_transfers.{condition_sent,transfer_date,returned}` + `return_note`) ✅ |
+| **`000023_depreciation_periods`** 🆕 | v1.1 | `depreciation`: tabel `depreciation_periods` (state machine `open`/`computed`/`closed`, ringkasan run) + enum `shared.depreciation_period_status`; seed `app_settings` key `depreciation.accumulated_gl_account` + permission `depreciation.view`/`depreciation.manage` ✅ |
+| **`000024_asset_impaired_floor`** 🆕 | v1.1 | `asset.assets.impaired_book_value numeric(18,2)` (nullable) — floor nilai buku stabil yang HANYA ditulis oleh impairment (PSAK 48) dan dikonsumsi engine sebagai titik resume; memisahkan sinyal impairment dari `book_value` turunan agar recompute tetap idempotent. Tidak diekspos di respons Aset (internal) ✅ |
 
 > **Strategi greenfield (PRD v1.1).** Karena belum ada data, perubahan v1.1 untuk tabel/enum yang
 > **sudah ada** di-bake **in-place ke migrasi awal** (bukan migrasi `ALTER` terpisah):
@@ -842,10 +869,15 @@ Tiap fase roadmap (PRD §10) menambah migrasi `golang-migrate` di `backend/db/mi
 **Keputusan terbuka 🆕 (butuh input/kebijakan bank):**
 - **DB-Q6** — Angka `app_settings.capitalization_threshold_default` & band `approval_thresholds`
   (placeholder; final dari kebijakan BTN).
-- **DB-Q7** — Apakah `accumulated_depreciation`/`book_value` di `assets` disimpan **dua basis**
-  (tambah kolom fiskal) atau cukup ringkasan komersial + rincian fiskal di `depreciation_entries`.
-  Default saat ini: ringkasan komersial di `assets`, fiskal dihitung dari `depreciation_entries`.
+- **~~DB-Q7~~ (final, modul depresiasi 2026-07-05)** — `assets.accumulated_depreciation`/`book_value`
+  tetap **ringkasan komersial saja** (ditulis oleh `depreciation.Service.ComputePeriod`/`RecordImpairment`);
+  **tidak** ada kolom fiskal duplikat di `assets`. Nilai buku **fiskal** selalu diturunkan on-the-fly dari
+  `depreciation_entries` (`basis='fiscal'`, `cost − Σ entri`) via `GET /assets/:id/depreciation` — dipakai
+  langsung oleh layar Depresiasi & Disposal (Ringkasan Valuasi Fiskal). Alasan: fiskal tidak mengenal
+  impairment (PSAK 48 hanya basis komersial) dan tidak dipakai untuk keputusan approval/disposal, jadi
+  menyimpan ringkasannya di `assets` hanya menambah permukaan drift tanpa manfaat transaksional.
 - **DB-Q8** — Penomoran `bast_no` & dokumen: pakai generator terformat (seperti `asset_tag`) atau input manual.
 
-> Skema inti final & terimplementasi (000001–000014). Lapisan v1.1 (000015–000021) siap
-> diimplementasikan sebagai migrasi `golang-migrate` baru (lihat §6) setelah PRD v1.1 disetujui.
+> Skema inti final & terimplementasi (000001–000014). Lapisan v1.1 disetujui dan **terimplementasi
+> sampai `000023`** (lihat §6) — `000015_fam_tables` + `000016`–`000022` (kolom akuntansi/fiskal/
+> intangible, approval berjenjang, transfer/disposal) + `000023_depreciation_periods`.

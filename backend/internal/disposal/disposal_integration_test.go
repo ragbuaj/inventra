@@ -18,6 +18,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/approval"
 	"github.com/ragbuaj/inventra/internal/asset"
 	"github.com/ragbuaj/inventra/internal/authz"
+	"github.com/ragbuaj/inventra/internal/depreciation"
 	"github.com/ragbuaj/inventra/internal/disposal"
 	"github.com/ragbuaj/inventra/internal/testsupport"
 )
@@ -110,6 +111,39 @@ func seedAssetWithCost(t *testing.T, pool *pgxpool.Pool, tag, name string, categ
 	return id
 }
 
+// seedAssetNoCost inserts a capitalized asset.assets row (status=available)
+// with NO purchase_cost at all (NULL) and returns its id — used to exercise
+// BookValueAsOf's "neither entries nor cost" -> "0" fallback.
+func seedAssetNoCost(t *testing.T, pool *pgxpool.Pool, tag, name string, categoryID, officeID uuid.UUID) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO asset.assets
+		   (asset_tag, name, category_id, office_id, asset_class, capitalized, specifications, status)
+		 VALUES ($1, $2, $3, $4, 'intangible', true, '{}', 'available')
+		 RETURNING id`,
+		tag, name, categoryID, officeID).Scan(&id))
+	return id
+}
+
+// seedCommercialEntry inserts a depreciation.depreciation_entries row directly
+// (basis=commercial) for the given asset/period/closing value, bypassing the
+// full ComputePeriod engine — sufficient to exercise BookValueAsOf's
+// "has entries" path from the disposal side.
+func seedCommercialEntry(t *testing.T, pool *pgxpool.Pool, assetID uuid.UUID, period time.Time, opening, amount, closing string) {
+	t.Helper()
+	q := sqlc.New(pool)
+	require.NoError(t, q.InsertDepreciationEntry(context.Background(), sqlc.InsertDepreciationEntryParams{
+		AssetID:            assetID,
+		Basis:              sqlc.SharedDepreciationBasisCommercial,
+		Period:             pgtype.Date{Time: period, Valid: true},
+		OpeningValue:       opening,
+		DepreciationAmount: amount,
+		ClosingValue:       closing,
+		Method:             sqlc.SharedDepreciationMethodStraightLine,
+	}))
+}
+
 // seedUser inserts an identity.users row (placed in officeID) and returns its id.
 func seedUser(t *testing.T, pool *pgxpool.Pool, roleID, officeID uuid.UUID, email string) uuid.UUID {
 	t.Helper()
@@ -176,6 +210,7 @@ type harness struct {
 	apprSvc      *approval.Service
 	dsvc         *disposal.Service
 	assetSvc     *asset.Service
+	deprSvc      *depreciation.Service
 	office       uuid.UUID
 	otherOffice  uuid.UUID
 	officeRoleID uuid.UUID
@@ -202,7 +237,8 @@ func newHarness(t *testing.T) *harness {
 	q := sqlc.New(pool)
 	scopeSvc := authz.NewScopeService(q, rdb)
 	apprSvc := approval.NewService(q, pool, scopeSvc, rdb)
-	dsvc := disposal.NewService(q, pool, apprSvc)
+	deprSvc := depreciation.NewService(q, pool)
+	dsvc := disposal.NewService(q, pool, apprSvc, deprSvc)
 	assetSvc := asset.NewService(q, pool, minioStore, 5<<20, "")
 	apprSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, dsvc.Executor())
 
@@ -214,6 +250,7 @@ func newHarness(t *testing.T) *harness {
 		apprSvc:      apprSvc,
 		dsvc:         dsvc,
 		assetSvc:     assetSvc,
+		deprSvc:      deprSvc,
 		office:       office,
 		otherOffice:  otherOffice,
 		officeRoleID: officeRoleID,
@@ -224,14 +261,16 @@ func newHarness(t *testing.T) *harness {
 // ─── tests ───────────────────────────────────────────────────────────────────
 
 // TestDisposal_HappyPath_GainLoss drives submit → approve (single office-tier
-// step, purchase_cost under the 5M band) and asserts the executor created the
+// step, book value under the 5M band) and asserts the executor created the
 // disposal row with the exact gain_loss string and flipped the asset to
-// disposed.
+// disposed. The asset has no depreciation entries, so book_value_at_disposal
+// (and the approval amount) are server-computed as the purchase_cost
+// fallback (spec 2026-07-05 decision #3) — not whatever the caller passes.
 func TestDisposal_HappyPath_GainLoss(t *testing.T) {
 	h := newHarness(t)
 	ctx := context.Background()
 
-	assetID := seedAssetWithCost(t, h.pool, "DIS-2026-00001", "Mesin Fotokopi", h.catID, h.office, "2000000")
+	assetID := seedAssetWithCost(t, h.pool, "DIS-2026-00001", "Mesin Fotokopi", h.catID, h.office, "3000000.00")
 	maker := seedUser(t, h.pool, h.officeRoleID, h.office, "maker.happy@test.local")
 	checker := seedUser(t, h.pool, h.officeRoleID, h.office, "checker.happy@test.local")
 
@@ -242,12 +281,13 @@ func TestDisposal_HappyPath_GainLoss(t *testing.T) {
 		AssetID:      assetID,
 		Method:       "sale",
 		DisposalDate: "2026-07-01",
-		Proceeds:     strptr("120000000.00"),
-		BookValue:    strptr("100000000.00"),
+		Proceeds:     strptr("3500000.00"),
 		Reason:       strptr("dijual"),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, sqlc.SharedRequestStatusPending, req.Status)
+	require.NotNil(t, req.Amount)
+	assert.Equal(t, "3000000.00", *req.Amount, "approval amount must be the server-computed book value (purchase_cost fallback)")
 
 	// No disposal row yet — executor only fires on final approval.
 	_, err = h.q.GetDisposalByAsset(ctx, assetID)
@@ -260,24 +300,27 @@ func TestDisposal_HappyPath_GainLoss(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, sqlc.SharedDisposalMethodSale, row.Method)
 	require.NotNil(t, row.Proceeds)
-	assert.Equal(t, "120000000.00", *row.Proceeds)
+	assert.Equal(t, "3500000.00", *row.Proceeds)
 	require.NotNil(t, row.BookValueAtDisposal)
-	assert.Equal(t, "100000000.00", *row.BookValueAtDisposal)
+	assert.Equal(t, "3000000.00", *row.BookValueAtDisposal, "book_value_at_disposal must be server-computed from purchase_cost, not caller-supplied")
 	require.NotNil(t, row.GainLoss, "gain_loss must be computed when both proceeds and book_value are set")
-	assert.Equal(t, "20000000.00", *row.GainLoss)
+	assert.Equal(t, "500000.00", *row.GainLoss)
 
 	a, err := h.q.GetAsset(ctx, assetID)
 	require.NoError(t, err)
 	assert.Equal(t, sqlc.SharedAssetStatusDisposed, a.Status)
 }
 
-// TestDisposal_GainLoss_NullWhenBookValueNil verifies gain_loss is null when
-// book_value_at_disposal is not supplied (null-propagating numeric subtraction).
-func TestDisposal_GainLoss_NullWhenBookValueNil(t *testing.T) {
+// TestDisposal_GainLoss_NullWhenProceedsNil verifies gain_loss stays null
+// when proceeds is not supplied (null-propagating numeric subtraction) —
+// book_value_at_disposal is no longer the nilable side of that computation
+// since Submit now always fills it (falling back to "0" when the asset has
+// neither depreciation entries nor a purchase_cost).
+func TestDisposal_GainLoss_NullWhenProceedsNil(t *testing.T) {
 	h := newHarness(t)
 	ctx := context.Background()
 
-	assetID := seedAssetWithCost(t, h.pool, "DIS-2026-00002", "Kursi Kantor", h.catID, h.office, "1000000")
+	assetID := seedAssetWithCost(t, h.pool, "DIS-2026-00002", "Kursi Kantor", h.catID, h.office, "1000000.00")
 	maker := seedUser(t, h.pool, h.officeRoleID, h.office, "maker.nullgl@test.local")
 	checker := seedUser(t, h.pool, h.officeRoleID, h.office, "checker.nullgl@test.local")
 
@@ -288,8 +331,7 @@ func TestDisposal_GainLoss_NullWhenBookValueNil(t *testing.T) {
 		AssetID:      assetID,
 		Method:       "write_off",
 		DisposalDate: "2026-07-01",
-		Proceeds:     strptr("0.00"),
-		// BookValue intentionally nil.
+		// Proceeds intentionally nil.
 	})
 	require.NoError(t, err)
 
@@ -298,7 +340,167 @@ func TestDisposal_GainLoss_NullWhenBookValueNil(t *testing.T) {
 
 	row, err := h.q.GetDisposalByAsset(ctx, assetID)
 	require.NoError(t, err)
-	assert.Nil(t, row.GainLoss, "gain_loss must be null when book_value_at_disposal is nil")
+	require.NotNil(t, row.BookValueAtDisposal, "book_value_at_disposal is always server-computed, never nil")
+	assert.Equal(t, "1000000.00", *row.BookValueAtDisposal)
+	assert.Nil(t, row.GainLoss, "gain_loss must be null when proceeds is nil")
+}
+
+// TestDisposal_BookValue_NoCostNoEntries_FallsBackToZero verifies that an
+// asset with neither depreciation entries nor a purchase_cost gets
+// book_value_at_disposal "0" (BookValueAsOf's last-resort fallback), and that
+// gain_loss then equals proceeds outright (proceeds - 0).
+func TestDisposal_BookValue_NoCostNoEntries_FallsBackToZero(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	assetID := seedAssetNoCost(t, h.pool, "DIS-2026-00014", "Aset Tanpa Biaya", h.catID, h.office)
+	maker := seedUser(t, h.pool, h.officeRoleID, h.office, "maker.nocost@test.local")
+	checker := seedUser(t, h.pool, h.officeRoleID, h.office, "checker.nocost@test.local")
+
+	makerCaller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.office})
+	checkerCaller := buildCaller(checker, h.officeRoleID, false, []uuid.UUID{h.office})
+
+	req, err := h.dsvc.Submit(ctx, makerCaller, disposal.SubmitInput{
+		AssetID:      assetID,
+		Method:       "write_off",
+		DisposalDate: "2026-07-01",
+		Proceeds:     strptr("500000.00"),
+		Reason:       strptr("tidak ada biaya perolehan"),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, req.Amount)
+	assert.Equal(t, "0", *req.Amount, "approval amount falls back to \"0\" when the asset has no entries and no purchase_cost")
+
+	final := approveThroughChain(t, h.apprSvc, req.ID, checkerCaller)
+	require.Equal(t, sqlc.SharedRequestStatusApproved, final.Status)
+
+	row, err := h.q.GetDisposalByAsset(ctx, assetID)
+	require.NoError(t, err)
+	require.NotNil(t, row.BookValueAtDisposal)
+	assert.Equal(t, "0", *row.BookValueAtDisposal, "book_value_at_disposal carries BookValueAsOf's literal \"0\" fallback")
+	require.NotNil(t, row.GainLoss)
+	assert.Equal(t, "500000.00", *row.GainLoss, "gain_loss equals proceeds outright when book value falls back to zero")
+}
+
+// TestDisposal_BookValue_ComputedFromEntries verifies that when the asset has
+// a commercial depreciation entry at or before the disposal month, both the
+// approval amount and the eventual disposal row's book_value_at_disposal are
+// that entry's closing_value — not the asset's purchase_cost.
+func TestDisposal_BookValue_ComputedFromEntries(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	assetID := seedAssetWithCost(t, h.pool, "DIS-2026-00012", "Aset Dengan Entri Depresiasi", h.catID, h.office, "5000000.00")
+	seedCommercialEntry(t, h.pool, assetID, mustParseDate(t, "2026-07-01"), "4600000.00", "400000.00", "4200000.00")
+
+	maker := seedUser(t, h.pool, h.officeRoleID, h.office, "maker.entries@test.local")
+	checker := seedUser(t, h.pool, h.officeRoleID, h.office, "checker.entries@test.local")
+	makerCaller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.office})
+	checkerCaller := buildCaller(checker, h.officeRoleID, false, []uuid.UUID{h.office})
+
+	req, err := h.dsvc.Submit(ctx, makerCaller, disposal.SubmitInput{
+		AssetID:      assetID,
+		Method:       "sale",
+		DisposalDate: "2026-07-15",
+		Proceeds:     strptr("4500000.00"),
+		Reason:       strptr("dijual dengan entri depresiasi"),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, req.Amount)
+	assert.Equal(t, "4200000.00", *req.Amount, "approval amount must be the last commercial closing, not purchase_cost")
+
+	final := approveThroughChain(t, h.apprSvc, req.ID, checkerCaller)
+	require.Equal(t, sqlc.SharedRequestStatusApproved, final.Status)
+
+	row, err := h.q.GetDisposalByAsset(ctx, assetID)
+	require.NoError(t, err)
+	require.NotNil(t, row.BookValueAtDisposal)
+	assert.Equal(t, "4200000.00", *row.BookValueAtDisposal, "book_value_at_disposal must be the last commercial closing as of the disposal month")
+	require.NotNil(t, row.GainLoss)
+	assert.Equal(t, "300000.00", *row.GainLoss)
+}
+
+// TestDisposal_BookValue_MakerCannotInject verifies that a caller-supplied
+// book value never reaches the approval amount or the disposal row: even
+// constructing SubmitInput.BookValue directly (a stronger attempt than the
+// HTTP path, which no longer has the field at all — see dto.go) is
+// unconditionally overwritten by Submit's server-side computation.
+func TestDisposal_BookValue_MakerCannotInject(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	assetID := seedAssetWithCost(t, h.pool, "DIS-2026-00013", "Aset Anti Injeksi", h.catID, h.office, "1200000.00")
+	maker := seedUser(t, h.pool, h.officeRoleID, h.office, "maker.inject@test.local")
+	checker := seedUser(t, h.pool, h.officeRoleID, h.office, "checker.inject@test.local")
+	makerCaller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.office})
+	checkerCaller := buildCaller(checker, h.officeRoleID, false, []uuid.UUID{h.office})
+
+	injected := "999999999.00"
+	req, err := h.dsvc.Submit(ctx, makerCaller, disposal.SubmitInput{
+		AssetID:      assetID,
+		Method:       "sale",
+		DisposalDate: "2026-07-01",
+		Proceeds:     strptr("1300000.00"),
+		BookValue:    strptr(injected),
+		Reason:       strptr("percobaan injeksi nilai buku"),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, req.Amount)
+	assert.NotEqual(t, injected, *req.Amount, "the caller-supplied book value must never reach the approval amount")
+	assert.Equal(t, "1200000.00", *req.Amount, "the approval amount must be server-computed from the purchase_cost fallback")
+
+	final := approveThroughChain(t, h.apprSvc, req.ID, checkerCaller)
+	require.Equal(t, sqlc.SharedRequestStatusApproved, final.Status)
+
+	row, err := h.q.GetDisposalByAsset(ctx, assetID)
+	require.NoError(t, err)
+	require.NotNil(t, row.BookValueAtDisposal)
+	assert.NotEqual(t, injected, *row.BookValueAtDisposal)
+	assert.Equal(t, "1200000.00", *row.BookValueAtDisposal, "book_value_at_disposal must be server-computed, not the caller-supplied value")
+}
+
+// TestDisposal_Submit_MalformedDisposalDate verifies Submit rejects a
+// disposal_date that does not parse as "2006-01-02" with ErrInvalidRef —
+// BEFORE any approval request is opened (the book-value computation needs a
+// valid as-of date, so the parse guard runs ahead of appr.Submit).
+func TestDisposal_Submit_MalformedDisposalDate(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	assetID := seedAssetWithCost(t, h.pool, "DIS-2026-00015", "Aset Tanggal Rusak", h.catID, h.office, "1000000.00")
+	maker := seedUser(t, h.pool, h.officeRoleID, h.office, "maker.baddate@test.local")
+	makerCaller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.office})
+
+	for _, tc := range []struct {
+		name string
+		date string
+	}{
+		{"Garbage", "not-a-date"},
+		{"WrongFormat_DDMMYYYY", "01/07/2026"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := h.dsvc.Submit(ctx, makerCaller, disposal.SubmitInput{
+				AssetID:      assetID,
+				Method:       "write_off",
+				DisposalDate: tc.date,
+				Reason:       strptr("tanggal tidak valid"),
+			})
+			require.ErrorIs(t, err, disposal.ErrInvalidRef)
+
+			// No approval request may have been opened for the asset — count
+			// ALL requests (any status) directly, stronger than the
+			// pending-only sqlc guard query.
+			var reqCount int64
+			require.NoError(t, h.pool.QueryRow(ctx,
+				`SELECT count(*) FROM approval.requests WHERE target_id = $1 AND deleted_at IS NULL`,
+				assetID).Scan(&reqCount))
+			assert.EqualValues(t, 0, reqCount, "a malformed disposal_date must not open an approval request")
+		})
+	}
+
+	// And of course no disposal row either.
+	_, err := h.q.GetDisposalByAsset(ctx, assetID)
+	require.ErrorIs(t, err, pgx.ErrNoRows)
 }
 
 // TestDisposal_Reject_NoDisposalRow verifies that rejecting the final step

@@ -24,6 +24,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/cache"
 	"github.com/ragbuaj/inventra/internal/config"
 	"github.com/ragbuaj/inventra/internal/db"
+	"github.com/ragbuaj/inventra/internal/depreciation"
 	"github.com/ragbuaj/inventra/internal/disposal"
 	"github.com/ragbuaj/inventra/internal/identity"
 	"github.com/ragbuaj/inventra/internal/masterdata"
@@ -164,7 +165,8 @@ func NewRouter(d Deps) *gin.Engine {
 
 		approvalSvc := approval.NewService(queries, d.Pool, scopeSvc, d.Redis)
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
-		disposalSvc := disposal.NewService(queries, d.Pool, approvalSvc)
+		depreciationSvc := depreciation.NewService(queries, d.Pool)
+		disposalSvc := disposal.NewService(queries, d.Pool, approvalSvc, depreciationSvc)
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, disposalSvc.Executor())
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeValuationExclusion, assetSvc.ExclusionExecutor())
 		transferSvc := transfer.NewService(queries, d.Pool, approvalSvc)
@@ -184,6 +186,14 @@ func NewRouter(d Deps) *gin.Engine {
 			requireAuth,
 			middleware.RequirePermission(permSvc, "disposal.manage"),
 			middleware.RequirePermission(permSvc, "disposal.view"),
+		)
+
+		depreciationHandler := depreciation.NewHandler(depreciationSvc, fieldSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)
+		depreciation.RegisterRoutes(api, depreciationHandler,
+			requireAuth,
+			middleware.RequirePermission(permSvc, "depreciation.manage"),
+			middleware.RequirePermission(permSvc, "depreciation.view"),
+			middleware.RequirePermission(permSvc, "asset.view"),
 		)
 
 		authzAdminSvc := authzadmin.NewService(queries, d.Pool, permSvc, scopeSvc, fieldSvc)

@@ -18,7 +18,7 @@ import { login, EMAIL, PASSWORD } from './helpers'
 //   1. Submit via UI (/disposals → Ajukan tab): pick the asset → the
 //      valuation summary renders Perolehan (acquisition cost) with fiscal
 //      book value always "—" → the approval-chain card renders ≥1 step
-//      ("berdasar nilai perolehan …") → method "Dijual" → proceeds/date →
+//      ("berdasar nilai buku …") → method "Dijual" → proceeds/date →
 //      submit → post-submit view with the approval timeline (maker done,
 //      step 1 "Menunggu").
 //   2. Approve via API as the checker (decision: 'approve') → UI Riwayat:
@@ -30,18 +30,19 @@ import { login, EMAIL, PASSWORD } from './helpers'
 //   4. Negative: history search for a nonsense string → empty state.
 //
 // IMPORTANT gotcha (discovered against the real backend, not assumed): a
-// freshly created asset's `book_value` column is never populated at
-// creation (see db/queries/assets.sql's CreateAsset — book_value/
-// accumulated_depreciation aren't insert columns; the depreciation module
-// that would compute them isn't built yet per CLAUDE.md). So for e2e assets,
-// `book_value` is present-but-null (not field-permission-masked). The page's
-// `bookValueMasked` flag stays false (the JSON key IS present), but
-// `gainLossState` treats a null book_value as 'masked' too (see disposals.vue
-// gainLossState computed) — so the Laba/Rugi card renders its "masked" copy
-// even though this is really "not yet computed", and the resulting disposal's
-// `gain_loss` is null (rendered as "—" in Riwayat) rather than a signed
-// value. This spec asserts the real, current behavior rather than an assumed
-// non-null gain/loss.
+// freshly created asset's `book_value` column is never populated at creation
+// (see db/queries/assets.sql's CreateAsset — book_value/
+// accumulated_depreciation aren't insert columns). Since the depreciation
+// module landed, GET /assets/:id/depreciation's `computed_book_value` now
+// falls back to the asset's raw `purchase_cost` whenever it has no
+// depreciation entries yet (see depreciation.Service.BookValueAsOf) — so for
+// this spec's never-computed asset, the commercial book value the disposal
+// screen uses is simply the acquisition cost. That means the approval-chain
+// card's amount note now always reads "berdasar nilai buku" (book value),
+// never "berdasar nilai perolehan" — the two coincide numerically here but
+// the label is unconditionally book-value-based. The fiscal book value stays
+// "—" (no fiscal-basis entries exist for an uncomputed asset), so the fiscal
+// valuation/gain-loss cells are unaffected.
 //
 // Robustness rules (per project e2e conventions): unique name+code per run
 // (this dev DB is NOT reset between runs), assert-after-search, wait for
@@ -169,7 +170,7 @@ test.describe('Disposal (Penghapusan) — real backend (submit → approve → B
 
     const chainCard = page.getByTestId('disposal-chain-card')
     await expect(chainCard).toBeVisible()
-    await expect(chainCard).toContainText('berdasar nilai perolehan')
+    await expect(chainCard).toContainText('berdasar nilai buku')
     const chainSteps = page.getByTestId('disposal-chain-steps')
     await expect(chainSteps).toBeVisible({ timeout: 10_000 })
 

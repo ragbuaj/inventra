@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { superadminNav, staffNav } from '~/utils/nav'
 import type { NavItem } from '~/types'
 
-const BUILT_ROUTES = ['/', '/master/offices', '/master/employees', '/master/categories', '/master/map', '/master/reference', '/settings/users', '/settings/rbac', '/settings/data-scope', '/settings/field-permission', '/settings/audit', '/assets', '/assets/import', '/assets/label', '/assignment', '/transfers', '/disposals', '/maintenance', '/approval', '/reports']
+const BUILT_ROUTES = ['/', '/master/offices', '/master/employees', '/master/categories', '/master/map', '/master/reference', '/settings/users', '/settings/rbac', '/settings/data-scope', '/settings/field-permission', '/settings/audit', '/assets', '/assets/import', '/assets/label', '/assignment', '/transfers', '/disposals', '/depreciation', '/maintenance', '/approval', '/reports']
 
 function collectItems(items: NavItem[]): NavItem[] {
   return items.flatMap(item => [item, ...(item.children ? collectItems(item.children) : [])])
@@ -25,8 +25,8 @@ describe('superadminNav — structure', () => {
     expect(superadminNav[1].labelKey).toBe('nav.group.administrasi')
   })
 
-  it('Operasional has 8 top-level items', () => {
-    expect(superadminNav[0].items).toHaveLength(8)
+  it('Operasional has 9 top-level items', () => {
+    expect(superadminNav[0].items).toHaveLength(9)
   })
 
   it('Administrasi has 2 top-level items (Master Data, Pengaturan)', () => {
@@ -88,15 +88,24 @@ describe('superadminNav — transfers and disposals', () => {
     expect(disposals?.permission).toBe('disposal.view')
   })
 
+  it('depreciation item links to /depreciation and is gated by depreciation.view', () => {
+    const depreciation = superadminNav[0].items.find(i => i.labelKey === 'nav.depreciation')
+    expect(depreciation?.to).toBe('/depreciation')
+    expect(depreciation?.permission).toBe('depreciation.view')
+    expect(depreciation?.icon).toBe('i-lucide-trending-down')
+  })
+
   it('transfers appears after assignment and before maintenance', () => {
     const keys = superadminNav[0].items.map(i => i.labelKey)
     const assignmentIdx = keys.indexOf('nav.assignment')
     const transfersIdx = keys.indexOf('nav.transfers')
     const disposalsIdx = keys.indexOf('nav.disposals')
+    const depreciationIdx = keys.indexOf('nav.depreciation')
     const maintenanceIdx = keys.indexOf('nav.maintenance')
     expect(assignmentIdx).toBeLessThan(transfersIdx)
     expect(transfersIdx).toBeLessThan(disposalsIdx)
-    expect(disposalsIdx).toBeLessThan(maintenanceIdx)
+    expect(disposalsIdx).toBeLessThan(depreciationIdx)
+    expect(depreciationIdx).toBeLessThan(maintenanceIdx)
   })
 })
 

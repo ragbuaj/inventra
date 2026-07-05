@@ -192,10 +192,11 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     atomically to `disposed` on the approval that satisfies the last chain step); **(i)**
 >     `transfer_date` is backend-optional but the UI form requires it (contract compatibility — some
 >     non-UI submitters may omit it).
->     **Follow-ups (tracked, not yet done):** switch the disposal approval-amount basis from
+>     **Follow-ups (tracked, not yet done):** ~~switch the disposal approval-amount basis from
 >     `purchase_cost` (server-derived and conservative — the only tamper-proof value today) to the
 >     **server-computed commercial book value** once the depreciation module lands (the
->     maker-supplied `book_value_at_disposal` caveat also disappears then); add the BAST-link
+>     maker-supplied `book_value_at_disposal` caveat also disappears then)~~ ✅ **DONE — see item 28
+>     (depreciation module, 2026-07-05)**; add the BAST-link
 >     behavior to Mutasi history once the Dokumen BAST screen is built; fold
 >     the transfer/disposal money fields (`proceeds`, `book_value_at_disposal`, transfer
 >     `condition`/`reason`) into the field-permission catalog if a future role needs them masked.
@@ -216,10 +217,114 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     dev-DB history without explicit approval); **follow-up:** either a periodic dev-DB reset for
 >     this stack, or upgrade office/employee-style pickers to a searchable/paginated async lookup
 >     (already a standing TODO elsewhere in this doc).
-> 27. **Next session — pick the next real step.** Remaining candidates (see *Remaining* below):
->     **(b)** Stock opname backend module; **(c)** Depreciation module; **(e)** Assignment/
->     Maintenance; **(f)** global search backend + drop the last `mock/*` files. Confirm priority
->     before starting.
+> 27. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-05): the Depreciation
+>     module** (candidate (c) — see item 28). Remaining candidates from that session (see *Remaining*
+>     below): **(b)** Stock opname backend module; **(e)** Assignment/Maintenance; **(f)** global
+>     search backend + drop the last `mock/*` files.
+> 28. ~~**Dual-basis depreciation module (PSAK 16 + PMK 72/2023) — backend + frontend + disposal
+>     integration**~~ ✅ **DONE (2026-07-05).** Design: `docs/superpowers/specs/
+>     2026-07-05-depreciation-module-design.md` (brainstormed + approved). Backend: migration
+>     `000023_depreciation_periods` (state machine `open`/`computed`/`closed` + enum
+>     `shared.depreciation_period_status`; seed `app_settings.depreciation.accumulated_gl_account` +
+>     permissions `depreciation.view`/`depreciation.manage`, Superadmin-only); `internal/depreciation`
+>     (ADR-0008 file split) — `engine.go` is a pure, DB-free, unit-tested dual-basis calculator
+>     (commercial PSAK 16 straight-line/declining-balance + fiscal PMK 72/2023 kelompok 1–4/bangunan,
+>     iterative month-by-month `math/big.Rat` half-up rounding, prospective-by-construction estimate/
+>     impairment changes, salvage floor incl. Rp 1 memorial value, fiscal has no residual and absorbs
+>     the final month's rounding remainder); `service.go` orchestrates `ComputePeriod` (idempotent,
+>     `pg_advisory_xact_lock`-serialized, regenerates non-closed entries, updates
+>     `assets.accumulated_depreciation`/`book_value` summary), `ClosePeriod` (sequential, immutable
+>     after close), `Schedule`/`Journal`/`AssetSchedule`/`RecordImpairment`/`Periods`; 8 endpoints (`GET
+>     /depreciation/periods`, `POST .../compute`, `POST .../close`, `GET /depreciation/schedule`, `GET
+>     /depreciation/journal` (+ `/export?format=xlsx|pdf` via `excelize` + the existing gofpdf pattern),
+>     `GET /assets/:id/depreciation` (masked when field-permission denies `book_value`), `POST
+>     /assets/:id/impairment`) — all Superadmin-gated (`depreciation.view`/`manage`) + `depreciation`
+>     data-scope module. Disposal integration: `POST /disposals` no longer accepts
+>     `book_value_at_disposal` from the maker (removed from `SubmitRequest`/OpenAPI) — the server
+>     computes it as the commercial book value as-of the disposal month (closing of the last
+>     commercial entry ≤ that month; falls back to `purchase_cost` if the asset has no entries yet,
+>     e.g. `non_susut` or never-computed) and that same value is now the disposal **approval amount**
+>     (band routing reflects real write-off impact, not historical cost); `GET
+>     /assets/:id/depreciation` exposes `computed_book_value` (commercial) so the frontend preview uses
+>     the exact value the server will submit. Frontend: `/depreciation` screen (1:1 against
+>     `docs/design/Depresiasi.dc.html` — header + basis toggle, 4 KPI tiles, Jalankan-Periode panel
+>     with all 3 status states + the "belum dihitung" reminder banner, Jadwal-per-Aset tab incl.
+>     impaired icon + fully-depreciated rows, Rekap Siap-Jurnal tab with the balanced-journal banner +
+>     xlsx/pdf export, the impairment modal with live loss preview); asset-detail Depreciation tab
+>     (`assets/[tag]/index.vue`) replaces the old empty-state with a real schedule + basis toggle,
+>     backed by `GET /assets/:id/depreciation` (masked-response handling); Disposal screen's fiscal
+>     valuation card and "berdasar nilai buku" approval-chain subtitle are now real (no more "menunggu
+>     modul depresiasi" placeholder). `useDepreciation` composable + `depreciationMeta` constants +
+>     ~full i18n id/en coverage; nav item "Depresiasi" (`depreciation.view`-gated) between Penghapusan
+>     and Maintenance.
+>     **Approved mockup deviations** (catat-deviasi convention, confirmed 1:1 against
+>     `docs/design/Depresiasi.dc.html` in both light and dark mode; see spec §6) — **(a)** fully
+>     depreciated assets are still shown in the schedule with a Rp 0 expense row (the mockup has no
+>     example of this state — added so the KPI/"aset disusutkan: n" preview stays honest, only counting
+>     assets with expense > 0); **(b)** the impairment row-action is disabled with a tooltip when the
+>     Fiskal basis is active (the mockup doesn't distinguish — PSAK 48 impairment only applies to the
+>     commercial basis, fiscal never recognizes it); **(c)** the "periode berjalan belum dihitung"
+>     reminder banner is a new element (not in the mockup — a direct consequence of the manual
+>     run-model product decision, so operators don't forget to run the period); **(d)** the
+>     `book_value_at_disposal` field is gone from the Disposal submit form (server-computed now — a
+>     real contract change, not a visual one); **(e)** the Disposal screen's "Jenjang Persetujuan" card
+>     subtitle changed from "berdasar nilai perolehan" to **"berdasar nilai buku"** (i18n updated to
+>     match the new approval-amount basis).
+>     **Honest limitations (follow-up, not this phase)** — **useful-life revision via UI**: the
+>     iterative engine already computes prospective effects of a changed estimate correctly, but no
+>     endpoint/UI exists yet to edit an asset's useful-life/method/salvage after creation; **opening-
+>     balance import**: pre-existing assets are backfilled in full as if the system had run since their
+>     purchase date (correct if that matches historical books; importing a *different* historical
+>     accumulated balance is not supported); **category-level flat Rp 1 policy**: `default_salvage_rate`
+>     is a ratio only — a category-level flat-value override is deferred pending bank policy (existing
+>     "Confirm with bank policy" backlog item).
+>     **Disposed-asset regeneration rule** (recorded for auditors): once an asset's status flips to
+>     `disposed`, `ComputePeriod` stops adding new entries for it after the disposal month, but a
+>     **recompute of an already-non-closed period still deletes and does not regenerate** that asset's
+>     entries for periods after disposal — history for a disposed asset survives only in periods that
+>     were already `closed` before the disposal; a non-closed period's schedule reflects the asset's
+>     current (disposed) reality, not a frozen pre-disposal snapshot.
+>     **Accounting-policy note (possible future refinement):** the commercial declining-balance method
+>     absorbs the entire remainder in the asset's final life month (so closing lands exactly on
+>     salvage) — some PSAK declining-balance practice switches to straight-line for the last stretch of
+>     an asset's life instead; current behavior is a deliberate, documented simplification, not a bug.
+>     **Security follow-up (recorded, not a live gap):** `GET /depreciation/periods` is a global
+>     (non-office-scoped) read, safe today because `depreciation.view` is Superadmin-only (global scope
+>     by definition) — documented in `handler.go` with a SECURITY NOTE and in the OpenAPI tag. **If**
+>     this permission is ever delegated to a non-global/scoped role in the future, the aggregate
+>     `asset_count`/`total_amount` summary fields must be scoped or stripped for that role first (they
+>     currently reflect the whole fleet, not the caller's office subtree).
+>     **Gate sweep (task-13, 2026-07-05):** backend build/vet/test + full `-tags=integration` all green
+>     (one `internal/masterdata/floor` testcontainers failure was transient Docker resource contention
+>     under concurrent container churn — reran in isolation and it passed); Spectral 0 errors; frontend
+>     lint/typecheck/test (882 unit, 84 files)/build all green. Full e2e was run twice: the first pass
+>     accidentally auto-parallelized (a pnpm/script quirk swallowed `--workers=1`) and hit only the
+>     already-known environmental issues (>100 accumulated dev-DB offices breaking the `limit:100`
+>     office picker in `master-offices`/`transfers`, plus the depreciation spec's "reminder banner"
+>     assertion failing because this month's period was already computed/closed from earlier manual
+>     verification in this same session — both anticipated, not regressions); a second, forced
+>     single-worker rerun (after truncating `depreciation.depreciation_entries`/`depreciation_periods`
+>     to reset the monthly singleton) surfaced **one more** environmental issue of the same known
+>     species as the item-25/26 note: the shared dev-DB's Superadmin default (`*`) data-scope policy
+>     was again left at `own` by an incomplete revert in the first run's Data-Scope settings test,
+>     which then 403'd every other spec's office-creation setup step (`approval`, `assets`,
+>     `depreciation`, `disposals`, `transfers`) plus the pre-existing `master-offices` case — **not**
+>     fixed in this task (a direct DB/API mutation to restore it was outside this task's docs-only
+>     scope and was correctly declined), so it's recorded here rather than worked around. **Net read:
+>     zero e2e failures are attributable to this branch's code** — every failure traces to one of the
+>     two pre-existing, previously-documented dev-DB fragilities (office-count debris; the Data-Scope
+>     test's non-atomic cleanup) that CI's fresh-database-per-run avoids entirely. Side-by-side against
+>     `docs/design/Depresiasi.dc.html` (Playwright MCP, real seeded data, light + dark): header,
+>     basis toggle, all 4 KPI tiles, the run panel in all 3 states (open + reminder banner, computed +
+>     green "sudah dihitung" note, closed), schedule table anatomy (impaired icon, disabled-fiskal-
+>     impairment tooltip, empty-search state), the journal tab (per-GL-account rows + "(tanpa akun
+>     GL)" + balanced banner), and the impairment modal (loss preview, violet confirm action matching
+>     the mockup) all matched 1:1 — only the approved (a)–(e) deviations above were present.
+> 29. **Next session — pick the next real step.** Remaining candidates (see *Remaining* below):
+>     **(b)** Stock opname backend module (found/not_found/damaged/misplaced + report); **(e)**
+>     Assignment (check-out/in) and/or Maintenance; **(f)** global search backend (`/search`) + drop
+>     the last `mock/*` files; **(g)** Reporting & Dashboard (PDF/Excel export, reading from the
+>     pre-aggregated read layer). Confirm priority before starting.
 
 ## ✅ Done
 
@@ -299,8 +404,11 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 - [x] **Category enrichment — backend** — `categories` columns (GL account, fiscal group, commercial+
       fiscal useful life, capitalization threshold, asset_class) baked in; `category` service/dto + sqlc +
       OpenAPI wired (build green). **Frontend Kategori screen** still to build (#6 — see *Next session*).
-- [ ] **Dual-basis depreciation** — commercial (PSAK 16) + fiscal (PMK 72/2023, kelompok 1–4 / bangunan)
-      `depreciation_entries` per basis; intangible amortization (PSAK 19); impairment (PSAK 48) write-down
+- [x] **Dual-basis depreciation** — commercial (PSAK 16) + fiscal (PMK 72/2023, kelompok 1–4 / bangunan)
+      `depreciation_entries` per basis; intangible amortization (PSAK 19); impairment (PSAK 48)
+      write-down. `internal/depreciation` module (engine + service + 8 endpoints, migration `000023`) +
+      `/depreciation` frontend screen + asset-detail tab + disposal integration. **Done — see item 28
+      (2026-07-05).**
 - [x] **Value-tiered approval** — `approval_thresholds` (configurable bands per request_type/min-max
       amount/approval_level) + `request_approvals` chain; SoD (maker ≠ checker per step); seeded
       placeholder bands; authz-admin CRUD endpoints for thresholds included. **Done — (2026-06-28).**
@@ -333,7 +441,12 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       `docs/design/Penghapusan Aset.dc.html`, deviations (a)–(i)) is **done — see item 26** in
       *Next session* above.
 - [x] **Asset documents (BAST)** — metadata CRUD + optional MinIO file; scope-gated + audited; integration tests (10 cases). **Done — (2026-06-28).**
-- [ ] **Journal-ready export** — GL-account rollup (depreciation expense, disposal gain/loss)
+- [x] **Journal-ready export (depreciation)** — GL-account rollup of the period's depreciation expense
+      (per-category `gl_account_code` debit rows + one accumulated-depreciation credit row, balanced by
+      construction) with xlsx (`excelize`) + PDF export. **Done — see item 28 (2026-07-05).**
+      ⚠️ **Remaining:** a disposal **gain/loss** GL-account rollup is a separate, not-yet-built export —
+      `disposals.gain_loss` exists per-row but there is no journal-recap endpoint/screen for it yet
+      (candidate for the Reporting phase or a small disposal follow-up).
 - [ ] **Capitalization threshold** — `app_settings` global default + per-category override; below
       threshold → expensed, not capitalized
 - [ ] **Confirm with bank policy** — office-tier naming, capitalization amount, approval-limit bands,
@@ -399,7 +512,14 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 - [x] **Rate limiting (ADR-0004)** — Redis token-bucket (`go-redis/redis_rate`): per-IP + per-account login
       bands, global + refresh throttles, trusted-proxy client-IP hardening; configurable, fail-open. **Done — PR #19.**
 - [ ] **Notifications (in-app)** — store + endpoints (approval decisions, maintenance reminders)
-- [ ] **Scheduler (cron in-process)** — monthly depreciation; maintenance-due reminders
+- [ ] **Scheduler** — automated triggers for periodic jobs (monthly depreciation compute/close,
+      maintenance-due reminders). Superseded by **ADR-0010** (staged adoption, 2026-07-05): stage 1
+      (manual HTTP/UI trigger — "Hitung Periode"/"Tutup Periode", idempotent + `pg_advisory_xact_lock`
+      + audit-logged) is **done** as part of the depreciation module (item 28); this checklist item now
+      tracks **stage 2** (`cmd/jobs` binary + external scheduler — Task Scheduler/cron/K8s CronJob — +
+      a `job_runs` table) and **stage 3** (in-process advisory-locked scheduler or a Redis job queue for
+      multi-replica scale), neither built yet. Period **close** stays manual by product decision
+      (accounting discipline, not a technical gap) regardless of stage.
 - [x] **Authorization admin endpoints** — `internal/authzadmin` — role CRUD (system-role protected), replace-set role_permissions/data_scope/field_permissions with Redis cache invalidation (ScopeService/FieldService gained `Invalidate`), canonical permission catalog (`GET /authz/catalog`). **Done — (2026-06-28).**
 - [x] **Seed RBAC drift fix** — stale permission keys (`asset.read`/`asset.create`/`request.approve`) realigned to the canonical catalog (`asset.view`/`asset.manage`, `request.decide`, `approval.config.manage`); seed script and migration re-verified against `permissionCatalog`. **Done — (2026-06-28).**
 
@@ -496,6 +616,14 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       *Next session* above for the full deviation list (a)–(i) and follow-ups (disposal amount basis
       → server-computed book value; BAST link once Dokumen BAST exists; money fields into the
       field-permission catalog if needed).
+- [x] **Depresiasi** (`/depreciation`) ✅ wired to real `/api/v1/depreciation/*` +
+      `/api/v1/assets/:id/depreciation` + `/api/v1/assets/:id/impairment` — basis toggle (Komersial
+      PSAK 16 / Fiskal PMK 72/2023), 4 KPI tiles, Jalankan-Periode panel (open/computed/closed +
+      reminder banner), Jadwal-per-Aset tab (impaired icon, fully-depreciated rows, filters), Rekap
+      Siap-Jurnal tab (balanced banner + xlsx/pdf export), impairment modal (live loss preview); asset
+      detail's Depreciation tab now shows a real schedule instead of an empty state; Disposal screen's
+      fiscal valuation + approval-chain subtitle are real. **Done (2026-07-05).** See item 28 in
+      *Next session* above for the full deviation list (a)–(e), limitations, and follow-ups.
 - [ ] **Staff role menus** — wire staff nav (`myAssets`, staff `assignment`/`approval`) to pages/variants
 - [x] **Google OAuth login** button + flow (UI) — login redirect + `?oauth=success/error` landing
       (refresh → fetchMe → navigate; i18n error reasons). **Done — PR #21.**

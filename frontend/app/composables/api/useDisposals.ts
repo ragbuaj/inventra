@@ -25,7 +25,6 @@ export interface DisposalSubmitInput {
   method: DisposalMethod
   disposal_date: string
   proceeds?: string | null
-  book_value_at_disposal?: string | null
   bast_no?: string | null
   reason?: string | null
 }

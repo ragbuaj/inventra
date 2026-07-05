@@ -420,8 +420,7 @@
       "bookValueCommercial": "Nilai Buku",
       "bookValueFiscal": "Nilai Buku",
       "psakChip": "PSAK",
-      "fiscalChip": "FISKAL",
-      "fiscalTooltip": "Nilai buku fiskal menunggu modul depresiasi."
+      "fiscalChip": "FISKAL"
     },
     "gainLoss": {
       "title": "Laba / Rugi Pelepasan",
@@ -439,7 +438,7 @@
       "title": "Jenjang Persetujuan Diperlukan",
       "ref": "Limit Otorisasi §2.4",
       "sensitiveNote": "Tindakan sensitif — penghapusan aset mengubah catatan aktiva tetap dan memerlukan approval berjenjang sesuai nilai buku.",
-      "basedOnBookValue": "berdasar nilai perolehan: {value}",
+      "basedOnBookValue": "berdasar nilai buku: {value}",
       "notConfigured": "Band approval belum dikonfigurasi.",
       "acquisitionHidden": "Nilai perolehan tersembunyi untuk peran Anda.",
       "role": {
@@ -517,6 +516,106 @@
       "confirm": "Simpan Lampiran",
       "cancel": "Batal",
       "success": "Lampiran BAST untuk \"{name}\" berhasil disimpan."
+    }
+  },
+  "depreciation": {
+    "title": "Depresiasi",
+    "subtitle": "Jalankan & tutup perhitungan penyusutan per periode untuk basis komersial dan fiskal.",
+    "total": "TOTAL",
+    "noManageNote": "Anda tidak punya izin untuk mengelola depresiasi.",
+    "basis": {
+      "commercial": "Komersial",
+      "fiscal": "Fiskal",
+      "refCommercial": "PSAK 16",
+      "refFiscal": "PMK 72/2023"
+    },
+    "kpi": {
+      "acquisition": "Total Nilai Perolehan",
+      "accumulated": "Akumulasi Penyusutan",
+      "bookValue": "Nilai Buku",
+      "periodExpense": "Beban Periode Berjalan",
+      "periodExpenseSub": "periode berjalan",
+      "acquisitionSub": "{n} aset"
+    },
+    "period": {
+      "runTitle": "Jalankan Periode",
+      "prefix": "Periode",
+      "status": {
+        "open": "Terbuka",
+        "computed": "Terhitung",
+        "closed": "Ditutup"
+      },
+      "compute": "Hitung Periode",
+      "close": "Tutup Periode",
+      "closed": "Periode Ditutup",
+      "previewAssets": "Aset disusutkan:",
+      "previewExpense": "Total beban:",
+      "computedNote": "Sudah dihitung — tinjau lalu tutup periode.",
+      "reminderTitle": "Periode berjalan belum dihitung",
+      "reminderBody": "Jalankan perhitungan penyusutan untuk periode ini sebelum melanjutkan ke jurnal atau laporan."
+    },
+    "section": {
+      "schedule": "Jadwal per Aset",
+      "journal": "Rekap Siap-Jurnal"
+    },
+    "schedule": {
+      "searchPlaceholder": "Cari aset…",
+      "filterCategoryAll": "Semua Kategori",
+      "filterOfficeAll": "Semua Kantor",
+      "noMatch": "Tidak ada aset yang cocok.",
+      "column": {
+        "asset": "Aset",
+        "method": "Metode",
+        "life": "Masa (bln)",
+        "opening": "Nilai Awal",
+        "expense": "Beban Periode",
+        "accumulated": "Akumulasi",
+        "closing": "Nilai Akhir",
+        "actions": "Aksi"
+      },
+      "methodStraightLine": "Garis Lurus",
+      "methodDecliningBalance": "Saldo Menurun",
+      "impairAction": "Catat Penurunan Nilai",
+      "impairedTooltip": "Aset telah di-impair",
+      "impairDisabledFiscalTooltip": "Fiskal tidak mengakui impairment — PSAK 48 hanya basis komersial"
+    },
+    "journal": {
+      "subtitle": "Ringkasan jurnal penyusutan periode berjalan per akun GL.",
+      "title": "Jurnal Penyusutan",
+      "column": {
+        "account": "Kode Akun",
+        "name": "Nama Akun",
+        "debit": "Debit",
+        "credit": "Kredit"
+      },
+      "expenseAccountName": "Beban Penyusutan",
+      "accumulatedAccountName": "Akumulasi Penyusutan",
+      "balanced": "Jurnal seimbang — debit = kredit.",
+      "exportPdf": "Ekspor PDF",
+      "exportExcel": "Ekspor Excel"
+    },
+    "impairment": {
+      "title": "Catat Penurunan Nilai",
+      "ref": "Impairment — PSAK 48",
+      "currentBookValue": "Nilai buku saat ini",
+      "recoverableAmount": "Nilai Terpulihkan (recoverable)",
+      "loss": "Rugi Penurunan Nilai",
+      "reason": "Alasan",
+      "reasonPlaceholder": "mis. Kerusakan permanen akibat banjir; nilai pasar turun signifikan…",
+      "save": "Simpan & Sesuaikan",
+      "cancel": "Batal"
+    },
+    "assetDetail": {
+      "title": "Riwayat Penyusutan",
+      "masked": "Nilai penyusutan disamarkan untuk peran Anda.",
+      "empty": "Belum pernah dihitung",
+      "column": {
+        "period": "Periode",
+        "opening": "Nilai Awal",
+        "expense": "Beban",
+        "closing": "Nilai Akhir",
+        "method": "Metode"
+      }
     }
   },
   "maintenance": {
@@ -1105,6 +1204,7 @@
     "assignment": "Penugasan",
     "transfers": "Mutasi Aset",
     "disposals": "Penghapusan",
+    "depreciation": "Depresiasi",
     "maintenance": "Maintenance",
     "approval": "Pengajuan & Approval",
     "approvalStaff": "Pengajuan",
