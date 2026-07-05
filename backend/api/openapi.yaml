@@ -84,12 +84,14 @@ tags:
       Monthly depreciation compute/close, per-asset/portfolio schedules, and the
       general-ledger journal — computed on **two bases**: commercial (PSAK 16, straight-line
       or declining-balance per category) and fiscal (PMK 72/2023). Reading periods,
-      schedule, and journal (incl. export) requires `depreciation.view`, scoped to the
-      `depreciation` data-scope module; computing/closing a period and recording an
-      impairment (PSAK 48 write-down) require `depreciation.manage`. **Closing a period is
-      immutable** — a later compute never regenerates entries at or before the closed
-      watermark. `GET /assets/{id}/depreciation` instead reuses the `assets` data scope and
-      masks `book_value`-derived fields per the caller's field permissions.
+      schedule, and journal (incl. export) requires `depreciation.view`; the schedule and
+      journal (+ export) are additionally scoped to the `depreciation` data-scope module,
+      while the periods list is a global (non-office-scoped) read of period aggregates.
+      Computing/closing a period and recording an impairment (PSAK 48 write-down) require
+      `depreciation.manage`. **Closing a period is immutable** — a later compute never
+      regenerates entries at or before the closed watermark. `GET /assets/{id}/depreciation`
+      instead reuses the `assets` data scope and masks `book_value`-derived fields per the
+      caller's field permissions.
   - name: Audit
     description: Read-only audit trail (requires the `audit.view` permission)
 
@@ -4077,7 +4079,7 @@ components:
             period; empty string for the synthetic never-computed current-month row.
         skipped_count:
           type: integer
-          description: Number of capitalized assets skipped this run (not capitalized, disposed, or missing purchase_cost/purchase_date).
+          description: 'Assets skipped this run — reasons: not capitalized, disposed, missing purchase_cost/purchase_date, or missing depreciation parameters (no method/useful life on asset or category).'
 
     DepreciationScheduleRow:
       type: object
