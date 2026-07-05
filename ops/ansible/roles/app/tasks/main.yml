@@ -1,5 +1,29 @@
 ---
-# Diisi pada task berikutnya.
-- name: Placeholder
-  ansible.builtin.debug:
-    msg: "role belum diimplementasikan"
+- name: Checkout application repo
+  become: true
+  become_user: "{{ deploy_user }}"
+  ansible.builtin.git:
+    repo: "{{ repo_url }}"
+    dest: "{{ app_dir }}"
+    version: "{{ repo_version }}"
+    update: true
+
+- name: Render .env.prod from Vault
+  ansible.builtin.template:
+    src: env.prod.j2
+    dest: "{{ app_dir }}/.env.prod"
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: "0600"
+
+- name: Bring up production stack
+  become: true
+  become_user: "{{ deploy_user }}"
+  community.docker.docker_compose_v2:
+    project_src: "{{ app_dir }}"
+    files:
+      - docker-compose.prod.yml
+    env_files:
+      - "{{ app_dir }}/.env.prod"
+    state: present
+    build: policy
