@@ -98,3 +98,12 @@
     group: root
     mode: "0644"
   notify: Restart ssh
+
+# Handlers only flush at end-of-play, so this runs before "Restart ssh" fires.
+# If the new drop-in makes sshd's config invalid, this task fails the play and
+# the handler never runs — the live sshd keeps its last-known-good config
+# instead of restarting into a broken state and locking us out (this is an
+# SSH-only-reachable box).
+- name: Validate sshd configuration
+  ansible.builtin.command: /usr/sbin/sshd -t
+  changed_when: false

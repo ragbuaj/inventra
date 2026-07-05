@@ -19,8 +19,12 @@
     mode: "0600"
 
 - name: Bring up production stack
+  # Runs as root (not deploy_user): the docker role just added deploy to the
+  # docker group in this same play, but group membership only takes effect on
+  # a new login session — deploy's context here may still lack access to
+  # /var/run/docker.sock, so the first-ever apply could fail with permission
+  # denied. Root always has docker socket access, so run as root instead.
   become: true
-  become_user: "{{ deploy_user }}"
   community.docker.docker_compose_v2:
     project_src: "{{ app_dir }}"
     files:
