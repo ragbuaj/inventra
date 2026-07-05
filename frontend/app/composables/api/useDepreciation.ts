@@ -82,25 +82,32 @@ export interface ImpairmentResult {
   impairment_loss: string
 }
 
+/** Lean response of POST /depreciation/periods/:period/close ({period, status} only). */
+export interface ClosedPeriod {
+  period: string
+  status: PeriodStatus
+}
+
 /** Depreciation (penyusutan): periods, per-asset schedule, journal recap, impairment. */
 export function useDepreciation() {
   const { request, requestBlob } = useApiClient()
 
   async function periods(): Promise<DepreciationPeriod[]> {
-    return request<DepreciationPeriod[]>('/depreciation/periods')
+    // Backend wraps the list in a {data: [...]} envelope.
+    return (await request<{ data: DepreciationPeriod[] }>('/depreciation/periods')).data
   }
 
   async function compute(period: string): Promise<DepreciationPeriod> {
-    return request<DepreciationPeriod>('/depreciation/compute', {
-      method: 'POST',
-      body: { period }
+    // `period` is a PATH param; the endpoint takes no body.
+    return request<DepreciationPeriod>(`/depreciation/periods/${period}/compute`, {
+      method: 'POST'
     })
   }
 
-  async function close(period: string): Promise<DepreciationPeriod> {
-    return request<DepreciationPeriod>('/depreciation/close', {
-      method: 'POST',
-      body: { period }
+  async function close(period: string): Promise<ClosedPeriod> {
+    // `period` is a PATH param; response is the lean {period, status} shape.
+    return request<ClosedPeriod>(`/depreciation/periods/${period}/close`, {
+      method: 'POST'
     })
   }
 
@@ -125,11 +132,12 @@ export function useDepreciation() {
   }
 
   async function assetSchedule(assetId: string): Promise<AssetDepreciationResponse> {
-    return request<AssetDepreciationResponse>(`/depreciation/assets/${assetId}`)
+    // Read is mounted under the /assets prefix, suffix `/depreciation`.
+    return request<AssetDepreciationResponse>(`/assets/${assetId}/depreciation`)
   }
 
   async function recordImpairment(assetId: string, recoverable: string, reason: string): Promise<ImpairmentResult> {
-    return request<ImpairmentResult>(`/depreciation/assets/${assetId}/impairment`, {
+    return request<ImpairmentResult>(`/assets/${assetId}/impairment`, {
       method: 'POST',
       body: { recoverable_amount: recoverable, reason }
     })
