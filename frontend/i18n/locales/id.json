@@ -535,7 +535,8 @@
       "accumulated": "Akumulasi Penyusutan",
       "bookValue": "Nilai Buku",
       "periodExpense": "Beban Periode Berjalan",
-      "periodExpenseSub": "periode berjalan"
+      "periodExpenseSub": "periode berjalan",
+      "acquisitionSub": "{n} aset"
     },
     "period": {
       "runTitle": "Jalankan Periode",

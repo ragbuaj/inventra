@@ -535,7 +535,8 @@
       "accumulated": "Accumulated Deprec.",
       "bookValue": "Book Value",
       "periodExpense": "Current Period Expense",
-      "periodExpenseSub": "current period"
+      "periodExpenseSub": "current period",
+      "acquisitionSub": "{n} assets"
     },
     "period": {
       "runTitle": "Run Period",
