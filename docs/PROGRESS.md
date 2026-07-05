@@ -320,11 +320,19 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     impairment tooltip, empty-search state), the journal tab (per-GL-account rows + "(tanpa akun
 >     GL)" + balanced banner), and the impairment modal (loss preview, violet confirm action matching
 >     the mockup) all matched 1:1 — only the approved (a)–(e) deviations above were present.
-> 29. **Next session — pick the next real step.** Remaining candidates (see *Remaining* below):
->     **(b)** Stock opname backend module (found/not_found/damaged/misplaced + report); **(e)**
->     Assignment (check-out/in) and/or Maintenance; **(f)** global search backend (`/search`) + drop
->     the last `mock/*` files; **(g)** Reporting & Dashboard (PDF/Excel export, reading from the
->     pre-aggregated read layer). Confirm priority before starting.
+> 29. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-05): production ops
+>     hardening (WAF → IaC → observability), see** `docs/superpowers/specs/` **ops-hardening design.**
+> 30. ~~**Ops hardening Phase 1 — WAF (Coraza + OWASP CRS)**~~ ✅ **DONE (2026-07-06).** Custom Caddy
+>     image + isolated smoke-test harness + prod Caddyfile rolled out DetectionOnly → tuned →
+>     **Blocking**; ADR-0012 + `docs/DEPLOYMENT.md` WAF section. See *Foundation & DevOps* above.
+> 31. **Next session — pick the next real step.** Ops hardening **Phase 2: IaC (Ansible)** —
+>     provision the VPS declaratively (Docker install, firewall/ufw, swap, `.env.prod` secrets
+>     handling) per the ops-hardening design doc, replacing the manual `docs/DEPLOYMENT.md` steps
+>     where practical. Other remaining candidates (see *Remaining* below): **(b)** Stock opname
+>     backend module (found/not_found/damaged/misplaced + report); **(e)** Assignment (check-out/in)
+>     and/or Maintenance; **(f)** global search backend (`/search`) + drop the last `mock/*` files;
+>     **(g)** Reporting & Dashboard (PDF/Excel export, reading from the pre-aggregated read layer).
+>     Confirm priority before starting.
 
 ## ✅ Done
 
@@ -333,6 +341,14 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 - [x] `docker compose up` full stack (Postgres + Redis + MinIO + migrate + backend + frontend)
 - [x] GitHub Actions CI (backend build/vet/test · frontend lint/typecheck/build · Spectral)
 - [x] PRD + DATABASE design docs
+- [x] Production Docker Compose stack + VPS deployment guide (`docker-compose.prod.yml`,
+      `docs/DEPLOYMENT.md`) — PR #51
+- [x] **Ops hardening Phase 1 — WAF (Coraza + OWASP CRS)** ✅ custom Caddy image
+      (`ops/caddy/`, `xcaddy --with coraza-caddy/v2`), isolated smoke-test harness
+      (`ops/caddy/test/`, `ops/waf-smoketest.sh`, host port 18080) proving CRS blocks
+      SQLi/XSS/path-traversal while legit traffic passes, prod Caddyfile wired
+      DetectionOnly → tuned → **Blocking** (`SecRuleEngine On`, default produksi).
+      ADR-0012 + `docs/DEPLOYMENT.md` WAF sub-section. **Done (2026-07-06).**
 
 ### Database (15 migrations · 12 schemas)
 - [x] enums + `set_updated_at` + per-module schemas (`shared/identity/audit/masterdata/asset/import/approval/assignment/maintenance/depreciation` + v1.1 `transfer/stockopname/disposal`)

@@ -1,11 +1,24 @@
 # Reverse proxy + HTTPS otomatis (Let's Encrypt) untuk Inventra.
 # Satu domain: frontend di root, backend di /api/* dan /health.
+# WAF Coraza (OWASP CRS) berjalan di depan seluruh rute — lihat ops/caddy/.
 {
 	email {$ACME_EMAIL}
+	order coraza_waf first
 }
 
 {$DOMAIN} {
 	encode gzip zstd
+
+	coraza_waf {
+		load_owasp_crs
+		directives `
+			Include @coraza.conf-recommended
+			Include @crs-setup.conf.example
+			Include @owasp_crs/*.conf
+			Include /etc/caddy/coraza-exclusions.conf
+			SecRuleEngine On
+		`
+	}
 
 	# API + healthcheck → backend Go
 	@api path /api/* /health

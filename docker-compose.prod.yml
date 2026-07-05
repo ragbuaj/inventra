@@ -123,7 +123,8 @@ services:
       NUXT_PUBLIC_API_BASE: https://${DOMAIN}/api/v1
 
   caddy:
-    image: caddy:2-alpine
+    build:
+      context: ./ops/caddy
     container_name: inventra-caddy
     restart: unless-stopped
     depends_on:
@@ -136,7 +137,8 @@ services:
       DOMAIN: ${DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL}
     volumes:
-      - ./ops/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./ops/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./ops/caddy/coraza-exclusions.conf:/etc/caddy/coraza-exclusions.conf:ro
       - caddy-data:/data
       - caddy-config:/config
 
