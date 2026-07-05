@@ -9,6 +9,8 @@
     update: true
 
 - name: Render .env.prod from Vault
+  become: true
+  become_user: "{{ deploy_user }}"
   ansible.builtin.template:
     src: env.prod.j2
     dest: "{{ app_dir }}/.env.prod"
