@@ -10,13 +10,15 @@ import (
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
 )
 
-// SubmitRequest is the POST /disposals body.
+// SubmitRequest is the POST /disposals body. book_value_at_disposal is
+// deliberately absent — the server computes it from the depreciation
+// schedule (BookValueAsOf), so a caller cannot inject it (see service.go's
+// Submit).
 type SubmitRequest struct {
 	AssetID      string  `json:"asset_id" binding:"required,uuid"`
 	Method       string  `json:"method" binding:"required,oneof=sale auction donation write_off"`
 	DisposalDate string  `json:"disposal_date" binding:"required"` // "2006-01-02"
 	Proceeds     *string `json:"proceeds"`
-	BookValue    *string `json:"book_value_at_disposal"`
 	BastNo       *string `json:"bast_no"`
 	Reason       *string `json:"reason"`
 }

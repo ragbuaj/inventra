@@ -165,7 +165,8 @@ func NewRouter(d Deps) *gin.Engine {
 
 		approvalSvc := approval.NewService(queries, d.Pool, scopeSvc, d.Redis)
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
-		disposalSvc := disposal.NewService(queries, d.Pool, approvalSvc)
+		depreciationSvc := depreciation.NewService(queries, d.Pool)
+		disposalSvc := disposal.NewService(queries, d.Pool, approvalSvc, depreciationSvc)
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, disposalSvc.Executor())
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeValuationExclusion, assetSvc.ExclusionExecutor())
 		transferSvc := transfer.NewService(queries, d.Pool, approvalSvc)
@@ -187,7 +188,6 @@ func NewRouter(d Deps) *gin.Engine {
 			middleware.RequirePermission(permSvc, "disposal.view"),
 		)
 
-		depreciationSvc := depreciation.NewService(queries, d.Pool)
 		depreciationHandler := depreciation.NewHandler(depreciationSvc, fieldSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)
 		depreciation.RegisterRoutes(api, depreciationHandler,
 			requireAuth,

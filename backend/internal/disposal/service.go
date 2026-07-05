@@ -6,6 +6,7 @@ package disposal
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -15,6 +16,7 @@ import (
 	sqlc "github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/approval"
 	"github.com/ragbuaj/inventra/internal/asset"
+	"github.com/ragbuaj/inventra/internal/depreciation"
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
 )
 
@@ -45,10 +47,11 @@ type Service struct {
 	q    *sqlc.Queries
 	pool *pgxpool.Pool
 	appr *approval.Service
+	depr *depreciation.Service
 }
 
-func NewService(q *sqlc.Queries, pool *pgxpool.Pool, appr *approval.Service) *Service {
-	return &Service{q: q, pool: pool, appr: appr}
+func NewService(q *sqlc.Queries, pool *pgxpool.Pool, appr *approval.Service, depr *depreciation.Service) *Service {
+	return &Service{q: q, pool: pool, appr: appr, depr: depr}
 }
 
 type SubmitInput struct {
@@ -87,13 +90,22 @@ func (s *Service) Submit(ctx context.Context, caller approval.Caller, in SubmitI
 		return sqlc.ApprovalRequest{}, ErrDisposalExists
 	}
 
-	payload, err := marshalPayload(in)
+	// Server-computed commercial book value as of the disposal month — both the
+	// approval-amount basis and book_value_at_disposal (spec 2026-07-05 decision #3).
+	asOf, derr := time.Parse("2006-01-02", in.DisposalDate)
+	if derr != nil {
+		return sqlc.ApprovalRequest{}, ErrInvalidRef
+	}
+	bookValue, err := s.depr.BookValueAsOf(ctx, in.AssetID, asOf)
 	if err != nil {
 		return sqlc.ApprovalRequest{}, err
 	}
-	amount := "0"
-	if a.PurchaseCost != nil {
-		amount = *a.PurchaseCost
+	in.BookValue = &bookValue
+	amount := bookValue
+
+	payload, err := marshalPayload(in)
+	if err != nil {
+		return sqlc.ApprovalRequest{}, err
 	}
 	entity := "asset"
 	targetID := in.AssetID

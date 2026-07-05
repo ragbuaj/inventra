@@ -3398,7 +3398,11 @@ components:
 
     DisposalSubmitRequest:
       type: object
-      description: Body for POST /disposals.
+      description: |
+        Body for POST /disposals. book_value_at_disposal is not part of this request —
+        the server computes it (and the approval amount) from the depreciation schedule
+        as of disposal_date's month (last commercial closing, falling back to
+        purchase_cost, then "0"); a caller cannot supply or override it.
       required: [asset_id, method, disposal_date]
       properties:
         asset_id: { type: string, format: uuid }
@@ -3407,9 +3411,6 @@ components:
           enum: [sale, auction, donation, write_off]
         disposal_date: { type: string, format: date }
         proceeds:
-          type: [string, "null"]
-          description: Decimal string (IDR).
-        book_value_at_disposal:
           type: [string, "null"]
           description: Decimal string (IDR).
         bast_no: { type: [string, "null"] }

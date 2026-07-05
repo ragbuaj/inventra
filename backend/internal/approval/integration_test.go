@@ -24,6 +24,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/asset"
 	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/authz"
+	"github.com/ragbuaj/inventra/internal/depreciation"
 	"github.com/ragbuaj/inventra/internal/disposal"
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
 	"github.com/ragbuaj/inventra/internal/middleware"
@@ -612,7 +613,8 @@ func TestApproval_AssetDisposal_ApproveChain(t *testing.T) {
 	scopeSvc := authz.NewScopeService(q, rdb)
 	svc := approval.NewService(q, pool, scopeSvc, rdb)
 	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0, "")
-	disposalSvc := disposal.NewService(q, pool, svc)
+	deprSvc := depreciation.NewService(q, pool)
+	disposalSvc := disposal.NewService(q, pool, svc, deprSvc)
 	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, disposalSvc.Executor())
 
 	targetEntity := "assets"
@@ -670,7 +672,8 @@ func TestApproval_AssetDisposal_CrossOfficeRejected(t *testing.T) {
 	scopeSvc := authz.NewScopeService(q, rdb)
 	svc := approval.NewService(q, pool, scopeSvc, rdb)
 	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0, "")
-	disposalSvc := disposal.NewService(q, pool, svc)
+	deprSvc := depreciation.NewService(q, pool)
+	disposalSvc := disposal.NewService(q, pool, svc, deprSvc)
 	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, disposalSvc.Executor())
 
 	targetEntity := "assets"
@@ -1025,7 +1028,8 @@ func TestApproval_ExecutorAtomicity_RollbackOnError(t *testing.T) {
 	scopeSvc := authz.NewScopeService(q, rdb)
 	svc := approval.NewService(q, pool, scopeSvc, rdb)
 	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0, "")
-	disposalSvc := disposal.NewService(q, pool, svc)
+	deprSvc := depreciation.NewService(q, pool)
+	disposalSvc := disposal.NewService(q, pool, svc, deprSvc)
 	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetDisposal, disposalSvc.Executor())
 
 	// Use 1-step disposal threshold: amount < 5M

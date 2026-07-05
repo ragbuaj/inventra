@@ -80,7 +80,7 @@ func (h *Handler) submit(c *gin.Context) {
 	}
 	out, err := h.svc.Submit(c.Request.Context(), caller, SubmitInput{
 		AssetID: assetID, Method: req.Method, DisposalDate: req.DisposalDate,
-		Proceeds: req.Proceeds, BookValue: req.BookValue, BastNo: req.BastNo, Reason: req.Reason,
+		Proceeds: req.Proceeds, BastNo: req.BastNo, Reason: req.Reason,
 	})
 	if err != nil {
 		h.svcError(c, err)
