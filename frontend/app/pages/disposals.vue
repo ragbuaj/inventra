@@ -177,12 +177,15 @@ const chainPreviewAmount = computed<string | null>(() => {
 type GainLossState = 'empty' | 'masked' | 'result'
 const gainLossState = computed<GainLossState>(() => {
   if (!selectedAsset.value || proceedsRaw.value === '') return 'empty'
-  if (bookValueMasked.value || selectedAsset.value.book_value == null) return 'masked'
+  if (bookValueMasked.value || commercialBookValue.value == null) return 'masked'
   return 'result'
 })
 const gainLossValue = computed<number | null>(() => {
-  if (gainLossState.value !== 'result' || !selectedAsset.value) return null
-  return Number(proceedsRaw.value) - Number(selectedAsset.value.book_value)
+  if (gainLossState.value !== 'result' || commercialBookValue.value == null) return null
+  // Uses the server-computed book value (BookValueAsOf) — the same basis the
+  // backend records gain_loss from — so the maker's preview matches what
+  // approval will actually persist.
+  return Number(proceedsRaw.value) - Number(commercialBookValue.value)
 })
 const gainLossVariant = computed<'gain' | 'loss' | 'breakEven' | null>(() => {
   const v = gainLossValue.value
@@ -985,7 +988,7 @@ onMounted(() => {
                 </div>
                 <div class="flex items-center justify-between text-[12.5px]">
                   <span class="text-muted">− {{ t('disposal.gainLoss.bookValue') }}</span>
-                  <span class="font-medium tabular-nums">{{ formatRupiah(selectedAsset?.book_value) }}</span>
+                  <span class="font-medium tabular-nums">{{ formatRupiah(commercialBookValue) }}</span>
                 </div>
                 <div class="h-px bg-default my-0.5" />
                 <div class="flex items-center justify-between text-[11.5px] text-dimmed">

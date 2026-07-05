@@ -272,6 +272,23 @@ describe('pages/disposals — Laba/Rugi card', () => {
     expect(value.classes()).not.toContain('text-error')
   })
 
+  it('computes the commercial gain/loss from the server-computed book value, not the stale asset column', async () => {
+    // computed_book_value (500000) differs from the asset's stale book_value
+    // (680000). The maker's preview must match what the backend records
+    // (gain_loss from BookValueAsOf), i.e. 1500000 − 500000 = 1000000, not
+    // the stale 1500000 − 680000 = 820000.
+    depAssetScheduleMock.mockResolvedValue(scheduleResp({ computed_book_value: '500000' }))
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    await setVmRef(w, 'proceedsRaw', '1500000')
+    const value = w.find('[data-testid="disposal-gainloss-value"]')
+    expect(value.text()).toContain('1.000.000')
+    expect(value.text()).not.toContain('820.000')
+    // The "− Nilai Buku (komersial)" breakdown line shows the same computed value.
+    expect(w.text()).toContain('500.000')
+    expect(w.text()).not.toContain('680.000')
+  })
+
   it('shows a masked "—" + note when book value is hidden for the caller\'s role', async () => {
     const w = await mountAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_BV_MASKED)
