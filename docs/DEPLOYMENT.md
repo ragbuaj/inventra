@@ -285,6 +285,16 @@ Reverse-proxy Caddy menjalankan WAF Coraza dengan OWASP CRS (image Caddy kustom
 di `ops/caddy/`). Mode diatur oleh `SecRuleEngine` di `ops/caddy/Caddyfile`:
 `DetectionOnly` (mencatat) atau `On` (memblokir, default produksi).
 
+> **Deploy pertama kali ke environment baru:** sebelum mengaktifkan blocking,
+> set dulu `SecRuleEngine DetectionOnly` di `ops/caddy/Caddyfile`, deploy, lalu
+> jalankan alur nyata (login, buat/edit aset, upload lampiran, export) selagi
+> memantau `docker compose -f docker-compose.prod.yml logs caddy | grep -i coraza`
+> untuk menemukan rule id yang terpicu pada request yang sah. Tambahkan
+> exclusion yang diperlukan ke `ops/caddy/coraza-exclusions.conf`, baru setelah
+> itu set `SecRuleEngine On` dan redeploy. File exclusions yang masih kosong +
+> langsung `On` berisiko men-403 alur sah (login, upload multipart ke MinIO,
+> body JSON) tanpa ada jendela tuning.
+
 **Tuning false-positive** — bila alur sah terblokir (mis. upload lampiran):
 1. `docker compose -f docker-compose.prod.yml logs caddy | grep -i coraza` untuk
    menemukan rule id yang terpicu.
