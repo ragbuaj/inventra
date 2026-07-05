@@ -193,8 +193,10 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     `transfer_date` is backend-optional but the UI form requires it (contract compatibility — some
 >     non-UI submitters may omit it).
 >     **Follow-ups (tracked, not yet done):** switch the disposal approval-amount basis from
->     maker-supplied to the server-computed commercial book value once the depreciation module
->     lands; add the BAST-link behavior to Mutasi history once the Dokumen BAST screen is built; fold
+>     `purchase_cost` (server-derived and conservative — the only tamper-proof value today) to the
+>     **server-computed commercial book value** once the depreciation module lands (the
+>     maker-supplied `book_value_at_disposal` caveat also disappears then); add the BAST-link
+>     behavior to Mutasi history once the Dokumen BAST screen is built; fold
 >     the transfer/disposal money fields (`proceeds`, `book_value_at_disposal`, transfer
 >     `condition`/`reason`) into the field-permission catalog if a future role needs them masked.
 >     **Gate sweep (task-13):** backend build/vet/test + full integration, Spectral, frontend
