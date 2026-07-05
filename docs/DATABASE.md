@@ -814,6 +814,7 @@ Tiap fase roadmap (PRD §10) menambah migrasi `golang-migrate` di `backend/db/mi
 | **`000015_fam_tables`** 🆕 | v1.1 | skema/tabel **baru**: `transfer.asset_transfers`, `disposal.disposals`, `stockopname.stock_opname_{sessions,items}`, `asset.asset_documents` (BAST) ✅ |
 | `000016`–`000022` 🆕 | v1.1 | migrasi inkremental modul transaksi v1.1: kolom akuntansi/fiskal/intangible via `ALTER TABLE` (offices/categories/assets/requests, lihat catatan inline §4 di atas), `approval_thresholds` + `request_approvals`, `depreciation_entries.basis`, dan tabel/kolom pendukung modul transfer/disposal (mis. `000022_transfer_condition_return`: `asset_transfers.{condition_sent,transfer_date,returned}` + `return_note`) ✅ |
 | **`000023_depreciation_periods`** 🆕 | v1.1 | `depreciation`: tabel `depreciation_periods` (state machine `open`/`computed`/`closed`, ringkasan run) + enum `shared.depreciation_period_status`; seed `app_settings` key `depreciation.accumulated_gl_account` + permission `depreciation.view`/`depreciation.manage` ✅ |
+| **`000024_asset_impaired_floor`** 🆕 | v1.1 | `asset.assets.impaired_book_value numeric(18,2)` (nullable) — floor nilai buku stabil yang HANYA ditulis oleh impairment (PSAK 48) dan dikonsumsi engine sebagai titik resume; memisahkan sinyal impairment dari `book_value` turunan agar recompute tetap idempotent. Tidak diekspos di respons Aset (internal) ✅ |
 
 > **Strategi greenfield (PRD v1.1).** Karena belum ada data, perubahan v1.1 untuk tabel/enum yang
 > **sudah ada** di-bake **in-place ke migrasi awal** (bukan migrasi `ALTER` terpisah):
