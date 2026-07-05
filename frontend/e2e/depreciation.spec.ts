@@ -19,7 +19,8 @@ import { login, EMAIL, PASSWORD } from './helpers'
 //   backlog to walk, not a same-month zero-elapsed edge case).
 //
 //   1. `/depreciation`: the never-computed current period shows the reminder
-//      banner and an empty schedule for this asset → Hitung → period flips to
+//      banner and a "no entry yet" schedule row for this asset (the union query
+//      lists capitalized assets even before a run) → Hitung → period flips to
 //      Terhitung, KPI tiles populate, and the schedule (filtered to this run's
 //      asset by name) shows exactly one row at 100.000 (4.800.000 / 48).
 //   2. Toggle to the Fiskal basis: same row, same amount (kelompok_1 is also
