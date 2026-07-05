@@ -1,0 +1,17 @@
+# Harness uji WAF terisolasi (HTTP :8080, tanpa TLS).
+#   docker compose -f ops/caddy/test/docker-compose.test.yml up -d --build
+#   ops/waf-smoketest.sh http://localhost:8080
+#   docker compose -f ops/caddy/test/docker-compose.test.yml down
+services:
+  caddy:
+    build:
+      context: ..
+    ports:
+      - "18080:8080"
+    volumes:
+      - ./Caddyfile.test:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - whoami
+
+  whoami:
+    image: traefik/whoami:latest
