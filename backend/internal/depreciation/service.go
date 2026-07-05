@@ -905,12 +905,28 @@ func (s *Service) RecordImpairment(ctx context.Context, assetID uuid.UUID, recov
 	defer tx.Rollback(ctx) //nolint:errcheck
 	qtx := s.q.WithTx(tx)
 
+	// Serialize against ComputePeriod/ClosePeriod (same transaction-scoped
+	// advisory lock they take, as their first statement): compute's
+	// refreshAssetSummary rewrites asset.book_value from the entries, so an
+	// impairment committing mid-compute would get its book_value clobbered
+	// back to the pre-impairment closing while impairment_loss kept the
+	// write-down — inconsistent state, and the next recompute's lower-of
+	// override would then see the clobbered-higher book_value, silently
+	// losing the impairment.
+	if err := qtx.AdvisoryLockDepreciation(ctx); err != nil {
+		return sqlc.AssetAsset{}, err
+	}
+
 	// Row-locked read (FOR UPDATE): this method is a read-modify-write over
 	// book_value/impairment_loss, so a second concurrent impairment of the
 	// same asset must block HERE and re-read the post-commit values once the
 	// first commits — a plain read would compute its delta from a stale book
 	// value and silently clobber the first write (lost update; understated
-	// cumulative write-down).
+	// cumulative write-down). The advisory lock above happens to serialize
+	// impairment-vs-impairment too, but the row lock is kept deliberately:
+	// it is the correctness guarantee scoped to THIS row's read-modify-write
+	// and must survive any future refactor that narrows or drops the
+	// module-wide advisory lock (e.g. finer-grained compute locking).
 	a, err := qtx.GetAssetForUpdate(ctx, assetID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

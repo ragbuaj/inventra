@@ -1290,3 +1290,58 @@ func TestDepreciation_Impairment_ConcurrentInvariant(t *testing.T) {
 	assert.Equal(t, "7000000.00", *final.BookValue, "final book must equal the lowest applied recoverable")
 	assert.Equal(t, "1520000.00", *final.ImpairmentLoss, "loss must equal original book (8,520,000) − final book (7,000,000) — never a silently-lost delta")
 }
+
+// TestDepreciation_Impairment_BlocksOnComputeLock verifies RecordImpairment
+// serializes against ComputePeriod/ClosePeriod via the SAME depreciation
+// advisory lock (channel pattern from ClosePeriod_BlocksOnComputeLock).
+// Without it, an impairment can commit mid-compute and the compute's
+// refreshAssetSummary then rewrites asset.book_value from the entries —
+// clobbering the impaired value back up while impairment_loss keeps the
+// write-down (inconsistent state; the next recompute's min() override sees
+// the clobbered-higher book_value, so the impairment is effectively lost).
+func TestDepreciation_Impairment_BlocksOnComputeLock(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	assetID := seedAssetMonthsAgo(t, h.pool, "DPR-2026-00030", "Aset Advisory Impairment", h.catID, h.office, "9600000.00", 6)
+	month1 := firstOfMonthUTC(time.Now()).AddDate(0, -1, 0)
+	_, err := h.svc.ComputePeriod(ctx, month1, h.actorID)
+	require.NoError(t, err)
+
+	// Hold the depreciation advisory lock in a foreign transaction, standing
+	// in for an in-flight ComputePeriod (which holds it for its whole run).
+	lockTx, err := h.pool.Begin(ctx)
+	require.NoError(t, err)
+	_, err = lockTx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('depreciation.compute'))`)
+	require.NoError(t, err)
+
+	done := make(chan error, 1)
+	go func() {
+		_, errImp := h.svc.RecordImpairment(ctx, assetID, "8000000.00", "uji advisory lock", h.actorID)
+		done <- errImp
+	}()
+
+	select {
+	case errImp := <-done:
+		require.NoError(t, lockTx.Rollback(ctx))
+		t.Fatalf("RecordImpairment completed (err=%v) while the depreciation advisory lock was held — it must block", errImp)
+	case <-time.After(750 * time.Millisecond):
+		// Still blocked — the desired behavior.
+	}
+
+	require.NoError(t, lockTx.Rollback(ctx), "release the advisory lock")
+
+	select {
+	case errImp := <-done:
+		require.NoError(t, errImp, "RecordImpairment must succeed once the lock is released")
+	case <-time.After(5 * time.Second):
+		t.Fatal("RecordImpairment still blocked after the advisory lock was released")
+	}
+
+	final, err := h.q.GetAsset(ctx, assetID)
+	require.NoError(t, err)
+	require.NotNil(t, final.BookValue)
+	require.NotNil(t, final.ImpairmentLoss)
+	assert.Equal(t, "8000000.00", *final.BookValue)
+	assert.Equal(t, "520000.00", *final.ImpairmentLoss, "8,520,000 − 8,000,000")
+}
