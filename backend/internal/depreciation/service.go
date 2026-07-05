@@ -8,7 +8,9 @@ package depreciation
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -463,4 +465,387 @@ func (s *Service) BookValueAsOf(ctx context.Context, assetID uuid.UUID, asOf tim
 		return *a.PurchaseCost, nil
 	}
 	return "0", nil
+}
+
+// ScheduleRow is one row of Schedule(): either a real entry for the requested
+// period+basis, or a synthetic "already fully depreciated, no new entry this
+// period" union row (FullyDepreciated true, Amount "0.00").
+type ScheduleRow struct {
+	AssetID          uuid.UUID
+	AssetName        string
+	AssetTag         string
+	CategoryName     string
+	OfficeName       *string
+	Method           sqlc.SharedDepreciationMethod
+	LifeMonths       int32
+	Opening          string
+	Amount           string
+	Accumulated      string
+	Closing          string
+	Impaired         bool
+	FullyDepreciated bool
+}
+
+// ScheduleKPI summarizes Schedule() rows for the dashboard tiles.
+type ScheduleKPI struct {
+	TotalCost        string
+	TotalAccumulated string
+	TotalBookValue   string
+	PeriodExpense    string
+}
+
+// ScheduleTotals summarizes Schedule() rows for the table footer.
+type ScheduleTotals struct {
+	Opening     string
+	Amount      string
+	Accumulated string
+	Closing     string
+}
+
+// ScheduleResult is the outcome of Schedule().
+type ScheduleResult struct {
+	KPI    ScheduleKPI
+	Rows   []ScheduleRow
+	Totals ScheduleTotals
+}
+
+// Schedule builds the per-asset depreciation schedule for one period+basis,
+// scoped to the caller's offices. Rows are the union of (a) real entries
+// posted for the period and (b) capitalized, parameterized assets that have
+// NO entry this period — these already reached full depreciation earlier, so
+// they are rendered with amount "0.00" and opening==closing==their current
+// book value, sourced from SumAmountsThroughPeriodByAsset (works uniformly
+// for both row kinds, impairment aside — see regenerateBasis's doc comment).
+// search matches asset name/tag case-insensitively; categoryID/officeID are
+// additional (optional) exact-match filters layered on top of the caller's
+// data scope, which is already enforced in SQL via allScope/officeIDs.
+func (s *Service) Schedule(ctx context.Context, period time.Time, basis sqlc.SharedDepreciationBasis, allScope bool, officeIDs []uuid.UUID, search string, categoryID, officeID *uuid.UUID) (ScheduleResult, error) {
+	target := firstOfMonth(period)
+	targetDate := pgtype.Date{Time: target, Valid: true}
+
+	entryRows, err := s.q.ListEntriesForPeriod(ctx, sqlc.ListEntriesForPeriodParams{
+		Period: targetDate, Basis: basis, AllScope: allScope, OfficeIds: officeIDs,
+	})
+	if err != nil {
+		return ScheduleResult{}, err
+	}
+
+	unionRows, err := s.q.ListAssetsForScheduleUnion(ctx, sqlc.ListAssetsForScheduleUnionParams{
+		Period: targetDate, Basis: basis, AllScope: allScope, OfficeIds: officeIDs,
+	})
+	if err != nil {
+		return ScheduleResult{}, err
+	}
+
+	accRows, err := s.q.SumAmountsThroughPeriodByAsset(ctx, sqlc.SumAmountsThroughPeriodByAssetParams{
+		Basis: basis, Period: targetDate,
+	})
+	if err != nil {
+		return ScheduleResult{}, err
+	}
+	accByAsset := make(map[uuid.UUID]string, len(accRows))
+	for _, r := range accRows {
+		accByAsset[r.AssetID] = r.Accumulated
+	}
+
+	search = strings.ToLower(strings.TrimSpace(search))
+	matchesFilter := func(a sqlc.AssetAsset) bool {
+		if categoryID != nil && a.CategoryID != *categoryID {
+			return false
+		}
+		if officeID != nil && a.OfficeID != *officeID {
+			return false
+		}
+		if search != "" && !strings.Contains(strings.ToLower(a.Name), search) && !strings.Contains(strings.ToLower(a.AssetTag), search) {
+			return false
+		}
+		return true
+	}
+
+	var rows []ScheduleRow
+	totalCost := new(big.Rat)
+	totalAccumulated := new(big.Rat)
+	totalClosing := new(big.Rat)
+	totOpening := new(big.Rat)
+	totAmount := new(big.Rat)
+
+	addTotals := func(a sqlc.AssetAsset, opening, amount, accumulated, closing string) error {
+		if a.PurchaseCost != nil {
+			cost, err := parseMoney(*a.PurchaseCost)
+			if err != nil {
+				return err
+			}
+			totalCost.Add(totalCost, cost)
+		}
+		acc, err := parseMoney(accumulated)
+		if err != nil {
+			return err
+		}
+		totalAccumulated.Add(totalAccumulated, acc)
+		cl, err := parseMoney(closing)
+		if err != nil {
+			return err
+		}
+		totalClosing.Add(totalClosing, cl)
+		op, err := parseMoney(opening)
+		if err != nil {
+			return err
+		}
+		totOpening.Add(totOpening, op)
+		amt, err := parseMoney(amount)
+		if err != nil {
+			return err
+		}
+		totAmount.Add(totAmount, amt)
+		return nil
+	}
+
+	for _, er := range entryRows {
+		a := er.AssetAsset
+		if !matchesFilter(a) {
+			continue
+		}
+		c := er.MasterdataCategory
+		e := er.DepreciationDepreciationEntry
+		method, life := resolveScheduleParams(a, c, basis, e.Method)
+		accumulated := accByAsset[a.ID]
+		if accumulated == "" {
+			accumulated = "0.00"
+		}
+		if err := addTotals(a, e.OpeningValue, e.DepreciationAmount, accumulated, e.ClosingValue); err != nil {
+			return ScheduleResult{}, err
+		}
+		rows = append(rows, ScheduleRow{
+			AssetID: a.ID, AssetName: a.Name, AssetTag: a.AssetTag,
+			CategoryName: c.Name, OfficeName: er.OfficeName,
+			Method: method, LifeMonths: life,
+			Opening: e.OpeningValue, Amount: e.DepreciationAmount,
+			Accumulated: accumulated, Closing: e.ClosingValue,
+			Impaired: isImpaired(a), FullyDepreciated: false,
+		})
+	}
+
+	for _, ur := range unionRows {
+		a := ur.AssetAsset
+		c := ur.MasterdataCategory
+		var params *Params
+		var skip *Skip
+		if basis == sqlc.SharedDepreciationBasisCommercial {
+			params, skip = ResolveCommercial(a, c)
+		} else {
+			params, skip = ResolveFiscal(a, c)
+		}
+		if skip != nil || !matchesFilter(a) {
+			continue
+		}
+		accumulated := accByAsset[a.ID]
+		if accumulated == "" {
+			accumulated = "0.00"
+		}
+		cost, err := parseMoney(*a.PurchaseCost)
+		if err != nil {
+			return ScheduleResult{}, err
+		}
+		accRat, err := parseMoney(accumulated)
+		if err != nil {
+			return ScheduleResult{}, err
+		}
+		bookValue := roundHalfUp2(new(big.Rat).Sub(cost, accRat))
+		if err := addTotals(a, bookValue, "0.00", accumulated, bookValue); err != nil {
+			return ScheduleResult{}, err
+		}
+		rows = append(rows, ScheduleRow{
+			AssetID: a.ID, AssetName: a.Name, AssetTag: a.AssetTag,
+			CategoryName: c.Name, OfficeName: ur.OfficeName,
+			Method: params.Method, LifeMonths: params.LifeMonths,
+			Opening: bookValue, Amount: "0.00",
+			Accumulated: accumulated, Closing: bookValue,
+			Impaired: isImpaired(a), FullyDepreciated: true,
+		})
+	}
+
+	return ScheduleResult{
+		KPI: ScheduleKPI{
+			TotalCost:        roundHalfUp2(totalCost),
+			TotalAccumulated: roundHalfUp2(totalAccumulated),
+			TotalBookValue:   roundHalfUp2(totalClosing),
+			PeriodExpense:    roundHalfUp2(totAmount),
+		},
+		Rows: rows,
+		Totals: ScheduleTotals{
+			Opening:     roundHalfUp2(totOpening),
+			Amount:      roundHalfUp2(totAmount),
+			Accumulated: roundHalfUp2(totalAccumulated),
+			Closing:     roundHalfUp2(totalClosing),
+		},
+	}, nil
+}
+
+// resolveScheduleParams re-resolves an entry row's method/life_months for
+// display via ResolveCommercial/ResolveFiscal (entries don't persist
+// life_months). Falls back to the entry's own recorded method and
+// life_months 0 on the rare data-drift case where the asset/category no
+// longer resolves for this basis (e.g. edited after the entry was posted).
+func resolveScheduleParams(a sqlc.AssetAsset, c sqlc.MasterdataCategory, basis sqlc.SharedDepreciationBasis, entryMethod sqlc.SharedDepreciationMethod) (sqlc.SharedDepreciationMethod, int32) {
+	var params *Params
+	var skip *Skip
+	if basis == sqlc.SharedDepreciationBasisCommercial {
+		params, skip = ResolveCommercial(a, c)
+	} else {
+		params, skip = ResolveFiscal(a, c)
+	}
+	if skip != nil || params == nil {
+		return entryMethod, 0
+	}
+	return params.Method, params.LifeMonths
+}
+
+// isImpaired reports whether an asset carries a positive impairment_loss.
+func isImpaired(a sqlc.AssetAsset) bool {
+	if a.ImpairmentLoss == nil {
+		return false
+	}
+	v, err := parseMoney(*a.ImpairmentLoss)
+	if err != nil {
+		return false
+	}
+	return v.Sign() > 0
+}
+
+// JournalRow is one row of Journal(): a debit line per category GL account,
+// or the single closing credit line.
+type JournalRow struct {
+	AccountCode string
+	AccountName string
+	Debit       string
+	Credit      string
+}
+
+// JournalResult is the outcome of Journal().
+type JournalResult struct {
+	Rows        []JournalRow
+	TotalDebit  string
+	TotalCredit string
+	Balanced    bool
+}
+
+// accumulatedGLSettingKey is the app_settings key for the journal's single
+// credit account (seeded by migration 000023).
+const accumulatedGLSettingKey = "depreciation.accumulated_gl_account"
+
+// Journal builds the depreciation journal entry for one period+basis, scoped
+// to the caller's offices: one debit row per distinct category GL account
+// ("Beban Penyusutan — {category}"; categories with no GL account code are
+// folded into a single "-" / "(tanpa akun GL)" row), and one credit row for
+// the configured accumulated-depreciation GL account. Always balances by
+// construction (the credit is exactly the sum of the debits).
+func (s *Service) Journal(ctx context.Context, period time.Time, basis sqlc.SharedDepreciationBasis, allScope bool, officeIDs []uuid.UUID) (JournalResult, error) {
+	target := firstOfMonth(period)
+	targetDate := pgtype.Date{Time: target, Valid: true}
+
+	entryRows, err := s.q.ListEntriesForPeriod(ctx, sqlc.ListEntriesForPeriodParams{
+		Period: targetDate, Basis: basis, AllScope: allScope, OfficeIds: officeIDs,
+	})
+	if err != nil {
+		return JournalResult{}, err
+	}
+
+	type group struct {
+		name string
+		sum  *big.Rat
+	}
+	order := make([]string, 0)
+	groups := make(map[string]*group)
+	total := new(big.Rat)
+
+	for _, er := range entryRows {
+		amt, err := parseMoney(er.DepreciationDepreciationEntry.DepreciationAmount)
+		if err != nil {
+			return JournalResult{}, err
+		}
+		total.Add(total, amt)
+
+		c := er.MasterdataCategory
+		code, name := "-", "(tanpa akun GL)"
+		if c.GlAccountCode != nil && *c.GlAccountCode != "" {
+			code = *c.GlAccountCode
+			name = fmt.Sprintf("Beban Penyusutan — %s", c.Name)
+		}
+		g, ok := groups[code]
+		if !ok {
+			g = &group{name: name, sum: new(big.Rat)}
+			groups[code] = g
+			order = append(order, code)
+		}
+		g.sum.Add(g.sum, amt)
+	}
+
+	rows := make([]JournalRow, 0, len(order)+1)
+	for _, code := range order {
+		g := groups[code]
+		rows = append(rows, JournalRow{AccountCode: code, AccountName: g.name, Debit: roundHalfUp2(g.sum), Credit: "0.00"})
+	}
+
+	totalDebit := roundHalfUp2(total)
+	creditCode := "-"
+	if setting, err := s.q.GetAppSetting(ctx, accumulatedGLSettingKey); err == nil {
+		if setting != "" {
+			creditCode = setting
+		}
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return JournalResult{}, err
+	}
+	rows = append(rows, JournalRow{AccountCode: creditCode, AccountName: "Akumulasi Penyusutan", Debit: "0.00", Credit: totalDebit})
+
+	return JournalResult{Rows: rows, TotalDebit: totalDebit, TotalCredit: totalDebit, Balanced: true}, nil
+}
+
+// AssetScheduleEntry is one row of AssetSchedule()'s entry list.
+type AssetScheduleEntry struct {
+	Basis   sqlc.SharedDepreciationBasis
+	Period  time.Time
+	Opening string
+	Amount  string
+	Closing string
+	Method  sqlc.SharedDepreciationMethod
+}
+
+// AssetScheduleResult is the outcome of AssetSchedule().
+type AssetScheduleResult struct {
+	OfficeID          uuid.UUID
+	ComputedBookValue string
+	Entries           []AssetScheduleEntry
+}
+
+// AssetSchedule returns one asset's full depreciation history (both bases)
+// plus its current computed (commercial) book value, for GET
+// /assets/:id/depreciation. ErrNotFound if the asset does not exist; the
+// handler enforces asset-view data scope using the returned OfficeID.
+func (s *Service) AssetSchedule(ctx context.Context, assetID uuid.UUID) (AssetScheduleResult, error) {
+	a, err := s.q.GetAsset(ctx, assetID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return AssetScheduleResult{}, ErrNotFound
+		}
+		return AssetScheduleResult{}, err
+	}
+
+	bookValue, err := s.BookValueAsOf(ctx, assetID, time.Now())
+	if err != nil {
+		return AssetScheduleResult{}, err
+	}
+
+	entryRows, err := s.q.ListAssetEntries(ctx, assetID)
+	if err != nil {
+		return AssetScheduleResult{}, err
+	}
+	entries := make([]AssetScheduleEntry, 0, len(entryRows))
+	for _, e := range entryRows {
+		entries = append(entries, AssetScheduleEntry{
+			Basis: e.Basis, Period: e.Period.Time, Opening: e.OpeningValue,
+			Amount: e.DepreciationAmount, Closing: e.ClosingValue, Method: e.Method,
+		})
+	}
+
+	return AssetScheduleResult{OfficeID: a.OfficeID, ComputedBookValue: bookValue, Entries: entries}, nil
 }

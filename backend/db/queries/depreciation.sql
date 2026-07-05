@@ -72,16 +72,46 @@ WHERE asset_id = $1 AND deleted_at IS NULL ORDER BY basis, period;
 
 -- name: ListEntriesForPeriod :many
 -- Schedule/journal source: entries of one period+basis joined to asset+category+office.
-SELECT sqlc.embed(e), sqlc.embed(a),
-       c.name AS category_name, c.gl_account_code AS gl_account_code,
+-- Embeds the full category row (not just name/gl_account_code) so callers can
+-- also re-resolve Params (method/life_months) via ResolveCommercial/ResolveFiscal.
+SELECT sqlc.embed(e), sqlc.embed(a), sqlc.embed(c),
        o.name AS office_name
 FROM depreciation.depreciation_entries e
 JOIN asset.assets a ON a.id = e.asset_id
 JOIN masterdata.categories c ON c.id = a.category_id
 LEFT JOIN masterdata.offices o ON o.id = a.office_id AND o.deleted_at IS NULL
 WHERE e.deleted_at IS NULL AND e.period = sqlc.arg(period) AND e.basis = sqlc.arg(basis)
-  AND (sqlc.arg(all_scope)::boolean OR a.office_id = ANY(sqlc.arg(office_ids)::uuid[]));
+  AND (sqlc.arg(all_scope)::boolean OR a.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
+ORDER BY a.name;
 
 -- name: SumAssetAmounts :one
 SELECT COALESCE(SUM(depreciation_amount), 0)::text FROM depreciation.depreciation_entries
 WHERE asset_id = $1 AND basis = $2 AND deleted_at IS NULL;
+
+-- name: ListAssetsForScheduleUnion :many
+-- Capitalized assets in scope with NO entry for the requested period+basis —
+-- the schedule's "fully depreciated, no new entry this period" union rows.
+-- The service further drops any row whose Resolve{Commercial,Fiscal} skips
+-- (data drift since the asset last depreciated), keeping only "parameterized"
+-- assets per the module spec.
+SELECT sqlc.embed(a), sqlc.embed(c), o.name AS office_name
+FROM asset.assets a
+JOIN masterdata.categories c ON c.id = a.category_id
+LEFT JOIN masterdata.offices o ON o.id = a.office_id AND o.deleted_at IS NULL
+WHERE a.deleted_at IS NULL AND a.capitalized = true
+  AND (sqlc.arg(all_scope)::boolean OR a.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
+  AND NOT EXISTS (
+    SELECT 1 FROM depreciation.depreciation_entries e
+    WHERE e.asset_id = a.id AND e.deleted_at IS NULL
+      AND e.period = sqlc.arg(period) AND e.basis = sqlc.arg(basis)
+  )
+ORDER BY a.name;
+
+-- name: SumAmountsThroughPeriodByAsset :many
+-- Per-asset accumulated depreciation for one basis, through (inclusive of) a
+-- given period — the schedule's "accumulated" column source, for both the
+-- entry-sourced and union rows.
+SELECT asset_id, COALESCE(SUM(depreciation_amount), 0)::text AS accumulated
+FROM depreciation.depreciation_entries
+WHERE basis = sqlc.arg(basis) AND period <= sqlc.arg(period) AND deleted_at IS NULL
+GROUP BY asset_id;

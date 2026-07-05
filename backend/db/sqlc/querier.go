@@ -120,6 +120,12 @@ type Querier interface {
 	ListAssets(ctx context.Context, arg ListAssetsParams) ([]AssetAsset, error)
 	// Every capitalized, non-deleted asset with its category (engine resolves/skips per-asset).
 	ListAssetsForDepreciation(ctx context.Context) ([]ListAssetsForDepreciationRow, error)
+	// Capitalized assets in scope with NO entry for the requested period+basis —
+	// the schedule's "fully depreciated, no new entry this period" union rows.
+	// The service further drops any row whose Resolve{Commercial,Fiscal} skips
+	// (data drift since the asset last depreciated), keeping only "parameterized"
+	// assets per the module spec.
+	ListAssetsForScheduleUnion(ctx context.Context, arg ListAssetsForScheduleUnionParams) ([]ListAssetsForScheduleUnionRow, error)
 	ListAttachments(ctx context.Context, assetID uuid.UUID) ([]AssetAssetAttachment, error)
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]ListAuditLogsRow, error)
 	// Asset category master data (masterdata.categories). Respects soft delete.
@@ -133,6 +139,8 @@ type Querier interface {
 	// Employees (asset custodians) with data-scoping by office.
 	ListEmployees(ctx context.Context, arg ListEmployeesParams) ([]MasterdataEmployee, error)
 	// Schedule/journal source: entries of one period+basis joined to asset+category+office.
+	// Embeds the full category row (not just name/gl_account_code) so callers can
+	// also re-resolve Params (method/life_months) via ResolveCommercial/ResolveFiscal.
 	ListEntriesForPeriod(ctx context.Context, arg ListEntriesForPeriodParams) ([]ListEntriesForPeriodRow, error)
 	ListFieldPermissionsByRole(ctx context.Context, roleID uuid.UUID) ([]ListFieldPermissionsByRoleRow, error)
 	// Floors (within an office). Listed per office; single-row ops carry the
@@ -189,6 +197,10 @@ type Querier interface {
 	SoftDeleteRoom(ctx context.Context, arg SoftDeleteRoomParams) (int64, error)
 	SoftDeleteThreshold(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteUser(ctx context.Context, id uuid.UUID) (int64, error)
+	// Per-asset accumulated depreciation for one basis, through (inclusive of) a
+	// given period — the schedule's "accumulated" column source, for both the
+	// entry-sourced and union rows.
+	SumAmountsThroughPeriodByAsset(ctx context.Context, arg SumAmountsThroughPeriodByAssetParams) ([]SumAmountsThroughPeriodByAssetRow, error)
 	SumAssetAmounts(ctx context.Context, arg SumAssetAmountsParams) (string, error)
 	UpdateAsset(ctx context.Context, arg UpdateAssetParams) (AssetAsset, error)
 	UpdateAssetDepreciationSummary(ctx context.Context, arg UpdateAssetDepreciationSummaryParams) error

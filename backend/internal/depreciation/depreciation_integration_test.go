@@ -4,10 +4,14 @@ package depreciation_test
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -16,7 +20,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/audit"
+	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/depreciation"
+	"github.com/ragbuaj/inventra/internal/masterdata/common"
+	"github.com/ragbuaj/inventra/internal/middleware"
 	"github.com/ragbuaj/inventra/internal/testsupport"
 )
 
@@ -162,6 +170,7 @@ type harness struct {
 	office  uuid.UUID
 	catID   uuid.UUID
 	actorID uuid.UUID
+	roleID  uuid.UUID
 }
 
 // newHarness boots a throwaway Postgres, resets mutable tables, and wires the
@@ -180,7 +189,7 @@ func newHarness(t *testing.T) *harness {
 
 	svc := depreciation.NewService(q, pool)
 
-	return &harness{pool: pool, q: q, svc: svc, office: office, catID: catID, actorID: actorID}
+	return &harness{pool: pool, q: q, svc: svc, office: office, catID: catID, actorID: actorID, roleID: roleID}
 }
 
 // ─── tests ──────────────────────────────────────────────────────────────────
@@ -646,3 +655,297 @@ func TestDepreciation_BookValueAsOf(t *testing.T) {
 
 // pgDate wraps a time.Time as a valid pgtype.Date for direct sqlc query calls.
 func pgDate(t time.Time) pgtype.Date { return pgtype.Date{Time: t, Valid: true} }
+
+// ─── HTTP-wiring tests (Task 4) ─────────────────────────────────────────────
+//
+// These drive the real depreciation.Handler through depreciation.RegisterRoutes
+// + a stub auth middleware + httptest, exactly like approval's
+// TestApproval_ThresholdPreview / TestApproval_FieldMasking_HandlerWiring.
+
+// httpHarness extends harness with the HTTP layer: a wired Handler plus a
+// doReq helper that drives a fresh gin engine per call (stub auth injecting
+// the given user/role, bypassing real JWT).
+type httpHarness struct {
+	*harness
+	t       *testing.T
+	handler *depreciation.Handler
+	permSvc *authz.PermissionService
+}
+
+// newHTTPHarness builds on newHarness, adding the Redis-backed authz services
+// (permission/scope/field) and the depreciation HTTP handler.
+func newHTTPHarness(t *testing.T) *httpHarness {
+	t.Helper()
+	h := newHarness(t)
+	rdb := testsupport.NewRedis(t)
+	scopeSvc := authz.NewScopeService(h.q, rdb)
+	permSvc := authz.NewPermissionService(h.q, rdb)
+	fieldSvc := authz.NewFieldService(h.q, rdb)
+	auditSvc := audit.NewService(h.q)
+	scoped := common.ScopedDeps{Q: h.q, Scope: scopeSvc}
+	handler := depreciation.NewHandler(h.svc, fieldSvc, scoped, auditSvc)
+	return &httpHarness{harness: h, t: t, handler: handler, permSvc: permSvc}
+}
+
+// doReq drives one HTTP request (no body) against a fresh gin engine wired
+// with depreciation.RegisterRoutes, decoding a JSON object response body.
+func (hh *httpHarness) doReq(method, path string, userID, roleID uuid.UUID) (int, map[string]any) {
+	gin.SetMode(gin.TestMode)
+	stubAuth := func(c *gin.Context) {
+		c.Set(middleware.CtxUserID, userID.String())
+		c.Set(middleware.CtxRoleID, roleID.String())
+		c.Next()
+	}
+	r := gin.New()
+	v1 := r.Group("/api/v1")
+	depreciation.RegisterRoutes(v1, hh.handler, stubAuth,
+		middleware.RequirePermission(hh.permSvc, "depreciation.manage"),
+		middleware.RequirePermission(hh.permSvc, "depreciation.view"),
+		middleware.RequirePermission(hh.permSvc, "asset.view"),
+	)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(method, path, nil)
+	r.ServeHTTP(w, req)
+	var body map[string]any
+	if w.Body.Len() > 0 {
+		require.NoError(hh.t, json.Unmarshal(w.Body.Bytes(), &body))
+	}
+	return w.Code, body
+}
+
+// TestDepreciation_HTTP_PeriodsComputeClose drives POST compute/close through
+// the real routes: 200s for the happy sequential path, 400 on a garbage
+// period param, 409 recomputing/reclosing an already-closed period, and 422
+// closing a period that was never computed.
+func TestDepreciation_HTTP_PeriodsComputeClose(t *testing.T) {
+	hh := newHTTPHarness(t)
+	seedAssetMonthsAgo(t, hh.pool, "DPR-2026-00016", "Aset HTTP Compute", hh.catID, hh.office, "18500000.00", 3)
+
+	target := firstOfMonthUTC(time.Now())
+	period := target.Format("2006-01")
+
+	t.Run("invalid period format -> 400", func(t *testing.T) {
+		code, _ := hh.doReq(http.MethodPost, "/api/v1/depreciation/periods/not-a-period/compute", hh.actorID, hh.roleID)
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+
+	t.Run("close before compute -> 422 (ErrPeriodNotComputed)", func(t *testing.T) {
+		code, body := hh.doReq(http.MethodPost, "/api/v1/depreciation/periods/"+period+"/close", hh.actorID, hh.roleID)
+		assert.Equal(t, http.StatusUnprocessableEntity, code)
+		assert.Contains(t, body, "error")
+	})
+
+	t.Run("compute -> 200 computed", func(t *testing.T) {
+		code, body := hh.doReq(http.MethodPost, "/api/v1/depreciation/periods/"+period+"/compute", hh.actorID, hh.roleID)
+		require.Equal(t, http.StatusOK, code)
+		assert.Equal(t, period, body["period"])
+		assert.Equal(t, "computed", body["status"])
+		assert.EqualValues(t, 1, body["asset_count"])
+		assert.Equal(t, "346875.00", body["total_amount"])
+	})
+
+	t.Run("close -> 200 closed", func(t *testing.T) {
+		code, body := hh.doReq(http.MethodPost, "/api/v1/depreciation/periods/"+period+"/close", hh.actorID, hh.roleID)
+		require.Equal(t, http.StatusOK, code)
+		assert.Equal(t, period, body["period"])
+		assert.Equal(t, "closed", body["status"])
+	})
+
+	t.Run("recompute closed period -> 409", func(t *testing.T) {
+		code, _ := hh.doReq(http.MethodPost, "/api/v1/depreciation/periods/"+period+"/compute", hh.actorID, hh.roleID)
+		assert.Equal(t, http.StatusConflict, code)
+	})
+
+	t.Run("reclose closed period -> 409", func(t *testing.T) {
+		code, _ := hh.doReq(http.MethodPost, "/api/v1/depreciation/periods/"+period+"/close", hh.actorID, hh.roleID)
+		assert.Equal(t, http.StatusConflict, code)
+	})
+
+	t.Run("list periods includes the closed period", func(t *testing.T) {
+		code, body := hh.doReq(http.MethodGet, "/api/v1/depreciation/periods", hh.actorID, hh.roleID)
+		require.Equal(t, http.StatusOK, code)
+		rows, ok := body["data"].([]any)
+		require.True(t, ok)
+		found := false
+		for _, raw := range rows {
+			row := raw.(map[string]any)
+			if row["period"] == period {
+				found = true
+				assert.Equal(t, "closed", row["status"])
+			}
+		}
+		assert.True(t, found)
+	})
+}
+
+// TestDepreciation_HTTP_Schedule drives GET /depreciation/schedule end-to-end:
+// after computing a period with one normally-depreciating asset and one
+// already-fully-depreciated asset (1-month useful life, purchased 5 months
+// ago — so it produced its single entry long before the target period), the
+// schedule must return both as rows: the normal asset's real entry, and the
+// exhausted asset as a synthetic "fully depreciated" union row (amount
+// "0.00", opening==closing==book value 0, fully_depreciated:true). KPIs sum
+// across both.
+func TestDepreciation_HTTP_Schedule(t *testing.T) {
+	hh := newHTTPHarness(t)
+	ctx := context.Background()
+
+	normalID := seedAssetMonthsAgo(t, hh.pool, "DPR-2026-00017", "Aset Berjalan", hh.catID, hh.office, "18500000.00", 3)
+
+	// Fully-depreciated asset: per-asset override life_months=1, salvage=0,
+	// purchased 5 months ago — Walk absorbs the entire cost in its single
+	// purchase-month entry, then produces nothing for any later period.
+	exhaustedPurchase := firstOfMonthUTC(time.Now()).AddDate(0, -5, 0)
+	var exhaustedID uuid.UUID
+	require.NoError(t, hh.pool.QueryRow(ctx,
+		`INSERT INTO asset.assets
+		   (asset_tag, name, category_id, office_id, asset_class, capitalized, specifications, status,
+		    purchase_date, purchase_cost, useful_life_months, salvage_value, depreciation_method)
+		 VALUES ($1, $2, $3, $4, 'intangible', true, '{}', 'available', $5, $6, 1, '0', 'straight_line')
+		 RETURNING id`,
+		"DPR-2026-00018", "Aset Sudah Habis", hh.catID, hh.office, exhaustedPurchase, "1000000.00").
+		Scan(&exhaustedID))
+
+	target := firstOfMonthUTC(time.Now())
+	period := target.Format("2006-01")
+
+	code, _ := hh.doReq(http.MethodPost, "/api/v1/depreciation/periods/"+period+"/compute", hh.actorID, hh.roleID)
+	require.Equal(t, http.StatusOK, code)
+
+	// Sanity: the exhausted asset really has no COMMERCIAL entry for the
+	// target period (its fiscal life is unaffected by the commercial
+	// useful_life_months=1 override — the category's default fiscal group
+	// still has a 48-month life, so it keeps generating fiscal entries; only
+	// the commercial basis, which the schedule endpoint below queries, is
+	// exhausted).
+	entries, err := hh.q.ListAssetEntries(ctx, exhaustedID)
+	require.NoError(t, err)
+	for _, e := range entries {
+		if e.Basis == sqlc.SharedDepreciationBasisCommercial {
+			assert.False(t, e.Period.Time.Equal(target), "exhausted asset must have no commercial entry in the target period")
+		}
+	}
+
+	code, body := hh.doReq(http.MethodGet, "/api/v1/depreciation/schedule?period="+period+"&basis=commercial", hh.actorID, hh.roleID)
+	require.Equal(t, http.StatusOK, code)
+
+	rows, ok := body["rows"].([]any)
+	require.True(t, ok)
+
+	var normalRow, exhaustedRow map[string]any
+	for _, raw := range rows {
+		row := raw.(map[string]any)
+		switch row["asset_id"] {
+		case normalID.String():
+			normalRow = row
+		case exhaustedID.String():
+			exhaustedRow = row
+		}
+	}
+
+	require.NotNil(t, normalRow, "normal asset must appear via its real entry")
+	assert.Equal(t, "346875.00", normalRow["amount"])
+	assert.Equal(t, false, normalRow["fully_depreciated"])
+
+	require.NotNil(t, exhaustedRow, "exhausted asset must appear via the fully-depreciated union")
+	assert.Equal(t, "0.00", exhaustedRow["amount"])
+	assert.Equal(t, "0.00", exhaustedRow["opening"])
+	assert.Equal(t, "0.00", exhaustedRow["closing"])
+	assert.Equal(t, true, exhaustedRow["fully_depreciated"])
+
+	kpi, ok := body["kpi"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "19500000.00", kpi["total_cost"], "18,500,000 + 1,000,000")
+	assert.Equal(t, "346875.00", kpi["period_expense"], "only the normal asset expenses this period")
+
+	totals, ok := body["totals"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, kpi["period_expense"], totals["amount"])
+}
+
+// TestDepreciation_HTTP_Journal drives GET /depreciation/journal end-to-end:
+// total_debit must equal total_credit (balanced), and since the harness's
+// category has no gl_account_code, its entries must fold into the single
+// "-"/"(tanpa akun GL)" debit row (null-GL grouping).
+func TestDepreciation_HTTP_Journal(t *testing.T) {
+	hh := newHTTPHarness(t)
+	seedAssetMonthsAgo(t, hh.pool, "DPR-2026-00019", "Aset Jurnal", hh.catID, hh.office, "12000000.00", 2)
+
+	target := firstOfMonthUTC(time.Now())
+	period := target.Format("2006-01")
+
+	code, _ := hh.doReq(http.MethodPost, "/api/v1/depreciation/periods/"+period+"/compute", hh.actorID, hh.roleID)
+	require.Equal(t, http.StatusOK, code)
+
+	code, body := hh.doReq(http.MethodGet, "/api/v1/depreciation/journal?period="+period+"&basis=commercial", hh.actorID, hh.roleID)
+	require.Equal(t, http.StatusOK, code)
+
+	assert.Equal(t, true, body["balanced"])
+	assert.Equal(t, body["total_debit"], body["total_credit"])
+	assert.NotEqual(t, "0.00", body["total_debit"])
+
+	rows, ok := body["rows"].([]any)
+	require.True(t, ok)
+	require.Len(t, rows, 2, "one debit row (null-GL group) + one credit row")
+
+	debit := rows[0].(map[string]any)
+	assert.Equal(t, "-", debit["account_code"])
+	assert.Equal(t, "(tanpa akun GL)", debit["account_name"])
+	assert.Equal(t, body["total_debit"], debit["debit"])
+
+	credit := rows[1].(map[string]any)
+	assert.Equal(t, "Akumulasi Penyusutan", credit["account_name"])
+	assert.Equal(t, body["total_credit"], credit["credit"])
+}
+
+// TestDepreciation_HTTP_AssetSchedule drives GET /assets/:id/depreciation:
+// Superadmin (no field-permission policy on "assets") sees the full entry
+// history + computed book value; a role denied view on "assets".book_value
+// (mirroring TestApproval_FieldMasking_Requests's deny-row shape) gets the
+// masked shape instead.
+func TestDepreciation_HTTP_AssetSchedule(t *testing.T) {
+	hh := newHTTPHarness(t)
+
+	assetID := seedAssetMonthsAgo(t, hh.pool, "DPR-2026-00020", "Aset Riwayat", hh.catID, hh.office, "6000000.00", 2)
+	target := firstOfMonthUTC(time.Now())
+	period := target.Format("2006-01")
+
+	code, _ := hh.doReq(http.MethodPost, "/api/v1/depreciation/periods/"+period+"/compute", hh.actorID, hh.roleID)
+	require.Equal(t, http.StatusOK, code)
+
+	t.Run("unmasked for Superadmin", func(t *testing.T) {
+		code, body := hh.doReq(http.MethodGet, "/api/v1/assets/"+assetID.String()+"/depreciation", hh.actorID, hh.roleID)
+		require.Equal(t, http.StatusOK, code)
+		assert.Equal(t, false, body["masked"])
+		assert.NotNil(t, body["computed_book_value"])
+		entries, ok := body["entries"].([]any)
+		require.True(t, ok)
+		assert.NotEmpty(t, entries)
+	})
+
+	t.Run("masked when book_value view is denied", func(t *testing.T) {
+		// Staf is seeded (migration 000016) with can_view=false on
+		// assets.book_value — no extra field_permissions row needed (and
+		// inserting a duplicate one would violate uq_field_permissions).
+		stafRoleID := lookupRole(t, hh.pool, "Staf")
+		stafUser := seedUser(t, hh.pool, stafRoleID, hh.office, "staf.assetschedule."+uuid.New().String()[:8]+"@test.local")
+
+		code, body := hh.doReq(http.MethodGet, "/api/v1/assets/"+assetID.String()+"/depreciation", stafUser, stafRoleID)
+		require.Equal(t, http.StatusOK, code)
+		assert.Equal(t, true, body["masked"])
+		assert.Nil(t, body["computed_book_value"])
+		entries, ok := body["entries"].([]any)
+		require.True(t, ok)
+		assert.Empty(t, entries)
+	})
+
+	t.Run("invalid asset id -> 400", func(t *testing.T) {
+		code, _ := hh.doReq(http.MethodGet, "/api/v1/assets/not-a-uuid/depreciation", hh.actorID, hh.roleID)
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+
+	t.Run("unknown asset id -> 404", func(t *testing.T) {
+		code, _ := hh.doReq(http.MethodGet, "/api/v1/assets/"+uuid.New().String()+"/depreciation", hh.actorID, hh.roleID)
+		assert.Equal(t, http.StatusNotFound, code)
+	})
+}

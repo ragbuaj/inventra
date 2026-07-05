@@ -24,6 +24,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/cache"
 	"github.com/ragbuaj/inventra/internal/config"
 	"github.com/ragbuaj/inventra/internal/db"
+	"github.com/ragbuaj/inventra/internal/depreciation"
 	"github.com/ragbuaj/inventra/internal/disposal"
 	"github.com/ragbuaj/inventra/internal/identity"
 	"github.com/ragbuaj/inventra/internal/masterdata"
@@ -184,6 +185,15 @@ func NewRouter(d Deps) *gin.Engine {
 			requireAuth,
 			middleware.RequirePermission(permSvc, "disposal.manage"),
 			middleware.RequirePermission(permSvc, "disposal.view"),
+		)
+
+		depreciationSvc := depreciation.NewService(queries, d.Pool)
+		depreciationHandler := depreciation.NewHandler(depreciationSvc, fieldSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)
+		depreciation.RegisterRoutes(api, depreciationHandler,
+			requireAuth,
+			middleware.RequirePermission(permSvc, "depreciation.manage"),
+			middleware.RequirePermission(permSvc, "depreciation.view"),
+			middleware.RequirePermission(permSvc, "asset.view"),
 		)
 
 		authzAdminSvc := authzadmin.NewService(queries, d.Pool, permSvc, scopeSvc, fieldSvc)

@@ -283,6 +283,119 @@ func (q *Queries) ListAssetsForDepreciation(ctx context.Context) ([]ListAssetsFo
 	return items, nil
 }
 
+const listAssetsForScheduleUnion = `-- name: ListAssetsForScheduleUnion :many
+SELECT a.id, a.asset_tag, a.name, a.category_id, a.brand_id, a.model_id, a.room_id, a.office_id, a.unit_id, a.status, a.serial_number, a.purchase_date, a.purchase_cost, a.vendor_id, a.po_number, a.funding_source, a.warranty_expiry, a.specifications, a.asset_class, a.capitalized, a.depreciation_method, a.useful_life_months, a.salvage_value, a.fiscal_group, a.fiscal_life_months, a.accumulated_depreciation, a.book_value, a.impairment_loss, a.acquisition_bast_no, a.current_holder_employee_id, a.excluded_from_valuation, a.valuation_exclusion_reason, a.created_by_id, a.notes, a.created_at, a.updated_at, a.deleted_at, c.id, c.name, c.code, c.parent_id, c.default_depreciation_method, c.default_useful_life_months, c.default_salvage_rate, c.asset_class, c.default_fiscal_group, c.default_fiscal_life_months, c.gl_account_code, c.capitalization_threshold, c.is_active, c.created_at, c.updated_at, c.deleted_at, o.name AS office_name
+FROM asset.assets a
+JOIN masterdata.categories c ON c.id = a.category_id
+LEFT JOIN masterdata.offices o ON o.id = a.office_id AND o.deleted_at IS NULL
+WHERE a.deleted_at IS NULL AND a.capitalized = true
+  AND ($1::boolean OR a.office_id = ANY($2::uuid[]))
+  AND NOT EXISTS (
+    SELECT 1 FROM depreciation.depreciation_entries e
+    WHERE e.asset_id = a.id AND e.deleted_at IS NULL
+      AND e.period = $3 AND e.basis = $4
+  )
+ORDER BY a.name
+`
+
+type ListAssetsForScheduleUnionParams struct {
+	AllScope  bool                    `json:"all_scope"`
+	OfficeIds []uuid.UUID             `json:"office_ids"`
+	Period    pgtype.Date             `json:"period"`
+	Basis     SharedDepreciationBasis `json:"basis"`
+}
+
+type ListAssetsForScheduleUnionRow struct {
+	AssetAsset         AssetAsset         `json:"asset_asset"`
+	MasterdataCategory MasterdataCategory `json:"masterdata_category"`
+	OfficeName         *string            `json:"office_name"`
+}
+
+// Capitalized assets in scope with NO entry for the requested period+basis —
+// the schedule's "fully depreciated, no new entry this period" union rows.
+// The service further drops any row whose Resolve{Commercial,Fiscal} skips
+// (data drift since the asset last depreciated), keeping only "parameterized"
+// assets per the module spec.
+func (q *Queries) ListAssetsForScheduleUnion(ctx context.Context, arg ListAssetsForScheduleUnionParams) ([]ListAssetsForScheduleUnionRow, error) {
+	rows, err := q.db.Query(ctx, listAssetsForScheduleUnion,
+		arg.AllScope,
+		arg.OfficeIds,
+		arg.Period,
+		arg.Basis,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListAssetsForScheduleUnionRow{}
+	for rows.Next() {
+		var i ListAssetsForScheduleUnionRow
+		if err := rows.Scan(
+			&i.AssetAsset.ID,
+			&i.AssetAsset.AssetTag,
+			&i.AssetAsset.Name,
+			&i.AssetAsset.CategoryID,
+			&i.AssetAsset.BrandID,
+			&i.AssetAsset.ModelID,
+			&i.AssetAsset.RoomID,
+			&i.AssetAsset.OfficeID,
+			&i.AssetAsset.UnitID,
+			&i.AssetAsset.Status,
+			&i.AssetAsset.SerialNumber,
+			&i.AssetAsset.PurchaseDate,
+			&i.AssetAsset.PurchaseCost,
+			&i.AssetAsset.VendorID,
+			&i.AssetAsset.PoNumber,
+			&i.AssetAsset.FundingSource,
+			&i.AssetAsset.WarrantyExpiry,
+			&i.AssetAsset.Specifications,
+			&i.AssetAsset.AssetClass,
+			&i.AssetAsset.Capitalized,
+			&i.AssetAsset.DepreciationMethod,
+			&i.AssetAsset.UsefulLifeMonths,
+			&i.AssetAsset.SalvageValue,
+			&i.AssetAsset.FiscalGroup,
+			&i.AssetAsset.FiscalLifeMonths,
+			&i.AssetAsset.AccumulatedDepreciation,
+			&i.AssetAsset.BookValue,
+			&i.AssetAsset.ImpairmentLoss,
+			&i.AssetAsset.AcquisitionBastNo,
+			&i.AssetAsset.CurrentHolderEmployeeID,
+			&i.AssetAsset.ExcludedFromValuation,
+			&i.AssetAsset.ValuationExclusionReason,
+			&i.AssetAsset.CreatedByID,
+			&i.AssetAsset.Notes,
+			&i.AssetAsset.CreatedAt,
+			&i.AssetAsset.UpdatedAt,
+			&i.AssetAsset.DeletedAt,
+			&i.MasterdataCategory.ID,
+			&i.MasterdataCategory.Name,
+			&i.MasterdataCategory.Code,
+			&i.MasterdataCategory.ParentID,
+			&i.MasterdataCategory.DefaultDepreciationMethod,
+			&i.MasterdataCategory.DefaultUsefulLifeMonths,
+			&i.MasterdataCategory.DefaultSalvageRate,
+			&i.MasterdataCategory.AssetClass,
+			&i.MasterdataCategory.DefaultFiscalGroup,
+			&i.MasterdataCategory.DefaultFiscalLifeMonths,
+			&i.MasterdataCategory.GlAccountCode,
+			&i.MasterdataCategory.CapitalizationThreshold,
+			&i.MasterdataCategory.IsActive,
+			&i.MasterdataCategory.CreatedAt,
+			&i.MasterdataCategory.UpdatedAt,
+			&i.MasterdataCategory.DeletedAt,
+			&i.OfficeName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listDepreciationPeriods = `-- name: ListDepreciationPeriods :many
 SELECT id, period, status, computed_at, computed_by, closed_at, closed_by, asset_count, total_amount, skipped_count, created_at, updated_at, deleted_at FROM depreciation.depreciation_periods WHERE deleted_at IS NULL ORDER BY period DESC
 `
@@ -322,8 +435,7 @@ func (q *Queries) ListDepreciationPeriods(ctx context.Context) ([]DepreciationDe
 }
 
 const listEntriesForPeriod = `-- name: ListEntriesForPeriod :many
-SELECT e.id, e.asset_id, e.basis, e.period, e.opening_value, e.depreciation_amount, e.closing_value, e.method, e.created_at, e.updated_at, e.deleted_at, a.id, a.asset_tag, a.name, a.category_id, a.brand_id, a.model_id, a.room_id, a.office_id, a.unit_id, a.status, a.serial_number, a.purchase_date, a.purchase_cost, a.vendor_id, a.po_number, a.funding_source, a.warranty_expiry, a.specifications, a.asset_class, a.capitalized, a.depreciation_method, a.useful_life_months, a.salvage_value, a.fiscal_group, a.fiscal_life_months, a.accumulated_depreciation, a.book_value, a.impairment_loss, a.acquisition_bast_no, a.current_holder_employee_id, a.excluded_from_valuation, a.valuation_exclusion_reason, a.created_by_id, a.notes, a.created_at, a.updated_at, a.deleted_at,
-       c.name AS category_name, c.gl_account_code AS gl_account_code,
+SELECT e.id, e.asset_id, e.basis, e.period, e.opening_value, e.depreciation_amount, e.closing_value, e.method, e.created_at, e.updated_at, e.deleted_at, a.id, a.asset_tag, a.name, a.category_id, a.brand_id, a.model_id, a.room_id, a.office_id, a.unit_id, a.status, a.serial_number, a.purchase_date, a.purchase_cost, a.vendor_id, a.po_number, a.funding_source, a.warranty_expiry, a.specifications, a.asset_class, a.capitalized, a.depreciation_method, a.useful_life_months, a.salvage_value, a.fiscal_group, a.fiscal_life_months, a.accumulated_depreciation, a.book_value, a.impairment_loss, a.acquisition_bast_no, a.current_holder_employee_id, a.excluded_from_valuation, a.valuation_exclusion_reason, a.created_by_id, a.notes, a.created_at, a.updated_at, a.deleted_at, c.id, c.name, c.code, c.parent_id, c.default_depreciation_method, c.default_useful_life_months, c.default_salvage_rate, c.asset_class, c.default_fiscal_group, c.default_fiscal_life_months, c.gl_account_code, c.capitalization_threshold, c.is_active, c.created_at, c.updated_at, c.deleted_at,
        o.name AS office_name
 FROM depreciation.depreciation_entries e
 JOIN asset.assets a ON a.id = e.asset_id
@@ -331,6 +443,7 @@ JOIN masterdata.categories c ON c.id = a.category_id
 LEFT JOIN masterdata.offices o ON o.id = a.office_id AND o.deleted_at IS NULL
 WHERE e.deleted_at IS NULL AND e.period = $1 AND e.basis = $2
   AND ($3::boolean OR a.office_id = ANY($4::uuid[]))
+ORDER BY a.name
 `
 
 type ListEntriesForPeriodParams struct {
@@ -343,12 +456,13 @@ type ListEntriesForPeriodParams struct {
 type ListEntriesForPeriodRow struct {
 	DepreciationDepreciationEntry DepreciationDepreciationEntry `json:"depreciation_depreciation_entry"`
 	AssetAsset                    AssetAsset                    `json:"asset_asset"`
-	CategoryName                  string                        `json:"category_name"`
-	GlAccountCode                 *string                       `json:"gl_account_code"`
+	MasterdataCategory            MasterdataCategory            `json:"masterdata_category"`
 	OfficeName                    *string                       `json:"office_name"`
 }
 
 // Schedule/journal source: entries of one period+basis joined to asset+category+office.
+// Embeds the full category row (not just name/gl_account_code) so callers can
+// also re-resolve Params (method/life_months) via ResolveCommercial/ResolveFiscal.
 func (q *Queries) ListEntriesForPeriod(ctx context.Context, arg ListEntriesForPeriodParams) ([]ListEntriesForPeriodRow, error) {
 	rows, err := q.db.Query(ctx, listEntriesForPeriod,
 		arg.Period,
@@ -412,8 +526,22 @@ func (q *Queries) ListEntriesForPeriod(ctx context.Context, arg ListEntriesForPe
 			&i.AssetAsset.CreatedAt,
 			&i.AssetAsset.UpdatedAt,
 			&i.AssetAsset.DeletedAt,
-			&i.CategoryName,
-			&i.GlAccountCode,
+			&i.MasterdataCategory.ID,
+			&i.MasterdataCategory.Name,
+			&i.MasterdataCategory.Code,
+			&i.MasterdataCategory.ParentID,
+			&i.MasterdataCategory.DefaultDepreciationMethod,
+			&i.MasterdataCategory.DefaultUsefulLifeMonths,
+			&i.MasterdataCategory.DefaultSalvageRate,
+			&i.MasterdataCategory.AssetClass,
+			&i.MasterdataCategory.DefaultFiscalGroup,
+			&i.MasterdataCategory.DefaultFiscalLifeMonths,
+			&i.MasterdataCategory.GlAccountCode,
+			&i.MasterdataCategory.CapitalizationThreshold,
+			&i.MasterdataCategory.IsActive,
+			&i.MasterdataCategory.CreatedAt,
+			&i.MasterdataCategory.UpdatedAt,
+			&i.MasterdataCategory.DeletedAt,
 			&i.OfficeName,
 		); err != nil {
 			return nil, err
@@ -455,6 +583,46 @@ func (q *Queries) SetPeriodClosed(ctx context.Context, arg SetPeriodClosedParams
 		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const sumAmountsThroughPeriodByAsset = `-- name: SumAmountsThroughPeriodByAsset :many
+SELECT asset_id, COALESCE(SUM(depreciation_amount), 0)::text AS accumulated
+FROM depreciation.depreciation_entries
+WHERE basis = $1 AND period <= $2 AND deleted_at IS NULL
+GROUP BY asset_id
+`
+
+type SumAmountsThroughPeriodByAssetParams struct {
+	Basis  SharedDepreciationBasis `json:"basis"`
+	Period pgtype.Date             `json:"period"`
+}
+
+type SumAmountsThroughPeriodByAssetRow struct {
+	AssetID     uuid.UUID `json:"asset_id"`
+	Accumulated string    `json:"accumulated"`
+}
+
+// Per-asset accumulated depreciation for one basis, through (inclusive of) a
+// given period — the schedule's "accumulated" column source, for both the
+// entry-sourced and union rows.
+func (q *Queries) SumAmountsThroughPeriodByAsset(ctx context.Context, arg SumAmountsThroughPeriodByAssetParams) ([]SumAmountsThroughPeriodByAssetRow, error) {
+	rows, err := q.db.Query(ctx, sumAmountsThroughPeriodByAsset, arg.Basis, arg.Period)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SumAmountsThroughPeriodByAssetRow{}
+	for rows.Next() {
+		var i SumAmountsThroughPeriodByAssetRow
+		if err := rows.Scan(&i.AssetID, &i.Accumulated); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const sumAssetAmounts = `-- name: SumAssetAmounts :one
