@@ -81,6 +81,15 @@ func parsePeriodQuery(c *gin.Context) (time.Time, bool) {
 }
 
 // listPeriods handles GET /depreciation/periods.
+//
+// SECURITY NOTE: this endpoint is intentionally NOT office-scoped — a period is
+// closed globally (one book-close for the whole bank) and its aggregate fields
+// (asset_count/total_amount) are fleet-wide run totals, not per-office numbers.
+// This is safe today only because depreciation.view is Superadmin-only (global
+// scope). If depreciation.view is ever delegated to an office-scoped role, the
+// aggregate financial fields here MUST be scoped or stripped before exposing
+// them — otherwise a scoped caller learns fleet-wide totals. See the schedule/
+// journal handlers for the CallerOfficeScope pattern to apply.
 func (h *Handler) listPeriods(c *gin.Context) {
 	infos, err := h.svc.Periods(c.Request.Context())
 	if err != nil {
