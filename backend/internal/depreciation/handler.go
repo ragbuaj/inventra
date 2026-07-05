@@ -247,6 +247,7 @@ func (h *Handler) journalExport(c *gin.Context) {
 			h.svcError(c, err)
 			return
 		}
+		c.Header("X-Content-Type-Options", "nosniff")
 		c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.xlsx"`, filename))
 		c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", body)
 	case "pdf":
@@ -255,6 +256,7 @@ func (h *Handler) journalExport(c *gin.Context) {
 			h.svcError(c, err)
 			return
 		}
+		c.Header("X-Content-Type-Options", "nosniff")
 		c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.pdf"`, filename))
 		c.Data(http.StatusOK, "application/pdf", body)
 	}
