@@ -128,11 +128,12 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >       have no submit path yet; **(d)** card/detail **titles are built from `type + office`**
 >       (`rowTitle()`) rather than an asset/item name, because the list row payload is absent on
 >       `GET /requests`/`GET /requests/inbox` (only the detail fetch resolves the full payload).
-> 25. **Next session — pick the next real step.** Remaining candidates (see *Remaining* below,
->     unchanged from item 23): **(b)** Stock opname backend module; **(c)** Depreciation module;
->     **(d)** frontend Mutasi/Disposal screens; **(e)** Assignment/Maintenance; **(f)** global
->     search backend + drop the last `mock/*` files. **Dev-stack notes from this session's e2e
->     verification (both issues found, fixed, and re-verified — full suite 61/61 green after):**
+> 25. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-04): wire the frontend
+>     Mutasi + Penghapusan screens** (candidate (d) — see item 26). Remaining candidates from that
+>     session (see *Remaining* below): **(b)** Stock opname backend module; **(c)** Depreciation module;
+>     **(e)** Assignment/Maintenance; **(f)** global search backend + drop the last `mock/*` files.
+>     **Dev-stack notes from this session's e2e verification (both issues found, fixed, and
+>     re-verified — full suite 61/61 green after):**
 >     (1) the backend container had drifted to **stale source** (`docker compose ... watch` wasn't
 >     actively syncing after a container recreate) — fixed by rebuilding + redeploying the backend
 >     image; if e2e results ever look impossible, check container source freshness first.
@@ -144,6 +145,74 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     on the backend (now set via `backend/.env`; CI's e2e job already sets it). (4) the legacy
 >     mock-backed approval test in `e2e/operasional.spec.ts` was deleted — superseded by the
 >     real-backend `e2e/approval.spec.ts`.
+> 26. ~~**Wire the frontend Mutasi Aset + Penghapusan Aset screens**~~ ✅ **DONE (2026-07-05).**
+>     Backend additions on this branch first: migration `000022_transfer_condition_return`
+>     (`condition_sent`/`transfer_date`/`returned` + `asset_transfers.return_note`); new
+>     `POST /transfers/:id/reject-receive` (destination rejects an in-transit shipment → `returned`,
+>     asset stays at the origin office, `return_note` recorded); enriched reads for both
+>     `internal/transfer` and `internal/disposal` (asset/office/actor names resolved server-side);
+>     `GET /approval-thresholds/preview` (submit-side UIs render the approval chain before
+>     submitting) plus a plain-decimal hardening fix in the threshold validator that also tightened
+>     PR #47's amount validator; OpenAPI synced for all of the above.
+>     Frontend: `/transfers` (`app/pages/transfers.vue`) — Ajukan/Kotak Masuk/Riwayat tabs, asset
+>     picker restricted to `status=tersedia`, inter-office/inter-region banner, ship + receive (with
+>     BAST no.) + reject-receive actions, merged request+transfer history feed; `/disposals`
+>     (`app/pages/disposals.vue`) — Ajukan/Riwayat tabs, valuation summary + laba/rugi card, approval
+>     chain preview card (via the new preview endpoint), post-submit timeline, Lampirkan BAST on
+>     completed rows. Shared: `AssetSearchPicker` component, `officeRegion`/`transferHistory`/
+>     `disposalHistory` merge utilities (framework-free, unit-tested), meta constants
+>     (`transferMeta`/`disposalMeta`), ~161 new i18n keys (id/en), the caller's `office_id` added to
+>     auth state (needed for the inter-region check), and 2 new nav items. Tests: unit (meta,
+>     region/merge helpers), `mountSuspended` component specs covering every mockup state (empty/
+>     filled/invalid form, inbox empty/populated, gain/loss green/red/masked, chain-card + fallback,
+>     post-submit timeline, loading/error/empty on every fetch), and 2 new real-backend e2e specs
+>     (`transfers.spec.ts`, `disposals.spec.ts`, 8 tests: full transfer lifecycle incl.
+>     reject-receive, full disposal lifecycle incl. BAST attach).
+>     **Approved mockup deviations** (catat-deviasi convention, confirmed 1:1 against
+>     `docs/design/Mutasi Aset.dc.html` and `docs/design/Penghapusan Aset.dc.html` in both light and
+>     dark mode) — **(a)** a **Kirim** button was added to Riwayat (the mockup has no ship UI at
+>     all); **(b)** the backend's `in_transit` enum value is localized as **"Dalam Pengiriman"** (the
+>     mockup's own alur/status chips show the raw placeholder `in_transfer`, not real i18n);
+>     **(c)** disposal method is the real 4-value backend enum `sale`/`auction`/`donation`/
+>     `write_off` → **Dijual/Lelang/Hibah/Musnah** (the mockup's fictional "Scrap" is dropped,
+>     "Lelang" added; subtitle copy updated to "jual/lelang/hibah/musnah"); **(d)** the fiscal
+>     book-value line always renders "—" with its chip (the depreciation module doesn't exist yet,
+>     so there is no fiscal value to show); **(e)** history rows that are still approval-request-only
+>     (Diajukan/Menunggu/Ditolak/Dibatalkan — no `asset_transfers`/`disposals` row exists yet) render
+>     limited info: the asset/method/value columns show "—". Noted during this task's re-verification:
+>     the `assetName` resolver for these rows is currently a hard `() => null` stub (no lookup is
+>     actually attempted, even though `target_id` is present on the request) — it always falls back
+>     to "—" rather than resolving the name "when possible" as originally intended; a real
+>     `GET /assets/:id` lookup for request-only rows would be a small, welcome follow-up;
+>     **(f)** the transfer history's No. BAST is **plain mono text**, not a clickable link (the
+>     Dokumen BAST screen doesn't exist yet — nothing to link to); **(g)** the Mutasi Aset nav item's
+>     badge count is deferred (needs the same global inbox-count store as the Approval screen's
+>     item 24 deferral); **(h)** the disposal Riwayat status filter drops **"Disetujui"** as a
+>     standalone option (a disposal never rests there for the bands used in practice — it completes
+>     atomically to `disposed` on the approval that satisfies the last chain step); **(i)**
+>     `transfer_date` is backend-optional but the UI form requires it (contract compatibility — some
+>     non-UI submitters may omit it).
+>     **Follow-ups (tracked, not yet done):** switch the disposal approval-amount basis from
+>     maker-supplied to the server-computed commercial book value once the depreciation module
+>     lands; add the BAST-link behavior to Mutasi history once the Dokumen BAST screen is built; fold
+>     the transfer/disposal money fields (`proceeds`, `book_value_at_disposal`, transfer
+>     `condition`/`reason`) into the field-permission catalog if a future role needs them masked.
+>     **Gate sweep (task-13):** backend build/vet/test + full integration, Spectral, frontend
+>     lint/typecheck/test (826 unit)/build all green. Full e2e: a first run (auto-parallel workers,
+>     matching Task 12's mode) was **69/69 green**; a later same-session rerun at `--workers=1`
+>     (matching CI) hit **1 failure** in `transfers.spec.ts` — not a code regression, but this
+>     long-lived local dev DB (never reset between manual e2e runs across many sessions on this
+>     branch) had accumulated **101 office rows**, one past the existing `officesApi.list({limit:
+>     100})` cap already flagged for Pegawai — so a freshly created destination office fell outside
+>     the picker's page and the UI couldn't select it. CI is unaffected (its e2e job starts every run
+>     against a fresh `docker compose up` Postgres). Left as-is (no destructive cleanup of shared
+>     dev-DB history without explicit approval); **follow-up:** either a periodic dev-DB reset for
+>     this stack, or upgrade office/employee-style pickers to a searchable/paginated async lookup
+>     (already a standing TODO elsewhere in this doc).
+> 27. **Next session — pick the next real step.** Remaining candidates (see *Remaining* below):
+>     **(b)** Stock opname backend module; **(c)** Depreciation module; **(e)** Assignment/
+>     Maintenance; **(f)** global search backend + drop the last `mock/*` files. Confirm priority
+>     before starting.
 
 ## ✅ Done
 
@@ -236,8 +305,10 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       permissions + `transfers` data-scope module wired; `GET /assets/:id/transfers` history endpoint;
       OpenAPI documented (`Transfer` schema + 6 paths); 15 integration/unit tests (happy path, reject
       leaves no row, submit guards, scope + state-machine, BAST doc creation, asset history), all green.
-      **Done — (2026-07-02).** **Frontend Mutasi screen still to build** — mockup available at
-      `docs/design/Mutasi Aset.dc.html` (2026-07-03); build 1:1 per the mandatory-mockup convention.
+      **Done — (2026-07-02).** Follow-up additions for the frontend (migration `000022`, reject-receive,
+      enrichment, threshold preview) and the **Frontend Mutasi screen** (`/transfers`, 1:1 against
+      `docs/design/Mutasi Aset.dc.html`, deviations (a)–(i)) are **done — see item 26** in *Next session*
+      above.
 - [ ] **Stock opname** — sessions + item reconciliation (found/not_found/damaged/misplaced) + report
 - [x] **Disposal — backend** — `internal/disposal` module (service/dto/executor/handler/routes, ADR-0008
       4-file split); the `asset_disposal` executor was moved out of the asset package into this module's
@@ -251,8 +322,9 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       reads, BAST doc + bast_no persistence), all green. **Done — (2026-07-02).** **Deferred:** gain/loss
       GL-account export (journal-ready) and deriving `book_value_at_disposal` server-side from
       depreciation (currently maker-supplied, per the same value-tier caveat as before) — both wait on the
-      depreciation module. **Frontend Disposal screen not started** — mockup available at
-      `docs/design/Penghapusan Aset.dc.html` (2026-07-03); build 1:1 per the mandatory-mockup convention.
+      depreciation module. The **Frontend Disposal screen** (`/disposals`, 1:1 against
+      `docs/design/Penghapusan Aset.dc.html`, deviations (a)–(i)) is **done — see item 26** in
+      *Next session* above.
 - [x] **Asset documents (BAST)** — metadata CRUD + optional MinIO file; scope-gated + audited; integration tests (10 cases). **Done — (2026-06-28).**
 - [ ] **Journal-ready export** — GL-account rollup (depreciation expense, disposal gain/loss)
 - [ ] **Capitalization threshold** — `app_settings` global default + per-category override; below
@@ -403,6 +475,20 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       issues found & fixed during this task's e2e verification (stale container source; corrupted
       Superadmin data-scope from a flaky settings e2e; RATELIMIT_ENABLED=false for local e2e).
       Full local e2e re-verified green (61/61) after the fixes.
+- [x] **Mutasi Aset** (`/transfers`) + **Penghapusan Aset** (`/disposals`) ✅ wired to real
+      `/api/v1/transfers` + `/api/v1/disposals` (+ `/api/v1/requests` for submit/approve and the new
+      `/api/v1/approval-thresholds/preview` for the pre-submit chain preview). Mutasi: Ajukan/Kotak
+      Masuk/Riwayat tabs, asset picker restricted to available assets, inter-office/inter-region
+      banner, ship + receive (BAST no.) + reject-receive actions, merged request+transfer history.
+      Disposal: Ajukan/Riwayat tabs, valuation summary + laba/rugi card, approval-chain preview card,
+      post-submit timeline, Lampirkan BAST on completed rows. Shared `AssetSearchPicker` +
+      `transferHistory`/`disposalHistory`/`officeRegion` utilities; caller `office_id` added to auth
+      state. Backend companions on this branch: migration `000022` (condition/transfer_date/return),
+      `POST /transfers/:id/reject-receive`, enriched transfer+disposal reads, threshold preview
+      endpoint. 2 new real-backend e2e specs (8 tests). **Done (2026-07-05).** See item 26 in
+      *Next session* above for the full deviation list (a)–(i) and follow-ups (disposal amount basis
+      → server-computed book value; BAST link once Dokumen BAST exists; money fields into the
+      field-permission catalog if needed).
 - [ ] **Staff role menus** — wire staff nav (`myAssets`, staff `assignment`/`approval`) to pages/variants
 - [x] **Google OAuth login** button + flow (UI) — login redirect + `?oauth=success/error` landing
       (refresh → fetchMe → navigate; i18n error reasons). **Done — PR #21.**
