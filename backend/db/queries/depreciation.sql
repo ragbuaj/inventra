@@ -107,6 +107,16 @@ WHERE a.deleted_at IS NULL AND a.capitalized = true
   )
 ORDER BY a.name;
 
+-- name: ApplyAssetImpairment :one
+-- PSAK 48 impairment write-down: sets both money fields directly. No
+-- depreciation entry is posted here — impairment is a separate loss, not a
+-- depreciation expense (see RecordImpairment / regenerateBasis's commercial
+-- resumption override, which picks this lower book_value up prospectively).
+UPDATE asset.assets
+SET impairment_loss = sqlc.arg(impairment_loss), book_value = sqlc.arg(book_value)
+WHERE id = sqlc.arg(id) AND deleted_at IS NULL
+RETURNING *;
+
 -- name: SumAmountsThroughPeriodByAsset :many
 -- Per-asset accumulated depreciation for one basis, through (inclusive of) a
 -- given period — the schedule's "accumulated" column source, for both the

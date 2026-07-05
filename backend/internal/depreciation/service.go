@@ -39,6 +39,15 @@ var (
 	ErrPeriodBeforeWatermark = errors.New("depreciation: period precedes the closed watermark; entries for it live in closed history")
 	// ErrNotFound is returned when a referenced asset does not exist.
 	ErrNotFound = errors.New("depreciation: not found")
+	// ErrNoBookValue is returned by RecordImpairment when the asset has no
+	// computed book value yet (ComputePeriod has never run for it) — an
+	// impairment test needs a current carrying amount to compare against.
+	ErrNoBookValue = errors.New("depreciation: asset has no book value; run depreciation first")
+	// ErrInvalidRecoverable is returned by RecordImpairment when the
+	// recoverable amount is malformed, negative, or not strictly below the
+	// asset's current book value (an impairment must reduce the carrying
+	// amount — otherwise there is nothing to write down).
+	ErrInvalidRecoverable = errors.New("depreciation: recoverable amount must be non-negative and less than the current book value")
 )
 
 // Service orchestrates period compute/close and the read-side helpers
@@ -848,4 +857,95 @@ func (s *Service) AssetSchedule(ctx context.Context, assetID uuid.UUID) (AssetSc
 	}
 
 	return AssetScheduleResult{OfficeID: a.OfficeID, ComputedBookValue: bookValue, Entries: entries}, nil
+}
+
+// GetAssetSummary returns the raw asset row. The impairment handler uses it
+// to resolve the asset's office (data-scope check) and to snapshot the
+// pre-impairment money fields for the audit diff, both BEFORE calling
+// RecordImpairment (which re-reads the row itself inside its own tx — this is
+// a separate, cheap read, not a substitute for that). ErrNotFound if the
+// asset does not exist.
+func (s *Service) GetAssetSummary(ctx context.Context, assetID uuid.UUID) (sqlc.AssetAsset, error) {
+	a, err := s.q.GetAsset(ctx, assetID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return sqlc.AssetAsset{}, ErrNotFound
+		}
+		return sqlc.AssetAsset{}, err
+	}
+	return a, nil
+}
+
+// RecordImpairment writes down an asset's book value to a tested recoverable
+// amount (PSAK 48 impairment test): impairment_loss accumulates the
+// shortfall (book_value − recoverable) and book_value drops to recoverable.
+// This does NOT post a depreciation entry — impairment is a separate loss,
+// not a depreciation expense — so depreciation history is untouched by
+// construction; the next ComputePeriod resumes depreciation from the lower
+// book_value via regenerateBasis's commercial resumption override (it
+// compares the last closed entry's closing against asset.book_value and
+// takes whichever is lower). reason is caller-supplied context for the audit
+// trail (there is no dedicated schema column for it) — the handler folds it
+// into the audit.Diff payload, not this method (ADR-0008: no Gin/audit
+// wiring in the service layer).
+// reason and actor are not used inside this method (documented above / no
+// actor column on asset.assets) — kept as parameters so the handler's call
+// site carries the full audit context in one place, and for signature
+// symmetry with a possible future audit-in-service wiring.
+func (s *Service) RecordImpairment(ctx context.Context, assetID uuid.UUID, recoverable string, reason string, actor uuid.UUID) (sqlc.AssetAsset, error) {
+	recoverableRat, ok := parsePlainDecimal(recoverable)
+	if !ok {
+		return sqlc.AssetAsset{}, ErrInvalidRecoverable
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return sqlc.AssetAsset{}, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	qtx := s.q.WithTx(tx)
+
+	a, err := qtx.GetAsset(ctx, assetID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return sqlc.AssetAsset{}, ErrNotFound
+		}
+		return sqlc.AssetAsset{}, err
+	}
+
+	if a.BookValue == nil {
+		return sqlc.AssetAsset{}, ErrNoBookValue
+	}
+	bookValue, err := parseMoney(*a.BookValue)
+	if err != nil {
+		return sqlc.AssetAsset{}, err
+	}
+
+	if recoverableRat.Sign() < 0 || recoverableRat.Cmp(bookValue) >= 0 {
+		return sqlc.AssetAsset{}, ErrInvalidRecoverable
+	}
+
+	loss := new(big.Rat).Sub(bookValue, recoverableRat)
+	existingImpairment := new(big.Rat)
+	if a.ImpairmentLoss != nil {
+		if v, errImp := parseMoney(*a.ImpairmentLoss); errImp == nil {
+			existingImpairment = v
+		}
+	}
+	newImpairment := roundHalfUp2(new(big.Rat).Add(existingImpairment, loss))
+	newBookValue := roundHalfUp2(recoverableRat)
+
+	updated, err := qtx.ApplyAssetImpairment(ctx, sqlc.ApplyAssetImpairmentParams{
+		ID:             assetID,
+		ImpairmentLoss: &newImpairment,
+		BookValue:      &newBookValue,
+	})
+	if err != nil {
+		return sqlc.AssetAsset{}, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return sqlc.AssetAsset{}, err
+	}
+	return updated, nil
 }

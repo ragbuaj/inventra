@@ -24,6 +24,68 @@ func (q *Queries) AdvisoryLockDepreciation(ctx context.Context) error {
 	return err
 }
 
+const applyAssetImpairment = `-- name: ApplyAssetImpairment :one
+UPDATE asset.assets
+SET impairment_loss = $1, book_value = $2
+WHERE id = $3 AND deleted_at IS NULL
+RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at
+`
+
+type ApplyAssetImpairmentParams struct {
+	ImpairmentLoss *string   `json:"impairment_loss"`
+	BookValue      *string   `json:"book_value"`
+	ID             uuid.UUID `json:"id"`
+}
+
+// PSAK 48 impairment write-down: sets both money fields directly. No
+// depreciation entry is posted here — impairment is a separate loss, not a
+// depreciation expense (see RecordImpairment / regenerateBasis's commercial
+// resumption override, which picks this lower book_value up prospectively).
+func (q *Queries) ApplyAssetImpairment(ctx context.Context, arg ApplyAssetImpairmentParams) (AssetAsset, error) {
+	row := q.db.QueryRow(ctx, applyAssetImpairment, arg.ImpairmentLoss, arg.BookValue, arg.ID)
+	var i AssetAsset
+	err := row.Scan(
+		&i.ID,
+		&i.AssetTag,
+		&i.Name,
+		&i.CategoryID,
+		&i.BrandID,
+		&i.ModelID,
+		&i.RoomID,
+		&i.OfficeID,
+		&i.UnitID,
+		&i.Status,
+		&i.SerialNumber,
+		&i.PurchaseDate,
+		&i.PurchaseCost,
+		&i.VendorID,
+		&i.PoNumber,
+		&i.FundingSource,
+		&i.WarrantyExpiry,
+		&i.Specifications,
+		&i.AssetClass,
+		&i.Capitalized,
+		&i.DepreciationMethod,
+		&i.UsefulLifeMonths,
+		&i.SalvageValue,
+		&i.FiscalGroup,
+		&i.FiscalLifeMonths,
+		&i.AccumulatedDepreciation,
+		&i.BookValue,
+		&i.ImpairmentLoss,
+		&i.AcquisitionBastNo,
+		&i.CurrentHolderEmployeeID,
+		&i.ExcludedFromValuation,
+		&i.ValuationExclusionReason,
+		&i.CreatedByID,
+		&i.Notes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const countOpenEarlierPeriods = `-- name: CountOpenEarlierPeriods :one
 SELECT count(*) FROM depreciation.depreciation_periods
 WHERE deleted_at IS NULL AND period < $1 AND status <> 'closed'

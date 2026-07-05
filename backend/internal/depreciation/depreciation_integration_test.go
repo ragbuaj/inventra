@@ -3,8 +3,10 @@
 package depreciation_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -713,6 +715,34 @@ func (hh *httpHarness) doReq(method, path string, userID, roleID uuid.UUID) (int
 	return w.Code, body
 }
 
+// doReqBody is doReq's sibling for requests that carry a JSON body (the
+// impairment endpoint's POST /assets/:id/impairment) — same stub-auth/fresh-
+// engine wiring, plus a Content-Type header and a non-nil request body.
+func (hh *httpHarness) doReqBody(method, path string, userID, roleID uuid.UUID, body []byte) (int, map[string]any) {
+	gin.SetMode(gin.TestMode)
+	stubAuth := func(c *gin.Context) {
+		c.Set(middleware.CtxUserID, userID.String())
+		c.Set(middleware.CtxRoleID, roleID.String())
+		c.Next()
+	}
+	r := gin.New()
+	v1 := r.Group("/api/v1")
+	depreciation.RegisterRoutes(v1, hh.handler, stubAuth,
+		middleware.RequirePermission(hh.permSvc, "depreciation.manage"),
+		middleware.RequirePermission(hh.permSvc, "depreciation.view"),
+		middleware.RequirePermission(hh.permSvc, "asset.view"),
+	)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(method, path, bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+	var respBody map[string]any
+	if w.Body.Len() > 0 {
+		require.NoError(hh.t, json.Unmarshal(w.Body.Bytes(), &respBody))
+	}
+	return w.Code, respBody
+}
+
 // TestDepreciation_HTTP_PeriodsComputeClose drives POST compute/close through
 // the real routes: 200s for the happy sequential path, 400 on a garbage
 // period param, 409 recomputing/reclosing an already-closed period, and 422
@@ -948,4 +978,191 @@ func TestDepreciation_HTTP_AssetSchedule(t *testing.T) {
 		code, _ := hh.doReq(http.MethodGet, "/api/v1/assets/"+uuid.New().String()+"/depreciation", hh.actorID, hh.roleID)
 		assert.Equal(t, http.StatusNotFound, code)
 	})
+}
+
+// ─── HTTP-wiring tests (Task 5 — impairment, PSAK 48) ──────────────────────
+
+// TestDepreciation_HTTP_Impairment drives POST /assets/:id/impairment
+// end-to-end: happy path (loss accumulates, book drops, an audit row is
+// written), the recoverable-must-be-below-book-value guard, the
+// no-book-value guard, the permission gate, and basic request validation.
+func TestDepreciation_HTTP_Impairment(t *testing.T) {
+	hh := newHTTPHarness(t)
+	ctx := context.Background()
+
+	t.Run("happy path: loss accumulates, book drops, audit row written", func(t *testing.T) {
+		assetID := seedAssetMonthsAgo(t, hh.pool, "DPR-2026-00021", "Aset Impairment", hh.catID, hh.office, "9600000.00", 6)
+		month1 := firstOfMonthUTC(time.Now()).AddDate(0, -1, 0)
+		period1 := month1.Format("2006-01")
+
+		code, _ := hh.doReq(http.MethodPost, "/api/v1/depreciation/periods/"+period1+"/compute", hh.actorID, hh.roleID)
+		require.Equal(t, http.StatusOK, code)
+		require.NoError(t, hh.svc.ClosePeriod(ctx, month1, hh.actorID))
+
+		a, err := hh.q.GetAsset(ctx, assetID)
+		require.NoError(t, err)
+		require.NotNil(t, a.BookValue)
+		require.Equal(t, "8520000.00", *a.BookValue, "9,600,000 - 6*180,000")
+
+		body := []byte(`{"recoverable_amount":"8000000.00","reason":"kerusakan berat akibat banjir"}`)
+		code, respBody := hh.doReqBody(http.MethodPost, "/api/v1/assets/"+assetID.String()+"/impairment", hh.actorID, hh.roleID, body)
+		require.Equal(t, http.StatusOK, code)
+		assert.Equal(t, "8000000.00", respBody["book_value"])
+		assert.Equal(t, "520000.00", respBody["impairment_loss"])
+		assert.Equal(t, a.AccumulatedDepreciation, respBody["accumulated_depreciation"], "impairment must not touch accumulated_depreciation")
+
+		updated, err := hh.q.GetAsset(ctx, assetID)
+		require.NoError(t, err)
+		require.NotNil(t, updated.BookValue)
+		assert.Equal(t, "8000000.00", *updated.BookValue)
+		require.NotNil(t, updated.ImpairmentLoss)
+		assert.Equal(t, "520000.00", *updated.ImpairmentLoss)
+
+		var changesRaw []byte
+		require.NoError(t, hh.pool.QueryRow(ctx,
+			`SELECT changes FROM audit.audit_logs WHERE entity_type = 'assets' AND entity_id = $1 AND action = 'update' ORDER BY created_at DESC LIMIT 1`,
+			assetID).Scan(&changesRaw))
+		var changes map[string]map[string]any
+		require.NoError(t, json.Unmarshal(changesRaw, &changes))
+		require.Contains(t, changes, "book_value")
+		assert.Equal(t, "8520000.00", changes["book_value"]["before"])
+		assert.Equal(t, "8000000.00", changes["book_value"]["after"])
+		require.Contains(t, changes, "impairment_loss")
+		assert.Equal(t, "520000.00", changes["impairment_loss"]["after"])
+		require.Contains(t, changes, "reason")
+		assert.Equal(t, "kerusakan berat akibat banjir", changes["reason"]["after"])
+	})
+
+	t.Run("recoverable >= book value -> 422", func(t *testing.T) {
+		assetID := seedAssetMonthsAgo(t, hh.pool, "DPR-2026-00022", "Aset Impairment Guard", hh.catID, hh.office, "6000000.00", 3)
+		month1 := firstOfMonthUTC(time.Now())
+		period1 := month1.Format("2006-01")
+		code, _ := hh.doReq(http.MethodPost, "/api/v1/depreciation/periods/"+period1+"/compute", hh.actorID, hh.roleID)
+		require.Equal(t, http.StatusOK, code)
+
+		a, err := hh.q.GetAsset(ctx, assetID)
+		require.NoError(t, err)
+		require.NotNil(t, a.BookValue)
+
+		body := []byte(fmt.Sprintf(`{"recoverable_amount":%q,"reason":"tidak valid"}`, *a.BookValue))
+		code, respBody := hh.doReqBody(http.MethodPost, "/api/v1/assets/"+assetID.String()+"/impairment", hh.actorID, hh.roleID, body)
+		assert.Equal(t, http.StatusUnprocessableEntity, code)
+		assert.Contains(t, respBody, "error")
+	})
+
+	t.Run("no book value (never computed) -> 422", func(t *testing.T) {
+		assetID := seedAssetMonthsAgo(t, hh.pool, "DPR-2026-00023", "Aset Belum Dihitung Impairment", hh.catID, hh.office, "4000000.00", 2)
+		body := []byte(`{"recoverable_amount":"1000000.00","reason":"belum dihitung"}`)
+		code, respBody := hh.doReqBody(http.MethodPost, "/api/v1/assets/"+assetID.String()+"/impairment", hh.actorID, hh.roleID, body)
+		assert.Equal(t, http.StatusUnprocessableEntity, code)
+		assert.Contains(t, respBody, "error")
+	})
+
+	t.Run("permission gate: Staf lacks depreciation.manage -> 403", func(t *testing.T) {
+		assetID := seedAssetMonthsAgo(t, hh.pool, "DPR-2026-00024", "Aset Impairment Gate", hh.catID, hh.office, "3000000.00", 2)
+		month1 := firstOfMonthUTC(time.Now())
+		period1 := month1.Format("2006-01")
+		code, _ := hh.doReq(http.MethodPost, "/api/v1/depreciation/periods/"+period1+"/compute", hh.actorID, hh.roleID)
+		require.Equal(t, http.StatusOK, code)
+
+		stafRoleID := lookupRole(t, hh.pool, "Staf")
+		stafUser := seedUser(t, hh.pool, stafRoleID, hh.office, "staf.impairment."+uuid.New().String()[:8]+"@test.local")
+
+		body := []byte(`{"recoverable_amount":"1000000.00","reason":"tidak berwenang"}`)
+		code, _ = hh.doReqBody(http.MethodPost, "/api/v1/assets/"+assetID.String()+"/impairment", stafUser, stafRoleID, body)
+		assert.Equal(t, http.StatusForbidden, code)
+	})
+
+	t.Run("invalid asset id -> 400", func(t *testing.T) {
+		body := []byte(`{"recoverable_amount":"1000000.00","reason":"x"}`)
+		code, _ := hh.doReqBody(http.MethodPost, "/api/v1/assets/not-a-uuid/impairment", hh.actorID, hh.roleID, body)
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+
+	t.Run("malformed recoverable_amount -> 400", func(t *testing.T) {
+		assetID := seedAssetMonthsAgo(t, hh.pool, "DPR-2026-00025", "Aset Impairment Format", hh.catID, hh.office, "2000000.00", 2)
+		month1 := firstOfMonthUTC(time.Now())
+		period1 := month1.Format("2006-01")
+		code, _ := hh.doReq(http.MethodPost, "/api/v1/depreciation/periods/"+period1+"/compute", hh.actorID, hh.roleID)
+		require.Equal(t, http.StatusOK, code)
+
+		body := []byte(`{"recoverable_amount":"1e5","reason":"format salah"}`)
+		code, _ = hh.doReqBody(http.MethodPost, "/api/v1/assets/"+assetID.String()+"/impairment", hh.actorID, hh.roleID, body)
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+
+	t.Run("missing reason -> 400", func(t *testing.T) {
+		assetID := seedAssetMonthsAgo(t, hh.pool, "DPR-2026-00026", "Aset Impairment No Reason", hh.catID, hh.office, "2000000.00", 2)
+		body := []byte(`{"recoverable_amount":"1000000.00"}`)
+		code, _ := hh.doReqBody(http.MethodPost, "/api/v1/assets/"+assetID.String()+"/impairment", hh.actorID, hh.roleID, body)
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+
+	t.Run("unknown asset id -> 404", func(t *testing.T) {
+		body := []byte(`{"recoverable_amount":"1000000.00","reason":"x"}`)
+		code, _ := hh.doReqBody(http.MethodPost, "/api/v1/assets/"+uuid.New().String()+"/impairment", hh.actorID, hh.roleID, body)
+		assert.Equal(t, http.StatusNotFound, code)
+	})
+}
+
+// TestDepreciation_Impairment_ProspectiveRecompute verifies the normative
+// engine-integration rule end-to-end: impair an asset after closing month1,
+// then compute month2 — the next month's amount must be
+// (recoverable − salvage) / remaining, prospectively picking up the impaired
+// base, while month1 (closed history) stays byte-identical.
+func TestDepreciation_Impairment_ProspectiveRecompute(t *testing.T) {
+	hh := newHTTPHarness(t)
+	ctx := context.Background()
+
+	// cost 9,600,000; category salvage rate 10% -> salvage 960,000; life 48m.
+	// Purchased 6 months ago: month1 (current-1) is the 6th generated month
+	// (index 5), closing = 9,600,000 - 6*180,000 = 8,520,000.00.
+	assetID := seedAssetMonthsAgo(t, hh.pool, "DPR-2026-00027", "Aset Prospektif", hh.catID, hh.office, "9600000.00", 6)
+
+	month1 := firstOfMonthUTC(time.Now()).AddDate(0, -1, 0)
+	month2 := firstOfMonthUTC(time.Now())
+	period1 := month1.Format("2006-01")
+	period2 := month2.Format("2006-01")
+
+	code, _ := hh.doReq(http.MethodPost, "/api/v1/depreciation/periods/"+period1+"/compute", hh.actorID, hh.roleID)
+	require.Equal(t, http.StatusOK, code)
+	require.NoError(t, hh.svc.ClosePeriod(ctx, month1, hh.actorID))
+
+	a, err := hh.q.GetAsset(ctx, assetID)
+	require.NoError(t, err)
+	require.NotNil(t, a.BookValue)
+	require.Equal(t, "8520000.00", *a.BookValue)
+
+	body := []byte(`{"recoverable_amount":"8000000.00","reason":"uji penurunan nilai"}`)
+	code, respBody := hh.doReqBody(http.MethodPost, "/api/v1/assets/"+assetID.String()+"/impairment", hh.actorID, hh.roleID, body)
+	require.Equal(t, http.StatusOK, code)
+	require.Equal(t, "8000000.00", respBody["book_value"])
+
+	code, _ = hh.doReq(http.MethodPost, "/api/v1/depreciation/periods/"+period2+"/compute", hh.actorID, hh.roleID)
+	require.Equal(t, http.StatusOK, code)
+
+	entries, err := hh.q.ListAssetEntries(ctx, assetID)
+	require.NoError(t, err)
+
+	var m1Commercial, m2Commercial sqlc.DepreciationDepreciationEntry
+	for _, e := range entries {
+		if e.Basis != sqlc.SharedDepreciationBasisCommercial {
+			continue
+		}
+		if e.Period.Time.Equal(month1) {
+			m1Commercial = e
+		}
+		if e.Period.Time.Equal(month2) {
+			m2Commercial = e
+		}
+	}
+	require.NotEmpty(t, m1Commercial.ID, "month1 entry must exist")
+	assert.Equal(t, "8520000.00", m1Commercial.ClosingValue, "closed history must not be rewritten by the impairment")
+
+	require.NotEmpty(t, m2Commercial.ID)
+	assert.Equal(t, "8000000.00", m2Commercial.OpeningValue, "month2 must open from the impaired book_value, not month1's closing")
+	// remaining = 48 - monthsElapsed(start, month2) = 48 - 6 = 42.
+	// amount = (8,000,000 - 960,000) / 42 = 7,040,000/42 = 167,619.047619... -> 167619.05
+	assert.Equal(t, "167619.05", m2Commercial.DepreciationAmount)
+	assert.Equal(t, "7832380.95", m2Commercial.ClosingValue, "8,000,000.00 - 167,619.05")
 }

@@ -43,6 +43,8 @@ func (h *Handler) svcError(c *gin.Context, err error) {
 		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 	case err == ErrPeriodNotComputed, err == ErrPriorPeriodOpen, err == ErrPeriodBeforeWatermark:
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+	case err == ErrNoBookValue, err == ErrInvalidRecoverable:
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
 	case err == ErrNotFound:
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 	default:
@@ -243,4 +245,68 @@ func (h *Handler) assetSchedule(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, assetScheduleToMap(result))
+}
+
+// recordImpairment handles POST /assets/:id/impairment (PSAK 48 write-down).
+// The asset's office is resolved and scope-checked BEFORE calling
+// RecordImpairment (which has no scope params of its own — see service.go);
+// unlike assetSchedule's read-only scope check, this guards a mutation, so
+// the pre-fetch must happen ahead of, not after, the write.
+func (h *Handler) recordImpairment(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	var req ImpairmentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if _, ok := parsePlainDecimal(req.RecoverableAmount); !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid recoverable_amount"})
+		return
+	}
+
+	before, err := h.svc.GetAssetSummary(c.Request.Context(), id)
+	if err != nil {
+		h.svcError(c, err)
+		return
+	}
+	all, ids, err := h.scoped.CallerOfficeScope(c, scopeModule)
+	if err != nil {
+		common.WriteError(c, err)
+		return
+	}
+	if !common.InScope(all, ids, before.OfficeID) {
+		common.WriteError(c, common.ErrForbidden)
+		return
+	}
+
+	uid, err := uuid.Parse(c.GetString(middleware.CtxUserID))
+	if err != nil {
+		common.WriteError(c, common.ErrForbidden)
+		return
+	}
+
+	after, err := h.svc.RecordImpairment(c.Request.Context(), id, req.RecoverableAmount, req.Reason, uid)
+	if err != nil {
+		h.svcError(c, err)
+		return
+	}
+
+	beforeMoney := map[string]any{
+		"book_value":               before.BookValue,
+		"impairment_loss":          before.ImpairmentLoss,
+		"accumulated_depreciation": before.AccumulatedDepreciation,
+	}
+	afterMoney := map[string]any{
+		"book_value":               after.BookValue,
+		"impairment_loss":          after.ImpairmentLoss,
+		"accumulated_depreciation": after.AccumulatedDepreciation,
+		"reason":                   req.Reason,
+	}
+	audit.Record(c, h.aud, audit.ActionUpdate, assetEntity, id, &after.OfficeID, audit.Diff(beforeMoney, afterMoney))
+
+	c.JSON(http.StatusOK, impairmentResultToMap(after))
 }

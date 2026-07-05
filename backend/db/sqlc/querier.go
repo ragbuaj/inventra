@@ -16,6 +16,11 @@ type Querier interface {
 	// Depreciation engine queries. See docs/DATABASE.md §4.4 and spec 2026-07-05.
 	// Transaction-scoped exclusive lock; released automatically at COMMIT/ROLLBACK.
 	AdvisoryLockDepreciation(ctx context.Context) error
+	// PSAK 48 impairment write-down: sets both money fields directly. No
+	// depreciation entry is posted here — impairment is a separate loss, not a
+	// depreciation expense (see RecordImpairment / regenerateBasis's commercial
+	// resumption override, which picks this lower book_value up prospectively).
+	ApplyAssetImpairment(ctx context.Context, arg ApplyAssetImpairmentParams) (AssetAsset, error)
 	BumpAssetTagCounter(ctx context.Context, arg BumpAssetTagCounterParams) (int32, error)
 	CancelRequest(ctx context.Context, arg CancelRequestParams) (ApprovalRequest, error)
 	CountAssets(ctx context.Context, arg CountAssetsParams) (int64, error)

@@ -5,6 +5,7 @@ package depreciation
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/gin-gonic/gin"
 
@@ -125,5 +126,47 @@ func maskedAssetScheduleMap() gin.H {
 		"masked":              true,
 		"computed_book_value": nil,
 		"entries":             []gin.H{},
+	}
+}
+
+// ImpairmentRequest is the request body for POST /assets/:id/impairment
+// (PSAK 48 write-down). Both fields are required; recoverable_amount is
+// further validated by parsePlainDecimal (a malformed value is a 400, not the
+// service's 422 business-rule rejection).
+type ImpairmentRequest struct {
+	RecoverableAmount string `json:"recoverable_amount" binding:"required"`
+	Reason            string `json:"reason" binding:"required"`
+}
+
+// parsePlainDecimal parses a non-negative plain decimal string ("1000",
+// "1000.50"). Unlike bare big.Rat parsing it rejects fractions ("1/3"),
+// exponents ("1e5"), signs and whitespace — anything Postgres numeric input
+// would not accept here. This is a package-local copy of approval's
+// parsePlainDecimal (internal/approval/dto.go) — same char-scan + big.Rat
+// approach, kept separate per ADR-0008 module boundaries rather than reaching
+// into another module's internals for a four-line helper.
+func parsePlainDecimal(s string) (*big.Rat, bool) {
+	if s == "" {
+		return nil, false
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if (c < '0' || c > '9') && c != '.' {
+			return nil, false
+		}
+	}
+	r, ok := new(big.Rat).SetString(s)
+	if !ok {
+		return nil, false
+	}
+	return r, true
+}
+
+// impairmentResultToMap serializes the response of POST /assets/:id/impairment.
+func impairmentResultToMap(a sqlc.AssetAsset) gin.H {
+	return gin.H{
+		"book_value":               a.BookValue,
+		"impairment_loss":          a.ImpairmentLoss,
+		"accumulated_depreciation": a.AccumulatedDepreciation,
 	}
 }

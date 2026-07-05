@@ -17,4 +17,5 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW, requireManage, requ
 
 	a := rg.Group("/assets")
 	a.GET("/:id/depreciation", authMW, requireAssetView, h.assetSchedule)
+	a.POST("/:id/impairment", authMW, requireManage, h.recordImpairment)
 }
