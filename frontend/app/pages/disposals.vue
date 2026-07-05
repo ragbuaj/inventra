@@ -3,6 +3,7 @@ import type { Asset, AssetAttachment, AssetStatus, BadgeColor, Office } from '~/
 import type { Disposal, DisposalSubmitInput } from '~/composables/api/useDisposals'
 import type { ApprovalRequestRow, ApprovalStep } from '~/composables/api/useApproval'
 import type { PreviewStep } from '~/composables/api/useApprovalPreview'
+import type { AssetDepreciationResponse } from '~/composables/api/useDepreciation'
 import type { DisposalHistoryRow, DisposalHistoryStatus } from '~/utils/disposalHistory'
 import { METHOD_KEYS, METHOD_TONE, type DisposalMethod } from '~/constants/disposalMeta'
 import { mergeDisposalHistory } from '~/utils/disposalHistory'
@@ -35,6 +36,7 @@ const approvalApi = useApproval()
 const previewApi = useApprovalPreview()
 const attachmentsApi = useAssetAttachments()
 const officesApi = useOffices()
+const deprApi = useDepreciation()
 
 const canManage = computed(() => can('disposal.manage'))
 
@@ -140,6 +142,36 @@ const accumMasked = computed(() => !!selectedAsset.value && selectedAsset.value.
 const bookValueMasked = computed(() => !!selectedAsset.value && selectedAsset.value.book_value === undefined)
 
 // ---------------------------------------------------------------------------
+// Depreciation schedule for the selected asset — fetched alongside the
+// approval-chain preview (see the `selectedAsset` watcher below). Drives the
+// fiscal valuation cell/gain-loss row and the book-value-based preview
+// amount (mirrors the server's basis switch on submit).
+// ---------------------------------------------------------------------------
+const deprSchedule = ref<AssetDepreciationResponse | null>(null)
+
+// Commercial book value: prefer the freshly-computed value from the
+// depreciation module over the (possibly stale) asset.book_value column.
+const commercialBookValue = computed<string | null>(() => {
+  if (!selectedAsset.value) return null
+  return deprSchedule.value?.computed_book_value ?? selectedAsset.value.book_value ?? null
+})
+
+// Fiscal book value = closing of the most recent fiscal-basis entry (entries
+// come back ordered ascending by period); "—" when nothing has been computed
+// on the fiscal basis yet.
+const fiscalBookValue = computed<string | null>(() => {
+  const fiscalEntries = (deprSchedule.value?.entries ?? []).filter(e => e.basis === 'fiscal')
+  return fiscalEntries.length > 0 ? fiscalEntries[fiscalEntries.length - 1]!.closing : null
+})
+
+// The amount the server's basis switch would use for the approval-chain
+// preview: the computed book value when known, else the acquisition cost.
+const chainPreviewAmount = computed<string | null>(() => {
+  if (!selectedAsset.value) return null
+  return deprSchedule.value?.computed_book_value ?? selectedAsset.value.purchase_cost ?? null
+})
+
+// ---------------------------------------------------------------------------
 // Laba/Rugi card — pure client-side computation, no fetch involved.
 // ---------------------------------------------------------------------------
 type GainLossState = 'empty' | 'masked' | 'result'
@@ -160,6 +192,13 @@ const gainLossVariant = computed<'gain' | 'loss' | 'breakEven' | null>(() => {
   return 'breakEven'
 })
 
+// Fiscal gain/loss = proceeds − fiscal book value; "—" until both a sale
+// value is entered and a fiscal-basis closing exists for the asset.
+const fiscalGainLoss = computed<number | null>(() => {
+  if (proceedsRaw.value === '' || fiscalBookValue.value === null) return null
+  return Number(proceedsRaw.value) - Number(fiscalBookValue.value)
+})
+
 // ---------------------------------------------------------------------------
 // Jenjang Persetujuan card
 // ---------------------------------------------------------------------------
@@ -168,9 +207,18 @@ const chainSteps = ref<PreviewStep[]>([])
 
 watch(selectedAsset, async (asset) => {
   chainSteps.value = []
+  deprSchedule.value = null
   if (!asset) {
     chainState.value = 'idle'
     return
+  }
+  // Best-effort: pulls the fiscal valuation + computed book value used below
+  // and by the valuation/gain-loss cards. Its failure must not block the
+  // approval-chain preview itself.
+  try {
+    deprSchedule.value = await deprApi.assetSchedule(asset.id)
+  } catch {
+    deprSchedule.value = null
   }
   if (asset.purchase_cost == null) {
     chainState.value = 'masked'
@@ -178,7 +226,7 @@ watch(selectedAsset, async (asset) => {
   }
   chainState.value = 'loading'
   try {
-    chainSteps.value = await previewApi.preview('asset_disposal', asset.purchase_cost)
+    chainSteps.value = await previewApi.preview('asset_disposal', chainPreviewAmount.value ?? asset.purchase_cost)
     chainState.value = 'ready'
   } catch {
     chainState.value = 'not_configured'
@@ -264,7 +312,6 @@ async function submitDisposal() {
       method: method.value,
       disposal_date: disposalDate.value,
       proceeds: proceedsRaw.value !== '' ? proceedsRaw.value : null,
-      book_value_at_disposal: asset.book_value ?? null,
       bast_no: bastNo.value.trim() || null,
       reason: reason.value.trim() || null
     }
@@ -301,6 +348,7 @@ function resetForm() {
   evidenceUploads.value = []
   chainState.value = 'idle'
   chainSteps.value = []
+  deprSchedule.value = null
   timelineSteps.value = []
   timelineCurrentStep.value = 1
   timelineMakerName.value = ''
@@ -729,7 +777,7 @@ onMounted(() => {
                     data-testid="disposal-valuation-book-commercial"
                     class="text-[15px] font-bold mt-px text-info"
                   >
-                    {{ formatRupiah(selectedAsset.book_value) }}
+                    {{ formatRupiah(commercialBookValue) }}
                   </div>
                 </div>
                 <div>
@@ -740,9 +788,8 @@ onMounted(() => {
                   <div
                     data-testid="disposal-valuation-book-fiscal"
                     class="text-[15px] font-bold mt-px"
-                    :title="t('disposal.valuation.fiscalTooltip')"
                   >
-                    —
+                    {{ fiscalBookValue !== null ? formatRupiah(fiscalBookValue) : '—' }}
                   </div>
                 </div>
               </div>
@@ -943,7 +990,7 @@ onMounted(() => {
                 <div class="h-px bg-default my-0.5" />
                 <div class="flex items-center justify-between text-[11.5px] text-dimmed">
                   <span>{{ t('disposal.gainLoss.fiscal') }}</span>
-                  <span>—</span>
+                  <span data-testid="disposal-gainloss-fiscal-value">{{ fiscalGainLoss === null ? '—' : formatSigned(fiscalGainLoss) }}</span>
                 </div>
               </div>
             </div>
@@ -970,7 +1017,7 @@ onMounted(() => {
                   v-if="!acquisitionMasked"
                   class="text-[11px] text-dimmed truncate"
                 >
-                  {{ t('disposal.chain.basedOnBookValue', { value: formatRupiah(selectedAsset.purchase_cost) }) }}
+                  {{ t('disposal.chain.basedOnBookValue', { value: formatRupiah(chainPreviewAmount) }) }}
                 </div>
               </div>
             </div>

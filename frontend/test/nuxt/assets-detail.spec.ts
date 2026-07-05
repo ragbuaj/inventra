@@ -97,6 +97,15 @@ delete (MASKED_ASSET as Record<string, unknown>).purchase_cost
 delete (MASKED_ASSET as Record<string, unknown>).book_value
 delete (MASKED_ASSET as Record<string, unknown>).accumulated_depreciation
 
+const DEPR_ENTRIES = [
+  { basis: 'commercial' as const, period: '2026-01', opening: '18500000', amount: '385417', closing: '18114583', method: 'straight_line' },
+  { basis: 'commercial' as const, period: '2026-02', opening: '18114583', amount: '385417', closing: '17729166', method: 'straight_line' },
+  { basis: 'fiscal' as const, period: '2026-01', opening: '18500000', amount: '770833', closing: '17729167', method: 'declining_balance' }
+]
+const DEPR_RESPONSE_FULL = { masked: false, computed_book_value: '17729166', entries: DEPR_ENTRIES }
+const DEPR_RESPONSE_MASKED = { masked: true, computed_book_value: null, entries: [] }
+const DEPR_RESPONSE_EMPTY = { masked: false, computed_book_value: null, entries: [] }
+
 const PHOTO_ATTACHMENTS = [
   { id: 'att1', asset_id: 'a1', kind: 'photo', original_filename: 'depan.jpg', size_bytes: 1024, mime_type: 'image/jpeg', has_thumbnail: true, created_at: '2026-01-01T00:00:00Z' },
   { id: 'att2', asset_id: 'a1', kind: 'document', original_filename: 'bast.pdf', size_bytes: 2048, mime_type: 'application/pdf', has_thumbnail: false, created_at: '2026-01-01T00:00:00Z' }
@@ -120,6 +129,7 @@ function defaultHandler(asset: Record<string, unknown>): RequestHandler {
     if (path.startsWith('/units')) return { data: UNITS, total: UNITS.length, limit: 100, offset: 0 }
     if (path.startsWith('/floors')) return { data: FLOORS, total: FLOORS.length, limit: 100, offset: 0 }
     if (path.startsWith('/rooms')) return { data: ROOMS, total: ROOMS.length, limit: 100, offset: 0 }
+    if (path.match(/\/assets\/[^/]+\/depreciation$/)) return DEPR_RESPONSE_EMPTY
     throw new Error(`Unhandled request: ${path}`)
   }
 }
@@ -281,14 +291,127 @@ describe('Asset Detail page — history tabs show empty-state, not sample data',
     expect(wrapper.text()).toContain('Belum ada data — modul belum tersedia')
     expect(wrapper.text()).not.toContain('Preventive')
   })
+})
 
-  it('Depreciation tab shows the module-not-available empty state', async () => {
+// ---------------------------------------------------------------------------
+// Depreciation tab (Task 11) — fetched once on first activation
+// ---------------------------------------------------------------------------
+
+describe('Asset Detail page — Depreciation tab', () => {
+  function findDeprTab(wrapper: Awaited<ReturnType<typeof mountTag>>) {
+    return wrapper.findAll('button').find(b => b.text().trim() === 'Jadwal Depresiasi')!
+  }
+
+  it('fetches the schedule on first activation and renders commercial entries by default', async () => {
+    setHandler((path: string) => {
+      if (path.match(/\/assets\/[^/]+\/depreciation$/)) return DEPR_RESPONSE_FULL
+      return defaultHandler(FULL_ASSET)(path)
+    })
     const wrapper = await mountTag('JKT01-ELK-2026-00001')
-    const deprTab = wrapper.findAll('button').find(b => b.text().trim() === 'Jadwal Depresiasi')
-    await deprTab!.trigger('click')
+    await findDeprTab(wrapper).trigger('click')
+    await flushPromises()
     await wrapper.vm.$nextTick()
-    expect(wrapper.text()).toContain('Belum ada data — modul belum tersedia')
-    expect(wrapper.text()).not.toContain('Berjalan')
+
+    const rows = wrapper.findAll('[data-testid="depr-tab-row"]')
+    expect(rows).toHaveLength(2)
+    expect(wrapper.text()).toContain('2026-01')
+    expect(wrapper.text()).toContain('Garis Lurus')
+    expect(wrapper.text()).not.toContain('Belum ada data — modul belum tersedia')
+  })
+
+  it('switches to fiscal entries via the basis toggle', async () => {
+    setHandler((path: string) => {
+      if (path.match(/\/assets\/[^/]+\/depreciation$/)) return DEPR_RESPONSE_FULL
+      return defaultHandler(FULL_ASSET)(path)
+    })
+    const wrapper = await mountTag('JKT01-ELK-2026-00001')
+    await findDeprTab(wrapper).trigger('click')
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    await wrapper.find('[data-testid="depr-tab-basis-fiscal"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    const rows = wrapper.findAll('[data-testid="depr-tab-row"]')
+    expect(rows).toHaveLength(1)
+    expect(wrapper.text()).toContain('Saldo Menurun')
+  })
+
+  it('shows the masked lock state when the caller\'s role cannot view valuation', async () => {
+    setHandler((path: string) => {
+      if (path.match(/\/assets\/[^/]+\/depreciation$/)) return DEPR_RESPONSE_MASKED
+      return defaultHandler(FULL_ASSET)(path)
+    })
+    const wrapper = await mountTag('JKT01-ELK-2026-00001')
+    await findDeprTab(wrapper).trigger('click')
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[data-testid="depr-tab-masked"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('disamarkan')
+  })
+
+  it('shows "Belum pernah dihitung" when no schedule has been computed yet', async () => {
+    setHandler((path: string) => {
+      if (path.match(/\/assets\/[^/]+\/depreciation$/)) return DEPR_RESPONSE_EMPTY
+      return defaultHandler(FULL_ASSET)(path)
+    })
+    const wrapper = await mountTag('JKT01-ELK-2026-00001')
+    await findDeprTab(wrapper).trigger('click')
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[data-testid="depr-tab-empty"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Belum pernah dihitung')
+  })
+
+  it('does not refetch when navigating away from and back to the depr tab', async () => {
+    let callCount = 0
+    setHandler((path: string) => {
+      if (path.match(/\/assets\/[^/]+\/depreciation$/)) {
+        callCount++
+        return DEPR_RESPONSE_FULL
+      }
+      return defaultHandler(FULL_ASSET)(path)
+    })
+    const wrapper = await mountTag('JKT01-ELK-2026-00001')
+    await findDeprTab(wrapper).trigger('click')
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    const infoTab = wrapper.findAll('button').find(b => b.text().trim() === 'Info')!
+    await infoTab.trigger('click')
+    await findDeprTab(wrapper).trigger('click')
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    expect(callCount).toBe(1)
+  })
+
+  it('shows a load-error state with retry on a schedule fetch failure', async () => {
+    let callCount = 0
+    setHandler((path: string) => {
+      if (path.match(/\/assets\/[^/]+\/depreciation$/)) {
+        callCount++
+        if (callCount === 1) throw Object.assign(new Error('Server Error'), { statusCode: 500 })
+        return DEPR_RESPONSE_FULL
+      }
+      return defaultHandler(FULL_ASSET)(path)
+    })
+    const wrapper = await mountTag('JKT01-ELK-2026-00001')
+    await findDeprTab(wrapper).trigger('click')
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[data-testid="depr-tab-error"]').exists()).toBe(true)
+
+    const retryBtn = wrapper.findAll('button').find(b => b.text().includes('Coba lagi'))
+    expect(retryBtn).toBeDefined()
+    await retryBtn!.trigger('click')
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[data-testid="depr-tab-row"]').exists()).toBe(true)
   })
 })
 

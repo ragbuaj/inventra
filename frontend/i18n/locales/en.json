@@ -420,8 +420,7 @@
       "bookValueCommercial": "Book Value",
       "bookValueFiscal": "Book Value",
       "psakChip": "PSAK",
-      "fiscalChip": "FISCAL",
-      "fiscalTooltip": "Fiscal book value awaits the depreciation module."
+      "fiscalChip": "FISCAL"
     },
     "gainLoss": {
       "title": "Disposal Gain / Loss",
@@ -439,7 +438,7 @@
       "title": "Required Approval Chain",
       "ref": "Authorization Limit §2.4",
       "sensitiveNote": "Sensitive action — asset disposal alters the fixed-asset records and requires tiered approval based on book value.",
-      "basedOnBookValue": "based on acquisition value: {value}",
+      "basedOnBookValue": "based on book value: {value}",
       "notConfigured": "Approval band not configured.",
       "acquisitionHidden": "Acquisition value hidden for your role.",
       "role": {
@@ -609,7 +608,14 @@
     "assetDetail": {
       "title": "Depreciation History",
       "masked": "Depreciation values are masked for your role.",
-      "empty": "Never computed"
+      "empty": "Never computed",
+      "column": {
+        "period": "Period",
+        "opening": "Opening",
+        "expense": "Expense",
+        "closing": "Closing",
+        "method": "Method"
+      }
     }
   },
   "maintenance": {

@@ -420,8 +420,7 @@
       "bookValueCommercial": "Nilai Buku",
       "bookValueFiscal": "Nilai Buku",
       "psakChip": "PSAK",
-      "fiscalChip": "FISKAL",
-      "fiscalTooltip": "Nilai buku fiskal menunggu modul depresiasi."
+      "fiscalChip": "FISKAL"
     },
     "gainLoss": {
       "title": "Laba / Rugi Pelepasan",
@@ -439,7 +438,7 @@
       "title": "Jenjang Persetujuan Diperlukan",
       "ref": "Limit Otorisasi §2.4",
       "sensitiveNote": "Tindakan sensitif — penghapusan aset mengubah catatan aktiva tetap dan memerlukan approval berjenjang sesuai nilai buku.",
-      "basedOnBookValue": "berdasar nilai perolehan: {value}",
+      "basedOnBookValue": "berdasar nilai buku: {value}",
       "notConfigured": "Band approval belum dikonfigurasi.",
       "acquisitionHidden": "Nilai perolehan tersembunyi untuk peran Anda.",
       "role": {
@@ -609,7 +608,14 @@
     "assetDetail": {
       "title": "Riwayat Penyusutan",
       "masked": "Nilai penyusutan disamarkan untuk peran Anda.",
-      "empty": "Belum pernah dihitung"
+      "empty": "Belum pernah dihitung",
+      "column": {
+        "period": "Periode",
+        "opening": "Nilai Awal",
+        "expense": "Beban",
+        "closing": "Nilai Akhir",
+        "method": "Metode"
+      }
     }
   },
   "maintenance": {

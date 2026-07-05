@@ -6,6 +6,7 @@ import type { Asset, Office, Paginated } from '~/types'
 import type { Disposal } from '~/composables/api/useDisposals'
 import type { ApprovalRequestRow, ApprovalRequestDetail, ApprovalStep } from '~/composables/api/useApproval'
 import type { PreviewStep } from '~/composables/api/useApprovalPreview'
+import type { AssetDepreciationResponse } from '~/composables/api/useDepreciation'
 import { useAuthStore } from '~/stores/auth'
 
 // ---------------------------------------------------------------------------
@@ -93,6 +94,14 @@ vi.mock('~/composables/api/useApprovalPreview', () => ({
   useApprovalPreview: () => ({ preview: previewMock })
 }))
 
+const depAssetScheduleMock = vi.fn()
+vi.mock('~/composables/api/useDepreciation', () => ({
+  useDepreciation: () => ({
+    periods: vi.fn(), compute: vi.fn(), close: vi.fn(), schedule: vi.fn(), journal: vi.fn(), exportJournal: vi.fn(),
+    assetSchedule: depAssetScheduleMock, recordImpairment: vi.fn()
+  })
+}))
+
 const attachmentsUploadMock = vi.fn()
 const attachmentsRemoveMock = vi.fn()
 vi.mock('~/composables/api/useAssetAttachments', () => ({
@@ -157,6 +166,10 @@ function previewStep(over: Partial<PreviewStep> = {}): PreviewStep {
   return { step_order: 2, required_level: 'wilayah', ...over }
 }
 
+function scheduleResp(over: Partial<AssetDepreciationResponse> = {}): AssetDepreciationResponse {
+  return { masked: false, computed_book_value: null, entries: [], ...over }
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   officesListMock.mockResolvedValue(page(OFFICES))
@@ -164,6 +177,7 @@ beforeEach(() => {
   disposalsListMock.mockResolvedValue(page([disposal()]))
   approvalListMock.mockResolvedValue(page([reqRow()]))
   previewMock.mockResolvedValue([previewStep({ step_order: 2, required_level: 'wilayah' })])
+  depAssetScheduleMock.mockResolvedValue(scheduleResp())
   disposalsSubmitMock.mockResolvedValue({ request_id: 'req9', status: 'pending' })
   disposalsAttachDocumentMock.mockResolvedValue({ document_id: 'doc1', disposal_id: 'd1' })
   attachmentsUploadMock.mockResolvedValue({ id: 'att1', asset_id: 'a1', kind: 'evidence', original_filename: 'foto.jpg', size_bytes: 1024, mime_type: 'image/jpeg', has_thumbnail: false, created_at: '2026-07-04T00:00:00Z' })
@@ -190,10 +204,32 @@ describe('pages/disposals — Ringkasan Valuasi', () => {
     expect(w.find('[data-testid="disposal-valuation-book-commercial"]').text()).toContain('•••')
   })
 
-  it('always shows "—" for the fiscal book value chip regardless of masking', async () => {
+  it('shows "—" for the fiscal book value chip when the schedule has no fiscal entries yet', async () => {
     const w = await mountAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    expect(depAssetScheduleMock).toHaveBeenCalledWith('a1')
     expect(w.find('[data-testid="disposal-valuation-book-fiscal"]').text()).toBe('—')
+  })
+
+  it('renders the real fiscal book value from the stubbed depreciation schedule (closing of the last fiscal entry)', async () => {
+    depAssetScheduleMock.mockResolvedValue(scheduleResp({
+      computed_book_value: '650000',
+      entries: [
+        { basis: 'fiscal', period: '2026-04', opening: '750000', amount: '35000', closing: '715000', method: 'declining_balance' },
+        { basis: 'fiscal', period: '2026-05', opening: '715000', amount: '35000', closing: '680000', method: 'declining_balance' },
+        { basis: 'commercial', period: '2026-05', opening: '700000', amount: '20000', closing: '680000', method: 'straight_line' }
+      ]
+    }))
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    expect(w.find('[data-testid="disposal-valuation-book-fiscal"]').text()).toContain('680.000')
+  })
+
+  it('prefers the schedule\'s computed_book_value over the asset\'s stale book_value column for the commercial cell', async () => {
+    depAssetScheduleMock.mockResolvedValue(scheduleResp({ computed_book_value: '555000' }))
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    expect(w.find('[data-testid="disposal-valuation-book-commercial"]').text()).toContain('555.000')
   })
 })
 
@@ -244,21 +280,43 @@ describe('pages/disposals — Laba/Rugi card', () => {
     expect(w.text()).toContain('Nilai buku tersembunyi untuk peran Anda.')
   })
 
-  it('always shows "—" for the fiscal gain/loss row', async () => {
+  it('shows "—" for the fiscal gain/loss row when no fiscal entries exist yet', async () => {
     const w = await mountAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     await setVmRef(w, 'proceedsRaw', '1500000')
     expect(w.text()).toContain('Laba/rugi fiskal')
+    expect(w.find('[data-testid="disposal-gainloss-fiscal-value"]').text()).toBe('—')
+  })
+
+  it('computes the real fiscal gain/loss as proceeds minus the fiscal book value', async () => {
+    depAssetScheduleMock.mockResolvedValue(scheduleResp({
+      entries: [{ basis: 'fiscal', period: '2026-05', opening: '750000', amount: '70000', closing: '680000', method: 'declining_balance' }]
+    }))
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    await setVmRef(w, 'proceedsRaw', '1500000')
+    expect(w.find('[data-testid="disposal-gainloss-fiscal-value"]').text()).toContain('820.000')
   })
 })
 
 describe('pages/disposals — Jenjang Persetujuan (chain) card', () => {
-  it('calls the preview API with asset_disposal + purchase_cost and renders maker + step rows', async () => {
+  it('falls back to the acquisition cost for the preview amount when no computed book value exists yet', async () => {
     const w = await mountAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     expect(previewMock).toHaveBeenCalledWith('asset_disposal', '6800000')
+    expect(w.text()).toContain('berdasar nilai buku')
+    expect(w.text()).toContain('6.800.000')
     expect(w.find('[data-testid="disposal-chain-card"]').text()).toContain('Dewi Lestari')
     expect(w.find('[data-testid="disposal-chain-steps"]').text()).toContain('Kanwil')
+  })
+
+  it('mirrors the server\'s basis switch: previews with computed_book_value once the depreciation schedule resolves it', async () => {
+    depAssetScheduleMock.mockResolvedValue(scheduleResp({ computed_book_value: '4200000' }))
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    expect(previewMock).toHaveBeenCalledWith('asset_disposal', '4200000')
+    expect(w.text()).toContain('berdasar nilai buku')
+    expect(w.text()).toContain('4.200.000')
   })
 
   it('falls back to "band belum dikonfigurasi" on a 422 from the preview endpoint', async () => {
@@ -298,7 +356,7 @@ describe('pages/disposals — Ajukan Penghapusan form', () => {
     expect(submit().attributes('disabled')).toBeUndefined()
   })
 
-  it('submits the exact body, including the read-only book_value_at_disposal snapshot', async () => {
+  it('submits the exact body — book_value_at_disposal is server-computed, never sent by the client', async () => {
     const w = await mountAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     await setVmRef(w, 'proceedsRaw', '1500000')
@@ -313,13 +371,14 @@ describe('pages/disposals — Ajukan Penghapusan form', () => {
       method: 'sale',
       disposal_date: '2026-07-04',
       proceeds: '1500000',
-      book_value_at_disposal: '680000',
       bast_no: 'BAP/2026/07/200',
       reason: null
     })
+    const body = disposalsSubmitMock.mock.calls[0]![0] as Record<string, unknown>
+    expect(body).not.toHaveProperty('book_value_at_disposal')
   })
 
-  it('sends book_value_at_disposal as null when the asset\'s book_value is masked/absent', async () => {
+  it('submits with proceeds/bast_no null when omitted, still without book_value_at_disposal', async () => {
     const w = await mountAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_MASKED)
     await w.find('[data-testid="disposal-date"]').setValue('2026-07-04')
@@ -327,7 +386,9 @@ describe('pages/disposals — Ajukan Penghapusan form', () => {
     await w.find('[data-testid="disposal-submit"]').trigger('click')
     await flushPromises()
 
-    expect(disposalsSubmitMock).toHaveBeenCalledWith(expect.objectContaining({ book_value_at_disposal: null }))
+    expect(disposalsSubmitMock).toHaveBeenCalledWith(expect.objectContaining({ proceeds: null, bast_no: null }))
+    const body = disposalsSubmitMock.mock.calls[0]![0] as Record<string, unknown>
+    expect(body).not.toHaveProperty('book_value_at_disposal')
   })
 
   it('switches to the post-submit view showing the summary card on success', async () => {
