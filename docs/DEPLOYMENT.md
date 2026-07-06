@@ -429,7 +429,6 @@ blackbox) + Alertmanager (alert → Telegram) + Loki+Promtail (log) + Grafana
 cd ~/inventra
 cp ops/monitoring/alertmanager/alertmanager.example.yml ops/monitoring/alertmanager/alertmanager.yml   # isi bot_token + chat_id
 cp ops/monitoring/grafana.env.example ops/monitoring/grafana.env                                        # isi password admin + GF_SERVER_ROOT_URL
-sed -i "s#\${DOMAIN}#inventra.ragilbuaj.web.id#g" ops/monitoring/prometheus/prometheus.yml              # isi domain nyata untuk blackbox
 docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml --env-file .env.prod up -d
 ```
 
@@ -437,9 +436,10 @@ docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml --env
 - Hanya Grafana yang publik; Prometheus/Alertmanager/exporters internal-only.
 - Alert dikirim ke Telegram via Alertmanager. Validasi config lokal: `ops/monitoring/verify.sh`.
 - Via Ansible: role `monitoring` (`ops/ansible/roles/monitoring/`) menjalankan langkah `docker compose up`
-  di atas secara idempotent sebagai bagian dari `site.yml` — siapkan `alertmanager.yml`/`grafana.env`/
-  `prometheus.yml` (sed domain) di server **sebelum** menjalankan playbook, karena role tidak merender
-  rahasia overlay ini (berbeda dari `.env.prod`, yang di-render role `app` dari Vault).
+  di atas secara idempotent sebagai bagian dari `site.yml` — siapkan `alertmanager.yml`/`grafana.env`
+  di server **sebelum** menjalankan playbook, karena role tidak merender rahasia overlay ini (berbeda
+  dari `.env.prod`, yang di-render role `app` dari Vault). Target blackbox di `prometheus.yml` sudah
+  di-hardcode ke domain publik (lihat komentar di file) — tidak perlu sed di deploy manapun.
 
 ---
 

@@ -25,3 +25,10 @@ dikecualikan (YAGNI).
 - (+) Metrics/logs/alert standar industri, reproducible, di dalam stack.
 - (−) Menambah ~0.6–0.9 GB RAM; dibatasi mem_limit + retensi pendek.
 - (−) Firing alert end-to-end & scrape nyata butuh VPS (langkah operator).
+- (−) Servis app stack (`docker-compose.prod.yml`: Postgres, Nuxt SSR, MinIO,
+  backend) sengaja **tidak** diberi `mem_limit`, sedangkan hanya tier monitoring
+  yang dibatasi — di bawah tekanan memori, container monitoring adalah tier yang
+  memang dikorbankan (OOM-sacrifice) lebih dulu, bukan app stack. Jaring pengaman
+  adalah 2 GB swap yang sudah disiapkan role `base` (Phase 2). Operator perlu
+  memantau `docker stats` dan menurunkan `mem_limit`/retensi monitoring bila app
+  stack justru yang kekurangan RAM.

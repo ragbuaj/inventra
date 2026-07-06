@@ -41,7 +41,8 @@ scrape_configs:
     params:
       module: [http_2xx]
     static_configs:
-      - targets: ["https://${DOMAIN}/health"]
+      # Ganti domain ini bila deploy ke domain lain (Prometheus tak meng-expand env).
+      - targets: ["https://inventra.ragilbuaj.web.id/health"]
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
