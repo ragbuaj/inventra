@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 
 	apidocs "github.com/ragbuaj/inventra/api"
@@ -70,7 +71,11 @@ func NewRouter(d Deps) *gin.Engine {
 		middleware.RequestLogger(d.Log),
 		middleware.Recovery(d.Log),
 		middleware.CORS(d.Cfg.FrontendURL),
+		middleware.Metrics(),
 	)
+
+	// Not routed publicly by Caddy (only /api/* and /health are) — internal scrape only.
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// Liveness — process is up; no external dependencies.
 	r.GET("/health", func(c *gin.Context) {
