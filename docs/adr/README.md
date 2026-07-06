@@ -28,6 +28,7 @@ domain genuinely needs custom, and document the trade-off either way.
 | [0008](0008-backend-masterdata-module-convention.md) | Backend masterdata: 4-file split (dto/service/handler/routes) per resource | Accepted | backlog #3 |
 | [0009](0009-third-party-signin.md) | Third-party sign-in: `oauth2` + `go-oidc` (not goth) | Accepted | backlog #4 |
 | [0010](0010-background-job-execution.md) | Background job execution: staged adoption (contract-first, pluggable trigger) | Accepted | depreciation module |
+| [0011](0011-observability.md) | Observability: self-hosted Prometheus/Grafana/Loki + Alertmanager→Telegram | Accepted | ops hardening — Phase 3 |
 | [0012](0012-waf.md) | WAF: Coraza + OWASP CRS as a Caddy module (DetectionOnly → Blocking rollout) | Accepted | ops hardening — Phase 1 |
 | [0013](0013-iac.md) | Infrastructure as Code: Ansible (`base`+`docker`+`app` roles, containerized tooling, Vault secrets) | Accepted | ops hardening — Phase 2 |
 

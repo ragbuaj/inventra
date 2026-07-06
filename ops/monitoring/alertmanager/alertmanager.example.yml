@@ -1,0 +1,16 @@
+# Salin ke alertmanager.yml (di-gitignore), isi bot_token + chat_id nyata.
+# Buat bot via @BotFather; chat_id via getUpdates atau @userinfobot.
+route:
+  receiver: telegram
+  group_by: ["alertname"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 3h
+
+receivers:
+  - name: telegram
+    telegram_configs:
+      - bot_token: "REPLACE_WITH_BOT_TOKEN"
+        chat_id: -1 # REPLACE_WITH_CHAT_ID (0 fails amtool validation; Telegram chat_ids can be negative for groups)
+        parse_mode: HTML
+        send_resolved: true

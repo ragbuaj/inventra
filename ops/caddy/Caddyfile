@@ -31,3 +31,10 @@
 		reverse_proxy frontend:3000
 	}
 }
+
+# Subdomain Grafana — situs terpisah, sengaja TANPA coraza_waf (Grafana
+# punya auth sendiri; WAF generik OWASP CRS sering false-positive di UI Grafana).
+monitoring.{$DOMAIN} {
+	encode gzip zstd
+	reverse_proxy grafana:3000
+}

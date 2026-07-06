@@ -10,6 +10,10 @@ ops/ansible/group_vars/all/vault.yml
 ops/ansible/collections/
 ops/ansible/.ansible/
 
+# Monitoring — jangan commit rahasia nyata (repo publik)
+ops/monitoring/alertmanager/alertmanager.yml
+ops/monitoring/grafana.env
+
 # Go
 backend/bin/
 backend/tmp/

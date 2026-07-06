@@ -1,0 +1,51 @@
+groups:
+  - name: inventra
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations:
+          summary: "Target {{ $labels.job }} ({{ $labels.instance }}) down"
+
+      - alert: HostHighCPU
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "CPU > 90% for 10m on {{ $labels.instance }}"
+
+      - alert: HostHighMemory
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 90
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Memory > 90% for 10m on {{ $labels.instance }}"
+
+      - alert: HostDiskLow
+        expr: (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes) * 100 > 85
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Disk > 85% on {{ $labels.instance }} ({{ $labels.mountpoint }})"
+
+      - alert: BackendHigh5xx
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(http_requests_total[5m])), 0.001) > 0.05
+        for: 5m
+        labels: {severity: critical}
+        annotations:
+          summary: "Backend 5xx rate > 5% for 5m"
+
+      - alert: BackendHighLatency
+        expr: histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket[5m]))) > 2
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Backend p99 latency > 2s for 10m"
+
+      - alert: TLSCertExpiringSoon
+        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 14
+        for: 1h
+        labels: {severity: warning}
+        annotations:
+          summary: "TLS cert for {{ $labels.instance }} expires in < 14 days"

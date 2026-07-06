@@ -329,8 +329,16 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     (`base` + `docker` + `app` roles, idempotent, containerized tooling — host needs only Docker),
 >     secrets via Ansible Vault (`*.example` committed, real `inventory.ini`/`vault.yml` gitignored);
 >     ADR-0013 + `docs/DEPLOYMENT.md` §15 IaC sub-section. See *Foundation & DevOps* above.
-> 32. **Next session — pick the next real step.** Ops hardening **Phase 3: Monitoring/observability**
->     (metrics/logs/alerting per the ops-hardening design doc — ADR-0011 is reserved for this). Other
+> 32. ~~**Ops hardening Phase 3 — Monitoring/observability**~~ ✅ **DONE (2026-07-06).** Self-hosted
+>     stack as a toggleable compose overlay (`docker-compose.monitoring.yml`): backend RED metrics
+>     (`/metrics`, internal-only), Prometheus (15d retention + `mem_limit`) + exporters (node/cAdvisor/
+>     postgres/redis/blackbox), Alertmanager → Telegram, Loki+Promtail (log), Grafana (datasource+
+>     dashboard as-code) — only Grafana public, via its own subdomain, no WAF/no login bypass; secrets
+>     via `*.example` + gitignore. Ansible `monitoring` role (`ops/ansible/roles/monitoring/`) brings the
+>     overlay up idempotently, appended after `app` in `site.yml` — completes the ops-hardening trilogy.
+>     ADR-0011 + `docs/DEPLOYMENT.md` §16. **Ops hardening (WAF → IaC → Monitoring) is now fully
+>     complete** — see *Foundation & DevOps* below.
+> 33. **Next session — pick the next real step.** With ops hardening (WAF/IaC/Monitoring) complete,
 >     remaining candidates (see *Remaining* below): **(b)** Stock opname backend module
 >     (found/not_found/damaged/misplaced + report); **(e)** Assignment (check-out/in) and/or
 >     Maintenance; **(f)** global search backend (`/search`) + drop the last `mock/*` files;
@@ -361,6 +369,17 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       committed, real `inventory.ini`/`vault.yml` gitignored); `ops/ansible/lint.sh`
       (`--syntax-check` + `ansible-lint`) green in CI-less dev. ADR-0013 +
       `docs/DEPLOYMENT.md` §15 IaC sub-section. **Done (2026-07-06).**
+- [x] **Ops hardening Phase 3 — Monitoring/observability** ✅ self-hosted stack as
+      a toggleable compose overlay (`docker-compose.monitoring.yml`): backend RED
+      metrics (`/metrics`, internal-only), Prometheus (15d retention + `mem_limit`)
+      + exporters (node/cAdvisor/postgres/redis/blackbox), Alertmanager → Telegram,
+      Loki+Promtail (log), Grafana (datasource+dashboard as-code) — only Grafana
+      public (own subdomain); secrets via `*.example` + gitignore
+      (`alertmanager.yml`, `grafana.env`). Ansible `monitoring` role
+      (`ops/ansible/roles/monitoring/`) brings the overlay up idempotently via
+      `community.docker.docker_compose_v2`, appended after `app` in `site.yml`.
+      ADR-0011 + `docs/DEPLOYMENT.md` §16. **Done (2026-07-06). Ops-hardening
+      trilogy (WAF → IaC → Monitoring) now COMPLETE.**
 
 ### Database (15 migrations · 12 schemas)
 - [x] enums + `set_updated_at` + per-module schemas (`shared/identity/audit/masterdata/asset/import/approval/assignment/maintenance/depreciation` + v1.1 `transfer/stockopname/disposal`)

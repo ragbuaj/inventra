@@ -410,6 +410,37 @@ docker run --rm -it -v "$PWD:/work" -w /work -v ~/.ssh:/root/.ssh:ro \
 `inventory.ini` & `vault.yml` di-gitignore (rahasia). WAF ikut ter-provision
 karena role `app` menjalankan `docker compose up --build` (image Caddy+Coraza).
 
+Role `monitoring` (langkah §16 di bawah) menyusul role `app` di `site.yml` dan
+menaikkan overlay observability dengan cara yang sama (`docker_compose_v2`,
+`state: present`) — file rahasia overlay (`alertmanager.yml`, `grafana.env`)
+harus sudah disiapkan di server sebelum menjalankan playbook (lihat §16).
+
+---
+
+## 16. Monitoring & Observability
+
+Stack observability adalah overlay toggleable (`docker-compose.monitoring.yml`):
+Prometheus (metrics, retensi 15d) + exporters (node, cAdvisor, postgres, redis,
+blackbox) + Alertmanager (alert → Telegram) + Loki+Promtail (log) + Grafana
+(dashboard). Backend sendiri sudah terinstrumentasi RED metrics di `/metrics`
+(internal-only, tidak diekspos publik).
+
+```bash
+cd ~/inventra
+cp ops/monitoring/alertmanager/alertmanager.example.yml ops/monitoring/alertmanager/alertmanager.yml   # isi bot_token + chat_id
+cp ops/monitoring/grafana.env.example ops/monitoring/grafana.env                                        # isi password admin + GF_SERVER_ROOT_URL
+docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml --env-file .env.prod up -d
+```
+
+- Tambahkan DNS A record `monitoring.<domain>` → IP VPS; Grafana ada di `https://monitoring.<domain>` (login admin dari grafana.env).
+- Hanya Grafana yang publik; Prometheus/Alertmanager/exporters internal-only.
+- Alert dikirim ke Telegram via Alertmanager. Validasi config lokal: `ops/monitoring/verify.sh`.
+- Via Ansible: role `monitoring` (`ops/ansible/roles/monitoring/`) menjalankan langkah `docker compose up`
+  di atas secara idempotent sebagai bagian dari `site.yml` — siapkan `alertmanager.yml`/`grafana.env`
+  di server **sebelum** menjalankan playbook, karena role tidak merender rahasia overlay ini (berbeda
+  dari `.env.prod`, yang di-render role `app` dari Vault). Target blackbox di `prometheus.yml` sudah
+  di-hardcode ke domain publik (lihat komentar di file) — tidak perlu sed di deploy manapun.
+
 ---
 
 ## Referensi perintah cepat

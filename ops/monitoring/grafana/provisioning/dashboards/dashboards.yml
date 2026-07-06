@@ -1,0 +1,7 @@
+apiVersion: 1
+providers:
+  - name: inventra
+    folder: Inventra
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards
