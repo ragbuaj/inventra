@@ -14,8 +14,8 @@ docker run --rm --entrypoint promtool -v "$PWD/ops/monitoring/prometheus:/p" pro
 
 if compgen -G "ops/monitoring/prometheus/rules/*.yml" >/dev/null; then
   echo "== promtool check rules =="
-  docker run --rm --entrypoint promtool -v "$PWD/ops/monitoring/prometheus:/p" prom/prometheus:v3.1.0 \
-    check rules /p/rules/*.yml
+  docker run --rm --entrypoint sh -v "$PWD/ops/monitoring/prometheus:/p" prom/prometheus:v3.1.0 \
+    -c 'promtool check rules /p/rules/*.yml'
 fi
 
 if [ -f ops/monitoring/alertmanager/alertmanager.yml ]; then

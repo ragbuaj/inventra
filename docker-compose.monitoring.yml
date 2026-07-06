@@ -66,8 +66,19 @@ services:
       - ./ops/monitoring/blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
     mem_limit: 32m
 
+  alertmanager:
+    image: prom/alertmanager:v0.28.0
+    container_name: inventra-alertmanager
+    restart: unless-stopped
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml"]
+    volumes:
+      - ./ops/monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    mem_limit: 64m
+
 volumes:
   prometheus-data:
+  alertmanager-data:
 
 networks:
   default:
