@@ -43,6 +43,29 @@ services:
       - /dev/kmsg
     mem_limit: 200m
 
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.16.0
+    container_name: inventra-postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://inventra:${DB_PASSWORD}@postgres:5432/inventra?sslmode=disable"
+    mem_limit: 64m
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.66.0
+    container_name: inventra-redis-exporter
+    restart: unless-stopped
+    command: ["--redis.addr=redis://redis:6379"]
+    mem_limit: 32m
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.25.0
+    container_name: inventra-blackbox-exporter
+    restart: unless-stopped
+    volumes:
+      - ./ops/monitoring/blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    mem_limit: 32m
+
 volumes:
   prometheus-data:
 
