@@ -1,0 +1,8 @@
+---
+- name: Provision Inventra production host
+  hosts: inventra
+  become: true
+  roles:
+    - base
+    - docker
+    - app

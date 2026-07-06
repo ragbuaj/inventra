@@ -1,0 +1,35 @@
+---
+- name: Checkout application repo
+  become: true
+  become_user: "{{ deploy_user }}"
+  ansible.builtin.git:
+    repo: "{{ repo_url }}"
+    dest: "{{ app_dir }}"
+    version: "{{ repo_version }}"
+    update: true
+
+- name: Render .env.prod from Vault
+  become: true
+  become_user: "{{ deploy_user }}"
+  ansible.builtin.template:
+    src: env.prod.j2
+    dest: "{{ app_dir }}/.env.prod"
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: "0600"
+
+- name: Bring up production stack
+  # Runs as root (not deploy_user): the docker role just added deploy to the
+  # docker group in this same play, but group membership only takes effect on
+  # a new login session — deploy's context here may still lack access to
+  # /var/run/docker.sock, so the first-ever apply could fail with permission
+  # denied. Root always has docker socket access, so run as root instead.
+  become: true
+  community.docker.docker_compose_v2:
+    project_src: "{{ app_dir }}"
+    files:
+      - docker-compose.prod.yml
+    env_files:
+      - "{{ app_dir }}/.env.prod"
+    state: present
+    build: policy

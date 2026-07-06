@@ -1,0 +1,11 @@
+---
+# CONTOH. Salin ke vault.yml (di-gitignore), isi nilai nyata, lalu enkripsi:
+#   docker run --rm -it -v "$PWD:/work" -w /work inventra-ansible-tools \
+#     ansible-vault encrypt group_vars/all/vault.yml
+vault_domain: "inventra.example.com"
+vault_acme_email: "you@example.com"
+vault_db_password: "CHANGE_ME"
+vault_jwt_secret: "CHANGE_ME"
+vault_minio_user: "inventra-minio"
+vault_minio_password: "CHANGE_ME"
+vault_deploy_pubkey: "ssh-ed25519 AAAA... deploy@laptop"

@@ -29,6 +29,7 @@ domain genuinely needs custom, and document the trade-off either way.
 | [0009](0009-third-party-signin.md) | Third-party sign-in: `oauth2` + `go-oidc` (not goth) | Accepted | backlog #4 |
 | [0010](0010-background-job-execution.md) | Background job execution: staged adoption (contract-first, pluggable trigger) | Accepted | depreciation module |
 | [0012](0012-waf.md) | WAF: Coraza + OWASP CRS as a Caddy module (DetectionOnly → Blocking rollout) | Accepted | ops hardening — Phase 1 |
+| [0013](0013-iac.md) | Infrastructure as Code: Ansible (`base`+`docker`+`app` roles, containerized tooling, Vault secrets) | Accepted | ops hardening — Phase 2 |
 
 > ADRs are **decisions**, not implementation. Code lands in follow-up work; each ADR notes the libraries
 > and the integration points. ADR-0007's refactor (folder regroup + field-key rename) is tracked as
