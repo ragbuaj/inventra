@@ -1,0 +1,52 @@
+# Overlay observability (toggleable). Jalankan bersama stack prod:
+#   docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml --env-file .env.prod up -d
+# Join jaringan inventra-net milik stack app (harus sudah ada).
+services:
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: inventra-prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+      - "--storage.tsdb.retention.size=1GB"
+    volumes:
+      - ./ops/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./ops/monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus-data:/prometheus
+    mem_limit: 400m
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: inventra-node-exporter
+    restart: unless-stopped
+    command:
+      - "--path.rootfs=/host"
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    mem_limit: 64m
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: inventra-cadvisor
+    restart: unless-stopped
+    command:
+      - "--housekeeping_interval=30s"
+      - "--docker_only=true"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    devices:
+      - /dev/kmsg
+    mem_limit: 200m
+
+volumes:
+  prometheus-data:
+
+networks:
+  default:
+    name: inventra-net
+    external: true
