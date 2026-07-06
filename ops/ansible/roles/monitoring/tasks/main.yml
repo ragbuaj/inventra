@@ -1,0 +1,11 @@
+---
+- name: Bring up monitoring overlay
+  become: true
+  community.docker.docker_compose_v2:
+    project_src: "{{ app_dir }}"
+    files:
+      - docker-compose.prod.yml
+      - docker-compose.monitoring.yml
+    env_files:
+      - "{{ app_dir }}/.env.prod"
+    state: present
