@@ -68,10 +68,10 @@ func NewRouter(d Deps) *gin.Engine {
 
 	r.Use(
 		middleware.RequestID(),
+		middleware.Metrics(),
 		middleware.RequestLogger(d.Log),
 		middleware.Recovery(d.Log),
 		middleware.CORS(d.Cfg.FrontendURL),
-		middleware.Metrics(),
 	)
 
 	// Not routed publicly by Caddy (only /api/* and /health are) — internal scrape only.
