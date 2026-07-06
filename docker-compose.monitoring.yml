@@ -76,9 +76,32 @@ services:
       - alertmanager-data:/alertmanager
     mem_limit: 64m
 
+  loki:
+    image: grafana/loki:3.3.2
+    container_name: inventra-loki
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/loki.yml"]
+    volumes:
+      - ./ops/monitoring/loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki-data:/loki
+    mem_limit: 200m
+
+  promtail:
+    image: grafana/promtail:3.3.2
+    container_name: inventra-promtail
+    restart: unless-stopped
+    command: ["-config.file=/etc/promtail/promtail.yml"]
+    volumes:
+      - ./ops/monitoring/promtail/promtail.yml:/etc/promtail/promtail.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+    mem_limit: 128m
+
 volumes:
   prometheus-data:
   alertmanager-data:
+  loki-data:
 
 networks:
   default:
