@@ -34,6 +34,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/oauth"
 	"github.com/ragbuaj/inventra/internal/ratelimit"
 	"github.com/ragbuaj/inventra/internal/storage"
+	"github.com/ragbuaj/inventra/internal/stockopname"
 	"github.com/ragbuaj/inventra/internal/transfer"
 	"github.com/ragbuaj/inventra/internal/user"
 )
@@ -191,6 +192,14 @@ func NewRouter(d Deps) *gin.Engine {
 			requireAuth,
 			middleware.RequirePermission(permSvc, "disposal.manage"),
 			middleware.RequirePermission(permSvc, "disposal.view"),
+		)
+
+		stockopnameSvc := stockopname.NewService(queries, d.Pool, disposalSvc, transferSvc)
+		stockopnameHandler := stockopname.NewHandler(stockopnameSvc, scopeSvc, queries, auditSvc)
+		stockopname.RegisterRoutes(api, stockopnameHandler,
+			requireAuth,
+			middleware.RequirePermission(permSvc, "stockopname.manage"),
+			middleware.RequirePermission(permSvc, "stockopname.view"),
 		)
 
 		depreciationHandler := depreciation.NewHandler(depreciationSvc, fieldSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)

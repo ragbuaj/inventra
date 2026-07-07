@@ -94,6 +94,24 @@ tags:
       caller's field permissions.
   - name: Audit
     description: Read-only audit trail (requires the `audit.view` permission)
+  - name: Stock Opname
+    description: |
+      Physical stock-take (stock opname): a session snapshots every in-scope,
+      non-disposed asset of an office, then drives it through
+      `open` → `counting` (start) → `reconciling` (reconcile) → `closed` (close).
+      While `counting`, items are recorded via barcode `scan` and/or a manual
+      `PATCH .../items/{itemId}` result (`found`, `not_found`, `damaged`,
+      `misplaced`, `pending`). A variance item (`not_found` or `misplaced`) can
+      be routed to a follow-up approval request — `not_found` creates an
+      `asset_disposal` (write_off) request, `misplaced` creates an
+      `asset_transfer` request to the supplied destination office/room — via
+      `POST .../items/{itemId}/follow-up`, reusing the disposal/transfer
+      modules' own submit logic and their scope/state guards. The report
+      endpoint renders the session as a downloadable Berita Acara (PDF or
+      xlsx). Reads require `stockopname.view`; writes (create, start, scan,
+      set result, reconcile, follow-up, close) require `stockopname.manage`.
+      Sessions and items are scoped to the caller's offices (data-scope module
+      `stockopname`).
 
 paths:
   /health:
@@ -2823,6 +2841,378 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
 
+  /api/v1/stock-opname/sessions:
+    get:
+      tags: [Stock Opname]
+      operationId: listStockOpnameSessions
+      summary: List stock-opname sessions (data-scoped)
+      description: |
+        Returns sessions within the caller's **data scope** (module `stockopname`),
+        newest first. Requires the `stockopname.view` permission.
+      security:
+        - bearerJWT: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, counting, reconciling, closed]
+          description: Filter by session status.
+        - { name: limit, in: query, schema: { type: integer, default: 20, minimum: 1, maximum: 100 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0, minimum: 0 } }
+      responses:
+        "200":
+          description: A page of sessions in scope
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StockOpnameSessionList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Stock Opname]
+      operationId: createStockOpnameSession
+      summary: Open a new stock-opname session
+      description: |
+        Opens a session with status `open` and atomically snapshots every
+        in-scope, non-disposed asset of `office_id` into its item list.
+        Requires the `stockopname.manage` permission; `office_id` must be
+        within the caller's data scope.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StockOpnameSessionCreateRequest" }
+      responses:
+        "201":
+          description: Created session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StockOpnameSession" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422":
+          description: Invalid reference was supplied (e.g. unknown office_id)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/stock-opname/sessions/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Stock Opname]
+      operationId: getStockOpnameSession
+      summary: Get a stock-opname session by id, with KPI counters
+      description: |
+        Returns the session enriched with resolved office/started-by/closed-by
+        display names, plus item-result KPI counters (`total`, `found`,
+        `pending`, `variance`). Requires the `stockopname.view` permission;
+        the session must be within the caller's data scope.
+      security:
+        - bearerJWT: []
+      responses:
+        "200": { description: The session, content: { application/json: { schema: { $ref: "#/components/schemas/StockOpnameSession" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { description: Not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/v1/stock-opname/sessions/{id}/items:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Stock Opname]
+      operationId: listStockOpnameItems
+      summary: List a session's items
+      description: |
+        Returns the session's items (enriched with asset/office/room/floor/
+        counted-by display names), ordered by asset name. Requires the
+        `stockopname.view` permission; the session must be within the
+        caller's data scope.
+      security:
+        - bearerJWT: []
+      parameters:
+        - name: result
+          in: query
+          schema:
+            type: string
+            enum: [found, not_found, damaged, misplaced, pending]
+          description: Filter by counted result.
+      responses:
+        "200":
+          description: The session's items (unpaginated; limit/offset reflect the full result count)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StockOpnameItemList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { description: Session not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/v1/stock-opname/sessions/{id}/start:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Stock Opname]
+      operationId: startStockOpnameSession
+      summary: Start counting (open → counting)
+      description: |
+        Transitions the session from `open` to `counting`. Requires the
+        `stockopname.manage` permission; the session must be within the
+        caller's data scope.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Updated session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StockOpnameSession" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Session is not `open`, so counting cannot start
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/stock-opname/sessions/{id}/scan:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Stock Opname]
+      operationId: scanStockOpnameAsset
+      summary: Resolve a scanned barcode/asset tag against a counting session
+      description: |
+        Looks up `asset_tag` against the session's items: if it is already in
+        the snapshot, returns the existing item unchanged; otherwise, for an
+        in-scope asset not in the snapshot, inserts and returns a new item
+        with `expected: false` (an "unexpected" find). Only allowed while the
+        session is `counting`. Requires the `stockopname.manage` permission;
+        the session must be within the caller's data scope.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StockOpnameScanRequest" }
+      responses:
+        "200":
+          description: The resolved item (existing or newly inserted)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StockOpnameScanResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Session not found, or no asset exists with this asset_tag
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Session is not `counting`, so scanning is not allowed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/stock-opname/sessions/{id}/items/{itemId}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: itemId, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [Stock Opname]
+      operationId: setStockOpnameItemResult
+      summary: Record a counted result for one item
+      description: |
+        Sets the item's `result` (and optional `note`), stamping
+        `counted_by_id`/`counted_at`. Only allowed while the session is
+        `counting`. Requires the `stockopname.manage` permission; the session
+        must be within the caller's data scope.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StockOpnameSetResultRequest" }
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StockOpnameItemResultResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Session or item not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Session is not `counting`, so results cannot be recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/stock-opname/sessions/{id}/reconcile:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Stock Opname]
+      operationId: reconcileStockOpnameSession
+      summary: Move to reconciliation (counting → reconciling)
+      description: |
+        Transitions the session from `counting` to `reconciling`. Requires
+        the `stockopname.manage` permission; the session must be within the
+        caller's data scope.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Updated session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StockOpnameSession" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Session is not `counting`, so it cannot be reconciled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/stock-opname/sessions/{id}/items/{itemId}/follow-up:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: itemId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Stock Opname]
+      operationId: followUpStockOpnameItem
+      summary: Route a variance item to a disposal or transfer approval request
+      description: |
+        For an item with result `not_found`, submits an `asset_disposal`
+        (`write_off`) request. For `misplaced`, submits an `asset_transfer`
+        request to `to_office_id` (required; and optional `to_room_id`).
+        Reuses the disposal/transfer modules' own `Submit`, so their asset-
+        scope and state guards also apply. Any other result (`pending`,
+        `found`, `damaged`) is rejected — `damaged` has no follow-up module
+        yet. An item that already has a follow-up request is rejected.
+        Requires the `stockopname.manage` permission; the session must be
+        within the caller's data scope.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StockOpnameFollowupRequest" }
+      responses:
+        "200":
+          description: Created follow-up request reference
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StockOpnameFollowupResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Session or item not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: |
+            Item result does not allow a follow-up (`pending`/`found`/`damaged`),
+            or the item already has a follow-up request, or the underlying
+            disposal/transfer is in a conflicting state (e.g. asset already
+            disposed or in transit)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          description: Invalid reference was supplied (e.g. missing/unknown to_office_id for a misplaced item)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/stock-opname/sessions/{id}/close:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Stock Opname]
+      operationId: closeStockOpnameSession
+      summary: Close the session (reconciling → closed)
+      description: |
+        Transitions the session from `reconciling` to `closed`, stamping
+        `closed_by_id`/`closed_at`. Requires the `stockopname.manage`
+        permission; the session must be within the caller's data scope.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Updated (closed) session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StockOpnameSession" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Session is not `reconciling`, so it cannot be closed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/stock-opname/sessions/{id}/report:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Stock Opname]
+      operationId: getStockOpnameReport
+      summary: Download the session's Berita Acara as PDF or xlsx
+      description: |
+        Renders the session (KPI summary + item table) as a downloadable
+        Berita Acara Stock Opname. Streams with `Content-Disposition:
+        attachment`. Requires the `stockopname.view` permission; the session
+        must be within the caller's data scope.
+      security:
+        - bearerJWT: []
+      parameters:
+        - { name: format, in: query, schema: { type: string, enum: [pdf, xlsx], default: pdf }, description: Defaults to pdf when omitted. }
+      responses:
+        "200":
+          description: Report file
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Session not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
 components:
   securitySchemes:
     bearerJWT:
@@ -3722,6 +4112,166 @@ components:
         total: { type: integer }
         limit: { type: integer }
         offset: { type: integer }
+
+    StockOpnameSession:
+      type: object
+      description: |
+        A physical stock-take session for one office/period. `total`, `found`,
+        `pending`, and `variance` are item-result KPI counters, present on
+        `GET .../sessions/{id}` (single-session responses) but omitted when
+        listing (`GET .../sessions`).
+      required: [id, office_id, name, period, status, started_by_id, started_at, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        office_id: { type: string, format: uuid }
+        name: { type: [string, "null"] }
+        period:
+          type: [string, "null"]
+          format: date
+          description: 'Normalized to the first of the month. Format: YYYY-MM-DD.'
+        status:
+          type: string
+          enum: [open, counting, reconciling, closed]
+        started_by_id: { type: string, format: uuid }
+        started_at: { type: [string, "null"], format: date-time }
+        closed_by_id: { type: [string, "null"], format: uuid }
+        closed_at: { type: [string, "null"], format: date-time }
+        office_name: { type: [string, "null"] }
+        started_by_name: { type: [string, "null"] }
+        closed_by_name: { type: [string, "null"] }
+        total:
+          type: integer
+          description: Item-result KPI, present only on the single-session (get) response.
+        found:
+          type: integer
+          description: Item-result KPI, present only on the single-session (get) response.
+        pending:
+          type: integer
+          description: Item-result KPI, present only on the single-session (get) response.
+        variance:
+          type: integer
+          description: Item-result KPI, present only on the single-session (get) response.
+        created_at: { type: [string, "null"], format: date-time }
+        updated_at: { type: [string, "null"], format: date-time }
+
+    StockOpnameSessionCreateRequest:
+      type: object
+      description: Body for POST /stock-opname/sessions.
+      required: [office_id, period]
+      properties:
+        office_id: { type: string, format: uuid }
+        name: { type: [string, "null"] }
+        period:
+          type: string
+          description: '"YYYY-MM" (normalized to the first of the month) or "YYYY-MM-DD".'
+          example: "2026-07"
+
+    StockOpnameSessionList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/StockOpnameSession" } }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+
+    StockOpnameItem:
+      type: object
+      description: One asset's snapshot/count within a stock-opname session.
+      required: [id, session_id, asset_id, expected, result]
+      properties:
+        id: { type: string, format: uuid }
+        session_id: { type: string, format: uuid }
+        asset_id: { type: string, format: uuid }
+        asset_name: { type: [string, "null"] }
+        asset_tag: { type: [string, "null"] }
+        office_name: { type: [string, "null"] }
+        room_name: { type: [string, "null"] }
+        floor_name: { type: [string, "null"] }
+        expected:
+          type: boolean
+          description: False for an item inserted by an unexpected scan (not part of the original snapshot).
+        result:
+          type: string
+          enum: [found, not_found, damaged, misplaced, pending]
+        note: { type: [string, "null"] }
+        counted_by_name: { type: [string, "null"] }
+        counted_at: { type: [string, "null"], format: date-time }
+        followup_request_id: { type: [string, "null"], format: uuid }
+
+    StockOpnameItemList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/StockOpnameItem" } }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+
+    StockOpnameScanRequest:
+      type: object
+      description: Body for POST /stock-opname/sessions/{id}/scan.
+      required: [asset_tag]
+      properties:
+        asset_tag: { type: string }
+
+    StockOpnameScanResult:
+      type: object
+      description: The resolved item (existing match or newly inserted unexpected find).
+      required: [id, session_id, asset_id, expected, result]
+      properties:
+        id: { type: string, format: uuid }
+        session_id: { type: string, format: uuid }
+        asset_id: { type: string, format: uuid }
+        expected: { type: boolean }
+        result:
+          type: string
+          enum: [found, not_found, damaged, misplaced, pending]
+
+    StockOpnameSetResultRequest:
+      type: object
+      description: Body for PATCH /stock-opname/sessions/{id}/items/{itemId}.
+      required: [result]
+      properties:
+        result:
+          type: string
+          enum: [found, not_found, damaged, misplaced, pending]
+        note: { type: [string, "null"] }
+
+    StockOpnameItemResultResponse:
+      type: object
+      required: [id, session_id, asset_id, expected, result]
+      properties:
+        id: { type: string, format: uuid }
+        session_id: { type: string, format: uuid }
+        asset_id: { type: string, format: uuid }
+        expected: { type: boolean }
+        result:
+          type: string
+          enum: [found, not_found, damaged, misplaced, pending]
+        note: { type: [string, "null"] }
+        counted_at: { type: [string, "null"], format: date-time }
+
+    StockOpnameFollowupRequest:
+      type: object
+      description: |
+        Body for POST /stock-opname/sessions/{id}/items/{itemId}/follow-up.
+        `to_office_id` is required when the item's result is `misplaced`
+        (ignored for `not_found`, which always creates a write-off disposal).
+      properties:
+        to_office_id: { type: [string, "null"], format: uuid }
+        to_room_id: { type: [string, "null"], format: uuid }
+        reason: { type: [string, "null"] }
+
+    StockOpnameFollowupResponse:
+      type: object
+      required: [request_id, type]
+      properties:
+        request_id: { type: string, format: uuid }
+        type:
+          type: string
+          enum: [asset_disposal, asset_transfer]
+          description: The kind of approval request created.
 
     Attachment:
       type: object

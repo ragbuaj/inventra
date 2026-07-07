@@ -338,12 +338,61 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     overlay up idempotently, appended after `app` in `site.yml` — completes the ops-hardening trilogy.
 >     ADR-0011 + `docs/DEPLOYMENT.md` §16. **Ops hardening (WAF → IaC → Monitoring) is now fully
 >     complete** — see *Foundation & DevOps* below.
-> 33. **Next session — pick the next real step.** With ops hardening (WAF/IaC/Monitoring) complete,
->     remaining candidates (see *Remaining* below): **(b)** Stock opname backend module
->     (found/not_found/damaged/misplaced + report); **(e)** Assignment (check-out/in) and/or
->     Maintenance; **(f)** global search backend (`/search`) + drop the last `mock/*` files;
->     **(g)** Reporting & Dashboard (PDF/Excel export, reading from the pre-aggregated read layer).
->     Confirm priority before starting.
+> 33. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-06): Stock opname (candidate
+>     (b) — see item 34).**
+> 34. ~~**Stock opname — backend + frontend + e2e**~~ ✅ **DONE (2026-07-07).** `internal/stockopname`
+>     (service/dto/handler/routes, ADR-0008 4-file split + `report.go` for the on-the-fly Berita Acara
+>     PDF/Excel render) wired end-to-end on migration `000025_stockopname` (`stock_opname_sessions`/
+>     `stock_opname_items`, `followup_request_id` link, `stockopname.view`/`stockopname.manage`
+>     permissions + `stockopname` data-scope module). Session lifecycle `open → counting →
+>     reconciling → closed`: create snapshots every in-scope asset as a `pending` item; scan/manual
+>     code entry and per-item result-setting (`found`/`damaged`/`misplaced`/`not_found`) drive the
+>     count; `reconcile` locks editing; variance follow-up auto-generates the linked action
+>     (`not_found` → `disposal.Submit`, `misplaced` → `transfer.Submit`, no new request-type/executor —
+>     reuses the existing submit paths); `close` finalizes and unlocks the Berita Acara export. 11
+>     endpoints, scope enforced read **and** write (`common.InScope` + `AllScope`/`OfficeIds`),
+>     OpenAPI documented, backend integration/unit tests green (96s on a fresh Docker run, no flakes).
+>     Frontend: `/stock-opname` (`app/pages/stock-opname.vue`) — 1:1 against
+>     `docs/design/Stock Opname.dc.html` in light + dark — list (empty/loading/error+retry/populated
+>     with per-session progress bar), detail toggle (no dedicated route) covering all 4 session
+>     states, scan bar + manual code entry, segmented per-item result buttons (counting only,
+>     read-only badges once reconciling/closed), variance panel with follow-up buttons, create/finish
+>     (Berita Acara preview) modals; `SessionCard`/`StockopnameCreateSessionModal`/
+>     `StockopnameFollowupModal` components; `useStockOpname` composable; `stockOpnameMeta` constants
+>     (status/result tone maps); full i18n id/en. Real-backend e2e (`frontend/e2e/stock-opname.spec.ts`,
+>     1/1) covers the full lifecycle + follow-up + a duplicate-follow-up guard assertion (via request
+>     count, since the UI has no "already submitted" indicator yet — see follow-up below).
+>     **Approved deviations from the mockup** (catat-deviasi convention, confirmed 1:1 against
+>     `docs/design/Stock Opname.dc.html` in both light and dark mode) — **(a)** session status
+>     `reconciling` renders as its own **"Rekonsiliasi"** chip (the mockup shows 3 statuses; the
+>     backend's real state machine has 4, so `reconciling` needed a home); **(b)** the `damaged`
+>     variance's follow-up button is **disabled with a "coming soon" tooltip** (the Maintenance module
+>     doesn't exist yet, so there is no `→ maintenance` request path to submit); **(c)** item-result
+>     labels follow **DB enum semantics** (`pending` = "Belum dicek", `not_found` = "Tidak ditemukan",
+>     etc.) rather than the mockup's own copy where it differs; **(d)** the mockup's green "tap to
+>     simulate" scan tile is **omitted** — the real manual/scan-gun code-entry path is kept instead
+>     (camera scanning itself is deferred per spec §9, user-approved; simulate-tap has no real backend
+>     analog to bind to).
+>     **Follow-ups (tracked, not yet done):** the follow-up button has no "sudah diajukan"
+>     submitted-state indicator in the UI (the backend safely rejects a duplicate follow-up request,
+>     so this is a UX polish gap, not a correctness bug); session creation in the e2e goes via a direct
+>     API call rather than the office-picker dropdown, because of the same documented office-picker
+>     `limit:100` cap noted elsewhere in this doc (dev-DB office-count debris) — not a stock-opname-
+>     specific issue.
+>     **Gate sweep (task-13, 2026-07-07):** backend build/vet/test + full `-tags=integration` (all
+>     packages, fresh run, no flakes, `internal/stockopname` 96.5s) all green; Spectral 0 errors (the
+>     pre-existing `AssetCreatePayload` unused-component warning persists, unrelated); frontend
+>     lint/typecheck/test (87 files, 926 unit incl. the new view-only follow-up-button negative
+>     test)/build all green. Full `pnpm test:e2e` intentionally **not** re-run in this task (the
+>     stock-opname e2e already passed 1/1 and is committed; the full local suite hits the
+>     already-documented dev-DB office-count debris on *other* specs — CI runs the full suite against
+>     a fresh database).
+> 35. **Next session — pick the next real step.** With Stock opname complete, the Bank-FAM core module
+>     set is now transfer + disposal + depreciation + stock opname. Remaining candidates (see
+>     *Remaining* below): **(e)** Assignment (check-out/in, and the natural home for the deferred
+>     "Pemegang" field) and/or Maintenance; **(f)** global search backend (`/search`) + drop the last
+>     `mock/*` files; **(g)** Reporting & Dashboard (PDF/Excel export, reading from the pre-aggregated
+>     read layer). Confirm priority before starting.
 
 ## ✅ Done
 
@@ -471,7 +520,10 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       enrichment, threshold preview) and the **Frontend Mutasi screen** (`/transfers`, 1:1 against
       `docs/design/Mutasi Aset.dc.html`, deviations (a)–(i)) are **done — see item 26** in *Next session*
       above.
-- [ ] **Stock opname** — sessions + item reconciliation (found/not_found/damaged/misplaced) + report
+- [x] **Stock opname** — sessions + item reconciliation (found/not_found/damaged/misplaced) + report.
+      `internal/stockopname` backend (migration `000025`, ADR-0008 4-file split, 11 endpoints, scoped
+      read+write, Berita Acara PDF/Excel) + `/stock-opname` frontend screen + real-backend e2e. **Done —
+      see item 34 below** (PR pending — branch `feat/stock-opname` not yet merged).
 - [x] **Disposal — backend** — `internal/disposal` module (service/dto/executor/handler/routes, ADR-0008
       4-file split); the `asset_disposal` executor was moved out of the asset package into this module's
       own `Executor()`; creates the `disposal.disposals` row only on approval (`assets.status → disposed`),
@@ -671,6 +723,17 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       detail's Depreciation tab now shows a real schedule instead of an empty state; Disposal screen's
       fiscal valuation + approval-chain subtitle are real. **Done (2026-07-05).** See item 28 in
       *Next session* above for the full deviation list (a)–(e), limitations, and follow-ups.
+- [x] **Stock Opname** (`/stock-opname`) ✅ wired to real `/api/v1/stockopname/*` — list (empty/loading/
+      error+retry/populated with per-session progress) + detail toggle covering all 4 session states
+      (`open`/`counting`/`reconciling`/`closed`), scan bar + manual code entry, segmented per-item
+      result buttons while counting (read-only badges once reconciling/closed), variance panel with
+      follow-up buttons (`not_found` → disposal, `misplaced` → transfer, `damaged` disabled/coming-soon),
+      create/finish (Berita Acara PDF/Excel preview) modals. `useStockOpname` composable;
+      `stockOpnameMeta` constants; `SessionCard`/`StockopnameCreateSessionModal`/
+      `StockopnameFollowupModal` components. Real-backend e2e (`frontend/e2e/stock-opname.spec.ts`,
+      1/1). **Done (2026-07-07).** See item 34 in *Next session* above for the full deviation list
+      (a)–(d) and follow-ups (no submitted-state indicator on the follow-up button; e2e session
+      creation goes via API due to the office-picker `limit:100` cap).
 - [ ] **Staff role menus** — wire staff nav (`myAssets`, staff `assignment`/`approval`) to pages/variants
 - [x] **Google OAuth login** button + flow (UI) — login redirect + `?oauth=success/error` landing
       (refresh → fetchMe → navigate; i18n error reasons). **Done — PR #21.**

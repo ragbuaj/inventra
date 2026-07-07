@@ -34,6 +34,7 @@ type Querier interface {
 	CountFloorsByOffice(ctx context.Context, arg CountFloorsByOfficeParams) (int64, error)
 	CountOffices(ctx context.Context, arg CountOfficesParams) (int64, error)
 	CountOpenEarlierPeriods(ctx context.Context, period pgtype.Date) (int64, error)
+	CountOpnameSessions(ctx context.Context, arg CountOpnameSessionsParams) (int64, error)
 	CountPendingDisposalRequestsForAsset(ctx context.Context, assetID *uuid.UUID) (int64, error)
 	// Guard: an asset may have at most one pending asset_transfer approval request.
 	CountPendingTransferRequestsForAsset(ctx context.Context, assetID *uuid.UUID) (int64, error)
@@ -51,6 +52,7 @@ type Querier interface {
 	CreateEmployee(ctx context.Context, arg CreateEmployeeParams) (MasterdataEmployee, error)
 	CreateFloor(ctx context.Context, arg CreateFloorParams) (MasterdataFloor, error)
 	CreateOffice(ctx context.Context, arg CreateOfficeParams) (MasterdataOffice, error)
+	CreateOpnameSession(ctx context.Context, arg CreateOpnameSessionParams) (StockopnameStockOpnameSession, error)
 	CreateRequest(ctx context.Context, arg CreateRequestParams) (ApprovalRequest, error)
 	CreateRequestApproval(ctx context.Context, arg CreateRequestApprovalParams) (ApprovalRequestApproval, error)
 	CreateRole(ctx context.Context, arg CreateRoleParams) (IdentityRole, error)
@@ -95,6 +97,9 @@ type Querier interface {
 	GetOfficeSubtree(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error)
 	// Guard: an asset may have at most one non-terminal transfer row.
 	GetOpenTransferForAsset(ctx context.Context, assetID uuid.UUID) (TransferAssetTransfer, error)
+	GetOpnameItem(ctx context.Context, arg GetOpnameItemParams) (StockopnameStockOpnameItem, error)
+	GetOpnameItemByTag(ctx context.Context, arg GetOpnameItemByTagParams) (StockopnameStockOpnameItem, error)
+	GetOpnameSession(ctx context.Context, arg GetOpnameSessionParams) (GetOpnameSessionRow, error)
 	GetRequest(ctx context.Context, id uuid.UUID) (ApprovalRequest, error)
 	// Enriched read variants: request row + resolved maker/role/office names.
 	// LEFT JOINs keep rows visible even when the user/office was soft-deleted.
@@ -123,6 +128,9 @@ type Querier interface {
 	InsertDepreciationEntry(ctx context.Context, arg InsertDepreciationEntryParams) error
 	InsertFieldPermission(ctx context.Context, arg InsertFieldPermissionParams) (IdentityFieldPermission, error)
 	InsertRolePermission(ctx context.Context, arg InsertRolePermissionParams) (IdentityRolePermission, error)
+	// (scan reuses assets.sql GetAssetByTag; scope enforced in the service)
+	// NOTE: :one + ON CONFLICT DO NOTHING → a conflict returns pgx.ErrNoRows (no row inserted); the caller treats that as "already present".
+	InsertUnexpectedItem(ctx context.Context, arg InsertUnexpectedItemParams) (StockopnameStockOpnameItem, error)
 	LastClosedPeriod(ctx context.Context) (pgtype.Date, error)
 	LastEntryAtOrBefore(ctx context.Context, arg LastEntryAtOrBeforeParams) (DepreciationDepreciationEntry, error)
 	LinkGoogleID(ctx context.Context, arg LinkGoogleIDParams) error
@@ -167,6 +175,8 @@ type Querier interface {
 	// Geo-enriched, scoped office list for the Peta Lokasi screen: resolves
 	// office-type/province/city names + a per-office (non-deleted) asset count.
 	ListOfficesMap(ctx context.Context, arg ListOfficesMapParams) ([]ListOfficesMapRow, error)
+	ListOpnameItemsEnriched(ctx context.Context, arg ListOpnameItemsEnrichedParams) ([]ListOpnameItemsEnrichedRow, error)
+	ListOpnameSessions(ctx context.Context, arg ListOpnameSessionsParams) ([]ListOpnameSessionsRow, error)
 	ListRequestApprovals(ctx context.Context, requestID uuid.UUID) ([]ApprovalRequestApproval, error)
 	ListRequestApprovalsEnriched(ctx context.Context, requestID uuid.UUID) ([]ListRequestApprovalsEnrichedRow, error)
 	ListRequests(ctx context.Context, arg ListRequestsParams) ([]ApprovalRequest, error)
@@ -185,18 +195,23 @@ type Querier interface {
 	// Approval / maker-checker queries (approval schema).
 	// See docs/DATABASE.md §4.5 and PRD §3.6 for schema context.
 	MatchThresholdSteps(ctx context.Context, arg MatchThresholdStepsParams) ([]ApprovalApprovalThreshold, error)
+	SessionKpis(ctx context.Context, sessionID uuid.UUID) (SessionKpisRow, error)
 	SetAssetDocumentObjectKey(ctx context.Context, arg SetAssetDocumentObjectKeyParams) (AssetAssetDocument, error)
 	// Relocate an asset to a new office/room (used by the transfer receive step).
 	SetAssetOffice(ctx context.Context, arg SetAssetOfficeParams) (AssetAsset, error)
 	SetAssetStatus(ctx context.Context, arg SetAssetStatusParams) (AssetAsset, error)
 	SetAssetValuationExclusion(ctx context.Context, arg SetAssetValuationExclusionParams) (AssetAsset, error)
 	SetDisposalBastNo(ctx context.Context, arg SetDisposalBastNoParams) (DisposalDisposal, error)
+	SetItemFollowup(ctx context.Context, arg SetItemFollowupParams) (StockopnameStockOpnameItem, error)
+	SetOpnameItemResult(ctx context.Context, arg SetOpnameItemResultParams) (StockopnameStockOpnameItem, error)
 	SetPeriodClosed(ctx context.Context, arg SetPeriodClosedParams) (DepreciationDepreciationPeriod, error)
 	SetRequestDecision(ctx context.Context, arg SetRequestDecisionParams) (ApprovalRequest, error)
+	SetSessionStatus(ctx context.Context, arg SetSessionStatusParams) (StockopnameStockOpnameSession, error)
 	SetTransferReceived(ctx context.Context, arg SetTransferReceivedParams) (TransferAssetTransfer, error)
 	// Receiving side declines the shipment: terminal 'returned', asset never moved.
 	SetTransferReturned(ctx context.Context, arg SetTransferReturnedParams) (TransferAssetTransfer, error)
 	SetTransferShipped(ctx context.Context, arg SetTransferShippedParams) (TransferAssetTransfer, error)
+	SnapshotSessionItems(ctx context.Context, arg SnapshotSessionItemsParams) error
 	SoftDeleteAssetDocument(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteAttachment(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteCategory(ctx context.Context, id uuid.UUID) (int64, error)

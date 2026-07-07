@@ -518,6 +518,112 @@
       "success": "The disposal report for \"{name}\" was saved."
     }
   },
+  "stockOpname": {
+    "pageTitle": "Stock Opname",
+    "pageSub": "Run physical inventory per office and reconcile asset variances.",
+    "create": {
+      "action": "New Session",
+      "title": "New Stock-Take Session",
+      "sub": "An asset snapshot is taken when the session starts.",
+      "name": "Session Name",
+      "namePlaceholder": "e.g. H2 2026 Stock Take",
+      "scope": "Office / Scope",
+      "scopePlaceholder": "Select office / scope…",
+      "period": "Period",
+      "snapshotNote": "On creation, the system snapshots all assets in the selected scope as the stock-take baseline.",
+      "cancel": "Cancel",
+      "confirm": "Create & Start",
+      "error": "Complete the session name, scope, and period."
+    },
+    "status": {
+      "open": "Draft",
+      "counting": "In Progress",
+      "reconciling": "Reconciling",
+      "closed": "Closed"
+    },
+    "result": {
+      "pending": "Unchecked",
+      "found": "Found",
+      "not_found": "Not Found",
+      "damaged": "Damaged",
+      "misplaced": "Misplaced"
+    },
+    "kpi": {
+      "total": "Total Assets",
+      "found": "Found",
+      "pending": "Unchecked",
+      "variance": "Variance"
+    },
+    "scan": {
+      "title": "Scan Barcode / QR",
+      "sub": "Point the camera at an asset label — or tap to simulate",
+      "manualLabel": "Manual Code Entry",
+      "check": "Check",
+      "placeholder": "e.g. JKT01-ELK-2026-00042",
+      "foundMessage": "Found: {name}",
+      "notFoundMessage": "Code \"{code}\" was not found within this session's scope."
+    },
+    "variance": {
+      "title": "Variance Panel",
+      "count": "{n} items need action",
+      "empty": "No variance",
+      "emptySub": "All assets reconciled cleanly.",
+      "followupDisposal": "Request Disposal",
+      "followupTransfer": "Request Transfer",
+      "followupMaintenance": "Report Damage",
+      "comingSoon": "Coming soon"
+    },
+    "followup": {
+      "title": "Request Transfer — Misplaced Asset",
+      "sub": "Asset \"{name}\" was found at a location different from its record. Submit a transfer to the actual location.",
+      "office": "Destination Office",
+      "room": "Destination Room",
+      "reason": "Transfer Reason",
+      "reasonPlaceholder": "e.g. Asset was found at a different location during stock-take…",
+      "submit": "Request Transfer",
+      "success": "Transfer request for \"{name}\" was created."
+    },
+    "finish": {
+      "action": "Finish Session",
+      "title": "Finish Stock-Take",
+      "sub": "Review the summary then generate the report.",
+      "reportTitle": "STOCK-TAKE OFFICIAL REPORT",
+      "signedBy": "Authorized by",
+      "summaryTotal": "Total assets",
+      "summaryFound": "Found as recorded",
+      "summaryDamaged": "Found damaged",
+      "summaryMisplaced": "Misplaced",
+      "summaryNotFound": "Not found",
+      "pdf": "Export PDF",
+      "excel": "Export Excel",
+      "confirm": "Authorize & Finish",
+      "lockedNote": "Session completed (read-only)"
+    },
+    "empty": {
+      "title": "No stock-take sessions",
+      "sub": "Create the first physical inventory session for your office."
+    },
+    "progress": "{a}/{b} checked",
+    "submitSuccess": "Stock-take session \"{name}\" was created.",
+    "noManagePermission": "You do not have permission to manage stock-take.",
+    "startAction": "Start",
+    "reconcileAction": "Reconcile",
+    "exportAction": "Report",
+    "allRooms": "All Rooms",
+    "allResults": "All Results",
+    "searchPlaceholder": "Search asset…",
+    "itemsNoMatch": "No matching item.",
+    "column": {
+      "asset": "Asset",
+      "location": "Recorded Location",
+      "result": "Result"
+    },
+    "error": {
+      "loadFailed": "Failed to load stock-take data.",
+      "sessionNotFound": "Stock-take session not found.",
+      "alreadyClosed": "This session is already closed and cannot be changed."
+    }
+  },
   "depreciation": {
     "title": "Depreciation",
     "subtitle": "Run & close depreciation for each period on commercial and fiscal bases.",
@@ -1202,6 +1308,7 @@
     "assetLabel": "Label & Barcode",
     "myAssets": "My Assets",
     "assignment": "Assignments",
+    "stockOpname": "Stock Opname",
     "transfers": "Transfers",
     "disposals": "Disposal",
     "depreciation": "Depreciation",
