@@ -67,6 +67,14 @@ describe('superadminNav — built items have `to`, unbuilt are disabled', () => 
   })
 })
 
+describe('superadminNav — assignment', () => {
+  it('assignment item links to /assignment and is gated by assignment.manage', () => {
+    const assignment = superadminNav[0].items.find(i => i.labelKey === 'nav.assignment')
+    expect(assignment?.to).toBe('/assignment')
+    expect(assignment?.permission).toBe('assignment.manage')
+  })
+})
+
 describe('superadminNav — approval', () => {
   it('approval item is gated by the request.decide permission and has no hardcoded badge', () => {
     const approval = superadminNav[0].items.find(i => i.labelKey === 'nav.approval')
@@ -160,5 +168,18 @@ describe('staffNav', () => {
   it('Dashboard has route /', () => {
     const dash = staffNav[0].items.find(i => i.labelKey === 'nav.dashboard')
     expect(dash?.to).toBe('/')
+  })
+
+  it('has an enabled nav.peminjaman item linking to /peminjaman, gated by request.create', () => {
+    const peminjaman = staffNav[0].items.find(i => i.labelKey === 'nav.peminjaman')
+    expect(peminjaman?.to).toBe('/peminjaman')
+    expect(peminjaman?.permission).toBe('request.create')
+    expect(peminjaman?.icon).toBe('i-lucide-hand')
+    expect(peminjaman?.disabled).toBeFalsy()
+  })
+
+  it('no longer has a disabled nav.assignment item', () => {
+    const assignment = staffNav[0].items.find(i => i.labelKey === 'nav.assignment')
+    expect(assignment).toBeUndefined()
   })
 })

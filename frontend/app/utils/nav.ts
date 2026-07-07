@@ -35,7 +35,8 @@ export const superadminNav: NavGroup[] = [
       {
         labelKey: 'nav.assignment',
         icon: 'i-lucide-clipboard-check',
-        to: '/assignment'
+        to: '/assignment',
+        permission: 'assignment.manage'
       },
       {
         labelKey: 'nav.stockOpname',
@@ -154,9 +155,10 @@ export const staffNav: NavGroup[] = [
         disabled: true
       },
       {
-        labelKey: 'nav.assignment',
-        icon: 'i-lucide-clipboard-check',
-        disabled: true
+        labelKey: 'nav.peminjaman',
+        icon: 'i-lucide-hand',
+        to: '/peminjaman',
+        permission: 'request.create'
       },
       {
         labelKey: 'nav.approvalStaff',
