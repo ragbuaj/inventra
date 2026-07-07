@@ -1529,17 +1529,18 @@ type MasterdataVendor struct {
 }
 
 type StockopnameStockOpnameItem struct {
-	ID          uuid.UUID              `json:"id"`
-	SessionID   uuid.UUID              `json:"session_id"`
-	AssetID     uuid.UUID              `json:"asset_id"`
-	Expected    bool                   `json:"expected"`
-	Result      SharedOpnameItemResult `json:"result"`
-	CountedByID *uuid.UUID             `json:"counted_by_id"`
-	CountedAt   pgtype.Timestamptz     `json:"counted_at"`
-	Note        *string                `json:"note"`
-	CreatedAt   pgtype.Timestamptz     `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz     `json:"updated_at"`
-	DeletedAt   pgtype.Timestamptz     `json:"deleted_at"`
+	ID                uuid.UUID              `json:"id"`
+	SessionID         uuid.UUID              `json:"session_id"`
+	AssetID           uuid.UUID              `json:"asset_id"`
+	Expected          bool                   `json:"expected"`
+	Result            SharedOpnameItemResult `json:"result"`
+	CountedByID       *uuid.UUID             `json:"counted_by_id"`
+	CountedAt         pgtype.Timestamptz     `json:"counted_at"`
+	Note              *string                `json:"note"`
+	CreatedAt         pgtype.Timestamptz     `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz     `json:"updated_at"`
+	DeletedAt         pgtype.Timestamptz     `json:"deleted_at"`
+	FollowupRequestID *uuid.UUID             `json:"followup_request_id"`
 }
 
 type StockopnameStockOpnameSession struct {
