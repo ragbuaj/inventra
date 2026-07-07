@@ -141,7 +141,7 @@ SELECT asg.id, asg.asset_id, asg.employee_id, asg.assigned_by_id, asg.checkout_d
        u.name      AS assigned_by_name,
        o.name      AS office_name
 FROM assignment.assignments asg
-LEFT JOIN asset.assets a         ON a.id = asg.asset_id       AND a.deleted_at IS NULL
+JOIN asset.assets a              ON a.id = asg.asset_id       AND a.deleted_at IS NULL
 LEFT JOIN masterdata.employees e ON e.id = asg.employee_id    AND e.deleted_at IS NULL
 LEFT JOIN identity.users u       ON u.id = asg.assigned_by_id AND u.deleted_at IS NULL
 LEFT JOIN masterdata.offices o   ON o.id = a.office_id        AND o.deleted_at IS NULL
@@ -157,9 +157,9 @@ type GetAssignmentEnrichedParams struct {
 
 type GetAssignmentEnrichedRow struct {
 	AssignmentAssignment AssignmentAssignment `json:"assignment_assignment"`
-	AssetName            *string              `json:"asset_name"`
-	AssetTag             *string              `json:"asset_tag"`
-	OfficeID             *uuid.UUID           `json:"office_id"`
+	AssetName            string               `json:"asset_name"`
+	AssetTag             string               `json:"asset_tag"`
+	OfficeID             uuid.UUID            `json:"office_id"`
 	EmployeeName         *string              `json:"employee_name"`
 	AssignedByName       *string              `json:"assigned_by_name"`
 	OfficeName           *string              `json:"office_name"`

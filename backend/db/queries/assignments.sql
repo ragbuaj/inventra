@@ -30,7 +30,7 @@ SELECT sqlc.embed(asg),
        u.name      AS assigned_by_name,
        o.name      AS office_name
 FROM assignment.assignments asg
-LEFT JOIN asset.assets a         ON a.id = asg.asset_id       AND a.deleted_at IS NULL
+JOIN asset.assets a              ON a.id = asg.asset_id       AND a.deleted_at IS NULL
 LEFT JOIN masterdata.employees e ON e.id = asg.employee_id    AND e.deleted_at IS NULL
 LEFT JOIN identity.users u       ON u.id = asg.assigned_by_id AND u.deleted_at IS NULL
 LEFT JOIN masterdata.offices o   ON o.id = a.office_id        AND o.deleted_at IS NULL
