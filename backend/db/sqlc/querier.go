@@ -26,7 +26,10 @@ type Querier interface {
 	ApplyAssetImpairment(ctx context.Context, arg ApplyAssetImpairmentParams) (AssetAsset, error)
 	BumpAssetTagCounter(ctx context.Context, arg BumpAssetTagCounterParams) (int32, error)
 	CancelRequest(ctx context.Context, arg CancelRequestParams) (ApprovalRequest, error)
+	CheckinAssignment(ctx context.Context, arg CheckinAssignmentParams) (AssignmentAssignment, error)
+	CheckoutAssignment(ctx context.Context, arg CheckoutAssignmentParams) (AssignmentAssignment, error)
 	CountAssets(ctx context.Context, arg CountAssetsParams) (int64, error)
+	CountAssignments(ctx context.Context, arg CountAssignmentsParams) (int64, error)
 	CountAuditLogs(ctx context.Context, arg CountAuditLogsParams) (int64, error)
 	CountCategories(ctx context.Context, search string) (int64, error)
 	CountDisposals(ctx context.Context, arg CountDisposalsParams) (int64, error)
@@ -76,6 +79,10 @@ type Querier interface {
 	GetAssetForUpdate(ctx context.Context, id uuid.UUID) (AssetAsset, error)
 	GetAssetLabelByID(ctx context.Context, id uuid.UUID) (GetAssetLabelByIDRow, error)
 	GetAssetLabelByTag(ctx context.Context, assetTag string) (GetAssetLabelByTagRow, error)
+	GetAssignmentEnriched(ctx context.Context, arg GetAssignmentEnrichedParams) (GetAssignmentEnrichedRow, error)
+	// Plain (unenriched) row, scoped by the asset's office. Used by Checkin to load +
+	// validate state before the update.
+	GetAssignmentScoped(ctx context.Context, arg GetAssignmentScopedParams) (AssignmentAssignment, error)
 	GetAttachment(ctx context.Context, id uuid.UUID) (AssetAssetAttachment, error)
 	GetCategory(ctx context.Context, id uuid.UUID) (MasterdataCategory, error)
 	GetCategoryCode(ctx context.Context, id uuid.UUID) (*string, error)
@@ -147,6 +154,8 @@ type Querier interface {
 	// (data drift since the asset last depreciated), keeping only "parameterized"
 	// assets per the module spec.
 	ListAssetsForScheduleUnion(ctx context.Context, arg ListAssetsForScheduleUnionParams) ([]ListAssetsForScheduleUnionRow, error)
+	ListAssignmentsByAssetEnriched(ctx context.Context, arg ListAssignmentsByAssetEnrichedParams) ([]ListAssignmentsByAssetEnrichedRow, error)
+	ListAssignmentsEnriched(ctx context.Context, arg ListAssignmentsEnrichedParams) ([]ListAssignmentsEnrichedRow, error)
 	ListAttachments(ctx context.Context, assetID uuid.UUID) ([]AssetAssetAttachment, error)
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]ListAuditLogsRow, error)
 	// Asset category master data (masterdata.categories). Respects soft delete.
