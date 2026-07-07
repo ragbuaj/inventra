@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mountSuspended, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { flushPromises, enableAutoUnmount } from '@vue/test-utils'
 import type { AvailableAsset } from '~/composables/api/useAssignment'
+import type { LockedAsset } from '~/components/assignment/AjukanPeminjamanModal.vue'
 
 // useToast's real toast portal isn't mounted in these component tests (no
 // UApp wrapper), so success/error toast text never lands in the DOM. Mock it
@@ -40,7 +41,7 @@ enableAutoUnmount(afterEach)
 // enter transition/Presence machinery settles — a bare flushPromises() isn't
 // enough; a real wait (~400ms) is required. Same pattern as disposals.spec.ts
 // / settings-users.spec.ts (document.body queries for teleported content).
-async function mountAndWait(props: Record<string, unknown>) {
+async function mountAndWait(props: { open: boolean, asset: LockedAsset | null }) {
   const wrapper = await mountSuspended(AjukanPeminjamanModal, { props })
   await flushPromises()
   await new Promise(resolve => setTimeout(resolve, 400))
