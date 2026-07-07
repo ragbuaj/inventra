@@ -26,12 +26,13 @@ import { login, EMAIL, PASSWORD } from './helpers'
 //   2. "Rekonsiliasi" (reconcile) → status Rekonsiliasi (reconciling); the
 //      variance panel lists asset2 (not_found).
 //   3. Follow-up asset2 (not_found → disposal) via its variance-panel button;
-//      API-verify a pending asset_disposal request now targets asset2, and a
-//      second click on the same button now fails (409/ErrAlreadyFollowedUp),
-//      confirming the UI's follow-up state was actually persisted server-side
-//      (there is no dedicated "sudah diajukan" label wired in Task 11 — the
-//      page never reads `followup_request_id` to disable the button, so a
-//      second click is the closest real-UI proxy for "already submitted").
+//      API-verify a pending asset_disposal request now targets asset2 and
+//      that exactly one such request exists. The button has no disabled/
+//      "sudah diajukan" state (Task 11 never wires `followup_request_id`),
+//      so a second click is a real, reachable user action; after it, re-count
+//      asset2's pending asset_disposal requests and assert it is STILL
+//      exactly 1 — proving the backend's ErrAlreadyFollowedUp guard (409)
+//      blocked the duplicate rather than silently creating a second request.
 //   4. "Selesaikan" (close), confirm in the finish modal → status Selesai
 //      (closed); export button visible.
 //   5. API-assert GET /stock-opname/sessions/:id/report?format=pdf returns
@@ -235,24 +236,29 @@ test.describe('Stock Opname — real backend (lifecycle + follow-up + report e2e
     await expect(followupBtn).toBeVisible({ timeout: 10_000 })
     await followupBtn.click()
 
-    // API-verify a pending asset_disposal request now targets asset2.
-    await expect(async () => {
+    // API-verify a pending asset_disposal request now targets asset2, and
+    // that exactly one such request exists (no duplicate).
+    async function countAsset2DisposalRequests(): Promise<number> {
       const reqRes = await api.get('requests?type=asset_disposal&status=pending&limit=100', {
         headers: authHeader(adminToken)
       })
       const reqs = await apiJson<{ data: { id: string, target_id: string | null }[] }>(reqRes)
-      const match = reqs.data.find(r => r.target_id === asset2Id)
-      expect(match).toBeTruthy()
+      return reqs.data.filter(r => r.target_id === asset2Id).length
+    }
+    await expect(async () => {
+      expect(await countAsset2DisposalRequests()).toBe(1)
     }).toPass({ timeout: 10_000 })
 
     // The page never reads `followup_request_id` to disable the button (no
-    // "sudah diajukan" label exists in Task 11's i18n or markup), so the real
-    // proxy for "already submitted" is that a second click now hits the
-    // backend's ErrAlreadyFollowedUp guard (409) — surfaced as an error toast
-    // rather than a success message, i.e. the UI does not let a duplicate
-    // follow-up silently succeed.
+    // "sudah diajukan" label exists in Task 11's i18n or markup) — the button
+    // stays visible and enabled after a successful follow-up, so a second
+    // click is a genuinely reachable user action. Perform it, then re-query
+    // the requests endpoint: if the backend's ErrAlreadyFollowedUp guard (409)
+    // is working, no second asset_disposal request is created for asset2, so
+    // the count must still be exactly 1 (not 2).
     await followupBtn.click()
-    await expect(page.getByText('Sesi opname "', { exact: false })).toHaveCount(0)
+    await page.waitForTimeout(1000) // let any (rejected) second follow-up request settle
+    expect(await countAsset2DisposalRequests()).toBe(1)
 
     // --- close (reconciling -> closed) ---
     await page.getByTestId('opname-finish-open').click()
