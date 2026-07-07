@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { superadminNav, staffNav } from '~/utils/nav'
 import type { NavItem } from '~/types'
 
-const BUILT_ROUTES = ['/', '/master/offices', '/master/employees', '/master/categories', '/master/map', '/master/reference', '/settings/users', '/settings/rbac', '/settings/data-scope', '/settings/field-permission', '/settings/audit', '/assets', '/assets/import', '/assets/label', '/assignment', '/transfers', '/disposals', '/depreciation', '/maintenance', '/approval', '/reports']
+const BUILT_ROUTES = ['/', '/master/offices', '/master/employees', '/master/categories', '/master/map', '/master/reference', '/settings/users', '/settings/rbac', '/settings/data-scope', '/settings/field-permission', '/settings/audit', '/assets', '/assets/import', '/assets/label', '/assignment', '/stock-opname', '/transfers', '/disposals', '/depreciation', '/maintenance', '/approval', '/reports']
 
 function collectItems(items: NavItem[]): NavItem[] {
   return items.flatMap(item => [item, ...(item.children ? collectItems(item.children) : [])])
@@ -25,8 +25,8 @@ describe('superadminNav — structure', () => {
     expect(superadminNav[1].labelKey).toBe('nav.group.administrasi')
   })
 
-  it('Operasional has 9 top-level items', () => {
-    expect(superadminNav[0].items).toHaveLength(9)
+  it('Operasional has 10 top-level items', () => {
+    expect(superadminNav[0].items).toHaveLength(10)
   })
 
   it('Administrasi has 2 top-level items (Master Data, Pengaturan)', () => {
@@ -72,6 +72,24 @@ describe('superadminNav — approval', () => {
     const approval = superadminNav[0].items.find(i => i.labelKey === 'nav.approval')
     expect(approval?.permission).toBe('request.decide')
     expect(approval?.badgeCount).toBeUndefined()
+  })
+})
+
+describe('superadminNav — stock opname', () => {
+  it('stockOpname item links to /stock-opname and is gated by stockopname.view', () => {
+    const stockOpname = superadminNav[0].items.find(i => i.labelKey === 'nav.stockOpname')
+    expect(stockOpname?.to).toBe('/stock-opname')
+    expect(stockOpname?.permission).toBe('stockopname.view')
+    expect(stockOpname?.icon).toBe('i-lucide-clipboard-list')
+  })
+
+  it('stockOpname appears after assignment and before transfers', () => {
+    const keys = superadminNav[0].items.map(i => i.labelKey)
+    const assignmentIdx = keys.indexOf('nav.assignment')
+    const stockOpnameIdx = keys.indexOf('nav.stockOpname')
+    const transfersIdx = keys.indexOf('nav.transfers')
+    expect(assignmentIdx).toBeLessThan(stockOpnameIdx)
+    expect(stockOpnameIdx).toBeLessThan(transfersIdx)
   })
 })
 

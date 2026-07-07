@@ -518,6 +518,99 @@
       "success": "Lampiran BAST untuk \"{name}\" berhasil disimpan."
     }
   },
+  "stockOpname": {
+    "pageTitle": "Stock Opname",
+    "pageSub": "Jalankan inventarisasi fisik per kantor dan rekonsiliasi selisih aset.",
+    "create": {
+      "action": "Buat Sesi Opname",
+      "title": "Buat Sesi Opname",
+      "sub": "Snapshot aset akan dibuat saat sesi dimulai.",
+      "name": "Nama Sesi",
+      "namePlaceholder": "mis. Opname Semester II 2026",
+      "scope": "Kantor / Lingkup",
+      "scopePlaceholder": "Pilih kantor / lingkup…",
+      "period": "Periode",
+      "snapshotNote": "Saat dibuat, sistem mengambil snapshot seluruh aset pada lingkup terpilih sebagai baseline opname.",
+      "cancel": "Batal",
+      "confirm": "Buat & Mulai",
+      "error": "Lengkapi nama sesi, lingkup, dan periode."
+    },
+    "status": {
+      "open": "Draf",
+      "counting": "Berjalan",
+      "reconciling": "Rekonsiliasi",
+      "closed": "Selesai"
+    },
+    "result": {
+      "pending": "Belum Dicek",
+      "found": "Ditemukan",
+      "not_found": "Tidak Ditemukan",
+      "damaged": "Rusak",
+      "misplaced": "Salah Lokasi"
+    },
+    "kpi": {
+      "total": "Total Aset",
+      "found": "Ditemukan",
+      "pending": "Belum Dicek",
+      "variance": "Selisih"
+    },
+    "scan": {
+      "title": "Scan Barcode / QR",
+      "sub": "Arahkan kamera ke label aset — atau ketuk untuk simulasi",
+      "manualLabel": "Input Kode Manual",
+      "check": "Cek",
+      "placeholder": "mis. JKT01-ELK-2026-00042",
+      "foundMessage": "Ditemukan: {name}",
+      "notFoundMessage": "Kode \"{code}\" tidak ditemukan dalam lingkup sesi ini."
+    },
+    "variance": {
+      "title": "Panel Selisih",
+      "count": "{n} item perlu ditindak",
+      "empty": "Tidak ada selisih",
+      "emptySub": "Semua aset tercocokkan dengan baik.",
+      "followupDisposal": "Ajukan Penghapusan",
+      "followupTransfer": "Ajukan Mutasi",
+      "followupMaintenance": "Laporkan Kerusakan"
+    },
+    "followup": {
+      "title": "Ajukan Mutasi — Aset Salah Lokasi",
+      "sub": "Aset \"{name}\" ditemukan di lokasi berbeda dari catatan. Ajukan mutasi ke lokasi aktual.",
+      "office": "Kantor Tujuan",
+      "room": "Ruangan Tujuan",
+      "reason": "Alasan Mutasi",
+      "reasonPlaceholder": "mis. Aset ditemukan di lokasi berbeda saat stock opname…",
+      "submit": "Ajukan Mutasi",
+      "success": "Pengajuan mutasi untuk \"{name}\" berhasil dibuat."
+    },
+    "finish": {
+      "action": "Selesaikan Sesi",
+      "title": "Selesaikan Sesi Opname",
+      "sub": "Tinjau ringkasan lalu hasilkan Berita Acara.",
+      "reportTitle": "BERITA ACARA STOCK OPNAME",
+      "signedBy": "Disahkan oleh",
+      "summaryTotal": "Total aset",
+      "summaryFound": "Ditemukan sesuai",
+      "summaryDamaged": "Ditemukan rusak",
+      "summaryMisplaced": "Salah lokasi",
+      "summaryNotFound": "Tidak ditemukan",
+      "pdf": "Ekspor PDF",
+      "excel": "Ekspor Excel",
+      "confirm": "Sahkan & Selesaikan",
+      "lockedNote": "Sesi selesai (read-only)"
+    },
+    "empty": {
+      "title": "Belum ada sesi opname",
+      "sub": "Buat sesi inventarisasi fisik pertama untuk kantor Anda."
+    },
+    "progress": "{a}/{b} dicek",
+    "submitSuccess": "Sesi opname \"{name}\" berhasil dibuat.",
+    "noManagePermission": "Anda tidak punya izin untuk mengelola stock opname.",
+    "error": {
+      "loadFailed": "Gagal memuat data stock opname.",
+      "sessionNotFound": "Sesi opname tidak ditemukan.",
+      "alreadyClosed": "Sesi ini sudah selesai dan tidak dapat diubah."
+    }
+  },
   "depreciation": {
     "title": "Depresiasi",
     "subtitle": "Jalankan & tutup perhitungan penyusutan per periode untuk basis komersial dan fiskal.",
@@ -1202,6 +1295,7 @@
     "assetLabel": "Label & Barcode",
     "myAssets": "Aset Saya",
     "assignment": "Penugasan",
+    "stockOpname": "Stock Opname",
     "transfers": "Mutasi Aset",
     "disposals": "Penghapusan",
     "depreciation": "Depresiasi",
