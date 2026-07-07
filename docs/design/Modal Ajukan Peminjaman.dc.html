@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;}
+input::placeholder,textarea::placeholder{color:var(--text-dimmed);}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+@keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+:root{
+  --bg:#f1f5f9; --bg-base:#ffffff; --bg-muted:#f1f5f9; --bg-el:#ffffff;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#0f172a; --text-muted:#64748b; --text-dimmed:#94a3b8;
+  --primary:#16a34a; --primary-hover:#15803d; --primary-fg:#ffffff;
+  --primary-soft-bg:#dcfce7; --primary-soft-text:#15803d;
+  --success:#16a34a; --success-soft-bg:#dcfce7; --success-soft-text:#15803d;
+  --warning:#d97706; --error:#dc2626; --error-soft-bg:#fee2e2; --error-soft-text:#b91c1c;
+  --info:#2563eb; --info-soft-bg:#dbeafe; --info-soft-text:#1d4ed8;
+  --neutral-soft-bg:#eef2f6; --neutral-soft-text:#475569;
+  --ring:color-mix(in srgb, var(--primary) 28%, transparent);
+  --ring-error:color-mix(in srgb, var(--error) 25%, transparent);
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
+  --shadow-lg:0 18px 50px rgba(15,23,42,.2);
+}
+[data-theme="dark"]{
+  --bg:#020617; --bg-base:#0b1220; --bg-muted:#1e293b; --bg-el:#0f172a;
+  --border:#1e293b; --border-strong:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8; --text-dimmed:#64748b;
+  --primary:#22c55e; --primary-hover:#16a34a; --primary-fg:#052e16;
+  --primary-soft-bg:#14331f; --primary-soft-text:#4ade80;
+  --success:#22c55e; --success-soft-bg:#14331f; --success-soft-text:#4ade80;
+  --warning:#f59e0b; --error:#ef4444; --error-soft-bg:#3a1414; --error-soft-text:#f87171;
+  --info:#3b82f6; --info-soft-bg:#13243f; --info-soft-text:#60a5fa;
+  --neutral-soft-bg:#1e293b; --neutral-soft-text:#cbd5e1;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 18px 50px rgba(0,0,0,.6);
+}
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" data-theme="{{ theme }}" style="font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--text);">
+  <div style="position:relative;min-height:100vh;background:var(--bg);padding:24px 28px;">
+
+    <!-- top-right chrome -->
+    <div style="position:absolute;top:18px;right:22px;z-index:5;display:flex;align-items:center;gap:8px;">
+      <div style="display:flex;gap:2px;padding:3px;background:var(--bg-muted);border:1px solid var(--border);border-radius:9px;">
+        <button onClick="{{ setId }}" style="padding:5px 9px;font:600 12px Inter;color:{{ idFg }};background:{{ idBg }};border:none;border-radius:6px;cursor:pointer;">ID</button>
+        <button onClick="{{ setEn }}" style="padding:5px 9px;font:600 12px Inter;color:{{ enFg }};background:{{ enBg }};border:none;border-radius:6px;cursor:pointer;">EN</button>
+      </div>
+      <button onClick="{{ toggleTheme }}" title="Tema" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;color:var(--text-muted);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">
+        <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></sc-if>
+        <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></sc-if>
+      </button>
+    </div>
+
+    <!-- ===== Detail Aset (context) header ===== -->
+    <div style="max-width:820px;margin:0 auto;">
+      <div style="display:flex;align-items:center;gap:6px;font:400 12px Inter;color:var(--text-muted);margin-bottom:18px;"><span>Inventra</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span>Aset</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dimmed)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span style="color:var(--text);font-weight:500;">{{ asset.nama }}</span></div>
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:16px;min-width:0;">
+          <span style="width:56px;height:56px;border-radius:14px;background:var(--primary-soft-bg);color:var(--primary-soft-text);display:flex;align-items:center;justify-content:center;flex:none;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="11" rx="2"/><circle cx="14" cy="12.5" r="3"/><path d="M6 11h.01"/></svg></span>
+          <div style="min-width:0;">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><h1 style="margin:0;font:700 22px Inter;letter-spacing:-.02em;">{{ asset.nama }}</h1><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 11px;font:600 12px Inter;border-radius:999px;background:{{ stBg }};color:{{ stFg }};"><span style="width:7px;height:7px;border-radius:50%;background:{{ stDot }};"></span>{{ stLabel }}</span></div>
+            <div style="font:500 13px 'JetBrains Mono',monospace;color:var(--text-muted);margin-top:5px;">{{ asset.tag }}</div>
+          </div>
+        </div>
+        <!-- ACTION HEADER: trigger button -->
+        <div style="display:flex;align-items:center;gap:9px;">
+          <button style="display:inline-flex;align-items:center;gap:7px;padding:9px 14px;font:500 13.5px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>{{ detailLbl }}</button>
+          <div style="position:relative;" onMouseEnter="{{ tipOn }}" onMouseLeave="{{ tipOff }}">
+            <button onClick="{{ openModal }}" disabled="{{ triggerDisabled }}" style="display:inline-flex;align-items:center;gap:7px;padding:9px 16px;font:600 13.5px Inter;color:{{ triggerFg }};background:{{ triggerBg }};border:1px solid {{ triggerBg }};border-radius:9px;cursor:{{ triggerCursor }};opacity:{{ triggerOpacity }};" style-hover="background:{{ triggerHover }};"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>{{ triggerLbl }}</button>
+            <sc-if value="{{ tipShow }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;top:calc(100% + 8px);right:0;z-index:40;white-space:nowrap;padding:7px 11px;font:500 12px Inter;color:#fff;background:#0f172a;border-radius:8px;box-shadow:var(--shadow-lg);">{{ tipText }}<span style="position:absolute;top:-4px;right:22px;width:8px;height:8px;background:#0f172a;transform:rotate(45deg);"></span></div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+
+      <!-- status switch (demo control) -->
+      <div style="display:flex;align-items:center;gap:9px;margin-top:24px;padding:12px 15px;background:var(--bg-base);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);">
+        <span style="font:600 10px 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dimmed);">{{ demoLbl }}</span>
+        <div style="display:flex;gap:3px;padding:3px;background:var(--bg-muted);border-radius:8px;">
+          <sc-for list="{{ statusSeg }}" as="s" hint-placeholder-count="3"><button onClick="{{ s.on }}" style="padding:5px 11px;font:600 12px Inter;color:{{ s.fg }};background:{{ s.bg }};border:none;border-radius:6px;cursor:pointer;box-shadow:{{ s.sh }};">{{ s.label }}</button></sc-for>
+        </div>
+        <span style="font:400 12px Inter;color:var(--text-dimmed);">{{ demoHint }}</span>
+      </div>
+    </div>
+
+    <!-- ===== MODAL ===== -->
+    <sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeModal }}" style="position:fixed;inset:0;z-index:60;background:rgba(2,6,23,.5);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:24px;animation:overlayIn .15s ease-out;">
+        <div onClick="{{ stop }}" style="width:100%;max-width:460px;background:var(--bg-el);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-lg);overflow:hidden;animation:modalIn .18s cubic-bezier(.4,0,.2,1);">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 20px;border-bottom:1px solid var(--border);">
+            <div style="display:flex;align-items:center;gap:11px;"><span style="width:34px;height:34px;border-radius:9px;background:var(--primary-soft-bg);color:var(--primary-soft-text);display:flex;align-items:center;justify-content:center;flex:none;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg></span><div><div style="font:600 16px Inter;">{{ modalTitle }}</div><div style="font:400 12.5px Inter;color:var(--text-muted);margin-top:1px;">{{ modalSub }}</div></div></div>
+            <button onClick="{{ closeModal }}" style="display:flex;padding:5px;color:var(--text-muted);background:transparent;border:none;border-radius:7px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+          </div>
+
+          <div style="padding:20px;display:flex;flex-direction:column;gap:16px;max-height:70vh;overflow-y:auto;">
+            <!-- asset context (read-only, locked) -->
+            <div style="border:1px solid var(--border);border-radius:12px;background:var(--bg-muted);padding:14px;">
+              <div style="display:flex;align-items:center;gap:11px;margin-bottom:12px;">
+                <span style="width:38px;height:38px;border-radius:9px;background:var(--bg-base);color:var(--primary-soft-text);display:flex;align-items:center;justify-content:center;flex:none;border:1px solid var(--border);"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="11" rx="2"/><circle cx="14" cy="12.5" r="3"/><path d="M6 11h.01"/></svg></span>
+                <div style="flex:1;min-width:0;"><div style="font:600 14px Inter;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ asset.nama }}</div><div style="font:400 11.5px 'JetBrains Mono',monospace;color:var(--text-dimmed);">{{ asset.tag }}</div></div>
+                <span title="{{ lockedTip }}" style="display:flex;color:var(--text-dimmed);flex:none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px 16px;">
+                <div><div style="font:400 11px Inter;color:var(--text-muted);">{{ lKategori }}</div><div style="font:500 12.5px Inter;margin-top:1px;">{{ asset.kategori }}</div></div>
+                <div><div style="font:400 11px Inter;color:var(--text-muted);">{{ lKantor }}</div><div style="font:500 12.5px Inter;margin-top:1px;">{{ asset.kantor }}</div></div>
+                <div style="grid-column:1 / -1;"><div style="font:400 11px Inter;color:var(--text-muted);">{{ lLokasi }}</div><div style="font:500 12.5px Inter;margin-top:1px;">{{ asset.lokasi }}</div></div>
+              </div>
+            </div>
+
+            <div>
+              <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lTempo }}</label>
+              <input type="date" value="{{ fTempo }}" onInput="{{ onFTempo }}" style="width:100%;padding:9px 12px;font:400 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;outline:none;color-scheme:{{ scheme }};" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);" />
+              <div style="margin-top:5px;font:400 12px Inter;color:var(--text-dimmed);">{{ tempoHint }}</div>
+            </div>
+
+            <div>
+              <label style="display:block;font:500 13px Inter;margin-bottom:6px;">{{ lAlasan }} <span style="color:var(--error);">*</span></label>
+              <textarea value="{{ fAlasan }}" onInput="{{ onFAlasan }}" placeholder="{{ phAlasan }}" style="width:100%;min-height:80px;resize:vertical;padding:10px 12px;font:400 14px/1.5 Inter;color:var(--text);background:var(--bg-base);border:1px solid {{ alasanBorder }};border-radius:10px;outline:none;box-shadow:{{ alasanRing }};" style-focus="border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);"></textarea>
+              <sc-if value="{{ alasanErrShow }}" hint-placeholder-val="{{ false }}"><div style="margin-top:5px;display:flex;align-items:center;gap:5px;font:400 12px Inter;color:var(--error);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>{{ alasanErr }}</div></sc-if>
+            </div>
+
+            <div style="display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border-radius:11px;background:var(--primary-soft-bg);border:1px solid color-mix(in srgb,var(--primary) 24%,transparent);">
+              <span style="color:var(--primary-soft-text);flex:none;margin-top:1px;display:flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></span>
+              <span style="font:500 12.5px/1.5 Inter;color:var(--primary-soft-text);">{{ makerNote }}</span>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border);">
+            <button onClick="{{ closeModal }}" style="padding:10px 16px;font:500 14px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:10px;cursor:pointer;" style-hover="background:var(--bg-muted);">{{ cancelLbl }}</button>
+            <button onClick="{{ submit }}" style="display:inline-flex;align-items:center;gap:7px;padding:10px 18px;font:600 14px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:10px;cursor:{{ submitCursor }};opacity:{{ submitOpacity }};" style-hover="background:var(--primary-hover);">
+              <sc-if value="{{ submitting }}" hint-placeholder-val="{{ false }}"><span style="width:14px;height:14px;border:2px solid color-mix(in srgb,var(--primary-fg) 40%,transparent);border-top-color:var(--primary-fg);border-radius:50%;display:inline-block;animation:spin .7s linear infinite;"></span></sc-if>
+              <sc-if value="{{ notSubmitting }}" hint-placeholder-val="{{ true }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></sc-if>
+              {{ submitLbl }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===== TOAST ===== -->
+    <div style="position:fixed;bottom:24px;right:24px;z-index:70;display:flex;flex-direction:column;gap:10px;width:350px;max-width:calc(100vw - 48px);">
+      <sc-for list="{{ toasts }}" as="t" hint-placeholder-count="0">
+        <div style="display:flex;gap:11px;padding:13px 14px;border-radius:12px;background:var(--bg-el);border:1px solid var(--border);border-left:3px solid var(--success);box-shadow:var(--shadow-lg);animation:toastIn .2s ease-out;">
+          <span style="color:var(--success);flex:none;margin-top:1px;display:flex;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8.5 12 11 14.5 15.5 9.5"/></svg></span>
+          <div style="flex:1;min-width:0;"><div style="font:600 14px Inter;color:var(--text);">{{ t.title }}</div><div style="font:400 13px Inter;color:var(--text-muted);margin-top:1px;">{{ t.msg }}</div><button onClick="{{ t.close }}" style="margin-top:7px;display:inline-flex;align-items:center;gap:5px;font:600 12.5px Inter;color:var(--primary);background:transparent;border:none;cursor:pointer;padding:0;">{{ t.link }}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></button></div>
+          <button onClick="{{ t.close }}" style="padding:3px;color:var(--text-dimmed);background:transparent;border:none;border-radius:6px;cursor:pointer;flex:none;height:fit-content;" style-hover="color:var(--text);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        </div>
+      </sc-for>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;id&quot;,&quot;en&quot;],&quot;default&quot;:&quot;id&quot;,&quot;tsType&quot;:&quot;'id' | 'en'&quot;},&quot;status&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;tersedia&quot;,&quot;dipinjam&quot;,&quot;maintenance&quot;],&quot;default&quot;:&quot;tersedia&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;open&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;primaryColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#16a34a&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;$preview&quot;:{&quot;width&quot;:900,&quot;height&quot;:620}}">
+const L=(id,en)=>({id,en});
+const ST={
+  tersedia:{label:L('Tersedia','Available'),bg:'var(--success-soft-bg)',fg:'var(--success-soft-text)',dot:'var(--success)'},
+  dipinjam:{label:L('Dipinjam','In use'),bg:'var(--info-soft-bg)',fg:'var(--info-soft-text)',dot:'var(--info)'},
+  maintenance:{label:L('Maintenance','Maintenance'),bg:'var(--warning-soft-bg)',fg:'var(--warning-soft-text)',dot:'var(--warning)'},
+};
+const CH={
+  id:{ detailLbl:'Detail', triggerLbl:'Ajukan Peminjaman', tipText:'Hanya aset tersedia yang bisa dipinjam.',
+    demoLbl:'Status aset', demoHint:'Ubah untuk melihat tombol aktif/disabled.',
+    modalTitle:'Ajukan Peminjaman', modalSub:'Kirim permintaan peminjaman aset ini.',
+    lockedTip:'Aset terkunci dari konteks', lKategori:'Kategori', lKantor:'Kantor', lLokasi:'Lokasi',
+    lTempo:'Jatuh Tempo / Rencana Kembali', tempoHint:'Boleh dikosongkan bila belum pasti.',
+    lAlasan:'Alasan / Keperluan', phAlasan:'mis. Presentasi ke nasabah prioritas…', alasanErr:'Alasan wajib diisi.',
+    makerNote:'Peminjaman akan dikirim ke Manager untuk disetujui. Aset berpindah ke Anda setelah disetujui.',
+    cancelLbl:'Batal', submitLbl:'Kirim Pengajuan',
+    toastTitle:'Pengajuan peminjaman terkirim', toastMsg:'Menunggu persetujuan Manager.', toastLink:'Lihat di Peminjaman Saya' },
+  en:{ detailLbl:'Detail', triggerLbl:'Request Loan', tipText:'Only available assets can be borrowed.',
+    demoLbl:'Asset status', demoHint:'Change to see the button enabled/disabled.',
+    modalTitle:'Request Loan', modalSub:'Send a loan request for this asset.',
+    lockedTip:'Asset locked from context', lKategori:'Category', lKantor:'Office', lLokasi:'Location',
+    lTempo:'Due / Planned Return', tempoHint:'May be left empty if unsure.',
+    lAlasan:'Reason / Purpose', phAlasan:'e.g. Presentation to a priority client…', alasanErr:'Reason is required.',
+    makerNote:'The loan will be sent to your Manager for approval. The asset moves to you after approval.',
+    cancelLbl:'Cancel', submitLbl:'Send Request',
+    toastTitle:'Loan request submitted', toastMsg:'Awaiting Manager approval.', toastLink:'View in My Loans' },
+};
+const ASSET={ nama:'Proyektor Epson EB-X51', tag:'JKT01-ELK-2026-00002', kategori:L('Elektronik','Electronics'), kantor:'Cabang Jakarta Selatan', lokasi:L('Lantai 2 · Ruang Rapat','Floor 2 · Meeting Room') };
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef=React.createRef();
+    this.state={
+      theme:(props.theme==='dark'?'dark':'light'), lang:(props.lang==='en'?'en':'id'),
+      status:(props.status||'tersedia'),
+      modalOpen:(props.open==='true'||props.open===true), tipShow:false,
+      fTempo:'', fAlasan:'', alasanErr:false, submitting:false, toasts:[],
+    };
+    this._tt=false;this._tl=false;this._ts=false;this._tid=0;this._subT=null;this._lastThemeProp=props.theme;this._lastLangProp=props.lang;
+  }
+  componentDidMount(){ this.applyPrimary(); }
+  componentDidUpdate(){ this.applyPrimary();
+    if(this.props.theme!==this._lastThemeProp){ this._lastThemeProp=this.props.theme; this._tt=false; if(this.props.theme) this.setState({theme:this.props.theme}); }
+    if(this.props.lang!==this._lastLangProp){ this._lastLangProp=this.props.lang; this._tl=false; if(this.props.lang) this.setState({lang:this.props.lang}); }
+  }
+  componentWillUnmount(){ if(this._subT)clearTimeout(this._subT); }
+  applyPrimary(){ const c=this.props.primaryColor,el=this.rootRef.current; if(el&&c) el.style.setProperty('--primary',c); }
+  effTheme(){ return this._tt?this.state.theme:(this.props.theme||'light'); }
+  effLang(){ return this._tl?this.state.lang:(this.props.lang||'id'); }
+  effStatus(){ return this._ts?this.state.status:(this.props.status||'tersedia'); }
+  rmToast(id){ this.setState(s=>({toasts:s.toasts.filter(t=>t.id!==id)})); }
+  submit(){ if(this.state.submitting) return; const ch=CH[this.effLang()];
+    if(!this.state.fAlasan.trim()){ this.setState({alasanErr:true}); return; }
+    this.setState({submitting:true});
+    this._subT=setTimeout(()=>{ const id=++this._tid;
+      this.setState(s=>({submitting:false,modalOpen:false,fTempo:'',fAlasan:'',alasanErr:false,toasts:[...s.toasts,{id,title:ch.toastTitle,msg:ch.toastMsg,link:ch.toastLink}]}));
+      setTimeout(()=>this.rmToast(id),5000);
+    },900);
+  }
+  renderVals(){
+    const s=this.state; const theme=this.effTheme(),lang=this.effLang(); const status=this.effStatus();
+    const isDark=theme==='dark'; const ch=CH[lang]; const st=ST[status];
+    const available=status==='tersedia';
+    const tx=(o)=>o&&o.id!==undefined?o[lang]:o;
+
+    const statusSeg=['tersedia','dipinjam','maintenance'].map(k=>{ const act=status===k; return {
+      label:ST[k].label[lang], on:()=>{this._ts=true;this.setState({status:k});},
+      bg:act?'var(--bg-base)':'transparent', fg:act?'var(--text)':'var(--text-muted)', sh:act?'var(--shadow)':'none' };
+    });
+
+    return {
+      rootRef:this.rootRef, theme, isDark, isLight:!isDark, scheme:isDark?'dark':'light',
+      toggleTheme:()=>{this._tt=true;const cur=this.effTheme();this.setState({theme:cur==='light'?'dark':'light'});},
+      setId:()=>{this._tl=true;this.setState({lang:'id'});}, setEn:()=>{this._tl=true;this.setState({lang:'en'});},
+      idBg:lang==='id'?'var(--bg-base)':'transparent', idFg:lang==='id'?'var(--text)':'var(--text-muted)',
+      enBg:lang==='en'?'var(--bg-base)':'transparent', enFg:lang==='en'?'var(--text)':'var(--text-muted)',
+      asset:{nama:ASSET.nama,tag:ASSET.tag,kategori:tx(ASSET.kategori),kantor:ASSET.kantor,lokasi:tx(ASSET.lokasi)},
+      stLabel:st.label[lang], stBg:st.bg, stFg:st.fg, stDot:st.dot,
+      detailLbl:ch.detailLbl, triggerLbl:ch.triggerLbl,
+      triggerDisabled:!available, triggerBg:available?'var(--primary)':'var(--bg-muted)', triggerHover:available?'var(--primary-hover)':'var(--bg-muted)',
+      triggerFg:available?'var(--primary-fg)':'var(--text-dimmed)', triggerCursor:available?'pointer':'not-allowed', triggerOpacity:available?'1':'.7',
+      openModal:()=>{ if(available) this.setState({modalOpen:true,tipShow:false}); },
+      tipOn:()=>{ if(!available) this.setState({tipShow:true}); }, tipOff:()=>this.setState({tipShow:false}), tipShow:s.tipShow&&!available, tipText:ch.tipText,
+      demoLbl:ch.demoLbl, demoHint:ch.demoHint, statusSeg,
+      // modal
+      modalOpen:s.modalOpen, closeModal:()=>this.setState({modalOpen:false}), stop:(e)=>e.stopPropagation(),
+      modalTitle:ch.modalTitle, modalSub:ch.modalSub, lockedTip:ch.lockedTip, lKategori:ch.lKategori, lKantor:ch.lKantor, lLokasi:ch.lLokasi,
+      lTempo:ch.lTempo, tempoHint:ch.tempoHint, fTempo:s.fTempo, onFTempo:(e)=>this.setState({fTempo:e.target.value}),
+      lAlasan:ch.lAlasan, phAlasan:ch.phAlasan, fAlasan:s.fAlasan, onFAlasan:(e)=>this.setState({fAlasan:e.target.value,alasanErr:false}),
+      alasanBorder:s.alasanErr?'var(--error)':'var(--border-strong)', alasanRing:s.alasanErr?'0 0 0 3px var(--ring-error)':'none', alasanErrShow:s.alasanErr, alasanErr:ch.alasanErr,
+      makerNote:ch.makerNote, cancelLbl:ch.cancelLbl, submitLbl:ch.submitLbl,
+      submit:()=>this.submit(), submitting:s.submitting, notSubmitting:!s.submitting, submitCursor:s.submitting?'wait':'pointer', submitOpacity:s.submitting?'.85':'1',
+      toasts:s.toasts.map(t=>({title:t.title,msg:t.msg,link:t.link,close:()=>this.rmToast(t.id)})),
+    };
+  }
+}
+</script>
+</body>
+</html>
