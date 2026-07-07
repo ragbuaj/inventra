@@ -71,57 +71,6 @@ func (q *Queries) CreateOpnameSession(ctx context.Context, arg CreateOpnameSessi
 	return i, err
 }
 
-const getAssetByTagInOffice = `-- name: GetAssetByTagInOffice :one
-SELECT id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value FROM asset.assets
-WHERE asset_tag = $1 AND deleted_at IS NULL
-`
-
-func (q *Queries) GetAssetByTagInOffice(ctx context.Context, assetTag string) (AssetAsset, error) {
-	row := q.db.QueryRow(ctx, getAssetByTagInOffice, assetTag)
-	var i AssetAsset
-	err := row.Scan(
-		&i.ID,
-		&i.AssetTag,
-		&i.Name,
-		&i.CategoryID,
-		&i.BrandID,
-		&i.ModelID,
-		&i.RoomID,
-		&i.OfficeID,
-		&i.UnitID,
-		&i.Status,
-		&i.SerialNumber,
-		&i.PurchaseDate,
-		&i.PurchaseCost,
-		&i.VendorID,
-		&i.PoNumber,
-		&i.FundingSource,
-		&i.WarrantyExpiry,
-		&i.Specifications,
-		&i.AssetClass,
-		&i.Capitalized,
-		&i.DepreciationMethod,
-		&i.UsefulLifeMonths,
-		&i.SalvageValue,
-		&i.FiscalGroup,
-		&i.FiscalLifeMonths,
-		&i.AccumulatedDepreciation,
-		&i.BookValue,
-		&i.ImpairmentLoss,
-		&i.AcquisitionBastNo,
-		&i.CurrentHolderEmployeeID,
-		&i.ExcludedFromValuation,
-		&i.ValuationExclusionReason,
-		&i.CreatedByID,
-		&i.Notes,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.DeletedAt,
-		&i.ImpairedBookValue,
-	)
-	return i, err
-}
-
 const getOpnameItem = `-- name: GetOpnameItem :one
 SELECT id, session_id, asset_id, expected, result, counted_by_id, counted_at, note, created_at, updated_at, deleted_at, followup_request_id FROM stockopname.stock_opname_items
 WHERE id = $1 AND session_id = $2 AND deleted_at IS NULL
@@ -188,9 +137,9 @@ const getOpnameSession = `-- name: GetOpnameSession :one
 SELECT s.id, s.office_id, s.name, s.period, s.status, s.started_by_id, s.started_at, s.closed_by_id, s.closed_at, s.created_at, s.updated_at, s.deleted_at, o.name AS office_name,
        su.name AS started_by_name, cu.name AS closed_by_name
 FROM stockopname.stock_opname_sessions s
-LEFT JOIN masterdata.offices o ON o.id = s.office_id
-LEFT JOIN identity.users su ON su.id = s.started_by_id
-LEFT JOIN identity.users cu ON cu.id = s.closed_by_id
+LEFT JOIN masterdata.offices o ON o.id = s.office_id AND o.deleted_at IS NULL
+LEFT JOIN identity.users su ON su.id = s.started_by_id AND su.deleted_at IS NULL
+LEFT JOIN identity.users cu ON cu.id = s.closed_by_id AND cu.deleted_at IS NULL
 WHERE s.id = $1 AND s.deleted_at IS NULL
   AND ($2::boolean OR s.office_id = ANY($3::uuid[]))
 `
@@ -232,6 +181,7 @@ func (q *Queries) GetOpnameSession(ctx context.Context, arg GetOpnameSessionPara
 }
 
 const insertUnexpectedItem = `-- name: InsertUnexpectedItem :one
+
 INSERT INTO stockopname.stock_opname_items (session_id, asset_id, expected, result)
 VALUES ($1, $2, false, 'pending')
 ON CONFLICT (session_id, asset_id) WHERE deleted_at IS NULL DO NOTHING
@@ -243,6 +193,8 @@ type InsertUnexpectedItemParams struct {
 	AssetID   uuid.UUID `json:"asset_id"`
 }
 
+// (scan reuses assets.sql GetAssetByTag; scope enforced in the service)
+// NOTE: :one + ON CONFLICT DO NOTHING → a conflict returns pgx.ErrNoRows (no row inserted); the caller treats that as "already present".
 func (q *Queries) InsertUnexpectedItem(ctx context.Context, arg InsertUnexpectedItemParams) (StockopnameStockOpnameItem, error) {
 	row := q.db.QueryRow(ctx, insertUnexpectedItem, arg.SessionID, arg.AssetID)
 	var i StockopnameStockOpnameItem
@@ -268,11 +220,11 @@ SELECT it.id, it.session_id, it.asset_id, it.expected, it.result, it.counted_by_
        o.name AS office_name, rm.name AS room_name, fl.name AS floor_name,
        cu.name AS counted_by_name
 FROM stockopname.stock_opname_items it
-LEFT JOIN asset.assets a ON a.id = it.asset_id
-LEFT JOIN masterdata.offices o ON o.id = a.office_id
-LEFT JOIN masterdata.rooms rm ON rm.id = a.room_id
-LEFT JOIN masterdata.floors fl ON fl.id = rm.floor_id
-LEFT JOIN identity.users cu ON cu.id = it.counted_by_id
+LEFT JOIN asset.assets a ON a.id = it.asset_id AND a.deleted_at IS NULL
+LEFT JOIN masterdata.offices o ON o.id = a.office_id AND o.deleted_at IS NULL
+LEFT JOIN masterdata.rooms rm ON rm.id = a.room_id AND rm.deleted_at IS NULL
+LEFT JOIN masterdata.floors fl ON fl.id = rm.floor_id AND fl.deleted_at IS NULL
+LEFT JOIN identity.users cu ON cu.id = it.counted_by_id AND cu.deleted_at IS NULL
 WHERE it.session_id = $1 AND it.deleted_at IS NULL
   AND ($2::shared.opname_item_result IS NULL OR it.result = $2)
 ORDER BY a.name
@@ -335,7 +287,7 @@ func (q *Queries) ListOpnameItemsEnriched(ctx context.Context, arg ListOpnameIte
 const listOpnameSessions = `-- name: ListOpnameSessions :many
 SELECT s.id, s.office_id, s.name, s.period, s.status, s.started_by_id, s.started_at, s.closed_by_id, s.closed_at, s.created_at, s.updated_at, s.deleted_at, o.name AS office_name
 FROM stockopname.stock_opname_sessions s
-LEFT JOIN masterdata.offices o ON o.id = s.office_id
+LEFT JOIN masterdata.offices o ON o.id = s.office_id AND o.deleted_at IS NULL
 WHERE s.deleted_at IS NULL
   AND ($1::boolean OR s.office_id = ANY($2::uuid[]))
   AND ($3::shared.opname_session_status IS NULL OR s.status = $3)

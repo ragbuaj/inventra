@@ -15,16 +15,16 @@ WHERE a.office_id = sqlc.arg(office_id)
 SELECT sqlc.embed(s), o.name AS office_name,
        su.name AS started_by_name, cu.name AS closed_by_name
 FROM stockopname.stock_opname_sessions s
-LEFT JOIN masterdata.offices o ON o.id = s.office_id
-LEFT JOIN identity.users su ON su.id = s.started_by_id
-LEFT JOIN identity.users cu ON cu.id = s.closed_by_id
+LEFT JOIN masterdata.offices o ON o.id = s.office_id AND o.deleted_at IS NULL
+LEFT JOIN identity.users su ON su.id = s.started_by_id AND su.deleted_at IS NULL
+LEFT JOIN identity.users cu ON cu.id = s.closed_by_id AND cu.deleted_at IS NULL
 WHERE s.id = sqlc.arg(id) AND s.deleted_at IS NULL
   AND (sqlc.arg(all_scope)::boolean OR s.office_id = ANY(sqlc.arg(office_ids)::uuid[]));
 
 -- name: ListOpnameSessions :many
 SELECT sqlc.embed(s), o.name AS office_name
 FROM stockopname.stock_opname_sessions s
-LEFT JOIN masterdata.offices o ON o.id = s.office_id
+LEFT JOIN masterdata.offices o ON o.id = s.office_id AND o.deleted_at IS NULL
 WHERE s.deleted_at IS NULL
   AND (sqlc.arg(all_scope)::boolean OR s.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
   AND (sqlc.narg(status)::shared.opname_session_status IS NULL OR s.status = sqlc.narg(status))
@@ -60,11 +60,11 @@ SELECT sqlc.embed(it), a.name AS asset_name, a.asset_tag AS asset_tag,
        o.name AS office_name, rm.name AS room_name, fl.name AS floor_name,
        cu.name AS counted_by_name
 FROM stockopname.stock_opname_items it
-LEFT JOIN asset.assets a ON a.id = it.asset_id
-LEFT JOIN masterdata.offices o ON o.id = a.office_id
-LEFT JOIN masterdata.rooms rm ON rm.id = a.room_id
-LEFT JOIN masterdata.floors fl ON fl.id = rm.floor_id
-LEFT JOIN identity.users cu ON cu.id = it.counted_by_id
+LEFT JOIN asset.assets a ON a.id = it.asset_id AND a.deleted_at IS NULL
+LEFT JOIN masterdata.offices o ON o.id = a.office_id AND o.deleted_at IS NULL
+LEFT JOIN masterdata.rooms rm ON rm.id = a.room_id AND rm.deleted_at IS NULL
+LEFT JOIN masterdata.floors fl ON fl.id = rm.floor_id AND fl.deleted_at IS NULL
+LEFT JOIN identity.users cu ON cu.id = it.counted_by_id AND cu.deleted_at IS NULL
 WHERE it.session_id = sqlc.arg(session_id) AND it.deleted_at IS NULL
   AND (sqlc.narg(result)::shared.opname_item_result IS NULL OR it.result = sqlc.narg(result))
 ORDER BY a.name;
@@ -92,10 +92,9 @@ JOIN asset.assets a ON a.id = it.asset_id
 WHERE it.session_id = sqlc.arg(session_id) AND it.deleted_at IS NULL
   AND a.asset_tag = sqlc.arg(asset_tag);
 
--- name: GetAssetByTagInOffice :one
-SELECT * FROM asset.assets
-WHERE asset_tag = sqlc.arg(asset_tag) AND deleted_at IS NULL;
+-- (scan reuses assets.sql GetAssetByTag; scope enforced in the service)
 
+-- NOTE: :one + ON CONFLICT DO NOTHING → a conflict returns pgx.ErrNoRows (no row inserted); the caller treats that as "already present".
 -- name: InsertUnexpectedItem :one
 INSERT INTO stockopname.stock_opname_items (session_id, asset_id, expected, result)
 VALUES (sqlc.arg(session_id), sqlc.arg(asset_id), false, 'pending')

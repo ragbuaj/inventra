@@ -68,7 +68,6 @@ type Querier interface {
 	GetAppSetting(ctx context.Context, key string) (string, error)
 	GetAsset(ctx context.Context, id uuid.UUID) (AssetAsset, error)
 	GetAssetByTag(ctx context.Context, assetTag string) (AssetAsset, error)
-	GetAssetByTagInOffice(ctx context.Context, assetTag string) (AssetAsset, error)
 	GetAssetDocument(ctx context.Context, id uuid.UUID) (AssetAssetDocument, error)
 	// Row-locked read for RecordImpairment's read-modify-write (precedent:
 	// approval.sql GetRequestForUpdate): a second concurrent impairment blocks
@@ -129,6 +128,8 @@ type Querier interface {
 	InsertDepreciationEntry(ctx context.Context, arg InsertDepreciationEntryParams) error
 	InsertFieldPermission(ctx context.Context, arg InsertFieldPermissionParams) (IdentityFieldPermission, error)
 	InsertRolePermission(ctx context.Context, arg InsertRolePermissionParams) (IdentityRolePermission, error)
+	// (scan reuses assets.sql GetAssetByTag; scope enforced in the service)
+	// NOTE: :one + ON CONFLICT DO NOTHING → a conflict returns pgx.ErrNoRows (no row inserted); the caller treats that as "already present".
 	InsertUnexpectedItem(ctx context.Context, arg InsertUnexpectedItemParams) (StockopnameStockOpnameItem, error)
 	LastClosedPeriod(ctx context.Context) (pgtype.Date, error)
 	LastEntryAtOrBefore(ctx context.Context, arg LastEntryAtOrBeforeParams) (DepreciationDepreciationEntry, error)
