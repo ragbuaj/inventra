@@ -57,7 +57,8 @@ SELECT count(*) FROM approval.requests
 WHERE deleted_at IS NULL
   AND (sqlc.arg(all_scope)::boolean OR office_id = ANY(sqlc.arg(office_ids)::uuid[]))
   AND (sqlc.narg(status)::shared.request_status IS NULL OR status = sqlc.narg(status))
-  AND (sqlc.narg(type)::shared.request_type IS NULL OR type = sqlc.narg(type));
+  AND (sqlc.narg(type)::shared.request_type IS NULL OR type = sqlc.narg(type))
+  AND (sqlc.narg(requested_by)::uuid IS NULL OR requested_by_id = sqlc.narg(requested_by));
 
 -- name: SetRequestDecision :one
 UPDATE approval.requests SET status=$2, decided_by_id=$3, decision_note=$4, decided_at=now()
@@ -115,6 +116,7 @@ WHERE r.deleted_at IS NULL
   AND (sqlc.arg(all_scope)::boolean OR r.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
   AND (sqlc.narg(status)::shared.request_status IS NULL OR r.status = sqlc.narg(status))
   AND (sqlc.narg(type)::shared.request_type IS NULL OR r.type = sqlc.narg(type))
+  AND (sqlc.narg(requested_by)::uuid IS NULL OR r.requested_by_id = sqlc.narg(requested_by))
 ORDER BY r.created_at DESC
 LIMIT sqlc.arg(lim) OFFSET sqlc.arg(off);
 

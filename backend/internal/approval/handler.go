@@ -207,9 +207,18 @@ func (h *Handler) list(c *gin.Context) {
 		common.WriteError(c, err)
 		return
 	}
+	var requestedBy *uuid.UUID
+	if c.Query("mine") == "true" {
+		// Own submitted requests: filter by requester and bypass office scope
+		// (a caller can always see their own requests regardless of scope config).
+		if uid, perr := uuid.Parse(c.GetString(middleware.CtxUserID)); perr == nil {
+			requestedBy = &uid
+			all, ids = true, nil
+		}
+	}
 	limit := common.ClampInt(c.Query("limit"), 20, 1, 100)
 	offset := common.ClampInt(c.Query("offset"), 0, 0, 1<<30)
-	rows, total, err := h.svc.List(c, all, ids, c.Query("status"), c.Query("type"), limit, offset)
+	rows, total, err := h.svc.List(c, all, ids, c.Query("status"), c.Query("type"), limit, offset, requestedBy)
 	if err != nil {
 		h.svcError(c, err)
 		return
