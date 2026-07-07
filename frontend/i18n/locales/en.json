@@ -570,7 +570,8 @@
       "emptySub": "All assets reconciled cleanly.",
       "followupDisposal": "Request Disposal",
       "followupTransfer": "Request Transfer",
-      "followupMaintenance": "Report Damage"
+      "followupMaintenance": "Report Damage",
+      "comingSoon": "Coming soon"
     },
     "followup": {
       "title": "Request Transfer — Misplaced Asset",
@@ -605,6 +606,18 @@
     "progress": "{a}/{b} checked",
     "submitSuccess": "Stock-take session \"{name}\" was created.",
     "noManagePermission": "You do not have permission to manage stock-take.",
+    "startAction": "Start",
+    "reconcileAction": "Reconcile",
+    "exportAction": "Report",
+    "allRooms": "All Rooms",
+    "allResults": "All Results",
+    "searchPlaceholder": "Search asset…",
+    "itemsNoMatch": "No matching item.",
+    "column": {
+      "asset": "Asset",
+      "location": "Recorded Location",
+      "result": "Result"
+    },
     "error": {
       "loadFailed": "Failed to load stock-take data.",
       "sessionNotFound": "Stock-take session not found.",

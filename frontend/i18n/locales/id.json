@@ -570,7 +570,8 @@
       "emptySub": "Semua aset tercocokkan dengan baik.",
       "followupDisposal": "Ajukan Penghapusan",
       "followupTransfer": "Ajukan Mutasi",
-      "followupMaintenance": "Laporkan Kerusakan"
+      "followupMaintenance": "Laporkan Kerusakan",
+      "comingSoon": "Segera hadir"
     },
     "followup": {
       "title": "Ajukan Mutasi — Aset Salah Lokasi",
@@ -605,6 +606,18 @@
     "progress": "{a}/{b} dicek",
     "submitSuccess": "Sesi opname \"{name}\" berhasil dibuat.",
     "noManagePermission": "Anda tidak punya izin untuk mengelola stock opname.",
+    "startAction": "Mulai",
+    "reconcileAction": "Rekonsiliasi",
+    "exportAction": "Berita Acara",
+    "allRooms": "Semua Ruangan",
+    "allResults": "Semua Hasil",
+    "searchPlaceholder": "Cari aset…",
+    "itemsNoMatch": "Tidak ada item yang cocok.",
+    "column": {
+      "asset": "Aset",
+      "location": "Lokasi Tercatat",
+      "result": "Hasil"
+    },
     "error": {
       "loadFailed": "Gagal memuat data stock opname.",
       "sessionNotFound": "Sesi opname tidak ditemukan.",
