@@ -4,6 +4,7 @@ import type { AssetDepreciationEntry, AssetDepreciationResponse } from '~/compos
 import { classMeta } from '~/constants/assetMeta'
 import { BASIS_META, type DepreciationBasis } from '~/constants/depreciationMeta'
 import { formatRupiah } from '~/utils/format'
+import { useCan } from '~/composables/useCan'
 
 definePageMeta({ middleware: 'can', permission: 'asset.view' })
 
@@ -13,6 +14,7 @@ const { t } = useI18n()
 const route = useRoute()
 const toast = useToast()
 const localePath = useLocalePath()
+const can = useCan()
 
 const assetsApi = useAssets()
 const attachmentsApi = useAssetAttachments()
@@ -209,6 +211,28 @@ function comingSoon() {
   toast.add({ title: t('assets.comingSoon'), color: 'neutral', icon: 'i-lucide-info' })
 }
 
+// ---------------------------------------------------------------------------
+// Ajukan Peminjaman (Task 13) — trigger + locked-asset modal
+// ---------------------------------------------------------------------------
+const borrowOpen = ref(false)
+
+const borrowAsset = computed(() => {
+  const a = asset.value
+  if (!a) return null
+  return {
+    id: a.id,
+    name: a.name,
+    asset_tag: a.asset_tag,
+    category: name(a.category_id, categoryMap.value),
+    office: name(a.office_id, officeMap.value),
+    location: roomLabel.value
+  }
+})
+
+function onBorrowSubmitted() {
+  borrowOpen.value = false
+}
+
 // Guards against a stale, out-of-order response overwriting a newer load
 // (e.g. a fast route-param change re-triggers the fetch). `mine` is threaded
 // into every downstream async helper (loadLookups/resolveRoom/loadGallery) so
@@ -390,6 +414,17 @@ onUnmounted(() => {
           </div>
         </div>
         <div class="flex items-center gap-2.5 flex-wrap">
+          <span
+            v-if="can('request.create')"
+            :title="asset.status !== 'available' ? t('peminjaman.action.borrowDisabled') : undefined"
+          >
+            <UButton
+              icon="i-lucide-hand"
+              :label="t('peminjaman.action.borrow')"
+              :disabled="asset.status !== 'available'"
+              @click="borrowOpen = true"
+            />
+          </span>
           <UButton
             icon="i-lucide-pencil"
             :label="t('common.edit')"
@@ -689,5 +724,11 @@ onUnmounted(() => {
         </div>
       </div>
     </template>
+
+    <AssignmentAjukanPeminjamanModal
+      v-model:open="borrowOpen"
+      :asset="borrowAsset"
+      @submitted="onBorrowSubmitted"
+    />
   </div>
 </template>

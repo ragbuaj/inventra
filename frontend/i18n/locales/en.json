@@ -275,6 +275,10 @@
     "title": "Asset Loans",
     "subtitle": "Request to borrow an asset and track its status.",
     "infoBanner": "The loan will be sent to your Manager for approval. The asset moves to you only after approval.",
+    "action": {
+      "borrow": "Request Borrow",
+      "borrowDisabled": "Only available assets can be borrowed"
+    },
     "form": {
       "title": "Request a Loan",
       "subtitle": "Pick an available asset and state your purpose.",

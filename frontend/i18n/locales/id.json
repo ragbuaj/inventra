@@ -275,6 +275,10 @@
     "title": "Peminjaman Aset",
     "subtitle": "Ajukan peminjaman aset dan pantau statusnya.",
     "infoBanner": "Peminjaman akan dikirim ke Manager untuk disetujui. Aset baru berpindah ke Anda setelah disetujui.",
+    "action": {
+      "borrow": "Ajukan Peminjaman",
+      "borrowDisabled": "Hanya aset tersedia yang bisa dipinjam"
+    },
     "form": {
       "title": "Ajukan Peminjaman",
       "subtitle": "Pilih aset tersedia dan sampaikan keperluan Anda.",
