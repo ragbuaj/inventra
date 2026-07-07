@@ -337,6 +337,9 @@
       "total": "Total {n} pengajuan",
       "emptyTitle": "Belum ada pengajuan peminjaman",
       "emptySub": "Ajukan peminjaman aset melalui form di atas."
+    },
+    "timeline": {
+      "submitted": "Diajukan oleh saya"
     }
   },
   "transfer": {

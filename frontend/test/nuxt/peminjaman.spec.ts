@@ -326,4 +326,54 @@ describe('Peminjaman page — Pengajuan Peminjaman Saya list', () => {
     await flushPromises()
     expect(approvalGetMock).not.toHaveBeenCalled()
   })
+
+  it('prepends a synthesized "Diajukan oleh saya" entry built from the detail requester/date, before the approval steps', async () => {
+    approvalGetMock.mockResolvedValueOnce(detail({
+      requested_by_name: 'Andi Saputra',
+      requested_by_role: 'Staf',
+      created_at: '2026-07-06T09:00:00Z',
+      status: 'approved',
+      steps: [
+        { step_order: 1, required_level: 'manager', approver_id: 'u2', approver_name: 'Rina Putri', decision: 'approved', note: null, decided_at: '2026-07-02T09:14:00Z' }
+      ]
+    }))
+    const wrapper = await mountAndWait()
+
+    await wrapper.find('[data-testid="peminjaman-row-req1"]').trigger('click')
+    await flushPromises()
+
+    const submittedEntry = wrapper.find('[data-testid="peminjaman-timeline-submitted-req1"]')
+    expect(submittedEntry.exists()).toBe(true)
+    expect(submittedEntry.text()).toContain('Diajukan oleh saya')
+    expect(submittedEntry.text()).toContain('Andi Saputra (Staf)')
+    expect(submittedEntry.text()).toContain('6 Jul 2026')
+
+    // The synthesized entry must appear before the real approval step in DOM order.
+    const timeline = wrapper.find('[data-testid="peminjaman-timeline-req1"]')
+    const submittedIdx = timeline.html().indexOf('Diajukan oleh saya')
+    const stepIdx = timeline.html().indexOf('Rina Putri')
+    expect(submittedIdx).toBeGreaterThanOrEqual(0)
+    expect(stepIdx).toBeGreaterThan(submittedIdx)
+  })
+
+  it('shows the resolved asset name after the async lookup settles', async () => {
+    assetsGetMock.mockResolvedValueOnce(asset({ id: 'as1', name: 'Laptop Dell Latitude 5440', asset_tag: 'JKT01-ELK-2026-00001' }))
+    const wrapper = await mountAndWait()
+
+    expect(assetsGetMock).toHaveBeenCalledWith('as1')
+    const row = wrapper.find('[data-testid="peminjaman-row-req1"]')
+    expect(row.text()).toContain('Laptop Dell Latitude 5440')
+  })
+
+  it('falls back to the id/tag without crashing when the asset lookup rejects (e.g. 403 out of scope)', async () => {
+    assetsGetMock.mockReset()
+    assetsGetMock.mockRejectedValueOnce(new Error('403 Forbidden'))
+    const wrapper = await mountAndWait()
+
+    expect(assetsGetMock).toHaveBeenCalledWith('as1')
+    const row = wrapper.find('[data-testid="peminjaman-row-req1"]')
+    // Falls back to showing the raw asset id (target_id) — no name resolved, no thrown error.
+    expect(row.text()).toContain('as1')
+    expect(row.text()).not.toContain('Laptop Dell Latitude 5440')
+  })
 })

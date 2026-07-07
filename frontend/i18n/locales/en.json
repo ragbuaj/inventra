@@ -337,6 +337,9 @@
       "total": "Total {n} requests",
       "emptyTitle": "No loan requests yet",
       "emptySub": "Submit an asset loan using the form above."
+    },
+    "timeline": {
+      "submitted": "Submitted by me"
     }
   },
   "transfer": {

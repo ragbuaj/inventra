@@ -3,7 +3,12 @@ import type { AvailableAsset } from '~/composables/api/useAssignment'
 import type { ApprovalStep } from '~/composables/api/useApproval'
 import type { BadgeColor } from '~/types'
 import type { RequestStatus } from '~/constants/assignmentMeta'
-import { REQUEST_STATUS_TONE } from '~/constants/assignmentMeta'
+import { REQUEST_STATUS_TONE, formatDateID } from '~/constants/assignmentMeta'
+
+interface TimelineEntry {
+  label: string
+  meta: string
+}
 
 definePageMeta({ middleware: 'can', permission: 'request.create' })
 
@@ -97,6 +102,7 @@ const loading = ref(true)
 const loadError = ref(false)
 const openId = ref<string | null>(null)
 const timelineCache = ref(new Map<string, ApprovalStep[]>())
+const submittedEntryCache = ref(new Map<string, TimelineEntry>())
 const timelineLoading = ref(new Set<string>())
 // Best-effort asset name/tag resolution: the `mine` request list carries only
 // target_id (no name/tag enrichment server-side — see task-12-report.md
@@ -192,6 +198,12 @@ async function toggleRow(id: string) {
   try {
     const detail = await approvalApi.get(id)
     timelineCache.value.set(id, detail.steps)
+    submittedEntryCache.value.set(id, {
+      label: t('peminjaman.timeline.submitted'),
+      meta: detail.requested_by_role
+        ? `${detail.requested_by_name} (${detail.requested_by_role}) · ${formatDateID(detail.created_at)}`
+        : `${detail.requested_by_name} · ${formatDateID(detail.created_at)}`
+    })
     const aid = detail.payload?.asset_id as string | undefined ?? detail.target_id ?? undefined
     if (aid && !assetNameCache.value.has(aid)) await resolveAssetName(aid)
   } catch {
@@ -203,6 +215,10 @@ async function toggleRow(id: string) {
 
 function timelineFor(id: string): ApprovalStep[] {
   return timelineCache.value.get(id) ?? []
+}
+
+function submittedEntryFor(id: string): TimelineEntry | null {
+  return submittedEntryCache.value.get(id) ?? null
 }
 
 async function cancelRequest(id: string) {
@@ -523,7 +539,7 @@ onMounted(async () => {
                     <USkeleton class="h-4 w-1/2 rounded" />
                   </div>
                   <div
-                    v-else-if="timelineFor(row.id).length === 0"
+                    v-else-if="!submittedEntryFor(row.id) && timelineFor(row.id).length === 0"
                     class="text-[12.5px] text-dimmed"
                   >
                     {{ t('peminjaman.list.timelineEmpty') }}
@@ -532,6 +548,26 @@ onMounted(async () => {
                     v-else
                     class="flex flex-col gap-3"
                   >
+                    <div
+                      v-if="submittedEntryFor(row.id)"
+                      class="flex gap-3"
+                      :data-testid="`peminjaman-timeline-submitted-${row.id}`"
+                    >
+                      <span class="size-[22px] rounded-full bg-info text-inverted flex items-center justify-center flex-none">
+                        <UIcon
+                          name="i-lucide-user"
+                          class="size-3"
+                        />
+                      </span>
+                      <div class="min-w-0 flex-1">
+                        <div class="text-[13px] font-semibold">
+                          {{ submittedEntryFor(row.id)?.label }}
+                        </div>
+                        <div class="text-xs text-muted mt-px">
+                          {{ submittedEntryFor(row.id)?.meta }}
+                        </div>
+                      </div>
+                    </div>
                     <div
                       v-for="(step, i) in timelineFor(row.id)"
                       :key="i"
