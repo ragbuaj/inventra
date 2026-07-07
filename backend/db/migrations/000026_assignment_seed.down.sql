@@ -1,3 +1,4 @@
+DELETE FROM identity.data_scope_policies WHERE module = 'assignments';
 DELETE FROM approval.approval_thresholds WHERE request_type = 'assignment';
 DELETE FROM identity.role_permissions
 WHERE permission_key = 'assignment.view'
