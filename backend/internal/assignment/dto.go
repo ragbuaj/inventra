@@ -69,7 +69,9 @@ func toResponse(a sqlc.AssignmentAssignment) map[string]any {
 }
 
 // enrichAssignmentMap adds resolved display names to a serialized assignment.
-func enrichAssignmentMap(m map[string]any, assetName, assetTag, employeeName, assignedByName, officeName *string) map[string]any {
+// assetName/assetTag are always populated (asset FK is NOT NULL); the rest are
+// nullable (employee/assigned-by/office display names).
+func enrichAssignmentMap(m map[string]any, assetName, assetTag string, employeeName, assignedByName, officeName *string) map[string]any {
 	m["asset_name"] = assetName
 	m["asset_tag"] = assetTag
 	m["employee_name"] = employeeName
