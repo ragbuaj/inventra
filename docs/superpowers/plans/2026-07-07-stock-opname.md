@@ -41,18 +41,18 @@
 
 ---
 
-## Task 1: Migration `000024_stockopname_followup`
+## Task 1: Migration `000025_stockopname_followup`
 
 **Files:**
-- Create: `backend/db/migrations/000024_stockopname_followup.up.sql`
-- Create: `backend/db/migrations/000024_stockopname_followup.down.sql`
+- Create: `backend/db/migrations/000025_stockopname_followup.up.sql`
+- Create: `backend/db/migrations/000025_stockopname_followup.down.sql`
 
 **Interfaces:**
 - Produces: column `stockopname.stock_opname_items.followup_request_id uuid` (nullable FK → `approval.requests(id)`); permission keys `stockopname.view`/`stockopname.manage` in `identity.role_permissions`; `data_scope_policies` rows for module `'stockopname'`.
 
 - [ ] **Step 1: Write the up migration**
 
-`backend/db/migrations/000024_stockopname_followup.up.sql`:
+`backend/db/migrations/000025_stockopname_followup.up.sql`:
 ```sql
 -- Traceability: link a variance item to the approval request generated from it.
 ALTER TABLE stockopname.stock_opname_items
@@ -83,7 +83,7 @@ ON CONFLICT DO NOTHING;
 
 - [ ] **Step 2: Write the down migration**
 
-`backend/db/migrations/000024_stockopname_followup.down.sql`:
+`backend/db/migrations/000025_stockopname_followup.down.sql`:
 ```sql
 DELETE FROM identity.data_scope_policies WHERE module = 'stockopname';
 DELETE FROM identity.role_permissions WHERE permission_key IN ('stockopname.view', 'stockopname.manage');
@@ -113,8 +113,8 @@ Expected: `followup_request_id` listed; both permission keys returned; module `s
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/db/migrations/000024_stockopname_followup.up.sql backend/db/migrations/000024_stockopname_followup.down.sql
-git commit -m "feat(db): stock opname follow-up link + permissions + data-scope (000024)"
+git add backend/db/migrations/000025_stockopname_followup.up.sql backend/db/migrations/000025_stockopname_followup.down.sql
+git commit -m "feat(db): stock opname follow-up link + permissions + data-scope (000025)"
 ```
 
 ---

@@ -45,7 +45,7 @@ Enums (migration `000002`):
 
 ---
 
-## 3. New migration — `000024_stockopname_followup`
+## 3. New migration — `000025_stockopname_followup`
 
 1. **Column** `stockopname.stock_opname_items.followup_request_id uuid` (nullable, FK → `approval.requests(id)`) — traceability: which approval request was generated from a variance item; lets the variance panel show "sudah diajukan" and prevents duplicate follow-ups.
 2. **Seed permissions** `stockopname.view` / `stockopname.manage` into `identity.role_permissions` (Superadmin full; Kepala/Manager scoped; Staf none) — matching the depreciation seed pattern in `000023` and the PRD "Kelola stock opname" role row.
