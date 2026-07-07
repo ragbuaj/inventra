@@ -202,3 +202,94 @@ func (s *Service) Transition(ctx context.Context, caller approval.Caller, id uui
 	}
 	return out, nil
 }
+
+// SetItemResult records a counted result for one item. Only allowed while the
+// session is 'counting'; stamps counted_by/at.
+func (s *Service) SetItemResult(ctx context.Context, caller approval.Caller, sessionID, itemID uuid.UUID, result sqlc.SharedOpnameItemResult, note *string) (sqlc.StockopnameStockOpnameItem, error) {
+	sess, _, err := s.GetSession(ctx, caller, sessionID)
+	if err != nil {
+		return sqlc.StockopnameStockOpnameItem{}, err
+	}
+	if sess.StockopnameStockOpnameSession.Status != sqlc.SharedOpnameSessionStatusCounting {
+		return sqlc.StockopnameStockOpnameItem{}, ErrInvalidState
+	}
+
+	row, err := s.q.SetOpnameItemResult(ctx, sqlc.SetOpnameItemResultParams{
+		ID:          itemID,
+		SessionID:   sessionID,
+		Result:      result,
+		Note:        note,
+		CountedByID: &caller.UserID,
+	})
+	if err != nil {
+		return sqlc.StockopnameStockOpnameItem{}, mapDBError(err)
+	}
+	return row, nil
+}
+
+// Scan resolves a scanned asset tag against an in-progress session: returns
+// the matching item if it's already in the session, or — for an in-scope
+// asset not yet in the snapshot — inserts and returns a new expected=false
+// item. Only allowed while the session is 'counting'.
+func (s *Service) Scan(ctx context.Context, caller approval.Caller, sessionID uuid.UUID, tag string) (sqlc.StockopnameStockOpnameItem, error) {
+	sess, _, err := s.GetSession(ctx, caller, sessionID)
+	if err != nil {
+		return sqlc.StockopnameStockOpnameItem{}, err
+	}
+	if sess.StockopnameStockOpnameSession.Status != sqlc.SharedOpnameSessionStatusCounting {
+		return sqlc.StockopnameStockOpnameItem{}, ErrInvalidState
+	}
+
+	item, err := s.q.GetOpnameItemByTag(ctx, sqlc.GetOpnameItemByTagParams{SessionID: sessionID, AssetTag: tag})
+	if err == nil {
+		return item, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return sqlc.StockopnameStockOpnameItem{}, mapDBError(err)
+	}
+
+	asset, err := s.q.GetAssetByTag(ctx, tag)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return sqlc.StockopnameStockOpnameItem{}, ErrNoItem
+		}
+		return sqlc.StockopnameStockOpnameItem{}, mapDBError(err)
+	}
+	if !common.InScope(caller.AllScope, caller.OfficeIDs, asset.OfficeID) {
+		return sqlc.StockopnameStockOpnameItem{}, ErrOutOfScope
+	}
+
+	inserted, err := s.q.InsertUnexpectedItem(ctx, sqlc.InsertUnexpectedItemParams{SessionID: sessionID, AssetID: asset.ID})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			// ON CONFLICT DO NOTHING: another scan/snapshot already inserted
+			// this item — return the existing row rather than treating this
+			// as a real not-found.
+			existing, getErr := s.q.GetOpnameItemByTag(ctx, sqlc.GetOpnameItemByTagParams{SessionID: sessionID, AssetTag: tag})
+			if getErr != nil {
+				return sqlc.StockopnameStockOpnameItem{}, mapDBError(getErr)
+			}
+			return existing, nil
+		}
+		return sqlc.StockopnameStockOpnameItem{}, mapDBError(err)
+	}
+	return inserted, nil
+}
+
+// ListItems returns a scoped session's items (enriched with asset/office/room/
+// floor/counted-by names), optionally filtered by result.
+func (s *Service) ListItems(ctx context.Context, caller approval.Caller, sessionID uuid.UUID, result *string) ([]sqlc.ListOpnameItemsEnrichedRow, error) {
+	if _, _, err := s.GetSession(ctx, caller, sessionID); err != nil {
+		return nil, err
+	}
+	var res *sqlc.SharedOpnameItemResult
+	if result != nil && *result != "" {
+		v := sqlc.SharedOpnameItemResult(*result)
+		res = &v
+	}
+	rows, err := s.q.ListOpnameItemsEnriched(ctx, sqlc.ListOpnameItemsEnrichedParams{SessionID: sessionID, Result: res})
+	if err != nil {
+		return nil, mapDBError(err)
+	}
+	return rows, nil
+}

@@ -292,3 +292,114 @@ func TestKpisCountByResult(t *testing.T) {
 	assert.Equal(t, int64(1), kpi.Pending)
 	assert.Equal(t, int64(2), kpi.Variance)
 }
+
+// TestSetItemResultOnlyWhenCounting verifies SetItemResult is rejected unless
+// the session is in 'counting' (both before start and after the session has
+// moved on to 'reconciling'), and succeeds — stamping counted_by/at — while
+// counting.
+func TestSetItemResultOnlyWhenCounting(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	seedAsset(t, h.pool, "OPN-SIR-001", "Aset SIR", h.catID, h.officeA, sqlc.SharedAssetStatusAvailable)
+	maker := seedUser(t, h.pool, h.officeRoleID, h.officeA, "maker.sir@test.local")
+	caller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.officeA})
+
+	sess, err := h.svc.CreateSession(ctx, caller, stockopname.CreateInput{
+		OfficeID: h.officeA,
+		Period:   time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC),
+	})
+	require.NoError(t, err)
+
+	items, err := h.q.ListOpnameItemsEnriched(ctx, sqlc.ListOpnameItemsEnrichedParams{SessionID: sess.ID})
+	require.NoError(t, err)
+	require.Len(t, items, 1)
+	itemID := items[0].StockopnameStockOpnameItem.ID
+
+	t.Run("rejected while open", func(t *testing.T) {
+		_, err := h.svc.SetItemResult(ctx, caller, sess.ID, itemID, sqlc.SharedOpnameItemResultFound, nil)
+		require.ErrorIs(t, err, stockopname.ErrInvalidState)
+	})
+
+	_, err = h.svc.Transition(ctx, caller, sess.ID, sqlc.SharedOpnameSessionStatusCounting)
+	require.NoError(t, err)
+
+	t.Run("succeeds while counting", func(t *testing.T) {
+		row, err := h.svc.SetItemResult(ctx, caller, sess.ID, itemID, sqlc.SharedOpnameItemResultFound, nil)
+		require.NoError(t, err)
+		assert.Equal(t, sqlc.SharedOpnameItemResultFound, row.Result)
+		require.NotNil(t, row.CountedByID)
+		assert.Equal(t, maker, *row.CountedByID)
+		assert.True(t, row.CountedAt.Valid)
+	})
+
+	_, err = h.svc.Transition(ctx, caller, sess.ID, sqlc.SharedOpnameSessionStatusReconciling)
+	require.NoError(t, err)
+
+	t.Run("rejected while reconciling (locked)", func(t *testing.T) {
+		_, err := h.svc.SetItemResult(ctx, caller, sess.ID, itemID, sqlc.SharedOpnameItemResultNotFound, nil)
+		require.ErrorIs(t, err, stockopname.ErrInvalidState)
+	})
+}
+
+// TestScanAddsUnexpectedInScopeAsset verifies Scan inserts an expected=false,
+// pending item for an in-scope asset not in the session snapshot, returns the
+// existing item (no duplicate) on a repeat scan, and rejects an out-of-scope
+// asset's tag.
+func TestScanAddsUnexpectedInScopeAsset(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	// Only one asset is present at session-open time; a second asset (moved in
+	// after the snapshot) is added to office A later, plus one in office B.
+	seedAsset(t, h.pool, "OPN-SCAN-001", "Aset Scan 1", h.catID, h.officeA, sqlc.SharedAssetStatusAvailable)
+	maker := seedUser(t, h.pool, h.officeRoleID, h.officeA, "maker.scan@test.local")
+	caller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.officeA})
+
+	sess, err := h.svc.CreateSession(ctx, caller, stockopname.CreateInput{
+		OfficeID: h.officeA,
+		Period:   time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC),
+	})
+	require.NoError(t, err)
+
+	unexpectedID := seedAsset(t, h.pool, "OPN-SCAN-002", "Aset Scan Unexpected", h.catID, h.officeA, sqlc.SharedAssetStatusAvailable)
+	oosID := seedAsset(t, h.pool, "OPN-SCAN-003", "Aset Scan OOS", h.catID, h.officeB, sqlc.SharedAssetStatusAvailable)
+	_ = oosID
+
+	_, err = h.svc.Transition(ctx, caller, sess.ID, sqlc.SharedOpnameSessionStatusCounting)
+	require.NoError(t, err)
+
+	t.Run("adds unexpected in-scope asset", func(t *testing.T) {
+		row, err := h.svc.Scan(ctx, caller, sess.ID, "OPN-SCAN-002")
+		require.NoError(t, err)
+		assert.Equal(t, unexpectedID, row.AssetID)
+		assert.False(t, row.Expected)
+		assert.Equal(t, sqlc.SharedOpnameItemResultPending, row.Result)
+	})
+
+	t.Run("repeat scan returns existing item, no duplicate", func(t *testing.T) {
+		row, err := h.svc.Scan(ctx, caller, sess.ID, "OPN-SCAN-002")
+		require.NoError(t, err)
+		assert.Equal(t, unexpectedID, row.AssetID)
+
+		items, err := h.q.ListOpnameItemsEnriched(ctx, sqlc.ListOpnameItemsEnrichedParams{SessionID: sess.ID})
+		require.NoError(t, err)
+		count := 0
+		for _, it := range items {
+			if it.StockopnameStockOpnameItem.AssetID == unexpectedID {
+				count++
+			}
+		}
+		assert.Equal(t, 1, count, "must not duplicate the item on repeat scan")
+	})
+
+	t.Run("out-of-scope asset tag rejected", func(t *testing.T) {
+		_, err := h.svc.Scan(ctx, caller, sess.ID, "OPN-SCAN-003")
+		require.ErrorIs(t, err, stockopname.ErrOutOfScope)
+	})
+
+	t.Run("unknown tag rejected", func(t *testing.T) {
+		_, err := h.svc.Scan(ctx, caller, sess.ID, "OPN-SCAN-DOES-NOT-EXIST")
+		require.ErrorIs(t, err, stockopname.ErrNoItem)
+	})
+}
