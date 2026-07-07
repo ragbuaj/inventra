@@ -276,6 +276,77 @@ func (s *Service) Scan(ctx context.Context, caller approval.Caller, sessionID uu
 	return inserted, nil
 }
 
+// FollowupInput carries the parameters needed to route a variance item to its
+// follow-up request: the destination office/room for a 'misplaced' transfer,
+// and an optional reason forwarded to the underlying disposal/transfer Submit.
+type FollowupInput struct {
+	ToOfficeID *uuid.UUID
+	ToRoomID   *uuid.UUID
+	Reason     *string
+}
+
+// GenerateFollowup maps a counted variance item to a disposal ('not_found') or
+// transfer ('misplaced') approval request, reusing the disposal/transfer
+// services' own Submit (which enforce their own asset-scope + state guards),
+// then links the item to the created request. 'damaged' (and any non-variance
+// result) is rejected with ErrInvalidState — the maintenance module isn't
+// built yet. An item that already has a follow-up request is rejected with
+// ErrAlreadyFollowedUp.
+func (s *Service) GenerateFollowup(ctx context.Context, caller approval.Caller, sessionID, itemID uuid.UUID, in FollowupInput) (uuid.UUID, string, error) {
+	if _, _, err := s.GetSession(ctx, caller, sessionID); err != nil {
+		return uuid.Nil, "", err
+	}
+	item, err := s.q.GetOpnameItem(ctx, sqlc.GetOpnameItemParams{ID: itemID, SessionID: sessionID})
+	if err != nil {
+		return uuid.Nil, "", mapDBError(err)
+	}
+	if item.FollowupRequestID != nil {
+		return uuid.Nil, "", ErrAlreadyFollowedUp
+	}
+
+	var reqID uuid.UUID
+	var reqType string
+	switch item.Result {
+	case sqlc.SharedOpnameItemResultNotFound:
+		writeOff := "write_off"
+		req, err := s.disp.Submit(ctx, caller, disposal.SubmitInput{
+			AssetID:      item.AssetID,
+			Method:       writeOff,
+			DisposalDate: time.Now().Format("2006-01-02"),
+			Reason:       in.Reason,
+		})
+		if err != nil {
+			return uuid.Nil, "", err
+		}
+		reqID, reqType = req.ID, "asset_disposal"
+	case sqlc.SharedOpnameItemResultMisplaced:
+		if in.ToOfficeID == nil {
+			return uuid.Nil, "", ErrInvalidRef
+		}
+		req, err := s.tr.Submit(ctx, caller, transfer.SubmitInput{
+			AssetID:    item.AssetID,
+			ToOfficeID: *in.ToOfficeID,
+			ToRoomID:   in.ToRoomID,
+			Reason:     in.Reason,
+		})
+		if err != nil {
+			return uuid.Nil, "", err
+		}
+		reqID, reqType = req.ID, "asset_transfer"
+	default: // pending / found / damaged
+		return uuid.Nil, "", ErrInvalidState
+	}
+
+	if _, err := s.q.SetItemFollowup(ctx, sqlc.SetItemFollowupParams{
+		ID:                itemID,
+		SessionID:         sessionID,
+		FollowupRequestID: &reqID,
+	}); err != nil {
+		return uuid.Nil, "", mapDBError(err)
+	}
+	return reqID, reqType, nil
+}
+
 // ListItems returns a scoped session's items (enriched with asset/office/room/
 // floor/counted-by names), optionally filtered by result.
 func (s *Service) ListItems(ctx context.Context, caller approval.Caller, sessionID uuid.UUID, result *string) ([]sqlc.ListOpnameItemsEnrichedRow, error) {

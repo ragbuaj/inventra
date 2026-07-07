@@ -403,3 +403,162 @@ func TestScanAddsUnexpectedInScopeAsset(t *testing.T) {
 		require.ErrorIs(t, err, stockopname.ErrNoItem)
 	})
 }
+
+// ─── follow-up generation (Task 5) ──────────────────────────────────────────
+
+// seedAssetWithCost inserts an asset.assets row directly (status=available)
+// with the given purchase_cost and returns its id — used so the generated
+// disposal request has a non-zero book value that lands inside a seeded
+// approval_thresholds band.
+func seedAssetWithCost(t *testing.T, pool *pgxpool.Pool, tag, name string, categoryID, officeID uuid.UUID, purchaseCost string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO asset.assets
+		   (asset_tag, name, category_id, office_id, asset_class, capitalized, specifications, status, purchase_cost)
+		 VALUES ($1, $2, $3, $4, 'intangible', true, '{}', 'available', $5)
+		 RETURNING id`,
+		tag, name, categoryID, officeID, purchaseCost).Scan(&id))
+	return id
+}
+
+// openCountingSessionWithResult opens a session for officeID, snapshots the
+// given asset, drives the session to 'counting', sets the item's result, and
+// returns (sessionID, itemID).
+func openCountingSessionWithResult(t *testing.T, h *harness, caller approval.Caller, officeID, assetID uuid.UUID, result sqlc.SharedOpnameItemResult) (uuid.UUID, uuid.UUID) {
+	t.Helper()
+	ctx := context.Background()
+
+	sess, err := h.svc.CreateSession(ctx, caller, stockopname.CreateInput{
+		OfficeID: officeID,
+		Period:   time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC),
+	})
+	require.NoError(t, err)
+
+	_, err = h.svc.Transition(ctx, caller, sess.ID, sqlc.SharedOpnameSessionStatusCounting)
+	require.NoError(t, err)
+
+	items, err := h.q.ListOpnameItemsEnriched(ctx, sqlc.ListOpnameItemsEnrichedParams{SessionID: sess.ID})
+	require.NoError(t, err)
+	var itemID uuid.UUID
+	for _, it := range items {
+		if it.StockopnameStockOpnameItem.AssetID == assetID {
+			itemID = it.StockopnameStockOpnameItem.ID
+			break
+		}
+	}
+	require.NotEqual(t, uuid.Nil, itemID, "seeded asset must be present in the session snapshot")
+
+	_, err = h.svc.SetItemResult(ctx, caller, sess.ID, itemID, result, nil)
+	require.NoError(t, err)
+
+	return sess.ID, itemID
+}
+
+// TestFollowupNotFoundCreatesDisposalWriteOff verifies GenerateFollowup on a
+// 'not_found' item opens an asset_disposal write-off request and links the
+// item's followup_request_id to it.
+func TestFollowupNotFoundCreatesDisposalWriteOff(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	assetID := seedAssetWithCost(t, h.pool, "OPN-FU-001", "Aset Hilang", h.catID, h.officeA, "1000000.00")
+	maker := seedUser(t, h.pool, h.officeRoleID, h.officeA, "maker.fu.notfound@test.local")
+	caller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.officeA})
+
+	sessID, itemID := openCountingSessionWithResult(t, h, caller, h.officeA, assetID, sqlc.SharedOpnameItemResultNotFound)
+
+	reqID, reqType, err := h.svc.GenerateFollowup(ctx, caller, sessID, itemID, stockopname.FollowupInput{
+		Reason: strPtr("hasil stock opname: barang tidak ditemukan"),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "asset_disposal", reqType)
+	require.NotEqual(t, uuid.Nil, reqID)
+
+	req, err := h.q.GetRequest(ctx, reqID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedRequestTypeAssetDisposal, req.Type)
+	require.NotNil(t, req.TargetID)
+	assert.Equal(t, assetID, *req.TargetID)
+
+	item, err := h.q.GetOpnameItem(ctx, sqlc.GetOpnameItemParams{ID: itemID, SessionID: sessID})
+	require.NoError(t, err)
+	require.NotNil(t, item.FollowupRequestID)
+	assert.Equal(t, reqID, *item.FollowupRequestID)
+}
+
+// TestFollowupMisplacedCreatesTransfer verifies GenerateFollowup on a
+// 'misplaced' item, given a destination office, opens an asset_transfer
+// request and links the item.
+func TestFollowupMisplacedCreatesTransfer(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	assetID := seedAssetWithCost(t, h.pool, "OPN-FU-002", "Aset Salah Tempat", h.catID, h.officeA, "1000000.00")
+	maker := seedUser(t, h.pool, h.officeRoleID, h.officeA, "maker.fu.misplaced@test.local")
+	caller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.officeA, h.officeB})
+
+	sessID, itemID := openCountingSessionWithResult(t, h, caller, h.officeA, assetID, sqlc.SharedOpnameItemResultMisplaced)
+
+	toOffice := h.officeB
+	reqID, reqType, err := h.svc.GenerateFollowup(ctx, caller, sessID, itemID, stockopname.FollowupInput{
+		ToOfficeID: &toOffice,
+		Reason:     strPtr("hasil stock opname: ditemukan di kantor lain"),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "asset_transfer", reqType)
+	require.NotEqual(t, uuid.Nil, reqID)
+
+	req, err := h.q.GetRequest(ctx, reqID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedRequestTypeAssetTransfer, req.Type)
+	require.NotNil(t, req.TargetID)
+	assert.Equal(t, assetID, *req.TargetID)
+
+	item, err := h.q.GetOpnameItem(ctx, sqlc.GetOpnameItemParams{ID: itemID, SessionID: sessID})
+	require.NoError(t, err)
+	require.NotNil(t, item.FollowupRequestID)
+	assert.Equal(t, reqID, *item.FollowupRequestID)
+}
+
+// TestFollowupDamagedRejected verifies a 'damaged' item is rejected with
+// ErrInvalidState — the maintenance module isn't built yet, so no follow-up
+// request can be generated for it.
+func TestFollowupDamagedRejected(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	assetID := seedAssetWithCost(t, h.pool, "OPN-FU-003", "Aset Rusak", h.catID, h.officeA, "1000000.00")
+	maker := seedUser(t, h.pool, h.officeRoleID, h.officeA, "maker.fu.damaged@test.local")
+	caller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.officeA})
+
+	sessID, itemID := openCountingSessionWithResult(t, h, caller, h.officeA, assetID, sqlc.SharedOpnameItemResultDamaged)
+
+	_, _, err := h.svc.GenerateFollowup(ctx, caller, sessID, itemID, stockopname.FollowupInput{})
+	require.ErrorIs(t, err, stockopname.ErrInvalidState)
+}
+
+// TestFollowupDuplicateRejected verifies a second GenerateFollowup call on an
+// already-linked item is rejected with ErrAlreadyFollowedUp.
+func TestFollowupDuplicateRejected(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	assetID := seedAssetWithCost(t, h.pool, "OPN-FU-004", "Aset Hilang Dobel", h.catID, h.officeA, "1000000.00")
+	maker := seedUser(t, h.pool, h.officeRoleID, h.officeA, "maker.fu.dup@test.local")
+	caller := buildCaller(maker, h.officeRoleID, false, []uuid.UUID{h.officeA})
+
+	sessID, itemID := openCountingSessionWithResult(t, h, caller, h.officeA, assetID, sqlc.SharedOpnameItemResultNotFound)
+
+	_, _, err := h.svc.GenerateFollowup(ctx, caller, sessID, itemID, stockopname.FollowupInput{
+		Reason: strPtr("pertama"),
+	})
+	require.NoError(t, err)
+
+	_, _, err = h.svc.GenerateFollowup(ctx, caller, sessID, itemID, stockopname.FollowupInput{
+		Reason: strPtr("kedua"),
+	})
+	require.ErrorIs(t, err, stockopname.ErrAlreadyFollowedUp)
+}
+
+func strPtr(s string) *string { return &s }
