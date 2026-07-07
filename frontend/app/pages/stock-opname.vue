@@ -23,7 +23,7 @@ const RESULT_ICON: Record<ItemResult, string> = {
 // Static per-segment active-state class (Tailwind can't see dynamically
 // interpolated class names, so this must be a literal lookup table).
 const SEG_ACTIVE_CLASS: Record<ItemResult, string> = {
-  pending: 'bg-neutral-500 text-white',
+  pending: 'bg-[var(--ui-text-dimmed)] text-white',
   found: 'bg-success text-white',
   damaged: 'bg-warning text-white',
   misplaced: 'bg-primary text-white',

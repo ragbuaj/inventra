@@ -412,6 +412,16 @@ describe('pages/stock-opname — detail (reconciling)', () => {
     const btn = w.find('[data-testid="opname-followup-damaged"]')
     expect(btn.attributes('disabled')).toBeDefined()
   })
+
+  it('disables the not_found/misplaced follow-up buttons without stockopname.manage', async () => {
+    grantSession('o-mine', ['stockopname.view'])
+    const w = await mountAndWait()
+    await openDetail(w)
+    const notFoundBtn = w.find('[data-testid="opname-followup-not_found"]')
+    const misplacedBtn = w.find('[data-testid="opname-followup-misplaced"]')
+    expect(notFoundBtn.attributes('disabled')).toBeDefined()
+    expect(misplacedBtn.attributes('disabled')).toBeDefined()
+  })
 })
 
 // ---------------------------------------------------------------------------
