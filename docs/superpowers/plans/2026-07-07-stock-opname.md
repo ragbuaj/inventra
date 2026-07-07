@@ -226,9 +226,8 @@ JOIN asset.assets a ON a.id = it.asset_id
 WHERE it.session_id = sqlc.arg(session_id) AND it.deleted_at IS NULL
   AND a.asset_tag = sqlc.arg(asset_tag);
 
--- name: GetAssetByTagInOffice :one
-SELECT * FROM asset.assets
-WHERE asset_tag = sqlc.arg(asset_tag) AND deleted_at IS NULL;
+-- (scan's asset-by-tag lookup reuses the EXISTING assets.sql `GetAssetByTag`;
+--  do NOT add a duplicate here — scope is enforced in the service via common.InScope)
 
 -- name: InsertUnexpectedItem :one
 INSERT INTO stockopname.stock_opname_items (session_id, asset_id, expected, result)
@@ -494,7 +493,7 @@ row, err := s.q.SetOpnameItemResult(ctx, sqlc.SetOpnameItemResultParams{
 if err != nil { return sqlc.StockopnameStockOpnameItem{}, mapDBError(err) }
 return row, nil
 ```
-`Scan`: load session (scope + must be `counting`); `GetOpnameItemByTag(session, tag)` → if found, return it; if no-rows, `GetAssetByTagInOffice(tag)` → if no-rows `ErrNoItem`; check `common.InScope(caller..., asset.OfficeID)` else `ErrOutOfScope`; `InsertUnexpectedItem(session, asset.ID)` and return (on `ON CONFLICT DO NOTHING` empty result, re-`GetOpnameItemByTag`). `ListItems` calls `ListOpnameItemsEnriched` with optional result filter after a scope check via `GetSession`.
+`Scan`: load session (scope + must be `counting`); `GetOpnameItemByTag(session, tag)` → if found, return it; if no-rows, `GetAssetByTag(tag)` (the existing `assets.sql` query) → if no-rows `ErrNoItem`; check `common.InScope(caller..., asset.OfficeID)` else `ErrOutOfScope`; `InsertUnexpectedItem(session, asset.ID)` and return — `InsertUnexpectedItem` is `:one` with `ON CONFLICT DO NOTHING`, so a conflict (item already exists) surfaces as `pgx.ErrNoRows`: treat that as "already present" and re-`GetOpnameItemByTag` rather than a real not-found. `ListItems` calls `ListOpnameItemsEnriched` with optional result filter after a scope check via `GetSession`.
 
 - [ ] **Step 4: Run tests to verify pass**
 
