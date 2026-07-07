@@ -271,6 +271,74 @@
       "emptySub": "Belum ada penugasan yang cocok dengan filter."
     }
   },
+  "peminjaman": {
+    "title": "Peminjaman Aset",
+    "subtitle": "Ajukan peminjaman aset dan pantau statusnya.",
+    "infoBanner": "Peminjaman akan dikirim ke Manager untuk disetujui. Aset baru berpindah ke Anda setelah disetujui.",
+    "form": {
+      "title": "Ajukan Peminjaman",
+      "subtitle": "Pilih aset tersedia dan sampaikan keperluan Anda.",
+      "aset": "Aset",
+      "asetHint": "Hanya aset berstatus \"Tersedia\" yang dapat dipinjam.",
+      "asetPlaceholder": "Cari nama / kode aset tersedia…",
+      "asetErr": "Aset wajib dipilih.",
+      "tempo": "Jatuh Tempo / Rencana Kembali",
+      "tempoHint": "Boleh dikosongkan bila belum pasti.",
+      "alasan": "Alasan / Keperluan",
+      "alasanPlaceholder": "mis. Presentasi ke nasabah prioritas…",
+      "alasanErr": "Alasan wajib diisi.",
+      "cancel": "Batal",
+      "submit": "Ajukan Peminjaman"
+    },
+    "modal": {
+      "title": "Ajukan Peminjaman",
+      "subtitle": "Kirim permintaan peminjaman aset ini.",
+      "lockedTip": "Aset terkunci dari konteks",
+      "kategori": "Kategori",
+      "kantor": "Kantor",
+      "lokasi": "Lokasi",
+      "cancel": "Batal",
+      "submit": "Kirim Pengajuan"
+    },
+    "toast": {
+      "sent": "Pengajuan peminjaman terkirim",
+      "sentDesc": "\"{name}\" menunggu persetujuan Manager."
+    },
+    "filter": {
+      "pending": "Menunggu",
+      "approved": "Disetujui",
+      "rejected": "Ditolak",
+      "all": "Semua"
+    },
+    "status": {
+      "pending": "Menunggu",
+      "approved": "Disetujui",
+      "rejected": "Ditolak",
+      "cancelled": "Dibatalkan"
+    },
+    "list": {
+      "title": "Pengajuan Peminjaman Saya",
+      "colAsset": "Aset",
+      "colDiajukan": "Diajukan",
+      "colTempo": "Jatuh Tempo",
+      "colStatus": "Status",
+      "colCatatan": "Catatan Keputusan",
+      "colAksi": "Aksi",
+      "cancelAction": "Batalkan",
+      "timelineTitle": "Timeline Persetujuan",
+      "timelineEmpty": "Belum ada riwayat persetujuan.",
+      "timelineWaiting": "Menunggu",
+      "decision": {
+        "pending": "Menunggu persetujuan",
+        "approved": "Disetujui",
+        "rejected": "Ditolak",
+        "cancelled": "Dibatalkan"
+      },
+      "total": "Total {n} pengajuan",
+      "emptyTitle": "Belum ada pengajuan peminjaman",
+      "emptySub": "Ajukan peminjaman aset melalui form di atas."
+    }
+  },
   "transfer": {
     "pageTitle": "Mutasi Aset",
     "flow": {
