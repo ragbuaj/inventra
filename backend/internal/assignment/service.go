@@ -240,13 +240,20 @@ func (s *Service) SubmitBorrow(ctx context.Context, caller approval.Caller, in B
 	})
 }
 
-// Available lists available assets in the given office (the borrow picker for a
-// Staf whose data scope is 'own'). Scoped explicitly to officeID, not the module.
-func (s *Service) Available(ctx context.Context, officeID uuid.UUID) ([]sqlc.AssetAsset, error) {
+// Available lists available assets within the caller's data scope for the
+// assignments module: global (Superadmin) → all; office_subtree (Manager) → the
+// subtree; own (Staf) → the caller's own office. Backs both the Manager check-out
+// picker and the Staf borrow picker — CallerOfficeScope resolves each role to the
+// right set (an 'own' Staf resolves to their own office, exactly the set they may
+// borrow from).
+func (s *Service) Available(ctx context.Context, all bool, ids []uuid.UUID) ([]sqlc.AssetAsset, error) {
+	if ids == nil {
+		ids = []uuid.UUID{}
+	}
 	st := sqlc.SharedAssetStatusAvailable
 	rows, err := s.q.ListAssets(ctx, sqlc.ListAssetsParams{
-		AllScope:  false,
-		OfficeIds: []uuid.UUID{officeID},
+		AllScope:  all,
+		OfficeIds: ids,
 		Status:    &st,
 		Lim:       100,
 		Off:       0,

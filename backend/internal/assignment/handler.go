@@ -148,21 +148,12 @@ func (h *Handler) borrow(c *gin.Context) {
 }
 
 func (h *Handler) available(c *gin.Context) {
-	uid, err := uuid.Parse(c.GetString(middleware.CtxUserID))
+	_, all, ids, err := h.caller(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
 		return
 	}
-	u, err := h.q.GetUserByID(c.Request.Context(), uid)
-	if err != nil {
-		common.WriteError(c, err)
-		return
-	}
-	if u.OfficeID == nil {
-		c.JSON(http.StatusOK, gin.H{"data": []any{}})
-		return
-	}
-	rows, err := h.svc.Available(c.Request.Context(), *u.OfficeID)
+	rows, err := h.svc.Available(c.Request.Context(), all, ids)
 	if err != nil {
 		h.svcError(c, err)
 		return
