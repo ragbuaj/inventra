@@ -247,7 +247,9 @@ test.describe('Assignment (Penugasan/Peminjaman) — real backend e2e', () => {
 
     await page.locator('input[type="date"]').first().fill(todayISO())
 
-    await page.getByRole('button', { name: 'Check-out', exact: true }).click()
+    // Submit button (its accessible name "Check-out" collides with the tab of the
+    // same name, so target the submit by testid).
+    await page.getByTestId('assignment-checkout-submit').click()
 
     // checkout.ok = `Aset "{name}" berhasil di-check-out ke {holder}.` where
     // {name} is the picker label "<name> · <tag>" and {holder} the employee name.
@@ -277,7 +279,8 @@ test.describe('Assignment (Penugasan/Peminjaman) — real backend e2e', () => {
     await page.getByRole('option', { name: new RegExp(asset1Tag) }).click()
 
     await page.locator('input[type="date"]').first().fill(todayISO())
-    await page.getByRole('button', { name: 'Check-in', exact: true }).click()
+    // Submit button (name collides with the "Check-in" tab — target by testid).
+    await page.getByTestId('assignment-checkin-submit').click()
 
     await expect(page.getByText(`Aset "${asset1Name}" berhasil dikembalikan.`, { exact: true })).toBeVisible({ timeout: 10_000 })
 

@@ -317,6 +317,7 @@ onMounted(refresh)
               icon="i-lucide-circle-check-big"
               :label="t('assignment.checkout.submit')"
               :disabled="!coReady"
+              data-testid="assignment-checkout-submit"
               @click="doCheckout"
             />
           </div>
@@ -409,6 +410,7 @@ onMounted(refresh)
               icon="i-lucide-square-check-big"
               :label="t('assignment.checkin.submit')"
               :disabled="!ciReady"
+              data-testid="assignment-checkin-submit"
               @click="doCheckin"
             />
           </div>
