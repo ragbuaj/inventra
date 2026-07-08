@@ -299,19 +299,20 @@ test.describe('Assignment (Penugasan/Peminjaman) — real backend e2e', () => {
     await page.goto('/peminjaman')
     await expect(page.getByRole('heading', { name: 'Peminjaman Aset', exact: true })).toBeVisible({ timeout: 10_000 })
 
+    // Fill Alasan BEFORE opening the asset picker. The USelectMenu popover's focus
+    // management swallows keystrokes typed into the textarea immediately after the
+    // popover closes (the value never lands — confirmed via CI trace), so type the
+    // reason first, while no popover has been involved. Nothing clears `notes` on
+    // asset selection, so this ordering is safe.
+    const reason = `perlu untuk presentasi ${RUN}`
+    const alasanField = page.getByRole('textbox', { name: /Alasan/ })
+    await alasanField.fill(reason)
+    await expect(alasanField).toHaveValue(reason)
+
     const picker = page.getByTestId('peminjaman-asset-picker')
     await picker.click()
     await page.getByRole('option', { name: new RegExp(asset2Name) }).click()
 
-    const reason = `perlu untuk presentasi ${RUN}`
-    // Fill Alasan robustly: target the actual textbox by its accessible name and
-    // type real keystrokes so the Vue v-model syncs, then assert the value stuck.
-    // (A plain `getByTestId('peminjaman-notes').fill()` left `notes` empty in CI,
-    // tripping the client-side "Alasan wajib diisi." guard before any API call.)
-    const alasanField = page.getByRole('textbox', { name: /Alasan/ })
-    await alasanField.click()
-    await alasanField.pressSequentially(reason)
-    await expect(alasanField).toHaveValue(reason)
     await page.getByTestId('peminjaman-submit').click()
 
     await expect(page.getByText('Pengajuan peminjaman terkirim', { exact: true })).toBeVisible({ timeout: 10_000 })
