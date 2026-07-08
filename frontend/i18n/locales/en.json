@@ -271,6 +271,81 @@
       "emptySub": "No assignment matches the filter."
     }
   },
+  "peminjaman": {
+    "title": "Asset Loans",
+    "subtitle": "Request to borrow an asset and track its status.",
+    "infoBanner": "The loan will be sent to your Manager for approval. The asset moves to you only after approval.",
+    "action": {
+      "borrow": "Request Borrow",
+      "borrowDisabled": "Only available assets can be borrowed"
+    },
+    "form": {
+      "title": "Request a Loan",
+      "subtitle": "Pick an available asset and state your purpose.",
+      "aset": "Asset",
+      "asetHint": "Only assets with status \"Available\" can be borrowed.",
+      "asetPlaceholder": "Search available asset name / code…",
+      "asetErr": "Asset is required.",
+      "tempo": "Due / Planned Return",
+      "tempoHint": "May be left empty if unsure.",
+      "alasan": "Reason / Purpose",
+      "alasanPlaceholder": "e.g. Presentation to a priority client…",
+      "alasanErr": "Reason is required.",
+      "cancel": "Cancel",
+      "submit": "Submit Loan Request"
+    },
+    "modal": {
+      "title": "Request Loan",
+      "subtitle": "Send a loan request for this asset.",
+      "lockedTip": "Asset locked from context",
+      "kategori": "Category",
+      "kantor": "Office",
+      "lokasi": "Location",
+      "cancel": "Cancel",
+      "submit": "Send Request"
+    },
+    "toast": {
+      "sent": "Loan request submitted",
+      "sentDesc": "\"{name}\" is awaiting Manager approval."
+    },
+    "filter": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "all": "All"
+    },
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
+    "list": {
+      "title": "My Loan Requests",
+      "colAsset": "Asset",
+      "colDiajukan": "Submitted",
+      "colTempo": "Due",
+      "colStatus": "Status",
+      "colCatatan": "Decision Note",
+      "colAksi": "Actions",
+      "cancelAction": "Cancel",
+      "timelineTitle": "Approval Timeline",
+      "timelineEmpty": "No approval history yet.",
+      "timelineWaiting": "Awaiting",
+      "decision": {
+        "pending": "Awaiting approval",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "cancelled": "Cancelled"
+      },
+      "total": "Total {n} requests",
+      "emptyTitle": "No loan requests yet",
+      "emptySub": "Submit an asset loan using the form above."
+    },
+    "timeline": {
+      "submitted": "Submitted by me"
+    }
+  },
   "transfer": {
     "pageTitle": "Asset Transfers",
     "flow": {
@@ -1308,6 +1383,7 @@
     "assetLabel": "Label & Barcode",
     "myAssets": "My Assets",
     "assignment": "Assignments",
+    "peminjaman": "Asset Borrowing",
     "stockOpname": "Stock Opname",
     "transfers": "Transfers",
     "disposals": "Disposal",

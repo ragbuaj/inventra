@@ -441,7 +441,7 @@ func (s *Service) GetWithSteps(ctx context.Context, id uuid.UUID) (sqlc.GetReque
 
 // List returns a paginated, scope-filtered slice of enriched requests plus the total count.
 // Empty status/typ strings are treated as "no filter" (nil).
-func (s *Service) List(ctx context.Context, all bool, ids []uuid.UUID, status, typ string, limit, offset int32) ([]sqlc.ListRequestsEnrichedRow, int64, error) {
+func (s *Service) List(ctx context.Context, all bool, ids []uuid.UUID, status, typ string, limit, offset int32, requestedBy *uuid.UUID) ([]sqlc.ListRequestsEnrichedRow, int64, error) {
 	officeIDs := ids
 	if officeIDs == nil {
 		officeIDs = []uuid.UUID{}
@@ -457,21 +457,23 @@ func (s *Service) List(ctx context.Context, all bool, ids []uuid.UUID, status, t
 		typPtr = &v
 	}
 	rows, err := s.q.ListRequestsEnriched(ctx, sqlc.ListRequestsEnrichedParams{
-		AllScope:  all,
-		OfficeIds: officeIDs,
-		Status:    statusPtr,
-		Type:      typPtr,
-		Off:       offset,
-		Lim:       limit,
+		AllScope:    all,
+		OfficeIds:   officeIDs,
+		Status:      statusPtr,
+		Type:        typPtr,
+		Off:         offset,
+		Lim:         limit,
+		RequestedBy: requestedBy,
 	})
 	if err != nil {
 		return nil, 0, mapDBError(err)
 	}
 	total, err := s.q.CountRequests(ctx, sqlc.CountRequestsParams{
-		AllScope:  all,
-		OfficeIds: officeIDs,
-		Status:    statusPtr,
-		Type:      typPtr,
+		AllScope:    all,
+		OfficeIds:   officeIDs,
+		Status:      statusPtr,
+		Type:        typPtr,
+		RequestedBy: requestedBy,
 	})
 	if err != nil {
 		return nil, 0, mapDBError(err)

@@ -18,6 +18,7 @@ import (
 	"github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/approval"
 	"github.com/ragbuaj/inventra/internal/asset"
+	"github.com/ragbuaj/inventra/internal/assignment"
 	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/auth"
 	"github.com/ragbuaj/inventra/internal/authz"
@@ -177,6 +178,8 @@ func NewRouter(d Deps) *gin.Engine {
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeValuationExclusion, assetSvc.ExclusionExecutor())
 		transferSvc := transfer.NewService(queries, d.Pool, approvalSvc)
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetTransfer, transferSvc.Executor())
+		assignmentSvc := assignment.NewService(queries, d.Pool, approvalSvc)
+		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssignment, assignmentSvc.Executor())
 		approvalHandler := approval.NewHandler(approvalSvc, fieldSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)
 		approval.RegisterRoutes(api, approvalHandler, requireAuth, permSvc)
 
@@ -200,6 +203,14 @@ func NewRouter(d Deps) *gin.Engine {
 			requireAuth,
 			middleware.RequirePermission(permSvc, "stockopname.manage"),
 			middleware.RequirePermission(permSvc, "stockopname.view"),
+		)
+
+		assignmentHandler := assignment.NewHandler(assignmentSvc, scopeSvc, queries, auditSvc)
+		assignment.RegisterRoutes(api, assignmentHandler,
+			requireAuth,
+			middleware.RequirePermission(permSvc, "assignment.manage"),
+			middleware.RequirePermission(permSvc, "assignment.view"),
+			middleware.RequirePermission(permSvc, "request.create"),
 		)
 
 		depreciationHandler := depreciation.NewHandler(depreciationSvc, fieldSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)

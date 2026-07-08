@@ -112,6 +112,18 @@ tags:
       set result, reconcile, follow-up, close) require `stockopname.manage`.
       Sessions and items are scoped to the caller's offices (data-scope module
       `stockopname`).
+  - name: Assignments
+    description: |
+      Asset check-out/check-in to employees (peminjaman). A Manager can directly
+      `checkout` an asset to an employee (`assignment.manage`); a Staf instead
+      submits a `POST /assignments/borrow` request, which creates an `assignment`
+      approval request (see the Requests tag) — an `assignments` row with status
+      `active` is only created once that request is approved. `checkin` closes an
+      active assignment (`returned`), optionally flagging the asset for
+      maintenance. Reads require `assignment.view`; direct checkout/checkin
+      require `assignment.manage`; the borrow submit and available-asset picker
+      require `request.create`. Assignments are scoped to the caller's offices
+      (data-scope module `assignments`).
 
 paths:
   /health:
@@ -1492,6 +1504,13 @@ paths:
             type: string
             enum: [asset_create, asset_disposal, asset_transfer, assignment, maintenance, valuation_exclusion]
           description: Filter by request type.
+        - name: mine
+          in: query
+          schema: { type: boolean, default: false }
+          description: |
+            When `true`, returns only the caller's own submitted requests (filtered by
+            requester) and bypasses office data-scope filtering — a caller can always see
+            their own requests regardless of scope configuration.
         - { name: limit, in: query, schema: { type: integer, default: 20, minimum: 1, maximum: 100 } }
         - { name: offset, in: query, schema: { type: integer, default: 0, minimum: 0 } }
       responses:
@@ -2013,6 +2032,236 @@ paths:
                   data:
                     type: array
                     items: { $ref: "#/components/schemas/Transfer" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Asset not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/assignments:
+    post:
+      tags: [Assignments]
+      operationId: checkoutAssignment
+      summary: Directly check-out an asset to an employee (Manager)
+      description: |
+        Creates an active `assignments` row immediately (no approval workflow).
+        Requires the `assignment.manage` permission; the asset must be within the
+        caller's data scope and currently available (not already actively assigned).
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssignmentCheckoutRequest" }
+      responses:
+        "201":
+          description: Created (active) assignment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Assignment" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Asset or employee not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Asset is already actively assigned
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          description: Asset not available for assignment, or an invalid reference was supplied
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    get:
+      tags: [Assignments]
+      operationId: listAssignments
+      summary: List asset assignments (data-scoped)
+      description: |
+        Returns assignments within the caller's **data scope** (module `assignments`).
+        Requires the `assignment.view` permission.
+      security:
+        - bearerJWT: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, returned]
+          description: Filter by assignment status.
+        - { name: employee_id, in: query, schema: { type: string, format: uuid } }
+        - { name: search, in: query, schema: { type: string }, description: Case-insensitive match on asset name/tag or employee name. }
+        - { name: limit, in: query, schema: { type: integer, default: 20, minimum: 1, maximum: 100 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0, minimum: 0 } }
+      responses:
+        "200":
+          description: A page of assignments in scope
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssignmentList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/assignments/available:
+    get:
+      tags: [Assignments]
+      operationId: listAvailableAssignmentAssets
+      summary: List assets available for check-out/borrow at the caller's office
+      description: |
+        Returns a lightweight picker list (id, asset_tag, name) of not-currently-assigned
+        assets at the caller's own office, for use by the checkout/borrow forms. Requires
+        the `request.create` permission. Returns an empty list if the caller has no linked
+        office.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Available assets
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, asset_tag, name]
+                      properties:
+                        id: { type: string, format: uuid }
+                        asset_tag: { type: string }
+                        name: { type: string }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/assignments/borrow:
+    post:
+      tags: [Assignments]
+      operationId: borrowAssignment
+      summary: Submit a self-service asset borrow request (Staf)
+      description: |
+        Creates an `assignment` approval request for borrowing an asset. An `assignments`
+        row (status `active`) is only created once the request is approved — see
+        `POST /requests/{id}/approve`. Requires the `request.create` permission; the
+        caller must have a linked employee record (otherwise `422`).
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssignmentBorrowRequest" }
+      responses:
+        "201":
+          description: Created approval request for the borrow
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [request_id, status]
+                properties:
+                  request_id: { type: string, format: uuid }
+                  status:
+                    type: string
+                    enum: [pending, approved, rejected, cancelled]
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422":
+          description: Caller has no linked employee, asset not available, or an invalid reference was supplied
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/assignments/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Assignments]
+      operationId: getAssignment
+      summary: Get an assignment by id
+      description: Requires the `assignment.view` permission; the assignment must be within the caller's data scope.
+      security:
+        - bearerJWT: []
+      responses:
+        "200": { description: The assignment, content: { application/json: { schema: { $ref: "#/components/schemas/Assignment" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/assignments/{id}/checkin:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Assignments]
+      operationId: checkinAssignment
+      summary: Check-in an active assignment (return the asset)
+      description: |
+        Transitions the assignment from `active` to `returned`, recording the return
+        condition and, if `needs_maintenance` is set, flags the asset for maintenance
+        follow-up. Requires the `assignment.manage` permission; the assignment must be
+        within the caller's data scope.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssignmentCheckinRequest" }
+      responses:
+        "200":
+          description: Updated (returned) assignment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Assignment" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Assignment is not `active`, so it cannot be checked in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/assets/{id}/assignments:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: Asset id }
+    get:
+      tags: [Assignments]
+      operationId: listAssetAssignments
+      summary: List assignment history for an asset
+      description: Returns all assignments for the given asset within the caller's data scope. Requires the `assignment.view` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Assignment history
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Assignment" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404":
@@ -4046,6 +4295,102 @@ components:
       required: [data, total, limit, offset]
       properties:
         data: { type: array, items: { $ref: "#/components/schemas/Transfer" } }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+
+    Assignment:
+      type: object
+      description: |
+        An asset check-out/check-in to an employee (peminjaman). Created either directly
+        by a Manager (`POST /assignments`, status `active` immediately) or at final
+        approval of an `assignment` request submitted via `POST /assignments/borrow`;
+        then `active` → `returned` (check-in).
+      required: [id, asset_id, employee_id, assigned_by_id, checkout_date, status, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        asset_id: { type: string, format: uuid }
+        employee_id: { type: string, format: uuid }
+        assigned_by_id: { type: string, format: uuid }
+        checkout_date: { type: string, format: date-time }
+        due_date: { type: [string, "null"], format: date }
+        checkin_date: { type: [string, "null"], format: date-time }
+        condition_out:
+          type: [string, "null"]
+          enum: [baik, rusak_ringan, rusak_berat]
+          description: Asset physical condition at check-out time.
+        condition_in:
+          type: [string, "null"]
+          enum: [baik, rusak_ringan, rusak_berat]
+          description: Asset physical condition at check-in time.
+        status:
+          type: string
+          enum: [active, returned]
+        notes: { type: [string, "null"] }
+        asset_name: { type: [string, "null"] }
+        asset_tag: { type: [string, "null"] }
+        employee_name: { type: [string, "null"] }
+        assigned_by_name: { type: [string, "null"] }
+        office_name: { type: [string, "null"] }
+        created_at: { type: [string, "null"], format: date-time }
+        updated_at: { type: [string, "null"], format: date-time }
+
+    AssignmentCheckoutRequest:
+      type: object
+      description: Body for POST /assignments.
+      required: [asset_id, employee_id, checkout_date]
+      properties:
+        asset_id: { type: string, format: uuid }
+        employee_id: { type: string, format: uuid }
+        checkout_date:
+          type: string
+          format: date
+          description: 'Format: YYYY-MM-DD.'
+        due_date:
+          type: [string, "null"]
+          format: date
+          description: 'Optional expected return date. Format: YYYY-MM-DD.'
+        condition_out:
+          type: [string, "null"]
+          enum: [baik, rusak_ringan, rusak_berat]
+        notes: { type: [string, "null"] }
+
+    AssignmentCheckinRequest:
+      type: object
+      description: Body for POST /assignments/{id}/checkin. Entirely optional.
+      properties:
+        checkin_date:
+          type: [string, "null"]
+          format: date
+          description: 'Defaults to now if omitted. Format: YYYY-MM-DD.'
+        condition_in:
+          type: [string, "null"]
+          enum: [baik, rusak_ringan, rusak_berat]
+        needs_maintenance:
+          type: boolean
+          default: false
+          description: When true, flags the asset for a maintenance follow-up after check-in.
+
+    AssignmentBorrowRequest:
+      type: object
+      description: Body for POST /assignments/borrow.
+      required: [asset_id]
+      properties:
+        asset_id: { type: string, format: uuid }
+        due_date:
+          type: [string, "null"]
+          format: date
+          description: 'Optional expected return date. Format: YYYY-MM-DD.'
+        condition_out:
+          type: [string, "null"]
+          enum: [baik, rusak_ringan, rusak_berat]
+        notes: { type: [string, "null"] }
+
+    AssignmentList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/Assignment" } }
         total: { type: integer }
         limit: { type: integer }
         offset: { type: integer }

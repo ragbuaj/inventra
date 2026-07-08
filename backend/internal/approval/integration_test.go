@@ -903,14 +903,14 @@ func TestApproval_ListRequests_ScopeFiltered(t *testing.T) {
 	submit(otherCabangID, maker2, "Asset Cabang Delta")
 
 	// Caller scoped to CabangID only
-	rows, total, err := svc.List(ctx, false, []uuid.UUID{tr.CabangID}, "", "", 10, 0)
+	rows, total, err := svc.List(ctx, false, []uuid.UUID{tr.CabangID}, "", "", 10, 0, nil)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), total)
 	assert.Len(t, rows, 1)
 	assert.Equal(t, &tr.CabangID, rows[0].ApprovalRequest.OfficeID)
 
 	// Global scope sees all
-	rows, total, err = svc.List(ctx, true, nil, "", "", 10, 0)
+	rows, total, err = svc.List(ctx, true, nil, "", "", 10, 0, nil)
 	require.NoError(t, err)
 	assert.Equal(t, int64(2), total)
 	assert.Len(t, rows, 2)
@@ -1210,7 +1210,7 @@ func TestApproval_EnrichedReads(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("List rows carry names", func(t *testing.T) {
-		rows, total, err := svc.List(ctx, true, nil, "pending", "asset_create", 20, 0)
+		rows, total, err := svc.List(ctx, true, nil, "pending", "asset_create", 20, 0, nil)
 		require.NoError(t, err)
 		require.GreaterOrEqual(t, total, int64(1))
 		require.NotEmpty(t, rows)
@@ -1297,7 +1297,7 @@ func TestApproval_EnrichedReads_SoftDeletedActors(t *testing.T) {
 	_, err = pool.Exec(ctx, `UPDATE masterdata.offices SET deleted_at = now() WHERE id = $1`, tr.CabangID)
 	require.NoError(t, err)
 
-	rows, total, err := svc.List(ctx, true, nil, "", "", 20, 0)
+	rows, total, err := svc.List(ctx, true, nil, "", "", 20, 0, nil)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, total, int64(1))
 

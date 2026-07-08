@@ -387,12 +387,65 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     stock-opname e2e already passed 1/1 and is committed; the full local suite hits the
 >     already-documented dev-DB office-count debris on *other* specs — CI runs the full suite against
 >     a fresh database).
-> 35. **Next session — pick the next real step.** With Stock opname complete, the Bank-FAM core module
->     set is now transfer + disposal + depreciation + stock opname. Remaining candidates (see
->     *Remaining* below): **(e)** Assignment (check-out/in, and the natural home for the deferred
->     "Pemegang" field) and/or Maintenance; **(f)** global search backend (`/search`) + drop the last
->     `mock/*` files; **(g)** Reporting & Dashboard (PDF/Excel export, reading from the pre-aggregated
->     read layer). Confirm priority before starting.
+> 35. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-07): Assignment
+>     (Penugasan/Peminjaman) — backend + frontend + e2e.** With Stock opname complete, the Bank-FAM core
+>     module set was transfer + disposal + depreciation + stock opname; Assignment (candidate **(e)**)
+>     was chosen next as the natural home for the deferred "Pemegang" field. Remaining after this:
+>     **(e′)** Maintenance; **(f)** global search backend (`/search`) + drop the last `mock/*` files;
+>     **(g)** Reporting & Dashboard.
+> 36. ~~**Assignment (Penugasan/Peminjaman) — backend + frontend + e2e**~~ ✅ **DONE (2026-07-08,
+>     branch `feat/assignment-module`).** `internal/assignment` (service/dto/handler/routes + `executor.go`,
+>     ADR-0008 split) wired end-to-end on migration `000011_assignment` (`assignment.assignments`,
+>     one-active-per-asset partial-unique index) + seed `000026_assignment_seed` (`assignment.view`
+>     permission, `assignments` data-scope module, single office-level `assignment` approval band).
+>     Two submission paths: **direct Manager check-out/check-in** (`POST /assignments`,
+>     `POST /assignments/:id/checkin` — gated `assignment.manage`, atomically flips the asset
+>     `available ↔ assigned`/`under_maintenance`) and **Staf peminjaman** (`POST /assignments/borrow`
+>     → assignment-type approval request; the executor performs the check-out on approval). Reads:
+>     `GET /assignments` (scoped+enriched list), `GET /assignments/:id`, `GET /assignments/available`
+>     (own-office available-asset picker for Staf), `GET /assets/:id/assignments` (per-asset history).
+>     Scope enforced read **and** write. OpenAPI documented (Task 8); backend integration + unit tests
+>     green (Task 8 verified the full `-tags=integration` run for the branch-touched packages). Frontend:
+>     **`/assignment`** (`app/pages/assignment.vue`) — Manager screen, 1:1 against
+>     `docs/design/Penugasan Aset.dc.html` (Check-out / Check-in / Riwayat tabs, active-count badge,
+>     colored condition column, load-error/retry); **`/peminjaman`** (`app/pages/peminjaman.vue`) — Staf
+>     page (inline Ajukan Peminjaman form + "Pengajuan Saya" list with expandable approval timeline +
+>     cancel); **Detail-Aset "Ajukan Peminjaman"** button + `AssignmentAjukanPeminjamanModal`
+>     (locked-asset variant). `useAssignment` composable, `assignmentMeta` constants (status/condition/
+>     request-status tone maps), full i18n id/en. 963 unit/component tests green across Tasks 7–14. Real-
+>     backend e2e (`frontend/e2e/assignment.spec.ts`): direct Manager check-out → Riwayat Aktif +
+>     Detail "Digunakan" + borrow disabled → check-in → Dikembalikan + available; Staf peminjaman submit
+>     via UI → Menunggu → approve via API as a second office-level Manager (maker ≠ checker) → Disetujui
+>     + assignment created; negative empty-Alasan guard. **Approved deviations (catat-deviasi convention):**
+>     **(a)** borrow submit is a dedicated `POST /assignments/borrow` (not generic `POST /requests`) —
+>     consistent with how transfer/disposal submit (the generic `SubmitRequest.Type` binding excludes
+>     `assignment` and needs an `office_id` a Staf would not supply); **(b)** the Staf borrow asset-picker
+>     uses `GET /assignments/available` (own-office scoped) because a Staf's `own` data scope makes
+>     `GET /assets` empty; **(c)** the "Pengajuan Saya" asset name is a **best-effort client lookup**
+>     (`useAssets().get(id)`; a 403 out-of-scope falls back to showing the id/tag) — the `mine` request
+>     list/payload never snapshots the asset name server-side; **(d)** check-in "perlu maintenance" only
+>     flips the asset to `under_maintenance` (no maintenance record is created — the Maintenance module
+>     does not exist yet); **(e)** the Detail-Aset "Ajukan Peminjaman" button shows for **all**
+>     `request.create` roles (incl. Manager), not Staf-only; **(f)** the disabled-button hint uses the
+>     native `title` attribute, not a styled UTooltip popover (**user-approved** — the whole app uses
+>     native `title`, there is no UTooltip infra); **(g)** the Riwayat "Kondisi" column renders as
+>     **colored text** (baik/ringan/berat) per the Penugasan mockup, not a badge. **Honest limitations
+>     (tracked, not yet done):** the frontend `RequestType` union does **not** yet include `'assignment'`
+>     (the `myRequests`/peminjaman path uses a local test cast — small follow-up to add the member); and
+>     the nav "Peminjaman" item has **no real pending-count badge** (static). **Gate sweep (task-13):**
+>     backend build/vet/test + Spectral (0 errors, the pre-existing unrelated `AssetCreatePayload`
+>     warning persists) + frontend lint/typecheck/test/build — see the task-15 report for counts. The
+>     `assignment.spec.ts` e2e was **written + committed but not run locally**: this shared dev DB is
+>     missing the `assignment.manage` grant for Superadmin/Manager (migration `000005` was amended to
+>     add it *after* this DB had already applied `000005`, so the INSERT never re-ran — a pre-existing
+>     dev-DB/seed drift, NOT a branch bug). Per user decision the dev DB was **not** mutated; CI runs the
+>     full e2e suite against a fresh database where `000005` seeds the grant correctly.
+> 37. **Next session — pick the next real step.** With Assignment complete, the operational module set is
+>     transfer + disposal + depreciation + stock opname + assignment. Remaining candidates (see
+>     *Remaining* below): **(e′)** Maintenance (check-in "perlu maintenance" already flags assets — the
+>     natural next module to consume that signal); **(f)** global search backend (`/search`) + drop the
+>     last `mock/*` files; **(g)** Reporting & Dashboard (PDF/Excel export, reading from the
+>     pre-aggregated read layer). Confirm priority before starting.
 
 ## ✅ Done
 
@@ -564,7 +617,15 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       (pending step scoped to checker's office); executors: `asset_create`, `asset_disposal`,
       `valuation_exclusion`; authz-admin CRUD endpoints for `approval_thresholds` (Superadmin-gated).
       **Done — (2026-06-28).**
-- [ ] **Assignment** — check-out/check-in; assignment requests (Staf → approve); one-active-per-asset; overdue; history
+- [x] **Assignment** — `internal/assignment` (service/dto/handler/routes + executor, ADR-0008 split) on
+      migration `000011_assignment` (one-active-per-asset partial-unique index) + seed `000026`
+      (`assignment.view`, `assignments` data-scope, single office-level `assignment` approval band).
+      Direct Manager check-out/check-in (`POST /assignments`, `/assignments/:id/checkin` — gated
+      `assignment.manage`, atomic asset `available ↔ assigned`/`under_maintenance`) + Staf peminjaman
+      (`POST /assignments/borrow` → assignment-type approval request; executor checks out on approval);
+      reads `GET /assignments`(+`/available`,`/:id`) & `GET /assets/:id/assignments`; scope enforced read
+      **and** write; OpenAPI documented; integration + unit tests green. **Done — (2026-07-08, branch
+      `feat/assignment-module`; see item 36 in *Next session* for frontend screens + e2e + deviations).**
 - [ ] **Maintenance** — schedules (interval/next_due); records (preventive/corrective, cost, vendor); damage reports (Staf + problem category); `under_maintenance` status
 - [ ] **Depreciation** — book value (straight-line / declining-balance); monthly `depreciation_entries` read model
 - [ ] **Reporting & Dashboard** — aggregates (totals/value/by status·category·office, overdue, maintenance due, costs); **PDF + Excel export**; scoped — reading from the pre-aggregated OLAP tables (see *Analytics / OLAP* below)
@@ -734,6 +795,24 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       1/1). **Done (2026-07-07).** See item 34 in *Next session* above for the full deviation list
       (a)–(d) and follow-ups (no submitted-state indicator on the follow-up button; e2e session
       creation goes via API due to the office-picker `limit:100` cap).
+- [x] **Assignment (Penugasan/Peminjaman)** (`/assignment` + `/peminjaman` + Detail-Aset borrow) ✅ wired
+      to real `/api/v1/assignments/*` + `/api/v1/requests?type=assignment`. **`/assignment`** (Manager,
+      gated `assignment.manage`) — Check-out / Check-in / Riwayat tabs (active-count badge, colored
+      condition column, load-error/retry), 1:1 against `docs/design/Penugasan Aset.dc.html`;
+      check-out/check-in atomically flip the asset (`available ↔ Digunakan`/`Maintenance`).
+      **`/peminjaman`** (Staf, gated `request.create`) — inline Ajukan Peminjaman form + "Pengajuan Saya"
+      list (expandable approval timeline + cancel); asset picker from `GET /assignments/available`
+      (own-office scoped). **Detail-Aset "Ajukan Peminjaman"** button + `AssignmentAjukanPeminjamanModal`
+      (locked-asset variant), shown for all `request.create` roles, disabled (native `title` hint) when
+      the asset is not available. `useAssignment` composable; `assignmentMeta` constants; full i18n id/en.
+      963 unit/component tests green. Real-backend e2e (`frontend/e2e/assignment.spec.ts`): direct Manager
+      check-out → Aktif + Detail "Digunakan" + borrow disabled → check-in → Dikembalikan; Staf peminjaman
+      submit → Menunggu → approve via API (maker ≠ checker, office-level) → Disetujui + assignment created;
+      empty-Alasan negative. **Done (2026-07-08, branch `feat/assignment-module`).** See item 36 in
+      *Next session* for the full deviation list (a)–(g), honest limitations (frontend `RequestType` union
+      lacks `'assignment'` — local test cast, follow-up; no real nav badge count), and the note that the
+      e2e is written + committed but not run locally (stale dev-DB missing the `assignment.manage` seed
+      grant — CI's fresh-DB e2e covers it).
 - [ ] **Staff role menus** — wire staff nav (`myAssets`, staff `assignment`/`approval`) to pages/variants
 - [x] **Google OAuth login** button + flow (UI) — login redirect + `?oauth=success/error` landing
       (refresh → fetchMe → navigate; i18n error reasons). **Done — PR #21.**

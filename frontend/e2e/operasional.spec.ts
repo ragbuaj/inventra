@@ -2,14 +2,8 @@ import { test, expect } from '@playwright/test'
 import { login } from './helpers'
 
 test.describe('Operasional cluster (mock-backed)', () => {
-  test('Penugasan — tabs switch to history', async ({ page }) => {
-    await login(page)
-    await page.goto('/assignment')
-    await expect(page.getByRole('heading', { name: 'Penugasan Aset' })).toBeVisible()
-
-    await page.getByRole('button', { name: 'Riwayat' }).click()
-    await expect(page.getByText('Televisi Samsung 55" Crystal')).toBeVisible()
-  })
+  // Penugasan is now wired to the real backend (see e2e/assignment.spec.ts) — the
+  // former mock-backed "tabs switch to history" test was removed as superseded.
 
   test('Maintenance — due banner and schedule render', async ({ page }) => {
     await login(page)

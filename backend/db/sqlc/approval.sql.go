@@ -82,13 +82,15 @@ WHERE deleted_at IS NULL
   AND ($1::boolean OR office_id = ANY($2::uuid[]))
   AND ($3::shared.request_status IS NULL OR status = $3)
   AND ($4::shared.request_type IS NULL OR type = $4)
+  AND ($5::uuid IS NULL OR requested_by_id = $5)
 `
 
 type CountRequestsParams struct {
-	AllScope  bool                 `json:"all_scope"`
-	OfficeIds []uuid.UUID          `json:"office_ids"`
-	Status    *SharedRequestStatus `json:"status"`
-	Type      *SharedRequestType   `json:"type"`
+	AllScope    bool                 `json:"all_scope"`
+	OfficeIds   []uuid.UUID          `json:"office_ids"`
+	Status      *SharedRequestStatus `json:"status"`
+	Type        *SharedRequestType   `json:"type"`
+	RequestedBy *uuid.UUID           `json:"requested_by"`
 }
 
 func (q *Queries) CountRequests(ctx context.Context, arg CountRequestsParams) (int64, error) {
@@ -97,6 +99,7 @@ func (q *Queries) CountRequests(ctx context.Context, arg CountRequestsParams) (i
 		arg.OfficeIds,
 		arg.Status,
 		arg.Type,
+		arg.RequestedBy,
 	)
 	var count int64
 	err := row.Scan(&count)
@@ -642,17 +645,19 @@ WHERE r.deleted_at IS NULL
   AND ($1::boolean OR r.office_id = ANY($2::uuid[]))
   AND ($3::shared.request_status IS NULL OR r.status = $3)
   AND ($4::shared.request_type IS NULL OR r.type = $4)
+  AND ($5::uuid IS NULL OR r.requested_by_id = $5)
 ORDER BY r.created_at DESC
-LIMIT $6 OFFSET $5
+LIMIT $7 OFFSET $6
 `
 
 type ListRequestsEnrichedParams struct {
-	AllScope  bool                 `json:"all_scope"`
-	OfficeIds []uuid.UUID          `json:"office_ids"`
-	Status    *SharedRequestStatus `json:"status"`
-	Type      *SharedRequestType   `json:"type"`
-	Off       int32                `json:"off"`
-	Lim       int32                `json:"lim"`
+	AllScope    bool                 `json:"all_scope"`
+	OfficeIds   []uuid.UUID          `json:"office_ids"`
+	Status      *SharedRequestStatus `json:"status"`
+	Type        *SharedRequestType   `json:"type"`
+	RequestedBy *uuid.UUID           `json:"requested_by"`
+	Off         int32                `json:"off"`
+	Lim         int32                `json:"lim"`
 }
 
 type ListRequestsEnrichedRow struct {
@@ -668,6 +673,7 @@ func (q *Queries) ListRequestsEnriched(ctx context.Context, arg ListRequestsEnri
 		arg.OfficeIds,
 		arg.Status,
 		arg.Type,
+		arg.RequestedBy,
 		arg.Off,
 		arg.Lim,
 	)
