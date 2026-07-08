@@ -304,7 +304,14 @@ test.describe('Assignment (Penugasan/Peminjaman) — real backend e2e', () => {
     await page.getByRole('option', { name: new RegExp(asset2Name) }).click()
 
     const reason = `perlu untuk presentasi ${RUN}`
-    await page.getByTestId('peminjaman-notes').fill(reason)
+    // Fill Alasan robustly: target the actual textbox by its accessible name and
+    // type real keystrokes so the Vue v-model syncs, then assert the value stuck.
+    // (A plain `getByTestId('peminjaman-notes').fill()` left `notes` empty in CI,
+    // tripping the client-side "Alasan wajib diisi." guard before any API call.)
+    const alasanField = page.getByRole('textbox', { name: /Alasan/ })
+    await alasanField.click()
+    await alasanField.pressSequentially(reason)
+    await expect(alasanField).toHaveValue(reason)
     await page.getByTestId('peminjaman-submit').click()
 
     await expect(page.getByText('Pengajuan peminjaman terkirim', { exact: true })).toBeVisible({ timeout: 10_000 })
