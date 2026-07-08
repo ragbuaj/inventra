@@ -213,6 +213,12 @@ func (s *Service) SubmitBorrow(ctx context.Context, caller approval.Caller, in B
 	if err != nil {
 		return sqlc.ApprovalRequest{}, mapDBError(err)
 	}
+	// Scope: caller must have the asset's office in scope (mirrors transfer.Submit) —
+	// otherwise a Staf could open a borrow request against an asset outside their
+	// data scope by supplying an arbitrary asset UUID.
+	if !common.InScope(caller.AllScope, caller.OfficeIDs, asset.OfficeID) {
+		return sqlc.ApprovalRequest{}, ErrOutOfScope
+	}
 	if asset.Status != sqlc.SharedAssetStatusAvailable {
 		return sqlc.ApprovalRequest{}, ErrAssetNotAvailable
 	}

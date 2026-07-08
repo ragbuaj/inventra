@@ -483,4 +483,33 @@ func TestAssignment_ListByAsset_history(t *testing.T) {
 	assert.Equal(t, sqlc.SharedAssignmentStatusReturned, rows[1].AssignmentAssignment.Status)
 }
 
+func TestAssignment_Borrow_out_of_scope(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	// Asset lives in the sibling office; the Staf's scope only covers h.office.
+	assetID := seedAsset(t, h.pool, "OFC-ASG-2026-00013", "Laptop Sibling", h.catID, h.sibling, "available")
+	stafID, _ := h.seedStaf(t, h.office, "staf.borrowoos@test.local", "EMP-BO-1")
+
+	callerS := buildCaller(stafID, h.stafRl, false, []uuid.UUID{h.office})
+	_, err := h.asvc.SubmitBorrow(ctx, callerS, assignment.BorrowInput{
+		AssetID: assetID,
+		DueDate: strptr("2026-07-20"),
+		Notes:   strptr("perlu buat presentasi"),
+	})
+	require.ErrorIs(t, err, assignment.ErrOutOfScope)
+
+	// No approval request must have been created for the out-of-scope asset.
+	rows, err := h.asvc.ListByAsset(ctx, assetID, true, nil)
+	require.NoError(t, err)
+	assert.Empty(t, rows, "no assignment row should exist for an out-of-scope borrow attempt")
+	assert.Equal(t, sqlc.SharedAssetStatusAvailable, h.getAssetStatus(t, assetID))
+
+	var reqCount int
+	require.NoError(t, h.pool.QueryRow(ctx,
+		`SELECT count(*) FROM approval.requests WHERE target_entity = 'asset' AND target_id = $1`,
+		assetID).Scan(&reqCount))
+	assert.Equal(t, 0, reqCount, "no approval request row should exist for an out-of-scope borrow attempt")
+}
+
 func strptr(s string) *string { return &s }
