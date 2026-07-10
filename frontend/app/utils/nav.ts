@@ -65,7 +65,8 @@ export const superadminNav: NavGroup[] = [
       {
         labelKey: 'nav.maintenance',
         icon: 'i-lucide-wrench',
-        to: '/maintenance'
+        to: '/maintenance',
+        permission: 'maintenance.view'
       },
       {
         labelKey: 'nav.approval',
@@ -158,6 +159,12 @@ export const staffNav: NavGroup[] = [
         labelKey: 'nav.peminjaman',
         icon: 'i-lucide-hand',
         to: '/peminjaman',
+        permission: 'request.create'
+      },
+      {
+        labelKey: 'nav.maintenance',
+        icon: 'i-lucide-wrench',
+        to: '/maintenance',
         permission: 'request.create'
       },
       {
