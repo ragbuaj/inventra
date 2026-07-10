@@ -3746,11 +3746,13 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required: [asset_id, problem_category_id, description]
+              required: [asset_id, problem_category_id]
               properties:
                 asset_id: { type: string, format: uuid }
                 problem_category_id: { type: string, format: uuid }
-                description: { type: string }
+                description:
+                  type: [string, "null"]
+                  description: Optional problem description.
                 photo:
                   type: string
                   format: binary
