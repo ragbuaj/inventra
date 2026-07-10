@@ -17,6 +17,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/depreciation"
 	"github.com/ragbuaj/inventra/internal/disposal"
+	"github.com/ragbuaj/inventra/internal/maintenance"
 	"github.com/ragbuaj/inventra/internal/stockopname"
 	"github.com/ragbuaj/inventra/internal/testsupport"
 	"github.com/ragbuaj/inventra/internal/transfer"
@@ -106,8 +107,10 @@ type harness struct {
 }
 
 // newHarness boots a throwaway Postgres + Redis, wires the stockopname service
-// (with disposal/transfer deps for future tasks), and seeds two unrelated
-// offices (A, B) plus a shared category.
+// (with disposal/transfer/maintenance deps), and seeds two unrelated offices
+// (A, B) plus a shared category. The maintenance service's asset dependency is
+// left nil — nothing exercised here uploads a damage-report photo, so it is
+// never dereferenced.
 func newHarness(t *testing.T) *harness {
 	t.Helper()
 	pool := testsupport.NewPostgres(t)
@@ -123,7 +126,9 @@ func newHarness(t *testing.T) *harness {
 	deprSvc := depreciation.NewService(q, pool)
 	dispSvc := disposal.NewService(q, pool, apprSvc, deprSvc)
 	trSvc := transfer.NewService(q, pool, apprSvc)
-	svc := stockopname.NewService(q, pool, dispSvc, trSvc, nil)
+	maintSvc := maintenance.NewService(q, pool, apprSvc, nil)
+	apprSvc.RegisterExecutor(sqlc.SharedRequestTypeMaintenance, maintSvc.Executor())
+	svc := stockopname.NewService(q, pool, dispSvc, trSvc, maintSvc)
 
 	officeRoleID := lookupRole(t, pool, "Kepala Unit")
 
@@ -521,10 +526,13 @@ func TestFollowupMisplacedCreatesTransfer(t *testing.T) {
 	assert.Equal(t, reqID, *item.FollowupRequestID)
 }
 
-// TestFollowupDamagedRejected verifies a 'damaged' item is rejected with
-// ErrInvalidState — the maintenance module isn't built yet, so no follow-up
-// request can be generated for it.
-func TestFollowupDamagedRejected(t *testing.T) {
+// TestOpnameDamagedFollowup verifies GenerateFollowup on a 'damaged' item opens
+// a corrective maintenance record (via maintenance.Service.
+// CreateCorrectiveFromOpname) and links the item's followup_record_id to it —
+// a second call is rejected as an already-actioned duplicate. This supersedes
+// the old TestFollowupDamagedRejected (pre-Task-6, the maintenance module
+// didn't exist yet so 'damaged' was rejected with ErrInvalidState).
+func TestOpnameDamagedFollowup(t *testing.T) {
 	h := newHarness(t)
 	ctx := context.Background()
 
@@ -534,8 +542,31 @@ func TestFollowupDamagedRejected(t *testing.T) {
 
 	sessID, itemID := openCountingSessionWithResult(t, h, caller, h.officeA, assetID, sqlc.SharedOpnameItemResultDamaged)
 
-	_, _, err := h.svc.GenerateFollowup(ctx, caller, sessID, itemID, stockopname.FollowupInput{})
-	require.ErrorIs(t, err, stockopname.ErrInvalidState)
+	reason := "hasil stock opname: aset rusak"
+	recID, followupType, err := h.svc.GenerateFollowup(ctx, caller, sessID, itemID, stockopname.FollowupInput{
+		Reason: &reason,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "maintenance_record", followupType)
+	require.NotEqual(t, uuid.Nil, recID)
+
+	item, err := h.q.GetOpnameItem(ctx, sqlc.GetOpnameItemParams{ID: itemID, SessionID: sessID})
+	require.NoError(t, err)
+	require.NotNil(t, item.FollowupRecordID)
+	assert.Equal(t, recID, *item.FollowupRecordID)
+	assert.Nil(t, item.FollowupRequestID, "the damaged path links a record, not an approval request")
+
+	var rec sqlc.MaintenanceMaintenanceRecord
+	require.NoError(t, h.pool.QueryRow(ctx,
+		`SELECT id, asset_id, type, status, description FROM maintenance.maintenance_records WHERE id = $1`,
+		recID).Scan(&rec.ID, &rec.AssetID, &rec.Type, &rec.Status, &rec.Description))
+	assert.Equal(t, assetID, rec.AssetID)
+	assert.Equal(t, sqlc.SharedMaintenanceTypeCorrective, rec.Type)
+	assert.Equal(t, sqlc.SharedMaintenanceStatusScheduled, rec.Status)
+	assert.Equal(t, reason, rec.Description)
+
+	_, _, err = h.svc.GenerateFollowup(ctx, caller, sessID, itemID, stockopname.FollowupInput{})
+	require.ErrorIs(t, err, stockopname.ErrAlreadyFollowedUp)
 }
 
 // TestFollowupDuplicateRejected verifies a second GenerateFollowup call on an
