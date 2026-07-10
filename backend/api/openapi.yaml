@@ -101,12 +101,15 @@ tags:
       `open` → `counting` (start) → `reconciling` (reconcile) → `closed` (close).
       While `counting`, items are recorded via barcode `scan` and/or a manual
       `PATCH .../items/{itemId}` result (`found`, `not_found`, `damaged`,
-      `misplaced`, `pending`). A variance item (`not_found` or `misplaced`) can
-      be routed to a follow-up approval request — `not_found` creates an
-      `asset_disposal` (write_off) request, `misplaced` creates an
-      `asset_transfer` request to the supplied destination office/room — via
-      `POST .../items/{itemId}/follow-up`, reusing the disposal/transfer
-      modules' own submit logic and their scope/state guards. The report
+      `misplaced`, `pending`). A variance item (`not_found`, `misplaced`, or
+      `damaged`) can be routed to a follow-up via
+      `POST .../items/{itemId}/follow-up`: `not_found` creates an
+      `asset_disposal` (write_off) approval request, `misplaced` creates an
+      `asset_transfer` approval request to the supplied destination
+      office/room (reusing the disposal/transfer modules' own submit logic
+      and their scope/state guards), and `damaged` creates a scheduled
+      corrective `maintenance_records` row directly (no approval workflow).
+      The report
       endpoint renders the session as a downloadable Berita Acara (PDF or
       xlsx). Reads require `stockopname.view`; writes (create, start, scan,
       set result, reconcile, follow-up, close) require `stockopname.manage`.
@@ -124,6 +127,25 @@ tags:
       require `assignment.manage`; the borrow submit and available-asset picker
       require `request.create`. Assignments are scoped to the caller's offices
       (data-scope module `assignments`).
+  - name: Maintenance
+    description: |
+      Preventive maintenance schedules and the maintenance record state
+      machine. A schedule (`interval_months` + `next_due_date`) drives when an
+      asset is next due for preventive maintenance; a record (`preventive` or
+      `corrective`) tracks one maintenance episode through
+      `scheduled` → `in_progress` → `completed`/`cancelled`. Landing on
+      `in_progress` flags the asset `under_maintenance`; landing on
+      `completed` advances the linked schedule's `last_done_date`/
+      `next_due_date` and releases the asset back to `available` once no
+      other active record holds it. `GET /maintenance/attention` lists
+      `under_maintenance` assets with no active record yet (e.g. flagged by an
+      assignment check-in's `needs_maintenance`). A Staf instead submits
+      `POST /maintenance/reports` (multipart, optional photo), which creates a
+      `maintenance` approval request (see the Requests tag) — a record is only
+      created once that request is approved. Reads require `maintenance.view`;
+      schedule/record writes require `maintenance.manage`; the damage-report
+      submit requires `request.create`. Schedules and records are scoped to
+      the caller's offices (data-scope module `maintenance`).
 
 paths:
   /health:
@@ -3351,17 +3373,20 @@ paths:
     post:
       tags: [Stock Opname]
       operationId: followUpStockOpnameItem
-      summary: Route a variance item to a disposal or transfer approval request
+      summary: Route a variance item to a disposal/transfer request or a maintenance record
       description: |
         For an item with result `not_found`, submits an `asset_disposal`
-        (`write_off`) request. For `misplaced`, submits an `asset_transfer`
-        request to `to_office_id` (required; and optional `to_room_id`).
-        Reuses the disposal/transfer modules' own `Submit`, so their asset-
-        scope and state guards also apply. Any other result (`pending`,
-        `found`, `damaged`) is rejected — `damaged` has no follow-up module
-        yet. An item that already has a follow-up request is rejected.
-        Requires the `stockopname.manage` permission; the session must be
-        within the caller's data scope.
+        (`write_off`) approval request. For `misplaced`, submits an
+        `asset_transfer` approval request to `to_office_id` (required; and
+        optional `to_room_id`); both reuse the disposal/transfer modules' own
+        `Submit`, so their asset-scope and state guards also apply. For
+        `damaged`, directly creates a scheduled corrective
+        `maintenance_records` row for the asset (no approval workflow) —
+        `reason` becomes the record's description. Any other result
+        (`pending`, `found`) is rejected. An item that already has a
+        follow-up request/record is rejected. Requires the
+        `stockopname.manage` permission; the session must be within the
+        caller's data scope.
       security:
         - bearerJWT: []
       requestBody:
@@ -3371,7 +3396,7 @@ paths:
             schema: { $ref: "#/components/schemas/StockOpnameFollowupRequest" }
       responses:
         "200":
-          description: Created follow-up request reference
+          description: Created follow-up reference (approval request for not_found/misplaced, maintenance record for damaged)
           content:
             application/json:
               schema: { $ref: "#/components/schemas/StockOpnameFollowupResponse" }
@@ -3385,8 +3410,8 @@ paths:
               schema: { $ref: "#/components/schemas/Error" }
         "409":
           description: |
-            Item result does not allow a follow-up (`pending`/`found`/`damaged`),
-            or the item already has a follow-up request, or the underlying
+            Item result does not allow a follow-up (`pending`/`found`),
+            or the item already has a follow-up request/record, or the underlying
             disposal/transfer is in a conflicting state (e.g. asset already
             disposed or in transit)
           content:
@@ -3429,6 +3454,363 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/maintenance/schedules:
+    get:
+      tags: [Maintenance]
+      operationId: listMaintenanceSchedules
+      summary: List preventive maintenance schedules (data-scoped)
+      description: |
+        Returns schedules within the caller's data scope (module `maintenance`),
+        enriched with asset/office/category display names. Requires the
+        `maintenance.view` permission.
+      security:
+        - bearerJWT: []
+      parameters:
+        - { name: is_active, in: query, schema: { type: string, enum: ["true", "false"] }, description: Filter by active status. }
+        - { name: limit, in: query, schema: { type: integer, default: 20, minimum: 1, maximum: 100 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0, minimum: 0 } }
+      responses:
+        "200":
+          description: A page of schedules in scope
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MaintenanceScheduleList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Maintenance]
+      operationId: createMaintenanceSchedule
+      summary: Create a preventive maintenance schedule for an asset
+      description: |
+        Requires the `maintenance.manage` permission; the asset must be within
+        the caller's data scope and not disposed/lost. `start_date` seeds the
+        first `next_due_date`.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MaintenanceCreateScheduleRequest" }
+      responses:
+        "201":
+          description: Created schedule
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MaintenanceSchedule" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Asset not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          description: Asset is disposed/lost, `interval_months` < 1, `start_date` is invalid, or an invalid reference was supplied
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/maintenance/schedules/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [Maintenance]
+      operationId: updateMaintenanceSchedule
+      summary: Update a maintenance schedule
+      description: |
+        Requires the `maintenance.manage` permission; the schedule must be
+        within the caller's data scope. When `interval_months` changes and the
+        schedule already has a `last_done_date`, `next_due_date` is
+        recomputed from it.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MaintenanceUpdateScheduleRequest" }
+      responses:
+        "200":
+          description: Updated schedule
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MaintenanceSchedule" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          description: '`interval_months` < 1'
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    delete:
+      tags: [Maintenance]
+      operationId: deleteMaintenanceSchedule
+      summary: Soft-delete a maintenance schedule
+      description: Requires the `maintenance.manage` permission; the schedule must be within the caller's data scope.
+      security:
+        - bearerJWT: []
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/maintenance/records:
+    get:
+      tags: [Maintenance]
+      operationId: listMaintenanceRecords
+      summary: List maintenance records (data-scoped)
+      description: |
+        Returns records within the caller's data scope (module `maintenance`),
+        enriched with asset/office/category/problem/vendor/reporter display
+        names. Requires the `maintenance.view` permission.
+      security:
+        - bearerJWT: []
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [scheduled, in_progress, completed, cancelled] } }
+        - { name: type, in: query, schema: { type: string, enum: [preventive, corrective] } }
+        - { name: q, in: query, schema: { type: string }, description: Case-insensitive search across asset name/tag and description. }
+        - { name: limit, in: query, schema: { type: integer, default: 20, minimum: 1, maximum: 100 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0, minimum: 0 } }
+      responses:
+        "200":
+          description: A page of records in scope
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MaintenanceRecordList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Maintenance]
+      operationId: createMaintenanceRecord
+      summary: Create a maintenance record (preventive or corrective)
+      description: |
+        Requires the `maintenance.manage` permission; the asset must be within
+        the caller's data scope and not disposed/lost. When the resulting
+        status is `in_progress`, the asset is flagged `under_maintenance`
+        (rejected with 422 if it is currently `in_transfer`); when it lands on
+        `completed`, a linked schedule's `last_done_date`/`next_due_date` are
+        advanced and the asset is released back to `available` if this was its
+        last active record.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MaintenanceCreateRecordRequest" }
+      responses:
+        "201":
+          description: Created record
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MaintenanceRecord" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Asset or schedule not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          description: |
+            Asset is disposed/lost, in transfer (when transitioning to
+            `in_progress`), the schedule belongs to another asset, or an
+            invalid reference/date was supplied
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/maintenance/records/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Maintenance]
+      operationId: getMaintenanceRecord
+      summary: Get an enriched maintenance record by id
+      description: Requires the `maintenance.view` permission; the record must be within the caller's data scope.
+      security:
+        - bearerJWT: []
+      responses:
+        "200": { description: The record, content: { application/json: { schema: { $ref: "#/components/schemas/MaintenanceRecord" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    patch:
+      tags: [Maintenance]
+      operationId: updateMaintenanceRecord
+      summary: Update a maintenance record (status transition + fields)
+      description: |
+        Requires the `maintenance.manage` permission; the record must be
+        within the caller's data scope. `completed`/`cancelled` records are
+        terminal (409). Valid transitions: `scheduled` → any of
+        `scheduled|in_progress|completed|cancelled`; `in_progress` →
+        `in_progress|completed|cancelled`. Status effects (asset
+        under_maintenance/available, schedule last_done/next_due) are applied
+        the same way as on create.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MaintenanceUpdateRecordRequest" }
+      responses:
+        "200":
+          description: Updated record
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MaintenanceRecord" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Record is `completed`/`cancelled` (terminal), or the requested status transition is invalid
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          description: Asset is in transfer (when transitioning to `in_progress`), or an invalid reference/date was supplied
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/maintenance/attention:
+    get:
+      tags: [Maintenance]
+      operationId: listMaintenanceAttention
+      summary: List assets needing maintenance follow-up ("Perlu Tindak Lanjut")
+      description: |
+        Returns `under_maintenance` assets (within the caller's data scope)
+        that have no active (non-terminal) maintenance record — e.g. flagged
+        by an assignment check-in's `needs_maintenance` but not yet followed
+        up with a record. Requires the `maintenance.view` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Assets awaiting a maintenance record
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/MaintenanceAttentionItem" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/maintenance/reports:
+    post:
+      tags: [Maintenance]
+      operationId: submitMaintenanceReport
+      summary: Submit a self-service damage report (Staf)
+      description: |
+        Creates a `maintenance`-type approval request for a reported problem
+        on an asset, with an optional photo uploaded as an asset attachment.
+        A maintenance record is only created once the request is approved —
+        see `POST /requests/{id}/approve`. Requires the `request.create`
+        permission; the asset must be within the caller's data scope and not
+        disposed/lost. Duplicate-guarded: rejected if the caller already has a
+        pending report for this asset.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [asset_id, problem_category_id, description]
+              properties:
+                asset_id: { type: string, format: uuid }
+                problem_category_id: { type: string, format: uuid }
+                description: { type: string }
+                photo:
+                  type: string
+                  format: binary
+                  description: Optional photo of the reported problem.
+      responses:
+        "201":
+          description: Created approval request for the report
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [request_id, status]
+                properties:
+                  request_id: { type: string, format: uuid }
+                  status:
+                    type: string
+                    enum: [pending, approved, rejected, cancelled]
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Asset not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: A pending report already exists for this asset (from this caller)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          description: Asset is disposed/lost, or the uploaded photo is unsupported/too large
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/assets/{id}/maintenance:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: Asset id }
+    get:
+      tags: [Maintenance]
+      operationId: listAssetMaintenance
+      summary: List maintenance history for an asset
+      description: Returns all maintenance records for the given asset within the caller's data scope. Requires the `maintenance.view` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Maintenance history
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/MaintenanceRecord" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
 
   /api/v1/stock-opname/sessions/{id}/report:
     parameters:
@@ -4395,6 +4777,161 @@ components:
         limit: { type: integer }
         offset: { type: integer }
 
+    MaintenanceSchedule:
+      type: object
+      description: |
+        A preventive maintenance schedule for an asset. `asset_name`, `asset_tag`,
+        `office_name`, and `category_name` are only present on the enriched
+        list responses (`GET /maintenance/schedules`), not on create/update.
+      required: [id, asset_id, interval_months, next_due_date, is_active, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        asset_id: { type: string, format: uuid }
+        maintenance_category_id: { type: [string, "null"], format: uuid }
+        interval_months: { type: integer, minimum: 1 }
+        last_done_date: { type: [string, "null"], format: date }
+        next_due_date: { type: [string, "null"], format: date }
+        is_active: { type: boolean }
+        asset_name: { type: [string, "null"] }
+        asset_tag: { type: [string, "null"] }
+        office_name: { type: [string, "null"] }
+        category_name: { type: [string, "null"] }
+        created_at: { type: [string, "null"], format: date-time }
+        updated_at: { type: [string, "null"], format: date-time }
+
+    MaintenanceScheduleList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/MaintenanceSchedule" } }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+
+    MaintenanceCreateScheduleRequest:
+      type: object
+      description: Body for POST /maintenance/schedules.
+      required: [asset_id, interval_months, start_date]
+      properties:
+        asset_id: { type: string, format: uuid }
+        maintenance_category_id: { type: [string, "null"], format: uuid }
+        interval_months: { type: integer, minimum: 1 }
+        start_date:
+          type: string
+          format: date
+          description: 'Seeds the first next_due_date. Format: YYYY-MM-DD.'
+
+    MaintenanceUpdateScheduleRequest:
+      type: object
+      description: Body for PATCH /maintenance/schedules/{id}. Entirely optional.
+      properties:
+        maintenance_category_id: { type: [string, "null"], format: uuid }
+        interval_months: { type: integer, minimum: 1 }
+        is_active: { type: boolean }
+
+    MaintenanceRecord:
+      type: object
+      description: |
+        A maintenance record (preventive or corrective) for an asset. `asset_name`,
+        `asset_tag`, `office_name`, `category_name`, `problem_name`, `vendor_name`,
+        and `reported_by_name` are only present on enriched responses (list/get/
+        by-asset), not on create/update.
+      required: [id, asset_id, type, status, description, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        asset_id: { type: string, format: uuid }
+        schedule_id: { type: [string, "null"], format: uuid }
+        maintenance_category_id: { type: [string, "null"], format: uuid }
+        problem_category_id: { type: [string, "null"], format: uuid }
+        type:
+          type: string
+          enum: [preventive, corrective]
+        status:
+          type: string
+          enum: [scheduled, in_progress, completed, cancelled]
+        scheduled_date: { type: [string, "null"], format: date }
+        completed_date: { type: [string, "null"], format: date }
+        cost:
+          type: [string, "null"]
+          description: Decimal string (IDR).
+        vendor_id: { type: [string, "null"], format: uuid }
+        performed_by: { type: [string, "null"] }
+        description: { type: string }
+        reported_by_id: { type: [string, "null"], format: uuid }
+        asset_name: { type: [string, "null"] }
+        asset_tag: { type: [string, "null"] }
+        office_name: { type: [string, "null"] }
+        category_name: { type: [string, "null"] }
+        problem_name: { type: [string, "null"] }
+        vendor_name: { type: [string, "null"] }
+        reported_by_name: { type: [string, "null"] }
+        created_at: { type: [string, "null"], format: date-time }
+        updated_at: { type: [string, "null"], format: date-time }
+
+    MaintenanceRecordList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/MaintenanceRecord" } }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+
+    MaintenanceCreateRecordRequest:
+      type: object
+      description: Body for POST /maintenance/records (Tambah Catatan slideover).
+      required: [asset_id, type, description]
+      properties:
+        asset_id: { type: string, format: uuid }
+        schedule_id: { type: [string, "null"], format: uuid }
+        maintenance_category_id: { type: [string, "null"], format: uuid }
+        problem_category_id: { type: [string, "null"], format: uuid }
+        type:
+          type: string
+          enum: [preventive, corrective]
+        status:
+          type: string
+          enum: [scheduled, in_progress, completed, cancelled]
+          description: Defaults to `scheduled` when omitted.
+        scheduled_date: { type: [string, "null"], format: date }
+        completed_date:
+          type: [string, "null"]
+          format: date
+          description: Defaults to today when the record is created directly as `completed`.
+        cost: { type: [string, "null"], description: Decimal string (IDR). }
+        vendor_id: { type: [string, "null"], format: uuid }
+        description: { type: string }
+
+    MaintenanceUpdateRecordRequest:
+      type: object
+      description: Body for PATCH /maintenance/records/{id} (edit slideover). Entirely optional.
+      properties:
+        status:
+          type: [string, "null"]
+          enum: [scheduled, in_progress, completed, cancelled]
+        maintenance_category_id: { type: [string, "null"], format: uuid }
+        scheduled_date: { type: [string, "null"], format: date }
+        completed_date:
+          type: [string, "null"]
+          format: date
+          description: Defaults to today when the record transitions to `completed` for the first time and no date is supplied.
+        cost: { type: [string, "null"], description: Decimal string (IDR). }
+        vendor_id: { type: [string, "null"], format: uuid }
+        description: { type: [string, "null"] }
+
+    MaintenanceAttentionItem:
+      type: object
+      description: |
+        An `under_maintenance` asset with no active maintenance record yet
+        (the "Perlu Tindak Lanjut" queue).
+      required: [id, asset_tag, name, office_id]
+      properties:
+        id: { type: string, format: uuid }
+        asset_tag: { type: string }
+        name: { type: string }
+        office_id: { type: string, format: uuid }
+        office_name: { type: [string, "null"] }
+
     Disposal:
       type: object
       description: |
@@ -4543,6 +5080,10 @@ components:
         counted_by_name: { type: [string, "null"] }
         counted_at: { type: [string, "null"], format: date-time }
         followup_request_id: { type: [string, "null"], format: uuid }
+        followup_record_id:
+          type: [string, "null"]
+          format: uuid
+          description: Set instead of followup_request_id when the follow-up is a `damaged` item's maintenance record.
 
     StockOpnameItemList:
       type: object
@@ -4603,6 +5144,8 @@ components:
         Body for POST /stock-opname/sessions/{id}/items/{itemId}/follow-up.
         `to_office_id` is required when the item's result is `misplaced`
         (ignored for `not_found`, which always creates a write-off disposal).
+        `reason` becomes the disposal/transfer reason for not_found/misplaced,
+        or the maintenance record's description for `damaged`.
       properties:
         to_office_id: { type: [string, "null"], format: uuid }
         to_room_id: { type: [string, "null"], format: uuid }
@@ -4610,13 +5153,18 @@ components:
 
     StockOpnameFollowupResponse:
       type: object
-      required: [request_id, type]
+      description: |
+        `request_id` is set for `asset_disposal`/`asset_transfer` (not_found/
+        misplaced); `record_id` is set instead for `maintenance_record`
+        (damaged).
+      required: [type]
       properties:
         request_id: { type: string, format: uuid }
+        record_id: { type: string, format: uuid }
         type:
           type: string
-          enum: [asset_disposal, asset_transfer]
-          description: The kind of approval request created.
+          enum: [asset_disposal, asset_transfer, maintenance_record]
+          description: The kind of follow-up created.
 
     Attachment:
       type: object
