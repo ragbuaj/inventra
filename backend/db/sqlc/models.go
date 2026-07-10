@@ -1332,6 +1332,7 @@ type MaintenanceMaintenanceRecord struct {
 	CreatedAt             pgtype.Timestamptz      `json:"created_at"`
 	UpdatedAt             pgtype.Timestamptz      `json:"updated_at"`
 	DeletedAt             pgtype.Timestamptz      `json:"deleted_at"`
+	ScheduleID            *uuid.UUID              `json:"schedule_id"`
 }
 
 type MaintenanceMaintenanceSchedule struct {
@@ -1541,6 +1542,7 @@ type StockopnameStockOpnameItem struct {
 	UpdatedAt         pgtype.Timestamptz     `json:"updated_at"`
 	DeletedAt         pgtype.Timestamptz     `json:"deleted_at"`
 	FollowupRequestID *uuid.UUID             `json:"followup_request_id"`
+	FollowupRecordID  *uuid.UUID             `json:"followup_record_id"`
 }
 
 type StockopnameStockOpnameSession struct {

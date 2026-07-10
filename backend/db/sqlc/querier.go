@@ -28,6 +28,9 @@ type Querier interface {
 	CancelRequest(ctx context.Context, arg CancelRequestParams) (ApprovalRequest, error)
 	CheckinAssignment(ctx context.Context, arg CheckinAssignmentParams) (AssignmentAssignment, error)
 	CheckoutAssignment(ctx context.Context, arg CheckoutAssignmentParams) (AssignmentAssignment, error)
+	// Active = scheduled or in_progress. exclude_id lets the caller ignore the row
+	// it is about to transition (release check).
+	CountActiveMaintRecordsByAsset(ctx context.Context, arg CountActiveMaintRecordsByAssetParams) (int64, error)
 	CountAssets(ctx context.Context, arg CountAssetsParams) (int64, error)
 	CountAssignments(ctx context.Context, arg CountAssignmentsParams) (int64, error)
 	CountAuditLogs(ctx context.Context, arg CountAuditLogsParams) (int64, error)
@@ -35,10 +38,14 @@ type Querier interface {
 	CountDisposals(ctx context.Context, arg CountDisposalsParams) (int64, error)
 	CountEmployees(ctx context.Context, arg CountEmployeesParams) (int64, error)
 	CountFloorsByOffice(ctx context.Context, arg CountFloorsByOfficeParams) (int64, error)
+	CountMaintRecords(ctx context.Context, arg CountMaintRecordsParams) (int64, error)
+	CountMaintSchedules(ctx context.Context, arg CountMaintSchedulesParams) (int64, error)
 	CountOffices(ctx context.Context, arg CountOfficesParams) (int64, error)
 	CountOpenEarlierPeriods(ctx context.Context, period pgtype.Date) (int64, error)
 	CountOpnameSessions(ctx context.Context, arg CountOpnameSessionsParams) (int64, error)
 	CountPendingDisposalRequestsForAsset(ctx context.Context, assetID *uuid.UUID) (int64, error)
+	// Duplicate-guard: pending maintenance request for the same asset by the same maker.
+	CountPendingMaintRequests(ctx context.Context, arg CountPendingMaintRequestsParams) (int64, error)
 	// Guard: an asset may have at most one pending asset_transfer approval request.
 	CountPendingTransferRequestsForAsset(ctx context.Context, assetID *uuid.UUID) (int64, error)
 	CountRequests(ctx context.Context, arg CountRequestsParams) (int64, error)
@@ -54,6 +61,8 @@ type Querier interface {
 	CreateDisposal(ctx context.Context, arg CreateDisposalParams) (DisposalDisposal, error)
 	CreateEmployee(ctx context.Context, arg CreateEmployeeParams) (MasterdataEmployee, error)
 	CreateFloor(ctx context.Context, arg CreateFloorParams) (MasterdataFloor, error)
+	CreateMaintRecord(ctx context.Context, arg CreateMaintRecordParams) (MaintenanceMaintenanceRecord, error)
+	CreateMaintSchedule(ctx context.Context, arg CreateMaintScheduleParams) (MaintenanceMaintenanceSchedule, error)
 	CreateOffice(ctx context.Context, arg CreateOfficeParams) (MasterdataOffice, error)
 	CreateOpnameSession(ctx context.Context, arg CreateOpnameSessionParams) (StockopnameStockOpnameSession, error)
 	CreateRequest(ctx context.Context, arg CreateRequestParams) (ApprovalRequest, error)
@@ -96,6 +105,9 @@ type Querier interface {
 	GetDisposalEnriched(ctx context.Context, arg GetDisposalEnrichedParams) (GetDisposalEnrichedRow, error)
 	GetEmployee(ctx context.Context, arg GetEmployeeParams) (MasterdataEmployee, error)
 	GetFloor(ctx context.Context, arg GetFloorParams) (MasterdataFloor, error)
+	GetMaintRecordEnriched(ctx context.Context, arg GetMaintRecordEnrichedParams) (GetMaintRecordEnrichedRow, error)
+	GetMaintRecordScoped(ctx context.Context, arg GetMaintRecordScopedParams) (MaintenanceMaintenanceRecord, error)
+	GetMaintScheduleScoped(ctx context.Context, arg GetMaintScheduleScopedParams) (MaintenanceMaintenanceSchedule, error)
 	GetOffice(ctx context.Context, arg GetOfficeParams) (MasterdataOffice, error)
 	GetOfficeAncestors(ctx context.Context, id uuid.UUID) ([]GetOfficeAncestorsRow, error)
 	GetOfficeCode(ctx context.Context, id uuid.UUID) (string, error)
@@ -178,6 +190,12 @@ type Querier interface {
 	ListFloorsByOffice(ctx context.Context, arg ListFloorsByOfficeParams) ([]MasterdataFloor, error)
 	ListInboxCandidates(ctx context.Context) ([]ApprovalRequest, error)
 	ListInboxCandidatesEnriched(ctx context.Context) ([]ListInboxCandidatesEnrichedRow, error)
+	// Assets flagged under_maintenance (e.g. by assignment check-in) with no active
+	// maintenance record — the "Perlu Tindak Lanjut" queue.
+	ListMaintAttentionAssets(ctx context.Context, arg ListMaintAttentionAssetsParams) ([]ListMaintAttentionAssetsRow, error)
+	ListMaintRecordsByAssetEnriched(ctx context.Context, arg ListMaintRecordsByAssetEnrichedParams) ([]ListMaintRecordsByAssetEnrichedRow, error)
+	ListMaintRecordsEnriched(ctx context.Context, arg ListMaintRecordsEnrichedParams) ([]ListMaintRecordsEnrichedRow, error)
+	ListMaintSchedulesEnriched(ctx context.Context, arg ListMaintSchedulesEnrichedParams) ([]ListMaintSchedulesEnrichedRow, error)
 	// Offices (hierarchy) with data-scoping. all_scope bypasses the office filter
 	// (global scope); otherwise only offices whose id is in office_ids are returned.
 	ListOffices(ctx context.Context, arg ListOfficesParams) ([]MasterdataOffice, error)
@@ -212,6 +230,7 @@ type Querier interface {
 	SetAssetValuationExclusion(ctx context.Context, arg SetAssetValuationExclusionParams) (AssetAsset, error)
 	SetDisposalBastNo(ctx context.Context, arg SetDisposalBastNoParams) (DisposalDisposal, error)
 	SetItemFollowup(ctx context.Context, arg SetItemFollowupParams) (StockopnameStockOpnameItem, error)
+	SetItemFollowupRecord(ctx context.Context, arg SetItemFollowupRecordParams) (StockopnameStockOpnameItem, error)
 	SetOpnameItemResult(ctx context.Context, arg SetOpnameItemResultParams) (StockopnameStockOpnameItem, error)
 	SetPeriodClosed(ctx context.Context, arg SetPeriodClosedParams) (DepreciationDepreciationPeriod, error)
 	SetRequestDecision(ctx context.Context, arg SetRequestDecisionParams) (ApprovalRequest, error)
@@ -228,6 +247,7 @@ type Querier interface {
 	SoftDeleteEmployee(ctx context.Context, arg SoftDeleteEmployeeParams) (int64, error)
 	SoftDeleteFieldPermissionsByRole(ctx context.Context, roleID uuid.UUID) (int64, error)
 	SoftDeleteFloor(ctx context.Context, arg SoftDeleteFloorParams) (int64, error)
+	SoftDeleteMaintSchedule(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteOffice(ctx context.Context, arg SoftDeleteOfficeParams) (int64, error)
 	SoftDeleteRole(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteRolePermissionsByRole(ctx context.Context, roleID uuid.UUID) (int64, error)
@@ -239,12 +259,15 @@ type Querier interface {
 	// entry-sourced and union rows.
 	SumAmountsThroughPeriodByAsset(ctx context.Context, arg SumAmountsThroughPeriodByAssetParams) ([]SumAmountsThroughPeriodByAssetRow, error)
 	SumAssetAmounts(ctx context.Context, arg SumAssetAmountsParams) (string, error)
+	TouchMaintScheduleDone(ctx context.Context, arg TouchMaintScheduleDoneParams) (MaintenanceMaintenanceSchedule, error)
 	UpdateAsset(ctx context.Context, arg UpdateAssetParams) (AssetAsset, error)
 	UpdateAssetDepreciationSummary(ctx context.Context, arg UpdateAssetDepreciationSummaryParams) error
 	UpdateAssetDocument(ctx context.Context, arg UpdateAssetDocumentParams) (AssetAssetDocument, error)
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (MasterdataCategory, error)
 	UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) (MasterdataEmployee, error)
 	UpdateFloor(ctx context.Context, arg UpdateFloorParams) (MasterdataFloor, error)
+	UpdateMaintRecord(ctx context.Context, arg UpdateMaintRecordParams) (MaintenanceMaintenanceRecord, error)
+	UpdateMaintSchedule(ctx context.Context, arg UpdateMaintScheduleParams) (MaintenanceMaintenanceSchedule, error)
 	UpdateOffice(ctx context.Context, arg UpdateOfficeParams) (MasterdataOffice, error)
 	UpdateRole(ctx context.Context, arg UpdateRoleParams) (IdentityRole, error)
 	UpdateRoom(ctx context.Context, arg UpdateRoomParams) (MasterdataRoom, error)
