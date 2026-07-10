@@ -886,6 +886,8 @@
       "asset_create": "Asset Registration",
       "asset_disposal": "Asset Disposal",
       "asset_transfer": "Asset Transfer",
+      "assignment": "Asset Loan",
+      "maintenance": "Damage Report",
       "valuation_exclusion": "Valuation Exclusion"
     },
     "filter": {

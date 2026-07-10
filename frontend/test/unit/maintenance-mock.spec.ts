@@ -1,10 +1,16 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useMaintenance } from '~/composables/api/useMaintenance'
 import {
   maintenanceStore, scheduleSeed, recordSeed, loc, dayDiff, dueLevel, MAINT_TODAY
 } from '~/mock/maintenance'
 
-const { schedule, records, reports, addRecord, addReport } = useMaintenance()
+// Exercises the mock/maintenance store directly — the pre-backend mock scaffold
+// used by pages/maintenance.vue until it's rewired to the real
+// ~/composables/api/useMaintenance (the /api/v1/maintenance-backed composable).
+const schedule = async () => maintenanceStore.schedule()
+const records = async () => maintenanceStore.records()
+const reports = async () => maintenanceStore.reports()
+const addRecord = async (rec: Parameters<typeof maintenanceStore.addRecord>[0]) => maintenanceStore.addRecord(rec)
+const addReport = async (rep: Parameters<typeof maintenanceStore.addReport>[0]) => maintenanceStore.addReport(rep)
 
 beforeEach(() => maintenanceStore.reset())
 
@@ -43,7 +49,7 @@ describe('dayDiff() / dueLevel() — relative to fixed today 2026-06-24', () => 
   })
 })
 
-describe('useMaintenance', () => {
+describe('maintenanceStore (mock)', () => {
   it('lists schedule, records and (empty) reports', async () => {
     expect(await schedule()).toHaveLength(5)
     expect(await records()).toHaveLength(6)

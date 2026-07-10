@@ -37,9 +37,7 @@ function myRequestRow(over: Record<string, unknown> = {}): Record<string, unknow
 
 function detail(over: Partial<ApprovalRequestDetail> = {}): ApprovalRequestDetail {
   return {
-    // 'assignment' is a valid backend shared.request_type but the frontend's
-    // RequestType union (approvalMeta.ts) hasn't been extended to include it yet.
-    id: 'req1', type: 'assignment' as ApprovalRequestDetail['type'], status: 'pending', current_step: 1,
+    id: 'req1', type: 'assignment', status: 'pending', current_step: 1,
     office_id: 'o1', office_name: 'Kantor Cabang Jakarta Selatan',
     target_id: 'as1', target_entity: 'asset', reason: 'Presentasi ke nasabah prioritas',
     requested_by_id: 'u1', requested_by_name: 'Andi Saputra', requested_by_role: 'Staf',

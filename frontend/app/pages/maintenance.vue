@@ -1,11 +1,38 @@
 <script setup lang="ts">
 import type { ScheduleItem, MaintRecord, DamageReport, MaintType, MaintStatus, DueLevel } from '~/mock/maintenance'
-import { useMaintenance } from '~/composables/api/useMaintenance'
 import {
   loc, dayDiff, dueLevel, TYPE_TONE, STATUS_TONE, MAINT_STATUS_KEYS, MAINT_TODAY,
-  allAssets, myAssets, careCategories, vendors, problemKeys
+  allAssets, myAssets, careCategories, vendors, problemKeys, maintenanceStore
 } from '~/mock/maintenance'
+import { fakeLatency } from '~/mock/helpers'
 import type { BadgeColor } from '~/types'
+
+// TODO(Task 11): this page is still on the pre-backend mock scaffold
+// (`~/mock/maintenance`) — `~/composables/api/useMaintenance` now points at
+// the real /api/v1/maintenance endpoints (Task 8) and this page is rewired to
+// it, matching `docs/design/Maintenance.dc.html`, in a later task.
+const mockApi = {
+  async schedule(): Promise<ScheduleItem[]> {
+    await fakeLatency(500)
+    return maintenanceStore.schedule().map(s => ({ ...s }))
+  },
+  async records(): Promise<MaintRecord[]> {
+    await fakeLatency(600)
+    return maintenanceStore.records().map(r => ({ ...r }))
+  },
+  async reports(): Promise<DamageReport[]> {
+    await fakeLatency(300)
+    return maintenanceStore.reports().map(r => ({ ...r }))
+  },
+  async addRecord(rec: MaintRecord): Promise<MaintRecord> {
+    await fakeLatency()
+    return maintenanceStore.addRecord(rec)
+  },
+  async addReport(rep: DamageReport): Promise<DamageReport> {
+    await fakeLatency()
+    return maintenanceStore.addReport(rep)
+  }
+}
 
 definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
 
@@ -26,7 +53,6 @@ const DUE_TEXT: Record<DueLevel, string> = {
 }
 
 const { t, locale } = useI18n()
-const api = useMaintenance()
 
 const tab = ref<'jadwal' | 'catatan' | 'laporan'>('jadwal')
 const schedule = ref<ScheduleItem[]>([])
@@ -169,8 +195,8 @@ async function saveNote() {
     biaya: Number(String(na.biaya).replace(/\D/g, '')) || 0,
     vendor: na.vendor
   }
-  await api.addRecord(rec)
-  records.value = await api.records()
+  await mockApi.addRecord(rec)
+  records.value = await mockApi.records()
   savingNote.value = false
   noteOpen.value = false
 }
@@ -186,8 +212,8 @@ async function submitReport() {
     desc: lkDesc.value,
     date: MAINT_TODAY
   }
-  await api.addReport(rep)
-  reports.value = await api.reports()
+  await mockApi.addReport(rep)
+  reports.value = await mockApi.reports()
   submittingReport.value = false
   lkTag.value = ''
   lkProblem.value = ''
@@ -200,10 +226,10 @@ async function submitReport() {
 }
 
 onMounted(async () => {
-  schedule.value = await api.schedule()
-  reports.value = await api.reports()
+  schedule.value = await mockApi.schedule()
+  reports.value = await mockApi.reports()
   loadingRecords.value = true
-  records.value = await api.records()
+  records.value = await mockApi.records()
   loadingRecords.value = false
 })
 </script>

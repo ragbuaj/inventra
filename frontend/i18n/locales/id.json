@@ -886,6 +886,8 @@
       "asset_create": "Registrasi Aset",
       "asset_disposal": "Penghapusan Aset",
       "asset_transfer": "Mutasi Aset",
+      "assignment": "Peminjaman Aset",
+      "maintenance": "Laporan Kerusakan",
       "valuation_exclusion": "Pengecualian Valuasi"
     },
     "filter": {
