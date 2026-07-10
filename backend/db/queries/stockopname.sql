@@ -95,7 +95,7 @@ WHERE it.session_id = sqlc.arg(session_id) AND it.deleted_at IS NULL
 -- name: SetItemFollowupRecord :one
 UPDATE stockopname.stock_opname_items
 SET followup_record_id = sqlc.arg(followup_record_id)
-WHERE id = sqlc.arg(id) AND session_id = sqlc.arg(session_id)
+WHERE id = sqlc.arg(id) AND session_id = sqlc.arg(session_id) AND deleted_at IS NULL
 RETURNING *;
 
 -- (scan reuses assets.sql GetAssetByTag; scope enforced in the service)

@@ -418,7 +418,7 @@ func (q *Queries) SetItemFollowup(ctx context.Context, arg SetItemFollowupParams
 const setItemFollowupRecord = `-- name: SetItemFollowupRecord :one
 UPDATE stockopname.stock_opname_items
 SET followup_record_id = $1
-WHERE id = $2 AND session_id = $3
+WHERE id = $2 AND session_id = $3 AND deleted_at IS NULL
 RETURNING id, session_id, asset_id, expected, result, counted_by_id, counted_at, note, created_at, updated_at, deleted_at, followup_request_id, followup_record_id
 `
 
