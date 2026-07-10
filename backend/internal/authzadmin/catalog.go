@@ -56,10 +56,13 @@ var permissionCatalog = []PermissionGroup{
 		{"assignment.view", "Lihat penugasan aset"},
 		{"assignment.manage", "Kelola penugasan aset (check-out/check-in)"},
 	}},
+	{Group: "Maintenance", Items: []PermissionItem{
+		{"maintenance.view", "Lihat jadwal & catatan maintenance"},
+		{"maintenance.manage", "Kelola jadwal & catatan maintenance"},
+	}},
 	{Group: "Cadangan", Items: []PermissionItem{
 		{"report.view", "Lihat laporan"},
 		{"report.export", "Ekspor laporan"},
-		{"maintenance.manage", "Kelola maintenance"},
 		{"valuation.exclude.approve", "Setujui pengecualian valuasi"},
 	}},
 }
@@ -86,7 +89,7 @@ func ScopeLevels() []string {
 // ScopeModules returns the known data-scope module strings the handlers resolve
 // scope for, plus the '*' default sentinel.
 func ScopeModules() []string {
-	return []string{"*", "offices", "employees", "assets", "requests", "audit", "transfers", "disposals", "depreciation", "assignments"}
+	return []string{"*", "offices", "employees", "assets", "requests", "audit", "transfers", "disposals", "depreciation", "assignments", "maintenance"}
 }
 
 // CatalogResponse is the GET /authz/catalog payload for the admin UI.
