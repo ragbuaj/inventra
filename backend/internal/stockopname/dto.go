@@ -87,5 +87,6 @@ func toItemResponse(r sqlc.ListOpnameItemsEnrichedRow) map[string]any {
 		"counted_by_name":     r.CountedByName,
 		"counted_at":          common.TsStr(it.CountedAt),
 		"followup_request_id": common.UUIDPtrStr(it.FollowupRequestID),
+		"followup_record_id":  common.UUIDPtrStr(it.FollowupRecordID),
 	}
 }

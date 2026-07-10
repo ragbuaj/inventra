@@ -123,7 +123,7 @@ func newHarness(t *testing.T) *harness {
 	deprSvc := depreciation.NewService(q, pool)
 	dispSvc := disposal.NewService(q, pool, apprSvc, deprSvc)
 	trSvc := transfer.NewService(q, pool, apprSvc)
-	svc := stockopname.NewService(q, pool, dispSvc, trSvc)
+	svc := stockopname.NewService(q, pool, dispSvc, trSvc, nil)
 
 	officeRoleID := lookupRole(t, pool, "Kepala Unit")
 

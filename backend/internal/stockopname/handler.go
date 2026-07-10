@@ -342,8 +342,18 @@ func (h *Handler) followup(c *gin.Context) {
 		h.svcError(c, err)
 		return
 	}
-	audit.Record(c, h.aud, audit.ActionUpdate, "stock_opname_items", itemID, nil, audit.Diff(nil, map[string]any{"followup_request_id": reqID.String(), "type": reqType}))
-	c.JSON(http.StatusOK, gin.H{"request_id": reqID.String(), "type": reqType})
+	linkKey := "followup_request_id"
+	if reqType == "maintenance_record" {
+		linkKey = "followup_record_id"
+	}
+	audit.Record(c, h.aud, audit.ActionUpdate, "stock_opname_items", itemID, nil, audit.Diff(nil, map[string]any{linkKey: reqID.String(), "type": reqType}))
+	body := gin.H{"type": reqType}
+	if reqType == "maintenance_record" {
+		body["record_id"] = reqID.String()
+	} else {
+		body["request_id"] = reqID.String()
+	}
+	c.JSON(http.StatusOK, body)
 }
 
 func (h *Handler) report(c *gin.Context) {
