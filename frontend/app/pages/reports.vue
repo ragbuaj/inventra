@@ -251,9 +251,10 @@ const view = computed<View | null>(() => {
     cols: [
       { label: t('reports.col.session'), align: 'left' },
       { label: t('reports.col.office'), align: 'left' },
-      { label: t('reports.col.sessionStatus'), align: 'left' },
+      { label: t('reports.col.period'), align: 'left' },
       { label: t('reports.col.totalItems'), align: 'right' },
       { label: t('reports.col.variance'), align: 'right' },
+      { label: t('reports.col.sessionStatus'), align: 'left' },
       { label: t('reports.col.downloadBa'), align: 'right' }
     ],
     rows: rows.map(o => ({
@@ -261,9 +262,10 @@ const view = computed<View | null>(() => {
       cells: [
         cell(o.name, 'left', { weight: 'medium' }),
         cell(o.office_name, 'left', { tone: 'muted' }),
-        cell(statusLabel('stockOpname.status', o.status), 'left'),
+        cell(o.period, 'left', { tone: 'muted', mono: true }),
         cell(String(o.total_items), 'right', { tone: 'muted' }),
-        cell(String(o.variance), 'right', { weight: o.variance !== 0 ? 'semibold' : 'normal', tone: o.variance !== 0 ? 'error' : 'default' })
+        cell(String(o.variance), 'right', { weight: o.variance !== 0 ? 'semibold' : 'normal', tone: o.variance !== 0 ? 'error' : 'default' }),
+        cell(statusLabel('stockOpname.status', o.status), 'left')
       ]
     }))
   }

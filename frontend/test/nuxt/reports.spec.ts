@@ -374,8 +374,11 @@ describe('Reports page — transfer labels', () => {
     await wrapper.vm.$nextTick()
     await applyAndSettle(wrapper)
     const text = wrapper.text()
-    expect(text).toContain('Dalam Perjalanan') // transfer.status.in_transit
-    expect(text).toContain('Diterima') // transfer.status.received
+    expect(text).toContain('Dalam Perjalanan') // reports.kpi.in_transit (KPI tile)
+    // status CELLS localize via transfer.status.* — assert on the <td>s, not page text
+    const cellTexts = wrapper.findAll('td').map(c => c.text())
+    expect(cellTexts).toContain('Dalam Pengiriman') // transfer.status.in_transit
+    expect(cellTexts).toContain('Diterima') // transfer.status.received
     expect(text).toContain('—') // empty received_date / bast_no
     // no money tfoot for transfers
     expect(wrapper.find('tfoot').exists()).toBe(false)
@@ -386,6 +389,18 @@ describe('Reports page — transfer labels', () => {
 // 11 — opname BA download
 // ---------------------------------------------------------------------------
 describe('Reports page — opname BA', () => {
+  it('renders the plan column order Sesi · Kantor · Periode · Total Item · Selisih · Status with the row period', async () => {
+    runMock.mockResolvedValue(opnameResult)
+    const wrapper = await mountPage()
+    ;(wrapper.vm as unknown as Vm).selectReport('opname')
+    await wrapper.vm.$nextTick()
+    await applyAndSettle(wrapper)
+    const headers = wrapper.findAll('th').map(h => h.text())
+    expect(headers).toEqual(['Sesi', 'Kantor', 'Periode', 'Total Item', 'Selisih', 'Status', 'Berita Acara'])
+    const cells = wrapper.findAll('td').map(c => c.text())
+    expect(cells[2]).toBe('2026-06') // Periode cell for sess-1
+  })
+
   it('renders per-row BA buttons that call opnameBa(sessionId, format)', async () => {
     runMock.mockResolvedValue(opnameResult)
     const wrapper = await mountPage()
