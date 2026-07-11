@@ -3959,7 +3959,6 @@ paths:
         - { name: date_from, in: query, schema: { type: string, format: date }, description: 'Custom window start (inclusive). Must be paired with date_to; both or neither.' }
         - { name: date_to, in: query, schema: { type: string, format: date }, description: 'Custom window end (inclusive). Must be paired with date_from; both or neither.' }
         - { name: office_id, in: query, schema: { type: string, format: uuid }, description: 'Drill down to one office. Must be within the caller''s data scope (403 otherwise).' }
-        - { name: category_id, in: query, schema: { type: string, format: uuid }, description: Filter to one asset category. }
       responses:
         "200":
           description: The dashboard summary
@@ -3967,7 +3966,7 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/DashboardSummary" }
         "400":
-          description: Malformed `period`, `date_from`/`date_to`, `office_id`, or `category_id`
+          description: Malformed `period`, `date_from`/`date_to`, or `office_id`
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
@@ -3993,7 +3992,6 @@ paths:
         - { name: date_from, in: query, schema: { type: string, format: date }, description: 'Custom window start (inclusive). Must be paired with date_to; both or neither.' }
         - { name: date_to, in: query, schema: { type: string, format: date }, description: 'Custom window end (inclusive). Must be paired with date_from; both or neither.' }
         - { name: office_id, in: query, schema: { type: string, format: uuid }, description: 'Drill down to one office. Must be within the caller''s data scope (403 otherwise).' }
-        - { name: category_id, in: query, schema: { type: string, format: uuid }, description: Filter to one asset category. }
         - { name: format, in: query, required: true, schema: { type: string, enum: [xlsx, pdf] } }
       responses:
         "200":
@@ -4004,7 +4002,7 @@ paths:
             application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
               schema: { type: string, format: binary }
         "400":
-          description: Malformed `period`, `date_from`/`date_to`, `office_id`, `category_id`, or `format`
+          description: Malformed `period`, `date_from`/`date_to`, `office_id`, or `format`
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }

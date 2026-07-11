@@ -339,6 +339,66 @@ func TestReportDepreciation(t *testing.T) {
 	assert.Equal(t, "6000000.00", kpiMap(resD)["period_expense"])
 }
 
+// TestReportDepreciationValuationExclusion pins spec decision #7: an
+// excluded_from_valuation asset is dropped from ALL depreciation money totals —
+// the report rows/KPIs/remaining-book AND the dashboard book-value trend — even
+// though it carries real depreciation entries. A non-excluded asset (same
+// office/period) is seeded alongside so the totals are demonstrably the
+// non-excluded figures, not merely "empty".
+func TestReportDepreciationValuationExclusion(t *testing.T) {
+	svc, pool := newSvc(t)
+	e := baseEnv(t, pool)
+
+	// Included asset: book 900k, one in-window commercial entry (amount 100k).
+	incl := insertAsset(t, pool, assetSeed{
+		tag: "DIN", name: "Aset Depr Incl", category: e.cat1, office: e.officeA,
+		room: nil, class: "intangible", status: "available",
+		cost: "1000000.00", book: "900000.00", purchaseDate: d(refToday()), excluded: false,
+	})
+	insertDepr(t, pool, incl, "commercial", "2025-04-01", "1000000.00", "100000.00", "800000.00")
+
+	// Excluded asset: real in-window commercial entries that MUST be filtered
+	// out of every money total. A pre-window entry too, so `accumulated` and
+	// `remaining` can't accidentally pick it up either.
+	excl := insertAsset(t, pool, assetSeed{
+		tag: "DEX", name: "Aset Depr Excl", category: e.cat1, office: e.officeA,
+		room: nil, class: "intangible", status: "available",
+		cost: "5000000.00", book: "500000.00", purchaseDate: d(refToday()), excluded: true,
+	})
+	insertDepr(t, pool, excl, "commercial", "2025-02-01", "5000000.00", "800000.00", "4200000.00")
+	insertDepr(t, pool, excl, "commercial", "2025-04-01", "4200000.00", "999999.00", "3200001.00")
+
+	cur, prev := customPeriod(t, "2025-03-01", "2025-05-31")
+	p := aScope(e)
+	p.Basis = "commercial"
+	p.Cur, p.Prev = cur, prev
+
+	res, err := svc.Run(context.Background(), "depreciation", p)
+	require.NoError(t, err)
+
+	// Rows: only the included asset's April entry survives (excluded dropped).
+	rows := res.Rows.([]report.DeprRow)
+	require.Len(t, rows, 1, "only the non-excluded asset's in-window period")
+	assert.Equal(t, "2025-04", rows[0].Period)
+	assert.Equal(t, "100000.00", rows[0].Amount, "excluded asset's 999999 is dropped")
+	assert.Equal(t, "100000.00", res.Totals["amount"])
+
+	// KPIs: expense/accumulated/remaining all reflect only the included asset.
+	k := kpiMap(res)
+	assert.Equal(t, "100000.00", k["period_expense"], "excluded in-period amount dropped")
+	assert.Equal(t, "100000.00", k["accumulated"], "excluded pre-window amount dropped too")
+	assert.Equal(t, "800000.00", k["remaining_book"], "only the included asset's last closing")
+
+	// Dashboard book-value trend: DashboardDepreciationInPeriod must exclude the
+	// excluded asset, so the decline is 100k / (900k + 100k) = 10.0% (negative).
+	// Without the exclusion it would be (100k+999999)/(900k+1099999) ≈ -55%.
+	sum, err := svc.DashboardSummary(context.Background(), false, []uuid.UUID{e.officeA}, nil, cur, prev)
+	require.NoError(t, err)
+	require.NotNil(t, sum.Kpi.Trends.BookValuePct)
+	assert.InDelta(t, -10.0, *sum.Kpi.Trends.BookValuePct, 0.05,
+		"book-value trend derives only from non-excluded depreciation")
+}
+
 // ─── utilization ──────────────────────────────────────────────────────────────
 
 // TestReportUtilization drives loan-day accounting over a 31-day window: a

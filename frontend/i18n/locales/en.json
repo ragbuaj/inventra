@@ -438,6 +438,7 @@
     },
     "status": {
       "diajukan": "Submitted",
+      "pending": "Submitted",
       "approved": "Approved",
       "in_transit": "In Transit",
       "received": "Received",
@@ -1392,7 +1393,6 @@
     "excludedNote": "{n} assets excluded from total value (valuation exclusion)",
     "reload": "Reload",
     "totalLabel": "Total Assets",
-    "comingSoon": "This feature isn't available yet.",
     "period": {
       "last30": "Last 30 days",
       "thisMonth": "This month",

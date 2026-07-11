@@ -99,6 +99,7 @@ SELECT COALESCE(SUM(e.depreciation_amount), 0)::text
 FROM depreciation.depreciation_entries e
 JOIN asset.assets a ON a.id = e.asset_id AND a.deleted_at IS NULL
 WHERE e.deleted_at IS NULL AND e.basis = 'commercial'
+  AND NOT a.excluded_from_valuation
   AND e.period BETWEEN sqlc.arg(period_from)::date AND sqlc.arg(period_to)::date
   AND (sqlc.arg(all_scope)::boolean OR a.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
   AND (sqlc.narg(office_filter)::uuid IS NULL OR a.office_id = sqlc.narg(office_filter));
@@ -163,6 +164,7 @@ SELECT to_char(e.period, 'YYYY-MM') AS period,
 FROM depreciation.depreciation_entries e
 JOIN asset.assets a ON a.id = e.asset_id AND a.deleted_at IS NULL
 WHERE e.deleted_at IS NULL AND e.basis = sqlc.arg(basis)
+  AND NOT a.excluded_from_valuation
   AND e.period BETWEEN sqlc.arg(date_from)::date AND sqlc.arg(date_to)::date
   AND (sqlc.arg(all_scope)::boolean OR a.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
   AND (sqlc.narg(office_filter)::uuid IS NULL OR a.office_id = sqlc.narg(office_filter))
@@ -176,6 +178,7 @@ SELECT
 FROM depreciation.depreciation_entries e
 JOIN asset.assets a ON a.id = e.asset_id AND a.deleted_at IS NULL
 WHERE e.deleted_at IS NULL AND e.basis = sqlc.arg(basis)
+  AND NOT a.excluded_from_valuation
   AND (sqlc.arg(all_scope)::boolean OR a.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
   AND (sqlc.narg(office_filter)::uuid IS NULL OR a.office_id = sqlc.narg(office_filter))
   AND (sqlc.narg(category_id)::uuid IS NULL OR a.category_id = sqlc.narg(category_id));
@@ -188,6 +191,7 @@ FROM (
   FROM depreciation.depreciation_entries e
   JOIN asset.assets a ON a.id = e.asset_id AND a.deleted_at IS NULL
   WHERE e.deleted_at IS NULL AND e.basis = sqlc.arg(basis) AND e.period <= sqlc.arg(date_to)::date
+    AND NOT a.excluded_from_valuation
     AND (sqlc.arg(all_scope)::boolean OR a.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
     AND (sqlc.narg(office_filter)::uuid IS NULL OR a.office_id = sqlc.narg(office_filter))
     AND (sqlc.narg(category_id)::uuid IS NULL OR a.category_id = sqlc.narg(category_id))

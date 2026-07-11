@@ -54,11 +54,11 @@ export interface DashboardQuery {
 }
 
 /**
- * Compat aliases kept ONLY so `DashboardMaintenancePanel`/`DashboardApprovalPanel`
- * (which still render the mockup's localized row shapes) keep compiling. They are
- * NOT part of the backend contract — the backend has no `appr` field at all, and
- * `maintenance_due_list` above is shaped differently. Tasks 12/13 rework the
- * panels/pages onto the real shapes; these aliases are removed then.
+ * View-model row shapes consumed by `DashboardMaintenancePanel` /
+ * `DashboardApprovalPanel`. These are the panels' permanent props contract, not
+ * the backend contract: the dashboard page maps the API rows
+ * (`maintenance_due_list`, and — for approvals — the approval feed) into these
+ * localized, presentation-ready shapes before passing them to the panels.
  */
 export interface MaintenanceItem {
   asset: string

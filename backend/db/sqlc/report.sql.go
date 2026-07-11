@@ -216,6 +216,7 @@ SELECT COALESCE(SUM(e.depreciation_amount), 0)::text
 FROM depreciation.depreciation_entries e
 JOIN asset.assets a ON a.id = e.asset_id AND a.deleted_at IS NULL
 WHERE e.deleted_at IS NULL AND e.basis = 'commercial'
+  AND NOT a.excluded_from_valuation
   AND e.period BETWEEN $1::date AND $2::date
   AND ($3::boolean OR a.office_id = ANY($4::uuid[]))
   AND ($5::uuid IS NULL OR a.office_id = $5)
@@ -588,6 +589,7 @@ SELECT
 FROM depreciation.depreciation_entries e
 JOIN asset.assets a ON a.id = e.asset_id AND a.deleted_at IS NULL
 WHERE e.deleted_at IS NULL AND e.basis = $3
+  AND NOT a.excluded_from_valuation
   AND ($4::boolean OR a.office_id = ANY($5::uuid[]))
   AND ($6::uuid IS NULL OR a.office_id = $6)
   AND ($7::uuid IS NULL OR a.category_id = $7)
@@ -630,6 +632,7 @@ FROM (
   FROM depreciation.depreciation_entries e
   JOIN asset.assets a ON a.id = e.asset_id AND a.deleted_at IS NULL
   WHERE e.deleted_at IS NULL AND e.basis = $1 AND e.period <= $2::date
+    AND NOT a.excluded_from_valuation
     AND ($3::boolean OR a.office_id = ANY($4::uuid[]))
     AND ($5::uuid IS NULL OR a.office_id = $5)
     AND ($6::uuid IS NULL OR a.category_id = $6)
@@ -669,6 +672,7 @@ SELECT to_char(e.period, 'YYYY-MM') AS period,
 FROM depreciation.depreciation_entries e
 JOIN asset.assets a ON a.id = e.asset_id AND a.deleted_at IS NULL
 WHERE e.deleted_at IS NULL AND e.basis = $1
+  AND NOT a.excluded_from_valuation
   AND e.period BETWEEN $2::date AND $3::date
   AND ($4::boolean OR a.office_id = ANY($5::uuid[]))
   AND ($6::uuid IS NULL OR a.office_id = $6)

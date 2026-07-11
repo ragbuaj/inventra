@@ -582,9 +582,10 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > 42. ~~**Reporting & Dashboard — backend `internal/report` module + both frontend pages + e2e**~~
 >     ✅ **DONE (2026-07-12, branch `feat/reporting-dashboard`).** Backend `internal/report` (ADR-0008
 >     split: `service`/`dto`/`handler`/`routes` + `export.go`): migration `000029_report_scope_seed`
->     (seeds the `reports` data-scope-policy module rows + `report.view`/`report.export` permissions);
+>     (seeds the `report` data-scope-policy module rows only — the `report.view`/`report.export`
+>     permissions were already seeded back in migration `000005`);
 >     **4 endpoints** — `GET /dashboard/summary`, `GET /dashboard/export`, `GET /reports/:type`,
->     `GET /reports/:type/export` (`report.view`/`report.export` + `reports` data-scope enforced on
+>     `GET /reports/:type/export` (`report.view`/`report.export` + `report` data-scope enforced on
 >     every verb, office filter ⊆ caller scope via `CallerOfficeScope`). Aggregates run **directly over
 >     the OLTP tables** (no OLAP/MV yet — reserved CQRS level 2). **Cache policy:** only the dashboard
 >     summary is Redis-cached (`dashboardCacheTTL = 90 * time.Second`, get-or-compute per
@@ -596,8 +597,8 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     Exports (xlsx via excelize, pdf via gofpdf) go through the single **`columnsFor` DRY seam** so every
 >     report type serializes uniformly. Tests: unit (`dto`/`export`/`service_helpers`) + integration
 >     (`report_integration`/`report_fam`/`report_http`/`report_run`, incl. 403-gating, TTL-bound cache
->     keys, exclusion rule); full `-tags=integration ./... -p 1` gate green (30 pkgs). OpenAPI: `Reports`
->     + `Dashboard` tags/paths/schemas. Frontend: **both pages wired** — `useDashboard`/`useReports`
+>     keys, exclusion rule); full `-tags=integration ./... -p 1` gate green (30 pkgs). OpenAPI: a single
+>     `Report` tag covering all dashboard + report paths/schemas. Frontend: **both pages wired** — `useDashboard`/`useReports`
 >     rewritten to real `$fetch`; `pages/index.vue` (dashboard) + `pages/reports.vue` (7 cards) rebuilt;
 >     `mock/dashboard.ts` + `mock/reports.ts` **deleted** (only `mock/helpers.ts`, `mock/assets.ts`,
 >     `mock/notifications.ts` remain — see item 43). New shared component **`PeriodFilter`** — the repo's

@@ -338,11 +338,11 @@ func dashboardCacheKey(roleID uuid.UUID, all bool, ids []uuid.UUID, officeFilter
 		cur.From.Format("2006-01-02"), cur.To.Format("2006-01-02"))
 }
 
-// ── Report builder (assets / depreciation / utilization / maintenance) ───────
+// ── Report builder ───────────────────────────────────────────────────────────
 //
-// Run assembles the GET /reports/:type payload for the four aggregate report
-// types. transfers/disposals/opname land in Task 6 (the handler that dispatches
-// here doesn't exist yet, so nothing can reach the default arm until then).
+// Run assembles the GET /reports/:type payload for all seven report types
+// (assets / depreciation / utilization / maintenance / transfers / disposals /
+// opname).
 
 // jsonRowLimit caps the rows embedded in a JSON report response; exports pass a
 // larger (effectively-unbounded) limit through ReportParams.RowLimit.
@@ -475,8 +475,7 @@ func strOrEmpty(p *string) string {
 	return *p
 }
 
-// Run dispatches to the per-type builder. The four aggregate types are
-// implemented here; transfers/disposals/opname arms land in Task 6.
+// Run dispatches to the per-type builder for all seven report types.
 func (s *Service) Run(ctx context.Context, typ string, p ReportParams) (ReportResult, error) {
 	switch typ {
 	case "assets":

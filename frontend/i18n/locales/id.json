@@ -438,6 +438,7 @@
     },
     "status": {
       "diajukan": "Diajukan",
+      "pending": "Diajukan",
       "approved": "Disetujui",
       "in_transit": "Dalam Pengiriman",
       "received": "Diterima",
@@ -1392,7 +1393,6 @@
     "excludedNote": "{n} aset dikecualikan dari total nilai (pengecualian valuasi)",
     "reload": "Muat ulang",
     "totalLabel": "Total Aset",
-    "comingSoon": "Fitur ini belum tersedia.",
     "period": {
       "last30": "30 hari terakhir",
       "thisMonth": "Bulan ini",

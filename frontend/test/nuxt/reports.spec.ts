@@ -86,10 +86,11 @@ const transfersResult: ReportResult = {
   chart: [{ label: 'KC Jakarta', value: '2' }],
   rows: [
     { asset_name: 'Laptop A', asset_tag: 'AST-1', from_office: 'KC Jakarta', to_office: 'KC Bandung', status: 'in_transit', shipped_date: '2026-06-15', received_date: '', bast_no: '' },
-    { asset_name: 'Laptop B', asset_tag: 'AST-2', from_office: 'KC Jakarta', to_office: 'KC Bandung', status: 'received', shipped_date: '2026-06-10', received_date: '2026-06-12', bast_no: 'BAST-01' }
+    { asset_name: 'Laptop B', asset_tag: 'AST-2', from_office: 'KC Jakarta', to_office: 'KC Bandung', status: 'received', shipped_date: '2026-06-10', received_date: '2026-06-12', bast_no: 'BAST-01' },
+    { asset_name: 'Laptop C', asset_tag: 'AST-3', from_office: 'KC Jakarta', to_office: 'KC Bandung', status: 'pending', shipped_date: '', received_date: '', bast_no: '' }
   ],
   totals: {},
-  row_count: 2,
+  row_count: 3,
   truncated: false
 }
 
@@ -379,6 +380,7 @@ describe('Reports page — transfer labels', () => {
     const cellTexts = wrapper.findAll('td').map(c => c.text())
     expect(cellTexts).toContain('Dalam Pengiriman') // transfer.status.in_transit
     expect(cellTexts).toContain('Diterima') // transfer.status.received
+    expect(cellTexts).toContain('Diajukan') // transfer.status.pending (aliased to diajukan)
     expect(text).toContain('—') // empty received_date / bast_no
     // no money tfoot for transfers
     expect(wrapper.find('tfoot').exists()).toBe(false)

@@ -361,11 +361,15 @@ async function doExportGl(format: 'pdf' | 'xlsx') {
   }
 }
 async function doOpnameBa(sessionId: string, format: 'pdf' | 'xlsx') {
+  if (exporting.value) return
+  exporting.value = true
   try {
     const blob = await api.opnameBa(sessionId, format)
     download(blob, `berita-acara-opname-${sessionId}.${format}`)
   } catch {
     // useApiClient surfaces the error toast.
+  } finally {
+    exporting.value = false
   }
 }
 
