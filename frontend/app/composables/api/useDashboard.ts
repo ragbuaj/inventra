@@ -1,10 +1,65 @@
-import type { DashboardData, Localized, Scope } from '~/mock/dashboard'
-import { dashboardData } from '~/mock/dashboard'
-import { fakeLatency } from '~/mock/helpers'
+import type { PeriodValue } from '~/constants/reportMeta'
+import { periodToQuery } from '~/constants/reportMeta'
 
-export type Locale = 'id' | 'en'
+export interface DashboardTrends {
+  acquisition_pct: number | null
+  book_value_pct: number | null
+  maintenance_cost_pct: number | null
+}
 
-/** Maintenance row with localized text resolved (a real API would return it pre-localized). */
+export interface DashboardKpi {
+  total_assets: number
+  acquisition_value: string
+  book_value: string
+  overdue_assets: number
+  maintenance_due: number
+  maintenance_cost: string
+  trends: DashboardTrends
+}
+
+export interface StatusCount {
+  status: string
+  count: number
+}
+
+/** `name: null` is the "no category" / "no room" bucket — callers localize it. */
+export interface NamedCount {
+  name: string | null
+  count: number
+}
+
+export interface MaintenanceDueItem {
+  id: string
+  asset_name: string
+  asset_tag: string
+  category_name: string | null
+  next_due_date: string // YYYY-MM-DD
+}
+
+/** The JSON body of GET /dashboard/summary (report/dto.go DashboardSummary). */
+export interface DashboardSummary {
+  office_name: string | null
+  kpi: DashboardKpi
+  by_status: StatusCount[]
+  by_category: NamedCount[]
+  location_kind: 'office' | 'room'
+  by_location: NamedCount[]
+  maintenance_due_list: MaintenanceDueItem[]
+  excluded_count: number
+}
+
+export interface DashboardQuery {
+  officeId?: string
+  period: PeriodValue
+}
+
+/**
+ * Compat aliases kept ONLY so `DashboardMaintenancePanel`/`DashboardApprovalPanel`
+ * (which still render the mockup's localized row shapes) keep compiling. They are
+ * NOT part of the backend contract — the backend has no `appr` field at all, and
+ * `maintenance_due_list` above is shaped differently. Tasks 12/13 rework the
+ * panels/pages onto the real shapes; these aliases are removed then.
+ */
 export interface MaintenanceItem {
   asset: string
   task: string
@@ -13,7 +68,6 @@ export interface MaintenanceItem {
   due: string
 }
 
-/** Approval row with localized text resolved. */
 export interface ApprovalItem {
   id: string
   title: string
@@ -22,49 +76,23 @@ export interface ApprovalItem {
   tone: 'info' | 'primary' | 'neutral'
 }
 
-/** The dashboard payload as consumed by the page — every string already in the active locale. */
-export interface DashboardSummary {
-  scope: Scope
-  name: string
-  total: number
-  perolehan: string
-  buku: string
-  overdue: number
-  due: number
-  biaya: string
-  status: number[]
-  kategori: [string, number][]
-  lokasi: [string, number][]
-  maint: MaintenanceItem[]
-  appr: ApprovalItem[]
-}
-
-/**
- * Dashboard data source. Mock-first today; the single seam a real implementation swaps behind
- * (`$fetch('/dashboard/summary', { query: { scope, period } })`). `period` is accepted but cosmetic —
- * it only triggers a reload, matching the mockup, which shows the same figures for every period.
- */
+/** Dashboard aggregates: KPIs, status/category/location breakdowns, maintenance-due list. */
 export function useDashboard() {
-  async function summary(scope: Scope, _period: string, locale: Locale = 'id'): Promise<DashboardSummary> {
-    await fakeLatency(700)
-    const d: DashboardData = dashboardData[scope] ?? dashboardData.jaksel
-    const pick = (l: Localized) => l[locale] ?? l.id
-    return {
-      scope: d.scope,
-      name: pick(d.name),
-      total: d.total,
-      perolehan: d.perolehan,
-      buku: d.buku,
-      overdue: d.overdue,
-      due: d.due,
-      biaya: d.biaya,
-      status: d.status,
-      kategori: d.kategori,
-      lokasi: d.lokasi,
-      maint: d.maint.map(m => ({ asset: m.asset, task: pick(m.task), icon: m.icon, urg: m.urg, due: pick(m.due) })),
-      appr: d.appr.map(a => ({ id: a.id, title: pick(a.title), meta: pick(a.meta), icon: a.icon, tone: a.tone }))
-    }
+  const { request, requestBlob } = useApiClient()
+
+  function buildQuery(q: DashboardQuery): Record<string, string> {
+    const query: Record<string, string> = { ...periodToQuery(q.period) }
+    if (q.officeId !== undefined) query.office_id = q.officeId
+    return query
   }
 
-  return { summary }
+  async function summary(q: DashboardQuery): Promise<DashboardSummary> {
+    return request<DashboardSummary>('/dashboard/summary', { query: buildQuery(q) })
+  }
+
+  async function exportSummary(q: DashboardQuery, format: 'xlsx' | 'pdf'): Promise<Blob> {
+    return requestBlob('/dashboard/export', { query: { ...buildQuery(q), format } })
+  }
+
+  return { summary, exportSummary }
 }

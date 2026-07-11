@@ -27,6 +27,13 @@ function bars(entries: [string, number][], display: (v: number) => string, width
 const { t } = useI18n()
 const api = useReports()
 
+// Interim (Task 11) real-backend wiring: the mock `ReportKey` this page still
+// renders from ('aset'/'depr'/'util'/'biaya') differs from the backend's
+// `ReportKey` (constants/reportMeta, 7 keys). The result below is unused —
+// Task 13 rewires the page onto the real 7-report-card UI + ReportResult.
+const REPORT_KEY_MAP = { aset: 'assets', depr: 'depreciation', util: 'utilization', biaya: 'maintenance' } as const
+const PERIOD_PRESETS = ['last30', 'this_month', 'this_quarter', 'ytd'] as const
+
 const report = ref<ReportKey>('aset')
 const fPeriode = ref('2') // "this quarter" (mockup default index)
 const fKantor = ref(ALL)
@@ -121,7 +128,12 @@ const resultTitle = computed(() => t(`reports.card.${report.value}.label`))
 
 async function apply() {
   loading.value = true
-  await api.run(report.value, { kat: fKat.value, status: fStatus.value })
+  // Real backend read (Task 11 wiring) — result unused until Task 13.
+  try {
+    await api.run(REPORT_KEY_MAP[report.value], { period: { preset: PERIOD_PRESETS[Number(fPeriode.value)] ?? 'last30' } })
+  } catch {
+    // interim: the mock-driven view below is unaffected by this failing
+  }
   applied.value = true
   loading.value = false
 }

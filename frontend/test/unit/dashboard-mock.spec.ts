@@ -1,10 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import { useDashboard } from '~/composables/api/useDashboard'
 import { dashboardData, scopeOrder } from '~/mock/dashboard'
 
-const { summary } = useDashboard()
-
-describe('useDashboard.summary', () => {
+// Task 11 fully rewrote useDashboard onto the real /dashboard/summary API —
+// `summary(scope, period, locale)` no longer exists (now `summary(query)`,
+// backed by useApiClient, which also requires a Nuxt instance this `node`-env
+// file doesn't provide). This describe block tested the OLD mock-backed
+// behavior end to end; its replacement coverage is
+// test/nuxt/use-dashboard.spec.ts. Re-enabled/rewritten in a later task if the
+// mock-driven view model in pages/index.vue is retired outright, or removed
+// once Task 12 finishes rewiring the dashboard page.
+describe.skip('useDashboard.summary', () => {
   it('returns the dataset matching the requested scope', async () => {
     const data = await summary('kanwil', '0', 'id')
     expect(data.scope).toBe('kanwil')

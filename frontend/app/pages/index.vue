@@ -1,9 +1,36 @@
 <script setup lang="ts">
-import type { DashboardSummary, Locale } from '~/composables/api/useDashboard'
+import type { DashboardSummary, MaintenanceItem, ApprovalItem } from '~/composables/api/useDashboard'
 import { useDashboard } from '~/composables/api/useDashboard'
-import type { Scope } from '~/mock/dashboard'
+import type { Scope, DashboardData, Localized } from '~/mock/dashboard'
 import { dashboardData, scopeOrder } from '~/mock/dashboard'
 import { buildDonut, barWidths, formatCount } from '~/utils/dashboard'
+
+export type Locale = 'id' | 'en'
+
+/**
+ * Interim (Task 11) page-local view model: the real `DashboardSummary` from
+ * `useDashboard` no longer matches what this template renders (no `appr`
+ * field on the backend at all; different KPI/status/category shapes).
+ * `legacyData` keeps the mockup-faithful rendering alive on mock data — the
+ * SAME logic the old mock-backed `useDashboard().summary()` used to run —
+ * while `data` below holds a genuine (unmapped) call to the real endpoint.
+ * Task 12 replaces both with real data wired end-to-end.
+ */
+interface LegacyDashboardVM {
+  scope: Scope
+  name: string
+  total: number
+  perolehan: string
+  buku: string
+  overdue: number
+  due: number
+  biaya: string
+  status: number[]
+  kategori: [string, number][]
+  lokasi: [string, number][]
+  maint: MaintenanceItem[]
+  appr: ApprovalItem[]
+}
 
 interface KpiVM {
   label: string
@@ -19,9 +46,14 @@ const { t, locale } = useI18n()
 const toast = useToast()
 const { summary } = useDashboard()
 
+const PERIOD_PRESETS = ['last30', 'this_month', 'this_quarter', 'ytd'] as const
+
 const scope = ref<Scope>('jaksel')
 const period = ref('0')
 const loading = ref(true)
+const legacyData = ref<LegacyDashboardVM | null>(null)
+// Real backend read (Task 11 wiring) — fetched but not yet mapped into the
+// template below; Task 12 replaces `legacyData` with this.
 const data = ref<DashboardSummary | null>(null)
 const handled = ref<Set<string>>(new Set())
 
@@ -38,7 +70,29 @@ const scopeName = computed(() => scopeOptions.value.find(o => o.value === scope.
 
 async function load() {
   loading.value = true
-  data.value = await summary(scope.value, period.value, locale.value as Locale)
+  const d: DashboardData = dashboardData[scope.value] ?? dashboardData.jaksel
+  const pick = (l: Localized) => l[locale.value as Locale] ?? l.id
+  legacyData.value = {
+    scope: d.scope,
+    name: pick(d.name),
+    total: d.total,
+    perolehan: d.perolehan,
+    buku: d.buku,
+    overdue: d.overdue,
+    due: d.due,
+    biaya: d.biaya,
+    status: d.status,
+    kategori: d.kategori,
+    lokasi: d.lokasi,
+    maint: d.maint.map(m => ({ asset: m.asset, task: pick(m.task), icon: m.icon, urg: m.urg, due: pick(m.due) })),
+    appr: d.appr.map(a => ({ id: a.id, title: pick(a.title), meta: pick(a.meta), icon: a.icon, tone: a.tone }))
+  }
+  // Real backend read — Task 12 maps this into the view; interim: fetched only.
+  try {
+    data.value = await summary({ period: { preset: PERIOD_PRESETS[Number(period.value)] ?? 'last30' } })
+  } catch {
+    data.value = null
+  }
   loading.value = false
 }
 
@@ -61,13 +115,13 @@ function comingSoon() {
   toast.add({ title: t('dashboard.comingSoon'), color: 'neutral', icon: 'i-lucide-info' })
 }
 
-const donut = computed(() => buildDonut(data.value?.status ?? []))
-const kategoriBars = computed(() => barWidths(data.value?.kategori ?? []))
-const lokasiBars = computed(() => barWidths(data.value?.lokasi ?? []))
-const visibleAppr = computed(() => (data.value?.appr ?? []).filter(a => !handled.value.has(a.id)))
+const donut = computed(() => buildDonut(legacyData.value?.status ?? []))
+const kategoriBars = computed(() => barWidths(legacyData.value?.kategori ?? []))
+const lokasiBars = computed(() => barWidths(legacyData.value?.lokasi ?? []))
+const visibleAppr = computed(() => (legacyData.value?.appr ?? []).filter(a => !handled.value.has(a.id)))
 
 const kpis = computed<KpiVM[]>(() => {
-  const d = data.value
+  const d = legacyData.value
   if (!d) return []
   return [
     { label: t('dashboard.kpi.total'), value: formatCount(d.total), icon: 'i-lucide-package', iconTone: 'primary', trendIcon: 'i-lucide-trending-up', trendText: t('dashboard.kpiTrend.growing'), trendTone: 'success' },
@@ -210,7 +264,7 @@ onMounted(() => load())
         <DashboardMaintenancePanel
           :title="t('dashboard.panel.maintenanceTitle')"
           :see-all-label="t('dashboard.panel.seeAll')"
-          :items="data?.maint ?? []"
+          :items="legacyData?.maint ?? []"
           @see-all="comingSoon"
         />
         <DashboardApprovalPanel
