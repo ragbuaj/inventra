@@ -65,7 +65,7 @@ Read-only; **tidak ada tabel baru**. Split ADR-0008: `service.go` / `dto.go` / `
 `routes.go` + `export.go` (pure builder xlsx/pdf, pola `depreciation/export.go` +
 `stockopname/report.go`; `excelize` + `gofpdf` sudah di dependency tree).
 
-### Migrasi `000028_report_scope_seed`
+### Migrasi `000029_report_scope_seed`
 
 Hanya seed `identity.data_scope_policies` untuk module `report` (pola migrasi maintenance):
 Superadmin→`global`, Kepala Kanwil→`office_subtree`, Kepala Unit→`office_subtree`,

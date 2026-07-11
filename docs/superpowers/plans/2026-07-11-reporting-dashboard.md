@@ -31,7 +31,7 @@
 ## File Structure
 
 **Backend — create:**
-- `backend/db/migrations/000028_report_scope_seed.up.sql` / `.down.sql` — `report` data-scope rows only.
+- `backend/db/migrations/000029_report_scope_seed.up.sql` / `.down.sql` — `report` data-scope rows only.
 - `backend/db/queries/report.sql` — all aggregate queries.
 - `backend/internal/report/dto.go` — period resolver, request parsing helpers, response DTO structs, sentinel errors.
 - `backend/internal/report/service.go` — aggregate assembly + dashboard cache.
@@ -67,10 +67,10 @@
 
 ---
 
-## Task 1: Migration `000028_report_scope_seed` + scope-module catalog
+## Task 1: Migration `000029_report_scope_seed` + scope-module catalog
 
 **Files:**
-- Create: `backend/db/migrations/000028_report_scope_seed.up.sql`, `.down.sql`
+- Create: `backend/db/migrations/000029_report_scope_seed.up.sql`, `.down.sql`
 - Modify: `backend/internal/authzadmin/catalog.go` (ScopeModules), `backend/internal/authzadmin/catalog_test.go` (if it asserts counts)
 
 **Interfaces:**
@@ -78,7 +78,7 @@
 
 - [ ] **Step 1: Write the up migration**
 
-`backend/db/migrations/000028_report_scope_seed.up.sql`:
+`backend/db/migrations/000029_report_scope_seed.up.sql`:
 ```sql
 -- Reporting & Dashboard module: data-scope seed only.
 -- Permissions report.view / report.export were already seeded in 000005
@@ -230,7 +230,7 @@ var (
 	ErrOfficeOutOfScope    = errors.New("report: office outside caller scope")
 )
 
-// scopeModule is the data_scope_policies module (seeded in 000028).
+// scopeModule is the data_scope_policies module (seeded in 000029).
 const scopeModule = "report"
 
 // DateRange is an inclusive [From, To] date window (midnight-normalized).
