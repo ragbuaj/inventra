@@ -244,13 +244,11 @@ interface MyAssetOption { value: string, label: string }
 const myAssignedAssets = ref<MyAssetOption[]>([])
 
 async function loadMyAssignedAssets() {
-  const employeeId = useAuthStore().user?.employee_id
-  if (!employeeId) {
-    myAssignedAssets.value = []
-    return
-  }
+  // /assignments/mine resolves the caller's own employee id server-side (from
+  // the JWT), so it's safe to call unconditionally: a caller with no linked
+  // employee just gets back an empty list.
   try {
-    const res = await assignmentApi.list({ status: 'active', employee_id: employeeId })
+    const res = await assignmentApi.mine({ status: 'active' })
     myAssignedAssets.value = res.data.map(a => ({ value: a.asset_id, label: `${a.asset_name ?? '—'} · ${a.asset_tag ?? '—'}` }))
   } catch {
     myAssignedAssets.value = []

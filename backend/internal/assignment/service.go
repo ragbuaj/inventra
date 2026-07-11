@@ -296,6 +296,27 @@ func (s *Service) List(ctx context.Context, all bool, ids []uuid.UUID, status st
 	return rows, total, nil
 }
 
+// Mine returns the caller's own assignments (optionally filtered by status),
+// enriched, newest activity first. AllScope is forced true and OfficeIds empty
+// here — safe ONLY because employeeID is resolved server-side from the caller's
+// JWT-derived user record (never client-supplied), so EmployeeID still narrows
+// every row to that one employee regardless of the scope bypass. This mirrors
+// the /assignments/available precedent: a dedicated, permission-gated
+// (request.create) endpoint rather than widening the general list's data scope
+// or granting Staf assignment.view, which would let a Staf enumerate every
+// coworker's assignments in the office via the plain employee_id query filter.
+func (s *Service) Mine(ctx context.Context, employeeID uuid.UUID, status string) ([]sqlc.ListAssignmentsEnrichedRow, error) {
+	var st *sqlc.SharedAssignmentStatus
+	if status != "" {
+		v := sqlc.SharedAssignmentStatus(status)
+		st = &v
+	}
+	rows, err := s.q.ListAssignmentsEnriched(ctx, sqlc.ListAssignmentsEnrichedParams{
+		AllScope: true, OfficeIds: []uuid.UUID{}, Status: st, EmployeeID: &employeeID, Search: nil, Lim: 100, Off: 0,
+	})
+	return rows, mapDBError(err)
+}
+
 // ListByAsset returns a scoped, enriched assignment history for one asset.
 func (s *Service) ListByAsset(ctx context.Context, assetID uuid.UUID, all bool, ids []uuid.UUID) ([]sqlc.ListAssignmentsByAssetEnrichedRow, error) {
 	if ids == nil {

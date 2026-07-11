@@ -165,6 +165,40 @@ func (h *Handler) available(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": data})
 }
 
+// mine handles GET /assignments/mine (the Laporan-Kerusakan asset picker and any
+// other "what do I hold" surface). Gated by request.create — the same
+// permission the borrow/available pickers use — NOT assignment.view, so a Staf
+// still cannot list the office's assignments in general (see 000026's data
+// scope decision). The employee id is resolved from the caller's own user
+// record, never taken from the request, so the response can only ever contain
+// the caller's own rows.
+func (h *Handler) mine(c *gin.Context) {
+	caller, _, _, err := h.caller(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
+		return
+	}
+	u, err := h.q.GetUserByID(c.Request.Context(), caller.UserID)
+	if err != nil {
+		common.WriteError(c, err)
+		return
+	}
+	if u.EmployeeID == nil {
+		c.JSON(http.StatusOK, gin.H{"data": []map[string]any{}})
+		return
+	}
+	rows, err := h.svc.Mine(c.Request.Context(), *u.EmployeeID, c.Query("status"))
+	if err != nil {
+		h.svcError(c, err)
+		return
+	}
+	data := make([]map[string]any, 0, len(rows))
+	for _, r := range rows {
+		data = append(data, enrichAssignmentMap(toResponse(r.AssignmentAssignment), r.AssetName, r.AssetTag, r.EmployeeName, r.AssignedByName, r.OfficeName))
+	}
+	c.JSON(http.StatusOK, gin.H{"data": data})
+}
+
 func (h *Handler) get(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {

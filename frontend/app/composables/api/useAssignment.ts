@@ -79,6 +79,16 @@ export function useAssignment() {
     return request<{ data: AvailableAsset[] }>('/assignments/available')
   }
 
+  // The caller's own assignments (e.g. the Maintenance "Aset yang Anda pegang"
+  // picker). Employee scoping happens server-side from the caller's JWT — there
+  // is no employee_id param here, unlike list(), because this endpoint can only
+  // ever return the caller's own rows.
+  async function mine(q?: { status?: string }): Promise<{ data: Assignment[] }> {
+    const query: Record<string, string> = {}
+    if (q?.status) query.status = q.status
+    return request<{ data: Assignment[] }>('/assignments/mine', { query })
+  }
+
   async function checkout(input: CheckoutInput): Promise<Assignment> {
     return request<Assignment>('/assignments', { method: 'POST', body: input })
   }
@@ -104,5 +114,5 @@ export function useAssignment() {
     return request<Record<string, unknown>>(`/requests/${id}/cancel`, { method: 'POST' })
   }
 
-  return { list, available, checkout, checkin, borrow, myRequests, cancel }
+  return { list, available, mine, checkout, checkin, borrow, myRequests, cancel }
 }

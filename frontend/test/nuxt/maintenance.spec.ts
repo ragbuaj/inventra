@@ -132,11 +132,12 @@ vi.mock('~/composables/api/useMaintenance', () => ({
   })
 }))
 
-const assignmentListMock = vi.fn()
+const assignmentMineMock = vi.fn()
 vi.mock('~/composables/api/useAssignment', () => ({
   useAssignment: () => ({
-    list: assignmentListMock,
+    list: vi.fn(),
     available: vi.fn(),
+    mine: assignmentMineMock,
     checkout: vi.fn(),
     checkin: vi.fn(),
     borrow: vi.fn(),
@@ -220,7 +221,7 @@ beforeEach(() => {
   schedulesMock.mockResolvedValue(page([schedule()]))
   recordsMock.mockResolvedValue(page([record()]))
   attentionMock.mockResolvedValue({ data: [] })
-  assignmentListMock.mockResolvedValue(page([assignment()]))
+  assignmentMineMock.mockResolvedValue({ data: [assignment()] })
   assetsGetMock.mockResolvedValue(asset())
   myReportsMock.mockResolvedValue({ data: [], total: 0 })
   submitReportMock.mockResolvedValue({ request_id: 'req-new', status: 'pending' })
@@ -448,7 +449,7 @@ describe('Maintenance page — Laporan Kerusakan tab', () => {
   it('lists the caller\'s active assignments and problem categories, and disables submit until both are chosen', async () => {
     const w = await mountAndWait()
     await clickTab(w, 'Laporan Kerusakan')
-    expect(assignmentListMock).toHaveBeenCalledWith({ status: 'active', employee_id: 'e1' })
+    expect(assignmentMineMock).toHaveBeenCalledWith({ status: 'active' })
     const submit = () => w.find('[data-testid="report-submit"]')
     expect(submit().attributes('disabled')).toBeDefined()
 
@@ -506,15 +507,21 @@ describe('Maintenance page — Laporan Kerusakan tab', () => {
     expect(w.text()).toContain('asset-forbidden')
   })
 
-  it('never calls the assignments list — and leaves the asset picker empty — when the caller has no linked employee', async () => {
+  it('leaves the asset picker empty when the caller has no linked employee (server-resolved, not a client check)', async () => {
+    // /assignments/mine resolves employee scoping server-side from the caller's
+    // JWT — the frontend has no employee_id to branch on anymore, so this just
+    // asserts the endpoint is still called plainly and an empty response (what
+    // the backend returns for a user with no linked employee) leaves the
+    // picker empty and the submit button disabled.
     useAuthStore().setSession(
       'tok',
       { id: '1', name: 'Andi Saputra', email: 'andi@test.com', role_id: 'r1', role_name: 'Staf', office_id: 'o1', employee_id: null },
       ['maintenance.view', 'maintenance.manage', 'request.create']
     )
+    assignmentMineMock.mockResolvedValue({ data: [] })
     const w = await mountAndWait()
     await clickTab(w, 'Laporan Kerusakan')
-    expect(assignmentListMock).not.toHaveBeenCalled()
+    expect(assignmentMineMock).toHaveBeenCalledWith({ status: 'active' })
     const submit = () => w.find('[data-testid="report-submit"]')
     expect(submit().attributes('disabled')).toBeDefined()
   })
