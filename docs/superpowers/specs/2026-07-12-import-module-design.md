@@ -42,7 +42,7 @@ master data), menggantikan seam mock (`mock/assets.ts` dihapus).
 | Kolom | Tipe | Fungsi |
 |---|---|---|
 | `office_id` | `uuid?` FK `masterdata.offices` | Kantor target batch (routing approval + scope) |
-| `request_id` | `uuid?` FK `approval.approval_requests` | Terisi saat batch aset diajukan approval |
+| `request_id` | `uuid?` FK `approval.requests` | Terisi saat batch aset diajukan approval |
 | `confirmed_at` | `timestamptz?` | Waktu user mengkonfirmasi eksekusi |
 | `error_key` | `text?` | Alasan gagal fatal (kunci i18n: file rusak, header salah, dst.) |
 
