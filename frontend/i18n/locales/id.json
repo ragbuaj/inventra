@@ -867,7 +867,10 @@
     "note": {
       "title": "Tambah Catatan Maintenance",
       "subtitle": "Catat tindakan perawatan untuk aset.",
+      "editTitle": "Ubah Catatan Maintenance",
+      "editSubtitle": "Perbarui catatan perawatan aset.",
       "asset": "Aset",
+      "assetPlaceholder": "Cari aset…",
       "type": "Tipe",
       "category": "Kategori Perawatan",
       "date": "Tanggal",
@@ -875,7 +878,33 @@
       "cost": "Biaya",
       "vendor": "Vendor / Teknisi",
       "description": "Deskripsi",
-      "descPlaceholder": "Rincian tindakan perawatan…"
+      "descPlaceholder": "Rincian tindakan perawatan…",
+      "completedDate": "Tanggal Selesai",
+      "selectPlaceholder": "Pilih…",
+      "saveLabel": "Simpan Catatan",
+      "required": "Wajib diisi.",
+      "lockedTip": "Aset terkunci",
+      "readOnlyHint": "Catatan yang sudah selesai atau dibatalkan tidak dapat diubah.",
+      "toastCreated": "Catatan maintenance ditambahkan.",
+      "toastUpdated": "Catatan maintenance diperbarui."
+    },
+    "schedule": {
+      "createTitle": "Tambah Jadwal Maintenance",
+      "createSubtitle": "Buat jadwal perawatan preventif untuk aset.",
+      "editTitle": "Ubah Jadwal Maintenance",
+      "editSubtitle": "Perbarui jadwal perawatan aset.",
+      "asset": "Aset",
+      "assetPlaceholder": "Cari aset…",
+      "category": "Kategori Perawatan",
+      "interval": "Interval Bulan",
+      "startDate": "Tanggal Mulai",
+      "nextDue": "Jatuh Tempo Berikut",
+      "active": "Aktif",
+      "selectPlaceholder": "Pilih…",
+      "required": "Wajib diisi.",
+      "lockedTip": "Aset terkunci",
+      "toastCreated": "Jadwal maintenance dibuat.",
+      "toastUpdated": "Jadwal maintenance diperbarui."
     }
   },
   "approval": {

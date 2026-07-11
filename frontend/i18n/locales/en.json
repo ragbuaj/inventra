@@ -867,7 +867,10 @@
     "note": {
       "title": "Add Maintenance Note",
       "subtitle": "Record a maintenance action for an asset.",
+      "editTitle": "Edit Maintenance Note",
+      "editSubtitle": "Update the asset's maintenance note.",
       "asset": "Asset",
+      "assetPlaceholder": "Search asset…",
       "type": "Type",
       "category": "Care Category",
       "date": "Date",
@@ -875,7 +878,33 @@
       "cost": "Cost",
       "vendor": "Vendor / Technician",
       "description": "Description",
-      "descPlaceholder": "Details of the maintenance action…"
+      "descPlaceholder": "Details of the maintenance action…",
+      "completedDate": "Completion Date",
+      "selectPlaceholder": "Select…",
+      "saveLabel": "Save Note",
+      "required": "Required.",
+      "lockedTip": "Asset locked",
+      "readOnlyHint": "Completed or cancelled notes can no longer be changed.",
+      "toastCreated": "Maintenance note added.",
+      "toastUpdated": "Maintenance note updated."
+    },
+    "schedule": {
+      "createTitle": "Add Maintenance Schedule",
+      "createSubtitle": "Create a preventive maintenance schedule for an asset.",
+      "editTitle": "Edit Maintenance Schedule",
+      "editSubtitle": "Update the asset's maintenance schedule.",
+      "asset": "Asset",
+      "assetPlaceholder": "Search asset…",
+      "category": "Care Category",
+      "interval": "Interval (Months)",
+      "startDate": "Start Date",
+      "nextDue": "Next Due Date",
+      "active": "Active",
+      "selectPlaceholder": "Select…",
+      "required": "Required.",
+      "lockedTip": "Asset locked",
+      "toastCreated": "Maintenance schedule created.",
+      "toastUpdated": "Maintenance schedule updated."
     }
   },
   "approval": {
