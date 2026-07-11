@@ -28,10 +28,21 @@ vi.mock('~/composables/api/useApproval', () => ({
   useApproval: () => ({ inbox: inboxMock, list: listMock, get: getMock, approve: approveMock, reject: rejectMock })
 }))
 // useCategories()/useOffices() lookups both go through useApiClient — stub it to avoid network.
+type RequestHandler = (path: string, opts?: Record<string, unknown>) => unknown
+
+let _blobHandler: RequestHandler = () => new Blob(['x'], { type: 'image/jpeg' })
+
+function setBlobHandler(fn: RequestHandler) {
+  _blobHandler = fn
+}
+
 vi.mock('~/composables/useApiClient', () => ({
   useApiClient: () => ({
     request: vi.fn().mockResolvedValue({ data: [] }),
-    requestBlob: vi.fn(),
+    requestBlob: (path: string, opts?: Record<string, unknown>) => {
+      const res = _blobHandler(path, opts)
+      return res instanceof Promise ? res : Promise.resolve(res)
+    },
     refreshToken: vi.fn()
   })
 }))
@@ -46,6 +57,8 @@ beforeEach(() => {
   getMock.mockResolvedValue(detail())
   approveMock.mockResolvedValue(row({ status: 'approved' }))
   rejectMock.mockResolvedValue(row({ status: 'rejected' }))
+  // Reset blob handler to default (pass-through)
+  setBlobHandler(() => new Blob(['x'], { type: 'image/jpeg' }))
 })
 
 describe('pages/approval — wired', () => {
@@ -241,6 +254,16 @@ describe('pages/approval — maintenance payload', () => {
       type: 'maintenance',
       payload: { asset_id: 'asset-1', problem_category_id: 'pc-1', description: 'x', attachment_id: 'att-9' }
     }))
+
+    // Stub requestBlob to verify exact path and reject any other path
+    const expectedPath = '/assets/asset-1/attachments/att-9/content'
+    setBlobHandler((path) => {
+      if (path !== expectedPath) {
+        throw new Error(`Expected requestBlob path "${expectedPath}" but got "${path}"`)
+      }
+      return new Blob(['mock-attachment-content'], { type: 'application/pdf' })
+    })
+
     URL.createObjectURL = vi.fn(() => 'blob:mock-attachment')
     const openMock = vi.fn()
     window.open = openMock
