@@ -25,9 +25,13 @@ type Querier interface {
 	// here; a later, deeper impairment lowers the floor further (correct).
 	ApplyAssetImpairment(ctx context.Context, arg ApplyAssetImpairmentParams) (AssetAsset, error)
 	BumpAssetTagCounter(ctx context.Context, arg BumpAssetTagCounterParams) (int32, error)
+	CancelJob(ctx context.Context, id uuid.UUID) (ImportImportJob, error)
 	CancelRequest(ctx context.Context, arg CancelRequestParams) (ApprovalRequest, error)
 	CheckinAssignment(ctx context.Context, arg CheckinAssignmentParams) (AssignmentAssignment, error)
 	CheckoutAssignment(ctx context.Context, arg CheckoutAssignmentParams) (AssignmentAssignment, error)
+	ClaimConfirmedJob(ctx context.Context) (ImportImportJob, error)
+	ClaimPendingJob(ctx context.Context) (ImportImportJob, error)
+	ConfirmJob(ctx context.Context, id uuid.UUID) (ImportImportJob, error)
 	// Active = scheduled or in_progress. exclude_id lets the caller ignore the row
 	// it is about to transition (release check).
 	CountActiveMaintRecordsByAsset(ctx context.Context, arg CountActiveMaintRecordsByAssetParams) (int64, error)
@@ -38,6 +42,8 @@ type Querier interface {
 	CountDisposals(ctx context.Context, arg CountDisposalsParams) (int64, error)
 	CountEmployees(ctx context.Context, arg CountEmployeesParams) (int64, error)
 	CountFloorsByOffice(ctx context.Context, arg CountFloorsByOfficeParams) (int64, error)
+	CountImportJobs(ctx context.Context, arg CountImportJobsParams) (int64, error)
+	CountImportRows(ctx context.Context, arg CountImportRowsParams) (int64, error)
 	CountMaintRecords(ctx context.Context, arg CountMaintRecordsParams) (int64, error)
 	CountMaintSchedules(ctx context.Context, arg CountMaintSchedulesParams) (int64, error)
 	CountOffices(ctx context.Context, arg CountOfficesParams) (int64, error)
@@ -61,6 +67,7 @@ type Querier interface {
 	CreateDisposal(ctx context.Context, arg CreateDisposalParams) (DisposalDisposal, error)
 	CreateEmployee(ctx context.Context, arg CreateEmployeeParams) (MasterdataEmployee, error)
 	CreateFloor(ctx context.Context, arg CreateFloorParams) (MasterdataFloor, error)
+	CreateImportJob(ctx context.Context, arg CreateImportJobParams) (ImportImportJob, error)
 	CreateMaintRecord(ctx context.Context, arg CreateMaintRecordParams) (MaintenanceMaintenanceRecord, error)
 	CreateMaintSchedule(ctx context.Context, arg CreateMaintScheduleParams) (MaintenanceMaintenanceSchedule, error)
 	CreateOffice(ctx context.Context, arg CreateOfficeParams) (MasterdataOffice, error)
@@ -124,6 +131,8 @@ type Querier interface {
 	GetDisposalEnriched(ctx context.Context, arg GetDisposalEnrichedParams) (GetDisposalEnrichedRow, error)
 	GetEmployee(ctx context.Context, arg GetEmployeeParams) (MasterdataEmployee, error)
 	GetFloor(ctx context.Context, arg GetFloorParams) (MasterdataFloor, error)
+	GetImportJob(ctx context.Context, id uuid.UUID) (ImportImportJob, error)
+	GetImportJobForUpdate(ctx context.Context, id uuid.UUID) (ImportImportJob, error)
 	GetMaintRecordEnriched(ctx context.Context, arg GetMaintRecordEnrichedParams) (GetMaintRecordEnrichedRow, error)
 	GetMaintRecordScoped(ctx context.Context, arg GetMaintRecordScopedParams) (MaintenanceMaintenanceRecord, error)
 	GetMaintScheduleScoped(ctx context.Context, arg GetMaintScheduleScopedParams) (MaintenanceMaintenanceSchedule, error)
@@ -165,6 +174,7 @@ type Querier interface {
 	InsertDataScopePolicy(ctx context.Context, arg InsertDataScopePolicyParams) (IdentityDataScopePolicy, error)
 	InsertDepreciationEntry(ctx context.Context, arg InsertDepreciationEntryParams) error
 	InsertFieldPermission(ctx context.Context, arg InsertFieldPermissionParams) (IdentityFieldPermission, error)
+	InsertImportRow(ctx context.Context, arg InsertImportRowParams) (ImportImportRow, error)
 	InsertRolePermission(ctx context.Context, arg InsertRolePermissionParams) (IdentityRolePermission, error)
 	// (scan reuses assets.sql GetAssetByTag; scope enforced in the service)
 	// NOTE: :one + ON CONFLICT DO NOTHING → a conflict returns pgx.ErrNoRows (no row inserted); the caller treats that as "already present".
@@ -207,6 +217,8 @@ type Querier interface {
 	// Floors (within an office). Listed per office; single-row ops carry the
 	// office scope (all_scope OR office_id = ANY(office_ids)).
 	ListFloorsByOffice(ctx context.Context, arg ListFloorsByOfficeParams) ([]MasterdataFloor, error)
+	ListImportJobs(ctx context.Context, arg ListImportJobsParams) ([]ImportImportJob, error)
+	ListImportRows(ctx context.Context, arg ListImportRowsParams) ([]ImportImportRow, error)
 	ListInboxCandidates(ctx context.Context) ([]ApprovalRequest, error)
 	ListInboxCandidatesEnriched(ctx context.Context) ([]ListInboxCandidatesEnrichedRow, error)
 	// Assets flagged under_maintenance (e.g. by assignment check-in) with no active
@@ -238,9 +250,13 @@ type Querier interface {
 	ListTransfersEnriched(ctx context.Context, arg ListTransfersEnrichedParams) ([]ListTransfersEnrichedRow, error)
 	// User management queries (Superadmin). All respect soft delete.
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]IdentityUser, error)
+	ListValidImportRows(ctx context.Context, jobID uuid.UUID) ([]ImportImportRow, error)
+	MarkRowFailed(ctx context.Context, arg MarkRowFailedParams) error
+	MarkRowResult(ctx context.Context, arg MarkRowResultParams) error
 	// Approval / maker-checker queries (approval schema).
 	// See docs/DATABASE.md §4.5 and PRD §3.6 for schema context.
 	MatchThresholdSteps(ctx context.Context, arg MatchThresholdStepsParams) ([]ApprovalApprovalThreshold, error)
+	RecoverStuckJobs(ctx context.Context) (int64, error)
 	// book value per category (top 8)
 	ReportAssetChart(ctx context.Context, arg ReportAssetChartParams) ([]ReportAssetChartRow, error)
 	// ══════════════════════════════════════════════════════════════════════════
@@ -297,6 +313,9 @@ type Querier interface {
 	SetDisposalBastNo(ctx context.Context, arg SetDisposalBastNoParams) (DisposalDisposal, error)
 	SetItemFollowup(ctx context.Context, arg SetItemFollowupParams) (StockopnameStockOpnameItem, error)
 	SetItemFollowupRecord(ctx context.Context, arg SetItemFollowupRecordParams) (StockopnameStockOpnameItem, error)
+	SetJobRequest(ctx context.Context, arg SetJobRequestParams) (ImportImportJob, error)
+	SetJobResult(ctx context.Context, arg SetJobResultParams) (ImportImportJob, error)
+	SetJobValidated(ctx context.Context, arg SetJobValidatedParams) (ImportImportJob, error)
 	SetOpnameItemResult(ctx context.Context, arg SetOpnameItemResultParams) (StockopnameStockOpnameItem, error)
 	SetPeriodClosed(ctx context.Context, arg SetPeriodClosedParams) (DepreciationDepreciationPeriod, error)
 	SetRequestDecision(ctx context.Context, arg SetRequestDecisionParams) (ApprovalRequest, error)
@@ -332,6 +351,7 @@ type Querier interface {
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (MasterdataCategory, error)
 	UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) (MasterdataEmployee, error)
 	UpdateFloor(ctx context.Context, arg UpdateFloorParams) (MasterdataFloor, error)
+	UpdateJobStatus(ctx context.Context, arg UpdateJobStatusParams) (ImportImportJob, error)
 	UpdateMaintRecord(ctx context.Context, arg UpdateMaintRecordParams) (MaintenanceMaintenanceRecord, error)
 	UpdateMaintSchedule(ctx context.Context, arg UpdateMaintScheduleParams) (MaintenanceMaintenanceSchedule, error)
 	UpdateOffice(ctx context.Context, arg UpdateOfficeParams) (MasterdataOffice, error)
