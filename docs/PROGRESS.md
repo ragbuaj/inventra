@@ -575,13 +575,70 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     the mockup-era UI — no list-page-with-query target defined); OpenAPI documents `q` `minLength: 2`
 >     though the handler returns 200-empty (not 400) below it — description discloses the real
 >     behavior; e2e `getByText('Kantor')` could be scoped to the palette overlay for extra robustness.
-> 41. **Next session — pick the next real step.** Remaining major candidate: **(g)** Reporting &
->     Dashboard (aggregates, PDF/Excel export, pre-aggregated read layer — the reserved CQRS level 2;
->     wiring `useDashboard`/`useReports` then deletes `mock/dashboard.ts`/`mock/reports.ts`). Also open:
->     the tech-debt list (field-permission enforcement beyond assets+users; Users screen server-side
->     filters + reset-password; enriched audit response; async searchable office/employee pickers —
->     the `limit:100` cap keeps biting local e2e; approval badge count; failure-safe Data-Scope e2e
->     cleanup). Confirm priority before starting.
+> 41. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-11): Reporting & Dashboard
+>     (candidate (g)) — see item 42.** Design:
+>     `docs/superpowers/specs/2026-07-11-reporting-dashboard-design.md` + plan
+>     (`.superpowers/sdd/` task briefs 1–15).
+> 42. ~~**Reporting & Dashboard — backend `internal/report` module + both frontend pages + e2e**~~
+>     ✅ **DONE (2026-07-12, branch `feat/reporting-dashboard`).** Backend `internal/report` (ADR-0008
+>     split: `service`/`dto`/`handler`/`routes` + `export.go`): migration `000029_report_scope_seed`
+>     (seeds the `reports` data-scope-policy module rows + `report.view`/`report.export` permissions);
+>     **4 endpoints** — `GET /dashboard/summary`, `GET /dashboard/export`, `GET /reports/:type`,
+>     `GET /reports/:type/export` (`report.view`/`report.export` + `reports` data-scope enforced on
+>     every verb, office filter ⊆ caller scope via `CallerOfficeScope`). Aggregates run **directly over
+>     the OLTP tables** (no OLAP/MV yet — reserved CQRS level 2). **Cache policy:** only the dashboard
+>     summary is Redis-cached (`dashboardCacheTTL = 90 * time.Second`, get-or-compute per
+>     scope+period+office key); **reports and all exports always compute fresh**. **7 report types** —
+>     assets (Daftar Aset & Nilai Buku), depreciation (commercial/fiscal basis toggle), utilization,
+>     maintenance-cost, transfers, disposals (**incl. the gain/loss GL recap — closes the disposal-module
+>     deferral**), stock-opname (+ Berita Acara). `excluded_from_valuation` assets are **still counted**
+>     in headcounts but **excluded from money totals** (with a transparency note on the dashboard).
+>     Exports (xlsx via excelize, pdf via gofpdf) go through the single **`columnsFor` DRY seam** so every
+>     report type serializes uniformly. Tests: unit (`dto`/`export`/`service_helpers`) + integration
+>     (`report_integration`/`report_fam`/`report_http`/`report_run`, incl. 403-gating, TTL-bound cache
+>     keys, exclusion rule); full `-tags=integration ./... -p 1` gate green (30 pkgs). OpenAPI: `Reports`
+>     + `Dashboard` tags/paths/schemas. Frontend: **both pages wired** — `useDashboard`/`useReports`
+>     rewritten to real `$fetch`; `pages/index.vue` (dashboard) + `pages/reports.vue` (7 cards) rebuilt;
+>     `mock/dashboard.ts` + `mock/reports.ts` **deleted** (only `mock/helpers.ts`, `mock/assets.ts`,
+>     `mock/notifications.ts` remain — see item 43). New shared component **`PeriodFilter`** — the repo's
+>     **first `UCalendar`-range** date component (preset + "Rentang kustom…"). Real-backend e2e
+>     (`frontend/e2e/dashboard.spec.ts` + `reports.spec.ts`, 9/9 green). Full gate sweep (Task 15):
+>     backend build/vet/test + integration, Spectral (0 errors, 9 known warnings), frontend
+>     lint/typecheck/test/build all green; **side-by-side mockup comparison** (Dashboard.dc.html +
+>     Laporan.dc.html, light + dark) verified 1:1 — screenshots in `.superpowers/sdd/task-15-*.png`.
+>     **Approved deviations from the mockup** (catat-deviasi convention): **(a)** the mockup's plain
+>     "Scope" select → a **Kantor-dalam-scope** select (hidden when the caller holds ≤1 office);
+>     **(b)** Periode gains a **"Rentang kustom…"** option (UCalendar range); **(c)** the dashboard
+>     Ekspor button is a **PDF/Excel dropdown** (mockup had a single button); **(d)** **3 extra report
+>     cards** (transfers/disposals/opname) with no mockup — built to the same card anatomy (7 cards
+>     total); **(e)** the depreciation report gains a **Basis komersial/fiskal toggle**; **(f)** the
+>     dashboard inline **reject opens a note modal** (mockup rejected inline); **(g)** **error + retry**
+>     states added (mockup has none); **(h)** KPI trends show a **real %** when computable, else a static
+>     descriptor ("Relatif stabil"/"+ aktif bertambah"); **(i)** the status donut renders **all 7 real
+>     statuses** (user-approved — mockup showed 5); **(j)** the maintenance-due KPI uses a **fixed
+>     ≤ today+7d window** (user-approved). Plus a minor **"Atur Ulang Filter"** reset button on the
+>     reports filter bar (sensible addition; mockup had only Terapkan).
+>     **Honest limitations / follow-ups (tracked, not done):** grouped reports cap at **>1000 groups →
+>     KPIs silently understate** (follow-up: a separate COUNT query); `report.gl.*_account` app-settings
+>     are **unseeded**, so GL account codes render `""` in the disposal recap until configured;
+>     **historical value snapshots deferred** to the Analytics/OLAP phase (trends compare against a
+>     computed prior window, not a stored snapshot); the donut's colour/label index-mapping **relies on
+>     the backend status order**; the transfers/disposals/opname report types **have no mockup** (built
+>     to card anatomy); route **badge counts still deferred**. **Note — dev-stack image staleness:** the
+>     running `asset-management-frontend` Docker image predates this branch, so `:3000` served the old
+>     mock dashboard until rebuilt; the mockup comparison was run against a fresh host build of the
+>     current branch (verified real backend data: 185 assets, live E2E categories/offices) — the deployed
+>     image needs a rebuild to reflect the new wiring.
+> 43. **Next session — pick the next real step.** Remaining major candidate: **Import wizard** — wire
+>     `pages/assets/import` to a real backend bulk-import endpoint (still mock-backed via `mock/assets.ts`;
+>     verify whether the backend `internal/import` module/endpoint exists before building the frontend
+>     seam) and delete `mock/assets.ts`. Also open: **notifications** (`mock/notifications.ts` — the last
+>     app-shell mock; needs a backend notifications feed) and the standing tech-debt list
+>     (field-permission enforcement beyond assets+users; Users screen server-side filters +
+>     reset-password; enriched audit response; async searchable office/employee pickers — the `limit:100`
+>     cap keeps biting local e2e; approval/route badge counts; failure-safe Data-Scope e2e cleanup);
+>     and the **Analytics/OLAP** read layer once report volume warrants it (see *Analytics / OLAP*
+>     below). Confirm priority before starting.
 
 ## ✅ Done
 
@@ -775,7 +832,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       (2026-07-11, branch `feat/maintenance-module`; see item 38 in *Next session* for the full
       deviation list, honest limitations, and the `assignment.view`-for-Staf bug found + fixed.)**
 - [ ] **Depreciation** — book value (straight-line / declining-balance); monthly `depreciation_entries` read model
-- [ ] **Reporting & Dashboard** — aggregates (totals/value/by status·category·office, overdue, maintenance due, costs); **PDF + Excel export**; scoped — reading from the pre-aggregated OLAP tables (see *Analytics / OLAP* below)
+- [x] **Reporting & Dashboard** — `internal/report` (migration `000029`; 4 endpoints; dashboard summary Redis-cached 90s, reports/exports always fresh); **7 report types** incl. the disposal gain/loss **GL recap** (closes the old disposal deferral); `excluded_from_valuation` counted-but-not-valued; xlsx/pdf export via the `columnsFor` seam; both frontend pages wired (`mock/dashboard.ts`+`mock/reports.ts` deleted); `PeriodFilter` = first `UCalendar`-range component. **Done (2026-07-12, branch `feat/reporting-dashboard`) — see items 42/43 in *Next session*** for the full deviation list (a)–(j) + honest limitations. Aggregates still run **directly over the OLTP tables** — the pre-aggregated OLAP read layer stays deferred (see *Analytics / OLAP* below).
 - [ ] **Bulk import** — CSV/XLSX (assets + master data); `import_jobs`; per-row validation + error report
 
 ### Analytics / OLAP (large-data plan)
@@ -891,11 +948,12 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       payload/amount/cost strings are rejected too → 400. Unit-tested (12 table cases + other-types
       passthrough); OpenAPI `SubmitRequest.amount` description updated. (The disposal
       `book_value_at_disposal` sibling caveat still waits on the depreciation module.)
-      ⚠️ **TODO (cleanup when Reports screen is wired):** old Indonesian `assets.status.*` i18n keys are
-      still consumed by the mock Laporan screen (`pages/reports.vue` + `mock/reports.ts`) — delete them,
-      tighten `AssetStatusBadge`'s prop from `AssetStatus | string` to `AssetStatus`, and drop the badge's
-      legacy-status fallback in the same sweep. Also extract a shared `moneyCell`/rupiah formatter util
-      (now duplicated across Katalog/Detail/AssetForm) before the Disposal/Depresiasi screens add copies.
+      ✅ **Partly resolved (2026-07-12, item 42):** the mock Laporan screen is gone — `pages/reports.vue`
+      is wired to the real `/reports` API and `mock/reports.ts` is **deleted**, so the old-key coupling no
+      longer blocks a wiring. **Remaining standalone cleanup:** tighten `AssetStatusBadge`'s prop from
+      `AssetStatus | string` to `AssetStatus` and drop the badge's `?? assets.status.${status}`
+      legacy-status fallback; and extract a shared `moneyCell`/rupiah formatter util (now duplicated across
+      Katalog/Detail/AssetForm/reports — the reports page reuses `formatMoneyShort` from `reportMeta`).
       🐛 **Bug fixed during verification:** `pages/assets/[tag].vue` + the `pages/assets/[tag]/` folder
       made `[tag].vue` an unintended parent route for `[tag]/edit.vue` (no `<NuxtPage/>` to render the
       child), so `/assets/:tag/edit` silently showed the Detail page. Fixed by moving `[tag].vue` →
