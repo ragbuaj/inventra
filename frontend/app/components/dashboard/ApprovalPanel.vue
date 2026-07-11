@@ -6,7 +6,11 @@ const props = defineProps<{
   items: ApprovalItem[]
   emptyTitle: string
   emptySub: string
+  /** Total pending count for the badge; defaults to the rendered item count. */
+  count?: number
 }>()
+
+const badgeCount = computed(() => props.count ?? props.items.length)
 
 defineEmits<{ approve: [id: string], reject: [id: string] }>()
 
@@ -34,7 +38,7 @@ const isEmpty = computed(() => props.items.length === 0)
         <span class="text-sm font-semibold">{{ title }}</span>
       </div>
       <span class="px-[9px] py-[2px] text-[11.5px] font-bold rounded-full bg-warning/10 text-warning">
-        {{ items.length }}
+        {{ badgeCount }}
       </span>
     </div>
 

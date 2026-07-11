@@ -20,9 +20,9 @@ describe('DashboardDonut', () => {
       props: { title: 'Aset per Status', total, totalLabel: 'Total Aset', segments }
     })
     const text = wrapper.text()
-    // id locale labels
+    // id locale labels (real enum keys)
     expect(text).toContain('Tersedia')
-    expect(text).toContain('Dipinjam')
+    expect(text).toContain('Digunakan')
     // counts + a percentage
     expect(text).toContain('58')
     expect(text).toContain('60%') // 58/96 ≈ 60%

@@ -153,6 +153,15 @@ describe('superadminNav — maintenance', () => {
   })
 })
 
+describe('superadminNav — reports', () => {
+  it('reports item links to /reports and is gated by report.view', () => {
+    const reports = superadminNav[0].items.find(i => i.labelKey === 'nav.reports')
+    expect(reports?.to).toBe('/reports')
+    expect(reports?.permission).toBe('report.view')
+    expect(reports?.icon).toBe('i-lucide-bar-chart-2')
+  })
+})
+
 describe('superadminNav — children groups', () => {
   it('Aset parent has 3 children (Katalog/Import/Label)', () => {
     const aset = superadminNav[0].items.find(i => i.labelKey === 'nav.assets')

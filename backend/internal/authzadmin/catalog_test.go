@@ -80,3 +80,21 @@ func TestCatalog_DepreciationPermissions(t *testing.T) {
 		t.Fatalf("depreciation.manage appears %d times, want 1", count)
 	}
 }
+
+func TestCatalog_ReportScopeModule(t *testing.T) {
+	if !IsKnownPermission("report.view") {
+		t.Fatal("report.view must be a known permission")
+	}
+	if !IsKnownPermission("report.export") {
+		t.Fatal("report.export must be a known permission")
+	}
+	found := false
+	for _, m := range ScopeModules() {
+		if m == "report" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("scope module 'report' missing")
+	}
+}

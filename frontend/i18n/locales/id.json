@@ -438,6 +438,7 @@
     },
     "status": {
       "diajukan": "Diajukan",
+      "pending": "Diajukan",
       "approved": "Disetujui",
       "in_transit": "Dalam Pengiriman",
       "received": "Diterima",
@@ -1018,16 +1019,20 @@
     "title": "Laporan",
     "subtitle": "Susun dan ekspor laporan aset, depresiasi, utilisasi, dan biaya.",
     "card": {
-      "aset": { "label": "Daftar Aset & Nilai Buku", "desc": "Inventaris lengkap dengan nilai buku" },
-      "depr": { "label": "Depresiasi per Periode", "desc": "Penyusutan nilai aset per tahun" },
-      "util": { "label": "Utilisasi / Penugasan", "desc": "Tingkat pemakaian aset" },
-      "biaya": { "label": "Biaya Maintenance", "desc": "Rekap biaya perawatan" }
+      "assets": { "label": "Daftar Aset & Nilai Buku", "desc": "Inventaris lengkap dengan nilai buku" },
+      "depreciation": { "label": "Depresiasi per Periode", "desc": "Penyusutan nilai aset per periode" },
+      "utilization": { "label": "Utilisasi / Penugasan", "desc": "Tingkat pemakaian aset" },
+      "maintenance": { "label": "Biaya Maintenance", "desc": "Rekap biaya perawatan" },
+      "transfers": { "label": "Mutasi Aset", "desc": "Perpindahan aset antar kantor" },
+      "disposals": { "label": "Penghapusan Aset", "desc": "Pelepasan aset & laba/rugi" },
+      "opname": { "label": "Stock Opname", "desc": "Rekap inventarisasi fisik" }
     },
     "filter": {
       "period": "Periode",
       "office": "Kantor",
       "category": "Kategori",
-      "status": "Status"
+      "status": "Status",
+      "basis": "Basis"
     },
     "period": {
       "last30": "30 hari terakhir",
@@ -1035,51 +1040,82 @@
       "thisQuarter": "Kuartal ini",
       "ytd": "Tahun berjalan"
     },
+    "basis": {
+      "commercial": "Komersial",
+      "fiscal": "Fiskal"
+    },
     "allOffices": "Semua Kantor",
     "allCategories": "Semua Kategori",
     "allStatus": "Semua Status",
     "apply": "Terapkan",
     "pdf": "Ekspor PDF",
     "excel": "Ekspor Excel",
+    "exportGl": "Rekap Jurnal GL",
     "reset": "Atur Ulang Filter",
-    "exportSoon": "Ekspor akan segera tersedia.",
     "phTitle": "Pilih kriteria laporan",
     "phSub": "Tentukan jenis laporan dan filter di atas, lalu klik \"Terapkan\" untuk menampilkan hasil.",
     "emptyTitle": "Tidak ada data",
     "emptySub": "Tidak ada data yang cocok dengan filter yang dipilih. Coba ubah kategori atau status.",
-    "resultMeta": "Periode: {period} · Cabang Jakarta Selatan",
+    "error": "Gagal memuat laporan.",
+    "loading": "Menyusun laporan…",
+    "truncated": "Menampilkan {n} baris pertama — data dibatasi.",
+    "resultMeta": "Periode: {period} · {office}",
     "total": "TOTAL",
     "unit": { "days": "hari", "daysShort": "hari" },
     "kpi": {
-      "assetCount": "Total Aset",
-      "assetAcq": "Total Nilai Perolehan",
-      "assetBook": "Total Nilai Buku",
-      "deprCurrent": "Penyusutan 2026",
-      "deprAccum": "Akumulasi Penyusutan",
-      "deprBook": "Sisa Nilai Buku",
-      "utilAvg": "Rata-rata Utilisasi",
-      "utilLoaned": "Aset Aktif Dipinjam",
-      "utilDays": "Total Hari Pinjam",
-      "costTotal": "Total Biaya",
-      "costPrev": "Preventive",
-      "costCorr": "Corrective"
+      "total_assets": "Total Aset",
+      "total_acquisition": "Total Nilai Perolehan",
+      "total_book": "Total Nilai Buku",
+      "period_expense": "Beban Penyusutan Periode",
+      "accumulated": "Akumulasi Penyusutan",
+      "remaining_book": "Sisa Nilai Buku",
+      "avg_utilization": "Rata-rata Utilisasi",
+      "active_loans": "Aset Aktif Dipinjam",
+      "total_days": "Total Hari Pinjam",
+      "total_cost": "Total Biaya",
+      "preventive": "Biaya Preventive",
+      "corrective": "Biaya Corrective",
+      "total": "Total Mutasi",
+      "in_transit": "Dalam Perjalanan",
+      "received": "Diterima",
+      "total_disposals": "Total Penghapusan",
+      "total_proceeds": "Total Hasil Pelepasan",
+      "total_gain_loss": "Total Laba/Rugi",
+      "sessions": "Total Sesi",
+      "total_items": "Total Item",
+      "total_variance": "Total Selisih"
     },
-    "sub": {
-      "assetUnits": "unit aset",
-      "acquisition": "akumulasi perolehan",
-      "afterDeprec": "setelah penyusutan",
-      "currentYear": "tahun berjalan",
-      "endOf2026": "per akhir 2026",
-      "ofCapacity": "dari kapasitas",
-      "assetsUsed": "aset terpakai",
-      "accumulated": "akumulasi",
-      "selectedPeriod": "periode terpilih"
+    "kpiSub": {
+      "total_assets": "unit aset",
+      "total_acquisition": "akumulasi perolehan",
+      "total_book": "setelah penyusutan",
+      "period_expense": "beban periode",
+      "accumulated": "akumulasi penyusutan",
+      "remaining_book": "sisa nilai buku",
+      "avg_utilization": "dari kapasitas",
+      "active_loans": "aset dipinjam",
+      "total_days": "akumulasi",
+      "total_cost": "periode terpilih",
+      "preventive": "perawatan berkala",
+      "corrective": "perbaikan",
+      "total": "total mutasi",
+      "in_transit": "dalam perjalanan",
+      "received": "sudah diterima",
+      "total_disposals": "total penghapusan",
+      "total_proceeds": "hasil pelepasan",
+      "total_gain_loss": "laba/rugi bersih",
+      "sessions": "sesi opname",
+      "total_items": "item terhitung",
+      "total_variance": "selisih fisik"
     },
     "chart": {
-      "aset": "Nilai Buku per Kategori",
-      "depr": "Penyusutan per Tahun",
-      "util": "Rata Utilisasi per Kategori",
-      "biaya": "Biaya per Kategori"
+      "assets": "Nilai Buku per Kategori",
+      "depreciation": "Penyusutan per Periode",
+      "utilization": "Hari Dipinjam per Aset",
+      "maintenance": "Biaya per Kategori",
+      "transfers": "Mutasi per Kantor",
+      "disposals": "Nilai per Metode",
+      "opname": "Selisih per Sesi"
     },
     "col": {
       "code": "Kode",
@@ -1099,7 +1135,22 @@
       "asset": "Aset",
       "type": "Tipe",
       "actions": "Jml Tindakan",
-      "totalCost": "Total Biaya"
+      "totalCost": "Total Biaya",
+      "fromOffice": "Kantor Asal",
+      "toOffice": "Kantor Tujuan",
+      "shipped": "Dikirim",
+      "received": "Diterima",
+      "bast": "No. BAST",
+      "method": "Metode",
+      "date": "Tanggal",
+      "proceeds": "Hasil",
+      "gainLoss": "Laba/Rugi",
+      "session": "Sesi",
+      "office": "Kantor",
+      "totalItems": "Total Item",
+      "variance": "Selisih",
+      "sessionStatus": "Status",
+      "downloadBa": "Berita Acara"
     }
   },
   "settings": {
@@ -1336,10 +1387,12 @@
   "dashboard": {
     "title": "Dashboard",
     "scopeNote": "Angka mengikuti data scope Anda",
-    "export": "Ekspor",
+    "scopeAll": "Seluruh scope Anda",
+    "allOfficesInScope": "Seluruh kantor dalam scope",
+    "noRoom": "Tanpa ruangan",
+    "excludedNote": "{n} aset dikecualikan dari total nilai (pengecualian valuasi)",
     "reload": "Muat ulang",
     "totalLabel": "Total Aset",
-    "comingSoon": "Fitur ini belum tersedia.",
     "period": {
       "last30": "30 hari terakhir",
       "thisMonth": "Bulan ini",
@@ -1356,32 +1409,50 @@
     },
     "kpiTrend": {
       "growing": "+ aktif bertambah",
-      "acqUp": "+1,2%",
-      "depreciation": "−6,4% depresiasi",
       "needsAction": "perlu tindakan",
       "within7Days": "dalam 7 hari",
-      "costUp": "+8,3%"
+      "stable": "Relatif stabil"
     },
     "status": {
       "available": "Tersedia",
-      "inUse": "Dipinjam",
-      "maintenance": "Maintenance",
+      "assigned": "Digunakan",
+      "under_maintenance": "Maintenance",
+      "in_transfer": "Dalam Mutasi",
+      "retired": "Purna Pakai",
       "disposed": "Dilepas",
       "lost": "Hilang"
     },
     "chart": {
       "statusTitle": "Aset per Status",
       "categoryTitle": "Aset per Kategori",
-      "locationTitle": "Aset per Lokasi / Kantor"
+      "locationOffices": "Aset per Kantor",
+      "locationRooms": "Aset per Ruangan"
+    },
+    "export": {
+      "label": "Ekspor",
+      "pdf": "Ekspor PDF",
+      "xlsx": "Ekspor Excel"
     },
     "panel": {
       "maintenanceTitle": "Maintenance Jatuh Tempo",
       "approvalTitle": "Pengajuan Menunggu Approval",
       "seeAll": "Lihat semua",
+      "maintenanceGeneric": "Maintenance terjadwal",
       "approvedToast": "Pengajuan disetujui",
       "rejectedToast": "Pengajuan ditolak",
       "allHandledTitle": "Semua pengajuan ditindak",
-      "allHandledSub": "Tidak ada yang menunggu persetujuan."
+      "allHandledSub": "Tidak ada yang menunggu persetujuan.",
+      "due": {
+        "today": "Hari ini",
+        "tomorrow": "Besok",
+        "inDays": "{n} hari lagi",
+        "overdue": "Terlambat {n} hari"
+      },
+      "rejectTitle": "Tolak pengajuan",
+      "rejectNoteLabel": "Alasan penolakan",
+      "rejectNotePlaceholder": "Jelaskan alasan penolakan…",
+      "rejectConfirm": "Tolak pengajuan",
+      "rejectCancel": "Batal"
     }
   },
   "auth": {
@@ -1472,7 +1543,8 @@
     "loadError": "Gagal memuat data.",
     "yes": "Ya",
     "no": "Tidak",
-    "assetPickerEmpty": "Tidak ada aset tersedia"
+    "assetPickerEmpty": "Tidak ada aset tersedia",
+    "periodCustom": "Rentang kustom…"
   },
   "status": {
     "asset": {

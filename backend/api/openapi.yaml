@@ -148,6 +148,18 @@ tags:
       the caller's offices (data-scope module `maintenance`).
   - name: Search
     description: Global search (command palette) across assets, employees, offices, users, and approval requests.
+  - name: Report
+    description: |
+      Read-only reporting: the dashboard summary and 7 canned reports (`assets`,
+      `depreciation`, `utilization`, `maintenance`, `transfers`, `disposals`, `opname`), each
+      available as JSON or as an xlsx/PDF download. Every endpoint accepts the shared
+      `period`/`date_from`+`date_to`, `office_id`, and `category_id` filters and is scoped to
+      the caller's offices (data-scope module `report`); an `office_id` outside the caller's
+      scope is rejected with 403 before any data is read. JSON reads require `report.view`;
+      every export (including the GL recap variant) requires `report.export`.
+      `GET /dashboard/summary` is the only cached endpoint (90s TTL, keyed by role + scope +
+      office filter + period) — `GET /dashboard/export` and both `/reports/:type` endpoints
+      always compute fresh so a download never serves a stale snapshot.
 
 paths:
   /health:
@@ -3925,6 +3937,167 @@ paths:
                     items: { $ref: "#/components/schemas/SearchGroup" }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
+  /api/v1/dashboard/summary:
+    get:
+      tags: [Report]
+      operationId: getDashboardSummary
+      summary: Get the dashboard KPI/breakdown summary (cached)
+      description: |
+        Returns the KPI tiles (with period-over-period trend deltas), status/category/location
+        breakdowns, and the maintenance-due list for the caller's scope. Cached in Redis for
+        90 seconds, keyed by role + effective office scope + `office_id` filter + resolved
+        period — a request with an identical key inside the window returns the cached
+        snapshot instead of recomputing. Use `GET /dashboard/export` when a guaranteed-fresh
+        read is required. Requires the `report.view` permission; scoped to the caller's
+        offices (data-scope module `report`) unless `office_id` narrows to one in-scope office.
+        Exactly one of `period` or the `date_from`+`date_to` pair must be supplied (both or
+        neither is a 400).
+      security:
+        - bearerJWT: []
+      parameters:
+        - { name: period, in: query, schema: { type: string, enum: [last30, this_month, this_quarter, ytd] }, description: 'Preset window. Mutually exclusive with date_from/date_to; one of the two forms is required.' }
+        - { name: date_from, in: query, schema: { type: string, format: date }, description: 'Custom window start (inclusive). Must be paired with date_to; both or neither.' }
+        - { name: date_to, in: query, schema: { type: string, format: date }, description: 'Custom window end (inclusive). Must be paired with date_from; both or neither.' }
+        - { name: office_id, in: query, schema: { type: string, format: uuid }, description: 'Drill down to one office. Must be within the caller''s data scope (403 otherwise).' }
+      responses:
+        "200":
+          description: The dashboard summary
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DashboardSummary" }
+        "400":
+          description: Malformed `period`, `date_from`/`date_to`, or `office_id`
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/dashboard/export:
+    get:
+      tags: [Report]
+      operationId: exportDashboardSummary
+      summary: Download the dashboard summary as xlsx or PDF
+      description: |
+        Renders the same summary as `GET /dashboard/summary`, always freshly computed
+        (bypasses the 90-second cache — an export must never serve a stale snapshot).
+        Streams with `Content-Disposition: attachment` and `X-Content-Type-Options: nosniff`.
+        Requires the `report.export` permission; same office scope as the JSON summary.
+        Exactly one of `period` or the `date_from`+`date_to` pair must be supplied (both or
+        neither is a 400).
+      security:
+        - bearerJWT: []
+      parameters:
+        - { name: period, in: query, schema: { type: string, enum: [last30, this_month, this_quarter, ytd] }, description: 'Preset window. Mutually exclusive with date_from/date_to; one of the two forms is required.' }
+        - { name: date_from, in: query, schema: { type: string, format: date }, description: 'Custom window start (inclusive). Must be paired with date_to; both or neither.' }
+        - { name: date_to, in: query, schema: { type: string, format: date }, description: 'Custom window end (inclusive). Must be paired with date_from; both or neither.' }
+        - { name: office_id, in: query, schema: { type: string, format: uuid }, description: 'Drill down to one office. Must be within the caller''s data scope (403 otherwise).' }
+        - { name: format, in: query, required: true, schema: { type: string, enum: [xlsx, pdf] } }
+      responses:
+        "200":
+          description: Dashboard summary file
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+        "400":
+          description: Malformed `period`, `date_from`/`date_to`, `office_id`, or `format`
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/reports/{type}:
+    parameters:
+      - { name: type, in: path, required: true, schema: { type: string, enum: [assets, depreciation, utilization, maintenance, transfers, disposals, opname] }, description: Report type. An unrecognized value is a 400 (not 404). }
+    get:
+      tags: [Report]
+      operationId: getReport
+      summary: Get one of the 7 canned reports as JSON (row-capped)
+      description: |
+        Returns the report's KPI tiles, chart series, row table, and column totals for the
+        caller's scope. `rows` is capped at 1000 entries (`truncated: true` when the full
+        result set is larger); use `GET /reports/{type}/export` for the effectively-unbounded
+        file download. Always computed fresh (no caching). Requires the `report.view`
+        permission; scoped to the caller's offices (data-scope module `report`) unless
+        `office_id` narrows to one in-scope office. Exactly one of `period` or the
+        `date_from`+`date_to` pair must be supplied (both or neither is a 400).
+      security:
+        - bearerJWT: []
+      parameters:
+        - { name: period, in: query, schema: { type: string, enum: [last30, this_month, this_quarter, ytd] }, description: 'Preset window. Mutually exclusive with date_from/date_to; one of the two forms is required.' }
+        - { name: date_from, in: query, schema: { type: string, format: date }, description: 'Custom window start (inclusive). Must be paired with date_to; both or neither.' }
+        - { name: date_to, in: query, schema: { type: string, format: date }, description: 'Custom window end (inclusive). Must be paired with date_from; both or neither.' }
+        - { name: office_id, in: query, schema: { type: string, format: uuid }, description: 'Drill down to one office. Must be within the caller''s data scope (403 otherwise).' }
+        - { name: category_id, in: query, schema: { type: string, format: uuid }, description: Filter to one asset category. }
+        - { name: status, in: query, schema: { type: string, enum: [available, assigned, under_maintenance, in_transfer, retired, disposed, lost] }, description: 'Filters the `assets` report to one status; ignored (no effect) on every other report type.' }
+        - { name: basis, in: query, schema: { type: string, enum: [commercial, fiscal], default: commercial }, description: 'Depreciation basis for the `depreciation` report; ignored (no effect) on every other report type. Defaults to commercial when omitted.' }
+      responses:
+        "200":
+          description: The report result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReportResult" }
+        "400":
+          description: Malformed `type`, `period`, `date_from`/`date_to`, `office_id`, `category_id`, `status`, or `basis`
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/reports/{type}/export:
+    parameters:
+      - { name: type, in: path, required: true, schema: { type: string, enum: [assets, depreciation, utilization, maintenance, transfers, disposals, opname] }, description: Report type. An unrecognized value is a 400 (not 404). }
+    get:
+      tags: [Report]
+      operationId: exportReport
+      summary: Download one of the 7 canned reports as xlsx or PDF
+      description: |
+        Renders the same report as `GET /reports/{type}`, as a downloadable file with the row
+        cap lifted (effectively unbounded), always freshly computed. Streams with
+        `Content-Disposition: attachment` and `X-Content-Type-Options: nosniff`. The default
+        `variant=table` renders the per-type row table (see `ReportResult`); `variant=gl_recap`
+        instead renders the disposal general-ledger recap (`GlRecapResult`) and is valid ONLY
+        when `type=disposals` — any other type with `variant=gl_recap`, or any `variant` outside
+        `table`/`gl_recap`, is a 422. Requires the `report.export` permission; same office scope
+        as the JSON report. Exactly one of `period` or the `date_from`+`date_to` pair must be
+        supplied (both or neither is a 400).
+      security:
+        - bearerJWT: []
+      parameters:
+        - { name: period, in: query, schema: { type: string, enum: [last30, this_month, this_quarter, ytd] }, description: 'Preset window. Mutually exclusive with date_from/date_to; one of the two forms is required.' }
+        - { name: date_from, in: query, schema: { type: string, format: date }, description: 'Custom window start (inclusive). Must be paired with date_to; both or neither.' }
+        - { name: date_to, in: query, schema: { type: string, format: date }, description: 'Custom window end (inclusive). Must be paired with date_from; both or neither.' }
+        - { name: office_id, in: query, schema: { type: string, format: uuid }, description: 'Drill down to one office. Must be within the caller''s data scope (403 otherwise).' }
+        - { name: category_id, in: query, schema: { type: string, format: uuid }, description: Filter to one asset category. }
+        - { name: status, in: query, schema: { type: string, enum: [available, assigned, under_maintenance, in_transfer, retired, disposed, lost] }, description: 'Filters the `assets` report to one status; ignored (no effect) on every other report type.' }
+        - { name: basis, in: query, schema: { type: string, enum: [commercial, fiscal], default: commercial }, description: 'Depreciation basis for the `depreciation` report; ignored (no effect) on every other report type. Defaults to commercial when omitted.' }
+        - { name: format, in: query, required: true, schema: { type: string, enum: [xlsx, pdf] } }
+        - { name: variant, in: query, schema: { type: string, enum: [table, gl_recap], default: table }, description: '`gl_recap` is valid ONLY for `type=disposals` (422 otherwise).' }
+      responses:
+        "200":
+          description: Report file (row table, or the disposal GL recap when `variant=gl_recap`)
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+        "400":
+          description: Malformed `type`, `period`, `date_from`/`date_to`, `office_id`, `category_id`, `status`, `basis`, or `format`
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422":
+          description: '`variant` is not `table`/`gl_recap`, or `variant=gl_recap` was requested for a `type` other than `disposals`'
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
 components:
   securitySchemes:
     bearerJWT:
@@ -5782,3 +5955,219 @@ components:
         items:
           type: array
           items: { $ref: "#/components/schemas/SearchItem" }
+
+    DashboardTrends:
+      type: object
+      description: Period-over-period percent deltas vs. the equal-length preceding window. Each field is null when the prior window has no baseline to compare against (e.g. zero prior value).
+      properties:
+        acquisition_pct: { type: [number, "null"] }
+        book_value_pct: { type: [number, "null"] }
+        maintenance_cost_pct: { type: [number, "null"] }
+
+    DashboardKpi:
+      type: object
+      required: [total_assets, acquisition_value, book_value, overdue_assets, maintenance_due, maintenance_cost, trends]
+      properties:
+        total_assets: { type: integer }
+        acquisition_value: { type: string, description: Decimal string (IDR). }
+        book_value: { type: string, description: Decimal string (IDR). }
+        overdue_assets: { type: integer, description: 'Active assignments (checked-out assets) whose `due_date` has passed — overdue returns, independent of the `period`/date filters.' }
+        maintenance_due: { type: integer, description: 'Active maintenance schedules due within a fixed 7-day window from today (including already-overdue ones) — independent of the `period`/date filters.' }
+        maintenance_cost: { type: string, description: Decimal string (IDR). Total maintenance cost within the window. }
+        trends: { $ref: "#/components/schemas/DashboardTrends" }
+
+    StatusCount:
+      type: object
+      required: [status, count]
+      properties:
+        status: { type: string, enum: [available, assigned, under_maintenance, in_transfer, retired, disposed, lost] }
+        count: { type: integer }
+
+    NamedCount:
+      type: object
+      required: [name, count]
+      properties:
+        name: { type: [string, "null"], description: 'null represents the "no room"/unassigned bucket; the frontend localizes the label.' }
+        count: { type: integer }
+
+    MaintenanceDueItem:
+      type: object
+      required: [id, asset_name, asset_tag, category_name, next_due_date]
+      properties:
+        id: { type: string, format: uuid }
+        asset_name: { type: string }
+        asset_tag: { type: string }
+        category_name: { type: [string, "null"] }
+        next_due_date: { type: string, format: date }
+
+    DashboardSummary:
+      type: object
+      description: Response body of `GET /dashboard/summary` and `GET /dashboard/export`.
+      required: [office_name, kpi, by_status, by_category, location_kind, by_location, maintenance_due_list, excluded_count]
+      properties:
+        office_name: { type: [string, "null"], description: 'The drill-down office name when `office_id` is supplied, else null (caller''s full scope).' }
+        kpi: { $ref: "#/components/schemas/DashboardKpi" }
+        by_status:
+          type: array
+          items: { $ref: "#/components/schemas/StatusCount" }
+        by_category:
+          type: array
+          items: { $ref: "#/components/schemas/NamedCount" }
+        location_kind: { type: string, enum: [office, room], description: Whether `by_location` breaks down by office or by room (depends on caller scope breadth). }
+        by_location:
+          type: array
+          items: { $ref: "#/components/schemas/NamedCount" }
+        maintenance_due_list:
+          type: array
+          description: 'Schedules due within a fixed 7-day window from today (including already-overdue ones) — independent of the `period`/date filters.'
+          items: { $ref: "#/components/schemas/MaintenanceDueItem" }
+        excluded_count: { type: integer, description: 'Assets flagged `excluded_from_valuation` — counted in `total_assets`/`by_status` but excluded from the `acquisition_value`/`book_value` money sums.' }
+
+    ReportKpi:
+      type: object
+      required: [key, value]
+      properties:
+        key: { type: string, description: 'Stable per-type key, e.g. `total_assets`, `period_expense`, `avg_utilization`, `total_cost`, `total`, `total_disposals`, `sessions`. See the per-type `Kpis` list in `internal/report/service.go` for the full key set.' }
+        value: { type: string, description: Pre-stringified count or decimal money string. }
+
+    ChartBar:
+      type: object
+      required: [label, value]
+      properties:
+        label: { type: string }
+        value: { type: string, description: Decimal string (money) or plain number string. }
+
+    AssetRow:
+      type: object
+      description: '`rows` item shape when `type=assets`.'
+      required: [asset_tag, name, category_name, status, purchase_cost, accum_deprec, book_value]
+      properties:
+        asset_tag: { type: string }
+        name: { type: string }
+        category_name: { type: string }
+        status: { type: string, enum: [available, assigned, under_maintenance, in_transfer, retired, disposed, lost] }
+        purchase_cost: { type: string, description: Decimal string (IDR). }
+        accum_deprec: { type: string, description: Decimal string (IDR). }
+        book_value: { type: string, description: Decimal string (IDR). }
+
+    DeprRow:
+      type: object
+      description: '`rows` item shape when `type=depreciation`.'
+      required: [period, opening, amount, closing]
+      properties:
+        period: { type: string, description: 'Format: YYYY-MM.' }
+        opening: { type: string, description: Decimal string (IDR). }
+        amount: { type: string, description: Decimal string (IDR). }
+        closing: { type: string, description: Decimal string (IDR). }
+
+    UtilRow:
+      type: object
+      description: '`rows` item shape when `type=utilization`.'
+      required: [name, asset_tag, category_name, days_loaned, loan_count, utilization_pct]
+      properties:
+        name: { type: string }
+        asset_tag: { type: string }
+        category_name: { type: string }
+        days_loaned: { type: integer }
+        loan_count: { type: integer }
+        utilization_pct: { type: number }
+
+    MaintRow:
+      type: object
+      description: '`rows` item shape when `type=maintenance`.'
+      required: [asset_name, category_name, type, actions, total_cost]
+      properties:
+        asset_name: { type: string }
+        category_name: { type: string }
+        type: { type: string, enum: [preventive, corrective] }
+        actions: { type: integer }
+        total_cost: { type: string, description: Decimal string (IDR). }
+
+    TransferRow:
+      type: object
+      description: '`rows` item shape when `type=transfers`. Nullable source columns (`shipped_date`, `received_date`, `bast_no`) serialize as `""` (empty string), not `null` — they are plain `string`, not nullable.'
+      required: [asset_name, asset_tag, from_office, to_office, status, shipped_date, received_date, bast_no]
+      properties:
+        asset_name: { type: string }
+        asset_tag: { type: string }
+        from_office: { type: string }
+        to_office: { type: string }
+        status: { type: string }
+        shipped_date: { type: string, description: 'Format YYYY-MM-DD, or "" when not yet shipped.' }
+        received_date: { type: string, description: 'Format YYYY-MM-DD, or "" when not yet received.' }
+        bast_no: { type: string, description: 'BAST document number, or "" when none attached.' }
+
+    DisposalRow:
+      type: object
+      description: '`rows` item shape when `type=disposals`.'
+      required: [asset_name, asset_tag, method, disposal_date, book_value, proceeds, gain_loss]
+      properties:
+        asset_name: { type: string }
+        asset_tag: { type: string }
+        method: { type: string }
+        disposal_date: { type: string, format: date }
+        book_value: { type: string, description: Decimal string (IDR). }
+        proceeds: { type: string, description: Decimal string (IDR). }
+        gain_loss: { type: string, description: 'Decimal string (IDR). Positive is a gain, negative a loss.' }
+
+    OpnameRow:
+      type: object
+      description: '`rows` item shape when `type=opname`.'
+      required: [session_id, name, office_name, period, status, total_items, variance]
+      properties:
+        session_id: { type: string, format: uuid }
+        name: { type: string }
+        office_name: { type: string }
+        period: { type: string }
+        status: { type: string }
+        total_items: { type: integer }
+        variance: { type: integer }
+
+    ReportResult:
+      type: object
+      description: |
+        Response body of `GET /reports/{type}` and the `variant=table` (default) branch of
+        `GET /reports/{type}/export`. `rows` is a free-form array whose item shape depends on
+        `type`: `assets` → `AssetRow`, `depreciation` → `DeprRow`, `utilization` → `UtilRow`,
+        `maintenance` → `MaintRow`, `transfers` → `TransferRow`, `disposals` → `DisposalRow`,
+        `opname` → `OpnameRow`.
+      required: [type, kpis, chart, rows, totals, row_count, truncated]
+      properties:
+        type: { type: string, enum: [assets, depreciation, utilization, maintenance, transfers, disposals, opname] }
+        kpis:
+          type: array
+          items: { $ref: "#/components/schemas/ReportKpi" }
+        chart:
+          type: array
+          items: { $ref: "#/components/schemas/ChartBar" }
+        rows:
+          type: array
+          items: {}
+          description: 'Per-type row objects — see the schema description above for the `type` → row-schema mapping.'
+        totals:
+          type: object
+          additionalProperties: { type: string }
+          description: Column-keyed TOTAL row (decimal strings), mirroring the exported table's tfoot.
+        row_count: { type: integer, description: Total matching rows before the cap/truncation is applied. }
+        truncated: { type: boolean, description: 'true when `row_count` exceeds the 1000-row JSON cap (the JSON endpoint only; export lifts the cap).' }
+
+    GlRow:
+      type: object
+      required: [account_code, account_name, debit, credit]
+      properties:
+        account_code: { type: string }
+        account_name: { type: string }
+        debit: { type: string, description: Decimal string (IDR). }
+        credit: { type: string, description: Decimal string (IDR). }
+
+    GlRecapResult:
+      type: object
+      description: Rendered by the `variant=gl_recap` branch of `GET /reports/disposals/export` (file only — not exposed as a JSON endpoint).
+      required: [rows, total_debit, total_credit, balanced]
+      properties:
+        rows:
+          type: array
+          items: { $ref: "#/components/schemas/GlRow" }
+        total_debit: { type: string, description: Decimal string (IDR). }
+        total_credit: { type: string, description: Decimal string (IDR). }
+        balanced: { type: boolean, description: 'true when total_debit equals total_credit.' }

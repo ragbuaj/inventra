@@ -72,6 +72,21 @@ type Querier interface {
 	CreateThreshold(ctx context.Context, arg CreateThresholdParams) (ApprovalApprovalThreshold, error)
 	CreateTransfer(ctx context.Context, arg CreateTransferParams) (TransferAssetTransfer, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (IdentityUser, error)
+	// Reporting & Dashboard module — read-only aggregates.
+	// Every query: deleted_at IS NULL + the standard scope clause
+	//   (sqlc.arg(all_scope)::boolean OR office_id = ANY(sqlc.arg(office_ids)::uuid[]))
+	// plus an optional narg(office_filter) drill-down (validated against scope in the handler).
+	// Money aggregates: COALESCE(SUM(x), 0)::text — never float.
+	// Valuation rule: excluded_from_valuation is excluded from money sums, included in counts.
+	DashboardAssetKpis(ctx context.Context, arg DashboardAssetKpisParams) (DashboardAssetKpisRow, error)
+	DashboardAssetsByCategory(ctx context.Context, arg DashboardAssetsByCategoryParams) ([]DashboardAssetsByCategoryRow, error)
+	DashboardAssetsByOffice(ctx context.Context, arg DashboardAssetsByOfficeParams) ([]DashboardAssetsByOfficeRow, error)
+	DashboardAssetsByRoom(ctx context.Context, officeID uuid.UUID) ([]DashboardAssetsByRoomRow, error)
+	DashboardDepreciationInPeriod(ctx context.Context, arg DashboardDepreciationInPeriodParams) (string, error)
+	DashboardMaintenanceCost(ctx context.Context, arg DashboardMaintenanceCostParams) (DashboardMaintenanceCostRow, error)
+	DashboardMaintenanceDueCount(ctx context.Context, arg DashboardMaintenanceDueCountParams) (int64, error)
+	DashboardMaintenanceDueList(ctx context.Context, arg DashboardMaintenanceDueListParams) ([]DashboardMaintenanceDueListRow, error)
+	DashboardOverdueCount(ctx context.Context, arg DashboardOverdueCountParams) (int64, error)
 	DecideRequestApproval(ctx context.Context, arg DecideRequestApprovalParams) (ApprovalRequestApproval, error)
 	// Regeneration window: everything past the closed watermark up to the target period.
 	DeleteEntriesAfterWatermark(ctx context.Context, arg DeleteEntriesAfterWatermarkParams) error
@@ -226,6 +241,45 @@ type Querier interface {
 	// Approval / maker-checker queries (approval schema).
 	// See docs/DATABASE.md §4.5 and PRD §3.6 for schema context.
 	MatchThresholdSteps(ctx context.Context, arg MatchThresholdStepsParams) ([]ApprovalApprovalThreshold, error)
+	// book value per category (top 8)
+	ReportAssetChart(ctx context.Context, arg ReportAssetChartParams) ([]ReportAssetChartRow, error)
+	// ══════════════════════════════════════════════════════════════════════════
+	// Report builder — assets / depreciation / utilization / maintenance.
+	// Every query shares the standard filter block on the assets alias `a`:
+	//   scope (all_scope OR office_id = ANY(office_ids))
+	//   + optional narg(office_filter) drill-down
+	//   + optional narg(category_id).
+	// Money aggregates: COALESCE(SUM(x), 0)::text — never float.
+	// Valuation rule (assets report): excluded_from_valuation is dropped from money
+	// sums (Totals/KPIs/chart) but the rows still list every asset.
+	// ══════════════════════════════════════════════════════════════════════════
+	ReportAssetRows(ctx context.Context, arg ReportAssetRowsParams) ([]ReportAssetRowsRow, error)
+	ReportAssetTotals(ctx context.Context, arg ReportAssetTotalsParams) (ReportAssetTotalsRow, error)
+	ReportDepreciationKpis(ctx context.Context, arg ReportDepreciationKpisParams) (ReportDepreciationKpisRow, error)
+	// sum of each asset's last closing_value <= date_to
+	ReportDepreciationRemaining(ctx context.Context, arg ReportDepreciationRemainingParams) (string, error)
+	ReportDepreciationRows(ctx context.Context, arg ReportDepreciationRowsParams) ([]ReportDepreciationRowsRow, error)
+	// net gain/loss per disposal method
+	ReportDisposalChart(ctx context.Context, arg ReportDisposalChartParams) ([]ReportDisposalChartRow, error)
+	ReportDisposalKpis(ctx context.Context, arg ReportDisposalKpisParams) (ReportDisposalKpisRow, error)
+	ReportDisposalRows(ctx context.Context, arg ReportDisposalRowsParams) ([]ReportDisposalRowsRow, error)
+	// cost per category (top 8)
+	ReportMaintenanceChart(ctx context.Context, arg ReportMaintenanceChartParams) ([]ReportMaintenanceChartRow, error)
+	ReportMaintenanceKpis(ctx context.Context, arg ReportMaintenanceKpisParams) (ReportMaintenanceKpisRow, error)
+	ReportMaintenanceRows(ctx context.Context, arg ReportMaintenanceRowsParams) ([]ReportMaintenanceRowsRow, error)
+	ReportOpnameSessions(ctx context.Context, arg ReportOpnameSessionsParams) ([]ReportOpnameSessionsRow, error)
+	// transfer count per destination office (top 8)
+	ReportTransferChart(ctx context.Context, arg ReportTransferChartParams) ([]ReportTransferChartRow, error)
+	ReportTransferKpis(ctx context.Context, arg ReportTransferKpisParams) (ReportTransferKpisRow, error)
+	// ══════════════════════════════════════════════════════════════════════════
+	// Report builder — transfers / disposals (+ GL recap) / opname (Task 6).
+	// transfers scope: from OR to office in scope (an inbound mutasi is visible to
+	// the destination office). disposals/opname scope on the owning asset/session
+	// office. Money aggregates: COALESCE(SUM(x), 0)::text — never float.
+	// ══════════════════════════════════════════════════════════════════════════
+	ReportTransferRows(ctx context.Context, arg ReportTransferRowsParams) ([]ReportTransferRowsRow, error)
+	ReportUtilizationKpis(ctx context.Context, arg ReportUtilizationKpisParams) (int64, error)
+	ReportUtilizationRows(ctx context.Context, arg ReportUtilizationRowsParams) ([]ReportUtilizationRowsRow, error)
 	// Global search (command palette). Each query returns the top matches for one
 	// entity plus the full match count via a window function. Callers gate by
 	// permission + data scope; queries only enforce the office scope filter.
