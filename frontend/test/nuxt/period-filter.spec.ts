@@ -41,6 +41,19 @@ describe('PeriodFilter', () => {
     expect(custom?.label).toBe('Rentang kustom…')
   })
 
+  it('resolves preset labels through the camelCase i18n suffix mapping', async () => {
+    const wrapper = await mountSuspended(PeriodFilter, {
+      props: { modelValue: { preset: 'last30' } as PeriodValue }
+    })
+    const items = wrapper.findComponent({ name: 'USelect' }).props('items') as Array<{ value: string, label: string }>
+    const byValue = Object.fromEntries(items.map(i => [i.value, i.label]))
+    // default locale is `id`; a swapped PRESET_LABEL_SUFFIX mapping fails these
+    expect(byValue.last30).toBe('30 hari terakhir')
+    expect(byValue.this_month).toBe('Bulan ini')
+    expect(byValue.this_quarter).toBe('Kuartal ini')
+    expect(byValue.ytd).toBe('Tahun berjalan')
+  })
+
   it('emits { preset } when a preset is selected', async () => {
     const wrapper = await mountSuspended(PeriodFilter, {
       props: { modelValue: { preset: 'last30' } as PeriodValue }

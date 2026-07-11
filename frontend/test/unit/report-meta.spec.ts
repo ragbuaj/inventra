@@ -65,6 +65,18 @@ describe('periodToQuery', () => {
     expect(Object.keys(q).sort()).toEqual(['date_from', 'date_to'])
     expect(q).not.toHaveProperty('period')
   })
+
+  it('throws a TypeError when custom is missing from', () => {
+    expect(() => periodToQuery({ preset: 'custom', to: '2026-03-31' })).toThrow(TypeError)
+  })
+
+  it('throws a TypeError when custom is missing to', () => {
+    expect(() => periodToQuery({ preset: 'custom', from: '2026-01-01' })).toThrow(TypeError)
+  })
+
+  it('throws a TypeError when custom is missing both dates', () => {
+    expect(() => periodToQuery({ preset: 'custom' })).toThrow(TypeError)
+  })
 })
 
 describe('formatMoneyShort', () => {
@@ -76,6 +88,9 @@ describe('formatMoneyShort', () => {
     ['42500000', 'Rp 42,5 Jt'],
     ['1000000000', 'Rp 1 M'],
     ['3820000000', 'Rp 3,82 M'],
+    ['-3820000000', 'Rp −3,82 M'],
+    ['-42500000', 'Rp −42,5 Jt'],
+    ['-950000', 'Rp −950.000'],
     ['abc', 'abc']
   ]
 
@@ -97,6 +112,12 @@ describe('formatMoneyShort', () => {
 
   it('unparseable input is returned verbatim', () => {
     expect(formatMoneyShort('abc')).toBe('abc')
+  })
+
+  it('abbreviates negative magnitudes and uses a real minus sign (U+2212)', () => {
+    const out = formatMoneyShort('-3820000000')
+    expect(out).toBe('Rp −3,82 M')
+    expect(out.includes('-')).toBe(false) // not the ASCII hyphen-minus
   })
 })
 

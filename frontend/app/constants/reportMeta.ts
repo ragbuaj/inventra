@@ -47,10 +47,15 @@ export interface PeriodValue {
 /**
  * Convert a `PeriodValue` into the backend query params. Preset → `{ period }`;
  * custom → `{ date_from, date_to }` (mutually exclusive, per the report contract).
+ * Throws if `custom` lacks either date — `PeriodFilter` only ever emits complete
+ * custom values, so an incomplete one here is a caller bug, not a user state.
  */
 export function periodToQuery(p: PeriodValue): Record<string, string> {
   if (p.preset === 'custom') {
-    return { date_from: p.from!, date_to: p.to! }
+    if (!p.from || !p.to) {
+      throw new TypeError('periodToQuery: custom period requires both from and to (YYYY-MM-DD)')
+    }
+    return { date_from: p.from, date_to: p.to }
   }
   return { period: p.preset }
 }
@@ -73,15 +78,18 @@ function abbreviate(n: number): string {
 
 /**
  * Format a decimal string amount to a short Rupiah label:
- * ≥1e9 → "Rp 3,82 M", ≥1e6 → "Rp 42,5 Jt", else full "Rp 950.000".
+ * |v|≥1e9 → "Rp 3,82 M", |v|≥1e6 → "Rp 42,5 Jt", else full "Rp 950.000".
+ * Negatives keep their magnitude bucket and render a real minus sign (U+2212).
  * Unparseable input is returned verbatim.
  */
 export function formatMoneyShort(v: string): string {
   const n = Number(v)
   if (!Number.isFinite(n) || v.trim() === '') return v
-  if (n >= 1e9) return `Rp ${abbreviate(n / 1e9)} M`
-  if (n >= 1e6) return `Rp ${abbreviate(n / 1e6)} Jt`
-  return `Rp ${groupThousands(n)}`
+  const sign = n < 0 ? '−' : ''
+  const abs = Math.abs(n)
+  if (abs >= 1e9) return `Rp ${sign}${abbreviate(abs / 1e9)} M`
+  if (abs >= 1e6) return `Rp ${sign}${abbreviate(abs / 1e6)} Jt`
+  return `Rp ${sign}${groupThousands(abs)}`
 }
 
 /**
