@@ -3775,7 +3775,9 @@ paths:
         see `POST /requests/{id}/approve`. Requires the `request.create`
         permission; the asset must be within the caller's data scope and not
         disposed/lost. Duplicate-guarded: rejected if the caller already has a
-        pending report for this asset.
+        pending report for this asset. The request body is capped at the same
+        size limit as asset attachments; an oversize body is rejected with 413
+        before the form is parsed.
       security:
         - bearerJWT: []
       requestBody:
@@ -3818,6 +3820,11 @@ paths:
               schema: { $ref: "#/components/schemas/Error" }
         "409":
           description: A pending report already exists for this asset (from this caller)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "413":
+          description: Request body too large
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }

@@ -64,6 +64,11 @@ func NewService(q *sqlc.Queries, pool *pgxpool.Pool, appr *approval.Service, ass
 	return &Service{q: q, pool: pool, appr: appr, assets: assets}
 }
 
+// ReportMaxBytes returns the upload size cap shared with the asset module's
+// attachment endpoints, used by the handler to cap the damage-report
+// multipart body before binding.
+func (s *Service) ReportMaxBytes() int64 { return s.assets.MaxBytes() }
+
 // ScheduleInput is the service-level payload for creating a schedule.
 type ScheduleInput struct {
 	AssetID               uuid.UUID

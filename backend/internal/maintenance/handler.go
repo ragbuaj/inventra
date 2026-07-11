@@ -320,8 +320,17 @@ func (h *Handler) attention(c *gin.Context) {
 // submitReport handles POST /maintenance/reports (Staf damage report,
 // multipart form with an optional "photo" file).
 func (h *Handler) submitReport(c *gin.Context) {
+	// Cap the request body to maxBytes+1 so we detect oversize before buffering
+	// unbounded data — mirrors asset.Handler.uploadAttachment.
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, h.svc.ReportMaxBytes()+1)
+
 	var form ReportForm
 	if err := c.ShouldBind(&form); err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "request body too large"})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
