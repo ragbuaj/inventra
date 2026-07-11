@@ -441,6 +441,10 @@ test.describe('Maintenance (Jadwal/Catatan/Laporan Kerusakan) — real backend e
     await expect(page.getByTestId(`report-history-${requestId}`)).toContainText('Disetujui', { timeout: 10_000 })
 
     // --- As Manager: Catatan shows the corrective 'scheduled' record for asset2. ---
+    // Drop the Staf session first: /login redirects authenticated users (the
+    // httpOnly refresh cookie would silently restore the Staf session).
+    await page.context().clearCookies()
+    await page.evaluate(() => window.localStorage.clear())
     await login(page)
     await page.goto('/maintenance')
     await page.getByRole('button', { name: 'Catatan', exact: true }).click()
