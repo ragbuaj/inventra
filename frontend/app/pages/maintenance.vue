@@ -244,8 +244,13 @@ interface MyAssetOption { value: string, label: string }
 const myAssignedAssets = ref<MyAssetOption[]>([])
 
 async function loadMyAssignedAssets() {
+  const employeeId = useAuthStore().user?.employee_id
+  if (!employeeId) {
+    myAssignedAssets.value = []
+    return
+  }
   try {
-    const res = await assignmentApi.list({ status: 'active' })
+    const res = await assignmentApi.list({ status: 'active', employee_id: employeeId })
     myAssignedAssets.value = res.data.map(a => ({ value: a.asset_id, label: `${a.asset_name ?? '—'} · ${a.asset_tag ?? '—'}` }))
   } catch {
     myAssignedAssets.value = []

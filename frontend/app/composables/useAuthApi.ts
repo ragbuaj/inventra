@@ -46,7 +46,8 @@ export function useAuthApi() {
       email: me.email,
       role_id: me.role_id,
       role_name: '',
-      office_id: me.office_id
+      office_id: me.office_id,
+      employee_id: me.employee_id
     }
     auth.setSession(auth.accessToken as string, user, perms.permissions)
   }

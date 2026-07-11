@@ -186,7 +186,7 @@ enableAutoUnmount(afterEach)
 function grant(permissions: string[]) {
   useAuthStore().setSession(
     'tok',
-    { id: '1', name: 'Andi Saputra', email: 'andi@test.com', role_id: 'r1', role_name: 'Staf', office_id: 'o1' },
+    { id: '1', name: 'Andi Saputra', email: 'andi@test.com', role_id: 'r1', role_name: 'Staf', office_id: 'o1', employee_id: 'e1' },
     permissions
   )
 }
@@ -448,7 +448,7 @@ describe('Maintenance page — Laporan Kerusakan tab', () => {
   it('lists the caller\'s active assignments and problem categories, and disables submit until both are chosen', async () => {
     const w = await mountAndWait()
     await clickTab(w, 'Laporan Kerusakan')
-    expect(assignmentListMock).toHaveBeenCalledWith({ status: 'active' })
+    expect(assignmentListMock).toHaveBeenCalledWith({ status: 'active', employee_id: 'e1' })
     const submit = () => w.find('[data-testid="report-submit"]')
     expect(submit().attributes('disabled')).toBeDefined()
 
@@ -504,6 +504,19 @@ describe('Maintenance page — Laporan Kerusakan tab', () => {
     const w = await mountAndWait()
     await clickTab(w, 'Laporan Kerusakan')
     expect(w.text()).toContain('asset-forbidden')
+  })
+
+  it('never calls the assignments list — and leaves the asset picker empty — when the caller has no linked employee', async () => {
+    useAuthStore().setSession(
+      'tok',
+      { id: '1', name: 'Andi Saputra', email: 'andi@test.com', role_id: 'r1', role_name: 'Staf', office_id: 'o1', employee_id: null },
+      ['maintenance.view', 'maintenance.manage', 'request.create']
+    )
+    const w = await mountAndWait()
+    await clickTab(w, 'Laporan Kerusakan')
+    expect(assignmentListMock).not.toHaveBeenCalled()
+    const submit = () => w.find('[data-testid="report-submit"]')
+    expect(submit().attributes('disabled')).toBeDefined()
   })
 })
 
