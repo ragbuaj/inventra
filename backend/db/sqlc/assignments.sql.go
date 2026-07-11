@@ -132,6 +132,36 @@ func (q *Queries) CountAssignments(ctx context.Context, arg CountAssignmentsPara
 	return count, err
 }
 
+const getActiveAssignmentByAsset = `-- name: GetActiveAssignmentByAsset :one
+SELECT id, asset_id, employee_id, assigned_by_id, checkout_date, due_date, checkin_date, condition_out, condition_in, status, notes, created_at, updated_at, deleted_at FROM assignment.assignments
+WHERE asset_id = $1 AND status = 'active' AND deleted_at IS NULL
+`
+
+// Used by the maintenance module (cross-schema rule): when releasing an asset
+// from under_maintenance, we must know whether an employee still holds it via
+// an active assignment, so it is restored to 'assigned' rather than 'available'.
+func (q *Queries) GetActiveAssignmentByAsset(ctx context.Context, assetID uuid.UUID) (AssignmentAssignment, error) {
+	row := q.db.QueryRow(ctx, getActiveAssignmentByAsset, assetID)
+	var i AssignmentAssignment
+	err := row.Scan(
+		&i.ID,
+		&i.AssetID,
+		&i.EmployeeID,
+		&i.AssignedByID,
+		&i.CheckoutDate,
+		&i.DueDate,
+		&i.CheckinDate,
+		&i.ConditionOut,
+		&i.ConditionIn,
+		&i.Status,
+		&i.Notes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const getAssignmentEnriched = `-- name: GetAssignmentEnriched :one
 SELECT asg.id, asg.asset_id, asg.employee_id, asg.assigned_by_id, asg.checkout_date, asg.due_date, asg.checkin_date, asg.condition_out, asg.condition_in, asg.status, asg.notes, asg.created_at, asg.updated_at, asg.deleted_at,
        a.name      AS asset_name,

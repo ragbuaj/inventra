@@ -77,6 +77,10 @@ type Querier interface {
 	DeleteEntriesAfterWatermark(ctx context.Context, arg DeleteEntriesAfterWatermarkParams) error
 	// First-ever run (no watermark): clear everything ≤ target.
 	DeleteEntriesThrough(ctx context.Context, target pgtype.Date) error
+	// Used by the maintenance module (cross-schema rule): when releasing an asset
+	// from under_maintenance, we must know whether an employee still holds it via
+	// an active assignment, so it is restored to 'assigned' rather than 'available'.
+	GetActiveAssignmentByAsset(ctx context.Context, assetID uuid.UUID) (AssignmentAssignment, error)
 	GetAppSetting(ctx context.Context, key string) (string, error)
 	GetAsset(ctx context.Context, id uuid.UUID) (AssetAsset, error)
 	GetAssetByTag(ctx context.Context, assetTag string) (AssetAsset, error)

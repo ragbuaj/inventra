@@ -6,8 +6,10 @@ import (
 	"context"
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -74,6 +76,17 @@ func seedAsset(t *testing.T, pool *pgxpool.Pool, tag, name string, categoryID, o
 		 VALUES ($1, $2, $3, $4, 'intangible', true, '{}', $5)
 		 RETURNING id`,
 		tag, name, categoryID, officeID, string(status)).Scan(&id))
+	return id
+}
+
+// seedEmployee inserts a masterdata.employees row (placed in officeID) and
+// returns its id — used to check out an asset for the Issue-1 release test.
+func seedEmployee(t *testing.T, pool *pgxpool.Pool, officeID uuid.UUID, code string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO masterdata.employees (code, name, office_id) VALUES ($1, $2, $3) RETURNING id`,
+		code, code, officeID).Scan(&id))
 	return id
 }
 
@@ -578,4 +591,56 @@ func TestAttention_Queue(t *testing.T) {
 	rows, err = h.msvc.Attention(ctx, false, []uuid.UUID{h.office})
 	require.NoError(t, err)
 	assert.False(t, containsAttentionAsset(rows, siblingAsset), "an out-of-scope asset must never appear")
+}
+
+// ─── 11. record complete on an assigned (checked-out) asset restores assigned ──
+
+// TestRecordComplete_RestoresAssignedWhenHeld covers the Issue-1 fix: an asset
+// still checked out to an employee (active assignment.assignments row) that
+// also needed maintenance must be restored to 'assigned' — not 'available' —
+// once its last active maintenance record completes. Otherwise it would wrongly
+// surface in /assignments/available while still held, and the next
+// borrow-approval would violate the one-active-assignment-per-asset unique
+// index (uq_assignments_active_asset).
+func TestRecordComplete_RestoresAssignedWhenHeld(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+	actor := seedUser(t, h.pool, h.managerRl, h.office, "actor.restore@test.local")
+
+	assetID := seedAsset(t, h.pool, "OFC-MNT-2026-00019", "Laptop Dipinjam", h.catID, h.office, sqlc.SharedAssetStatusAssigned)
+	empID := seedEmployee(t, h.pool, h.office, "EMP-MNT-"+uuid.New().String()[:8])
+
+	// Check the asset out to the employee directly via sqlc (mirrors
+	// assignment.checkoutTx's insert) so it carries an active assignment row.
+	q := sqlc.New(h.pool)
+	_, err := q.CheckoutAssignment(ctx, sqlc.CheckoutAssignmentParams{
+		AssetID:      assetID,
+		EmployeeID:   empID,
+		AssignedByID: actor,
+		CheckoutDate: pgtype.Timestamptz{Time: time.Now(), Valid: true},
+	})
+	require.NoError(t, err)
+
+	// A damage report comes in while the asset is held — starting work flips
+	// the asset to under_maintenance (the "assigned" branch of the in_progress
+	// case in applyStatusEffects).
+	rec, err := h.msvc.CreateRecord(ctx, false, []uuid.UUID{h.office}, actor, maintenance.RecordInput{
+		AssetID: assetID, Type: sqlc.SharedMaintenanceTypeCorrective, Status: sqlc.SharedMaintenanceStatusInProgress, Description: "layar retak",
+	})
+	require.NoError(t, err)
+	require.Equal(t, sqlc.SharedAssetStatusUnderMaintenance, h.getAssetStatus(t, assetID))
+
+	// Completing the (only) active record releases the asset — it must go
+	// back to 'assigned', since the employee still holds it, not 'available'.
+	_, err = h.msvc.UpdateRecord(ctx, false, []uuid.UUID{h.office}, rec.ID, maintenance.RecordUpdateInput{
+		Status: msPtr(sqlc.SharedMaintenanceStatusCompleted),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedAssetStatusAssigned, h.getAssetStatus(t, assetID),
+		"an asset still held via an active assignment must be restored to 'assigned', not 'available'")
+
+	// Sanity: the active assignment itself is untouched by the maintenance flow.
+	active, err := q.GetActiveAssignmentByAsset(ctx, assetID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedAssignmentStatusActive, active.Status)
 }

@@ -295,7 +295,21 @@ func (s *Service) applyStatusEffects(ctx context.Context, qtx *sqlc.Queries, rec
 				return mapDBError(err)
 			}
 			if n == 0 {
-				if _, err := qtx.SetAssetStatus(ctx, sqlc.SetAssetStatusParams{ID: a.ID, Status: sqlc.SharedAssetStatusAvailable}); err != nil {
+				// Cross-module rule (assignment module): the asset may still be
+				// checked out to an employee while under maintenance (e.g. a
+				// laptop reported broken while assigned). Releasing it must not
+				// blindly set 'available' — that would let it show up in
+				// /assignments/available while still held, and the next
+				// borrow-approval would violate the one-active-assignment-per-
+				// asset unique index. Restore 'assigned' when an active
+				// assignment still exists; otherwise release to 'available'.
+				releaseStatus := sqlc.SharedAssetStatusAvailable
+				if _, err := qtx.GetActiveAssignmentByAsset(ctx, a.ID); err == nil {
+					releaseStatus = sqlc.SharedAssetStatusAssigned
+				} else if !errors.Is(err, pgx.ErrNoRows) {
+					return mapDBError(err)
+				}
+				if _, err := qtx.SetAssetStatus(ctx, sqlc.SetAssetStatusParams{ID: a.ID, Status: releaseStatus}); err != nil {
 					return mapDBError(err)
 				}
 			}

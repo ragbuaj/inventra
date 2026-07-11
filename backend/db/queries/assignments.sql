@@ -73,6 +73,13 @@ WHERE asg.deleted_at IS NULL
        OR a.asset_tag ILIKE '%' || sqlc.narg(search) || '%'
        OR e.name ILIKE '%' || sqlc.narg(search) || '%');
 
+-- name: GetActiveAssignmentByAsset :one
+-- Used by the maintenance module (cross-schema rule): when releasing an asset
+-- from under_maintenance, we must know whether an employee still holds it via
+-- an active assignment, so it is restored to 'assigned' rather than 'available'.
+SELECT * FROM assignment.assignments
+WHERE asset_id = sqlc.arg(asset_id) AND status = 'active' AND deleted_at IS NULL;
+
 -- name: ListAssignmentsByAssetEnriched :many
 SELECT sqlc.embed(asg),
        a.name      AS asset_name,
