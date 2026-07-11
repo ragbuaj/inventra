@@ -55,6 +55,17 @@ UPDATE import.import_jobs
 SET status = 'awaiting_approval', request_id = $2
 WHERE id = $1 RETURNING *;
 
+-- name: FindActiveImportRequest :one
+-- F3 crash-window fix: an approval request for this import batch may already
+-- exist from a prior run that crashed between Submit committing and
+-- SetJobRequest persisting the request_id. Look it up by (target_entity,
+-- target_id) — backed by idx_requests_target — before submitting again.
+SELECT id FROM approval.requests
+WHERE target_entity = 'import_job' AND target_id = $1
+  AND status = 'pending' AND deleted_at IS NULL
+ORDER BY created_at DESC
+LIMIT 1;
+
 -- name: ConfirmJob :one
 UPDATE import.import_jobs
 SET status = 'confirmed', confirmed_at = now()

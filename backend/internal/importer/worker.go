@@ -17,12 +17,14 @@ package importer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
@@ -352,11 +354,12 @@ func (w *Worker) executePhase(ctx context.Context) (didWork bool, err error) {
 	}
 
 	if target.NeedsApproval() {
-		// F3/M1: idempotency guard. If this job was already claimed once and
-		// crashed/errored between Submit committing and the request_id being
-		// persisted (or is otherwise re-run with a request already recorded),
-		// do not submit a second approval request — just make sure the status
-		// reflects "awaiting_approval" and move on.
+		// F3/M1: idempotency guard. job.RequestID is set together with
+		// status -> awaiting_approval by SetJobRequest, so a job reclaimed
+		// via ClaimConfirmedJob after a crash (Recover resets
+		// executing -> confirmed, never touching request_id) always has
+		// RequestID == nil here — this is a cheap first check, not the real
+		// guard. Kept anyway since it's a free win if it's ever non-nil.
 		if job.RequestID != nil {
 			if _, err := qtx.SetJobRequest(ctx, sqlc.SetJobRequestParams{
 				ID:        job.ID,
@@ -368,6 +371,43 @@ func (w *Worker) executePhase(ctx context.Context) (didWork bool, err error) {
 				return true, err
 			}
 			return true, nil
+		}
+
+		// F3: the real closer. A prior run may have crashed between Submit
+		// committing its own transaction and SetJobRequest persisting
+		// request_id (which happens in a separate, later statement — see
+		// below). Look up whether an approval request already exists for
+		// this batch (target_entity='import_job', target_id=job.ID) before
+		// submitting again; if one does, link it instead of creating a
+		// duplicate. Queried via qtx (this tx, still open/uncommitted at
+		// this point) — READ COMMITTED still lets it see any request
+		// committed by a prior crashed run.
+		existingID, findErr := qtx.FindActiveImportRequest(ctx, &job.ID)
+		switch {
+		case findErr == nil:
+			if _, err := qtx.SetJobRequest(ctx, sqlc.SetJobRequestParams{
+				ID:        job.ID,
+				RequestID: &existingID,
+			}); err != nil {
+				return true, err
+			}
+			if err := tx.Commit(ctx); err != nil {
+				return true, err
+			}
+			return true, nil
+		case errors.Is(findErr, pgx.ErrNoRows):
+			// No existing request — proceed with the normal Submit path.
+		default:
+			// Fail closed: an indeterminate lookup must not risk a
+			// duplicate Submit. The claiming tx is still open here — roll it
+			// back first to release the job row's lock before failJob opens
+			// its own transaction (same pattern as the Execute error path
+			// below).
+			_ = tx.Rollback(ctx)
+			if fErr := w.failJob(ctx, job.ID, "submitFailed"); fErr != nil {
+				return true, fErr
+			}
+			return true, findErr
 		}
 
 		var officeID uuid.UUID

@@ -99,6 +99,11 @@ type Querier interface {
 	DeleteEntriesAfterWatermark(ctx context.Context, arg DeleteEntriesAfterWatermarkParams) error
 	// First-ever run (no watermark): clear everything ≤ target.
 	DeleteEntriesThrough(ctx context.Context, target pgtype.Date) error
+	// F3 crash-window fix: an approval request for this import batch may already
+	// exist from a prior run that crashed between Submit committing and
+	// SetJobRequest persisting the request_id. Look it up by (target_entity,
+	// target_id) — backed by idx_requests_target — before submitting again.
+	FindActiveImportRequest(ctx context.Context, targetID *uuid.UUID) (uuid.UUID, error)
 	// Used by the maintenance module (cross-schema rule): when releasing an asset
 	// from under_maintenance, we must know whether an employee still holds it via
 	// an active assignment, so it is restored to 'assigned' rather than 'available'.

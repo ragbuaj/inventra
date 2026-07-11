@@ -237,6 +237,25 @@ func (q *Queries) CreateImportJob(ctx context.Context, arg CreateImportJobParams
 	return i, err
 }
 
+const findActiveImportRequest = `-- name: FindActiveImportRequest :one
+SELECT id FROM approval.requests
+WHERE target_entity = 'import_job' AND target_id = $1
+  AND status = 'pending' AND deleted_at IS NULL
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+// F3 crash-window fix: an approval request for this import batch may already
+// exist from a prior run that crashed between Submit committing and
+// SetJobRequest persisting the request_id. Look it up by (target_entity,
+// target_id) — backed by idx_requests_target — before submitting again.
+func (q *Queries) FindActiveImportRequest(ctx context.Context, targetID *uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, findActiveImportRequest, targetID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getImportJob = `-- name: GetImportJob :one
 SELECT id, target, format, filename, object_key, status, total_rows, success_rows, failed_rows, error_report_key, created_by_id, finished_at, created_at, updated_at, deleted_at, office_id, request_id, confirmed_at, error_key FROM import.import_jobs WHERE id = $1 AND deleted_at IS NULL
 `
