@@ -1,10 +1,27 @@
 // @vitest-environment nuxt
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import type { VueWrapper } from '@vue/test-utils'
+import type { SearchGroup } from '~/types'
+
+// ---------------------------------------------------------------------------
+// Stub useGlobalSearch() directly — the palette's query watcher now debounces
+// then calls search(q) against the real API (Task 6). Tests control what
+// search() resolves to and assert the debounce/call behavior.
+// ---------------------------------------------------------------------------
+
+const searchMock = vi.fn<(q: string) => Promise<SearchGroup[]>>()
+
+vi.mock('~/composables/api/useGlobalSearch', () => ({
+  useGlobalSearch: () => ({ search: searchMock })
+}))
+
+// eslint-disable-next-line import/first
 import CommandPalette from '~/components/CommandPalette.vue'
+// eslint-disable-next-line import/first
 import { useCommandPalette } from '~/composables/useCommandPalette'
+// eslint-disable-next-line import/first
 import { useAuthStore } from '~/stores/auth'
 
 function admin() {
@@ -13,6 +30,38 @@ function admin() {
 
 function nonAdmin() {
   useAuthStore().setSession('t', { id: '2', name: 'B', email: 'b@e.com', role_id: 'r2', role_name: 'Viewer', office_id: null }, ['reports.read'])
+}
+
+function assetGroup(): SearchGroup {
+  return {
+    type: 'aset',
+    labelKey: 'search.group.aset',
+    total: 1,
+    items: [{
+      type: 'aset',
+      title: 'Laptop Dell Latitude 5440',
+      sub: 'JKT01-ELK-2026-00001',
+      status: null,
+      icon: 'i-lucide-package',
+      to: '/assets/JKT01-ELK-2026-00001'
+    }]
+  }
+}
+
+function pengajuanGroup(): SearchGroup {
+  return {
+    type: 'pengajuan',
+    labelKey: 'search.group.pengajuan',
+    total: 1,
+    items: [{
+      type: 'pengajuan',
+      title: 'Peminjaman · Kantor Pusat',
+      sub: 'PJM-0001',
+      status: 'pending',
+      icon: 'i-lucide-check-square',
+      to: '/approval'
+    }]
+  }
 }
 
 // Teleport sends the overlay to document.body, so query there rather than the wrapper.
@@ -35,6 +84,8 @@ describe('CommandPalette', () => {
   beforeEach(() => {
     useAuthStore().clear()
     useCommandPalette().close()
+    searchMock.mockReset()
+    searchMock.mockImplementation(async (q: string) => q.includes('latitude') ? [assetGroup()] : [])
   })
 
   afterEach(() => {
@@ -42,6 +93,9 @@ describe('CommandPalette', () => {
     useCommandPalette().close()
     wrapper?.unmount()
     wrapper = null
+    // Safety net: a test that forgets to restore real timers (e.g. an
+    // assertion throws before it gets there) must not bleed into the next.
+    vi.useRealTimers()
   })
 
   it('renders nothing when closed', async () => {
@@ -63,12 +117,13 @@ describe('CommandPalette', () => {
     await mount()
     useCommandPalette().open()
     await flushPromises()
+    vi.useFakeTimers()
     const input = bodyInput()!
     input.value = 'latitude'
     input.dispatchEvent(new Event('input'))
+    await vi.advanceTimersByTimeAsync(250)
     await flushPromises()
-    await new Promise(r => setTimeout(r, 350))
-    await flushPromises()
+    vi.useRealTimers()
     expect(bodyText()).toContain('Aset')
     expect(bodyText()).toContain('Latitude')
   })
@@ -78,12 +133,13 @@ describe('CommandPalette', () => {
     await mount()
     useCommandPalette().open()
     await flushPromises()
+    vi.useFakeTimers()
     const input = bodyInput()!
     input.value = 'zzzzz-nomatch'
     input.dispatchEvent(new Event('input'))
+    await vi.advanceTimersByTimeAsync(250)
     await flushPromises()
-    await new Promise(r => setTimeout(r, 350))
-    await flushPromises()
+    vi.useRealTimers()
     expect(bodyText()).toContain('Tidak ada hasil')
   })
 
@@ -136,5 +192,67 @@ describe('CommandPalette', () => {
     await flushPromises()
     const input = bodyInput() as HTMLInputElement
     expect(input.value).toBe('Laptop Dell Latitude')
+  })
+
+  it('debounces: rapid typing triggers one search call', async () => {
+    admin()
+    await mount()
+    useCommandPalette().open()
+    await flushPromises()
+    vi.useFakeTimers()
+    const input = bodyInput()!
+
+    input.value = 'lap'
+    input.dispatchEvent(new Event('input'))
+    await vi.advanceTimersByTimeAsync(100)
+    input.value = 'lapt'
+    input.dispatchEvent(new Event('input'))
+    await vi.advanceTimersByTimeAsync(250)
+    await flushPromises()
+    vi.useRealTimers()
+
+    expect(searchMock).toHaveBeenCalledTimes(1)
+    expect(searchMock).toHaveBeenCalledWith('lapt')
+  })
+
+  it('renders request status badges with kind=approval', async () => {
+    searchMock.mockImplementation(async () => [pengajuanGroup()])
+    admin()
+    await mount()
+    useCommandPalette().open()
+    await flushPromises()
+    vi.useFakeTimers()
+    const input = bodyInput()!
+    input.value = 'pjm'
+    input.dispatchEvent(new Event('input'))
+    await vi.advanceTimersByTimeAsync(250)
+    await flushPromises()
+    vi.useRealTimers()
+
+    expect(bodyText()).toContain('Pengajuan')
+    expect(bodyText()).toContain('Menunggu')
+    expect(bodyText()).not.toContain('pending')
+  })
+
+  it('clears the loading skeleton and shows the empty state when search fails', async () => {
+    searchMock.mockImplementation(async () => {
+      throw new Error('network error')
+    })
+    admin()
+    await mount()
+    useCommandPalette().open()
+    await flushPromises()
+    vi.useFakeTimers()
+    const input = bodyInput()!
+    input.value = 'latitude'
+    input.dispatchEvent(new Event('input'))
+    await vi.advanceTimersByTimeAsync(250)
+    await flushPromises()
+    vi.useRealTimers()
+
+    // Loading skeleton is gone and the empty state is shown instead of a
+    // stuck spinner; the rejection must be caught, not left unhandled.
+    expect(bodyText()).toContain('Tidak ada hasil')
+    expect(bodyText()).not.toContain('Aset')
   })
 })

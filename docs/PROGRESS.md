@@ -534,12 +534,54 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     Full local run against the dev stack: **3/3 PASS** (after one harness fix: the mid-test switch from
 >     the Staf session to the admin login now clears cookies/localStorage first — `/login` redirects
 >     authenticated users because the httpOnly refresh cookie silently restores the session).
-> 39. **Next session — pick the next real step.** With Maintenance complete, every module in the original
->     Bank-FAM operational set is built (transfer, disposal, depreciation, stock opname, assignment,
->     maintenance). Remaining candidates (see *Remaining* below): **(f)** global search backend
->     (`/search`) + drop the last `mock/*` files (`mock/offices.ts`, `mock/employees.ts`, `mock/users.ts`);
->     **(g)** Reporting & Dashboard (aggregates, PDF/Excel export, reading from the pre-aggregated OLAP
->     read layer). Confirm priority before starting.
+> 39. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-11): global search (candidate
+>     (f) — see item 40).** Remaining candidate after this: **(g)** Reporting & Dashboard.
+> 40. ~~**Global search — backend `GET /search` + wire `useGlobalSearch` + drop orphaned mocks**~~
+>     ✅ **DONE (2026-07-11, branch `feat/global-search`).** Design:
+>     `docs/superpowers/specs/2026-07-11-global-search-design.md` (brainstormed + approved; includes the
+>     CQRS options analysis — **Opsi A "CQRS level kode"** chosen: uniform read model built on-the-fly by
+>     5 per-entity scope-gated queries; view-`UNION ALL` and projection-table variants rejected for
+>     search, with **CQRS level 2 (pre-aggregated projections) explicitly reserved for the Reporting
+>     phase**). Backend: migration `000028_search_trgm` (`pg_trgm` extension + 9 partial GIN trigram
+>     indexes on the searched columns — also accelerates the existing list-endpoint ILIKEs;
+>     `users.email` deliberately unindexed, citext); `db/queries/search.sql` (5 queries, `count(*)
+>     OVER()` totals, `LIMIT 5`); `internal/search` (ADR-0008 split) — handler resolves per-entity gates
+>     (assets = `asset.view` + scope `assets`; employees/offices/requests = auth-only + their scope
+>     modules; users = `user.manage`, unscoped — mirroring each entity's existing list endpoint), a
+>     failed gate **silently omits the group** (never 403), infra errors 500; service fans out via
+>     `errgroup` into fixed-order groups (assets→employees→offices→users→requests), `q` < 2 runes →
+>     empty groups without querying. Integration tests: 7 scenarios incl. real **subtree-expansion**
+>     coverage (child office seeded; assertion mutation-tested), permission-gating absence checks, and
+>     limit-vs-total window semantics; full `-tags=integration ./... -p 1` gate 29 pkgs green. OpenAPI:
+>     `Search` tag + path + schemas (3.1-style nullability). Frontend: `useGlobalSearch` rewritten to
+>     `GET /search` (same `search(q)` signature; type→route/icon/labelKey mapping client-side; requests
+>     title composed `t('approval.type.*') · office`); `CommandPalette.vue` gains a **250 ms debounce**
+>     (seq guard retained) + `StatusBadge kind="approval"` for pengajuan rows; specs rewritten (6
+>     composable cases + 10 palette cases incl. debounce single-call + resolved-badge-label); orphaned
+>     `mock/offices.ts`/`mock/employees.ts`/`mock/users.ts`/`mock/approval.ts` + `approval-mock.spec.ts`
+>     **deleted** (barrel `mock/index.ts` trimmed; retained: `mock/helpers.ts` → useDashboard/useReports/
+>     useAccount, `mock/assets.ts` → import wizard, `mock/dashboard.ts`/`mock/reports.ts`/
+>     `mock/notifications.ts` → consumers not yet wired). Real-backend e2e
+>     (`frontend/e2e/global-search.spec.ts`, 2/2): API-created unique office → Ctrl+K → search → navigate
+>     to `/master/offices`; empty-state negative.
+>     **Approved deviations from the mockup/mock behavior** (catat-deviasi convention): **(a)** 250 ms
+>     **debounce** on palette queries (mock fired per keystroke — wasteful against a real backend);
+>     **(b)** Pengajuan result **title = request type + office name** (the real schema has no title
+>     column; the old mock searched a synthetic `judul`), matching via `reason` + id-prefix instead;
+>     **(c)** Kantor rows show **no status badge** (mock showed a hardcoded Indonesian "aktif" chip —
+>     an i18n violation to reproduce); **(d)** User rows render **name + email** (mock rendered
+>     email + "role · office" — role/office enrichment isn't worth a 3-table join for a palette row).
+>     **Follow-ups (tracked, not done):** "Lihat semua (n)" group buttons remain non-functional (as in
+>     the mockup-era UI — no list-page-with-query target defined); OpenAPI documents `q` `minLength: 2`
+>     though the handler returns 200-empty (not 400) below it — description discloses the real
+>     behavior; e2e `getByText('Kantor')` could be scoped to the palette overlay for extra robustness.
+> 41. **Next session — pick the next real step.** Remaining major candidate: **(g)** Reporting &
+>     Dashboard (aggregates, PDF/Excel export, pre-aggregated read layer — the reserved CQRS level 2;
+>     wiring `useDashboard`/`useReports` then deletes `mock/dashboard.ts`/`mock/reports.ts`). Also open:
+>     the tech-debt list (field-permission enforcement beyond assets+users; Users screen server-side
+>     filters + reset-password; enriched audit response; async searchable office/employee pickers —
+>     the `limit:100` cap keeps biting local e2e; approval badge count; failure-safe Data-Scope e2e
+>     cleanup). Confirm priority before starting.
 
 ## ✅ Done
 
@@ -755,9 +797,18 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > **respecting the caller's data-scope + field-permission**, returning typed/grouped results that
 > deep-link to the record.
 
-- [ ] **Frontend — command palette** — overlay opened by ⌘K or the topbar input: debounced query, results grouped by type (Aset, Pegawai, Kantor, User, Pengajuan) each with icon + deep link, keyboard navigation, recent searches, empty/loading states. Backed by `composables/api/useSearch` (mock first, then real). Design prompt at `DESIGN_BRIEF.md` §5.23.
-- [ ] **Backend `/search?q=&types=`** — fan-out across modules, **scope-filtered** (reuse `callerOfficeScope`) and **field-permission-aware**; return typed hits `{ type, id, title, subtitle, url }` with a small per-type limit + "more" counts.
-- [ ] **Indexing / scale** — start with Postgres full-text search (`tsvector` columns + GIN indexes, `unaccent` for accent-insensitive matching) per searchable entity; graduate to a dedicated engine (Meilisearch / Typesense / Elasticsearch) — populated by the scheduler/CDC — when volume, ranking, and typo-tolerance demand it (shares the indexing story with *Analytics / OLAP* above).
+- [x] **Frontend — command palette** — overlay (⌘K/topbar), grouped results, keyboard nav, recent
+      searches, empty/loading states (built in the foundation phase, mock-backed); **wired to the real
+      `GET /search` with a 250 ms debounce** — item 40. **Done (2026-07-11).**
+- [x] **Backend `GET /search?q=`** — `internal/search`: per-entity fan-out (assets/employees/offices/
+      users/requests), **scope-filtered** (per-module `CallerOfficeScope`) + permission-gated (groups
+      silently omitted), 5 items + total per group. `types=` param dropped (UI has no per-type filter);
+      field-permission filtering not needed — items expose only non-sensitive columns (name/code/tag/
+      email). **Done (2026-07-11) — item 40.**
+- [x] **Indexing / scale (phase 1)** — `pg_trgm` GIN indexes (migration `000028`) chosen over
+      `tsvector` (substring match on short names/codes, not document search). Deferred until volume/
+      ranking demand it: `unaccent`, cross-entity ranking, dedicated engine (Meilisearch/Typesense/
+      Elasticsearch via scheduler/CDC — shares the indexing story with *Analytics / OLAP* above).
 
 ### Backend — Cross-cutting
 - [x] **Audit logging** — `internal/audit` writer wired into every masterdata + user mutation (create/update/delete) with before/after diffs; office-scoped, filterable `GET /api/v1/audit` (gated by `audit.view`); migration 000014 adds `audit_logs.office_id`. (This is the **business audit trail** — distinct from application/observability logging below.)
