@@ -1,8 +1,13 @@
 package report
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
 	"math/big"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +18,8 @@ import (
 )
 
 const maintenanceDueWindowDays = 7 // mockup: "dalam 7 hari"
+
+const dashboardCacheTTL = 90 * time.Second
 
 // Service assembles the dashboard and report aggregates. Read-only.
 type Service struct {
@@ -279,4 +286,72 @@ func roomsToNamedCounts(rows []sqlc.DashboardAssetsByRoomRow) []NamedCount {
 		out = append(out, NamedCount{Name: row.Name, Count: row.Cnt})
 	}
 	return out
+}
+
+// ── Redis cache (get-or-compute, 90s TTL) ───────────────────────────────────
+//
+// cacheGetJSON/cacheSetJSON mirror the package-private helpers in
+// internal/authz/cache.go (kept local here rather than exported from authz,
+// since they're a tiny generic pattern, not a shared authz concern).
+
+// cacheGetJSON loads a JSON value from Redis. Returns false on miss or any
+// error (callers then compute fresh — Redis is never the source of truth).
+func cacheGetJSON[T any](ctx context.Context, rdb *redis.Client, key string, out *T) bool {
+	b, err := rdb.Get(ctx, key).Bytes()
+	if err != nil {
+		return false
+	}
+	return json.Unmarshal(b, out) == nil
+}
+
+// cacheSetJSON stores a JSON value in Redis with a TTL (best-effort).
+func cacheSetJSON(ctx context.Context, rdb *redis.Client, key string, v any, ttl time.Duration) {
+	if b, err := json.Marshal(v); err == nil {
+		_ = rdb.Set(ctx, key, b, ttl).Err()
+	}
+}
+
+// dashboardCacheKey derives a stable cache key from every argument that
+// affects the dashboard result: the caller's role (permissions/fields can
+// vary the shape per role), scope (all vs. a specific office_id set),
+// optional office drill-down, and the current period window. prev is
+// intentionally excluded — it's fully determined by cur for callers that go
+// through ResolvePeriod, and including it would just fragment the cache
+// without changing which result is correct.
+func dashboardCacheKey(roleID uuid.UUID, all bool, ids []uuid.UUID, officeFilter *uuid.UUID, cur DateRange) string {
+	h := sha256.New()
+	sorted := append([]uuid.UUID(nil), ids...)
+	slices.SortFunc(sorted, func(a, b uuid.UUID) int { return bytes.Compare(a[:], b[:]) })
+	for _, id := range sorted {
+		h.Write(id[:])
+	}
+	filter := "-"
+	if officeFilter != nil {
+		filter = officeFilter.String()
+	}
+	return fmt.Sprintf("report:dash:%s:%t:%x:%s:%s:%s",
+		roleID, all, h.Sum(nil)[:8], filter,
+		cur.From.Format("2006-01-02"), cur.To.Format("2006-01-02"))
+}
+
+// CachedDashboardSummary is a get-or-compute wrapper around DashboardSummary:
+// it serves a cached result (TTL 90s) when present, else computes fresh and
+// populates the cache. With a nil Redis client (rdb == nil, e.g. in tests
+// that don't need caching) it always computes fresh. DashboardSummary itself
+// stays exported and always fresh — callers that need guaranteed up-to-date
+// data (e.g. right after a mutation) should call it directly.
+func (s *Service) CachedDashboardSummary(ctx context.Context, roleID uuid.UUID, all bool, ids []uuid.UUID, officeFilter *uuid.UUID, cur, prev DateRange) (DashboardSummary, error) {
+	key := dashboardCacheKey(roleID, all, ids, officeFilter, cur)
+	var cached DashboardSummary
+	if s.rdb != nil && cacheGetJSON(ctx, s.rdb, key, &cached) {
+		return cached, nil
+	}
+	out, err := s.DashboardSummary(ctx, all, ids, officeFilter, cur, prev)
+	if err != nil {
+		return DashboardSummary{}, err
+	}
+	if s.rdb != nil {
+		cacheSetJSON(ctx, s.rdb, key, out, dashboardCacheTTL)
+	}
+	return out, nil
 }

@@ -365,6 +365,87 @@ func TestDashboardSummaryEmptyDB(t *testing.T) {
 	assert.Equal(t, "office", got.LocationKind, "all-scope with no single office -> office granularity")
 }
 
+// TestCachedDashboardSummary drives the get-or-compute cache wrapper: a first
+// call populates the cache, a second identical call is served stale from the
+// cache while the direct (uncached) method always reflects the latest data,
+// and a differing key argument (officeFilter) bypasses the stale entry. The
+// stored key also carries a TTL bounded by the 90s cache window.
+func TestCachedDashboardSummary(t *testing.T) {
+	ctx := context.Background()
+	pool := testsupport.NewPostgres(t)
+	_, err := pool.Exec(ctx,
+		`TRUNCATE depreciation.depreciation_entries, assignment.assignments,
+		 maintenance.maintenance_records, maintenance.maintenance_schedules,
+		 asset.assets CASCADE`)
+	require.NoError(t, err)
+	rdb := testsupport.NewRedis(t)
+	svc := report.NewService(sqlc.New(pool), rdb)
+
+	sfx := uuid.New().String()[:8]
+	var typeID uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx,
+		`INSERT INTO masterdata.office_types (name) VALUES ($1) RETURNING id`,
+		"Tipe Cache "+sfx).Scan(&typeID))
+	var officeA uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx,
+		`INSERT INTO masterdata.offices (parent_id, office_type_id, name, code)
+		 VALUES (NULL, $1, $2, $3) RETURNING id`,
+		typeID, "Kantor Cache "+sfx, "OC"+sfx).Scan(&officeA))
+	var catID uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx,
+		`INSERT INTO masterdata.categories (name, code) VALUES ($1, $2) RETURNING id`,
+		"Kategori Cache "+sfx, "CATC"+sfx).Scan(&catID))
+
+	roleID := lookupRole(t, pool, "Superadmin")
+	purchaseDate := d(refToday())
+	cur, prev := lastPeriods(t)
+
+	insertAsset(t, pool, assetSeed{
+		tag: "C1-" + sfx, name: "Aset Cache 1 " + sfx, category: catID, office: officeA,
+		room: nil, class: "intangible", status: "available",
+		cost: "1000.00", book: "900.00", purchaseDate: purchaseDate, excluded: false,
+	})
+
+	// 1. First call computes fresh and populates the cache: total 1.
+	got1, err := svc.CachedDashboardSummary(ctx, roleID, true, nil, nil, cur, prev)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, got1.Kpi.TotalAssets)
+
+	// 2. Insert a second asset directly via SQL, bypassing the cache entirely.
+	insertAsset(t, pool, assetSeed{
+		tag: "C2-" + sfx, name: "Aset Cache 2 " + sfx, category: catID, office: officeA,
+		room: nil, class: "intangible", status: "available",
+		cost: "1000.00", book: "900.00", purchaseDate: purchaseDate, excluded: false,
+	})
+
+	// 3. Identical args -> identical key -> still-stale cached value (1).
+	got2, err := svc.CachedDashboardSummary(ctx, roleID, true, nil, nil, cur, prev)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, got2.Kpi.TotalAssets, "served from cache, stale")
+
+	// 4. The direct (uncached) method is always the fresh source of truth (2).
+	got3, err := svc.DashboardSummary(ctx, true, nil, nil, cur, prev)
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, got3.Kpi.TotalAssets, "uncached reads reflect the latest data")
+
+	// 5. A different officeFilter arg produces a different cache key -> a
+	// fresh (uncached) compute, not the stale entry from step 3.
+	got4, err := svc.CachedDashboardSummary(ctx, roleID, true, nil, &officeA, cur, prev)
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, got4.Kpi.TotalAssets, "distinct key bypasses the stale entry")
+
+	// 6. Every stored dashboard cache key carries a TTL within (0, 90s].
+	keys, err := rdb.Keys(ctx, "report:dash:*").Result()
+	require.NoError(t, err)
+	require.Len(t, keys, 2, "one key per distinct (roleID, all, ids, officeFilter, cur) combination")
+	for _, k := range keys {
+		ttl, err := rdb.TTL(ctx, k).Result()
+		require.NoError(t, err)
+		assert.Greater(t, ttl, time.Duration(0))
+		assert.LessOrEqual(t, ttl, 90*time.Second)
+	}
+}
+
 // ─── small assertion helpers ─────────────────────────────────────────────────
 
 func statusOrder(rows []report.StatusCount) []string {
