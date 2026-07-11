@@ -259,10 +259,25 @@ type Querier interface {
 	// sum of each asset's last closing_value <= date_to
 	ReportDepreciationRemaining(ctx context.Context, arg ReportDepreciationRemainingParams) (string, error)
 	ReportDepreciationRows(ctx context.Context, arg ReportDepreciationRowsParams) ([]ReportDepreciationRowsRow, error)
+	// net gain/loss per disposal method
+	ReportDisposalChart(ctx context.Context, arg ReportDisposalChartParams) ([]ReportDisposalChartRow, error)
+	ReportDisposalKpis(ctx context.Context, arg ReportDisposalKpisParams) (ReportDisposalKpisRow, error)
+	ReportDisposalRows(ctx context.Context, arg ReportDisposalRowsParams) ([]ReportDisposalRowsRow, error)
 	// cost per category (top 8)
 	ReportMaintenanceChart(ctx context.Context, arg ReportMaintenanceChartParams) ([]ReportMaintenanceChartRow, error)
 	ReportMaintenanceKpis(ctx context.Context, arg ReportMaintenanceKpisParams) (ReportMaintenanceKpisRow, error)
 	ReportMaintenanceRows(ctx context.Context, arg ReportMaintenanceRowsParams) ([]ReportMaintenanceRowsRow, error)
+	ReportOpnameSessions(ctx context.Context, arg ReportOpnameSessionsParams) ([]ReportOpnameSessionsRow, error)
+	// transfer count per destination office (top 8)
+	ReportTransferChart(ctx context.Context, arg ReportTransferChartParams) ([]ReportTransferChartRow, error)
+	ReportTransferKpis(ctx context.Context, arg ReportTransferKpisParams) (ReportTransferKpisRow, error)
+	// ══════════════════════════════════════════════════════════════════════════
+	// Report builder — transfers / disposals (+ GL recap) / opname (Task 6).
+	// transfers scope: from OR to office in scope (an inbound mutasi is visible to
+	// the destination office). disposals/opname scope on the owning asset/session
+	// office. Money aggregates: COALESCE(SUM(x), 0)::text — never float.
+	// ══════════════════════════════════════════════════════════════════════════
+	ReportTransferRows(ctx context.Context, arg ReportTransferRowsParams) ([]ReportTransferRowsRow, error)
 	ReportUtilizationKpis(ctx context.Context, arg ReportUtilizationKpisParams) (int64, error)
 	ReportUtilizationRows(ctx context.Context, arg ReportUtilizationRowsParams) ([]ReportUtilizationRowsRow, error)
 	// Global search (command palette). Each query returns the top matches for one

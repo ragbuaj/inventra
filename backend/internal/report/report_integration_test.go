@@ -34,7 +34,8 @@ func newSvc(t *testing.T) (*report.Service, *pgxpool.Pool) {
 	_, err := pool.Exec(context.Background(),
 		`TRUNCATE depreciation.depreciation_entries, assignment.assignments,
 		 maintenance.maintenance_records, maintenance.maintenance_schedules,
-		 asset.assets CASCADE`)
+		 stockopname.stock_opname_sessions, transfer.asset_transfers,
+		 disposal.disposals, asset.assets CASCADE`)
 	require.NoError(t, err)
 	return report.NewService(sqlc.New(pool), nil), pool
 }

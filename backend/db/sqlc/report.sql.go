@@ -726,6 +726,188 @@ func (q *Queries) ReportDepreciationRows(ctx context.Context, arg ReportDeprecia
 	return items, nil
 }
 
+const reportDisposalChart = `-- name: ReportDisposalChart :many
+SELECT d.method, COALESCE(SUM(d.gain_loss), 0)::text AS total
+FROM disposal.disposals d
+JOIN asset.assets a ON a.id = d.asset_id AND a.deleted_at IS NULL
+WHERE d.deleted_at IS NULL
+  AND d.disposal_date BETWEEN $1::date AND $2::date
+  AND ($3::boolean OR a.office_id = ANY($4::uuid[]))
+  AND ($5::uuid IS NULL OR a.office_id = $5)
+  AND ($6::uuid IS NULL OR a.category_id = $6)
+GROUP BY d.method
+ORDER BY d.method
+`
+
+type ReportDisposalChartParams struct {
+	DateFrom     pgtype.Date `json:"date_from"`
+	DateTo       pgtype.Date `json:"date_to"`
+	AllScope     bool        `json:"all_scope"`
+	OfficeIds    []uuid.UUID `json:"office_ids"`
+	OfficeFilter *uuid.UUID  `json:"office_filter"`
+	CategoryID   *uuid.UUID  `json:"category_id"`
+}
+
+type ReportDisposalChartRow struct {
+	Method SharedDisposalMethod `json:"method"`
+	Total  string               `json:"total"`
+}
+
+// net gain/loss per disposal method
+func (q *Queries) ReportDisposalChart(ctx context.Context, arg ReportDisposalChartParams) ([]ReportDisposalChartRow, error) {
+	rows, err := q.db.Query(ctx, reportDisposalChart,
+		arg.DateFrom,
+		arg.DateTo,
+		arg.AllScope,
+		arg.OfficeIds,
+		arg.OfficeFilter,
+		arg.CategoryID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReportDisposalChartRow{}
+	for rows.Next() {
+		var i ReportDisposalChartRow
+		if err := rows.Scan(&i.Method, &i.Total); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const reportDisposalKpis = `-- name: ReportDisposalKpis :one
+SELECT count(*)::bigint AS total,
+  COALESCE(SUM(d.proceeds), 0)::text AS total_proceeds,
+  COALESCE(SUM(d.gain_loss), 0)::text AS total_gain_loss,
+  COALESCE(SUM(d.gain_loss) FILTER (WHERE d.gain_loss > 0), 0)::text AS total_gain,
+  COALESCE(SUM(ABS(d.gain_loss)) FILTER (WHERE d.gain_loss < 0), 0)::text AS total_loss,
+  COALESCE(SUM(d.book_value_at_disposal), 0)::text AS total_book_value
+FROM disposal.disposals d
+JOIN asset.assets a ON a.id = d.asset_id AND a.deleted_at IS NULL
+WHERE d.deleted_at IS NULL
+  AND d.disposal_date BETWEEN $1::date AND $2::date
+  AND ($3::boolean OR a.office_id = ANY($4::uuid[]))
+  AND ($5::uuid IS NULL OR a.office_id = $5)
+  AND ($6::uuid IS NULL OR a.category_id = $6)
+`
+
+type ReportDisposalKpisParams struct {
+	DateFrom     pgtype.Date `json:"date_from"`
+	DateTo       pgtype.Date `json:"date_to"`
+	AllScope     bool        `json:"all_scope"`
+	OfficeIds    []uuid.UUID `json:"office_ids"`
+	OfficeFilter *uuid.UUID  `json:"office_filter"`
+	CategoryID   *uuid.UUID  `json:"category_id"`
+}
+
+type ReportDisposalKpisRow struct {
+	Total          int64  `json:"total"`
+	TotalProceeds  string `json:"total_proceeds"`
+	TotalGainLoss  string `json:"total_gain_loss"`
+	TotalGain      string `json:"total_gain"`
+	TotalLoss      string `json:"total_loss"`
+	TotalBookValue string `json:"total_book_value"`
+}
+
+func (q *Queries) ReportDisposalKpis(ctx context.Context, arg ReportDisposalKpisParams) (ReportDisposalKpisRow, error) {
+	row := q.db.QueryRow(ctx, reportDisposalKpis,
+		arg.DateFrom,
+		arg.DateTo,
+		arg.AllScope,
+		arg.OfficeIds,
+		arg.OfficeFilter,
+		arg.CategoryID,
+	)
+	var i ReportDisposalKpisRow
+	err := row.Scan(
+		&i.Total,
+		&i.TotalProceeds,
+		&i.TotalGainLoss,
+		&i.TotalGain,
+		&i.TotalLoss,
+		&i.TotalBookValue,
+	)
+	return i, err
+}
+
+const reportDisposalRows = `-- name: ReportDisposalRows :many
+SELECT a.name AS asset_name, a.asset_tag, d.method, d.disposal_date,
+  COALESCE(d.book_value_at_disposal, '0')::text AS book_value,
+  COALESCE(d.proceeds, '0')::text AS proceeds,
+  COALESCE(d.gain_loss, '0')::text AS gain_loss
+FROM disposal.disposals d
+JOIN asset.assets a ON a.id = d.asset_id AND a.deleted_at IS NULL
+WHERE d.deleted_at IS NULL
+  AND d.disposal_date BETWEEN $1::date AND $2::date
+  AND ($3::boolean OR a.office_id = ANY($4::uuid[]))
+  AND ($5::uuid IS NULL OR a.office_id = $5)
+  AND ($6::uuid IS NULL OR a.category_id = $6)
+ORDER BY d.disposal_date DESC
+LIMIT $7
+`
+
+type ReportDisposalRowsParams struct {
+	DateFrom     pgtype.Date `json:"date_from"`
+	DateTo       pgtype.Date `json:"date_to"`
+	AllScope     bool        `json:"all_scope"`
+	OfficeIds    []uuid.UUID `json:"office_ids"`
+	OfficeFilter *uuid.UUID  `json:"office_filter"`
+	CategoryID   *uuid.UUID  `json:"category_id"`
+	Lim          int32       `json:"lim"`
+}
+
+type ReportDisposalRowsRow struct {
+	AssetName    string               `json:"asset_name"`
+	AssetTag     string               `json:"asset_tag"`
+	Method       SharedDisposalMethod `json:"method"`
+	DisposalDate pgtype.Date          `json:"disposal_date"`
+	BookValue    string               `json:"book_value"`
+	Proceeds     string               `json:"proceeds"`
+	GainLoss     string               `json:"gain_loss"`
+}
+
+func (q *Queries) ReportDisposalRows(ctx context.Context, arg ReportDisposalRowsParams) ([]ReportDisposalRowsRow, error) {
+	rows, err := q.db.Query(ctx, reportDisposalRows,
+		arg.DateFrom,
+		arg.DateTo,
+		arg.AllScope,
+		arg.OfficeIds,
+		arg.OfficeFilter,
+		arg.CategoryID,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReportDisposalRowsRow{}
+	for rows.Next() {
+		var i ReportDisposalRowsRow
+		if err := rows.Scan(
+			&i.AssetName,
+			&i.AssetTag,
+			&i.Method,
+			&i.DisposalDate,
+			&i.BookValue,
+			&i.Proceeds,
+			&i.GainLoss,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const reportMaintenanceChart = `-- name: ReportMaintenanceChart :many
 SELECT c.name, COALESCE(SUM(r.cost), 0)::text AS total
 FROM maintenance.maintenance_records r
@@ -882,6 +1064,256 @@ func (q *Queries) ReportMaintenanceRows(ctx context.Context, arg ReportMaintenan
 			&i.Type,
 			&i.Actions,
 			&i.TotalCost,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const reportOpnameSessions = `-- name: ReportOpnameSessions :many
+SELECT s.id, COALESCE(s.name, '') AS name, o.name AS office_name, s.period, s.status,
+  count(i.id)::bigint AS total_items,
+  count(i.id) FILTER (WHERE i.result IN ('not_found', 'damaged', 'misplaced'))::bigint AS variance
+FROM stockopname.stock_opname_sessions s
+JOIN masterdata.offices o ON o.id = s.office_id
+LEFT JOIN stockopname.stock_opname_items i ON i.session_id = s.id AND i.deleted_at IS NULL
+WHERE s.deleted_at IS NULL AND s.status = 'closed'
+  AND s.period BETWEEN $1::date AND $2::date
+  AND ($3::boolean OR s.office_id = ANY($4::uuid[]))
+  AND ($5::uuid IS NULL OR s.office_id = $5)
+GROUP BY s.id, s.name, o.name, s.period, s.status
+ORDER BY s.period DESC
+LIMIT $6
+`
+
+type ReportOpnameSessionsParams struct {
+	DateFrom     pgtype.Date `json:"date_from"`
+	DateTo       pgtype.Date `json:"date_to"`
+	AllScope     bool        `json:"all_scope"`
+	OfficeIds    []uuid.UUID `json:"office_ids"`
+	OfficeFilter *uuid.UUID  `json:"office_filter"`
+	Lim          int32       `json:"lim"`
+}
+
+type ReportOpnameSessionsRow struct {
+	ID         uuid.UUID                 `json:"id"`
+	Name       string                    `json:"name"`
+	OfficeName string                    `json:"office_name"`
+	Period     pgtype.Date               `json:"period"`
+	Status     SharedOpnameSessionStatus `json:"status"`
+	TotalItems int64                     `json:"total_items"`
+	Variance   int64                     `json:"variance"`
+}
+
+func (q *Queries) ReportOpnameSessions(ctx context.Context, arg ReportOpnameSessionsParams) ([]ReportOpnameSessionsRow, error) {
+	rows, err := q.db.Query(ctx, reportOpnameSessions,
+		arg.DateFrom,
+		arg.DateTo,
+		arg.AllScope,
+		arg.OfficeIds,
+		arg.OfficeFilter,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReportOpnameSessionsRow{}
+	for rows.Next() {
+		var i ReportOpnameSessionsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.OfficeName,
+			&i.Period,
+			&i.Status,
+			&i.TotalItems,
+			&i.Variance,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const reportTransferChart = `-- name: ReportTransferChart :many
+SELECT tofc.name, count(*)::bigint AS cnt
+FROM transfer.asset_transfers t
+JOIN asset.assets a ON a.id = t.asset_id AND a.deleted_at IS NULL
+JOIN masterdata.offices tofc ON tofc.id = t.to_office_id
+WHERE t.deleted_at IS NULL
+  AND t.created_at::date BETWEEN $1::date AND $2::date
+  AND ($3::boolean OR t.from_office_id = ANY($4::uuid[]) OR t.to_office_id = ANY($4::uuid[]))
+  AND ($5::uuid IS NULL OR t.from_office_id = $5 OR t.to_office_id = $5)
+  AND ($6::uuid IS NULL OR a.category_id = $6)
+GROUP BY tofc.name
+ORDER BY cnt DESC, tofc.name
+LIMIT 8
+`
+
+type ReportTransferChartParams struct {
+	DateFrom     pgtype.Date `json:"date_from"`
+	DateTo       pgtype.Date `json:"date_to"`
+	AllScope     bool        `json:"all_scope"`
+	OfficeIds    []uuid.UUID `json:"office_ids"`
+	OfficeFilter *uuid.UUID  `json:"office_filter"`
+	CategoryID   *uuid.UUID  `json:"category_id"`
+}
+
+type ReportTransferChartRow struct {
+	Name string `json:"name"`
+	Cnt  int64  `json:"cnt"`
+}
+
+// transfer count per destination office (top 8)
+func (q *Queries) ReportTransferChart(ctx context.Context, arg ReportTransferChartParams) ([]ReportTransferChartRow, error) {
+	rows, err := q.db.Query(ctx, reportTransferChart,
+		arg.DateFrom,
+		arg.DateTo,
+		arg.AllScope,
+		arg.OfficeIds,
+		arg.OfficeFilter,
+		arg.CategoryID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReportTransferChartRow{}
+	for rows.Next() {
+		var i ReportTransferChartRow
+		if err := rows.Scan(&i.Name, &i.Cnt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const reportTransferKpis = `-- name: ReportTransferKpis :one
+SELECT count(*)::bigint AS total,
+  count(*) FILTER (WHERE t.status = 'in_transit')::bigint AS in_transit,
+  count(*) FILTER (WHERE t.status = 'received')::bigint AS received
+FROM transfer.asset_transfers t
+JOIN asset.assets a ON a.id = t.asset_id AND a.deleted_at IS NULL
+WHERE t.deleted_at IS NULL
+  AND t.created_at::date BETWEEN $1::date AND $2::date
+  AND ($3::boolean OR t.from_office_id = ANY($4::uuid[]) OR t.to_office_id = ANY($4::uuid[]))
+  AND ($5::uuid IS NULL OR t.from_office_id = $5 OR t.to_office_id = $5)
+  AND ($6::uuid IS NULL OR a.category_id = $6)
+`
+
+type ReportTransferKpisParams struct {
+	DateFrom     pgtype.Date `json:"date_from"`
+	DateTo       pgtype.Date `json:"date_to"`
+	AllScope     bool        `json:"all_scope"`
+	OfficeIds    []uuid.UUID `json:"office_ids"`
+	OfficeFilter *uuid.UUID  `json:"office_filter"`
+	CategoryID   *uuid.UUID  `json:"category_id"`
+}
+
+type ReportTransferKpisRow struct {
+	Total     int64 `json:"total"`
+	InTransit int64 `json:"in_transit"`
+	Received  int64 `json:"received"`
+}
+
+func (q *Queries) ReportTransferKpis(ctx context.Context, arg ReportTransferKpisParams) (ReportTransferKpisRow, error) {
+	row := q.db.QueryRow(ctx, reportTransferKpis,
+		arg.DateFrom,
+		arg.DateTo,
+		arg.AllScope,
+		arg.OfficeIds,
+		arg.OfficeFilter,
+		arg.CategoryID,
+	)
+	var i ReportTransferKpisRow
+	err := row.Scan(&i.Total, &i.InTransit, &i.Received)
+	return i, err
+}
+
+const reportTransferRows = `-- name: ReportTransferRows :many
+
+SELECT a.name AS asset_name, a.asset_tag, fo.name AS from_office, tofc.name AS to_office,
+  t.status, t.shipped_date, t.received_date, t.bast_no
+FROM transfer.asset_transfers t
+JOIN asset.assets a ON a.id = t.asset_id AND a.deleted_at IS NULL
+JOIN masterdata.offices fo ON fo.id = t.from_office_id
+JOIN masterdata.offices tofc ON tofc.id = t.to_office_id
+WHERE t.deleted_at IS NULL
+  AND t.created_at::date BETWEEN $1::date AND $2::date
+  AND ($3::boolean OR t.from_office_id = ANY($4::uuid[]) OR t.to_office_id = ANY($4::uuid[]))
+  AND ($5::uuid IS NULL OR t.from_office_id = $5 OR t.to_office_id = $5)
+  AND ($6::uuid IS NULL OR a.category_id = $6)
+ORDER BY t.created_at DESC
+LIMIT $7
+`
+
+type ReportTransferRowsParams struct {
+	DateFrom     pgtype.Date `json:"date_from"`
+	DateTo       pgtype.Date `json:"date_to"`
+	AllScope     bool        `json:"all_scope"`
+	OfficeIds    []uuid.UUID `json:"office_ids"`
+	OfficeFilter *uuid.UUID  `json:"office_filter"`
+	CategoryID   *uuid.UUID  `json:"category_id"`
+	Lim          int32       `json:"lim"`
+}
+
+type ReportTransferRowsRow struct {
+	AssetName    string               `json:"asset_name"`
+	AssetTag     string               `json:"asset_tag"`
+	FromOffice   string               `json:"from_office"`
+	ToOffice     string               `json:"to_office"`
+	Status       SharedTransferStatus `json:"status"`
+	ShippedDate  pgtype.Date          `json:"shipped_date"`
+	ReceivedDate pgtype.Date          `json:"received_date"`
+	BastNo       *string              `json:"bast_no"`
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// Report builder — transfers / disposals (+ GL recap) / opname (Task 6).
+// transfers scope: from OR to office in scope (an inbound mutasi is visible to
+// the destination office). disposals/opname scope on the owning asset/session
+// office. Money aggregates: COALESCE(SUM(x), 0)::text — never float.
+// ══════════════════════════════════════════════════════════════════════════
+func (q *Queries) ReportTransferRows(ctx context.Context, arg ReportTransferRowsParams) ([]ReportTransferRowsRow, error) {
+	rows, err := q.db.Query(ctx, reportTransferRows,
+		arg.DateFrom,
+		arg.DateTo,
+		arg.AllScope,
+		arg.OfficeIds,
+		arg.OfficeFilter,
+		arg.CategoryID,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReportTransferRowsRow{}
+	for rows.Next() {
+		var i ReportTransferRowsRow
+		if err := rows.Scan(
+			&i.AssetName,
+			&i.AssetTag,
+			&i.FromOffice,
+			&i.ToOffice,
+			&i.Status,
+			&i.ShippedDate,
+			&i.ReceivedDate,
+			&i.BastNo,
 		); err != nil {
 			return nil, err
 		}

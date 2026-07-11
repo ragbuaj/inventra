@@ -264,3 +264,110 @@ WHERE r.deleted_at IS NULL AND r.status = 'completed'
 GROUP BY c.name
 ORDER BY SUM(r.cost) DESC NULLS LAST, c.name
 LIMIT 8;
+
+-- ══════════════════════════════════════════════════════════════════════════
+-- Report builder — transfers / disposals (+ GL recap) / opname (Task 6).
+-- transfers scope: from OR to office in scope (an inbound mutasi is visible to
+-- the destination office). disposals/opname scope on the owning asset/session
+-- office. Money aggregates: COALESCE(SUM(x), 0)::text — never float.
+-- ══════════════════════════════════════════════════════════════════════════
+
+-- name: ReportTransferRows :many
+SELECT a.name AS asset_name, a.asset_tag, fo.name AS from_office, tofc.name AS to_office,
+  t.status, t.shipped_date, t.received_date, t.bast_no
+FROM transfer.asset_transfers t
+JOIN asset.assets a ON a.id = t.asset_id AND a.deleted_at IS NULL
+JOIN masterdata.offices fo ON fo.id = t.from_office_id
+JOIN masterdata.offices tofc ON tofc.id = t.to_office_id
+WHERE t.deleted_at IS NULL
+  AND t.created_at::date BETWEEN sqlc.arg(date_from)::date AND sqlc.arg(date_to)::date
+  AND (sqlc.arg(all_scope)::boolean OR t.from_office_id = ANY(sqlc.arg(office_ids)::uuid[]) OR t.to_office_id = ANY(sqlc.arg(office_ids)::uuid[]))
+  AND (sqlc.narg(office_filter)::uuid IS NULL OR t.from_office_id = sqlc.narg(office_filter) OR t.to_office_id = sqlc.narg(office_filter))
+  AND (sqlc.narg(category_id)::uuid IS NULL OR a.category_id = sqlc.narg(category_id))
+ORDER BY t.created_at DESC
+LIMIT sqlc.arg(lim);
+
+-- name: ReportTransferKpis :one
+SELECT count(*)::bigint AS total,
+  count(*) FILTER (WHERE t.status = 'in_transit')::bigint AS in_transit,
+  count(*) FILTER (WHERE t.status = 'received')::bigint AS received
+FROM transfer.asset_transfers t
+JOIN asset.assets a ON a.id = t.asset_id AND a.deleted_at IS NULL
+WHERE t.deleted_at IS NULL
+  AND t.created_at::date BETWEEN sqlc.arg(date_from)::date AND sqlc.arg(date_to)::date
+  AND (sqlc.arg(all_scope)::boolean OR t.from_office_id = ANY(sqlc.arg(office_ids)::uuid[]) OR t.to_office_id = ANY(sqlc.arg(office_ids)::uuid[]))
+  AND (sqlc.narg(office_filter)::uuid IS NULL OR t.from_office_id = sqlc.narg(office_filter) OR t.to_office_id = sqlc.narg(office_filter))
+  AND (sqlc.narg(category_id)::uuid IS NULL OR a.category_id = sqlc.narg(category_id));
+
+-- transfer count per destination office (top 8)
+-- name: ReportTransferChart :many
+SELECT tofc.name, count(*)::bigint AS cnt
+FROM transfer.asset_transfers t
+JOIN asset.assets a ON a.id = t.asset_id AND a.deleted_at IS NULL
+JOIN masterdata.offices tofc ON tofc.id = t.to_office_id
+WHERE t.deleted_at IS NULL
+  AND t.created_at::date BETWEEN sqlc.arg(date_from)::date AND sqlc.arg(date_to)::date
+  AND (sqlc.arg(all_scope)::boolean OR t.from_office_id = ANY(sqlc.arg(office_ids)::uuid[]) OR t.to_office_id = ANY(sqlc.arg(office_ids)::uuid[]))
+  AND (sqlc.narg(office_filter)::uuid IS NULL OR t.from_office_id = sqlc.narg(office_filter) OR t.to_office_id = sqlc.narg(office_filter))
+  AND (sqlc.narg(category_id)::uuid IS NULL OR a.category_id = sqlc.narg(category_id))
+GROUP BY tofc.name
+ORDER BY cnt DESC, tofc.name
+LIMIT 8;
+
+-- name: ReportDisposalRows :many
+SELECT a.name AS asset_name, a.asset_tag, d.method, d.disposal_date,
+  COALESCE(d.book_value_at_disposal, '0')::text AS book_value,
+  COALESCE(d.proceeds, '0')::text AS proceeds,
+  COALESCE(d.gain_loss, '0')::text AS gain_loss
+FROM disposal.disposals d
+JOIN asset.assets a ON a.id = d.asset_id AND a.deleted_at IS NULL
+WHERE d.deleted_at IS NULL
+  AND d.disposal_date BETWEEN sqlc.arg(date_from)::date AND sqlc.arg(date_to)::date
+  AND (sqlc.arg(all_scope)::boolean OR a.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
+  AND (sqlc.narg(office_filter)::uuid IS NULL OR a.office_id = sqlc.narg(office_filter))
+  AND (sqlc.narg(category_id)::uuid IS NULL OR a.category_id = sqlc.narg(category_id))
+ORDER BY d.disposal_date DESC
+LIMIT sqlc.arg(lim);
+
+-- name: ReportDisposalKpis :one
+SELECT count(*)::bigint AS total,
+  COALESCE(SUM(d.proceeds), 0)::text AS total_proceeds,
+  COALESCE(SUM(d.gain_loss), 0)::text AS total_gain_loss,
+  COALESCE(SUM(d.gain_loss) FILTER (WHERE d.gain_loss > 0), 0)::text AS total_gain,
+  COALESCE(SUM(ABS(d.gain_loss)) FILTER (WHERE d.gain_loss < 0), 0)::text AS total_loss,
+  COALESCE(SUM(d.book_value_at_disposal), 0)::text AS total_book_value
+FROM disposal.disposals d
+JOIN asset.assets a ON a.id = d.asset_id AND a.deleted_at IS NULL
+WHERE d.deleted_at IS NULL
+  AND d.disposal_date BETWEEN sqlc.arg(date_from)::date AND sqlc.arg(date_to)::date
+  AND (sqlc.arg(all_scope)::boolean OR a.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
+  AND (sqlc.narg(office_filter)::uuid IS NULL OR a.office_id = sqlc.narg(office_filter))
+  AND (sqlc.narg(category_id)::uuid IS NULL OR a.category_id = sqlc.narg(category_id));
+
+-- net gain/loss per disposal method
+-- name: ReportDisposalChart :many
+SELECT d.method, COALESCE(SUM(d.gain_loss), 0)::text AS total
+FROM disposal.disposals d
+JOIN asset.assets a ON a.id = d.asset_id AND a.deleted_at IS NULL
+WHERE d.deleted_at IS NULL
+  AND d.disposal_date BETWEEN sqlc.arg(date_from)::date AND sqlc.arg(date_to)::date
+  AND (sqlc.arg(all_scope)::boolean OR a.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
+  AND (sqlc.narg(office_filter)::uuid IS NULL OR a.office_id = sqlc.narg(office_filter))
+  AND (sqlc.narg(category_id)::uuid IS NULL OR a.category_id = sqlc.narg(category_id))
+GROUP BY d.method
+ORDER BY d.method;
+
+-- name: ReportOpnameSessions :many
+SELECT s.id, COALESCE(s.name, '') AS name, o.name AS office_name, s.period, s.status,
+  count(i.id)::bigint AS total_items,
+  count(i.id) FILTER (WHERE i.result IN ('not_found', 'damaged', 'misplaced'))::bigint AS variance
+FROM stockopname.stock_opname_sessions s
+JOIN masterdata.offices o ON o.id = s.office_id
+LEFT JOIN stockopname.stock_opname_items i ON i.session_id = s.id AND i.deleted_at IS NULL
+WHERE s.deleted_at IS NULL AND s.status = 'closed'
+  AND s.period BETWEEN sqlc.arg(date_from)::date AND sqlc.arg(date_to)::date
+  AND (sqlc.arg(all_scope)::boolean OR s.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
+  AND (sqlc.narg(office_filter)::uuid IS NULL OR s.office_id = sqlc.narg(office_filter))
+GROUP BY s.id, s.name, o.name, s.period, s.status
+ORDER BY s.period DESC
+LIMIT sqlc.arg(lim);

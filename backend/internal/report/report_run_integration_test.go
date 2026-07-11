@@ -516,11 +516,11 @@ func TestReportMaintenanceCategoryFilter(t *testing.T) {
 
 // ─── dispatch ────────────────────────────────────────────────────────────────
 
-// TestReportRunInvalidType: the Task-6 types (and any unknown) route to the
-// invalid-type sentinel until their builders land.
+// TestReportRunInvalidType: an unknown type routes to the invalid-type
+// sentinel (all seven real types have builders as of Task 6).
 func TestReportRunInvalidType(t *testing.T) {
 	svc, _ := newSvc(t)
-	for _, typ := range []string{"transfers", "disposals", "opname", "bogus"} {
+	for _, typ := range []string{"bogus", "", "assets;drop"} {
 		_, err := svc.Run(context.Background(), typ, report.ReportParams{All: true, RowLimit: 1000})
 		assert.ErrorIs(t, err, report.ErrInvalidReportType, typ)
 	}

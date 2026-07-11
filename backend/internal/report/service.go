@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/redis/go-redis/v9"
 
@@ -433,6 +435,46 @@ type MaintRow struct {
 	TotalCost string `json:"total_cost"`
 }
 
+type TransferRow struct {
+	AssetName    string `json:"asset_name"`
+	AssetTag     string `json:"asset_tag"`
+	FromOffice   string `json:"from_office"`
+	ToOffice     string `json:"to_office"`
+	Status       string `json:"status"`
+	ShippedDate  string `json:"shipped_date"`  // YYYY-MM-DD, "" when NULL
+	ReceivedDate string `json:"received_date"` // YYYY-MM-DD, "" when NULL
+	BastNo       string `json:"bast_no"`       // "" when NULL
+}
+
+type DisposalRow struct {
+	AssetName string `json:"asset_name"`
+	AssetTag  string `json:"asset_tag"`
+	Method    string `json:"method"`
+	Date      string `json:"disposal_date"`
+	BookValue string `json:"book_value"`
+	Proceeds  string `json:"proceeds"`
+	GainLoss  string `json:"gain_loss"`
+}
+
+type OpnameRow struct {
+	SessionID  string `json:"session_id"`
+	Name       string `json:"name"`
+	OfficeName string `json:"office_name"`
+	Period     string `json:"period"`
+	Status     string `json:"status"`
+	TotalItems int64  `json:"total_items"`
+	Variance   int64  `json:"variance"`
+}
+
+// strOrEmpty returns the pointed-to string, or "" for a nil pointer (nullable
+// text column serialized as an empty string in the report row).
+func strOrEmpty(p *string) string {
+	if p == nil {
+		return ""
+	}
+	return *p
+}
+
 // Run dispatches to the per-type builder. The four aggregate types are
 // implemented here; transfers/disposals/opname arms land in Task 6.
 func (s *Service) Run(ctx context.Context, typ string, p ReportParams) (ReportResult, error) {
@@ -445,8 +487,13 @@ func (s *Service) Run(ctx context.Context, typ string, p ReportParams) (ReportRe
 		return s.runUtilization(ctx, p)
 	case "maintenance":
 		return s.runMaintenance(ctx, p)
+	case "transfers":
+		return s.runTransfers(ctx, p)
+	case "disposals":
+		return s.runDisposals(ctx, p)
+	case "opname":
+		return s.runOpname(ctx, p)
 	default:
-		// transfers/disposals/opname arms land in Task 6.
 		return ReportResult{}, ErrInvalidReportType
 	}
 }
@@ -678,6 +725,252 @@ func (s *Service) runMaintenance(ctx context.Context, p ReportParams) (ReportRes
 		RowCount:  int64(len(out)),
 		Truncated: false,
 	}, nil
+}
+
+// runTransfers: inter-office mutasi in the period, visible when either the
+// source or destination office is in scope. No money tfoot — Totals is empty.
+func (s *Service) runTransfers(ctx context.Context, p ReportParams) (ReportResult, error) {
+	rows, err := s.q.ReportTransferRows(ctx, sqlc.ReportTransferRowsParams{
+		DateFrom: pgDate(p.Cur.From), DateTo: pgDate(p.Cur.To),
+		AllScope: p.All, OfficeIds: p.OfficeIDs, OfficeFilter: p.OfficeFilter, CategoryID: p.CategoryID,
+		Lim: lim32(p.RowLimit),
+	})
+	if err != nil {
+		return ReportResult{}, err
+	}
+	kpis, err := s.q.ReportTransferKpis(ctx, sqlc.ReportTransferKpisParams{
+		DateFrom: pgDate(p.Cur.From), DateTo: pgDate(p.Cur.To),
+		AllScope: p.All, OfficeIds: p.OfficeIDs, OfficeFilter: p.OfficeFilter, CategoryID: p.CategoryID,
+	})
+	if err != nil {
+		return ReportResult{}, err
+	}
+	chart, err := s.q.ReportTransferChart(ctx, sqlc.ReportTransferChartParams{
+		DateFrom: pgDate(p.Cur.From), DateTo: pgDate(p.Cur.To),
+		AllScope: p.All, OfficeIds: p.OfficeIDs, OfficeFilter: p.OfficeFilter, CategoryID: p.CategoryID,
+	})
+	if err != nil {
+		return ReportResult{}, err
+	}
+
+	out := make([]TransferRow, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, TransferRow{
+			AssetName: r.AssetName, AssetTag: r.AssetTag,
+			FromOffice: r.FromOffice, ToOffice: r.ToOffice, Status: string(r.Status),
+			ShippedDate: formatDate(r.ShippedDate), ReceivedDate: formatDate(r.ReceivedDate),
+			BastNo: strOrEmpty(r.BastNo),
+		})
+	}
+	bars := make([]ChartBar, 0, len(chart))
+	for _, c := range chart {
+		bars = append(bars, ChartBar{Label: c.Name, Value: strconv.FormatInt(c.Cnt, 10)})
+	}
+	return ReportResult{
+		Type: "transfers",
+		Kpis: []ReportKpi{
+			{Key: "total", Value: strconv.FormatInt(kpis.Total, 10)},
+			{Key: "in_transit", Value: strconv.FormatInt(kpis.InTransit, 10)},
+			{Key: "received", Value: strconv.FormatInt(kpis.Received, 10)},
+		},
+		Chart:     bars,
+		Rows:      out,
+		Totals:    map[string]string{},
+		RowCount:  int64(len(out)),
+		Truncated: false,
+	}, nil
+}
+
+// runDisposals: asset disposals in the period, with the gain/loss KPIs, the
+// per-method net gain/loss chart (raw enum labels), and the money tfoot summed
+// over the returned rows via big.Rat.
+func (s *Service) runDisposals(ctx context.Context, p ReportParams) (ReportResult, error) {
+	rows, err := s.q.ReportDisposalRows(ctx, sqlc.ReportDisposalRowsParams{
+		DateFrom: pgDate(p.Cur.From), DateTo: pgDate(p.Cur.To),
+		AllScope: p.All, OfficeIds: p.OfficeIDs, OfficeFilter: p.OfficeFilter, CategoryID: p.CategoryID,
+		Lim: lim32(p.RowLimit),
+	})
+	if err != nil {
+		return ReportResult{}, err
+	}
+	kpis, err := s.q.ReportDisposalKpis(ctx, sqlc.ReportDisposalKpisParams{
+		DateFrom: pgDate(p.Cur.From), DateTo: pgDate(p.Cur.To),
+		AllScope: p.All, OfficeIds: p.OfficeIDs, OfficeFilter: p.OfficeFilter, CategoryID: p.CategoryID,
+	})
+	if err != nil {
+		return ReportResult{}, err
+	}
+	chart, err := s.q.ReportDisposalChart(ctx, sqlc.ReportDisposalChartParams{
+		DateFrom: pgDate(p.Cur.From), DateTo: pgDate(p.Cur.To),
+		AllScope: p.All, OfficeIds: p.OfficeIDs, OfficeFilter: p.OfficeFilter, CategoryID: p.CategoryID,
+	})
+	if err != nil {
+		return ReportResult{}, err
+	}
+
+	out := make([]DisposalRow, 0, len(rows))
+	bookAcc, proceedsAcc, glAcc := new(big.Rat), new(big.Rat), new(big.Rat)
+	for _, r := range rows {
+		out = append(out, DisposalRow{
+			AssetName: r.AssetName, AssetTag: r.AssetTag, Method: string(r.Method),
+			Date: formatDate(r.DisposalDate), BookValue: r.BookValue,
+			Proceeds: r.Proceeds, GainLoss: r.GainLoss,
+		})
+		addDecimal(bookAcc, r.BookValue)
+		addDecimal(proceedsAcc, r.Proceeds)
+		addDecimal(glAcc, r.GainLoss)
+	}
+	bars := make([]ChartBar, 0, len(chart))
+	for _, c := range chart {
+		bars = append(bars, ChartBar{Label: string(c.Method), Value: c.Total})
+	}
+	return ReportResult{
+		Type: "disposals",
+		Kpis: []ReportKpi{
+			{Key: "total_disposals", Value: strconv.FormatInt(kpis.Total, 10)},
+			{Key: "total_proceeds", Value: kpis.TotalProceeds},
+			{Key: "total_gain_loss", Value: kpis.TotalGainLoss},
+		},
+		Chart: bars,
+		Rows:  out,
+		Totals: map[string]string{
+			"book_value": bookAcc.FloatString(2),
+			"proceeds":   proceedsAcc.FloatString(2),
+			"gain_loss":  glAcc.FloatString(2),
+		},
+		RowCount:  int64(len(out)),
+		Truncated: false,
+	}, nil
+}
+
+// runOpname: closed stock-opname sessions in the period with their item counts
+// and variance (not_found/damaged/misplaced). KPIs sum over the (few) returned
+// sessions in Go; chart is variance per session (top 8). No money tfoot.
+func (s *Service) runOpname(ctx context.Context, p ReportParams) (ReportResult, error) {
+	rows, err := s.q.ReportOpnameSessions(ctx, sqlc.ReportOpnameSessionsParams{
+		DateFrom: pgDate(p.Cur.From), DateTo: pgDate(p.Cur.To),
+		AllScope: p.All, OfficeIds: p.OfficeIDs, OfficeFilter: p.OfficeFilter,
+		Lim: lim32(p.RowLimit),
+	})
+	if err != nil {
+		return ReportResult{}, err
+	}
+
+	out := make([]OpnameRow, 0, len(rows))
+	bars := make([]ChartBar, 0, len(rows))
+	var totalItems, totalVariance int64
+	for _, r := range rows {
+		label := r.Name
+		if label == "" {
+			label = formatDate(r.Period)
+		}
+		out = append(out, OpnameRow{
+			SessionID: r.ID.String(), Name: r.Name, OfficeName: r.OfficeName,
+			Period: formatDate(r.Period), Status: string(r.Status),
+			TotalItems: r.TotalItems, Variance: r.Variance,
+		})
+		totalItems += r.TotalItems
+		totalVariance += r.Variance
+		if len(bars) < 8 {
+			bars = append(bars, ChartBar{Label: label, Value: strconv.FormatInt(r.Variance, 10)})
+		}
+	}
+	return ReportResult{
+		Type: "opname",
+		Kpis: []ReportKpi{
+			{Key: "sessions", Value: strconv.FormatInt(int64(len(out)), 10)},
+			{Key: "total_items", Value: strconv.FormatInt(totalItems, 10)},
+			{Key: "total_variance", Value: strconv.FormatInt(totalVariance, 10)},
+		},
+		Chart:     bars,
+		Rows:      out,
+		Totals:    map[string]string{},
+		RowCount:  int64(len(out)),
+		Truncated: false,
+	}, nil
+}
+
+// DisposalGlRecap builds the journal-ready recap for disposals in the period:
+//
+//	Dr Kas/Bank                  = Σ proceeds
+//	Dr Rugi Pelepasan Aset       = Σ |gain_loss| where gain_loss < 0
+//	Cr Nilai Buku Aset Dilepas   = Σ book_value_at_disposal
+//	Cr Laba Pelepasan Aset       = Σ gain_loss where gain_loss > 0
+//
+// The journal balances by construction (gain_loss = proceeds − book_value).
+// Account codes come from app_settings keys report.gl.{cash,loss,asset,gain}_account
+// (empty string when unset — configurable mapping is a recorded follow-up).
+// Rows with a zero amount are omitted; Balanced is a big.Rat comparison of totals.
+func (s *Service) DisposalGlRecap(ctx context.Context, p ReportParams) (GlRecapResult, error) {
+	k, err := s.q.ReportDisposalKpis(ctx, sqlc.ReportDisposalKpisParams{
+		DateFrom: pgDate(p.Cur.From), DateTo: pgDate(p.Cur.To),
+		AllScope: p.All, OfficeIds: p.OfficeIDs, OfficeFilter: p.OfficeFilter, CategoryID: p.CategoryID,
+	})
+	if err != nil {
+		return GlRecapResult{}, err
+	}
+
+	cash, err := s.glAccount(ctx, "report.gl.cash_account")
+	if err != nil {
+		return GlRecapResult{}, err
+	}
+	loss, err := s.glAccount(ctx, "report.gl.loss_account")
+	if err != nil {
+		return GlRecapResult{}, err
+	}
+	assetAcc, err := s.glAccount(ctx, "report.gl.asset_account")
+	if err != nil {
+		return GlRecapResult{}, err
+	}
+	gain, err := s.glAccount(ctx, "report.gl.gain_account")
+	if err != nil {
+		return GlRecapResult{}, err
+	}
+
+	lines := []struct {
+		code, name, amount string
+		debit              bool
+	}{
+		{cash, "Kas/Bank", k.TotalProceeds, true},
+		{loss, "Rugi Pelepasan Aset", k.TotalLoss, true},
+		{assetAcc, "Nilai Buku Aset Dilepas", k.TotalBookValue, false},
+		{gain, "Laba Pelepasan Aset", k.TotalGain, false},
+	}
+	rows := make([]GlRow, 0, len(lines))
+	debit, credit := new(big.Rat), new(big.Rat)
+	for _, l := range lines {
+		r, ok := new(big.Rat).SetString(l.amount)
+		if !ok || r.Sign() == 0 {
+			continue // zero-amount rows are omitted
+		}
+		amt := r.FloatString(2)
+		if l.debit {
+			debit.Add(debit, r)
+			rows = append(rows, GlRow{AccountCode: l.code, AccountName: l.name, Debit: amt, Credit: "0.00"})
+		} else {
+			credit.Add(credit, r)
+			rows = append(rows, GlRow{AccountCode: l.code, AccountName: l.name, Debit: "0.00", Credit: amt})
+		}
+	}
+	return GlRecapResult{
+		Rows:        rows,
+		TotalDebit:  debit.FloatString(2),
+		TotalCredit: credit.FloatString(2),
+		Balanced:    debit.Cmp(credit) == 0,
+	}, nil
+}
+
+// glAccount reads a GL account-code app setting, tolerating an unset key
+// (returns "" like depreciation's BuildJournalPDF does for its label setting).
+func (s *Service) glAccount(ctx context.Context, key string) (string, error) {
+	v, err := s.q.GetAppSetting(ctx, key)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", nil
+		}
+		return "", err
+	}
+	return v, nil
 }
 
 // CachedDashboardSummary is a get-or-compute wrapper around DashboardSummary:
