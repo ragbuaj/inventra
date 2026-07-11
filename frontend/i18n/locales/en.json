@@ -810,6 +810,13 @@
       "catatan": "Notes",
       "laporan": "Damage Report"
     },
+    "attention": {
+      "title": "Needs Follow-up"
+    },
+    "jadwal": {
+      "emptyTitle": "No maintenance schedules yet",
+      "emptySub": "Add a preventive maintenance schedule for an asset."
+    },
     "type": {
       "preventive": "Preventive",
       "corrective": "Corrective"
@@ -854,7 +861,12 @@
       "awaiting": "Awaiting Review",
       "historyTitle": "My Report History",
       "emptyTitle": "No reports yet",
-      "emptySub": "Damage reports you submit will appear here."
+      "emptySub": "Damage reports you submit will appear here.",
+      "status": {
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "cancelled": "Cancelled"
+      }
     },
     "problems": {
       "display": "Screen / Display",
@@ -882,7 +894,6 @@
       "completedDate": "Completion Date",
       "selectPlaceholder": "Select…",
       "saveLabel": "Save Note",
-      "required": "Required.",
       "lockedTip": "Asset locked",
       "readOnlyHint": "Completed or cancelled notes can no longer be changed.",
       "toastCreated": "Maintenance note added.",
@@ -901,8 +912,8 @@
       "nextDue": "Next Due Date",
       "active": "Active",
       "selectPlaceholder": "Select…",
-      "required": "Required.",
       "lockedTip": "Asset locked",
+      "addButton": "Add Schedule",
       "toastCreated": "Maintenance schedule created.",
       "toastUpdated": "Maintenance schedule updated."
     }

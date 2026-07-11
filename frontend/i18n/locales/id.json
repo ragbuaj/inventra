@@ -810,6 +810,13 @@
       "catatan": "Catatan",
       "laporan": "Laporan Kerusakan"
     },
+    "attention": {
+      "title": "Perlu Tindak Lanjut"
+    },
+    "jadwal": {
+      "emptyTitle": "Belum ada jadwal maintenance",
+      "emptySub": "Tambahkan jadwal perawatan preventif untuk aset."
+    },
     "type": {
       "preventive": "Preventive",
       "corrective": "Corrective"
@@ -854,7 +861,12 @@
       "awaiting": "Menunggu Review",
       "historyTitle": "Riwayat Laporan Saya",
       "emptyTitle": "Belum ada laporan",
-      "emptySub": "Laporan kerusakan yang Anda kirim akan tampil di sini."
+      "emptySub": "Laporan kerusakan yang Anda kirim akan tampil di sini.",
+      "status": {
+        "approved": "Disetujui",
+        "rejected": "Ditolak",
+        "cancelled": "Dibatalkan"
+      }
     },
     "problems": {
       "display": "Layar / Tampilan",
@@ -882,7 +894,6 @@
       "completedDate": "Tanggal Selesai",
       "selectPlaceholder": "Pilih…",
       "saveLabel": "Simpan Catatan",
-      "required": "Wajib diisi.",
       "lockedTip": "Aset terkunci",
       "readOnlyHint": "Catatan yang sudah selesai atau dibatalkan tidak dapat diubah.",
       "toastCreated": "Catatan maintenance ditambahkan.",
@@ -901,8 +912,8 @@
       "nextDue": "Jatuh Tempo Berikut",
       "active": "Aktif",
       "selectPlaceholder": "Pilih…",
-      "required": "Wajib diisi.",
       "lockedTip": "Aset terkunci",
+      "addButton": "Tambah Jadwal",
       "toastCreated": "Jadwal maintenance dibuat.",
       "toastUpdated": "Jadwal maintenance diperbarui."
     }
