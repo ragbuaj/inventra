@@ -47,16 +47,19 @@ import { login, EMAIL, PASSWORD } from './helpers'
 // selectors over ambiguous getByText, and API-driven setup mirroring
 // assignment.spec.ts/disposals.spec.ts.
 //
-// IMPORTANT — bug found + fixed while building this spec: the Laporan tab's
-// "Aset yang Anda pegang" picker calls `GET /assignments?status=active`,
-// which requires `assignment.view` — a permission the seeded 'Staf' role
-// never received (assignment module migration 000026 deliberately granted it
-// only to Superadmin/Manager/Kepala*). A real Staf user could never populate
-// the picker. Fixed by migration 000028 (grants Staf `assignment.view`,
-// already 'office'-scoped per 000026) + scoping the frontend call by the
-// caller's own `employee_id` (previously it queried the caller's ENTIRE
-// office scope, which would have leaked coworkers' active assignments into
-// "assets you hold"). See docs/PROGRESS.md for the full note.
+// IMPORTANT — bug found while building this spec, then fixed with a different
+// design after review: the Laporan tab's "Aset yang Anda pegang" picker
+// originally called `GET /assignments?status=active&employee_id=...` with a
+// *client-supplied* employee_id. A first fix attempt (migration 000028)
+// granted Staf `assignment.view` so that call would stop 403ing — but review
+// caught that this reopened the door wider than intended: with
+// `assignment.view` + the office-level data scope, any Staf could simply omit
+// `employee_id` and read every coworker's assignments in the office. The
+// final design (kept here, migration 000028 was deleted): a dedicated
+// `GET /assignments/mine`, gated by `request.create` (already seeded for Staf
+// in `000005` — no new grant needed), which resolves the caller's employee id
+// **server-side** from the JWT, so the response can only ever contain the
+// caller's own rows. See docs/PROGRESS.md item 38 for the full note.
 //
 // IMPORTANT: `pnpm test:e2e` needs the full backend stack + seeded admin (see
 // CLAUDE.md). This spec compiles + lints here; CI runs it in the e2e job.
@@ -122,13 +125,6 @@ test.describe('Maintenance (Jadwal/Catatan/Laporan Kerusakan) — real backend e
   let scheduleId: string
   let record1Id: string
   const uniqueDesc = `E2E maintenance note ${RUN}`
-
-  // Set in beforeAll: whether the Staf's active assignment was seeded AND is
-  // readable back via `GET /assignments` (needs `assignment.view` — migration
-  // 000028, not yet applied to this shared dev DB — see the beforeAll
-  // comment). False means scenario 2 self-skips rather than failing on an
-  // unrelated precondition; CI's fresh DB always has the grant.
-  let staffAssignmentSeeded = false
 
   // Creates an asset via the asset_create maker-checker flow (submit as
   // admin, approve as a Superadmin checker) and resolves its id + tag.
@@ -252,38 +248,23 @@ test.describe('Maintenance (Jadwal/Catatan/Laporan Kerusakan) — real backend e
     // seeded Superadmin may lack (migration 000005 was amended to add it after
     // this DB had already applied it — see docs/PROGRESS.md item 36 /
     // assignment.spec.ts); borrow+approve only needs `request.create` (Staf
-    // already has it) + an office-level approver (Manager), so it is immune to
-    // that drift and mirrors assignment.spec's own Peminjaman flow. Still
-    // wrapped so scenarios 1 and 3 (independent of this) run even if it fails
-    // for some other reason.
-    try {
-      const stafToken0 = await login_(api, stafEmail, stafPassword)
-      const borrowed = await apiJson<{ request_id: string }>(await api.post('assignments/borrow', {
-        headers: authHeader(stafToken0), data: { asset_id: asset2Id, notes: `e2e seed ${RUN}` }
-      }))
-      const managerApproverToken0 = await login_(api, managerApproverEmail, managerApproverPassword)
-      const approvedSeed = await apiJson<{ status: string }>(await api.post(`requests/${borrowed.request_id}/approve`, {
-        headers: authHeader(managerApproverToken0), data: { decision: 'approve', note: 'e2e seed borrow' }
-      }))
-      expect(approvedSeed.status).toBe('approved')
-
-      // The seed above succeeds regardless of `assignment.view` (the executor
-      // writes the assignment row directly). But the Laporan tab's picker
-      // reads it back via `GET /assignments`, which DOES require
-      // `assignment.view` — a permission the seeded 'Staf' role never had
-      // (assignment module migration 000026 granted it only to Superadmin/
-      // Manager/Kepala*) until this branch's migration 000028. Probe it here
-      // so a still-missing grant (not yet applied to this shared dev DB) fails
-      // fast with a clear reason instead of a generic empty-picker timeout.
-      const probeRes = await api.get('assignments?status=active', { headers: authHeader(stafToken0) })
-      if (!probeRes.ok()) {
-        throw new Error(`Staf cannot read GET /assignments (${probeRes.status()}) — migration 000028 (assignment.view for Staf) likely not applied on this DB`)
-      }
-      staffAssignmentSeeded = true
-    } catch (err) {
-      console.warn(`[maintenance.spec] could not seed the Staf's active assignment — scenario 2 will self-skip: ${(err as Error).message}`)
-      staffAssignmentSeeded = false
-    }
+    // already has it, since 000005) + `request.decide` on the approver, so it
+    // is immune to that drift and mirrors assignment.spec's own Peminjaman
+    // flow. Deliberately NOT wrapped in a try/catch: the Laporan picker now
+    // reads this back via `GET /assignments/mine`, which is also gated by
+    // `request.create` only (no `assignment.view`, no migration-timing gap —
+    // see the file-header comment), so there is no known permission drift left
+    // to self-skip around here. A failure below is a real regression and
+    // should fail the suite loudly, not be swallowed.
+    const stafToken0 = await login_(api, stafEmail, stafPassword)
+    const borrowed = await apiJson<{ request_id: string }>(await api.post('assignments/borrow', {
+      headers: authHeader(stafToken0), data: { asset_id: asset2Id, notes: `e2e seed ${RUN}` }
+    }))
+    const managerApproverToken0 = await login_(api, managerApproverEmail, managerApproverPassword)
+    const approvedSeed = await apiJson<{ status: string }>(await api.post(`requests/${borrowed.request_id}/approve`, {
+      headers: authHeader(managerApproverToken0), data: { decision: 'approve', note: 'e2e seed borrow' }
+    }))
+    expect(approvedSeed.status).toBe('approved')
   })
 
   test.afterAll(async () => {
@@ -407,8 +388,6 @@ test.describe('Maintenance (Jadwal/Catatan/Laporan Kerusakan) — real backend e
   })
 
   test('Staf → approve → record: submit damage report via UI → Menunggu Review → approve via API (maker ≠ checker) → Catatan shows corrective record', async ({ page }) => {
-    test.skip(!staffAssignmentSeeded, 'could not seed the Staf\'s active assignment in beforeAll (see its try/catch + console.warn for the reason) — skipping rather than failing on an unrelated precondition')
-
     await loginAs(page, stafEmail, stafPassword)
     await page.goto('/maintenance')
     await expect(page.getByRole('heading', { name: 'Maintenance', exact: true })).toBeVisible({ timeout: 10_000 })

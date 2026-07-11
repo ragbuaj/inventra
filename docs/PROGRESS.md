@@ -497,27 +497,36 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     Laporan Saya" resolves the reported asset's name via a best-effort client-side `useAssets().get(id)`
 >     lookup (same pattern as Assignment's "Pengajuan Saya"), not a server-side snapshot. **Closed
 >     follow-up:** the frontend `RequestType` union already included `'assignment'` **and** `'maintenance'`
->     going into this module (the old local test cast is gone). **Bug found + fixed while building the
->     e2e:** the Laporan tab's "Aset yang Anda pegang" picker calls `GET /assignments?status=active`,
->     which requires `assignment.view` — a permission the seeded **'Staf' role never received**
->     (assignment module migration `000026` deliberately granted it only to Superadmin/Manager/Kepala*,
->     even though it had already seeded an `'office'`-scoped `assignments` data-scope row for Staf "for
->     future delegation"). A real Staf user could never populate the picker — it was silently empty.
->     Fixed by **migration `000028_assignment_staf_view`** (grants Staf `assignment.view`, using the
->     already-seeded `'office'` scope) plus scoping the frontend call by the caller's own `employee_id`
->     (`AuthUser.employee_id` added to the auth store/`GET /auth/me` mapping) — without that second half
->     of the fix, a Staf with `assignment.view` would have seen **every** coworker's active assignment at
->     the office, not just their own. **Gate sweep:** backend build/vet/test green; full
->     `-tags=integration ./... -count=1 -p 1` green (all packages, incl. `internal/maintenance` and
->     `internal/assignment` against the new migration); Spectral 0 errors (pre-existing
->     `AssetCreatePayload` warning only); frontend lint/typecheck/test/build green (1021 unit/component
->     tests). **E2E status — 2/3 pass locally, 1 self-skips honestly:** scenarios 1 (Manager
->     schedule→record→complete) and 3 (negative read-only) pass against this shared dev DB. Scenario 2
->     (Staf→approve→record) self-skips: seeding it needs the Staf to read back its own seeded assignment,
->     which needs migration `000028` applied — and per standing user decision this shared dev DB is
->     **not** mutated by hand outside the normal task flow, so `000028` was written but not applied here.
->     The beforeAll probes this explicitly and skips with a precise, logged reason rather than failing on
->     an unrelated precondition; CI's fresh database applies `000028` from scratch and runs all 3.
+>     going into this module (the old local test cast is gone). **Bug found while building the e2e, then
+>     fixed with a different design after code review:** the Laporan tab's "Aset yang Anda pegang" picker
+>     called `GET /assignments?status=active&employee_id=...` with a **client-supplied** `employee_id`. A
+>     first fix attempt (migration `000028_assignment_staf_view`) granted Staf `assignment.view` so that
+>     call would stop 403ing. Code review caught that this reopened the door wider than intended: with
+>     `assignment.view` + the existing office-level data scope, `employee_id` being client-supplied and
+>     optional meant any Staf could simply omit it and read **every coworker's assignments in the office**
+>     — a regression against PRD §2.2 (Staf = data miliknya) and against 000026's own recorded decision to
+>     withhold `assignment.view` from Staf. **Final design (mirrors the `/assignments/available`
+>     precedent):** a dedicated `GET /assignments/mine` endpoint, gated by `request.create` (already
+>     seeded for Staf in `000005` — **no new permission grant**), which resolves the caller's employee id
+>     **server-side** from the JWT-resolved user record (never from the request), so the response can only
+>     ever contain the caller's own rows; a caller with no linked employee gets back an empty list (200).
+>     Migration `000028` was **deleted** (it had never been applied to the shared dev DB — confirmed via
+>     `migrate ... version` = 27 before deletion — so no `down` run was needed). Frontend: `useAssignment().mine()`
+>     replaces the `list({ employee_id })` call in `maintenance.vue`; the local employee-id branch/early-return
+>     is gone since the server now always resolves it. **New integration coverage**
+>     (`internal/assignment/assignment_integration_test.go`): `TestAssignment_Mine_returns_only_caller_own_rows`
+>     (two Staf in the same office, each with an active assignment — `Mine` returns only the caller's own
+>     row) and `TestAssignment_Staf_role_lacks_assignment_view` (seed-level guard asserting the Staf role
+>     still has zero `assignment.view` rows after all migrations — the general `GET /assignments` list
+>     route stays 403 for Staf). **Gate sweep:** backend build/vet/test green; `go vet -tags=integration
+>     ./...` green; full `-tags=integration ./... -count=1 -p 1` green (all packages); Spectral 0 errors
+>     (pre-existing `AssetCreatePayload` warning only); frontend lint/typecheck/test green (1021
+>     unit/component tests, same count — the picker tests were updated in place, not added/removed).
+>     **E2E status:** the scenario-2 `beforeAll`'s try/catch (previously wrapping both the borrow+approve
+>     seeding **and** a permission probe in one block, which could silently self-skip a real regression)
+>     was narrowed: since `/assignments/mine` needs only the already-stable `request.create` grant (no
+>     migration-timing gap like `assignment.manage`'s — see item 36), the probe is gone and the seeding now
+>     runs unwrapped, so a genuine borrow/approve regression fails the suite loudly instead of skipping.
 > 39. **Next session — pick the next real step.** With Maintenance complete, every module in the original
 >     Bank-FAM operational set is built (transfer, disposal, depreciation, stock opname, assignment,
 >     maintenance). Remaining candidates (see *Remaining* below): **(f)** global search backend
