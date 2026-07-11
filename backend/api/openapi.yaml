@@ -5973,7 +5973,7 @@ components:
         total_assets: { type: integer }
         acquisition_value: { type: string, description: Decimal string (IDR). }
         book_value: { type: string, description: Decimal string (IDR). }
-        overdue_assets: { type: integer, description: 'Assets past their depreciation useful-life end still carrying book value, or similar overdue condition.' }
+        overdue_assets: { type: integer, description: 'Active assignments (checked-out assets) whose `due_date` has passed — overdue returns, independent of the `period`/date filters.' }
         maintenance_due: { type: integer, description: 'Active maintenance schedules due within a fixed 7-day window from today (including already-overdue ones) — independent of the `period`/date filters.' }
         maintenance_cost: { type: string, description: Decimal string (IDR). Total maintenance cost within the window. }
         trends: { $ref: "#/components/schemas/DashboardTrends" }
