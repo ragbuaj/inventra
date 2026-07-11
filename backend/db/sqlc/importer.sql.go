@@ -617,15 +617,16 @@ func (q *Queries) SetJobResult(ctx context.Context, arg SetJobResultParams) (Imp
 
 const setJobValidated = `-- name: SetJobValidated :one
 UPDATE import.import_jobs
-SET status = 'validated', total_rows = $2, success_rows = $3, failed_rows = $4
+SET status = 'validated', total_rows = $2, success_rows = $3, failed_rows = $4, office_id = $5
 WHERE id = $1 RETURNING id, target, format, filename, object_key, status, total_rows, success_rows, failed_rows, error_report_key, created_by_id, finished_at, created_at, updated_at, deleted_at, office_id, request_id, confirmed_at, error_key
 `
 
 type SetJobValidatedParams struct {
-	ID          uuid.UUID `json:"id"`
-	TotalRows   int32     `json:"total_rows"`
-	SuccessRows int32     `json:"success_rows"`
-	FailedRows  int32     `json:"failed_rows"`
+	ID          uuid.UUID  `json:"id"`
+	TotalRows   int32      `json:"total_rows"`
+	SuccessRows int32      `json:"success_rows"`
+	FailedRows  int32      `json:"failed_rows"`
+	OfficeID    *uuid.UUID `json:"office_id"`
 }
 
 func (q *Queries) SetJobValidated(ctx context.Context, arg SetJobValidatedParams) (ImportImportJob, error) {
@@ -634,6 +635,7 @@ func (q *Queries) SetJobValidated(ctx context.Context, arg SetJobValidatedParams
 		arg.TotalRows,
 		arg.SuccessRows,
 		arg.FailedRows,
+		arg.OfficeID,
 	)
 	var i ImportImportJob
 	err := row.Scan(

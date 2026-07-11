@@ -42,7 +42,7 @@ UPDATE import.import_jobs SET status = $2 WHERE id = $1 RETURNING *;
 
 -- name: SetJobValidated :one
 UPDATE import.import_jobs
-SET status = 'validated', total_rows = $2, success_rows = $3, failed_rows = $4
+SET status = 'validated', total_rows = $2, success_rows = $3, failed_rows = $4, office_id = $5
 WHERE id = $1 RETURNING *;
 
 -- name: SetJobResult :one
