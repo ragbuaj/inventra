@@ -527,6 +527,9 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     was narrowed: since `/assignments/mine` needs only the already-stable `request.create` grant (no
 >     migration-timing gap like `assignment.manage`'s — see item 36), the probe is gone and the seeding now
 >     runs unwrapped, so a genuine borrow/approve regression fails the suite loudly instead of skipping.
+>     Full local run against the dev stack: **3/3 PASS** (after one harness fix: the mid-test switch from
+>     the Staf session to the admin login now clears cookies/localStorage first — `/login` redirects
+>     authenticated users because the httpOnly refresh cookie silently restores the session).
 > 39. **Next session — pick the next real step.** With Maintenance complete, every module in the original
 >     Bank-FAM operational set is built (transfer, disposal, depreciation, stock opname, assignment,
 >     maintenance). Remaining candidates (see *Remaining* below): **(f)** global search backend
