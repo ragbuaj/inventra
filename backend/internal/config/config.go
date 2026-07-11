@@ -72,6 +72,12 @@ type Config struct {
 
 	// Label printing.
 	LabelLogoPath string
+
+	// Bulk import.
+	ImportMaxRows       int
+	ImportMaxBytes      int64
+	ImportWorkerEnabled bool
+	ImportWorkerPoll    time.Duration
 }
 
 // Load reads configuration from the environment, applying sensible development
@@ -125,6 +131,11 @@ func Load() *Config {
 		TrustedProxies: splitCSV(getEnv("TRUSTED_PROXIES", "")),
 
 		LabelLogoPath: getEnv("LABEL_LOGO_PATH", "assets/logo-btn.png"),
+
+		ImportMaxRows:       getEnvInt("IMPORT_MAX_ROWS", 10000),
+		ImportMaxBytes:      int64(getEnvInt("IMPORT_MAX_BYTES", 10*1024*1024)),
+		ImportWorkerEnabled: getEnvBool("IMPORT_WORKER_ENABLED", true),
+		ImportWorkerPoll:    getEnvDuration("IMPORT_WORKER_POLL", 2*time.Second),
 	}
 }
 
