@@ -13,6 +13,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/disposal"
+	"github.com/ragbuaj/inventra/internal/maintenance"
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
 	"github.com/ragbuaj/inventra/internal/middleware"
 	"github.com/ragbuaj/inventra/internal/transfer"
@@ -31,22 +32,23 @@ func NewHandler(svc *Service, scope *authz.ScopeService, q *sqlc.Queries, aud *a
 	return &Handler{svc: svc, scoped: common.ScopedDeps{Q: q, Scope: scope}, aud: aud}
 }
 
-// svcError maps this package's sentinels — plus the disposal/transfer
-// sentinels that GenerateFollowup can surface (it reuses their own Submit) —
-// to HTTP status codes.
+// svcError maps this package's sentinels — plus the disposal/transfer/
+// maintenance sentinels that GenerateFollowup can surface (it reuses their
+// own Submit/CreateCorrectiveFromOpname) — to HTTP status codes.
 func (h *Handler) svcError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, ErrNotFound), errors.Is(err, ErrNoItem):
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-	case errors.Is(err, ErrOutOfScope), errors.Is(err, disposal.ErrOutOfScope), errors.Is(err, transfer.ErrOutOfScope):
+	case errors.Is(err, ErrOutOfScope), errors.Is(err, disposal.ErrOutOfScope), errors.Is(err, transfer.ErrOutOfScope), errors.Is(err, maintenance.ErrOutOfScope):
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 	case errors.Is(err, ErrInvalidState), errors.Is(err, ErrAlreadyFollowedUp),
 		errors.Is(err, disposal.ErrAlreadyDisposed), errors.Is(err, disposal.ErrDisposalExists),
 		errors.Is(err, transfer.ErrInvalidState), errors.Is(err, transfer.ErrAssetInTransit), errors.Is(err, transfer.ErrSameOffice):
 		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-	case errors.Is(err, ErrInvalidRef), errors.Is(err, disposal.ErrInvalidRef), errors.Is(err, transfer.ErrInvalidRef), errors.Is(err, approval.ErrNoThreshold):
+	case errors.Is(err, ErrInvalidRef), errors.Is(err, disposal.ErrInvalidRef), errors.Is(err, transfer.ErrInvalidRef), errors.Is(err, approval.ErrNoThreshold),
+		errors.Is(err, maintenance.ErrAssetNotMaintainable), errors.Is(err, maintenance.ErrInvalidRef):
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
-	case errors.Is(err, disposal.ErrNotFound), errors.Is(err, transfer.ErrNotFound):
+	case errors.Is(err, disposal.ErrNotFound), errors.Is(err, transfer.ErrNotFound), errors.Is(err, maintenance.ErrNotFound):
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 	default:
 		common.WriteError(c, err)
@@ -342,8 +344,18 @@ func (h *Handler) followup(c *gin.Context) {
 		h.svcError(c, err)
 		return
 	}
-	audit.Record(c, h.aud, audit.ActionUpdate, "stock_opname_items", itemID, nil, audit.Diff(nil, map[string]any{"followup_request_id": reqID.String(), "type": reqType}))
-	c.JSON(http.StatusOK, gin.H{"request_id": reqID.String(), "type": reqType})
+	linkKey := "followup_request_id"
+	if reqType == "maintenance_record" {
+		linkKey = "followup_record_id"
+	}
+	audit.Record(c, h.aud, audit.ActionUpdate, "stock_opname_items", itemID, nil, audit.Diff(nil, map[string]any{linkKey: reqID.String(), "type": reqType}))
+	body := gin.H{"type": reqType}
+	if reqType == "maintenance_record" {
+		body["record_id"] = reqID.String()
+	} else {
+		body["request_id"] = reqID.String()
+	}
+	c.JSON(http.StatusOK, body)
 }
 
 func (h *Handler) report(c *gin.Context) {

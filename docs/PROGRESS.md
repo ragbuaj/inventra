@@ -440,12 +440,106 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     add it *after* this DB had already applied `000005`, so the INSERT never re-ran — a pre-existing
 >     dev-DB/seed drift, NOT a branch bug). Per user decision the dev DB was **not** mutated; CI runs the
 >     full e2e suite against a fresh database where `000005` seeds the grant correctly.
-> 37. **Next session — pick the next real step.** With Assignment complete, the operational module set is
->     transfer + disposal + depreciation + stock opname + assignment. Remaining candidates (see
->     *Remaining* below): **(e′)** Maintenance (check-in "perlu maintenance" already flags assets — the
->     natural next module to consume that signal); **(f)** global search backend (`/search`) + drop the
->     last `mock/*` files; **(g)** Reporting & Dashboard (PDF/Excel export, reading from the
->     pre-aggregated read layer). Confirm priority before starting.
+> 37. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-08): Maintenance** (candidate
+>     **(e′)** — check-in "perlu maintenance" already flags assets; this module is the natural consumer
+>     of that signal). Remaining candidates after this: **(f)** global search backend (`/search`) + drop
+>     the last `mock/*` files; **(g)** Reporting & Dashboard.
+> 38. ~~**Maintenance (Jadwal/Catatan/Laporan Kerusakan) — backend + frontend + e2e**~~ ✅ **DONE
+>     (2026-07-11, branch `feat/maintenance-module`).** `internal/maintenance` (service/dto/executor/
+>     handler/routes) on migration `000027_maintenance_module` (adds `maintenance_records.schedule_id`
+>     link + `stock_opname_items.followup_record_id`, seeds `maintenance.view` + the `maintenance`
+>     data-scope module + a single office-level `maintenance` approval band — `maintenance.manage` was
+>     already seeded in `000005`). **11 endpoints**: schedule CRUD (`/maintenance/schedules*`, interval +
+>     `next_due_date`), record CRUD (`/maintenance/records*`, preventive/corrective, cost, vendor, status
+>     state machine `scheduled → in_progress → completed/cancelled`, atomically flips the asset
+>     `available/assigned ↔ under_maintenance` and releases it once no active record remains), the
+>     **attention queue** (`GET /maintenance/attention` — `under_maintenance` assets with no active
+>     record, "Perlu Tindak Lanjut"), the Staf **damage-report** submit (`POST /maintenance/reports`,
+>     multipart with an optional photo attachment) which opens a `maintenance`-type approval request
+>     (duplicate-guarded: one pending report per asset+maker via `CountPendingMaintRequests`/
+>     `ErrDuplicatePending`) whose executor creates the corrective `scheduled` record on approval, and
+>     per-asset history (`GET /assets/:id/maintenance`). Stock-opname **damaged followup** now creates a
+>     corrective maintenance record **directly** (no approval step — explicit product decision, see
+>     deviation (h)), idempotent via `stock_opname_items.followup_record_id`. Scope enforced read *and*
+>     write; OpenAPI documented; integration tests green (11 scenarios incl. duplicate-pending guard +
+>     followup idempotency). Frontend: **`/maintenance`** (`app/pages/maintenance.vue`), 1:1 against
+>     `docs/design/Maintenance.dc.html` (due banner, 3 tabs — Jadwal/Catatan/Laporan Kerusakan, light +
+>     dark verified) plus the approved additions below; `MaintenanceScheduleSlideover` +
+>     `MaintenanceRecordSlideover` components; **Detail-Aset "Riwayat Maintenance" tab** (Task 12, lazy-
+>     loaded like the Depreciation tab); the Approval screen's `RequestType`/`TYPE_META` already carried
+>     `'maintenance'` (Task 8); Stock Opname's damaged-item follow-up button now calls this module instead
+>     of showing "coming soon". `useMaintenance` composable; `maintenanceMeta` constants (status/type
+>     tone maps, due-date helpers, Rupiah formatter). Real-backend e2e (`frontend/e2e/maintenance.spec.ts`):
+>     Manager creates a schedule (due-today badge + banner) → "Buat Catatan" prefilled → save
+>     `in_progress` (asset → "Maintenance") → edit → `completed` + biaya (Catatan row "Selesai" + `Rp
+>     150.000`; schedule's next-due shifts past the banner; asset → "Tersedia"); Staf submits a damage
+>     report → "Menunggu Review" → approve via API as a second office-level Manager (maker ≠ checker) →
+>     "Disetujui" + a corrective `scheduled` record appears in the Manager's Catatan; negative: submit
+>     disabled with empty kategori, and a completed record reopens read-only (no save button). **Approved
+>     deviations (catat-deviasi convention):** **(a)** a "Tambah Jadwal" button + full create/edit
+>     slideover for schedules (the mockup has no schedule-creation UI at all — schedules are display-only
+>     there); **(b)** Catatan rows are clickable to open an edit slideover (the mockup has no row actions);
+>     **(c)** a "Perlu Tindak Lanjut" section surfaces the attention queue (not in the mockup) — reflects
+>     the explicit product decision that check-in "needs maintenance" does **not** auto-create a record
+>     (spec decision #3); **(d)** the record form's "Vendor / Teknisi" field is a `vendor_id` select
+>     (`vendors` reference resource) — the free-text `performed_by` column exists server-side but is not
+>     exposed in the form (no UI need yet); **(e)** the due banner + due-badge coloring (overdue/today/
+>     ≤7 days) is computed **client-side** from `GET /maintenance/schedules?limit=100` — no dedicated
+>     backend "due soon" endpoint; **(f)** "reminder" is an in-page banner only — no push/email
+>     notification channel exists; **(g)** schedule cards always render a fixed **"Preventive"** type badge
+>     and a vendor-less task line — `maintenance_schedules` has no `type`/`vendor_id` column (only
+>     records do), a data-model consequence, not a UI choice; **(h)** the stock-opname "damaged" followup
+>     creates the corrective record **directly**, with no approval step (mirrors the `not_found`→disposal
+>     and `misplaced`→transfer followups, none of which go through maker-checker either), idempotent via
+>     `followup_record_id`; **(i)** Staf's `maintenance` data-scope is seeded **`office`** (mirroring the
+>     `assignments` module precedent), not the spec's literal `own` wording — via direct API a Staf can
+>     submit a damage report for any asset in their office (still maker-checker-gated + duplicate-guarded);
+>     the UI picker limits the choice to assets the Staf actually holds. Intentional, consistent with the
+>     borrow-request precedent. **Honest limitations:** the photo-upload path (`POST /maintenance/reports`
+>     multipart) is exercised by unit/component tests but **not** integration-tested end-to-end (would
+>     need a MinIO testcontainer harness like the asset-attachments suite); the Laporan tab's "Riwayat
+>     Laporan Saya" resolves the reported asset's name via a best-effort client-side `useAssets().get(id)`
+>     lookup (same pattern as Assignment's "Pengajuan Saya"), not a server-side snapshot. **Closed
+>     follow-up:** the frontend `RequestType` union already included `'assignment'` **and** `'maintenance'`
+>     going into this module (the old local test cast is gone). **Bug found while building the e2e, then
+>     fixed with a different design after code review:** the Laporan tab's "Aset yang Anda pegang" picker
+>     called `GET /assignments?status=active&employee_id=...` with a **client-supplied** `employee_id`. A
+>     first fix attempt (migration `000028_assignment_staf_view`) granted Staf `assignment.view` so that
+>     call would stop 403ing. Code review caught that this reopened the door wider than intended: with
+>     `assignment.view` + the existing office-level data scope, `employee_id` being client-supplied and
+>     optional meant any Staf could simply omit it and read **every coworker's assignments in the office**
+>     — a regression against PRD §2.2 (Staf = data miliknya) and against 000026's own recorded decision to
+>     withhold `assignment.view` from Staf. **Final design (mirrors the `/assignments/available`
+>     precedent):** a dedicated `GET /assignments/mine` endpoint, gated by `request.create` (already
+>     seeded for Staf in `000005` — **no new permission grant**), which resolves the caller's employee id
+>     **server-side** from the JWT-resolved user record (never from the request), so the response can only
+>     ever contain the caller's own rows; a caller with no linked employee gets back an empty list (200).
+>     Migration `000028` was **deleted** (it had never been applied to the shared dev DB — confirmed via
+>     `migrate ... version` = 27 before deletion — so no `down` run was needed). Frontend: `useAssignment().mine()`
+>     replaces the `list({ employee_id })` call in `maintenance.vue`; the local employee-id branch/early-return
+>     is gone since the server now always resolves it. **New integration coverage**
+>     (`internal/assignment/assignment_integration_test.go`): `TestAssignment_Mine_returns_only_caller_own_rows`
+>     (two Staf in the same office, each with an active assignment — `Mine` returns only the caller's own
+>     row) and `TestAssignment_Staf_role_lacks_assignment_view` (seed-level guard asserting the Staf role
+>     still has zero `assignment.view` rows after all migrations — the general `GET /assignments` list
+>     route stays 403 for Staf). **Gate sweep:** backend build/vet/test green; `go vet -tags=integration
+>     ./...` green; full `-tags=integration ./... -count=1 -p 1` green (all packages); Spectral 0 errors
+>     (pre-existing `AssetCreatePayload` warning only); frontend lint/typecheck/test green (1021
+>     unit/component tests, same count — the picker tests were updated in place, not added/removed).
+>     **E2E status:** the scenario-2 `beforeAll`'s try/catch (previously wrapping both the borrow+approve
+>     seeding **and** a permission probe in one block, which could silently self-skip a real regression)
+>     was narrowed: since `/assignments/mine` needs only the already-stable `request.create` grant (no
+>     migration-timing gap like `assignment.manage`'s — see item 36), the probe is gone and the seeding now
+>     runs unwrapped, so a genuine borrow/approve regression fails the suite loudly instead of skipping.
+>     Full local run against the dev stack: **3/3 PASS** (after one harness fix: the mid-test switch from
+>     the Staf session to the admin login now clears cookies/localStorage first — `/login` redirects
+>     authenticated users because the httpOnly refresh cookie silently restores the session).
+> 39. **Next session — pick the next real step.** With Maintenance complete, every module in the original
+>     Bank-FAM operational set is built (transfer, disposal, depreciation, stock opname, assignment,
+>     maintenance). Remaining candidates (see *Remaining* below): **(f)** global search backend
+>     (`/search`) + drop the last `mock/*` files (`mock/offices.ts`, `mock/employees.ts`, `mock/users.ts`);
+>     **(g)** Reporting & Dashboard (aggregates, PDF/Excel export, reading from the pre-aggregated OLAP
+>     read layer). Confirm priority before starting.
 
 ## ✅ Done
 
@@ -626,7 +720,18 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       reads `GET /assignments`(+`/available`,`/:id`) & `GET /assets/:id/assignments`; scope enforced read
       **and** write; OpenAPI documented; integration + unit tests green. **Done — (2026-07-08, branch
       `feat/assignment-module`; see item 36 in *Next session* for frontend screens + e2e + deviations).**
-- [ ] **Maintenance** — schedules (interval/next_due); records (preventive/corrective, cost, vendor); damage reports (Staf + problem category); `under_maintenance` status
+- [x] **Maintenance** — `internal/maintenance` (service/dto/executor/handler/routes) on migration
+      `000027_maintenance_module` (seeds `maintenance.view` + `maintenance` data-scope + a single
+      office-level `maintenance` approval band). 11 endpoints: schedule CRUD (interval/`next_due_date`),
+      record CRUD (preventive/corrective, cost, vendor, status state machine, atomic asset
+      `available/assigned ↔ under_maintenance`), the "Perlu Tindak Lanjut" attention queue, the Staf
+      damage-report submit (maker-checker, duplicate-guarded) whose executor creates the corrective
+      record on approval, and per-asset history. Stock-opname "damaged" followup creates a corrective
+      record directly (no approval), idempotent via `followup_record_id`. Scope enforced read **and**
+      write; OpenAPI documented; integration tests green. Frontend: **`/maintenance`** (Jadwal/Catatan/
+      Laporan Kerusakan tabs) + Detail-Aset "Riwayat Maintenance" tab; real-backend e2e. **Done —
+      (2026-07-11, branch `feat/maintenance-module`; see item 38 in *Next session* for the full
+      deviation list, honest limitations, and the `assignment.view`-for-Staf bug found + fixed.)**
 - [ ] **Depreciation** — book value (straight-line / declining-balance); monthly `depreciation_entries` read model
 - [ ] **Reporting & Dashboard** — aggregates (totals/value/by status·category·office, overdue, maintenance due, costs); **PDF + Excel export**; scoped — reading from the pre-aggregated OLAP tables (see *Analytics / OLAP* below)
 - [ ] **Bulk import** — CSV/XLSX (assets + master data); `import_jobs`; per-row validation + error report
@@ -813,6 +918,22 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       lacks `'assignment'` — local test cast, follow-up; no real nav badge count), and the note that the
       e2e is written + committed but not run locally (stale dev-DB missing the `assignment.manage` seed
       grant — CI's fresh-DB e2e covers it).
+- [x] **Maintenance** (`/maintenance` + Detail-Aset "Riwayat Maintenance" tab) ✅ wired to real
+      `/api/v1/maintenance/*` + `/api/v1/requests?type=maintenance`, 1:1 against
+      `docs/design/Maintenance.dc.html` (due banner, Jadwal/Catatan/Laporan Kerusakan tabs, light + dark
+      verified). Jadwal — schedule cards with due badges + "Buat Catatan" quick-create; Catatan — 7-column
+      table (Aset/Tipe/Kategori/Tanggal/Status/Biaya/Vendor), row-click edit; Laporan Kerusakan (Staf) —
+      asset + kategori masalah picker, photo upload, "Riwayat Laporan Saya". `MaintenanceScheduleSlideover`
+      + `MaintenanceRecordSlideover`; `useMaintenance` composable; `maintenanceMeta` constants; full i18n
+      id/en. 1021 unit/component tests green. Real-backend e2e (`frontend/e2e/maintenance.spec.ts`):
+      Manager schedule→"Buat Catatan"→`in_progress`→`completed` (+biaya, next-due shift, asset
+      Maintenance→Tersedia); Staf report→approve (maker ≠ checker)→corrective record; negative
+      empty-kategori + read-only-completed-record. **Done (2026-07-11, branch
+      `feat/maintenance-module`).** See item 38 in *Next session* for the full deviation list (a)–(h),
+      honest limitations, and a real permission bug found + fixed (`assignment.view` missing for Staf,
+      blocking the Laporan asset picker — migration `000028` + an `employee_id`-scoped frontend fix). The
+      e2e's Staf→approve scenario self-skips locally (this shared dev DB predates migration `000028`);
+      the other two scenarios pass locally; CI's fresh DB runs all three.
 - [ ] **Staff role menus** — wire staff nav (`myAssets`, staff `assignment`/`approval`) to pages/variants
 - [x] **Google OAuth login** button + flow (UI) — login redirect + `?oauth=success/error` landing
       (refresh → fetchMe → navigate; i18n error reasons). **Done — PR #21.**

@@ -512,4 +512,66 @@ func TestAssignment_Borrow_out_of_scope(t *testing.T) {
 	assert.Equal(t, 0, reqCount, "no approval request row should exist for an out-of-scope borrow attempt")
 }
 
+// TestAssignment_Mine_returns_only_caller_own_rows guards the fix for the
+// office-wide read leak (see docs/PROGRESS.md item 38): two Staf in the same
+// office each hold an active assignment; Mine(ctx, employeeID, ...) must
+// return ONLY the rows for the given employee id, never the coworker's, even
+// though the service call itself sets AllScope=true internally (that is only
+// safe because the employee id here is meant to always be resolved
+// server-side from the caller's own JWT — see the Mine doc comment).
+func TestAssignment_Mine_returns_only_caller_own_rows(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	assetA := seedAsset(t, h.pool, "OFC-ASG-2026-00014", "Laptop Staf A", h.catID, h.office, "available")
+	assetB := seedAsset(t, h.pool, "OFC-ASG-2026-00015", "Laptop Staf B", h.catID, h.office, "available")
+	manager := h.seedManager(t, h.office, "manager.mine@test.local")
+	_, empA := h.seedStaf(t, h.office, "staf.mineA@test.local", "EMP-MI-A")
+	_, empB := h.seedStaf(t, h.office, "staf.mineB@test.local", "EMP-MI-B")
+
+	aA, err := h.asvc.Checkout(ctx, false, []uuid.UUID{h.office}, manager, assignment.CheckoutInput{
+		AssetID: assetA, EmployeeID: empA, CheckoutDate: "2026-07-06",
+	})
+	require.NoError(t, err)
+	_, err = h.asvc.Checkout(ctx, false, []uuid.UUID{h.office}, manager, assignment.CheckoutInput{
+		AssetID: assetB, EmployeeID: empB, CheckoutDate: "2026-07-06",
+	})
+	require.NoError(t, err)
+
+	rows, err := h.asvc.Mine(ctx, empA, "")
+	require.NoError(t, err)
+	require.Len(t, rows, 1, "Staf A must see exactly their own assignment, never their coworker's")
+	assert.Equal(t, aA.ID, rows[0].AssignmentAssignment.ID)
+	assert.Equal(t, empA, rows[0].AssignmentAssignment.EmployeeID)
+
+	// Status filter still applies within the caller's own rows.
+	rows, err = h.asvc.Mine(ctx, empA, "returned")
+	require.NoError(t, err)
+	assert.Empty(t, rows, "no returned assignment exists yet for Staf A")
+}
+
+// TestAssignment_Staf_role_lacks_assignment_view is the seed-level guard for
+// the reverted office-wide grant: migration 000028 (which would have granted
+// Staf `assignment.view`) was deleted rather than applied, precisely because
+// `assignment.view` + the office-level data scope would let any Staf list
+// every coworker's assignment via `GET /assignments` (the general, non-"mine"
+// list endpoint) simply by omitting the client-supplied `employee_id` filter.
+// The picker instead uses the dedicated, server-scoped `GET /assignments/mine`
+// (gated by `request.create`, already seeded in 000005) — no new permission
+// grant. This asserts the Staf role still has no `assignment.view` row after
+// all migrations have run, i.e. the general list route stays 403 for Staf.
+func TestAssignment_Staf_role_lacks_assignment_view(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	var count int
+	require.NoError(t, h.pool.QueryRow(ctx,
+		`SELECT count(*)
+		   FROM identity.role_permissions rp
+		   JOIN identity.roles r ON r.id = rp.role_id
+		  WHERE r.name = 'Staf' AND r.deleted_at IS NULL AND rp.permission_key = 'assignment.view'`,
+	).Scan(&count))
+	assert.Equal(t, 0, count, "Staf must NOT hold assignment.view — the picker leak fix uses GET /assignments/mine (request.create) instead")
+}
+
 func strptr(s string) *string { return &s }

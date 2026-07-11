@@ -4,14 +4,9 @@ import { login } from './helpers'
 test.describe('Operasional cluster (mock-backed)', () => {
   // Penugasan is now wired to the real backend (see e2e/assignment.spec.ts) — the
   // former mock-backed "tabs switch to history" test was removed as superseded.
-
-  test('Maintenance — due banner and schedule render', async ({ page }) => {
-    await login(page)
-    await page.goto('/maintenance')
-    await expect(page.getByRole('heading', { name: 'Maintenance' })).toBeVisible()
-    await expect(page.getByText('Maintenance jatuh tempo')).toBeVisible()
-    await expect(page.getByText('Switch Cisco Catalyst 1000')).toBeVisible()
-  })
+  // Maintenance is now wired to the real backend too (see e2e/maintenance.spec.ts) —
+  // the former mock-backed "due banner and schedule render" test was removed as
+  // superseded (a fresh database has no schedules, so no banner renders).
 
   test('Laporan — applying the asset report shows KPIs and totals', async ({ page }) => {
     await login(page)

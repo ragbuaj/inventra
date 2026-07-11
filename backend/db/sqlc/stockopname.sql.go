@@ -72,7 +72,7 @@ func (q *Queries) CreateOpnameSession(ctx context.Context, arg CreateOpnameSessi
 }
 
 const getOpnameItem = `-- name: GetOpnameItem :one
-SELECT id, session_id, asset_id, expected, result, counted_by_id, counted_at, note, created_at, updated_at, deleted_at, followup_request_id FROM stockopname.stock_opname_items
+SELECT id, session_id, asset_id, expected, result, counted_by_id, counted_at, note, created_at, updated_at, deleted_at, followup_request_id, followup_record_id FROM stockopname.stock_opname_items
 WHERE id = $1 AND session_id = $2 AND deleted_at IS NULL
 `
 
@@ -97,12 +97,13 @@ func (q *Queries) GetOpnameItem(ctx context.Context, arg GetOpnameItemParams) (S
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.FollowupRequestID,
+		&i.FollowupRecordID,
 	)
 	return i, err
 }
 
 const getOpnameItemByTag = `-- name: GetOpnameItemByTag :one
-SELECT it.id, it.session_id, it.asset_id, it.expected, it.result, it.counted_by_id, it.counted_at, it.note, it.created_at, it.updated_at, it.deleted_at, it.followup_request_id FROM stockopname.stock_opname_items it
+SELECT it.id, it.session_id, it.asset_id, it.expected, it.result, it.counted_by_id, it.counted_at, it.note, it.created_at, it.updated_at, it.deleted_at, it.followup_request_id, it.followup_record_id FROM stockopname.stock_opname_items it
 JOIN asset.assets a ON a.id = it.asset_id
 WHERE it.session_id = $1 AND it.deleted_at IS NULL
   AND a.asset_tag = $2
@@ -129,6 +130,7 @@ func (q *Queries) GetOpnameItemByTag(ctx context.Context, arg GetOpnameItemByTag
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.FollowupRequestID,
+		&i.FollowupRecordID,
 	)
 	return i, err
 }
@@ -185,7 +187,7 @@ const insertUnexpectedItem = `-- name: InsertUnexpectedItem :one
 INSERT INTO stockopname.stock_opname_items (session_id, asset_id, expected, result)
 VALUES ($1, $2, false, 'pending')
 ON CONFLICT (session_id, asset_id) WHERE deleted_at IS NULL DO NOTHING
-RETURNING id, session_id, asset_id, expected, result, counted_by_id, counted_at, note, created_at, updated_at, deleted_at, followup_request_id
+RETURNING id, session_id, asset_id, expected, result, counted_by_id, counted_at, note, created_at, updated_at, deleted_at, followup_request_id, followup_record_id
 `
 
 type InsertUnexpectedItemParams struct {
@@ -211,12 +213,13 @@ func (q *Queries) InsertUnexpectedItem(ctx context.Context, arg InsertUnexpected
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.FollowupRequestID,
+		&i.FollowupRecordID,
 	)
 	return i, err
 }
 
 const listOpnameItemsEnriched = `-- name: ListOpnameItemsEnriched :many
-SELECT it.id, it.session_id, it.asset_id, it.expected, it.result, it.counted_by_id, it.counted_at, it.note, it.created_at, it.updated_at, it.deleted_at, it.followup_request_id, a.name AS asset_name, a.asset_tag AS asset_tag,
+SELECT it.id, it.session_id, it.asset_id, it.expected, it.result, it.counted_by_id, it.counted_at, it.note, it.created_at, it.updated_at, it.deleted_at, it.followup_request_id, it.followup_record_id, a.name AS asset_name, a.asset_tag AS asset_tag,
        o.name AS office_name, rm.name AS room_name, fl.name AS floor_name,
        cu.name AS counted_by_name
 FROM stockopname.stock_opname_items it
@@ -267,6 +270,7 @@ func (q *Queries) ListOpnameItemsEnriched(ctx context.Context, arg ListOpnameIte
 			&i.StockopnameStockOpnameItem.UpdatedAt,
 			&i.StockopnameStockOpnameItem.DeletedAt,
 			&i.StockopnameStockOpnameItem.FollowupRequestID,
+			&i.StockopnameStockOpnameItem.FollowupRecordID,
 			&i.AssetName,
 			&i.AssetTag,
 			&i.OfficeName,
@@ -381,7 +385,7 @@ const setItemFollowup = `-- name: SetItemFollowup :one
 UPDATE stockopname.stock_opname_items
 SET followup_request_id = $1
 WHERE id = $2 AND session_id = $3 AND deleted_at IS NULL
-RETURNING id, session_id, asset_id, expected, result, counted_by_id, counted_at, note, created_at, updated_at, deleted_at, followup_request_id
+RETURNING id, session_id, asset_id, expected, result, counted_by_id, counted_at, note, created_at, updated_at, deleted_at, followup_request_id, followup_record_id
 `
 
 type SetItemFollowupParams struct {
@@ -406,6 +410,41 @@ func (q *Queries) SetItemFollowup(ctx context.Context, arg SetItemFollowupParams
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.FollowupRequestID,
+		&i.FollowupRecordID,
+	)
+	return i, err
+}
+
+const setItemFollowupRecord = `-- name: SetItemFollowupRecord :one
+UPDATE stockopname.stock_opname_items
+SET followup_record_id = $1
+WHERE id = $2 AND session_id = $3 AND deleted_at IS NULL
+RETURNING id, session_id, asset_id, expected, result, counted_by_id, counted_at, note, created_at, updated_at, deleted_at, followup_request_id, followup_record_id
+`
+
+type SetItemFollowupRecordParams struct {
+	FollowupRecordID *uuid.UUID `json:"followup_record_id"`
+	ID               uuid.UUID  `json:"id"`
+	SessionID        uuid.UUID  `json:"session_id"`
+}
+
+func (q *Queries) SetItemFollowupRecord(ctx context.Context, arg SetItemFollowupRecordParams) (StockopnameStockOpnameItem, error) {
+	row := q.db.QueryRow(ctx, setItemFollowupRecord, arg.FollowupRecordID, arg.ID, arg.SessionID)
+	var i StockopnameStockOpnameItem
+	err := row.Scan(
+		&i.ID,
+		&i.SessionID,
+		&i.AssetID,
+		&i.Expected,
+		&i.Result,
+		&i.CountedByID,
+		&i.CountedAt,
+		&i.Note,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.FollowupRequestID,
+		&i.FollowupRecordID,
 	)
 	return i, err
 }
@@ -415,7 +454,7 @@ UPDATE stockopname.stock_opname_items
 SET result = $1, note = $2,
     counted_by_id = $3, counted_at = now()
 WHERE id = $4 AND session_id = $5 AND deleted_at IS NULL
-RETURNING id, session_id, asset_id, expected, result, counted_by_id, counted_at, note, created_at, updated_at, deleted_at, followup_request_id
+RETURNING id, session_id, asset_id, expected, result, counted_by_id, counted_at, note, created_at, updated_at, deleted_at, followup_request_id, followup_record_id
 `
 
 type SetOpnameItemResultParams struct {
@@ -448,6 +487,7 @@ func (q *Queries) SetOpnameItemResult(ctx context.Context, arg SetOpnameItemResu
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.FollowupRequestID,
+		&i.FollowupRecordID,
 	)
 	return i, err
 }

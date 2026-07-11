@@ -92,6 +92,12 @@ JOIN asset.assets a ON a.id = it.asset_id
 WHERE it.session_id = sqlc.arg(session_id) AND it.deleted_at IS NULL
   AND a.asset_tag = sqlc.arg(asset_tag);
 
+-- name: SetItemFollowupRecord :one
+UPDATE stockopname.stock_opname_items
+SET followup_record_id = sqlc.arg(followup_record_id)
+WHERE id = sqlc.arg(id) AND session_id = sqlc.arg(session_id) AND deleted_at IS NULL
+RETURNING *;
+
 -- (scan reuses assets.sql GetAssetByTag; scope enforced in the service)
 
 -- NOTE: :one + ON CONFLICT DO NOTHING → a conflict returns pgx.ErrNoRows (no row inserted); the caller treats that as "already present".

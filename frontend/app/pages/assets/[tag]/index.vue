@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import type { Asset } from '~/types'
+import type { Asset, BadgeColor } from '~/types'
 import type { AssetDepreciationEntry, AssetDepreciationResponse } from '~/composables/api/useDepreciation'
+import type { MaintenanceRecord } from '~/composables/api/useMaintenance'
 import { classMeta } from '~/constants/assetMeta'
 import { BASIS_META, type DepreciationBasis } from '~/constants/depreciationMeta'
+import { MAINT_STATUS_TONE, MAINT_TYPE_TONE, formatRupiah as formatRupiahMaint } from '~/constants/maintenanceMeta'
+import { formatDateID } from '~/constants/assignmentMeta'
 import { formatRupiah } from '~/utils/format'
 import { useCan } from '~/composables/useCan'
 
@@ -23,6 +26,7 @@ const officesApi = useOffices()
 const floorsApi = useFloors()
 const referenceApi = useReference()
 const deprApi = useDepreciation()
+const maintenanceApi = useMaintenance()
 
 const tag = computed(() => String(route.params.tag))
 const asset = ref<Asset | null>(null)
@@ -136,6 +140,53 @@ function ensureDeprLoaded() {
 }
 
 watch(tab, ensureDeprLoaded)
+
+// ---------------------------------------------------------------------------
+// Maintenance tab — fetched once on first activation (same lazy-load pattern
+// as the depreciation tab above), re-fetched if the route swaps assets.
+// ---------------------------------------------------------------------------
+const maintLoading = ref(false)
+const maintError = ref(false)
+const maintRecords = ref<MaintenanceRecord[]>([])
+let maintLoadedForAssetId: string | null = null
+
+async function loadMaint() {
+  const a = asset.value
+  if (!a) return
+  maintLoading.value = true
+  maintError.value = false
+  try {
+    const res = await maintenanceApi.listByAsset(a.id)
+    maintRecords.value = res.data
+    maintLoadedForAssetId = a.id
+  } catch {
+    maintError.value = true
+    maintRecords.value = []
+  } finally {
+    maintLoading.value = false
+  }
+}
+
+function ensureMaintLoaded() {
+  if (tab.value !== 'maint' || !asset.value) return
+  if (maintLoadedForAssetId === asset.value.id) return
+  loadMaint()
+}
+
+watch(tab, ensureMaintLoaded)
+
+interface MaintRow { id: string, dateLabel: string, typeTone: BadgeColor, typeLabel: string, categoryLabel: string, statusTone: BadgeColor, statusLabel: string, costLabel: string, vendorLabel: string }
+const maintRows = computed<MaintRow[]>(() => maintRecords.value.map(r => ({
+  id: r.id,
+  dateLabel: formatDateID(r.completed_date ?? r.scheduled_date) || '—',
+  typeTone: MAINT_TYPE_TONE[r.type],
+  typeLabel: t(`maintenance.type.${r.type}`),
+  categoryLabel: r.category_name ?? '—',
+  statusTone: MAINT_STATUS_TONE[r.status],
+  statusLabel: t(`maintenance.status.${r.status}`),
+  costLabel: formatRupiahMaint(r.cost),
+  vendorLabel: r.vendor_name ?? '—'
+})))
 
 const ringkas = computed(() => {
   const a = asset.value
@@ -322,9 +373,12 @@ async function load() {
     loading.value = false
     deprLoadedForAssetId = null
     deprResp.value = null
+    maintLoadedForAssetId = null
+    maintRecords.value = []
     loadLookups(a, mine)
     loadGallery(a.id, mine)
     ensureDeprLoaded()
+    ensureMaintLoaded()
   } catch (err) {
     if (mine !== seq) return
     const status = (err as { statusCode?: number } | undefined)?.statusCode
@@ -706,7 +760,123 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- Assignment / Maintenance tabs — module not yet built (Phase: Assignment/Maintenance). -->
+          <!-- Maintenance tab -->
+          <div
+            v-else-if="tab === 'maint'"
+            class="p-5"
+          >
+            <div
+              v-if="maintLoading"
+              class="flex items-center justify-center py-16"
+            >
+              <UIcon
+                name="i-lucide-loader-circle"
+                class="size-6 animate-spin text-muted"
+              />
+            </div>
+
+            <div
+              v-else-if="maintError"
+              data-testid="maint-tab-error"
+              class="flex flex-col items-center gap-3 py-16 text-center"
+            >
+              <UIcon
+                name="i-lucide-circle-alert"
+                class="size-6 text-muted"
+              />
+              <span class="text-sm text-muted">{{ t('common.loadError') }}</span>
+              <UButton
+                color="neutral"
+                variant="subtle"
+                @click="loadMaint"
+              >
+                {{ t('common.retry') }}
+              </UButton>
+            </div>
+
+            <div
+              v-else-if="maintRows.length === 0"
+              data-testid="maint-tab-empty"
+              class="flex flex-col items-center gap-2.5 py-16 text-center"
+            >
+              <UIcon
+                name="i-lucide-wrench"
+                class="size-6 text-dimmed"
+              />
+              <span class="text-sm text-muted">{{ t('assets.detail.maintenanceEmpty') }}</span>
+            </div>
+
+            <div
+              v-else
+              class="overflow-x-auto"
+            >
+              <table class="w-full border-collapse text-[13px] whitespace-nowrap">
+                <thead>
+                  <tr class="bg-muted text-muted">
+                    <th class="text-left px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                      {{ t('maintenance.records.colDate') }}
+                    </th>
+                    <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                      {{ t('maintenance.records.colType') }}
+                    </th>
+                    <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                      {{ t('maintenance.records.colCategory') }}
+                    </th>
+                    <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                      {{ t('maintenance.records.colStatus') }}
+                    </th>
+                    <th class="text-right px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                      {{ t('maintenance.records.colCost') }}
+                    </th>
+                    <th class="text-left px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                      {{ t('maintenance.records.colVendor') }}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="r in maintRows"
+                    :key="r.id"
+                    data-testid="maint-tab-row"
+                    class="border-t border-default"
+                  >
+                    <td class="px-4 py-3 text-muted">
+                      {{ r.dateLabel }}
+                    </td>
+                    <td class="px-3 py-3">
+                      <UBadge
+                        :color="r.typeTone"
+                        variant="subtle"
+                        class="rounded-full"
+                      >
+                        {{ r.typeLabel }}
+                      </UBadge>
+                    </td>
+                    <td class="px-3 py-3">
+                      {{ r.categoryLabel }}
+                    </td>
+                    <td class="px-3 py-3">
+                      <UBadge
+                        :color="r.statusTone"
+                        variant="subtle"
+                        class="rounded-full"
+                      >
+                        {{ r.statusLabel }}
+                      </UBadge>
+                    </td>
+                    <td class="px-3 py-3 text-right tabular-nums">
+                      {{ r.costLabel }}
+                    </td>
+                    <td class="px-4 py-3 text-muted">
+                      {{ r.vendorLabel }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Assignment tab — module not yet built (Phase: Assignment). -->
           <div
             v-else
             class="p-5"

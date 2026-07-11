@@ -135,6 +135,24 @@ describe('superadminNav — transfers and disposals', () => {
   })
 })
 
+describe('superadminNav — maintenance', () => {
+  it('maintenance item links to /maintenance and is gated by maintenance.view', () => {
+    const maintenance = superadminNav[0].items.find(i => i.labelKey === 'nav.maintenance')
+    expect(maintenance?.to).toBe('/maintenance')
+    expect(maintenance?.permission).toBe('maintenance.view')
+    expect(maintenance?.icon).toBe('i-lucide-wrench')
+  })
+
+  it('maintenance appears after depreciation and before approval', () => {
+    const keys = superadminNav[0].items.map(i => i.labelKey)
+    const depreciationIdx = keys.indexOf('nav.depreciation')
+    const maintenanceIdx = keys.indexOf('nav.maintenance')
+    const approvalIdx = keys.indexOf('nav.approval')
+    expect(depreciationIdx).toBeLessThan(maintenanceIdx)
+    expect(maintenanceIdx).toBeLessThan(approvalIdx)
+  })
+})
+
 describe('superadminNav — children groups', () => {
   it('Aset parent has 3 children (Katalog/Import/Label)', () => {
     const aset = superadminNav[0].items.find(i => i.labelKey === 'nav.assets')
@@ -160,9 +178,9 @@ describe('superadminNav — children groups', () => {
 })
 
 describe('staffNav', () => {
-  it('has 1 group with 4 items', () => {
+  it('has 1 group with 5 items', () => {
     expect(staffNav).toHaveLength(1)
-    expect(staffNav[0].items).toHaveLength(4)
+    expect(staffNav[0].items).toHaveLength(5)
   })
 
   it('Dashboard has route /', () => {
@@ -176,6 +194,14 @@ describe('staffNav', () => {
     expect(peminjaman?.permission).toBe('request.create')
     expect(peminjaman?.icon).toBe('i-lucide-hand')
     expect(peminjaman?.disabled).toBeFalsy()
+  })
+
+  it('has an enabled nav.maintenance item linking to /maintenance, gated by request.create', () => {
+    const maintenance = staffNav[0].items.find(i => i.labelKey === 'nav.maintenance')
+    expect(maintenance?.to).toBe('/maintenance')
+    expect(maintenance?.permission).toBe('request.create')
+    expect(maintenance?.icon).toBe('i-lucide-wrench')
+    expect(maintenance?.disabled).toBeFalsy()
   })
 
   it('no longer has a disabled nav.assignment item', () => {

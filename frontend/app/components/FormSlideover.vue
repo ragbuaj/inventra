@@ -1,5 +1,12 @@
 <script setup lang="ts">
-const props = defineProps<{ title: string, subtitle?: string, loading?: boolean }>()
+const props = defineProps<{
+  title: string
+  subtitle?: string
+  loading?: boolean
+  disabled?: boolean
+  hideSave?: boolean
+  saveLabel?: string
+}>()
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ submit: [] }>()
 </script>
@@ -23,10 +30,12 @@ const emit = defineEmits<{ submit: [] }>()
           {{ $t('common.cancel') }}
         </UButton>
         <UButton
+          v-if="!props.hideSave"
           :loading="props.loading"
+          :disabled="props.disabled"
           @click="emit('submit')"
         >
-          {{ $t('common.save') }}
+          {{ props.saveLabel ?? $t('common.save') }}
         </UButton>
       </div>
     </template>

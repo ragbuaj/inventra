@@ -47,16 +47,24 @@ func mapDBError(err error) error {
 	return err
 }
 
-// Service holds data access + business rules for stock opname.
-type Service struct {
-	q    *sqlc.Queries
-	pool *pgxpool.Pool
-	disp *disposal.Service
-	tr   *transfer.Service
+// MaintenanceCreator creates a corrective maintenance record for a damaged
+// opname item. Defined here (consumer side) so stockopname does not import the
+// maintenance package; *maintenance.Service satisfies it, wired in NewRouter.
+type MaintenanceCreator interface {
+	CreateCorrectiveFromOpname(ctx context.Context, caller approval.Caller, assetID uuid.UUID, note *string) (uuid.UUID, error)
 }
 
-func NewService(q *sqlc.Queries, pool *pgxpool.Pool, disp *disposal.Service, tr *transfer.Service) *Service {
-	return &Service{q: q, pool: pool, disp: disp, tr: tr}
+// Service holds data access + business rules for stock opname.
+type Service struct {
+	q     *sqlc.Queries
+	pool  *pgxpool.Pool
+	disp  *disposal.Service
+	tr    *transfer.Service
+	maint MaintenanceCreator
+}
+
+func NewService(q *sqlc.Queries, pool *pgxpool.Pool, disp *disposal.Service, tr *transfer.Service, maint MaintenanceCreator) *Service {
+	return &Service{q: q, pool: pool, disp: disp, tr: tr, maint: maint}
 }
 
 // CreateInput carries the parameters to open a new stock-opname session.
@@ -285,13 +293,13 @@ type FollowupInput struct {
 	Reason     *string
 }
 
-// GenerateFollowup maps a counted variance item to a disposal ('not_found') or
-// transfer ('misplaced') approval request, reusing the disposal/transfer
-// services' own Submit (which enforce their own asset-scope + state guards),
-// then links the item to the created request. 'damaged' (and any non-variance
-// result) is rejected with ErrInvalidState — the maintenance module isn't
-// built yet. An item that already has a follow-up request is rejected with
-// ErrAlreadyFollowedUp.
+// GenerateFollowup maps a counted variance item to a disposal ('not_found'),
+// transfer ('misplaced'), or corrective-maintenance ('damaged') request,
+// reusing the disposal/transfer/maintenance services' own submission paths
+// (which enforce their own asset-scope + state guards), then links the item
+// to the created request/record. Any non-variance result is rejected with
+// ErrInvalidState. An item that already has a follow-up request or record is
+// rejected with ErrAlreadyFollowedUp.
 func (s *Service) GenerateFollowup(ctx context.Context, caller approval.Caller, sessionID, itemID uuid.UUID, in FollowupInput) (uuid.UUID, string, error) {
 	if _, _, err := s.GetSession(ctx, caller, sessionID); err != nil {
 		return uuid.Nil, "", err
@@ -300,12 +308,10 @@ func (s *Service) GenerateFollowup(ctx context.Context, caller approval.Caller, 
 	if err != nil {
 		return uuid.Nil, "", mapDBError(err)
 	}
-	if item.FollowupRequestID != nil {
+	if item.FollowupRequestID != nil || item.FollowupRecordID != nil {
 		return uuid.Nil, "", ErrAlreadyFollowedUp
 	}
 
-	var reqID uuid.UUID
-	var reqType string
 	switch item.Result {
 	case sqlc.SharedOpnameItemResultNotFound:
 		writeOff := "write_off"
@@ -318,7 +324,14 @@ func (s *Service) GenerateFollowup(ctx context.Context, caller approval.Caller, 
 		if err != nil {
 			return uuid.Nil, "", err
 		}
-		reqID, reqType = req.ID, "asset_disposal"
+		if _, err := s.q.SetItemFollowup(ctx, sqlc.SetItemFollowupParams{
+			ID:                itemID,
+			SessionID:         sessionID,
+			FollowupRequestID: &req.ID,
+		}); err != nil {
+			return uuid.Nil, "", mapDBError(err)
+		}
+		return req.ID, "asset_disposal", nil
 	case sqlc.SharedOpnameItemResultMisplaced:
 		if in.ToOfficeID == nil {
 			return uuid.Nil, "", ErrInvalidRef
@@ -332,19 +345,30 @@ func (s *Service) GenerateFollowup(ctx context.Context, caller approval.Caller, 
 		if err != nil {
 			return uuid.Nil, "", err
 		}
-		reqID, reqType = req.ID, "asset_transfer"
-	default: // pending / found / damaged
+		if _, err := s.q.SetItemFollowup(ctx, sqlc.SetItemFollowupParams{
+			ID:                itemID,
+			SessionID:         sessionID,
+			FollowupRequestID: &req.ID,
+		}); err != nil {
+			return uuid.Nil, "", mapDBError(err)
+		}
+		return req.ID, "asset_transfer", nil
+	case sqlc.SharedOpnameItemResultDamaged:
+		recID, err := s.maint.CreateCorrectiveFromOpname(ctx, caller, item.AssetID, in.Reason)
+		if err != nil {
+			return uuid.Nil, "", err
+		}
+		if _, err := s.q.SetItemFollowupRecord(ctx, sqlc.SetItemFollowupRecordParams{
+			ID:               itemID,
+			SessionID:        sessionID,
+			FollowupRecordID: &recID,
+		}); err != nil {
+			return uuid.Nil, "", mapDBError(err)
+		}
+		return recID, "maintenance_record", nil
+	default: // pending / found
 		return uuid.Nil, "", ErrInvalidState
 	}
-
-	if _, err := s.q.SetItemFollowup(ctx, sqlc.SetItemFollowupParams{
-		ID:                itemID,
-		SessionID:         sessionID,
-		FollowupRequestID: &reqID,
-	}); err != nil {
-		return uuid.Nil, "", mapDBError(err)
-	}
-	return reqID, reqType, nil
 }
 
 // ListItems returns a scoped session's items (enriched with asset/office/room/

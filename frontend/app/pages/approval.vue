@@ -28,6 +28,9 @@ const { t, locale } = useI18n()
 const api = useApproval()
 const categoriesApi = useCategories()
 const officesApi = useOffices()
+const referenceApi = useReference()
+const assetsApi = useAssets()
+const attachmentsApi = useAssetAttachments()
 
 const rows = ref<ApprovalRequestRow[]>([])
 const inboxRows = ref<ApprovalRequestRow[]>([])
@@ -44,6 +47,11 @@ const deciding = ref(false)
 // FK name lookups for the Data section (same inline pattern as master/employees).
 const categoryMap = ref(new Map<string, string>())
 const officeMap = ref(new Map<string, string>())
+const problemCategoryMap = ref(new Map<string, string>())
+// Best-effort asset name/tag resolution for maintenance-type payloads (asset_id
+// isn't enriched server-side) — mirrors peminjaman.vue's resolveAssetName.
+const assetNameCache = ref(new Map<string, { name: string, tag: string }>())
+const attachmentLoading = ref(false)
 
 const inboxIds = computed(() => new Set(inboxRows.value.map(r => r.id)))
 const pendingCount = computed(() => inboxRows.value.length)
@@ -118,12 +126,26 @@ async function loadTab() {
   }
 }
 
+async function resolveAssetName(id: string) {
+  if (assetNameCache.value.has(id)) return
+  try {
+    const asset = await assetsApi.get(id)
+    if (asset?.name && asset?.asset_tag) assetNameCache.value.set(id, { name: asset.name, tag: asset.asset_tag })
+  } catch {
+    // Best-effort only — the payload row falls back to the raw id.
+  }
+}
+
 async function selectRequest(id: string) {
   selectedId.value = id
   note.value = ''
   detailLoading.value = true
   try {
     detail.value = await api.get(id)
+    if (detail.value.type === 'maintenance') {
+      const aid = (detail.value.payload?.asset_id as string | undefined) ?? detail.value.target_id ?? undefined
+      if (aid) await resolveAssetName(aid)
+    }
   } catch {
     detail.value = null
   } finally {
@@ -144,8 +166,15 @@ const view = computed(() => {
   const meta = TYPE_META[d.type]
   const dataView = payloadToView(d, t, {
     categoryName: id => categoryMap.value.get(id),
-    officeName: id => officeMap.value.get(id)
+    officeName: id => officeMap.value.get(id),
+    assetName: (id) => {
+      const known = assetNameCache.value.get(id)
+      return known ? `${known.name} · ${known.tag}` : undefined
+    },
+    problemCategoryName: id => problemCategoryMap.value.get(id)
   })
+  const maintPayload = d.type === 'maintenance' ? (d.payload as Record<string, unknown> | null ?? null) : null
+  const attachmentId = typeof maintPayload?.attachment_id === 'string' ? maintPayload.attachment_id : undefined
 
   const initials = (d.requested_by_name ?? '—').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase()
 
@@ -221,6 +250,7 @@ const view = computed(() => {
     tgl: fmtDate(d.created_at),
     isDiff: dataView.layout === 'diff',
     dataRows: dataView.rows,
+    attachmentId,
     alasan: d.reason ?? '—',
     timeline: tl,
     pending: d.status === 'pending',
@@ -261,6 +291,30 @@ async function loadLookups() {
     officeMap.value = new Map(offs.data.map(o => [o.id, o.name]))
   } catch {
     // Lookups are best-effort; the mapper falls back to raw ids.
+  }
+  try {
+    const problems = await referenceApi.list('problem-categories', { limit: 100 })
+    problemCategoryMap.value = new Map(problems.data.map(r => [r.id, r.name]))
+  } catch {
+    // Best-effort — falls back to the raw id.
+  }
+}
+
+async function viewAttachment() {
+  const d = detail.value
+  const p = (d?.payload ?? null) as Record<string, unknown> | null
+  const attachmentId = typeof p?.attachment_id === 'string' ? p.attachment_id : undefined
+  const assetId = typeof p?.asset_id === 'string' ? p.asset_id : (d?.target_id ?? undefined)
+  if (!d || d.type !== 'maintenance' || !attachmentId || !assetId || attachmentLoading.value) return
+  attachmentLoading.value = true
+  try {
+    const blob = await attachmentsApi.contentBlob(assetId, attachmentId)
+    const url = URL.createObjectURL(blob)
+    window.open(url, '_blank')
+  } catch {
+    // useApiClient already raised an error toast
+  } finally {
+    attachmentLoading.value = false
   }
 }
 
@@ -536,7 +590,25 @@ onMounted(async () => {
               <div class="text-xs font-semibold uppercase tracking-wider text-muted mb-2.5">
                 {{ t('approval.attachSection') }}
               </div>
-              <div class="text-[13px] text-dimmed mb-5">
+              <div
+                v-if="view.attachmentId"
+                class="mb-5"
+              >
+                <UButton
+                  icon="i-lucide-paperclip"
+                  color="neutral"
+                  variant="outline"
+                  size="sm"
+                  :label="t('approval.viewAttachment')"
+                  :loading="attachmentLoading"
+                  data-testid="approval-view-attachment"
+                  @click="viewAttachment"
+                />
+              </div>
+              <div
+                v-else
+                class="text-[13px] text-dimmed mb-5"
+              >
                 {{ t('approval.noAttach') }}
               </div>
 

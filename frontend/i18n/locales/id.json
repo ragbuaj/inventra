@@ -69,6 +69,7 @@
       "backToCatalog": "Kembali ke katalog",
       "months": "{n} bulan",
       "moduleNotAvailable": "Belum ada data — modul belum tersedia",
+      "maintenanceEmpty": "Belum ada riwayat maintenance untuk aset ini",
       "tabs": { "info": "Info", "assignment": "Riwayat Penugasan", "maintenance": "Riwayat Maintenance", "depreciation": "Jadwal Depresiasi" },
       "sections": { "identity": "Identitas", "placement": "Penempatan", "procurement": "Pengadaan", "valuation": "Valuasi", "notes": "Catatan" },
       "fields": {
@@ -645,8 +646,7 @@
       "emptySub": "Semua aset tercocokkan dengan baik.",
       "followupDisposal": "Ajukan Penghapusan",
       "followupTransfer": "Ajukan Mutasi",
-      "followupMaintenance": "Laporkan Kerusakan",
-      "comingSoon": "Segera hadir"
+      "followupMaintenance": "Laporkan Kerusakan"
     },
     "followup": {
       "title": "Ajukan Mutasi — Aset Salah Lokasi",
@@ -656,7 +656,8 @@
       "reason": "Alasan Mutasi",
       "reasonPlaceholder": "mis. Aset ditemukan di lokasi berbeda saat stock opname…",
       "submit": "Ajukan Mutasi",
-      "success": "Pengajuan mutasi untuk \"{name}\" berhasil dibuat."
+      "success": "Pengajuan mutasi untuk \"{name}\" berhasil dibuat.",
+      "maintenanceCreated": "Catatan maintenance untuk \"{name}\" berhasil dibuat."
     },
     "finish": {
       "action": "Selesaikan Sesi",
@@ -810,6 +811,13 @@
       "catatan": "Catatan",
       "laporan": "Laporan Kerusakan"
     },
+    "attention": {
+      "title": "Perlu Tindak Lanjut"
+    },
+    "jadwal": {
+      "emptyTitle": "Belum ada jadwal maintenance",
+      "emptySub": "Tambahkan jadwal perawatan preventif untuk aset."
+    },
     "type": {
       "preventive": "Preventive",
       "corrective": "Corrective"
@@ -854,7 +862,12 @@
       "awaiting": "Menunggu Review",
       "historyTitle": "Riwayat Laporan Saya",
       "emptyTitle": "Belum ada laporan",
-      "emptySub": "Laporan kerusakan yang Anda kirim akan tampil di sini."
+      "emptySub": "Laporan kerusakan yang Anda kirim akan tampil di sini.",
+      "status": {
+        "approved": "Disetujui",
+        "rejected": "Ditolak",
+        "cancelled": "Dibatalkan"
+      }
     },
     "problems": {
       "display": "Layar / Tampilan",
@@ -867,7 +880,10 @@
     "note": {
       "title": "Tambah Catatan Maintenance",
       "subtitle": "Catat tindakan perawatan untuk aset.",
+      "editTitle": "Ubah Catatan Maintenance",
+      "editSubtitle": "Perbarui catatan perawatan aset.",
       "asset": "Aset",
+      "assetPlaceholder": "Cari aset…",
       "type": "Tipe",
       "category": "Kategori Perawatan",
       "date": "Tanggal",
@@ -875,7 +891,33 @@
       "cost": "Biaya",
       "vendor": "Vendor / Teknisi",
       "description": "Deskripsi",
-      "descPlaceholder": "Rincian tindakan perawatan…"
+      "descPlaceholder": "Rincian tindakan perawatan…",
+      "completedDate": "Tanggal Selesai",
+      "selectPlaceholder": "Pilih…",
+      "saveLabel": "Simpan Catatan",
+      "lockedTip": "Aset terkunci",
+      "readOnlyHint": "Catatan yang sudah selesai atau dibatalkan tidak dapat diubah.",
+      "toastCreated": "Catatan maintenance ditambahkan.",
+      "toastUpdated": "Catatan maintenance diperbarui."
+    },
+    "schedule": {
+      "createTitle": "Tambah Jadwal Maintenance",
+      "createSubtitle": "Buat jadwal perawatan preventif untuk aset.",
+      "editTitle": "Ubah Jadwal Maintenance",
+      "editSubtitle": "Perbarui jadwal perawatan aset.",
+      "asset": "Aset",
+      "assetPlaceholder": "Cari aset…",
+      "category": "Kategori Perawatan",
+      "interval": "Interval Bulan",
+      "startDate": "Tanggal Mulai",
+      "nextDue": "Jatuh Tempo Berikut",
+      "active": "Aktif",
+      "inactive": "Nonaktif",
+      "selectPlaceholder": "Pilih…",
+      "lockedTip": "Aset terkunci",
+      "addButton": "Tambah Jadwal",
+      "toastCreated": "Jadwal maintenance dibuat.",
+      "toastUpdated": "Jadwal maintenance diperbarui."
     }
   },
   "approval": {
@@ -886,6 +928,8 @@
       "asset_create": "Registrasi Aset",
       "asset_disposal": "Penghapusan Aset",
       "asset_transfer": "Mutasi Aset",
+      "assignment": "Peminjaman Aset",
+      "maintenance": "Laporan Kerusakan",
       "valuation_exclusion": "Pengecualian Valuasi"
     },
     "filter": {
@@ -942,7 +986,10 @@
       "active": "Aktif",
       "disposed": "Dihapus",
       "included": "Dihitung",
-      "excluded": "Dikecualikan"
+      "excluded": "Dikecualikan",
+      "asset": "Aset",
+      "problemCategory": "Kategori Masalah",
+      "description": "Deskripsi"
     },
     "sensitive": "Sensitif",
     "sensitiveWarn": "Tindakan sensitif — pastikan Anda meninjau data dengan saksama sebelum memutuskan.",
@@ -954,6 +1001,7 @@
     "reasonSection": "Alasan Pengajuan",
     "attachSection": "Lampiran",
     "noAttach": "Tidak ada lampiran.",
+    "viewAttachment": "Lihat Lampiran",
     "timelineSection": "Riwayat Approval",
     "noteLabel": "Catatan (opsional)",
     "notePlaceholder": "Tambahkan catatan untuk pengaju…",

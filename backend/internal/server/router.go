@@ -29,6 +29,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/depreciation"
 	"github.com/ragbuaj/inventra/internal/disposal"
 	"github.com/ragbuaj/inventra/internal/identity"
+	"github.com/ragbuaj/inventra/internal/maintenance"
 	"github.com/ragbuaj/inventra/internal/masterdata"
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
 	"github.com/ragbuaj/inventra/internal/middleware"
@@ -180,6 +181,8 @@ func NewRouter(d Deps) *gin.Engine {
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetTransfer, transferSvc.Executor())
 		assignmentSvc := assignment.NewService(queries, d.Pool, approvalSvc)
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssignment, assignmentSvc.Executor())
+		maintenanceSvc := maintenance.NewService(queries, d.Pool, approvalSvc, assetSvc)
+		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeMaintenance, maintenanceSvc.Executor())
 		approvalHandler := approval.NewHandler(approvalSvc, fieldSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)
 		approval.RegisterRoutes(api, approvalHandler, requireAuth, permSvc)
 
@@ -197,7 +200,7 @@ func NewRouter(d Deps) *gin.Engine {
 			middleware.RequirePermission(permSvc, "disposal.view"),
 		)
 
-		stockopnameSvc := stockopname.NewService(queries, d.Pool, disposalSvc, transferSvc)
+		stockopnameSvc := stockopname.NewService(queries, d.Pool, disposalSvc, transferSvc, maintenanceSvc)
 		stockopnameHandler := stockopname.NewHandler(stockopnameSvc, scopeSvc, queries, auditSvc)
 		stockopname.RegisterRoutes(api, stockopnameHandler,
 			requireAuth,
@@ -210,6 +213,14 @@ func NewRouter(d Deps) *gin.Engine {
 			requireAuth,
 			middleware.RequirePermission(permSvc, "assignment.manage"),
 			middleware.RequirePermission(permSvc, "assignment.view"),
+			middleware.RequirePermission(permSvc, "request.create"),
+		)
+
+		maintenanceHandler := maintenance.NewHandler(maintenanceSvc, scopeSvc, queries, auditSvc)
+		maintenance.RegisterRoutes(api, maintenanceHandler,
+			requireAuth,
+			middleware.RequirePermission(permSvc, "maintenance.manage"),
+			middleware.RequirePermission(permSvc, "maintenance.view"),
 			middleware.RequirePermission(permSvc, "request.create"),
 		)
 

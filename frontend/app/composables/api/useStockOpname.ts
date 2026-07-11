@@ -39,6 +39,7 @@ export interface OpnameItem {
   counted_by_name: string | null
   counted_at: string | null
   followup_request_id: string | null
+  followup_record_id?: string | null
 }
 
 export interface OpnameSessionListPage {
@@ -91,7 +92,8 @@ export interface FollowupInput {
 }
 
 export interface FollowupResponse {
-  request_id: string
+  request_id?: string
+  record_id?: string
   type: string
 }
 

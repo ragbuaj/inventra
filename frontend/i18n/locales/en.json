@@ -69,6 +69,7 @@
       "backToCatalog": "Back to catalog",
       "months": "{n} months",
       "moduleNotAvailable": "No data yet — module not available",
+      "maintenanceEmpty": "No maintenance history yet for this asset",
       "tabs": { "info": "Info", "assignment": "Assignment History", "maintenance": "Maintenance History", "depreciation": "Depreciation Schedule" },
       "sections": { "identity": "Identity", "placement": "Placement", "procurement": "Procurement", "valuation": "Valuation", "notes": "Notes" },
       "fields": {
@@ -645,8 +646,7 @@
       "emptySub": "All assets reconciled cleanly.",
       "followupDisposal": "Request Disposal",
       "followupTransfer": "Request Transfer",
-      "followupMaintenance": "Report Damage",
-      "comingSoon": "Coming soon"
+      "followupMaintenance": "Report Damage"
     },
     "followup": {
       "title": "Request Transfer — Misplaced Asset",
@@ -656,7 +656,8 @@
       "reason": "Transfer Reason",
       "reasonPlaceholder": "e.g. Asset was found at a different location during stock-take…",
       "submit": "Request Transfer",
-      "success": "Transfer request for \"{name}\" was created."
+      "success": "Transfer request for \"{name}\" was created.",
+      "maintenanceCreated": "Maintenance record for \"{name}\" was created."
     },
     "finish": {
       "action": "Finish Session",
@@ -810,6 +811,13 @@
       "catatan": "Notes",
       "laporan": "Damage Report"
     },
+    "attention": {
+      "title": "Needs Follow-up"
+    },
+    "jadwal": {
+      "emptyTitle": "No maintenance schedules yet",
+      "emptySub": "Add a preventive maintenance schedule for an asset."
+    },
     "type": {
       "preventive": "Preventive",
       "corrective": "Corrective"
@@ -854,7 +862,12 @@
       "awaiting": "Awaiting Review",
       "historyTitle": "My Report History",
       "emptyTitle": "No reports yet",
-      "emptySub": "Damage reports you submit will appear here."
+      "emptySub": "Damage reports you submit will appear here.",
+      "status": {
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "cancelled": "Cancelled"
+      }
     },
     "problems": {
       "display": "Screen / Display",
@@ -867,7 +880,10 @@
     "note": {
       "title": "Add Maintenance Note",
       "subtitle": "Record a maintenance action for an asset.",
+      "editTitle": "Edit Maintenance Note",
+      "editSubtitle": "Update the asset's maintenance note.",
       "asset": "Asset",
+      "assetPlaceholder": "Search asset…",
       "type": "Type",
       "category": "Care Category",
       "date": "Date",
@@ -875,7 +891,33 @@
       "cost": "Cost",
       "vendor": "Vendor / Technician",
       "description": "Description",
-      "descPlaceholder": "Details of the maintenance action…"
+      "descPlaceholder": "Details of the maintenance action…",
+      "completedDate": "Completion Date",
+      "selectPlaceholder": "Select…",
+      "saveLabel": "Save Note",
+      "lockedTip": "Asset locked",
+      "readOnlyHint": "Completed or cancelled notes can no longer be changed.",
+      "toastCreated": "Maintenance note added.",
+      "toastUpdated": "Maintenance note updated."
+    },
+    "schedule": {
+      "createTitle": "Add Maintenance Schedule",
+      "createSubtitle": "Create a preventive maintenance schedule for an asset.",
+      "editTitle": "Edit Maintenance Schedule",
+      "editSubtitle": "Update the asset's maintenance schedule.",
+      "asset": "Asset",
+      "assetPlaceholder": "Search asset…",
+      "category": "Care Category",
+      "interval": "Interval (Months)",
+      "startDate": "Start Date",
+      "nextDue": "Next Due Date",
+      "active": "Active",
+      "inactive": "Inactive",
+      "selectPlaceholder": "Select…",
+      "lockedTip": "Asset locked",
+      "addButton": "Add Schedule",
+      "toastCreated": "Maintenance schedule created.",
+      "toastUpdated": "Maintenance schedule updated."
     }
   },
   "approval": {
@@ -886,6 +928,8 @@
       "asset_create": "Asset Registration",
       "asset_disposal": "Asset Disposal",
       "asset_transfer": "Asset Transfer",
+      "assignment": "Asset Loan",
+      "maintenance": "Damage Report",
       "valuation_exclusion": "Valuation Exclusion"
     },
     "filter": {
@@ -942,7 +986,10 @@
       "active": "Active",
       "disposed": "Disposed",
       "included": "Included",
-      "excluded": "Excluded"
+      "excluded": "Excluded",
+      "asset": "Asset",
+      "problemCategory": "Problem Category",
+      "description": "Description"
     },
     "sensitive": "Sensitive",
     "sensitiveWarn": "Sensitive action — please review the data carefully before deciding.",
@@ -954,6 +1001,7 @@
     "reasonSection": "Reason",
     "attachSection": "Attachments",
     "noAttach": "No attachments.",
+    "viewAttachment": "View Attachment",
     "timelineSection": "Approval History",
     "noteLabel": "Note (optional)",
     "notePlaceholder": "Add a note for the requester…",

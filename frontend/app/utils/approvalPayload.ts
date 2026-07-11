@@ -10,6 +10,8 @@ export type PayloadView
 export interface PayloadLookups {
   categoryName?: (id: string) => string | undefined
   officeName?: (id: string) => string | undefined
+  assetName?: (id: string) => string | undefined
+  problemCategoryName?: (id: string) => string | undefined
 }
 
 type Tfn = (k: string, p?: Record<string, unknown>) => string
@@ -74,6 +76,18 @@ export function payloadToView(detail: ApprovalRequestDetail, t: Tfn, lookups: Pa
     if (str(p, 'book_value_at_disposal')) add('approval.field.bookValue', formatRupiah(str(p, 'book_value_at_disposal')))
     add('approval.field.bastNo', str(p, 'bast_no'))
     return { layout: 'diff', rows }
+  }
+
+  if (detail.type === 'maintenance') {
+    if (!p) return { layout: 'summary', rows: [] }
+    const rows: SummaryRow[] = []
+    const assetID = str(p, 'asset_id')
+    if (assetID) rows.push({ label: t('approval.field.asset'), value: lookups.assetName?.(assetID) ?? assetID })
+    const problemID = str(p, 'problem_category_id')
+    if (problemID) rows.push({ label: t('approval.field.problemCategory'), value: lookups.problemCategoryName?.(problemID) ?? problemID })
+    const desc = str(p, 'description')
+    if (desc) rows.push({ label: t('approval.field.description'), value: desc })
+    return { layout: 'summary', rows }
   }
 
   // valuation_exclusion — fully static: the transition is the request itself.

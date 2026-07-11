@@ -36,6 +36,10 @@ func NewService(q *sqlc.Queries, pool *pgxpool.Pool, store storage.Storage, maxB
 	return &Service{q: q, pool: pool, store: store, maxBytes: maxBytes, logoPath: logoPath}
 }
 
+// MaxBytes returns the configured upload size cap, shared with other modules
+// (e.g. maintenance's damage-report photo) that need the same request-body limit.
+func (s *Service) MaxBytes() int64 { return s.maxBytes }
+
 // allowedTransitions defines the valid status transitions for assets.
 // Only transitions present in this map are permitted; everything else is rejected.
 var allowedTransitions = map[sqlc.SharedAssetStatus]map[sqlc.SharedAssetStatus]bool{
