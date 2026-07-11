@@ -226,6 +226,14 @@ type Querier interface {
 	// Approval / maker-checker queries (approval schema).
 	// See docs/DATABASE.md §4.5 and PRD §3.6 for schema context.
 	MatchThresholdSteps(ctx context.Context, arg MatchThresholdStepsParams) ([]ApprovalApprovalThreshold, error)
+	// Global search (command palette). Each query returns the top matches for one
+	// entity plus the full match count via a window function. Callers gate by
+	// permission + data scope; queries only enforce the office scope filter.
+	SearchAssets(ctx context.Context, arg SearchAssetsParams) ([]SearchAssetsRow, error)
+	SearchEmployees(ctx context.Context, arg SearchEmployeesParams) ([]SearchEmployeesRow, error)
+	SearchOffices(ctx context.Context, arg SearchOfficesParams) ([]SearchOfficesRow, error)
+	SearchRequests(ctx context.Context, arg SearchRequestsParams) ([]SearchRequestsRow, error)
+	SearchUsers(ctx context.Context, arg SearchUsersParams) ([]SearchUsersRow, error)
 	SessionKpis(ctx context.Context, sessionID uuid.UUID) (SessionKpisRow, error)
 	SetAssetDocumentObjectKey(ctx context.Context, arg SetAssetDocumentObjectKeyParams) (AssetAssetDocument, error)
 	// Relocate an asset to a new office/room (used by the transfer receive step).
