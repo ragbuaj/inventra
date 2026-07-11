@@ -233,4 +233,26 @@ describe('CommandPalette', () => {
     expect(bodyText()).toContain('Menunggu')
     expect(bodyText()).not.toContain('pending')
   })
+
+  it('clears the loading skeleton and shows the empty state when search fails', async () => {
+    searchMock.mockImplementation(async () => {
+      throw new Error('network error')
+    })
+    admin()
+    await mount()
+    useCommandPalette().open()
+    await flushPromises()
+    vi.useFakeTimers()
+    const input = bodyInput()!
+    input.value = 'latitude'
+    input.dispatchEvent(new Event('input'))
+    await vi.advanceTimersByTimeAsync(250)
+    await flushPromises()
+    vi.useRealTimers()
+
+    // Loading skeleton is gone and the empty state is shown instead of a
+    // stuck spinner; the rejection must be caught, not left unhandled.
+    expect(bodyText()).toContain('Tidak ada hasil')
+    expect(bodyText()).not.toContain('Aset')
+  })
 })

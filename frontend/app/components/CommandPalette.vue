@@ -39,10 +39,17 @@ watch(query, (q) => {
   loading.value = true
   debounceTimer = setTimeout(async () => {
     const mine = ++seq
-    const res = await search(q)
-    if (mine === seq) {
-      groups.value = res
-      loading.value = false
+    try {
+      const res = await search(q)
+      if (mine === seq) {
+        groups.value = res
+        loading.value = false
+      }
+    } catch {
+      if (mine === seq) {
+        groups.value = []
+        loading.value = false
+      }
     }
   }, 250)
 })
