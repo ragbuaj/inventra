@@ -1472,7 +1472,8 @@
     "loadError": "Gagal memuat data.",
     "yes": "Ya",
     "no": "Tidak",
-    "assetPickerEmpty": "Tidak ada aset tersedia"
+    "assetPickerEmpty": "Tidak ada aset tersedia",
+    "periodCustom": "Rentang kustom…"
   },
   "status": {
     "asset": {

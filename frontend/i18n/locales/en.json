@@ -1472,7 +1472,8 @@
     "loadError": "Failed to load data.",
     "yes": "Yes",
     "no": "No",
-    "assetPickerEmpty": "No assets available"
+    "assetPickerEmpty": "No assets available",
+    "periodCustom": "Custom range…"
   },
   "status": {
     "asset": {
