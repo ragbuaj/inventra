@@ -40,7 +40,15 @@ type CellError struct {
 // RowResult is the outcome of validating one RawRow: whether it is valid,
 // its normalized data (on success), any per-cell errors, and a
 // human-readable reference (e.g. a code/name) used in error reporting and
-// duplicate detection.
+// duplicate detection. For targets whose NeedsApproval() is true,
+// NormalizedRef carries the resolved office UUID string (parseable by
+// uuid.Parse) used to route the batch's approval request — see
+// firstValidOffice/executePhase in worker.go, which reads it off the first
+// valid row to populate the job's office_id. Targets with no office concept
+// leave it empty. A later importer (e.g. the asset importer, Task 10) MUST
+// honor this contract for NeedsApproval() targets: set NormalizedRef to the
+// row's resolved office UUID string, or approval routing will fail closed
+// (see the M3 "noOffice" guard in worker.go).
 type RowResult struct {
 	RowNo         int
 	Valid         bool

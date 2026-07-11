@@ -28,6 +28,7 @@ import (
 
 	sqlc "github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/approval"
+	"github.com/ragbuaj/inventra/internal/authz"
 )
 
 // Submitter is the narrow slice of approval.Service the worker depends on: it
@@ -43,16 +44,22 @@ type Submitter interface {
 // execute phases. One tick does at most one unit of work (one validate OR one
 // execute) so callers can bound how much work happens per poll interval.
 type Worker struct {
-	svc  *Service
-	pool *pgxpool.Pool
-	rdb  *redis.Client
-	sub  Submitter
-	poll time.Duration
+	svc   *Service
+	pool  *pgxpool.Pool
+	rdb   *redis.Client
+	sub   Submitter
+	scope *authz.ScopeService
+	poll  time.Duration
 }
 
-// NewWorker constructs a Worker. poll is the interval between ticks in Run.
-func NewWorker(svc *Service, pool *pgxpool.Pool, rdb *redis.Client, sub Submitter, poll time.Duration) *Worker {
-	return &Worker{svc: svc, pool: pool, rdb: rdb, sub: sub, poll: poll}
+// NewWorker constructs a Worker. poll is the interval between ticks in Run;
+// a non-positive poll defaults to 2s (a zero-value time.Duration would make
+// time.NewTicker panic).
+func NewWorker(svc *Service, pool *pgxpool.Pool, rdb *redis.Client, sub Submitter, scope *authz.ScopeService, poll time.Duration) *Worker {
+	if poll <= 0 {
+		poll = 2 * time.Second
+	}
+	return &Worker{svc: svc, pool: pool, rdb: rdb, sub: sub, scope: scope, poll: poll}
 }
 
 // progressKey returns the Redis key used to publish live validate-phase
@@ -79,6 +86,35 @@ type progress struct {
 	Phase string `json:"phase"`
 	Done  int    `json:"done"`
 	Total int    `json:"total"`
+}
+
+// resolveMakerScope resolves the maker's real data scope for the "imports"
+// module, mirroring internal/masterdata/common/scope.go CallerOfficeScope but
+// without a Gin context (the worker runs outside any HTTP request — there is
+// no request to resolve the caller from, so the maker's user row is looked up
+// directly by ID). This closes the M4 scope-bypass finding: validatePhase
+// must enforce the SAME per-row visibility ValidateRows would see from a live
+// request, not an unconditional AllScope:true.
+func (w *Worker) resolveMakerScope(ctx context.Context, makerID uuid.UUID) (Scope, error) {
+	user, err := w.svc.q.GetUserByID(ctx, makerID)
+	if err != nil {
+		return Scope{}, err
+	}
+	sc, err := w.scope.Resolve(ctx, user.RoleID, user.OfficeID, "imports")
+	if err != nil {
+		return Scope{}, err
+	}
+	switch sc.Level {
+	case sqlc.SharedScopeLevelGlobal:
+		return Scope{AllScope: true, UserID: makerID}, nil
+	case sqlc.SharedScopeLevelOwn:
+		if user.OfficeID != nil {
+			return Scope{AllScope: false, OfficeIDs: []uuid.UUID{*user.OfficeID}, UserID: makerID}, nil
+		}
+		return Scope{AllScope: false, OfficeIDs: []uuid.UUID{}, UserID: makerID}, nil
+	default: // office / office_subtree
+		return Scope{AllScope: false, OfficeIDs: sc.OfficeIDs, UserID: makerID}, nil
+	}
 }
 
 // Recover resets any job left in an in-flight state (processing/executing) by
@@ -197,7 +233,21 @@ func (w *Worker) validatePhase(ctx context.Context) (didWork bool, err error) {
 		return true, tx.Commit(ctx)
 	}
 
-	scope := Scope{AllScope: true, UserID: job.CreatedByID}
+	// F1/M4: resolve the maker's REAL data scope instead of hardcoding
+	// AllScope:true, which bypassed the maker's office scope entirely.
+	// Fail closed (never AllScope:true) if scope resolution itself errors.
+	scope, err := w.resolveMakerScope(ctx, job.CreatedByID)
+	if err != nil {
+		key := "scopeResolveFailed"
+		if _, sErr := qtx.SetJobResult(ctx, sqlc.SetJobResultParams{
+			ID:       job.ID,
+			Status:   sqlc.SharedImportStatusFailed,
+			ErrorKey: &key,
+		}); sErr != nil {
+			return true, sErr
+		}
+		return true, tx.Commit(ctx)
+	}
 	results, err := target.ValidateRows(ctx, rawRows, scope)
 	if err != nil {
 		return true, err
@@ -302,9 +352,45 @@ func (w *Worker) executePhase(ctx context.Context) (didWork bool, err error) {
 	}
 
 	if target.NeedsApproval() {
+		// F3/M1: idempotency guard. If this job was already claimed once and
+		// crashed/errored between Submit committing and the request_id being
+		// persisted (or is otherwise re-run with a request already recorded),
+		// do not submit a second approval request — just make sure the status
+		// reflects "awaiting_approval" and move on.
+		if job.RequestID != nil {
+			if _, err := qtx.SetJobRequest(ctx, sqlc.SetJobRequestParams{
+				ID:        job.ID,
+				RequestID: job.RequestID,
+			}); err != nil {
+				return true, err
+			}
+			if err := tx.Commit(ctx); err != nil {
+				return true, err
+			}
+			return true, nil
+		}
+
 		var officeID uuid.UUID
 		if job.OfficeID != nil {
 			officeID = *job.OfficeID
+		}
+
+		// F4/M3: an approval target with no resolvable office cannot be
+		// routed to a maker-checker chain (approval.Submit rejects
+		// uuid.Nil). Fail the job explicitly instead of calling Submit and
+		// stranding it in "executing".
+		if officeID == uuid.Nil {
+			if _, err := qtx.SetJobResult(ctx, sqlc.SetJobResultParams{
+				ID:       job.ID,
+				Status:   sqlc.SharedImportStatusFailed,
+				ErrorKey: strPtr("noOffice"),
+			}); err != nil {
+				return true, err
+			}
+			if err := tx.Commit(ctx); err != nil {
+				return true, err
+			}
+			return true, nil
 		}
 
 		totalValue, sumErr := sumHarga(domainRows)
@@ -342,6 +428,13 @@ func (w *Worker) executePhase(ctx context.Context) (didWork bool, err error) {
 			Maker:        job.CreatedByID,
 		})
 		if subErr != nil {
+			// F2/M2: terminal-fail instead of leaving the job stuck in
+			// "executing" forever on a deterministic error (e.g.
+			// approval.ErrNoThreshold) — a poison pill that would otherwise
+			// loop forever across Recover/retry cycles.
+			if fErr := w.failJob(ctx, job.ID, "submitFailed"); fErr != nil {
+				return true, fErr
+			}
 			return true, subErr
 		}
 
@@ -363,6 +456,14 @@ func (w *Worker) executePhase(ctx context.Context) (didWork bool, err error) {
 		TotalRows: int(job.TotalRows),
 	}, domainRows)
 	if execErr != nil {
+		// F2/M2: terminal-fail instead of leaving the job stuck in
+		// "executing". The claiming tx is still open (uncommitted) here —
+		// roll it back first to release the job row's lock before failJob
+		// opens its own transaction to record the failure.
+		_ = tx.Rollback(ctx)
+		if fErr := w.failJob(ctx, job.ID, "executeFailed"); fErr != nil {
+			return true, fErr
+		}
 		return true, execErr
 	}
 
@@ -379,6 +480,31 @@ func (w *Worker) executePhase(ctx context.Context) (didWork bool, err error) {
 		return true, err
 	}
 	return true, nil
+}
+
+// failJob transitions a job to "failed" with the given error_key in its own
+// freshly-committed transaction. Used by executePhase to give a job a
+// terminal outcome when a deterministic error (approval Submit or target
+// Execute) occurs, instead of leaving it stuck in an in-flight status where
+// Recover would just reclaim and retry it forever (a poison pill). Any
+// caller with an outer transaction still open on the same job row must roll
+// it back before calling this, to avoid a self-deadlock on the row lock.
+func (w *Worker) failJob(ctx context.Context, jobID uuid.UUID, errorKey string) error {
+	tx, err := w.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	qtx := w.svc.q.WithTx(tx)
+	if _, err := qtx.SetJobResult(ctx, sqlc.SetJobResultParams{
+		ID:       jobID,
+		Status:   sqlc.SharedImportStatusFailed,
+		ErrorKey: &errorKey,
+	}); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 // firstValidOffice returns the office UUID parsed from the first valid
