@@ -93,9 +93,11 @@ type column struct {
 
 // columnsFor maps a ReportResult's concrete Rows slice to its column
 // definitions plus the row count. The column set and Indonesian headers
-// mirror the report-table spec (assets: Kode, Nama Aset, Kategori, Harga
-// Beli, Akum. Penyusutan, Nilai Buku, …); the row's Status field is
-// intentionally omitted from the assets export columns to match that spec.
+// mirror the Laporan mockup's column arrays verbatim
+// (docs/design/Laporan.dc.html: colDepr/colUtil/colBiaya, plus the
+// assets/transfers/disposals/opname tables): fields present on a row struct
+// but absent from the mockup's table (assets Status, utilization Tag) are
+// intentionally not exported as columns.
 func columnsFor(res ReportResult) ([]column, int, error) {
 	switch rows := res.Rows.(type) {
 	case []AssetRow:
@@ -111,27 +113,26 @@ func columnsFor(res ReportResult) ([]column, int, error) {
 	case []DeprRow:
 		return []column{
 			{"Periode", 30, "L", "", func(i int) string { return rows[i].Period }},
-			{"Saldo Awal", 40, "R", "opening", func(i int) string { return rows[i].Opening }},
-			{"Beban Penyusutan", 40, "R", "amount", func(i int) string { return rows[i].Amount }},
-			{"Saldo Akhir", 40, "R", "closing", func(i int) string { return rows[i].Closing }},
+			{"Nilai Awal", 40, "R", "opening", func(i int) string { return rows[i].Opening }},
+			{"Penyusutan", 40, "R", "amount", func(i int) string { return rows[i].Amount }},
+			{"Nilai Akhir", 40, "R", "closing", func(i int) string { return rows[i].Closing }},
 		}, len(rows), nil
 
 	case []UtilRow:
 		return []column{
-			{"Nama Aset", 45, "L", "", func(i int) string { return rows[i].Name }},
-			{"Kode", 22, "L", "", func(i int) string { return rows[i].Tag }},
-			{"Kategori", 28, "L", "", func(i int) string { return rows[i].Category }},
-			{"Hari Dipinjam", 26, "R", "days_loaned", func(i int) string { return strconv.FormatInt(rows[i].DaysLoaned, 10) }},
-			{"Jumlah Peminjaman", 30, "R", "loan_count", func(i int) string { return strconv.FormatInt(rows[i].LoanCount, 10) }},
-			{"Utilisasi", 22, "R", "", func(i int) string { return strconv.FormatFloat(rows[i].UtilizationPct, 'f', 1, 64) + "%" }},
+			{"Nama Aset", 55, "L", "", func(i int) string { return rows[i].Name }},
+			{"Kategori", 34, "L", "", func(i int) string { return rows[i].Category }},
+			{"Hari Dipinjam", 28, "R", "days_loaned", func(i int) string { return strconv.FormatInt(rows[i].DaysLoaned, 10) }},
+			{"Jml Peminjaman", 30, "R", "loan_count", func(i int) string { return strconv.FormatInt(rows[i].LoanCount, 10) }},
+			{"Utilisasi", 24, "R", "", func(i int) string { return strconv.FormatFloat(rows[i].UtilizationPct, 'f', 1, 64) + "%" }},
 		}, len(rows), nil
 
 	case []MaintRow:
 		return []column{
-			{"Nama Aset", 45, "L", "", func(i int) string { return rows[i].AssetName }},
-			{"Kategori", 28, "L", "", func(i int) string { return rows[i].Category }},
-			{"Jenis", 22, "L", "", func(i int) string { return rows[i].Type }},
-			{"Jumlah Tindakan", 28, "R", "actions", func(i int) string { return strconv.FormatInt(rows[i].Actions, 10) }},
+			{"Aset", 50, "L", "", func(i int) string { return rows[i].AssetName }},
+			{"Kategori", 30, "L", "", func(i int) string { return rows[i].Category }},
+			{"Tipe", 24, "L", "", func(i int) string { return rows[i].Type }},
+			{"Jml Tindakan", 26, "R", "actions", func(i int) string { return strconv.FormatInt(rows[i].Actions, 10) }},
 			{"Total Biaya", 32, "R", "total_cost", func(i int) string { return rows[i].TotalCost }},
 		}, len(rows), nil
 
@@ -176,8 +177,9 @@ func columnsFor(res ReportResult) ([]column, int, error) {
 // ── Report xlsx/pdf ──────────────────────────────────────────────────────────
 
 // BuildReportXLSX renders a ReportResult as a single-sheet xlsx workbook:
-// header row (columnsFor(res)), one data row per res.Rows entry, and a
-// trailing TOTAL row populated from res.Totals for the money columns.
+// header row (columnsFor(res)), one data row per res.Rows entry, and — when
+// res.Totals is non-empty — a trailing TOTAL row populated from res.Totals
+// for the money columns (same rule as BuildReportPDF).
 func BuildReportXLSX(res ReportResult, meta ExportMeta) ([]byte, error) {
 	cols, n, err := columnsFor(res)
 	if err != nil {
@@ -214,28 +216,32 @@ func BuildReportXLSX(res ReportResult, meta ExportMeta) ([]byte, error) {
 		}
 	}
 
-	totalRow := n + 2
-	labelCell, err := excelize.CoordinatesToCellName(1, totalRow)
-	if err != nil {
-		return nil, err
-	}
-	if err := f.SetCellValue(sheet, labelCell, "TOTAL"); err != nil {
-		return nil, err
-	}
-	for i, c := range cols {
-		if c.TotalsKey == "" {
-			continue
-		}
-		v, ok := res.Totals[c.TotalsKey]
-		if !ok {
-			continue
-		}
-		cell, err := excelize.CoordinatesToCellName(i+1, totalRow)
+	// TOTAL row only for report types that carry totals (transfers/opname
+	// have an empty Totals map and get no TOTAL row — same rule as the PDF).
+	if len(res.Totals) > 0 {
+		totalRow := n + 2
+		labelCell, err := excelize.CoordinatesToCellName(1, totalRow)
 		if err != nil {
 			return nil, err
 		}
-		if err := f.SetCellValue(sheet, cell, v); err != nil {
+		if err := f.SetCellValue(sheet, labelCell, "TOTAL"); err != nil {
 			return nil, err
+		}
+		for i, c := range cols {
+			if c.TotalsKey == "" {
+				continue
+			}
+			v, ok := res.Totals[c.TotalsKey]
+			if !ok {
+				continue
+			}
+			cell, err := excelize.CoordinatesToCellName(i+1, totalRow)
+			if err != nil {
+				return nil, err
+			}
+			if err := f.SetCellValue(sheet, cell, v); err != nil {
+				return nil, err
+			}
 		}
 	}
 

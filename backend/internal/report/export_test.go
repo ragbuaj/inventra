@@ -26,6 +26,25 @@ var testMeta = ExportMeta{
 // real DB connection).
 func nilSvc() *Service { return NewService(nil, nil) }
 
+// assertHeaderRow asserts the sheet's full header row equals headers — every
+// column label in order, and no extra column beyond the expected set — so a
+// swapped, mislabeled, or added header anywhere fails the test.
+func assertHeaderRow(t *testing.T, f *excelize.File, sheet string, headers []string) {
+	t.Helper()
+	for i, h := range headers {
+		cell, err := excelize.CoordinatesToCellName(i+1, 1)
+		require.NoError(t, err)
+		v, err := f.GetCellValue(sheet, cell)
+		require.NoError(t, err)
+		assert.Equal(t, h, v, "header col %d", i+1)
+	}
+	extra, err := excelize.CoordinatesToCellName(len(headers)+1, 1)
+	require.NoError(t, err)
+	v, err := f.GetCellValue(sheet, extra)
+	require.NoError(t, err)
+	assert.Equal(t, "", v, "unexpected extra header column %d", len(headers)+1)
+}
+
 // ── assets ───────────────────────────────────────────────────────────────────
 
 func assetsFixture() ReportResult {
@@ -51,15 +70,7 @@ func TestBuildReportXLSXAssets(t *testing.T) {
 	sheet := f.GetSheetName(0)
 	assert.Equal(t, "Laporan", sheet)
 
-	// header row matches the column labels
-	headers := []string{"Kode", "Nama Aset", "Kategori", "Harga Beli", "Akum. Penyusutan", "Nilai Buku"}
-	for i, h := range headers {
-		cell, err := excelize.CoordinatesToCellName(i+1, 1)
-		require.NoError(t, err)
-		v, err := f.GetCellValue(sheet, cell)
-		require.NoError(t, err)
-		assert.Equal(t, h, v, "header col %d", i)
-	}
+	assertHeaderRow(t, f, sheet, []string{"Kode", "Nama Aset", "Kategori", "Harga Beli", "Akum. Penyusutan", "Nilai Buku"})
 
 	v, err := f.GetCellValue(sheet, "A2")
 	require.NoError(t, err)
@@ -110,9 +121,9 @@ func TestBuildReportXLSXDepreciation(t *testing.T) {
 	defer f.Close() //nolint:errcheck
 	sheet := f.GetSheetName(0)
 
-	v, _ := f.GetCellValue(sheet, "A1")
-	assert.Equal(t, "Periode", v)
-	v, _ = f.GetCellValue(sheet, "A2")
+	assertHeaderRow(t, f, sheet, []string{"Periode", "Nilai Awal", "Penyusutan", "Nilai Akhir"})
+
+	v, _ := f.GetCellValue(sheet, "A2")
 	assert.Equal(t, "2026-06", v)
 	v, _ = f.GetCellValue(sheet, "C2")
 	assert.Equal(t, "500000.00", v)
@@ -140,15 +151,17 @@ func TestBuildReportXLSXUtilization(t *testing.T) {
 	defer f.Close() //nolint:errcheck
 	sheet := f.GetSheetName(0)
 
+	assertHeaderRow(t, f, sheet, []string{"Nama Aset", "Kategori", "Hari Dipinjam", "Jml Peminjaman", "Utilisasi"})
+
 	v, _ := f.GetCellValue(sheet, "A2")
 	assert.Equal(t, "Proyektor", v)
-	v, _ = f.GetCellValue(sheet, "D2")
+	v, _ = f.GetCellValue(sheet, "C2")
 	assert.Equal(t, "20", v)
-	v, _ = f.GetCellValue(sheet, "F2")
+	v, _ = f.GetCellValue(sheet, "E2")
 	assert.Equal(t, "66.7%", v)
 	v, _ = f.GetCellValue(sheet, "A3")
 	assert.Equal(t, "TOTAL", v)
-	v, _ = f.GetCellValue(sheet, "E3")
+	v, _ = f.GetCellValue(sheet, "D3")
 	assert.Equal(t, "4", v)
 }
 
@@ -169,6 +182,8 @@ func TestBuildReportXLSXMaintenance(t *testing.T) {
 	require.NoError(t, err)
 	defer f.Close() //nolint:errcheck
 	sheet := f.GetSheetName(0)
+
+	assertHeaderRow(t, f, sheet, []string{"Aset", "Kategori", "Tipe", "Jml Tindakan", "Total Biaya"})
 
 	v, _ := f.GetCellValue(sheet, "A2")
 	assert.Equal(t, "AC Split", v)
@@ -198,14 +213,17 @@ func TestBuildReportXLSXTransfers(t *testing.T) {
 	defer f.Close() //nolint:errcheck
 	sheet := f.GetSheetName(0)
 
+	assertHeaderRow(t, f, sheet, []string{"Nama Aset", "Kode", "Dari", "Ke", "Status", "Tgl Kirim", "Tgl Terima", "No. BAST"})
+
 	v, _ := f.GetCellValue(sheet, "A2")
 	assert.Equal(t, "Laptop", v)
 	v, _ = f.GetCellValue(sheet, "F2")
 	assert.Equal(t, "2026-06-15", v)
 	v, _ = f.GetCellValue(sheet, "G2")
 	assert.Equal(t, "", v) // nullable received date renders as ""
+	// no TOTAL row: transfers has an empty Totals map
 	v, _ = f.GetCellValue(sheet, "A3")
-	assert.Equal(t, "TOTAL", v)
+	assert.Equal(t, "", v)
 }
 
 func TestBuildReportPDFTransfers(t *testing.T) {
@@ -239,6 +257,8 @@ func TestBuildReportXLSXDisposals(t *testing.T) {
 	defer f.Close() //nolint:errcheck
 	sheet := f.GetSheetName(0)
 
+	assertHeaderRow(t, f, sheet, []string{"Nama Aset", "Kode", "Metode", "Tanggal", "Nilai Buku", "Hasil Pelepasan", "Laba/Rugi"})
+
 	v, _ := f.GetCellValue(sheet, "A2")
 	assert.Equal(t, "Printer Lama", v)
 	v, _ = f.GetCellValue(sheet, "G2")
@@ -267,14 +287,17 @@ func TestBuildReportXLSXOpname(t *testing.T) {
 	defer f.Close() //nolint:errcheck
 	sheet := f.GetSheetName(0)
 
+	assertHeaderRow(t, f, sheet, []string{"Sesi", "Kantor", "Periode", "Status", "Total Item", "Varians"})
+
 	v, _ := f.GetCellValue(sheet, "A2")
 	assert.Equal(t, "Opname Juni", v)
 	v, _ = f.GetCellValue(sheet, "E2")
 	assert.Equal(t, "50", v)
 	v, _ = f.GetCellValue(sheet, "F2")
 	assert.Equal(t, "2", v)
+	// no TOTAL row: opname has an empty Totals map
 	v, _ = f.GetCellValue(sheet, "A3")
-	assert.Equal(t, "TOTAL", v)
+	assert.Equal(t, "", v)
 }
 
 // ── unsupported row type ─────────────────────────────────────────────────────
@@ -366,13 +389,7 @@ func TestBuildGlRecapXLSX(t *testing.T) {
 	defer f.Close() //nolint:errcheck
 	sheet := f.GetSheetName(0)
 
-	headers := []string{"Kode Akun", "Nama Akun", "Debit", "Kredit"}
-	for i, h := range headers {
-		cell, err := excelize.CoordinatesToCellName(i+1, 1)
-		require.NoError(t, err)
-		v, _ := f.GetCellValue(sheet, cell)
-		assert.Equal(t, h, v)
-	}
+	assertHeaderRow(t, f, sheet, []string{"Kode Akun", "Nama Akun", "Debit", "Kredit"})
 
 	v, _ := f.GetCellValue(sheet, "A2")
 	assert.Equal(t, "1101", v)
