@@ -47,6 +47,28 @@ func seedOffice(t *testing.T, pool *pgxpool.Pool, typeCode, name, code string) u
 	return officeID
 }
 
+// seedChildOffice inserts a fresh office_type + one office as a child of
+// parentID (distinct name/code) and returns the office ID. Used to exercise
+// GetOfficeSubtree's hierarchy expansion, as opposed to seedOffice's
+// top-level (parent_id = NULL) offices.
+func seedChildOffice(t *testing.T, pool *pgxpool.Pool, parentID uuid.UUID, typeCode, name, code string) uuid.UUID {
+	t.Helper()
+	ctx := context.Background()
+
+	var typeID uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx,
+		`INSERT INTO masterdata.office_types (name) VALUES ($1) RETURNING id`,
+		typeCode).Scan(&typeID))
+
+	var officeID uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx,
+		`INSERT INTO masterdata.offices (parent_id, office_type_id, name, code)
+		 VALUES ($1, $2, $3, $4) RETURNING id`,
+		parentID, typeID, name, code).Scan(&officeID))
+
+	return officeID
+}
+
 // seedCategory inserts a masterdata.categories row (intangible, avoids the room
 // FK constraint) and returns its id.
 func seedCategory(t *testing.T, pool *pgxpool.Pool, code string) uuid.UUID {
@@ -325,6 +347,12 @@ func (h *harness) search(t *testing.T, userID, roleID uuid.UUID, q string) (int,
 
 // ─── scenarios ───────────────────────────────────────────────────────────────
 
+// TestSearch_Integration's subtests share a single Postgres/Redis container and
+// harness (seeded once in newHarness) and are order-dependent: they run
+// sequentially (t.Run, not t.Parallel) because scenario (f) seeds 7 extra
+// "Bulk SRCH" assets into office A that would otherwise pollute earlier
+// scenarios' result counts if run out of order or in parallel. Do not
+// parallelize these subtests.
 func TestSearch_Integration(t *testing.T) {
 	h := newHarness(t)
 
@@ -369,9 +397,19 @@ func TestSearch_Integration(t *testing.T) {
 	})
 
 	// (c) role with office_subtree scope on module "assets", user placed in
-	// office A: sees A's asset, not B's (exercises the subtree-expansion path,
-	// distinct from the "own"/"office" path in scenario b).
+	// office A, which now has a child office C: sees both A's asset and C's
+	// asset (exercises GetOfficeSubtree's actual hierarchy expansion — a
+	// regression degrading office_subtree to plain office would fail this),
+	// while sibling office B's asset stays excluded. The office-subtree Redis
+	// cache is keyed per-office ("authz:subtree:<officeID>") and this is the
+	// first scenario to resolve module "assets" for office A, so seeding C
+	// before calling h.search guarantees the cache is populated with C
+	// already in the tree (no stale-cache invalidation needed).
 	t.Run("subtree_scope_filters", func(t *testing.T) {
+		officeC := seedChildOffice(t, h.pool, h.officeA, "SrchTypeC-"+h.uid, "Kantor SRCH Charlie", "OFC-SRCH-C-"+h.uid)
+		assetCTag := "TAG-SRCH-C-" + h.uid
+		seedAsset(t, h.pool, assetCTag, "Laptop Charlie SRCH", h.catID, officeC, "available")
+
 		code, resp := h.search(t, h.subtreeUser, h.subtreeRole, "SRCH")
 		require.Equal(t, http.StatusOK, code)
 
@@ -381,7 +419,8 @@ func TestSearch_Integration(t *testing.T) {
 		for _, it := range assetsGroup.Items {
 			subtitles = append(subtitles, it.Subtitle)
 		}
-		assert.Contains(t, subtitles, h.assetATag)
+		assert.Contains(t, subtitles, h.assetATag, "office-A's own asset must be present")
+		assert.Contains(t, subtitles, assetCTag, "office-C's asset must be present via subtree expansion under office A")
 		assert.NotContains(t, subtitles, h.assetBTag, "office-B asset is outside office A's subtree")
 	})
 
