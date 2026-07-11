@@ -1,8 +1,11 @@
 package importer
 
 import (
+	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/xuri/excelize/v2"
 )
 
 var testCols = []ColumnSpec{
@@ -67,5 +70,65 @@ func TestParse_BadFormat(t *testing.T) {
 	_, err := Parse("pdf", []byte("x"), testCols, 100)
 	if err != ErrBadFormat {
 		t.Fatalf("want ErrBadFormat, got %v", err)
+	}
+}
+
+func TestParseCSV_ShortRow(t *testing.T) {
+	csv := "nama,harga\nMeja\n"
+	rows, err := Parse("csv", []byte(csv), testCols, 100)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("want 1 row, got %d", len(rows))
+	}
+	if rows[0].Cells["nama"] != "Meja" {
+		t.Fatalf("want nama=Meja, got %q", rows[0].Cells["nama"])
+	}
+	if rows[0].Cells["harga"] != "" {
+		t.Fatalf("want harga empty, got %q", rows[0].Cells["harga"])
+	}
+}
+
+func TestParseXLSX_RoundTrip(t *testing.T) {
+	f := excelize.NewFile()
+	defer f.Close()
+	sheet := f.GetSheetName(0)
+	f.SetCellValue(sheet, "A1", "nama")
+	f.SetCellValue(sheet, "B1", "harga")
+	f.SetCellValue(sheet, "A2", "Meja")
+	f.SetCellValue(sheet, "B2", "1000")
+
+	var buf bytes.Buffer
+	wb, err := f.WriteToBuffer()
+	if err != nil {
+		t.Fatalf("WriteToBuffer failed: %v", err)
+	}
+	buf = *wb
+
+	rows, err := Parse("xlsx", buf.Bytes(), testCols, 100)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("want 1 row, got %d", len(rows))
+	}
+	if rows[0].Cells["nama"] != "Meja" || rows[0].Cells["harga"] != "1000" {
+		t.Fatalf("bad cell values: %+v", rows[0])
+	}
+
+	// Header-only workbook must yield ErrEmptyFile.
+	fEmpty := excelize.NewFile()
+	defer fEmpty.Close()
+	sheetEmpty := fEmpty.GetSheetName(0)
+	fEmpty.SetCellValue(sheetEmpty, "A1", "nama")
+	fEmpty.SetCellValue(sheetEmpty, "B1", "harga")
+	wbEmpty, err := fEmpty.WriteToBuffer()
+	if err != nil {
+		t.Fatalf("WriteToBuffer failed: %v", err)
+	}
+	_, err = Parse("xlsx", wbEmpty.Bytes(), testCols, 100)
+	if err != ErrEmptyFile {
+		t.Fatalf("want ErrEmptyFile, got %v", err)
 	}
 }
