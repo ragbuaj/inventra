@@ -646,8 +646,7 @@
       "emptySub": "Semua aset tercocokkan dengan baik.",
       "followupDisposal": "Ajukan Penghapusan",
       "followupTransfer": "Ajukan Mutasi",
-      "followupMaintenance": "Laporkan Kerusakan",
-      "comingSoon": "Segera hadir"
+      "followupMaintenance": "Laporkan Kerusakan"
     },
     "followup": {
       "title": "Ajukan Mutasi — Aset Salah Lokasi",

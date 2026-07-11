@@ -491,7 +491,11 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     records do), a data-model consequence, not a UI choice; **(h)** the stock-opname "damaged" followup
 >     creates the corrective record **directly**, with no approval step (mirrors the `not_found`→disposal
 >     and `misplaced`→transfer followups, none of which go through maker-checker either), idempotent via
->     `followup_record_id`. **Honest limitations:** the photo-upload path (`POST /maintenance/reports`
+>     `followup_record_id`; **(i)** Staf's `maintenance` data-scope is seeded **`office`** (mirroring the
+>     `assignments` module precedent), not the spec's literal `own` wording — via direct API a Staf can
+>     submit a damage report for any asset in their office (still maker-checker-gated + duplicate-guarded);
+>     the UI picker limits the choice to assets the Staf actually holds. Intentional, consistent with the
+>     borrow-request precedent. **Honest limitations:** the photo-upload path (`POST /maintenance/reports`
 >     multipart) is exercised by unit/component tests but **not** integration-tested end-to-end (would
 >     need a MinIO testcontainer harness like the asset-attachments suite); the Laporan tab's "Riwayat
 >     Laporan Saya" resolves the reported asset's name via a best-effort client-side `useAssets().get(id)`

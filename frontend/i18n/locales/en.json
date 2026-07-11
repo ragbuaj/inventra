@@ -646,8 +646,7 @@
       "emptySub": "All assets reconciled cleanly.",
       "followupDisposal": "Request Disposal",
       "followupTransfer": "Request Transfer",
-      "followupMaintenance": "Report Damage",
-      "comingSoon": "Coming soon"
+      "followupMaintenance": "Report Damage"
     },
     "followup": {
       "title": "Request Transfer — Misplaced Asset",
