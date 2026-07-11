@@ -50,11 +50,11 @@ func TestResolvePeriodCustom(t *testing.T) {
 func TestResolvePeriodErrors(t *testing.T) {
 	now := date("2026-07-11")
 	for _, tc := range []struct{ preset, from, to string }{
-		{"bogus", "", ""},              // unknown preset
-		{"", "", ""},                   // nothing given
-		{"", "2026-01-01", ""},         // half a custom range
-		{"", "2026-02-01", "2026-01-01"}, // from > to
-		{"", "01-02-2026", "2026-03-01"}, // bad format
+		{"bogus", "", ""},                      // unknown preset
+		{"", "", ""},                           // nothing given
+		{"", "2026-01-01", ""},                 // half a custom range
+		{"", "2026-02-01", "2026-01-01"},       // from > to
+		{"", "01-02-2026", "2026-03-01"},       // bad format
 		{"last30", "2026-01-01", "2026-02-01"}, // both preset and custom
 	} {
 		_, _, err := ResolvePeriod(tc.preset, tc.from, tc.to, now)
