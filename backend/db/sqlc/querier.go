@@ -72,6 +72,21 @@ type Querier interface {
 	CreateThreshold(ctx context.Context, arg CreateThresholdParams) (ApprovalApprovalThreshold, error)
 	CreateTransfer(ctx context.Context, arg CreateTransferParams) (TransferAssetTransfer, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (IdentityUser, error)
+	// Reporting & Dashboard module — read-only aggregates.
+	// Every query: deleted_at IS NULL + the standard scope clause
+	//   (sqlc.arg(all_scope)::boolean OR office_id = ANY(sqlc.arg(office_ids)::uuid[]))
+	// plus an optional narg(office_filter) drill-down (validated against scope in the handler).
+	// Money aggregates: COALESCE(SUM(x), 0)::text — never float.
+	// Valuation rule: excluded_from_valuation is excluded from money sums, included in counts.
+	DashboardAssetKpis(ctx context.Context, arg DashboardAssetKpisParams) (DashboardAssetKpisRow, error)
+	DashboardAssetsByCategory(ctx context.Context, arg DashboardAssetsByCategoryParams) ([]DashboardAssetsByCategoryRow, error)
+	DashboardAssetsByOffice(ctx context.Context, arg DashboardAssetsByOfficeParams) ([]DashboardAssetsByOfficeRow, error)
+	DashboardAssetsByRoom(ctx context.Context, officeID uuid.UUID) ([]DashboardAssetsByRoomRow, error)
+	DashboardDepreciationInPeriod(ctx context.Context, arg DashboardDepreciationInPeriodParams) (string, error)
+	DashboardMaintenanceCost(ctx context.Context, arg DashboardMaintenanceCostParams) (DashboardMaintenanceCostRow, error)
+	DashboardMaintenanceDueCount(ctx context.Context, arg DashboardMaintenanceDueCountParams) (int64, error)
+	DashboardMaintenanceDueList(ctx context.Context, arg DashboardMaintenanceDueListParams) ([]DashboardMaintenanceDueListRow, error)
+	DashboardOverdueCount(ctx context.Context, arg DashboardOverdueCountParams) (int64, error)
 	DecideRequestApproval(ctx context.Context, arg DecideRequestApprovalParams) (ApprovalRequestApproval, error)
 	// Regeneration window: everything past the closed watermark up to the target period.
 	DeleteEntriesAfterWatermark(ctx context.Context, arg DeleteEntriesAfterWatermarkParams) error
