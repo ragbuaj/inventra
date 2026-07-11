@@ -249,15 +249,12 @@ test.describe('Stock Opname — real backend (lifecycle + follow-up + report e2e
       expect(await countAsset2DisposalRequests()).toBe(1)
     }).toPass({ timeout: 10_000 })
 
-    // The page never reads `followup_request_id` to disable the button (no
-    // "sudah diajukan" label exists in Task 11's i18n or markup) — the button
-    // stays visible and enabled after a successful follow-up, so a second
-    // click is a genuinely reachable user action. Perform it, then re-query
-    // the requests endpoint: if the backend's ErrAlreadyFollowedUp guard (409)
-    // is working, no second asset_disposal request is created for asset2, so
-    // the count must still be exactly 1 (not 2).
-    await followupBtn.click()
-    await page.waitForTimeout(1000) // let any (rejected) second follow-up request settle
+    // Since the maintenance module landed, the page disables the follow-up
+    // button once the item carries a followup link (`followup_request_id` /
+    // `followup_record_id`) — UI-level idempotency on top of the backend's
+    // ErrAlreadyFollowedUp guard. Assert the button is disabled and that no
+    // second asset_disposal request exists for asset2.
+    await expect(followupBtn).toBeDisabled({ timeout: 10_000 })
     expect(await countAsset2DisposalRequests()).toBe(1)
 
     // --- close (reconciling -> closed) ---

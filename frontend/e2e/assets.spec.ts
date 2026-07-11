@@ -237,9 +237,10 @@ test.describe('Assets — real backend (maker-checker e2e)', () => {
     await page.getByRole('button', { name: 'Riwayat Penugasan', exact: true }).click()
     await expect(page.getByText('Belum ada data — modul belum tersedia', { exact: true })).toBeVisible()
 
-    // Maintenance tab — same shared empty state.
+    // Maintenance tab — real module (lazy-loaded); a fresh asset has no
+    // records, so the tab's own empty state renders.
     await page.getByRole('button', { name: 'Riwayat Maintenance', exact: true }).click()
-    await expect(page.getByText('Belum ada data — modul belum tersedia', { exact: true })).toBeVisible()
+    await expect(page.getByText('Belum ada riwayat maintenance untuk aset ini', { exact: true })).toBeVisible()
   })
 
   test('Edit: changing name and notes is reflected on the detail page', async ({ page }) => {
