@@ -50,6 +50,7 @@ type fixture struct {
 	catName          string
 	maintCatName     string
 	assetA1Name      string
+	sfx              string // suffix used to build the deterministic asset tags (A1-<sfx>, …)
 }
 
 // seedFixture builds the deterministic scenario from the brief:
@@ -73,6 +74,7 @@ func seedFixture(t *testing.T, pool *pgxpool.Pool) fixture {
 		catName:      "Kategori " + sfx,
 		maintCatName: "Servis " + sfx,
 		assetA1Name:  "Laptop Direksi " + sfx,
+		sfx:          sfx,
 	}
 
 	var typeID uuid.UUID

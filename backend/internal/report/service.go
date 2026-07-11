@@ -6,8 +6,10 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/big"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -332,6 +334,350 @@ func dashboardCacheKey(roleID uuid.UUID, all bool, ids []uuid.UUID, officeFilter
 	return fmt.Sprintf("report:dash:%s:%t:%x:%s:%s:%s",
 		roleID, all, h.Sum(nil)[:8], filter,
 		cur.From.Format("2006-01-02"), cur.To.Format("2006-01-02"))
+}
+
+// ── Report builder (assets / depreciation / utilization / maintenance) ───────
+//
+// Run assembles the GET /reports/:type payload for the four aggregate report
+// types. transfers/disposals/opname land in Task 6 (the handler that dispatches
+// here doesn't exist yet, so nothing can reach the default arm until then).
+
+// jsonRowLimit caps the rows embedded in a JSON report response; exports pass a
+// larger (effectively-unbounded) limit through ReportParams.RowLimit.
+const jsonRowLimit = 1000
+
+// ReportParams carries the common + per-type filters, already validated by the
+// handler (scope resolved, office_filter checked against scope, dates parsed).
+type ReportParams struct {
+	All          bool
+	OfficeIDs    []uuid.UUID
+	OfficeFilter *uuid.UUID
+	CategoryID   *uuid.UUID
+	Status       *string // assets only, one of shared.asset_status values
+	Basis        string  // depreciation only: "commercial"|"fiscal" (default commercial)
+	Cur, Prev    DateRange
+	RowLimit     int64 // jsonRowLimit for JSON, effectively-unbounded for export
+}
+
+// statusEnum converts the optional asset-status filter to the sqlc pointer enum.
+func (p ReportParams) statusEnum() *sqlc.SharedAssetStatus {
+	if p.Status == nil {
+		return nil
+	}
+	s := sqlc.SharedAssetStatus(*p.Status)
+	return &s
+}
+
+// basisEnum converts the depreciation basis to the sqlc enum, defaulting to
+// commercial when unset.
+func (p ReportParams) basisEnum() sqlc.SharedDepreciationBasis {
+	b := p.Basis
+	if b == "" {
+		b = "commercial"
+	}
+	return sqlc.SharedDepreciationBasis(b)
+}
+
+// lim32 narrows a row limit to the int32 the sqlc LIMIT params expect. A
+// non-positive or oversized value means "unbounded" (export path).
+func lim32(n int64) int32 {
+	if n <= 0 || n > math.MaxInt32 {
+		return math.MaxInt32
+	}
+	return int32(n)
+}
+
+// addDecimal accumulates a decimal money string into acc via big.Rat (never
+// float). Unparseable operands are skipped — the DB always emits parseable
+// COALESCE(...)::text money, so this only guards against surprises.
+func addDecimal(acc *big.Rat, v string) {
+	if r, ok := new(big.Rat).SetString(v); ok {
+		acc.Add(acc, r)
+	}
+}
+
+// Per-type report rows. JSON tags mirror the frontend DTO field names and are
+// exported so export.go (Task 7) can range over them.
+
+type AssetRow struct {
+	Tag          string `json:"asset_tag"`
+	Name         string `json:"name"`
+	Category     string `json:"category_name"`
+	Status       string `json:"status"`
+	PurchaseCost string `json:"purchase_cost"`
+	AccumDeprec  string `json:"accum_deprec"`
+	BookValue    string `json:"book_value"`
+}
+
+type DeprRow struct {
+	Period  string `json:"period"`
+	Opening string `json:"opening"`
+	Amount  string `json:"amount"`
+	Closing string `json:"closing"`
+}
+
+type UtilRow struct {
+	Name           string  `json:"name"`
+	Tag            string  `json:"asset_tag"`
+	Category       string  `json:"category_name"`
+	DaysLoaned     int64   `json:"days_loaned"`
+	LoanCount      int64   `json:"loan_count"`
+	UtilizationPct float64 `json:"utilization_pct"`
+}
+
+type MaintRow struct {
+	AssetName string `json:"asset_name"`
+	Category  string `json:"category_name"`
+	Type      string `json:"type"`
+	Actions   int64  `json:"actions"`
+	TotalCost string `json:"total_cost"`
+}
+
+// Run dispatches to the per-type builder. The four aggregate types are
+// implemented here; transfers/disposals/opname arms land in Task 6.
+func (s *Service) Run(ctx context.Context, typ string, p ReportParams) (ReportResult, error) {
+	switch typ {
+	case "assets":
+		return s.runAssets(ctx, p)
+	case "depreciation":
+		return s.runDepreciation(ctx, p)
+	case "utilization":
+		return s.runUtilization(ctx, p)
+	case "maintenance":
+		return s.runMaintenance(ctx, p)
+	default:
+		// transfers/disposals/opname arms land in Task 6.
+		return ReportResult{}, ErrInvalidReportType
+	}
+}
+
+// runAssets: every in-scope asset (rows list all, including excluded), with the
+// money KPIs/Totals/chart excluding excluded_from_valuation.
+func (s *Service) runAssets(ctx context.Context, p ReportParams) (ReportResult, error) {
+	rows, err := s.q.ReportAssetRows(ctx, sqlc.ReportAssetRowsParams{
+		AllScope: p.All, OfficeIds: p.OfficeIDs, OfficeFilter: p.OfficeFilter,
+		CategoryID: p.CategoryID, Status: p.statusEnum(), Lim: lim32(p.RowLimit),
+	})
+	if err != nil {
+		return ReportResult{}, err
+	}
+	totals, err := s.q.ReportAssetTotals(ctx, sqlc.ReportAssetTotalsParams{
+		AllScope: p.All, OfficeIds: p.OfficeIDs, OfficeFilter: p.OfficeFilter,
+		CategoryID: p.CategoryID, Status: p.statusEnum(),
+	})
+	if err != nil {
+		return ReportResult{}, err
+	}
+	chart, err := s.q.ReportAssetChart(ctx, sqlc.ReportAssetChartParams{
+		AllScope: p.All, OfficeIds: p.OfficeIDs, OfficeFilter: p.OfficeFilter,
+		CategoryID: p.CategoryID, Status: p.statusEnum(),
+	})
+	if err != nil {
+		return ReportResult{}, err
+	}
+
+	out := make([]AssetRow, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, AssetRow{
+			Tag: r.AssetTag, Name: r.Name, Category: r.CategoryName,
+			Status: string(r.Status), PurchaseCost: r.PurchaseCost,
+			AccumDeprec: r.AccumDeprec, BookValue: r.BookValue,
+		})
+	}
+	bars := make([]ChartBar, 0, len(chart))
+	for _, c := range chart {
+		bars = append(bars, ChartBar{Label: c.Name, Value: c.TotalBook})
+	}
+	return ReportResult{
+		Type: "assets",
+		Kpis: []ReportKpi{
+			{Key: "total_assets", Value: strconv.FormatInt(totals.RowCount, 10)},
+			{Key: "total_acquisition", Value: totals.TotalCost},
+			{Key: "total_book", Value: totals.TotalBook},
+		},
+		Chart: bars,
+		Rows:  out,
+		Totals: map[string]string{
+			"purchase_cost": totals.TotalCost,
+			"accum_deprec":  totals.TotalAccum,
+			"book_value":    totals.TotalBook,
+		},
+		RowCount:  totals.RowCount,
+		Truncated: totals.RowCount > int64(len(out)),
+	}, nil
+}
+
+// runDepreciation: monthly opening/expense/closing over the period, per basis.
+// Totals sum the returned period rows via big.Rat (never float).
+func (s *Service) runDepreciation(ctx context.Context, p ReportParams) (ReportResult, error) {
+	basis := p.basisEnum()
+	rows, err := s.q.ReportDepreciationRows(ctx, sqlc.ReportDepreciationRowsParams{
+		Basis: basis, DateFrom: pgDate(p.Cur.From), DateTo: pgDate(p.Cur.To),
+		AllScope: p.All, OfficeIds: p.OfficeIDs, OfficeFilter: p.OfficeFilter, CategoryID: p.CategoryID,
+	})
+	if err != nil {
+		return ReportResult{}, err
+	}
+	kpis, err := s.q.ReportDepreciationKpis(ctx, sqlc.ReportDepreciationKpisParams{
+		DateFrom: pgDate(p.Cur.From), DateTo: pgDate(p.Cur.To), Basis: basis,
+		AllScope: p.All, OfficeIds: p.OfficeIDs, OfficeFilter: p.OfficeFilter, CategoryID: p.CategoryID,
+	})
+	if err != nil {
+		return ReportResult{}, err
+	}
+	remaining, err := s.q.ReportDepreciationRemaining(ctx, sqlc.ReportDepreciationRemainingParams{
+		Basis: basis, DateTo: pgDate(p.Cur.To),
+		AllScope: p.All, OfficeIds: p.OfficeIDs, OfficeFilter: p.OfficeFilter, CategoryID: p.CategoryID,
+	})
+	if err != nil {
+		return ReportResult{}, err
+	}
+
+	out := make([]DeprRow, 0, len(rows))
+	openAcc, amtAcc, closeAcc := new(big.Rat), new(big.Rat), new(big.Rat)
+	bars := make([]ChartBar, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, DeprRow{Period: r.Period, Opening: r.Opening, Amount: r.Amount, Closing: r.Closing})
+		addDecimal(openAcc, r.Opening)
+		addDecimal(amtAcc, r.Amount)
+		addDecimal(closeAcc, r.Closing)
+		bars = append(bars, ChartBar{Label: r.Period, Value: r.Amount})
+	}
+	return ReportResult{
+		Type: "depreciation",
+		Kpis: []ReportKpi{
+			{Key: "period_expense", Value: kpis.PeriodExpense},
+			{Key: "accumulated", Value: kpis.Accumulated},
+			{Key: "remaining_book", Value: remaining},
+		},
+		Chart: bars,
+		Rows:  out,
+		Totals: map[string]string{
+			"opening": openAcc.FloatString(2),
+			"amount":  amtAcc.FloatString(2),
+			"closing": closeAcc.FloatString(2),
+		},
+		RowCount:  int64(len(out)),
+		Truncated: false,
+	}, nil
+}
+
+// runUtilization: loan-days per asset over the period (clipped to the window),
+// with avg utilization = total days / (rows × period days), computed in Go.
+func (s *Service) runUtilization(ctx context.Context, p ReportParams) (ReportResult, error) {
+	rows, err := s.q.ReportUtilizationRows(ctx, sqlc.ReportUtilizationRowsParams{
+		DateTo: pgDate(p.Cur.To), DateFrom: pgDate(p.Cur.From),
+		AllScope: p.All, OfficeIds: p.OfficeIDs, OfficeFilter: p.OfficeFilter, CategoryID: p.CategoryID,
+		Lim: lim32(p.RowLimit),
+	})
+	if err != nil {
+		return ReportResult{}, err
+	}
+	active, err := s.q.ReportUtilizationKpis(ctx, sqlc.ReportUtilizationKpisParams{
+		AllScope: p.All, OfficeIds: p.OfficeIDs, OfficeFilter: p.OfficeFilter, CategoryID: p.CategoryID,
+	})
+	if err != nil {
+		return ReportResult{}, err
+	}
+
+	curDays := int64(p.Cur.Days())
+	out := make([]UtilRow, 0, len(rows))
+	bars := make([]ChartBar, 0, len(rows))
+	var totalDays, totalLoans int64
+	for _, r := range rows {
+		pct := 0.0
+		if curDays > 0 {
+			pct = *round1(big.NewRat(r.DaysLoaned, curDays))
+		}
+		out = append(out, UtilRow{
+			Name: r.Name, Tag: r.AssetTag, Category: r.CategoryName,
+			DaysLoaned: r.DaysLoaned, LoanCount: r.LoanCount, UtilizationPct: pct,
+		})
+		totalDays += r.DaysLoaned
+		totalLoans += r.LoanCount
+		if len(bars) < 8 {
+			bars = append(bars, ChartBar{Label: r.Name, Value: strconv.FormatInt(r.DaysLoaned, 10)})
+		}
+	}
+	avg := 0.0
+	if n := int64(len(out)); n > 0 && curDays > 0 {
+		avg = *round1(big.NewRat(totalDays, n*curDays))
+	}
+	return ReportResult{
+		Type: "utilization",
+		Kpis: []ReportKpi{
+			{Key: "avg_utilization", Value: strconv.FormatFloat(avg, 'f', 1, 64)},
+			{Key: "active_loans", Value: strconv.FormatInt(active, 10)},
+			{Key: "total_days", Value: strconv.FormatInt(totalDays, 10)},
+		},
+		Chart: bars,
+		Rows:  out,
+		Totals: map[string]string{
+			"days_loaned": strconv.FormatInt(totalDays, 10),
+			"loan_count":  strconv.FormatInt(totalLoans, 10),
+		},
+		RowCount:  int64(len(out)),
+		Truncated: false,
+	}, nil
+}
+
+// runMaintenance: completed records grouped by asset+type over the period.
+// Totals sum actions and cost (big.Rat) over the returned rows.
+func (s *Service) runMaintenance(ctx context.Context, p ReportParams) (ReportResult, error) {
+	rows, err := s.q.ReportMaintenanceRows(ctx, sqlc.ReportMaintenanceRowsParams{
+		DateFrom: pgDate(p.Cur.From), DateTo: pgDate(p.Cur.To),
+		AllScope: p.All, OfficeIds: p.OfficeIDs, OfficeFilter: p.OfficeFilter, CategoryID: p.CategoryID,
+		Lim: lim32(p.RowLimit),
+	})
+	if err != nil {
+		return ReportResult{}, err
+	}
+	kpis, err := s.q.ReportMaintenanceKpis(ctx, sqlc.ReportMaintenanceKpisParams{
+		DateFrom: pgDate(p.Cur.From), DateTo: pgDate(p.Cur.To),
+		AllScope: p.All, OfficeIds: p.OfficeIDs, OfficeFilter: p.OfficeFilter, CategoryID: p.CategoryID,
+	})
+	if err != nil {
+		return ReportResult{}, err
+	}
+	chart, err := s.q.ReportMaintenanceChart(ctx, sqlc.ReportMaintenanceChartParams{
+		DateFrom: pgDate(p.Cur.From), DateTo: pgDate(p.Cur.To),
+		AllScope: p.All, OfficeIds: p.OfficeIDs, OfficeFilter: p.OfficeFilter, CategoryID: p.CategoryID,
+	})
+	if err != nil {
+		return ReportResult{}, err
+	}
+
+	out := make([]MaintRow, 0, len(rows))
+	costAcc := new(big.Rat)
+	var totalActions int64
+	for _, r := range rows {
+		out = append(out, MaintRow{
+			AssetName: r.AssetName, Category: r.CategoryName,
+			Type: string(r.Type), Actions: r.Actions, TotalCost: r.TotalCost,
+		})
+		totalActions += r.Actions
+		addDecimal(costAcc, r.TotalCost)
+	}
+	bars := make([]ChartBar, 0, len(chart))
+	for _, c := range chart {
+		bars = append(bars, ChartBar{Label: c.Name, Value: c.Total})
+	}
+	return ReportResult{
+		Type: "maintenance",
+		Kpis: []ReportKpi{
+			{Key: "total_cost", Value: kpis.Total},
+			{Key: "preventive", Value: kpis.Preventive},
+			{Key: "corrective", Value: kpis.Corrective},
+		},
+		Chart: bars,
+		Rows:  out,
+		Totals: map[string]string{
+			"actions":    strconv.FormatInt(totalActions, 10),
+			"total_cost": costAcc.FloatString(2),
+		},
+		RowCount:  int64(len(out)),
+		Truncated: false,
+	}, nil
 }
 
 // CachedDashboardSummary is a get-or-compute wrapper around DashboardSummary:

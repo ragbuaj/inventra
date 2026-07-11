@@ -241,6 +241,30 @@ type Querier interface {
 	// Approval / maker-checker queries (approval schema).
 	// See docs/DATABASE.md §4.5 and PRD §3.6 for schema context.
 	MatchThresholdSteps(ctx context.Context, arg MatchThresholdStepsParams) ([]ApprovalApprovalThreshold, error)
+	// book value per category (top 8)
+	ReportAssetChart(ctx context.Context, arg ReportAssetChartParams) ([]ReportAssetChartRow, error)
+	// ══════════════════════════════════════════════════════════════════════════
+	// Report builder — assets / depreciation / utilization / maintenance.
+	// Every query shares the standard filter block on the assets alias `a`:
+	//   scope (all_scope OR office_id = ANY(office_ids))
+	//   + optional narg(office_filter) drill-down
+	//   + optional narg(category_id).
+	// Money aggregates: COALESCE(SUM(x), 0)::text — never float.
+	// Valuation rule (assets report): excluded_from_valuation is dropped from money
+	// sums (Totals/KPIs/chart) but the rows still list every asset.
+	// ══════════════════════════════════════════════════════════════════════════
+	ReportAssetRows(ctx context.Context, arg ReportAssetRowsParams) ([]ReportAssetRowsRow, error)
+	ReportAssetTotals(ctx context.Context, arg ReportAssetTotalsParams) (ReportAssetTotalsRow, error)
+	ReportDepreciationKpis(ctx context.Context, arg ReportDepreciationKpisParams) (ReportDepreciationKpisRow, error)
+	// sum of each asset's last closing_value <= date_to
+	ReportDepreciationRemaining(ctx context.Context, arg ReportDepreciationRemainingParams) (string, error)
+	ReportDepreciationRows(ctx context.Context, arg ReportDepreciationRowsParams) ([]ReportDepreciationRowsRow, error)
+	// cost per category (top 8)
+	ReportMaintenanceChart(ctx context.Context, arg ReportMaintenanceChartParams) ([]ReportMaintenanceChartRow, error)
+	ReportMaintenanceKpis(ctx context.Context, arg ReportMaintenanceKpisParams) (ReportMaintenanceKpisRow, error)
+	ReportMaintenanceRows(ctx context.Context, arg ReportMaintenanceRowsParams) ([]ReportMaintenanceRowsRow, error)
+	ReportUtilizationKpis(ctx context.Context, arg ReportUtilizationKpisParams) (int64, error)
+	ReportUtilizationRows(ctx context.Context, arg ReportUtilizationRowsParams) ([]ReportUtilizationRowsRow, error)
 	// Global search (command palette). Each query returns the top matches for one
 	// entity plus the full match count via a window function. Callers gate by
 	// permission + data scope; queries only enforce the office scope filter.
