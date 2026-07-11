@@ -28,6 +28,18 @@ status. `docs/DESIGN_BRIEF.md` holds the UI prompt kit / design brief used to ge
 `docs/adr/` holds Architecture Decision Records (MADR) — consult before changing stack choices
 (testing, logging, config, rate limiting, authz); supersede rather than edit an Accepted ADR.
 
+## Obsidian vault (knowledge base)
+
+The project knowledge base lives in an Obsidian vault at `D:\Obsidian\inventra` (local Markdown,
+also reachable via the `obsidian-vault` MCP server; plain file tools work too). Start from
+`Beranda.md` (the MOC). **Consult it when you need**: product decisions & approved mockup deviations
+(`Keputusan/Produk/`), the incident runbook (`Ops/Runbook Insiden.md`), regulation parameters —
+PMK 72/2023 tariffs, POJK articles (`Referensi/Regulasi/`), the API endpoint/permission map, or the
+Bank-FAM glossary. **Keep it maintained**: when a milestone lands, update `Proyek/Status & Roadmap.md`
+and `Modul/Peta Modul.md`, record new product decisions as atomic notes in `Keputusan/Produk/`
+(indexed in `Keputusan/Keputusan Produk.md`), and write a session note in `Catatan/` (prefix
+`YYYY-MM-DD`). Repo docs (`docs/`) stay authoritative — on conflict, fix the vault.
+
 ## Commands
 
 ```bash
@@ -195,6 +207,16 @@ of it. When building UI, follow these conventions:
   small wrapper component over repeating the same `U*` markup across pages — e.g. a `ResourceTable`,
   `FormField`, or entity-specific card that encapsulates a Nuxt UI composition. Keep pages thin; push
   shared structure into components.
+- **Component-first form inputs** — standard input behaviors live in shared wrapper components, not
+  per-page ad-hoc markup:
+  - **Number inputs only accept numeric input** (reject/strip non-numeric keystrokes, not just
+    validate on submit) and expose a prop that controls whether negative (minus) values are allowed
+    — default to non-negative unless the field genuinely needs negatives.
+  - **Dropdown / autocomplete inputs must render a "No Data" empty state** when there are no options
+    or no search matches (reference behavior: the category input on the maintenance form) — never an
+    empty silent popover.
+  - **Date inputs use the Nuxt UI calendar** (`UCalendar`-based picker) — no plain text/native date
+    inputs.
 - **Theme via tokens, not hardcoded colors.** Brand colors are set in `app/app.config.ts`
   (`ui.colors.primary: 'green'`, `neutral: 'slate'`); use the semantic Nuxt UI color props
   (`color="primary"`, `text-muted`) and CSS vars (`--ui-primary`) instead of literal Tailwind colors so
