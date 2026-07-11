@@ -11,6 +11,7 @@ const loading = ref(false)
 const groups = ref<SearchGroup[]>([])
 const sel = ref(0)
 let seq = 0
+let debounceTimer: ReturnType<typeof setTimeout> | undefined
 
 const quickActions = computed(() => [
   { key: 'a', labelKey: 'search.qAddAsset', icon: 'i-lucide-plus', to: '/assets/new', perm: 'masterdata.office.manage' },
@@ -27,20 +28,23 @@ const showEmpty = computed(() => isOpen.value && hasQuery.value && !loading.valu
 // flat list of items for keyboard navigation, in group order
 const flat = computed<SearchItem[]>(() => groups.value.flatMap(g => g.items))
 
-watch(query, async (q) => {
+watch(query, (q) => {
   sel.value = 0
+  if (debounceTimer) clearTimeout(debounceTimer)
   if (!q.trim()) {
     groups.value = []
     loading.value = false
     return
   }
   loading.value = true
-  const mine = ++seq
-  const res = await search(q)
-  if (mine === seq) {
-    groups.value = res
-    loading.value = false
-  }
+  debounceTimer = setTimeout(async () => {
+    const mine = ++seq
+    const res = await search(q)
+    if (mine === seq) {
+      groups.value = res
+      loading.value = false
+    }
+  }, 250)
 })
 
 watch(isOpen, (v) => {
@@ -92,7 +96,10 @@ function onGlobalKey(e: KeyboardEvent) {
 }
 
 onMounted(() => window.addEventListener('keydown', onGlobalKey))
-onUnmounted(() => window.removeEventListener('keydown', onGlobalKey))
+onUnmounted(() => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  window.removeEventListener('keydown', onGlobalKey)
+})
 
 // index helper so the template can compare a group/item against the flat selection
 function flatIndex(gi: number, ii: number): number {
@@ -299,6 +306,7 @@ function groupMeta(type: string) {
                     <StatusBadge
                       v-if="it.status"
                       :status="it.status"
+                      :kind="g.type === 'pengajuan' ? 'approval' : 'asset'"
                     />
                   </div>
                 </div>
