@@ -193,3 +193,81 @@ describe('pages/approval — wired', () => {
     expect(w.text()).toContain('Tidak ada pengajuan dipilih')
   })
 })
+
+// ---------------------------------------------------------------------------
+// Maintenance payload rendering (Task 12)
+// ---------------------------------------------------------------------------
+
+describe('pages/approval — maintenance payload', () => {
+  it('renders the asset (fallback to raw id), problem category (fallback to raw id) and description', async () => {
+    inboxMock.mockResolvedValue([row({ id: 'm1', type: 'maintenance' })])
+    getMock.mockResolvedValue(detail({
+      id: 'm1',
+      type: 'maintenance',
+      payload: { asset_id: 'asset-xyz', problem_category_id: 'pc-1', description: 'Layar retak setelah jatuh' }
+    }))
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    await w.find('[data-testid="approval-card"]').trigger('click')
+    await flushPromises()
+
+    const text = w.text()
+    expect(text).toContain('asset-xyz')
+    expect(text).toContain('pc-1')
+    expect(text).toContain('Layar retak setelah jatuh')
+    expect(text).toContain('Laporan Kerusakan') // approval.type.maintenance label
+  })
+
+  it('shows a "Lihat Lampiran" button when the payload has an attachment_id, instead of "Tidak ada lampiran"', async () => {
+    inboxMock.mockResolvedValue([row({ id: 'm2', type: 'maintenance' })])
+    getMock.mockResolvedValue(detail({
+      id: 'm2',
+      type: 'maintenance',
+      payload: { asset_id: 'asset-1', problem_category_id: 'pc-1', description: 'x', attachment_id: 'att-9' }
+    }))
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    await w.find('[data-testid="approval-card"]').trigger('click')
+    await flushPromises()
+
+    expect(w.find('[data-testid="approval-view-attachment"]').exists()).toBe(true)
+    expect(w.text()).not.toContain('Tidak ada lampiran')
+  })
+
+  it('clicking "Lihat Lampiran" fetches the attachment content and opens it in a new tab', async () => {
+    inboxMock.mockResolvedValue([row({ id: 'm3', type: 'maintenance' })])
+    getMock.mockResolvedValue(detail({
+      id: 'm3',
+      type: 'maintenance',
+      payload: { asset_id: 'asset-1', problem_category_id: 'pc-1', description: 'x', attachment_id: 'att-9' }
+    }))
+    URL.createObjectURL = vi.fn(() => 'blob:mock-attachment')
+    const openMock = vi.fn()
+    window.open = openMock
+
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    await w.find('[data-testid="approval-card"]').trigger('click')
+    await flushPromises()
+    await w.find('[data-testid="approval-view-attachment"]').trigger('click')
+    await flushPromises()
+
+    expect(openMock).toHaveBeenCalledWith('blob:mock-attachment', '_blank')
+  })
+
+  it('a maintenance request with no attachment_id shows the permanent empty state', async () => {
+    inboxMock.mockResolvedValue([row({ id: 'm4', type: 'maintenance' })])
+    getMock.mockResolvedValue(detail({
+      id: 'm4',
+      type: 'maintenance',
+      payload: { asset_id: 'asset-1', problem_category_id: 'pc-1', description: 'x' }
+    }))
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    await w.find('[data-testid="approval-card"]').trigger('click')
+    await flushPromises()
+
+    expect(w.find('[data-testid="approval-view-attachment"]').exists()).toBe(false)
+    expect(w.text()).toContain('Tidak ada lampiran')
+  })
+})

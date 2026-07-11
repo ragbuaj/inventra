@@ -298,6 +298,21 @@ async function followupNotFound(item: OpnameItem) {
   }
 }
 
+async function followupDamaged(item: OpnameItem) {
+  if (!activeId.value) return
+  try {
+    await opnameApi.followup(activeId.value, item.id, {})
+    toast.add({ title: t('stockOpname.followup.maintenanceCreated', { name: item.asset_name ?? '—' }), color: 'success' })
+    await reloadDetail()
+  } catch {
+    // useApiClient surfaces the error toast
+  }
+}
+
+function isFollowedUp(item: OpnameItem): boolean {
+  return !!(item.followup_request_id || item.followup_record_id)
+}
+
 // Follow-up modal (misplaced → transfer)
 const followupOpen = ref(false)
 const followupItem = ref<OpnameItem | null>(null)
@@ -334,8 +349,15 @@ function onFollowupClick(item: OpnameItem, kind: 'not_found' | 'damaged' | 'misp
     followupNotFound(item)
   } else if (kind === 'misplaced') {
     openFollowup(item)
+  } else if (kind === 'damaged') {
+    followupDamaged(item)
   }
-  // damaged → button is disabled (Maintenance module not built yet).
+}
+
+function followupLabel(item: OpnameItem): string {
+  if (item.result === 'not_found') return t('stockOpname.variance.followupDisposal')
+  if (item.result === 'damaged') return t('stockOpname.variance.followupMaintenance')
+  return t('stockOpname.variance.followupTransfer')
 }
 
 // ---------------------------------------------------------------------------
@@ -956,30 +978,16 @@ onMounted(() => {
                   </div>
                 </div>
                 <UButton
-                  v-if="it.result === 'damaged'"
                   block
                   size="sm"
                   color="neutral"
                   variant="soft"
                   class="mt-2.5"
                   :data-testid="`opname-followup-${it.result}`"
-                  :title="t('stockOpname.variance.comingSoon')"
-                  disabled
+                  :disabled="!canManage || isFollowedUp(it)"
+                  @click="onFollowupClick(it, it.result as 'not_found' | 'damaged' | 'misplaced')"
                 >
-                  {{ t('stockOpname.variance.followupMaintenance') }}
-                </UButton>
-                <UButton
-                  v-else
-                  block
-                  size="sm"
-                  color="neutral"
-                  variant="soft"
-                  class="mt-2.5"
-                  :data-testid="`opname-followup-${it.result}`"
-                  :disabled="!canManage"
-                  @click="onFollowupClick(it, it.result as 'not_found' | 'misplaced')"
-                >
-                  {{ it.result === 'not_found' ? t('stockOpname.variance.followupDisposal') : t('stockOpname.variance.followupTransfer') }}
+                  {{ followupLabel(it) }}
                 </UButton>
               </div>
             </div>

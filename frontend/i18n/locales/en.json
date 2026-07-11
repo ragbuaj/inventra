@@ -69,6 +69,7 @@
       "backToCatalog": "Back to catalog",
       "months": "{n} months",
       "moduleNotAvailable": "No data yet — module not available",
+      "maintenanceEmpty": "No maintenance history yet for this asset",
       "tabs": { "info": "Info", "assignment": "Assignment History", "maintenance": "Maintenance History", "depreciation": "Depreciation Schedule" },
       "sections": { "identity": "Identity", "placement": "Placement", "procurement": "Procurement", "valuation": "Valuation", "notes": "Notes" },
       "fields": {
@@ -656,7 +657,8 @@
       "reason": "Transfer Reason",
       "reasonPlaceholder": "e.g. Asset was found at a different location during stock-take…",
       "submit": "Request Transfer",
-      "success": "Transfer request for \"{name}\" was created."
+      "success": "Transfer request for \"{name}\" was created.",
+      "maintenanceCreated": "Maintenance record for \"{name}\" was created."
     },
     "finish": {
       "action": "Finish Session",
@@ -984,7 +986,10 @@
       "active": "Active",
       "disposed": "Disposed",
       "included": "Included",
-      "excluded": "Excluded"
+      "excluded": "Excluded",
+      "asset": "Asset",
+      "problemCategory": "Problem Category",
+      "description": "Description"
     },
     "sensitive": "Sensitive",
     "sensitiveWarn": "Sensitive action — please review the data carefully before deciding.",
@@ -996,6 +1001,7 @@
     "reasonSection": "Reason",
     "attachSection": "Attachments",
     "noAttach": "No attachments.",
+    "viewAttachment": "View Attachment",
     "timelineSection": "Approval History",
     "noteLabel": "Note (optional)",
     "notePlaceholder": "Add a note for the requester…",

@@ -69,6 +69,7 @@
       "backToCatalog": "Kembali ke katalog",
       "months": "{n} bulan",
       "moduleNotAvailable": "Belum ada data — modul belum tersedia",
+      "maintenanceEmpty": "Belum ada riwayat maintenance untuk aset ini",
       "tabs": { "info": "Info", "assignment": "Riwayat Penugasan", "maintenance": "Riwayat Maintenance", "depreciation": "Jadwal Depresiasi" },
       "sections": { "identity": "Identitas", "placement": "Penempatan", "procurement": "Pengadaan", "valuation": "Valuasi", "notes": "Catatan" },
       "fields": {
@@ -656,7 +657,8 @@
       "reason": "Alasan Mutasi",
       "reasonPlaceholder": "mis. Aset ditemukan di lokasi berbeda saat stock opname…",
       "submit": "Ajukan Mutasi",
-      "success": "Pengajuan mutasi untuk \"{name}\" berhasil dibuat."
+      "success": "Pengajuan mutasi untuk \"{name}\" berhasil dibuat.",
+      "maintenanceCreated": "Catatan maintenance untuk \"{name}\" berhasil dibuat."
     },
     "finish": {
       "action": "Selesaikan Sesi",
@@ -984,7 +986,10 @@
       "active": "Aktif",
       "disposed": "Dihapus",
       "included": "Dihitung",
-      "excluded": "Dikecualikan"
+      "excluded": "Dikecualikan",
+      "asset": "Aset",
+      "problemCategory": "Kategori Masalah",
+      "description": "Deskripsi"
     },
     "sensitive": "Sensitif",
     "sensitiveWarn": "Tindakan sensitif — pastikan Anda meninjau data dengan saksama sebelum memutuskan.",
@@ -996,6 +1001,7 @@
     "reasonSection": "Alasan Pengajuan",
     "attachSection": "Lampiran",
     "noAttach": "Tidak ada lampiran.",
+    "viewAttachment": "Lihat Lampiran",
     "timelineSection": "Riwayat Approval",
     "noteLabel": "Catatan (opsional)",
     "notePlaceholder": "Tambahkan catatan untuk pengaju…",

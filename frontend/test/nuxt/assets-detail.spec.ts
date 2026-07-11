@@ -111,6 +111,25 @@ const PHOTO_ATTACHMENTS = [
   { id: 'att2', asset_id: 'a1', kind: 'document', original_filename: 'bast.pdf', size_bytes: 2048, mime_type: 'application/pdf', has_thumbnail: false, created_at: '2026-01-01T00:00:00Z' }
 ]
 
+const MAINTENANCE_RECORDS = [
+  {
+    id: 'mr1', asset_id: 'a1', schedule_id: null, maintenance_category_id: 'mc1', problem_category_id: null,
+    type: 'preventive', status: 'completed', scheduled_date: '2026-02-01', completed_date: '2026-02-03',
+    cost: '450000', vendor_id: 'v1', performed_by: null, description: 'Servis rutin AC',
+    reported_by_id: null, asset_name: 'Laptop Dell Latitude 5440', asset_tag: 'JKT01-ELK-2026-00001',
+    office_name: 'Cabang Jakarta Selatan', category_name: 'Servis Berkala', problem_name: null,
+    vendor_name: 'PT Sinar Komputindo', reported_by_name: null, created_at: '2026-02-01T00:00:00Z', updated_at: '2026-02-03T00:00:00Z'
+  },
+  {
+    id: 'mr2', asset_id: 'a1', schedule_id: null, maintenance_category_id: 'mc2', problem_category_id: 'pc1',
+    type: 'corrective', status: 'in_progress', scheduled_date: '2026-03-10', completed_date: null,
+    cost: null, vendor_id: null, performed_by: 'Teknisi Internal', description: 'Layar bergaris',
+    reported_by_id: null, asset_name: 'Laptop Dell Latitude 5440', asset_tag: 'JKT01-ELK-2026-00001',
+    office_name: 'Cabang Jakarta Selatan', category_name: 'Perbaikan Layar', problem_name: 'Layar / Tampilan',
+    vendor_name: null, reported_by_name: null, created_at: '2026-03-10T00:00:00Z', updated_at: '2026-03-10T00:00:00Z'
+  }
+]
+
 function defaultHandler(asset: Record<string, unknown>): RequestHandler {
   return (path: string) => {
     if (path.startsWith('/assets/by-tag/')) {
@@ -130,6 +149,7 @@ function defaultHandler(asset: Record<string, unknown>): RequestHandler {
     if (path.startsWith('/floors')) return { data: FLOORS, total: FLOORS.length, limit: 100, offset: 0 }
     if (path.startsWith('/rooms')) return { data: ROOMS, total: ROOMS.length, limit: 100, offset: 0 }
     if (path.match(/\/assets\/[^/]+\/depreciation$/)) return DEPR_RESPONSE_EMPTY
+    if (path.match(/\/assets\/[^/]+\/maintenance$/)) return { data: [] }
     throw new Error(`Unhandled request: ${path}`)
   }
 }
@@ -282,14 +302,102 @@ describe('Asset Detail page — history tabs show empty-state, not sample data',
     expect(wrapper.text()).toContain('Belum ada data — modul belum tersedia')
     expect(wrapper.text()).not.toContain('Rina Putri')
   })
+})
 
-  it('Maintenance tab shows the module-not-available empty state', async () => {
+// ---------------------------------------------------------------------------
+// Maintenance tab (Task 12) — fetched once on first activation
+// ---------------------------------------------------------------------------
+
+describe('Asset Detail page — Maintenance tab', () => {
+  function findMaintTab(wrapper: Awaited<ReturnType<typeof mountTag>>) {
+    return wrapper.findAll('button').find(b => b.text().trim() === 'Riwayat Maintenance')!
+  }
+
+  it('fetches and renders maintenance records with type/status badges, category, cost and vendor', async () => {
+    setHandler((path: string) => {
+      if (path.match(/\/assets\/[^/]+\/maintenance$/)) return { data: MAINTENANCE_RECORDS }
+      return defaultHandler(FULL_ASSET)(path)
+    })
     const wrapper = await mountTag('JKT01-ELK-2026-00001')
-    const maintTab = wrapper.findAll('button').find(b => b.text().trim() === 'Riwayat Maintenance')
-    await maintTab!.trigger('click')
+    await findMaintTab(wrapper).trigger('click')
+    await flushPromises()
     await wrapper.vm.$nextTick()
-    expect(wrapper.text()).toContain('Belum ada data — modul belum tersedia')
-    expect(wrapper.text()).not.toContain('Preventive')
+
+    const rows = wrapper.findAll('[data-testid="maint-tab-row"]')
+    expect(rows).toHaveLength(2)
+    const text = wrapper.text()
+    expect(text).toContain('Preventive')
+    expect(text).toContain('Corrective')
+    expect(text).toContain('Selesai') // status completed
+    expect(text).toContain('Berlangsung') // status in_progress
+    expect(text).toContain('Servis Berkala')
+    expect(text).toContain('Rp 450.000')
+    expect(text).toContain('PT Sinar Komputindo')
+    expect(wrapper.find('[data-testid="maint-tab-empty"]').exists()).toBe(false)
+  })
+
+  it('shows the empty state when the asset has no maintenance history', async () => {
+    setHandler((path: string) => {
+      if (path.match(/\/assets\/[^/]+\/maintenance$/)) return { data: [] }
+      return defaultHandler(FULL_ASSET)(path)
+    })
+    const wrapper = await mountTag('JKT01-ELK-2026-00001')
+    await findMaintTab(wrapper).trigger('click')
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[data-testid="maint-tab-empty"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Belum ada riwayat maintenance untuk aset ini')
+    expect(wrapper.text()).not.toContain('Belum ada data — modul belum tersedia')
+  })
+
+  it('shows a load-error state with retry on a maintenance fetch failure', async () => {
+    let callCount = 0
+    setHandler((path: string) => {
+      if (path.match(/\/assets\/[^/]+\/maintenance$/)) {
+        callCount++
+        if (callCount === 1) throw Object.assign(new Error('Server Error'), { statusCode: 500 })
+        return { data: MAINTENANCE_RECORDS }
+      }
+      return defaultHandler(FULL_ASSET)(path)
+    })
+    const wrapper = await mountTag('JKT01-ELK-2026-00001')
+    await findMaintTab(wrapper).trigger('click')
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[data-testid="maint-tab-error"]').exists()).toBe(true)
+
+    const retryBtn = wrapper.findAll('button').find(b => b.text().includes('Coba lagi'))
+    expect(retryBtn).toBeDefined()
+    await retryBtn!.trigger('click')
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[data-testid="maint-tab-row"]').exists()).toBe(true)
+  })
+
+  it('does not refetch when navigating away from and back to the maintenance tab', async () => {
+    let callCount = 0
+    setHandler((path: string) => {
+      if (path.match(/\/assets\/[^/]+\/maintenance$/)) {
+        callCount++
+        return { data: MAINTENANCE_RECORDS }
+      }
+      return defaultHandler(FULL_ASSET)(path)
+    })
+    const wrapper = await mountTag('JKT01-ELK-2026-00001')
+    await findMaintTab(wrapper).trigger('click')
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    const infoTab = wrapper.findAll('button').find(b => b.text().trim() === 'Info')!
+    await infoTab.trigger('click')
+    await findMaintTab(wrapper).trigger('click')
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    expect(callCount).toBe(1)
   })
 })
 

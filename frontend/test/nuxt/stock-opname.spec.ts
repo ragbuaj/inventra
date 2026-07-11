@@ -39,7 +39,7 @@ function item(over: Partial<OpnameItem> = {}): OpnameItem {
   return {
     id: 'i1', session_id: 's1', asset_id: 'a1', asset_name: 'Laptop Dell Latitude 5440', asset_tag: 'JKT01-ELK-2026-00001',
     office_name: 'Kantor Cabang Jakarta Selatan', room_name: 'Ruang IT', floor_name: 'L3', expected: true, result: 'found',
-    note: null, counted_by_name: null, counted_at: null, followup_request_id: null,
+    note: null, counted_by_name: null, counted_at: null, followup_request_id: null, followup_record_id: null,
     ...over
   }
 }
@@ -406,21 +406,48 @@ describe('pages/stock-opname — detail (reconciling)', () => {
     expect(followupMock).toHaveBeenCalledWith('s1', 'i4', expect.objectContaining({ to_office_id: 'o-other' }))
   })
 
-  it('the damaged follow-up button is disabled with a coming-soon tooltip (deviation b)', async () => {
+  it('damaged follow-up calls followup() for a maintenance record and shows a success toast', async () => {
+    followupMock.mockResolvedValue({ record_id: 'rec1', type: 'maintenance_record' })
+    const w = await mountAndWait()
+    await openDetail(w)
+    await w.find('[data-testid="opname-followup-damaged"]').trigger('click')
+    await flushPromises()
+    expect(followupMock).toHaveBeenCalledWith('s1', 'i3', {})
+    expect(toastAddMock).toHaveBeenCalledWith(expect.objectContaining({
+      title: expect.stringContaining('UPS APC Smart-UPS 1500')
+    }))
+  })
+
+  it('disables the damaged follow-up button once the item already has a linked maintenance record', async () => {
+    itemsMock.mockResolvedValue(page(ITEMS.map(i => i.id === 'i3' ? { ...i, followup_record_id: 'rec1' } : i)))
     const w = await mountAndWait()
     await openDetail(w)
     const btn = w.find('[data-testid="opname-followup-damaged"]')
     expect(btn.attributes('disabled')).toBeDefined()
   })
 
-  it('disables the not_found/misplaced follow-up buttons without stockopname.manage', async () => {
+  it('disables the not_found/misplaced follow-up buttons once already linked to a follow-up request', async () => {
+    itemsMock.mockResolvedValue(page(ITEMS.map((i) => {
+      if (i.id === 'i5') return { ...i, followup_request_id: 'req-nf' } // not_found
+      if (i.id === 'i4') return { ...i, followup_request_id: 'req-mv' } // misplaced
+      return i
+    })))
+    const w = await mountAndWait()
+    await openDetail(w)
+    expect(w.find('[data-testid="opname-followup-not_found"]').attributes('disabled')).toBeDefined()
+    expect(w.find('[data-testid="opname-followup-misplaced"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('disables the not_found/misplaced/damaged follow-up buttons without stockopname.manage', async () => {
     grantSession('o-mine', ['stockopname.view'])
     const w = await mountAndWait()
     await openDetail(w)
     const notFoundBtn = w.find('[data-testid="opname-followup-not_found"]')
     const misplacedBtn = w.find('[data-testid="opname-followup-misplaced"]')
+    const damagedBtn = w.find('[data-testid="opname-followup-damaged"]')
     expect(notFoundBtn.attributes('disabled')).toBeDefined()
     expect(misplacedBtn.attributes('disabled')).toBeDefined()
+    expect(damagedBtn.attributes('disabled')).toBeDefined()
   })
 })
 
