@@ -35,6 +35,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/middleware"
 	"github.com/ragbuaj/inventra/internal/oauth"
 	"github.com/ragbuaj/inventra/internal/ratelimit"
+	"github.com/ragbuaj/inventra/internal/search"
 	"github.com/ragbuaj/inventra/internal/storage"
 	"github.com/ragbuaj/inventra/internal/stockopname"
 	"github.com/ragbuaj/inventra/internal/transfer"
@@ -170,6 +171,10 @@ func NewRouter(d Deps) *gin.Engine {
 
 		auditHandler := audit.NewHandler(auditSvc, scopeSvc, queries)
 		audit.RegisterRoutes(api, auditHandler, requireAuth, middleware.RequirePermission(permSvc, "audit.view"))
+
+		searchSvc := search.NewService(queries)
+		searchHandler := search.NewHandler(searchSvc, permSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc})
+		search.RegisterRoutes(api, searchHandler, requireAuth)
 
 		approvalSvc := approval.NewService(queries, d.Pool, scopeSvc, d.Redis)
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
