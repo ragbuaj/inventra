@@ -1336,7 +1336,10 @@
   "dashboard": {
     "title": "Dashboard",
     "scopeNote": "Figures follow your data scope",
-    "export": "Export",
+    "scopeAll": "Your entire scope",
+    "allOfficesInScope": "All offices in scope",
+    "noRoom": "No room",
+    "excludedNote": "{n} assets excluded from total value (valuation exclusion)",
     "reload": "Reload",
     "totalLabel": "Total Assets",
     "comingSoon": "This feature isn't available yet.",
@@ -1356,32 +1359,50 @@
     },
     "kpiTrend": {
       "growing": "+ growing",
-      "acqUp": "+1.2%",
-      "depreciation": "−6.4% depreciation",
       "needsAction": "needs action",
       "within7Days": "within 7 days",
-      "costUp": "+8.3%"
+      "stable": "Relatively stable"
     },
     "status": {
       "available": "Available",
-      "inUse": "In use",
-      "maintenance": "Maintenance",
+      "assigned": "In use",
+      "under_maintenance": "Maintenance",
+      "in_transfer": "In transfer",
+      "retired": "Retired",
       "disposed": "Disposed",
       "lost": "Lost"
     },
     "chart": {
       "statusTitle": "Assets by Status",
       "categoryTitle": "Assets by Category",
-      "locationTitle": "Assets by Location / Office"
+      "locationOffices": "Assets by Office",
+      "locationRooms": "Assets by Room"
+    },
+    "export": {
+      "label": "Export",
+      "pdf": "Export PDF",
+      "xlsx": "Export Excel"
     },
     "panel": {
       "maintenanceTitle": "Maintenance Due",
       "approvalTitle": "Requests Awaiting Approval",
       "seeAll": "See all",
+      "maintenanceGeneric": "Scheduled maintenance",
       "approvedToast": "Request approved",
       "rejectedToast": "Request rejected",
       "allHandledTitle": "All requests handled",
-      "allHandledSub": "Nothing awaiting approval."
+      "allHandledSub": "Nothing awaiting approval.",
+      "due": {
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "inDays": "In {n} days",
+        "overdue": "{n} days overdue"
+      },
+      "rejectTitle": "Reject request",
+      "rejectNoteLabel": "Rejection reason",
+      "rejectNotePlaceholder": "Explain why this is rejected…",
+      "rejectConfirm": "Reject request",
+      "rejectCancel": "Cancel"
     }
   },
   "auth": {
