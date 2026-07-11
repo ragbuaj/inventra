@@ -913,6 +913,7 @@
       "startDate": "Start Date",
       "nextDue": "Next Due Date",
       "active": "Active",
+      "inactive": "Inactive",
       "selectPlaceholder": "Select…",
       "lockedTip": "Asset locked",
       "addButton": "Add Schedule",

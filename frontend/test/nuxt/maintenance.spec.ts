@@ -269,6 +269,15 @@ describe('Maintenance page — due banner', () => {
     expect(w.find('[data-testid="due-banner"]').exists()).toBe(false)
   })
 
+  it('excludes an inactive schedule from the banner even when severely overdue', async () => {
+    schedulesMock.mockResolvedValue(page([
+      schedule({ id: 's-inactive-overdue', asset_name: 'Printer HP LaserJet', next_due_date: isoDaysFromNow(-30), is_active: false }),
+      schedule({ id: 's-far', asset_name: 'Genset Cummins C22 D5', next_due_date: isoDaysFromNow(10) })
+    ]))
+    const w = await mountAndWait()
+    expect(w.find('[data-testid="due-banner"]').exists()).toBe(false)
+  })
+
   it('"Lihat Jadwal" switches to the Jadwal tab', async () => {
     schedulesMock.mockResolvedValue(page([schedule({ next_due_date: isoDaysFromNow(-1) })]))
     const w = await mountAndWait()
@@ -327,6 +336,18 @@ describe('Maintenance page — Jadwal tab', () => {
     expect(w.text()).toContain('Terlambat 2 hari')
     const overdueCard = w.find('[data-testid="schedule-card-s-overdue"]')
     expect(overdueCard.classes().join(' ')).toContain('border-error/35')
+  })
+
+  it('renders a neutral "Nonaktif" badge (not the colored overdue label) for an inactive schedule, even when overdue', async () => {
+    schedulesMock.mockResolvedValue(page([
+      schedule({ id: 's-inactive', asset_name: 'Printer HP LaserJet', next_due_date: isoDaysFromNow(-15), is_active: false })
+    ]))
+    const w = await mountAndWait()
+    const card = w.find('[data-testid="schedule-card-s-inactive"]')
+    expect(card.exists()).toBe(true)
+    expect(card.text()).toContain('Nonaktif')
+    expect(card.text()).not.toContain('Terlambat')
+    expect(card.classes().join(' ')).not.toContain('border-error/35')
   })
 
   it('shows the error state with retry on schedules() failure', async () => {

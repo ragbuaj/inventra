@@ -913,6 +913,7 @@
       "startDate": "Tanggal Mulai",
       "nextDue": "Jatuh Tempo Berikut",
       "active": "Aktif",
+      "inactive": "Nonaktif",
       "selectPlaceholder": "Pilih…",
       "lockedTip": "Aset terkunci",
       "addButton": "Tambah Jadwal",

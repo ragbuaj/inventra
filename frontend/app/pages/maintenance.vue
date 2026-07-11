@@ -85,7 +85,9 @@ async function loadSchedules() {
 
 const scheduleRows = computed(() => schedules.value.map((s) => {
   const diff = dueDiffDays(s.next_due_date)
-  const kind = dueKind(diff)
+  // An inactive schedule's due date is no longer actionable — its badge/urgency
+  // must read as neutral regardless of how overdue next_due_date is.
+  const kind = s.is_active ? dueKind(diff) : 'normal'
   return {
     item: s,
     asset: s.asset_name ?? s.asset_tag ?? '—',
@@ -93,12 +95,13 @@ const scheduleRows = computed(() => schedules.value.map((s) => {
     dueLabel: diff === null ? '—' : dueText(diff),
     dueText: DUE_TEXT[kind],
     dateLabel: formatDateID(s.next_due_date),
-    urgent: kind === 'overdue' || kind === 'today'
+    urgent: s.is_active && (kind === 'overdue' || kind === 'today')
   }
 }))
 
 const dueItems = computed(() =>
   schedules.value
+    .filter(s => s.is_active)
     .map(s => ({ s, diff: dueDiffDays(s.next_due_date) }))
     .filter((x): x is { s: MaintenanceSchedule, diff: number } => x.diff !== null && x.diff <= 3)
     .sort((a, b) => a.diff - b.diff)
@@ -629,13 +632,26 @@ onMounted(async () => {
           </div>
           <div class="flex items-center gap-3 flex-none">
             <div class="text-right">
+              <UBadge
+                v-if="!s.item.is_active"
+                color="neutral"
+                variant="subtle"
+                class="rounded-full"
+                :data-testid="`schedule-inactive-${s.item.id}`"
+              >
+                {{ t('maintenance.schedule.inactive') }}
+              </UBadge>
               <div
+                v-else
                 class="text-[12.5px] font-semibold"
                 :class="s.dueText"
               >
                 {{ s.dueLabel }}
               </div>
-              <div class="text-[11.5px] text-dimmed">
+              <div
+                class="text-[11.5px]"
+                :class="s.item.is_active ? 'text-dimmed' : 'text-dimmed/70'"
+              >
                 {{ s.dateLabel }}
               </div>
             </div>
