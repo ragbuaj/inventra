@@ -35,6 +35,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/middleware"
 	"github.com/ragbuaj/inventra/internal/oauth"
 	"github.com/ragbuaj/inventra/internal/ratelimit"
+	"github.com/ragbuaj/inventra/internal/report"
 	"github.com/ragbuaj/inventra/internal/search"
 	"github.com/ragbuaj/inventra/internal/storage"
 	"github.com/ragbuaj/inventra/internal/stockopname"
@@ -235,6 +236,14 @@ func NewRouter(d Deps) *gin.Engine {
 			middleware.RequirePermission(permSvc, "depreciation.manage"),
 			middleware.RequirePermission(permSvc, "depreciation.view"),
 			middleware.RequirePermission(permSvc, "asset.view"),
+		)
+
+		reportSvc := report.NewService(queries, d.Redis)
+		reportHandler := report.NewHandler(reportSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc})
+		report.RegisterRoutes(api, reportHandler,
+			requireAuth,
+			middleware.RequirePermission(permSvc, "report.view"),
+			middleware.RequirePermission(permSvc, "report.export"),
 		)
 
 		authzAdminSvc := authzadmin.NewService(queries, d.Pool, permSvc, scopeSvc, fieldSvc)
