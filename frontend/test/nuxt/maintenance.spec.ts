@@ -533,6 +533,9 @@ describe('Maintenance page — permission variations', () => {
     expect(attentionMock).not.toHaveBeenCalled()
     expect(w.find('[data-testid="attention-section"]').exists()).toBe(false)
     expect(w.find('[data-testid="jadwal-add-button"]').exists()).toBe(false)
+    // Schedule card exists but Buat Catatan button is hidden without maintenance.manage
+    expect(w.find('[data-testid="schedule-card-s1"]').exists()).toBe(true)
+    expect(w.find('[data-testid="schedule-make-note-s1"]').exists()).toBe(false)
     await clickTab(w, 'Catatan')
     expect(w.find('[data-testid="catatan-add-button"]').exists()).toBe(false)
   })

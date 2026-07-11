@@ -637,6 +637,7 @@ onMounted(async () => {
               </div>
             </div>
             <UButton
+              v-if="canManage"
               icon="i-lucide-plus"
               color="neutral"
               variant="outline"
