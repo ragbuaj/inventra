@@ -146,6 +146,8 @@ tags:
       schedule/record writes require `maintenance.manage`; the damage-report
       submit requires `request.create`. Schedules and records are scoped to
       the caller's offices (data-scope module `maintenance`).
+  - name: Search
+    description: Global search (command palette) across assets, employees, offices, users, and approval requests.
 
 paths:
   /health:
@@ -3891,6 +3893,38 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/v1/search:
+    get:
+      tags: [Search]
+      operationId: globalSearch
+      summary: Global search across entities
+      description: >
+        Returns up to 5 matches per entity group plus the full match count.
+        Groups the caller is not authorized for (permission or data scope)
+        are omitted silently. Queries shorter than 2 characters return an
+        empty groups array. Group order is fixed: assets, employees, offices,
+        users, requests.
+      security:
+        - bearerJWT: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 2 }
+          description: Search text (min 2 characters after trimming).
+      responses:
+        "200":
+          description: Grouped search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items: { $ref: "#/components/schemas/SearchGroup" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
 components:
   securitySchemes:
     bearerJWT:
@@ -5729,3 +5763,22 @@ components:
         accumulated_depreciation:
           type: string
           description: Decimal string (IDR). Unaffected by impairment — it is not a depreciation expense.
+
+    SearchItem:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string, description: 'Display title. For requests: the office name (frontend composes "type · office").' }
+        subtitle: { type: string, description: 'Secondary line: asset tag / employee code / office code / email / short request id.' }
+        status: { type: [string, "null"], description: 'Entity status enum (assets, requests) or null.' }
+        asset_tag: { type: string, description: 'Present on assets items only.' }
+        request_type: { type: string, description: 'Present on requests items only (shared.request_type enum).' }
+
+    SearchGroup:
+      type: object
+      properties:
+        type: { type: string, enum: [assets, employees, offices, users, requests] }
+        total: { type: integer, description: 'Full match count for the group (items are capped at 5).' }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/SearchItem" }
