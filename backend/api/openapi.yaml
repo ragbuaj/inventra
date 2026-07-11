@@ -5974,7 +5974,7 @@ components:
         acquisition_value: { type: string, description: Decimal string (IDR). }
         book_value: { type: string, description: Decimal string (IDR). }
         overdue_assets: { type: integer, description: 'Assets past their depreciation useful-life end still carrying book value, or similar overdue condition.' }
-        maintenance_due: { type: integer, description: Count of assets with a maintenance schedule due within the window. }
+        maintenance_due: { type: integer, description: 'Active maintenance schedules due within a fixed 7-day window from today (including already-overdue ones) — independent of the `period`/date filters.' }
         maintenance_cost: { type: string, description: Decimal string (IDR). Total maintenance cost within the window. }
         trends: { $ref: "#/components/schemas/DashboardTrends" }
 
@@ -6021,8 +6021,9 @@ components:
           items: { $ref: "#/components/schemas/NamedCount" }
         maintenance_due_list:
           type: array
+          description: 'Schedules due within a fixed 7-day window from today (including already-overdue ones) — independent of the `period`/date filters.'
           items: { $ref: "#/components/schemas/MaintenanceDueItem" }
-        excluded_count: { type: integer, description: Assets excluded from the summary by field-permission masking. }
+        excluded_count: { type: integer, description: 'Assets flagged `excluded_from_valuation` — counted in `total_assets`/`by_status` but excluded from the `acquisition_value`/`book_value` money sums.' }
 
     ReportKpi:
       type: object
