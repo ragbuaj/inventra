@@ -20,9 +20,13 @@ RETURNING *;
 SELECT
   a.*,
   u.name  AS actor_name,
-  u.email AS actor_email
+  u.email AS actor_email,
+  ro.name AS actor_role,
+  o.name  AS office_name
 FROM audit.audit_logs a
 LEFT JOIN identity.users u ON u.id = a.actor_id
+LEFT JOIN identity.roles ro ON ro.id = u.role_id
+LEFT JOIN masterdata.offices o ON o.id = a.office_id
 WHERE (sqlc.arg(all_scope)::bool OR a.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
   AND (sqlc.narg(actor_id)::uuid IS NULL OR a.actor_id = sqlc.narg(actor_id))
   AND (sqlc.narg(entity_type)::text IS NULL OR a.entity_type = sqlc.narg(entity_type))

@@ -30,6 +30,7 @@ func auditToMap(r sqlc.ListAuditLogsRow) map[string]any {
 			"id":    r.ActorID.String(),
 			"name":  r.ActorName,
 			"email": r.ActorEmail,
+			"role":  r.ActorRole,
 		}
 	} else {
 		m["actor"] = nil
@@ -38,6 +39,11 @@ func auditToMap(r sqlc.ListAuditLogsRow) map[string]any {
 		m["office_id"] = r.OfficeID.String()
 	} else {
 		m["office_id"] = nil
+	}
+	if r.OfficeName != nil {
+		m["office_name"] = *r.OfficeName
+	} else {
+		m["office_name"] = nil
 	}
 	if r.CreatedAt.Valid {
 		m["created_at"] = r.CreatedAt.Time.Format(time.RFC3339)

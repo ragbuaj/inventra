@@ -4552,6 +4552,7 @@ components:
         id: { type: string, format: uuid }
         name: { type: [string, "null"] }
         email: { type: [string, "null"] }
+        role: { type: [string, "null"], description: "The actor's CURRENT role name (resolved live via identity.roles, not snapshotted at audit time — an accepted limitation: a later role change/rename is reflected on historical rows too)." }
 
     AuditLog:
       type: object
@@ -4568,6 +4569,7 @@ components:
           additionalProperties: true
         ip: { type: [string, "null"] }
         office_id: { type: [string, "null"], format: uuid }
+        office_name: { type: [string, "null"], description: "The office name for office_id, resolved via a LEFT JOIN — null when office_id is null or points at an office that no longer exists." }
         created_at: { type: string, format: date-time }
 
     AuditList:
