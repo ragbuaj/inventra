@@ -83,3 +83,22 @@ func toResponse(e sqlc.MasterdataEmployee) Response {
 		UpdatedAt:    common.TsStr(e.UpdatedAt),
 	}
 }
+
+// employeeToMap serializes an employee to a map for field-permission masking
+// (authz.FieldService.FilterEntity strips non-viewable fields in place).
+func employeeToMap(e sqlc.MasterdataEmployee) map[string]any {
+	return map[string]any{
+		"id":            e.ID.String(),
+		"code":          e.Code,
+		"name":          e.Name,
+		"email":         e.Email,
+		"phone":         e.Phone,
+		"avatar_key":    e.AvatarKey,
+		"department_id": common.UUIDPtrStr(e.DepartmentID),
+		"position_id":   common.UUIDPtrStr(e.PositionID),
+		"office_id":     e.OfficeID.String(),
+		"status":        string(e.Status),
+		"created_at":    common.TsStr(e.CreatedAt),
+		"updated_at":    common.TsStr(e.UpdatedAt),
+	}
+}

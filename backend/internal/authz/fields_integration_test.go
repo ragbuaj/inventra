@@ -23,11 +23,11 @@ func TestFieldPermissions(t *testing.T) {
 	t.Run("ForEntity structures policies; unmapped field absent", func(t *testing.T) {
 		testsupport.Reset(t, pool)
 		role := testsupport.SeedRole(t, pool, "r-fields-1")
-		testsupport.SeedFieldPermission(t, pool, role, "employee", "email", false, false)
-		testsupport.SeedFieldPermission(t, pool, role, "employee", "name", true, false)
-		testsupport.SeedFieldPermission(t, pool, role, "employee", "salary", false, false)
+		testsupport.SeedFieldPermission(t, pool, role, "employees", "email", false, false)
+		testsupport.SeedFieldPermission(t, pool, role, "employees", "name", true, false)
+		testsupport.SeedFieldPermission(t, pool, role, "employees", "salary", false, false)
 
-		pol, err := svc.ForEntity(ctx, role, "employee")
+		pol, err := svc.ForEntity(ctx, role, "employees")
 		require.NoError(t, err)
 		assert.False(t, pol["email"].CanView)
 		assert.True(t, pol["name"].CanView)
@@ -39,11 +39,11 @@ func TestFieldPermissions(t *testing.T) {
 	t.Run("FilterView drops non-viewable; default-allow keeps unmapped", func(t *testing.T) {
 		testsupport.Reset(t, pool)
 		role := testsupport.SeedRole(t, pool, "r-fields-2")
-		testsupport.SeedFieldPermission(t, pool, role, "employee", "email", false, false)
-		testsupport.SeedFieldPermission(t, pool, role, "employee", "name", true, false)
-		testsupport.SeedFieldPermission(t, pool, role, "employee", "salary", false, false)
+		testsupport.SeedFieldPermission(t, pool, role, "employees", "email", false, false)
+		testsupport.SeedFieldPermission(t, pool, role, "employees", "name", true, false)
+		testsupport.SeedFieldPermission(t, pool, role, "employees", "salary", false, false)
 
-		pol, err := svc.ForEntity(ctx, role, "employee")
+		pol, err := svc.ForEntity(ctx, role, "employees")
 		require.NoError(t, err)
 
 		data := map[string]any{"email": "a@b.c", "name": "Budi", "code": "E1", "salary": 100}
@@ -63,11 +63,11 @@ func TestFieldPermissions(t *testing.T) {
 		testsupport.Reset(t, pool)
 		require.NoError(t, rdb.FlushDB(ctx).Err())
 		role := testsupport.SeedRole(t, pool, "r-fields-cache")
-		testsupport.SeedFieldPermission(t, pool, role, "employee", "email", false, false)
-		testsupport.SeedFieldPermission(t, pool, role, "employee", "name", true, false)
-		testsupport.SeedFieldPermission(t, pool, role, "employee", "salary", false, false)
+		testsupport.SeedFieldPermission(t, pool, role, "employees", "email", false, false)
+		testsupport.SeedFieldPermission(t, pool, role, "employees", "name", true, false)
+		testsupport.SeedFieldPermission(t, pool, role, "employees", "salary", false, false)
 
-		first, err := svc.ForEntity(ctx, role, "employee")
+		first, err := svc.ForEntity(ctx, role, "employees")
 		require.NoError(t, err)
 		require.Len(t, first, 3)
 
@@ -76,7 +76,7 @@ func TestFieldPermissions(t *testing.T) {
 			`UPDATE identity.field_permissions SET deleted_at = now() WHERE role_id = $1`, role)
 		require.NoError(t, err)
 
-		second, err := svc.ForEntity(ctx, role, "employee")
+		second, err := svc.ForEntity(ctx, role, "employees")
 		require.NoError(t, err)
 		assert.Len(t, second, 3, "field cache should still serve the pre-change policies")
 		assert.False(t, second["email"].CanView)
