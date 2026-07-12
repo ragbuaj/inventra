@@ -144,6 +144,9 @@ type Querier interface {
 	GetMaintScheduleScoped(ctx context.Context, arg GetMaintScheduleScopedParams) (MaintenanceMaintenanceSchedule, error)
 	GetOffice(ctx context.Context, arg GetOfficeParams) (MasterdataOffice, error)
 	GetOfficeAncestors(ctx context.Context, id uuid.UUID) ([]GetOfficeAncestorsRow, error)
+	// Fresh, side-effect-free existence check used by the office importer's
+	// Execute anti-poisoning pre-check (mirrors GetEmployeeByCode).
+	GetOfficeByCode(ctx context.Context, code string) (MasterdataOffice, error)
 	GetOfficeCode(ctx context.Context, id uuid.UUID) (string, error)
 	// Authorization queries: office subtree (scoping) and field permissions.
 	// Returns an office plus all of its descendants (Pusat -> Wilayah -> Cabang -> Outlet).
@@ -242,6 +245,9 @@ type Querier interface {
 	ListMaintRecordsByAssetEnriched(ctx context.Context, arg ListMaintRecordsByAssetEnrichedParams) ([]ListMaintRecordsByAssetEnrichedRow, error)
 	ListMaintRecordsEnriched(ctx context.Context, arg ListMaintRecordsEnrichedParams) ([]ListMaintRecordsEnrichedRow, error)
 	ListMaintSchedulesEnriched(ctx context.Context, arg ListMaintSchedulesEnrichedParams) ([]ListMaintSchedulesEnrichedRow, error)
+	// Flat id/name lookup for the office importer's "tipe" column. office_types
+	// has no code column (only name), so the importer matches by name only.
+	ListOfficeTypesLookup(ctx context.Context) ([]ListOfficeTypesLookupRow, error)
 	// Offices (hierarchy) with data-scoping. all_scope bypasses the office filter
 	// (global scope); otherwise only offices whose id is in office_ids are returned.
 	ListOffices(ctx context.Context, arg ListOfficesParams) ([]MasterdataOffice, error)

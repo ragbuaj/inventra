@@ -164,6 +164,66 @@ func (q *Queries) GetOfficeAncestors(ctx context.Context, id uuid.UUID) ([]GetOf
 	return items, nil
 }
 
+const getOfficeByCode = `-- name: GetOfficeByCode :one
+SELECT id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at, latitude, longitude FROM masterdata.offices WHERE code = $1 AND deleted_at IS NULL LIMIT 1
+`
+
+// Fresh, side-effect-free existence check used by the office importer's
+// Execute anti-poisoning pre-check (mirrors GetEmployeeByCode).
+func (q *Queries) GetOfficeByCode(ctx context.Context, code string) (MasterdataOffice, error) {
+	row := q.db.QueryRow(ctx, getOfficeByCode, code)
+	var i MasterdataOffice
+	err := row.Scan(
+		&i.ID,
+		&i.ParentID,
+		&i.OfficeTypeID,
+		&i.ProvinceID,
+		&i.CityID,
+		&i.Name,
+		&i.Code,
+		&i.CostCenterCode,
+		&i.Address,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.Latitude,
+		&i.Longitude,
+	)
+	return i, err
+}
+
+const listOfficeTypesLookup = `-- name: ListOfficeTypesLookup :many
+SELECT id, name FROM masterdata.office_types WHERE deleted_at IS NULL
+`
+
+type ListOfficeTypesLookupRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+// Flat id/name lookup for the office importer's "tipe" column. office_types
+// has no code column (only name), so the importer matches by name only.
+func (q *Queries) ListOfficeTypesLookup(ctx context.Context) ([]ListOfficeTypesLookupRow, error) {
+	rows, err := q.db.Query(ctx, listOfficeTypesLookup)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListOfficeTypesLookupRow{}
+	for rows.Next() {
+		var i ListOfficeTypesLookupRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listOffices = `-- name: ListOffices :many
 
 SELECT id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at, latitude, longitude FROM masterdata.offices
