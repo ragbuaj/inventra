@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	sqlc "github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/importer"
@@ -391,11 +392,36 @@ func validateAssetRows(rows []importer.RawRow, lk assetLookups, scope importer.S
 
 // createRows creates one asset per validated row inside the given transaction,
 // reading the resolved ids stamped into each row's Data by validateAssetRows.
-// maker is recorded as each asset's created_by. A unique-tag conflict marks
-// just that row failed (dupTag) and continues — a late collision must not abort
-// the whole approved batch. Returns the number of assets created.
+// maker is recorded as each asset's created_by. Returns the number of assets
+// created.
+//
+// TX-POISONING DEFENSE: this runs inside the approval module's single shared
+// transaction (approval.Decide opens one tx and hands us the tx-bound *Queries).
+// In PostgreSQL a unique-violation (23505) POISONS the whole transaction — every
+// subsequent command fails with 25P02 "current transaction is aborted" — so a
+// single tag collision at CreateAsset time would abort and roll back the ENTIRE
+// approved batch AND the approval decision, leaving the request permanently
+// unapprovable. To keep the "fail one row, continue" design working, we make
+// CreateAsset never fire a 23505 in the common cases: before every insert we
+// pre-check the tag's availability (against tags consumed earlier in THIS batch
+// and against the DB) so a taken tag is skipped as a failed row rather than
+// inserted. GetAssetByTag is a side-effect-free SELECT; returning ErrNoRows does
+// NOT poison the tx.
 func (a assetImporter) createRows(ctx context.Context, qtx *sqlc.Queries, maker *uuid.UUID, rows []importer.Row) (int, error) {
 	created := 0
+	// Tags consumed by earlier rows in THIS execution (lower-cased). Guards
+	// against two rows in the same batch resolving to the same tag before either
+	// is visible to a DB read.
+	usedTags := map[string]bool{}
+
+	markFailed := func(id uuid.UUID) error {
+		errsJSON, mErr := json.Marshal([]importer.CellError{{Column: colTag, ErrorKey: "dupTag"}})
+		if mErr != nil {
+			return mErr
+		}
+		return qtx.MarkRowFailed(ctx, sqlc.MarkRowFailedParams{ID: id, Errors: errsJSON})
+	}
+
 	for _, r := range rows {
 		officeID, err := uuid.Parse(r.Data["_office_id"])
 		if err != nil {
@@ -434,6 +460,29 @@ func (a assetImporter) createRows(ctx context.Context, qtx *sqlc.Queries, maker 
 			}
 		}
 
+		// Pre-check availability BEFORE inserting, so CreateAsset is never called
+		// with a taken tag (no 23505 is triggered, no tx poisoning).
+		tagKey := strings.ToLower(tag)
+		if usedTags[tagKey] {
+			// Collides with an earlier row in this same batch.
+			if fErr := markFailed(r.ID); fErr != nil {
+				return created, fErr
+			}
+			continue
+		}
+		// Fresh DB existence check: catches a tag that became taken since
+		// validation (TOCTOU) or one already committed by a prior approval.
+		if _, gErr := qtx.GetAssetByTag(ctx, tag); gErr == nil {
+			// A row already exists for this tag — skip it as failed.
+			if fErr := markFailed(r.ID); fErr != nil {
+				return created, fErr
+			}
+			continue
+		} else if !errors.Is(gErr, pgx.ErrNoRows) {
+			// Any error other than "no rows" is a real DB error.
+			return created, mapDBError(gErr)
+		}
+
 		harga := r.Data[colPrice]
 		_, err = qtx.CreateAsset(ctx, sqlc.CreateAssetParams{
 			AssetTag:       tag,
@@ -450,20 +499,21 @@ func (a assetImporter) createRows(ctx context.Context, qtx *sqlc.Queries, maker 
 			Specifications: []byte("{}"),
 		})
 		if err != nil {
-			if errors.Is(mapDBError(err), ErrConflict) {
-				// Late unique-tag collision — fail just this row, keep going.
-				errsJSON, mErr := json.Marshal([]importer.CellError{{Column: colTag, ErrorKey: "dupTag"}})
-				if mErr != nil {
-					return created, mErr
-				}
-				if fErr := qtx.MarkRowFailed(ctx, sqlc.MarkRowFailedParams{ID: r.ID, Errors: errsJSON}); fErr != nil {
-					return created, fErr
-				}
-				continue
-			}
+			// Residual concurrent-race window: the pre-check saw the tag free, but
+			// a genuinely simultaneous, still-uncommitted INSERT of the same
+			// explicit tag in another transaction can block us and then surface as
+			// 23505 at commit contention. This window is astronomically small and
+			// cannot be closed here without per-row SAVEPOINTs (which need the raw
+			// pgx.Tx, not exposed to executors). We do NOT swallow-and-continue on
+			// this 23505: doing so inside the shared tx would already be poisoned.
+			// Instead we return the error, aborting THIS approval attempt cleanly.
+			// Because the pre-check is self-healing, an approval RETRY sees the now
+			// committed tag via GetAssetByTag and skips that row, so the batch
+			// completes on the next attempt.
 			return created, mapDBError(err)
 		}
 
+		usedTags[tagKey] = true
 		if err := qtx.MarkRowResult(ctx, sqlc.MarkRowResultParams{ID: r.ID, ResultRef: &tag}); err != nil {
 			return created, err
 		}
