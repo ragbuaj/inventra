@@ -223,6 +223,15 @@ func (e assetImportExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sql
 	// Critical guard: only an import job still awaiting approval may be
 	// executed. A stale duplicate approval landing on an already-completed job
 	// must not re-create its assets — treat it as a no-op.
+	//
+	// The "create batch exactly once" invariant is enforced across THREE
+	// cooperating pieces — do not weaken any one without re-checking the others:
+	//   1. importer.Worker.executePhase's FindActiveImportRequest de-dup (avoids
+	//      a second asset_import request after a Submit-commit/crash),
+	//   2. approval.Service.Decide's GetRequestForUpdate row-lock (serializes
+	//      concurrent approvers on the same request),
+	//   3. this awaiting_approval status guard (a stale/duplicate approval that
+	//      wins the race finds the job already completed and no-ops).
 	if job.Status != sqlc.SharedImportStatusAwaitingApproval {
 		return nil
 	}
