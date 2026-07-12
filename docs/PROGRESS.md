@@ -630,16 +630,63 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     mock dashboard until rebuilt; the mockup comparison was run against a fresh host build of the
 >     current branch (verified real backend data: 185 assets, live E2E categories/offices) — the deployed
 >     image needs a rebuild to reflect the new wiring.
-> 43. **Next session — pick the next real step.** Remaining major candidate: **Import wizard** — wire
->     `pages/assets/import` to a real backend bulk-import endpoint (still mock-backed via `mock/assets.ts`;
->     verify whether the backend `internal/import` module/endpoint exists before building the frontend
->     seam) and delete `mock/assets.ts`. Also open: **notifications** (`mock/notifications.ts` — the last
->     app-shell mock; needs a backend notifications feed) and the standing tech-debt list
->     (field-permission enforcement beyond assets+users; Users screen server-side filters +
+> 43. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-12): Import module (bulk
+>     CSV/XLSX) — see item 44.** Design: `docs/superpowers/specs/2026-07-12-import-module-design.md`
+>     + plan `docs/superpowers/plans/2026-07-12-import-module.md`.
+> 44. ~~**Import module — backend `internal/importer` engine + all 5 targets + frontend wizard + e2e**~~
+>     ✅ **DONE (2026-07-12, branch `feat/import-module`).** Generic bulk-import engine (ADR-0008 split
+>     + `parser`/`template`/`errreport`/`worker`/`target`): migration `000030` (import_rows table, job
+>     routing office, batch enums `validated/confirmed/executing/awaiting_approval/cancelled` +
+>     `asset_import` request type), `000031` (seed `asset_import` approval thresholds mirroring
+>     `asset_create`), `000032` (seed `masterdata.employee.manage` to superadmin+kepala_kanwil — was
+>     never granted). **`TargetImporter` interface** with 5 targets: **asset** (batch = ONE
+>     `asset_import` approval request, executor creates all on approval), **employee**, **office**,
+>     **reference:provinces**, **reference:cities** — each in its own domain package. **Async DB-queue
+>     worker** (`FOR UPDATE SKIP LOCKED`, validate→execute phases, Redis progress, startup recovery,
+>     started in `main.go` on a cancellable ctx). **8 endpoints** `/imports` (template, upload, list,
+>     get, rows, confirm, cancel, error-report) — per-target permission gate + `imports` data-scope +
+>     owner-only job access; maker scope resolved from role (fail-closed). Exports/parsing via excelize;
+>     money summed with `big.Rat`. Frontend: **reusable `ImportWizard.vue`** (props target/permission)
+>     driven by real `useImports` composable — 3-step wizard (upload→validate→result) + asset
+>     approval-pending state + resume; `pages/assets/import.vue` rewired, new `pages/master/import.vue`
+>     (per-target `?target=`) + Import buttons on Pegawai/Kantor/Referensi; **`mock/assets.ts` DELETED**
+>     (last non-notification app-shell mock). Tests: backend unit + 12 integration (incl. **mid-batch
+>     tag-collision regression** proving the tx-poisoning fix), frontend 1156 unit, **Playwright e2e
+>     3/3 green against real backend** (asset maker-checker happy path + employee cycle + validation
+>     rejection). Full gate green: backend build/vet/test + `-tags=integration ./... -p 1` (31 pkgs),
+>     Spectral (0 err/9 known warn), frontend lint/typecheck/test/build; **side-by-side vs
+>     `Import Aset.dc.html` verified 1:1** (upload screen — stepper, template card, drop-zone, column
+>     badges, validate button all match). OpenAPI `Import` tag added.
+>     **Approved deviations from the mockup** (catat-deviasi convention): **(a)** asset step-3 shows a
+>     **"Diajukan untuk persetujuan"** state before the final result (consequence of batch approval —
+>     the mockup assumed direct creation); **(b)** the master-data import entry point + wizard have **no
+>     mockup** (built to the Import Aset anatomy); **(c)** the progress bar is **real polling** progress
+>     (mockup was cosmetic); **(d)** the preview is **server-validated + paginated** (mockup was a static
+>     12-row table); **(e)** the wizard **resumes an active job** when reopened. (The asset-specific cell
+>     formatting — `Rp` prefix, monospaced tag — was restored so the asset table matches the mockup; the
+>     generic renderer serves the non-asset targets.)
+>     **Bugs found by the e2e that unit/integration/component tests all missed (fixed):** row-data
+>     nested-vs-flat contract mismatch; Go nil-slice `Errors` → JSON `null` (frontend crash); completed
+>     job `failed_rows` overwritten by the execution-only count (validation failures discarded);
+>     `masterdata.employee.manage` never seeded.
+>     **Honest limitations / follow-ups (tracked, not done):** employee/office importers cover only the
+>     core columns (no dept/position lookup yet); only **2 reference targets** wired (provinces/cities —
+>     engine is extensible); error reports are generated **on-demand** (not stored to MinIO —
+>     `error_report_key` stays null); **office/reference import paths have no e2e** (only asset+employee
+>     driven); the dup-code DB check is **case-sensitive** while validation is case-insensitive (narrow
+>     TOCTOU under concurrency, inherited from the asset-tag pattern); Redis validate progress is written
+>     **once at 100%** (no incremental); the importer maps `employee`→`masterdata.employee.manage` while
+>     employee **CRUD** uses `office.manage` (000032 aligns the grants). **Note — dev-stack image
+>     staleness:** the running `asset-management-frontend` container predates this branch and was stopped
+>     for the e2e/mockup run (served by a fresh host build) — it needs a rebuild for normal dev use.
+> 45. **Next session — pick the next real step.** Remaining major candidate: **notifications**
+>     (`mock/notifications.ts` — the last app-shell mock; needs a backend notifications feed). Also open:
+>     remaining **import** follow-ups (extra master-data targets — brand/model/unit/room/floor; dept/
+>     position columns on employee import; office/reference e2e; MinIO-stored error reports); the standing
+>     tech-debt list (field-permission enforcement beyond assets+users; Users screen server-side filters +
 >     reset-password; enriched audit response; async searchable office/employee pickers — the `limit:100`
->     cap keeps biting local e2e; approval/route badge counts; failure-safe Data-Scope e2e cleanup);
->     and the **Analytics/OLAP** read layer once report volume warrants it (see *Analytics / OLAP*
->     below). Confirm priority before starting.
+>     cap keeps biting local e2e; approval/route badge counts; failure-safe Data-Scope e2e cleanup); and
+>     the **Analytics/OLAP** read layer once report volume warrants it. Confirm priority before starting.
 
 ## ✅ Done
 
