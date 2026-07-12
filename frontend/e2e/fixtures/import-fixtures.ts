@@ -128,3 +128,155 @@ export function buildEmployeeCsv({ officeName, run }: EmployeeImportInputs): Emp
   ]
   return { filename: `employees-${run}.csv`, csv: toCsv(header, rows), codeA, codeB, nameA, nameB }
 }
+
+// ---------------------------------------------------------------------------
+// Master-data import targets registered in Tasks 2-4 (frontend/e2e/import-
+// masterdata.spec.ts): office, reference:provinces, reference:cities,
+// reference:brands, reference:models. Column order matches each target's
+// ColumnSpec (see backend/internal/masterdata/office/importer.go Columns and
+// backend/internal/masterdata/reference/importer.go Columns):
+//   office:              kode, nama, tipe, induk, aktif
+//   reference:provinces: nama, kode
+//   reference:cities:    nama, provinsi, kode
+//   reference:brands:    nama
+//   reference:models:    merek, nama
+// Each builder bakes in two valid rows plus one row that fails validation
+// (a duplicate kode/nama, or an unresolvable lookup) so every flow also
+// exercises the error-count badge + downloadable error report, mirroring
+// buildEmployeeCsv above.
+// ---------------------------------------------------------------------------
+
+export interface OfficeImportInputs {
+  officeTypeName: string
+  run: string
+}
+
+export interface OfficeImportFixture {
+  filename: string
+  csv: string
+  nameA: string
+  nameB: string
+  dupRowName: string
+}
+
+/**
+ * Two valid root offices (empty `induk` — fine for an AllScope/global caller,
+ * see office/importer.go validateOfficeRows) + one row reusing row A's `kode`
+ * -> dupKode.
+ */
+export function buildOfficeCsv({ officeTypeName, run }: OfficeImportInputs): OfficeImportFixture {
+  const codeA = `E2EOFFA${run}`
+  const nameA = `E2E Office Import A ${run}`
+  const nameB = `E2E Office Import B ${run}`
+  const dupRowName = `E2E Office Import Dup ${run}`
+  const header = ['kode', 'nama', 'tipe', 'induk', 'aktif']
+  const rows = [
+    [codeA, nameA, officeTypeName, '', ''],
+    [`E2EOFFB${run}`, nameB, officeTypeName, '', 'ya'],
+    [codeA, dupRowName, officeTypeName, '', '']
+  ]
+  return { filename: `offices-${run}.csv`, csv: toCsv(header, rows), nameA, nameB, dupRowName }
+}
+
+export interface ProvinceImportInputs { run: string }
+
+export interface ProvinceImportFixture {
+  filename: string
+  csv: string
+  nameA: string
+  nameB: string
+  dupRowName: string
+}
+
+/** Two valid provinces + one row reusing row A's `kode` -> dupKode. */
+export function buildProvinceCsv({ run }: ProvinceImportInputs): ProvinceImportFixture {
+  const codeA = `EPIA${run}`
+  const nameA = `E2E Provinsi Import A ${run}`
+  const nameB = `E2E Provinsi Import B ${run}`
+  const dupRowName = `E2E Provinsi Import Dup ${run}`
+  const header = ['nama', 'kode']
+  const rows = [
+    [nameA, codeA],
+    [nameB, `EPIB${run}`],
+    [dupRowName, codeA]
+  ]
+  return { filename: `provinces-${run}.csv`, csv: toCsv(header, rows), nameA, nameB, dupRowName }
+}
+
+export interface CityImportInputs {
+  provinceName: string
+  run: string
+}
+
+export interface CityImportFixture {
+  filename: string
+  csv: string
+  nameA: string
+  nameB: string
+  badProvinceRowName: string
+}
+
+/**
+ * Two valid cities under `provinceName` + one row whose `provinsi` does not
+ * resolve to any known province -> "provinsi" error.
+ */
+export function buildCityCsv({ provinceName, run }: CityImportInputs): CityImportFixture {
+  const nameA = `E2E Kota Import A ${run}`
+  const nameB = `E2E Kota Import B ${run}`
+  const badProvinceRowName = `E2E Kota Import BadProv ${run}`
+  const header = ['nama', 'provinsi', 'kode']
+  const rows = [
+    [nameA, provinceName, `ECIA${run}`],
+    [nameB, provinceName, `ECIB${run}`],
+    [badProvinceRowName, `Nonexistent Provinsi ${run}`, `ECIC${run}`]
+  ]
+  return { filename: `cities-${run}.csv`, csv: toCsv(header, rows), nameA, nameB, badProvinceRowName }
+}
+
+export interface BrandImportInputs { run: string }
+
+export interface BrandImportFixture {
+  filename: string
+  csv: string
+  nameA: string
+  nameB: string
+}
+
+/** Two valid brands + one row reusing row A's `nama` -> dupNama (soft, name-only unique). */
+export function buildBrandCsv({ run }: BrandImportInputs): BrandImportFixture {
+  const nameA = `E2E Brand Import A ${run}`
+  const nameB = `E2E Brand Import B ${run}`
+  const header = ['nama']
+  const rows = [[nameA], [nameB], [nameA]]
+  return { filename: `brands-${run}.csv`, csv: toCsv(header, rows), nameA, nameB }
+}
+
+export interface ModelImportInputs {
+  brandName: string
+  run: string
+}
+
+export interface ModelImportFixture {
+  filename: string
+  csv: string
+  nameA: string
+  nameB: string
+  unknownBrandRowName: string
+}
+
+/**
+ * Two valid models under `brandName` + one row whose `merek` does not resolve
+ * to any known brand -> "merek" error.
+ */
+export function buildModelCsv({ brandName, run }: ModelImportInputs): ModelImportFixture {
+  const nameA = `E2E Model Import A ${run}`
+  const nameB = `E2E Model Import B ${run}`
+  const unknownBrandRowName = `E2E Model Import Unknown ${run}`
+  const header = ['merek', 'nama']
+  const rows = [
+    [brandName, nameA],
+    [brandName, nameB],
+    [`Nonexistent Merek ${run}`, unknownBrandRowName]
+  ]
+  return { filename: `models-${run}.csv`, csv: toCsv(header, rows), nameA, nameB, unknownBrandRowName }
+}
