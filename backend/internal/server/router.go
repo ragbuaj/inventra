@@ -29,9 +29,13 @@ import (
 	"github.com/ragbuaj/inventra/internal/depreciation"
 	"github.com/ragbuaj/inventra/internal/disposal"
 	"github.com/ragbuaj/inventra/internal/identity"
+	"github.com/ragbuaj/inventra/internal/importer"
 	"github.com/ragbuaj/inventra/internal/maintenance"
 	"github.com/ragbuaj/inventra/internal/masterdata"
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
+	"github.com/ragbuaj/inventra/internal/masterdata/employee"
+	"github.com/ragbuaj/inventra/internal/masterdata/office"
+	"github.com/ragbuaj/inventra/internal/masterdata/reference"
 	"github.com/ragbuaj/inventra/internal/middleware"
 	"github.com/ragbuaj/inventra/internal/oauth"
 	"github.com/ragbuaj/inventra/internal/ratelimit"
@@ -53,8 +57,10 @@ type Deps struct {
 	Storage storage.Storage
 }
 
-// NewRouter builds the Gin engine with base middleware, health, and readiness probes.
-func NewRouter(d Deps) *gin.Engine {
+// NewRouter builds the Gin engine with base middleware, health, and readiness
+// probes. It also returns the bulk-import async worker so main.go can start
+// (and cleanly stop) its background polling loop alongside the HTTP server.
+func NewRouter(d Deps) (*gin.Engine, *importer.Worker) {
 	if d.Cfg.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -131,6 +137,11 @@ func NewRouter(d Deps) *gin.Engine {
 	tokenStore := auth.NewTokenStore(d.Redis)
 	requireAuth := middleware.RequireAuth(tokenManager, tokenStore)
 
+	// importWorker is constructed inside the api group below (it needs
+	// permSvc/scopeSvc/approvalSvc/auditSvc built there) but must be visible
+	// here so it can be returned to main.go for the graceful-shutdown wiring.
+	var importWorker *importer.Worker
+
 	api := r.Group("/api/v1")
 	api.Use(middleware.PerIP(d.Limiter, d.Cfg.RateLimitGlobalPerMin, "global", false))
 	{
@@ -189,6 +200,7 @@ func NewRouter(d Deps) *gin.Engine {
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssignment, assignmentSvc.Executor())
 		maintenanceSvc := maintenance.NewService(queries, d.Pool, approvalSvc, assetSvc)
 		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeMaintenance, maintenanceSvc.Executor())
+		approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetImport, assetSvc.ImportExecutor())
 		approvalHandler := approval.NewHandler(approvalSvc, fieldSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)
 		approval.RegisterRoutes(api, approvalHandler, requireAuth, permSvc)
 
@@ -253,7 +265,18 @@ func NewRouter(d Deps) *gin.Engine {
 			middleware.RequirePermission(permSvc, "scope.manage"),
 			middleware.RequirePermission(permSvc, "fieldperm.manage"),
 		)
+
+		importerSvc := importer.NewService(queries, d.Pool, d.Storage, d.Redis, d.Cfg.ImportMaxRows, d.Cfg.ImportMaxBytes)
+		importerSvc.RegisterTarget(assetSvc.Importer())
+		importerSvc.RegisterTarget(employee.NewService(queries).Importer())
+		importerSvc.RegisterTarget(office.NewService(queries).Importer())
+		refSvc := reference.NewService(queries)
+		importerSvc.RegisterTarget(reference.NewImporter(refSvc, "provinces"))
+		importerSvc.RegisterTarget(reference.NewImporter(refSvc, "cities"))
+		importerHandler := importer.NewHandler(importerSvc, permSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)
+		importer.RegisterRoutes(api, importerHandler, requireAuth)
+		importWorker = importer.NewWorker(importerSvc, d.Pool, d.Redis, approvalSvc, scopeSvc, d.Cfg.ImportWorkerPoll)
 	}
 
-	return r
+	return r, importWorker
 }

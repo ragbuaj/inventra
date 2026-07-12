@@ -20,7 +20,7 @@ func testDeps() Deps {
 }
 
 func TestRouterHealthEchoesRequestID(t *testing.T) {
-	r := NewRouter(testDeps())
+	r, _ := NewRouter(testDeps())
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/health", nil))
 	if w.Code != http.StatusOK {
@@ -36,7 +36,7 @@ func TestRouterHealthEchoesRequestID(t *testing.T) {
 // Redis client, and a single /api/v1/health request is allowed (200) — proving the
 // middleware is mounted without blocking normal traffic.
 func TestRouterGlobalThrottleMounted(t *testing.T) {
-	r := NewRouter(testDeps())
+	r, _ := NewRouter(testDeps())
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/v1/health", nil))
 	if w.Code != http.StatusOK {
@@ -48,7 +48,7 @@ func TestRouterGlobalThrottleMounted(t *testing.T) {
 // the rate-limit key uses the real RemoteAddr (not a spoofable header).
 func TestClientIPIgnoresForwardedWhenNoTrustedProxies(t *testing.T) {
 	deps := testDeps() // TrustedProxies is nil → NewRouter trusts no proxies
-	r := NewRouter(deps)
+	r, _ := NewRouter(deps)
 	var got string
 	r.GET("/ip", func(c *gin.Context) {
 		got = c.ClientIP()

@@ -30,6 +30,12 @@ func main() {
 	slog.SetDefault(logger)
 	ctx := context.Background()
 
+	// Cancellable root context for background work (the import worker) tied to
+	// graceful shutdown below — cancelled once the SIGINT/SIGTERM handler
+	// starts shutting the HTTP server down.
+	workerCtx, stopWorker := context.WithCancel(context.Background())
+	defer stopWorker()
+
 	// PostgreSQL (authoritative store).
 	pool, err := db.NewPool(ctx, cfg)
 	if err != nil {
@@ -66,9 +72,10 @@ func main() {
 	}
 	slog.Info("MinIO connected", "bucket", cfg.MinIOBucket)
 
+	handler, importWorker := server.NewRouter(server.Deps{Cfg: cfg, Pool: pool, Redis: rdb, Log: logger, Limiter: limiter, Storage: store})
 	srv := &http.Server{
 		Addr:              ":" + cfg.ServerPort,
-		Handler:           server.NewRouter(server.Deps{Cfg: cfg, Pool: pool, Redis: rdb, Log: logger, Limiter: limiter, Storage: store}),
+		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
@@ -80,11 +87,19 @@ func main() {
 		}
 	}()
 
+	if cfg.ImportWorkerEnabled {
+		if err := importWorker.Recover(workerCtx); err != nil {
+			slog.Error("import worker recover failed", "error", err)
+		}
+		go importWorker.Run(workerCtx)
+	}
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
 	slog.Info("shutting down")
+	stopWorker()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
