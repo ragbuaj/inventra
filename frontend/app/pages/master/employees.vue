@@ -214,7 +214,9 @@ function resetFilters() {
   filterDept.value = ALL
   filterPosition.value = ALL
   filterStatus.value = ALL
-  offset.value = 0
+  // Don't reset `offset` here — the multi-ref filter watcher below reads it
+  // to decide whether it (vs. the separate offset watcher) should refresh(),
+  // and needs to see the real pre-reset value to avoid a double-fetch.
 }
 
 watch(search, (v) => {

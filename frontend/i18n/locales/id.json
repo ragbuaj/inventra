@@ -36,7 +36,6 @@
     "filter": {
       "allStatus": "Semua Status",
       "allCategory": "Semua Kategori",
-      "allOffice": "Semua Kantor",
       "allClass": "Semua Kelas"
     },
     "status": {
@@ -744,7 +743,6 @@
     "schedule": {
       "searchPlaceholder": "Cari aset…",
       "filterCategoryAll": "Semua Kategori",
-      "filterOfficeAll": "Semua Kantor",
       "noMatch": "Tidak ada aset yang cocok.",
       "column": {
         "asset": "Aset",
@@ -1392,7 +1390,6 @@
     "title": "Dashboard",
     "scopeNote": "Angka mengikuti data scope Anda",
     "scopeAll": "Seluruh scope Anda",
-    "allOfficesInScope": "Seluruh kantor dalam scope",
     "noRoom": "Tanpa ruangan",
     "excludedNote": "{n} aset dikecualikan dari total nilai (pengecualian valuasi)",
     "reload": "Muat ulang",

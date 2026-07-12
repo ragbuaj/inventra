@@ -432,6 +432,53 @@ describe('Master Pegawai page — server-side pagination', () => {
     await setVmRef(wrapper, 'filterOffice', 'o1')
     expect(captured).toContain('limit=100')
   })
+
+  it('clicking Reset from page 2 (offset=20) issues exactly ONE GET /employees call and returns to page 1', async () => {
+    setHandler((path, opts) => {
+      if (path.startsWith('/employees?')) return makeEmployeesResponse(EMPLOYEES, 45)
+      return defaultHandler(path, opts)
+    })
+    const wrapper = await mountAndWait()
+
+    // Also dirty a non-offset filter so resetFilters() has something to
+    // reset besides the page — mirrors real usage (search + pagination).
+    vi.useFakeTimers()
+    ;(wrapper.vm as unknown as { search: string }).search = 'Andi'
+    await vi.advanceTimersByTimeAsync(300)
+    vi.useRealTimers()
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    const page2 = wrapper.findAll('button').find(b => b.text().trim() === '2')
+    expect(page2).toBeDefined()
+    await page2!.trigger('click')
+    await new Promise(r => setTimeout(r, 400))
+    await wrapper.vm.$nextTick()
+
+    expect((wrapper.vm as unknown as { offset: number }).offset).toBe(20)
+
+    let callCount = 0
+    let lastCaptured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/employees?')) {
+        callCount++
+        lastCaptured = path
+        return makeEmployeesResponse(EMPLOYEES, 45)
+      }
+      return defaultHandler(path, opts)
+    })
+
+    const resetBtn = wrapper.findAll('button').find(b => b.text().trim() === 'Reset')
+    expect(resetBtn).toBeDefined()
+    await resetBtn!.trigger('click')
+    await new Promise(r => setTimeout(r, 400))
+    await wrapper.vm.$nextTick()
+
+    expect(callCount).toBe(1)
+    expect(lastCaptured).toContain('offset=0')
+    expect((wrapper.vm as unknown as { offset: number }).offset).toBe(0)
+    expect((wrapper.vm as unknown as { search: string }).search).toBe('')
+  })
 })
 
 // ---------------------------------------------------------------------------

@@ -36,7 +36,6 @@
     "filter": {
       "allStatus": "All Status",
       "allCategory": "All Categories",
-      "allOffice": "All Offices",
       "allClass": "All Classes"
     },
     "status": {
@@ -744,7 +743,6 @@
     "schedule": {
       "searchPlaceholder": "Search asset…",
       "filterCategoryAll": "All Categories",
-      "filterOfficeAll": "All Offices",
       "noMatch": "No matching asset.",
       "column": {
         "asset": "Asset",
@@ -1392,7 +1390,6 @@
     "title": "Dashboard",
     "scopeNote": "Figures follow your data scope",
     "scopeAll": "Your entire scope",
-    "allOfficesInScope": "All offices in scope",
     "noRoom": "No room",
     "excludedNote": "{n} assets excluded from total value (valuation exclusion)",
     "reload": "Reload",
