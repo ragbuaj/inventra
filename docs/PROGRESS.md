@@ -725,16 +725,61 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     **Full verification gate (this PR, 2026-07-12):** backend `go build`/`go vet`/`go test` all green;
 >     full `go test -tags=integration ./... -p 1` (all packages) green; Spectral 0 errors/9 known
 >     warnings; frontend lint/typecheck green, `pnpm test` 95 files/1159 tests green, `pnpm build` green.
-> 49. ~~**Next session — pick the next real step.**~~ **Import module is now feature-complete for
->     planned scope** except room/floor reference targets (deferred, no committed timeline). Top
->     candidates: **(a) notifications** (`mock/notifications.ts` — the last app-shell mock; needs a
->     backend notifications feed) — biggest remaining "real feature" gap; **(b) room/floor import
->     targets** if bulk-loading physical layout data becomes a real need; **(c)** the standing tech-debt
->     list (field-permission enforcement beyond assets+users; Users screen server-side filters +
->     reset-password; enriched audit response; async searchable office/employee pickers — the
->     `limit:100` cap keeps biting local e2e, as seen again in this branch's office e2e case;
->     approval/route badge counts; failure-safe Data-Scope e2e cleanup); **(d)** the **Analytics/OLAP**
->     read layer once report volume warrants it. Confirm priority before starting.
+> 49. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-12): tech-debt sweep —
+>     item (c) subset: field-permission enforcement + enriched audit response + async searchable pickers.**
+>     Design: `docs/superpowers/specs/2026-07-12-tech-debt-sweep-design.md` + plan
+>     `docs/superpowers/plans/2026-07-12-tech-debt-sweep.md`. See item 50.
+> 50. ~~**Tech-debt sweep (field-perm enforcement + audit enrichment + async pickers)**~~ ✅ **DONE
+>     (2026-07-13, branch `feat/tech-debt-sweep`, 19 commits, base 3b0a483).** Three independent parts,
+>     subagent-driven (13 tasks + final gate + whole-branch review, all task-reviewed):
+>     - **Part 3 — async searchable pickers (item 49(c) "async pickers"):** new resource-agnostic
+>       `AsyncSearchPicker.vue` (hand-rolled `UInput`+`<ul>` dropdown — deliberately NOT `USelectMenu`, to
+>       dodge the focus-trap; 300ms debounce, seq-guard, `clearable`) replaces EVERY `{limit:100}`
+>       client-side office/employee/reference/category picker across forms **and** filters
+>       (AssetForm category/brand/model/unit/vendor, employees, assignment, transfers, disposals,
+>       stock-opname, users, reference, maintenance, + the assets/reports/depreciation/dashboard office
+>       filters). `AssetSearchPicker` refactored to wrap it; `usePickerSource.ts` adapters
+>       (office/employee/reference/category/user) + `useResolveCache`. `master/employees` table → real
+>       server-side pagination; **`master/offices` table deferred** (its flat list feeds the office tree —
+>       needs a `GET /offices/tree` endpoint, out of frontend-only scope). e2e now drive pickers via a
+>       `pickAsync` helper (assignment recipient UI-driven). **No backend change** — the server already
+>       supported `search` for all these resources.
+>     - **Part 2 — enriched audit response (item 49(c) "enriched audit response"):** `ListAuditLogs`
+>       gained `LEFT JOIN identity.roles` (actor role) + `LEFT JOIN masterdata.offices` (office name),
+>       resolution kept **inside the SQL** so an `audit.view`-only viewer isn't blocked by
+>       `user.manage`/masterdata perms. Frontend adds Role (sub-line under Aktor) + Office columns and a
+>       **client-side derived localized summary** (per `Audit Trail.dc.html`), plus an **actor filter**
+>       (`AsyncSearchPicker` on users) **gated on `user.manage`** (the picker hits `/users`, which the
+>       other `audit.view` roles can't). Actor role is the *current* role (not snapshotted).
+>     - **Part 1 — field-permission enforcement (item 49(c) "field-permission enforcement beyond
+>       assets+users"):** new fail-closed `authz.FieldService.FilterEntity` helper standardized
+>       user/asset/approval masking (**`user` changed fail-open → fail-closed**); **`employees` now
+>       field-masked** (map DTO + `fieldSvc` threaded through `masterdata.RegisterRoutes`, entity key
+>       `"employees"`); **depreciation impairment leak closed** (`book_value`/`accumulated_depreciation`
+>       coupled masking, mirroring the schedule path; attachment/document maps verified NOT leaks —
+>       metadata only); frontend `fieldCatalog` gains the `employees` entity. A post-review
+>       `fix(security)` made all four masking wrappers fail-closed on an unparseable `CtxRoleID` too.
+>     - **Approved deviations (catat-deviasi):** **(a)** audit summary derived **client-side** (i18n) not
+>       a stored column — no migration, works for existing rows; **(b)** audit Role/Office rendered per
+>       the mockup's actual layout (role sub-line + "Kantor / IP" combined col), not two literal new
+>       columns; **(c)** actor role is current-role (JOIN), not snapshotted; **(d)** `master/offices`
+>       table left on `limit:100` (deferred, tree structural blocker); **(e)** the users employee picker
+>       lost client-side office-narrowing (backend has no `office_id` filter param — safety-net clears the
+>       employee on office change; server-side data-scope intact).
+>     - **Gate:** backend build/vet/test + full `-tags=integration ./... -p 1` (all pkgs) + Spectral
+>       0err/9warn; frontend lint/typecheck/**test 1260**/build; **e2e 29/0** vs real backend. Whole-branch
+>       review (opus): ready to merge. **Honest follow-ups (open):** `master/offices` tree >100 (needs
+>       `GET /offices/tree`); `AsyncSearchPicker` a11y (aria/keyboard nav); `transfers`/`disposals` office
+>       maps + `assets/index` brand/model filters still `limit:100` (same office-tree class);
+>       `useReference.get()`; `assets/index` resetFilters double-fetch (pre-existing); `user`
+>       create/update/delete handler tests; audit summary echoes raw `entity_type`/`entity_id`.
+> 51. **Next session — pick the next real step.** Remaining item 49 candidates: **(a) notifications**
+>     (`mock/notifications.ts` — the last app-shell mock; needs a backend feed) — biggest remaining "real
+>     feature" gap; **(b) room/floor import targets**; **(c)** the rest of the standing tech-debt list
+>     (Users screen server-side filters + reset-password; approval/route badge counts; failure-safe
+>     Data-Scope e2e cleanup; + the sweep's own follow-ups above — notably a `GET /offices/tree` endpoint
+>     to unblock `master/offices` pagination and the remaining office-map `limit:100` truncations);
+>     **(d)** the **Analytics/OLAP** read layer. Confirm priority before starting.
 
 ## ✅ Done
 
