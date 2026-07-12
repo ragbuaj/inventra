@@ -1,6 +1,6 @@
 import { test, expect, request } from '@playwright/test'
 import type { APIRequestContext, APIResponse, Page } from '@playwright/test'
-import { login, EMAIL, PASSWORD } from './helpers'
+import { login, pickAsync, EMAIL, PASSWORD } from './helpers'
 
 // ---------------------------------------------------------------------------
 // Assignment (Penugasan/Peminjaman) — real backend (`/assignment` Manager
@@ -37,7 +37,12 @@ import { login, EMAIL, PASSWORD } from './helpers'
 // (this dev DB is NOT reset between runs), assert-after-search, wait for
 // toasts/redirects/modal-closed rather than fixed sleeps, and API-driven
 // setup for offices/assets (the dev-DB office-picker `limit:100` debris means
-// a freshly-created office cannot reliably be selected through a UI dropdown).
+// a freshly-created office cannot reliably be selected through a UI dropdown —
+// though no test below actually picks an office through a dropdown; it is only
+// ever an API-side scoping prerequisite). The recipient (employee) below IS
+// picked through the real UI, via the `AsyncSearchPicker`-backed `employee`
+// picker (server-side search — see `helpers.ts`'s `pickAsync`), which is not
+// subject to that client-side cap.
 //
 // IMPORTANT: `pnpm test:e2e` needs the full backend stack + seeded admin (see
 // CLAUDE.md), with RATELIMIT_ENABLED=false. This spec compiles + lints here;
@@ -226,10 +231,14 @@ test.describe('Assignment (Penugasan/Peminjaman) — real backend e2e', () => {
     // The seeded admin is Superadmin, which holds assignment.manage —
     // exercises the Manager-screen direct check-out/check-in path.
     //
-    // NOTE: every picker on this screen is a Nuxt UI USelect/USelectMenu (a
-    // custom popover, NOT a native <select> — see categories/employees specs),
-    // so it is driven by clicking its trigger (by its placeholder text) then a
-    // role="option" in the open listbox. `selectOption` would NOT work here.
+    // NOTE: the asset + check-in pickers on this screen are a Nuxt UI
+    // USelect/USelectMenu (a custom popover, NOT a native <select> — see
+    // categories/employees specs), driven by clicking their trigger (by its
+    // placeholder text) then a role="option" in the open listbox —
+    // `selectOption` would NOT work here. The recipient picker is an
+    // `AsyncSearchPicker` (server-searched, testid="employee") driven via the
+    // `pickAsync` helper instead — fill its search input, wait for + click
+    // the matching `employee-picker-item`.
     const employeeLabel = `E2E Assignment Employee ${RUN}`
     await login(page)
     await page.goto('/assignment')
@@ -241,9 +250,10 @@ test.describe('Assignment (Penugasan/Peminjaman) — real backend e2e', () => {
     await page.getByText('Cari nama / kode aset…', { exact: true }).first().click()
     await page.getByRole('option', { name: new RegExp(asset1Name) }).click()
 
-    // Recipient USelect: trigger shows the placeholder until a value is picked.
-    await page.getByText('Pilih pegawai…', { exact: true }).click()
-    await page.getByRole('option', { name: employeeLabel, exact: true }).click()
+    // Recipient (AsyncSearchPicker, testid="employee"): the backend search
+    // matches name OR code (ILIKE — see db/queries/employees.sql), so the
+    // unique RUN-suffixed name both searches and disambiguates the result.
+    await pickAsync(page, 'employee', employeeLabel, employeeLabel)
 
     await page.locator('input[type="date"]').first().fill(todayISO())
 
