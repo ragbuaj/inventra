@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { REQUEST_TYPE_KEYS, TYPE_META, STATUS_TONE, STATUS_FILTERS } from '~/constants/approvalMeta'
 
 describe('constants/approvalMeta', () => {
-  it('covers exactly the 6 submittable backend request types', () => {
-    expect(REQUEST_TYPE_KEYS).toEqual(['asset_create', 'asset_disposal', 'asset_transfer', 'assignment', 'maintenance', 'valuation_exclusion'])
+  it('covers exactly the 7 submittable backend request types', () => {
+    expect(REQUEST_TYPE_KEYS).toEqual(['asset_create', 'asset_disposal', 'asset_transfer', 'assignment', 'maintenance', 'valuation_exclusion', 'asset_import'])
   })
 
   it('marks disposal and valuation exclusion as sensitive', () => {
@@ -13,6 +13,7 @@ describe('constants/approvalMeta', () => {
     expect(TYPE_META.asset_transfer.sensitive).toBe(false)
     expect(TYPE_META.assignment.sensitive).toBe(false)
     expect(TYPE_META.maintenance.sensitive).toBe(false)
+    expect(TYPE_META.asset_import.sensitive).toBe(false)
   })
 
   it('has a tone for every status incl. cancelled and a cancelled filter tab', () => {

@@ -1,0 +1,895 @@
+//go:build integration
+
+// Integration tests for the bulk-import module: the full validate → confirm
+// → execute pipeline against a real Postgres + Redis, driving the REAL
+// target importers (asset, employee) exactly as internal/server/router.go
+// wires them in production.
+//
+// This file is an EXTERNAL test package (importer_test, not importer) on
+// purpose: the asset/employee/office packages implement importer.TargetImporter
+// and therefore import internal/importer — a same-package test that also
+// imported those packages would create an import cycle. worker.go exposes an
+// exported Tick (added alongside this file) so each test can drive one
+// validate/execute pass deterministically instead of waiting on the worker's
+// polling loop.
+package importer_test
+
+import (
+	"bytes"
+	"context"
+	"encoding/csv"
+	"encoding/json"
+	"fmt"
+	"mime/multipart"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	sqlc "github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/approval"
+	"github.com/ragbuaj/inventra/internal/asset"
+	"github.com/ragbuaj/inventra/internal/audit"
+	"github.com/ragbuaj/inventra/internal/authz"
+	"github.com/ragbuaj/inventra/internal/importer"
+	"github.com/ragbuaj/inventra/internal/masterdata/common"
+	"github.com/ragbuaj/inventra/internal/masterdata/employee"
+	"github.com/ragbuaj/inventra/internal/masterdata/office"
+	"github.com/ragbuaj/inventra/internal/middleware"
+	"github.com/ragbuaj/inventra/internal/storage"
+	"github.com/ragbuaj/inventra/internal/testsupport"
+)
+
+// ─── harness ────────────────────────────────────────────────────────────────
+
+// assetHeader / employeeHeader are the column orders used to build test CSVs;
+// Parse matches columns by name (case-insensitive, order-insensitive), so the
+// order here is cosmetic but kept aligned with asset/importer.go and
+// masterdata/employee/importer.go's Columns() for readability.
+var assetHeader = []string{"asset_tag", "nama", "kategori", "kantor", "tgl_beli", "harga", "vendor", "lokasi"}
+var employeeHeader = []string{"kode", "nama", "email", "telepon", "kantor", "status"}
+
+// harness bundles every service the bulk-import pipeline needs, wired exactly
+// like internal/server/router.go wires them in production (NewRouter): one
+// importer.Service with the asset/employee/office targets registered, one
+// approval.Service with the asset_import executor registered, and the HTTP
+// handler/worker built on top of both.
+type harness struct {
+	pool        *pgxpool.Pool
+	rdb         *redis.Client
+	q           *sqlc.Queries
+	permSvc     *authz.PermissionService
+	approvalSvc *approval.Service
+	importSvc   *importer.Service
+	handler     *importer.Handler
+	worker      *importer.Worker
+}
+
+func newHarness(t *testing.T) *harness {
+	t.Helper()
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	q := sqlc.New(pool)
+
+	scopeSvc := authz.NewScopeService(q, rdb)
+	permSvc := authz.NewPermissionService(q, rdb)
+	approvalSvc := approval.NewService(q, pool, scopeSvc, rdb)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0, "")
+	empSvc := employee.NewService(q)
+	officeSvc := office.NewService(q)
+	approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetImport, assetSvc.ImportExecutor())
+
+	importSvc := importer.NewService(q, pool, storage.NewFake(), rdb, 1000, 10<<20)
+	importSvc.RegisterTarget(assetSvc.Importer())
+	importSvc.RegisterTarget(empSvc.Importer())
+	importSvc.RegisterTarget(officeSvc.Importer())
+
+	auditSvc := audit.NewService(q)
+	handler := importer.NewHandler(importSvc, permSvc, common.ScopedDeps{Q: q, Scope: scopeSvc}, auditSvc)
+	// poll is irrelevant here — every test drives the worker via the exported
+	// Tick instead of Run's polling loop.
+	worker := importer.NewWorker(importSvc, pool, rdb, approvalSvc, scopeSvc, time.Hour)
+
+	return &harness{
+		pool: pool, rdb: rdb, q: q,
+		permSvc: permSvc, approvalSvc: approvalSvc, importSvc: importSvc,
+		handler: handler, worker: worker,
+	}
+}
+
+// stubAuth injects the given user/role IDs into the Gin context in place of
+// the real JWT middleware, mirroring internal/approval/integration_test.go's
+// callGet pattern.
+func stubAuth(userID, roleID uuid.UUID) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Set(middleware.CtxUserID, userID.String())
+		c.Set(middleware.CtxRoleID, roleID.String())
+		c.Next()
+	}
+}
+
+// newRouter builds a fresh Gin engine with the import routes mounted behind
+// stubAuth for (userID, roleID).
+func newRouter(h *harness, userID, roleID uuid.UUID) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	v1 := r.Group("/api/v1")
+	importer.RegisterRoutes(v1, h.handler, stubAuth(userID, roleID))
+	return r
+}
+
+// ─── seed helpers ───────────────────────────────────────────────────────────
+
+// seedOfficeSimple inserts one office_type and one root office and returns
+// the office's id. code is used both as the office code (matched by the
+// importers' "kantor" lookup) and to derive unique names.
+func seedOfficeSimple(t *testing.T, pool *pgxpool.Pool, code string) uuid.UUID {
+	t.Helper()
+	ctx := context.Background()
+	var typeID uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx,
+		`INSERT INTO masterdata.office_types (name) VALUES ($1) RETURNING id`,
+		"Tipe "+code).Scan(&typeID))
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx,
+		`INSERT INTO masterdata.offices (parent_id, office_type_id, name, code)
+		 VALUES (NULL, $1, $2, $3) RETURNING id`,
+		typeID, "Kantor "+code, code).Scan(&id))
+	return id
+}
+
+// seedCategory inserts a masterdata.categories row and returns its id.
+func seedCategory(t *testing.T, pool *pgxpool.Pool, code string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO masterdata.categories (name, code, asset_class)
+		 VALUES ($1, $2, 'tangible') RETURNING id`,
+		code, code).Scan(&id))
+	return id
+}
+
+// seedRoom inserts a floor + room under officeID and returns the room id. The
+// asset importer's createRows always creates tangible assets (see
+// internal/asset/importer.go), and asset.assets has
+// chk_assets_tangible_room CHECK(asset_class = 'intangible' OR room_id IS NOT
+// NULL) — so every asset-import row that is meant to succeed needs a
+// resolvable room in its target office.
+func seedRoom(t *testing.T, pool *pgxpool.Pool, officeID uuid.UUID, name string) uuid.UUID {
+	t.Helper()
+	floorID := testsupport.SeedFloor(t, pool, officeID, "Lantai "+name)
+	return testsupport.SeedRoom(t, pool, floorID, name)
+}
+
+// grantPermission inserts an identity.role_permissions row for the role.
+func grantPermission(t *testing.T, pool *pgxpool.Pool, roleID uuid.UUID, key string) {
+	t.Helper()
+	_, err := pool.Exec(context.Background(),
+		`INSERT INTO identity.role_permissions (role_id, permission_key) VALUES ($1, $2)`,
+		roleID, key)
+	require.NoError(t, err)
+}
+
+// seedUser inserts an identity.users row (optionally placed in an office) and
+// returns its id.
+func seedUser(t *testing.T, pool *pgxpool.Pool, roleID uuid.UUID, officeID *uuid.UUID, email string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO identity.users (name, email, role_id, office_id, status)
+		 VALUES ($1, $2, $3, $4, 'active') RETURNING id`,
+		email, email, roleID, officeID).Scan(&id))
+	return id
+}
+
+// lookupRole queries identity.roles by name (migration-seeded roles) and
+// returns its id.
+func lookupRole(t *testing.T, pool *pgxpool.Pool, name string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`SELECT id FROM identity.roles WHERE name = $1 AND deleted_at IS NULL LIMIT 1`,
+		name).Scan(&id))
+	return id
+}
+
+// seedGlobalMakerRole seeds a fresh role with global data scope (module '*')
+// and the given action permission granted — a maker/approver role that never
+// has to fight scope rules, for tests whose focus is elsewhere.
+func seedGlobalMakerRole(t *testing.T, pool *pgxpool.Pool, perm string) uuid.UUID {
+	t.Helper()
+	roleID := testsupport.SeedRole(t, pool, "maker-"+uuid.New().String()[:8])
+	testsupport.SeedScopePolicy(t, pool, roleID, "*", sqlc.SharedScopeLevelGlobal)
+	grantPermission(t, pool, roleID, perm)
+	return roleID
+}
+
+// buildCSV renders a header + data rows into CSV bytes for upload.
+func buildCSV(t *testing.T, header []string, rows [][]string) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	w := csv.NewWriter(&buf)
+	require.NoError(t, w.Write(header))
+	for _, r := range rows {
+		require.NoError(t, w.Write(r))
+	}
+	w.Flush()
+	require.NoError(t, w.Error())
+	return buf.Bytes()
+}
+
+// multipartCSV builds a multipart/form-data body for POST /imports: a "file"
+// field carrying csvBody as "batch.csv", plus a "target" field.
+func multipartCSV(t *testing.T, target string, csvBody []byte) (*bytes.Buffer, string) {
+	t.Helper()
+	var buf bytes.Buffer
+	w := multipart.NewWriter(&buf)
+	require.NoError(t, w.WriteField("target", target))
+	fw, err := w.CreateFormFile("file", "batch.csv")
+	require.NoError(t, err)
+	_, err = fw.Write(csvBody)
+	require.NoError(t, err)
+	require.NoError(t, w.Close())
+	return &buf, w.FormDataContentType()
+}
+
+// rowsByName groups a job's rows by their "nama" cell (asset target) for
+// assertions that need to find a specific row.
+func rowsByName(t *testing.T, rows []sqlc.ImportImportRow) map[string]sqlc.ImportImportRow {
+	t.Helper()
+	out := map[string]sqlc.ImportImportRow{}
+	for _, r := range rows {
+		var data map[string]string
+		require.NoError(t, json.Unmarshal(r.Data, &data))
+		out[data["nama"]] = r
+	}
+	return out
+}
+
+// ─── 1. asset full cycle ────────────────────────────────────────────────────
+
+// TestImport_AssetFullCycle_ApproveCreatesAssets drives a complete asset
+// import: upload (one valid + one invalid row) → validate → confirm →
+// execute (submits an asset_import approval request) → approve → the valid
+// row's asset exists in the DB, the job is completed, and its result_ref
+// carries the generated asset tag.
+func TestImport_AssetFullCycle_ApproveCreatesAssets(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	officeID := seedOfficeSimple(t, h.pool, "AFC")
+	seedCategory(t, h.pool, "AFC-CAT")
+	seedRoom(t, h.pool, officeID, "Ruang AFC")
+
+	makerRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
+	makerID := seedUser(t, h.pool, makerRoleID, nil, "maker.afc@test.local")
+	approverRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
+	approverID := seedUser(t, h.pool, approverRoleID, nil, "approver.afc@test.local")
+
+	csvBytes := buildCSV(t, assetHeader, [][]string{
+		{"", "Laptop Valid", "AFC-CAT", "AFC", "2026-01-05", "5000000", "", "Ruang AFC"},
+		{"", "", "AFC-CAT", "AFC", "2026-01-05", "5000000", "", "Ruang AFC"}, // missing nama -> required
+	})
+
+	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "batch.csv", "text/csv", csvBytes, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusPending, job.Status)
+
+	// --- validate ---
+	did, err := h.worker.Tick(ctx)
+	require.NoError(t, err)
+	assert.True(t, did)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusValidated, job.Status)
+	assert.EqualValues(t, 2, job.TotalRows)
+	assert.EqualValues(t, 1, job.SuccessRows)
+	assert.EqualValues(t, 1, job.FailedRows)
+	require.NotNil(t, job.OfficeID)
+	assert.Equal(t, officeID, *job.OfficeID)
+
+	allRows, err := h.q.ListImportRows(ctx, sqlc.ListImportRowsParams{JobID: job.ID, OnlyErrors: false, Off: 0, Lim: 20})
+	require.NoError(t, err)
+	require.Len(t, allRows, 2)
+	byName := rowsByName(t, allRows)
+	invalidRow := byName[""]
+	assert.False(t, invalidRow.Valid)
+	var invalidErrs []importer.CellError
+	require.NoError(t, json.Unmarshal(invalidRow.Errors, &invalidErrs))
+	require.Len(t, invalidErrs, 1)
+	assert.Equal(t, "nama", invalidErrs[0].Column)
+	assert.Equal(t, "required", invalidErrs[0].ErrorKey)
+	assert.True(t, byName["Laptop Valid"].Valid)
+
+	// --- confirm ---
+	job, err = h.importSvc.ConfirmJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusConfirmed, job.Status)
+
+	// --- execute: submits the asset_import approval request ---
+	did, err = h.worker.Tick(ctx)
+	require.NoError(t, err)
+	assert.True(t, did)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusAwaitingApproval, job.Status)
+	require.NotNil(t, job.RequestID)
+
+	reqRow, err := h.q.GetRequest(ctx, *job.RequestID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedRequestTypeAssetImport, reqRow.Type)
+	assert.Equal(t, sqlc.SharedRequestStatusPending, reqRow.Status)
+	require.NotNil(t, reqRow.Amount)
+	assert.Equal(t, "5000000.00", *reqRow.Amount, "sumHarga totals only the valid row's harga")
+
+	// --- approve ---
+	caller := approval.Caller{UserID: approverID, RoleID: approverRoleID, AllScope: true}
+	decided, err := h.approvalSvc.Decide(ctx, *job.RequestID, caller, true, nil)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedRequestStatusApproved, decided.Status)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusCompleted, job.Status)
+	assert.EqualValues(t, 1, job.SuccessRows)
+	// The row that failed VALIDATION (missing nama) must still count as
+	// failed on the completed job — only rows that passed validation are
+	// ever executed, so "0 rows failed during execute" must not erase the
+	// batch's original validation failure (see asset/executor.go's
+	// assetImportExec.Execute, which now preserves job.FailedRows instead of
+	// overwriting it with only execution-time failures).
+	assert.EqualValues(t, 1, job.FailedRows)
+
+	allRows, err = h.q.ListImportRows(ctx, sqlc.ListImportRowsParams{JobID: job.ID, OnlyErrors: false, Off: 0, Lim: 20})
+	require.NoError(t, err)
+	byName = rowsByName(t, allRows)
+	validRow := byName["Laptop Valid"]
+	require.NotNil(t, validRow.ResultRef, "the executor stamps the generated asset tag as result_ref")
+
+	createdAsset, err := h.q.GetAssetByTag(ctx, *validRow.ResultRef)
+	require.NoError(t, err)
+	assert.Equal(t, "Laptop Valid", createdAsset.Name)
+	assert.Equal(t, officeID, createdAsset.OfficeID)
+	assert.Equal(t, sqlc.SharedAssetClassTangible, createdAsset.AssetClass)
+	assert.Equal(t, "5000000.00", *createdAsset.PurchaseCost, "numeric column renders with 2 decimals")
+}
+
+// ─── 2. asset reject ─────────────────────────────────────────────────────────
+
+// TestImport_AssetReject_DerivedStatusAndErrorReport drives the same pipeline
+// to awaiting_approval, then rejects the batch: the job's own status stays
+// awaiting_approval (rejection is derived, never synced onto the job row),
+// GET /imports/:id surfaces "approval_status":"rejected" via
+// Handler.enrichJob, and the invalid row remains retrievable through the
+// error-report endpoint.
+func TestImport_AssetReject_DerivedStatusAndErrorReport(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	officeID := seedOfficeSimple(t, h.pool, "REJ")
+	seedCategory(t, h.pool, "REJ-CAT")
+	seedRoom(t, h.pool, officeID, "Ruang REJ")
+
+	makerRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
+	makerID := seedUser(t, h.pool, makerRoleID, nil, "maker.rej@test.local")
+	approverRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
+	approverID := seedUser(t, h.pool, approverRoleID, nil, "approver.rej@test.local")
+
+	csvBytes := buildCSV(t, assetHeader, [][]string{
+		{"", "Printer Valid", "REJ-CAT", "REJ", "2026-02-01", "2000000", "", "Ruang REJ"},
+		{"", "Printer NoKategori", "TIDAK-ADA", "REJ", "2026-02-01", "2000000", "", "Ruang REJ"}, // unknown kategori
+	})
+
+	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "reject.csv", "text/csv", csvBytes, makerID)
+	require.NoError(t, err)
+
+	_, err = h.worker.Tick(ctx) // validate
+	require.NoError(t, err)
+	job, err = h.importSvc.ConfirmJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	_, err = h.worker.Tick(ctx) // execute -> submit approval
+	require.NoError(t, err)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	require.NotNil(t, job.RequestID)
+
+	caller := approval.Caller{UserID: approverID, RoleID: approverRoleID, AllScope: true}
+	note := "batch ditolak"
+	decided, err := h.approvalSvc.Decide(ctx, *job.RequestID, caller, false, &note)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedRequestStatusRejected, decided.Status)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusAwaitingApproval, job.Status,
+		"the job row itself is never synced to a rejected status")
+
+	r := newRouter(h, makerID, makerRoleID)
+
+	w := httptest.NewRecorder()
+	httpReq, _ := http.NewRequest(http.MethodGet, "/api/v1/imports/"+job.ID.String(), nil)
+	r.ServeHTTP(w, httpReq)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var body map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, "awaiting_approval", body["status"])
+	assert.Equal(t, "rejected", body["approval_status"], "derived from the approval request, not the job row")
+
+	// Error report: the invalid row (unknown kategori) must be retrievable.
+	w2 := httptest.NewRecorder()
+	req2, _ := http.NewRequest(http.MethodGet, "/api/v1/imports/"+job.ID.String()+"/error-report?format=csv", nil)
+	r.ServeHTTP(w2, req2)
+	require.Equal(t, http.StatusOK, w2.Code)
+	assert.Contains(t, w2.Header().Get("Content-Disposition"), "import-errors-")
+	report := w2.Body.String()
+	assert.Contains(t, report, "Printer NoKategori")
+	assert.Contains(t, report, "kat", "the kategori cell's error_key ('kat') is listed in keterangan")
+	assert.NotContains(t, report, "Printer Valid", "only failed rows are listed in the error report")
+}
+
+// ─── 3. mid-batch tag collision (tx-poisoning regression) ──────────────────
+
+// TestImport_AssetMidBatchTagCollision_BatchStillCompletes is the regression
+// test for the Task 10 tx-poisoning fix: a batch's explicit asset_tag is
+// still free at validation time, but by the time the batch is approved a
+// concurrent (already-approved) batch has taken it. Without the pre-check in
+// createRows, CreateAsset's 23505 would poison the WHOLE approval-commit
+// transaction, rolling back the approval decision itself and permanently
+// stranding the request. With the fix: the colliding row is marked failed
+// (dupTag), the non-colliding row is still created, and the job completes.
+func TestImport_AssetMidBatchTagCollision_BatchStillCompletes(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	officeID := seedOfficeSimple(t, h.pool, "COL")
+	catID := seedCategory(t, h.pool, "COL-CAT")
+	seedRoom(t, h.pool, officeID, "Ruang COL")
+
+	makerRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
+	makerID := seedUser(t, h.pool, makerRoleID, nil, "maker.col@test.local")
+	approverRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
+	approverID := seedUser(t, h.pool, approverRoleID, nil, "approver.col@test.local")
+
+	const collidingTag = "COL-EXPLICIT-01"
+	csvBytes := buildCSV(t, assetHeader, [][]string{
+		{collidingTag, "Aset Bentrok", "COL-CAT", "COL", "2026-03-01", "3000000", "", "Ruang COL"},
+		{"", "Aset Selamat", "COL-CAT", "COL", "2026-03-01", "4000000", "", "Ruang COL"},
+	})
+
+	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "collide.csv", "text/csv", csvBytes, makerID)
+	require.NoError(t, err)
+
+	// Validate: the tag does not exist yet, so BOTH rows are valid.
+	_, err = h.worker.Tick(ctx)
+	require.NoError(t, err)
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, job.SuccessRows)
+	assert.EqualValues(t, 0, job.FailedRows)
+
+	// Simulate a tag committed by a concurrent, already-approved batch between
+	// THIS batch's validation and its own approval.
+	_, err = h.pool.Exec(ctx,
+		`INSERT INTO asset.assets (asset_tag, name, category_id, office_id, asset_class, capitalized, specifications, status)
+		 VALUES ($1, 'Concurrent Winner', $2, $3, 'intangible', true, '{}', 'available')`,
+		collidingTag, catID, officeID)
+	require.NoError(t, err)
+
+	job, err = h.importSvc.ConfirmJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	_, err = h.worker.Tick(ctx) // execute -> submit approval (rows untouched so far)
+	require.NoError(t, err)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	require.NotNil(t, job.RequestID)
+
+	caller := approval.Caller{UserID: approverID, RoleID: approverRoleID, AllScope: true}
+	decided, err := h.approvalSvc.Decide(ctx, *job.RequestID, caller, true, nil)
+	require.NoError(t, err, "the batch must still complete despite the mid-batch collision")
+	assert.Equal(t, sqlc.SharedRequestStatusApproved, decided.Status)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusCompleted, job.Status,
+		"the batch completes; a single collision must not roll back the whole approval")
+	assert.EqualValues(t, 1, job.SuccessRows, "only the non-colliding row was created")
+	assert.EqualValues(t, 1, job.FailedRows, "the colliding row is marked failed instead of aborting")
+
+	allRows, err := h.q.ListImportRows(ctx, sqlc.ListImportRowsParams{JobID: job.ID, OnlyErrors: false, Off: 0, Lim: 20})
+	require.NoError(t, err)
+	byName := rowsByName(t, allRows)
+
+	collided := byName["Aset Bentrok"]
+	assert.False(t, collided.Valid, "MarkRowFailed flips the row to invalid at execute time")
+	var collidedErrs []importer.CellError
+	require.NoError(t, json.Unmarshal(collided.Errors, &collidedErrs))
+	require.Len(t, collidedErrs, 1)
+	assert.Equal(t, "asset_tag", collidedErrs[0].Column)
+	assert.Equal(t, "dupTag", collidedErrs[0].ErrorKey)
+
+	survived := byName["Aset Selamat"]
+	assert.True(t, survived.Valid)
+	require.NotNil(t, survived.ResultRef)
+	survivedAsset, err := h.q.GetAssetByTag(ctx, *survived.ResultRef)
+	require.NoError(t, err)
+	assert.Equal(t, "Aset Selamat", survivedAsset.Name)
+
+	// Exactly one asset carries collidingTag — the pre-inserted "concurrent
+	// winner" — proving the importer's own would-be insert was skipped rather
+	// than erroring out or double-creating.
+	var count int
+	require.NoError(t, h.pool.QueryRow(ctx,
+		`SELECT count(*) FROM asset.assets WHERE asset_tag = $1`, collidingTag).Scan(&count))
+	assert.Equal(t, 1, count)
+}
+
+// ─── 4. employee cycle ──────────────────────────────────────────────────────
+
+// TestImport_EmployeeCycle_DuplicateCodeMarkedFailed drives the employee
+// target (NeedsApproval() == false, so the worker executes it directly): a
+// "kode" that collides with a row inserted directly into the DB between
+// validation and execution (the same anti-poisoning race as the asset test,
+// but for master data with no approval indirection) is marked failed while
+// the other row succeeds and the job still completes.
+func TestImport_EmployeeCycle_DuplicateCodeMarkedFailed(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	officeID := seedOfficeSimple(t, h.pool, "EMP")
+
+	makerRoleID := seedGlobalMakerRole(t, h.pool, "masterdata.employee.manage")
+	makerID := seedUser(t, h.pool, makerRoleID, nil, "maker.emp@test.local")
+
+	const dupCode = "EMP-DUP-01"
+	csvBytes := buildCSV(t, employeeHeader, [][]string{
+		{dupCode, "Pegawai Bentrok", "bentrok@test.local", "0800000001", "EMP", "active"},
+		{"EMP-OK-01", "Pegawai Selamat", "selamat@test.local", "0800000002", "EMP", "active"},
+	})
+
+	job, err := h.importSvc.CreateJob(ctx, "employee", "csv", "employee.csv", "text/csv", csvBytes, makerID)
+	require.NoError(t, err)
+
+	_, err = h.worker.Tick(ctx) // validate: no collision yet, both rows valid
+	require.NoError(t, err)
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusValidated, job.Status)
+	assert.EqualValues(t, 2, job.SuccessRows)
+
+	// Simulate a code committed concurrently between validation and execution.
+	_, err = h.pool.Exec(ctx,
+		`INSERT INTO masterdata.employees (code, name, office_id) VALUES ($1, 'Concurrent Employee', $2)`,
+		dupCode, officeID)
+	require.NoError(t, err)
+
+	job, err = h.importSvc.ConfirmJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+
+	_, err = h.worker.Tick(ctx) // execute: no approval needed, runs directly
+	require.NoError(t, err)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusCompleted, job.Status)
+	assert.EqualValues(t, 1, job.SuccessRows)
+	assert.EqualValues(t, 1, job.FailedRows)
+
+	survivor, err := h.q.GetEmployeeByCode(ctx, "EMP-OK-01")
+	require.NoError(t, err)
+	assert.Equal(t, "Pegawai Selamat", survivor.Name)
+
+	failedRows, err := h.q.ListImportRows(ctx, sqlc.ListImportRowsParams{JobID: job.ID, OnlyErrors: true, Off: 0, Lim: 20})
+	require.NoError(t, err)
+	require.Len(t, failedRows, 1)
+	var errs []importer.CellError
+	require.NoError(t, json.Unmarshal(failedRows[0].Errors, &errs))
+	require.Len(t, errs, 1)
+	assert.Equal(t, "kode", errs[0].Column)
+	assert.Equal(t, "dupKode", errs[0].ErrorKey)
+}
+
+// ─── 5. 403 per permission ──────────────────────────────────────────────────
+
+// TestImport_CreateJob_PermissionDenied verifies POST /imports enforces
+// Service.PermissionKey per target: "Staf" (a migration-seeded default role,
+// see db/migrations/000005_seed_identity.up.sql) holds neither "asset.manage"
+// nor "masterdata.employee.manage", so creating either kind of import job
+// must be rejected with 403 before any row is even parsed.
+func TestImport_CreateJob_PermissionDenied(t *testing.T) {
+	h := newHarness(t)
+
+	stafRoleID := lookupRole(t, h.pool, "Staf")
+	stafOfficeID := seedOfficeSimple(t, h.pool, "STF")
+	stafUserID := seedUser(t, h.pool, stafRoleID, &stafOfficeID, "staf.denied@test.local")
+
+	post := func(target string, header []string, row []string) int {
+		r := newRouter(h, stafUserID, stafRoleID)
+		body, contentType := multipartCSV(t, target, buildCSV(t, header, [][]string{row}))
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodPost, "/api/v1/imports", body)
+		req.Header.Set("Content-Type", contentType)
+		r.ServeHTTP(w, req)
+		return w.Code
+	}
+
+	assert.Equal(t, http.StatusForbidden,
+		post("asset", assetHeader, []string{"", "X", "X", "X", "2026-01-01", "1", "", ""}),
+		"Staf lacks asset.manage")
+	assert.Equal(t, http.StatusForbidden,
+		post("employee", employeeHeader, []string{"X", "X", "", "", "X", "active"}),
+		"Staf lacks masterdata.employee.manage")
+}
+
+// TestImport_CreateJob_PermissionGranted is the positive counterpart: a role
+// holding the target's permission key may create the job (201), proving the
+// 403 assertions above are not simply "always forbidden" false negatives.
+func TestImport_CreateJob_PermissionGranted(t *testing.T) {
+	h := newHarness(t)
+
+	roleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
+	userID := seedUser(t, h.pool, roleID, nil, "granted.asset@test.local")
+
+	r := newRouter(h, userID, roleID)
+	body, contentType := multipartCSV(t, "asset", buildCSV(t, assetHeader,
+		[][]string{{"", "X", "X", "X", "2026-01-01", "1", "", ""}}))
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/imports", body)
+	req.Header.Set("Content-Type", contentType)
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
+
+// ─── 6. scope enforcement ───────────────────────────────────────────────────
+
+// TestImport_AssetValidate_ScopeOutOfReach verifies the M4 worker fix
+// (resolveMakerScope in worker.go): a maker whose role is scoped to a single
+// office (module "imports") uploading a row whose "kantor" names an office
+// outside that scope gets that row rejected at validation, while the
+// in-scope row validates cleanly.
+//
+// buildAssetLookups (internal/asset/importer.go) loads the office lookup
+// table itself scoped to the caller (ListOffices with the SAME
+// AllScope/OfficeIDs the worker resolved) — so an out-of-scope office code
+// never even appears in the lookup map, and the row is rejected with the
+// "kantor" (office not found) error_key rather than the separate "scope"
+// error_key (which fires only when an office IS resolved from the lookup but
+// fails the redundant post-hoc scope re-check — unreachable through this
+// integration path given the lookup itself is already scope-filtered, but
+// exercised directly by internal/asset/importer_test.go's unit tests against
+// hand-built lookups). Either way, the caller's scope is enforced: the
+// out-of-scope office is never resolvable and the row never validates.
+func TestImport_AssetValidate_ScopeOutOfReach(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	officeIn := seedOfficeSimple(t, h.pool, "SIN")
+	officeOut := seedOfficeSimple(t, h.pool, "SOUT")
+	seedCategory(t, h.pool, "SCOPE-CAT")
+	seedRoom(t, h.pool, officeIn, "Ruang SIN")
+	seedRoom(t, h.pool, officeOut, "Ruang SOUT")
+
+	makerRoleID := testsupport.SeedRole(t, h.pool, "scoped-maker-"+uuid.New().String()[:8])
+	testsupport.SeedScopePolicy(t, h.pool, makerRoleID, "imports", sqlc.SharedScopeLevelOffice)
+	grantPermission(t, h.pool, makerRoleID, "asset.manage")
+	makerID := seedUser(t, h.pool, makerRoleID, &officeIn, "maker.scope@test.local")
+
+	csvBytes := buildCSV(t, assetHeader, [][]string{
+		{"", "Dalam Scope", "SCOPE-CAT", "SIN", "2026-04-01", "1000000", "", "Ruang SIN"},
+		{"", "Luar Scope", "SCOPE-CAT", "SOUT", "2026-04-01", "1000000", "", "Ruang SOUT"},
+	})
+
+	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "scope.csv", "text/csv", csvBytes, makerID)
+	require.NoError(t, err)
+
+	_, err = h.worker.Tick(ctx)
+	require.NoError(t, err)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, job.SuccessRows)
+	assert.EqualValues(t, 1, job.FailedRows)
+
+	failedRows, err := h.q.ListImportRows(ctx, sqlc.ListImportRowsParams{JobID: job.ID, OnlyErrors: true, Off: 0, Lim: 20})
+	require.NoError(t, err)
+	require.Len(t, failedRows, 1)
+	var errs []importer.CellError
+	require.NoError(t, json.Unmarshal(failedRows[0].Errors, &errs))
+	require.Len(t, errs, 2)
+	byColumn := map[string]string{}
+	for _, e := range errs {
+		byColumn[e.Column] = e.ErrorKey
+	}
+	assert.Equal(t, "kantor", byColumn["kantor"], "the out-of-scope office is invisible to the scoped lookup")
+	assert.Equal(t, "lokasi", byColumn["lokasi"], "no office resolved -> its room can never match either")
+}
+
+// TestImport_AssetValidate_MultiOfficeBatchFlagged verifies the asset
+// importer's batch-office-consistency rule: a global-scope maker uploading
+// rows resolving to two DIFFERENT offices gets the first office as the
+// batch's office (valid) and every later row resolving elsewhere flagged
+// "multiOffice", even though each row is individually well-formed and
+// in-scope.
+func TestImport_AssetValidate_MultiOfficeBatchFlagged(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	office1 := seedOfficeSimple(t, h.pool, "MO1")
+	office2 := seedOfficeSimple(t, h.pool, "MO2")
+	seedCategory(t, h.pool, "MO-CAT")
+	seedRoom(t, h.pool, office1, "Ruang MO1")
+	seedRoom(t, h.pool, office2, "Ruang MO2")
+
+	makerRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
+	makerID := seedUser(t, h.pool, makerRoleID, nil, "maker.multi@test.local")
+
+	csvBytes := buildCSV(t, assetHeader, [][]string{
+		{"", "Aset Kantor 1", "MO-CAT", "MO1", "2026-05-01", "1000000", "", "Ruang MO1"},
+		{"", "Aset Kantor 2", "MO-CAT", "MO2", "2026-05-01", "1000000", "", "Ruang MO2"},
+	})
+
+	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "multioffice.csv", "text/csv", csvBytes, makerID)
+	require.NoError(t, err)
+
+	_, err = h.worker.Tick(ctx)
+	require.NoError(t, err)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, job.SuccessRows, "the first resolved office wins the batch")
+	assert.EqualValues(t, 1, job.FailedRows)
+	require.NotNil(t, job.OfficeID)
+	assert.Equal(t, office1, *job.OfficeID)
+
+	failedRows, err := h.q.ListImportRows(ctx, sqlc.ListImportRowsParams{JobID: job.ID, OnlyErrors: true, Off: 0, Lim: 20})
+	require.NoError(t, err)
+	require.Len(t, failedRows, 1)
+	var errs []importer.CellError
+	require.NoError(t, json.Unmarshal(failedRows[0].Errors, &errs))
+	require.Len(t, errs, 1)
+	assert.Equal(t, "kantor", errs[0].Column)
+	assert.Equal(t, "multiOffice", errs[0].ErrorKey)
+}
+
+// ─── 7. access control ──────────────────────────────────────────────────────
+
+// TestImport_GetJob_ForeignJobForbidden verifies Service.GetJob's ownership
+// check: a caller who did not create the job gets ErrForbidden, while the
+// owner reads it fine.
+func TestImport_GetJob_ForeignJobForbidden(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	roleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
+	userA := seedUser(t, h.pool, roleID, nil, "usera.access@test.local")
+	userB := seedUser(t, h.pool, roleID, nil, "userb.access@test.local")
+
+	csvBytes := buildCSV(t, assetHeader, [][]string{{"", "X", "X", "X", "2026-01-01", "1", "", ""}})
+	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "own.csv", "text/csv", csvBytes, userA)
+	require.NoError(t, err)
+
+	_, err = h.importSvc.GetJob(ctx, job.ID, userB)
+	require.ErrorIs(t, err, importer.ErrForbidden)
+
+	got, err := h.importSvc.GetJob(ctx, job.ID, userA)
+	require.NoError(t, err)
+	assert.Equal(t, job.ID, got.ID)
+
+	// Also exercised through the real HTTP route: userB's GET must 403.
+	r := newRouter(h, userB, roleID)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/imports/"+job.ID.String(), nil)
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+// ─── 8. recovery ────────────────────────────────────────────────────────────
+
+// TestImport_Recover_ResetsInFlightJobs verifies Worker.Recover: a job left
+// "processing" (crashed mid-validate) resets to "pending"; a job left
+// "executing" (crashed mid-execute) resets to "confirmed" — see
+// RecoverStuckJobs in db/queries/importer.sql.
+func TestImport_Recover_ResetsInFlightJobs(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	roleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
+	makerID := seedUser(t, h.pool, roleID, nil, "maker.recover@test.local")
+
+	csvBytes := buildCSV(t, assetHeader, [][]string{{"", "X", "X", "X", "2026-01-01", "1", "", ""}})
+
+	jobProcessing, err := h.importSvc.CreateJob(ctx, "asset", "csv", "p.csv", "text/csv", csvBytes, makerID)
+	require.NoError(t, err)
+	_, err = h.pool.Exec(ctx, `UPDATE import.import_jobs SET status = 'processing' WHERE id = $1`, jobProcessing.ID)
+	require.NoError(t, err)
+
+	jobExecuting, err := h.importSvc.CreateJob(ctx, "asset", "csv", "e.csv", "text/csv", csvBytes, makerID)
+	require.NoError(t, err)
+	_, err = h.pool.Exec(ctx, `UPDATE import.import_jobs SET status = 'executing' WHERE id = $1`, jobExecuting.ID)
+	require.NoError(t, err)
+
+	require.NoError(t, h.worker.Recover(ctx))
+
+	got, err := h.importSvc.GetJob(ctx, jobProcessing.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusPending, got.Status, "processing -> pending")
+
+	got, err = h.importSvc.GetJob(ctx, jobExecuting.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusConfirmed, got.Status, "executing -> confirmed")
+}
+
+// ─── 9. pagination + only_errors ────────────────────────────────────────────
+
+// TestImport_Rows_PaginationAndOnlyErrors drives GET /imports/:id/rows
+// end-to-end: 3 valid + 2 invalid rows, paginated 2-at-a-time, plus the
+// only_errors filter.
+func TestImport_Rows_PaginationAndOnlyErrors(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	officeID := seedOfficeSimple(t, h.pool, "PAG")
+	seedCategory(t, h.pool, "PAG-CAT")
+	seedRoom(t, h.pool, officeID, "Ruang PAG")
+
+	roleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
+	makerID := seedUser(t, h.pool, roleID, nil, "maker.pag@test.local")
+
+	var rowsIn [][]string
+	for i := 1; i <= 3; i++ {
+		rowsIn = append(rowsIn, []string{"", fmt.Sprintf("Valid %d", i), "PAG-CAT", "PAG", "2026-06-01", "1000000", "", "Ruang PAG"})
+	}
+	for i := 1; i <= 2; i++ {
+		rowsIn = append(rowsIn, []string{"", "", "PAG-CAT", "PAG", "2026-06-01", "1000000", "", "Ruang PAG"}) // missing nama
+		_ = i
+	}
+	csvBytes := buildCSV(t, assetHeader, rowsIn)
+
+	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "pagination.csv", "text/csv", csvBytes, makerID)
+	require.NoError(t, err)
+	_, err = h.worker.Tick(ctx)
+	require.NoError(t, err)
+
+	r := newRouter(h, makerID, roleID)
+
+	get := func(qs string) map[string]any {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/imports/"+job.ID.String()+"/rows?"+qs, nil)
+		r.ServeHTTP(w, req)
+		require.Equal(t, http.StatusOK, w.Code)
+		var body map[string]any
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+		return body
+	}
+
+	page1 := get("limit=2&offset=0")
+	assert.EqualValues(t, 5, page1["total"])
+	assert.Len(t, page1["data"], 2)
+	assert.EqualValues(t, 2, page1["limit"])
+	assert.EqualValues(t, 0, page1["offset"])
+
+	page2 := get("limit=2&offset=2")
+	assert.Len(t, page2["data"], 2)
+
+	page3 := get("limit=2&offset=4")
+	assert.Len(t, page3["data"], 1, "5 rows total, page 3 has the remainder")
+
+	onlyErrors := get("only_errors=true&limit=20&offset=0")
+	assert.EqualValues(t, 2, onlyErrors["total"])
+	assert.Len(t, onlyErrors["data"], 2)
+	for _, raw := range onlyErrors["data"].([]any) {
+		rec := raw.(map[string]any)
+		assert.Equal(t, false, rec["valid"])
+	}
+}

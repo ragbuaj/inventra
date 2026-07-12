@@ -7,6 +7,7 @@ definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
 
 const { t } = useI18n()
 const toast = useToast()
+const localePath = useLocalePath()
 const { open: confirm } = useConfirm()
 const api = useOffices()
 const floorsApi = useFloors()
@@ -428,13 +429,26 @@ onMounted(() => {
       <div class="flex-none px-4 pt-4 pb-3 border-b border-default">
         <div class="flex items-center justify-between mb-2.5">
           <span class="font-bold text-[15px]">{{ t('masterdata.offices.hierarki') }}</span>
-          <UButton
-            size="sm"
-            icon="i-lucide-plus"
-            @click="openCreate"
-          >
-            {{ t('masterdata.offices.tambahKantor') }}
-          </UButton>
+          <div class="flex items-center gap-2">
+            <Can permission="masterdata.office.manage">
+              <UButton
+                size="sm"
+                icon="i-lucide-upload"
+                color="neutral"
+                variant="outline"
+                :to="localePath('/master/import?target=office')"
+              >
+                {{ t('common.import') }}
+              </UButton>
+            </Can>
+            <UButton
+              size="sm"
+              icon="i-lucide-plus"
+              @click="openCreate"
+            >
+              {{ t('masterdata.offices.tambahKantor') }}
+            </UButton>
+          </div>
         </div>
         <UInput
           v-model="search"

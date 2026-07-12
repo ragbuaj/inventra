@@ -539,10 +539,15 @@ func (ns NullSharedFiscalAssetGroup) Value() (driver.Value, error) {
 type SharedImportStatus string
 
 const (
-	SharedImportStatusPending    SharedImportStatus = "pending"
-	SharedImportStatusProcessing SharedImportStatus = "processing"
-	SharedImportStatusCompleted  SharedImportStatus = "completed"
-	SharedImportStatusFailed     SharedImportStatus = "failed"
+	SharedImportStatusPending          SharedImportStatus = "pending"
+	SharedImportStatusProcessing       SharedImportStatus = "processing"
+	SharedImportStatusCompleted        SharedImportStatus = "completed"
+	SharedImportStatusFailed           SharedImportStatus = "failed"
+	SharedImportStatusValidated        SharedImportStatus = "validated"
+	SharedImportStatusConfirmed        SharedImportStatus = "confirmed"
+	SharedImportStatusExecuting        SharedImportStatus = "executing"
+	SharedImportStatusAwaitingApproval SharedImportStatus = "awaiting_approval"
+	SharedImportStatusCancelled        SharedImportStatus = "cancelled"
 )
 
 func (e *SharedImportStatus) Scan(src interface{}) error {
@@ -808,6 +813,7 @@ const (
 	SharedRequestTypeAssignment         SharedRequestType = "assignment"
 	SharedRequestTypeMaintenance        SharedRequestType = "maintenance"
 	SharedRequestTypeValuationExclusion SharedRequestType = "valuation_exclusion"
+	SharedRequestTypeAssetImport        SharedRequestType = "asset_import"
 )
 
 func (e *SharedRequestType) Scan(src interface{}) error {
@@ -1313,6 +1319,23 @@ type ImportImportJob struct {
 	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt      pgtype.Timestamptz `json:"deleted_at"`
+	OfficeID       *uuid.UUID         `json:"office_id"`
+	RequestID      *uuid.UUID         `json:"request_id"`
+	ConfirmedAt    pgtype.Timestamptz `json:"confirmed_at"`
+	ErrorKey       *string            `json:"error_key"`
+}
+
+type ImportImportRow struct {
+	ID        uuid.UUID          `json:"id"`
+	JobID     uuid.UUID          `json:"job_id"`
+	RowNo     int32              `json:"row_no"`
+	Data      []byte             `json:"data"`
+	Valid     bool               `json:"valid"`
+	Errors    []byte             `json:"errors"`
+	ResultRef *string            `json:"result_ref"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
 }
 
 type MaintenanceMaintenanceRecord struct {

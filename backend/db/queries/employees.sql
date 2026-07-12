@@ -27,6 +27,16 @@ SELECT * FROM masterdata.employees
 WHERE id = sqlc.arg(id) AND deleted_at IS NULL
   AND (sqlc.arg(all_scope)::bool OR office_id = ANY(sqlc.arg(office_ids)::uuid[]));
 
+-- name: GetEmployeeByCode :one
+SELECT * FROM masterdata.employees WHERE code = $1 AND deleted_at IS NULL LIMIT 1;
+
+-- name: ListEmployeeCodes :many
+-- All existing (non-deleted) employee codes, used by the employee importer to
+-- detect collisions with user-supplied kode values during validation. Employee
+-- codes are globally unique (uq_employees_code), so this set is deliberately
+-- unscoped.
+SELECT code FROM masterdata.employees WHERE deleted_at IS NULL;
+
 -- name: CreateEmployee :one
 INSERT INTO masterdata.employees (
   code, name, email, phone, avatar_key, department_id, position_id, office_id, status

@@ -545,6 +545,33 @@ func (q *Queries) ListAssetDocuments(ctx context.Context, assetID uuid.UUID) ([]
 	return items, nil
 }
 
+const listAssetTags = `-- name: ListAssetTags :many
+SELECT asset_tag FROM asset.assets WHERE deleted_at IS NULL
+`
+
+// All existing (non-deleted) asset tags, used by the asset importer to detect
+// collisions with user-supplied asset_tag values during validation. Asset tags
+// are globally unique, so this set is deliberately unscoped.
+func (q *Queries) ListAssetTags(ctx context.Context) ([]string, error) {
+	rows, err := q.db.Query(ctx, listAssetTags)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var asset_tag string
+		if err := rows.Scan(&asset_tag); err != nil {
+			return nil, err
+		}
+		items = append(items, asset_tag)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listAssets = `-- name: ListAssets :many
 
 SELECT id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value FROM asset.assets

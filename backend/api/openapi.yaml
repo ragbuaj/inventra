@@ -160,6 +160,23 @@ tags:
       `GET /dashboard/summary` is the only cached endpoint (90s TTL, keyed by role + scope +
       office filter + period) — `GET /dashboard/export` and both `/reports/:type` endpoints
       always compute fresh so a download never serves a stale snapshot.
+  - name: Import
+    description: |
+      Bulk import of CSV/xlsx files into `asset`, `employee`, `office`, or the
+      `reference:provinces`/`reference:cities` master-data tables. A job moves
+      `pending` → `processing` (async parse + per-row validation) → `validated` (ready for
+      `POST .../confirm`) → `confirmed` → `executing` → `completed`, or `failed` at any
+      validation/execution error; `cancel` is only allowed while `pending` or `validated`
+      (409 otherwise). Importing `target=asset` additionally routes through
+      maker-checker: a validated asset job goes to `awaiting_approval` instead of `validated`
+      and links an approval request (see the Requests tag) — `GET /imports/{id}` surfaces
+      that request's outcome as `approval_status`, and the job only reaches `executing` once
+      it is approved. Every write requires the guarding permission for `target`
+      (`asset.manage`, `masterdata.employee.manage`, `masterdata.office.manage`, or
+      `masterdata.global.manage` for `reference:*`); a caller may only see/act on jobs they
+      created — another caller's job id returns 403. Row validation is scoped to the
+      caller's offices (data-scope module `imports`). `GET /imports/template` and
+      `GET /imports/{id}/error-report` stream binary CSV/xlsx downloads.
 
 paths:
   /health:
@@ -4098,6 +4115,252 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/v1/imports/template:
+    get:
+      tags: [Import]
+      operationId: getImportTemplate
+      summary: Download a blank import template (CSV or xlsx)
+      description: |
+        Streams a header-only file listing the target's importable columns. Requires the
+        guarding permission for `target` (`asset.manage`, `masterdata.employee.manage`,
+        `masterdata.office.manage`, or `masterdata.global.manage` for `reference:*`).
+        Streams with `Content-Disposition: attachment` and `X-Content-Type-Options: nosniff`.
+      security:
+        - bearerJWT: []
+      parameters:
+        - { name: target, in: query, required: true, schema: { type: string, enum: [asset, employee, office, 'reference:provinces', 'reference:cities'] }, description: Import target. An unregistered value is a 422. }
+        - { name: format, in: query, schema: { type: string, enum: [csv, xlsx], default: xlsx } }
+      responses:
+        "200":
+          description: Template file
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+        "400":
+          description: Missing `target`, or `format` is not `csv`/`xlsx`
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422":
+          description: Unrecognized `target`
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/imports:
+    post:
+      tags: [Import]
+      operationId: createImportJob
+      summary: Upload a file to start a new import job
+      description: |
+        Accepts a multipart upload (`file` + `target`), registers a new job in `pending`
+        status, and returns it for the async worker to validate. The upload format (csv/xlsx)
+        is derived from the sanitized filename's extension, independent of any `format` used
+        for the template download. Requires the guarding permission for `target`. Upload size
+        is capped by the server's configured maximum (413 when exceeded).
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, target]
+              properties:
+                file: { type: string, format: binary, description: '.csv or .xlsx file to import.' }
+                target: { type: string, enum: [asset, employee, office, 'reference:provinces', 'reference:cities'] }
+      responses:
+        "201":
+          description: The created import job
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportJob" }
+        "400":
+          description: Missing `file`/`target`, unreadable file, invalid filename, or a file extension other than `.csv`/`.xlsx`
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "413":
+          description: File exceeds the server's configured maximum upload size
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          description: Unrecognized `target`
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    get:
+      tags: [Import]
+      operationId: listImportJobs
+      summary: List the caller's own import jobs
+      description: |
+        Returns only jobs created by the caller, newest first. Filtering by `target` requires
+        the guarding permission for that target.
+      security:
+        - bearerJWT: []
+      parameters:
+        - { name: target, in: query, schema: { type: string, enum: [asset, employee, office, 'reference:provinces', 'reference:cities'] }, description: Filter to one target. }
+        - { name: limit, in: query, schema: { type: integer, default: 20, minimum: 1, maximum: 100 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0, minimum: 0 } }
+      responses:
+        "200":
+          description: A page of the caller's import jobs
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportJobList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422":
+          description: Unrecognized `target`
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/imports/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Import]
+      operationId: getImportJob
+      summary: Get an import job by id
+      description: |
+        Returns the job, plus (best-effort) a `progress` object while the worker is validating
+        and an `approval_status` when the job's `target` is `asset` and it has a linked
+        approval request. Requires the caller to own the job and hold the guarding permission
+        for the job's `target`.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The import job
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportJob" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { description: Not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/v1/imports/{id}/rows:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Import]
+      operationId: listImportRows
+      summary: List a job's parsed rows
+      description: |
+        Returns the job's persisted rows (post-parse, with per-row validation outcome).
+        Requires the caller to own the job and hold the guarding permission for its `target`.
+      security:
+        - bearerJWT: []
+      parameters:
+        - { name: only_errors, in: query, schema: { type: boolean, default: false }, description: 'When true, return only rows that failed validation (`valid: false`).' }
+        - { name: limit, in: query, schema: { type: integer, default: 20, minimum: 1, maximum: 100 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0, minimum: 0 } }
+      responses:
+        "200":
+          description: A page of the job's rows
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportRowList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { description: Not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/v1/imports/{id}/confirm:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Import]
+      operationId: confirmImportJob
+      summary: Confirm a validated job for execution
+      description: |
+        Moves an owned, `validated` job to `confirmed` so the async worker executes it.
+        Requires the caller to own the job and hold the guarding permission for its `target`.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The confirmed import job
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportJob" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { description: Not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "409":
+          description: Job is not currently `validated`
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/imports/{id}/cancel:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Import]
+      operationId: cancelImportJob
+      summary: Cancel a pending or validated job
+      description: |
+        Moves an owned job to `cancelled`. Only legal while `pending` or `validated`.
+        Requires the caller to own the job and hold the guarding permission for its `target`.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The cancelled import job
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportJob" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { description: Not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "409":
+          description: Job is not `pending` or `validated`
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/imports/{id}/error-report:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Import]
+      operationId: getImportErrorReport
+      summary: Download the job's failed rows as a file
+      description: |
+        Streams the job's failed rows (up to the server's configured max rows) as a CSV/xlsx
+        file with the target's columns plus a trailing error column. Requires the caller to
+        own the job and hold the guarding permission for its `target`. Streams with
+        `Content-Disposition: attachment` and `X-Content-Type-Options: nosniff`.
+      security:
+        - bearerJWT: []
+      parameters:
+        - { name: format, in: query, schema: { type: string, enum: [csv, xlsx] }, description: 'Defaults to the job''s own upload format when omitted.' }
+      responses:
+        "200":
+          description: Error report file
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+        "400":
+          description: '`format` is not `csv`/`xlsx`'
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { description: Not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
 components:
   securitySchemes:
     bearerJWT:
@@ -6171,3 +6434,101 @@ components:
         total_debit: { type: string, description: Decimal string (IDR). }
         total_credit: { type: string, description: Decimal string (IDR). }
         balanced: { type: boolean, description: 'true when total_debit equals total_credit.' }
+
+    ImportJobProgress:
+      type: object
+      description: Best-effort validate-phase progress, read from Redis; present on `GET /imports/{id}` only while the worker is actively validating (absent otherwise, including once the job reaches `validated`/`awaiting_approval`).
+      required: [phase, done, total]
+      properties:
+        phase: { type: string, description: 'Current phase name, e.g. "validating".' }
+        done: { type: integer, description: Rows processed so far. }
+        total: { type: integer, description: Total rows to process. }
+
+    ImportJob:
+      type: object
+      description: |
+        An import job. `office_id` is populated once row validation resolves the maker's
+        scope (nil beforehand); `request_id`/`approval_status` are populated only for
+        `target=asset` jobs, once a linked `asset_create` approval request exists.
+      required:
+        - id
+        - target
+        - format
+        - filename
+        - status
+        - total_rows
+        - success_rows
+        - failed_rows
+        - error_key
+        - created_by_id
+        - office_id
+        - request_id
+        - created_at
+        - updated_at
+        - finished_at
+        - confirmed_at
+      properties:
+        id: { type: string, format: uuid }
+        target: { type: string, enum: [asset, employee, office, 'reference:provinces', 'reference:cities'] }
+        format: { type: string, enum: [csv, xlsx] }
+        filename: { type: string, description: Sanitized original filename. }
+        status: { type: string, enum: [pending, processing, validated, awaiting_approval, confirmed, executing, completed, failed, cancelled] }
+        total_rows: { type: integer }
+        success_rows: { type: integer }
+        failed_rows: { type: integer }
+        error_key: { type: [string, "null"], description: 'Job-level failure reason key (e.g. a parse error), or null when not failed for a job-level reason.' }
+        created_by_id: { type: string, format: uuid }
+        office_id: { type: [string, "null"], format: uuid, description: 'The maker''s resolved scope office, or null before row validation has run.' }
+        request_id: { type: [string, "null"], format: uuid, description: 'Linked approval request id for `target=asset` jobs, else null.' }
+        approval_status: { type: string, enum: [pending, approved, rejected, cancelled], description: 'Present only when `target=asset` and `request_id` is set — the linked request''s current status.' }
+        progress: { $ref: "#/components/schemas/ImportJobProgress" }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        finished_at: { type: [string, "null"], format: date-time, description: 'Set when the job reaches a terminal status (`completed`/`failed`/`cancelled`).' }
+        confirmed_at: { type: [string, "null"], format: date-time, description: 'Set when the job is confirmed for execution.' }
+
+    ImportJobList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/ImportJob" } }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+
+    ImportRowError:
+      type: object
+      required: [column, error_key]
+      properties:
+        column: { type: string, description: Name of the target column that failed validation. }
+        error_key: { type: string, description: 'Stable, localizable error reason key.' }
+
+    ImportRow:
+      type: object
+      description: |
+        A parsed import row. Beyond the fixed fields below, the object also carries one
+        string property per target column (the row's raw uploaded values) — internal,
+        `_`-prefixed resolved-id keys stamped by validation (e.g. `_office_id`) are stripped
+        before serialization and never appear here.
+      required: [id, row_no, valid, errors]
+      properties:
+        id: { type: string, format: uuid }
+        row_no: { type: integer, description: 1-based row number within the uploaded file. }
+        valid: { type: boolean }
+        errors:
+          type: array
+          items: { $ref: "#/components/schemas/ImportRowError" }
+          description: Empty when `valid` is true.
+        result_ref: { type: string, description: 'Id of the record created/updated by this row once the job executes; present only after successful execution.' }
+      additionalProperties:
+        type: string
+        description: One entry per target column, keyed by column name (the row's raw uploaded value).
+
+    ImportRowList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/ImportRow" } }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }

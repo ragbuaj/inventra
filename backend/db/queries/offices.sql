@@ -28,6 +28,16 @@ SELECT * FROM masterdata.offices
 WHERE id = sqlc.arg(id) AND deleted_at IS NULL
   AND (sqlc.arg(all_scope)::bool OR id = ANY(sqlc.arg(office_ids)::uuid[]));
 
+-- name: GetOfficeByCode :one
+-- Fresh, side-effect-free existence check used by the office importer's
+-- Execute anti-poisoning pre-check (mirrors GetEmployeeByCode).
+SELECT * FROM masterdata.offices WHERE code = $1 AND deleted_at IS NULL LIMIT 1;
+
+-- name: ListOfficeTypesLookup :many
+-- Flat id/name lookup for the office importer's "tipe" column. office_types
+-- has no code column (only name), so the importer matches by name only.
+SELECT id, name FROM masterdata.office_types WHERE deleted_at IS NULL;
+
 -- name: CreateOffice :one
 INSERT INTO masterdata.offices (
   parent_id, office_type_id, province_id, city_id, name, code, address, is_active, latitude, longitude
