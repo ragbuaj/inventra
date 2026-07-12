@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import type { Office } from '~/types'
-
 const props = defineProps<{
   open: boolean
-  offices: Office[]
   submitting: boolean
 }>()
 
@@ -13,12 +10,11 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const office = useOfficePicker()
 
 const name = ref('')
 const officeId = ref('')
 const period = ref('')
-
-const officeItems = computed(() => props.offices.map(o => ({ value: o.id, label: o.name })))
 
 function reset() {
   name.value = ''
@@ -63,13 +59,13 @@ function confirm() {
           :label="t('stockOpname.create.scope')"
           required
         >
-          <USelect
-            v-model="officeId"
-            data-testid="opname-create-office"
-            value-key="value"
-            :items="officeItems"
-            :placeholder="t('stockOpname.create.scopePlaceholder')"
-            class="w-full"
+          <AsyncSearchPicker
+            :model-value="officeId || null"
+            :search-fn="office.searchFn"
+            :resolve-fn="office.resolveFn"
+            :placeholder="t('common.searchOffice')"
+            testid="office"
+            @update:model-value="officeId = $event ?? ''"
           />
         </UFormField>
         <UFormField

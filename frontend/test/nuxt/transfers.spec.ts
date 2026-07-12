@@ -109,8 +109,9 @@ vi.mock('~/composables/api/useApproval', () => ({
 }))
 
 const officesListMock = vi.fn()
+const officesGetMock = vi.fn()
 vi.mock('~/composables/api/useOffices', () => ({
-  useOffices: () => ({ list: officesListMock, get: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() })
+  useOffices: () => ({ list: officesListMock, get: officesGetMock, create: vi.fn(), update: vi.fn(), remove: vi.fn() })
 }))
 
 const listByOfficeMock = vi.fn()
@@ -137,6 +138,9 @@ vi.mock('~/composables/api/useAssets', () => ({
 import TransfersPage from '~/pages/transfers.vue'
 
 enableAutoUnmount(afterEach)
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 function grantSession(officeId: string | null, permissions: string[] = ['transfer.view', 'transfer.manage']) {
   useAuthStore().setSession(
@@ -177,6 +181,10 @@ function bodyButton(testid: string): HTMLButtonElement {
 beforeEach(() => {
   vi.clearAllMocks()
   officesListMock.mockResolvedValue(page(OFFICES))
+  officesGetMock.mockImplementation((id: string) => {
+    const o = OFFICES.find(off => off.id === id)
+    return o ? Promise.resolve(o) : Promise.reject(new Error('not found'))
+  })
   refListMock.mockImplementation((key: string) =>
     Promise.resolve(page(key === 'office-types' ? OFFICE_TYPES : [])))
   listByOfficeMock.mockResolvedValue([{ id: 'f1', office_id: 'o-mine', name: 'Lantai 1', level: 1, created_at: null, updated_at: null }])
@@ -212,6 +220,32 @@ describe('pages/transfers — mount', () => {
     grantSession(null)
     const w = await mountAndWait()
     expect(w.find('[data-testid="transfer-my-office"]').exists()).toBe(false)
+  })
+})
+
+describe('pages/transfers — destination office is an AsyncSearchPicker', () => {
+  it('renders the office picker input (no more eager-options USelect)', async () => {
+    const w = await mountAndWait()
+    expect(w.find('[data-testid="transfer-to-office"]').exists()).toBe(false)
+    expect(w.find('[data-testid="to-office-picker-input"]').exists()).toBe(true)
+  })
+
+  it('searching drives useOffices().list with { search, limit: 20 } and excludes the source office', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET) // fromOfficeId = 'o-mine'
+    vi.useFakeTimers()
+    await w.find('[data-testid="to-office-picker-input"]').setValue('Kantor')
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+    expect(officesListMock).toHaveBeenCalledWith({ search: 'Kantor', limit: 20 })
+  })
+
+  it('resolves a preselected destination office id to its label', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'toOfficeId', 'o-same')
+    const input = w.find('[data-testid="to-office-picker-input"]').element as HTMLInputElement
+    expect(input.value).toBe('Kantor Cabang Jakarta Pusat')
   })
 })
 

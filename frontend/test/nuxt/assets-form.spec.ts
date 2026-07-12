@@ -57,7 +57,7 @@ const CATEGORIES = [
   { id: 'c1', name: 'Elektronik', code: 'ELK', asset_class: 'tangible', default_depreciation_method: 'straight_line', default_useful_life_months: 48, default_salvage_rate: '0.1' },
   { id: 'c2', name: 'Aset Takberwujud', code: 'ITG', asset_class: 'intangible', default_depreciation_method: null, default_useful_life_months: null, default_salvage_rate: null }
 ]
-const OFFICES = [{ id: 'o1', name: 'Cabang Jakarta Selatan' }]
+const OFFICES = [{ id: 'o1', name: 'Cabang Jakarta Selatan', code: 'JKS' }]
 const BRANDS = [{ id: 'b1', name: 'Dell' }]
 const MODELS = [
   { id: 'm1', name: 'Latitude 5440', brand_id: 'b1' },
@@ -96,6 +96,12 @@ const EDIT_ASSET: Asset = {
 function defaultHandler(): RequestHandler {
   return (path: string, opts?: Record<string, unknown>) => {
     if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
+    // /offices/:id (AsyncSearchPicker's resolveFn / office.resolveFn) must be
+    // matched before the plain-list /offices?... route below.
+    if (/^\/offices\/[^/?]+$/.test(path)) {
+      const id = path.split('/')[2]
+      return OFFICES.find(o => o.id === id) ?? null
+    }
     if (path.startsWith('/offices')) return { data: OFFICES, total: OFFICES.length, limit: 100, offset: 0 }
     if (path.startsWith('/brands')) return { data: BRANDS, total: BRANDS.length, limit: 100, offset: 0 }
     if (path.startsWith('/models')) return { data: MODELS, total: MODELS.length, limit: 100, offset: 0 }
@@ -206,6 +212,47 @@ describe('AssetForm — create mode: render', () => {
     expect(wrapper.text()).toContain('Harga beli wajib diisi')
     expect(requestsCalled).toBe(false)
     expect(toastAddMock).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'Pengajuan terkirim — menunggu persetujuan' }))
+  })
+})
+
+// ---------------------------------------------------------------------------
+// New mode — kantor field is the async office picker
+// ---------------------------------------------------------------------------
+
+describe('AssetForm — create mode: kantor is an AsyncSearchPicker', () => {
+  it('renders the office picker input (no more eager-options USelect)', async () => {
+    const wrapper = await mountNew()
+    expect(wrapper.find('[data-testid="asset-form-kantor-select"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="office-picker-input"]').exists()).toBe(true)
+  })
+
+  it('searching drives office.searchFn (via GET /offices) with search+limit=20', async () => {
+    const wrapper = await mountNew()
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/offices')) {
+        captured = path
+        return { data: OFFICES, total: OFFICES.length, limit: 20, offset: 0 }
+      }
+      return defaultHandler()(path, opts)
+    })
+    vi.useFakeTimers()
+    await wrapper.find('[data-testid="office-picker-input"]').setValue('Jakarta')
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+    expect(captured).toContain('search=Jakarta')
+    expect(captured).toContain('limit=20')
+  })
+
+  it('resolves a preselected office id to its label via GET /offices/:id', async () => {
+    const wrapper = await mountNew()
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.officeId = 'o1'
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+    const input = wrapper.find('[data-testid="office-picker-input"]').element as HTMLInputElement
+    expect(input.value).toBe('Cabang Jakarta Selatan')
   })
 })
 

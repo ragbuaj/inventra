@@ -1,7 +1,7 @@
 // @vitest-environment nuxt
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
-import { enableAutoUnmount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises } from '@vue/test-utils'
 import { useAuthStore } from '~/stores/auth'
 import { useConfirm } from '~/composables/useConfirm'
 import type { UserView } from '~/composables/api/useUsers'
@@ -94,7 +94,9 @@ function parseQuery(path: string): Record<string, string> {
 
 function defaultHandler(path: string, opts?: Record<string, unknown>): unknown {
   if (path === '/authz/roles') return { data: ROLES }
+  if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
   if (path.startsWith('/offices')) return { data: OFFICES }
+  if (/^\/employees\/[^/?]+$/.test(path)) return EMPLOYEES.find(e => e.id === path.split('/')[2]) ?? null
   if (path.startsWith('/employees')) return { data: EMPLOYEES }
   if (path.startsWith('/users') && (!opts?.method || opts.method === 'GET')) {
     return makeUsersResponse()
@@ -107,6 +109,9 @@ function defaultHandler(path: string, opts?: Record<string, unknown>): unknown {
 // ---------------------------------------------------------------------------
 
 enableAutoUnmount(afterEach)
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 function grantAdmin() {
   useAuthStore().setSession(
@@ -206,7 +211,9 @@ describe('User Management page — loaded rows', () => {
   it('shows em-dash for users with no employee linked', async () => {
     setHandler((path, opts) => {
       if (path === '/authz/roles') return { data: ROLES }
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
+      if (/^\/employees\/[^/?]+$/.test(path)) return EMPLOYEES.find(e => e.id === path.split('/')[2]) ?? null
       if (path.startsWith('/employees')) return { data: EMPLOYEES }
       if (path.startsWith('/users') && (!opts?.method || opts.method === 'GET')) {
         return makeUsersResponse([{ ...USERS[0]!, employee_id: null }], 1)
@@ -222,7 +229,9 @@ describe('User Management page — loaded rows', () => {
     const capturedQueries: Array<Record<string, string>> = []
     setHandler((path, opts) => {
       if (path === '/authz/roles') return { data: ROLES }
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
+      if (/^\/employees\/[^/?]+$/.test(path)) return EMPLOYEES.find(e => e.id === path.split('/')[2]) ?? null
       if (path.startsWith('/employees')) return { data: EMPLOYEES }
       if (path.startsWith('/users') && (!opts?.method || opts.method === 'GET')) {
         capturedQueries.push(parseQuery(path))
@@ -247,7 +256,9 @@ describe('User Management page — search', () => {
     const capturedPaths: string[] = []
     setHandler((path, opts) => {
       if (path === '/authz/roles') return { data: ROLES }
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
+      if (/^\/employees\/[^/?]+$/.test(path)) return EMPLOYEES.find(e => e.id === path.split('/')[2]) ?? null
       if (path.startsWith('/employees')) return { data: EMPLOYEES }
       if (path.startsWith('/users') && (!opts?.method || opts.method === 'GET')) {
         capturedPaths.push(path)
@@ -277,7 +288,9 @@ describe('User Management page — load error', () => {
   it('shows error message when GET /users returns 500', async () => {
     setHandler((path) => {
       if (path === '/authz/roles') return { data: ROLES }
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
+      if (/^\/employees\/[^/?]+$/.test(path)) return EMPLOYEES.find(e => e.id === path.split('/')[2]) ?? null
       if (path.startsWith('/employees')) return { data: EMPLOYEES }
       if (path.startsWith('/users')) {
         throw Object.assign(new Error('Server Error'), { statusCode: 500 })
@@ -295,7 +308,9 @@ describe('User Management page — load error', () => {
   it('shows retry button on load error', async () => {
     setHandler((path) => {
       if (path === '/authz/roles') return { data: ROLES }
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
+      if (/^\/employees\/[^/?]+$/.test(path)) return EMPLOYEES.find(e => e.id === path.split('/')[2]) ?? null
       if (path.startsWith('/employees')) return { data: EMPLOYEES }
       if (path.startsWith('/users')) {
         throw Object.assign(new Error('Server Error'), { statusCode: 500 })
@@ -314,7 +329,9 @@ describe('User Management page — load error', () => {
     let callCount = 0
     setHandler((path) => {
       if (path === '/authz/roles') return { data: ROLES }
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
+      if (/^\/employees\/[^/?]+$/.test(path)) return EMPLOYEES.find(e => e.id === path.split('/')[2]) ?? null
       if (path.startsWith('/employees')) return { data: EMPLOYEES }
       if (path.startsWith('/users')) {
         callCount++
@@ -349,7 +366,9 @@ describe('User Management page — create form', () => {
 
     setHandler((path, opts) => {
       if (path === '/authz/roles') return { data: ROLES }
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
+      if (/^\/employees\/[^/?]+$/.test(path)) return EMPLOYEES.find(e => e.id === path.split('/')[2]) ?? null
       if (path.startsWith('/employees')) return { data: EMPLOYEES }
       if (path === '/users' && opts?.method === 'POST') {
         capturedPath = path
@@ -398,7 +417,9 @@ describe('User Management page — create form', () => {
   it('409 conflict shows inline email conflict error', async () => {
     setHandler((path, opts) => {
       if (path === '/authz/roles') return { data: ROLES }
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
+      if (/^\/employees\/[^/?]+$/.test(path)) return EMPLOYEES.find(e => e.id === path.split('/')[2]) ?? null
       if (path.startsWith('/employees')) return { data: EMPLOYEES }
       if (path === '/users' && opts?.method === 'POST') {
         throw Object.assign(new Error('Conflict'), { statusCode: 409 })
@@ -433,23 +454,71 @@ describe('User Management page — create form', () => {
     expect(document.body.textContent).toContain('Email sudah dipakai.')
   })
 
-  it('employee picker filtered by selected office: o1 → only Budi, not Sari', async () => {
+  // NOTE (Task 4 deviation): the employee field used to filter its options
+  // client-side to the selected office (from an eagerly-fetched `{ limit:
+  // 100 }` employees array). The async picker searches the backend, which
+  // has no office-scoped employee search endpoint — office-scoping is no
+  // longer possible without a backend change. The field stays disabled until
+  // an office is chosen (signalling "pick an office first"), and switching
+  // office still clears any previously-picked employee (see the next test)
+  // as a safety net, but the search itself is not narrowed to that office.
+  it('office and employee fields are AsyncSearchPickers; employee picker is disabled until an office is chosen', async () => {
     const wrapper = await mountAndWait()
 
     ;(wrapper.vm as unknown as { openCreate: () => void }).openCreate()
     await wrapper.vm.$nextTick()
 
-    // Set office_id to o1 via vm
+    expect(document.body.querySelector('[data-testid="office-picker-input"]')).toBeTruthy()
+    const employeeInput = document.body.querySelector('[data-testid="employee-picker-input"]') as HTMLInputElement
+    expect(employeeInput).toBeTruthy()
+    expect(employeeInput.disabled).toBe(true)
+
     const form = (wrapper.vm as unknown as Record<string, unknown>)['form'] as Record<string, unknown>
     form['office_id'] = 'o1'
     await wrapper.vm.$nextTick()
 
-    const vm = wrapper.vm as unknown as Record<string, unknown>
-    const employeeFormOptions = vm['employeeFormOptions'] as Array<{ value: string, label: string }>
+    expect((document.body.querySelector('[data-testid="employee-picker-input"]') as HTMLInputElement).disabled).toBe(false)
+  })
 
-    // Only Budi (o1) should be in the options, not Sari (o2)
-    expect(employeeFormOptions.some(o => o.label === 'Budi')).toBe(true)
-    expect(employeeFormOptions.some(o => o.label === 'Sari')).toBe(false)
+  it('typing in the employee picker drives useUsers-backed search (GET /employees) with limit=20', async () => {
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/employees?')) {
+        captured = path
+        return { data: EMPLOYEES }
+      }
+      return defaultHandler(path, opts)
+    })
+    const wrapper = await mountAndWait()
+
+    ;(wrapper.vm as unknown as { openCreate: () => void }).openCreate()
+    await wrapper.vm.$nextTick()
+    const form = (wrapper.vm as unknown as Record<string, unknown>)['form'] as Record<string, unknown>
+    form['office_id'] = 'o1'
+    await wrapper.vm.$nextTick()
+
+    const employeeInput = document.body.querySelector('[data-testid="employee-picker-input"]') as HTMLInputElement
+    vi.useFakeTimers()
+    employeeInput.value = 'Sari'
+    employeeInput.dispatchEvent(new Event('input'))
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+    expect(captured).toContain('search=Sari')
+    expect(captured).toContain('limit=20')
+  })
+
+  it('resolves a preselected office/employee id to its label via GET /offices/:id and /employees/:id', async () => {
+    const wrapper = await mountAndWait()
+
+    ;(wrapper.vm as unknown as { openEdit: (row: unknown) => void }).openEdit(USERS[0])
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 100))
+
+    const officeInput = document.body.querySelector('[data-testid="office-picker-input"]') as HTMLInputElement
+    const employeeInput = document.body.querySelector('[data-testid="employee-picker-input"]') as HTMLInputElement
+    expect(officeInput.value).toBe('Pusat')
+    expect(employeeInput.value).toBe('Budi')
   })
 
   it('switching office clears previously selected employee', async () => {
@@ -467,30 +536,15 @@ describe('User Management page — create form', () => {
     await wrapper.vm.$nextTick()
     expect(form['employee_id']).toBe('e1')
 
-    // Switch to office o2 — watcher should clear employee_id since e1 is not in o2
+    // Switch to office o2 — the watcher unconditionally clears employee_id
+    // (there's no eager per-office employee list left to check membership
+    // against, so any office change drops the previous pick as a safety net).
     form['office_id'] = 'o2'
     await wrapper.vm.$nextTick()
     await new Promise(r => setTimeout(r, 50))
     await wrapper.vm.$nextTick()
 
     expect(form['employee_id']).toBe('')
-  })
-
-  it('employee picker switches to o2 employees after office change', async () => {
-    const wrapper = await mountAndWait()
-
-    ;(wrapper.vm as unknown as { openCreate: () => void }).openCreate()
-    await wrapper.vm.$nextTick()
-
-    const form = (wrapper.vm as unknown as Record<string, unknown>)['form'] as Record<string, unknown>
-    form['office_id'] = 'o2'
-    await wrapper.vm.$nextTick()
-
-    const vm = wrapper.vm as unknown as Record<string, unknown>
-    const employeeFormOptions = vm['employeeFormOptions'] as Array<{ value: string, label: string }>
-
-    expect(employeeFormOptions.some(o => o.label === 'Sari')).toBe(true)
-    expect(employeeFormOptions.some(o => o.label === 'Budi')).toBe(false)
   })
 })
 
@@ -505,7 +559,9 @@ describe('User Management page — edit form', () => {
 
     setHandler((path, opts) => {
       if (path === '/authz/roles') return { data: ROLES }
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
+      if (/^\/employees\/[^/?]+$/.test(path)) return EMPLOYEES.find(e => e.id === path.split('/')[2]) ?? null
       if (path.startsWith('/employees')) return { data: EMPLOYEES }
       if (path.startsWith('/users/') && opts?.method === 'PUT') {
         capturedPath = path
@@ -574,7 +630,9 @@ describe('User Management page — status toggle', () => {
 
     setHandler((path, opts) => {
       if (path === '/authz/roles') return { data: ROLES }
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
+      if (/^\/employees\/[^/?]+$/.test(path)) return EMPLOYEES.find(e => e.id === path.split('/')[2]) ?? null
       if (path.startsWith('/employees')) return { data: EMPLOYEES }
       if (path.startsWith('/users/') && opts?.method === 'PUT') {
         capturedPath = path
@@ -605,7 +663,9 @@ describe('User Management page — status toggle', () => {
 
     setHandler((path, opts) => {
       if (path === '/authz/roles') return { data: ROLES }
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
+      if (/^\/employees\/[^/?]+$/.test(path)) return EMPLOYEES.find(e => e.id === path.split('/')[2]) ?? null
       if (path.startsWith('/employees')) return { data: EMPLOYEES }
       if (path.startsWith('/users/') && opts?.method === 'PUT') {
         capturedBody = (opts['body'] as Record<string, unknown>) ?? {}
@@ -638,7 +698,9 @@ describe('User Management page — delete', () => {
 
     setHandler((path, opts) => {
       if (path === '/authz/roles') return { data: ROLES }
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
+      if (/^\/employees\/[^/?]+$/.test(path)) return EMPLOYEES.find(e => e.id === path.split('/')[2]) ?? null
       if (path.startsWith('/employees')) return { data: EMPLOYEES }
       if (path.startsWith('/users/') && opts?.method === 'DELETE') {
         deletedPath = path
@@ -670,7 +732,9 @@ describe('User Management page — delete', () => {
 
     setHandler((path, opts) => {
       if (path === '/authz/roles') return { data: ROLES }
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
+      if (/^\/employees\/[^/?]+$/.test(path)) return EMPLOYEES.find(e => e.id === path.split('/')[2]) ?? null
       if (path.startsWith('/employees')) return { data: EMPLOYEES }
       if (path.startsWith('/users/') && opts?.method === 'DELETE') {
         deleteCalled = true
@@ -742,7 +806,9 @@ describe('User Management page — form validation', () => {
 
     setHandler((path, opts) => {
       if (path === '/authz/roles') return { data: ROLES }
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
+      if (/^\/employees\/[^/?]+$/.test(path)) return EMPLOYEES.find(e => e.id === path.split('/')[2]) ?? null
       if (path.startsWith('/employees')) return { data: EMPLOYEES }
       if (path.startsWith('/users/') && opts?.method === 'PUT') {
         putCalled = true

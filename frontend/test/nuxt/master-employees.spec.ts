@@ -1,7 +1,7 @@
 // @vitest-environment nuxt
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
-import { enableAutoUnmount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises } from '@vue/test-utils'
 import { useAuthStore } from '~/stores/auth'
 import { useConfirm } from '~/composables/useConfirm'
 
@@ -35,8 +35,8 @@ import EmployeesPage from '~/pages/master/employees.vue'
 // ---------------------------------------------------------------------------
 
 const OFFICES = [
-  { id: 'o1', name: 'Kantor Pusat' },
-  { id: 'o2', name: 'Kantor Cabang' }
+  { id: 'o1', name: 'Kantor Pusat', code: 'KP' },
+  { id: 'o2', name: 'Kantor Cabang', code: 'KC' }
 ]
 
 const DEPARTMENTS = [
@@ -100,6 +100,12 @@ function makeRefResponse(rows: { id: string, name: string }[]) {
 }
 
 function defaultHandler(path: string, opts?: Record<string, unknown>): unknown {
+  // /offices/:id (office picker's resolveFn / table resolve-cache) must be
+  // matched before the plain-list /offices?... route below.
+  if (/^\/offices\/[^/?]+$/.test(path)) {
+    const id = path.split('/')[2]
+    return OFFICES.find(o => o.id === id) ?? null
+  }
   if (path.startsWith('/offices')) return { data: OFFICES }
   if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
   if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
@@ -114,6 +120,12 @@ function defaultHandler(path: string, opts?: Record<string, unknown>): unknown {
 // ---------------------------------------------------------------------------
 
 enableAutoUnmount(afterEach)
+// Belt-and-suspenders: a fake-timers test that fails before reaching its own
+// vi.useRealTimers() would otherwise leave every later test's setTimeout-based
+// waits (mountAndWait, etc.) hanging forever.
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 function grantAdmin() {
   useAuthStore().setSession(
@@ -225,13 +237,22 @@ describe('Master Pegawai page — loaded rows with resolved FK names', () => {
     expect(wrapper.text()).toContain('Ditangguhkan')
   })
 
-  it('renders filter dropdowns with i18n labels', async () => {
+  it('renders filter dropdowns with i18n labels (office filter is now a search picker)', async () => {
     const wrapper = await mountAndWait()
     const text = wrapper.text()
-    expect(text).toContain('Semua Kantor')
     expect(text).toContain('Semua Departemen')
     expect(text).toContain('Semua Jabatan')
     expect(text).toContain('Semua Status')
+    expect(wrapper.find('[data-testid="office-filter-picker-input"]').exists()).toBe(true)
+  })
+
+  it('resolves office_id to office name in the table via the resolve cache (not the raw UUID)', async () => {
+    const wrapper = await mountAndWait()
+    const text = wrapper.text()
+    expect(text).toContain('Kantor Pusat')
+    expect(text).toContain('Kantor Cabang')
+    expect(text).not.toContain('o1')
+    expect(text).not.toContain('o2')
   })
 })
 
@@ -240,6 +261,25 @@ describe('Master Pegawai page — loaded rows with resolved FK names', () => {
 // ---------------------------------------------------------------------------
 
 describe('Master Pegawai page — office filter', () => {
+  it('typing in the office filter picker drives search with limit=20', async () => {
+    const wrapper = await mountAndWait()
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/offices?')) {
+        captured = path
+        return { data: OFFICES }
+      }
+      return defaultHandler(path, opts)
+    })
+    vi.useFakeTimers()
+    await wrapper.find('[data-testid="office-filter-picker-input"]').setValue('Pusat')
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+    expect(captured).toContain('search=Pusat')
+    expect(captured).toContain('limit=20')
+  })
+
   it('filterOffice=o1 shows only o1 employees and hides o2 employees', async () => {
     const wrapper = await mountAndWait()
     await setVmRef(wrapper, 'filterOffice', 'o1')
@@ -298,6 +338,7 @@ describe('Master Pegawai page — department filter', () => {
 describe('Master Pegawai page — load error', () => {
   it('shows error message when GET /employees fails', async () => {
     setHandler((path) => {
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
@@ -316,6 +357,7 @@ describe('Master Pegawai page — load error', () => {
 
   it('shows retry button on load error', async () => {
     setHandler((path) => {
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
@@ -335,6 +377,7 @@ describe('Master Pegawai page — load error', () => {
   it('retry button re-fetches and recovers when second call succeeds', async () => {
     let callCount = 0
     setHandler((path) => {
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
@@ -373,11 +416,22 @@ describe('Master Pegawai page — create form', () => {
     expect(vm.formOpen).toBe(true)
   })
 
+  it('renders the office field as an AsyncSearchPicker (no eager-options USelect) and defaults office_id empty', async () => {
+    const wrapper = await mountAndWait()
+    const vm = wrapper.vm as unknown as { openCreate: () => void, form: Record<string, unknown> }
+    vm.openCreate()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[data-testid="employee-office-select"]').exists()).toBe(false)
+    expect(document.body.querySelector('[data-testid="office-picker-input"]')).toBeTruthy()
+    expect(vm.form['office_id']).toBe('')
+  })
+
   it('POST /employees body contains code, name, office_id, department_id, position_id with UUID values', async () => {
     let capturedPath = ''
     let capturedOpts: Record<string, unknown> = {}
 
     setHandler((path, opts) => {
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
@@ -431,6 +485,7 @@ describe('Master Pegawai page — create form', () => {
     let postCalled = false
 
     setHandler((path, opts) => {
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
@@ -466,6 +521,7 @@ describe('Master Pegawai page — create form', () => {
     let postCalled = false
 
     setHandler((path, opts) => {
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
@@ -522,6 +578,7 @@ describe('Master Pegawai page — edit form', () => {
     let capturedOpts: Record<string, unknown> = {}
 
     setHandler((path, opts) => {
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
@@ -569,6 +626,7 @@ describe('Master Pegawai page — delete', () => {
     let deletedPath = ''
 
     setHandler((path, opts) => {
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
@@ -599,6 +657,7 @@ describe('Master Pegawai page — delete', () => {
     let deleteCalled = false
 
     setHandler((path, opts) => {
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)

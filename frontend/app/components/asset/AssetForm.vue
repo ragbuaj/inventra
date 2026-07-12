@@ -13,7 +13,7 @@ const localePath = useLocalePath()
 const { open: confirm } = useConfirm()
 
 const categoriesApi = useCategories()
-const officesApi = useOffices()
+const office = useOfficePicker()
 const floorsApi = useFloors()
 const referenceApi = useReference()
 const assetsApi = useAssets()
@@ -28,7 +28,6 @@ const attachmentsApi = useAssetAttachments()
 // ---------------------------------------------------------------------------
 
 const categories = ref<Category[]>([])
-const offices = ref<{ id: string, name: string }[]>([])
 const brands = ref<{ id: string, name: string }[]>([])
 const models = ref<{ id: string, name: string, brand_id?: string }[]>([])
 const units = ref<{ id: string, name: string }[]>([])
@@ -57,7 +56,6 @@ if (props.mode === 'edit' && props.initial) {
 }
 
 const categoryOptions = computed(() => categories.value.map(c => ({ value: c.id, label: c.name })))
-const officeOptions = computed(() => offices.value.map(o => ({ value: o.id, label: o.name })))
 const brandOptions = computed(() => brands.value.map(b => ({ value: b.id, label: b.name })))
 const modelOptions = computed(() => models.value.filter(m => m.brand_id === form.brandId).map(m => ({ value: m.id, label: m.name })))
 const unitOptions = computed(() => units.value.map(u => ({ value: u.id, label: u.name })))
@@ -66,11 +64,16 @@ const floorOptions = computed(() => floors.value.map(f => ({ value: f.id, label:
 const roomOptions = computed(() => rooms.value.map(r => ({ value: r.id, label: r.name })))
 
 const selectedCategory = computed(() => categories.value.find(c => c.id === form.categoryId))
-const officeName = computed(() => {
-  const id = props.initial?.office_id
-  if (!id) return '—'
-  return offices.value.find(o => o.id === id)?.name ?? id
-})
+
+// Edit mode shows kantor as read-only text — resolved on demand via the
+// office picker adapter's resolveFn (no more eager `{ limit: 100 }` list).
+const officeName = ref('—')
+watch(() => props.initial?.office_id, async (id) => {
+  officeName.value = '—'
+  if (!id) return
+  const item = await office.resolveFn(id)
+  if (props.initial?.office_id === id) officeName.value = item?.label ?? id
+}, { immediate: true })
 
 // purchase_cost may be absent (field-permission masked) or explicitly null —
 // both render as "—" here (no lock affordance in the read-only form field).
@@ -292,16 +295,14 @@ function cancel() {
 }
 
 onMounted(async () => {
-  const [cats, offs, br, md, un, vd] = await Promise.all([
+  const [cats, br, md, un, vd] = await Promise.all([
     categoriesApi.tree().catch(() => []),
-    officesApi.list({ limit: 100 }).catch(() => ({ data: [] })),
     referenceApi.list('brands', { limit: 100 }).catch(() => ({ data: [] })),
     referenceApi.list('models', { limit: 100 }).catch(() => ({ data: [] })),
     referenceApi.list('units', { limit: 100 }).catch(() => ({ data: [] })),
     referenceApi.list('vendors', { limit: 100 }).catch(() => ({ data: [] }))
   ])
   categories.value = cats
-  offices.value = offs.data as { id: string, name: string }[]
   brands.value = br.data as { id: string, name: string }[]
   models.value = md.data as { id: string, name: string, brand_id?: string }[]
   units.value = un.data as { id: string, name: string }[]
@@ -470,14 +471,14 @@ onMounted(async () => {
               :required="mode === 'new'"
               :error="errors.kantor"
             >
-              <USelect
+              <AsyncSearchPicker
                 v-if="mode === 'new'"
-                :model-value="form.officeId"
-                :items="officeOptions"
-                :placeholder="t('assets.form.placeholders.select')"
-                class="w-full"
-                data-testid="asset-form-kantor-select"
-                @update:model-value="setField('officeId', String($event))"
+                :model-value="form.officeId || null"
+                :search-fn="office.searchFn"
+                :resolve-fn="office.resolveFn"
+                :placeholder="t('common.searchOffice')"
+                testid="office"
+                @update:model-value="setField('officeId', $event ?? '')"
               />
               <UInput
                 v-else

@@ -45,15 +45,10 @@ describe('useUsers', () => {
     expect(request).toHaveBeenCalledWith('/users/u1', { method: 'DELETE' })
   })
 
-  it('lookups maps roles/offices/employees (employees carry office_id)', async () => {
-    request
-      .mockResolvedValueOnce({ data: [{ id: 'r1', name: 'Manager' }] }) // /authz/roles
-      .mockResolvedValueOnce({ data: [{ id: 'o1', name: 'Pusat' }] }) // /offices
-      .mockResolvedValueOnce({ data: [{ id: 'e1', name: 'Budi', office_id: 'o1' }] }) // /employees
+  it('lookups maps roles only — office/employee names now resolve via the async picker adapters, not an eager list', async () => {
+    request.mockResolvedValueOnce({ data: [{ id: 'r1', name: 'Manager' }] }) // /authz/roles
     const lk = await useUsers().lookups()
-    expect(request.mock.calls.map(c => (c[0] as string).split('?')[0])).toEqual(['/authz/roles', '/offices', '/employees'])
+    expect(request.mock.calls.map(c => (c[0] as string).split('?')[0])).toEqual(['/authz/roles'])
     expect(lk.roles).toEqual([{ id: 'r1', name: 'Manager' }])
-    expect(lk.offices).toEqual([{ id: 'o1', name: 'Pusat' }])
-    expect(lk.employees).toEqual([{ id: 'e1', name: 'Budi', office_id: 'o1' }])
   })
 })

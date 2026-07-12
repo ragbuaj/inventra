@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Floor, Office, Room } from '~/types'
+import type { Floor, Room } from '~/types'
 import type { OpnameItem } from '~/composables/api/useStockOpname'
 
 // Nuxt UI's <SelectItem> forbids an empty-string value (reserved to mean
@@ -10,7 +10,6 @@ const NONE = '__none__'
 const props = defineProps<{
   open: boolean
   item: OpnameItem | null
-  offices: Office[]
   submitting: boolean
 }>()
 
@@ -20,6 +19,7 @@ const emit = defineEmits<{
 }>()
 
 const floorsApi = useFloors()
+const office = useOfficePicker()
 const { t } = useI18n()
 
 const officeId = ref('')
@@ -28,8 +28,6 @@ const reason = ref('')
 
 const destFloors = ref<Floor[]>([])
 const destRoomsByFloor = ref<Record<string, Room[]>>({})
-
-const officeItems = computed(() => props.offices.map(o => ({ value: o.id, label: o.name })))
 
 function flattenRoomOptions(floors: Floor[], roomsByFloor: Record<string, Room[]>): Array<{ value: string, label: string }> {
   const opts: Array<{ value: string, label: string }> = []
@@ -99,12 +97,13 @@ function confirm() {
           :label="t('stockOpname.followup.office')"
           required
         >
-          <USelect
-            v-model="officeId"
-            data-testid="opname-followup-office"
-            value-key="value"
-            :items="officeItems"
-            class="w-full"
+          <AsyncSearchPicker
+            :model-value="officeId || null"
+            :search-fn="office.searchFn"
+            :resolve-fn="office.resolveFn"
+            :placeholder="t('common.searchOffice')"
+            testid="office"
+            @update:model-value="officeId = $event ?? ''"
           />
         </UFormField>
         <UFormField :label="t('stockOpname.followup.room')">

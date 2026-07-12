@@ -1549,7 +1549,9 @@
     "yes": "Yes",
     "no": "No",
     "pickerEmpty": "No data",
-    "periodCustom": "Custom range…"
+    "periodCustom": "Custom range…",
+    "searchOffice": "Search office…",
+    "searchEmployee": "Search employee…"
   },
   "status": {
     "asset": {

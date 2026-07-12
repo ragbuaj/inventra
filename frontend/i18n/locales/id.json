@@ -1549,7 +1549,9 @@
     "yes": "Ya",
     "no": "Tidak",
     "pickerEmpty": "Tidak ada data",
-    "periodCustom": "Rentang kustom…"
+    "periodCustom": "Rentang kustom…",
+    "searchOffice": "Cari kantor…",
+    "searchEmployee": "Cari pegawai…"
   },
   "status": {
     "asset": {

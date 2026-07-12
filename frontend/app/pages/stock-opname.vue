@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { BadgeColor, Office } from '~/types'
+import type { BadgeColor } from '~/types'
 import type { OpnameItem, OpnameSession, OpnameSessionDetail } from '~/composables/api/useStockOpname'
 import { ITEM_RESULT_TONE, SESSION_STATUS_TONE, type ItemResult, type SessionStatus } from '~/constants/stockOpnameMeta'
 
@@ -35,7 +35,6 @@ const can = useCan()
 const toast = useToast()
 
 const opnameApi = useStockOpname()
-const officesApi = useOffices()
 
 const canManage = computed(() => can('stockopname.manage'))
 
@@ -46,20 +45,6 @@ type ViewMode = 'list' | 'detail'
 const view = ref<ViewMode>('list')
 const isList = computed(() => view.value === 'list')
 const isDetail = computed(() => view.value === 'detail')
-
-// ---------------------------------------------------------------------------
-// Lookups
-// ---------------------------------------------------------------------------
-const offices = ref<Office[]>([])
-
-async function loadOffices() {
-  try {
-    const page = await officesApi.list({ limit: 100 })
-    offices.value = page.data
-  } catch {
-    // Best-effort — the create modal's office select just stays empty.
-  }
-}
 
 // ---------------------------------------------------------------------------
 // List
@@ -438,7 +423,6 @@ async function downloadReport(format: 'pdf' | 'xlsx') {
 }
 
 onMounted(() => {
-  loadOffices()
   loadList()
 })
 </script>
@@ -999,7 +983,6 @@ onMounted(() => {
     <!-- Create session modal -->
     <StockopnameCreateSessionModal
       v-model:open="createOpen"
-      :offices="offices"
       :submitting="createSubmitting"
       @confirm="onCreateConfirm"
     />
@@ -1008,7 +991,6 @@ onMounted(() => {
     <StockopnameFollowupModal
       v-model:open="followupOpen"
       :item="followupItem"
-      :offices="offices"
       :submitting="followupSubmitting"
       @confirm="onFollowupConfirm"
     />

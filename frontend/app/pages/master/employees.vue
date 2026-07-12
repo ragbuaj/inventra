@@ -11,7 +11,6 @@ const localePath = useLocalePath()
 const { open: confirm } = useConfirm()
 const api = useEmployees()
 const refApi = useReference()
-const { request } = useApiClient()
 
 const ALL = '__all__'
 
@@ -19,7 +18,7 @@ const allRows = ref<Employee[]>([])
 const limit = ref(20)
 const offset = ref(0)
 const search = ref('')
-const filterOffice = ref(ALL)
+const filterOffice = ref<string | null>(null)
 const filterDept = ref(ALL)
 const filterPosition = ref(ALL)
 const filterStatus = ref(ALL)
@@ -37,15 +36,19 @@ function pulseFilterLoading() {
   }, 300)
 }
 
-// FK option lists + id→name maps (offices via inline scoped /offices; dept/position via wired useReference).
-const officeOptions = ref<{ value: string, label: string }[]>([])
+// Office: async search picker (no more eager `{ limit: 100 }` list) — the
+// table's office_id→name cell resolves lazily via the same adapter's
+// resolveFn, memoized per id (useResolveCache).
+const office = useOfficePicker()
+const officeCache = useResolveCache(office.resolveFn)
+
+// FK option lists + id→name maps (dept/position via wired useReference — stay reference-backed, Task 5).
 const deptOptions = ref<{ value: string, label: string }[]>([])
 const positionOptions = ref<{ value: string, label: string }[]>([])
-const officeMap = computed(() => new Map(officeOptions.value.map(o => [o.value, o.label])))
 const deptMap = computed(() => new Map(deptOptions.value.map(o => [o.value, o.label])))
 const positionMap = computed(() => new Map(positionOptions.value.map(o => [o.value, o.label])))
 function officeName(id: string | null): string {
-  return id ? (officeMap.value.get(id) ?? id) : '—'
+  return officeCache.get(id)
 }
 function deptName(id: string | null): string {
   return id ? (deptMap.value.get(id) ?? id) : '—'
@@ -77,14 +80,14 @@ function initials(name: string): string {
 }
 
 const anyFilterActive = computed(() =>
-  !!(search.value.trim() || filterOffice.value !== ALL || filterDept.value !== ALL || filterPosition.value !== ALL || filterStatus.value !== ALL)
+  !!(search.value.trim() || filterOffice.value || filterDept.value !== ALL || filterPosition.value !== ALL || filterStatus.value !== ALL)
 )
 
 const filteredRows = computed(() => {
   const q = search.value.trim().toLowerCase()
   return allRows.value.filter((r) => {
     if (q && !r.name.toLowerCase().includes(q) && !r.code.toLowerCase().includes(q) && !(r.email ?? '').toLowerCase().includes(q)) return false
-    if (filterOffice.value !== ALL && r.office_id !== filterOffice.value) return false
+    if (filterOffice.value && r.office_id !== filterOffice.value) return false
     if (filterDept.value !== ALL && r.department_id !== filterDept.value) return false
     if (filterPosition.value !== ALL && r.position_id !== filterPosition.value) return false
     if (filterStatus.value !== ALL && r.status !== filterStatus.value) return false
@@ -110,19 +113,17 @@ async function refresh() {
 }
 
 async function loadFkData() {
-  const [offices, depts, positions] = await Promise.all([
-    request<{ data: { id: string, name: string }[] }>('/offices?limit=100'),
+  const [depts, positions] = await Promise.all([
     refApi.list('departments', { limit: 100 }),
     refApi.list('positions', { limit: 100 })
   ])
-  officeOptions.value = offices.data.map(o => ({ value: o.id, label: o.name }))
   deptOptions.value = depts.data.map(d => ({ value: d.id, label: d.name }))
   positionOptions.value = positions.data.map(p => ({ value: p.id, label: p.name }))
 }
 
 function openCreate() {
   editingId.value = undefined
-  Object.assign(form, { code: '', name: '', email: '', phone: '', department_id: '', position_id: '', office_id: officeOptions.value[0]?.value ?? '', status: 'active' })
+  Object.assign(form, { code: '', name: '', email: '', phone: '', department_id: '', position_id: '', office_id: '', status: 'active' })
   formOpen.value = true
 }
 
@@ -180,7 +181,7 @@ function rowActions(row: Record<string, unknown>): RowAction[] {
 
 function resetFilters() {
   search.value = ''
-  filterOffice.value = ALL
+  filterOffice.value = null
   filterDept.value = ALL
   filterPosition.value = ALL
   filterStatus.value = ALL
@@ -238,10 +239,14 @@ onMounted(() => {
         class="flex-1 min-w-[200px]"
       />
 
-      <USelect
-        v-model="filterOffice"
-        :items="[{ value: ALL, label: t('masterdata.employees.filter.allKantor') }, ...officeOptions]"
-        class="min-w-[150px]"
+      <AsyncSearchPicker
+        :model-value="filterOffice"
+        :search-fn="office.searchFn"
+        :resolve-fn="office.resolveFn"
+        :placeholder="t('common.searchOffice')"
+        testid="office-filter"
+        class="min-w-[200px]"
+        @update:model-value="filterOffice = $event"
       />
 
       <USelect
@@ -423,12 +428,13 @@ onMounted(() => {
 
         <!-- Row 4: Kantor + scope note -->
         <UFormField :label="t('masterdata.employees.fields.office')">
-          <USelect
-            v-model="form.office_id"
-            :items="officeOptions"
-            :placeholder="t('masterdata.employees.placeholders.pilih')"
-            class="w-full"
-            data-testid="employee-office-select"
+          <AsyncSearchPicker
+            :model-value="form.office_id || null"
+            :search-fn="office.searchFn"
+            :resolve-fn="office.resolveFn"
+            :placeholder="t('common.searchOffice')"
+            testid="office"
+            @update:model-value="form.office_id = $event ?? ''"
           />
           <template #hint>
             <span class="flex items-center gap-1 text-xs text-dimmed mt-1">

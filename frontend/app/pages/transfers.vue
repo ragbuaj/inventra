@@ -66,6 +66,17 @@ const officesApi = useOffices()
 const floorsApi = useFloors()
 const refApi = useReference()
 
+// Destination-office field: async search picker, not the eager `offices`
+// array below (which stays — it's also used for the office-hierarchy tier
+// lookups and name resolution across the whole page, not just this field).
+// Its searchFn wraps the shared adapter to keep excluding the source office,
+// matching the previous `toOfficeOptions` filter.
+const officePicker = useOfficePicker()
+async function toOfficeSearchFn(term: string) {
+  const results = await officePicker.searchFn(term)
+  return results.filter(r => r.id !== fromOfficeId.value)
+}
+
 type TabKey = 'ajukan' | 'inbox' | 'history'
 const tab = ref<TabKey>('ajukan')
 
@@ -150,7 +161,6 @@ const destRoomsByFloor = ref<Record<string, Room[]>>({})
 
 const fromOfficeId = computed(() => selectedAsset.value?.office_id ?? null)
 const fromOfficeLabel = computed(() => fromOfficeId.value ? (officeNameMap.value.get(fromOfficeId.value) ?? fromOfficeId.value) : '—')
-const toOfficeOptions = computed(() => offices.value.filter(o => o.id !== fromOfficeId.value).map(o => ({ value: o.id, label: o.name })))
 const destRoomOptions = computed(() => [{ value: NONE, label: t('transfer.form.roomNone') }, ...flattenRoomOptions(destFloors.value, destRoomsByFloor.value)])
 const conditionItems = computed(() => CONDITION_KEYS.map(k => ({ value: k, label: t(`transfer.condition.${k}`) })))
 
@@ -599,13 +609,13 @@ onBeforeUnmount(() => {
             :label="t('transfer.form.toOffice')"
             required
           >
-            <USelect
-              v-model="toOfficeId"
-              data-testid="transfer-to-office"
-              value-key="value"
-              :items="toOfficeOptions"
+            <AsyncSearchPicker
+              :model-value="toOfficeId || null"
+              :search-fn="toOfficeSearchFn"
+              :resolve-fn="officePicker.resolveFn"
               :placeholder="t('transfer.form.toOfficePlaceholder')"
-              class="w-full"
+              testid="to-office"
+              @update:model-value="toOfficeId = $event ?? ''"
             />
           </UFormField>
         </div>
