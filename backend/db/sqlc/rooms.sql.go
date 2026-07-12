@@ -134,6 +134,56 @@ func (q *Queries) ListRoomsByFloor(ctx context.Context, arg ListRoomsByFloorPara
 	return items, nil
 }
 
+const listRoomsLookup = `-- name: ListRoomsLookup :many
+SELECT r.id, r.name, r.code, f.office_id
+FROM masterdata.rooms r
+JOIN masterdata.floors f ON f.id = r.floor_id AND f.deleted_at IS NULL
+WHERE r.deleted_at IS NULL
+  AND ($1::bool OR f.office_id = ANY($2::uuid[]))
+ORDER BY r.name
+`
+
+type ListRoomsLookupParams struct {
+	AllScope  bool        `json:"all_scope"`
+	OfficeIds []uuid.UUID `json:"office_ids"`
+}
+
+type ListRoomsLookupRow struct {
+	ID       uuid.UUID `json:"id"`
+	Name     string    `json:"name"`
+	Code     *string   `json:"code"`
+	OfficeID uuid.UUID `json:"office_id"`
+}
+
+// Flat room lookup (id, name, code, office_id) for the asset importer, scoped
+// to the caller's offices via the room's floor -> office chain. all_scope
+// bypasses the office filter; otherwise only rooms whose office is in office_ids
+// are returned.
+func (q *Queries) ListRoomsLookup(ctx context.Context, arg ListRoomsLookupParams) ([]ListRoomsLookupRow, error) {
+	rows, err := q.db.Query(ctx, listRoomsLookup, arg.AllScope, arg.OfficeIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListRoomsLookupRow{}
+	for rows.Next() {
+		var i ListRoomsLookupRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Code,
+			&i.OfficeID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const softDeleteRoom = `-- name: SoftDeleteRoom :execrows
 UPDATE masterdata.rooms SET deleted_at = now()
 WHERE rooms.id = $1 AND rooms.deleted_at IS NULL

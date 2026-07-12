@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ragbuaj/inventra/internal/approval"
+	"github.com/ragbuaj/inventra/internal/importer"
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
 
 	"github.com/google/uuid"
@@ -172,6 +173,91 @@ func (e exclusionExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.
 	return mapDBError(err)
 }
 
+// --- assetImportExec -----------------------------------------------------
+
+// AssetImportPayload is the JSON stored in approval_requests.payload for the
+// asset_import request type. The worker builds it from the validated import job
+// (see importer/worker.go buildAssetPayload); this executor consumes it when
+// the batch's maker-checker approval is granted.
+type AssetImportPayload struct {
+	JobID      string `json:"job_id"`
+	Filename   string `json:"filename"`
+	TotalRows  int    `json:"total_rows"`
+	TotalValue string `json:"total_value"`
+	OfficeID   string `json:"office_id"`
+}
+
+type assetImportExec struct{ s *Service }
+
+// Execute creates every valid row of an approved import batch inside the
+// approval-commit transaction. It is idempotent against stale/duplicate
+// approvals: the import job must still be in awaiting_approval, so a job already
+// executed (completed) by a prior approval is a no-op rather than a
+// double-create. This pairs with the worker's crash-window guard that ensures a
+// single approval request per batch.
+func (e assetImportExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.ApprovalRequest) error {
+	var p AssetImportPayload
+	if err := json.Unmarshal(req.Payload, &p); err != nil {
+		return err
+	}
+
+	officeID, err := uuid.Parse(p.OfficeID)
+	if err != nil {
+		return ErrInvalidRef
+	}
+	// Defense-in-depth: the payload office must match the office on the
+	// approval request row (mirrors createExec).
+	if req.OfficeID == nil || officeID != *req.OfficeID {
+		return ErrInvalidRef
+	}
+
+	jobID, err := uuid.Parse(p.JobID)
+	if err != nil {
+		return ErrInvalidRef
+	}
+	job, err := qtx.GetImportJob(ctx, jobID)
+	if err != nil {
+		return mapDBError(err)
+	}
+
+	// Critical guard: only an import job still awaiting approval may be
+	// executed. A stale duplicate approval landing on an already-completed job
+	// must not re-create its assets — treat it as a no-op.
+	if job.Status != sqlc.SharedImportStatusAwaitingApproval {
+		return nil
+	}
+
+	rows, err := qtx.ListValidImportRows(ctx, jobID)
+	if err != nil {
+		return err
+	}
+	domainRows := make([]importer.Row, 0, len(rows))
+	for _, r := range rows {
+		var data map[string]string
+		if len(r.Data) > 0 {
+			if uErr := json.Unmarshal(r.Data, &data); uErr != nil {
+				return uErr
+			}
+		}
+		domainRows = append(domainRows, importer.Row{ID: r.ID, RowNo: int(r.RowNo), Data: data})
+	}
+
+	maker := job.CreatedByID
+	created, err := (assetImporter{e.s}).createRows(ctx, qtx, &maker, domainRows)
+	if err != nil {
+		return err
+	}
+
+	_, err = qtx.SetJobResult(ctx, sqlc.SetJobResultParams{
+		ID:          jobID,
+		Status:      sqlc.SharedImportStatusCompleted,
+		SuccessRows: int32(created),
+		FailedRows:  int32(len(domainRows) - created),
+		ErrorKey:    nil,
+	})
+	return mapDBError(err)
+}
+
 // --- Service accessor methods --------------------------------------------
 
 // CreateExecutor returns an Executor that creates a new asset inside the
@@ -181,3 +267,8 @@ func (s *Service) CreateExecutor() approval.Executor { return createExec{s} }
 // ExclusionExecutor returns an Executor that excludes an asset from valuation
 // inside the approval commit transaction.
 func (s *Service) ExclusionExecutor() approval.Executor { return exclusionExec{s} }
+
+// ImportExecutor returns an Executor that creates a validated import batch's
+// assets inside the approval commit transaction. Wiring
+// (RegisterExecutor(SharedRequestTypeAssetImport, ...)) is done by the router.
+func (s *Service) ImportExecutor() approval.Executor { return assetImportExec{s} }

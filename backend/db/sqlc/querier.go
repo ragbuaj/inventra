@@ -189,6 +189,10 @@ type Querier interface {
 	LinkGoogleID(ctx context.Context, arg LinkGoogleIDParams) error
 	ListAssetDocuments(ctx context.Context, assetID uuid.UUID) ([]AssetAssetDocument, error)
 	ListAssetEntries(ctx context.Context, assetID uuid.UUID) ([]DepreciationDepreciationEntry, error)
+	// All existing (non-deleted) asset tags, used by the asset importer to detect
+	// collisions with user-supplied asset_tag values during validation. Asset tags
+	// are globally unique, so this set is deliberately unscoped.
+	ListAssetTags(ctx context.Context) ([]string, error)
 	// Asset core queries (asset.assets + asset.asset_tag_counters).
 	// Respects soft delete and caller data scope (all_scope / office_ids).
 	ListAssets(ctx context.Context, arg ListAssetsParams) ([]AssetAsset, error)
@@ -248,6 +252,11 @@ type Querier interface {
 	ListRoles(ctx context.Context) ([]IdentityRole, error)
 	// Rooms (within a floor). Scope is derived from the room's floor -> office.
 	ListRoomsByFloor(ctx context.Context, arg ListRoomsByFloorParams) ([]MasterdataRoom, error)
+	// Flat room lookup (id, name, code, office_id) for the asset importer, scoped
+	// to the caller's offices via the room's floor -> office chain. all_scope
+	// bypasses the office filter; otherwise only rooms whose office is in office_ids
+	// are returned.
+	ListRoomsLookup(ctx context.Context, arg ListRoomsLookupParams) ([]ListRoomsLookupRow, error)
 	ListThresholds(ctx context.Context) ([]ApprovalApprovalThreshold, error)
 	// Per-asset history, scoped by from- or to-office. Same enrichment as
 	// GetTransferEnriched/ListTransfersEnriched.
@@ -256,6 +265,12 @@ type Querier interface {
 	// User management queries (Superadmin). All respect soft delete.
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]IdentityUser, error)
 	ListValidImportRows(ctx context.Context, jobID uuid.UUID) ([]ImportImportRow, error)
+	// Vendor master data (masterdata.vendors). Vendors are managed via the generic
+	// reference engine; this file holds only bespoke queries needed by other
+	// modules.
+	// Flat vendor lookup (id, name) for the asset importer. Vendors are not
+	// office-scoped, so the full non-deleted set is returned.
+	ListVendorsLookup(ctx context.Context) ([]ListVendorsLookupRow, error)
 	MarkRowFailed(ctx context.Context, arg MarkRowFailedParams) error
 	MarkRowResult(ctx context.Context, arg MarkRowResultParams) error
 	// Approval / maker-checker queries (approval schema).

@@ -123,6 +123,12 @@ UPDATE asset.asset_documents SET deleted_at = now() WHERE id = $1 AND deleted_at
 -- name: GetAssetByTag :one
 SELECT * FROM asset.assets WHERE asset_tag = $1 AND deleted_at IS NULL;
 
+-- name: ListAssetTags :many
+-- All existing (non-deleted) asset tags, used by the asset importer to detect
+-- collisions with user-supplied asset_tag values during validation. Asset tags
+-- are globally unique, so this set is deliberately unscoped.
+SELECT asset_tag FROM asset.assets WHERE deleted_at IS NULL;
+
 -- name: GetAssetLabelByID :one
 SELECT a.asset_tag, a.name, o.code AS office_code, c.name AS category_name, a.purchase_date
 FROM asset.assets a
