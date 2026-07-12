@@ -11,6 +11,8 @@ const ALL = '__all__'
 const { t, te } = useI18n()
 const { list } = useAudit()
 const actor = useUserPicker()
+const can = useCan()
+const canFilterByActor = computed(() => can('user.manage'))
 
 const rows = ref<AuditRow[]>([])
 const total = ref(0)
@@ -154,6 +156,7 @@ onMounted(() => load())
         />
       </div>
       <AsyncSearchPicker
+        v-if="canFilterByActor"
         :model-value="fActorId"
         :search-fn="actor.searchFn"
         :resolve-fn="actor.resolveFn"

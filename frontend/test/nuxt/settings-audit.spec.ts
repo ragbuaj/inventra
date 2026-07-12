@@ -646,6 +646,26 @@ describe('Audit Trail page — actor filter', () => {
     expect(wrapper.find('[data-testid="audit-actor-picker-input"]').exists()).toBe(true)
   })
 
+  it('shows the actor picker when the caller has user.manage', async () => {
+    useAuthStore().setSession(
+      'tok',
+      { id: '1', name: 'Kepala Kanwil', email: 'kk@test.com', role_id: 'r2', role_name: 'Kepala Kanwil', office_id: null },
+      ['audit.view', 'user.manage']
+    )
+    const wrapper = await mountAndWait()
+    expect(wrapper.find('[data-testid="audit-actor-picker-input"]').exists()).toBe(true)
+  })
+
+  it('hides the actor picker when the caller lacks user.manage (audit.view only)', async () => {
+    useAuthStore().setSession(
+      'tok',
+      { id: '1', name: 'Kepala Unit', email: 'ku@test.com', role_id: 'r3', role_name: 'Kepala Unit', office_id: null },
+      ['audit.view']
+    )
+    const wrapper = await mountAndWait()
+    expect(wrapper.find('[data-testid="audit-actor-picker-input"]').exists()).toBe(false)
+  })
+
   it('selecting an actor sends actor_id and resets to page 1', async () => {
     const capturedQueries: Array<Record<string, string>> = []
     setHandler((path) => {

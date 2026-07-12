@@ -48,7 +48,7 @@ export interface AuditDTO {
   action: AuditAction
   ip: string
   changes: Record<string, AuditChange> | null
-  actor: { id: string, name: string, email: string, role: string } | null
+  actor: { id: string, name: string, email: string, role: string | null } | null
   office_id: string | null
   office_name: string | null
   created_at: string
