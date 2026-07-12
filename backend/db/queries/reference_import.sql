@@ -36,3 +36,49 @@ SELECT * FROM masterdata.cities WHERE code = $1 AND deleted_at IS NULL LIMIT 1;
 -- provinces) — cities.code IS uniquely constrained (uq_cities_code), so a
 -- match here is authoritative, not just an in-file check.
 SELECT code FROM masterdata.cities WHERE code IS NOT NULL AND deleted_at IS NULL;
+
+-- name: ListDepartmentsLookup :many
+-- id/name/code lookup for the employee importer's optional "departemen" column
+-- (matched by name OR code, case-insensitive).
+SELECT id, name, code FROM masterdata.departments WHERE deleted_at IS NULL;
+
+-- name: ListPositionsLookup :many
+-- id/name lookup for the employee importer's optional "jabatan" column
+-- (matched by name, case-insensitive). positions has no code column.
+SELECT id, name FROM masterdata.positions WHERE deleted_at IS NULL;
+
+-- name: ListBrandsLookup :many
+-- id/name lookup: brand-name dedup (brands importer) AND "merek" resolution
+-- (models importer). brands.name IS uniquely constrained (uq_brands_name).
+SELECT id, name FROM masterdata.brands WHERE deleted_at IS NULL;
+
+-- name: GetBrandByName :one
+-- Side-effect-free existence check for the brands importer's Execute
+-- anti-poisoning pre-check (uq_brands_name; matched case-insensitively).
+SELECT * FROM masterdata.brands WHERE lower(name) = lower($1) AND deleted_at IS NULL LIMIT 1;
+
+-- name: CreateBrand :one
+INSERT INTO masterdata.brands (name) VALUES ($1) RETURNING *;
+
+-- name: ListUnitNames :many
+-- Existing (non-deleted) unit names for the units importer's dupNama check
+-- (uq_units_name).
+SELECT name FROM masterdata.units WHERE deleted_at IS NULL;
+
+-- name: GetUnitByName :one
+SELECT * FROM masterdata.units WHERE lower(name) = lower($1) AND deleted_at IS NULL LIMIT 1;
+
+-- name: CreateUnit :one
+INSERT INTO masterdata.units (name, symbol) VALUES ($1, $2) RETURNING *;
+
+-- name: ListModelsLookup :many
+-- (brand_id, name) pairs for the models importer's composite dupNama check
+-- (uq_models_brand_name).
+SELECT brand_id, name FROM masterdata.models WHERE deleted_at IS NULL;
+
+-- name: GetModelByBrandAndName :one
+SELECT * FROM masterdata.models
+WHERE brand_id = $1 AND lower(name) = lower($2) AND deleted_at IS NULL LIMIT 1;
+
+-- name: CreateModel :one
+INSERT INTO masterdata.models (brand_id, name) VALUES ($1, $2) RETURNING *;

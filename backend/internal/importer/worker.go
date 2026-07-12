@@ -15,11 +15,13 @@
 package importer
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math/big"
 	"time"
 
@@ -319,7 +321,50 @@ func (w *Worker) validatePhase(ctx context.Context) (didWork bool, err error) {
 	if err := tx.Commit(ctx); err != nil {
 		return true, err
 	}
+	if failed > 0 {
+		if rErr := w.storeErrorReport(ctx, job.ID); rErr != nil {
+			log.Printf("import: store validate error-report job=%s: %v", job.ID, rErr)
+		}
+	}
 	return true, nil
+}
+
+// storeErrorReport builds a failed-rows error report from the job's committed
+// error rows, uploads it to object storage, and records error_report_key.
+// Best-effort: any failure is returned to the caller to log, never to abort a
+// job — the on-demand endpoint remains a fallback. Called AFTER the phase tx
+// commits, so it reads committed rows and does its own short writes.
+func (w *Worker) storeErrorReport(ctx context.Context, jobID uuid.UUID) error {
+	job, err := w.svc.q.GetImportJob(ctx, jobID)
+	if err != nil {
+		return err
+	}
+	if job.FailedRows <= 0 {
+		return nil
+	}
+	target, err := w.svc.target(job.Target)
+	if err != nil {
+		return err
+	}
+	limit := int32(w.svc.maxRows)
+	if limit <= 0 {
+		limit = 1 << 20
+	}
+	rows, err := w.svc.q.ListImportRows(ctx, sqlc.ListImportRowsParams{
+		JobID: job.ID, OnlyErrors: true, Off: 0, Lim: limit,
+	})
+	if err != nil {
+		return err
+	}
+	body, contentType, ext, err := BuildErrorReport(job.Format, target.Columns(), rows)
+	if err != nil {
+		return err
+	}
+	key := "imports/" + job.ID.String() + "/errors." + ext
+	if err := w.svc.store.Put(ctx, key, bytes.NewReader(body), int64(len(body)), contentType); err != nil {
+		return err
+	}
+	return w.svc.q.SetJobErrorReportKey(ctx, sqlc.SetJobErrorReportKeyParams{ID: job.ID, ErrorReportKey: &key})
 }
 
 // executePhase claims at most one confirmed job and either opens a
@@ -541,6 +586,11 @@ func (w *Worker) executePhase(ctx context.Context) (didWork bool, err error) {
 
 	if err := tx.Commit(ctx); err != nil {
 		return true, err
+	}
+	if job.FailedRows+int32(execFailed) > 0 {
+		if rErr := w.storeErrorReport(ctx, job.ID); rErr != nil {
+			log.Printf("import: store execute error-report job=%s: %v", job.ID, rErr)
+		}
 	}
 	return true, nil
 }

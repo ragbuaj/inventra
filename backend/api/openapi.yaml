@@ -163,7 +163,8 @@ tags:
   - name: Import
     description: |
       Bulk import of CSV/xlsx files into `asset`, `employee`, `office`, or the
-      `reference:provinces`/`reference:cities` master-data tables. A job moves
+      `reference:provinces`/`reference:cities`/`reference:brands`/`reference:models`/
+      `reference:units` master-data tables. A job moves
       `pending` → `processing` (async parse + per-row validation) → `validated` (ready for
       `POST .../confirm`) → `confirmed` → `executing` → `completed`, or `failed` at any
       validation/execution error; `cancel` is only allowed while `pending` or `validated`
@@ -4128,7 +4129,7 @@ paths:
       security:
         - bearerJWT: []
       parameters:
-        - { name: target, in: query, required: true, schema: { type: string, enum: [asset, employee, office, 'reference:provinces', 'reference:cities'] }, description: Import target. An unregistered value is a 422. }
+        - { name: target, in: query, required: true, schema: { type: string, enum: [asset, employee, office, 'reference:provinces', 'reference:cities', 'reference:brands', 'reference:models', 'reference:units'] }, description: Import target. An unregistered value is a 422. }
         - { name: format, in: query, schema: { type: string, enum: [csv, xlsx], default: xlsx } }
       responses:
         "200":
@@ -4173,7 +4174,7 @@ paths:
               required: [file, target]
               properties:
                 file: { type: string, format: binary, description: '.csv or .xlsx file to import.' }
-                target: { type: string, enum: [asset, employee, office, 'reference:provinces', 'reference:cities'] }
+                target: { type: string, enum: [asset, employee, office, 'reference:provinces', 'reference:cities', 'reference:brands', 'reference:models', 'reference:units'] }
       responses:
         "201":
           description: The created import job
@@ -4207,7 +4208,7 @@ paths:
       security:
         - bearerJWT: []
       parameters:
-        - { name: target, in: query, schema: { type: string, enum: [asset, employee, office, 'reference:provinces', 'reference:cities'] }, description: Filter to one target. }
+        - { name: target, in: query, schema: { type: string, enum: [asset, employee, office, 'reference:provinces', 'reference:cities', 'reference:brands', 'reference:models', 'reference:units'] }, description: Filter to one target. }
         - { name: limit, in: query, schema: { type: integer, default: 20, minimum: 1, maximum: 100 } }
         - { name: offset, in: query, schema: { type: integer, default: 0, minimum: 0 } }
       responses:
@@ -6469,7 +6470,7 @@ components:
         - confirmed_at
       properties:
         id: { type: string, format: uuid }
-        target: { type: string, enum: [asset, employee, office, 'reference:provinces', 'reference:cities'] }
+        target: { type: string, enum: [asset, employee, office, 'reference:provinces', 'reference:cities', 'reference:brands', 'reference:models', 'reference:units'] }
         format: { type: string, enum: [csv, xlsx] }
         filename: { type: string, description: Sanitized original filename. }
         status: { type: string, enum: [pending, processing, validated, awaiting_approval, confirmed, executing, completed, failed, cancelled] }

@@ -62,6 +62,7 @@ type Querier interface {
 	CreateAsset(ctx context.Context, arg CreateAssetParams) (AssetAsset, error)
 	CreateAssetDocument(ctx context.Context, arg CreateAssetDocumentParams) (AssetAssetDocument, error)
 	CreateAttachment(ctx context.Context, arg CreateAttachmentParams) (AssetAssetAttachment, error)
+	CreateBrand(ctx context.Context, name string) (MasterdataBrand, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (MasterdataCategory, error)
 	CreateCity(ctx context.Context, arg CreateCityParams) (MasterdataCity, error)
 	// gain_loss is computed here (null-propagating): null when either input is null.
@@ -71,6 +72,7 @@ type Querier interface {
 	CreateImportJob(ctx context.Context, arg CreateImportJobParams) (ImportImportJob, error)
 	CreateMaintRecord(ctx context.Context, arg CreateMaintRecordParams) (MaintenanceMaintenanceRecord, error)
 	CreateMaintSchedule(ctx context.Context, arg CreateMaintScheduleParams) (MaintenanceMaintenanceSchedule, error)
+	CreateModel(ctx context.Context, arg CreateModelParams) (MasterdataModel, error)
 	CreateOffice(ctx context.Context, arg CreateOfficeParams) (MasterdataOffice, error)
 	CreateOpnameSession(ctx context.Context, arg CreateOpnameSessionParams) (StockopnameStockOpnameSession, error)
 	// Dedicated queries for the reference-target bulk importer (provinces, cities).
@@ -85,6 +87,7 @@ type Querier interface {
 	CreateRoom(ctx context.Context, arg CreateRoomParams) (MasterdataRoom, error)
 	CreateThreshold(ctx context.Context, arg CreateThresholdParams) (ApprovalApprovalThreshold, error)
 	CreateTransfer(ctx context.Context, arg CreateTransferParams) (TransferAssetTransfer, error)
+	CreateUnit(ctx context.Context, arg CreateUnitParams) (MasterdataUnit, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (IdentityUser, error)
 	// Reporting & Dashboard module — read-only aggregates.
 	// Every query: deleted_at IS NULL + the standard scope clause
@@ -131,6 +134,9 @@ type Querier interface {
 	// validate state before the update.
 	GetAssignmentScoped(ctx context.Context, arg GetAssignmentScopedParams) (AssignmentAssignment, error)
 	GetAttachment(ctx context.Context, id uuid.UUID) (AssetAssetAttachment, error)
+	// Side-effect-free existence check for the brands importer's Execute
+	// anti-poisoning pre-check (uq_brands_name; matched case-insensitively).
+	GetBrandByName(ctx context.Context, lower string) (MasterdataBrand, error)
 	GetCategory(ctx context.Context, id uuid.UUID) (MasterdataCategory, error)
 	GetCategoryCode(ctx context.Context, id uuid.UUID) (*string, error)
 	// Fresh, side-effect-free existence check used by the reference importer's
@@ -154,6 +160,7 @@ type Querier interface {
 	GetMaintRecordEnriched(ctx context.Context, arg GetMaintRecordEnrichedParams) (GetMaintRecordEnrichedRow, error)
 	GetMaintRecordScoped(ctx context.Context, arg GetMaintRecordScopedParams) (MaintenanceMaintenanceRecord, error)
 	GetMaintScheduleScoped(ctx context.Context, arg GetMaintScheduleScopedParams) (MaintenanceMaintenanceSchedule, error)
+	GetModelByBrandAndName(ctx context.Context, arg GetModelByBrandAndNameParams) (MasterdataModel, error)
 	GetOffice(ctx context.Context, arg GetOfficeParams) (MasterdataOffice, error)
 	GetOfficeAncestors(ctx context.Context, id uuid.UUID) ([]GetOfficeAncestorsRow, error)
 	// Fresh, side-effect-free existence check used by the office importer's
@@ -189,6 +196,7 @@ type Querier interface {
 	// asset/office/room/actor display names for the detail view. LEFT JOINs keep
 	// the row visible (with nil names) even when a joined entity was soft-deleted.
 	GetTransferEnriched(ctx context.Context, arg GetTransferEnrichedParams) (GetTransferEnrichedRow, error)
+	GetUnitByName(ctx context.Context, lower string) (MasterdataUnit, error)
 	GetUserByEmail(ctx context.Context, email string) (IdentityUser, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (IdentityUser, error)
 	// Audit log: append-only writes + an office-scoped, filterable read model.
@@ -228,6 +236,9 @@ type Querier interface {
 	ListAssignmentsEnriched(ctx context.Context, arg ListAssignmentsEnrichedParams) ([]ListAssignmentsEnrichedRow, error)
 	ListAttachments(ctx context.Context, assetID uuid.UUID) ([]AssetAssetAttachment, error)
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]ListAuditLogsRow, error)
+	// id/name lookup: brand-name dedup (brands importer) AND "merek" resolution
+	// (models importer). brands.name IS uniquely constrained (uq_brands_name).
+	ListBrandsLookup(ctx context.Context) ([]ListBrandsLookupRow, error)
 	// Asset category master data (masterdata.categories). Respects soft delete.
 	ListCategories(ctx context.Context, arg ListCategoriesParams) ([]MasterdataCategory, error)
 	// The full non-deleted category set (no pagination) for client-side tree building.
@@ -238,6 +249,9 @@ type Querier interface {
 	// match here is authoritative, not just an in-file check.
 	ListCityCodes(ctx context.Context) ([]*string, error)
 	ListDataScopePolicies(ctx context.Context, roleID uuid.UUID) ([]IdentityDataScopePolicy, error)
+	// id/name/code lookup for the employee importer's optional "departemen" column
+	// (matched by name OR code, case-insensitive).
+	ListDepartmentsLookup(ctx context.Context) ([]ListDepartmentsLookupRow, error)
 	ListDepreciationPeriods(ctx context.Context) ([]DepreciationDepreciationPeriod, error)
 	ListDisposalsByAssetEnriched(ctx context.Context, arg ListDisposalsByAssetEnrichedParams) ([]ListDisposalsByAssetEnrichedRow, error)
 	ListDisposalsEnriched(ctx context.Context, arg ListDisposalsEnrichedParams) ([]ListDisposalsEnrichedRow, error)
@@ -266,6 +280,9 @@ type Querier interface {
 	ListMaintRecordsByAssetEnriched(ctx context.Context, arg ListMaintRecordsByAssetEnrichedParams) ([]ListMaintRecordsByAssetEnrichedRow, error)
 	ListMaintRecordsEnriched(ctx context.Context, arg ListMaintRecordsEnrichedParams) ([]ListMaintRecordsEnrichedRow, error)
 	ListMaintSchedulesEnriched(ctx context.Context, arg ListMaintSchedulesEnrichedParams) ([]ListMaintSchedulesEnrichedRow, error)
+	// (brand_id, name) pairs for the models importer's composite dupNama check
+	// (uq_models_brand_name).
+	ListModelsLookup(ctx context.Context) ([]ListModelsLookupRow, error)
 	// Flat id/name lookup for the office importer's "tipe" column. office_types
 	// has no code column (only name), so the importer matches by name only.
 	ListOfficeTypesLookup(ctx context.Context) ([]ListOfficeTypesLookupRow, error)
@@ -277,6 +294,9 @@ type Querier interface {
 	ListOfficesMap(ctx context.Context, arg ListOfficesMapParams) ([]ListOfficesMapRow, error)
 	ListOpnameItemsEnriched(ctx context.Context, arg ListOpnameItemsEnrichedParams) ([]ListOpnameItemsEnrichedRow, error)
 	ListOpnameSessions(ctx context.Context, arg ListOpnameSessionsParams) ([]ListOpnameSessionsRow, error)
+	// id/name lookup for the employee importer's optional "jabatan" column
+	// (matched by name, case-insensitive). positions has no code column.
+	ListPositionsLookup(ctx context.Context) ([]ListPositionsLookupRow, error)
 	// Flat id/name/code lookup for the cities importer's "provinsi" column
 	// (matched by name OR code, case-insensitive).
 	ListProvincesLookup(ctx context.Context) ([]ListProvincesLookupRow, error)
@@ -298,6 +318,9 @@ type Querier interface {
 	// GetTransferEnriched/ListTransfersEnriched.
 	ListTransfersByAssetEnriched(ctx context.Context, arg ListTransfersByAssetEnrichedParams) ([]ListTransfersByAssetEnrichedRow, error)
 	ListTransfersEnriched(ctx context.Context, arg ListTransfersEnrichedParams) ([]ListTransfersEnrichedRow, error)
+	// Existing (non-deleted) unit names for the units importer's dupNama check
+	// (uq_units_name).
+	ListUnitNames(ctx context.Context) ([]string, error)
 	// User management queries (Superadmin). All respect soft delete.
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]IdentityUser, error)
 	ListValidImportRows(ctx context.Context, jobID uuid.UUID) ([]ImportImportRow, error)
@@ -369,6 +392,7 @@ type Querier interface {
 	SetDisposalBastNo(ctx context.Context, arg SetDisposalBastNoParams) (DisposalDisposal, error)
 	SetItemFollowup(ctx context.Context, arg SetItemFollowupParams) (StockopnameStockOpnameItem, error)
 	SetItemFollowupRecord(ctx context.Context, arg SetItemFollowupRecordParams) (StockopnameStockOpnameItem, error)
+	SetJobErrorReportKey(ctx context.Context, arg SetJobErrorReportKeyParams) error
 	SetJobRequest(ctx context.Context, arg SetJobRequestParams) (ImportImportJob, error)
 	SetJobResult(ctx context.Context, arg SetJobResultParams) (ImportImportJob, error)
 	SetJobValidated(ctx context.Context, arg SetJobValidatedParams) (ImportImportJob, error)

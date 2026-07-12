@@ -22,6 +22,9 @@ const (
 	colPhone  = "telepon"
 	colOffice = "kantor"
 	colStatus = "status"
+
+	colDepartment = "departemen"
+	colPosition   = "jabatan"
 )
 
 // importLookupLimit bounds the office lookup page. Office volume is
@@ -43,6 +46,8 @@ var validStatuses = map[string]sqlc.SharedUserStatus{
 type employeeLookups struct {
 	offices       map[string]uuid.UUID
 	existingCodes map[string]bool
+	departments   map[string]uuid.UUID
+	positions     map[string]uuid.UUID
 }
 
 // employeeImporter is the employee import target: it validates a batch of
@@ -70,6 +75,8 @@ func (employeeImporter) Columns() []importer.ColumnSpec {
 		{Name: colPhone, Required: false, Kind: "text"},
 		{Name: colOffice, Required: true, Kind: "lookup"},
 		{Name: colStatus, Required: true, Kind: "text"},
+		{Name: colDepartment, Required: false, Kind: "lookup"},
+		{Name: colPosition, Required: false, Kind: "lookup"},
 	}
 }
 
@@ -92,6 +99,8 @@ func (e employeeImporter) buildEmployeeLookups(ctx context.Context, scope import
 	lk := employeeLookups{
 		offices:       map[string]uuid.UUID{},
 		existingCodes: map[string]bool{},
+		departments:   map[string]uuid.UUID{},
+		positions:     map[string]uuid.UUID{},
 	}
 
 	offs, err := e.s.q.ListOffices(ctx, sqlc.ListOfficesParams{
@@ -117,6 +126,24 @@ func (e employeeImporter) buildEmployeeLookups(ctx context.Context, scope import
 		if k := normCode(c); k != "" {
 			lk.existingCodes[k] = true
 		}
+	}
+
+	depts, err := e.s.q.ListDepartmentsLookup(ctx)
+	if err != nil {
+		return lk, err
+	}
+	for _, d := range depts {
+		addKey(lk.departments, d.Name, d.ID)
+		if d.Code != nil {
+			addKey(lk.departments, *d.Code, d.ID)
+		}
+	}
+	positions, err := e.s.q.ListPositionsLookup(ctx)
+	if err != nil {
+		return lk, err
+	}
+	for _, p := range positions {
+		addKey(lk.positions, p.Name, p.ID)
 	}
 
 	return lk, nil
@@ -186,12 +213,14 @@ func validateEmployeeRows(rows []importer.RawRow, lk employeeLookups, scope impo
 
 	for i, raw := range rows {
 		data := map[string]string{
-			colCode:   trim(raw.Cells[colCode]),
-			colName:   trim(raw.Cells[colName]),
-			colEmail:  trim(raw.Cells[colEmail]),
-			colPhone:  trim(raw.Cells[colPhone]),
-			colOffice: trim(raw.Cells[colOffice]),
-			colStatus: trim(raw.Cells[colStatus]),
+			colCode:       trim(raw.Cells[colCode]),
+			colName:       trim(raw.Cells[colName]),
+			colEmail:      trim(raw.Cells[colEmail]),
+			colPhone:      trim(raw.Cells[colPhone]),
+			colOffice:     trim(raw.Cells[colOffice]),
+			colStatus:     trim(raw.Cells[colStatus]),
+			colDepartment: trim(raw.Cells[colDepartment]),
+			colPosition:   trim(raw.Cells[colPosition]),
 		}
 		var errs []importer.CellError
 		add := func(col, key string) { errs = append(errs, importer.CellError{Column: col, ErrorKey: key}) }
@@ -234,6 +263,29 @@ func validateEmployeeRows(rows []importer.RawRow, lk employeeLookups, scope impo
 			}
 		}
 
+		// departemen (optional): resolve by name OR code.
+		var departmentID uuid.UUID
+		hasDept := false
+		if v := data[colDepartment]; v != "" {
+			if id, ok := lk.departments[normKey(v)]; ok {
+				departmentID = id
+				hasDept = true
+			} else {
+				add(colDepartment, "departemen")
+			}
+		}
+		// jabatan (optional): resolve by name.
+		var positionID uuid.UUID
+		hasPos := false
+		if v := data[colPosition]; v != "" {
+			if id, ok := lk.positions[normKey(v)]; ok {
+				positionID = id
+				hasPos = true
+			} else {
+				add(colPosition, "jabatan")
+			}
+		}
+
 		// kode: not a duplicate within this file, not already in DB (both
 		// case-insensitive).
 		if v := data[colCode]; v != "" {
@@ -251,6 +303,12 @@ func validateEmployeeRows(rows []importer.RawRow, lk employeeLookups, scope impo
 		if hasOffice {
 			data["_office_id"] = officeID.String()
 		}
+		if hasDept {
+			data["_department_id"] = departmentID.String()
+		}
+		if hasPos {
+			data["_position_id"] = positionID.String()
+		}
 
 		valid := len(errs) == 0
 		res := importer.RowResult{
@@ -265,6 +323,8 @@ func validateEmployeeRows(rows []importer.RawRow, lk employeeLookups, scope impo
 			// Drop internal resolution stamps from invalid rows to keep their
 			// persisted data clean (they never reach the executor).
 			delete(res.Data, "_office_id")
+			delete(res.Data, "_department_id")
+			delete(res.Data, "_position_id")
 		}
 		results[i] = res
 	}
@@ -308,6 +368,22 @@ func (e employeeImporter) Execute(ctx context.Context, qtx *sqlc.Queries, job im
 			return created, common.ErrInvalidReference
 		}
 
+		var deptID, posID *uuid.UUID
+		if v := trim(r.Data["_department_id"]); v != "" {
+			id, pErr := uuid.Parse(v)
+			if pErr != nil {
+				return created, common.ErrInvalidReference
+			}
+			deptID = &id
+		}
+		if v := trim(r.Data["_position_id"]); v != "" {
+			id, pErr := uuid.Parse(v)
+			if pErr != nil {
+				return created, common.ErrInvalidReference
+			}
+			posID = &id
+		}
+
 		code := trim(r.Data[colCode])
 		codeKey := normCode(code)
 
@@ -349,8 +425,8 @@ func (e employeeImporter) Execute(ctx context.Context, qtx *sqlc.Queries, job im
 			Email:        email,
 			Phone:        phone,
 			AvatarKey:    nil,
-			DepartmentID: nil,
-			PositionID:   nil,
+			DepartmentID: deptID,
+			PositionID:   posID,
 			OfficeID:     officeID,
 			Status:       status,
 		})

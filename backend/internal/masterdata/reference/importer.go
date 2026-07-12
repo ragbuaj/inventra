@@ -23,6 +23,14 @@ const (
 	cityColName     = "nama"
 	cityColProvince = "provinsi"
 	cityColCode     = "kode"
+
+	brandColName = "nama"
+
+	unitColName   = "nama"
+	unitColSymbol = "simbol"
+
+	modelColBrand = "merek"
+	modelColName  = "nama"
 )
 
 // Service holds the sqlc.Queries needed by the reference target importers
@@ -80,6 +88,20 @@ func (r referenceImporter) Columns() []importer.ColumnSpec {
 			{Name: cityColProvince, Required: true, Kind: "lookup"},
 			{Name: cityColCode, Required: false, Kind: "text"},
 		}
+	case "brands":
+		return []importer.ColumnSpec{
+			{Name: brandColName, Required: true, Kind: "text"},
+		}
+	case "units":
+		return []importer.ColumnSpec{
+			{Name: unitColName, Required: true, Kind: "text"},
+			{Name: unitColSymbol, Required: false, Kind: "text"},
+		}
+	case "models":
+		return []importer.ColumnSpec{
+			{Name: modelColBrand, Required: true, Kind: "lookup"},
+			{Name: modelColName, Required: true, Kind: "text"},
+		}
 	default:
 		return nil
 	}
@@ -104,6 +126,24 @@ func (r referenceImporter) ValidateRows(ctx context.Context, rows []importer.Raw
 			return nil, err
 		}
 		return validateCityRows(rows, lk), nil
+	case "brands":
+		lk, err := r.s.buildBrandLookups(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return validateBrandRows(rows, lk), nil
+	case "units":
+		lk, err := r.s.buildUnitLookups(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return validateUnitRows(rows, lk), nil
+	case "models":
+		lk, err := r.s.buildModelLookups(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return validateModelRows(rows, lk), nil
 	default:
 		return nil, importer.ErrUnknownTarget
 	}
@@ -352,6 +392,174 @@ func validateCityRows(rows []importer.RawRow, lk cityLookups) []importer.RowResu
 	return results
 }
 
+// --- brands -----------------------------------------------------------------
+
+type brandLookups struct{ existingNames map[string]bool }
+
+func (s *Service) buildBrandLookups(ctx context.Context) (brandLookups, error) {
+	lk := brandLookups{existingNames: map[string]bool{}}
+	brands, err := s.q.ListBrandsLookup(ctx)
+	if err != nil {
+		return lk, err
+	}
+	for _, b := range brands {
+		if k := normKey(b.Name); k != "" {
+			lk.existingNames[k] = true
+		}
+	}
+	return lk, nil
+}
+
+// validateBrandRows: nama required and unique (uq_brands_name) — a name
+// duplicating the DB or an earlier in-batch row (case-insensitive) fails
+// dupNama. No lookup/scope/approval concept.
+func validateBrandRows(rows []importer.RawRow, lk brandLookups) []importer.RowResult {
+	results := make([]importer.RowResult, len(rows))
+	seen := map[string]bool{}
+	for i, raw := range rows {
+		data := map[string]string{brandColName: trim(raw.Cells[brandColName])}
+		var errs []importer.CellError
+		add := func(col, key string) { errs = append(errs, importer.CellError{Column: col, ErrorKey: key}) }
+		if data[brandColName] == "" {
+			add(brandColName, "required")
+		} else {
+			key := normKey(data[brandColName])
+			switch {
+			case lk.existingNames[key], seen[key]:
+				add(brandColName, "dupNama")
+			default:
+				seen[key] = true
+			}
+		}
+		results[i] = importer.RowResult{RowNo: raw.RowNo, Valid: len(errs) == 0, Data: data, Errors: errs}
+	}
+	return results
+}
+
+// --- units ------------------------------------------------------------------
+
+type unitLookups struct{ existingNames map[string]bool }
+
+func (s *Service) buildUnitLookups(ctx context.Context) (unitLookups, error) {
+	lk := unitLookups{existingNames: map[string]bool{}}
+	names, err := s.q.ListUnitNames(ctx)
+	if err != nil {
+		return lk, err
+	}
+	for _, n := range names {
+		if k := normKey(n); k != "" {
+			lk.existingNames[k] = true
+		}
+	}
+	return lk, nil
+}
+
+// validateUnitRows: nama required and unique (uq_units_name); simbol optional.
+func validateUnitRows(rows []importer.RawRow, lk unitLookups) []importer.RowResult {
+	results := make([]importer.RowResult, len(rows))
+	seen := map[string]bool{}
+	for i, raw := range rows {
+		data := map[string]string{
+			unitColName:   trim(raw.Cells[unitColName]),
+			unitColSymbol: trim(raw.Cells[unitColSymbol]),
+		}
+		var errs []importer.CellError
+		add := func(col, key string) { errs = append(errs, importer.CellError{Column: col, ErrorKey: key}) }
+		if data[unitColName] == "" {
+			add(unitColName, "required")
+		} else {
+			key := normKey(data[unitColName])
+			switch {
+			case lk.existingNames[key], seen[key]:
+				add(unitColName, "dupNama")
+			default:
+				seen[key] = true
+			}
+		}
+		results[i] = importer.RowResult{RowNo: raw.RowNo, Valid: len(errs) == 0, Data: data, Errors: errs}
+	}
+	return results
+}
+
+// --- models -----------------------------------------------------------------
+
+type modelLookups struct {
+	brands        map[string]uuid.UUID // brand name (lower) -> id
+	existingPairs map[string]bool      // brandID + "\x00" + lower(name)
+}
+
+func modelPairKey(brandID uuid.UUID, name string) string {
+	return brandID.String() + "\x00" + normKey(name)
+}
+
+func (s *Service) buildModelLookups(ctx context.Context) (modelLookups, error) {
+	lk := modelLookups{brands: map[string]uuid.UUID{}, existingPairs: map[string]bool{}}
+	brands, err := s.q.ListBrandsLookup(ctx)
+	if err != nil {
+		return lk, err
+	}
+	for _, b := range brands {
+		addKey(lk.brands, b.Name, b.ID)
+	}
+	models, err := s.q.ListModelsLookup(ctx)
+	if err != nil {
+		return lk, err
+	}
+	for _, m := range models {
+		lk.existingPairs[modelPairKey(m.BrandID, m.Name)] = true
+	}
+	return lk, nil
+}
+
+// validateModelRows: merek + nama required; merek resolved by brand name
+// (case-insensitive); (brand_id, name) unique (uq_models_brand_name).
+func validateModelRows(rows []importer.RawRow, lk modelLookups) []importer.RowResult {
+	results := make([]importer.RowResult, len(rows))
+	seenPairs := map[string]bool{}
+	for i, raw := range rows {
+		data := map[string]string{
+			modelColBrand: trim(raw.Cells[modelColBrand]),
+			modelColName:  trim(raw.Cells[modelColName]),
+		}
+		var errs []importer.CellError
+		add := func(col, key string) { errs = append(errs, importer.CellError{Column: col, ErrorKey: key}) }
+		for _, col := range []string{modelColBrand, modelColName} {
+			if data[col] == "" {
+				add(col, "required")
+			}
+		}
+		var brandID uuid.UUID
+		hasBrand := false
+		if v := data[modelColBrand]; v != "" {
+			if id, ok := lk.brands[normKey(v)]; ok {
+				brandID = id
+				hasBrand = true
+			} else {
+				add(modelColBrand, "merek")
+			}
+		}
+		if hasBrand && data[modelColName] != "" {
+			pk := modelPairKey(brandID, data[modelColName])
+			switch {
+			case lk.existingPairs[pk], seenPairs[pk]:
+				add(modelColName, "dupNama")
+			default:
+				seenPairs[pk] = true
+			}
+		}
+		if hasBrand {
+			data["_brand_id"] = brandID.String()
+		}
+		valid := len(errs) == 0
+		res := importer.RowResult{RowNo: raw.RowNo, Valid: valid, Data: data, Errors: errs}
+		if !valid {
+			delete(res.Data, "_brand_id")
+		}
+		results[i] = res
+	}
+	return results
+}
+
 // --- shared helpers -------------------------------------------------------
 
 // addKey inserts a lower-cased, trimmed name/code -> id entry, skipping empties.
@@ -397,6 +605,12 @@ func (r referenceImporter) Execute(ctx context.Context, qtx *sqlc.Queries, job i
 		return executeProvinces(ctx, qtx, validRows)
 	case "cities":
 		return executeCities(ctx, qtx, validRows)
+	case "brands":
+		return executeBrands(ctx, qtx, validRows)
+	case "units":
+		return executeUnits(ctx, qtx, validRows)
+	case "models":
+		return executeModels(ctx, qtx, validRows)
 	default:
 		return 0, importer.ErrUnknownTarget
 	}
@@ -532,6 +746,134 @@ func executeCities(ctx context.Context, qtx *sqlc.Queries, validRows []importer.
 		}
 
 		if err := qtx.MarkRowResult(ctx, sqlc.MarkRowResultParams{ID: r.ID, ResultRef: &city.Name}); err != nil {
+			return created, err
+		}
+		created++
+	}
+	return created, nil
+}
+
+func executeBrands(ctx context.Context, qtx *sqlc.Queries, validRows []importer.Row) (int, error) {
+	created := 0
+	used := map[string]bool{}
+	markFailed := func(id uuid.UUID) error {
+		errsJSON, mErr := json.Marshal([]importer.CellError{{Column: brandColName, ErrorKey: "dupNama"}})
+		if mErr != nil {
+			return mErr
+		}
+		return qtx.MarkRowFailed(ctx, sqlc.MarkRowFailedParams{ID: id, Errors: errsJSON})
+	}
+	for _, r := range validRows {
+		name := trim(r.Data[brandColName])
+		key := normKey(name)
+		if used[key] {
+			if fErr := markFailed(r.ID); fErr != nil {
+				return created, fErr
+			}
+			continue
+		}
+		if _, gErr := qtx.GetBrandByName(ctx, name); gErr == nil {
+			if fErr := markFailed(r.ID); fErr != nil {
+				return created, fErr
+			}
+			continue
+		} else if !errors.Is(gErr, pgx.ErrNoRows) {
+			return created, common.MapDBError(gErr)
+		}
+		b, err := qtx.CreateBrand(ctx, name)
+		if err != nil {
+			return created, common.MapDBError(err)
+		}
+		used[key] = true
+		if err := qtx.MarkRowResult(ctx, sqlc.MarkRowResultParams{ID: r.ID, ResultRef: &b.Name}); err != nil {
+			return created, err
+		}
+		created++
+	}
+	return created, nil
+}
+
+func executeUnits(ctx context.Context, qtx *sqlc.Queries, validRows []importer.Row) (int, error) {
+	created := 0
+	used := map[string]bool{}
+	markFailed := func(id uuid.UUID) error {
+		errsJSON, mErr := json.Marshal([]importer.CellError{{Column: unitColName, ErrorKey: "dupNama"}})
+		if mErr != nil {
+			return mErr
+		}
+		return qtx.MarkRowFailed(ctx, sqlc.MarkRowFailedParams{ID: id, Errors: errsJSON})
+	}
+	for _, r := range validRows {
+		name := trim(r.Data[unitColName])
+		key := normKey(name)
+		if used[key] {
+			if fErr := markFailed(r.ID); fErr != nil {
+				return created, fErr
+			}
+			continue
+		}
+		if _, gErr := qtx.GetUnitByName(ctx, name); gErr == nil {
+			if fErr := markFailed(r.ID); fErr != nil {
+				return created, fErr
+			}
+			continue
+		} else if !errors.Is(gErr, pgx.ErrNoRows) {
+			return created, common.MapDBError(gErr)
+		}
+		var symbol *string
+		if v := trim(r.Data[unitColSymbol]); v != "" {
+			symbol = &v
+		}
+		u, err := qtx.CreateUnit(ctx, sqlc.CreateUnitParams{Name: name, Symbol: symbol})
+		if err != nil {
+			return created, common.MapDBError(err)
+		}
+		used[key] = true
+		if err := qtx.MarkRowResult(ctx, sqlc.MarkRowResultParams{ID: r.ID, ResultRef: &u.Name}); err != nil {
+			return created, err
+		}
+		created++
+	}
+	return created, nil
+}
+
+func executeModels(ctx context.Context, qtx *sqlc.Queries, validRows []importer.Row) (int, error) {
+	created := 0
+	usedPairs := map[string]bool{}
+	markFailed := func(id uuid.UUID) error {
+		errsJSON, mErr := json.Marshal([]importer.CellError{{Column: modelColName, ErrorKey: "dupNama"}})
+		if mErr != nil {
+			return mErr
+		}
+		return qtx.MarkRowFailed(ctx, sqlc.MarkRowFailedParams{ID: id, Errors: errsJSON})
+	}
+	for _, r := range validRows {
+		brandID, err := uuid.Parse(r.Data["_brand_id"])
+		if err != nil {
+			return created, common.ErrInvalidReference
+		}
+		name := trim(r.Data[modelColName])
+		pk := modelPairKey(brandID, name)
+		if usedPairs[pk] {
+			if fErr := markFailed(r.ID); fErr != nil {
+				return created, fErr
+			}
+			continue
+		}
+		if _, gErr := qtx.GetModelByBrandAndName(ctx, sqlc.GetModelByBrandAndNameParams{BrandID: brandID, Lower: name}); gErr == nil {
+			if fErr := markFailed(r.ID); fErr != nil {
+				return created, fErr
+			}
+			continue
+		} else if !errors.Is(gErr, pgx.ErrNoRows) {
+			return created, common.MapDBError(gErr)
+		}
+		m, cErr := qtx.CreateModel(ctx, sqlc.CreateModelParams{BrandID: brandID, Name: name})
+		if cErr != nil {
+			return created, common.MapDBError(cErr)
+		}
+		usedPairs[pk] = true
+		if err := qtx.MarkRowResult(ctx, sqlc.MarkRowResultParams{ID: r.ID, ResultRef: &m.Name}); err != nil {
 			return created, err
 		}
 		created++
