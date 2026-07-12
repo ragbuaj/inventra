@@ -112,12 +112,15 @@ func callerID(c *gin.Context) (uuid.UUID, error) {
 }
 
 // sanitizeFilename guards against object-key injection (contract c): it
-// strips CR/LF and NUL control characters, normalizes both path separator
+// strips all C0 control characters (bytes < 0x20, which includes CR/LF/NUL/
+// tab/ESC) plus DEL (0x7f) so no control character can survive into the
+// object key or the JSON filename field (defense against log/terminal
+// injection if the filename is later echoed), normalizes both path separator
 // styles, and takes only the final path component. Empty, ".", ".." and "/"
 // results are rejected — callers must treat a false ok as a 400.
 func sanitizeFilename(name string) (clean string, ok bool) {
 	name = strings.Map(func(r rune) rune {
-		if r == '\r' || r == '\n' || r == 0 {
+		if r < 0x20 || r == 0x7f {
 			return -1
 		}
 		return r
