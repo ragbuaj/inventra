@@ -341,7 +341,13 @@ func TestImport_AssetFullCycle_ApproveCreatesAssets(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, sqlc.SharedImportStatusCompleted, job.Status)
 	assert.EqualValues(t, 1, job.SuccessRows)
-	assert.EqualValues(t, 0, job.FailedRows)
+	// The row that failed VALIDATION (missing nama) must still count as
+	// failed on the completed job — only rows that passed validation are
+	// ever executed, so "0 rows failed during execute" must not erase the
+	// batch's original validation failure (see asset/executor.go's
+	// assetImportExec.Execute, which now preserves job.FailedRows instead of
+	// overwriting it with only execution-time failures).
+	assert.EqualValues(t, 1, job.FailedRows)
 
 	allRows, err = h.q.ListImportRows(ctx, sqlc.ListImportRowsParams{JobID: job.ID, OnlyErrors: false, Off: 0, Lim: 20})
 	require.NoError(t, err)

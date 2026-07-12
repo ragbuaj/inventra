@@ -32,10 +32,15 @@ const JOB: ImportJob = {
   created_at: '2026-07-01T00:00:00Z'
 }
 
+// Backend/OpenAPI ImportRow shape: target-column values are flat siblings of
+// id/row_no/valid/errors (additionalProperties), NOT nested under a `data`
+// key — see useImports.ts's ImportRow doc comment.
 const ROW: ImportRow = {
+  id: 'row-1',
   row_no: 2,
   valid: false,
-  data: { asset_tag: 'A-001', name: 'Kursi' },
+  asset_tag: 'A-001',
+  name: 'Kursi',
   errors: [{ column: 'category_code', error_key: 'not_found' }]
 }
 

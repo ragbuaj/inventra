@@ -19,13 +19,36 @@ export interface ImportJob {
   progress?: { phase: string, done: number, total: number }
 }
 
-/** GET /imports/:id/rows row shape (importer/dto.go rowToMap). */
+/**
+ * GET /imports/:id/rows row shape (importer/dto.go rowToMap). Beyond the
+ * fixed fields below, the object carries one string property per target
+ * column (the row's raw uploaded values) directly at the top level — NOT
+ * nested under a `data` key (see openapi.yaml ImportRow.additionalProperties
+ * and dto.go rowToMap, which spreads `m[k] = v` for each column). Use
+ * `importRowColumns`/`importRowValue` to read those column values.
+ */
 export interface ImportRow {
+  id: string
   row_no: number
   valid: boolean
-  data: Record<string, string>
   errors: ImportCellError[]
   result_ref?: string
+  [column: string]: unknown
+}
+
+// Fixed/meta keys on an ImportRow — everything else is a target-column value
+// (the row's raw uploaded data, keyed by column name).
+const IMPORT_ROW_META_KEYS: ReadonlySet<string> = new Set(['id', 'row_no', 'valid', 'errors', 'result_ref'])
+
+/** Column names (target-column keys) present on a row, excluding meta fields. */
+export function importRowColumns(row: ImportRow): string[] {
+  return Object.keys(row).filter(k => !IMPORT_ROW_META_KEYS.has(k))
+}
+
+/** A target-column's raw string value for a row (empty string if absent). */
+export function importRowValue(row: ImportRow, column: string): string {
+  const v = row[column]
+  return typeof v === 'string' ? v : ''
 }
 
 export interface ImportRowsOpts {

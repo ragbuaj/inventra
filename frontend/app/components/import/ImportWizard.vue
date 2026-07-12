@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useImports } from '~/composables/api/useImports'
+import { useImports, importRowColumns, importRowValue } from '~/composables/api/useImports'
 import type { ImportJob, ImportRow, ImportCellError } from '~/composables/api/useImports'
 
 // Reusable, backend-driven bulk-import wizard. Reproduces the anatomy of
@@ -109,7 +109,7 @@ const errorCount = computed(() => job.value?.failed_rows ?? 0)
 
 const dataColumns = computed<string[]>(() => {
   const set = new Set<string>()
-  for (const r of rows.value) for (const k of Object.keys(r.data)) set.add(k)
+  for (const r of rows.value) for (const k of importRowColumns(r)) set.add(k)
   if (isAsset.value) {
     const ordered = ASSET_COL_ORDER.filter(c => set.has(c))
     const extra = [...set].filter(c => !ASSET_COL_ORDER.includes(c))
@@ -562,6 +562,7 @@ onMounted(async () => {
     <div
       v-else-if="phase === 'validated'"
       class="space-y-4"
+      data-testid="import-step-validate"
     >
       <div class="bg-default border border-default rounded-[14px] shadow-sm p-4 flex items-center gap-4 flex-wrap">
         <span class="text-[13px] text-muted">{{ t('assets.import.totalRows') }}: <span class="font-semibold text-default">{{ totalRows }}</span></span>
@@ -569,6 +570,7 @@ onMounted(async () => {
           color="success"
           variant="subtle"
           class="rounded-full"
+          data-testid="import-valid-count"
         >
           {{ validCount }} {{ t('assets.import.valid') }}
         </UBadge>
@@ -576,6 +578,7 @@ onMounted(async () => {
           color="error"
           variant="subtle"
           class="rounded-full"
+          data-testid="import-error-count"
         >
           {{ errorCount }} {{ t('assets.import.error') }}
         </UBadge>
@@ -682,7 +685,7 @@ onMounted(async () => {
                   :class="cellClass(r, col)"
                   :title="cellErrorMsg(r, col)"
                 >
-                  {{ r.data[col] || '—' }}
+                  {{ importRowValue(r, col) || '—' }}
                 </td>
                 <td
                   class="px-3 py-2.5"
@@ -735,6 +738,7 @@ onMounted(async () => {
           :disabled="!allowed || validCount === 0"
           :loading="confirming"
           :label="`${isAsset ? t('assets.import.create') : t('import.wizard.confirm')} (${validCount})`"
+          data-testid="import-confirm-button"
           @click="confirm"
         />
       </div>
@@ -744,6 +748,7 @@ onMounted(async () => {
     <div
       v-else-if="phase === 'awaiting'"
       class="bg-default border border-default rounded-[14px] shadow-sm p-8 text-center max-w-[560px] mx-auto"
+      data-testid="import-awaiting-approval"
     >
       <div class="size-[54px] mx-auto mb-4 rounded-2xl bg-warning/10 text-warning flex items-center justify-center">
         <UIcon
@@ -853,7 +858,10 @@ onMounted(async () => {
         {{ t('import.wizard.result.desc') }}
       </div>
       <div class="grid grid-cols-2 gap-3 mb-5">
-        <div class="rounded-[12px] border border-default p-4">
+        <div
+          class="rounded-[12px] border border-default p-4"
+          data-testid="import-result-created"
+        >
           <div class="text-2xl font-bold text-success">
             {{ validCount }}
           </div>
@@ -861,7 +869,10 @@ onMounted(async () => {
             {{ t('assets.import.createdLabel') }}
           </div>
         </div>
-        <div class="rounded-[12px] border border-default p-4">
+        <div
+          class="rounded-[12px] border border-default p-4"
+          data-testid="import-result-failed"
+        >
           <div class="text-2xl font-bold text-error">
             {{ errorCount }}
           </div>

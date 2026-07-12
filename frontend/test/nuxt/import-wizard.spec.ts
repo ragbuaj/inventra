@@ -18,11 +18,15 @@ const cancelJob = vi.fn()
 const getTemplate = vi.fn()
 const getErrorReport = vi.fn()
 
-vi.mock('~/composables/api/useImports', () => ({
-  useImports: () => ({
-    uploadImport, getJob, getRows, listJobs, confirmJob, cancelJob, getTemplate, getErrorReport
-  })
-}))
+vi.mock('~/composables/api/useImports', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('~/composables/api/useImports')>()
+  return {
+    ...actual,
+    useImports: () => ({
+      uploadImport, getJob, getRows, listJobs, confirmJob, cancelJob, getTemplate, getErrorReport
+    })
+  }
+})
 
 // eslint-disable-next-line import/first
 import ImportWizard from '~/components/import/ImportWizard.vue'
@@ -42,11 +46,17 @@ const job = (over: Partial<ImportJob> = {}): ImportJob => ({
 
 const rowsPage = (data: ImportRow[]) => ({ data, total: data.length, limit: 20, offset: 0 })
 
-const okRow: ImportRow = { row_no: 1, valid: true, data: { asset_tag: 'A-1', nama: 'Kursi', kategori: 'Furnitur' }, errors: [] }
+// Backend/OpenAPI ImportRow shape: target-column values are flat siblings of
+// id/row_no/valid/errors (additionalProperties), NOT nested under a `data`
+// key — see useImports.ts's ImportRow doc comment.
+const okRow: ImportRow = { id: 'r-1', row_no: 1, valid: true, asset_tag: 'A-1', nama: 'Kursi', kategori: 'Furnitur', errors: [] }
 const badRow: ImportRow = {
+  id: 'r-2',
   row_no: 2,
   valid: false,
-  data: { asset_tag: 'A-2', nama: 'Meja', kategori: 'Elektronikk' },
+  asset_tag: 'A-2',
+  nama: 'Meja',
+  kategori: 'Elektronikk',
   errors: [{ column: 'kategori', error_key: 'kat' }]
 }
 

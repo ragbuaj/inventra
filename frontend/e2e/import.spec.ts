@@ -227,9 +227,11 @@ test.describe('Bulk Import — real backend (asset + employee e2e)', () => {
     const jobId = (await uploadResp.json() as { id: string }).id
 
     // Validate phase runs on the async worker's poll tick (~2s) — allow
-    // generous time for the preview table to appear.
-    await expect(page.getByText('2 Valid', { exact: true })).toBeVisible({ timeout: 20_000 })
-    await expect(page.getByText('1 Error', { exact: true })).toBeVisible()
+    // generous time for the preview table to appear. Select by testid rather
+    // than page-wide text so this can't collide with other "N Valid"/"N
+    // Error" text elsewhere in the wizard.
+    await expect(page.getByTestId('import-valid-count')).toHaveText('2 Valid', { timeout: 20_000 })
+    await expect(page.getByTestId('import-error-count')).toHaveText('1 Error')
 
     // The invalid row (unknown kategori) is highlighted with its error note;
     // the two valid rows carry no note.
@@ -242,8 +244,8 @@ test.describe('Bulk Import — real backend (asset + employee e2e)', () => {
     await expect(goodRow.getByText('Valid', { exact: true })).toBeVisible()
 
     // --- MAKER: confirm the 2 valid rows --------------------------------
-    await page.getByRole('button', { name: 'Buat Aset Valid (2)', exact: true }).click()
-    await expect(page.getByText('Diajukan untuk persetujuan', { exact: true })).toBeVisible({ timeout: 20_000 })
+    await page.getByTestId('import-confirm-button').click()
+    await expect(page.getByTestId('import-awaiting-approval')).toBeVisible({ timeout: 20_000 })
 
     // --- SWITCH TO CHECKER: approve the asset_import request ------------
     await switchUser(page, context, checkerEmail, checkerPassword)
@@ -302,8 +304,8 @@ test.describe('Bulk Import — real backend (asset + employee e2e)', () => {
     await expect(page.getByText(filename, { exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Validasi Berkas', exact: true }).click()
 
-    await expect(page.getByText('2 Valid', { exact: true })).toBeVisible({ timeout: 20_000 })
-    await expect(page.getByText('2 Error', { exact: true })).toBeVisible()
+    await expect(page.getByTestId('import-valid-count')).toHaveText('2 Valid', { timeout: 20_000 })
+    await expect(page.getByTestId('import-error-count')).toHaveText('2 Error')
 
     const emailRow = page.locator('tr', { hasText: 'not-an-email' })
     await expect(emailRow.getByText('Email tidak valid', { exact: true })).toBeVisible()
@@ -311,10 +313,10 @@ test.describe('Bulk Import — real backend (asset + employee e2e)', () => {
     await expect(statusRow.getByText('Status tidak valid', { exact: true })).toBeVisible()
 
     // Employee imports need no approval: confirm goes straight to completed.
-    await page.getByRole('button', { name: 'Buat (2)', exact: true }).click()
+    await page.getByTestId('import-confirm-button').click()
     await expect(page.getByText('Import selesai diproses', { exact: true })).toBeVisible({ timeout: 20_000 })
-    await expect(page.getByText('Aset dibuat', { exact: true })).toBeVisible()
-    await expect(page.getByText('Baris gagal', { exact: true })).toBeVisible()
+    await expect(page.getByTestId('import-result-created')).toContainText('Aset dibuat')
+    await expect(page.getByTestId('import-result-failed')).toContainText('Baris gagal')
 
     const [errDl] = await Promise.all([
       page.waitForEvent('download'),
@@ -343,10 +345,14 @@ test.describe('Bulk Import — real backend (asset + employee e2e)', () => {
       name: filename, mimeType: 'text/csv', buffer: Buffer.from(csv, 'utf-8')
     })
     await expect(page.getByText(filename, { exact: true })).toBeVisible()
-    await page.getByRole('button', { name: 'Validasi Berkas', exact: true }).click()
+    const [uploadResp] = await Promise.all([
+      page.waitForResponse(res => res.url().endsWith('/imports') && res.request().method() === 'POST'),
+      page.getByRole('button', { name: 'Validasi Berkas', exact: true }).click()
+    ])
+    const jobId = (await uploadResp.json() as { id: string }).id
 
-    await expect(page.getByText('1 Valid', { exact: true })).toBeVisible({ timeout: 20_000 })
-    await expect(page.getByText('2 Error', { exact: true })).toBeVisible()
+    await expect(page.getByTestId('import-valid-count')).toHaveText('1 Valid', { timeout: 20_000 })
+    await expect(page.getByTestId('import-error-count')).toHaveText('2 Error')
 
     const badDateRow = page.locator('tr', { hasText: badDateRowName })
     await expect(badDateRow.getByText('Error', { exact: true })).toBeVisible()
@@ -360,5 +366,11 @@ test.describe('Bulk Import — real backend (asset + employee e2e)', () => {
     await expect(validRow.getByText('Valid', { exact: true })).toBeVisible()
 
     // Deliberately not confirmed — this scenario only exercises the preview.
+    // Cancel the job afterward so it doesn't linger as a non-final "validated"
+    // job on this (never-reset) local dev DB — the wizard's onMounted resume
+    // would otherwise pick up this leftover job the next time ANY test in
+    // this file navigates to /assets/import (even in a brand-new test run),
+    // skipping straight past the fresh-upload step 1 that other tests expect.
+    await api.post(`imports/${jobId}/cancel`, { headers: authHeader(adminToken) })
   })
 })

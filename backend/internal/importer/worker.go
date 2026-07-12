@@ -264,7 +264,17 @@ func (w *Worker) validatePhase(ctx context.Context) (didWork bool, err error) {
 		if mErr != nil {
 			return true, mErr
 		}
-		errs, mErr := json.Marshal(r.Errors)
+		// A valid row's Errors is typically an untouched nil slice (never
+		// appended to). json.Marshal(nil slice) produces the JSON literal
+		// `null`, not `[]` — persisting that would make rowToMap's response
+		// re-serialize `errors` as null, breaking the documented "always an
+		// array" ImportRow contract (openapi.yaml) and any client relying on
+		// `.errors.find(...)`. Normalize to a non-nil empty slice first.
+		rowErrors := r.Errors
+		if rowErrors == nil {
+			rowErrors = []CellError{}
+		}
+		errs, mErr := json.Marshal(rowErrors)
 		if mErr != nil {
 			return true, mErr
 		}
@@ -511,11 +521,20 @@ func (w *Worker) executePhase(ctx context.Context) (didWork bool, err error) {
 		return true, execErr
 	}
 
+	// domainRows only carries rows that PASSED validation (ListValidImportRows
+	// above) — `len(domainRows) - created` is only the count that failed
+	// during Execute (e.g. a DB constraint), not the rows that already failed
+	// validation. job.FailedRows (set by the validate phase, see poll's
+	// afterJob/SetJobResult above) must be preserved and added to, not
+	// overwritten, or a batch's original validation failures silently vanish
+	// from the completed job's failed_rows (and from the UI's "N gagal"
+	// count) once execution succeeds for all valid rows.
+	execFailed := len(domainRows) - created
 	if _, err := qtx.SetJobResult(ctx, sqlc.SetJobResultParams{
 		ID:          job.ID,
 		Status:      sqlc.SharedImportStatusCompleted,
 		SuccessRows: int32(created),
-		FailedRows:  int32(len(domainRows) - created),
+		FailedRows:  job.FailedRows + int32(execFailed),
 	}); err != nil {
 		return true, err
 	}

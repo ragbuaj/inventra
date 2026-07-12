@@ -248,11 +248,20 @@ func (e assetImportExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sql
 		return err
 	}
 
+	// domainRows only carries rows that PASSED validation (ListValidImportRows
+	// above) — `len(domainRows) - created` is only the count that failed
+	// during this Execute (e.g. a DB constraint), not the rows that already
+	// failed validation. job.FailedRows (set by the validate phase — see
+	// importer/worker.go's validatePhase/SetJobValidated) must be preserved
+	// and added to, not overwritten, or a batch's original validation
+	// failures silently vanish from the completed job's failed_rows (and from
+	// the UI's "N gagal" tile) once execution succeeds for all valid rows.
+	execFailed := len(domainRows) - created
 	_, err = qtx.SetJobResult(ctx, sqlc.SetJobResultParams{
 		ID:          jobID,
 		Status:      sqlc.SharedImportStatusCompleted,
 		SuccessRows: int32(created),
-		FailedRows:  int32(len(domainRows) - created),
+		FailedRows:  job.FailedRows + int32(execFailed),
 		ErrorKey:    nil,
 	})
 	return mapDBError(err)

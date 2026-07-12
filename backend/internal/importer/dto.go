@@ -68,6 +68,13 @@ func rowToMap(row sqlc.ImportImportRow) map[string]any {
 	if len(row.Errors) > 0 {
 		_ = json.Unmarshal(row.Errors, &cellErrors)
 	}
+	// Defense in depth: a row persisted before the worker.go nil-slice fix (or
+	// any other path that stored the JSON literal `null`) unmarshals back to a
+	// nil slice, which would re-serialize as `errors: null` — violating the
+	// documented "always an array" ImportRow contract (openapi.yaml).
+	if cellErrors == nil {
+		cellErrors = []CellError{}
+	}
 	m["errors"] = cellErrors
 
 	if row.ResultRef != nil {
