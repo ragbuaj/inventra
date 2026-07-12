@@ -29,8 +29,18 @@ export async function login(page: Page): Promise<void> {
  * No manual `waitForTimeout` is needed for the debounce — Playwright's
  * locator auto-waits/retries `click()` until a matching `-picker-item`
  * becomes actionable, which naturally spans the debounce + search round trip.
+ *
+ * Callers may invoke this immediately after a *different* Nuxt UI popover
+ * (e.g. a `USelectMenu`) closes — a bare `.fill()` in that spot occasionally
+ * lands before Vue settles the DOM from the prior popover close, swallowing
+ * keystrokes (same root cause documented in `maintenance.spec.ts` around the
+ * category → interval field transition, and worked around by reordering in
+ * `assignment.spec.ts`'s Peminjaman test). The explicit `.click()` below
+ * (focusing the real input first) mitigates that race here too.
  */
 export async function pickAsync(page: Page, testid: string, term: string, matchText: string): Promise<void> {
-  await page.getByTestId(`${testid}-picker-input`).fill(term)
+  const input = page.getByTestId(`${testid}-picker-input`)
+  await input.click()
+  await input.fill(term)
   await page.getByTestId(`${testid}-picker-item`).filter({ hasText: matchText }).first().click()
 }
