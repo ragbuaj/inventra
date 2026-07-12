@@ -1323,14 +1323,15 @@
       "resetField": "Kembalikan ke default",
       "empty": "Tidak ada field yang cocok.",
       "footNote": "Field tanpa aturan eksplisit mengikuti default (boleh lihat & ubah). Atur per peran untuk menyembunyikan atau mengunci field sensitif.",
-      "entity": { "assets": "Aset", "users": "User" },
+      "entity": { "assets": "Aset", "users": "User", "employees": "Pegawai" },
       "field": {
         "name": "Nama", "category_id": "Kategori", "office_id": "Kantor", "serial_number": "Nomor seri",
         "purchase_date": "Tanggal beli", "purchase_cost": "Harga beli", "book_value": "Nilai buku",
         "accumulated_depreciation": "Akumulasi penyusutan", "salvage_value": "Nilai residu",
         "impairment_loss": "Rugi penurunan nilai", "depreciation_method": "Metode penyusutan",
         "po_number": "Nomor PO", "funding_source": "Sumber dana", "warranty_expiry": "Akhir garansi",
-        "status": "Status", "notes": "Catatan", "email": "Email", "role_id": "Peran", "employee_id": "Pegawai"
+        "status": "Status", "notes": "Catatan", "email": "Email", "role_id": "Peran", "employee_id": "Pegawai",
+        "phone": "Telepon", "department_id": "Departemen", "position_id": "Jabatan"
       },
       "loadError": "Gagal memuat field permission.",
       "retry": "Coba lagi"
