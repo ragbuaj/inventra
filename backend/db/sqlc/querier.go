@@ -63,6 +63,7 @@ type Querier interface {
 	CreateAssetDocument(ctx context.Context, arg CreateAssetDocumentParams) (AssetAssetDocument, error)
 	CreateAttachment(ctx context.Context, arg CreateAttachmentParams) (AssetAssetAttachment, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (MasterdataCategory, error)
+	CreateCity(ctx context.Context, arg CreateCityParams) (MasterdataCity, error)
 	// gain_loss is computed here (null-propagating): null when either input is null.
 	CreateDisposal(ctx context.Context, arg CreateDisposalParams) (DisposalDisposal, error)
 	CreateEmployee(ctx context.Context, arg CreateEmployeeParams) (MasterdataEmployee, error)
@@ -72,6 +73,12 @@ type Querier interface {
 	CreateMaintSchedule(ctx context.Context, arg CreateMaintScheduleParams) (MaintenanceMaintenanceSchedule, error)
 	CreateOffice(ctx context.Context, arg CreateOfficeParams) (MasterdataOffice, error)
 	CreateOpnameSession(ctx context.Context, arg CreateOpnameSessionParams) (StockopnameStockOpnameSession, error)
+	// Dedicated queries for the reference-target bulk importer (provinces, cities).
+	// These exist alongside the generic reference engine (internal/masterdata/reference/engine.go)
+	// because the engine operates on a *pgxpool.Pool directly and cannot join the
+	// import worker's sqlc transaction (target.Execute receives a tx-bound
+	// *sqlc.Queries). See internal/masterdata/reference/importer.go.
+	CreateProvince(ctx context.Context, arg CreateProvinceParams) (MasterdataProvince, error)
 	CreateRequest(ctx context.Context, arg CreateRequestParams) (ApprovalRequest, error)
 	CreateRequestApproval(ctx context.Context, arg CreateRequestApprovalParams) (ApprovalRequestApproval, error)
 	CreateRole(ctx context.Context, arg CreateRoleParams) (IdentityRole, error)
@@ -126,6 +133,11 @@ type Querier interface {
 	GetAttachment(ctx context.Context, id uuid.UUID) (AssetAssetAttachment, error)
 	GetCategory(ctx context.Context, id uuid.UUID) (MasterdataCategory, error)
 	GetCategoryCode(ctx context.Context, id uuid.UUID) (*string, error)
+	// Fresh, side-effect-free existence check used by the reference importer's
+	// Execute anti-poisoning pre-check for cities (cities.code IS uniquely
+	// constrained — uq_cities_code — so this pre-check is required, mirroring
+	// GetProvinceByCode).
+	GetCityByCode(ctx context.Context, code *string) (MasterdataCity, error)
 	GetDepreciationPeriod(ctx context.Context, period pgtype.Date) (DepreciationDepreciationPeriod, error)
 	// Guard (office-unscoped): at most one live disposal per asset.
 	GetDisposalByAsset(ctx context.Context, assetID uuid.UUID) (DisposalDisposal, error)
@@ -156,6 +168,10 @@ type Querier interface {
 	GetOpnameItem(ctx context.Context, arg GetOpnameItemParams) (StockopnameStockOpnameItem, error)
 	GetOpnameItemByTag(ctx context.Context, arg GetOpnameItemByTagParams) (StockopnameStockOpnameItem, error)
 	GetOpnameSession(ctx context.Context, arg GetOpnameSessionParams) (GetOpnameSessionRow, error)
+	// Fresh, side-effect-free existence check used by the reference importer's
+	// Execute anti-poisoning pre-check for provinces (mirrors GetEmployeeByCode /
+	// GetOfficeByCode).
+	GetProvinceByCode(ctx context.Context, code *string) (MasterdataProvince, error)
 	GetRequest(ctx context.Context, id uuid.UUID) (ApprovalRequest, error)
 	// Enriched read variants: request row + resolved maker/role/office names.
 	// LEFT JOINs keep rows visible even when the user/office was soft-deleted.
@@ -256,6 +272,9 @@ type Querier interface {
 	ListOfficesMap(ctx context.Context, arg ListOfficesMapParams) ([]ListOfficesMapRow, error)
 	ListOpnameItemsEnriched(ctx context.Context, arg ListOpnameItemsEnrichedParams) ([]ListOpnameItemsEnrichedRow, error)
 	ListOpnameSessions(ctx context.Context, arg ListOpnameSessionsParams) ([]ListOpnameSessionsRow, error)
+	// Flat id/name/code lookup for the cities importer's "provinsi" column
+	// (matched by name OR code, case-insensitive).
+	ListProvincesLookup(ctx context.Context) ([]ListProvincesLookupRow, error)
 	ListRequestApprovals(ctx context.Context, requestID uuid.UUID) ([]ApprovalRequestApproval, error)
 	ListRequestApprovalsEnriched(ctx context.Context, requestID uuid.UUID) ([]ListRequestApprovalsEnrichedRow, error)
 	ListRequests(ctx context.Context, arg ListRequestsParams) ([]ApprovalRequest, error)
