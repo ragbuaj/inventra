@@ -52,6 +52,11 @@ const limit = ref(20)
 const offset = ref(0)
 
 let timer: ReturnType<typeof setTimeout> | undefined
+// Set once onBeforeUnmount fires. A getJob request can still be in flight at
+// that point; its resolution must not schedule a new timer or mutate state —
+// onBeforeUnmount has already run and nothing will ever clear a timer set
+// after it.
+let disposed = false
 
 // --- Derived phase / step ---------------------------------------------------
 const status = computed(() => job.value?.status ?? '')
@@ -157,13 +162,18 @@ function afterJob(j: ImportJob) {
   }
 }
 function schedulePoll() {
+  // No-op once torn down — otherwise a getJob resolving after unmount could
+  // arm a timer that nothing will ever clear again.
+  if (disposed) return
   stopPolling()
   timer = setTimeout(poll, POLL_MS)
 }
 async function poll() {
   if (!job.value) return
   try {
-    afterJob(await imports.getJob(job.value.id))
+    const j = await imports.getJob(job.value.id)
+    if (disposed) return
+    afterJob(j)
   } catch {
     // Transport errors already surface a toast via useApiClient; stop polling.
   }
@@ -219,12 +229,13 @@ async function loadRows() {
       limit: limit.value,
       offset: offset.value
     })
+    if (disposed) return
     rows.value = res.data
     rowsTotal.value = res.total
   } catch {
-    rowsError.value = true
+    if (!disposed) rowsError.value = true
   } finally {
-    rowsLoading.value = false
+    if (!disposed) rowsLoading.value = false
   }
 }
 watch(onlyErrors, () => {
@@ -305,20 +316,33 @@ function reset() {
 }
 
 // --- Resume on mount --------------------------------------------------------
-onBeforeUnmount(stopPolling)
+onBeforeUnmount(() => {
+  disposed = true
+  stopPolling()
+})
 onMounted(async () => {
   try {
     const res = await imports.listJobs(props.target, { limit: 1 })
     const latest = res.data[0]
-    // Resume any non-final job. A rejected batch (derived approval_status) is
-    // surfaced too — afterJob won't poll it, it just renders the rejected card.
+    // Resume any non-final job. list() does NOT enrich approval_status or
+    // progress (only the single-job GET does, via enrichJob on the backend) —
+    // so fetch the enriched view and decide the initial phase off THAT, not
+    // the stale list row. Otherwise an already-rejected asset batch would
+    // briefly render the "awaiting approval" card, and resumed progress would
+    // be missing.
     if (latest && !FINAL.includes(latest.status)) {
-      afterJob(latest)
+      try {
+        const enriched = await imports.getJob(latest.id)
+        if (!disposed) afterJob(enriched)
+      } catch {
+        // Enriched fetch failed — start fresh rather than rendering
+        // decisions off the un-enriched list row.
+      }
     }
   } catch {
     // A failed resume just starts the wizard at step 1.
   } finally {
-    resuming.value = false
+    if (!disposed) resuming.value = false
   }
 })
 </script>

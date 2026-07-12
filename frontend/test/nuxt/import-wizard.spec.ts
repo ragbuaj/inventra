@@ -142,8 +142,11 @@ describe('ImportWizard — file validation', () => {
 describe('ImportWizard — step 2 (validate)', () => {
   it('resumes to the row table with an error-highlighted cell (resolved i18n)', async () => {
     listJobs.mockResolvedValue({ data: [job({ status: 'validated' })], total: 1, limit: 1, offset: 0 })
+    // Resume fetches the enriched single-job view before deciding the phase.
+    getJob.mockResolvedValue(job({ status: 'validated' }))
     const w = await mount()
 
+    expect(getJob).toHaveBeenCalledWith('job-1')
     expect(getRows).toHaveBeenCalledWith('job-1', { onlyErrors: false, limit: 20, offset: 0 })
     const text = w.text()
     expect(text).toContain('Total baris')
@@ -161,6 +164,7 @@ describe('ImportWizard — step 2 (validate)', () => {
 
   it('re-fetches rows with onlyErrors:true when the toggle is checked', async () => {
     listJobs.mockResolvedValue({ data: [job({ status: 'validated' })], total: 1, limit: 1, offset: 0 })
+    getJob.mockResolvedValue(job({ status: 'validated' }))
     const w = await mount()
     getRows.mockClear()
     getRows.mockResolvedValue(rowsPage([badRow]))
@@ -176,6 +180,7 @@ describe('ImportWizard — step 2 (validate)', () => {
 
   it('shows a retry affordance when getRows fails', async () => {
     listJobs.mockResolvedValue({ data: [job({ status: 'validated' })], total: 1, limit: 1, offset: 0 })
+    getJob.mockResolvedValue(job({ status: 'validated' }))
     getRows.mockRejectedValueOnce(new Error('boom'))
     const w = await mount()
 
@@ -191,10 +196,28 @@ describe('ImportWizard — step 2 (validate)', () => {
     w.unmount()
   })
 
+  it('shows the empty-rows message when a validated job has no rows', async () => {
+    listJobs.mockResolvedValue({
+      data: [job({ status: 'validated', total_rows: 0, success_rows: 0, failed_rows: 0 })],
+      total: 1, limit: 1, offset: 0
+    })
+    getJob.mockResolvedValue(job({ status: 'validated', total_rows: 0, success_rows: 0, failed_rows: 0 }))
+    getRows.mockResolvedValue(rowsPage([]))
+    const w = await mount()
+
+    expect(w.text()).toContain('Tidak ada baris untuk ditampilkan.')
+    // Neither the row table nor the loading/error placeholders render.
+    expect(w.find('table').exists()).toBe(false)
+    w.unmount()
+  })
+
   it('confirms the job and begins polling', async () => {
     listJobs.mockResolvedValue({ data: [job({ status: 'validated' })], total: 1, limit: 1, offset: 0 })
     confirmJob.mockResolvedValue(job({ status: 'executing' }))
-    getJob.mockResolvedValue(job({ status: 'executing' }))
+    // Resume's enrich fetch must return the same (validated) status so the
+    // wizard still lands on step 2 — only confirmJob (not getJob) drives the
+    // later "executing" transition asserted below.
+    getJob.mockResolvedValue(job({ status: 'validated' }))
     const w = await mount()
 
     const create = w.findAll('button').find(b => b.text().includes('Buat Aset Valid'))
@@ -214,8 +237,10 @@ describe('ImportWizard — step 3 (result)', () => {
       data: [job({ status: 'awaiting_approval', request_id: 'REQ-42' })],
       total: 1, limit: 1, offset: 0
     })
+    getJob.mockResolvedValue(job({ status: 'awaiting_approval', request_id: 'REQ-42' }))
     const w = await mount()
 
+    expect(getJob).toHaveBeenCalledWith('job-1')
     const text = w.text()
     expect(text).toContain('Diajukan untuk persetujuan')
     expect(text).toContain('REQ-42')
@@ -226,14 +251,22 @@ describe('ImportWizard — step 3 (result)', () => {
     w.unmount()
   })
 
-  it('rejected approval shows the rejected card with an error-report download', async () => {
+  it('rejected approval shows the rejected card with an error-report download (enriched view, not the stale list row)', async () => {
+    // list() never enriches approval_status (only the single-job GET does),
+    // so a resumed rejected batch arrives from listJobs looking merely
+    // "awaiting" — the un-enriched row alone would render the waiting card.
     listJobs.mockResolvedValue({
-      data: [job({ status: 'awaiting_approval', request_id: 'REQ-9', approval_status: 'rejected', failed_rows: 1 })],
+      data: [job({ status: 'awaiting_approval', request_id: 'REQ-9', failed_rows: 1 })],
       total: 1, limit: 1, offset: 0
     })
+    // The enriched getJob response is what actually carries approval_status.
+    getJob.mockResolvedValue(job({ status: 'awaiting_approval', request_id: 'REQ-9', approval_status: 'rejected', failed_rows: 1 }))
     const w = await mount()
 
+    expect(getJob).toHaveBeenCalledWith('job-1')
     expect(w.text()).toContain('Pengajuan ditolak')
+    // Never rendered the un-enriched "awaiting" state on the way to rejected.
+    expect(w.text()).not.toContain('Menunggu keputusan approver')
     const dl = w.findAll('button').find(b => b.text().includes('Unduh Baris Gagal'))
     expect(dl).toBeDefined()
 
@@ -277,6 +310,7 @@ describe('ImportWizard — step 3 (result)', () => {
   // Completed is terminal too — reached by confirming a validated job.
   it('master-data completed job shows created/failed tiles + error-report button', async () => {
     listJobs.mockResolvedValue({ data: [job({ target: 'office', status: 'validated' })], total: 1, limit: 1, offset: 0 })
+    getJob.mockResolvedValue(job({ target: 'office', status: 'validated' }))
     confirmJob.mockResolvedValue(job({ target: 'office', status: 'completed', success_rows: 5, failed_rows: 2 }))
     const w = await mount({ target: 'office', permission: 'masterdata.office.manage' })
 
@@ -296,6 +330,7 @@ describe('ImportWizard — step 3 (result)', () => {
 
   it('completed job with no failures hides the error-report button', async () => {
     listJobs.mockResolvedValue({ data: [job({ target: 'office', status: 'validated' })], total: 1, limit: 1, offset: 0 })
+    getJob.mockResolvedValue(job({ target: 'office', status: 'validated' }))
     confirmJob.mockResolvedValue(job({ target: 'office', status: 'completed', success_rows: 5, failed_rows: 0 }))
     const w = await mount({ target: 'office', permission: 'masterdata.office.manage' })
 
@@ -306,6 +341,49 @@ describe('ImportWizard — step 3 (result)', () => {
     const dl = w.findAll('button').find(b => b.text().includes('Unduh Baris Gagal'))
     expect(dl).toBeUndefined()
     w.unmount()
+  })
+})
+
+describe('ImportWizard — polling lifecycle', () => {
+  it('does not schedule another poll if getJob resolves after unmount (no leaked polling loop)', async () => {
+    uploadImport.mockResolvedValue(job({ status: 'pending' }))
+    const w = await mount()
+
+    const file = new File(['a,b\n1,2'], 'assets.csv', { type: 'text/csv' })
+    const input = w.find('[data-testid="import-file-input"]').element as HTMLInputElement
+    Object.defineProperty(input, 'files', { value: [file], configurable: true })
+    await w.find('[data-testid="import-file-input"]').trigger('change')
+    await flushPromises()
+
+    vi.useFakeTimers()
+    await w.findAll('button').find(b => b.text().includes('Validasi Berkas'))!.trigger('click')
+    await flushPromises()
+
+    // Arm getJob to hang so a request can be "in flight" when we unmount.
+    let resolveGetJob!: (j: ImportJob) => void
+    getJob.mockImplementation(() => new Promise<ImportJob>((resolve) => {
+      resolveGetJob = resolve
+    }))
+
+    // Advance past the poll interval — the scheduled poll fires and getJob is
+    // now in flight (its promise is intentionally left unresolved).
+    await vi.advanceTimersByTimeAsync(1600)
+    expect(getJob).toHaveBeenCalledTimes(1)
+
+    // Unmount while that request is still pending.
+    w.unmount()
+
+    // The in-flight request resolves after teardown — it must not schedule
+    // another timer or touch reactive state on the destroyed instance.
+    resolveGetJob(job({ status: 'pending' }))
+    await flushPromises()
+
+    // Advance well past another poll interval: no further getJob calls means
+    // no timer was armed after unmount (the leak this test guards against).
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(getJob).toHaveBeenCalledTimes(1)
+
+    vi.useRealTimers()
   })
 })
 
