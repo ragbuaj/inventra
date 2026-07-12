@@ -64,7 +64,8 @@ var modelHeader = []string{"merek", "nama"}
 
 // harness bundles every service the bulk-import pipeline needs, wired exactly
 // like internal/server/router.go wires them in production (NewRouter): one
-// importer.Service with the asset/employee/office targets registered, one
+// importer.Service with the asset/employee/office targets plus all five
+// reference targets (provinces/cities/brands/units/models) registered, one
 // approval.Service with the asset_import executor registered, and the HTTP
 // handler/worker built on top of both.
 type harness struct {

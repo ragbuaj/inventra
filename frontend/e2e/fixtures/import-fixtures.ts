@@ -15,7 +15,7 @@
 // is case-insensitive and order-insensitive on the backend, but keeping this
 // order mirrors the downloaded template for readability):
 //   asset:    asset_tag, nama, kategori, kantor, tgl_beli, harga, vendor, lokasi
-//   employee: kode, nama, email, telepon, kantor, status
+//   employee: kode, nama, email, telepon, kantor, status, departemen, jabatan
 
 function toCsv(header: string[], rows: string[][]): string {
   const esc = (v: string): string => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)
@@ -119,12 +119,12 @@ export function buildEmployeeCsv({ officeName, run }: EmployeeImportInputs): Emp
   const codeB = `E2EIMPB${run}`
   const nameA = `E2E Import Employee A ${run}`
   const nameB = `E2E Import Employee B ${run}`
-  const header = ['kode', 'nama', 'email', 'telepon', 'kantor', 'status']
+  const header = ['kode', 'nama', 'email', 'telepon', 'kantor', 'status', 'departemen', 'jabatan']
   const rows = [
-    [codeA, nameA, `e2eimp.a.${run}@inventra.local`, '', officeName, 'active'],
-    [codeB, nameB, '', '', officeName, 'active'],
-    [`E2EIMPC${run}`, `E2E Import Employee C ${run}`, 'not-an-email', '', officeName, 'active'],
-    [`E2EIMPD${run}`, `E2E Import Employee D ${run}`, '', '', officeName, 'unknown_status']
+    [codeA, nameA, `e2eimp.a.${run}@inventra.local`, '', officeName, 'active', '', ''],
+    [codeB, nameB, '', '', officeName, 'active', '', ''],
+    [`E2EIMPC${run}`, `E2E Import Employee C ${run}`, 'not-an-email', '', officeName, 'active', '', ''],
+    [`E2EIMPD${run}`, `E2E Import Employee D ${run}`, '', '', officeName, 'unknown_status', '', '']
   ]
   return { filename: `employees-${run}.csv`, csv: toCsv(header, rows), codeA, codeB, nameA, nameB }
 }
