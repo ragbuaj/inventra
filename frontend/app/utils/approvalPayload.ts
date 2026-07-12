@@ -78,6 +78,19 @@ export function payloadToView(detail: ApprovalRequestDetail, t: Tfn, lookups: Pa
     return { layout: 'diff', rows }
   }
 
+  if (detail.type === 'asset_import') {
+    if (!p) return { layout: 'summary', rows: [] }
+    const rows: SummaryRow[] = []
+    const push = (label: string, value?: string) => {
+      if (value) rows.push({ label: t(label), value })
+    }
+    push('approval.field.filename', str(p, 'filename'))
+    const totalRows = p.total_rows
+    if (typeof totalRows === 'number') rows.push({ label: t('approval.field.totalRows'), value: String(totalRows) })
+    if (str(p, 'total_value')) push('approval.field.totalValue', formatRupiah(str(p, 'total_value')))
+    return { layout: 'summary', rows }
+  }
+
   if (detail.type === 'maintenance') {
     if (!p) return { layout: 'summary', rows: [] }
     const rows: SummaryRow[] = []

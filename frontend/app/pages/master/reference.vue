@@ -8,6 +8,7 @@ definePageMeta({ middleware: 'can', permission: 'masterdata.global.manage' })
 const { t } = useI18n()
 const toast = useToast()
 const can = useCan()
+const localePath = useLocalePath()
 const { open: confirm } = useConfirm()
 const api = useReference()
 
@@ -15,6 +16,12 @@ const resourceKey = ref<ReferenceKey>(referenceResources[0]!.key)
 const descriptor = computed<ReferenceDescriptor>(() =>
   referenceResources.find(r => r.key === resourceKey.value) ?? referenceResources[0]!
 )
+
+// Only these reference sub-resources have a registered bulk-import target on
+// the backend (see backend/internal/masterdata/reference/importer.go) — the
+// Import button only appears for them.
+const IMPORTABLE_RESOURCES: ReferenceKey[] = ['provinces', 'cities']
+const importTarget = computed(() => (IMPORTABLE_RESOURCES.includes(resourceKey.value) ? `reference:${resourceKey.value}` : null))
 
 const entityCounts = ref<Partial<Record<ReferenceKey, number>>>({})
 
@@ -241,14 +248,29 @@ onMounted(async () => {
               {{ t('masterdata.reference.entitySubtitle') }}
             </p>
           </div>
-          <Can permission="masterdata.global.manage">
-            <UButton
-              icon="i-lucide-plus"
-              @click="openCreate"
+          <div class="flex items-center gap-2">
+            <Can
+              v-if="importTarget"
+              permission="masterdata.global.manage"
             >
-              {{ t('masterdata.reference.add') }}
-            </UButton>
-          </Can>
+              <UButton
+                icon="i-lucide-upload"
+                color="neutral"
+                variant="outline"
+                :to="localePath(`/master/import?target=${importTarget}`)"
+              >
+                {{ t('common.import') }}
+              </UButton>
+            </Can>
+            <Can permission="masterdata.global.manage">
+              <UButton
+                icon="i-lucide-plus"
+                @click="openCreate"
+              >
+                {{ t('masterdata.reference.add') }}
+              </UButton>
+            </Can>
+          </div>
         </div>
 
         <!-- Search bar only (no Reset, no entity dropdown) -->

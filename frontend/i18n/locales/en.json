@@ -931,7 +931,8 @@
       "asset_transfer": "Asset Transfer",
       "assignment": "Asset Loan",
       "maintenance": "Damage Report",
-      "valuation_exclusion": "Valuation Exclusion"
+      "valuation_exclusion": "Valuation Exclusion",
+      "asset_import": "Bulk Asset Import"
     },
     "filter": {
       "pending": "Pending",
@@ -990,7 +991,10 @@
       "excluded": "Excluded",
       "asset": "Asset",
       "problemCategory": "Problem Category",
-      "description": "Description"
+      "description": "Description",
+      "filename": "File Name",
+      "totalRows": "Total Rows",
+      "totalValue": "Total Value"
     },
     "sensitive": "Sensitive",
     "sensitiveWarn": "Sensitive action — please review the data carefully before deciding.",
@@ -1534,6 +1538,7 @@
   "common": {
     "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit",
     "add": "Add", "search": "Search", "reset": "Reset", "actions": "Actions", "view": "View",
+    "import": "Import",
     "loading": "Loading…", "noData": "No data yet", "confirm": "Confirm",
     "showingRange": "Showing {from}–{to} of {total}",
     "error": "Something went wrong",
@@ -1796,6 +1801,20 @@
       "title": "Rooms",
       "deleteConfirm": "Delete this room?",
       "editName": "Rename room"
+    },
+    "import": {
+      "title": "Bulk Import — {target}",
+      "titleGeneric": "Bulk Data Import",
+      "subtitle": "Upload a CSV/XLSX file, validate row by row, then create the valid data.",
+      "invalidTarget": "Invalid import target",
+      "invalidTargetSub": "Use the Import link on the Employees, Offices, or Reference page.",
+      "notAuthorized": "You do not have permission to import this data.",
+      "targets": {
+        "employee": "Employees",
+        "office": "Offices",
+        "provinces": "Provinces",
+        "cities": "Cities"
+      }
     }
   },
   "map": {

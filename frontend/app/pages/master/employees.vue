@@ -7,6 +7,7 @@ definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
 const { t } = useI18n()
 const toast = useToast()
 const can = useCan()
+const localePath = useLocalePath()
 const { open: confirm } = useConfirm()
 const api = useEmployees()
 const refApi = useReference()
@@ -207,6 +208,16 @@ onMounted(() => {
       :subtitle="t('masterdata.employees.subtitle')"
     >
       <template #actions>
+        <Can permission="masterdata.employee.manage">
+          <UButton
+            icon="i-lucide-upload"
+            color="neutral"
+            variant="outline"
+            :to="localePath('/master/import?target=employee')"
+          >
+            {{ t('common.import') }}
+          </UButton>
+        </Can>
         <Can permission="masterdata.office.manage">
           <UButton
             icon="i-lucide-plus"

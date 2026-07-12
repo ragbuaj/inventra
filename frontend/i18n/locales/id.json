@@ -931,7 +931,8 @@
       "asset_transfer": "Mutasi Aset",
       "assignment": "Peminjaman Aset",
       "maintenance": "Laporan Kerusakan",
-      "valuation_exclusion": "Pengecualian Valuasi"
+      "valuation_exclusion": "Pengecualian Valuasi",
+      "asset_import": "Import Massal Aset"
     },
     "filter": {
       "pending": "Menunggu",
@@ -990,7 +991,10 @@
       "excluded": "Dikecualikan",
       "asset": "Aset",
       "problemCategory": "Kategori Masalah",
-      "description": "Deskripsi"
+      "description": "Deskripsi",
+      "filename": "Nama Berkas",
+      "totalRows": "Total Baris",
+      "totalValue": "Total Nilai"
     },
     "sensitive": "Sensitif",
     "sensitiveWarn": "Tindakan sensitif — pastikan Anda meninjau data dengan saksama sebelum memutuskan.",
@@ -1534,6 +1538,7 @@
   "common": {
     "save": "Simpan", "cancel": "Batal", "delete": "Hapus", "edit": "Ubah",
     "add": "Tambah", "search": "Cari", "reset": "Reset", "actions": "Aksi", "view": "Lihat",
+    "import": "Import",
     "loading": "Memuat…", "noData": "Belum ada data", "confirm": "Konfirmasi",
     "showingRange": "Menampilkan {from}–{to} dari {total}",
     "error": "Terjadi kesalahan",
@@ -1796,6 +1801,20 @@
       "title": "Ruangan",
       "deleteConfirm": "Hapus ruangan ini?",
       "editName": "Ubah nama ruangan"
+    },
+    "import": {
+      "title": "Import Massal — {target}",
+      "titleGeneric": "Import Massal Data",
+      "subtitle": "Unggah berkas CSV/XLSX, validasi per-baris, lalu buat data yang valid.",
+      "invalidTarget": "Target import tidak valid",
+      "invalidTargetSub": "Gunakan tautan Import pada halaman Pegawai, Kantor, atau Referensi.",
+      "notAuthorized": "Anda tidak memiliki izin untuk mengimpor data ini.",
+      "targets": {
+        "employee": "Pegawai",
+        "office": "Kantor",
+        "provinces": "Provinsi",
+        "cities": "Kota"
+      }
     }
   },
   "map": {
