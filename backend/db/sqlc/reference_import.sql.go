@@ -139,6 +139,69 @@ func (q *Queries) ListCityCodes(ctx context.Context) ([]*string, error) {
 	return items, nil
 }
 
+const listDepartmentsLookup = `-- name: ListDepartmentsLookup :many
+SELECT id, name, code FROM masterdata.departments WHERE deleted_at IS NULL
+`
+
+type ListDepartmentsLookupRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+	Code *string   `json:"code"`
+}
+
+// id/name/code lookup for the employee importer's optional "departemen" column
+// (matched by name OR code, case-insensitive).
+func (q *Queries) ListDepartmentsLookup(ctx context.Context) ([]ListDepartmentsLookupRow, error) {
+	rows, err := q.db.Query(ctx, listDepartmentsLookup)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListDepartmentsLookupRow{}
+	for rows.Next() {
+		var i ListDepartmentsLookupRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.Code); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPositionsLookup = `-- name: ListPositionsLookup :many
+SELECT id, name FROM masterdata.positions WHERE deleted_at IS NULL
+`
+
+type ListPositionsLookupRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+// id/name lookup for the employee importer's optional "jabatan" column
+// (matched by name, case-insensitive). positions has no code column.
+func (q *Queries) ListPositionsLookup(ctx context.Context) ([]ListPositionsLookupRow, error) {
+	rows, err := q.db.Query(ctx, listPositionsLookup)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListPositionsLookupRow{}
+	for rows.Next() {
+		var i ListPositionsLookupRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listProvincesLookup = `-- name: ListProvincesLookup :many
 SELECT id, name, code FROM masterdata.provinces WHERE deleted_at IS NULL
 `

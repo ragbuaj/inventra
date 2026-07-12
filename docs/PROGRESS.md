@@ -679,10 +679,18 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     employee **CRUD** uses `office.manage` (000032 aligns the grants). **Note — dev-stack image
 >     staleness:** the running `asset-management-frontend` container predates this branch and was stopped
 >     for the e2e/mockup run (served by a fresh host build) — it needs a rebuild for normal dev use.
-> 45. **Next session — pick the next real step.** Remaining major candidate: **notifications**
->     (`mock/notifications.ts` — the last app-shell mock; needs a backend notifications feed). Also open:
->     remaining **import** follow-ups (extra master-data targets — brand/model/unit/room/floor; dept/
->     position columns on employee import; office/reference e2e; MinIO-stored error reports); the standing
+> 45. ~~**Next session — pick the next real step.**~~ Import follow-ups picked; **Task 1 done
+>     (2026-07-12): employee import dept/position columns.** Optional `departemen` (name OR code) /
+>     `jabatan` (name) columns added to the employee import template; `buildEmployeeLookups` loads
+>     `ListDepartmentsLookup`/`ListPositionsLookup` (new `db/queries/reference_import.sql` queries),
+>     `validateEmployeeRows` resolves them case-insensitively (error keys `departemen`/`jabatan`, stamps
+>     `_department_id`/`_position_id`, dropped on invalid rows), `Execute` now passes the resolved ids
+>     into `CreateEmployee` instead of hardcoded `nil`. Unit tests (`importer_test.go`, 3 new cases) +
+>     integration test `TestImport_EmployeeCycle_DeptPositionResolved` (unknown department rejected at
+>     validation, not execute; resolved ids persisted end-to-end). Remaining major candidate:
+>     **notifications** (`mock/notifications.ts` — the last app-shell mock; needs a backend notifications
+>     feed). Also open: remaining **import** follow-ups (extra master-data targets —
+>     brand/model/unit/room/floor; office/reference e2e; MinIO-stored error reports); the standing
 >     tech-debt list (field-permission enforcement beyond assets+users; Users screen server-side filters +
 >     reset-password; enriched audit response; async searchable office/employee pickers — the `limit:100`
 >     cap keeps biting local e2e; approval/route badge counts; failure-safe Data-Scope e2e cleanup); and

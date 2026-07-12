@@ -35,6 +35,8 @@ func mkLookups() (employeeLookups, fixedIDs) {
 		existingCodes: map[string]bool{
 			"emp-0001": true,
 		},
+		departments: map[string]uuid.UUID{},
+		positions:   map[string]uuid.UUID{},
 	}
 	return lk, ids
 }
@@ -237,6 +239,75 @@ func TestEmployeeImporterValidateInvalidRowDropsStamp(t *testing.T) {
 	}
 }
 
+// --- department / position (optional lookups) ----------------------------
+
+func TestValidateEmployeeRows_DeptPositionResolved(t *testing.T) {
+	deptID, posID := uuid.New(), uuid.New()
+	lk := employeeLookups{
+		offices:       map[string]uuid.UUID{"kantor pusat": uuid.New()},
+		existingCodes: map[string]bool{},
+		departments:   map[string]uuid.UUID{"ti": deptID, "dept-ti": deptID},
+		positions:     map[string]uuid.UUID{"staf": posID},
+	}
+	// pick an office id the scope permits
+	var offID uuid.UUID
+	for _, v := range lk.offices {
+		offID = v
+	}
+	cells := map[string]string{
+		colCode: "E001", colName: "Budi", colOffice: "Kantor Pusat", colStatus: "active",
+		colDepartment: "TI", colPosition: "Staf",
+	}
+	res := validateEmployeeRows([]importer.RawRow{row(1, cells)}, lk, importer.Scope{AllScope: true})
+	if !res[0].Valid {
+		t.Fatalf("expected valid, got %v", errKeys(res[0]))
+	}
+	if res[0].Data["_department_id"] != deptID.String() {
+		t.Fatalf("_department_id=%q want %q", res[0].Data["_department_id"], deptID.String())
+	}
+	if res[0].Data["_position_id"] != posID.String() {
+		t.Fatalf("_position_id=%q want %q", res[0].Data["_position_id"], posID.String())
+	}
+	_ = offID
+}
+
+func TestValidateEmployeeRows_DeptPositionOptional(t *testing.T) {
+	lk := employeeLookups{
+		offices:       map[string]uuid.UUID{"kantor pusat": uuid.New()},
+		existingCodes: map[string]bool{},
+		departments:   map[string]uuid.UUID{},
+		positions:     map[string]uuid.UUID{},
+	}
+	cells := map[string]string{colCode: "E002", colName: "Sari", colOffice: "Kantor Pusat", colStatus: "active"}
+	res := validateEmployeeRows([]importer.RawRow{row(1, cells)}, lk, importer.Scope{AllScope: true})
+	if !res[0].Valid {
+		t.Fatalf("empty dept/position must be valid, got %v", errKeys(res[0]))
+	}
+	if _, ok := res[0].Data["_department_id"]; ok {
+		t.Fatalf("no dept stamp expected")
+	}
+}
+
+func TestValidateEmployeeRows_DeptPositionMiss(t *testing.T) {
+	lk := employeeLookups{
+		offices:       map[string]uuid.UUID{"kantor pusat": uuid.New()},
+		existingCodes: map[string]bool{},
+		departments:   map[string]uuid.UUID{},
+		positions:     map[string]uuid.UUID{},
+	}
+	cells := map[string]string{
+		colCode: "E003", colName: "Tono", colOffice: "Kantor Pusat", colStatus: "active",
+		colDepartment: "Tak Ada", colPosition: "Hantu",
+	}
+	res := validateEmployeeRows([]importer.RawRow{row(1, cells)}, lk, importer.Scope{AllScope: true})
+	if res[0].Valid || !hasErr(res[0], "departemen") || !hasErr(res[0], "jabatan") {
+		t.Fatalf("expected departemen+jabatan errors, got %v", errKeys(res[0]))
+	}
+	if _, ok := res[0].Data["_department_id"]; ok {
+		t.Fatalf("invalid row must drop dept stamp")
+	}
+}
+
 // --- columns / needs-approval contract -----------------------------------
 
 func TestEmployeeImporterColumns(t *testing.T) {
@@ -260,6 +331,8 @@ func TestEmployeeImporterColumns(t *testing.T) {
 		{colPhone, false, "text"},
 		{colOffice, true, "lookup"},
 		{colStatus, true, "text"},
+		{colDepartment, false, "lookup"},
+		{colPosition, false, "lookup"},
 	}
 	if len(cols) != len(want) {
 		t.Fatalf("Columns() len = %d, want %d", len(cols), len(want))

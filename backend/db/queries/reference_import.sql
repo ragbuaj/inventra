@@ -36,3 +36,13 @@ SELECT * FROM masterdata.cities WHERE code = $1 AND deleted_at IS NULL LIMIT 1;
 -- provinces) — cities.code IS uniquely constrained (uq_cities_code), so a
 -- match here is authoritative, not just an in-file check.
 SELECT code FROM masterdata.cities WHERE code IS NOT NULL AND deleted_at IS NULL;
+
+-- name: ListDepartmentsLookup :many
+-- id/name/code lookup for the employee importer's optional "departemen" column
+-- (matched by name OR code, case-insensitive).
+SELECT id, name, code FROM masterdata.departments WHERE deleted_at IS NULL;
+
+-- name: ListPositionsLookup :many
+-- id/name lookup for the employee importer's optional "jabatan" column
+-- (matched by name, case-insensitive). positions has no code column.
+SELECT id, name FROM masterdata.positions WHERE deleted_at IS NULL;

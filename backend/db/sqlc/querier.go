@@ -238,6 +238,9 @@ type Querier interface {
 	// match here is authoritative, not just an in-file check.
 	ListCityCodes(ctx context.Context) ([]*string, error)
 	ListDataScopePolicies(ctx context.Context, roleID uuid.UUID) ([]IdentityDataScopePolicy, error)
+	// id/name/code lookup for the employee importer's optional "departemen" column
+	// (matched by name OR code, case-insensitive).
+	ListDepartmentsLookup(ctx context.Context) ([]ListDepartmentsLookupRow, error)
 	ListDepreciationPeriods(ctx context.Context) ([]DepreciationDepreciationPeriod, error)
 	ListDisposalsByAssetEnriched(ctx context.Context, arg ListDisposalsByAssetEnrichedParams) ([]ListDisposalsByAssetEnrichedRow, error)
 	ListDisposalsEnriched(ctx context.Context, arg ListDisposalsEnrichedParams) ([]ListDisposalsEnrichedRow, error)
@@ -277,6 +280,9 @@ type Querier interface {
 	ListOfficesMap(ctx context.Context, arg ListOfficesMapParams) ([]ListOfficesMapRow, error)
 	ListOpnameItemsEnriched(ctx context.Context, arg ListOpnameItemsEnrichedParams) ([]ListOpnameItemsEnrichedRow, error)
 	ListOpnameSessions(ctx context.Context, arg ListOpnameSessionsParams) ([]ListOpnameSessionsRow, error)
+	// id/name lookup for the employee importer's optional "jabatan" column
+	// (matched by name, case-insensitive). positions has no code column.
+	ListPositionsLookup(ctx context.Context) ([]ListPositionsLookupRow, error)
 	// Flat id/name/code lookup for the cities importer's "provinsi" column
 	// (matched by name OR code, case-insensitive).
 	ListProvincesLookup(ctx context.Context) ([]ListProvincesLookupRow, error)

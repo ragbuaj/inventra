@@ -54,7 +54,7 @@ import (
 // order here is cosmetic but kept aligned with asset/importer.go and
 // masterdata/employee/importer.go's Columns() for readability.
 var assetHeader = []string{"asset_tag", "nama", "kategori", "kantor", "tgl_beli", "harga", "vendor", "lokasi"}
-var employeeHeader = []string{"kode", "nama", "email", "telepon", "kantor", "status"}
+var employeeHeader = []string{"kode", "nama", "email", "telepon", "kantor", "status", "departemen", "jabatan"}
 
 // harness bundles every service the bulk-import pipeline needs, wired exactly
 // like internal/server/router.go wires them in production (NewRouter): one
@@ -142,6 +142,26 @@ func seedOfficeSimple(t *testing.T, pool *pgxpool.Pool, code string) uuid.UUID {
 		`INSERT INTO masterdata.offices (parent_id, office_type_id, name, code)
 		 VALUES (NULL, $1, $2, $3) RETURNING id`,
 		typeID, "Kantor "+code, code).Scan(&id))
+	return id
+}
+
+// seedDepartment inserts a masterdata.departments row and returns its id.
+func seedDepartment(t *testing.T, pool *pgxpool.Pool, name, code string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO masterdata.departments (name, code) VALUES ($1, $2) RETURNING id`,
+		name, code).Scan(&id))
+	return id
+}
+
+// seedPosition inserts a masterdata.positions row and returns its id.
+func seedPosition(t *testing.T, pool *pgxpool.Pool, name string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO masterdata.positions (name) VALUES ($1) RETURNING id`,
+		name).Scan(&id))
 	return id
 }
 
@@ -554,8 +574,8 @@ func TestImport_EmployeeCycle_DuplicateCodeMarkedFailed(t *testing.T) {
 
 	const dupCode = "EMP-DUP-01"
 	csvBytes := buildCSV(t, employeeHeader, [][]string{
-		{dupCode, "Pegawai Bentrok", "bentrok@test.local", "0800000001", "EMP", "active"},
-		{"EMP-OK-01", "Pegawai Selamat", "selamat@test.local", "0800000002", "EMP", "active"},
+		{dupCode, "Pegawai Bentrok", "bentrok@test.local", "0800000001", "EMP", "active", "", ""},
+		{"EMP-OK-01", "Pegawai Selamat", "selamat@test.local", "0800000002", "EMP", "active", "", ""},
 	})
 
 	job, err := h.importSvc.CreateJob(ctx, "employee", "csv", "employee.csv", "text/csv", csvBytes, makerID)
@@ -600,6 +620,74 @@ func TestImport_EmployeeCycle_DuplicateCodeMarkedFailed(t *testing.T) {
 	assert.Equal(t, "dupKode", errs[0].ErrorKey)
 }
 
+// TestImport_EmployeeCycle_DeptPositionResolved is a sibling of
+// TestImport_EmployeeCycle_DuplicateCodeMarkedFailed focused on the new
+// optional "departemen"/"jabatan" columns (Task 1): one row resolves both by
+// name (department by its human name, position by its only lookup key) and,
+// once executed, the created employee carries the resolved department_id /
+// position_id; a second row names a department that does not exist and is
+// rejected at VALIDATION time (department/position resolution has no
+// execute-time re-check, unlike "kode" — see validateEmployeeRows) with the
+// "departemen" error_key, and never reaches Execute at all.
+func TestImport_EmployeeCycle_DeptPositionResolved(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	officeID := seedOfficeSimple(t, h.pool, "DPT")
+	deptID := seedDepartment(t, h.pool, "Teknologi Informasi", "DEPT-TI")
+	posID := seedPosition(t, h.pool, "Staf")
+
+	makerRoleID := seedGlobalMakerRole(t, h.pool, "masterdata.employee.manage")
+	makerID := seedUser(t, h.pool, makerRoleID, nil, "maker.dpt@test.local")
+
+	csvBytes := buildCSV(t, employeeHeader, [][]string{
+		{"EMP-DPT-01", "Pegawai Departemen", "dept@test.local", "0800000101", "DPT", "active", "Teknologi Informasi", "Staf"},
+		{"EMP-DPT-02", "Pegawai Tanpa Departemen", "nodept@test.local", "0800000102", "DPT", "active", "Departemen Hantu", ""},
+	})
+
+	job, err := h.importSvc.CreateJob(ctx, "employee", "csv", "employee-dept.csv", "text/csv", csvBytes, makerID)
+	require.NoError(t, err)
+
+	// --- validate: the unknown department is rejected here, not at execute ---
+	_, err = h.worker.Tick(ctx)
+	require.NoError(t, err)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusValidated, job.Status)
+	assert.EqualValues(t, 1, job.SuccessRows)
+	assert.EqualValues(t, 1, job.FailedRows)
+
+	failedAtValidate, err := h.q.ListImportRows(ctx, sqlc.ListImportRowsParams{JobID: job.ID, OnlyErrors: true, Off: 0, Lim: 20})
+	require.NoError(t, err)
+	require.Len(t, failedAtValidate, 1)
+	var validateErrs []importer.CellError
+	require.NoError(t, json.Unmarshal(failedAtValidate[0].Errors, &validateErrs))
+	require.Len(t, validateErrs, 1)
+	assert.Equal(t, "departemen", validateErrs[0].Column)
+	assert.Equal(t, "departemen", validateErrs[0].ErrorKey)
+
+	// --- confirm + execute (employee target needs no approval) ---
+	job, err = h.importSvc.ConfirmJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	_, err = h.worker.Tick(ctx)
+	require.NoError(t, err)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusCompleted, job.Status)
+	assert.EqualValues(t, 1, job.SuccessRows)
+	assert.EqualValues(t, 1, job.FailedRows, "the row rejected at validation still counts as failed on completion")
+
+	created, err := h.q.GetEmployeeByCode(ctx, "EMP-DPT-01")
+	require.NoError(t, err)
+	require.NotNil(t, created.DepartmentID, "department_id must be resolved and persisted")
+	assert.Equal(t, deptID, *created.DepartmentID)
+	require.NotNil(t, created.PositionID, "position_id must be resolved and persisted")
+	assert.Equal(t, posID, *created.PositionID)
+	assert.Equal(t, officeID, created.OfficeID)
+}
+
 // ─── 5. 403 per permission ──────────────────────────────────────────────────
 
 // TestImport_CreateJob_PermissionDenied verifies POST /imports enforces
@@ -628,7 +716,7 @@ func TestImport_CreateJob_PermissionDenied(t *testing.T) {
 		post("asset", assetHeader, []string{"", "X", "X", "X", "2026-01-01", "1", "", ""}),
 		"Staf lacks asset.manage")
 	assert.Equal(t, http.StatusForbidden,
-		post("employee", employeeHeader, []string{"X", "X", "", "", "X", "active"}),
+		post("employee", employeeHeader, []string{"X", "X", "", "", "X", "active", "", ""}),
 		"Staf lacks masterdata.employee.manage")
 }
 
