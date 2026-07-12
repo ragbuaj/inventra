@@ -464,7 +464,19 @@ func (h *Handler) errorReport(c *gin.Context) {
 	// Serve the durable stored report when present and the requested format
 	// matches what was persisted (job.Format). A mismatched ?format= or a null
 	// key (older jobs) falls through to on-demand generation below.
-	if job.ErrorReportKey != nil && strings.EqualFold(format, job.Format) {
+	//
+	// Approval-gated targets (NeedsApproval()==true, currently only "asset")
+	// are EXCLUDED from this fast path: their real row creation happens later
+	// in the approval executor (see asset/executor.go's assetImportExec.Execute),
+	// which can append execute-time failures (e.g. a mid-batch dup-tag TOCTOU)
+	// to job.FailedRows well after the validate phase already persisted
+	// error_report_key. Serving that stored object would silently omit those
+	// execute-time failures, so approval-gated targets always rebuild the
+	// report fresh from the job's current failed rows instead. Non-approval
+	// targets don't have this gap — their execute phase re-runs
+	// storeErrorReport itself (see worker.go's executePhase), so the stored
+	// object there is always current.
+	if job.ErrorReportKey != nil && !t.NeedsApproval() && strings.EqualFold(format, job.Format) {
 		rc, info, err := h.svc.store.Get(c.Request.Context(), *job.ErrorReportKey)
 		if err == nil {
 			defer rc.Close()

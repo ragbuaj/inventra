@@ -495,10 +495,15 @@ func TestImport_AssetReject_DerivedStatusAndErrorReport(t *testing.T) {
 	assert.Equal(t, "rejected", body["approval_status"], "derived from the approval request, not the job row")
 
 	// Error report: the invalid row (unknown kategori) must be retrievable.
-	// format=csv matches job.Format ("csv"), so this must hit the Task 5
-	// stored-object fast path in the handler and stream the SAME bytes that
-	// were persisted to storage during the validate phase above, not a fresh
-	// on-demand rebuild.
+	// asset is approval-gated (NeedsApproval()==true), so per the followup fix
+	// in handler.go this ALWAYS rebuilds on-demand rather than serving the
+	// stored object at error_report_key (see
+	// TestImport_AssetApprovedExecuteFailure_ErrorReportIncludesExecuteTimeFailure
+	// for why: an asset job's stored report can go stale once execute-time
+	// failures are appended after the validate phase already persisted it).
+	// Content is still byte-identical to what was stored here because nothing
+	// changed the failed-row set between validate and this request (the batch
+	// was rejected, not approved, so no execute-time failures were added).
 	w2 := httptest.NewRecorder()
 	req2, _ := http.NewRequest(http.MethodGet, "/api/v1/imports/"+job.ID.String()+"/error-report?format=csv", nil)
 	r.ServeHTTP(w2, req2)
@@ -607,6 +612,133 @@ func TestImport_AssetMidBatchTagCollision_BatchStillCompletes(t *testing.T) {
 	require.NoError(t, h.pool.QueryRow(ctx,
 		`SELECT count(*) FROM asset.assets WHERE asset_tag = $1`, collidingTag).Scan(&count))
 	assert.Equal(t, 1, count)
+}
+
+// TestImport_AssetApprovedExecuteFailure_ErrorReportIncludesExecuteTimeFailure
+// is the regression test for the stale-stored-report fix in handler.go's
+// errorReport: an asset batch that has BOTH a validate-time failure (unknown
+// kategori) AND, after approval, an execute-time dup-tag collision (the same
+// mid-batch TOCTOU technique as
+// TestImport_AssetMidBatchTagCollision_BatchStillCompletes) on a DIFFERENT
+// row. The validate phase persists error_report_key pointing at an object
+// that only lists the validate-time failure; assetImportExec.Execute (see
+// asset/executor.go) appends the execute-time failure to job.FailedRows but
+// never refreshes that stored object. Before the fix, GET
+// /imports/:id/error-report (format=csv, matching job.Format) would hit the
+// handler's stored-object fast path and silently omit the execute-time
+// failure. After the fix (guard now excludes NeedsApproval() targets), the
+// endpoint always rebuilds on-demand for "asset" and returns both failures.
+func TestImport_AssetApprovedExecuteFailure_ErrorReportIncludesExecuteTimeFailure(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	officeID := seedOfficeSimple(t, h.pool, "STL")
+	catID := seedCategory(t, h.pool, "STL-CAT")
+	seedRoom(t, h.pool, officeID, "Ruang STL")
+
+	makerRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
+	makerID := seedUser(t, h.pool, makerRoleID, nil, "maker.stl@test.local")
+	approverRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
+	approverID := seedUser(t, h.pool, approverRoleID, nil, "approver.stl@test.local")
+
+	const collidingTag = "STL-EXPLICIT-01"
+	csvBytes := buildCSV(t, assetHeader, [][]string{
+		{collidingTag, "Aset Bentrok Eksekusi", "STL-CAT", "STL", "2026-04-01", "3000000", "", "Ruang STL"},
+		{"", "Aset Gagal Validasi", "TIDAK-ADA", "STL", "2026-04-01", "2000000", "", "Ruang STL"}, // unknown kategori -> fails at VALIDATE
+		{"", "Aset Selamat", "STL-CAT", "STL", "2026-04-01", "4000000", "", "Ruang STL"},
+	})
+
+	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "stale.csv", "text/csv", csvBytes, makerID)
+	require.NoError(t, err)
+
+	// --- validate: only "Aset Gagal Validasi" fails (unknown kategori); the
+	// colliding tag is still free at this point, so "Aset Bentrok Eksekusi"
+	// validates fine.
+	_, err = h.worker.Tick(ctx)
+	require.NoError(t, err)
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.EqualValues(t, 3, job.TotalRows)
+	assert.EqualValues(t, 2, job.SuccessRows)
+	assert.EqualValues(t, 1, job.FailedRows)
+	require.NotNil(t, job.ErrorReportKey, "validate phase must persist error_report_key when failed_rows > 0")
+
+	// Snapshot the object the validate phase stored — this is the STALE
+	// report the bug would have served after execute-time failures land.
+	staleRC, _, err := h.store.Get(ctx, *job.ErrorReportKey)
+	require.NoError(t, err)
+	staleBody, err := io.ReadAll(staleRC)
+	require.NoError(t, err)
+	require.NoError(t, staleRC.Close())
+	assert.Contains(t, string(staleBody), "Aset Gagal Validasi")
+	assert.NotContains(t, string(staleBody), "Aset Bentrok Eksekusi",
+		"the validate-phase stored report cannot yet know about the not-yet-occurred execute-time collision")
+
+	// Simulate a tag committed by a concurrent, already-approved batch between
+	// THIS batch's validation and its own approval (same technique as
+	// TestImport_AssetMidBatchTagCollision_BatchStillCompletes).
+	_, err = h.pool.Exec(ctx,
+		`INSERT INTO asset.assets (asset_tag, name, category_id, office_id, asset_class, capitalized, specifications, status)
+		 VALUES ($1, 'Concurrent Winner STL', $2, $3, 'intangible', true, '{}', 'available')`,
+		collidingTag, catID, officeID)
+	require.NoError(t, err)
+
+	// --- confirm + execute: submits the asset_import approval request.
+	job, err = h.importSvc.ConfirmJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	_, err = h.worker.Tick(ctx)
+	require.NoError(t, err)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	require.NotNil(t, job.RequestID)
+
+	// --- approve: assetImportExec.Execute now discovers the mid-batch dup-tag
+	// collision on "Aset Bentrok Eksekusi" and appends it to job.FailedRows,
+	// WITHOUT touching error_report_key.
+	caller := approval.Caller{UserID: approverID, RoleID: approverRoleID, AllScope: true}
+	decided, err := h.approvalSvc.Decide(ctx, *job.RequestID, caller, true, nil)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedRequestStatusApproved, decided.Status)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusCompleted, job.Status)
+	assert.EqualValues(t, 1, job.SuccessRows, "only \"Aset Selamat\" survives to creation")
+	assert.EqualValues(t, 2, job.FailedRows,
+		"1 validate-time failure + 1 execute-time dup-tag collision")
+
+	// error_report_key must still point at the STALE validate-only object —
+	// the executor never refreshes it (that's the bug this test guards
+	// against being reintroduced).
+	stillStaleRC, _, err := h.store.Get(ctx, *job.ErrorReportKey)
+	require.NoError(t, err)
+	stillStaleBody, err := io.ReadAll(stillStaleRC)
+	require.NoError(t, err)
+	require.NoError(t, stillStaleRC.Close())
+	assert.Equal(t, staleBody, stillStaleBody,
+		"the executor does not refresh the stored object — precondition for this regression test")
+
+	// --- the fix under test: GET /imports/:id/error-report must NOT serve
+	// that stale stored object for an approval-gated target — it must rebuild
+	// fresh and include BOTH failed rows.
+	r := newRouter(h, makerID, makerRoleID)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/imports/"+job.ID.String()+"/error-report?format=csv", nil)
+	r.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	report := w.Body.String()
+	assert.Contains(t, report, "Aset Gagal Validasi", "the validate-time failure must still be listed")
+	assert.Contains(t, report, "Aset Bentrok Eksekusi", "the execute-time dup-tag failure must be listed (this is the fix)")
+	assert.NotContains(t, report, "Aset Selamat", "only failed rows are listed in the error report")
+	assert.NotEqual(t, staleBody, w.Body.Bytes(),
+		"the served report must not be the stale validate-only object")
+
+	// The served report's row count must match the job's final FailedRows
+	// (2), not the validate-phase-only count (1) that the stale object holds.
+	reportLines := strings.Split(strings.TrimRight(report, "\n"), "\n")
+	require.Len(t, reportLines, 3, "header + 2 failed rows")
 }
 
 // ─── 4. employee cycle ──────────────────────────────────────────────────────
