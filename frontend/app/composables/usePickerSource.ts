@@ -91,3 +91,27 @@ export function useReferencePicker(resource: ReferenceKey) {
     }
   }
 }
+
+/**
+ * User adapter for AsyncSearchPicker — label = name, sublabel = email.
+ * useUsers() exposes no per-id getter, so resolveFn reaches around via
+ * useApiClient() directly (same pattern as useReferencePicker).
+ */
+export function useUserPicker() {
+  const api = useUsers()
+  const { request } = useApiClient()
+  return {
+    async searchFn(term: string): Promise<PickerItem[]> {
+      const res = await api.list({ search: term, limit: 20, offset: 0 })
+      return res.rows.map(u => ({ id: u.id, label: u.name, sublabel: u.email }))
+    },
+    async resolveFn(id: string): Promise<PickerItem | null> {
+      try {
+        const u = await request<{ id: string, name: string, email: string }>(`/users/${id}`)
+        return { id: u.id, label: u.name, sublabel: u.email }
+      } catch {
+        return null
+      }
+    }
+  }
+}

@@ -10,6 +10,7 @@ const ALL = '__all__'
 
 const { t, te } = useI18n()
 const { list } = useAudit()
+const actor = useUserPicker()
 
 const rows = ref<AuditRow[]>([])
 const total = ref(0)
@@ -20,6 +21,7 @@ const dateFrom = ref('')
 const dateTo = ref('')
 const fAction = ref(ALL)
 const fEntity = ref(ALL)
+const fActorId = ref<string | null>(null)
 const page = ref(1)
 const openId = ref<string | null>(null)
 
@@ -47,7 +49,7 @@ const entityOptions = computed(() => [
 ])
 
 const anyFilter = computed(() =>
-  !!(search.value.trim() || dateFrom.value || dateTo.value || fAction.value !== ALL || fEntity.value !== ALL)
+  !!(search.value.trim() || dateFrom.value || dateTo.value || fAction.value !== ALL || fEntity.value !== ALL || fActorId.value)
 )
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
 const pageInfo = computed(() => {
@@ -74,6 +76,7 @@ function resetFilters() {
   dateTo.value = ''
   fAction.value = ALL
   fEntity.value = ALL
+  fActorId.value = null
   page.value = 1
 }
 
@@ -85,11 +88,12 @@ async function load() {
       search: search.value.trim() || undefined,
       entity_type: fEntity.value !== ALL ? fEntity.value : undefined,
       action: fAction.value !== ALL ? (fAction.value as AuditAction) : undefined,
+      actor_id: fActorId.value ?? undefined,
       from: toRfc(dateFrom.value, false),
       to: toRfc(dateTo.value, true),
       limit: PAGE_SIZE,
       offset: (page.value - 1) * PAGE_SIZE
-    })
+    }, t)
     rows.value = res.rows
     total.value = res.total
   } catch {
@@ -99,7 +103,7 @@ async function load() {
   }
 }
 
-watch([search, dateFrom, dateTo, fAction, fEntity], () => {
+watch([search, dateFrom, dateTo, fAction, fEntity, fActorId], () => {
   page.value = 1
   load()
 })
@@ -149,6 +153,16 @@ onMounted(() => load())
           :aria-label="t('settings.audit.dateTo')"
         />
       </div>
+      <AsyncSearchPicker
+        :model-value="fActorId"
+        :search-fn="actor.searchFn"
+        :resolve-fn="actor.resolveFn"
+        :placeholder="t('settings.audit.filter.actor')"
+        testid="audit-actor"
+        clearable
+        class="min-w-[190px]"
+        @update:model-value="fActorId = $event"
+      />
       <USelect
         v-model="fAction"
         :items="actionOptions"
@@ -221,7 +235,10 @@ onMounted(() => load())
                 {{ t('settings.audit.columns.entity') }}
               </th>
               <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase text-muted">
-                IP
+                {{ t('settings.audit.columns.summary') }}
+              </th>
+              <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase text-muted whitespace-nowrap">
+                {{ t('settings.audit.columns.office') }}
               </th>
             </tr>
           </thead>
@@ -259,6 +276,12 @@ onMounted(() => load())
                       <div class="text-[13px] font-medium whitespace-nowrap">
                         {{ r.actor }}
                       </div>
+                      <div
+                        v-if="r.role"
+                        class="text-[11.5px] text-dimmed whitespace-nowrap"
+                      >
+                        {{ r.role }}
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -278,8 +301,16 @@ onMounted(() => load())
                 <td class="px-3.5 py-3 text-muted whitespace-nowrap">
                   {{ entityLabel(r.entity_type) }}
                 </td>
-                <td class="px-3.5 py-3 font-mono text-[12px] text-dimmed whitespace-nowrap">
-                  {{ r.ip }}
+                <td class="px-3.5 py-3 max-w-[320px]">
+                  <span class="block overflow-hidden text-ellipsis whitespace-nowrap">{{ r.summary }}</span>
+                </td>
+                <td class="px-3.5 py-3 whitespace-nowrap">
+                  <div class="text-[13px] text-muted">
+                    {{ r.office_name || '—' }}
+                  </div>
+                  <div class="text-[11.5px] font-mono text-dimmed">
+                    {{ r.ip }}
+                  </div>
                 </td>
               </tr>
               <tr
@@ -287,7 +318,7 @@ onMounted(() => load())
                 class="bg-muted"
               >
                 <td
-                  colspan="6"
+                  colspan="7"
                   class="px-4 pb-4 ps-[47px]"
                 >
                   <div class="bg-elevated border border-default rounded-[10px] overflow-hidden">

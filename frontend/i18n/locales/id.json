@@ -1356,7 +1356,8 @@
       "filter": {
         "allActors": "Semua Aktor",
         "allActions": "Semua Aksi",
-        "allEntities": "Semua Entitas"
+        "allEntities": "Semua Entitas",
+        "actor": "Filter aktor…"
       },
       "action": {
         "create": "Buat",
@@ -1384,6 +1385,13 @@
       },
       "loadError": "Gagal memuat audit trail.",
       "retry": "Coba lagi"
+    }
+  },
+  "audit": {
+    "summary": {
+      "create": "Membuat {entity} {id}",
+      "update": "Mengubah {count} field pada {entity} {id}",
+      "delete": "Menghapus {entity} {id}"
     }
   },
   "dashboard": {

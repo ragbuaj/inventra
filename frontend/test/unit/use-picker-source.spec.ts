@@ -16,11 +16,14 @@ const listCategories = vi.fn()
 const getCategory = vi.fn()
 vi.mock('~/composables/api/useCategories', () => ({ useCategories: () => ({ list: listCategories, get: getCategory }) }))
 
+const listUsers = vi.fn()
+vi.mock('~/composables/api/useUsers', () => ({ useUsers: () => ({ list: listUsers }) }))
+
 const request = vi.fn()
 vi.mock('~/composables/useApiClient', () => ({ useApiClient: () => ({ request }) }))
 
 // eslint-disable-next-line import/first
-import { useOfficePicker, useEmployeePicker, useReferencePicker, useCategoryPicker } from '~/composables/usePickerSource'
+import { useOfficePicker, useEmployeePicker, useReferencePicker, useCategoryPicker, useUserPicker } from '~/composables/usePickerSource'
 
 beforeEach(() => {
   listOffices.mockReset()
@@ -30,6 +33,7 @@ beforeEach(() => {
   listReference.mockReset()
   listCategories.mockReset()
   getCategory.mockReset()
+  listUsers.mockReset()
   request.mockReset()
 })
 
@@ -135,6 +139,29 @@ describe('useCategoryPicker', () => {
   it('resolveFn resolves to null when the category fetch fails (e.g. 404) instead of rejecting', async () => {
     getCategory.mockRejectedValueOnce(new Error('not found'))
     const { resolveFn } = useCategoryPicker()
+    await expect(resolveFn('missing')).resolves.toBeNull()
+  })
+})
+
+describe('useUserPicker', () => {
+  it('searchFn maps users to picker items (label=name, sublabel=email)', async () => {
+    listUsers.mockResolvedValueOnce({ rows: [{ id: 'u1', name: 'Budi', email: 'b@x.id' }], total: 1 })
+    const { searchFn } = useUserPicker()
+    const items = await searchFn('budi')
+    expect(listUsers).toHaveBeenCalledWith({ search: 'budi', limit: 20, offset: 0 })
+    expect(items).toEqual([{ id: 'u1', label: 'Budi', sublabel: 'b@x.id' }])
+  })
+
+  it('resolveFn GETs /users/:id directly (useUsers exposes no per-id getter) and maps the row', async () => {
+    request.mockResolvedValueOnce({ id: 'u1', name: 'Budi', email: 'b@x.id' })
+    const { resolveFn } = useUserPicker()
+    expect(await resolveFn('u1')).toEqual({ id: 'u1', label: 'Budi', sublabel: 'b@x.id' })
+    expect(request).toHaveBeenCalledWith('/users/u1')
+  })
+
+  it('resolveFn resolves to null when the user fetch fails (e.g. 404) instead of rejecting', async () => {
+    request.mockRejectedValueOnce(new Error('not found'))
+    const { resolveFn } = useUserPicker()
     await expect(resolveFn('missing')).resolves.toBeNull()
   })
 })

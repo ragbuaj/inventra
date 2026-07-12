@@ -1356,7 +1356,8 @@
       "filter": {
         "allActors": "All Actors",
         "allActions": "All Actions",
-        "allEntities": "All Entities"
+        "allEntities": "All Entities",
+        "actor": "Filter by actor…"
       },
       "action": {
         "create": "Create",
@@ -1384,6 +1385,13 @@
       },
       "loadError": "Failed to load the audit trail.",
       "retry": "Retry"
+    }
+  },
+  "audit": {
+    "summary": {
+      "create": "Created {entity} {id}",
+      "update": "Changed {count} field(s) on {entity} {id}",
+      "delete": "Deleted {entity} {id}"
     }
   },
   "dashboard": {
