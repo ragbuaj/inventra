@@ -129,6 +129,18 @@ function cellError(r: ImportRow, col: string): ImportCellError | undefined {
 function cellClass(r: ImportRow, col: string): string {
   return cellError(r, col) ? 'bg-error/10 text-error' : ''
 }
+// Asset-specific cell styling to match the Import Aset mockup (asset_tag is
+// monospaced). Other targets fall back to the plain generic cell.
+function cellExtraClass(col: string): string {
+  return isAsset.value && col === 'asset_tag' ? 'font-mono text-[12px]' : ''
+}
+// Asset-specific cell display: the harga column carries a "Rp" prefix when it
+// holds a numeric value, mirroring the mockup. Everything else renders raw.
+function cellDisplay(r: ImportRow, col: string): string {
+  const v = importRowValue(r, col)
+  if (isAsset.value && col === 'harga' && v && /^[\d.,]+$/.test(v)) return `Rp ${v}`
+  return v || '—'
+}
 function cellErrorMsg(r: ImportRow, col: string): string {
   const e = cellError(r, col)
   return e ? errKeyMsg(e.error_key) : ''
@@ -682,10 +694,10 @@ onMounted(async () => {
                   v-for="col in dataColumns"
                   :key="col"
                   class="px-3 py-2.5"
-                  :class="cellClass(r, col)"
+                  :class="[cellClass(r, col), cellExtraClass(col)]"
                   :title="cellErrorMsg(r, col)"
                 >
-                  {{ importRowValue(r, col) || '—' }}
+                  {{ cellDisplay(r, col) }}
                 </td>
                 <td
                   class="px-3 py-2.5"
