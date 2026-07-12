@@ -353,6 +353,88 @@ describe('Master Pegawai page — office filter', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Server-side pagination (Task 6) — the default (no extra filter) table load
+// is a real GET /employees?limit=20&offset=... instead of the old eager
+// `{ limit: 100 }` client-paginated load.
+// ---------------------------------------------------------------------------
+
+describe('Master Pegawai page — server-side pagination', () => {
+  it('the initial table load calls GET /employees with limit=20&offset=0 (not limit=100)', async () => {
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/employees?')) {
+        captured = path
+        return makeEmployeesResponse()
+      }
+      return defaultHandler(path, opts)
+    })
+    await mountAndWait()
+    expect(captured).toContain('limit=20')
+    expect(captured).toContain('offset=0')
+  })
+
+  it('clicking page 2 sends offset=20 to GET /employees (no extra filter active)', async () => {
+    setHandler((path, opts) => {
+      if (path.startsWith('/employees?')) return makeEmployeesResponse(EMPLOYEES, 45)
+      return defaultHandler(path, opts)
+    })
+    const wrapper = await mountAndWait()
+
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/employees?')) {
+        captured = path
+        return makeEmployeesResponse(EMPLOYEES, 45)
+      }
+      return defaultHandler(path, opts)
+    })
+
+    const page2 = wrapper.findAll('button').find(b => b.text().trim() === '2')
+    expect(page2).toBeDefined()
+    await page2!.trigger('click')
+    await new Promise(r => setTimeout(r, 400))
+    await wrapper.vm.$nextTick()
+
+    expect(captured).toContain('offset=20')
+    expect(captured).toContain('limit=20')
+  })
+
+  it('typing in the search box debounces ~300ms then calls GET /employees with search=', async () => {
+    const wrapper = await mountAndWait()
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/employees?')) {
+        captured = path
+        return makeEmployeesResponse()
+      }
+      return defaultHandler(path, opts)
+    })
+    vi.useFakeTimers()
+    ;(wrapper.vm as unknown as { search: string }).search = 'Andi'
+    await vi.advanceTimersByTimeAsync(0)
+    expect(captured).toBeUndefined()
+    await vi.advanceTimersByTimeAsync(300)
+    vi.useRealTimers()
+    await flushPromises()
+    expect(captured).toContain('search=Andi')
+  })
+
+  it('an "extra" filter (office) switches the table to the client-filtered `limit=100` batch instead of server pagination', async () => {
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/employees?')) {
+        captured = path
+        return makeEmployeesResponse()
+      }
+      return defaultHandler(path, opts)
+    })
+    const wrapper = await mountAndWait()
+    await setVmRef(wrapper, 'filterOffice', 'o1')
+    expect(captured).toContain('limit=100')
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Filter: department
 // ---------------------------------------------------------------------------
 

@@ -14,10 +14,22 @@ const refApi = useReference()
 
 const ALL = '__all__'
 
+// `allRows` holds one of two shapes depending on whether an "extra" filter
+// (office/dept/position/jabatan/status — none of which the backend list
+// endpoint accepts as query params, unlike `search`) is active:
+//  - no extra filter: the current *server* page (real pagination — limit 20 +
+//    offset, `serverTotal` from the response). No more eager `{ limit: 100 }`
+//    load, so browsing beyond 100 employees works.
+//  - an extra filter active: an up-to-100-row search-scoped batch, filtered
+//    and paginated client-side (same 100-row ceiling as before Task 6 — not a
+//    regression, just preserved until the backend grows office/dept/position/
+//    status query params).
 const allRows = ref<Employee[]>([])
+const serverTotal = ref(0)
 const limit = ref(20)
 const offset = ref(0)
 const search = ref('')
+const debouncedSearch = ref('')
 const filterOffice = ref<string | null>(null)
 const filterDept = ref(ALL)
 const filterPosition = ref(ALL)
@@ -26,15 +38,7 @@ const sorting = ref<TableSorting>([])
 const loading = ref(true)
 const loadFailed = ref(false)
 
-const filtering = ref(false)
-let filterTimer: ReturnType<typeof setTimeout> | undefined
-function pulseFilterLoading() {
-  filtering.value = true
-  if (filterTimer) clearTimeout(filterTimer)
-  filterTimer = setTimeout(() => {
-    filtering.value = false
-  }, 300)
-}
+let searchTimer: ReturnType<typeof setTimeout> | undefined
 
 // Office: async search picker (no more eager `{ limit: 100 }` list) — the
 // table's office_id→name cell resolves lazily via the same adapter's
@@ -84,14 +88,19 @@ function initials(name: string): string {
   return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase()
 }
 
+const anyExtraFilter = computed(() =>
+  !!(filterOffice.value || filterDept.value !== ALL || filterPosition.value !== ALL || filterStatus.value !== ALL)
+)
 const anyFilterActive = computed(() =>
-  !!(search.value.trim() || filterOffice.value || filterDept.value !== ALL || filterPosition.value !== ALL || filterStatus.value !== ALL)
+  !!(search.value.trim() || anyExtraFilter.value)
 )
 
+// Client-side narrowing — only applied in "extra filter" mode (see the
+// `allRows` comment above). In server-paginated mode `allRows` is already
+// exactly the rows to display.
 const filteredRows = computed(() => {
-  const q = search.value.trim().toLowerCase()
+  if (!anyExtraFilter.value) return allRows.value
   return allRows.value.filter((r) => {
-    if (q && !r.name.toLowerCase().includes(q) && !r.code.toLowerCase().includes(q) && !(r.email ?? '').toLowerCase().includes(q)) return false
     if (filterOffice.value && r.office_id !== filterOffice.value) return false
     if (filterDept.value !== ALL && r.department_id !== filterDept.value) return false
     if (filterPosition.value !== ALL && r.position_id !== filterPosition.value) return false
@@ -101,19 +110,33 @@ const filteredRows = computed(() => {
 })
 
 const sortedRows = computed(() => sortRows(filteredRows.value, sorting.value))
-const paginatedRows = computed(() => sortedRows.value.slice(offset.value, offset.value + limit.value))
+// Server-paginated mode already sliced to the current page server-side.
+const paginatedRows = computed(() => anyExtraFilter.value ? sortedRows.value.slice(offset.value, offset.value + limit.value) : sortedRows.value)
 const tableRows = computed(() => paginatedRows.value.map(r => ({ ...r })))
+const displayTotal = computed(() => anyExtraFilter.value ? filteredRows.value.length : serverTotal.value)
 
+let seq = 0
 async function refresh() {
+  const mine = ++seq
   loading.value = true
   loadFailed.value = false
   try {
-    const res = await api.list({ limit: 100 })
-    allRows.value = res.data
+    const searchParam = debouncedSearch.value.trim() || undefined
+    if (anyExtraFilter.value) {
+      const res = await api.list({ search: searchParam, limit: 100 })
+      if (mine !== seq) return
+      allRows.value = res.data
+    } else {
+      const res = await api.list({ search: searchParam, limit: limit.value, offset: offset.value })
+      if (mine !== seq) return
+      allRows.value = res.data
+      serverTotal.value = res.total
+    }
   } catch {
+    if (mine !== seq) return
     loadFailed.value = true
   } finally {
-    loading.value = false
+    if (mine === seq) loading.value = false
   }
 }
 
@@ -186,6 +209,7 @@ function rowActions(row: Record<string, unknown>): RowAction[] {
 
 function resetFilters() {
   search.value = ''
+  debouncedSearch.value = ''
   filterOffice.value = null
   filterDept.value = ALL
   filterPosition.value = ALL
@@ -193,17 +217,38 @@ function resetFilters() {
   offset.value = 0
 }
 
-watch([search, filterOffice, filterDept, filterPosition, filterStatus], () => {
+watch(search, (v) => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    debouncedSearch.value = v
+  }, 300)
+})
+
+watch([debouncedSearch, filterOffice, filterDept, filterPosition, filterStatus], () => {
+  // In server-paginated mode, resetting a non-zero offset to 0 below already
+  // triggers the offset watcher's own refresh() — calling refresh() again
+  // here would double-fire. In client-filtered mode, offset resets don't
+  // refetch (see the offset watcher), so this must always explicitly
+  // refresh. `anyExtraFilter` reflects the *new* filter state already (this
+  // watcher fires reacting to it), so it also covers mode switches.
+  const wasFirstPage = offset.value === 0
   offset.value = 0
-  pulseFilterLoading()
+  if (anyExtraFilter.value || wasFirstPage) refresh()
 })
 watch(sorting, () => {
   offset.value = 0
+})
+watch(offset, () => {
+  if (!anyExtraFilter.value) refresh()
 })
 
 onMounted(() => {
   refresh()
   loadFkData()
+})
+
+onUnmounted(() => {
+  if (searchTimer) clearTimeout(searchTimer)
 })
 </script>
 
@@ -310,8 +355,8 @@ onMounted(() => {
       v-model:sorting="sorting"
       :rows="(tableRows as unknown as Record<string, unknown>[])"
       :columns="columns"
-      :loading="loading || filtering"
-      :total="filteredRows.length"
+      :loading="loading"
+      :total="displayTotal"
       :limit="limit"
       :offset="offset"
       :empty-title="anyFilterActive ? t('masterdata.employees.emptyFilter') : t('masterdata.employees.empty')"

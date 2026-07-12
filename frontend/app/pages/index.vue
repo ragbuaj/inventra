@@ -3,8 +3,6 @@ import type { DashboardSummary, MaintenanceItem, ApprovalItem } from '~/composab
 import { useDashboard } from '~/composables/api/useDashboard'
 import type { ApprovalRequestRow } from '~/composables/api/useApproval'
 import { useApproval } from '~/composables/api/useApproval'
-import { useOffices } from '~/composables/api/useOffices'
-import type { Office } from '~/types'
 import type { PeriodValue } from '~/constants/reportMeta'
 import { formatMoneyShort, formatTrendPct } from '~/constants/reportMeta'
 import { TYPE_META } from '~/constants/approvalMeta'
@@ -27,6 +25,7 @@ const can = useCan()
 const { summary, exportSummary } = useDashboard()
 const approvalApi = useApproval()
 const officesApi = useOffices()
+const office = useOfficePicker()
 
 const canDecide = computed(() => can('request.decide'))
 const canExport = computed(() => can('report.export'))
@@ -34,29 +33,31 @@ const canExport = computed(() => can('report.export'))
 // ---------------------------------------------------------------------------
 // Filters + state
 // ---------------------------------------------------------------------------
-// 'all' sentinel (not '') because Reka UI's SelectItem forbids an empty-string value.
-const ALL_OFFICES = 'all'
-const officeId = ref<string>(ALL_OFFICES)
+const officeId = ref<string | null>(null)
 const period = ref<PeriodValue>({ preset: 'last30' })
 const data = ref<DashboardSummary | null>(null)
 const inboxItems = ref<ApprovalRequestRow[]>([])
-const offices = ref<Office[]>([])
+// Only the caller's in-scope office *count* is needed (to decide whether to
+// show the switcher at all) — no more eager `{ limit: 100 }` office list; the
+// switcher itself is an async search picker.
+const officeCount = ref(0)
 const loading = ref(true)
 const loadError = ref(false)
 const busy = ref<Set<string>>(new Set())
 const exporting = ref<'pdf' | 'xlsx' | null>(null)
 
-const officeOptions = computed(() => [
-  { value: ALL_OFFICES, label: t('dashboard.allOfficesInScope') },
-  ...offices.value.map(o => ({ value: o.id, label: o.name }))
-])
 // Hide the whole control when the caller's scope holds a single office (nothing to switch).
-const showOfficeSelect = computed(() => offices.value.length > 1)
+const showOfficeSelect = computed(() => officeCount.value > 1)
 
 const scopeName = computed(() => data.value?.office_name ?? t('dashboard.scopeAll'))
 
 function currentQuery() {
-  return { officeId: officeId.value === ALL_OFFICES ? undefined : officeId.value, period: period.value }
+  return { officeId: officeId.value ?? undefined, period: period.value }
+}
+
+function onOfficeChange(id: string | null) {
+  officeId.value = id
+  load()
 }
 
 async function load() {
@@ -78,12 +79,12 @@ async function load() {
   }
 }
 
-async function loadOffices() {
+async function loadOfficeCount() {
   try {
-    const res = await officesApi.list({ limit: 100 })
-    offices.value = res.data
+    const res = await officesApi.list({ limit: 1 })
+    officeCount.value = res.total
   } catch {
-    offices.value = []
+    officeCount.value = 0
   }
 }
 
@@ -259,12 +260,12 @@ const skeletonKpis = [0, 1, 2, 3, 4, 5]
 
 onMounted(() => {
   load()
-  loadOffices()
+  loadOfficeCount()
 })
 
 // Driving the teleported dropdown menu via DOM is brittle (see PeriodFilter);
 // expose doExport so the export flow is testable deterministically.
-defineExpose({ doExport, load })
+defineExpose({ doExport, load, officeId })
 </script>
 
 <template>
@@ -298,14 +299,16 @@ defineExpose({ doExport, load })
           label-base="dashboard.period"
           @update:model-value="load"
         />
-        <USelect
+        <AsyncSearchPicker
           v-if="showOfficeSelect"
-          v-model="officeId"
-          :items="officeOptions"
-          value-key="value"
-          data-testid="dashboard-office-select"
+          :model-value="officeId"
+          :search-fn="office.searchFn"
+          :resolve-fn="office.resolveFn"
+          :placeholder="t('common.searchOffice')"
+          testid="dashboard-office"
+          clearable
           class="min-w-[200px]"
-          @update:model-value="load"
+          @update:model-value="onOfficeChange"
         />
         <UButton
           icon="i-lucide-refresh-cw"

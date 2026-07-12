@@ -23,13 +23,14 @@ afterAll(() => {
 // ---------------------------------------------------------------------------
 // Composable mocks (controllable per test)
 // ---------------------------------------------------------------------------
-const { summaryMock, exportMock, inboxMock, approveMock, rejectMock, officesListMock, toastAddMock } = vi.hoisted(() => ({
+const { summaryMock, exportMock, inboxMock, approveMock, rejectMock, officesListMock, officesGetMock, toastAddMock } = vi.hoisted(() => ({
   summaryMock: vi.fn(),
   exportMock: vi.fn(),
   inboxMock: vi.fn(),
   approveMock: vi.fn(),
   rejectMock: vi.fn(),
   officesListMock: vi.fn(),
+  officesGetMock: vi.fn(),
   toastAddMock: vi.fn()
 }))
 
@@ -40,7 +41,7 @@ vi.mock('~/composables/api/useApproval', () => ({
   useApproval: () => ({ inbox: inboxMock, approve: approveMock, reject: rejectMock, list: vi.fn(), get: vi.fn() })
 }))
 vi.mock('~/composables/api/useOffices', () => ({
-  useOffices: () => ({ list: officesListMock, get: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() })
+  useOffices: () => ({ list: officesListMock, get: officesGetMock, create: vi.fn(), update: vi.fn(), remove: vi.fn() })
 }))
 mockNuxtImport('useToast', () => () => ({ add: toastAddMock }))
 
@@ -122,6 +123,11 @@ beforeEach(() => {
   approveMock.mockReset().mockResolvedValue({})
   rejectMock.mockReset().mockResolvedValue({})
   officesListMock.mockReset().mockResolvedValue({ data: [office('o1', 'Kantor A'), office('o2', 'Kantor B')], total: 2, limit: 100, offset: 0 })
+  officesGetMock.mockReset().mockImplementation(async (id: string) => {
+    const found = [office('o1', 'Kantor A'), office('o2', 'Kantor B')].find(o => o.id === id)
+    if (!found) throw Object.assign(new Error('not found'), { statusCode: 404 })
+    return found
+  })
   toastAddMock.mockReset()
   ;(URL as unknown as { createObjectURL: unknown }).createObjectURL = vi.fn(() => 'blob:mock')
   ;(URL as unknown as { revokeObjectURL: unknown }).revokeObjectURL = vi.fn()
@@ -387,12 +393,51 @@ describe('Dashboard page — office select', () => {
   it('is hidden when the scope holds a single office', async () => {
     officesListMock.mockResolvedValue({ data: [office('o1', 'Kantor A')], total: 1, limit: 100, offset: 0 })
     const wrapper = await mountPage()
-    expect(wrapper.find('[data-testid="dashboard-office-select"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="dashboard-office-picker-input"]').exists()).toBe(false)
   })
 
   it('is shown when the scope holds more than one office', async () => {
     const wrapper = await mountPage()
-    expect(wrapper.find('[data-testid="dashboard-office-select"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="dashboard-office-picker-input"]').exists()).toBe(true)
+  })
+
+  it('selecting an office (via the picker) reloads with officeId', async () => {
+    const wrapper = await mountPage()
+    summaryMock.mockClear()
+
+    vi.useFakeTimers()
+    await wrapper.find('[data-testid="dashboard-office-picker-input"]').setValue('Kantor B')
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    const item = wrapper.findAll('[data-testid="dashboard-office-picker-item"]').find(i => i.text().includes('Kantor B'))
+    expect(item).toBeDefined()
+    // vi.useRealTimers() must run *after* the click — see the equivalent
+    // comment in async-search-picker.spec.ts (Vue's own-event guard silently
+    // swallows a click whose timeStamp lands behind the fake-advanced clock).
+    await item!.trigger('click')
+    vi.useRealTimers()
+    await flushPromises()
+    expect(summaryMock).toHaveBeenLastCalledWith(expect.objectContaining({ officeId: 'o2' }))
+  })
+
+  it('clearing the office filter picker resets officeId to null and reloads without officeId', async () => {
+    const wrapper = await mountPage()
+    ;(wrapper.vm as unknown as { officeId: string | null }).officeId = 'o1'
+    await (wrapper.vm as unknown as { load: () => Promise<void> }).load()
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+    summaryMock.mockClear()
+
+    const clearBtn = wrapper.find('[data-testid="dashboard-office-picker-clear"]')
+    expect(clearBtn.exists()).toBe(true)
+    await clearBtn.trigger('click')
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    expect((wrapper.vm as unknown as { officeId: string | null }).officeId).toBeNull()
+    expect(summaryMock).toHaveBeenLastCalledWith(expect.objectContaining({ officeId: undefined }))
   })
 })
 

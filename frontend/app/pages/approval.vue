@@ -27,7 +27,7 @@ const TIMELINE_DOT: Record<string, string> = {
 const { t, locale } = useI18n()
 const api = useApproval()
 const categoriesApi = useCategories()
-const officesApi = useOffices()
+const office = useOfficePicker()
 const referenceApi = useReference()
 const assetsApi = useAssets()
 const attachmentsApi = useAssetAttachments()
@@ -45,8 +45,10 @@ const note = ref('')
 const deciding = ref(false)
 
 // FK name lookups for the Data section (same inline pattern as master/employees).
+// Office resolves on demand via useResolveCache — no more eager
+// `{ limit: 100 }` list (a mutasi payload's from/to office id can be outside it).
 const categoryMap = ref(new Map<string, string>())
-const officeMap = ref(new Map<string, string>())
+const officeCache = useResolveCache(office.resolveFn)
 const problemCategoryMap = ref(new Map<string, string>())
 // Best-effort asset name/tag resolution for maintenance-type payloads (asset_id
 // isn't enriched server-side) — mirrors peminjaman.vue's resolveAssetName.
@@ -166,7 +168,7 @@ const view = computed(() => {
   const meta = TYPE_META[d.type]
   const dataView = payloadToView(d, t, {
     categoryName: id => categoryMap.value.get(id),
-    officeName: id => officeMap.value.get(id),
+    officeName: id => officeCache.get(id),
     assetName: (id) => {
       const known = assetNameCache.value.get(id)
       return known ? `${known.name} · ${known.tag}` : undefined
@@ -283,14 +285,9 @@ async function decide(action: 'approve' | 'reject') {
 
 async function loadLookups() {
   try {
-    const [cats, offs] = await Promise.all([
-      categoriesApi.tree(),
-      officesApi.list({ limit: 100 })
-    ])
-    categoryMap.value = new Map(cats.map(c => [c.id, c.name]))
-    officeMap.value = new Map(offs.data.map(o => [o.id, o.name]))
+    categoryMap.value = new Map((await categoriesApi.tree()).map(c => [c.id, c.name]))
   } catch {
-    // Lookups are best-effort; the mapper falls back to raw ids.
+    // Best-effort; the mapper falls back to raw ids.
   }
   try {
     const problems = await referenceApi.list('problem-categories', { limit: 100 })

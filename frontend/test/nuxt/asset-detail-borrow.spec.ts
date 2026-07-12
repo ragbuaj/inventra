@@ -112,6 +112,11 @@ function defaultHandler(asset: Record<string, unknown>): RequestHandler {
     }
     if (path.match(/\/assets\/[^/]+\/attachments$/)) return { data: [], total: 0, limit: 20, offset: 0 }
     if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
+    // GET /offices/:id (resolve-cache) must be matched before the plain list route.
+    if (/^\/offices\/[^/?]+$/.test(path)) {
+      const id = path.split('/')[2]
+      return OFFICES.find(o => o.id === id) ?? null
+    }
     if (path.startsWith('/offices')) return { data: OFFICES, total: OFFICES.length, limit: 100, offset: 0 }
     if (path.startsWith('/brands')) return { data: BRANDS, total: BRANDS.length, limit: 100, offset: 0 }
     if (path.startsWith('/models')) return { data: MODELS, total: MODELS.length, limit: 100, offset: 0 }

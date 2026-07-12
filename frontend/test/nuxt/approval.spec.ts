@@ -30,15 +30,34 @@ vi.mock('~/composables/api/useApproval', () => ({
 // useCategories()/useOffices() lookups both go through useApiClient — stub it to avoid network.
 type RequestHandler = (path: string, opts?: Record<string, unknown>) => unknown
 
+const OFFICES = [
+  { id: 'o1', name: 'Cabang Alpha', code: 'ALPHA' },
+  { id: 'o2', name: 'Cabang Beta', code: 'BETA' }
+]
+
 let _blobHandler: RequestHandler = () => new Blob(['x'], { type: 'image/jpeg' })
+// GET /offices/:id (resolve-cache) resolves from OFFICES; everything else
+// (categories/tree, problem-categories, plain /offices list) defaults to an
+// empty list — the mapper falls back to raw ids, matching prior behavior.
+let _requestHandler: RequestHandler = (path) => {
+  const m = /^\/offices\/([^/?]+)$/.exec(path)
+  if (m) return OFFICES.find(o => o.id === m[1]) ?? null
+  return { data: [] }
+}
 
 function setBlobHandler(fn: RequestHandler) {
   _blobHandler = fn
 }
+function setRequestHandler(fn: RequestHandler) {
+  _requestHandler = fn
+}
 
 vi.mock('~/composables/useApiClient', () => ({
   useApiClient: () => ({
-    request: vi.fn().mockResolvedValue({ data: [] }),
+    request: (path: string, opts?: Record<string, unknown>) => {
+      const res = _requestHandler(path, opts)
+      return res instanceof Promise ? res : Promise.resolve(res)
+    },
     requestBlob: (path: string, opts?: Record<string, unknown>) => {
       const res = _blobHandler(path, opts)
       return res instanceof Promise ? res : Promise.resolve(res)
@@ -59,6 +78,12 @@ beforeEach(() => {
   rejectMock.mockResolvedValue(row({ status: 'rejected' }))
   // Reset blob handler to default (pass-through)
   setBlobHandler(() => new Blob(['x'], { type: 'image/jpeg' }))
+  // Reset the request handler to the default /offices/:id resolver.
+  setRequestHandler((path) => {
+    const m = /^\/offices\/([^/?]+)$/.exec(path)
+    if (m) return OFFICES.find(o => o.id === m[1]) ?? null
+    return { data: [] }
+  })
 })
 
 describe('pages/approval — wired', () => {
@@ -108,6 +133,28 @@ describe('pages/approval — wired', () => {
     expect(getMock).toHaveBeenCalledWith('r1')
     expect(w.text()).toContain('Laptop A')
     expect(w.text()).toContain('Mengajukan permintaan')
+  })
+
+  it('resolves a mutasi (asset_transfer) request\'s from/to office ids to names via the resolve cache — not the raw id', async () => {
+    inboxMock.mockResolvedValue([row({ id: 'r2', type: 'asset_transfer' })])
+    getMock.mockResolvedValue(detail({
+      id: 'r2', type: 'asset_transfer',
+      payload: { from_office_id: 'o1', to_office_id: 'o2' }
+    }))
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    await w.find('[data-testid="approval-card"]').trigger('click')
+    await flushPromises()
+    await w.vm.$nextTick()
+    // The resolve-cache's resolveFn(id) call is async (GET /offices/:id) —
+    // one more flush+tick settles it.
+    await flushPromises()
+    await w.vm.$nextTick()
+
+    expect(w.text()).toContain('Cabang Alpha')
+    expect(w.text()).toContain('Cabang Beta')
+    expect(w.text()).not.toContain('o1')
+    expect(w.text()).not.toContain('o2')
   })
 
   it('approve sends the note and refreshes', async () => {

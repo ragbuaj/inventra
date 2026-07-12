@@ -105,6 +105,14 @@ function makeOfficesResponse(rows = OFFICES) {
   return { data: rows, total: rows.length, limit: 100, offset: 0 }
 }
 
+// GET /offices/:id (picker resolveFn / resolve-cache) must be matched before
+// the plain GET /offices list route below — both share the '/offices' prefix.
+function officesHandler(path: string): unknown {
+  const m = /^\/offices\/([^/?]+)$/.exec(path)
+  if (m) return OFFICES.find(o => o.id === m[1]) ?? null
+  return makeOfficesResponse()
+}
+
 function makeBrandsResponse(rows = BRANDS) {
   return { data: rows, total: rows.length, limit: 100, offset: 0 }
 }
@@ -131,7 +139,7 @@ function defaultHandler(path: string, opts?: Record<string, unknown>): unknown {
   if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
   if (path.startsWith('/brands')) return makeBrandsResponse()
   if (path.startsWith('/models')) return makeModelsResponse()
-  if (path.startsWith('/offices')) return makeOfficesResponse()
+  if (path.startsWith('/offices')) return officesHandler(path)
   throw new Error(`Unhandled request: ${path} ${JSON.stringify(opts)}`)
 }
 
@@ -157,6 +165,11 @@ beforeEach(() => {
 
 async function mountAndWait() {
   const wrapper = await mountSuspended(CatalogPage)
+  await flushPromises()
+  await wrapper.vm.$nextTick()
+  // A second flush+tick lets the office resolve-cache's on-demand
+  // resolveFn(id) promise (kicked off during the first render of a row)
+  // settle and re-render with the resolved label.
   await flushPromises()
   await wrapper.vm.$nextTick()
   return wrapper
@@ -309,13 +322,13 @@ describe('Asset Catalog page — status filter options', () => {
 // ---------------------------------------------------------------------------
 
 describe('Asset Catalog page — resilient filter option loading', () => {
-  it('one failing lookup (offices) still renders rows and populates the other dropdowns, without an unhandled rejection', async () => {
+  it('one failing lookup (brands) still renders rows and populates the other dropdowns, without an unhandled rejection', async () => {
     const unhandled: unknown[] = []
     const onUnhandledRejection = (reason: unknown) => unhandled.push(reason)
     process.on('unhandledRejection', onUnhandledRejection)
     try {
       setHandler((path, opts) => {
-        if (path.startsWith('/offices')) throw Object.assign(new Error('Server Error'), { statusCode: 500 })
+        if (path.startsWith('/brands')) throw Object.assign(new Error('Server Error'), { statusCode: 500 })
         return defaultHandler(path, opts)
       })
 
@@ -327,21 +340,87 @@ describe('Asset Catalog page — resilient filter option loading', () => {
 
       const vm = wrapper.vm as unknown as {
         categoryOptions: { value: string, label: string }[]
-        officeOptions: { value: string, label: string }[]
         brandOptions: { value: string, label: string }[]
         modelOptions: { value: string, label: string }[]
       }
       // The failing lookup's options stay empty...
-      expect(vm.officeOptions.length).toBe(0)
-      // ...but the other three still populate from their own successful calls.
+      expect(vm.brandOptions.length).toBe(0)
+      // ...but the others still populate from their own successful calls.
       expect(vm.categoryOptions.length).toBeGreaterThan(0)
-      expect(vm.brandOptions.length).toBeGreaterThan(0)
       expect(vm.modelOptions.length).toBeGreaterThan(0)
 
       expect(unhandled).toEqual([])
     } finally {
       process.off('unhandledRejection', onUnhandledRejection)
     }
+  })
+
+  it('a failing GET /offices/:id (resolve-cache) falls back to the raw id, without crashing the table', async () => {
+    const unhandled: unknown[] = []
+    const onUnhandledRejection = (reason: unknown) => unhandled.push(reason)
+    process.on('unhandledRejection', onUnhandledRejection)
+    try {
+      setHandler((path, opts) => {
+        if (/^\/offices\/[^/?]+$/.test(path)) throw Object.assign(new Error('Server Error'), { statusCode: 500 })
+        return defaultHandler(path, opts)
+      })
+
+      const wrapper = await mountAndWait()
+
+      // Rows still render — the resolve-cache failure doesn't crash the page.
+      expect(wrapper.text()).toContain('Laptop Dell Latitude 5440')
+      // Falls back to the raw office id (same `?? id` fallback as before).
+      expect(wrapper.text()).toContain('o1')
+
+      expect(unhandled).toEqual([])
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection)
+    }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Office filter — async search picker (Task 6)
+// ---------------------------------------------------------------------------
+
+describe('Asset Catalog page — office filter picker', () => {
+  it('renders the office filter as an async search picker, not a USelect', async () => {
+    const wrapper = await mountAndWait()
+    expect(wrapper.find('[data-testid="assets-office-filter-picker-input"]').exists()).toBe(true)
+  })
+
+  it('typing in the office filter picker drives GET /offices with search+limit=20', async () => {
+    const wrapper = await mountAndWait()
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/offices?')) {
+        captured = path
+        return makeOfficesResponse()
+      }
+      return defaultHandler(path, opts)
+    })
+    vi.useFakeTimers()
+    await wrapper.find('[data-testid="assets-office-filter-picker-input"]').setValue('Cabang')
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+    expect(captured).toContain('search=Cabang')
+    expect(captured).toContain('limit=20')
+  })
+
+  it('selecting an office filters the list, and clearing it (picker clear button) resets to null and re-queries without office_id', async () => {
+    const wrapper = await mountAndWait()
+    await setVmRef(wrapper, 'fKantor', 'o2')
+    expect(lastAssetQuery().get('office_id')).toBe('o2')
+
+    const clearBtn = wrapper.find('[data-testid="assets-office-filter-picker-clear"]')
+    expect(clearBtn.exists()).toBe(true)
+    await clearBtn.trigger('click')
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    expect((wrapper.vm as unknown as { fKantor: string | null }).fKantor).toBeNull()
+    expect(lastAssetQuery().get('office_id')).toBeNull()
   })
 })
 
@@ -435,7 +514,7 @@ describe('Asset Catalog page — server-side pagination', () => {
       if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
       if (path.startsWith('/brands')) return makeBrandsResponse()
       if (path.startsWith('/models')) return makeModelsResponse()
-      if (path.startsWith('/offices')) return makeOfficesResponse()
+      if (path.startsWith('/offices')) return officesHandler(path)
       throw new Error(`Unhandled: ${path}`)
     })
 
@@ -463,7 +542,7 @@ describe('Asset Catalog page — load error', () => {
       if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
       if (path.startsWith('/brands')) return makeBrandsResponse()
       if (path.startsWith('/models')) return makeModelsResponse()
-      if (path.startsWith('/offices')) return makeOfficesResponse()
+      if (path.startsWith('/offices')) return officesHandler(path)
       throw new Error(`Unhandled: ${path}`)
     })
 
@@ -483,7 +562,7 @@ describe('Asset Catalog page — load error', () => {
       if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
       if (path.startsWith('/brands')) return makeBrandsResponse()
       if (path.startsWith('/models')) return makeModelsResponse()
-      if (path.startsWith('/offices')) return makeOfficesResponse()
+      if (path.startsWith('/offices')) return officesHandler(path)
       throw new Error(`Unhandled: ${path}`)
     })
 
@@ -512,7 +591,7 @@ describe('Asset Catalog page — empty states', () => {
       if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
       if (path.startsWith('/brands')) return makeBrandsResponse()
       if (path.startsWith('/models')) return makeModelsResponse()
-      if (path.startsWith('/offices')) return makeOfficesResponse()
+      if (path.startsWith('/offices')) return officesHandler(path)
       throw new Error(`Unhandled: ${path}`)
     })
 
@@ -526,7 +605,7 @@ describe('Asset Catalog page — empty states', () => {
       if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
       if (path.startsWith('/brands')) return makeBrandsResponse()
       if (path.startsWith('/models')) return makeModelsResponse()
-      if (path.startsWith('/offices')) return makeOfficesResponse()
+      if (path.startsWith('/offices')) return officesHandler(path)
       throw new Error(`Unhandled: ${path}`)
     })
 
@@ -586,7 +665,7 @@ describe('Asset Catalog page — stale response race guard', () => {
       if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
       if (path.startsWith('/brands')) return makeBrandsResponse()
       if (path.startsWith('/models')) return makeModelsResponse()
-      if (path.startsWith('/offices')) return makeOfficesResponse()
+      if (path.startsWith('/offices')) return officesHandler(path)
       throw new Error(`Unhandled: ${path}`)
     })
 

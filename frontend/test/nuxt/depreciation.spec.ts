@@ -125,8 +125,9 @@ vi.mock('~/composables/api/useCategories', () => ({
 }))
 
 const officesListMock = vi.fn()
+const officesGetMock = vi.fn()
 vi.mock('~/composables/api/useOffices', () => ({
-  useOffices: () => ({ list: officesListMock, get: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() })
+  useOffices: () => ({ list: officesListMock, get: officesGetMock, create: vi.fn(), update: vi.fn(), remove: vi.fn() })
 }))
 
 // eslint-disable-next-line import/first
@@ -171,6 +172,11 @@ beforeEach(() => {
   periodsMock.mockResolvedValue([...PERIODS])
   categoriesTreeMock.mockResolvedValue(CATEGORIES)
   officesListMock.mockResolvedValue(page(OFFICES))
+  officesGetMock.mockImplementation(async (id: string) => {
+    const found = OFFICES.find(o => o.id === id)
+    if (!found) throw Object.assign(new Error('not found'), { statusCode: 404 })
+    return found
+  })
   scheduleMock.mockImplementation(async (q: { search?: string, category_id?: string, office_id?: string }) =>
     isFilteredScheduleCall(q) ? filteredScheduleResponse() : scheduleResponse())
   journalMock.mockResolvedValue(journalResponse())
@@ -367,6 +373,38 @@ describe('pages/depreciation — Jadwal per Aset', () => {
     expect(scheduleMock).toHaveBeenLastCalledWith(expect.objectContaining({
       period: '2026-07', basis: 'commercial', search: 'Genset', category_id: 'c1', office_id: 'o1'
     }))
+  })
+})
+
+describe('pages/depreciation — office filter picker', () => {
+  it('renders the office filter as an async search picker, not a USelect', async () => {
+    const w = await mountAndWait()
+    expect(w.find('[data-testid="depr-filter-office-picker-input"]').exists()).toBe(true)
+  })
+
+  it('typing in the office filter picker drives useOffices().list with search+limit=20', async () => {
+    const w = await mountAndWait()
+    vi.useFakeTimers()
+    await w.find('[data-testid="depr-filter-office-picker-input"]').setValue('Jakarta')
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+    expect(officesListMock).toHaveBeenCalledWith(expect.objectContaining({ search: 'Jakarta', limit: 20 }))
+  })
+
+  it('clearing the office filter picker resets officeId to null and drops office_id from schedule()', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'officeId', 'o1')
+    scheduleMock.mockClear()
+
+    const clearBtn = w.find('[data-testid="depr-filter-office-picker-clear"]')
+    expect(clearBtn.exists()).toBe(true)
+    await clearBtn.trigger('click')
+    await flushPromises()
+    await w.vm.$nextTick()
+
+    expect((w.vm as unknown as { officeId: string | null }).officeId).toBeNull()
+    expect(scheduleMock).toHaveBeenLastCalledWith(expect.objectContaining({ office_id: undefined }))
   })
 })
 
