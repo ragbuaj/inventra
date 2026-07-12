@@ -11,6 +11,24 @@ import (
 	"github.com/google/uuid"
 )
 
+const createBrand = `-- name: CreateBrand :one
+INSERT INTO masterdata.brands (name) VALUES ($1) RETURNING id, name, is_active, created_at, updated_at, deleted_at
+`
+
+func (q *Queries) CreateBrand(ctx context.Context, name string) (MasterdataBrand, error) {
+	row := q.db.QueryRow(ctx, createBrand, name)
+	var i MasterdataBrand
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const createCity = `-- name: CreateCity :one
 INSERT INTO masterdata.cities (province_id, name, code) VALUES ($1, $2, $3)
 RETURNING id, province_id, name, code, created_at, updated_at, deleted_at
@@ -67,6 +85,50 @@ func (q *Queries) CreateProvince(ctx context.Context, arg CreateProvinceParams) 
 	return i, err
 }
 
+const createUnit = `-- name: CreateUnit :one
+INSERT INTO masterdata.units (name, symbol) VALUES ($1, $2) RETURNING id, name, symbol, is_active, created_at, updated_at, deleted_at
+`
+
+type CreateUnitParams struct {
+	Name   string  `json:"name"`
+	Symbol *string `json:"symbol"`
+}
+
+func (q *Queries) CreateUnit(ctx context.Context, arg CreateUnitParams) (MasterdataUnit, error) {
+	row := q.db.QueryRow(ctx, createUnit, arg.Name, arg.Symbol)
+	var i MasterdataUnit
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Symbol,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getBrandByName = `-- name: GetBrandByName :one
+SELECT id, name, is_active, created_at, updated_at, deleted_at FROM masterdata.brands WHERE lower(name) = lower($1) AND deleted_at IS NULL LIMIT 1
+`
+
+// Side-effect-free existence check for the brands importer's Execute
+// anti-poisoning pre-check (uq_brands_name; matched case-insensitively).
+func (q *Queries) GetBrandByName(ctx context.Context, lower string) (MasterdataBrand, error) {
+	row := q.db.QueryRow(ctx, getBrandByName, lower)
+	var i MasterdataBrand
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const getCityByCode = `-- name: GetCityByCode :one
 SELECT id, province_id, name, code, created_at, updated_at, deleted_at FROM masterdata.cities WHERE code = $1 AND deleted_at IS NULL LIMIT 1
 `
@@ -109,6 +171,56 @@ func (q *Queries) GetProvinceByCode(ctx context.Context, code *string) (Masterda
 		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const getUnitByName = `-- name: GetUnitByName :one
+SELECT id, name, symbol, is_active, created_at, updated_at, deleted_at FROM masterdata.units WHERE lower(name) = lower($1) AND deleted_at IS NULL LIMIT 1
+`
+
+func (q *Queries) GetUnitByName(ctx context.Context, lower string) (MasterdataUnit, error) {
+	row := q.db.QueryRow(ctx, getUnitByName, lower)
+	var i MasterdataUnit
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Symbol,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const listBrandsLookup = `-- name: ListBrandsLookup :many
+SELECT id, name FROM masterdata.brands WHERE deleted_at IS NULL
+`
+
+type ListBrandsLookupRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+// id/name lookup: brand-name dedup (brands importer) AND "merek" resolution
+// (models importer). brands.name IS uniquely constrained (uq_brands_name).
+func (q *Queries) ListBrandsLookup(ctx context.Context) ([]ListBrandsLookupRow, error) {
+	rows, err := q.db.Query(ctx, listBrandsLookup)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListBrandsLookupRow{}
+	for rows.Next() {
+		var i ListBrandsLookupRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listCityCodes = `-- name: ListCityCodes :many
@@ -227,6 +339,32 @@ func (q *Queries) ListProvincesLookup(ctx context.Context) ([]ListProvincesLooku
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUnitNames = `-- name: ListUnitNames :many
+SELECT name FROM masterdata.units WHERE deleted_at IS NULL
+`
+
+// Existing (non-deleted) unit names for the units importer's dupNama check
+// (uq_units_name).
+func (q *Queries) ListUnitNames(ctx context.Context) ([]string, error) {
+	rows, err := q.db.Query(ctx, listUnitNames)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		items = append(items, name)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

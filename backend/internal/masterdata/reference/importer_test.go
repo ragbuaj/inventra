@@ -400,3 +400,83 @@ func TestReferenceImporterCityContract(t *testing.T) {
 		}
 	}
 }
+
+// --- brands -----------------------------------------------------------------
+
+func mkBrandLookups() brandLookups {
+	return brandLookups{existingNames: map[string]bool{"canon": true}}
+}
+
+func TestReferenceImporterBrandRows(t *testing.T) {
+	lk := mkBrandLookups()
+	t.Run("required", func(t *testing.T) {
+		res := validateBrandRows([]importer.RawRow{row(1, map[string]string{brandColName: ""})}, lk)
+		if res[0].Valid || !hasErr(res[0], "required") {
+			t.Fatalf("want required, got %v", errKeys(res[0]))
+		}
+	})
+	t.Run("dup in db (case-insensitive)", func(t *testing.T) {
+		res := validateBrandRows([]importer.RawRow{row(1, map[string]string{brandColName: "Canon"})}, lk)
+		if res[0].Valid || !hasErr(res[0], "dupNama") {
+			t.Fatalf("want dupNama, got %v", errKeys(res[0]))
+		}
+	})
+	t.Run("in-file dup", func(t *testing.T) {
+		res := validateBrandRows([]importer.RawRow{
+			row(1, map[string]string{brandColName: "Epson"}),
+			row(2, map[string]string{brandColName: "epson"}),
+		}, lk)
+		if !res[0].Valid {
+			t.Fatalf("row1 want valid, got %v", errKeys(res[0]))
+		}
+		if res[1].Valid || !hasErr(res[1], "dupNama") {
+			t.Fatalf("row2 want dupNama, got %v", errKeys(res[1]))
+		}
+	})
+	t.Run("contract", func(t *testing.T) {
+		imp := NewImporter(nil, "brands")
+		if imp.Target() != "reference:brands" || imp.NeedsApproval() {
+			t.Fatalf("bad contract: %q %v", imp.Target(), imp.NeedsApproval())
+		}
+		if cols := imp.Columns(); len(cols) != 1 || cols[0].Name != brandColName || !cols[0].Required {
+			t.Fatalf("bad columns: %+v", imp.Columns())
+		}
+	})
+}
+
+// --- units ------------------------------------------------------------------
+
+func mkUnitLookups() unitLookups {
+	return unitLookups{existingNames: map[string]bool{"unit": true}}
+}
+
+func TestReferenceImporterUnitRows(t *testing.T) {
+	lk := mkUnitLookups()
+	t.Run("required", func(t *testing.T) {
+		res := validateUnitRows([]importer.RawRow{row(1, map[string]string{unitColName: "", unitColSymbol: "pcs"})}, lk)
+		if res[0].Valid || !hasErr(res[0], "required") {
+			t.Fatalf("want required, got %v", errKeys(res[0]))
+		}
+	})
+	t.Run("symbol optional + valid", func(t *testing.T) {
+		res := validateUnitRows([]importer.RawRow{row(1, map[string]string{unitColName: "Meter", unitColSymbol: ""})}, lk)
+		if !res[0].Valid {
+			t.Fatalf("want valid, got %v", errKeys(res[0]))
+		}
+	})
+	t.Run("dup in db", func(t *testing.T) {
+		res := validateUnitRows([]importer.RawRow{row(1, map[string]string{unitColName: "Unit"})}, lk)
+		if res[0].Valid || !hasErr(res[0], "dupNama") {
+			t.Fatalf("want dupNama, got %v", errKeys(res[0]))
+		}
+	})
+	t.Run("contract", func(t *testing.T) {
+		imp := NewImporter(nil, "units")
+		if imp.Target() != "reference:units" || imp.NeedsApproval() {
+			t.Fatalf("bad contract")
+		}
+		if cols := imp.Columns(); len(cols) != 2 || cols[0].Name != unitColName || cols[1].Name != unitColSymbol {
+			t.Fatalf("bad columns: %+v", imp.Columns())
+		}
+	})
+}

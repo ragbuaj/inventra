@@ -46,3 +46,27 @@ SELECT id, name, code FROM masterdata.departments WHERE deleted_at IS NULL;
 -- id/name lookup for the employee importer's optional "jabatan" column
 -- (matched by name, case-insensitive). positions has no code column.
 SELECT id, name FROM masterdata.positions WHERE deleted_at IS NULL;
+
+-- name: ListBrandsLookup :many
+-- id/name lookup: brand-name dedup (brands importer) AND "merek" resolution
+-- (models importer). brands.name IS uniquely constrained (uq_brands_name).
+SELECT id, name FROM masterdata.brands WHERE deleted_at IS NULL;
+
+-- name: GetBrandByName :one
+-- Side-effect-free existence check for the brands importer's Execute
+-- anti-poisoning pre-check (uq_brands_name; matched case-insensitively).
+SELECT * FROM masterdata.brands WHERE lower(name) = lower($1) AND deleted_at IS NULL LIMIT 1;
+
+-- name: CreateBrand :one
+INSERT INTO masterdata.brands (name) VALUES ($1) RETURNING *;
+
+-- name: ListUnitNames :many
+-- Existing (non-deleted) unit names for the units importer's dupNama check
+-- (uq_units_name).
+SELECT name FROM masterdata.units WHERE deleted_at IS NULL;
+
+-- name: GetUnitByName :one
+SELECT * FROM masterdata.units WHERE lower(name) = lower($1) AND deleted_at IS NULL LIMIT 1;
+
+-- name: CreateUnit :one
+INSERT INTO masterdata.units (name, symbol) VALUES ($1, $2) RETURNING *;

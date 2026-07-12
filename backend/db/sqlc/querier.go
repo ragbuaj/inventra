@@ -62,6 +62,7 @@ type Querier interface {
 	CreateAsset(ctx context.Context, arg CreateAssetParams) (AssetAsset, error)
 	CreateAssetDocument(ctx context.Context, arg CreateAssetDocumentParams) (AssetAssetDocument, error)
 	CreateAttachment(ctx context.Context, arg CreateAttachmentParams) (AssetAssetAttachment, error)
+	CreateBrand(ctx context.Context, name string) (MasterdataBrand, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (MasterdataCategory, error)
 	CreateCity(ctx context.Context, arg CreateCityParams) (MasterdataCity, error)
 	// gain_loss is computed here (null-propagating): null when either input is null.
@@ -85,6 +86,7 @@ type Querier interface {
 	CreateRoom(ctx context.Context, arg CreateRoomParams) (MasterdataRoom, error)
 	CreateThreshold(ctx context.Context, arg CreateThresholdParams) (ApprovalApprovalThreshold, error)
 	CreateTransfer(ctx context.Context, arg CreateTransferParams) (TransferAssetTransfer, error)
+	CreateUnit(ctx context.Context, arg CreateUnitParams) (MasterdataUnit, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (IdentityUser, error)
 	// Reporting & Dashboard module — read-only aggregates.
 	// Every query: deleted_at IS NULL + the standard scope clause
@@ -131,6 +133,9 @@ type Querier interface {
 	// validate state before the update.
 	GetAssignmentScoped(ctx context.Context, arg GetAssignmentScopedParams) (AssignmentAssignment, error)
 	GetAttachment(ctx context.Context, id uuid.UUID) (AssetAssetAttachment, error)
+	// Side-effect-free existence check for the brands importer's Execute
+	// anti-poisoning pre-check (uq_brands_name; matched case-insensitively).
+	GetBrandByName(ctx context.Context, lower string) (MasterdataBrand, error)
 	GetCategory(ctx context.Context, id uuid.UUID) (MasterdataCategory, error)
 	GetCategoryCode(ctx context.Context, id uuid.UUID) (*string, error)
 	// Fresh, side-effect-free existence check used by the reference importer's
@@ -189,6 +194,7 @@ type Querier interface {
 	// asset/office/room/actor display names for the detail view. LEFT JOINs keep
 	// the row visible (with nil names) even when a joined entity was soft-deleted.
 	GetTransferEnriched(ctx context.Context, arg GetTransferEnrichedParams) (GetTransferEnrichedRow, error)
+	GetUnitByName(ctx context.Context, lower string) (MasterdataUnit, error)
 	GetUserByEmail(ctx context.Context, email string) (IdentityUser, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (IdentityUser, error)
 	// Audit log: append-only writes + an office-scoped, filterable read model.
@@ -228,6 +234,9 @@ type Querier interface {
 	ListAssignmentsEnriched(ctx context.Context, arg ListAssignmentsEnrichedParams) ([]ListAssignmentsEnrichedRow, error)
 	ListAttachments(ctx context.Context, assetID uuid.UUID) ([]AssetAssetAttachment, error)
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]ListAuditLogsRow, error)
+	// id/name lookup: brand-name dedup (brands importer) AND "merek" resolution
+	// (models importer). brands.name IS uniquely constrained (uq_brands_name).
+	ListBrandsLookup(ctx context.Context) ([]ListBrandsLookupRow, error)
 	// Asset category master data (masterdata.categories). Respects soft delete.
 	ListCategories(ctx context.Context, arg ListCategoriesParams) ([]MasterdataCategory, error)
 	// The full non-deleted category set (no pagination) for client-side tree building.
@@ -304,6 +313,9 @@ type Querier interface {
 	// GetTransferEnriched/ListTransfersEnriched.
 	ListTransfersByAssetEnriched(ctx context.Context, arg ListTransfersByAssetEnrichedParams) ([]ListTransfersByAssetEnrichedRow, error)
 	ListTransfersEnriched(ctx context.Context, arg ListTransfersEnrichedParams) ([]ListTransfersEnrichedRow, error)
+	// Existing (non-deleted) unit names for the units importer's dupNama check
+	// (uq_units_name).
+	ListUnitNames(ctx context.Context) ([]string, error)
 	// User management queries (Superadmin). All respect soft delete.
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]IdentityUser, error)
 	ListValidImportRows(ctx context.Context, jobID uuid.UUID) ([]ImportImportRow, error)
