@@ -72,6 +72,7 @@ type Querier interface {
 	CreateImportJob(ctx context.Context, arg CreateImportJobParams) (ImportImportJob, error)
 	CreateMaintRecord(ctx context.Context, arg CreateMaintRecordParams) (MaintenanceMaintenanceRecord, error)
 	CreateMaintSchedule(ctx context.Context, arg CreateMaintScheduleParams) (MaintenanceMaintenanceSchedule, error)
+	CreateModel(ctx context.Context, arg CreateModelParams) (MasterdataModel, error)
 	CreateOffice(ctx context.Context, arg CreateOfficeParams) (MasterdataOffice, error)
 	CreateOpnameSession(ctx context.Context, arg CreateOpnameSessionParams) (StockopnameStockOpnameSession, error)
 	// Dedicated queries for the reference-target bulk importer (provinces, cities).
@@ -159,6 +160,7 @@ type Querier interface {
 	GetMaintRecordEnriched(ctx context.Context, arg GetMaintRecordEnrichedParams) (GetMaintRecordEnrichedRow, error)
 	GetMaintRecordScoped(ctx context.Context, arg GetMaintRecordScopedParams) (MaintenanceMaintenanceRecord, error)
 	GetMaintScheduleScoped(ctx context.Context, arg GetMaintScheduleScopedParams) (MaintenanceMaintenanceSchedule, error)
+	GetModelByBrandAndName(ctx context.Context, arg GetModelByBrandAndNameParams) (MasterdataModel, error)
 	GetOffice(ctx context.Context, arg GetOfficeParams) (MasterdataOffice, error)
 	GetOfficeAncestors(ctx context.Context, id uuid.UUID) ([]GetOfficeAncestorsRow, error)
 	// Fresh, side-effect-free existence check used by the office importer's
@@ -278,6 +280,9 @@ type Querier interface {
 	ListMaintRecordsByAssetEnriched(ctx context.Context, arg ListMaintRecordsByAssetEnrichedParams) ([]ListMaintRecordsByAssetEnrichedRow, error)
 	ListMaintRecordsEnriched(ctx context.Context, arg ListMaintRecordsEnrichedParams) ([]ListMaintRecordsEnrichedRow, error)
 	ListMaintSchedulesEnriched(ctx context.Context, arg ListMaintSchedulesEnrichedParams) ([]ListMaintSchedulesEnrichedRow, error)
+	// (brand_id, name) pairs for the models importer's composite dupNama check
+	// (uq_models_brand_name).
+	ListModelsLookup(ctx context.Context) ([]ListModelsLookupRow, error)
 	// Flat id/name lookup for the office importer's "tipe" column. office_types
 	// has no code column (only name), so the importer matches by name only.
 	ListOfficeTypesLookup(ctx context.Context) ([]ListOfficeTypesLookupRow, error)

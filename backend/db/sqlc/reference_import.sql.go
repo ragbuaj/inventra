@@ -55,6 +55,30 @@ func (q *Queries) CreateCity(ctx context.Context, arg CreateCityParams) (Masterd
 	return i, err
 }
 
+const createModel = `-- name: CreateModel :one
+INSERT INTO masterdata.models (brand_id, name) VALUES ($1, $2) RETURNING id, brand_id, name, is_active, created_at, updated_at, deleted_at
+`
+
+type CreateModelParams struct {
+	BrandID uuid.UUID `json:"brand_id"`
+	Name    string    `json:"name"`
+}
+
+func (q *Queries) CreateModel(ctx context.Context, arg CreateModelParams) (MasterdataModel, error) {
+	row := q.db.QueryRow(ctx, createModel, arg.BrandID, arg.Name)
+	var i MasterdataModel
+	err := row.Scan(
+		&i.ID,
+		&i.BrandID,
+		&i.Name,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const createProvince = `-- name: CreateProvince :one
 
 INSERT INTO masterdata.provinces (name, code) VALUES ($1, $2)
@@ -145,6 +169,31 @@ func (q *Queries) GetCityByCode(ctx context.Context, code *string) (MasterdataCi
 		&i.ProvinceID,
 		&i.Name,
 		&i.Code,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getModelByBrandAndName = `-- name: GetModelByBrandAndName :one
+SELECT id, brand_id, name, is_active, created_at, updated_at, deleted_at FROM masterdata.models
+WHERE brand_id = $1 AND lower(name) = lower($2) AND deleted_at IS NULL LIMIT 1
+`
+
+type GetModelByBrandAndNameParams struct {
+	BrandID uuid.UUID `json:"brand_id"`
+	Lower   string    `json:"lower"`
+}
+
+func (q *Queries) GetModelByBrandAndName(ctx context.Context, arg GetModelByBrandAndNameParams) (MasterdataModel, error) {
+	row := q.db.QueryRow(ctx, getModelByBrandAndName, arg.BrandID, arg.Lower)
+	var i MasterdataModel
+	err := row.Scan(
+		&i.ID,
+		&i.BrandID,
+		&i.Name,
+		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
@@ -273,6 +322,37 @@ func (q *Queries) ListDepartmentsLookup(ctx context.Context) ([]ListDepartmentsL
 	for rows.Next() {
 		var i ListDepartmentsLookupRow
 		if err := rows.Scan(&i.ID, &i.Name, &i.Code); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listModelsLookup = `-- name: ListModelsLookup :many
+SELECT brand_id, name FROM masterdata.models WHERE deleted_at IS NULL
+`
+
+type ListModelsLookupRow struct {
+	BrandID uuid.UUID `json:"brand_id"`
+	Name    string    `json:"name"`
+}
+
+// (brand_id, name) pairs for the models importer's composite dupNama check
+// (uq_models_brand_name).
+func (q *Queries) ListModelsLookup(ctx context.Context) ([]ListModelsLookupRow, error) {
+	rows, err := q.db.Query(ctx, listModelsLookup)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListModelsLookupRow{}
+	for rows.Next() {
+		var i ListModelsLookupRow
+		if err := rows.Scan(&i.BrandID, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

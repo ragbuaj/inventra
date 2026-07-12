@@ -480,3 +480,73 @@ func TestReferenceImporterUnitRows(t *testing.T) {
 		}
 	})
 }
+
+// --- models -----------------------------------------------------------------
+
+func mkModelLookups() (modelLookups, uuid.UUID) {
+	canon := uuid.New()
+	lk := modelLookups{
+		brands:        map[string]uuid.UUID{"canon": canon},
+		existingPairs: map[string]bool{canon.String() + "\x00" + "eos 5d": true},
+	}
+	return lk, canon
+}
+
+func TestReferenceImporterModelRows(t *testing.T) {
+	lk, canon := mkModelLookups()
+	t.Run("required", func(t *testing.T) {
+		res := validateModelRows([]importer.RawRow{row(1, map[string]string{modelColBrand: "", modelColName: ""})}, lk)
+		if res[0].Valid || !hasErr(res[0], "required") {
+			t.Fatalf("want required, got %v", errKeys(res[0]))
+		}
+	})
+	t.Run("brand miss", func(t *testing.T) {
+		res := validateModelRows([]importer.RawRow{row(1, map[string]string{modelColBrand: "Nikon", modelColName: "Z6"})}, lk)
+		if res[0].Valid || !hasErr(res[0], "merek") {
+			t.Fatalf("want merek, got %v", errKeys(res[0]))
+		}
+	})
+	t.Run("brand resolves + stamp", func(t *testing.T) {
+		res := validateModelRows([]importer.RawRow{row(1, map[string]string{modelColBrand: "Canon", modelColName: "EOS R5"})}, lk)
+		if !res[0].Valid {
+			t.Fatalf("want valid, got %v", errKeys(res[0]))
+		}
+		if res[0].Data["_brand_id"] != canon.String() {
+			t.Fatalf("_brand_id=%q want %q", res[0].Data["_brand_id"], canon.String())
+		}
+	})
+	t.Run("dup pair in db (case-insensitive)", func(t *testing.T) {
+		res := validateModelRows([]importer.RawRow{row(1, map[string]string{modelColBrand: "Canon", modelColName: "eos 5d"})}, lk)
+		if res[0].Valid || !hasErr(res[0], "dupNama") {
+			t.Fatalf("want dupNama, got %v", errKeys(res[0]))
+		}
+	})
+	t.Run("in-file dup pair", func(t *testing.T) {
+		res := validateModelRows([]importer.RawRow{
+			row(1, map[string]string{modelColBrand: "Canon", modelColName: "EOS R6"}),
+			row(2, map[string]string{modelColBrand: "canon", modelColName: "eos r6"}),
+		}, lk)
+		if !res[0].Valid {
+			t.Fatalf("row1 want valid, got %v", errKeys(res[0]))
+		}
+		if res[1].Valid || !hasErr(res[1], "dupNama") {
+			t.Fatalf("row2 want dupNama, got %v", errKeys(res[1]))
+		}
+	})
+	t.Run("invalid drops stamp", func(t *testing.T) {
+		res := validateModelRows([]importer.RawRow{row(1, map[string]string{modelColBrand: "Canon", modelColName: ""})}, lk)
+		if _, ok := res[0].Data["_brand_id"]; ok {
+			t.Fatalf("invalid row must drop _brand_id")
+		}
+	})
+	t.Run("contract", func(t *testing.T) {
+		imp := NewImporter(nil, "models")
+		if imp.Target() != "reference:models" || imp.NeedsApproval() {
+			t.Fatalf("bad contract")
+		}
+		cols := imp.Columns()
+		if len(cols) != 2 || cols[0].Name != modelColBrand || cols[0].Kind != "lookup" || cols[1].Name != modelColName {
+			t.Fatalf("bad columns: %+v", cols)
+		}
+	})
+}

@@ -70,3 +70,15 @@ SELECT * FROM masterdata.units WHERE lower(name) = lower($1) AND deleted_at IS N
 
 -- name: CreateUnit :one
 INSERT INTO masterdata.units (name, symbol) VALUES ($1, $2) RETURNING *;
+
+-- name: ListModelsLookup :many
+-- (brand_id, name) pairs for the models importer's composite dupNama check
+-- (uq_models_brand_name).
+SELECT brand_id, name FROM masterdata.models WHERE deleted_at IS NULL;
+
+-- name: GetModelByBrandAndName :one
+SELECT * FROM masterdata.models
+WHERE brand_id = $1 AND lower(name) = lower($2) AND deleted_at IS NULL LIMIT 1;
+
+-- name: CreateModel :one
+INSERT INTO masterdata.models (brand_id, name) VALUES ($1, $2) RETURNING *;
