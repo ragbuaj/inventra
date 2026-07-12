@@ -80,6 +80,13 @@ func (s *Service) RegisterTarget(t TargetImporter) {
 	s.reg[t.Target()] = t
 }
 
+// MaxBytes returns the configured maximum upload size in bytes (0 means
+// unlimited). Exposed so the handler can cap the multipart request body via
+// http.MaxBytesReader without reaching into the unexported field directly
+// from outside the package (kept as an explicit accessor for clarity even
+// though handler.go lives in the same package).
+func (s *Service) MaxBytes() int64 { return s.maxBytes }
+
 // target looks up a registered TargetImporter by name.
 func (s *Service) target(name string) (TargetImporter, error) {
 	t, ok := s.reg.get(name)
