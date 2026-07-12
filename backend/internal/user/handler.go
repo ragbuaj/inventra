@@ -41,7 +41,10 @@ func (h *Handler) list(c *gin.Context) {
 	for _, u := range users {
 		data = append(data, userToMap(u))
 	}
-	h.filterMaps(c, data...)
+	if err := h.filterMaps(c, data...); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve field permissions"})
+		return
+	}
 	c.JSON(http.StatusOK, listResponse{Data: data, Total: total, Limit: limit, Offset: offset})
 }
 
@@ -56,7 +59,11 @@ func (h *Handler) get(c *gin.Context) {
 		h.svcError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, h.one(c, u))
+	m, ok := h.one(c, u)
+	if !ok {
+		return
+	}
+	c.JSON(http.StatusOK, m)
 }
 
 func (h *Handler) create(c *gin.Context) {
@@ -83,7 +90,11 @@ func (h *Handler) create(c *gin.Context) {
 		return
 	}
 	audit.Record(c, h.aud, audit.ActionCreate, "users", u.ID, u.OfficeID, audit.Diff(nil, userToMap(u)))
-	c.JSON(http.StatusCreated, h.one(c, u))
+	m, ok := h.one(c, u)
+	if !ok {
+		return
+	}
+	c.JSON(http.StatusCreated, m)
 }
 
 func (h *Handler) update(c *gin.Context) {
@@ -119,7 +130,11 @@ func (h *Handler) update(c *gin.Context) {
 		return
 	}
 	audit.Record(c, h.aud, audit.ActionUpdate, "users", u.ID, u.OfficeID, audit.Diff(userToMap(before), userToMap(u)))
-	c.JSON(http.StatusOK, h.one(c, u))
+	m, ok := h.one(c, u)
+	if !ok {
+		return
+	}
+	c.JSON(http.StatusOK, m)
 }
 
 func (h *Handler) delete(c *gin.Context) {
@@ -141,26 +156,34 @@ func (h *Handler) delete(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// one builds a single field-filtered user record.
-func (h *Handler) one(c *gin.Context, u sqlc.IdentityUser) map[string]any {
-	m := userToMap(u)
-	h.filterMaps(c, m)
-	return m
+// one builds a single field-filtered user record. On a field-policy lookup
+// error it responds 500 (fail-closed) and returns ok=false; the caller must
+// stop and not serve the unfiltered record.
+func (h *Handler) one(c *gin.Context, u sqlc.IdentityUser) (m map[string]any, ok bool) {
+	m = userToMap(u)
+	if err := h.filterMaps(c, m); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve field permissions"})
+		return nil, false
+	}
+	return m, true
 }
 
-// filterMaps removes fields the caller's role may not view (field permissions).
-func (h *Handler) filterMaps(c *gin.Context, maps ...map[string]any) {
+// filterMaps removes fields the caller's role may not view (field permissions),
+// delegating to authz.FilterEntity per record. Fail-closed: a policy-lookup
+// error (e.g. Redis/Postgres unavailable) is returned to the caller instead of
+// being swallowed, so callers refuse to serve unfiltered data rather than
+// silently leaking it (previously this fell back to serving unmasked records).
+func (h *Handler) filterMaps(c *gin.Context, maps ...map[string]any) error {
 	roleID, err := uuid.Parse(c.GetString(middleware.CtxRoleID))
 	if err != nil {
-		return
-	}
-	policies, err := h.fields.ForEntity(c.Request.Context(), roleID, "users")
-	if err != nil || policies == nil {
-		return
+		return nil
 	}
 	for _, m := range maps {
-		authz.FilterView(policies, m)
+		if err := h.fields.FilterEntity(c.Request.Context(), roleID, "users", m); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (h *Handler) svcError(c *gin.Context, err error) {

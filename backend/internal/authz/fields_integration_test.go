@@ -82,3 +82,44 @@ func TestFieldPermissions(t *testing.T) {
 		assert.False(t, second["email"].CanView)
 	})
 }
+
+// TestFilterEntity_RemovesNonViewableAndFailsClosed exercises the canonical
+// FilterEntity helper: it must (a) delete masked fields from the map in
+// place, keeping default-allow fields, and (b) propagate a policy-lookup
+// error to the caller (fail-closed) instead of serving unfiltered data.
+func TestFilterEntity_RemovesNonViewableAndFailsClosed(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	svc := authz.NewFieldService(sqlc.New(pool), rdb)
+	ctx := context.Background()
+
+	t.Run("removes non-viewable fields, keeps default-allow", func(t *testing.T) {
+		testsupport.Reset(t, pool)
+		role := testsupport.SeedRole(t, pool, "r-filterentity-ok")
+		testsupport.SeedFieldPermission(t, pool, role, "assets", "book_value", false, false)
+		testsupport.SeedFieldPermission(t, pool, role, "assets", "name", true, false)
+
+		m := map[string]any{"name": "x", "book_value": "100"}
+		err := svc.FilterEntity(ctx, role, "assets", m)
+		require.NoError(t, err)
+
+		_, ok := m["book_value"]
+		require.False(t, ok, "book_value not viewable -> dropped")
+		require.Contains(t, m, "name", "name viewable -> kept")
+	})
+
+	t.Run("propagates the lookup error (fail-closed)", func(t *testing.T) {
+		testsupport.Reset(t, pool)
+		role := testsupport.SeedRole(t, pool, "r-filterentity-err")
+
+		// A fresh role has no warm cache entry, so ForEntity must fall through
+		// to Postgres. A canceled context makes both the Redis GET and the
+		// Postgres query fail deterministically, forcing the lookup-error path.
+		canceledCtx, cancel := context.WithCancel(ctx)
+		cancel()
+
+		m := map[string]any{"name": "x", "book_value": "100"}
+		err := svc.FilterEntity(canceledCtx, role, "assets", m)
+		require.Error(t, err, "FilterEntity must surface the ForEntity error rather than swallow it")
+	})
+}

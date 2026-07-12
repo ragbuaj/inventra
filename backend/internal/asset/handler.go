@@ -29,21 +29,16 @@ func NewHandler(svc *Service, fieldSvc *authz.FieldService, scoped common.Scoped
 }
 
 // filterMap applies field-permission masking for the caller's role on the "assets" entity.
-// It returns an error when ForEntity fails (e.g. Redis down) so callers can fail-closed
-// rather than leaking sensitive financial fields.
-// A nil policies map with no error is the legitimate "no policy / default-allow" case and
-// is handled normally by FilterView (which is itself default-allow).
+// It delegates to authz.FilterEntity, which fails closed: a policy-lookup error (e.g. Redis
+// down) is returned so callers refuse to leak sensitive financial fields rather than
+// serving them unmasked.
 func (h *Handler) filterMap(c *gin.Context, m map[string]any) (map[string]any, error) {
 	roleID, err := uuid.Parse(c.GetString(middleware.CtxRoleID))
 	if err != nil {
 		return m, nil
 	}
-	policies, err := h.fieldSvc.ForEntity(c.Request.Context(), roleID, "assets")
-	if err != nil {
+	if err := h.fieldSvc.FilterEntity(c.Request.Context(), roleID, "assets", m); err != nil {
 		return nil, err
-	}
-	if policies != nil {
-		authz.FilterView(policies, m)
 	}
 	return m, nil
 }
