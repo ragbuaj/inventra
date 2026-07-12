@@ -143,6 +143,10 @@ func (w *Worker) Run(ctx context.Context) {
 	}
 }
 
+// Tick runs one worker pass (validate or execute). Exposed for integration tests
+// to drive the worker deterministically instead of relying on the polling loop.
+func (w *Worker) Tick(ctx context.Context) (bool, error) { return w.tick(ctx) }
+
 // tick performs one pass: try to claim and validate a pending job; if none is
 // pending, try to claim and execute a confirmed job. didWork reports whether
 // a job was claimed (regardless of whether it ultimately succeeded).
