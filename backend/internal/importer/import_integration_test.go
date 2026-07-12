@@ -20,9 +20,11 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -74,6 +76,7 @@ type harness struct {
 	importSvc   *importer.Service
 	handler     *importer.Handler
 	worker      *importer.Worker
+	store       *storage.Fake
 }
 
 func newHarness(t *testing.T) *harness {
@@ -92,7 +95,8 @@ func newHarness(t *testing.T) *harness {
 
 	refSvc := reference.NewService(q)
 
-	importSvc := importer.NewService(q, pool, storage.NewFake(), rdb, 1000, 10<<20)
+	store := storage.NewFake()
+	importSvc := importer.NewService(q, pool, store, rdb, 1000, 10<<20)
 	importSvc.RegisterTarget(assetSvc.Importer())
 	importSvc.RegisterTarget(empSvc.Importer())
 	importSvc.RegisterTarget(officeSvc.Importer())
@@ -111,7 +115,7 @@ func newHarness(t *testing.T) *harness {
 	return &harness{
 		pool: pool, rdb: rdb, q: q,
 		permSvc: permSvc, approvalSvc: approvalSvc, importSvc: importSvc,
-		handler: handler, worker: worker,
+		handler: handler, worker: worker, store: store,
 	}
 }
 
@@ -435,6 +439,29 @@ func TestImport_AssetReject_DerivedStatusAndErrorReport(t *testing.T) {
 
 	_, err = h.worker.Tick(ctx) // validate
 	require.NoError(t, err)
+
+	// Task 5: the validate phase's failed row (unknown kategori) must have
+	// triggered storeErrorReport, persisting error_report_key and uploading a
+	// report to object storage — before the job is ever confirmed/executed.
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	require.NotNil(t, job.ErrorReportKey, "validate phase must persist error_report_key when failed_rows > 0")
+
+	storedRC, storedInfo, err := h.store.Get(ctx, *job.ErrorReportKey)
+	require.NoError(t, err)
+	storedBody, err := io.ReadAll(storedRC)
+	require.NoError(t, err)
+	require.NoError(t, storedRC.Close())
+	require.NotEmpty(t, storedBody, "stored error report must not be empty")
+	assert.Equal(t, "text/csv", storedInfo.ContentType)
+	storedLines := strings.SplitN(string(storedBody), "\n", 2)
+	require.NotEmpty(t, storedLines)
+	header := storedLines[0]
+	for _, col := range assetHeader {
+		assert.Contains(t, header, col, "stored report header must contain the target's columns")
+	}
+	assert.Contains(t, header, "keterangan", "stored report header must contain the trailing keterangan column")
+
 	job, err = h.importSvc.ConfirmJob(ctx, job.ID, makerID)
 	require.NoError(t, err)
 	_, err = h.worker.Tick(ctx) // execute -> submit approval
@@ -468,6 +495,10 @@ func TestImport_AssetReject_DerivedStatusAndErrorReport(t *testing.T) {
 	assert.Equal(t, "rejected", body["approval_status"], "derived from the approval request, not the job row")
 
 	// Error report: the invalid row (unknown kategori) must be retrievable.
+	// format=csv matches job.Format ("csv"), so this must hit the Task 5
+	// stored-object fast path in the handler and stream the SAME bytes that
+	// were persisted to storage during the validate phase above, not a fresh
+	// on-demand rebuild.
 	w2 := httptest.NewRecorder()
 	req2, _ := http.NewRequest(http.MethodGet, "/api/v1/imports/"+job.ID.String()+"/error-report?format=csv", nil)
 	r.ServeHTTP(w2, req2)
@@ -477,6 +508,8 @@ func TestImport_AssetReject_DerivedStatusAndErrorReport(t *testing.T) {
 	assert.Contains(t, report, "Printer NoKategori")
 	assert.Contains(t, report, "kat", "the kategori cell's error_key ('kat') is listed in keterangan")
 	assert.NotContains(t, report, "Printer Valid", "only failed rows are listed in the error report")
+	assert.Equal(t, storedBody, w2.Body.Bytes(),
+		"error-report endpoint must stream exactly the object persisted at error_report_key")
 }
 
 // ─── 3. mid-batch tag collision (tx-poisoning regression) ──────────────────

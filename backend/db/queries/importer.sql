@@ -112,3 +112,6 @@ UPDATE import.import_rows SET result_ref = $2 WHERE id = $1;
 
 -- name: MarkRowFailed :exec
 UPDATE import.import_rows SET valid = false, errors = $2 WHERE id = $1;
+
+-- name: SetJobErrorReportKey :exec
+UPDATE import.import_jobs SET error_report_key = $2 WHERE id = $1;

@@ -392,6 +392,7 @@ type Querier interface {
 	SetDisposalBastNo(ctx context.Context, arg SetDisposalBastNoParams) (DisposalDisposal, error)
 	SetItemFollowup(ctx context.Context, arg SetItemFollowupParams) (StockopnameStockOpnameItem, error)
 	SetItemFollowupRecord(ctx context.Context, arg SetItemFollowupRecordParams) (StockopnameStockOpnameItem, error)
+	SetJobErrorReportKey(ctx context.Context, arg SetJobErrorReportKeyParams) error
 	SetJobRequest(ctx context.Context, arg SetJobRequestParams) (ImportImportJob, error)
 	SetJobResult(ctx context.Context, arg SetJobResultParams) (ImportImportJob, error)
 	SetJobValidated(ctx context.Context, arg SetJobValidatedParams) (ImportImportJob, error)

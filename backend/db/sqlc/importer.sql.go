@@ -549,6 +549,20 @@ func (q *Queries) RecoverStuckJobs(ctx context.Context) (int64, error) {
 	return result.RowsAffected(), nil
 }
 
+const setJobErrorReportKey = `-- name: SetJobErrorReportKey :exec
+UPDATE import.import_jobs SET error_report_key = $2 WHERE id = $1
+`
+
+type SetJobErrorReportKeyParams struct {
+	ID             uuid.UUID `json:"id"`
+	ErrorReportKey *string   `json:"error_report_key"`
+}
+
+func (q *Queries) SetJobErrorReportKey(ctx context.Context, arg SetJobErrorReportKeyParams) error {
+	_, err := q.db.Exec(ctx, setJobErrorReportKey, arg.ID, arg.ErrorReportKey)
+	return err
+}
+
 const setJobRequest = `-- name: SetJobRequest :one
 UPDATE import.import_jobs
 SET status = 'awaiting_approval', request_id = $2
