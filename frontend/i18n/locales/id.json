@@ -1551,7 +1551,8 @@
     "pickerEmpty": "Tidak ada data",
     "periodCustom": "Rentang kustom…",
     "searchOffice": "Cari kantor…",
-    "searchEmployee": "Cari pegawai…"
+    "searchEmployee": "Cari pegawai…",
+    "clearSelection": "Hapus pilihan"
   },
   "status": {
     "asset": {

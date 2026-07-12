@@ -1551,7 +1551,8 @@
     "pickerEmpty": "No data",
     "periodCustom": "Custom range…",
     "searchOffice": "Search office…",
-    "searchEmployee": "Search employee…"
+    "searchEmployee": "Search employee…",
+    "clearSelection": "Clear selection"
   },
   "status": {
     "asset": {

@@ -8,10 +8,12 @@ const props = withDefaults(defineProps<{
   placeholder: string
   disabled?: boolean
   testid?: string
+  clearable?: boolean
 }>(), {
   resolveFn: undefined,
   disabled: false,
-  testid: 'async'
+  testid: 'async',
+  clearable: false
 })
 
 const emit = defineEmits<{ 'update:modelValue': [id: string | null] }>()
@@ -85,6 +87,17 @@ function select(item: PickerItem) {
   emit('update:modelValue', item.id)
 }
 
+function clear() {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  suppressNextSearch = true
+  query.value = ''
+  isOpen.value = false
+  results.value = []
+  emit('update:modelValue', null)
+}
+
+const showClear = computed(() => props.clearable && !!props.modelValue)
+
 function onOutsideClick(event: MouseEvent) {
   if (containerRef.value && !containerRef.value.contains(event.target as Node)) {
     isOpen.value = false
@@ -110,7 +123,23 @@ onUnmounted(() => {
       :disabled="disabled"
       icon="i-lucide-search"
       class="w-full"
-    />
+    >
+      <template
+        v-if="showClear"
+        #trailing
+      >
+        <UButton
+          type="button"
+          color="neutral"
+          variant="link"
+          size="sm"
+          icon="i-lucide-x"
+          :data-testid="`${testid}-picker-clear`"
+          :aria-label="t('common.clearSelection')"
+          @click="clear"
+        />
+      </template>
+    </UInput>
     <div
       v-if="isOpen"
       class="absolute z-10 mt-1 w-full bg-default border border-default rounded-lg shadow-lg overflow-hidden"

@@ -301,6 +301,35 @@ describe('Master Pegawai page — office filter', () => {
     expect(text).not.toContain('Andi Pratama')
     expect(text).not.toContain('Citra Dewi')
   })
+
+  it('clearing the office filter picker (clear button) restores all offices\' employees without touching other filters', async () => {
+    const wrapper = await mountAndWait()
+    // Narrow to o1 first, and set an unrelated filter (status) to prove reset
+    // doesn't happen — only the office filter should be cleared.
+    await setVmRef(wrapper, 'filterOffice', 'o1')
+    await setVmRef(wrapper, 'filterStatus', 'active')
+
+    let textNow = wrapper.text()
+    expect(textNow).toContain('Andi Pratama')
+    expect(textNow).not.toContain('Bunga Lestari')
+
+    const clearBtn = wrapper.find('[data-testid="office-filter-picker-clear"]')
+    expect(clearBtn.exists()).toBe(true)
+    await clearBtn.trigger('click')
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 400))
+    await wrapper.vm.$nextTick()
+
+    const vm = wrapper.vm as unknown as { filterOffice: string | null, filterStatus: string }
+    expect(vm.filterOffice).toBeNull()
+    // Status filter must remain untouched by the office clear action.
+    expect(vm.filterStatus).toBe('active')
+
+    textNow = wrapper.text()
+    // All active employees across offices are visible again.
+    expect(textNow).toContain('Andi Pratama')
+    expect(textNow).toContain('Bunga Lestari')
+  })
 })
 
 // ---------------------------------------------------------------------------

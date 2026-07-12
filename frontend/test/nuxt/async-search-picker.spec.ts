@@ -78,4 +78,31 @@ describe('AsyncSearchPicker', () => {
     vi.useRealTimers()
     expect(searchFn).not.toHaveBeenCalled()
   })
+
+  it('does not render a clear button when clearable is false (default) even with a value selected', async () => {
+    const resolveFn = vi.fn(async (id: string) => items.find(i => i.id === id) ?? null)
+    const w = await picker({ modelValue: 'o1', resolveFn })
+    await flushPromises()
+    expect(w.find('[data-testid="office-picker-clear"]').exists()).toBe(false)
+  })
+
+  it('renders a clear button when clearable is true and a value is selected, and clicking it clears the input and emits null', async () => {
+    const resolveFn = vi.fn(async (id: string) => items.find(i => i.id === id) ?? null)
+    const w = await picker({ modelValue: 'o1', resolveFn, clearable: true })
+    await flushPromises()
+    const clearBtn = w.find('[data-testid="office-picker-clear"]')
+    expect(clearBtn.exists()).toBe(true)
+
+    await clearBtn.trigger('click')
+    await flushPromises()
+
+    expect(w.emitted('update:modelValue')?.at(-1)).toEqual([null])
+    expect((w.find('[data-testid="office-picker-input"]').element as HTMLInputElement).value).toBe('')
+  })
+
+  it('does not render a clear button when clearable is true but no value is selected', async () => {
+    const w = await picker({ clearable: true })
+    await flushPromises()
+    expect(w.find('[data-testid="office-picker-clear"]').exists()).toBe(false)
+  })
 })

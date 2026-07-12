@@ -246,6 +246,7 @@ onMounted(() => {
         :placeholder="t('common.searchOffice')"
         testid="office-filter"
         class="min-w-[200px]"
+        clearable
         @update:model-value="filterOffice = $event"
       />
 
