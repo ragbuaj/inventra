@@ -1813,7 +1813,10 @@
         "employee": "Pegawai",
         "office": "Kantor",
         "provinces": "Provinsi",
-        "cities": "Kota"
+        "cities": "Kota",
+        "brands": "Brand",
+        "models": "Model",
+        "units": "Satuan"
       }
     }
   },
@@ -1978,7 +1981,10 @@
         "tipe": "Tipe kantor tidak valid",
         "induk": "Kantor induk tidak ditemukan",
         "aktif": "Nilai aktif tidak valid",
-        "provinsi": "Provinsi tidak ditemukan"
+        "provinsi": "Provinsi tidak ditemukan",
+        "departemen": "Departemen tidak ditemukan",
+        "jabatan": "Jabatan tidak ditemukan",
+        "merek": "Brand tidak ditemukan"
       },
       "jobErrors": {
         "badHeader": "Header kolom tidak sesuai template.",

@@ -14,21 +14,27 @@ const { t } = useI18n()
 const route = useRoute()
 const can = useCan()
 
-type MasterImportTarget = 'employee' | 'office' | 'reference:provinces' | 'reference:cities'
-const VALID_TARGETS: MasterImportTarget[] = ['employee', 'office', 'reference:provinces', 'reference:cities']
+type MasterImportTarget = 'employee' | 'office' | 'reference:provinces' | 'reference:cities' | 'reference:brands' | 'reference:models' | 'reference:units'
+const VALID_TARGETS: MasterImportTarget[] = ['employee', 'office', 'reference:provinces', 'reference:cities', 'reference:brands', 'reference:models', 'reference:units']
 
 const PERMISSION_BY_TARGET: Record<MasterImportTarget, string> = {
   'employee': 'masterdata.employee.manage',
   'office': 'masterdata.office.manage',
   'reference:provinces': 'masterdata.global.manage',
-  'reference:cities': 'masterdata.global.manage'
+  'reference:cities': 'masterdata.global.manage',
+  'reference:brands': 'masterdata.global.manage',
+  'reference:models': 'masterdata.global.manage',
+  'reference:units': 'masterdata.global.manage'
 }
 
 const LABEL_KEY_BY_TARGET: Record<MasterImportTarget, string> = {
   'employee': 'masterdata.import.targets.employee',
   'office': 'masterdata.import.targets.office',
   'reference:provinces': 'masterdata.import.targets.provinces',
-  'reference:cities': 'masterdata.import.targets.cities'
+  'reference:cities': 'masterdata.import.targets.cities',
+  'reference:brands': 'masterdata.import.targets.brands',
+  'reference:models': 'masterdata.import.targets.models',
+  'reference:units': 'masterdata.import.targets.units'
 }
 
 const target = computed<MasterImportTarget | null>(() => {

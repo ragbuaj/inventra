@@ -20,7 +20,7 @@ const descriptor = computed<ReferenceDescriptor>(() =>
 // Only these reference sub-resources have a registered bulk-import target on
 // the backend (see backend/internal/masterdata/reference/importer.go) — the
 // Import button only appears for them.
-const IMPORTABLE_RESOURCES: ReferenceKey[] = ['provinces', 'cities']
+const IMPORTABLE_RESOURCES: ReferenceKey[] = ['provinces', 'cities', 'brands', 'models', 'units']
 const importTarget = computed(() => (IMPORTABLE_RESOURCES.includes(resourceKey.value) ? `reference:${resourceKey.value}` : null))
 
 const entityCounts = ref<Partial<Record<ReferenceKey, number>>>({})

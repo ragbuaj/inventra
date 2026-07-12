@@ -95,6 +95,42 @@ describe('Master-data import page — target resolution', () => {
     expect(wizard.props('target')).toBe('reference:cities')
     expect(wizard.props('permission')).toBe('masterdata.global.manage')
   })
+
+  it('mounts ImportWizard for reference:brands with the global-manage permission and Brand label', async () => {
+    login(['*'])
+    const wrapper = await mountSuspended(MasterImportPage, { route: '/master/import?target=reference:brands' })
+    await flushPromises()
+
+    const wizard = wrapper.findComponent({ name: 'ImportWizard' })
+    expect(wizard.exists()).toBe(true)
+    expect(wizard.props('target')).toBe('reference:brands')
+    expect(wizard.props('permission')).toBe('masterdata.global.manage')
+    expect(wrapper.text()).toContain('Brand')
+  })
+
+  it('mounts ImportWizard for reference:models with the global-manage permission and Model label', async () => {
+    login(['*'])
+    const wrapper = await mountSuspended(MasterImportPage, { route: '/master/import?target=reference:models' })
+    await flushPromises()
+
+    const wizard = wrapper.findComponent({ name: 'ImportWizard' })
+    expect(wizard.exists()).toBe(true)
+    expect(wizard.props('target')).toBe('reference:models')
+    expect(wizard.props('permission')).toBe('masterdata.global.manage')
+    expect(wrapper.text()).toContain('Model')
+  })
+
+  it('mounts ImportWizard for reference:units with the global-manage permission and Satuan label', async () => {
+    login(['*'])
+    const wrapper = await mountSuspended(MasterImportPage, { route: '/master/import?target=reference:units' })
+    await flushPromises()
+
+    const wizard = wrapper.findComponent({ name: 'ImportWizard' })
+    expect(wizard.exists()).toBe(true)
+    expect(wizard.props('target')).toBe('reference:units')
+    expect(wizard.props('permission')).toBe('masterdata.global.manage')
+    expect(wrapper.text()).toContain('Satuan')
+  })
 })
 
 describe('Master-data import page — authorization', () => {

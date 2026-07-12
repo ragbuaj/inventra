@@ -42,6 +42,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
 	"github.com/ragbuaj/inventra/internal/masterdata/employee"
 	"github.com/ragbuaj/inventra/internal/masterdata/office"
+	"github.com/ragbuaj/inventra/internal/masterdata/reference"
 	"github.com/ragbuaj/inventra/internal/middleware"
 	"github.com/ragbuaj/inventra/internal/storage"
 	"github.com/ragbuaj/inventra/internal/testsupport"
@@ -55,6 +56,9 @@ import (
 // masterdata/employee/importer.go's Columns() for readability.
 var assetHeader = []string{"asset_tag", "nama", "kategori", "kantor", "tgl_beli", "harga", "vendor", "lokasi"}
 var employeeHeader = []string{"kode", "nama", "email", "telepon", "kantor", "status", "departemen", "jabatan"}
+var brandHeader = []string{"nama"}
+var unitHeader = []string{"nama", "simbol"}
+var modelHeader = []string{"merek", "nama"}
 
 // harness bundles every service the bulk-import pipeline needs, wired exactly
 // like internal/server/router.go wires them in production (NewRouter): one
@@ -86,10 +90,17 @@ func newHarness(t *testing.T) *harness {
 	officeSvc := office.NewService(q)
 	approvalSvc.RegisterExecutor(sqlc.SharedRequestTypeAssetImport, assetSvc.ImportExecutor())
 
+	refSvc := reference.NewService(q)
+
 	importSvc := importer.NewService(q, pool, storage.NewFake(), rdb, 1000, 10<<20)
 	importSvc.RegisterTarget(assetSvc.Importer())
 	importSvc.RegisterTarget(empSvc.Importer())
 	importSvc.RegisterTarget(officeSvc.Importer())
+	importSvc.RegisterTarget(reference.NewImporter(refSvc, "provinces"))
+	importSvc.RegisterTarget(reference.NewImporter(refSvc, "cities"))
+	importSvc.RegisterTarget(reference.NewImporter(refSvc, "brands"))
+	importSvc.RegisterTarget(reference.NewImporter(refSvc, "models"))
+	importSvc.RegisterTarget(reference.NewImporter(refSvc, "units"))
 
 	auditSvc := audit.NewService(q)
 	handler := importer.NewHandler(importSvc, permSvc, common.ScopedDeps{Q: q, Scope: scopeSvc}, auditSvc)
@@ -161,6 +172,16 @@ func seedPosition(t *testing.T, pool *pgxpool.Pool, name string) uuid.UUID {
 	var id uuid.UUID
 	require.NoError(t, pool.QueryRow(context.Background(),
 		`INSERT INTO masterdata.positions (name) VALUES ($1) RETURNING id`,
+		name).Scan(&id))
+	return id
+}
+
+// seedBrand inserts a masterdata.brands row and returns its id.
+func seedBrand(t *testing.T, pool *pgxpool.Pool, name string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO masterdata.brands (name) VALUES ($1) RETURNING id`,
 		name).Scan(&id))
 	return id
 }
@@ -980,4 +1001,211 @@ func TestImport_Rows_PaginationAndOnlyErrors(t *testing.T) {
 		rec := raw.(map[string]any)
 		assert.Equal(t, false, rec["valid"])
 	}
+}
+
+// ─── 10. reference targets (brands/units/models) ───────────────────────────
+//
+// Tasks 2-3 added the reference:brands, reference:units, reference:models
+// import targets (internal/masterdata/reference/importer.go); Task 4 wires
+// them into newHarness above exactly like router.go's production wiring. All
+// three targets have NeedsApproval() == false, so the worker executes them
+// directly (same shape as TestImport_EmployeeCycle_DuplicateCodeMarkedFailed)
+// rather than routing through approval.Service like the asset target.
+
+// TestImport_ReferenceBrandCycle_DuplicateNameMarkedFailed drives the brands
+// target: two rows validate cleanly, then a name collision is committed
+// directly to the DB between validation and execution (the same
+// anti-poisoning race proven for employees/assets) — the colliding row is
+// marked failed with dupNama while the other row is created and the job
+// still completes.
+func TestImport_ReferenceBrandCycle_DuplicateNameMarkedFailed(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	makerRoleID := seedGlobalMakerRole(t, h.pool, "masterdata.global.manage")
+	makerID := seedUser(t, h.pool, makerRoleID, nil, "maker.brand@test.local")
+
+	const dupName = "Brand Bentrok"
+	csvBytes := buildCSV(t, brandHeader, [][]string{
+		{dupName},
+		{"Brand Selamat"},
+	})
+
+	job, err := h.importSvc.CreateJob(ctx, "reference:brands", "csv", "brands.csv", "text/csv", csvBytes, makerID)
+	require.NoError(t, err)
+
+	_, err = h.worker.Tick(ctx) // validate: no collision yet, both rows valid
+	require.NoError(t, err)
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusValidated, job.Status)
+	assert.EqualValues(t, 2, job.SuccessRows)
+
+	// Simulate a name committed concurrently between validation and execution.
+	_, err = h.pool.Exec(ctx, `INSERT INTO masterdata.brands (name) VALUES ($1)`, dupName)
+	require.NoError(t, err)
+
+	job, err = h.importSvc.ConfirmJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	_, err = h.worker.Tick(ctx) // execute: no approval needed, runs directly
+	require.NoError(t, err)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusCompleted, job.Status)
+	assert.EqualValues(t, 1, job.SuccessRows)
+	assert.EqualValues(t, 1, job.FailedRows)
+
+	survivor, err := h.q.GetBrandByName(ctx, "Brand Selamat")
+	require.NoError(t, err)
+	assert.Equal(t, "Brand Selamat", survivor.Name)
+
+	failedRows, err := h.q.ListImportRows(ctx, sqlc.ListImportRowsParams{JobID: job.ID, OnlyErrors: true, Off: 0, Lim: 20})
+	require.NoError(t, err)
+	require.Len(t, failedRows, 1)
+	var errs []importer.CellError
+	require.NoError(t, json.Unmarshal(failedRows[0].Errors, &errs))
+	require.Len(t, errs, 1)
+	assert.Equal(t, "nama", errs[0].Column)
+	assert.Equal(t, "dupNama", errs[0].ErrorKey)
+}
+
+// TestImport_ReferenceUnitCycle_DuplicateNameMarkedFailed is the units-target
+// sibling of the brands test above: same anti-poisoning shape, on
+// masterdata.units instead.
+func TestImport_ReferenceUnitCycle_DuplicateNameMarkedFailed(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	makerRoleID := seedGlobalMakerRole(t, h.pool, "masterdata.global.manage")
+	makerID := seedUser(t, h.pool, makerRoleID, nil, "maker.unit@test.local")
+
+	const dupName = "Satuan Bentrok"
+	csvBytes := buildCSV(t, unitHeader, [][]string{
+		{dupName, "kg"},
+		{"Satuan Selamat", "pcs"},
+	})
+
+	job, err := h.importSvc.CreateJob(ctx, "reference:units", "csv", "units.csv", "text/csv", csvBytes, makerID)
+	require.NoError(t, err)
+
+	_, err = h.worker.Tick(ctx) // validate: no collision yet, both rows valid
+	require.NoError(t, err)
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusValidated, job.Status)
+	assert.EqualValues(t, 2, job.SuccessRows)
+
+	// Simulate a name committed concurrently between validation and execution.
+	_, err = h.pool.Exec(ctx, `INSERT INTO masterdata.units (name, symbol) VALUES ($1, 'kg')`, dupName)
+	require.NoError(t, err)
+
+	job, err = h.importSvc.ConfirmJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	_, err = h.worker.Tick(ctx) // execute: no approval needed, runs directly
+	require.NoError(t, err)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusCompleted, job.Status)
+	assert.EqualValues(t, 1, job.SuccessRows)
+	assert.EqualValues(t, 1, job.FailedRows)
+
+	survivor, err := h.q.GetUnitByName(ctx, "Satuan Selamat")
+	require.NoError(t, err)
+	assert.Equal(t, "Satuan Selamat", survivor.Name)
+	require.NotNil(t, survivor.Symbol)
+	assert.Equal(t, "pcs", *survivor.Symbol)
+
+	failedRows, err := h.q.ListImportRows(ctx, sqlc.ListImportRowsParams{JobID: job.ID, OnlyErrors: true, Off: 0, Lim: 20})
+	require.NoError(t, err)
+	require.Len(t, failedRows, 1)
+	var errs []importer.CellError
+	require.NoError(t, json.Unmarshal(failedRows[0].Errors, &errs))
+	require.Len(t, errs, 1)
+	assert.Equal(t, "nama", errs[0].Column)
+	assert.Equal(t, "dupNama", errs[0].ErrorKey)
+}
+
+// TestImport_ReferenceModelCycle_UnknownBrandAndDuplicatePair covers both
+// model-specific rules in one pass through the pipeline: an unknown "merek"
+// is rejected at VALIDATION time (mirrors
+// TestImport_EmployeeCycle_DeptPositionResolved's "departemen" case — brand
+// resolution has no execute-time re-check), while a (brand, nama) pair that
+// collides with a row committed directly to the DB between validation and
+// execution is marked failed at EXECUTE time with dupNama (the
+// anti-poisoning race, proven here for the composite unique constraint
+// uq_models_brand_name).
+func TestImport_ReferenceModelCycle_UnknownBrandAndDuplicatePair(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	brandID := seedBrand(t, h.pool, "Canon")
+
+	makerRoleID := seedGlobalMakerRole(t, h.pool, "masterdata.global.manage")
+	makerID := seedUser(t, h.pool, makerRoleID, nil, "maker.model@test.local")
+
+	const dupModelName = "EOS Bentrok"
+	csvBytes := buildCSV(t, modelHeader, [][]string{
+		{"Canon", "EOS Selamat"},
+		{"Nikon", "Z6"}, // unknown brand -> rejected at validation
+		{"Canon", dupModelName},
+	})
+
+	job, err := h.importSvc.CreateJob(ctx, "reference:models", "csv", "models.csv", "text/csv", csvBytes, makerID)
+	require.NoError(t, err)
+
+	// --- validate: the unknown brand is rejected here, not at execute ---
+	_, err = h.worker.Tick(ctx)
+	require.NoError(t, err)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusValidated, job.Status)
+	assert.EqualValues(t, 3, job.TotalRows)
+	assert.EqualValues(t, 2, job.SuccessRows)
+	assert.EqualValues(t, 1, job.FailedRows)
+
+	failedAtValidate, err := h.q.ListImportRows(ctx, sqlc.ListImportRowsParams{JobID: job.ID, OnlyErrors: true, Off: 0, Lim: 20})
+	require.NoError(t, err)
+	require.Len(t, failedAtValidate, 1)
+	var validateErrs []importer.CellError
+	require.NoError(t, json.Unmarshal(failedAtValidate[0].Errors, &validateErrs))
+	require.Len(t, validateErrs, 1)
+	assert.Equal(t, "merek", validateErrs[0].Column)
+	assert.Equal(t, "merek", validateErrs[0].ErrorKey)
+
+	// Simulate a (brand, nama) pair committed concurrently between validation
+	// and execution — the tx-poisoning regression check.
+	_, err = h.pool.Exec(ctx,
+		`INSERT INTO masterdata.models (brand_id, name) VALUES ($1, $2)`,
+		brandID, dupModelName)
+	require.NoError(t, err)
+
+	// --- confirm + execute (models target needs no approval) ---
+	job, err = h.importSvc.ConfirmJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	_, err = h.worker.Tick(ctx)
+	require.NoError(t, err)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusCompleted, job.Status)
+	assert.EqualValues(t, 1, job.SuccessRows, "only the non-colliding valid row was created")
+	assert.EqualValues(t, 2, job.FailedRows, "the validation-time failure plus the mid-batch collision")
+
+	survivor, err := h.q.GetModelByBrandAndName(ctx, sqlc.GetModelByBrandAndNameParams{BrandID: brandID, Lower: "EOS Selamat"})
+	require.NoError(t, err)
+	assert.Equal(t, "EOS Selamat", survivor.Name)
+
+	allRows, err := h.q.ListImportRows(ctx, sqlc.ListImportRowsParams{JobID: job.ID, OnlyErrors: false, Off: 0, Lim: 20})
+	require.NoError(t, err)
+	byName := rowsByName(t, allRows)
+	collided := byName[dupModelName]
+	assert.False(t, collided.Valid, "MarkRowFailed flips the row to invalid at execute time")
+	var collidedErrs []importer.CellError
+	require.NoError(t, json.Unmarshal(collided.Errors, &collidedErrs))
+	require.Len(t, collidedErrs, 1)
+	assert.Equal(t, "nama", collidedErrs[0].Column)
+	assert.Equal(t, "dupNama", collidedErrs[0].ErrorKey)
 }

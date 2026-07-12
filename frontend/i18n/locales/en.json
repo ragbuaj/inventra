@@ -1813,7 +1813,10 @@
         "employee": "Employees",
         "office": "Offices",
         "provinces": "Provinces",
-        "cities": "Cities"
+        "cities": "Cities",
+        "brands": "Brand",
+        "models": "Model",
+        "units": "Unit"
       }
     }
   },
@@ -1978,7 +1981,10 @@
         "tipe": "Invalid office type",
         "induk": "Parent office not found",
         "aktif": "Invalid active value",
-        "provinsi": "Province not found"
+        "provinsi": "Province not found",
+        "departemen": "Department not found",
+        "jabatan": "Position not found",
+        "merek": "Brand not found"
       },
       "jobErrors": {
         "badHeader": "Column header does not match the template.",

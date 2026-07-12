@@ -679,22 +679,44 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     employee **CRUD** uses `office.manage` (000032 aligns the grants). **Note — dev-stack image
 >     staleness:** the running `asset-management-frontend` container predates this branch and was stopped
 >     for the e2e/mockup run (served by a fresh host build) — it needs a rebuild for normal dev use.
-> 45. ~~**Next session — pick the next real step.**~~ Import follow-ups picked; **Task 1 done
->     (2026-07-12): employee import dept/position columns.** Optional `departemen` (name OR code) /
+> 45. ~~**Import follow-ups — Task 1 done (2026-07-12): employee import dept/position columns.**~~
+>     Optional `departemen` (name OR code) /
 >     `jabatan` (name) columns added to the employee import template; `buildEmployeeLookups` loads
 >     `ListDepartmentsLookup`/`ListPositionsLookup` (new `db/queries/reference_import.sql` queries),
 >     `validateEmployeeRows` resolves them case-insensitively (error keys `departemen`/`jabatan`, stamps
 >     `_department_id`/`_position_id`, dropped on invalid rows), `Execute` now passes the resolved ids
 >     into `CreateEmployee` instead of hardcoded `nil`. Unit tests (`importer_test.go`, 3 new cases) +
 >     integration test `TestImport_EmployeeCycle_DeptPositionResolved` (unknown department rejected at
->     validation, not execute; resolved ids persisted end-to-end). Remaining major candidate:
->     **notifications** (`mock/notifications.ts` — the last app-shell mock; needs a backend notifications
->     feed). Also open: remaining **import** follow-ups (extra master-data targets —
->     brand/model/unit/room/floor; office/reference e2e; MinIO-stored error reports); the standing
->     tech-debt list (field-permission enforcement beyond assets+users; Users screen server-side filters +
->     reset-password; enriched audit response; async searchable office/employee pickers — the `limit:100`
->     cap keeps biting local e2e; approval/route badge counts; failure-safe Data-Scope e2e cleanup); and
->     the **Analytics/OLAP** read layer once report volume warrants it. Confirm priority before starting.
+>     validation, not execute; resolved ids persisted end-to-end).
+> 46. ~~**Import follow-ups — Tasks 2–4 done (2026-07-12): brand/model/unit reference import targets,
+>     registered + wired end-to-end.**~~ `internal/masterdata/reference/importer.go` gained three more
+>     `TargetImporter` resources (Tasks 2–3): **brands** (`nama`, dupNama vs. `uq_brands_name`),
+>     **units** (`nama`+optional `simbol`, dupNama vs. `uq_units_name`), **models** (`merek`+`nama`,
+>     brand resolved by name → `merek` error on miss, dupNama on the composite `uq_models_brand_name`) —
+>     each following the same validate/Execute anti-poisoning split as provinces/cities. Task 4 wired
+>     them in: `router.go` registers all three (`reference.NewImporter(refSvc, "brands"|"models"|"units")`,
+>     no new permission needed — `reference:*` already maps to `masterdata.global.manage`);
+>     `master/import.vue` target union/permission/label maps and `master/reference.vue`
+>     `IMPORTABLE_RESOURCES` extended so the Import button appears for Brand/Model/Satuan; i18n
+>     `masterdata.import.targets.{brands,models,units}` + `import.wizard.cellErrors.{departemen,jabatan,merek}`
+>     added (id+en); OpenAPI `target` enum (4 occurrences) + the Import tag description updated to match.
+>     Tests: 3 new backend integration subtests (`TestImport_Reference{Brand,Unit}Cycle_DuplicateNameMarkedFailed`,
+>     `TestImport_ReferenceModelCycle_UnknownBrandAndDuplicatePair` — each proves the mid-batch
+>     tx-poisoning defense, the model test additionally proves the unknown-brand validation-time
+>     rejection) added to `import_integration_test.go` (its harness now registers all 5 reference
+>     targets, mirroring `router.go`); frontend `master-import.spec.ts` gained 3 cases (permission +
+>     label per target). Full gate green: backend build/vet/test + `-tags=integration ./internal/importer/`
+>     (all PASS), Spectral (0 err), frontend lint/typecheck/test (95 files/1159 tests)/build.
+> 47. ~~**Next session — pick the next real step.**~~ Remaining **import** follow-ups: room/floor
+>     reference targets (not yet implemented, unlike brand/model/unit); office/reference import paths
+>     have no e2e coverage (only asset+employee driven); MinIO-stored error reports (currently generated
+>     on-demand, `error_report_key` stays null). Other major candidate: **notifications**
+>     (`mock/notifications.ts` — the last app-shell mock; needs a backend notifications feed). Also open:
+>     the standing tech-debt list (field-permission enforcement beyond assets+users; Users screen
+>     server-side filters + reset-password; enriched audit response; async searchable office/employee
+>     pickers — the `limit:100` cap keeps biting local e2e; approval/route badge counts; failure-safe
+>     Data-Scope e2e cleanup); and the **Analytics/OLAP** read layer once report volume warrants it.
+>     Confirm priority before starting.
 
 ## ✅ Done
 
