@@ -135,6 +135,7 @@ type Querier interface {
 	// row visible (with nil names) even when a joined office/user was soft-deleted.
 	GetDisposalEnriched(ctx context.Context, arg GetDisposalEnrichedParams) (GetDisposalEnrichedRow, error)
 	GetEmployee(ctx context.Context, arg GetEmployeeParams) (MasterdataEmployee, error)
+	GetEmployeeByCode(ctx context.Context, code string) (MasterdataEmployee, error)
 	GetFloor(ctx context.Context, arg GetFloorParams) (MasterdataFloor, error)
 	GetImportJob(ctx context.Context, id uuid.UUID) (ImportImportJob, error)
 	GetImportJobForUpdate(ctx context.Context, id uuid.UUID) (ImportImportJob, error)
@@ -216,6 +217,11 @@ type Querier interface {
 	ListDepreciationPeriods(ctx context.Context) ([]DepreciationDepreciationPeriod, error)
 	ListDisposalsByAssetEnriched(ctx context.Context, arg ListDisposalsByAssetEnrichedParams) ([]ListDisposalsByAssetEnrichedRow, error)
 	ListDisposalsEnriched(ctx context.Context, arg ListDisposalsEnrichedParams) ([]ListDisposalsEnrichedRow, error)
+	// All existing (non-deleted) employee codes, used by the employee importer to
+	// detect collisions with user-supplied kode values during validation. Employee
+	// codes are globally unique (uq_employees_code), so this set is deliberately
+	// unscoped.
+	ListEmployeeCodes(ctx context.Context) ([]string, error)
 	// Employees (asset custodians) with data-scoping by office.
 	ListEmployees(ctx context.Context, arg ListEmployeesParams) ([]MasterdataEmployee, error)
 	// Schedule/journal source: entries of one period+basis joined to asset+category+office.

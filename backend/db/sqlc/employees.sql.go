@@ -118,6 +118,59 @@ func (q *Queries) GetEmployee(ctx context.Context, arg GetEmployeeParams) (Maste
 	return i, err
 }
 
+const getEmployeeByCode = `-- name: GetEmployeeByCode :one
+SELECT id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at, phone FROM masterdata.employees WHERE code = $1 AND deleted_at IS NULL LIMIT 1
+`
+
+func (q *Queries) GetEmployeeByCode(ctx context.Context, code string) (MasterdataEmployee, error) {
+	row := q.db.QueryRow(ctx, getEmployeeByCode, code)
+	var i MasterdataEmployee
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.Name,
+		&i.Email,
+		&i.AvatarKey,
+		&i.DepartmentID,
+		&i.PositionID,
+		&i.OfficeID,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.Phone,
+	)
+	return i, err
+}
+
+const listEmployeeCodes = `-- name: ListEmployeeCodes :many
+SELECT code FROM masterdata.employees WHERE deleted_at IS NULL
+`
+
+// All existing (non-deleted) employee codes, used by the employee importer to
+// detect collisions with user-supplied kode values during validation. Employee
+// codes are globally unique (uq_employees_code), so this set is deliberately
+// unscoped.
+func (q *Queries) ListEmployeeCodes(ctx context.Context) ([]string, error) {
+	rows, err := q.db.Query(ctx, listEmployeeCodes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var code string
+		if err := rows.Scan(&code); err != nil {
+			return nil, err
+		}
+		items = append(items, code)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listEmployees = `-- name: ListEmployees :many
 
 SELECT id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at, phone FROM masterdata.employees
