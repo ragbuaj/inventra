@@ -1797,7 +1797,6 @@
       "nonaktif": "Nonaktif",
       "entitySubtitle": "Kelola data referensi",
       "requiredField": "{field} wajib diisi.",
-      "fkEmpty": "Belum ada data — buat dulu di resource terkait.",
       "fields": { "name": "Nama", "code": "Kode", "symbol": "Simbol", "email": "Email", "phone": "Telepon", "province": "Provinsi", "brand": "Brand", "contact_name": "Nama Kontak", "address": "Alamat", "tier": "Tingkat" },
       "resources": {
         "office-types": "Jenis Kantor", "departments": "Departemen", "positions": "Jabatan",

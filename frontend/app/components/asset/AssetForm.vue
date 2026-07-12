@@ -18,6 +18,7 @@ const category = useCategoryPicker()
 const brand = useReferencePicker('brands')
 const model = useReferencePicker('models')
 const unit = useReferencePicker('units')
+const vendor = useReferencePicker('vendors')
 const floorsApi = useFloors()
 const referenceApi = useReference()
 const assetsApi = useAssets()
@@ -25,14 +26,13 @@ const assetRequestsApi = useAssetRequests()
 const attachmentsApi = useAssetAttachments()
 
 // ---------------------------------------------------------------------------
-// Lookup option lists (offices/vendors) — server-backed, no more hardcoded
+// Lookup option lists (floors/rooms) — server-backed, no more hardcoded
 // arrays. `ready` gates the cascade watchers below so populating fields from
 // `initial` (edit mode) doesn't itself trigger a reset of the very values it
-// just set. Category/brand/model/unit are async search pickers (see
+// just set. Category/brand/model/unit/vendor are async search pickers (see
 // usePickerSource.ts) — no more eager `{ limit: 100 }` lists for them.
 // ---------------------------------------------------------------------------
 
-const vendors = ref<{ id: string, name: string }[]>([])
 const floors = ref<Floor[]>([])
 const rooms = ref<Room[]>([])
 const ready = ref(false)
@@ -87,7 +87,6 @@ watch(() => form.categoryId, (id) => {
   if (!id) selectedCategory.value = null
 })
 
-const vendorOptions = computed(() => vendors.value.map(v => ({ value: v.id, label: v.name })))
 const floorOptions = computed(() => floors.value.map(f => ({ value: f.id, label: f.name })))
 const roomOptions = computed(() => rooms.value.map(r => ({ value: r.id, label: r.name })))
 
@@ -321,9 +320,6 @@ function cancel() {
 }
 
 onMounted(async () => {
-  const vd = await referenceApi.list('vendors', { limit: 100 }).catch(() => ({ data: [] }))
-  vendors.value = vd.data as { id: string, name: string }[]
-
   if (props.mode === 'edit' && props.initial) {
     await loadFloorsForOffice(props.initial.office_id)
     if (props.initial.room_id) await resolveInitialRoom(props.initial.office_id, props.initial.room_id)
@@ -583,13 +579,14 @@ onMounted(async () => {
               </template>
             </UFormField>
             <UFormField :label="t('assets.form.fields.vendor')">
-              <USelect
-                :model-value="form.vendorId"
-                :items="vendorOptions"
-                :placeholder="t('assets.form.placeholders.select')"
-                class="w-full"
-                data-testid="asset-form-vendor-select"
-                @update:model-value="setField('vendorId', String($event))"
+              <AsyncSearchPicker
+                :model-value="form.vendorId || null"
+                :search-fn="vendor.searchFn"
+                :resolve-fn="vendor.resolveFn"
+                :placeholder="t('common.searchVendor')"
+                testid="vendor"
+                clearable
+                @update:model-value="setField('vendorId', $event ?? '')"
               />
             </UFormField>
             <UFormField :label="t('assets.form.fields.poNumber')">

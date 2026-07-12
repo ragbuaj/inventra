@@ -122,7 +122,11 @@ function defaultHandler(): RequestHandler {
       return UNITS.find(u => u.id === id) ?? null
     }
     if (path.startsWith('/units')) return { data: UNITS, total: UNITS.length, limit: 20, offset: 0 }
-    if (path.startsWith('/vendors')) return { data: VENDORS, total: VENDORS.length, limit: 100, offset: 0 }
+    if (/^\/vendors\/[^/?]+$/.test(path)) {
+      const id = path.split('/')[2]
+      return VENDORS.find(v => v.id === id) ?? null
+    }
+    if (path.startsWith('/vendors')) return { data: VENDORS, total: VENDORS.length, limit: 20, offset: 0 }
     if (path.startsWith('/floors')) return { data: FLOORS, total: FLOORS.length, limit: 100, offset: 0 }
     if (path.startsWith('/rooms')) return { data: ROOMS, total: ROOMS.length, limit: 100, offset: 0 }
     if (path.match(/\/assets\/[^/]+\/attachments$/) && (!opts || opts.method !== 'POST')) {
@@ -354,6 +358,47 @@ describe('AssetForm — create mode: kategori/brand/model/unit are AsyncSearchPi
     await wrapper.vm.$nextTick()
     const input = wrapper.find('[data-testid="category-picker-input"]').element as HTMLInputElement
     expect(input.value).toBe('Elektronik')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// New mode — vendor is an async picker (no more eager {limit:100} USelect)
+// ---------------------------------------------------------------------------
+
+describe('AssetForm — create mode: vendor is an AsyncSearchPicker', () => {
+  it('renders the vendor picker input instead of the old eager-options USelect', async () => {
+    const wrapper = await mountNew()
+    expect(wrapper.find('[data-testid="asset-form-vendor-select"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="vendor-picker-input"]').exists()).toBe(true)
+  })
+
+  it('searching vendor drives GET /vendors with search+limit=20', async () => {
+    const wrapper = await mountNew()
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/vendors') && !/^\/vendors\/[^/?]+$/.test(path)) {
+        captured = path
+        return { data: VENDORS, total: VENDORS.length, limit: 20, offset: 0 }
+      }
+      return defaultHandler()(path, opts)
+    })
+    vi.useFakeTimers()
+    await wrapper.find('[data-testid="vendor-picker-input"]').setValue('Sinar')
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+    expect(captured).toContain('search=Sinar')
+    expect(captured).toContain('limit=20')
+  })
+
+  it('resolves a preselected vendor id to its label via GET /vendors/:id', async () => {
+    const wrapper = await mountNew()
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.vendorId = 'v1'
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+    const input = wrapper.find('[data-testid="vendor-picker-input"]').element as HTMLInputElement
+    expect(input.value).toBe('PT Sinar Komputindo')
   })
 })
 
