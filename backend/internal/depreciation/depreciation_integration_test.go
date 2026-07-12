@@ -1310,6 +1310,82 @@ func TestDepreciation_HTTP_Impairment(t *testing.T) {
 	})
 }
 
+// seedManageRole creates a fresh role granted "depreciation.manage" (the
+// permission gating compute/close/impairment) and returns its id. Needed
+// because the only seeded role holding depreciation.manage is Superadmin
+// (migration 000023, PRD §2.1 restriction), and Superadmin's own
+// field_permissions row grants book_value view — so a book_value-denied role
+// that can also reach the impairment endpoint does not exist in the seed data
+// and must be built ad hoc for the field-masking test below.
+func seedManageRole(t *testing.T, pool *pgxpool.Pool, code string) uuid.UUID {
+	t.Helper()
+	roleID := testsupport.SeedRole(t, pool, code)
+	_, err := pool.Exec(context.Background(),
+		`INSERT INTO identity.role_permissions (role_id, permission_key) VALUES ($1, 'depreciation.manage')`,
+		roleID)
+	require.NoError(t, err)
+	return roleID
+}
+
+// TestDepreciation_HTTP_Impairment_FieldMasking verifies POST
+// /assets/:id/impairment respects the same "assets" field-permission policy
+// as assetSchedule (handler.go's maskedAssetScheduleMap guard): a role denied
+// view on assets.book_value must not see book_value OR
+// accumulated_depreciation in the impairment response — they are masked
+// together, since accumulated_depreciation is not independently exposed on
+// this endpoint — while impairment_loss (no assets field policy exists for
+// it) stays visible. A role with no explicit "assets" field policy at all
+// (default-allow) sees every field.
+func TestDepreciation_HTTP_Impairment_FieldMasking(t *testing.T) {
+	hh := newHTTPHarness(t)
+	ctx := context.Background()
+
+	t.Run("masked when book_value view is denied", func(t *testing.T) {
+		roleID := seedManageRole(t, hh.pool, "DprMaskDeny-"+uuid.New().String()[:8])
+		testsupport.SeedFieldPermission(t, hh.pool, roleID, "assets", "book_value", false, false)
+		userID := seedUser(t, hh.pool, roleID, hh.office, "mask.deny."+uuid.New().String()[:8]+"@test.local")
+
+		assetID := seedAssetMonthsAgo(t, hh.pool, "DPR-2026-00040", "Aset Impairment Masked", hh.catID, hh.office, "9600000.00", 6)
+		month1 := firstOfMonthUTC(time.Now())
+		period1 := month1.Format("2006-01")
+		code, _ := hh.doReq(http.MethodPost, "/api/v1/depreciation/periods/"+period1+"/compute", userID, roleID)
+		require.Equal(t, http.StatusOK, code)
+
+		a, err := hh.q.GetAsset(ctx, assetID)
+		require.NoError(t, err)
+		require.NotNil(t, a.BookValue)
+
+		body := []byte(`{"recoverable_amount":"100000.00","reason":"uji masking"}`)
+		code, respBody := hh.doReqBody(http.MethodPost, "/api/v1/assets/"+assetID.String()+"/impairment", userID, roleID, body)
+		require.Equal(t, http.StatusOK, code)
+		assert.NotContains(t, respBody, "book_value")
+		assert.NotContains(t, respBody, "accumulated_depreciation")
+		assert.Contains(t, respBody, "impairment_loss", "impairment_loss has no assets field policy and stays visible")
+	})
+
+	t.Run("unmasked when no field policy exists (default-allow)", func(t *testing.T) {
+		roleID := seedManageRole(t, hh.pool, "DprMaskAllow-"+uuid.New().String()[:8])
+		userID := seedUser(t, hh.pool, roleID, hh.office, "mask.allow."+uuid.New().String()[:8]+"@test.local")
+
+		assetID := seedAssetMonthsAgo(t, hh.pool, "DPR-2026-00041", "Aset Impairment Unmasked", hh.catID, hh.office, "9600000.00", 6)
+		month1 := firstOfMonthUTC(time.Now())
+		period1 := month1.Format("2006-01")
+		code, _ := hh.doReq(http.MethodPost, "/api/v1/depreciation/periods/"+period1+"/compute", userID, roleID)
+		require.Equal(t, http.StatusOK, code)
+
+		a, err := hh.q.GetAsset(ctx, assetID)
+		require.NoError(t, err)
+		require.NotNil(t, a.BookValue)
+
+		body := []byte(`{"recoverable_amount":"100000.00","reason":"uji default-allow"}`)
+		code, respBody := hh.doReqBody(http.MethodPost, "/api/v1/assets/"+assetID.String()+"/impairment", userID, roleID, body)
+		require.Equal(t, http.StatusOK, code)
+		assert.Contains(t, respBody, "book_value")
+		assert.Contains(t, respBody, "accumulated_depreciation")
+		assert.Contains(t, respBody, "impairment_loss")
+	})
+}
+
 // TestDepreciation_Impairment_ProspectiveRecompute verifies the normative
 // engine-integration rule end-to-end: impair an asset after closing month1,
 // then compute month2 — the next month's amount must be

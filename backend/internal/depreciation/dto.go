@@ -162,7 +162,9 @@ func parsePlainDecimal(s string) (*big.Rat, bool) {
 	return r, true
 }
 
-// impairmentResultToMap serializes the response of POST /assets/:id/impairment.
+// impairmentResultToMap serializes the response of POST /assets/:id/impairment
+// (unmasked — the handler applies "assets" field-permission masking to the
+// returned map afterward, mirroring how assetSchedule masks book_value).
 func impairmentResultToMap(a sqlc.AssetAsset) gin.H {
 	return gin.H{
 		"book_value":               a.BookValue,
