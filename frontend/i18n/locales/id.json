@@ -1552,6 +1552,16 @@
     "periodCustom": "Rentang kustom…",
     "searchOffice": "Cari kantor…",
     "searchEmployee": "Cari pegawai…",
+    "searchCategory": "Cari kategori…",
+    "searchBrand": "Cari brand…",
+    "searchModel": "Cari model…",
+    "searchUnit": "Cari satuan…",
+    "searchVendor": "Cari vendor…",
+    "searchMaintenanceCategory": "Cari kategori pemeliharaan…",
+    "searchProblemCategory": "Cari kategori masalah…",
+    "searchDepartment": "Cari departemen…",
+    "searchPosition": "Cari jabatan…",
+    "searchProvince": "Cari provinsi…",
     "clearSelection": "Hapus pilihan"
   },
   "status": {

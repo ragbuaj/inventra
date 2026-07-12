@@ -100,11 +100,19 @@ function makeRefResponse(rows: { id: string, name: string }[]) {
 }
 
 function defaultHandler(path: string, opts?: Record<string, unknown>): unknown {
-  // /offices/:id (office picker's resolveFn / table resolve-cache) must be
-  // matched before the plain-list /offices?... route below.
+  // /offices/:id, /departments/:id, /positions/:id (picker resolveFn / table
+  // resolve-cache) must be matched before the plain-list routes below.
   if (/^\/offices\/[^/?]+$/.test(path)) {
     const id = path.split('/')[2]
     return OFFICES.find(o => o.id === id) ?? null
+  }
+  if (/^\/departments\/[^/?]+$/.test(path)) {
+    const id = path.split('/')[2]
+    return DEPARTMENTS.find(d => d.id === id) ?? null
+  }
+  if (/^\/positions\/[^/?]+$/.test(path)) {
+    const id = path.split('/')[2]
+    return POSITIONS.find(p => p.id === id) ?? null
   }
   if (path.startsWith('/offices')) return { data: OFFICES }
   if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
@@ -152,6 +160,18 @@ async function setVmRef(wrapper: Awaited<ReturnType<typeof mountAndWait>>, key: 
   await wrapper.vm.$nextTick()
   await new Promise(r => setTimeout(r, 400))
   await wrapper.vm.$nextTick()
+}
+
+// FormSlideover wraps USlideover, which teleports its content to
+// document.body — it lives outside `wrapper`'s own DOM subtree.
+function bodyEl(testid: string): HTMLElement {
+  const el = document.body.querySelector(`[data-testid="${testid}"]`)
+  expect(el, `expected [data-testid="${testid}"] in document.body`).toBeTruthy()
+  return el as HTMLElement
+}
+
+function bodyElExists(testid: string): boolean {
+  return !!document.body.querySelector(`[data-testid="${testid}"]`)
 }
 
 // ---------------------------------------------------------------------------
@@ -453,6 +473,57 @@ describe('Master Pegawai page — create form', () => {
     expect(wrapper.find('[data-testid="employee-office-select"]').exists()).toBe(false)
     expect(document.body.querySelector('[data-testid="office-picker-input"]')).toBeTruthy()
     expect(vm.form['office_id']).toBe('')
+  })
+
+  it('renders department/jabatan fields as AsyncSearchPickers (no eager-options USelect) and defaults them empty', async () => {
+    const wrapper = await mountAndWait()
+    const vm = wrapper.vm as unknown as { openCreate: () => void, form: Record<string, unknown> }
+    vm.openCreate()
+    await wrapper.vm.$nextTick()
+    expect(bodyElExists('employee-dept-select')).toBe(false)
+    expect(bodyElExists('employee-position-select')).toBe(false)
+    expect(bodyElExists('employee-department-picker-input')).toBe(true)
+    expect(bodyElExists('employee-position-picker-input')).toBe(true)
+    expect(vm.form['department_id']).toBe('')
+    expect(vm.form['position_id']).toBe('')
+  })
+
+  it('typing in the department picker drives GET /departments with search+limit=20', async () => {
+    const wrapper = await mountAndWait()
+    ;(wrapper.vm as unknown as { openCreate: () => void }).openCreate()
+    await wrapper.vm.$nextTick()
+
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/departments?')) {
+        captured = path
+        return makeRefResponse(DEPARTMENTS)
+      }
+      return defaultHandler(path, opts)
+    })
+
+    const input = bodyEl('employee-department-picker-input') as HTMLInputElement
+    vi.useFakeTimers()
+    input.value = 'Keuangan'
+    input.dispatchEvent(new Event('input'))
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+    expect(captured).toContain('search=Keuangan')
+    expect(captured).toContain('limit=20')
+  })
+
+  it('resolves preselected department_id/position_id to their labels via GET /:resource/:id in edit mode', async () => {
+    const wrapper = await mountAndWait()
+    ;(wrapper.vm as unknown as { openEdit: (row: unknown) => void }).openEdit(EMPLOYEES[0])
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 100))
+    await wrapper.vm.$nextTick()
+
+    const deptInput = bodyEl('employee-department-picker-input') as HTMLInputElement
+    const posInput = bodyEl('employee-position-picker-input') as HTMLInputElement
+    expect(deptInput.value).toBe('Umum')
+    expect(posInput.value).toBe('Staf')
   })
 
   it('POST /employees body contains code, name, office_id, department_id, position_id with UUID values', async () => {

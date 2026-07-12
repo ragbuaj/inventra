@@ -48,6 +48,14 @@ vi.mock('~/composables/api/useReference', () => ({
   useReference: () => ({ list: refListMock, create: vi.fn(), update: vi.fn(), remove: vi.fn() })
 }))
 
+// useReferencePicker's resolveFn (maintenance-category/vendor pickers) hits
+// GET /<resource>/:id directly via useApiClient — route it to the same
+// CATEGORIES/VENDORS fixtures the list mock above uses.
+const { requestMock } = vi.hoisted(() => ({ requestMock: vi.fn() }))
+vi.mock('~/composables/useApiClient', () => ({
+  useApiClient: () => ({ request: requestMock, requestBlob: vi.fn() })
+}))
+
 const assetsListMock = vi.fn()
 vi.mock('~/composables/api/useAssets', () => ({
   useAssets: () => ({ list: assetsListMock, get: vi.fn(), getByTag: vi.fn(), update: vi.fn() })
@@ -61,6 +69,12 @@ import RecordSlideover from '~/components/maintenance/RecordSlideover.vue'
 import AssetSearchPicker from '~/components/AssetSearchPicker.vue'
 
 enableAutoUnmount(afterEach)
+// Belt-and-suspenders: a fake-timers test that fails before reaching its own
+// vi.useRealTimers() would otherwise leave every later test's setTimeout-based
+// waits hanging forever.
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -173,6 +187,14 @@ beforeEach(() => {
   vi.clearAllMocks()
   refListMock.mockImplementation((key: string) =>
     Promise.resolve(page(key === 'maintenance-categories' ? CATEGORIES : key === 'vendors' ? VENDORS : [])))
+  requestMock.mockImplementation((path: string) => {
+    const m = path.match(/^\/(maintenance-categories|vendors)\/([^/?]+)$/)
+    if (!m) return Promise.reject(new Error(`Unhandled request: ${path}`))
+    const [, key, id] = m
+    const rows = key === 'maintenance-categories' ? CATEGORIES : VENDORS
+    const row = rows.find(r => r.id === id)
+    return row ? Promise.resolve(row) : Promise.reject(new Error('not found'))
+  })
   assetsListMock.mockResolvedValue(page([]))
   createScheduleMock.mockResolvedValue(schedule())
   updateScheduleMock.mockResolvedValue(schedule())
@@ -283,6 +305,32 @@ describe('MaintenanceScheduleSlideover — edit mode', () => {
   })
 })
 
+describe('MaintenanceScheduleSlideover — category is an AsyncSearchPicker', () => {
+  it('renders the picker input instead of the old USelectMenu, driven by GET /maintenance-categories', async () => {
+    await mountSchedule(null)
+    expect(bodyElExists('schedule-slideover-category')).toBe(false)
+    expect(bodyElExists('schedule-slideover-category-picker-input')).toBe(true)
+
+    // The slideover's content is teleported (USlideover) — it lives in
+    // document.body, outside `wrapper`'s own DOM subtree, so it must be
+    // found and driven via document.body rather than wrapper.find().
+    const input = bodyEl('schedule-slideover-category-picker-input') as HTMLInputElement
+    vi.useFakeTimers()
+    input.value = 'Inspeksi'
+    input.dispatchEvent(new Event('input'))
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+    expect(refListMock).toHaveBeenCalledWith('maintenance-categories', { search: 'Inspeksi', limit: 20 })
+  })
+
+  it('resolves the hydrated maintenance_category_id to its label via GET /maintenance-categories/:id', async () => {
+    await mountSchedule(schedule())
+    const input = bodyEl('schedule-slideover-category-picker-input') as HTMLInputElement
+    expect(input.value).toBe('Inspeksi')
+  })
+})
+
 // ---------------------------------------------------------------------------
 // RecordSlideover
 // ---------------------------------------------------------------------------
@@ -373,6 +421,36 @@ describe('MaintenanceRecordSlideover — completed status reveals Tanggal Selesa
       status: 'completed',
       completed_date: today
     }))
+  })
+})
+
+describe('MaintenanceRecordSlideover — category/vendor are AsyncSearchPickers', () => {
+  it('renders both picker inputs instead of the old USelectMenus', async () => {
+    await mountRecord(null, { asset: { id: 'a9', name: 'Laptop', asset_tag: 'TAG-1' } })
+    expect(bodyElExists('record-slideover-category')).toBe(false)
+    expect(bodyElExists('record-slideover-vendor')).toBe(false)
+    expect(bodyElExists('record-slideover-category-picker-input')).toBe(true)
+    expect(bodyElExists('record-slideover-vendor-picker-input')).toBe(true)
+  })
+
+  it('searching the vendor picker drives GET /vendors with search+limit=20', async () => {
+    await mountRecord(null, { asset: { id: 'a9', name: 'Laptop', asset_tag: 'TAG-1' } })
+    const input = bodyEl('record-slideover-vendor-picker-input') as HTMLInputElement
+    vi.useFakeTimers()
+    input.value = 'Sinar'
+    input.dispatchEvent(new Event('input'))
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+    expect(refListMock).toHaveBeenCalledWith('vendors', { search: 'Sinar', limit: 20 })
+  })
+
+  it('resolves the hydrated category and vendor ids to their labels via GET /:resource/:id', async () => {
+    await mountRecord(record({ maintenance_category_id: 'cat1', vendor_id: 'v1' }))
+    const categoryInput = bodyEl('record-slideover-category-picker-input') as HTMLInputElement
+    const vendorInput = bodyEl('record-slideover-vendor-picker-input') as HTMLInputElement
+    expect(categoryInput.value).toBe('Inspeksi')
+    expect(vendorInput.value).toBe('PT Sinar Komputindo')
   })
 })
 

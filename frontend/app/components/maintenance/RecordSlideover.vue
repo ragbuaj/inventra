@@ -29,7 +29,8 @@ const TYPE_OPTIONS: MaintenanceType[] = ['preventive', 'corrective']
 const { t } = useI18n()
 const toast = useToast()
 const maintenanceApi = useMaintenance()
-const referenceApi = useReference()
+const category = useReferencePicker('maintenance-categories')
+const vendor = useReferencePicker('vendors')
 
 const isEdit = computed(() => props.record !== null)
 const isLocked = computed(() => isEdit.value || !!props.prefill?.asset)
@@ -65,11 +66,6 @@ const form = reactive<FormState>(emptyForm())
 
 const submitting = ref(false)
 const errorMsg = ref('')
-
-const categories = ref<{ id: string, name: string }[]>([])
-const vendors = ref<{ id: string, name: string }[]>([])
-const categoryItems = computed(() => categories.value.map(c => ({ value: c.id, label: c.name })))
-const vendorItems = computed(() => vendors.value.map(v => ({ value: v.id, label: v.name })))
 
 const typeItems = computed(() => TYPE_OPTIONS.map(v => ({ value: v, label: t(`maintenance.type.${v}`) })))
 
@@ -118,25 +114,8 @@ function hydrate() {
   })
 }
 
-async function loadLookups() {
-  try {
-    const [cats, vnd] = await Promise.all([
-      referenceApi.list('maintenance-categories', { limit: 100 }),
-      referenceApi.list('vendors', { limit: 100 })
-    ])
-    categories.value = cats.data
-    vendors.value = vnd.data
-  } catch {
-    categories.value = []
-    vendors.value = []
-  }
-}
-
 watch(open, (isOpen) => {
-  if (isOpen) {
-    hydrate()
-    loadLookups()
-  }
+  if (isOpen) hydrate()
 }, { immediate: true })
 
 // Default "Tanggal Selesai" to today the moment the user switches into
@@ -290,14 +269,15 @@ defineExpose({ form, canSave, onSubmit, statusItems })
           />
         </UFormField>
         <UFormField :label="t('maintenance.note.category')">
-          <USelectMenu
-            v-model="form.categoryId"
-            data-testid="record-slideover-category"
-            value-key="value"
-            :items="categoryItems"
-            :placeholder="t('maintenance.note.selectPlaceholder')"
+          <AsyncSearchPicker
+            :model-value="form.categoryId || null"
+            :search-fn="category.searchFn"
+            :resolve-fn="category.resolveFn"
             :disabled="isTerminal"
-            class="w-full"
+            :placeholder="t('common.searchMaintenanceCategory')"
+            testid="record-slideover-category"
+            clearable
+            @update:model-value="form.categoryId = $event ?? ''"
           />
         </UFormField>
         <UFormField
@@ -353,14 +333,15 @@ defineExpose({ form, canSave, onSubmit, statusItems })
       </UFormField>
 
       <UFormField :label="t('maintenance.note.vendor')">
-        <USelectMenu
-          v-model="form.vendorId"
-          data-testid="record-slideover-vendor"
-          value-key="value"
-          :items="vendorItems"
-          :placeholder="t('maintenance.note.selectPlaceholder')"
+        <AsyncSearchPicker
+          :model-value="form.vendorId || null"
+          :search-fn="vendor.searchFn"
+          :resolve-fn="vendor.resolveFn"
           :disabled="isTerminal"
-          class="w-full"
+          :placeholder="t('common.searchVendor')"
+          testid="record-slideover-vendor"
+          clearable
+          @update:model-value="form.vendorId = $event ?? ''"
         />
       </UFormField>
 

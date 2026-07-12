@@ -42,7 +42,12 @@ function pulseFilterLoading() {
 const office = useOfficePicker()
 const officeCache = useResolveCache(office.resolveFn)
 
-// FK option lists + id→name maps (dept/position via wired useReference — stay reference-backed, Task 5).
+// Department/position: the CREATE/EDIT FORM fields are async search pickers
+// (see usePickerSource.ts). deptOptions/positionOptions stay an eager
+// `{limit:100}` id→name list — the filter dropdowns and the table's
+// departemen/jabatan cells (out of scope here, Task 6) still read from them.
+const department = useReferencePicker('departments')
+const position = useReferencePicker('positions')
 const deptOptions = ref<{ value: string, label: string }[]>([])
 const positionOptions = ref<{ value: string, label: string }[]>([])
 const deptMap = computed(() => new Map(deptOptions.value.map(o => [o.value, o.label])))
@@ -408,21 +413,25 @@ onMounted(() => {
         <!-- Row 3: Departemen + Jabatan -->
         <div class="grid grid-cols-2 gap-[14px]">
           <UFormField :label="t('masterdata.employees.fields.departemen')">
-            <USelect
-              v-model="form.department_id"
-              :items="deptOptions"
-              :placeholder="t('masterdata.employees.placeholders.pilih')"
-              class="w-full"
-              data-testid="employee-dept-select"
+            <AsyncSearchPicker
+              :model-value="form.department_id || null"
+              :search-fn="department.searchFn"
+              :resolve-fn="department.resolveFn"
+              :placeholder="t('common.searchDepartment')"
+              testid="employee-department"
+              clearable
+              @update:model-value="form.department_id = $event ?? ''"
             />
           </UFormField>
           <UFormField :label="t('masterdata.employees.fields.jabatan')">
-            <USelect
-              v-model="form.position_id"
-              :items="positionOptions"
-              :placeholder="t('masterdata.employees.placeholders.pilih')"
-              class="w-full"
-              data-testid="employee-position-select"
+            <AsyncSearchPicker
+              :model-value="form.position_id || null"
+              :search-fn="position.searchFn"
+              :resolve-fn="position.resolveFn"
+              :placeholder="t('common.searchPosition')"
+              testid="employee-position"
+              clearable
+              @update:model-value="form.position_id = $event ?? ''"
             />
           </UFormField>
         </div>

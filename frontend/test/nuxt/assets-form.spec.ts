@@ -95,17 +95,33 @@ const EDIT_ASSET: Asset = {
 
 function defaultHandler(): RequestHandler {
   return (path: string, opts?: Record<string, unknown>) => {
+    // Single-resource GETs (AsyncSearchPicker resolveFn / picker adapters) must
+    // be matched before the plain-list routes below.
+    if (/^\/categories\/[^/?]+$/.test(path)) {
+      const id = path.split('/')[2]
+      return CATEGORIES.find(c => c.id === id) ?? null
+    }
     if (path.startsWith('/categories/tree')) return { data: CATEGORIES }
-    // /offices/:id (AsyncSearchPicker's resolveFn / office.resolveFn) must be
-    // matched before the plain-list /offices?... route below.
     if (/^\/offices\/[^/?]+$/.test(path)) {
       const id = path.split('/')[2]
       return OFFICES.find(o => o.id === id) ?? null
     }
     if (path.startsWith('/offices')) return { data: OFFICES, total: OFFICES.length, limit: 100, offset: 0 }
-    if (path.startsWith('/brands')) return { data: BRANDS, total: BRANDS.length, limit: 100, offset: 0 }
-    if (path.startsWith('/models')) return { data: MODELS, total: MODELS.length, limit: 100, offset: 0 }
-    if (path.startsWith('/units')) return { data: UNITS, total: UNITS.length, limit: 100, offset: 0 }
+    if (/^\/brands\/[^/?]+$/.test(path)) {
+      const id = path.split('/')[2]
+      return BRANDS.find(b => b.id === id) ?? null
+    }
+    if (path.startsWith('/brands')) return { data: BRANDS, total: BRANDS.length, limit: 20, offset: 0 }
+    if (/^\/models\/[^/?]+$/.test(path)) {
+      const id = path.split('/')[2]
+      return MODELS.find(m => m.id === id) ?? null
+    }
+    if (path.startsWith('/models')) return { data: MODELS, total: MODELS.length, limit: 20, offset: 0 }
+    if (/^\/units\/[^/?]+$/.test(path)) {
+      const id = path.split('/')[2]
+      return UNITS.find(u => u.id === id) ?? null
+    }
+    if (path.startsWith('/units')) return { data: UNITS, total: UNITS.length, limit: 20, offset: 0 }
     if (path.startsWith('/vendors')) return { data: VENDORS, total: VENDORS.length, limit: 100, offset: 0 }
     if (path.startsWith('/floors')) return { data: FLOORS, total: FLOORS.length, limit: 100, offset: 0 }
     if (path.startsWith('/rooms')) return { data: ROOMS, total: ROOMS.length, limit: 100, offset: 0 }
@@ -137,7 +153,6 @@ interface FormVm {
   errors: Record<string, string>
   submitError: boolean
   save: () => Promise<void>
-  modelOptions: { value: string, label: string }[]
   onFileChange: (e: unknown) => Promise<void>
   removeAttachment: (att: { id: string, name: string, sizeLabel: string }) => Promise<void>
   attachments: { id: string, name: string, sizeLabel: string }[]
@@ -257,6 +272,92 @@ describe('AssetForm — create mode: kantor is an AsyncSearchPicker', () => {
 })
 
 // ---------------------------------------------------------------------------
+// New mode — kategori/brand/model/unit are async pickers (no more eager
+// {limit:100} USelect options)
+// ---------------------------------------------------------------------------
+
+describe('AssetForm — create mode: kategori/brand/model/unit are AsyncSearchPickers', () => {
+  it('renders the four picker inputs instead of the old eager-options USelects', async () => {
+    const wrapper = await mountNew()
+    expect(wrapper.find('[data-testid="asset-form-kategori-select"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="asset-form-brand-select"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="asset-form-model-select"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="asset-form-unit-select"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="category-picker-input"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="brand-picker-input"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="model-picker-input"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="unit-picker-input"]').exists()).toBe(true)
+  })
+
+  it('searching kategori drives GET /categories with search+limit=20', async () => {
+    const wrapper = await mountNew()
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/categories') && !path.startsWith('/categories/tree')) {
+        captured = path
+        return { data: CATEGORIES, total: CATEGORIES.length, limit: 20, offset: 0 }
+      }
+      return defaultHandler()(path, opts)
+    })
+    vi.useFakeTimers()
+    await wrapper.find('[data-testid="category-picker-input"]').setValue('Elektro')
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+    expect(captured).toContain('search=Elektro')
+    expect(captured).toContain('limit=20')
+  })
+
+  it('searching brand drives GET /brands with search+limit=20', async () => {
+    const wrapper = await mountNew()
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/brands') && !/^\/brands\/[^/?]+$/.test(path)) {
+        captured = path
+        return { data: BRANDS, total: BRANDS.length, limit: 20, offset: 0 }
+      }
+      return defaultHandler()(path, opts)
+    })
+    vi.useFakeTimers()
+    await wrapper.find('[data-testid="brand-picker-input"]').setValue('Dell')
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+    expect(captured).toContain('search=Dell')
+    expect(captured).toContain('limit=20')
+  })
+
+  it('searching unit drives GET /units with search+limit=20', async () => {
+    const wrapper = await mountNew()
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/units') && !/^\/units\/[^/?]+$/.test(path)) {
+        captured = path
+        return { data: UNITS, total: UNITS.length, limit: 20, offset: 0 }
+      }
+      return defaultHandler()(path, opts)
+    })
+    vi.useFakeTimers()
+    await wrapper.find('[data-testid="unit-picker-input"]').setValue('Unit')
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+    expect(captured).toContain('search=Unit')
+    expect(captured).toContain('limit=20')
+  })
+
+  it('resolves a preselected kategori id to its label via GET /categories/:id', async () => {
+    const wrapper = await mountNew()
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.categoryId = 'c1'
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+    const input = wrapper.find('[data-testid="category-picker-input"]').element as HTMLInputElement
+    expect(input.value).toBe('Elektronik')
+  })
+})
+
+// ---------------------------------------------------------------------------
 // New mode — cascade + filtering
 // ---------------------------------------------------------------------------
 
@@ -280,18 +381,54 @@ describe('AssetForm — create mode: kantor→lantai→ruangan cascade, brand→
     expect(ruangan.attributes('disabled')).toBeUndefined()
   })
 
-  it('disables model until a brand is chosen, then filters model options by brand_id', async () => {
+  it('disables the model picker until a brand is chosen', async () => {
+    const wrapper = await mountNew()
+    const model = wrapper.find('[data-testid="model-picker-input"]')
+    expect(model.attributes('disabled')).toBeDefined()
+  })
+
+  it('enables the model picker once a brand is chosen and filters search results by brand_id client-side', async () => {
     const wrapper = await mountNew()
     const vm = wrapper.vm as unknown as FormVm
-    let model = wrapper.find('[data-testid="asset-form-model-select"]')
-    expect(model.attributes('disabled')).toBeDefined()
-    expect(vm.modelOptions).toEqual([])
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/models') && !/^\/models\/[^/?]+$/.test(path)) {
+        captured = path
+        return { data: MODELS, total: MODELS.length, limit: 20, offset: 0 } // both brands' models
+      }
+      return defaultHandler()(path, opts)
+    })
 
     vm.form.brandId = 'b1'
     await wrapper.vm.$nextTick()
-    model = wrapper.find('[data-testid="asset-form-model-select"]')
+    const model = wrapper.find('[data-testid="model-picker-input"]')
     expect(model.attributes('disabled')).toBeUndefined()
-    expect(vm.modelOptions).toEqual([{ value: 'm1', label: 'Latitude 5440' }])
+
+    vi.useFakeTimers()
+    await model.setValue('a') // matches both "Latitude 5440" and "ProBook 450"
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+
+    expect(captured).toContain('limit=20')
+    // Only b1's model ("Latitude 5440") is shown, even though the (unfiltered)
+    // backend response includes b2's "ProBook 450" too.
+    const items = wrapper.findAll('[data-testid="model-picker-item"]')
+    expect(items).toHaveLength(1)
+    expect(items[0]!.text()).toContain('Latitude 5440')
+  })
+
+  it('clears the model field when the brand changes', async () => {
+    const wrapper = await mountNew()
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.brandId = 'b1'
+    await wrapper.vm.$nextTick()
+    vm.form.modelId = 'm1'
+    await wrapper.vm.$nextTick()
+
+    vm.form.brandId = 'b2'
+    await wrapper.vm.$nextTick()
+    expect(vm.form.modelId).toBe('')
   })
 })
 
@@ -568,6 +705,7 @@ describe('AssetForm — depreciation info is read-only and category-derived', ()
     const wrapper = await mountNew()
     const vm = wrapper.vm as unknown as FormVm
     vm.form.categoryId = 'c1'
+    await flushPromises()
     await wrapper.vm.$nextTick()
     const text = wrapper.text()
     expect(text).toContain('Garis Lurus')
@@ -579,6 +717,7 @@ describe('AssetForm — depreciation info is read-only and category-derived', ()
     const wrapper = await mountNew()
     const vm = wrapper.vm as unknown as FormVm
     vm.form.categoryId = 'c2'
+    await flushPromises()
     await wrapper.vm.$nextTick()
     expect(wrapper.text()).toContain('—')
     expect(wrapper.text()).not.toContain('Garis Lurus')

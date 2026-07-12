@@ -39,6 +39,29 @@ export function useEmployeePicker() {
   }
 }
 
+/**
+ * Category adapter for AsyncSearchPicker — label = name, sublabel = code.
+ * useCategories() already exposes get(id) (unlike useReference()), so
+ * resolveFn hits it directly — no reach-around needed.
+ */
+export function useCategoryPicker() {
+  const api = useCategories()
+  return {
+    async searchFn(term: string): Promise<PickerItem[]> {
+      const res = await api.list({ search: term, limit: 20 })
+      return res.data.map(c => ({ id: c.id, label: c.name, sublabel: c.code ?? undefined }))
+    },
+    async resolveFn(id: string): Promise<PickerItem | null> {
+      try {
+        const c = await api.get(id)
+        return { id: c.id, label: c.name, sublabel: c.code ?? undefined }
+      } catch {
+        return null
+      }
+    }
+  }
+}
+
 function referenceRowToItem(row: ReferenceRow): PickerItem {
   return { id: row.id, label: row.name, sublabel: row.code }
 }

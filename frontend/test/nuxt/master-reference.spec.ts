@@ -1,7 +1,7 @@
 // @vitest-environment nuxt
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
-import { enableAutoUnmount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises } from '@vue/test-utils'
 import { useAuthStore } from '~/stores/auth'
 import { useConfirm } from '~/composables/useConfirm'
 import ReferencePage from '~/pages/master/reference.vue'
@@ -83,6 +83,15 @@ function buildDefaultHandler(overrides: Record<string, unknown> = {}): RequestHa
       return overrides[overrideKey]
     }
 
+    // Single-resource GETs (AsyncSearchPicker resolveFn for FK fields) must be
+    // matched before the plain-list routes below.
+    if (method === 'GET') {
+      const provinceMatch = pathBase.match(/^\/provinces\/([^/]+)$/)
+      if (provinceMatch) return PROVINCES.find(p => p.id === provinceMatch[1]) ?? null
+      const brandMatch = pathBase.match(/^\/brands\/([^/]+)$/)
+      if (brandMatch) return BRANDS.find(b => b.id === brandMatch[1]) ?? null
+    }
+
     // Sidebar count calls: ?limit=1 for any resource
     const q = parseQuery(path)
     const isCountCall = q['limit'] === '1'
@@ -112,6 +121,12 @@ function buildDefaultHandler(overrides: Record<string, unknown> = {}): RequestHa
 // ---------------------------------------------------------------------------
 
 enableAutoUnmount(afterEach)
+// Belt-and-suspenders: a fake-timers test that fails before reaching its own
+// vi.useRealTimers() would otherwise leave every later test's setTimeout-based
+// waits hanging forever.
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 function grantAdmin() {
   useAuthStore().setSession(
@@ -138,6 +153,19 @@ async function setVmRef(wrapper: Awaited<ReturnType<typeof mountAndWait>>, key: 
   await wrapper.vm.$nextTick()
   await new Promise(r => setTimeout(r, 400))
   await wrapper.vm.$nextTick()
+}
+
+// FormModal wraps UModal, which teleports its content to document.body — it
+// lives outside `wrapper`'s own DOM subtree, so it must be found via
+// document.body rather than wrapper.find().
+function bodyEl(testid: string): HTMLElement {
+  const el = document.body.querySelector(`[data-testid="${testid}"]`)
+  expect(el, `expected [data-testid="${testid}"] in document.body`).toBeTruthy()
+  return el as HTMLElement
+}
+
+function bodyElExists(testid: string): boolean {
+  return !!document.body.querySelector(`[data-testid="${testid}"]`)
 }
 
 // ---------------------------------------------------------------------------
@@ -256,6 +284,70 @@ describe('Master Data Referensi — FK picker + create (cities)', () => {
     const body = capturedOpts['body'] as Record<string, unknown>
     expect(body['province_id']).toBe('p1')
     expect(body['name']).toBe('Bekasi')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// FK field is an AsyncSearchPicker (no more eager {limit:100} USelect)
+// ---------------------------------------------------------------------------
+
+describe('Master Data Referensi — FK field is an AsyncSearchPicker', () => {
+  it('renders the province picker input for cities (no more eager-options USelect)', async () => {
+    const wrapper = await mountAndWait()
+    await setVmRef(wrapper, 'resourceKey', 'cities')
+    ;(wrapper.vm as unknown as { openCreate: () => void }).openCreate()
+    await wrapper.vm.$nextTick()
+
+    expect(bodyElExists('ref-field-province_id')).toBe(false)
+    expect(bodyElExists('ref-field-province_id-picker-input')).toBe(true)
+  })
+
+  it('typing in the province picker drives GET /provinces with search+limit=20', async () => {
+    const wrapper = await mountAndWait()
+    await setVmRef(wrapper, 'resourceKey', 'cities')
+    ;(wrapper.vm as unknown as { openCreate: () => void }).openCreate()
+    await wrapper.vm.$nextTick()
+
+    const captured: string[] = []
+    setHandler((path, opts) => {
+      if (path.startsWith('/provinces?')) captured.push(path)
+      return buildDefaultHandler()(path, opts)
+    })
+
+    const input = bodyEl('ref-field-province_id-picker-input') as HTMLInputElement
+    vi.useFakeTimers()
+    input.value = 'Jakarta'
+    input.dispatchEvent(new Event('input'))
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+
+    const searchCall = captured.find(p => p.includes('search=Jakarta'))
+    expect(searchCall).toBeDefined()
+    expect(searchCall).toContain('limit=20')
+  })
+
+  it('resolves a preselected province_id to its label via GET /provinces/:id', async () => {
+    const wrapper = await mountAndWait()
+    await setVmRef(wrapper, 'resourceKey', 'cities')
+    const row = CITIES[0]!
+    ;(wrapper.vm as unknown as { openEdit: (row: unknown) => void }).openEdit(row)
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 100))
+    await wrapper.vm.$nextTick()
+
+    const input = bodyEl('ref-field-province_id-picker-input') as HTMLInputElement
+    expect(input.value).toBe('DKI Jakarta')
+  })
+
+  it('renders the brand picker input for models', async () => {
+    const wrapper = await mountAndWait()
+    await setVmRef(wrapper, 'resourceKey', 'models')
+    ;(wrapper.vm as unknown as { openCreate: () => void }).openCreate()
+    await wrapper.vm.$nextTick()
+
+    expect(bodyElExists('ref-field-brand_id')).toBe(false)
+    expect(bodyElExists('ref-field-brand_id-picker-input')).toBe(true)
   })
 })
 

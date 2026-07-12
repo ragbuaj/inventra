@@ -12,11 +12,15 @@ vi.mock('~/composables/api/useEmployees', () => ({ useEmployees: () => ({ list: 
 const listReference = vi.fn()
 vi.mock('~/composables/api/useReference', () => ({ useReference: () => ({ list: listReference }) }))
 
+const listCategories = vi.fn()
+const getCategory = vi.fn()
+vi.mock('~/composables/api/useCategories', () => ({ useCategories: () => ({ list: listCategories, get: getCategory }) }))
+
 const request = vi.fn()
 vi.mock('~/composables/useApiClient', () => ({ useApiClient: () => ({ request }) }))
 
 // eslint-disable-next-line import/first
-import { useOfficePicker, useEmployeePicker, useReferencePicker } from '~/composables/usePickerSource'
+import { useOfficePicker, useEmployeePicker, useReferencePicker, useCategoryPicker } from '~/composables/usePickerSource'
 
 beforeEach(() => {
   listOffices.mockReset()
@@ -24,6 +28,8 @@ beforeEach(() => {
   listEmployees.mockReset()
   getEmployee.mockReset()
   listReference.mockReset()
+  listCategories.mockReset()
+  getCategory.mockReset()
   request.mockReset()
 })
 
@@ -99,6 +105,36 @@ describe('useReferencePicker', () => {
   it('resolveFn resolves to null when the fetch fails instead of rejecting', async () => {
     request.mockRejectedValueOnce(new Error('not found'))
     const { resolveFn } = useReferencePicker('brands')
+    await expect(resolveFn('missing')).resolves.toBeNull()
+  })
+})
+
+describe('useCategoryPicker', () => {
+  it('searchFn maps categories to picker items (label=name, sublabel=code)', async () => {
+    listCategories.mockResolvedValueOnce({ data: [{ id: 'c1', name: 'Elektronik', code: 'ELK' }], total: 1, limit: 20, offset: 0 })
+    const { searchFn } = useCategoryPicker()
+    const items = await searchFn('elek')
+    expect(listCategories).toHaveBeenCalledWith({ search: 'elek', limit: 20 })
+    expect(items).toEqual([{ id: 'c1', label: 'Elektronik', sublabel: 'ELK' }])
+  })
+
+  it('searchFn omits sublabel when the category has no code', async () => {
+    listCategories.mockResolvedValueOnce({ data: [{ id: 'c2', name: 'Aset Takberwujud', code: null }], total: 1, limit: 20, offset: 0 })
+    const { searchFn } = useCategoryPicker()
+    const items = await searchFn('takberwujud')
+    expect(items).toEqual([{ id: 'c2', label: 'Aset Takberwujud', sublabel: undefined }])
+  })
+
+  it('resolveFn maps a single category by id via useCategories().get (no reach-around needed)', async () => {
+    getCategory.mockResolvedValueOnce({ id: 'c1', name: 'Elektronik', code: 'ELK' })
+    const { resolveFn } = useCategoryPicker()
+    expect(await resolveFn('c1')).toEqual({ id: 'c1', label: 'Elektronik', sublabel: 'ELK' })
+    expect(getCategory).toHaveBeenCalledWith('c1')
+  })
+
+  it('resolveFn resolves to null when the category fetch fails (e.g. 404) instead of rejecting', async () => {
+    getCategory.mockRejectedValueOnce(new Error('not found'))
+    const { resolveFn } = useCategoryPicker()
     await expect(resolveFn('missing')).resolves.toBeNull()
   })
 })

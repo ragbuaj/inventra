@@ -1552,6 +1552,16 @@
     "periodCustom": "Custom range…",
     "searchOffice": "Search office…",
     "searchEmployee": "Search employee…",
+    "searchCategory": "Search category…",
+    "searchBrand": "Search brand…",
+    "searchModel": "Search model…",
+    "searchUnit": "Search unit…",
+    "searchVendor": "Search vendor…",
+    "searchMaintenanceCategory": "Search maintenance category…",
+    "searchProblemCategory": "Search problem category…",
+    "searchDepartment": "Search department…",
+    "searchPosition": "Search position…",
+    "searchProvince": "Search province…",
     "clearSelection": "Clear selection"
   },
   "status": {

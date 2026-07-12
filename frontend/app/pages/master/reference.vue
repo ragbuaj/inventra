@@ -50,11 +50,33 @@ const columns = computed(() => {
   return cols
 })
 
-// Items for a fk/select field's USelect ({ label, value }).
+// Items for a select field's USelect ({ label, value }).
 function fieldSelectItems(field: ReferenceField): { label: string, value: string }[] {
-  if (field.type === 'fk') return (fkData.value[field.key] ?? []).map(o => ({ label: o.name, value: o.id }))
   if (field.type === 'select') return (field.options ?? []).map(o => ({ label: t(o.labelKey), value: o.value }))
   return []
+}
+
+// FK form fields use an AsyncSearchPicker (see usePickerSource.ts) — one
+// adapter per distinct fkResource across all descriptors, built once so the
+// v-for template just looks it up by resource. `fkData`/loadFkOptions()
+// above stays as the eager `{limit:100}` id→name map — it's still needed for
+// the table's FK name-resolution cells (fkName()), unchanged here.
+const fkPickers: Partial<Record<ReferenceKey, ReturnType<typeof useReferencePicker>>> = {}
+for (const resource of referenceResources) {
+  for (const field of resource.fields) {
+    if (field.type === 'fk' && field.fkResource && !fkPickers[field.fkResource]) {
+      fkPickers[field.fkResource] = useReferencePicker(field.fkResource)
+    }
+  }
+}
+
+const FK_SEARCH_PLACEHOLDER_KEY: Partial<Record<ReferenceKey, string>> = {
+  provinces: 'common.searchProvince',
+  brands: 'common.searchBrand'
+}
+function fkPlaceholder(field: ReferenceField): string {
+  const key = field.fkResource ? FK_SEARCH_PLACEHOLDER_KEY[field.fkResource] : undefined
+  return t(key ?? 'common.search')
 }
 
 // Resolve a FK id to its display name for the table cell.
@@ -348,8 +370,17 @@ onMounted(async () => {
           :key="field.key"
           :label="t(field.labelKey)"
         >
+          <AsyncSearchPicker
+            v-if="field.type === 'fk' && field.fkResource"
+            :model-value="(form[field.key] as string) || null"
+            :search-fn="fkPickers[field.fkResource]!.searchFn"
+            :resolve-fn="fkPickers[field.fkResource]!.resolveFn"
+            :placeholder="fkPlaceholder(field)"
+            :testid="`ref-field-${field.key}`"
+            @update:model-value="form[field.key] = $event ?? ''"
+          />
           <USelect
-            v-if="field.type === 'fk' || field.type === 'select'"
+            v-else-if="field.type === 'select'"
             :model-value="form[field.key] as string"
             :items="fieldSelectItems(field)"
             :data-testid="`ref-field-${field.key}`"
@@ -363,12 +394,6 @@ onMounted(async () => {
             class="w-full"
             @update:model-value="form[field.key] = $event"
           />
-          <p
-            v-if="field.type === 'fk' && fieldSelectItems(field).length === 0"
-            class="text-xs text-warning mt-1"
-          >
-            {{ t('masterdata.reference.fkEmpty') }}
-          </p>
         </UFormField>
 
         <!-- Aktif toggle row (only for resources that have is_active) -->
