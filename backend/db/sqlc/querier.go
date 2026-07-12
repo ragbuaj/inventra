@@ -232,6 +232,11 @@ type Querier interface {
 	ListCategories(ctx context.Context, arg ListCategoriesParams) ([]MasterdataCategory, error)
 	// The full non-deleted category set (no pagination) for client-side tree building.
 	ListCategoryTree(ctx context.Context) ([]MasterdataCategory, error)
+	// Existing (non-deleted) city codes for the cities importer's validate-time
+	// dupKode check (mirrors ListProvincesLookup's existingCodes use for
+	// provinces) — cities.code IS uniquely constrained (uq_cities_code), so a
+	// match here is authoritative, not just an in-file check.
+	ListCityCodes(ctx context.Context) ([]*string, error)
 	ListDataScopePolicies(ctx context.Context, roleID uuid.UUID) ([]IdentityDataScopePolicy, error)
 	ListDepreciationPeriods(ctx context.Context) ([]DepreciationDepreciationPeriod, error)
 	ListDisposalsByAssetEnriched(ctx context.Context, arg ListDisposalsByAssetEnrichedParams) ([]ListDisposalsByAssetEnrichedRow, error)

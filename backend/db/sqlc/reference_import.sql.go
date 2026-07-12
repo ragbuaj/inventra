@@ -111,6 +111,34 @@ func (q *Queries) GetProvinceByCode(ctx context.Context, code *string) (Masterda
 	return i, err
 }
 
+const listCityCodes = `-- name: ListCityCodes :many
+SELECT code FROM masterdata.cities WHERE code IS NOT NULL AND deleted_at IS NULL
+`
+
+// Existing (non-deleted) city codes for the cities importer's validate-time
+// dupKode check (mirrors ListProvincesLookup's existingCodes use for
+// provinces) — cities.code IS uniquely constrained (uq_cities_code), so a
+// match here is authoritative, not just an in-file check.
+func (q *Queries) ListCityCodes(ctx context.Context) ([]*string, error) {
+	rows, err := q.db.Query(ctx, listCityCodes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*string{}
+	for rows.Next() {
+		var code *string
+		if err := rows.Scan(&code); err != nil {
+			return nil, err
+		}
+		items = append(items, code)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listProvincesLookup = `-- name: ListProvincesLookup :many
 SELECT id, name, code FROM masterdata.provinces WHERE deleted_at IS NULL
 `

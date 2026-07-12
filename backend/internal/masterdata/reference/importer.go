@@ -228,16 +228,24 @@ func validateProvinceRows(rows []importer.RawRow, lk provinceLookups) []importer
 type cityLookups struct {
 	// provinces maps a lower-cased province name OR code to its id.
 	provinces map[string]uuid.UUID
+	// existingCodes is the set of all existing (non-deleted) city codes,
+	// lower-cased. cities.code IS uniquely constrained (uq_cities_code), so
+	// this DB-backed check is authoritative — mirrors
+	// provinceLookups.existingCodes.
+	existingCodes map[string]bool
 }
 
 // buildCityLookups loads all provinces into a name/code lookup for the
-// cities importer's "provinsi" column. Unlike provinces, cities' kode
-// duplicate check is in-batch only (see validateCityRows) — cities.code IS
-// uniquely constrained (uq_cities_code), but a fresh DB collision surfaces at
-// Execute time via the anti-poisoning pre-check (GetCityByCode), mirroring
-// how office/employee's Execute re-checks for TOCTOU races.
+// cities importer's "provinsi" column, and all existing city codes for the
+// "kode" dupKode rule. cities.code IS uniquely constrained (uq_cities_code),
+// so — like provinces — the validate-time dupKode check is DB-backed, not
+// in-file-only; Execute's GetCityByCode pre-check remains as the TOCTOU
+// guard for races between validate and execute.
 func (s *Service) buildCityLookups(ctx context.Context) (cityLookups, error) {
-	lk := cityLookups{provinces: map[string]uuid.UUID{}}
+	lk := cityLookups{
+		provinces:     map[string]uuid.UUID{},
+		existingCodes: map[string]bool{},
+	}
 	provs, err := s.q.ListProvincesLookup(ctx)
 	if err != nil {
 		return lk, err
@@ -246,6 +254,19 @@ func (s *Service) buildCityLookups(ctx context.Context) (cityLookups, error) {
 		addKey(lk.provinces, p.Name, p.ID)
 		if p.Code != nil {
 			addKey(lk.provinces, *p.Code, p.ID)
+		}
+	}
+
+	codes, err := s.q.ListCityCodes(ctx)
+	if err != nil {
+		return lk, err
+	}
+	for _, c := range codes {
+		if c == nil {
+			continue
+		}
+		if k := normCode(*c); k != "" {
+			lk.existingCodes[k] = true
 		}
 	}
 	return lk, nil
@@ -258,9 +279,10 @@ func (s *Service) buildCityLookups(ctx context.Context) (cityLookups, error) {
 //
 // nama and provinsi are required; provinsi is resolved by name OR code,
 // case-insensitively, against lk.provinces — a miss fails "provinsi". kode is
-// optional; a non-empty kode that duplicates an earlier row in this batch
-// (case-insensitive) fails "dupKode" (in-file only — see buildCityLookups).
-// A valid row's resolved province id is stamped into Data under
+// optional; a non-empty kode that duplicates an existing DB code or an
+// earlier row in this batch (both case-insensitive) fails "dupKode" — same
+// rule as validateProvinceRows. A valid row's resolved province id is
+// stamped into Data under
 // "_province_id" for Execute to consume without re-resolving. Cities never
 // need approval routing, so NormalizedRef is deliberately left empty.
 func validateCityRows(rows []importer.RawRow, lk cityLookups) []importer.RowResult {
@@ -294,10 +316,13 @@ func validateCityRows(rows []importer.RawRow, lk cityLookups) []importer.RowResu
 			}
 		}
 
-		// kode: optional; not a duplicate within this file (case-insensitive).
+		// kode: optional; not a duplicate within this file, not already in DB
+		// (both case-insensitive).
 		if v := data[cityColCode]; v != "" {
 			key := normCode(v)
 			switch {
+			case lk.existingCodes[key]:
+				add(cityColCode, "dupKode")
 			case seenCodes[key]:
 				add(cityColCode, "dupKode")
 			default:

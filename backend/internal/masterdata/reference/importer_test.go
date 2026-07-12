@@ -206,7 +206,11 @@ type cityFixedIDs struct {
 	jateng uuid.UUID // "jawa tengah" / "jt"
 }
 
-// mkCityLookups builds a hand-crafted cityLookups (no DB).
+// mkCityLookups builds a hand-crafted cityLookups (no DB): one pre-seeded
+// existing city code ("bdg", lower-cased — distinct from validCityCells'
+// default "SMG" so unrelated tests don't accidentally collide) so the
+// "already exists in DB" branch of the kode rule can be exercised without a
+// database.
 func mkCityLookups() (cityLookups, cityFixedIDs) {
 	ids := cityFixedIDs{jateng: uuid.New()}
 	lk := cityLookups{
@@ -214,6 +218,7 @@ func mkCityLookups() (cityLookups, cityFixedIDs) {
 			"jawa tengah": ids.jateng,
 			"jt":          ids.jateng,
 		},
+		existingCodes: map[string]bool{"bdg": true},
 	}
 	return lk, ids
 }
@@ -277,6 +282,40 @@ func TestReferenceImporterCityRows_ProvinceByCode(t *testing.T) {
 	if results[0].Data["_province_id"] != ids.jateng.String() {
 		t.Fatalf("_province_id = %q, want %q", results[0].Data["_province_id"], ids.jateng.String())
 	}
+}
+
+func TestReferenceImporterCityRows_DupKodeExistingInDB(t *testing.T) {
+	lk, _ := mkCityLookups()
+
+	cases := []struct {
+		name string
+		code string
+	}{
+		{"exists in db", "BDG"},
+		{"exists in db case-insensitive", "bdg"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cells := validCityCells()
+			cells[cityColCode] = tc.code
+			results := validateCityRows([]importer.RawRow{row(1, cells)}, lk)
+			if results[0].Valid {
+				t.Fatalf("expected invalid row for taken kode %q", tc.code)
+			}
+			if !hasErr(results[0], "dupKode") {
+				t.Fatalf("expected dupKode, got %v", errKeys(results[0]))
+			}
+		})
+	}
+
+	t.Run("fresh code stays valid", func(t *testing.T) {
+		cells := validCityCells()
+		cells[cityColCode] = "FRESH"
+		results := validateCityRows([]importer.RawRow{row(1, cells)}, lk)
+		if !results[0].Valid {
+			t.Fatalf("row expected valid, got %v", errKeys(results[0]))
+		}
+	})
 }
 
 func TestReferenceImporterCityRows_DupKodeInFile(t *testing.T) {
