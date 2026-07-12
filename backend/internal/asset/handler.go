@@ -31,11 +31,12 @@ func NewHandler(svc *Service, fieldSvc *authz.FieldService, scoped common.Scoped
 // filterMap applies field-permission masking for the caller's role on the "assets" entity.
 // It delegates to authz.FilterEntity, which fails closed: a policy-lookup error (e.g. Redis
 // down) is returned so callers refuse to leak sensitive financial fields rather than
-// serving them unmasked.
+// serving them unmasked. An unparseable/missing role id (CtxRoleID) is treated the same
+// way — the caller responds 500 instead of serving the record unmasked.
 func (h *Handler) filterMap(c *gin.Context, m map[string]any) (map[string]any, error) {
 	roleID, err := uuid.Parse(c.GetString(middleware.CtxRoleID))
 	if err != nil {
-		return m, nil
+		return nil, err
 	}
 	if err := h.fieldSvc.FilterEntity(c.Request.Context(), roleID, "assets", m); err != nil {
 		return nil, err

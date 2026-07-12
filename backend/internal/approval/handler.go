@@ -46,11 +46,13 @@ func (h *Handler) callerFromCtx(c *gin.Context) (Caller, error) {
 // filterMap applies field-permission masking for the caller's role on the
 // "requests" entity. Delegates to authz.FilterEntity, which fails closed on
 // ForEntity errors so sensitive amounts are never leaked when the policy
-// store is unavailable.
+// store is unavailable. An unparseable/missing role id (CtxRoleID) is
+// treated the same way — the caller responds 500 instead of serving the
+// record unmasked.
 func (h *Handler) filterMap(c *gin.Context, m map[string]any) (map[string]any, error) {
 	roleID, err := uuid.Parse(c.GetString(middleware.CtxRoleID))
 	if err != nil {
-		return m, nil
+		return nil, err
 	}
 	if err := h.fieldSvc.FilterEntity(c.Request.Context(), roleID, "requests", m); err != nil {
 		return nil, err

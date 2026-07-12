@@ -160,3 +160,79 @@ func TestUser_FieldMasking_FailsClosed(t *testing.T) {
 		assert.NotContains(t, body, "data", "unfiltered user list must never leak on a lookup error")
 	})
 }
+
+// TestUser_FieldMasking_FailsClosed_InvalidRoleID proves the fail-closed fix
+// for the second failure mode covered by the post-review hardening pass: an
+// unparseable/missing CtxRoleID (e.g. a malformed or absent role claim) must
+// also cause the handler to respond 500 rather than silently falling back to
+// serving the record unmasked.
+//
+// Before this fix, user.filterMaps swallowed the uuid.Parse error on
+// CtxRoleID and returned nil (no error), so the handler responded 200 with
+// the fully unmasked record — the exact fail-open bug this test guards
+// against. It reproduces two ways CtxRoleID can be unusable: absent entirely
+// (auth middleware bug/edge case) and present but not a valid UUID.
+func TestUser_FieldMasking_FailsClosed_InvalidRoleID(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+
+	q := sqlc.New(pool)
+	svc := user.NewService(q)
+	fieldSvc := authz.NewFieldService(q, rdb)
+	auditSvc := audit.NewService(q)
+	h := user.NewHandler(svc, fieldSvc, auditSvc)
+
+	role := testsupport.SeedRole(t, pool, "r-user-badrole")
+	testsupport.SeedFieldPermission(t, pool, role, "users", "email", false, false)
+	target := seedUserDirect(t, pool, role, "badrole.target@test.local")
+
+	gin.SetMode(gin.TestMode)
+
+	// stubAuthMissingRole authenticates a user but never sets CtxRoleID.
+	stubAuthMissingRole := func(c *gin.Context) {
+		c.Set(middleware.CtxUserID, uuid.New().String())
+		c.Next()
+	}
+	// stubAuthInvalidRole sets CtxRoleID to a non-UUID string.
+	stubAuthInvalidRole := func(c *gin.Context) {
+		c.Set(middleware.CtxUserID, uuid.New().String())
+		c.Set(middleware.CtxRoleID, "not-a-uuid")
+		c.Next()
+	}
+
+	doWith := func(t *testing.T, authMW gin.HandlerFunc, method, path string) (int, map[string]any) {
+		t.Helper()
+		r := gin.New()
+		v1 := r.Group("/api/v1")
+		user.RegisterRoutes(v1, h, authMW)
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest(method, path, nil)
+		require.NoError(t, err)
+		r.ServeHTTP(w, req)
+		var body map[string]any
+		if w.Body.Len() > 0 {
+			_ = json.Unmarshal(w.Body.Bytes(), &body)
+		}
+		return w.Code, body
+	}
+
+	t.Run("missing role id: get responds 500, not the unfiltered record", func(t *testing.T) {
+		code, body := doWith(t, stubAuthMissingRole, http.MethodGet, "/api/v1/users/"+target.String())
+		require.Equal(t, http.StatusInternalServerError, code, "must fail closed (500) when CtxRoleID is missing")
+		assert.NotContains(t, body, "email", "unfiltered user data must never leak when role id is missing")
+		assert.NotContains(t, body, "name", "unfiltered user data must never leak when role id is missing")
+	})
+
+	t.Run("invalid role id: get responds 500, not the unfiltered record", func(t *testing.T) {
+		code, body := doWith(t, stubAuthInvalidRole, http.MethodGet, "/api/v1/users/"+target.String())
+		require.Equal(t, http.StatusInternalServerError, code, "must fail closed (500) when CtxRoleID is unparseable")
+		assert.NotContains(t, body, "email", "unfiltered user data must never leak when role id is unparseable")
+		assert.NotContains(t, body, "name", "unfiltered user data must never leak when role id is unparseable")
+	})
+
+	t.Run("missing role id: list responds 500, not the unfiltered records", func(t *testing.T) {
+		code, body := doWith(t, stubAuthMissingRole, http.MethodGet, "/api/v1/users")
+		require.Equal(t, http.StatusInternalServerError, code, "must fail closed (500) when CtxRoleID is missing")
+		assert.NotContains(t, body, "data", "unfiltered user list must never leak when role id is missing")
+	})
+}

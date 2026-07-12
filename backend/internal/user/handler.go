@@ -173,10 +173,11 @@ func (h *Handler) one(c *gin.Context, u sqlc.IdentityUser) (m map[string]any, ok
 // error (e.g. Redis/Postgres unavailable) is returned to the caller instead of
 // being swallowed, so callers refuse to serve unfiltered data rather than
 // silently leaking it (previously this fell back to serving unmasked records).
+// An unparseable/missing role id (CtxRoleID) is treated the same way.
 func (h *Handler) filterMaps(c *gin.Context, maps ...map[string]any) error {
 	roleID, err := uuid.Parse(c.GetString(middleware.CtxRoleID))
 	if err != nil {
-		return nil
+		return err
 	}
 	for _, m := range maps {
 		if err := h.fields.FilterEntity(c.Request.Context(), roleID, "users", m); err != nil {

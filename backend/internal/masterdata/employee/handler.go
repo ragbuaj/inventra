@@ -36,18 +36,19 @@ func (h *Handler) svcError(c *gin.Context, err error) {
 	common.WriteError(c, err)
 }
 
-// roleID reads the caller's role from the auth context (set by RequireAuth).
-func (h *Handler) roleID(c *gin.Context) uuid.UUID {
-	rid, _ := uuid.Parse(c.GetString(middleware.CtxRoleID))
-	return rid
-}
-
 // filterMap applies field-permission masking for the caller's role on the
 // "employees" entity. It delegates to authz.FilterEntity, which fails
 // closed: a policy-lookup error (e.g. Redis down) is returned so callers
 // refuse to leak unfiltered employee data rather than serving it unmasked.
+// An unparseable/missing role id (CtxRoleID) is treated the same way — the
+// caller responds 500 instead of falling back to a default-allow uuid.Nil
+// lookup that could serve the record unmasked.
 func (h *Handler) filterMap(c *gin.Context, m map[string]any) (map[string]any, error) {
-	if err := h.fields.FilterEntity(c.Request.Context(), h.roleID(c), "employees", m); err != nil {
+	roleID, err := uuid.Parse(c.GetString(middleware.CtxRoleID))
+	if err != nil {
+		return nil, err
+	}
+	if err := h.fields.FilterEntity(c.Request.Context(), roleID, "employees", m); err != nil {
 		return nil, err
 	}
 	return m, nil
