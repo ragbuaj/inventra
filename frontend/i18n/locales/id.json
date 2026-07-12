@@ -1908,5 +1908,71 @@
       "user": "User",
       "pengajuan": "Pengajuan"
     }
+  },
+  "import": {
+    "wizard": {
+      "loading": "Memuat…",
+      "resuming": "Melanjutkan proses import sebelumnya…",
+      "dropSub": "CSV atau XLSX — maks. 10 MB",
+      "fileTooLarge": "Ukuran berkas melebihi batas 10 MB.",
+      "wrongType": "Format tidak didukung. Gunakan berkas CSV atau XLSX.",
+      "columnsNoteGeneric": "Unduh template untuk melihat kolom yang diharapkan pada target ini.",
+      "confirm": "Buat",
+      "rowsError": "Gagal memuat baris. Silakan coba lagi.",
+      "retry": "Coba lagi",
+      "emptyRows": "Tidak ada baris untuk ditampilkan.",
+      "pageInfo": "Baris {from}–{to} dari {total}",
+      "prev": "Sebelumnya",
+      "next": "Berikutnya",
+      "result": {
+        "title": "Import selesai diproses",
+        "desc": "Data valid telah dibuat. Baris gagal dapat diperbaiki lalu diunggah ulang."
+      },
+      "approval": {
+        "title": "Diajukan untuk persetujuan",
+        "desc": "Batch aset ini telah diajukan dan menunggu persetujuan maker-checker sebelum aset dibuat.",
+        "reference": "Nomor referensi",
+        "waiting": "Menunggu keputusan approver…"
+      },
+      "rejected": {
+        "title": "Pengajuan ditolak",
+        "desc": "Pengajuan import ditolak oleh approver. Unduh baris untuk ditinjau lalu diajukan ulang."
+      },
+      "failed": {
+        "title": "Import gagal"
+      },
+      "cellErrors": {
+        "required": "Wajib diisi",
+        "kat": "Kategori tidak ditemukan",
+        "kantor": "Kantor tidak ditemukan",
+        "vendor": "Vendor tidak ditemukan",
+        "lokasi": "Lokasi/ruangan tidak ditemukan",
+        "tgl": "Tanggal tidak valid",
+        "harga": "Harga tidak valid (bukan angka)",
+        "dupTag": "asset_tag duplikat",
+        "multiOffice": "Batch mencakup lebih dari satu kantor",
+        "scope": "Di luar lingkup wewenang Anda",
+        "status": "Status tidak valid",
+        "email": "Email tidak valid",
+        "dupKode": "Kode duplikat",
+        "dupNama": "Nama duplikat",
+        "tipe": "Tipe kantor tidak valid",
+        "induk": "Kantor induk tidak ditemukan",
+        "aktif": "Nilai aktif tidak valid",
+        "provinsi": "Provinsi tidak ditemukan"
+      },
+      "jobErrors": {
+        "badHeader": "Header kolom tidak sesuai template.",
+        "tooManyRows": "Jumlah baris melebihi batas maksimum.",
+        "emptyFile": "Berkas kosong.",
+        "badFormat": "Format berkas tidak didukung.",
+        "parseFailed": "Gagal membaca berkas.",
+        "scopeResolveFailed": "Gagal menentukan lingkup kantor.",
+        "submitFailed": "Gagal mengirim batch ke antrean persetujuan.",
+        "executeFailed": "Gagal membuat data dari batch.",
+        "noOffice": "Kantor tujuan tidak dapat ditentukan.",
+        "unknown": "Terjadi kesalahan saat memproses berkas."
+      }
+    }
   }
 }

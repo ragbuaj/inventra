@@ -1908,5 +1908,71 @@
       "user": "Users",
       "pengajuan": "Requests"
     }
+  },
+  "import": {
+    "wizard": {
+      "loading": "Loading…",
+      "resuming": "Resuming the previous import…",
+      "dropSub": "CSV or XLSX — max. 10 MB",
+      "fileTooLarge": "File exceeds the 10 MB limit.",
+      "wrongType": "Unsupported format. Use a CSV or XLSX file.",
+      "columnsNoteGeneric": "Download the template to see the expected columns for this target.",
+      "confirm": "Create",
+      "rowsError": "Failed to load rows. Please try again.",
+      "retry": "Retry",
+      "emptyRows": "No rows to display.",
+      "pageInfo": "Rows {from}–{to} of {total}",
+      "prev": "Previous",
+      "next": "Next",
+      "result": {
+        "title": "Import processed",
+        "desc": "Valid data was created. Failed rows can be fixed and re-uploaded."
+      },
+      "approval": {
+        "title": "Submitted for approval",
+        "desc": "This asset batch was submitted and is awaiting maker-checker approval before the assets are created.",
+        "reference": "Reference number",
+        "waiting": "Waiting for the approver's decision…"
+      },
+      "rejected": {
+        "title": "Request rejected",
+        "desc": "The import request was rejected by the approver. Download the rows to review and resubmit."
+      },
+      "failed": {
+        "title": "Import failed"
+      },
+      "cellErrors": {
+        "required": "Required",
+        "kat": "Category not found",
+        "kantor": "Office not found",
+        "vendor": "Vendor not found",
+        "lokasi": "Location/room not found",
+        "tgl": "Invalid date",
+        "harga": "Invalid price (not a number)",
+        "dupTag": "Duplicate asset_tag",
+        "multiOffice": "Batch spans more than one office",
+        "scope": "Outside your authorization scope",
+        "status": "Invalid status",
+        "email": "Invalid email",
+        "dupKode": "Duplicate code",
+        "dupNama": "Duplicate name",
+        "tipe": "Invalid office type",
+        "induk": "Parent office not found",
+        "aktif": "Invalid active value",
+        "provinsi": "Province not found"
+      },
+      "jobErrors": {
+        "badHeader": "Column header does not match the template.",
+        "tooManyRows": "Row count exceeds the maximum limit.",
+        "emptyFile": "The file is empty.",
+        "badFormat": "Unsupported file format.",
+        "parseFailed": "Failed to read the file.",
+        "scopeResolveFailed": "Failed to resolve the office scope.",
+        "submitFailed": "Failed to submit the batch to the approval queue.",
+        "executeFailed": "Failed to create data from the batch.",
+        "noOffice": "The target office could not be determined.",
+        "unknown": "Something went wrong while processing the file."
+      }
+    }
   }
 }
