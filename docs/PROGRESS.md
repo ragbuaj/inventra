@@ -669,54 +669,72 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     nested-vs-flat contract mismatch; Go nil-slice `Errors` → JSON `null` (frontend crash); completed
 >     job `failed_rows` overwritten by the execution-only count (validation failures discarded);
 >     `masterdata.employee.manage` never seeded.
->     **Honest limitations / follow-ups (tracked, not done):** employee/office importers cover only the
->     core columns (no dept/position lookup yet); only **2 reference targets** wired (provinces/cities —
->     engine is extensible); error reports are generated **on-demand** (not stored to MinIO —
->     `error_report_key` stays null); **office/reference import paths have no e2e** (only asset+employee
->     driven); the dup-code DB check is **case-sensitive** while validation is case-insensitive (narrow
->     TOCTOU under concurrency, inherited from the asset-tag pattern); Redis validate progress is written
->     **once at 100%** (no incremental); the importer maps `employee`→`masterdata.employee.manage` while
->     employee **CRUD** uses `office.manage` (000032 aligns the grants). **Note — dev-stack image
->     staleness:** the running `asset-management-frontend` container predates this branch and was stopped
->     for the e2e/mockup run (served by a fresh host build) — it needs a rebuild for normal dev use.
-> 45. ~~**Import follow-ups — Task 1 done (2026-07-12): employee import dept/position columns.**~~
->     Optional `departemen` (name OR code) /
->     `jabatan` (name) columns added to the employee import template; `buildEmployeeLookups` loads
->     `ListDepartmentsLookup`/`ListPositionsLookup` (new `db/queries/reference_import.sql` queries),
->     `validateEmployeeRows` resolves them case-insensitively (error keys `departemen`/`jabatan`, stamps
->     `_department_id`/`_position_id`, dropped on invalid rows), `Execute` now passes the resolved ids
->     into `CreateEmployee` instead of hardcoded `nil`. Unit tests (`importer_test.go`, 3 new cases) +
->     integration test `TestImport_EmployeeCycle_DeptPositionResolved` (unknown department rejected at
->     validation, not execute; resolved ids persisted end-to-end).
-> 46. ~~**Import follow-ups — Tasks 2–4 done (2026-07-12): brand/model/unit reference import targets,
->     registered + wired end-to-end.**~~ `internal/masterdata/reference/importer.go` gained three more
->     `TargetImporter` resources (Tasks 2–3): **brands** (`nama`, dupNama vs. `uq_brands_name`),
->     **units** (`nama`+optional `simbol`, dupNama vs. `uq_units_name`), **models** (`merek`+`nama`,
->     brand resolved by name → `merek` error on miss, dupNama on the composite `uq_models_brand_name`) —
->     each following the same validate/Execute anti-poisoning split as provinces/cities. Task 4 wired
->     them in: `router.go` registers all three (`reference.NewImporter(refSvc, "brands"|"models"|"units")`,
->     no new permission needed — `reference:*` already maps to `masterdata.global.manage`);
->     `master/import.vue` target union/permission/label maps and `master/reference.vue`
->     `IMPORTABLE_RESOURCES` extended so the Import button appears for Brand/Model/Satuan; i18n
->     `masterdata.import.targets.{brands,models,units}` + `import.wizard.cellErrors.{departemen,jabatan,merek}`
->     added (id+en); OpenAPI `target` enum (4 occurrences) + the Import tag description updated to match.
+>     **Honest limitations / follow-ups — original list, now largely cleared (see item 48):**
+>     ~~employee/office importers cover only the core columns (no dept/position lookup yet)~~ **done —
+>     employee dept/position lookup landed (item 48); office import remains core-columns-only (not
+>     planned)**; ~~only 2 reference targets wired (provinces/cities)~~ **done — brand/unit/model added
+>     (item 48); room/floor targets remain genuinely open (deferred, not implemented)**; ~~error reports
+>     are generated on-demand (not stored to MinIO — `error_report_key` stays null)~~ **done — persisted
+>     to MinIO on validate+execute completion (item 48); the asset target still always rebuilds
+>     on-demand by design (approval-gated, content can change between confirm and view)**;
+>     ~~office/reference import paths have no e2e~~ **done — covered (item 48)**. **Still open:** the
+>     dup-code DB check is **case-sensitive** while validation is case-insensitive (narrow TOCTOU under
+>     concurrency, inherited from the asset-tag pattern); Redis validate progress is written **once at
+>     100%** (no incremental); the importer maps `employee`→`masterdata.employee.manage` while employee
+>     **CRUD** uses `office.manage` (000032 aligns the grants). **Note — dev-stack image staleness:** the
+>     running `asset-management-frontend` container predates this branch and was stopped for the
+>     e2e/mockup run (served by a fresh host build) — it needs a rebuild for normal dev use.
+> 48. ~~**Import follow-ups (2026-07-12): dept/position + brand/model/unit targets + MinIO error reports
+>     + office/reference e2e**~~ ✅ **DONE (this PR, branch `feat/import-followups`).** Consolidates
+>     what shipped across 6 sub-tasks on this branch:
+>     - **Employee dept/position lookup**: optional `departemen` (name OR code) / `jabatan` (name)
+>       columns on the employee import template; `buildEmployeeLookups` loads
+>       `ListDepartmentsLookup`/`ListPositionsLookup` (new `db/queries/reference_import.sql` queries),
+>       `validateEmployeeRows` resolves them case-insensitively (error keys `departemen`/`jabatan`, stamps
+>       `_department_id`/`_position_id`, dropped on invalid rows), `Execute` passes the resolved ids into
+>       `CreateEmployee` instead of hardcoded `nil`. Office import stays core-columns-only (no dept/position
+>       concept there) — not a gap, just out of scope.
+>     - **3 new reference targets**: `internal/masterdata/reference/importer.go` gained **brands**
+>       (`nama`, dupNama vs. `uq_brands_name`), **units** (`nama`+optional `simbol`, dupNama vs.
+>       `uq_units_name`), **models** (`merek`+`nama`, brand resolved by name → `merek` error on miss,
+>       dupNama on the composite `uq_models_brand_name`) — each on the same validate/Execute
+>       anti-poisoning split as provinces/cities. Registered in `router.go`
+>       (`reference.NewImporter(refSvc, "brands"|"models"|"units")`, no new permission — `reference:*`
+>       already maps to `masterdata.global.manage`); `master/import.vue` target union/permission/label
+>       maps and `master/reference.vue` `IMPORTABLE_RESOURCES` extended so Import appears for
+>       Brand/Model/Satuan; i18n `masterdata.import.targets.{brands,models,units}` +
+>       `import.wizard.cellErrors.{departemen,jabatan,merek}` (id+en); OpenAPI `target` enum (4
+>       occurrences) + Import tag description updated. Room/floor targets **deferred** — genuinely not
+>       implemented, no follow-up scheduled yet.
+>     - **MinIO-persisted error reports**: the worker now builds an error report at validate *and*
+>       execute completion and uploads it to MinIO, setting `error_report_key` (new `SetJobErrorReportKey`
+>       query) instead of leaving it null. The handler streams the stored object for non-approval
+>       targets; for the **asset** target (approval-gated) it **always rebuilds on-demand** instead —
+>       deliberate, not a gap: an asset batch's error surface can still change between confirm and
+>       later views (approval outcome, re-validation), so a cached MinIO snapshot could go stale.
+>     - **e2e for office/reference (+brand/model) import**: `frontend/e2e/import-masterdata.spec.ts`
+>       covers office + provinces + cities + brands + models against the real backend, 5/5 green.
+>       Deviation: the office case asserts creation via the API (not a UI list-search) because
+>       `pages/master/offices.vue` lists with a hard `limit:100` and no server-side search, so a newly
+>       imported office isn't reliably visible in the UI list within e2e's seeded dataset — tracked in
+>       the standing tech-debt list below, not re-solved here.
 >     Tests: 3 new backend integration subtests (`TestImport_Reference{Brand,Unit}Cycle_DuplicateNameMarkedFailed`,
->     `TestImport_ReferenceModelCycle_UnknownBrandAndDuplicatePair` — each proves the mid-batch
->     tx-poisoning defense, the model test additionally proves the unknown-brand validation-time
->     rejection) added to `import_integration_test.go` (its harness now registers all 5 reference
->     targets, mirroring `router.go`); frontend `master-import.spec.ts` gained 3 cases (permission +
->     label per target). Full gate green: backend build/vet/test + `-tags=integration ./internal/importer/`
->     (all PASS), Spectral (0 err), frontend lint/typecheck/test (95 files/1159 tests)/build.
-> 47. ~~**Next session — pick the next real step.**~~ Remaining **import** follow-ups: room/floor
->     reference targets (not yet implemented, unlike brand/model/unit); office/reference import paths
->     have no e2e coverage (only asset+employee driven); MinIO-stored error reports (currently generated
->     on-demand, `error_report_key` stays null). Other major candidate: **notifications**
->     (`mock/notifications.ts` — the last app-shell mock; needs a backend notifications feed). Also open:
->     the standing tech-debt list (field-permission enforcement beyond assets+users; Users screen
->     server-side filters + reset-password; enriched audit response; async searchable office/employee
->     pickers — the `limit:100` cap keeps biting local e2e; approval/route badge counts; failure-safe
->     Data-Scope e2e cleanup); and the **Analytics/OLAP** read layer once report volume warrants it.
->     Confirm priority before starting.
+>     `TestImport_ReferenceModelCycle_UnknownBrandAndDuplicatePair`), 1 new employee integration test
+>     (`TestImport_EmployeeCycle_DeptPositionResolved`), unit tests (`importer_test.go`, 3 new cases),
+>     frontend `master-import.spec.ts` (+3 cases), Playwright `import-masterdata.spec.ts` (5/5 green).
+>     **Full verification gate (this PR, 2026-07-12):** backend `go build`/`go vet`/`go test` all green;
+>     full `go test -tags=integration ./... -p 1` (all packages) green; Spectral 0 errors/9 known
+>     warnings; frontend lint/typecheck green, `pnpm test` 95 files/1159 tests green, `pnpm build` green.
+> 49. ~~**Next session — pick the next real step.**~~ **Import module is now feature-complete for
+>     planned scope** except room/floor reference targets (deferred, no committed timeline). Top
+>     candidates: **(a) notifications** (`mock/notifications.ts` — the last app-shell mock; needs a
+>     backend notifications feed) — biggest remaining "real feature" gap; **(b) room/floor import
+>     targets** if bulk-loading physical layout data becomes a real need; **(c)** the standing tech-debt
+>     list (field-permission enforcement beyond assets+users; Users screen server-side filters +
+>     reset-password; enriched audit response; async searchable office/employee pickers — the
+>     `limit:100` cap keeps biting local e2e, as seen again in this branch's office e2e case;
+>     approval/route badge counts; failure-safe Data-Scope e2e cleanup); **(d)** the **Analytics/OLAP**
+>     read layer once report volume warrants it. Confirm priority before starting.
 
 ## ✅ Done
 
