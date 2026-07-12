@@ -1549,6 +1549,7 @@
     "yes": "Yes",
     "no": "No",
     "assetPickerEmpty": "No assets available",
+    "pickerEmpty": "No data",
     "periodCustom": "Custom range…"
   },
   "status": {
