@@ -27,6 +27,23 @@ describe('useAccount', () => {
       .rejects.toThrow('account.errRequired')
   })
 
+  it('changePassword rejects mismatched confirmation', async () => {
+    const { changePassword } = useAccount()
+    await expect(changePassword({ oldPass: 'oldpass12', newPass: 'newpass12', confirmPass: 'different' }))
+      .rejects.toThrow('account.errConfirmMismatch')
+  })
+
+  it('changePassword rejects a short new password', async () => {
+    const { changePassword } = useAccount()
+    await expect(changePassword({ oldPass: 'oldpass12', newPass: 'short', confirmPass: 'short' }))
+      .rejects.toThrow('account.errWeak')
+  })
+
+  it('resetPassword rejects a short new password', async () => {
+    const { resetPassword } = useAccount()
+    await expect(resetPassword('sometoken', 'short')).rejects.toThrow('account.errWeak')
+  })
+
   it('lists sessions with exactly one current session', async () => {
     const s = await useAccount().listSessions()
     expect(s.length).toBeGreaterThanOrEqual(1)
