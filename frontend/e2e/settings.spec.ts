@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
-import { login } from './helpers'
+import type { APIRequestContext } from '@playwright/test'
+import { login, apiContext, listRoles, findRoleIdByName, restoreDefaultScope, restoreFieldPermissionDefault } from './helpers'
 
 // ---------------------------------------------------------------------------
 // User Management screen — real backend (GET/POST/PUT/DELETE /api/v1/users)
@@ -298,67 +299,98 @@ test.describe('Data Scope screen — real backend', () => {
     await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible()
   })
 
-  test('changing a role default scope marks dirty and enables Save, persists across reload', async ({ page }) => {
-    // Use the Superadmin row — click its Default cell pill to open the popover.
-    // The pill button in the Default column renders the level key as its visible text
-    // (ScopeCell.vue: <span class="font-mono ...">{{ effective }}</span> inside <button>).
-    const table = page.locator('table tbody')
-    await expect(table).toBeVisible()
+  // Scoped to its own nested describe: this is the ONLY test in this file that
+  // mutates the SHARED seeded Superadmin `*` data-scope policy, so only it pays
+  // for the failure-safe API restore. Applying the restore to every sibling
+  // test (even read-only ones) would mean every parallel worker in this
+  // describe races a PUT against the same shared row — confirmed locally as
+  // spurious 409s (CI's `workers: 1` wouldn't show it, but it's still wrong).
+  // The api context + role id are resolved in this nested describe's own
+  // beforeEach (running immediately before the test body, after the outer
+  // beforeEach's UI login/goto), and afterEach restores unconditionally —
+  // this exact corruption (Superadmin `*` stuck at `own`) has 403'd office
+  // creation across other specs before.
+  test.describe('mutates shared Superadmin default scope', () => {
+    let api: APIRequestContext | undefined
+    let superadminId: string | undefined
 
-    // Find the row containing "Superadmin" and locate its Default cell pill button
-    const superadminRow = table.locator('tr').filter({ hasText: 'Superadmin' }).first()
-    await expect(superadminRow).toBeVisible()
+    test.beforeEach(async () => {
+      api = await apiContext()
+      superadminId = await findRoleIdByName(api, 'Superadmin')
+    })
 
-    // Default cell is the second td (index 1 — first td is the sticky role-name cell)
-    const defaultCell = superadminRow.locator('td').nth(1)
-    const defaultPill = defaultCell.locator('button[type="button"]').first()
-    await expect(defaultPill).toBeVisible()
+    test.afterEach(async () => {
+      if (!api || !superadminId) return
+      await restoreDefaultScope(api, superadminId, 'global')
+      await api.dispose()
+      api = undefined
+      superadminId = undefined
+    })
 
-    // Read the current level from the pill's visible text (e.g. "global" / "own")
-    // The pill button's accessible text is the level key rendered in the font-mono span
-    const currentLevel = (await defaultPill.textContent())?.trim().match(/global|office_subtree|office|own/)?.[0] ?? 'global'
+    test('changing a role default scope marks dirty and enables Save, persists across reload', async ({ page }) => {
+      // Use the Superadmin row — click its Default cell pill to open the popover.
+      // The pill button in the Default column renders the level key as its visible text
+      // (ScopeCell.vue: <span class="font-mono ...">{{ effective }}</span> inside <button>).
+      const table = page.locator('table tbody')
+      await expect(table).toBeVisible()
 
-    // Open the popover
-    await defaultPill.click()
+      // Find the row containing "Superadmin" and locate its Default cell pill button
+      const superadminRow = table.locator('tr').filter({ hasText: 'Superadmin' }).first()
+      await expect(superadminRow).toBeVisible()
 
-    // Pick a different level deterministically: 'own' if currently 'global', else 'global'
-    const targetLevel = currentLevel === 'own' ? 'global' : 'own'
+      // Default cell is the second td (index 1 — first td is the sticky role-name cell)
+      const defaultCell = superadminRow.locator('td').nth(1)
+      const defaultPill = defaultCell.locator('button[type="button"]').first()
+      await expect(defaultPill).toBeVisible()
 
-    // Popover option buttons contain the level key AND its description; the description
-    // text is unique to the open popover (table pills render only the bare key), so
-    // scoping by description targets the popover option, never a table pill button.
-    const levelOption = page.getByRole('button').filter({ hasText: LEVEL_DESC[targetLevel] }).first()
-    await levelOption.click()
+      // Read the current level from the pill's visible text (e.g. "global" / "own")
+      // The pill button's accessible text is the level key rendered in the font-mono span
+      const currentLevel = (await defaultPill.textContent())?.trim().match(/global|office_subtree|office|own/)?.[0] ?? 'global'
 
-    // Dirty indicator should appear
-    await expect(page.getByText('Perubahan belum disimpan').first()).toBeVisible({ timeout: 5_000 })
+      // Open the popover
+      await defaultPill.click()
 
-    // Save button must now be enabled
-    const saveBtn = page.getByRole('button', { name: /Simpan/ })
-    await expect(saveBtn).toBeEnabled()
-    await saveBtn.click()
+      // Pick a different level deterministically: 'own' if currently 'global', else 'global'
+      const targetLevel = currentLevel === 'own' ? 'global' : 'own'
 
-    // Dirty indicator disappears after a successful save
-    await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible({ timeout: 8_000 })
+      // Popover option buttons contain the level key AND its description; the description
+      // text is unique to the open popover (table pills render only the bare key), so
+      // scoping by description targets the popover option, never a table pill button.
+      const levelOption = page.getByRole('button').filter({ hasText: LEVEL_DESC[targetLevel] }).first()
+      await levelOption.click()
 
-    // Reload and verify the change persisted
-    await page.reload()
-    await expect(page.getByText('Superadmin').first()).toBeVisible({ timeout: 10_000 })
+      // Dirty indicator should appear
+      await expect(page.getByText('Perubahan belum disimpan').first()).toBeVisible({ timeout: 5_000 })
 
-    // After reload, assert the Default cell shows the target level as its visible text
-    const superadminRowAfter = page.locator('table tbody tr').filter({ hasText: 'Superadmin' }).first()
-    const defaultPillAfter = superadminRowAfter.locator('td').nth(1).locator('button[type="button"]').first()
-    await expect(defaultPillAfter).toContainText(targetLevel, { timeout: 8_000 })
+      // Save button must now be enabled
+      const saveBtn = page.getByRole('button', { name: /Simpan/ })
+      await expect(saveBtn).toBeEnabled()
+      await saveBtn.click()
 
-    // Clean up: revert to original level (best-effort; not a hard failure)
-    await defaultPillAfter.click()
-    const revertOption = page.getByRole('button').filter({ hasText: LEVEL_DESC[currentLevel] }).first()
-    await revertOption.click()
-    const saveBtnCleanup = page.getByRole('button', { name: /Simpan/ })
-    if (await saveBtnCleanup.isEnabled()) {
-      await saveBtnCleanup.click()
+      // Dirty indicator disappears after a successful save
       await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible({ timeout: 8_000 })
-    }
+
+      // Reload and verify the change persisted
+      await page.reload()
+      await expect(page.getByText('Superadmin').first()).toBeVisible({ timeout: 10_000 })
+
+      // After reload, assert the Default cell shows the target level as its visible text
+      const superadminRowAfter = page.locator('table tbody tr').filter({ hasText: 'Superadmin' }).first()
+      const defaultPillAfter = superadminRowAfter.locator('td').nth(1).locator('button[type="button"]').first()
+      await expect(defaultPillAfter).toContainText(targetLevel, { timeout: 8_000 })
+
+      // Fast-path cleanup: revert to original level via the UI (best-effort — if
+      // this doesn't run or throws, this nested describe's afterEach above is the
+      // authoritative, failure-safe restore via the API).
+      await defaultPillAfter.click()
+      const revertOption = page.getByRole('button').filter({ hasText: LEVEL_DESC[currentLevel] }).first()
+      await revertOption.click()
+      const saveBtnCleanup = page.getByRole('button', { name: /Simpan/ })
+      if (await saveBtnCleanup.isEnabled()) {
+        await saveBtnCleanup.click()
+        await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible({ timeout: 8_000 })
+      }
+    })
   })
 
   test('retry button reloads data after a simulated failure', async ({ page }) => {
@@ -432,67 +464,110 @@ test.describe('Field Permission screen — real backend', () => {
     await expect(page.locator('table')).toBeVisible()
   })
 
-  test('toggle a cell, Save, reload — change persists', async ({ page }) => {
-    // Strategy: locate the purchase_cost row, find the first role column's "L" (view) toggle button,
-    // toggle it, save, reload, and verify the change persisted.
-    // We use robust text/row locators — NO Tailwind class selectors.
+  // Scoped to its own nested describe: this is the ONLY test in this file that
+  // mutates the SHARED `purchase_cost` field-permission cell of whichever role
+  // renders in the FIRST role column. `/authz/roles` (and this grid, which
+  // trusts that order — see `useFieldPermission.load`) is `ORDER BY name`, so
+  // the first column is NOT reliably Superadmin — e.g. seeded "Kepala
+  // Kanwil"/"Manager" or any leftover "E2E ..." custom role sorts before
+  // "Superadmin". Applying the restore to every sibling test (even read-only
+  // ones) would mean every parallel worker in this describe races a PUT
+  // against the same shared row — confirmed locally as spurious 409s (CI's
+  // `workers: 1` wouldn't show it, but it's still wrong). We restore BOTH: the
+  // role that positionally maps to the toggled cell (the actual mutation) and
+  // Superadmin by name (this file's other read-only assertions reference it,
+  // and it has separately been seen corrupted in this dev DB) —
+  // belt-and-suspenders, cheap, and idempotent either way.
+  test.describe('mutates shared purchase_cost field permission', () => {
+    let api: APIRequestContext | undefined
+    let firstRoleId: string | undefined
+    let superadminId: string | undefined
 
-    // 1. Find the purchase_cost row in the matrix tbody
-    const purchaseCostRow = page.locator('tr', { hasText: 'purchase_cost' }).first()
-    await expect(purchaseCostRow).toBeVisible({ timeout: 8_000 })
+    test.beforeEach(async () => {
+      api = await apiContext()
+      const roles = await listRoles(api)
+      firstRoleId = roles[0]?.id
+      superadminId = roles.find(r => r.name === 'Superadmin')?.id ?? await findRoleIdByName(api, 'Superadmin')
+    })
 
-    // 2. Within that row, find the "L" (view) toggle buttons.
-    //    FieldPermToggle renders two <button> elements containing the letter "L" (view) and "E" (edit).
-    //    We grab all L buttons in the row — first one corresponds to the first role column (Superadmin).
-    const lBtns = purchaseCostRow.locator('button', { hasText: 'L' })
-    await expect(lBtns).not.toHaveCount(0)
+    test.afterEach(async () => {
+      if (!api) return
+      if (firstRoleId) await restoreFieldPermissionDefault(api, firstRoleId, 'assets', 'purchase_cost')
+      if (superadminId && superadminId !== firstRoleId) {
+        await restoreFieldPermissionDefault(api, superadminId, 'assets', 'purchase_cost')
+      }
+      await api.dispose()
+      api = undefined
+      firstRoleId = undefined
+      superadminId = undefined
+    })
 
-    // Read the aria/visual state before toggling: check if the first L is "on" (view=true).
-    // We cannot reliably read the semantic state, so we just note that we toggled it once.
-    const firstLBtn = lBtns.first()
-    await firstLBtn.click()
+    test('toggle a cell, Save, reload — change persists', async ({ page }) => {
+      // Strategy: locate the purchase_cost row, find the first role column's "L" (view) toggle button,
+      // toggle it, save, reload, and verify the change persisted.
+      // We use robust text/row locators — NO Tailwind class selectors.
 
-    // 3. Dirty indicator must appear
-    await expect(page.getByText('Perubahan belum disimpan').first()).toBeVisible({ timeout: 5_000 })
+      // 1. Find the purchase_cost row in the matrix tbody
+      const purchaseCostRow = page.locator('tr', { hasText: 'purchase_cost' }).first()
+      await expect(purchaseCostRow).toBeVisible({ timeout: 8_000 })
 
-    // 4. Save must be enabled; click it
-    const saveBtn = page.getByRole('button', { name: /Simpan/ })
-    await expect(saveBtn).toBeEnabled()
-    await saveBtn.click()
+      // 2. Within that row, find the "L" (view) toggle buttons.
+      //    FieldPermToggle renders two <button> elements containing the letter "L" (view) and "E" (edit).
+      //    We grab all L buttons in the row — first one corresponds to the first role column. NOTE: the
+      //    role columns come straight from /authz/roles (ORDER BY name), so "first column" is whichever
+      //    role sorts first alphabetically — NOT reliably Superadmin (see this nested describe's comment).
+      const lBtns = purchaseCostRow.locator('button', { hasText: 'L' })
+      await expect(lBtns).not.toHaveCount(0)
 
-    // 5. Dirty indicator must disappear after save
-    await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible({ timeout: 8_000 })
+      // Read the aria/visual state before toggling: check if the first L is "on" (view=true).
+      // We cannot reliably read the semantic state, so we just note that we toggled it once.
+      const firstLBtn = lBtns.first()
+      await firstLBtn.click()
 
-    // 6. Reload the page and verify the change actually persisted.
-    //    After toggling and saving, the purchase_cost field now has an EXPLICIT restriction —
-    //    meaning the "Default" badge (i18n defaultTag = "Default") must NO LONGER appear in that row.
-    await page.reload()
-    await expect(page.getByText('Superadmin').first()).toBeVisible({ timeout: 10_000 })
-    // purchase_cost must still be visible (row exists in the catalog)
-    const purchaseCostRowAfterReload = page.locator('tr', { hasText: 'purchase_cost' }).first()
-    await expect(purchaseCostRowAfterReload).toBeVisible({ timeout: 8_000 })
-    // KEY PERSISTENCE ASSERTION: the field now has an explicit restriction, so the
-    // "Default" badge must be absent — proving the toggled value round-tripped through the backend.
-    await expect(purchaseCostRowAfterReload.getByText('Default')).toHaveCount(0)
-    // No dirty state on fresh load
-    await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible()
-    const saveBtnAfter = page.getByRole('button', { name: /Simpan/ })
-    await expect(saveBtnAfter).toBeDisabled()
+      // 3. Dirty indicator must appear
+      await expect(page.getByText('Perubahan belum disimpan').first()).toBeVisible({ timeout: 5_000 })
 
-    // 7. Cleanup: toggle the same cell back to restore the original state (best-effort).
-    //    Uses try/catch so a flaky cleanup never fails the test.
-    //    Playwright's click auto-waits for actionability; we also wait for Save to be enabled
-    //    before clicking it, avoiding the non-waiting isEnabled() snapshot anti-pattern.
-    try {
-      const purchaseCostRowCleanup = page.locator('tr', { hasText: 'purchase_cost' }).first()
-      await expect(purchaseCostRowCleanup).toBeVisible({ timeout: 8_000 })
-      const lBtnsCleanup = purchaseCostRowCleanup.locator('button', { hasText: 'L' })
-      await lBtnsCleanup.first().click()
-      const saveBtnCleanup = page.getByRole('button', { name: /Simpan/ })
-      await expect(saveBtnCleanup).toBeEnabled()
-      await saveBtnCleanup.click()
+      // 4. Save must be enabled; click it
+      const saveBtn = page.getByRole('button', { name: /Simpan/ })
+      await expect(saveBtn).toBeEnabled()
+      await saveBtn.click()
+
+      // 5. Dirty indicator must disappear after save
       await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible({ timeout: 8_000 })
-    } catch { /* best-effort cleanup — not a hard failure */ }
+
+      // 6. Reload the page and verify the change actually persisted.
+      //    After toggling and saving, the purchase_cost field now has an EXPLICIT restriction —
+      //    meaning the "Default" badge (i18n defaultTag = "Default") must NO LONGER appear in that row.
+      await page.reload()
+      await expect(page.getByText('Superadmin').first()).toBeVisible({ timeout: 10_000 })
+      // purchase_cost must still be visible (row exists in the catalog)
+      const purchaseCostRowAfterReload = page.locator('tr', { hasText: 'purchase_cost' }).first()
+      await expect(purchaseCostRowAfterReload).toBeVisible({ timeout: 8_000 })
+      // KEY PERSISTENCE ASSERTION: the field now has an explicit restriction, so the
+      // "Default" badge must be absent — proving the toggled value round-tripped through the backend.
+      await expect(purchaseCostRowAfterReload.getByText('Default')).toHaveCount(0)
+      // No dirty state on fresh load
+      await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible()
+      const saveBtnAfter = page.getByRole('button', { name: /Simpan/ })
+      await expect(saveBtnAfter).toBeDisabled()
+
+      // 7. Fast-path cleanup: toggle the same cell back via the UI (best-effort — this
+      //    nested describe's afterEach above is the authoritative, failure-safe restore
+      //    via the API).
+      //    Uses try/catch so a flaky cleanup never fails the test.
+      //    Playwright's click auto-waits for actionability; we also wait for Save to be enabled
+      //    before clicking it, avoiding the non-waiting isEnabled() snapshot anti-pattern.
+      try {
+        const purchaseCostRowCleanup = page.locator('tr', { hasText: 'purchase_cost' }).first()
+        await expect(purchaseCostRowCleanup).toBeVisible({ timeout: 8_000 })
+        const lBtnsCleanup = purchaseCostRowCleanup.locator('button', { hasText: 'L' })
+        await lBtnsCleanup.first().click()
+        const saveBtnCleanup = page.getByRole('button', { name: /Simpan/ })
+        await expect(saveBtnCleanup).toBeEnabled()
+        await saveBtnCleanup.click()
+        await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible({ timeout: 8_000 })
+      } catch { /* best-effort cleanup — not a hard failure */ }
+    })
   })
 
   test('switching entity to users shows users fields (e.g. email)', async ({ page }) => {
