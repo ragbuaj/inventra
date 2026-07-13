@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatRupiah, formatDate } from '~/utils/format'
+import { formatRupiah, formatDate, formatThousands, parseThousands } from '~/utils/format'
 
 describe('formatRupiah', () => {
   it('formats a number with Rp prefix and no decimals', () => {
@@ -68,5 +68,19 @@ describe('formatDate', () => {
     expect(result).toContain('2024')
     // In id-ID without time, no colon expected (HH:MM pattern)
     expect(result).not.toMatch(/\d{2}:\d{2}/)
+  })
+})
+
+describe('thousand helpers', () => {
+  it('groups digits id-ID', () => {
+    expect(formatThousands('1000000')).toBe('1.000.000')
+    expect(formatThousands(2500)).toBe('2.500')
+  })
+  it('strips non-digits before grouping', () => {
+    expect(formatThousands('1.0a0b0')).toBe('1.000')
+  })
+  it('parses back to raw digits', () => {
+    expect(parseThousands('1.000.000')).toBe('1000000')
+    expect(parseThousands('')).toBe('')
   })
 })
