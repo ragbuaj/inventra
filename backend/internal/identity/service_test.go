@@ -128,3 +128,17 @@ func TestRequestPasswordReset_GoogleOnly_SilentOK(t *testing.T) {
 		t.Fatalf("Google-only account must not receive a reset link")
 	}
 }
+
+func TestRequestPasswordReset_InactiveUser_SilentOK(t *testing.T) {
+	u := activeUserEmail(t, "inactive@x.com")
+	u.Status = sqlc.SharedUserStatusInactive
+	fs := &fakeStore{byEmail: map[string]sqlc.IdentityUser{"inactive@x.com": u}}
+	fm := &fakeMailer{}
+	svc := newTestService(t, fs, fm)
+	if err := svc.RequestPasswordReset(context.Background(), "inactive@x.com"); err != nil {
+		t.Fatalf("want nil (anti-enumeration), got %v", err)
+	}
+	if fm.resetLink != "" {
+		t.Fatalf("inactive account must not receive a reset link")
+	}
+}
