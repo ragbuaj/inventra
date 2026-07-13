@@ -21,6 +21,22 @@ const fTelepon = ref('')
 const nameErr = ref(false)
 const isGoogle = computed(() => profile.value?.loginMethod === 'google')
 
+// Profil tab — view/edit toggle (defaults read-only; Edit snapshots current
+// values so Batal can revert without a re-fetch).
+const editing = ref(false)
+const savingProfile = ref(false)
+let profileSnapshot: { nama: string, telepon: string } | null = null
+
+// "Ubah Email" modal — request/sent two-step flow (Task 18).
+const emailModalOpen = ref(false)
+const newEmailInput = ref('')
+const currentPasswordInput = ref('')
+const newEmailErr = ref(false)
+const emailApiErr = ref('')
+const emailSent = ref(false)
+const emailLoading = ref(false)
+const emailCooldown = useResendCooldown(30)
+
 // security — used by Keamanan tab (C4)
 const oldPass = ref('')
 const newPass = ref('')
@@ -45,14 +61,93 @@ onMounted(async () => {
   loading.value = false
 })
 
+function startEdit() {
+  profileSnapshot = { nama: fNama.value, telepon: fTelepon.value }
+  nameErr.value = false
+  editing.value = true
+}
+
+function cancelEdit() {
+  if (profileSnapshot) {
+    fNama.value = profileSnapshot.nama
+    fTelepon.value = profileSnapshot.telepon
+  }
+  nameErr.value = false
+  editing.value = false
+}
+
 async function saveProfil() {
   nameErr.value = !fNama.value.trim()
   if (nameErr.value) return
+  savingProfile.value = true
   try {
     await account.updateProfile({ nama: fNama.value, telepon: fTelepon.value })
+    editing.value = false
     toast.add({ title: t('account.toastProfileTitle'), description: t('account.toastProfileMsg'), color: 'success' })
   } catch {
     toast.add({ title: t('common.error'), color: 'error' })
+  } finally {
+    savingProfile.value = false
+  }
+}
+
+function isValidEmail(v: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
+}
+
+// The backend returns {error: "..."} for both the 400 (wrong password) and
+// 409 (email in use / same email) cases; ofetch/$fetch surfaces the parsed
+// body on `err.data` (see useApiClient's doFetch).
+function extractApiError(err: unknown): string {
+  const data = (err as { data?: unknown } | undefined)?.data
+  if (data && typeof data === 'object' && 'error' in data && typeof (data as { error?: unknown }).error === 'string') {
+    return (data as { error: string }).error
+  }
+  if (typeof data === 'string' && data) return data
+  return t('common.error')
+}
+
+function openEmailModal() {
+  newEmailInput.value = ''
+  currentPasswordInput.value = ''
+  newEmailErr.value = false
+  emailApiErr.value = ''
+  emailSent.value = false
+  emailCooldown.reset()
+  emailModalOpen.value = true
+}
+
+async function submitEmailChange() {
+  if (emailSent.value) {
+    emailModalOpen.value = false
+    return
+  }
+  newEmailErr.value = !isValidEmail(newEmailInput.value)
+  if (newEmailErr.value) return
+  emailApiErr.value = ''
+  emailLoading.value = true
+  try {
+    await account.requestEmailChange(newEmailInput.value.trim(), currentPasswordInput.value)
+    emailSent.value = true
+    emailCooldown.start()
+  } catch (err) {
+    emailApiErr.value = extractApiError(err)
+  } finally {
+    emailLoading.value = false
+  }
+}
+
+async function resendEmailChange() {
+  if (!emailCooldown.canResend.value) return
+  emailApiErr.value = ''
+  emailLoading.value = true
+  try {
+    await account.requestEmailChange(newEmailInput.value.trim(), currentPasswordInput.value)
+    emailCooldown.start()
+  } catch (err) {
+    emailApiErr.value = extractApiError(err)
+  } finally {
+    emailLoading.value = false
   }
 }
 
@@ -176,7 +271,7 @@ const strengthLabelClass = computed(() => {
                   name="i-lucide-building-2"
                   class="size-[14px]"
                 />
-                {{ profile?.kantor }}
+                {{ profile?.kantor || '—' }}
               </span>
             </div>
           </div>
@@ -275,7 +370,9 @@ const strengthLabelClass = computed(() => {
                 </label>
                 <UInput
                   v-model="fNama"
+                  :disabled="!editing"
                   :class="nameErr ? 'ring-1 ring-error [&_input]:border-error' : ''"
+                  data-testid="profile-nama"
                   size="md"
                 />
                 <div
@@ -294,20 +391,41 @@ const strengthLabelClass = computed(() => {
                   v-model="fTelepon"
                   type="tel"
                   placeholder="08xx-xxxx-xxxx"
+                  :disabled="!editing || !profile?.hasEmployee"
+                  data-testid="profile-telepon"
                   size="md"
                 />
+                <div
+                  v-if="!profile?.hasEmployee"
+                  class="mt-[6px] text-[12px] text-dimmed"
+                  data-testid="profile-telepon-hint"
+                >
+                  {{ t('account.phoneManagedNote') }}
+                </div>
               </div>
               <!-- Email (full width) -->
               <div class="col-span-2">
                 <label class="block text-[13px] font-medium mb-[6px]">
                   {{ t('account.lEmail') }}
                 </label>
-                <UInput
-                  :model-value="profile?.email ?? ''"
-                  :disabled="isGoogle"
-                  :class="isGoogle ? 'opacity-60 cursor-not-allowed' : ''"
-                  size="md"
-                />
+                <div class="flex items-center gap-[10px]">
+                  <UInput
+                    :model-value="profile?.email ?? ''"
+                    disabled
+                    class="flex-1 opacity-60 cursor-not-allowed"
+                    size="md"
+                  />
+                  <UButton
+                    v-if="!isGoogle"
+                    color="neutral"
+                    variant="outline"
+                    size="md"
+                    data-testid="profile-change-email"
+                    @click="openEmailModal"
+                  >
+                    {{ t('account.changeEmail') }}
+                  </UButton>
+                </div>
                 <div
                   v-if="isGoogle"
                   class="mt-[6px] flex items-center gap-[5px] text-[12px] text-dimmed"
@@ -344,7 +462,7 @@ const strengthLabelClass = computed(() => {
                   {{ t('account.iOffice') }}
                 </div>
                 <div class="text-[14px] font-medium">
-                  {{ profile?.kantor }}
+                  {{ profile?.kantor || '—' }}
                 </div>
               </div>
               <div>
@@ -352,7 +470,7 @@ const strengthLabelClass = computed(() => {
                   {{ t('account.iEmployee') }}
                 </div>
                 <div class="text-[14px] font-medium">
-                  {{ profile?.pegawai }}
+                  {{ profile?.pegawai || '—' }}
                 </div>
               </div>
               <div>
@@ -378,17 +496,122 @@ const strengthLabelClass = computed(() => {
             </div>
           </div>
 
-          <!-- Save button -->
+          <!-- Edit / Save / Cancel controls -->
           <div class="flex justify-end gap-[10px]">
-            <UButton
-              color="primary"
-              icon="i-lucide-save"
-              size="md"
-              @click="saveProfil"
-            >
-              {{ t('account.save') }}
-            </UButton>
+            <template v-if="!editing">
+              <UButton
+                color="primary"
+                variant="outline"
+                icon="i-lucide-pencil"
+                size="md"
+                data-testid="profile-edit"
+                @click="startEdit"
+              >
+                {{ t('account.edit') }}
+              </UButton>
+            </template>
+            <template v-else>
+              <UButton
+                color="neutral"
+                variant="ghost"
+                size="md"
+                data-testid="profile-cancel"
+                @click="cancelEdit"
+              >
+                {{ t('account.cancel') }}
+              </UButton>
+              <UButton
+                color="primary"
+                icon="i-lucide-save"
+                size="md"
+                :loading="savingProfile"
+                data-testid="profile-save"
+                @click="saveProfil"
+              >
+                {{ t('account.save') }}
+              </UButton>
+            </template>
           </div>
+
+          <!-- "Ubah Email" modal -->
+          <FormModal
+            v-model:open="emailModalOpen"
+            :title="t('account.changeEmail')"
+            :loading="emailLoading"
+            :hide-footer="emailSent"
+            @submit="submitEmailChange"
+          >
+            <template v-if="!emailSent">
+              <div class="flex flex-col gap-4">
+                <UFormField :label="t('account.newEmail')">
+                  <UInput
+                    v-model="newEmailInput"
+                    type="email"
+                    class="w-full"
+                    :class="newEmailErr ? 'ring-1 ring-error [&_input]:border-error' : ''"
+                    data-testid="change-email-input"
+                  />
+                  <div
+                    v-if="newEmailErr"
+                    class="mt-[6px] text-[12px] text-error"
+                  >
+                    {{ t('account.invalidEmail') }}
+                  </div>
+                </UFormField>
+                <UFormField :label="t('account.currentPassword')">
+                  <UInput
+                    v-model="currentPasswordInput"
+                    type="password"
+                    class="w-full"
+                    data-testid="change-email-password"
+                  />
+                </UFormField>
+                <div
+                  v-if="emailApiErr"
+                  class="text-[12px] text-error"
+                  data-testid="change-email-error"
+                >
+                  {{ emailApiErr }}
+                </div>
+              </div>
+            </template>
+            <template v-else>
+              <div class="flex flex-col gap-3">
+                <UAlert
+                  color="success"
+                  variant="soft"
+                  :title="t('account.emailVerifySent', { email: newEmailInput })"
+                  data-testid="change-email-sent"
+                />
+                <div
+                  v-if="emailApiErr"
+                  class="text-[12px] text-error"
+                  data-testid="change-email-error"
+                >
+                  {{ emailApiErr }}
+                </div>
+                <div class="flex justify-end gap-2">
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    data-testid="change-email-close"
+                    @click="emailModalOpen = false"
+                  >
+                    {{ t('common.cancel') }}
+                  </UButton>
+                  <UButton
+                    variant="soft"
+                    :disabled="!emailCooldown.canResend.value || emailLoading"
+                    :loading="emailLoading"
+                    data-testid="change-email-resend"
+                    @click="resendEmailChange"
+                  >
+                    {{ emailCooldown.canResend.value ? t('auth.forgotResend') : t('auth.forgotResendWait', { s: emailCooldown.remaining.value }) }}
+                  </UButton>
+                </div>
+              </div>
+            </template>
+          </FormModal>
         </div>
 
         <!-- TAB: KEAMANAN -->
