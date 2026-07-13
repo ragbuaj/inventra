@@ -613,15 +613,17 @@ describe('Audit Trail page — role, office, and summary', () => {
     expect(text).toContain('Kantor Pusat')
   })
 
-  it('renders a derived localized summary line per row', async () => {
+  it('renders a derived localized summary line per row, with the localized entity label (not the raw entity_type key)', async () => {
     const wrapper = await mountAndWait()
     const text = wrapper.text()
-    // a1: update on assets with 1 changed field (purchase_cost)
-    expect(text).toContain('Mengubah 1 field pada assets e9')
-    // a2: create on users
-    expect(text).toContain('Membuat users u5')
-    // a3: delete on roles
-    expect(text).toContain('Menghapus roles r3')
+    // a1: update on assets with 1 changed field (purchase_cost) — 'Aset' is settings.audit.entity.assets
+    expect(text).toContain('Mengubah 1 field pada Aset e9')
+    expect(text).not.toContain('pada assets e9')
+    // a2: create on users — 'User' is settings.audit.entity.users
+    expect(text).toContain('Membuat User u5')
+    // a3: delete on roles — 'Peran' is settings.audit.entity.roles
+    expect(text).toContain('Menghapus Peran r3')
+    expect(text).not.toContain('Menghapus roles r3')
   })
 
   it('renders gracefully when actor/role/office_name are null (no crash, blank fields)', async () => {
@@ -632,7 +634,7 @@ describe('Audit Trail page — role, office, and summary', () => {
     const wrapper = await mountAndWait()
     // The null-actor row must still mount and show its entity_id
     expect(wrapper.text()).toContain('r9')
-    expect(wrapper.text()).toContain('Menghapus roles r9')
+    expect(wrapper.text()).toContain('Menghapus Peran r9')
   })
 })
 
