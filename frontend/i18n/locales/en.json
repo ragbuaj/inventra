@@ -1930,6 +1930,7 @@
     "toastProfileMsg": "Your personal data changes have been saved.",
     "toastPassTitle": "Password changed",
     "toastPassMsg": "Your password has been updated successfully.",
+    "secReloginMsg": "All sessions ended. Please log in again.",
     "toastLogoutTitle": "Sessions ended",
     "toastLogoutMsg": "You have been logged out of all other devices.",
     "errRequired": "Required.",

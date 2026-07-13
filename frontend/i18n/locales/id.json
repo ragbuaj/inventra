@@ -1930,6 +1930,7 @@
     "toastProfileMsg": "Perubahan data diri Anda telah disimpan.",
     "toastPassTitle": "Password diganti",
     "toastPassMsg": "Kata sandi Anda berhasil diperbarui.",
+    "secReloginMsg": "Semua sesi diakhiri. Silakan login kembali.",
     "toastLogoutTitle": "Sesi diakhiri",
     "toastLogoutMsg": "Anda telah keluar dari semua perangkat lain.",
     "errRequired": "Wajib diisi.",

@@ -63,10 +63,9 @@ async function changePassword() {
   if (secErr.old || secErr.newp || secErr.confirm) return
   try {
     await account.changePassword({ oldPass: oldPass.value, newPass: newPass.value, confirmPass: confirmPass.value })
-    oldPass.value = ''
-    newPass.value = ''
-    confirmPass.value = ''
-    toast.add({ title: t('account.toastPassTitle'), description: t('account.toastPassMsg'), color: 'success' })
+    useAuthStore().clear()
+    toast.add({ title: t('account.toastPassTitle'), description: t('account.secReloginMsg'), color: 'success' })
+    await navigateTo('/login')
   } catch {
     toast.add({ title: t('common.error'), color: 'error' })
   }
