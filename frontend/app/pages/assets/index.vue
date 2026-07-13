@@ -139,7 +139,10 @@ function resetFilters() {
   fKat.value = ALL
   fKantor.value = null
   fClass.value = ALL
-  page.value = 1
+  // Don't reset `page` here — the multi-ref filter watcher below reads it to
+  // decide whether it (vs. the separate page watcher) should load(), and
+  // needs to see the real pre-reset value to avoid a double-fetch (same
+  // pattern as master/employees.vue's resetFilters).
 }
 
 function openDetail(tag: string) {
