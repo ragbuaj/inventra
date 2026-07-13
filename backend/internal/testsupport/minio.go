@@ -53,6 +53,18 @@ func NewMinIO(t *testing.T) *storage.MinIOStorage {
 
 	store, err := storage.NewMinIOStorage(endpoint, "minioadmin", "minioadmin123", "inventra-test", false)
 	require.NoError(t, err)
-	require.NoError(t, store.EnsureBucket(ctx))
+
+	// The liveness probe passes once MinIO is listening, but there is a brief
+	// warm-up window where the first S3 call still returns "Server not
+	// initialized yet, please try again." Retry the bucket call through it
+	// rather than failing the whole package on a startup race (seen in CI).
+	var ensureErr error
+	for i := 0; i < 20; i++ {
+		if ensureErr = store.EnsureBucket(ctx); ensureErr == nil {
+			break
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	require.NoError(t, ensureErr)
 	return store
 }
