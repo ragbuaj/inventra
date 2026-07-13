@@ -234,6 +234,39 @@ describe('CommandPalette', () => {
     expect(bodyText()).not.toContain('pending')
   })
 
+  it('focuses the search input when the palette opens', async () => {
+    admin()
+    const w = await mount()
+    // Start from a known, unfocused state so a pass can only be explained by
+    // the programmatic focus added for this fix, not an ambient jsdom default.
+    const active = document.activeElement as HTMLElement | null
+    active?.blur?.()
+    expect(document.activeElement).not.toBe(bodyInput())
+    useCommandPalette().open()
+    await w.vm.$nextTick()
+    await w.vm.$nextTick()
+    const input = bodyInput()!
+    expect(document.activeElement).toBe(input)
+  })
+
+  it('re-focuses the search input on a close-then-reopen cycle', async () => {
+    admin()
+    const w = await mount()
+    const cp = useCommandPalette()
+    cp.open()
+    await w.vm.$nextTick()
+    await w.vm.$nextTick()
+    // Move focus elsewhere, as a user tabbing/clicking away would.
+    const openInput = bodyInput() as HTMLInputElement
+    openInput.blur()
+    cp.close()
+    await flushPromises()
+    cp.open()
+    await w.vm.$nextTick()
+    await w.vm.$nextTick()
+    expect(document.activeElement).toBe(bodyInput())
+  })
+
   it('clears the loading skeleton and shows the empty state when search fails', async () => {
     searchMock.mockImplementation(async () => {
       throw new Error('network error')

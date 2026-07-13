@@ -10,6 +10,7 @@ const query = ref('')
 const loading = ref(false)
 const groups = ref<SearchGroup[]>([])
 const sel = ref(0)
+const inputEl = ref<HTMLInputElement>()
 let seq = 0
 let debounceTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -59,6 +60,8 @@ watch(isOpen, (v) => {
     query.value = ''
     groups.value = []
     sel.value = 0
+  } else {
+    nextTick(() => inputEl.value?.focus())
   }
 })
 
@@ -164,6 +167,7 @@ function groupMeta(type: string) {
             />
           </span>
           <input
+            ref="inputEl"
             v-model="query"
             :placeholder="t('search.placeholder')"
             autofocus
