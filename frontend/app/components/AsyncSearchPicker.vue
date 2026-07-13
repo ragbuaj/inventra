@@ -45,6 +45,10 @@ watch(isOpen, (open) => {
   if (open) activeIndex.value = -1
 })
 
+watch(loading, (isLoading) => {
+  if (isLoading) activeIndex.value = -1
+})
+
 async function runSearch(term: string) {
   const mine = ++seq
   loading.value = true
@@ -144,9 +148,11 @@ function onKeydown(event: KeyboardEvent) {
       moveActive(-1)
       break
     case 'Enter':
-      if (activeIndex.value >= 0 && activeIndex.value < results.value.length) {
+      if (isOpen.value && results.value.length > 0) {
         event.preventDefault()
-        select(results.value[activeIndex.value]!)
+        if (activeIndex.value >= 0 && activeIndex.value < results.value.length) {
+          select(results.value[activeIndex.value]!)
+        }
       }
       break
     case 'Escape':
@@ -155,13 +161,13 @@ function onKeydown(event: KeyboardEvent) {
       focusInput()
       break
     case 'Home':
-      if (results.value.length > 0) {
+      if (isOpen.value && activeIndex.value >= 0 && results.value.length > 0) {
         event.preventDefault()
         activeIndex.value = 0
       }
       break
     case 'End':
-      if (results.value.length > 0) {
+      if (isOpen.value && activeIndex.value >= 0 && results.value.length > 0) {
         event.preventDefault()
         activeIndex.value = results.value.length - 1
       }
