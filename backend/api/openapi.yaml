@@ -2778,7 +2778,9 @@ paths:
         a depreciation entry — impairment is a separate loss, not a depreciation expense; the
         next period compute resumes depreciation from the lower book value. Requires the
         `depreciation.manage` permission; the asset must be within the caller's data scope
-        (module `depreciation`).
+        (module `depreciation`). The response masks `book_value`/`accumulated_depreciation`
+        together when the caller's role is denied view on `assets.book_value` (see
+        `ImpairmentResponse`).
       security:
         - bearerJWT: []
       requestBody:
@@ -4552,6 +4554,7 @@ components:
         id: { type: string, format: uuid }
         name: { type: [string, "null"] }
         email: { type: [string, "null"] }
+        role: { type: [string, "null"], description: "The actor's CURRENT role name (resolved live via identity.roles, not snapshotted at audit time — an accepted limitation: a later role change/rename is reflected on historical rows too)." }
 
     AuditLog:
       type: object
@@ -4568,6 +4571,7 @@ components:
           additionalProperties: true
         ip: { type: [string, "null"] }
         office_id: { type: [string, "null"], format: uuid }
+        office_name: { type: [string, "null"], description: "The office name for office_id, resolved via a LEFT JOIN — null when office_id is null or points at an office that no longer exists." }
         created_at: { type: string, format: date-time }
 
     AuditList:
@@ -6188,18 +6192,25 @@ components:
 
     ImpairmentResponse:
       type: object
-      description: The asset's money fields after applying the impairment write-down.
-      required: [book_value, impairment_loss, accumulated_depreciation]
+      description: |
+        The asset's money fields after applying the impairment write-down. `book_value` and
+        `accumulated_depreciation` are masked together (omitted entirely) when the caller's
+        role is denied view on `assets.book_value` — the same field-permission policy
+        `GET /assets/{id}/depreciation` applies. `impairment_loss` has no such policy and is
+        always present.
+      required: [impairment_loss]
       properties:
         book_value:
           type: [string, "null"]
-          description: Decimal string (IDR). Dropped to recoverable_amount.
+          description: Decimal string (IDR). Dropped to recoverable_amount. Omitted when book_value view is denied.
         impairment_loss:
           type: [string, "null"]
           description: Decimal string (IDR). Accumulates the shortfall (previous book value minus recoverable_amount).
         accumulated_depreciation:
           type: string
-          description: Decimal string (IDR). Unaffected by impairment — it is not a depreciation expense.
+          description: |
+            Decimal string (IDR). Unaffected by impairment — it is not a depreciation expense.
+            Omitted when book_value view is denied.
 
     SearchItem:
       type: object

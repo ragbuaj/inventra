@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Category, Office } from '~/types'
+import type { Category } from '~/types'
 import type { DepreciationPeriod, JournalResponse, ScheduleResponse, ScheduleRow } from '~/composables/api/useDepreciation'
 import { BASIS_META, PERIOD_STATUS_TONE, type DepreciationBasis, type PeriodStatus } from '~/constants/depreciationMeta'
 import { formatRupiah } from '~/utils/format'
@@ -24,7 +24,7 @@ const toast = useToast()
 
 const depApi = useDepreciation()
 const categoriesApi = useCategories()
-const officesApi = useOffices()
+const office = useOfficePicker()
 
 const canManage = computed(() => can('depreciation.manage'))
 
@@ -123,27 +123,21 @@ async function closePeriod() {
 }
 
 // ---------------------------------------------------------------------------
-// Lookups: categories + offices for the schedule filters (best-effort).
+// Lookups: categories for the schedule filter (best-effort). Office is an
+// async search picker (no more eager `{ limit: 100 }` list) — see `office`.
 // ---------------------------------------------------------------------------
 const categories = ref<Category[]>([])
-const offices = ref<Office[]>([])
 
 const categoryOptions = computed(() => [
   { value: 'all', label: t('depreciation.schedule.filterCategoryAll') },
   ...categories.value.map(c => ({ value: c.id, label: c.name }))
 ])
-const officeOptions = computed(() => [
-  { value: 'all', label: t('depreciation.schedule.filterOfficeAll') },
-  ...offices.value.map(o => ({ value: o.id, label: o.name }))
-])
 
 async function loadLookups() {
   try {
-    const [cats, offs] = await Promise.all([categoriesApi.tree(), officesApi.list({ limit: 100 })])
-    categories.value = cats
-    offices.value = offs.data
+    categories.value = await categoriesApi.tree()
   } catch {
-    // Best-effort — filters just stay at "all".
+    // Best-effort — the filter just stays at "all".
   }
 }
 
@@ -156,7 +150,7 @@ const scheduleError = ref(false)
 const search = ref('')
 const debouncedSearch = ref('')
 const categoryId = ref('all')
-const officeId = ref('all')
+const officeId = ref<string | null>(null)
 let searchTimer: ReturnType<typeof setTimeout> | undefined
 
 const scheduleRows = computed(() => scheduleResp.value?.rows ?? [])
@@ -183,7 +177,7 @@ async function loadSchedule() {
       basis: basis.value,
       search: debouncedSearch.value.trim() || undefined,
       category_id: categoryId.value !== 'all' ? categoryId.value : undefined,
-      office_id: officeId.value !== 'all' ? officeId.value : undefined
+      office_id: officeId.value ?? undefined
     })
     if (mine !== scheduleSeq) return
     scheduleResp.value = res
@@ -657,12 +651,15 @@ onBeforeUnmount(() => {
           :items="categoryOptions"
           class="min-w-[170px]"
         />
-        <USelect
-          v-model="officeId"
-          data-testid="depr-filter-office"
-          value-key="value"
-          :items="officeOptions"
-          class="min-w-[170px]"
+        <AsyncSearchPicker
+          :model-value="officeId"
+          :search-fn="office.searchFn"
+          :resolve-fn="office.resolveFn"
+          :placeholder="t('common.searchOffice')"
+          testid="depr-filter-office"
+          clearable
+          class="min-w-[190px]"
+          @update:model-value="officeId = $event"
         />
       </div>
 

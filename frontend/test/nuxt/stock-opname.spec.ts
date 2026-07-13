@@ -92,8 +92,9 @@ vi.mock('~/composables/api/useStockOpname', () => ({
 }))
 
 const officesListMock = vi.fn()
+const officesGetMock = vi.fn()
 vi.mock('~/composables/api/useOffices', () => ({
-  useOffices: () => ({ list: officesListMock, get: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() })
+  useOffices: () => ({ list: officesListMock, get: officesGetMock, create: vi.fn(), update: vi.fn(), remove: vi.fn() })
 }))
 
 const listByOfficeMock = vi.fn()
@@ -120,6 +121,9 @@ vi.mock('~/composables/api/useAssets', () => ({
 import StockOpnamePage from '~/pages/stock-opname.vue'
 
 enableAutoUnmount(afterEach)
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 function grantSession(officeId: string | null, permissions: string[] = ['stockopname.view', 'stockopname.manage']) {
   useAuthStore().setSession(
@@ -179,6 +183,10 @@ const ROOMS: Room[] = [{ id: 'room1', floor_id: 'f1', name: 'Ruang Server', code
 beforeEach(() => {
   vi.clearAllMocks()
   officesListMock.mockResolvedValue(page(OFFICES))
+  officesGetMock.mockImplementation((id: string) => {
+    const o = OFFICES.find(off => off.id === id)
+    return o ? Promise.resolve(o) : Promise.reject(new Error('not found'))
+  })
   refListMock.mockResolvedValue(page([] as ReferenceRow[]))
   listByOfficeMock.mockResolvedValue(FLOORS)
   roomsByFloorMock.mockResolvedValue(ROOMS)
@@ -270,6 +278,25 @@ describe('pages/stock-opname — create session', () => {
     await w.find('[data-testid="opname-create-open"]').trigger('click')
     await w.vm.$nextTick()
     expect(document.body.textContent).toContain('snapshot seluruh aset')
+  })
+
+  it('scope office field is an AsyncSearchPicker (no more eager-options USelect)', async () => {
+    const w = await mountAndWait()
+    await w.find('[data-testid="opname-create-open"]').trigger('click')
+    await w.vm.$nextTick()
+
+    expect(document.body.querySelector('[data-testid="opname-create-office"]')).toBeNull()
+    expect(document.body.querySelector('[data-testid="office-picker-input"]')).toBeTruthy()
+  })
+
+  it('resolves a preselected office id to its label in the scope picker', async () => {
+    const w = await mountAndWait()
+    await w.find('[data-testid="opname-create-open"]').trigger('click')
+    await w.vm.$nextTick()
+
+    await setModalRef(w, 'StockopnameCreateSessionModal', 'officeId', 'o-other')
+    const input = document.body.querySelector('[data-testid="office-picker-input"]') as HTMLInputElement
+    expect(input.value).toBe('Kantor Cabang Bandung')
   })
 
   it('hides the create button without stockopname.manage', async () => {
@@ -404,6 +431,20 @@ describe('pages/stock-opname — detail (reconciling)', () => {
     await flushPromises()
 
     expect(followupMock).toHaveBeenCalledWith('s1', 'i4', expect.objectContaining({ to_office_id: 'o-other' }))
+  })
+
+  it('misplaced follow-up office field is an AsyncSearchPicker that resolves a preselected id to its label', async () => {
+    const w = await mountAndWait()
+    await openDetail(w)
+    await w.find('[data-testid="opname-followup-misplaced"]').trigger('click')
+    await w.vm.$nextTick()
+
+    expect(document.body.querySelector('[data-testid="opname-followup-office"]')).toBeNull()
+    expect(document.body.querySelector('[data-testid="office-picker-input"]')).toBeTruthy()
+
+    await setModalRef(w, 'StockopnameFollowupModal', 'officeId', 'o-other')
+    const input = document.body.querySelector('[data-testid="office-picker-input"]') as HTMLInputElement
+    expect(input.value).toBe('Kantor Cabang Bandung')
   })
 
   it('damaged follow-up calls followup() for a maintenance record and shows a success toast', async () => {

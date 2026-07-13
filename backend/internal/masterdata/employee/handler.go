@@ -11,6 +11,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
+	"github.com/ragbuaj/inventra/internal/middleware"
 )
 
 // scopeModule is the data_scope_policies module key for employees.
@@ -19,11 +20,12 @@ const scopeModule = "employees"
 type Handler struct {
 	svc    *Service
 	scoped common.ScopedDeps
+	fields *authz.FieldService
 	aud    *audit.Service
 }
 
-func NewHandler(q *sqlc.Queries, scope *authz.ScopeService, aud *audit.Service) *Handler {
-	return &Handler{svc: NewService(q), scoped: common.ScopedDeps{Q: q, Scope: scope}, aud: aud}
+func NewHandler(q *sqlc.Queries, scope *authz.ScopeService, aud *audit.Service, fieldSvc *authz.FieldService) *Handler {
+	return &Handler{svc: NewService(q), scoped: common.ScopedDeps{Q: q, Scope: scope}, fields: fieldSvc, aud: aud}
 }
 
 func (h *Handler) svcError(c *gin.Context, err error) {
@@ -32,6 +34,24 @@ func (h *Handler) svcError(c *gin.Context, err error) {
 		return
 	}
 	common.WriteError(c, err)
+}
+
+// filterMap applies field-permission masking for the caller's role on the
+// "employees" entity. It delegates to authz.FilterEntity, which fails
+// closed: a policy-lookup error (e.g. Redis down) is returned so callers
+// refuse to leak unfiltered employee data rather than serving it unmasked.
+// An unparseable/missing role id (CtxRoleID) is treated the same way — the
+// caller responds 500 instead of falling back to a default-allow uuid.Nil
+// lookup that could serve the record unmasked.
+func (h *Handler) filterMap(c *gin.Context, m map[string]any) (map[string]any, error) {
+	roleID, err := uuid.Parse(c.GetString(middleware.CtxRoleID))
+	if err != nil {
+		return nil, err
+	}
+	if err := h.fields.FilterEntity(c.Request.Context(), roleID, "employees", m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (h *Handler) list(c *gin.Context) {
@@ -49,9 +69,14 @@ func (h *Handler) list(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list employees"})
 		return
 	}
-	data := make([]Response, 0, len(rows))
+	data := make([]map[string]any, 0, len(rows))
 	for _, e := range rows {
-		data = append(data, toResponse(e))
+		masked, err := h.filterMap(c, employeeToMap(e))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve field permissions"})
+			return
+		}
+		data = append(data, masked)
 	}
 	c.JSON(http.StatusOK, gin.H{"data": data, "total": total, "limit": limit, "offset": offset})
 }
@@ -72,7 +97,12 @@ func (h *Handler) get(c *gin.Context) {
 		h.svcError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, toResponse(e))
+	masked, err := h.filterMap(c, employeeToMap(e))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve field permissions"})
+		return
+	}
+	c.JSON(http.StatusOK, masked)
 }
 
 func (h *Handler) create(c *gin.Context) {
@@ -97,7 +127,12 @@ func (h *Handler) create(c *gin.Context) {
 		return
 	}
 	audit.Record(c, h.aud, audit.ActionCreate, "employees", e.ID, &e.OfficeID, audit.Diff(nil, toResponse(e)))
-	c.JSON(http.StatusCreated, toResponse(e))
+	masked, err := h.filterMap(c, employeeToMap(e))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve field permissions"})
+		return
+	}
+	c.JSON(http.StatusCreated, masked)
 }
 
 func (h *Handler) update(c *gin.Context) {
@@ -127,7 +162,12 @@ func (h *Handler) update(c *gin.Context) {
 		return
 	}
 	audit.Record(c, h.aud, audit.ActionUpdate, "employees", after.ID, &after.OfficeID, audit.Diff(toResponse(before), toResponse(after)))
-	c.JSON(http.StatusOK, toResponse(after))
+	masked, err := h.filterMap(c, employeeToMap(after))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve field permissions"})
+		return
+	}
+	c.JSON(http.StatusOK, masked)
 }
 
 func (h *Handler) delete(c *gin.Context) {

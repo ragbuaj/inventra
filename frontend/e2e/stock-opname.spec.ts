@@ -38,15 +38,20 @@ import { login, EMAIL, PASSWORD } from './helpers'
 //   5. API-assert GET /stock-opname/sessions/:id/report?format=pdf returns
 //      200 with content-type application/pdf.
 //
-// IMPORTANT robustness note (documented dev-DB fragility): the shared dev DB
-// has 100+ offices and the UI office pickers cap at limit:100 ordered by
-// name, so a freshly-created office is NOT reliably selectable in the
-// create-session modal's office USelect. All prerequisites AND the session
-// itself are therefore created via the API; only the detail-view lifecycle
-// is driven through the UI (the create modal is already covered by Task 11's
-// component tests). The session list is ordered created_at DESC, so the
-// fresh session sits at the top of /stock-opname; we still use a row-scoped
-// locator (never a bare getByText) keyed off a RUN-suffixed unique name.
+// IMPORTANT robustness note (updated for the picker-e2e sweep, Task 7 audit):
+// `CreateSessionModal`'s office field is now an `AsyncSearchPicker`
+// (server-side search, testid="office" — see `helpers.ts`'s `pickAsync`), so
+// a freshly-created office IS reliably reachable there; the old
+// `limit:100`-capped USelect this comment used to describe no longer applies.
+// Session creation still goes through the API in `beforeAll` regardless —
+// not because the picker can't do it, but because Playwright fixtures don't
+// expose `page` inside `beforeAll`, and API setup keeps this serial,
+// multi-step lifecycle test fast and deterministic (the create modal itself
+// is already covered by Task 11's component tests). Only the detail-view
+// lifecycle is driven through the UI below. The session list is ordered
+// created_at DESC, so the fresh session sits at the top of /stock-opname; we
+// still use a row-scoped locator (never a bare getByText) keyed off a
+// RUN-suffixed unique name.
 //
 // Robustness rules (per project e2e conventions): unique name+code per run
 // (this dev DB is NOT reset between runs), assert-after-search, wait for
@@ -167,11 +172,11 @@ test.describe('Stock Opname — real backend (lifecycle + follow-up + report e2e
     await createApprovedAsset(asset1Name, '2000000')
     asset2Id = await createApprovedAsset(asset2Name, '2500000')
 
-    // Session creation via the API (see the top-of-file "API session
-    // creation" note): the create-session UI modal's office USelect caps at
-    // limit:100 offices ordered by name, so a freshly-created office is not
-    // reliably reachable there. Task 11's component tests already cover the
-    // create modal itself.
+    // Session creation via the API (see the top-of-file robustness note): the
+    // create-session modal's office `AsyncSearchPicker` IS reliably
+    // UI-selectable now, but `beforeAll` has no `page` fixture to drive it
+    // with, and API setup keeps this lifecycle test fast/deterministic. Task
+    // 11's component tests already cover the create modal itself.
     sessionName = `E2E Opname ${RUN}`
     const created = await apiJson<{ id: string, total: number }>(await api.post('stock-opname/sessions', {
       headers: authHeader(adminToken),

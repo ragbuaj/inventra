@@ -30,7 +30,20 @@ vi.mock('~/composables/useApiClient', () => ({
 // Shared fixtures
 // ---------------------------------------------------------------------------
 
-const AUDIT_ROWS = [
+interface AuditFixtureRow {
+  id: string
+  entity_type: string
+  entity_id: string
+  action: string
+  ip: string
+  changes: Record<string, { before?: string, after?: string }> | null
+  actor: { id: string, name: string, email: string, role: string } | null
+  office_id: string | null
+  office_name: string | null
+  created_at: string
+}
+
+const AUDIT_ROWS: AuditFixtureRow[] = [
   {
     id: 'a1',
     entity_type: 'assets',
@@ -38,8 +51,9 @@ const AUDIT_ROWS = [
     action: 'update',
     ip: '10.0.0.1',
     changes: { purchase_cost: { before: '1000', after: '1200' } },
-    actor: { id: 'u1', name: 'Bambang Sukasno', email: 'b@x.id' },
+    actor: { id: 'u1', name: 'Bambang Sukasno', email: 'b@x.id', role: 'Asset Manager' },
     office_id: 'o1',
+    office_name: 'Cabang Jakarta Selatan',
     created_at: '2026-06-24T08:30:00Z'
   },
   {
@@ -49,8 +63,9 @@ const AUDIT_ROWS = [
     action: 'create',
     ip: '192.168.1.5',
     changes: null,
-    actor: { id: 'u2', name: 'Siti Rahayu', email: 's@x.id' },
+    actor: { id: 'u2', name: 'Siti Rahayu', email: 's@x.id', role: 'Superadmin' },
     office_id: 'o1',
+    office_name: 'Kantor Pusat',
     created_at: '2026-06-24T09:00:00Z'
   },
   {
@@ -60,11 +75,27 @@ const AUDIT_ROWS = [
     action: 'delete',
     ip: '172.16.0.2',
     changes: null,
-    actor: { id: 'u3', name: 'Agus Prasetyo', email: 'a@x.id' },
+    actor: { id: 'u3', name: 'Agus Prasetyo', email: 'a@x.id', role: 'Kepala Unit' },
     office_id: 'o2',
+    office_name: 'Kanwil DKI Jakarta',
     created_at: '2026-06-24T10:15:00Z'
   }
 ]
+
+// A row with no actor / office_name — e.g. a system-initiated action or an
+// actor whose office was left unset. Must render gracefully (blank, no crash).
+const NULL_ACTOR_ROW: AuditFixtureRow = {
+  id: 'a4',
+  entity_type: 'roles',
+  entity_id: 'r9',
+  action: 'delete',
+  ip: '172.16.0.9',
+  changes: null,
+  actor: null,
+  office_id: null,
+  office_name: null,
+  created_at: '2026-06-24T11:00:00Z'
+}
 
 // Default success response — total 25 to exercise multi-page pagination
 function makeAuditResponse(rows = AUDIT_ROWS, total = 25) {
@@ -86,10 +117,25 @@ function parseAuditQuery(path: string): Record<string, string> {
 // Last captured query from the most recent /audit request
 let _lastQuery: Record<string, string> = {}
 
+// Minimal user fixture used by the actor picker's resolveFn/searchFn.
+const USERS = [
+  { id: 'u1', name: 'Bambang Sukasno', email: 'b@x.id' },
+  { id: 'u2', name: 'Siti Rahayu', email: 's@x.id' }
+]
+
 function defaultHandler(path: string, _opts?: Record<string, unknown>): unknown {
   if (path.startsWith('/audit')) {
     _lastQuery = parseAuditQuery(path)
     return makeAuditResponse()
+  }
+  if (/^\/users\/[^/?]+$/.test(path)) {
+    const id = path.split('/').pop()
+    const found = USERS.find(u => u.id === id)
+    if (!found) throw Object.assign(new Error('not found'), { statusCode: 404 })
+    return found
+  }
+  if (path.startsWith('/users')) {
+    return { data: USERS, total: USERS.length }
   }
   throw new Error(`Unhandled request: ${path}`)
 }
@@ -545,5 +591,126 @@ describe('Audit Trail page — empty state', () => {
     // No active filter → Reset button inside empty block must not render
     const resetBtns = wrapper.findAll('button').filter(b => b.text().trim() === 'Reset')
     expect(resetBtns.length).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Role / office / derived summary (Task 9)
+// ---------------------------------------------------------------------------
+
+describe('Audit Trail page — role, office, and summary', () => {
+  it('renders each row actor role', async () => {
+    const wrapper = await mountAndWait()
+    const text = wrapper.text()
+    expect(text).toContain('Asset Manager')
+    expect(text).toContain('Superadmin')
+  })
+
+  it('renders each row office name', async () => {
+    const wrapper = await mountAndWait()
+    const text = wrapper.text()
+    expect(text).toContain('Cabang Jakarta Selatan')
+    expect(text).toContain('Kantor Pusat')
+  })
+
+  it('renders a derived localized summary line per row', async () => {
+    const wrapper = await mountAndWait()
+    const text = wrapper.text()
+    // a1: update on assets with 1 changed field (purchase_cost)
+    expect(text).toContain('Mengubah 1 field pada assets e9')
+    // a2: create on users
+    expect(text).toContain('Membuat users u5')
+    // a3: delete on roles
+    expect(text).toContain('Menghapus roles r3')
+  })
+
+  it('renders gracefully when actor/role/office_name are null (no crash, blank fields)', async () => {
+    setHandler((path) => {
+      if (path.startsWith('/audit')) return makeAuditResponse([...AUDIT_ROWS, NULL_ACTOR_ROW], 4)
+      throw new Error(`Unhandled: ${path}`)
+    })
+    const wrapper = await mountAndWait()
+    // The null-actor row must still mount and show its entity_id
+    expect(wrapper.text()).toContain('r9')
+    expect(wrapper.text()).toContain('Menghapus roles r9')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Actor filter — async search picker (Task 9)
+// ---------------------------------------------------------------------------
+
+describe('Audit Trail page — actor filter', () => {
+  it('renders the actor filter as an async search picker', async () => {
+    const wrapper = await mountAndWait()
+    expect(wrapper.find('[data-testid="audit-actor-picker-input"]').exists()).toBe(true)
+  })
+
+  it('shows the actor picker when the caller has user.manage', async () => {
+    useAuthStore().setSession(
+      'tok',
+      { id: '1', name: 'Kepala Kanwil', email: 'kk@test.com', role_id: 'r2', role_name: 'Kepala Kanwil', office_id: null },
+      ['audit.view', 'user.manage']
+    )
+    const wrapper = await mountAndWait()
+    expect(wrapper.find('[data-testid="audit-actor-picker-input"]').exists()).toBe(true)
+  })
+
+  it('hides the actor picker when the caller lacks user.manage (audit.view only)', async () => {
+    useAuthStore().setSession(
+      'tok',
+      { id: '1', name: 'Kepala Unit', email: 'ku@test.com', role_id: 'r3', role_name: 'Kepala Unit', office_id: null },
+      ['audit.view']
+    )
+    const wrapper = await mountAndWait()
+    expect(wrapper.find('[data-testid="audit-actor-picker-input"]').exists()).toBe(false)
+  })
+
+  it('selecting an actor sends actor_id and resets to page 1', async () => {
+    const capturedQueries: Array<Record<string, string>> = []
+    setHandler((path) => {
+      if (path.startsWith('/audit')) {
+        const q = parseAuditQuery(path)
+        capturedQueries.push(q)
+        return makeAuditResponse()
+      }
+      return defaultHandler(path)
+    })
+
+    const wrapper = await mountAndWait()
+    capturedQueries.length = 0
+
+    await setVmRef(wrapper, 'fActorId', 'u1')
+
+    const filtered = capturedQueries.find(q => q['actor_id'] === 'u1')
+    expect(filtered).toBeDefined()
+    expect(filtered!['offset']).toBe('0')
+  })
+
+  it('clearing the actor filter (picker clear button) resets to null and re-queries without actor_id', async () => {
+    const capturedQueries: Array<Record<string, string>> = []
+    setHandler((path) => {
+      if (path.startsWith('/audit')) {
+        const q = parseAuditQuery(path)
+        capturedQueries.push(q)
+        return makeAuditResponse()
+      }
+      return defaultHandler(path)
+    })
+
+    const wrapper = await mountAndWait()
+    await setVmRef(wrapper, 'fActorId', 'u1')
+    capturedQueries.length = 0
+
+    const clearBtn = wrapper.find('[data-testid="audit-actor-picker-clear"]')
+    expect(clearBtn.exists()).toBe(true)
+    await clearBtn.trigger('click')
+    await new Promise(r => setTimeout(r, 400))
+    await wrapper.vm.$nextTick()
+
+    expect((wrapper.vm as unknown as { fActorId: string | null }).fActorId).toBeNull()
+    const cleared = capturedQueries[capturedQueries.length - 1]
+    expect(cleared).toBeDefined()
+    expect(cleared!['actor_id']).toBeUndefined()
   })
 })

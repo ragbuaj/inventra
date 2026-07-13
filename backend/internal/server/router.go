@@ -171,7 +171,7 @@ func NewRouter(d Deps) (*gin.Engine, *importer.Worker) {
 		userHandler := user.NewHandler(user.NewService(queries), fieldSvc, auditSvc)
 		user.RegisterRoutes(api, userHandler, requireAuth, middleware.RequirePermission(permSvc, "user.manage"))
 
-		masterdata.RegisterRoutes(api, queries, d.Pool, permSvc, scopeSvc, auditSvc, requireAuth)
+		masterdata.RegisterRoutes(api, queries, d.Pool, permSvc, scopeSvc, fieldSvc, auditSvc, requireAuth)
 
 		assetSvc := asset.NewService(queries, d.Pool, d.Storage, d.Cfg.AttachmentMaxBytes, d.Cfg.LabelLogoPath)
 		assetHandler := asset.NewHandler(assetSvc, fieldSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)

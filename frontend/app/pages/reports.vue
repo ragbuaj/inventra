@@ -5,9 +5,7 @@ import type {
   TransferReportRow, DisposalReportRow, OpnameReportRow
 } from '~/composables/api/useReports'
 import { useReports } from '~/composables/api/useReports'
-import { useOffices } from '~/composables/api/useOffices'
 import { useCategories } from '~/composables/api/useCategories'
-import type { Office } from '~/types'
 import type { ReportKey, PeriodValue, PeriodPreset } from '~/constants/reportMeta'
 import { REPORT_KEYS, REPORT_ICON, formatMoneyShort } from '~/constants/reportMeta'
 
@@ -36,7 +34,7 @@ function colDefs(labels: string[], rightFrom: number): Col[] {
 const { t, te } = useI18n()
 const can = useCan()
 const api = useReports()
-const officesApi = useOffices()
+const office = useOfficePicker()
 const categoriesApi = useCategories()
 
 const canExport = computed(() => can('report.export'))
@@ -48,12 +46,15 @@ const canExport = computed(() => can('report.export'))
 const ALL = 'all'
 const report = ref<ReportKey>('assets')
 const period = ref<PeriodValue>({ preset: 'this_quarter' })
-const officeId = ref<string>(ALL)
+const officeId = ref<string | null>(null)
 const categoryId = ref<string>(ALL)
 const status = ref<string>(ALL)
 const basis = ref<'commercial' | 'fiscal'>('commercial')
 
-const offices = ref<Office[]>([])
+// Office: async search picker (no more eager `{ limit: 100 }` list) — the
+// result-meta office label resolves on demand via the same adapter's
+// resolveFn, memoized (useResolveCache).
+const officeCache = useResolveCache(office.resolveFn)
 const categoryOptions = ref<{ value: string, label: string }[]>([])
 
 const applied = ref(false)
@@ -69,10 +70,6 @@ const BASIS_OPTIONS: Array<{ key: 'commercial' | 'fiscal', icon: string }> = [
   { key: 'fiscal', icon: 'i-lucide-gavel' }
 ]
 
-const officeOptions = computed(() => [
-  { value: ALL, label: t('reports.allOffices') },
-  ...offices.value.map(o => ({ value: o.id, label: o.name }))
-])
 const catOptions = computed(() => [
   { value: ALL, label: t('reports.allCategories') },
   ...categoryOptions.value
@@ -105,8 +102,8 @@ const periodLabel = computed(() => {
   return t(`reports.period.${PRESET_SUFFIX[p.preset as PeriodPreset] ?? 'thisQuarter'}`)
 })
 const officeLabel = computed(() => {
-  if (officeId.value === ALL) return t('reports.allOffices')
-  return offices.value.find(o => o.id === officeId.value)?.name ?? t('reports.allOffices')
+  if (!officeId.value) return t('reports.allOffices')
+  return officeCache.get(officeId.value)
 })
 const periodSlug = computed(() => {
   const p = period.value
@@ -124,7 +121,7 @@ const hasData = computed(() => !!result.value && result.value.rows.length > 0)
 function currentFilters(): ReportFilters {
   return {
     period: period.value,
-    officeId: officeId.value === ALL ? undefined : officeId.value,
+    officeId: officeId.value ?? undefined,
     categoryId: categoryId.value === ALL ? undefined : categoryId.value,
     status: report.value === 'assets' && status.value !== ALL ? status.value : undefined,
     basis: report.value === 'depreciation' ? basis.value : undefined
@@ -289,7 +286,7 @@ async function apply() {
 }
 
 function resetFilters() {
-  officeId.value = ALL
+  officeId.value = null
   categoryId.value = ALL
   status.value = ALL
   basis.value = 'commercial'
@@ -305,14 +302,6 @@ function selectReport(k: ReportKey) {
   result.value = null
 }
 
-async function loadOffices() {
-  try {
-    const res = await officesApi.list({ limit: 100 })
-    offices.value = res.data
-  } catch {
-    offices.value = []
-  }
-}
 async function loadCategories() {
   try {
     const cats = await categoriesApi.tree()
@@ -379,7 +368,6 @@ const glItems = computed(() => [[
 ]])
 
 onMounted(() => {
-  loadOffices()
   loadCategories()
 })
 
@@ -436,12 +424,15 @@ defineExpose({ apply, doExport, doExportGl, doOpnameBa, resetFilters, selectRepo
       </div>
       <div class="flex flex-col gap-1">
         <span class="text-[11px] font-medium uppercase tracking-wide text-dimmed">{{ t('reports.filter.office') }}</span>
-        <USelect
-          v-model="officeId"
-          value-key="value"
-          :items="officeOptions"
-          data-testid="reports-office-filter"
-          class="min-w-[150px]"
+        <AsyncSearchPicker
+          :model-value="officeId"
+          :search-fn="office.searchFn"
+          :resolve-fn="office.resolveFn"
+          :placeholder="t('common.searchOffice')"
+          testid="reports-office-filter"
+          clearable
+          class="min-w-[190px]"
+          @update:model-value="officeId = $event"
         />
       </div>
       <div class="flex flex-col gap-1">

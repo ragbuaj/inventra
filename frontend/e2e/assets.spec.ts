@@ -1,6 +1,6 @@
 import { test, expect, request } from '@playwright/test'
 import type { APIRequestContext, APIResponse } from '@playwright/test'
-import { login, EMAIL, PASSWORD } from './helpers'
+import { login, EMAIL, PASSWORD, pickAsync } from './helpers'
 
 // ---------------------------------------------------------------------------
 // Assets cluster — real backend (Katalog/Detail/Form/Label wired to
@@ -297,11 +297,10 @@ test.describe('Assets — real backend (maker-checker e2e)', () => {
 
     await page.getByLabel('Nama Aset', { exact: true }).fill(formAssetName)
 
-    await page.getByTestId('asset-form-kategori-select').click()
-    await page.getByRole('option', { name: categoryName, exact: true }).click()
-
-    await page.getByTestId('asset-form-kantor-select').click()
-    await page.getByRole('option', { name: officeName, exact: true }).click()
+    // Category and office are now AsyncSearchPicker components (server-side search
+    // + click the matching result), replacing the old eager USelect dropdowns.
+    await pickAsync(page, 'category', categoryName, categoryName)
+    await pickAsync(page, 'office', officeName, officeName)
 
     await page.getByLabel('Tanggal Beli', { exact: true }).fill('2026-07-01')
     await page.getByLabel('Harga Beli', { exact: true }).fill(formPrice)

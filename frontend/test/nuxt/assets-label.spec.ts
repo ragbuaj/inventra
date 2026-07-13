@@ -55,6 +55,13 @@ const OFFICES = [
   { id: 'o2', name: 'Kantor Cabang' }
 ]
 
+// GET /offices/:id (resolve-cache) must be matched before the plain list route.
+function officesHandler(path: string): unknown {
+  const m = /^\/offices\/([^/?]+)$/.exec(path)
+  if (m) return OFFICES.find(o => o.id === m[1]) ?? null
+  return { data: OFFICES, total: OFFICES.length, limit: 100, offset: 0 }
+}
+
 const ASSET_A = { id: 'a1', asset_tag: 'JKT01-ELK-2026-00001', name: 'Laptop Dell Latitude 5440', category_id: 'c1', office_id: 'o1', status: 'available', asset_class: 'tangible' }
 const ASSET_B = { id: 'a2', asset_tag: 'JKT01-ELK-2026-00002', name: 'Proyektor Epson EB-X51', category_id: 'c1', office_id: 'o2', status: 'available', asset_class: 'tangible' }
 const ASSET_C = { id: 'a3', asset_tag: 'JKT01-FUR-2025-00011', name: 'Meja Kerja Ergonomis', category_id: 'c2', office_id: 'o1', status: 'available', asset_class: 'tangible' }
@@ -76,9 +83,7 @@ function defaultRequestHandler(assets: typeof PICKER_ASSETS = PICKER_ASSETS): Re
         : assets
       return { data: rows, total: rows.length, limit: 50, offset: 0 }
     }
-    if (path.startsWith('/offices')) {
-      return { data: OFFICES, total: OFFICES.length, limit: 100, offset: 0 }
-    }
+    if (path.startsWith('/offices')) return officesHandler(path)
     throw new Error(`Unhandled request: ${path}`)
   }
 }
@@ -190,6 +195,16 @@ describe('Asset Label/Barcode page — base rendering', () => {
     expect(text).toContain('1 label')
     expect(wrapper.html()).toContain('JKT01-ELK-2026-00001')
   })
+
+  it('resolves office_id to office name on the printed label via the resolve cache — not the raw id', async () => {
+    const wrapper = await mountAndWait('/assets/label?tags=JKT01-ELK-2026-00001')
+    // The resolve-cache's resolveFn(id) call is async (GET /offices/:id) — one
+    // more flush+tick beyond mountAndWait's own settles it.
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('Kantor Pusat')
+    expect(wrapper.text()).not.toContain('o1')
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -256,9 +271,7 @@ describe('Asset Label/Barcode page — debounced picker search', () => {
         if (!found) throw Object.assign(new Error('not found'), { statusCode: 404 })
         return found
       }
-      if (path.startsWith('/offices')) {
-        return { data: OFFICES, total: OFFICES.length, limit: 100, offset: 0 }
-      }
+      if (path.startsWith('/offices')) return officesHandler(path)
       throw new Error(`Unhandled request: ${path}`)
     })
 

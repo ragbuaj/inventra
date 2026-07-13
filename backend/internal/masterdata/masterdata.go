@@ -22,7 +22,7 @@ import (
 
 // RegisterRoutes mounts all master-data endpoints. Read is open to any
 // authenticated user; writes require the relevant manage permission.
-func RegisterRoutes(rg *gin.RouterGroup, q *sqlc.Queries, pool *pgxpool.Pool, permSvc *authz.PermissionService, scopeSvc *authz.ScopeService, aud *audit.Service, authMW gin.HandlerFunc) {
+func RegisterRoutes(rg *gin.RouterGroup, q *sqlc.Queries, pool *pgxpool.Pool, permSvc *authz.PermissionService, scopeSvc *authz.ScopeService, fieldSvc *authz.FieldService, aud *audit.Service, authMW gin.HandlerFunc) {
 	globalManage := middleware.RequirePermission(permSvc, "masterdata.global.manage")
 	officeManage := middleware.RequirePermission(permSvc, "masterdata.office.manage")
 
@@ -31,5 +31,5 @@ func RegisterRoutes(rg *gin.RouterGroup, q *sqlc.Queries, pool *pgxpool.Pool, pe
 	office.RegisterRoutes(rg, office.NewHandler(q, scopeSvc, aud), authMW, officeManage)
 	floor.RegisterRoutes(rg, floor.NewHandler(q, scopeSvc, aud), authMW, officeManage)
 	room.RegisterRoutes(rg, room.NewHandler(q, scopeSvc, aud), authMW, officeManage)
-	employee.RegisterRoutes(rg, employee.NewHandler(q, scopeSvc, aud), authMW, officeManage)
+	employee.RegisterRoutes(rg, employee.NewHandler(q, scopeSvc, aud, fieldSvc), authMW, officeManage)
 }

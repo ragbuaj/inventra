@@ -179,10 +179,23 @@ vi.mock('~/composables/api/useReference', () => ({
   })
 }))
 
+// useReferencePicker's resolveFn (the problem-category picker in Laporan
+// Kerusakan) hits GET /problem-categories/:id directly via useApiClient.
+const { requestMock } = vi.hoisted(() => ({ requestMock: vi.fn() }))
+vi.mock('~/composables/useApiClient', () => ({
+  useApiClient: () => ({ request: requestMock, requestBlob: vi.fn() })
+}))
+
 // eslint-disable-next-line import/first
 import MaintenancePage from '~/pages/maintenance.vue'
 
 enableAutoUnmount(afterEach)
+// Belt-and-suspenders: a fake-timers test that fails before reaching its own
+// vi.useRealTimers() would otherwise leave every later test's setTimeout-based
+// waits hanging forever.
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 function grant(permissions: string[]) {
   useAuthStore().setSession(
@@ -218,6 +231,12 @@ function clickTab(wrapper: Wrapper, label: string) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  requestMock.mockImplementation((path: string) => {
+    const m = path.match(/^\/problem-categories\/([^/?]+)$/)
+    if (!m) return Promise.reject(new Error(`Unhandled request: ${path}`))
+    const row = PROBLEM_CATEGORIES.find(r => r.id === m[1])
+    return row ? Promise.resolve(row) : Promise.reject(new Error('not found'))
+  })
   schedulesMock.mockResolvedValue(page([schedule()]))
   recordsMock.mockResolvedValue(page([record()]))
   attentionMock.mockResolvedValue({ data: [] })
@@ -503,6 +522,32 @@ describe('Maintenance page — Laporan Kerusakan tab', () => {
       photo: file
     })
     expect(w.find('[data-testid="report-success"]').exists()).toBe(true)
+  })
+
+  it('renders the problem-category field as an AsyncSearchPicker (no more eager-options USelectMenu)', async () => {
+    const w = await mountAndWait()
+    await clickTab(w, 'Laporan Kerusakan')
+    expect(w.find('[data-testid="report-problem-picker"]').exists()).toBe(false)
+    expect(w.find('[data-testid="report-problem-picker-input"]').exists()).toBe(true)
+  })
+
+  it('typing in the problem-category picker drives GET /problem-categories with search+limit=20', async () => {
+    const w = await mountAndWait()
+    await clickTab(w, 'Laporan Kerusakan')
+    vi.useFakeTimers()
+    await w.find('[data-testid="report-problem-picker-input"]').setValue('Layar')
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+    expect(referenceListMock).toHaveBeenCalledWith('problem-categories', { search: 'Layar', limit: 20 })
+  })
+
+  it('resolves a preselected problem category id to its label via GET /problem-categories/:id', async () => {
+    const w = await mountAndWait()
+    await clickTab(w, 'Laporan Kerusakan')
+    await setVmRef(w, 'reportProblemId', 'pc1')
+    const input = w.find('[data-testid="report-problem-picker-input"]').element as HTMLInputElement
+    expect(input.value).toBe('Layar / Tampilan')
   })
 
   it('renders "Riwayat Laporan Saya" cards and an empty state', async () => {

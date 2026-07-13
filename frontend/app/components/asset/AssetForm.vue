@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Asset, AssetCreateInput, AssetUpdateInput, Category, Floor, Room } from '~/types'
+import type { Asset, AssetCreateInput, AssetUpdateInput, Category, Floor, PickerItem, Room } from '~/types'
 import { classMeta } from '~/constants/assetMeta'
 
 const props = defineProps<{
@@ -13,7 +13,12 @@ const localePath = useLocalePath()
 const { open: confirm } = useConfirm()
 
 const categoriesApi = useCategories()
-const officesApi = useOffices()
+const office = useOfficePicker()
+const category = useCategoryPicker()
+const brand = useReferencePicker('brands')
+const model = useReferencePicker('models')
+const unit = useReferencePicker('units')
+const vendor = useReferencePicker('vendors')
 const floorsApi = useFloors()
 const referenceApi = useReference()
 const assetsApi = useAssets()
@@ -21,18 +26,13 @@ const assetRequestsApi = useAssetRequests()
 const attachmentsApi = useAssetAttachments()
 
 // ---------------------------------------------------------------------------
-// Lookup option lists (categories/offices/brands/models/units/vendors) — all
-// server-backed, no more hardcoded arrays. `ready` gates the cascade watchers
-// below so populating fields from `initial` (edit mode) doesn't itself trigger
-// a reset of the very values it just set.
+// Lookup option lists (floors/rooms) — server-backed, no more hardcoded
+// arrays. `ready` gates the cascade watchers below so populating fields from
+// `initial` (edit mode) doesn't itself trigger a reset of the very values it
+// just set. Category/brand/model/unit/vendor are async search pickers (see
+// usePickerSource.ts) — no more eager `{ limit: 100 }` lists for them.
 // ---------------------------------------------------------------------------
 
-const categories = ref<Category[]>([])
-const offices = ref<{ id: string, name: string }[]>([])
-const brands = ref<{ id: string, name: string }[]>([])
-const models = ref<{ id: string, name: string, brand_id?: string }[]>([])
-const units = ref<{ id: string, name: string }[]>([])
-const vendors = ref<{ id: string, name: string }[]>([])
 const floors = ref<Floor[]>([])
 const rooms = ref<Room[]>([])
 const ready = ref(false)
@@ -56,21 +56,49 @@ if (props.mode === 'edit' && props.initial) {
   })
 }
 
-const categoryOptions = computed(() => categories.value.map(c => ({ value: c.id, label: c.name })))
-const officeOptions = computed(() => offices.value.map(o => ({ value: o.id, label: o.name })))
-const brandOptions = computed(() => brands.value.map(b => ({ value: b.id, label: b.name })))
-const modelOptions = computed(() => models.value.filter(m => m.brand_id === form.brandId).map(m => ({ value: m.id, label: m.name })))
-const unitOptions = computed(() => units.value.map(u => ({ value: u.id, label: u.name })))
-const vendorOptions = computed(() => vendors.value.map(v => ({ value: v.id, label: v.name })))
+// Model is a dependent picker: its options are filtered to the chosen brand.
+// The backend's reference list has no parent-filter param, so this wraps the
+// raw (unmapped) /models list and filters by brand_id client-side after the
+// search — note this means a brand with >20 total models across all brands
+// matching the search term could show fewer than 20 results for that brand
+// (the filter runs after the server-side limit, not before).
+async function modelSearchFn(term: string): Promise<PickerItem[]> {
+  if (!form.brandId) return []
+  const res = await referenceApi.list('models', { search: term, limit: 20 })
+  return res.data
+    .filter(row => row.brand_id === form.brandId)
+    .map(row => ({ id: row.id, label: row.name, sublabel: row.code }))
+}
+
+// Full category record (for the read-only depreciation panel below) —
+// resolved alongside the picker's own label resolve so only one GET fires.
+const selectedCategory = ref<Category | null>(null)
+async function resolveCategoryDetail(id: string): Promise<PickerItem | null> {
+  try {
+    const c = await categoriesApi.get(id)
+    if (form.categoryId === id) selectedCategory.value = c
+    return { id: c.id, label: c.name, sublabel: c.code ?? undefined }
+  } catch {
+    if (form.categoryId === id) selectedCategory.value = null
+    return null
+  }
+}
+watch(() => form.categoryId, (id) => {
+  if (!id) selectedCategory.value = null
+})
+
 const floorOptions = computed(() => floors.value.map(f => ({ value: f.id, label: f.name })))
 const roomOptions = computed(() => rooms.value.map(r => ({ value: r.id, label: r.name })))
 
-const selectedCategory = computed(() => categories.value.find(c => c.id === form.categoryId))
-const officeName = computed(() => {
-  const id = props.initial?.office_id
-  if (!id) return '—'
-  return offices.value.find(o => o.id === id)?.name ?? id
-})
+// Edit mode shows kantor as read-only text — resolved on demand via the
+// office picker adapter's resolveFn (no more eager `{ limit: 100 }` list).
+const officeName = ref('—')
+watch(() => props.initial?.office_id, async (id) => {
+  officeName.value = '—'
+  if (!id) return
+  const item = await office.resolveFn(id)
+  if (props.initial?.office_id === id) officeName.value = item?.label ?? id
+}, { immediate: true })
 
 // purchase_cost may be absent (field-permission masked) or explicitly null —
 // both render as "—" here (no lock affordance in the read-only form field).
@@ -292,21 +320,6 @@ function cancel() {
 }
 
 onMounted(async () => {
-  const [cats, offs, br, md, un, vd] = await Promise.all([
-    categoriesApi.tree().catch(() => []),
-    officesApi.list({ limit: 100 }).catch(() => ({ data: [] })),
-    referenceApi.list('brands', { limit: 100 }).catch(() => ({ data: [] })),
-    referenceApi.list('models', { limit: 100 }).catch(() => ({ data: [] })),
-    referenceApi.list('units', { limit: 100 }).catch(() => ({ data: [] })),
-    referenceApi.list('vendors', { limit: 100 }).catch(() => ({ data: [] }))
-  ])
-  categories.value = cats
-  offices.value = offs.data as { id: string, name: string }[]
-  brands.value = br.data as { id: string, name: string }[]
-  models.value = md.data as { id: string, name: string, brand_id?: string }[]
-  units.value = un.data as { id: string, name: string }[]
-  vendors.value = vd.data as { id: string, name: string }[]
-
   if (props.mode === 'edit' && props.initial) {
     await loadFloorsForOffice(props.initial.office_id)
     if (props.initial.room_id) await resolveInitialRoom(props.initial.office_id, props.initial.room_id)
@@ -380,13 +393,13 @@ onMounted(async () => {
               required
               :error="errors.kategori"
             >
-              <USelect
-                :model-value="form.categoryId"
-                :items="categoryOptions"
-                :placeholder="t('assets.form.placeholders.select')"
-                class="w-full"
-                data-testid="asset-form-kategori-select"
-                @update:model-value="setField('categoryId', String($event))"
+              <AsyncSearchPicker
+                :model-value="form.categoryId || null"
+                :search-fn="category.searchFn"
+                :resolve-fn="resolveCategoryDetail"
+                :placeholder="t('common.searchCategory')"
+                testid="category"
+                @update:model-value="setField('categoryId', $event ?? '')"
               />
             </UFormField>
             <UFormField :label="t('assets.form.fields.kode')">
@@ -401,24 +414,26 @@ onMounted(async () => {
               </template>
             </UFormField>
             <UFormField :label="t('assets.form.fields.brand')">
-              <USelect
-                :model-value="form.brandId"
-                :items="brandOptions"
-                :placeholder="t('assets.form.placeholders.select')"
-                class="w-full"
-                data-testid="asset-form-brand-select"
-                @update:model-value="setField('brandId', String($event))"
+              <AsyncSearchPicker
+                :model-value="form.brandId || null"
+                :search-fn="brand.searchFn"
+                :resolve-fn="brand.resolveFn"
+                :placeholder="t('common.searchBrand')"
+                testid="brand"
+                clearable
+                @update:model-value="setField('brandId', $event ?? '')"
               />
             </UFormField>
             <UFormField :label="t('assets.form.fields.model')">
-              <USelect
-                :model-value="form.modelId"
-                :items="modelOptions"
+              <AsyncSearchPicker
+                :model-value="form.modelId || null"
+                :search-fn="modelSearchFn"
+                :resolve-fn="model.resolveFn"
                 :disabled="!form.brandId"
-                :placeholder="t('assets.form.placeholders.select')"
-                class="w-full"
-                data-testid="asset-form-model-select"
-                @update:model-value="setField('modelId', String($event))"
+                :placeholder="t('common.searchModel')"
+                testid="model"
+                clearable
+                @update:model-value="setField('modelId', $event ?? '')"
               />
             </UFormField>
             <UFormField :label="t('assets.form.fields.serial')">
@@ -429,13 +444,14 @@ onMounted(async () => {
               />
             </UFormField>
             <UFormField :label="t('assets.form.fields.unit')">
-              <USelect
-                :model-value="form.unitId"
-                :items="unitOptions"
-                :placeholder="t('assets.form.placeholders.select')"
-                class="w-full"
-                data-testid="asset-form-unit-select"
-                @update:model-value="setField('unitId', String($event))"
+              <AsyncSearchPicker
+                :model-value="form.unitId || null"
+                :search-fn="unit.searchFn"
+                :resolve-fn="unit.resolveFn"
+                :placeholder="t('common.searchUnit')"
+                testid="unit"
+                clearable
+                @update:model-value="setField('unitId', $event ?? '')"
               />
             </UFormField>
             <template v-if="mode === 'edit'">
@@ -470,14 +486,14 @@ onMounted(async () => {
               :required="mode === 'new'"
               :error="errors.kantor"
             >
-              <USelect
+              <AsyncSearchPicker
                 v-if="mode === 'new'"
-                :model-value="form.officeId"
-                :items="officeOptions"
-                :placeholder="t('assets.form.placeholders.select')"
-                class="w-full"
-                data-testid="asset-form-kantor-select"
-                @update:model-value="setField('officeId', String($event))"
+                :model-value="form.officeId || null"
+                :search-fn="office.searchFn"
+                :resolve-fn="office.resolveFn"
+                :placeholder="t('common.searchOffice')"
+                testid="office"
+                @update:model-value="setField('officeId', $event ?? '')"
               />
               <UInput
                 v-else
@@ -563,13 +579,14 @@ onMounted(async () => {
               </template>
             </UFormField>
             <UFormField :label="t('assets.form.fields.vendor')">
-              <USelect
-                :model-value="form.vendorId"
-                :items="vendorOptions"
-                :placeholder="t('assets.form.placeholders.select')"
-                class="w-full"
-                data-testid="asset-form-vendor-select"
-                @update:model-value="setField('vendorId', String($event))"
+              <AsyncSearchPicker
+                :model-value="form.vendorId || null"
+                :search-fn="vendor.searchFn"
+                :resolve-fn="vendor.resolveFn"
+                :placeholder="t('common.searchVendor')"
+                testid="vendor"
+                clearable
+                @update:model-value="setField('vendorId', $event ?? '')"
               />
             </UFormField>
             <UFormField :label="t('assets.form.fields.poNumber')">

@@ -22,7 +22,7 @@ const can = useCan()
 const assetsApi = useAssets()
 const attachmentsApi = useAssetAttachments()
 const categoriesApi = useCategories()
-const officesApi = useOffices()
+const office = useOfficePicker()
 const floorsApi = useFloors()
 const referenceApi = useReference()
 const deprApi = useDepreciation()
@@ -36,9 +36,11 @@ const notFound = ref(false)
 const tab = ref<'info' | 'assign' | 'maint' | 'depr'>('info')
 
 // FK id → name maps, populated by loadLookups() once the asset itself is
-// known. Missing/unresolved ids render as "—" (see `name()` below).
+// known. Missing/unresolved ids render as "—" (see `name()` below). Office
+// resolves on-demand via useResolveCache — only ever one id on this page, so
+// no more eager `{ limit: 100 }` list.
 const categoryMap = ref(new Map<string, string>())
-const officeMap = ref(new Map<string, string>())
+const officeCache = useResolveCache(office.resolveFn)
 const brandMap = ref(new Map<string, string>())
 const modelMap = ref(new Map<string, string>())
 const vendorMap = ref(new Map<string, string>())
@@ -194,7 +196,7 @@ const ringkas = computed(() => {
   return [
     { label: t('assets.detail.fields.kategori'), value: name(a.category_id, categoryMap.value) },
     { label: t('assets.detail.fields.brandModel'), value: brandModelLabel() },
-    { label: t('assets.detail.fields.kantor'), value: name(a.office_id, officeMap.value) },
+    { label: t('assets.detail.fields.kantor'), value: officeCache.get(a.office_id) },
     { label: t('assets.detail.fields.lokasi'), value: roomLabel.value },
     { label: t('assets.detail.fields.vendor'), value: name(a.vendor_id, vendorMap.value) }
   ]
@@ -217,7 +219,7 @@ const infoSections = computed<{ title: string, rows: InfoField[] }[]>(() => {
       { label: t('assets.detail.fields.assetClass'), value: t(classMeta[a.asset_class].labelKey) }
     ] },
     { title: t('assets.detail.sections.placement'), rows: [
-      { label: t('assets.detail.fields.kantor'), value: name(a.office_id, officeMap.value) },
+      { label: t('assets.detail.fields.kantor'), value: officeCache.get(a.office_id) },
       { label: t('assets.detail.fields.lokasi'), value: roomLabel.value },
       { label: t('assets.detail.fields.holder'), value: '—' }
     ] },
@@ -275,7 +277,7 @@ const borrowAsset = computed(() => {
     name: a.name,
     asset_tag: a.asset_tag,
     category: name(a.category_id, categoryMap.value),
-    office: name(a.office_id, officeMap.value),
+    office: officeCache.get(a.office_id),
     location: roomLabel.value
   }
 })
@@ -318,7 +320,6 @@ async function resolveRoom(a: Asset, mine: number) {
 async function loadLookups(a: Asset, mine: number) {
   await Promise.all([
     categoriesApi.tree().then((cats) => { if (mine === seq) categoryMap.value = new Map(cats.map(c => [c.id, c.name])) }).catch(() => {}),
-    officesApi.list({ limit: 100 }).then((res) => { if (mine === seq) officeMap.value = new Map(res.data.map(o => [o.id, o.name])) }).catch(() => {}),
     referenceApi.list('brands', { limit: 100 }).then((res) => { if (mine === seq) brandMap.value = new Map(res.data.map(b => [b.id, b.name])) }).catch(() => {}),
     referenceApi.list('models', { limit: 100 }).then((res) => { if (mine === seq) modelMap.value = new Map(res.data.map(m => [m.id, m.name])) }).catch(() => {}),
     referenceApi.list('vendors', { limit: 100 }).then((res) => { if (mine === seq) vendorMap.value = new Map(res.data.map(v => [v.id, v.name])) }).catch(() => {}),

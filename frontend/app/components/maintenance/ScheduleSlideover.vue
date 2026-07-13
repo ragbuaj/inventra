@@ -13,7 +13,7 @@ const ASSET_STATUSES: AssetStatus[] = ['available', 'assigned', 'under_maintenan
 const { t } = useI18n()
 const toast = useToast()
 const maintenanceApi = useMaintenance()
-const referenceApi = useReference()
+const category = useReferencePicker('maintenance-categories')
 
 const isEdit = computed(() => props.schedule !== null)
 
@@ -38,9 +38,6 @@ const form = reactive<FormState>(emptyForm())
 const submitting = ref(false)
 const errorMsg = ref('')
 
-const categories = ref<{ id: string, name: string }[]>([])
-const categoryItems = computed(() => categories.value.map(c => ({ value: c.id, label: c.name })))
-
 function hydrate() {
   errorMsg.value = ''
   const s = props.schedule
@@ -59,20 +56,8 @@ function hydrate() {
   })
 }
 
-async function loadCategories() {
-  try {
-    const res = await referenceApi.list('maintenance-categories', { limit: 100 })
-    categories.value = res.data
-  } catch {
-    categories.value = []
-  }
-}
-
 watch(open, (isOpen) => {
-  if (isOpen) {
-    hydrate()
-    loadCategories()
-  }
+  if (isOpen) hydrate()
 }, { immediate: true })
 
 function onSelectAsset(asset: Asset) {
@@ -180,13 +165,14 @@ defineExpose({ form, canSave, onSubmit })
       </UFormField>
 
       <UFormField :label="t('maintenance.schedule.category')">
-        <USelectMenu
-          v-model="form.categoryId"
-          data-testid="schedule-slideover-category"
-          value-key="value"
-          :items="categoryItems"
-          :placeholder="t('maintenance.schedule.selectPlaceholder')"
-          class="w-full"
+        <AsyncSearchPicker
+          :model-value="form.categoryId || null"
+          :search-fn="category.searchFn"
+          :resolve-fn="category.resolveFn"
+          :placeholder="t('common.searchMaintenanceCategory')"
+          testid="schedule-slideover-category"
+          clearable
+          @update:model-value="form.categoryId = $event ?? ''"
         />
       </UFormField>
 

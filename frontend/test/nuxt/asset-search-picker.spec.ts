@@ -209,7 +209,7 @@ describe('AssetSearchPicker — results', () => {
     await wrapper.vm.$nextTick()
     vi.useRealTimers()
 
-    expect(wrapper.text()).toContain('Tidak ada aset tersedia')
+    expect(wrapper.text()).toContain('Tidak ada data')
     expect(items(wrapper)).toHaveLength(0)
   })
 

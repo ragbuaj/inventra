@@ -80,17 +80,18 @@ test.describe('Master Data Pegawai — create form render', () => {
     ).toBeVisible()
 
     // Office picker (required — will be empty in CI; we only assert it renders).
+    // Now an AsyncSearchPicker: its input carries the `<testid>-picker-input` id.
     await expect(
-      dialog.getByTestId('employee-office-select')
+      dialog.getByTestId('office-picker-input')
     ).toBeVisible()
 
-    // Department and position pickers.
+    // Department and position pickers (also AsyncSearchPicker).
     await expect(
-      dialog.getByTestId('employee-dept-select')
+      dialog.getByTestId('employee-department-picker-input')
     ).toBeVisible()
 
     await expect(
-      dialog.getByTestId('employee-position-select')
+      dialog.getByTestId('employee-position-picker-input')
     ).toBeVisible()
 
     // Scope note hint text rendered below the office picker.

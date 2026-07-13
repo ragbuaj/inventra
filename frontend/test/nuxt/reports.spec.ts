@@ -14,11 +14,12 @@ enableAutoUnmount(afterEach)
 // ---------------------------------------------------------------------------
 // Composable mocks
 // ---------------------------------------------------------------------------
-const { runMock, exportMock, opnameBaMock, officesListMock, categoriesTreeMock } = vi.hoisted(() => ({
+const { runMock, exportMock, opnameBaMock, officesListMock, officesGetMock, categoriesTreeMock } = vi.hoisted(() => ({
   runMock: vi.fn(),
   exportMock: vi.fn(),
   opnameBaMock: vi.fn(),
   officesListMock: vi.fn(),
+  officesGetMock: vi.fn(),
   categoriesTreeMock: vi.fn()
 }))
 
@@ -26,7 +27,7 @@ vi.mock('~/composables/api/useReports', () => ({
   useReports: () => ({ run: runMock, exportReport: exportMock, opnameBa: opnameBaMock })
 }))
 vi.mock('~/composables/api/useOffices', () => ({
-  useOffices: () => ({ list: officesListMock, get: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() })
+  useOffices: () => ({ list: officesListMock, get: officesGetMock, create: vi.fn(), update: vi.fn(), remove: vi.fn() })
 }))
 vi.mock('~/composables/api/useCategories', () => ({
   useCategories: () => ({ tree: categoriesTreeMock, list: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() })
@@ -118,11 +119,18 @@ function grant(perms: string[]) {
   )
 }
 
+const OFFICES = [office('o1', 'Kantor A'), office('o2', 'Kantor B')]
+
 beforeEach(() => {
   runMock.mockReset().mockResolvedValue(assetsResult)
   exportMock.mockReset().mockResolvedValue(new Blob(['x']))
   opnameBaMock.mockReset().mockResolvedValue(new Blob(['x']))
-  officesListMock.mockReset().mockResolvedValue({ data: [office('o1', 'Kantor A'), office('o2', 'Kantor B')], total: 2, limit: 100, offset: 0 })
+  officesListMock.mockReset().mockResolvedValue({ data: OFFICES, total: OFFICES.length, limit: 100, offset: 0 })
+  officesGetMock.mockReset().mockImplementation(async (id: string) => {
+    const found = OFFICES.find(o => o.id === id)
+    if (!found) throw Object.assign(new Error('not found'), { statusCode: 404 })
+    return found
+  })
   categoriesTreeMock.mockReset().mockResolvedValue([category('c1', 'Elektronik'), category('c2', 'Kendaraan')])
   ;(URL as unknown as { createObjectURL: unknown }).createObjectURL = vi.fn(() => 'blob:mock')
   ;(URL as unknown as { revokeObjectURL: unknown }).revokeObjectURL = vi.fn()
@@ -153,6 +161,11 @@ async function mountPage() {
 
 async function applyAndSettle(wrapper: Awaited<ReturnType<typeof mountPage>>) {
   await (wrapper.vm as unknown as Vm).apply()
+  await flushPromises()
+  await wrapper.vm.$nextTick()
+  // A second flush+tick lets the office resolve-cache's on-demand
+  // resolveFn(id) promise (kicked off while rendering officeLabel for the
+  // first time) settle and re-render with the resolved name.
   await flushPromises()
   await wrapper.vm.$nextTick()
 }
@@ -216,6 +229,42 @@ describe('Reports page — placeholder', () => {
     const wrapper = await mountPage()
     expect(wrapper.text()).toContain('Pilih kriteria laporan')
     expect(runMock).not.toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 3b — office filter is an async search picker (Task 6)
+// ---------------------------------------------------------------------------
+describe('Reports page — office filter picker', () => {
+  it('renders the office filter as an async search picker, not a USelect', async () => {
+    const wrapper = await mountPage()
+    expect(wrapper.find('[data-testid="reports-office-filter-picker-input"]').exists()).toBe(true)
+  })
+
+  it('typing in the office filter picker drives GET /offices-style search via useOffices().list', async () => {
+    const wrapper = await mountPage()
+    vi.useFakeTimers()
+    await wrapper.find('[data-testid="reports-office-filter-picker-input"]').setValue('Kantor B')
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+    expect(officesListMock).toHaveBeenCalledWith(expect.objectContaining({ search: 'Kantor B', limit: 20 }))
+  })
+
+  it('clearing the office filter picker resets officeId to null and omits officeId on apply', async () => {
+    const wrapper = await mountPage()
+    const vm = wrapper.vm as unknown as Vm
+    vm.officeId = 'o1'
+    await wrapper.vm.$nextTick()
+
+    const clearBtn = wrapper.find('[data-testid="reports-office-filter-picker-clear"]')
+    expect(clearBtn.exists()).toBe(true)
+    await clearBtn.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(vm.officeId).toBeNull()
+    await applyAndSettle(wrapper)
+    expect(runMock.mock.calls[0]![1]).toMatchObject({ officeId: undefined })
   })
 })
 

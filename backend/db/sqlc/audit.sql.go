@@ -113,9 +113,13 @@ const listAuditLogs = `-- name: ListAuditLogs :many
 SELECT
   a.id, a.actor_id, a.entity_type, a.entity_id, a.action, a.changes, a.ip, a.created_at, a.office_id,
   u.name  AS actor_name,
-  u.email AS actor_email
+  u.email AS actor_email,
+  ro.name AS actor_role,
+  o.name  AS office_name
 FROM audit.audit_logs a
 LEFT JOIN identity.users u ON u.id = a.actor_id
+LEFT JOIN identity.roles ro ON ro.id = u.role_id
+LEFT JOIN masterdata.offices o ON o.id = a.office_id
 WHERE ($1::bool OR a.office_id = ANY($2::uuid[]))
   AND ($3::uuid IS NULL OR a.actor_id = $3)
   AND ($4::text IS NULL OR a.entity_type = $4)
@@ -156,6 +160,8 @@ type ListAuditLogsRow struct {
 	OfficeID   *uuid.UUID         `json:"office_id"`
 	ActorName  *string            `json:"actor_name"`
 	ActorEmail *string            `json:"actor_email"`
+	ActorRole  *string            `json:"actor_role"`
+	OfficeName *string            `json:"office_name"`
 }
 
 func (q *Queries) ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]ListAuditLogsRow, error) {
@@ -190,6 +196,8 @@ func (q *Queries) ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([
 			&i.OfficeID,
 			&i.ActorName,
 			&i.ActorEmail,
+			&i.ActorRole,
+			&i.OfficeName,
 		); err != nil {
 			return nil, err
 		}

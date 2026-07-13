@@ -316,6 +316,15 @@ func (h *Handler) assetSchedule(c *gin.Context) {
 // unlike assetSchedule's read-only scope check, this guards a mutation, so
 // the pre-fetch must happen ahead of, not after, the write.
 //
+// The response is masked the same way assetSchedule masks book_value: a
+// caller whose role is denied view on "assets".book_value gets book_value
+// AND accumulated_depreciation omitted together (impairmentResultToMap has
+// no independent accumulated_depreciation exposure to gate separately, and
+// this mirrors the real field_permissions seed — migration 000016 never
+// grants accumulated_depreciation view without also granting book_value
+// view). impairment_loss has no "assets" field policy at all and always
+// stays visible.
+//
 // Known-accepted (reviewer Minor notes):
 //   - TOCTOU on the scope pre-check: GetAssetSummary's office read and
 //     RecordImpairment's own row-locked read are separate, so a concurrent
@@ -325,12 +334,6 @@ func (h *Handler) assetSchedule(c *gin.Context) {
 //     check can never be the thing a race defeats. Revisit (move the check
 //     inside the service's tx, against the locked row) if manage is ever
 //     delegated to office-scoped roles.
-//   - Response-masking inconsistency: this response returns book_value/
-//     accumulated_depreciation unmasked, while assetSchedule masks
-//     book_value for roles denied view on assets.book_value. Acceptable
-//     while only manage-holders (Superadmin, who carries no deny policies)
-//     can reach this endpoint; align with the fieldSvc masking if manage is
-//     ever delegated.
 func (h *Handler) recordImpairment(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -387,5 +390,25 @@ func (h *Handler) recordImpairment(c *gin.Context) {
 	}
 	audit.Record(c, h.aud, audit.ActionUpdate, assetEntity, id, &after.OfficeID, audit.Diff(beforeMoney, afterMoney))
 
-	c.JSON(http.StatusOK, impairmentResultToMap(after))
+	roleID, err := uuid.Parse(c.GetString(middleware.CtxRoleID))
+	if err != nil {
+		common.WriteError(c, common.ErrForbidden)
+		return
+	}
+	policies, err := h.fieldSvc.ForEntity(c.Request.Context(), roleID, assetEntity)
+	if err != nil {
+		common.WriteError(c, err)
+		return
+	}
+
+	result := impairmentResultToMap(after)
+	authz.FilterView(policies, result)
+	if pol, ok := policies["book_value"]; ok && !pol.CanView {
+		// Couple accumulated_depreciation to book_value's visibility: this
+		// endpoint has no independent accumulated_depreciation exposure to
+		// gate on its own policy, so treat it the same way
+		// maskedAssetScheduleMap collapses the whole schedule response.
+		delete(result, "accumulated_depreciation")
+	}
+	c.JSON(http.StatusOK, result)
 }

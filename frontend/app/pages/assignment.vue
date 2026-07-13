@@ -2,7 +2,6 @@
 import type { Assignment } from '~/composables/api/useAssignment'
 import type { AssetCondition } from '~/constants/assignmentMeta'
 import { useAssignment } from '~/composables/api/useAssignment'
-import { useEmployees } from '~/composables/api/useEmployees'
 import { ASSIGNMENT_STATUS_TONE, CONDITION_KEYS, formatDateID } from '~/constants/assignmentMeta'
 
 definePageMeta({ middleware: 'can', permission: 'assignment.manage' })
@@ -16,12 +15,11 @@ const CONDITION_TEXT: Record<AssetCondition, string> = {
 
 const { t } = useI18n()
 const api = useAssignment()
-const employeesApi = useEmployees()
+const employee = useEmployeePicker()
 
 const tab = ref<'checkout' | 'checkin' | 'history'>('checkout')
 const assignments = ref<Assignment[]>([])
 const availableAssets = ref<{ label: string, value: string }[]>([])
-const employees = ref<{ label: string, value: string }[]>([])
 const loading = ref(true)
 const loadError = ref(false)
 
@@ -87,11 +85,6 @@ const histRows = computed(() => {
   })
 })
 
-async function loadEmployees() {
-  const page = await employeesApi.list({ limit: 100 })
-  employees.value = page.data.map(e => ({ value: e.id, label: e.name }))
-}
-
 async function loadAssignments() {
   const page = await api.list()
   assignments.value = page.data
@@ -103,7 +96,7 @@ async function refresh() {
   loading.value = true
   loadError.value = false
   try {
-    await Promise.all([loadEmployees(), loadAssignments()])
+    await loadAssignments()
   } catch {
     loadError.value = true
   } finally {
@@ -125,8 +118,8 @@ async function doCheckout() {
     return
   }
   const asset = availableAssets.value.find(a => a.value === coAssetId.value)
-  const employee = employees.value.find(e => e.value === coEmployeeId.value)
-  if (!asset || !employee) return
+  const employeeItem = await employee.resolveFn(coEmployeeId.value)
+  if (!asset || !employeeItem) return
   await api.checkout({
     asset_id: coAssetId.value,
     employee_id: coEmployeeId.value,
@@ -134,7 +127,7 @@ async function doCheckout() {
     condition_out: coKondisi.value,
     notes: coCatatan.value.trim() || null
   })
-  coMsg.value = { text: t('assignment.checkout.ok', { name: asset.label, holder: employee.label }), type: 'ok' }
+  coMsg.value = { text: t('assignment.checkout.ok', { name: asset.label, holder: employeeItem.label }), type: 'ok' }
   resetCheckout()
   await loadAssignments()
   if (coTimer) clearTimeout(coTimer)
@@ -268,12 +261,13 @@ onMounted(refresh)
               :label="t('assignment.checkout.recipient')"
               required
             >
-              <USelect
-                v-model="coEmployeeId"
-                value-key="value"
-                :items="employees"
+              <AsyncSearchPicker
+                :model-value="coEmployeeId || null"
+                :search-fn="employee.searchFn"
+                :resolve-fn="employee.resolveFn"
                 :placeholder="t('assignment.checkout.recipientPlaceholder')"
-                class="w-full"
+                testid="employee"
+                @update:model-value="coEmployeeId = $event ?? ''"
               />
             </UFormField>
             <UFormField

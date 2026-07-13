@@ -75,10 +75,11 @@ vi.mock('~/composables/api/useAssignment', () => ({
 }))
 
 const employeesListMock = vi.fn()
+const employeesGetMock = vi.fn()
 vi.mock('~/composables/api/useEmployees', () => ({
   useEmployees: () => ({
     list: employeesListMock,
-    get: vi.fn(),
+    get: employeesGetMock,
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn()
@@ -89,6 +90,9 @@ vi.mock('~/composables/api/useEmployees', () => ({
 import AssignmentPage from '~/pages/assignment.vue'
 
 enableAutoUnmount(afterEach)
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 function grantAdmin() {
   useAuthStore().setSession(
@@ -124,6 +128,10 @@ function clickTab(wrapper: Wrapper, label: string) {
 beforeEach(() => {
   vi.clearAllMocks()
   employeesListMock.mockResolvedValue(page(EMPLOYEES))
+  employeesGetMock.mockImplementation((id: string) => {
+    const e = EMPLOYEES.find(emp => emp.id === id)
+    return e ? Promise.resolve(e) : Promise.reject(new Error('not found'))
+  })
   assignmentListMock.mockResolvedValue(page(ASSIGNMENTS))
   assignmentAvailableMock.mockResolvedValue({ data: AVAILABLE_ASSETS })
   assignmentCheckoutMock.mockResolvedValue(assignment({ id: 'new1', status: 'active' }))
@@ -146,9 +154,11 @@ describe('Assignment page — mount', () => {
     expect(text).toContain('Aset (hanya yang tersedia)')
   })
 
-  it('loads employees and assignment list/available on mount', async () => {
+  it('loads assignment list/available on mount without an eager employees list', async () => {
     await mountAndWait()
-    expect(employeesListMock).toHaveBeenCalledWith({ limit: 100 })
+    // The recipient field is now an async search picker — no more eager
+    // `{ limit: 100 }` employees fetch on mount.
+    expect(employeesListMock).not.toHaveBeenCalled()
     expect(assignmentListMock).toHaveBeenCalled()
     expect(assignmentAvailableMock).toHaveBeenCalled()
   })
@@ -166,6 +176,30 @@ describe('Assignment page — mount', () => {
     expect(assignmentListMock).toHaveBeenCalledTimes(2)
     expect(w.text()).not.toContain('Gagal memuat data.')
     expect(w.text()).toContain('Check-out')
+  })
+})
+
+describe('Assignment page — Check-out tab: recipient is an AsyncSearchPicker', () => {
+  it('renders the recipient picker input (no more eager-options USelect)', async () => {
+    const w = await mountAndWait()
+    expect(w.find('[data-testid="employee-picker-input"]').exists()).toBe(true)
+  })
+
+  it('typing drives useEmployees().list with { search, limit: 20 }', async () => {
+    const w = await mountAndWait()
+    vi.useFakeTimers()
+    await w.find('[data-testid="employee-picker-input"]').setValue('Rina')
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+    expect(employeesListMock).toHaveBeenCalledWith({ search: 'Rina', limit: 20 })
+  })
+
+  it('resolves a preselected employee id to its label via useEmployees().get', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'coEmployeeId', 'e1')
+    const input = w.find('[data-testid="employee-picker-input"]').element as HTMLInputElement
+    expect(input.value).toBe('Andi Saputra')
   })
 })
 

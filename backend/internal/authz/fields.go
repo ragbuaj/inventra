@@ -72,3 +72,18 @@ func FilterView(policies map[string]FieldPolicy, data map[string]any) {
 		}
 	}
 }
+
+// FilterEntity strips fields the role may not view from a serialized record.
+// Fail-closed: a policy-lookup error is returned so callers can refuse to leak
+// unfiltered data (e.g. when Redis/Postgres is unavailable) rather than
+// silently serving it. This is the canonical entry point for field masking —
+// handlers should call this instead of composing ForEntity + FilterView
+// themselves, so the fail-closed behavior is consistent everywhere.
+func (s *FieldService) FilterEntity(ctx context.Context, roleID uuid.UUID, entity string, data map[string]any) error {
+	policies, err := s.ForEntity(ctx, roleID, entity)
+	if err != nil {
+		return err
+	}
+	FilterView(policies, data)
+	return nil
+}

@@ -294,3 +294,9 @@ export interface NotifPrefs {
   maint: boolean
   assign: boolean
 }
+
+export interface PickerItem {
+  id: string
+  label: string
+  sublabel?: string
+}

@@ -36,7 +36,6 @@
     "filter": {
       "allStatus": "All Status",
       "allCategory": "All Categories",
-      "allOffice": "All Offices",
       "allClass": "All Classes"
     },
     "status": {
@@ -744,7 +743,6 @@
     "schedule": {
       "searchPlaceholder": "Search asset…",
       "filterCategoryAll": "All Categories",
-      "filterOfficeAll": "All Offices",
       "noMatch": "No matching asset.",
       "column": {
         "asset": "Asset",
@@ -1325,14 +1323,15 @@
       "resetField": "Revert to default",
       "empty": "No matching field.",
       "footNote": "Fields without an explicit rule follow the default (view & edit allowed). Configure per role to hide or lock sensitive fields.",
-      "entity": { "assets": "Assets", "users": "User" },
+      "entity": { "assets": "Assets", "users": "User", "employees": "Employees" },
       "field": {
         "name": "Name", "category_id": "Category", "office_id": "Office", "serial_number": "Serial number",
         "purchase_date": "Purchase date", "purchase_cost": "Purchase cost", "book_value": "Book value",
         "accumulated_depreciation": "Accumulated depreciation", "salvage_value": "Salvage value",
         "impairment_loss": "Impairment loss", "depreciation_method": "Depreciation method",
         "po_number": "PO number", "funding_source": "Funding source", "warranty_expiry": "Warranty expiry",
-        "status": "Status", "notes": "Notes", "email": "Email", "role_id": "Role", "employee_id": "Employee"
+        "status": "Status", "notes": "Notes", "email": "Email", "role_id": "Role", "employee_id": "Employee",
+        "phone": "Phone", "department_id": "Department", "position_id": "Position"
       },
       "loadError": "Failed to load field permissions.",
       "retry": "Retry"
@@ -1358,7 +1357,8 @@
       "filter": {
         "allActors": "All Actors",
         "allActions": "All Actions",
-        "allEntities": "All Entities"
+        "allEntities": "All Entities",
+        "actor": "Filter by actor…"
       },
       "action": {
         "create": "Create",
@@ -1388,11 +1388,17 @@
       "retry": "Retry"
     }
   },
+  "audit": {
+    "summary": {
+      "create": "Created {entity} {id}",
+      "update": "Changed {count} field(s) on {entity} {id}",
+      "delete": "Deleted {entity} {id}"
+    }
+  },
   "dashboard": {
     "title": "Dashboard",
     "scopeNote": "Figures follow your data scope",
     "scopeAll": "Your entire scope",
-    "allOfficesInScope": "All offices in scope",
     "noRoom": "No room",
     "excludedNote": "{n} assets excluded from total value (valuation exclusion)",
     "reload": "Reload",
@@ -1548,8 +1554,21 @@
     "loadError": "Failed to load data.",
     "yes": "Yes",
     "no": "No",
-    "assetPickerEmpty": "No assets available",
-    "periodCustom": "Custom range…"
+    "pickerEmpty": "No data",
+    "periodCustom": "Custom range…",
+    "searchOffice": "Search office…",
+    "searchEmployee": "Search employee…",
+    "searchCategory": "Search category…",
+    "searchBrand": "Search brand…",
+    "searchModel": "Search model…",
+    "searchUnit": "Search unit…",
+    "searchVendor": "Search vendor…",
+    "searchMaintenanceCategory": "Search maintenance category…",
+    "searchProblemCategory": "Search problem category…",
+    "searchDepartment": "Search department…",
+    "searchPosition": "Search position…",
+    "searchProvince": "Search province…",
+    "clearSelection": "Clear selection"
   },
   "status": {
     "asset": {
@@ -1784,7 +1803,6 @@
       "nonaktif": "Inactive",
       "entitySubtitle": "Manage reference data",
       "requiredField": "{field} is required.",
-      "fkEmpty": "No options yet — create one in the related resource first.",
       "fields": { "name": "Name", "code": "Code", "symbol": "Symbol", "email": "Email", "phone": "Phone", "province": "Province", "brand": "Brand", "contact_name": "Contact name", "address": "Address", "tier": "Tier" },
       "resources": {
         "office-types": "Office Types", "departments": "Departments", "positions": "Positions",

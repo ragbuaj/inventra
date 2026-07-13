@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { BadgeColor, RowAction } from '~/types'
-import type { UserView, UserStatus, Lookups, EmployeeOption } from '~/composables/api/useUsers'
+import type { UserView, UserStatus, Lookups } from '~/composables/api/useUsers'
 import { useUsers } from '~/composables/api/useUsers'
 
 definePageMeta({ middleware: 'can', permission: 'user.manage' })
@@ -10,30 +10,34 @@ const toast = useToast()
 const can = useCan()
 const { open: confirm } = useConfirm()
 const api = useUsers()
+const office = useOfficePicker()
+const employee = useEmployeePicker()
 
 const PAGE_SIZE = 10
 
 const rows = ref<UserView[]>([])
 const total = ref(0)
-const lookups = ref<Lookups>({ roles: [], offices: [], employees: [] })
+const lookups = ref<Lookups>({ roles: [] })
 const limit = ref(PAGE_SIZE)
 const offset = ref(0)
 const search = ref('')
 const loading = ref(true)
 const loadFailed = ref(false)
 
-// id → name maps for table resolution.
+// id → name maps for table resolution. Role stays an eager map (small,
+// bounded reference list); office/employee resolve lazily on demand via the
+// picker adapters' resolveFn (no more eager `{ limit: 100 }` lists).
 const roleMap = computed(() => new Map(lookups.value.roles.map(r => [r.id, r.name])))
-const officeMap = computed(() => new Map(lookups.value.offices.map(o => [o.id, o.name])))
-const employeeMap = computed(() => new Map(lookups.value.employees.map(e => [e.id, e.name])))
+const officeCache = useResolveCache(office.resolveFn)
+const employeeCache = useResolveCache(employee.resolveFn)
 function roleName(id: string): string {
   return roleMap.value.get(id) ?? id
 }
 function officeName(id: string | null): string {
-  return id ? (officeMap.value.get(id) ?? id) : ''
+  return id ? officeCache.get(id) : ''
 }
 function employeeName(id: string | null): string {
-  return id ? (employeeMap.value.get(id) ?? id) : ''
+  return id ? employeeCache.get(id) : ''
 }
 
 const columns = [
@@ -46,7 +50,6 @@ const columns = [
 ]
 
 const roleFormOptions = computed(() => lookups.value.roles.map(r => ({ value: r.id, label: r.name })))
-const officeFormOptions = computed(() => lookups.value.offices.map(o => ({ value: o.id, label: o.name })))
 const statusFormOptions = [
   { value: 'active', label: t('settings.users.status.active') },
   { value: 'inactive', label: t('settings.users.status.inactive') },
@@ -74,18 +77,22 @@ const form = reactive({
 const errors = reactive<{ name?: string, email?: string, role_id?: string }>({})
 const EMAIL_RE = /^.+@.+\..+$/
 
-// Employee options for the form: only employees of the selected office.
-const employeeFormOptions = computed(() =>
-  lookups.value.employees
-    .filter((e: EmployeeOption) => e.office_id === form.office_id)
-    .map(e => ({ value: e.id, label: e.name }))
-)
-// When the office changes, drop a now-mismatched employee selection.
+// NOTE (Task 4 deviation): the employee field used to filter its options
+// client-side to the selected office (from an eagerly-fetched `{ limit: 100
+// }` employees array). The async picker searches all employees server-side —
+// there's no office-scoped employee search endpoint, so that narrowing is no
+// longer possible without a backend change. The field disables until an
+// office is chosen (see below), and any office change still drops a
+// previously-picked employee as a safety net (we can no longer verify
+// membership client-side). `flush: 'sync'` matters here: openCreate/openEdit
+// Object.assign office_id *then* employee_id in the same call — a sync watch
+// fires between those two writes (clearing whatever stale employee_id was
+// still there from before), then the assign's own employee_id write lands
+// right after and is never touched. A user picking a *new* office via the
+// AsyncSearchPicker only ever changes office_id, so the clear sticks.
 watch(() => form.office_id, () => {
-  if (form.employee_id && !employeeFormOptions.value.some(o => o.value === form.employee_id)) {
-    form.employee_id = ''
-  }
-})
+  if (form.employee_id) form.employee_id = ''
+}, { flush: 'sync' })
 
 function rowActions(row: Record<string, unknown>): RowAction[] {
   if (!can('user.manage')) return []
@@ -421,21 +428,25 @@ onMounted(() => load())
         </div>
 
         <UFormField :label="t('settings.users.fields.kantor')">
-          <USelect
-            v-model="form.office_id"
-            :items="officeFormOptions"
-            :placeholder="t('settings.users.placeholders.pilih')"
-            class="w-full"
+          <AsyncSearchPicker
+            :model-value="form.office_id || null"
+            :search-fn="office.searchFn"
+            :resolve-fn="office.resolveFn"
+            :placeholder="t('common.searchOffice')"
+            testid="office"
+            @update:model-value="form.office_id = $event ?? ''"
           />
         </UFormField>
 
         <UFormField :label="t('settings.users.fields.pegawai')">
-          <USelect
-            v-model="form.employee_id"
-            :items="employeeFormOptions"
+          <AsyncSearchPicker
+            :model-value="form.employee_id || null"
+            :search-fn="employee.searchFn"
+            :resolve-fn="employee.resolveFn"
             :disabled="!form.office_id"
-            :placeholder="t('settings.users.placeholders.pilih')"
-            class="w-full"
+            :placeholder="t('common.searchEmployee')"
+            testid="employee"
+            @update:model-value="form.employee_id = $event ?? ''"
           />
           <template #hint>
             <span class="text-xs text-dimmed mt-1">{{ t('settings.users.pegawaiNote') }}</span>

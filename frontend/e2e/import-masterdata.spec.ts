@@ -39,6 +39,14 @@ import {
 // search were wired through — rather than the capped UI list. The other four
 // targets' list page (app/pages/master/reference.vue) DOES pass `search` to
 // the API server-side, so those assertions go through the real UI list.
+//
+// Async-picker audit (Task 7 of the picker-e2e sweep): this file never
+// selects an office (or anything else) as an FK through a dropdown/picker —
+// it only uploads a CSV, validates/confirms via the import wizard, and
+// verifies the resulting rows through the API above. `master/offices.vue`
+// staying on its tree + `limit:100` list (Task 6, deferred) is therefore
+// irrelevant here — there is no picker for this test to drive with the new
+// `pickAsync` helper (see `helpers.ts`), so nothing below needed to change.
 // ---------------------------------------------------------------------------
 
 const API_BASE = `${process.env.E2E_API_BASE || 'http://localhost:8080/api/v1'}/`

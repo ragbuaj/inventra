@@ -54,7 +54,7 @@ async function openPalette(page: Page): Promise<void> {
   await expect(page.getByRole('button', { name: /cari aset, pegawai/i })).toBeVisible({ timeout: 10_000 })
   await expect(async () => {
     await page.keyboard.press('ControlOrMeta+k')
-    await expect(page.getByPlaceholder(/cari/i)).toBeVisible({ timeout: 2000 })
+    await expect(page.getByPlaceholder(/cari aset/i)).toBeVisible({ timeout: 2000 })
   }).toPass({ timeout: 15_000 })
 }
 
@@ -87,7 +87,7 @@ test.describe('Global search — real backend e2e', () => {
     await login(page)
     await openPalette(page)
 
-    await page.getByPlaceholder(/cari/i).fill(officeName)
+    await page.getByPlaceholder(/cari aset/i).fill(officeName)
 
     // Group header — search.group.kantor — renders above the office's result row.
     await expect(page.getByText('Kantor', { exact: true })).toBeVisible({ timeout: 10_000 })
@@ -103,7 +103,7 @@ test.describe('Global search — real backend e2e', () => {
     await login(page)
     await openPalette(page)
 
-    await page.getByPlaceholder(/cari/i).fill(`zzz-no-hit-${run}`)
+    await page.getByPlaceholder(/cari aset/i).fill(`zzz-no-hit-${run}`)
 
     await expect(page.getByText(/tidak ada hasil/i)).toBeVisible({ timeout: 10_000 })
   })

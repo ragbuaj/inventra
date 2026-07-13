@@ -32,17 +32,16 @@ export interface UpdateUserInput {
 }
 
 export interface Option { id: string, name: string }
-export interface EmployeeOption extends Option { office_id: string }
-export interface Lookups { roles: Option[], offices: Option[], employees: EmployeeOption[] }
+export interface Lookups { roles: Option[] }
 
 interface RoleDTO { id: string, name: string }
-interface OfficeDTO { id: string, name: string }
-interface EmployeeDTO { id: string, name: string, office_id: string }
 
 /**
  * User management, wired to /api/v1/users. List is server-side search+pagination
- * (the backend supports only search/limit/offset). Role/office/employee NAMES are
- * resolved client-side from lookups() (the list returns FK UUIDs only).
+ * (the backend supports only search/limit/offset). Role names are resolved
+ * client-side from lookups() (the list returns FK UUIDs only) — office/employee
+ * names resolve on demand via the office/employee picker adapters
+ * (usePickerSource.ts) instead of an eager `{ limit: 100 }` list.
  */
 export function useUsers() {
   const { request } = useApiClient()
@@ -76,16 +75,8 @@ export function useUsers() {
   }
 
   async function lookups(): Promise<Lookups> {
-    const [roles, offices, employees] = await Promise.all([
-      request<{ data: RoleDTO[] }>('/authz/roles'),
-      request<{ data: OfficeDTO[] }>('/offices?limit=100'),
-      request<{ data: EmployeeDTO[] }>('/employees?limit=100')
-    ])
-    return {
-      roles: roles.data.map(r => ({ id: r.id, name: r.name })),
-      offices: offices.data.map(o => ({ id: o.id, name: o.name })),
-      employees: employees.data.map(e => ({ id: e.id, name: e.name, office_id: e.office_id }))
-    }
+    const roles = await request<{ data: RoleDTO[] }>('/authz/roles')
+    return { roles: roles.data.map(r => ({ id: r.id, name: r.name })) }
   }
 
   return { list, create, update, remove, lookups }

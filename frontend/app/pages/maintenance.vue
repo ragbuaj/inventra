@@ -258,8 +258,12 @@ async function loadMyAssignedAssets() {
   }
 }
 
+// The problem-category form field is an async search picker (see
+// usePickerSource.ts); `problemCategories` is still eagerly loaded to resolve
+// problem_category_id -> label in the "Riwayat Laporan Saya" history cards
+// below (a list-display concern, unchanged here).
+const problemCategoryPicker = useReferencePicker('problem-categories')
 const problemCategories = ref<{ id: string, name: string }[]>([])
-const problemItems = computed(() => problemCategories.value.map(c => ({ value: c.id, label: c.name })))
 
 async function loadProblemCategories() {
   try {
@@ -880,13 +884,14 @@ onMounted(async () => {
             :label="t('maintenance.report.problem')"
             required
           >
-            <USelectMenu
-              v-model="reportProblemId"
-              data-testid="report-problem-picker"
-              value-key="value"
-              :items="problemItems"
-              :placeholder="t('maintenance.report.selectPlaceholder')"
-              class="w-full"
+            <AsyncSearchPicker
+              :model-value="reportProblemId || null"
+              :search-fn="problemCategoryPicker.searchFn"
+              :resolve-fn="problemCategoryPicker.resolveFn"
+              :placeholder="t('common.searchProblemCategory')"
+              testid="report-problem"
+              clearable
+              @update:model-value="reportProblemId = $event ?? ''"
             />
           </UFormField>
           <UFormField :label="t('maintenance.report.description')">

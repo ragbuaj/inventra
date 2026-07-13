@@ -11,15 +11,26 @@ const localePath = useLocalePath()
 const { open: confirm } = useConfirm()
 const api = useEmployees()
 const refApi = useReference()
-const { request } = useApiClient()
 
 const ALL = '__all__'
 
+// `allRows` holds one of two shapes depending on whether an "extra" filter
+// (office/dept/position/jabatan/status — none of which the backend list
+// endpoint accepts as query params, unlike `search`) is active:
+//  - no extra filter: the current *server* page (real pagination — limit 20 +
+//    offset, `serverTotal` from the response). No more eager `{ limit: 100 }`
+//    load, so browsing beyond 100 employees works.
+//  - an extra filter active: an up-to-100-row search-scoped batch, filtered
+//    and paginated client-side (same 100-row ceiling as before Task 6 — not a
+//    regression, just preserved until the backend grows office/dept/position/
+//    status query params).
 const allRows = ref<Employee[]>([])
+const serverTotal = ref(0)
 const limit = ref(20)
 const offset = ref(0)
 const search = ref('')
-const filterOffice = ref(ALL)
+const debouncedSearch = ref('')
+const filterOffice = ref<string | null>(null)
 const filterDept = ref(ALL)
 const filterPosition = ref(ALL)
 const filterStatus = ref(ALL)
@@ -27,25 +38,26 @@ const sorting = ref<TableSorting>([])
 const loading = ref(true)
 const loadFailed = ref(false)
 
-const filtering = ref(false)
-let filterTimer: ReturnType<typeof setTimeout> | undefined
-function pulseFilterLoading() {
-  filtering.value = true
-  if (filterTimer) clearTimeout(filterTimer)
-  filterTimer = setTimeout(() => {
-    filtering.value = false
-  }, 300)
-}
+let searchTimer: ReturnType<typeof setTimeout> | undefined
 
-// FK option lists + id→name maps (offices via inline scoped /offices; dept/position via wired useReference).
-const officeOptions = ref<{ value: string, label: string }[]>([])
+// Office: async search picker (no more eager `{ limit: 100 }` list) — the
+// table's office_id→name cell resolves lazily via the same adapter's
+// resolveFn, memoized per id (useResolveCache).
+const office = useOfficePicker()
+const officeCache = useResolveCache(office.resolveFn)
+
+// Department/position: the CREATE/EDIT FORM fields are async search pickers
+// (see usePickerSource.ts). deptOptions/positionOptions stay an eager
+// `{limit:100}` id→name list — the filter dropdowns and the table's
+// departemen/jabatan cells (out of scope here, Task 6) still read from them.
+const department = useReferencePicker('departments')
+const position = useReferencePicker('positions')
 const deptOptions = ref<{ value: string, label: string }[]>([])
 const positionOptions = ref<{ value: string, label: string }[]>([])
-const officeMap = computed(() => new Map(officeOptions.value.map(o => [o.value, o.label])))
 const deptMap = computed(() => new Map(deptOptions.value.map(o => [o.value, o.label])))
 const positionMap = computed(() => new Map(positionOptions.value.map(o => [o.value, o.label])))
 function officeName(id: string | null): string {
-  return id ? (officeMap.value.get(id) ?? id) : '—'
+  return officeCache.get(id)
 }
 function deptName(id: string | null): string {
   return id ? (deptMap.value.get(id) ?? id) : '—'
@@ -76,15 +88,20 @@ function initials(name: string): string {
   return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase()
 }
 
+const anyExtraFilter = computed(() =>
+  !!(filterOffice.value || filterDept.value !== ALL || filterPosition.value !== ALL || filterStatus.value !== ALL)
+)
 const anyFilterActive = computed(() =>
-  !!(search.value.trim() || filterOffice.value !== ALL || filterDept.value !== ALL || filterPosition.value !== ALL || filterStatus.value !== ALL)
+  !!(search.value.trim() || anyExtraFilter.value)
 )
 
+// Client-side narrowing — only applied in "extra filter" mode (see the
+// `allRows` comment above). In server-paginated mode `allRows` is already
+// exactly the rows to display.
 const filteredRows = computed(() => {
-  const q = search.value.trim().toLowerCase()
+  if (!anyExtraFilter.value) return allRows.value
   return allRows.value.filter((r) => {
-    if (q && !r.name.toLowerCase().includes(q) && !r.code.toLowerCase().includes(q) && !(r.email ?? '').toLowerCase().includes(q)) return false
-    if (filterOffice.value !== ALL && r.office_id !== filterOffice.value) return false
+    if (filterOffice.value && r.office_id !== filterOffice.value) return false
     if (filterDept.value !== ALL && r.department_id !== filterDept.value) return false
     if (filterPosition.value !== ALL && r.position_id !== filterPosition.value) return false
     if (filterStatus.value !== ALL && r.status !== filterStatus.value) return false
@@ -93,36 +110,48 @@ const filteredRows = computed(() => {
 })
 
 const sortedRows = computed(() => sortRows(filteredRows.value, sorting.value))
-const paginatedRows = computed(() => sortedRows.value.slice(offset.value, offset.value + limit.value))
+// Server-paginated mode already sliced to the current page server-side.
+const paginatedRows = computed(() => anyExtraFilter.value ? sortedRows.value.slice(offset.value, offset.value + limit.value) : sortedRows.value)
 const tableRows = computed(() => paginatedRows.value.map(r => ({ ...r })))
+const displayTotal = computed(() => anyExtraFilter.value ? filteredRows.value.length : serverTotal.value)
 
+let seq = 0
 async function refresh() {
+  const mine = ++seq
   loading.value = true
   loadFailed.value = false
   try {
-    const res = await api.list({ limit: 100 })
-    allRows.value = res.data
+    const searchParam = debouncedSearch.value.trim() || undefined
+    if (anyExtraFilter.value) {
+      const res = await api.list({ search: searchParam, limit: 100 })
+      if (mine !== seq) return
+      allRows.value = res.data
+    } else {
+      const res = await api.list({ search: searchParam, limit: limit.value, offset: offset.value })
+      if (mine !== seq) return
+      allRows.value = res.data
+      serverTotal.value = res.total
+    }
   } catch {
+    if (mine !== seq) return
     loadFailed.value = true
   } finally {
-    loading.value = false
+    if (mine === seq) loading.value = false
   }
 }
 
 async function loadFkData() {
-  const [offices, depts, positions] = await Promise.all([
-    request<{ data: { id: string, name: string }[] }>('/offices?limit=100'),
+  const [depts, positions] = await Promise.all([
     refApi.list('departments', { limit: 100 }),
     refApi.list('positions', { limit: 100 })
   ])
-  officeOptions.value = offices.data.map(o => ({ value: o.id, label: o.name }))
   deptOptions.value = depts.data.map(d => ({ value: d.id, label: d.name }))
   positionOptions.value = positions.data.map(p => ({ value: p.id, label: p.name }))
 }
 
 function openCreate() {
   editingId.value = undefined
-  Object.assign(form, { code: '', name: '', email: '', phone: '', department_id: '', position_id: '', office_id: officeOptions.value[0]?.value ?? '', status: 'active' })
+  Object.assign(form, { code: '', name: '', email: '', phone: '', department_id: '', position_id: '', office_id: '', status: 'active' })
   formOpen.value = true
 }
 
@@ -180,24 +209,48 @@ function rowActions(row: Record<string, unknown>): RowAction[] {
 
 function resetFilters() {
   search.value = ''
-  filterOffice.value = ALL
+  debouncedSearch.value = ''
+  filterOffice.value = null
   filterDept.value = ALL
   filterPosition.value = ALL
   filterStatus.value = ALL
-  offset.value = 0
+  // Don't reset `offset` here — the multi-ref filter watcher below reads it
+  // to decide whether it (vs. the separate offset watcher) should refresh(),
+  // and needs to see the real pre-reset value to avoid a double-fetch.
 }
 
-watch([search, filterOffice, filterDept, filterPosition, filterStatus], () => {
+watch(search, (v) => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    debouncedSearch.value = v
+  }, 300)
+})
+
+watch([debouncedSearch, filterOffice, filterDept, filterPosition, filterStatus], () => {
+  // In server-paginated mode, resetting a non-zero offset to 0 below already
+  // triggers the offset watcher's own refresh() — calling refresh() again
+  // here would double-fire. In client-filtered mode, offset resets don't
+  // refetch (see the offset watcher), so this must always explicitly
+  // refresh. `anyExtraFilter` reflects the *new* filter state already (this
+  // watcher fires reacting to it), so it also covers mode switches.
+  const wasFirstPage = offset.value === 0
   offset.value = 0
-  pulseFilterLoading()
+  if (anyExtraFilter.value || wasFirstPage) refresh()
 })
 watch(sorting, () => {
   offset.value = 0
+})
+watch(offset, () => {
+  if (!anyExtraFilter.value) refresh()
 })
 
 onMounted(() => {
   refresh()
   loadFkData()
+})
+
+onUnmounted(() => {
+  if (searchTimer) clearTimeout(searchTimer)
 })
 </script>
 
@@ -238,10 +291,15 @@ onMounted(() => {
         class="flex-1 min-w-[200px]"
       />
 
-      <USelect
-        v-model="filterOffice"
-        :items="[{ value: ALL, label: t('masterdata.employees.filter.allKantor') }, ...officeOptions]"
-        class="min-w-[150px]"
+      <AsyncSearchPicker
+        :model-value="filterOffice"
+        :search-fn="office.searchFn"
+        :resolve-fn="office.resolveFn"
+        :placeholder="t('common.searchOffice')"
+        testid="office-filter"
+        class="min-w-[200px]"
+        clearable
+        @update:model-value="filterOffice = $event"
       />
 
       <USelect
@@ -299,8 +357,8 @@ onMounted(() => {
       v-model:sorting="sorting"
       :rows="(tableRows as unknown as Record<string, unknown>[])"
       :columns="columns"
-      :loading="loading || filtering"
-      :total="filteredRows.length"
+      :loading="loading"
+      :total="displayTotal"
       :limit="limit"
       :offset="offset"
       :empty-title="anyFilterActive ? t('masterdata.employees.emptyFilter') : t('masterdata.employees.empty')"
@@ -402,33 +460,38 @@ onMounted(() => {
         <!-- Row 3: Departemen + Jabatan -->
         <div class="grid grid-cols-2 gap-[14px]">
           <UFormField :label="t('masterdata.employees.fields.departemen')">
-            <USelect
-              v-model="form.department_id"
-              :items="deptOptions"
-              :placeholder="t('masterdata.employees.placeholders.pilih')"
-              class="w-full"
-              data-testid="employee-dept-select"
+            <AsyncSearchPicker
+              :model-value="form.department_id || null"
+              :search-fn="department.searchFn"
+              :resolve-fn="department.resolveFn"
+              :placeholder="t('common.searchDepartment')"
+              testid="employee-department"
+              clearable
+              @update:model-value="form.department_id = $event ?? ''"
             />
           </UFormField>
           <UFormField :label="t('masterdata.employees.fields.jabatan')">
-            <USelect
-              v-model="form.position_id"
-              :items="positionOptions"
-              :placeholder="t('masterdata.employees.placeholders.pilih')"
-              class="w-full"
-              data-testid="employee-position-select"
+            <AsyncSearchPicker
+              :model-value="form.position_id || null"
+              :search-fn="position.searchFn"
+              :resolve-fn="position.resolveFn"
+              :placeholder="t('common.searchPosition')"
+              testid="employee-position"
+              clearable
+              @update:model-value="form.position_id = $event ?? ''"
             />
           </UFormField>
         </div>
 
         <!-- Row 4: Kantor + scope note -->
         <UFormField :label="t('masterdata.employees.fields.office')">
-          <USelect
-            v-model="form.office_id"
-            :items="officeOptions"
-            :placeholder="t('masterdata.employees.placeholders.pilih')"
-            class="w-full"
-            data-testid="employee-office-select"
+          <AsyncSearchPicker
+            :model-value="form.office_id || null"
+            :search-fn="office.searchFn"
+            :resolve-fn="office.resolveFn"
+            :placeholder="t('common.searchOffice')"
+            testid="office"
+            @update:model-value="form.office_id = $event ?? ''"
           />
           <template #hint>
             <span class="flex items-center gap-1 text-xs text-dimmed mt-1">

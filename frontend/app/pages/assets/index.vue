@@ -14,8 +14,8 @@ const toast = useToast()
 const localePath = useLocalePath()
 const assetsApi = useAssets()
 const categoriesApi = useCategories()
-const officesApi = useOffices()
 const referenceApi = useReference()
+const office = useOfficePicker()
 
 const rows = ref<Asset[]>([])
 const total = ref(0)
@@ -27,7 +27,7 @@ const search = ref('')
 const debouncedSearch = ref('')
 const fStatus = ref<string>(ALL)
 const fKat = ref<string>(ALL)
-const fKantor = ref<string>(ALL)
+const fKantor = ref<string | null>(null)
 const fClass = ref<string>(ALL)
 const view = ref<'table' | 'grid'>('table')
 const selected = ref<Set<string>>(new Set())
@@ -38,21 +38,21 @@ const selected = ref<Set<string>>(new Set())
 const showPrice = true
 
 // Filter option lists + id→name maps (categories via useCategories().tree(),
-// offices via the scoped useOffices().list(), brands/models via the generic
-// useReference() engine).
+// brands/models via the generic useReference() engine). Office resolves
+// on-demand via useResolveCache — no more eager `{ limit: 100 }` list, so a
+// stored office_id outside the picker's first search page still resolves.
 const categoryOptions = ref<{ value: string, label: string }[]>([])
-const officeOptions = ref<{ value: string, label: string }[]>([])
 const brandOptions = ref<{ value: string, label: string }[]>([])
 const modelOptions = ref<{ value: string, label: string }[]>([])
 const categoryMap = computed(() => new Map(categoryOptions.value.map(o => [o.value, o.label])))
-const officeMap = computed(() => new Map(officeOptions.value.map(o => [o.value, o.label])))
 const brandMap = computed(() => new Map(brandOptions.value.map(o => [o.value, o.label])))
 const modelMap = computed(() => new Map(modelOptions.value.map(o => [o.value, o.label])))
+const officeCache = useResolveCache(office.resolveFn)
 function categoryName(id: string): string {
   return categoryMap.value.get(id) ?? '—'
 }
 function officeName(id: string): string {
-  return officeMap.value.get(id) ?? '—'
+  return officeCache.get(id)
 }
 function brandModelLabel(brandId: string | null | undefined, modelId: string | null | undefined): string {
   const brand = brandId ? brandMap.value.get(brandId) : undefined
@@ -79,14 +79,13 @@ const statusOptions = computed(() => [
   ...ASSET_STATUSES.map(s => ({ value: s, label: t(statusMeta[s].labelKey) }))
 ])
 const katOptions = computed(() => [{ value: ALL, label: t('assets.filter.allCategory') }, ...categoryOptions.value])
-const kantorOptions = computed(() => [{ value: ALL, label: t('assets.filter.allOffice') }, ...officeOptions.value])
 const classOptions = computed(() => [
   { value: ALL, label: t('assets.filter.allClass') },
   ...ASSET_CLASSES.map(c => ({ value: c, label: t(classMeta[c].labelKey) }))
 ])
 
 const anyFilter = computed(() =>
-  !!(search.value.trim() || fStatus.value !== ALL || fKat.value !== ALL || fKantor.value !== ALL || fClass.value !== ALL)
+  !!(search.value.trim() || fStatus.value !== ALL || fKat.value !== ALL || fKantor.value || fClass.value !== ALL)
 )
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
@@ -138,7 +137,7 @@ function resetFilters() {
   debouncedSearch.value = ''
   fStatus.value = ALL
   fKat.value = ALL
-  fKantor.value = ALL
+  fKantor.value = null
   fClass.value = ALL
   page.value = 1
 }
@@ -170,7 +169,7 @@ async function load() {
       search: debouncedSearch.value.trim() || undefined,
       status: fStatus.value !== ALL ? (fStatus.value as AssetStatus) : undefined,
       category_id: fKat.value !== ALL ? fKat.value : undefined,
-      office_id: fKantor.value !== ALL ? fKantor.value : undefined,
+      office_id: fKantor.value ?? undefined,
       asset_class: fClass.value !== ALL ? (fClass.value as AssetClass) : undefined
     })
     if (mine !== seq) return
@@ -187,11 +186,11 @@ async function load() {
 async function loadFilterOptions() {
   // Each lookup is independent — one failing (network error, permission
   // gap, ...) must not reject the whole Promise.all and must not blank out
-  // the other three dropdowns that did succeed (same guard pattern as the
-  // Detail page's loadLookups).
+  // the other dropdowns that did succeed (same guard pattern as the
+  // Detail page's loadLookups). Office is not part of this batch — the
+  // office filter is an AsyncSearchPicker that searches on demand.
   await Promise.all([
     categoriesApi.tree().then((cats) => { categoryOptions.value = cats.map(c => ({ value: c.id, label: c.name })) }).catch(() => {}),
-    officesApi.list({ limit: 100 }).then((res) => { officeOptions.value = res.data.map(o => ({ value: o.id, label: o.name })) }).catch(() => {}),
     referenceApi.list('brands', { limit: 100 }).then((res) => { brandOptions.value = res.data.map(b => ({ value: b.id, label: b.name })) }).catch(() => {}),
     referenceApi.list('models', { limit: 100 }).then((res) => { modelOptions.value = res.data.map(m => ({ value: m.id, label: m.name })) }).catch(() => {})
   ])
@@ -279,10 +278,15 @@ onUnmounted(() => {
         :items="katOptions"
         class="min-w-[150px]"
       />
-      <USelect
-        v-model="fKantor"
-        :items="kantorOptions"
-        class="min-w-[160px]"
+      <AsyncSearchPicker
+        :model-value="fKantor"
+        :search-fn="office.searchFn"
+        :resolve-fn="office.resolveFn"
+        :placeholder="t('common.searchOffice')"
+        testid="assets-office-filter"
+        clearable
+        class="min-w-[190px]"
+        @update:model-value="fKantor = $event"
       />
       <USelect
         v-model="fClass"

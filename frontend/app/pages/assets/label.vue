@@ -33,7 +33,7 @@ const { t } = useI18n()
 const route = useRoute()
 const toast = useToast()
 const assetsApi = useAssets()
-const officesApi = useOffices()
+const office = useOfficePicker()
 const { requestBlob } = useApiClient()
 
 const size = ref('70x40')
@@ -158,18 +158,12 @@ function toggleAll() {
   }
 }
 
-// --- Office names for the printed label's "kantor" field (like the Katalog page). ---
-const officeMap = ref(new Map<string, string>())
-async function loadOffices() {
-  try {
-    const res = await officesApi.list({ limit: 100 })
-    officeMap.value = new Map(res.data.map(o => [o.id, o.name]))
-  } catch {
-    // Office resolution is optional — labels still render with a "—" placeholder.
-  }
-}
+// --- Office names for the printed label's "kantor" field (like the Katalog
+// page) — resolved on demand via useResolveCache, no more eager
+// `{ limit: 100 }` list (a selected batch's office ids can outnumber 100). ---
+const officeCache = useResolveCache(office.resolveFn)
 function officeName(id: string): string {
-  return officeMap.value.get(id) ?? '—'
+  return officeCache.get(id)
 }
 
 // --- Barcode/QR previews: lazy-fetched per (asset id, type), cached so mode
@@ -272,7 +266,6 @@ async function downloadLabels() {
 
 onMounted(() => {
   loadPicker()
-  loadOffices()
   resolveInitialTags()
 })
 

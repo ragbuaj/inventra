@@ -1,7 +1,7 @@
 // @vitest-environment nuxt
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
-import { enableAutoUnmount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises } from '@vue/test-utils'
 import { useAuthStore } from '~/stores/auth'
 import { useConfirm } from '~/composables/useConfirm'
 
@@ -35,8 +35,8 @@ import EmployeesPage from '~/pages/master/employees.vue'
 // ---------------------------------------------------------------------------
 
 const OFFICES = [
-  { id: 'o1', name: 'Kantor Pusat' },
-  { id: 'o2', name: 'Kantor Cabang' }
+  { id: 'o1', name: 'Kantor Pusat', code: 'KP' },
+  { id: 'o2', name: 'Kantor Cabang', code: 'KC' }
 ]
 
 const DEPARTMENTS = [
@@ -100,6 +100,20 @@ function makeRefResponse(rows: { id: string, name: string }[]) {
 }
 
 function defaultHandler(path: string, opts?: Record<string, unknown>): unknown {
+  // /offices/:id, /departments/:id, /positions/:id (picker resolveFn / table
+  // resolve-cache) must be matched before the plain-list routes below.
+  if (/^\/offices\/[^/?]+$/.test(path)) {
+    const id = path.split('/')[2]
+    return OFFICES.find(o => o.id === id) ?? null
+  }
+  if (/^\/departments\/[^/?]+$/.test(path)) {
+    const id = path.split('/')[2]
+    return DEPARTMENTS.find(d => d.id === id) ?? null
+  }
+  if (/^\/positions\/[^/?]+$/.test(path)) {
+    const id = path.split('/')[2]
+    return POSITIONS.find(p => p.id === id) ?? null
+  }
   if (path.startsWith('/offices')) return { data: OFFICES }
   if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
   if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
@@ -114,6 +128,12 @@ function defaultHandler(path: string, opts?: Record<string, unknown>): unknown {
 // ---------------------------------------------------------------------------
 
 enableAutoUnmount(afterEach)
+// Belt-and-suspenders: a fake-timers test that fails before reaching its own
+// vi.useRealTimers() would otherwise leave every later test's setTimeout-based
+// waits (mountAndWait, etc.) hanging forever.
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 function grantAdmin() {
   useAuthStore().setSession(
@@ -140,6 +160,18 @@ async function setVmRef(wrapper: Awaited<ReturnType<typeof mountAndWait>>, key: 
   await wrapper.vm.$nextTick()
   await new Promise(r => setTimeout(r, 400))
   await wrapper.vm.$nextTick()
+}
+
+// FormSlideover wraps USlideover, which teleports its content to
+// document.body — it lives outside `wrapper`'s own DOM subtree.
+function bodyEl(testid: string): HTMLElement {
+  const el = document.body.querySelector(`[data-testid="${testid}"]`)
+  expect(el, `expected [data-testid="${testid}"] in document.body`).toBeTruthy()
+  return el as HTMLElement
+}
+
+function bodyElExists(testid: string): boolean {
+  return !!document.body.querySelector(`[data-testid="${testid}"]`)
 }
 
 // ---------------------------------------------------------------------------
@@ -225,13 +257,22 @@ describe('Master Pegawai page — loaded rows with resolved FK names', () => {
     expect(wrapper.text()).toContain('Ditangguhkan')
   })
 
-  it('renders filter dropdowns with i18n labels', async () => {
+  it('renders filter dropdowns with i18n labels (office filter is now a search picker)', async () => {
     const wrapper = await mountAndWait()
     const text = wrapper.text()
-    expect(text).toContain('Semua Kantor')
     expect(text).toContain('Semua Departemen')
     expect(text).toContain('Semua Jabatan')
     expect(text).toContain('Semua Status')
+    expect(wrapper.find('[data-testid="office-filter-picker-input"]').exists()).toBe(true)
+  })
+
+  it('resolves office_id to office name in the table via the resolve cache (not the raw UUID)', async () => {
+    const wrapper = await mountAndWait()
+    const text = wrapper.text()
+    expect(text).toContain('Kantor Pusat')
+    expect(text).toContain('Kantor Cabang')
+    expect(text).not.toContain('o1')
+    expect(text).not.toContain('o2')
   })
 })
 
@@ -240,6 +281,25 @@ describe('Master Pegawai page — loaded rows with resolved FK names', () => {
 // ---------------------------------------------------------------------------
 
 describe('Master Pegawai page — office filter', () => {
+  it('typing in the office filter picker drives search with limit=20', async () => {
+    const wrapper = await mountAndWait()
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/offices?')) {
+        captured = path
+        return { data: OFFICES }
+      }
+      return defaultHandler(path, opts)
+    })
+    vi.useFakeTimers()
+    await wrapper.find('[data-testid="office-filter-picker-input"]').setValue('Pusat')
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+    expect(captured).toContain('search=Pusat')
+    expect(captured).toContain('limit=20')
+  })
+
   it('filterOffice=o1 shows only o1 employees and hides o2 employees', async () => {
     const wrapper = await mountAndWait()
     await setVmRef(wrapper, 'filterOffice', 'o1')
@@ -260,6 +320,164 @@ describe('Master Pegawai page — office filter', () => {
     expect(text).toContain('Bunga Lestari')
     expect(text).not.toContain('Andi Pratama')
     expect(text).not.toContain('Citra Dewi')
+  })
+
+  it('clearing the office filter picker (clear button) restores all offices\' employees without touching other filters', async () => {
+    const wrapper = await mountAndWait()
+    // Narrow to o1 first, and set an unrelated filter (status) to prove reset
+    // doesn't happen — only the office filter should be cleared.
+    await setVmRef(wrapper, 'filterOffice', 'o1')
+    await setVmRef(wrapper, 'filterStatus', 'active')
+
+    let textNow = wrapper.text()
+    expect(textNow).toContain('Andi Pratama')
+    expect(textNow).not.toContain('Bunga Lestari')
+
+    const clearBtn = wrapper.find('[data-testid="office-filter-picker-clear"]')
+    expect(clearBtn.exists()).toBe(true)
+    await clearBtn.trigger('click')
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 400))
+    await wrapper.vm.$nextTick()
+
+    const vm = wrapper.vm as unknown as { filterOffice: string | null, filterStatus: string }
+    expect(vm.filterOffice).toBeNull()
+    // Status filter must remain untouched by the office clear action.
+    expect(vm.filterStatus).toBe('active')
+
+    textNow = wrapper.text()
+    // All active employees across offices are visible again.
+    expect(textNow).toContain('Andi Pratama')
+    expect(textNow).toContain('Bunga Lestari')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Server-side pagination (Task 6) — the default (no extra filter) table load
+// is a real GET /employees?limit=20&offset=... instead of the old eager
+// `{ limit: 100 }` client-paginated load.
+// ---------------------------------------------------------------------------
+
+describe('Master Pegawai page — server-side pagination', () => {
+  it('the initial table load calls GET /employees with limit=20&offset=0 (not limit=100)', async () => {
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/employees?')) {
+        captured = path
+        return makeEmployeesResponse()
+      }
+      return defaultHandler(path, opts)
+    })
+    await mountAndWait()
+    expect(captured).toContain('limit=20')
+    expect(captured).toContain('offset=0')
+  })
+
+  it('clicking page 2 sends offset=20 to GET /employees (no extra filter active)', async () => {
+    setHandler((path, opts) => {
+      if (path.startsWith('/employees?')) return makeEmployeesResponse(EMPLOYEES, 45)
+      return defaultHandler(path, opts)
+    })
+    const wrapper = await mountAndWait()
+
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/employees?')) {
+        captured = path
+        return makeEmployeesResponse(EMPLOYEES, 45)
+      }
+      return defaultHandler(path, opts)
+    })
+
+    const page2 = wrapper.findAll('button').find(b => b.text().trim() === '2')
+    expect(page2).toBeDefined()
+    await page2!.trigger('click')
+    await new Promise(r => setTimeout(r, 400))
+    await wrapper.vm.$nextTick()
+
+    expect(captured).toContain('offset=20')
+    expect(captured).toContain('limit=20')
+  })
+
+  it('typing in the search box debounces ~300ms then calls GET /employees with search=', async () => {
+    const wrapper = await mountAndWait()
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/employees?')) {
+        captured = path
+        return makeEmployeesResponse()
+      }
+      return defaultHandler(path, opts)
+    })
+    vi.useFakeTimers()
+    ;(wrapper.vm as unknown as { search: string }).search = 'Andi'
+    await vi.advanceTimersByTimeAsync(0)
+    expect(captured).toBeUndefined()
+    await vi.advanceTimersByTimeAsync(300)
+    vi.useRealTimers()
+    await flushPromises()
+    expect(captured).toContain('search=Andi')
+  })
+
+  it('an "extra" filter (office) switches the table to the client-filtered `limit=100` batch instead of server pagination', async () => {
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/employees?')) {
+        captured = path
+        return makeEmployeesResponse()
+      }
+      return defaultHandler(path, opts)
+    })
+    const wrapper = await mountAndWait()
+    await setVmRef(wrapper, 'filterOffice', 'o1')
+    expect(captured).toContain('limit=100')
+  })
+
+  it('clicking Reset from page 2 (offset=20) issues exactly ONE GET /employees call and returns to page 1', async () => {
+    setHandler((path, opts) => {
+      if (path.startsWith('/employees?')) return makeEmployeesResponse(EMPLOYEES, 45)
+      return defaultHandler(path, opts)
+    })
+    const wrapper = await mountAndWait()
+
+    // Also dirty a non-offset filter so resetFilters() has something to
+    // reset besides the page — mirrors real usage (search + pagination).
+    vi.useFakeTimers()
+    ;(wrapper.vm as unknown as { search: string }).search = 'Andi'
+    await vi.advanceTimersByTimeAsync(300)
+    vi.useRealTimers()
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+
+    const page2 = wrapper.findAll('button').find(b => b.text().trim() === '2')
+    expect(page2).toBeDefined()
+    await page2!.trigger('click')
+    await new Promise(r => setTimeout(r, 400))
+    await wrapper.vm.$nextTick()
+
+    expect((wrapper.vm as unknown as { offset: number }).offset).toBe(20)
+
+    let callCount = 0
+    let lastCaptured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/employees?')) {
+        callCount++
+        lastCaptured = path
+        return makeEmployeesResponse(EMPLOYEES, 45)
+      }
+      return defaultHandler(path, opts)
+    })
+
+    const resetBtn = wrapper.findAll('button').find(b => b.text().trim() === 'Reset')
+    expect(resetBtn).toBeDefined()
+    await resetBtn!.trigger('click')
+    await new Promise(r => setTimeout(r, 400))
+    await wrapper.vm.$nextTick()
+
+    expect(callCount).toBe(1)
+    expect(lastCaptured).toContain('offset=0')
+    expect((wrapper.vm as unknown as { offset: number }).offset).toBe(0)
+    expect((wrapper.vm as unknown as { search: string }).search).toBe('')
   })
 })
 
@@ -298,6 +516,7 @@ describe('Master Pegawai page — department filter', () => {
 describe('Master Pegawai page — load error', () => {
   it('shows error message when GET /employees fails', async () => {
     setHandler((path) => {
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
@@ -316,6 +535,7 @@ describe('Master Pegawai page — load error', () => {
 
   it('shows retry button on load error', async () => {
     setHandler((path) => {
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
@@ -335,6 +555,7 @@ describe('Master Pegawai page — load error', () => {
   it('retry button re-fetches and recovers when second call succeeds', async () => {
     let callCount = 0
     setHandler((path) => {
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
@@ -373,11 +594,73 @@ describe('Master Pegawai page — create form', () => {
     expect(vm.formOpen).toBe(true)
   })
 
+  it('renders the office field as an AsyncSearchPicker (no eager-options USelect) and defaults office_id empty', async () => {
+    const wrapper = await mountAndWait()
+    const vm = wrapper.vm as unknown as { openCreate: () => void, form: Record<string, unknown> }
+    vm.openCreate()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[data-testid="employee-office-select"]').exists()).toBe(false)
+    expect(document.body.querySelector('[data-testid="office-picker-input"]')).toBeTruthy()
+    expect(vm.form['office_id']).toBe('')
+  })
+
+  it('renders department/jabatan fields as AsyncSearchPickers (no eager-options USelect) and defaults them empty', async () => {
+    const wrapper = await mountAndWait()
+    const vm = wrapper.vm as unknown as { openCreate: () => void, form: Record<string, unknown> }
+    vm.openCreate()
+    await wrapper.vm.$nextTick()
+    expect(bodyElExists('employee-dept-select')).toBe(false)
+    expect(bodyElExists('employee-position-select')).toBe(false)
+    expect(bodyElExists('employee-department-picker-input')).toBe(true)
+    expect(bodyElExists('employee-position-picker-input')).toBe(true)
+    expect(vm.form['department_id']).toBe('')
+    expect(vm.form['position_id']).toBe('')
+  })
+
+  it('typing in the department picker drives GET /departments with search+limit=20', async () => {
+    const wrapper = await mountAndWait()
+    ;(wrapper.vm as unknown as { openCreate: () => void }).openCreate()
+    await wrapper.vm.$nextTick()
+
+    let captured: string | undefined
+    setHandler((path, opts) => {
+      if (path.startsWith('/departments?')) {
+        captured = path
+        return makeRefResponse(DEPARTMENTS)
+      }
+      return defaultHandler(path, opts)
+    })
+
+    const input = bodyEl('employee-department-picker-input') as HTMLInputElement
+    vi.useFakeTimers()
+    input.value = 'Keuangan'
+    input.dispatchEvent(new Event('input'))
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    vi.useRealTimers()
+    expect(captured).toContain('search=Keuangan')
+    expect(captured).toContain('limit=20')
+  })
+
+  it('resolves preselected department_id/position_id to their labels via GET /:resource/:id in edit mode', async () => {
+    const wrapper = await mountAndWait()
+    ;(wrapper.vm as unknown as { openEdit: (row: unknown) => void }).openEdit(EMPLOYEES[0])
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 100))
+    await wrapper.vm.$nextTick()
+
+    const deptInput = bodyEl('employee-department-picker-input') as HTMLInputElement
+    const posInput = bodyEl('employee-position-picker-input') as HTMLInputElement
+    expect(deptInput.value).toBe('Umum')
+    expect(posInput.value).toBe('Staf')
+  })
+
   it('POST /employees body contains code, name, office_id, department_id, position_id with UUID values', async () => {
     let capturedPath = ''
     let capturedOpts: Record<string, unknown> = {}
 
     setHandler((path, opts) => {
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
@@ -431,6 +714,7 @@ describe('Master Pegawai page — create form', () => {
     let postCalled = false
 
     setHandler((path, opts) => {
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
@@ -466,6 +750,7 @@ describe('Master Pegawai page — create form', () => {
     let postCalled = false
 
     setHandler((path, opts) => {
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
@@ -522,6 +807,7 @@ describe('Master Pegawai page — edit form', () => {
     let capturedOpts: Record<string, unknown> = {}
 
     setHandler((path, opts) => {
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
@@ -569,6 +855,7 @@ describe('Master Pegawai page — delete', () => {
     let deletedPath = ''
 
     setHandler((path, opts) => {
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
@@ -599,6 +886,7 @@ describe('Master Pegawai page — delete', () => {
     let deleteCalled = false
 
     setHandler((path, opts) => {
+      if (/^\/offices\/[^/?]+$/.test(path)) return OFFICES.find(o => o.id === path.split('/')[2]) ?? null
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
