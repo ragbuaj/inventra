@@ -590,7 +590,12 @@ func TestTemplateCSVHasBOM(t *testing.T) {
 
 # PART C — Backend + frontend: Profile, Email change, Password change (#2, #3)
 
-## Task 11: Migration — `employees.phone`
+## Task 11: Migration — `employees.phone` — ⚠️ VOID (column already existed)
+
+> **Resolved during execution:** `masterdata.employees.phone` was already added by the earlier
+> migration `000019_employee_phone`. A duplicate `000034` was briefly added then removed (commits
+> 431cd8f → 5108e41). **No migration is needed** — proceed straight to Task 12 against the existing
+> column.
 
 **Files:**
 - Create: `backend/db/migrations/000034_employee_phone.up.sql` / `.down.sql`

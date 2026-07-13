@@ -851,11 +851,55 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     `listSessions`/`revokeSession`/`logoutAllOthers` still mock) is **Spec B**; profile-field editing
 >     (telepon/kantor) still mock; admin-initiated reset + force-change-on-next-login not built;
 >     per-user email localization (Indonesian default used).
-> 55. **Next session — pick the next real step.** Leading candidate: **Spec B — Device Sessions**
->     (session list / revoke-per-device / logout-all-others — the last `useAccount` mock, natural
->     continuation of this feature). Other candidates carried from item 53: **(a) notifications** (last
->     app-shell mock); **(b) room/floor import targets**; **(d) Analytics/OLAP** read layer. Confirm
->     priority before starting.
+> 55. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-13): UX fixes batch — see item 56.**
+>     (User request: 7 UX/correctness fixes bundled — number input, profile/email, security, forgot-resend,
+>     search focus, map z-index, PDF/CSV mojibake.)
+> 56. ~~**UX Fixes Batch (7 fixes)**~~ ✅ **DONE (2026-07-14, branch `feat/ux-fixes-batch`).** Design:
+>     `docs/superpowers/specs/2026-07-13-ux-fixes-batch-design.md`; plan:
+>     `docs/superpowers/plans/2026-07-13-ux-fixes-batch.md` (21 tasks, subagent-driven, each task-reviewed).
+>     **(1) NumberInput** — reusable `frontend/app/components/NumberInput.vue` (numeric-only keystrokes,
+>     `allowNegative`/`thousandSeparator`/`decimals`/`money`-Rp props; id-ID comma decimal when grouping)
+>     rolled out to all 8 number fields (asset harga, category life/salvage/fiscal/threshold, maintenance
+>     cost+interval, disposals proceeds, depreciation impairment, offices lat/lng); 3 duplicate format
+>     patterns removed. **(2) Profil tab** — view↔edit state, wired to new backend (`useAccount` un-mocked:
+>     `GET/PUT /auth/profile`), telepon → `masterdata.employees.phone` (disabled when no employee), **email
+>     change with verification link to the new address** (`POST /auth/email/change-request` + password →
+>     `POST /auth/email/confirm` public + `pages/verify-email.vue`). **(3) Keamanan tab** — inline password
+>     fields removed; "Ganti Password" modal verifies old password → emails a reset link
+>     (`POST /auth/password/change-request`, reuses the reset infra). **(4) Forgot password** — full-width
+>     input + `useResendCooldown` (exponential 30/60/120s), resend errors shown, cooldown only advances on
+>     success. **(5) Global search** — programmatic `.focus()` on open (replaces flaky `autofocus`).
+>     **(6) Office map** — detail card `z-[1100]` + controls `z-[1000]` above Leaflet panes. **(7) Mojibake**
+>     — PDFs now embed **DejaVuSansCondensed** UTF-8 font (`internal/pdfutil`, `//go:embed` +
+>     `AddUTF8FontFromBytes`) across all 4 generators (`·`/`—`/accents render correctly); CSV importer
+>     exports prepend a UTF-8 BOM (parser strips it on re-upload). Backend: new `auth/emailchange.go`
+>     token store (mirrors pwreset), 2 email templates + mailer methods, identity service + 5 endpoints +
+>     OpenAPI, audit for all mutating flows. **Approved deviations / decisions:** **(a)** "format limiter"
+>     = `thousandSeparator` prop (per user); **(b)** email-change link → **new** address + **requires
+>     current password** (industry std); **(c)** password change is **link-based** (verify old pw → email
+>     reset link), so the account page no longer changes the password inline; **(d)** resend cooldown is
+>     **exponential** (user choice); **(e)** PDF fix embeds a font (robust for dynamic DB data) vs. char
+>     sanitization; **(f)** telepon stored on `masterdata.employees.phone` (**not** `users`), so users
+>     without a linked employee can't edit it (disabled + hint); **(g)** the **account Profil/Keamanan tabs
+>     deviate from `docs/design/Profil Akun.dc.html`** — the edit-toggle, "Ubah Email" modal, and
+>     link-based "Ganti Password" modal are **net-new, user-requested** interactions the static mockup
+>     predates; `verify-email.vue` is a net-new page styled after `forgot-password`/`reset-password`;
+>     **(h)** wrong-current-password returns **400** (not 401) on the change-request endpoints to avoid the
+>     frontend's 401 auto-logout interceptor. **Wrinkles resolved in-flight:** the planned `000034` phone
+>     migration was a **duplicate** of `000019` and removed. **Verification:** backend `go build/vet/test`
+>     ✅, Spectral 0 errors ✅; frontend `pnpm lint/typecheck/test` (1383) ✅. **Follow-ups (open,
+>     non-blocking):** live browser 1:1 mockup pass (account/forgot-password/map, both themes) not run —
+>     stack unreachable in the build env; e2e `account-security.spec.ts` (email + password change via
+>     Mailpit) is **CI-deferred**; `/auth/email/change-request` + `/auth/password/change-request` are not
+>     rate-limited (client cooldown only); NumberInput's paste-of-`.`-decimal into a grouping+`decimals>0`
+>     field is latent-only (no field combines them); `kantor`/`pegawai` display names show `—` (API returns
+>     only IDs — needs a masterdata join or profile enrichment).
+> 57. **Next session — pick the next real step.** Leading candidate: **Spec B — Device Sessions**
+>     (session list / revoke-per-device / logout-all-others — the last `useAccount` mock). Or close the
+>     item-56 follow-ups: the **live mockup visual pass** + **profile office/employee name enrichment**
+>     (so the account header shows real `kantor`/`pegawai`). Other carried candidates: **notifications**
+>     (last app-shell mock); **room/floor import targets**; **Analytics/OLAP** read layer. Confirm priority
+>     before starting.
 
 ## ✅ Done
 
