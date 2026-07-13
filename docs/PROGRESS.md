@@ -773,13 +773,56 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >       maps + `assets/index` brand/model filters still `limit:100` (same office-tree class);
 >       `useReference.get()`; `assets/index` resetFilters double-fetch (pre-existing); `user`
 >       create/update/delete handler tests; audit summary echoes raw `entity_type`/`entity_id`.
-> 51. **Next session — pick the next real step.** Remaining item 49 candidates: **(a) notifications**
+> 51. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-13): candidate (c) — tech-debt
+>     sweep #2 (see item 52).** Remaining item 49/51 candidates for the *next* session: **(a) notifications**
 >     (`mock/notifications.ts` — the last app-shell mock; needs a backend feed) — biggest remaining "real
->     feature" gap; **(b) room/floor import targets**; **(c)** the rest of the standing tech-debt list
->     (Users screen server-side filters + reset-password; approval/route badge counts; failure-safe
->     Data-Scope e2e cleanup; + the sweep's own follow-ups above — notably a `GET /offices/tree` endpoint
->     to unblock `master/offices` pagination and the remaining office-map `limit:100` truncations);
->     **(d)** the **Analytics/OLAP** read layer. Confirm priority before starting.
+>     feature" gap; **(b) room/floor import targets**; **(d)** the **Analytics/OLAP** read layer.
+> 52. ~~**Tech-debt sweep #2 (offices/tree + kill office-class `limit:100` · user list filters · live
+>     approval badge · a11y/e2e/audit polish)**~~ ✅ **DONE (2026-07-13, branch `feat/tech-debt-sweep-2`,
+>     20 commits, base 534a9a3).** Design: `docs/superpowers/specs/2026-07-13-tech-debt-sweep-2-design.md`
+>     + plan `docs/superpowers/plans/2026-07-13-tech-debt-sweep-2.md`. Four independent parts, subagent-driven
+>     (13 tasks + final gate + whole-branch review, all task-reviewed):
+>     - **Part A — `GET /offices/tree` + kill office-class `limit:100`:** new unbounded scope-filtered
+>       `ListOfficesTree`/`Service.Tree`/`GET /offices/tree` (byte-identical scope filter to `ListOffices`,
+>       no LIMIT; 2 integration tests incl. 105-row no-cap + subtree presence/absence). Frontend
+>       `useOffices.tree()` now builds the office **tree** (complete past 100) and the transfer/disposal
+>       office **name-maps**; assets **Katalog + Detail** brand/model resolution moved off eager `limit:100`
+>       fetches to on-demand `useResolveCache` (the `assets/index` "brand/model filter" the plan named
+>       **does not exist** — no such filter control in page/backend/mockup, verified; reduced to the real
+>       goal of killing the `limit:100`). `useReference.get()` added; `useReferencePicker.resolveFn`
+>       switched to it (dropped the `request()` reach-around).
+>     - **Part B — user list server-side filters:** `role_id`/`office_id`/`status` narg predicates on
+>       `ListUsers`+`CountUsers` (in sync), 400 on malformed uuid/status; frontend filter bar (role USelect
+>       reusing `/authz/roles`, office `AsyncSearchPicker`, status USelect) + status-filter e2e. **Reset-password
+>       DEFERRED** (no email infra — product decision).
+>     - **Part C — live approval badge:** lightweight `GET /requests/inbox/count` (shares `svc.Inbox`,
+>       `request.decide`-gated, count == `/inbox` len); Pinia `stores/inbox.ts` + `AppSidebar` badge from
+>       the store (hides at 0), hardcoded `nav.ts` `badgeCount:2` removed; **event-driven** refresh
+>       (fetchMe choke-point + approval mount + post-decide), **no polling**.
+>     - **Part D — polish:** `AsyncSearchPicker` a11y (combobox/listbox roles, ARIA on the real `<input>`,
+>       Arrow/Enter/Escape/Home-End keyboard nav, Enter guarded against leaking into wrapping `UForm`
+>       submit); **failure-safe Data-Scope/field-perm e2e** (`afterEach` API restore of Superadmin
+>       `*`-scope→`global`, healing the recurring shared-dev-DB corruption); `assets/index` `resetFilters`
+>       single-fetch; `user` create/update/delete handler tests; audit summary **localizes** the entity
+>       label (was raw `entity_type`).
+>     - **Approved deviation (catat-deviasi):** the plan's "migrate brand/model **filters** to
+>       AsyncSearchPicker" (Part A) was a factually-wrong premise — no such filter exists (verified against
+>       page/`GET /assets` params/`Katalog Aset.dc.html`, which shows Brand/Model as a **column** only);
+>       reduced to killing the `limit:100` name-resolution fetch. Adding a filter would need a backend
+>       `brand_id`/`model_id` param + a mockup change — not done (out of scope).
+>     - **Gate:** backend build/vet/test + full `go test -tags=integration ./... -p 1` (32 pkgs, no flakes)
+>       + Spectral 0err/9warn; frontend lint/typecheck/**test 1314**/build; whole-branch review (opus):
+>       **ready to merge**. E2E: all local failures traced to pre-existing dev-DB debris (none touch this
+>       branch's source).
+>     - **Follow-ups (open, non-blocking):** `settings/users.vue` `resetFilters` fires up to 4 identical
+>       `loadList()` (same double-fetch class as `assets/index`, benign); `master/offices.vue:219`
+>       office-**types** select still `limit:100` (a reference picker, different from the office-tree class);
+>       `useUserPicker`/`useUsers` still lack a `get()` (reach-around); disposals `officesTreeMock` has no
+>       asserting test; a11y edge polish. Deferred by decision: reset-password, force-change-on-next-login,
+>       badge polling.
+> 53. **Next session — pick the next real step.** Remaining candidates: **(a) notifications** (last
+>     app-shell mock — biggest real-feature gap); **(b) room/floor import targets**; **(d) Analytics/OLAP**
+>     read layer. Confirm priority before starting.
 
 ## ✅ Done
 
