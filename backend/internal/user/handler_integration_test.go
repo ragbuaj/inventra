@@ -3,6 +3,7 @@
 package user_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -69,6 +70,41 @@ func doRequest(t *testing.T, h *user.Handler, method, path string, roleID uuid.U
 		_ = json.Unmarshal(w.Body.Bytes(), &body)
 	}
 	return w.Code, body
+}
+
+// doJSON is doRequest's write-path counterpart: same fresh-router/stub-auth
+// wiring, but for POST/PUT/DELETE requests that carry a JSON body. Pass a nil
+// body for requests with no payload (e.g. DELETE).
+func doJSON(t *testing.T, h *user.Handler, method, path string, roleID uuid.UUID, body any) (int, map[string]any) {
+	t.Helper()
+	stubAuth := func(c *gin.Context) {
+		c.Set(middleware.CtxUserID, uuid.New().String())
+		c.Set(middleware.CtxRoleID, roleID.String())
+		c.Next()
+	}
+	r := gin.New()
+	v1 := r.Group("/api/v1")
+	user.RegisterRoutes(v1, h, stubAuth)
+
+	var req *http.Request
+	var err error
+	if body != nil {
+		raw, mErr := json.Marshal(body)
+		require.NoError(t, mErr)
+		req, err = http.NewRequest(method, path, bytes.NewReader(raw))
+	} else {
+		req, err = http.NewRequest(method, path, nil)
+	}
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	var respBody map[string]any
+	if w.Body.Len() > 0 {
+		_ = json.Unmarshal(w.Body.Bytes(), &respBody)
+	}
+	return w.Code, respBody
 }
 
 // TestUser_FieldMasking_HandlerWiring drives the real HTTP handler (gin engine
@@ -328,4 +364,245 @@ func TestUser_ListFilters_RoleOfficeStatus(t *testing.T) {
 		code, _ := doRequest(t, h, http.MethodGet, "/api/v1/users?status=bogus", caller)
 		assert.Equal(t, http.StatusBadRequest, code)
 	})
+}
+
+// TestUser_Create_Success proves POST /users creates a user (201) and that the
+// row is actually persisted in identity.users with the submitted fields.
+func TestUser_Create_Success(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+
+	q := sqlc.New(pool)
+	svc := user.NewService(q)
+	fieldSvc := authz.NewFieldService(q, rdb)
+	auditSvc := audit.NewService(q)
+	h := user.NewHandler(svc, fieldSvc, auditSvc)
+	gin.SetMode(gin.TestMode)
+
+	role := testsupport.SeedRole(t, pool, "r-create-success")
+
+	body := map[string]any{
+		"name":     "Created User",
+		"email":    "create.success@test.local",
+		"password": "secret123",
+		"role_id":  role.String(),
+	}
+	code, respBody := doJSON(t, h, http.MethodPost, "/api/v1/users", role, body)
+	require.Equal(t, http.StatusCreated, code)
+	assert.Equal(t, "Created User", respBody["name"])
+	assert.Equal(t, "create.success@test.local", respBody["email"])
+
+	id, ok := respBody["id"].(string)
+	require.True(t, ok, "response must include the new user's id")
+	require.NotEmpty(t, id)
+
+	var dbName, dbEmail string
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`SELECT name, email FROM identity.users WHERE id = $1 AND deleted_at IS NULL`, id).
+		Scan(&dbName, &dbEmail))
+	assert.Equal(t, "Created User", dbName)
+	assert.Equal(t, "create.success@test.local", dbEmail)
+}
+
+// TestUser_Create_ValidationError proves POST /users rejects a request
+// missing required fields (name, email, role_id — see dto.go binding tags)
+// with 400, before any row is written.
+func TestUser_Create_ValidationError(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+
+	q := sqlc.New(pool)
+	svc := user.NewService(q)
+	fieldSvc := authz.NewFieldService(q, rdb)
+	auditSvc := audit.NewService(q)
+	h := user.NewHandler(svc, fieldSvc, auditSvc)
+	gin.SetMode(gin.TestMode)
+
+	role := testsupport.SeedRole(t, pool, "r-create-validation")
+
+	t.Run("missing name responds 400", func(t *testing.T) {
+		body := map[string]any{
+			"email":   "missing.name@test.local",
+			"role_id": role.String(),
+		}
+		code, _ := doJSON(t, h, http.MethodPost, "/api/v1/users", role, body)
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+
+	t.Run("missing role_id responds 400", func(t *testing.T) {
+		body := map[string]any{
+			"name":  "No Role",
+			"email": "no.role@test.local",
+		}
+		code, _ := doJSON(t, h, http.MethodPost, "/api/v1/users", role, body)
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+
+	t.Run("invalid email format responds 400", func(t *testing.T) {
+		body := map[string]any{
+			"name":    "Bad Email",
+			"email":   "not-an-email",
+			"role_id": role.String(),
+		}
+		code, _ := doJSON(t, h, http.MethodPost, "/api/v1/users", role, body)
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+}
+
+// TestUser_Create_DuplicateEmail proves POST /users maps the unique-email
+// constraint violation (mapDBError -> ErrEmailExists) to 409 via svcError,
+// exercising create's write path against an already-seeded email.
+func TestUser_Create_DuplicateEmail(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+
+	q := sqlc.New(pool)
+	svc := user.NewService(q)
+	fieldSvc := authz.NewFieldService(q, rdb)
+	auditSvc := audit.NewService(q)
+	h := user.NewHandler(svc, fieldSvc, auditSvc)
+	gin.SetMode(gin.TestMode)
+
+	role := testsupport.SeedRole(t, pool, "r-create-dup")
+	const existingEmail = "dup.email@test.local"
+	seedUserDirect(t, pool, role, existingEmail)
+
+	body := map[string]any{
+		"name":    "Dup User",
+		"email":   existingEmail,
+		"role_id": role.String(),
+	}
+	code, respBody := doJSON(t, h, http.MethodPost, "/api/v1/users", role, body)
+	assert.Equal(t, http.StatusConflict, code)
+	assert.Contains(t, respBody, "error")
+
+	var count int
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`SELECT count(*) FROM identity.users WHERE email = $1 AND deleted_at IS NULL`, existingEmail).
+		Scan(&count))
+	assert.Equal(t, 1, count, "duplicate create must not insert a second row")
+}
+
+// TestUser_Update_Success proves PUT /users/:id replaces the mutable fields
+// (name/role_id/status) and that the change is persisted, not just echoed
+// back in the response.
+func TestUser_Update_Success(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+
+	q := sqlc.New(pool)
+	svc := user.NewService(q)
+	fieldSvc := authz.NewFieldService(q, rdb)
+	auditSvc := audit.NewService(q)
+	h := user.NewHandler(svc, fieldSvc, auditSvc)
+	gin.SetMode(gin.TestMode)
+
+	roleOld := testsupport.SeedRole(t, pool, "r-update-old")
+	roleNew := testsupport.SeedRole(t, pool, "r-update-new")
+	target := seedUserDirect(t, pool, roleOld, "update.target@test.local")
+
+	body := map[string]any{
+		"name":    "Updated Name",
+		"role_id": roleNew.String(),
+		"status":  "inactive",
+	}
+	code, respBody := doJSON(t, h, http.MethodPut, "/api/v1/users/"+target.String(), roleOld, body)
+	require.Equal(t, http.StatusOK, code)
+	assert.Equal(t, "Updated Name", respBody["name"])
+	assert.Equal(t, roleNew.String(), respBody["role_id"])
+	assert.Equal(t, "inactive", respBody["status"])
+
+	var dbName, dbStatus string
+	var dbRole uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`SELECT name, role_id, status FROM identity.users WHERE id = $1 AND deleted_at IS NULL`, target).
+		Scan(&dbName, &dbRole, &dbStatus))
+	assert.Equal(t, "Updated Name", dbName)
+	assert.Equal(t, roleNew, dbRole)
+	assert.Equal(t, "inactive", dbStatus)
+}
+
+// TestUser_Update_NotFound proves PUT /users/:id responds 404 for an id that
+// does not exist (handler fetches "before" via svc.Get first, mapping
+// ErrNotFound through svcError).
+func TestUser_Update_NotFound(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+
+	q := sqlc.New(pool)
+	svc := user.NewService(q)
+	fieldSvc := authz.NewFieldService(q, rdb)
+	auditSvc := audit.NewService(q)
+	h := user.NewHandler(svc, fieldSvc, auditSvc)
+	gin.SetMode(gin.TestMode)
+
+	role := testsupport.SeedRole(t, pool, "r-update-notfound")
+
+	body := map[string]any{
+		"name":    "Ghost",
+		"role_id": role.String(),
+		"status":  "active",
+	}
+	code, respBody := doJSON(t, h, http.MethodPut, "/api/v1/users/"+uuid.New().String(), role, body)
+	assert.Equal(t, http.StatusNotFound, code)
+	assert.Contains(t, respBody, "error")
+}
+
+// TestUser_Delete_Success proves DELETE /users/:id responds 204, soft-deletes
+// the row (deleted_at set, row no longer visible to GetUserByID's
+// "deleted_at IS NULL" filter), and does not hard-delete it.
+func TestUser_Delete_Success(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+
+	q := sqlc.New(pool)
+	svc := user.NewService(q)
+	fieldSvc := authz.NewFieldService(q, rdb)
+	auditSvc := audit.NewService(q)
+	h := user.NewHandler(svc, fieldSvc, auditSvc)
+	gin.SetMode(gin.TestMode)
+
+	role := testsupport.SeedRole(t, pool, "r-delete-success")
+	target := seedUserDirect(t, pool, role, "delete.target@test.local")
+
+	code, body := doJSON(t, h, http.MethodDelete, "/api/v1/users/"+target.String(), role, nil)
+	require.Equal(t, http.StatusNoContent, code)
+	assert.Empty(t, body)
+
+	var isDeleted bool
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`SELECT deleted_at IS NOT NULL FROM identity.users WHERE id = $1`, target).
+		Scan(&isDeleted))
+	assert.True(t, isDeleted, "delete must soft-delete (set deleted_at), not leave the row live")
+
+	var rowStillExists bool
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`SELECT EXISTS(SELECT 1 FROM identity.users WHERE id = $1)`, target).
+		Scan(&rowStillExists))
+	assert.True(t, rowStillExists, "delete must not hard-delete the row")
+
+	// GET after DELETE must now report not-found, proving the soft-delete is
+	// honored by the read path too.
+	getCode, _ := doRequest(t, h, http.MethodGet, "/api/v1/users/"+target.String(), role)
+	assert.Equal(t, http.StatusNotFound, getCode)
+}
+
+// TestUser_Delete_NotFound proves DELETE /users/:id responds 404 for an id
+// that does not exist (handler fetches "before" via svc.Get first).
+func TestUser_Delete_NotFound(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+
+	q := sqlc.New(pool)
+	svc := user.NewService(q)
+	fieldSvc := authz.NewFieldService(q, rdb)
+	auditSvc := audit.NewService(q)
+	h := user.NewHandler(svc, fieldSvc, auditSvc)
+	gin.SetMode(gin.TestMode)
+
+	role := testsupport.SeedRole(t, pool, "r-delete-notfound")
+
+	code, respBody := doJSON(t, h, http.MethodDelete, "/api/v1/users/"+uuid.New().String(), role, nil)
+	assert.Equal(t, http.StatusNotFound, code)
+	assert.Contains(t, respBody, "error")
 }
