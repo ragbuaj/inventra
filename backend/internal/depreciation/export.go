@@ -13,11 +13,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-pdf/fpdf"
 	"github.com/jackc/pgx/v5"
 	"github.com/xuri/excelize/v2"
 
 	sqlc "github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/pdfutil"
 )
 
 // ErrInvalidExportFormat is returned when the `format` query param on the
@@ -135,13 +135,13 @@ func (s *Service) BuildJournalPDF(ctx context.Context, period time.Time, basis s
 		return nil, err
 	}
 
-	pdf := fpdf.New("P", "mm", "A4", "")
+	pdf := pdfutil.NewUTF8PDF("P", "mm", "A4")
 	pdf.AddPage()
 
-	pdf.SetFont("Helvetica", "B", 14)
+	pdf.SetFont(pdfutil.FontFamily, "B", 14)
 	pdf.CellFormat(0, 8, company, "", 1, "C", false, 0, "")
 
-	pdf.SetFont("Helvetica", "", 11)
+	pdf.SetFont(pdfutil.FontFamily, "", 11)
 	pdf.CellFormat(0, 6, "Jurnal Penyusutan", "", 1, "C", false, 0, "")
 	subtitle := fmt.Sprintf("%s · %s", basisLabel(basis), period.Format(periodLayout))
 	pdf.CellFormat(0, 6, subtitle, "", 1, "C", false, 0, "")
@@ -149,13 +149,13 @@ func (s *Service) BuildJournalPDF(ctx context.Context, period time.Time, basis s
 
 	widths := []float64{30, 90, 35, 35}
 	headers := []string{"Kode Akun", "Nama Akun", "Debit", "Kredit"}
-	pdf.SetFont("Helvetica", "B", 10)
+	pdf.SetFont(pdfutil.FontFamily, "B", 10)
 	for i, h := range headers {
 		pdf.CellFormat(widths[i], 7, h, "1", 0, "C", false, 0, "")
 	}
 	pdf.Ln(-1)
 
-	pdf.SetFont("Helvetica", "", 10)
+	pdf.SetFont(pdfutil.FontFamily, "", 10)
 	for _, r := range result.Rows {
 		pdf.CellFormat(widths[0], 7, r.AccountCode, "1", 0, "L", false, 0, "")
 		pdf.CellFormat(widths[1], 7, r.AccountName, "1", 0, "L", false, 0, "")
@@ -164,13 +164,13 @@ func (s *Service) BuildJournalPDF(ctx context.Context, period time.Time, basis s
 		pdf.Ln(-1)
 	}
 
-	pdf.SetFont("Helvetica", "B", 10)
+	pdf.SetFont(pdfutil.FontFamily, "B", 10)
 	pdf.CellFormat(widths[0]+widths[1], 7, "TOTAL", "1", 0, "R", false, 0, "")
 	pdf.CellFormat(widths[2], 7, result.TotalDebit, "1", 0, "R", false, 0, "")
 	pdf.CellFormat(widths[3], 7, result.TotalCredit, "1", 0, "R", false, 0, "")
 	pdf.Ln(10)
 
-	pdf.SetFont("Helvetica", "I", 9)
+	pdf.SetFont(pdfutil.FontFamily, "I", 9)
 	pdf.MultiCell(0, 5, "Jurnal seimbang — debit = kredit.", "", "L", false)
 
 	var buf bytes.Buffer

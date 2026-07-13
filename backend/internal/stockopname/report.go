@@ -11,12 +11,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-pdf/fpdf"
 	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
 
 	sqlc "github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/approval"
+	"github.com/ragbuaj/inventra/internal/pdfutil"
 )
 
 // reportDefaultCompany is the fallback company-name header for the PDF when
@@ -77,26 +77,26 @@ func resultLabel(result string) string {
 // summary block, an item table (asset name, tag, result, note), and a
 // signatory line.
 func RenderPDF(d ReportData) ([]byte, error) {
-	pdf := fpdf.New("P", "mm", "A4", "")
+	pdf := pdfutil.NewUTF8PDF("P", "mm", "A4")
 	pdf.AddPage()
 
-	pdf.SetFont("Helvetica", "B", 14)
+	pdf.SetFont(pdfutil.FontFamily, "B", 14)
 	pdf.CellFormat(0, 8, reportDefaultCompany, "", 1, "C", false, 0, "")
 
-	pdf.SetFont("Helvetica", "B", 12)
+	pdf.SetFont(pdfutil.FontFamily, "B", 12)
 	pdf.CellFormat(0, 7, "BERITA ACARA STOCK OPNAME", "", 1, "C", false, 0, "")
 	pdf.Ln(2)
 
-	pdf.SetFont("Helvetica", "", 10)
+	pdf.SetFont(pdfutil.FontFamily, "", 10)
 	pdf.CellFormat(0, 6, fmt.Sprintf("Sesi: %s", d.SessionName), "", 1, "L", false, 0, "")
 	pdf.CellFormat(0, 6, fmt.Sprintf("Kantor: %s", d.OfficeName), "", 1, "L", false, 0, "")
 	pdf.CellFormat(0, 6, fmt.Sprintf("Periode: %s", d.Period), "", 1, "L", false, 0, "")
 	pdf.CellFormat(0, 6, fmt.Sprintf("Ditutup oleh: %s", d.ClosedByName), "", 1, "L", false, 0, "")
 	pdf.Ln(4)
 
-	pdf.SetFont("Helvetica", "B", 10)
+	pdf.SetFont(pdfutil.FontFamily, "B", 10)
 	pdf.CellFormat(0, 6, "Ringkasan", "", 1, "L", false, 0, "")
-	pdf.SetFont("Helvetica", "", 10)
+	pdf.SetFont(pdfutil.FontFamily, "", 10)
 	pdf.CellFormat(0, 6, fmt.Sprintf("Total Aset: %d", d.Kpi.Total), "", 1, "L", false, 0, "")
 	pdf.CellFormat(0, 6, fmt.Sprintf("Ditemukan: %d", d.Kpi.Found), "", 1, "L", false, 0, "")
 	pdf.CellFormat(0, 6, fmt.Sprintf("Belum Dihitung: %d", d.Kpi.Pending), "", 1, "L", false, 0, "")
@@ -105,13 +105,13 @@ func RenderPDF(d ReportData) ([]byte, error) {
 
 	widths := []float64{55, 45, 30, 50}
 	headers := []string{"Nama Aset", "Kode Aset", "Hasil", "Catatan"}
-	pdf.SetFont("Helvetica", "B", 10)
+	pdf.SetFont(pdfutil.FontFamily, "B", 10)
 	for i, h := range headers {
 		pdf.CellFormat(widths[i], 7, h, "1", 0, "C", false, 0, "")
 	}
 	pdf.Ln(-1)
 
-	pdf.SetFont("Helvetica", "", 9)
+	pdf.SetFont(pdfutil.FontFamily, "", 9)
 	for _, it := range d.Items {
 		pdf.CellFormat(widths[0], 7, it.AssetName, "1", 0, "L", false, 0, "")
 		pdf.CellFormat(widths[1], 7, it.AssetTag, "1", 0, "L", false, 0, "")
@@ -121,7 +121,7 @@ func RenderPDF(d ReportData) ([]byte, error) {
 	}
 	pdf.Ln(12)
 
-	pdf.SetFont("Helvetica", "", 10)
+	pdf.SetFont(pdfutil.FontFamily, "", 10)
 	pdf.CellFormat(0, 6, "Yang bertanda tangan di bawah ini menyatakan bahwa hasil stock opname di atas telah", "", 1, "L", false, 0, "")
 	pdf.CellFormat(0, 6, "diperiksa dan sesuai dengan kondisi fisik aset pada tanggal penutupan sesi.", "", 1, "L", false, 0, "")
 	pdf.Ln(14)

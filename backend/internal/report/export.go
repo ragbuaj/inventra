@@ -21,9 +21,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-pdf/fpdf"
 	"github.com/jackc/pgx/v5"
 	"github.com/xuri/excelize/v2"
+
+	"github.com/ragbuaj/inventra/internal/pdfutil"
 )
 
 // exportDefaultCompany is the fallback company-name header for the PDF when
@@ -278,25 +279,25 @@ func (s *Service) BuildReportPDF(ctx context.Context, res ReportResult, meta Exp
 		return nil, err
 	}
 
-	pdf := fpdf.New("L", "mm", "A4", "")
+	pdf := pdfutil.NewUTF8PDF("L", "mm", "A4")
 	pdf.AddPage()
 
-	pdf.SetFont("Helvetica", "B", 14)
+	pdf.SetFont(pdfutil.FontFamily, "B", 14)
 	pdf.CellFormat(0, 8, company, "", 1, "C", false, 0, "")
 
-	pdf.SetFont("Helvetica", "", 11)
+	pdf.SetFont(pdfutil.FontFamily, "", 11)
 	pdf.CellFormat(0, 6, meta.Title, "", 1, "C", false, 0, "")
 	subtitle := fmt.Sprintf("%s · %s", meta.PeriodLabel, meta.OfficeLabel)
 	pdf.CellFormat(0, 6, subtitle, "", 1, "C", false, 0, "")
 	pdf.Ln(4)
 
-	pdf.SetFont("Helvetica", "B", 9)
+	pdf.SetFont(pdfutil.FontFamily, "B", 9)
 	for _, c := range cols {
 		pdf.CellFormat(c.Width, 7, c.Header, "1", 0, "C", false, 0, "")
 	}
 	pdf.Ln(-1)
 
-	pdf.SetFont("Helvetica", "", 9)
+	pdf.SetFont(pdfutil.FontFamily, "", 9)
 	for i := 0; i < n; i++ {
 		for _, c := range cols {
 			pdf.CellFormat(c.Width, 7, c.Value(i), "1", 0, c.Align, false, 0, "")
@@ -305,7 +306,7 @@ func (s *Service) BuildReportPDF(ctx context.Context, res ReportResult, meta Exp
 	}
 
 	if len(res.Totals) > 0 {
-		pdf.SetFont("Helvetica", "B", 9)
+		pdf.SetFont(pdfutil.FontFamily, "B", 9)
 		for i, c := range cols {
 			if i == 0 {
 				pdf.CellFormat(c.Width, 7, "TOTAL", "1", 0, "R", false, 0, "")
@@ -322,7 +323,7 @@ func (s *Service) BuildReportPDF(ctx context.Context, res ReportResult, meta Exp
 		pdf.Ln(6)
 	}
 
-	pdf.SetFont("Helvetica", "I", 8)
+	pdf.SetFont(pdfutil.FontFamily, "I", 8)
 	pdf.MultiCell(0, 5, printedFooter(meta), "", "L", false)
 
 	var buf bytes.Buffer
@@ -480,34 +481,34 @@ func (s *Service) BuildDashboardPDF(ctx context.Context, sum DashboardSummary, m
 		return nil, err
 	}
 
-	pdf := fpdf.New("P", "mm", "A4", "")
+	pdf := pdfutil.NewUTF8PDF("P", "mm", "A4")
 	pdf.AddPage()
 
-	pdf.SetFont("Helvetica", "B", 14)
+	pdf.SetFont(pdfutil.FontFamily, "B", 14)
 	pdf.CellFormat(0, 8, company, "", 1, "C", false, 0, "")
 
-	pdf.SetFont("Helvetica", "", 11)
+	pdf.SetFont(pdfutil.FontFamily, "", 11)
 	pdf.CellFormat(0, 6, meta.Title, "", 1, "C", false, 0, "")
 	subtitle := fmt.Sprintf("%s · %s", meta.PeriodLabel, meta.OfficeLabel)
 	pdf.CellFormat(0, 6, subtitle, "", 1, "C", false, 0, "")
 	pdf.Ln(4)
 
-	pdf.SetFont("Helvetica", "B", 10)
+	pdf.SetFont(pdfutil.FontFamily, "B", 10)
 	pdf.CellFormat(0, 6, "Ringkasan", "", 1, "L", false, 0, "")
-	pdf.SetFont("Helvetica", "", 10)
+	pdf.SetFont(pdfutil.FontFamily, "", 10)
 	for _, l := range dashboardKpiRows(sum) {
 		pdf.CellFormat(0, 6, fmt.Sprintf("%s: %s", l[0], l[1]), "", 1, "L", false, 0, "")
 	}
 	pdf.Ln(4)
 
 	renderBreakdown := func(title string, rows [][2]string) {
-		pdf.SetFont("Helvetica", "B", 10)
+		pdf.SetFont(pdfutil.FontFamily, "B", 10)
 		pdf.CellFormat(0, 6, title, "", 1, "L", false, 0, "")
-		pdf.SetFont("Helvetica", "B", 9)
+		pdf.SetFont(pdfutil.FontFamily, "B", 9)
 		pdf.CellFormat(120, 6, "Label", "1", 0, "L", false, 0, "")
 		pdf.CellFormat(40, 6, "Jumlah", "1", 0, "R", false, 0, "")
 		pdf.Ln(-1)
-		pdf.SetFont("Helvetica", "", 9)
+		pdf.SetFont(pdfutil.FontFamily, "", 9)
 		for _, r := range rows {
 			pdf.CellFormat(120, 6, r[0], "1", 0, "L", false, 0, "")
 			pdf.CellFormat(40, 6, r[1], "1", 0, "R", false, 0, "")
@@ -534,7 +535,7 @@ func (s *Service) BuildDashboardPDF(ctx context.Context, sum DashboardSummary, m
 	}
 	renderBreakdown("Berdasarkan "+locationBreakdownLabel(sum.LocationKind), locRows)
 
-	pdf.SetFont("Helvetica", "I", 8)
+	pdf.SetFont(pdfutil.FontFamily, "I", 8)
 	pdf.MultiCell(0, 5, printedFooter(meta), "", "L", false)
 
 	var buf bytes.Buffer
@@ -622,13 +623,13 @@ func (s *Service) BuildGlRecapPDF(ctx context.Context, r GlRecapResult, meta Exp
 		return nil, err
 	}
 
-	pdf := fpdf.New("P", "mm", "A4", "")
+	pdf := pdfutil.NewUTF8PDF("P", "mm", "A4")
 	pdf.AddPage()
 
-	pdf.SetFont("Helvetica", "B", 14)
+	pdf.SetFont(pdfutil.FontFamily, "B", 14)
 	pdf.CellFormat(0, 8, company, "", 1, "C", false, 0, "")
 
-	pdf.SetFont("Helvetica", "", 11)
+	pdf.SetFont(pdfutil.FontFamily, "", 11)
 	pdf.CellFormat(0, 6, meta.Title, "", 1, "C", false, 0, "")
 	subtitle := fmt.Sprintf("%s · %s", meta.PeriodLabel, meta.OfficeLabel)
 	pdf.CellFormat(0, 6, subtitle, "", 1, "C", false, 0, "")
@@ -636,13 +637,13 @@ func (s *Service) BuildGlRecapPDF(ctx context.Context, r GlRecapResult, meta Exp
 
 	widths := []float64{30, 90, 35, 35}
 	headers := []string{"Kode Akun", "Nama Akun", "Debit", "Kredit"}
-	pdf.SetFont("Helvetica", "B", 10)
+	pdf.SetFont(pdfutil.FontFamily, "B", 10)
 	for i, h := range headers {
 		pdf.CellFormat(widths[i], 7, h, "1", 0, "C", false, 0, "")
 	}
 	pdf.Ln(-1)
 
-	pdf.SetFont("Helvetica", "", 10)
+	pdf.SetFont(pdfutil.FontFamily, "", 10)
 	for _, gr := range r.Rows {
 		pdf.CellFormat(widths[0], 7, gr.AccountCode, "1", 0, "L", false, 0, "")
 		pdf.CellFormat(widths[1], 7, gr.AccountName, "1", 0, "L", false, 0, "")
@@ -651,13 +652,13 @@ func (s *Service) BuildGlRecapPDF(ctx context.Context, r GlRecapResult, meta Exp
 		pdf.Ln(-1)
 	}
 
-	pdf.SetFont("Helvetica", "B", 10)
+	pdf.SetFont(pdfutil.FontFamily, "B", 10)
 	pdf.CellFormat(widths[0]+widths[1], 7, "TOTAL", "1", 0, "R", false, 0, "")
 	pdf.CellFormat(widths[2], 7, r.TotalDebit, "1", 0, "R", false, 0, "")
 	pdf.CellFormat(widths[3], 7, r.TotalCredit, "1", 0, "R", false, 0, "")
 	pdf.Ln(10)
 
-	pdf.SetFont("Helvetica", "I", 9)
+	pdf.SetFont(pdfutil.FontFamily, "I", 9)
 	pdf.MultiCell(0, 5, printedFooter(meta), "", "L", false)
 
 	var buf bytes.Buffer
