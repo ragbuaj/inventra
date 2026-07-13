@@ -14,8 +14,9 @@ const toast = useToast()
 const localePath = useLocalePath()
 const assetsApi = useAssets()
 const categoriesApi = useCategories()
-const referenceApi = useReference()
 const office = useOfficePicker()
+const brand = useReferencePicker('brands')
+const model = useReferencePicker('models')
 
 const rows = ref<Asset[]>([])
 const total = ref(0)
@@ -37,17 +38,16 @@ const selected = ref<Set<string>>(new Set())
 // comes back absent when the caller can't view it (see moneyCell below).
 const showPrice = true
 
-// Filter option lists + id→name maps (categories via useCategories().tree(),
-// brands/models via the generic useReference() engine). Office resolves
-// on-demand via useResolveCache — no more eager `{ limit: 100 }` list, so a
-// stored office_id outside the picker's first search page still resolves.
+// Filter option list for category (via useCategories().tree() — the
+// category filter is a small, bounded USelect, so an eager fetch is fine).
+// Office/brand/model resolve on-demand via useResolveCache — no more eager
+// `{ limit: 100 }` lists, so a stored id outside a picker's first search
+// page still resolves (see useResolveCache, useOfficePicker/useReferencePicker).
 const categoryOptions = ref<{ value: string, label: string }[]>([])
-const brandOptions = ref<{ value: string, label: string }[]>([])
-const modelOptions = ref<{ value: string, label: string }[]>([])
 const categoryMap = computed(() => new Map(categoryOptions.value.map(o => [o.value, o.label])))
-const brandMap = computed(() => new Map(brandOptions.value.map(o => [o.value, o.label])))
-const modelMap = computed(() => new Map(modelOptions.value.map(o => [o.value, o.label])))
 const officeCache = useResolveCache(office.resolveFn)
+const brandCache = useResolveCache(brand.resolveFn)
+const modelCache = useResolveCache(model.resolveFn)
 function categoryName(id: string): string {
   return categoryMap.value.get(id) ?? '—'
 }
@@ -55,9 +55,9 @@ function officeName(id: string): string {
   return officeCache.get(id)
 }
 function brandModelLabel(brandId: string | null | undefined, modelId: string | null | undefined): string {
-  const brand = brandId ? brandMap.value.get(brandId) : undefined
-  const model = modelId ? modelMap.value.get(modelId) : undefined
-  const parts = [brand, model].filter((v): v is string => !!v)
+  const brandLabel = brandId ? brandCache.get(brandId) : undefined
+  const modelLabel = modelId ? modelCache.get(modelId) : undefined
+  const parts = [brandLabel, modelLabel].filter((v): v is string => !!v && v !== '—')
   return parts.length > 0 ? parts.join(' ') : '—'
 }
 
@@ -184,16 +184,13 @@ async function load() {
 }
 
 async function loadFilterOptions() {
-  // Each lookup is independent — one failing (network error, permission
-  // gap, ...) must not reject the whole Promise.all and must not blank out
-  // the other dropdowns that did succeed (same guard pattern as the
-  // Detail page's loadLookups). Office is not part of this batch — the
-  // office filter is an AsyncSearchPicker that searches on demand.
-  await Promise.all([
-    categoriesApi.tree().then((cats) => { categoryOptions.value = cats.map(c => ({ value: c.id, label: c.name })) }).catch(() => {}),
-    referenceApi.list('brands', { limit: 100 }).then((res) => { brandOptions.value = res.data.map(b => ({ value: b.id, label: b.name })) }).catch(() => {}),
-    referenceApi.list('models', { limit: 100 }).then((res) => { modelOptions.value = res.data.map(m => ({ value: m.id, label: m.name })) }).catch(() => {})
-  ])
+  // Office/brand/model are not part of this lookup — they resolve on demand
+  // via useResolveCache (office filter is an AsyncSearchPicker; brand/model
+  // are per-row table/grid labels only, no filter control for them exists
+  // in the design — see docs/design/Katalog Aset.dc.html, which shows
+  // "Brand / Model" only as a table column).
+  const cats = await categoriesApi.tree().catch(() => [])
+  categoryOptions.value = cats.map(c => ({ value: c.id, label: c.name }))
 }
 
 let searchTimer: ReturnType<typeof setTimeout> | undefined

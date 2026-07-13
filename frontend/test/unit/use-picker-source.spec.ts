@@ -10,7 +10,8 @@ const getEmployee = vi.fn()
 vi.mock('~/composables/api/useEmployees', () => ({ useEmployees: () => ({ list: listEmployees, get: getEmployee }) }))
 
 const listReference = vi.fn()
-vi.mock('~/composables/api/useReference', () => ({ useReference: () => ({ list: listReference }) }))
+const getReference = vi.fn()
+vi.mock('~/composables/api/useReference', () => ({ useReference: () => ({ list: listReference, get: getReference }) }))
 
 const listCategories = vi.fn()
 const getCategory = vi.fn()
@@ -31,6 +32,7 @@ beforeEach(() => {
   listEmployees.mockReset()
   getEmployee.mockReset()
   listReference.mockReset()
+  getReference.mockReset()
   listCategories.mockReset()
   getCategory.mockReset()
   listUsers.mockReset()
@@ -99,15 +101,15 @@ describe('useReferencePicker', () => {
     expect(items).toEqual([{ id: 'd1', label: 'Jakarta', sublabel: '31' }])
   })
 
-  it('resolveFn GETs /<resource>/:id directly (useReference exposes no per-id getter) and maps the row', async () => {
-    request.mockResolvedValueOnce({ id: 'b1', name: 'Dell' })
+  it('resolveFn maps a single reference row by id via useReference().get (no reach-around needed)', async () => {
+    getReference.mockResolvedValueOnce({ id: 'b1', name: 'Dell' })
     const { resolveFn } = useReferencePicker('brands')
     expect(await resolveFn('b1')).toEqual({ id: 'b1', label: 'Dell', sublabel: undefined })
-    expect(request).toHaveBeenCalledWith('/brands/b1')
+    expect(getReference).toHaveBeenCalledWith('brands', 'b1')
   })
 
   it('resolveFn resolves to null when the fetch fails instead of rejecting', async () => {
-    request.mockRejectedValueOnce(new Error('not found'))
+    getReference.mockRejectedValueOnce(new Error('not found'))
     const { resolveFn } = useReferencePicker('brands')
     await expect(resolveFn('missing')).resolves.toBeNull()
   })
