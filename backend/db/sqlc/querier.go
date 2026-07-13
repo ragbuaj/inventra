@@ -292,6 +292,9 @@ type Querier interface {
 	// Geo-enriched, scoped office list for the Peta Lokasi screen: resolves
 	// office-type/province/city names + a per-office (non-deleted) asset count.
 	ListOfficesMap(ctx context.Context, arg ListOfficesMapParams) ([]ListOfficesMapRow, error)
+	// Full scoped office set (no pagination) for building the office hierarchy tree
+	// client-side. Mirrors ListOffices' scope filter but without LIMIT/OFFSET/search.
+	ListOfficesTree(ctx context.Context, arg ListOfficesTreeParams) ([]MasterdataOffice, error)
 	ListOpnameItemsEnriched(ctx context.Context, arg ListOpnameItemsEnrichedParams) ([]ListOpnameItemsEnrichedRow, error)
 	ListOpnameSessions(ctx context.Context, arg ListOpnameSessionsParams) ([]ListOpnameSessionsRow, error)
 	// id/name lookup for the employee importer's optional "jabatan" column

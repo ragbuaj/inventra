@@ -362,6 +362,56 @@ func (q *Queries) ListOfficesMap(ctx context.Context, arg ListOfficesMapParams) 
 	return items, nil
 }
 
+const listOfficesTree = `-- name: ListOfficesTree :many
+SELECT id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at, latitude, longitude FROM masterdata.offices
+WHERE deleted_at IS NULL
+  AND ($1::bool OR id = ANY($2::uuid[]))
+ORDER BY name
+`
+
+type ListOfficesTreeParams struct {
+	AllScope  bool        `json:"all_scope"`
+	OfficeIds []uuid.UUID `json:"office_ids"`
+}
+
+// Full scoped office set (no pagination) for building the office hierarchy tree
+// client-side. Mirrors ListOffices' scope filter but without LIMIT/OFFSET/search.
+func (q *Queries) ListOfficesTree(ctx context.Context, arg ListOfficesTreeParams) ([]MasterdataOffice, error) {
+	rows, err := q.db.Query(ctx, listOfficesTree, arg.AllScope, arg.OfficeIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []MasterdataOffice{}
+	for rows.Next() {
+		var i MasterdataOffice
+		if err := rows.Scan(
+			&i.ID,
+			&i.ParentID,
+			&i.OfficeTypeID,
+			&i.ProvinceID,
+			&i.CityID,
+			&i.Name,
+			&i.Code,
+			&i.CostCenterCode,
+			&i.Address,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.Latitude,
+			&i.Longitude,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const softDeleteOffice = `-- name: SoftDeleteOffice :execrows
 UPDATE masterdata.offices SET deleted_at = now()
 WHERE id = $1 AND deleted_at IS NULL

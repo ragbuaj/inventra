@@ -60,6 +60,24 @@ func (h *Handler) mapList(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": data})
 }
 
+func (h *Handler) tree(c *gin.Context) {
+	all, ids, err := h.scoped.CallerOfficeScope(c, scopeModule)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
+		return
+	}
+	rows, err := h.svc.Tree(c.Request.Context(), all, ids)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list office tree"})
+		return
+	}
+	data := make([]Response, 0, len(rows))
+	for _, o := range rows {
+		data = append(data, toResponse(o))
+	}
+	c.JSON(http.StatusOK, gin.H{"data": data, "total": len(data)})
+}
+
 func (h *Handler) list(c *gin.Context) {
 	all, ids, err := h.scoped.CallerOfficeScope(c, scopeModule)
 	if err != nil {

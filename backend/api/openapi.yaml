@@ -851,6 +851,32 @@ paths:
                     items: { $ref: "#/components/schemas/OfficeMapItem" }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
+  /api/v1/offices/tree:
+    get:
+      tags: [Master Data]
+      operationId: listOfficesTree
+      summary: Full office tree (unbounded, data-scoped)
+      description: |
+        Returns the caller's full **data-scoped** office set with no pagination and
+        no 100-row cap, so the frontend can build a complete office hierarchy tree
+        past what the paginated `/offices` list can return. Readable by any
+        authenticated user.
+      security: [{ bearerJWT: [] }]
+      responses:
+        "200":
+          description: The full in-scope office set
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, total]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Office" }
+                  total: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
   /api/v1/offices/{id}:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
