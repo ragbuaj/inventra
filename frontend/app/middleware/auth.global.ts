@@ -1,6 +1,6 @@
 export default defineNuxtRouteMiddleware((to) => {
   const auth = useAuthStore()
-  const publicPaths = ['/login']
+  const publicPaths = ['/login', '/forgot-password', '/reset-password']
   const path = to.path.replace(/^\/(en)(?=\/|$)/, '') || '/'
   if (publicPaths.includes(path)) {
     if (auth.isAuthenticated && path === '/login') return navigateTo('/')

@@ -1480,7 +1480,6 @@
     "signInWithGoogle": "Masuk dengan Google",
     "invalidCredentials": "Email atau kata sandi salah. Silakan periksa kembali.",
     "connectionError": "Tidak dapat terhubung ke server. Periksa koneksi dan coba lagi.",
-    "featureComingSoon": "Fitur ini belum tersedia.",
     "signOut": "Keluar",
     "brandHeadline": "Manajemen aset, rapi dan terkendali.",
     "brandTagline": "Katalog, peminjaman, maintenance, hingga laporan organisasi 4 jenjang kantor — semuanya dalam satu sistem.",
@@ -1496,7 +1495,19 @@
         "disabled": "Masuk dengan Google belum tersedia.",
         "server": "Gagal masuk dengan Google. Coba lagi."
       }
-    }
+    },
+    "forgotTitle": "Lupa Password",
+    "forgotSubtitle": "Masukkan email akun Anda. Jika terdaftar, kami kirim tautan reset.",
+    "forgotSubmit": "Kirim Tautan Reset",
+    "forgotSent": "Jika email terdaftar, tautan reset telah dikirim. Cek kotak masuk Anda.",
+    "forgotRateLimited": "Terlalu banyak percobaan. Coba lagi beberapa saat.",
+    "backToLogin": "Kembali ke Login",
+    "resetTitle": "Buat Password Baru",
+    "resetSubmit": "Simpan Password",
+    "resetInvalid": "Tautan tidak valid atau sudah kedaluwarsa.",
+    "resetSuccess": "Password berhasil diubah. Silakan login kembali.",
+    "newPassword": "Password Baru",
+    "confirmPassword": "Konfirmasi Password"
   },
   "nav": {
     "profile": "Profil Saya",
@@ -1918,10 +1929,12 @@
     "toastProfileMsg": "Perubahan data diri Anda telah disimpan.",
     "toastPassTitle": "Password diganti",
     "toastPassMsg": "Kata sandi Anda berhasil diperbarui.",
+    "secReloginMsg": "Semua sesi diakhiri. Silakan login kembali.",
     "toastLogoutTitle": "Sesi diakhiri",
     "toastLogoutMsg": "Anda telah keluar dari semua perangkat lain.",
     "errRequired": "Wajib diisi.",
-    "errConfirmMismatch": "Konfirmasi password tidak cocok."
+    "errConfirmMismatch": "Konfirmasi password tidak cocok.",
+    "errWeak": "Password minimal 8 karakter"
   },
   "search": {
     "topbarPlaceholder": "Cari aset, pegawai, kantor, pengajuan…",

@@ -1288,19 +1288,20 @@ type IdentityRolePermission struct {
 }
 
 type IdentityUser struct {
-	ID           uuid.UUID          `json:"id"`
-	EmployeeID   *uuid.UUID         `json:"employee_id"`
-	OfficeID     *uuid.UUID         `json:"office_id"`
-	Name         string             `json:"name"`
-	Email        string             `json:"email"`
-	PasswordHash *string            `json:"password_hash"`
-	GoogleID     *string            `json:"google_id"`
-	AvatarUrl    *string            `json:"avatar_url"`
-	RoleID       uuid.UUID          `json:"role_id"`
-	Status       SharedUserStatus   `json:"status"`
-	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt    pgtype.Timestamptz `json:"deleted_at"`
+	ID                uuid.UUID          `json:"id"`
+	EmployeeID        *uuid.UUID         `json:"employee_id"`
+	OfficeID          *uuid.UUID         `json:"office_id"`
+	Name              string             `json:"name"`
+	Email             string             `json:"email"`
+	PasswordHash      *string            `json:"password_hash"`
+	GoogleID          *string            `json:"google_id"`
+	AvatarUrl         *string            `json:"avatar_url"`
+	RoleID            uuid.UUID          `json:"role_id"`
+	Status            SharedUserStatus   `json:"status"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt         pgtype.Timestamptz `json:"deleted_at"`
+	PasswordChangedAt pgtype.Timestamptz `json:"password_changed_at"`
 }
 
 type ImportImportJob struct {

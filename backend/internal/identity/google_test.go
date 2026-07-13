@@ -33,13 +33,16 @@ func (f *fakeUserStore) LinkGoogleID(_ context.Context, p sqlc.LinkGoogleIDParam
 	f.linked = p.GoogleID
 	return f.linkErr
 }
+func (f *fakeUserStore) UpdateUserPassword(_ context.Context, _ sqlc.UpdateUserPasswordParams) error {
+	return nil
+}
 
 func newGoogleSvc(store userStore) *Service {
 	cfg := &config.Config{JWTSecret: "test-secret-please-change", JWTAccessTTL: 15 * time.Minute, JWTRefreshTTL: time.Hour}
 	// Unreachable Redis: issue()'s SaveRefresh returns an error fast (never panics),
 	// so error-path tests run cleanly and the link side-effect is still observable.
 	rdb := redis.NewClient(&redis.Options{Addr: "127.0.0.1:1", MaxRetries: -1, DialTimeout: 50 * time.Millisecond})
-	return NewService(store, auth.NewTokenManager(cfg), auth.NewTokenStore(rdb))
+	return NewService(store, auth.NewTokenManager(cfg), auth.NewTokenStore(rdb), &fakeMailer{}, 30*time.Minute, "https://app")
 }
 
 func activeUser() sqlc.IdentityUser {

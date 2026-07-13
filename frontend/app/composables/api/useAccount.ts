@@ -9,6 +9,9 @@ export interface PasswordInput { oldPass: string, newPass: string, confirmPass: 
 
 export function useAccount() {
   const auth = useAuthStore()
+  const client = useApiClient()
+  const config = useRuntimeConfig()
+  const base = config.public.apiBase as string
 
   async function getProfile(): Promise<AccountProfile> {
     await fakeLatency(400)
@@ -32,7 +35,20 @@ export function useAccount() {
   async function changePassword(input: PasswordInput): Promise<void> {
     if (!input.oldPass || !input.newPass || !input.confirmPass) throw new Error('account.errRequired')
     if (input.newPass !== input.confirmPass) throw new Error('account.errConfirmMismatch')
-    await fakeLatency()
+    if (input.newPass.length < 8) throw new Error('account.errWeak')
+    await client.request('/auth/password', {
+      method: 'PUT',
+      body: { old_password: input.oldPass, new_password: input.newPass }
+    })
+  }
+
+  async function requestPasswordReset(email: string): Promise<void> {
+    await $fetch(`${base}/auth/password/forgot`, { method: 'POST', body: { email } })
+  }
+
+  async function resetPassword(token: string, newPass: string): Promise<void> {
+    if (newPass.length < 8) throw new Error('account.errWeak')
+    await $fetch(`${base}/auth/password/reset`, { method: 'POST', body: { token, new_password: newPass } })
   }
 
   async function listSessions(): Promise<AccountSession[]> {
@@ -70,5 +86,5 @@ export function useAccount() {
     }
   }
 
-  return { getProfile, updateProfile, changePassword, listSessions, revokeSession, logoutAllOthers, getNotifPrefs, setNotifPrefs }
+  return { getProfile, updateProfile, changePassword, requestPasswordReset, resetPassword, listSessions, revokeSession, logoutAllOthers, getNotifPrefs, setNotifPrefs }
 }

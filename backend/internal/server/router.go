@@ -28,6 +28,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/db"
 	"github.com/ragbuaj/inventra/internal/depreciation"
 	"github.com/ragbuaj/inventra/internal/disposal"
+	"github.com/ragbuaj/inventra/internal/email"
 	"github.com/ragbuaj/inventra/internal/identity"
 	"github.com/ragbuaj/inventra/internal/importer"
 	"github.com/ragbuaj/inventra/internal/maintenance"
@@ -164,9 +165,20 @@ func NewRouter(d Deps) (*gin.Engine, *importer.Worker) {
 			d.Log.Warn("google oauth disabled (discovery failed)", "error", oerr)
 		}
 
-		identitySvc := identity.NewService(queries, tokenManager, tokenStore)
-		identityHandler := identity.NewHandler(identitySvc, permSvc, scopeSvc, d.Limiter, d.Cfg.RateLimitLoginPerMin, d.Cfg.Env == "production", d.Cfg.JWTRefreshTTL, googleOAuth, d.Cfg.FrontendURL)
-		identity.RegisterRoutes(api, identityHandler, requireAuth, d.Limiter, d.Cfg.RateLimitLoginIPPerMin, d.Cfg.RateLimitRefreshPerMin, d.Cfg.RateLimitLoginIPPerMin)
+		mailer := email.NewMailer(email.NewSender(email.Options{
+			Enabled:  d.Cfg.MailEnabled,
+			Host:     d.Cfg.SMTPHost,
+			Port:     d.Cfg.SMTPPort,
+			Username: d.Cfg.SMTPUsername,
+			Password: d.Cfg.SMTPPassword,
+			From:     d.Cfg.SMTPFrom,
+			FromName: d.Cfg.SMTPFromName,
+			TLS:      d.Cfg.SMTPTLS,
+		}, slog.Default()))
+		asyncMailer := email.NewAsyncMailer(mailer, slog.Default())
+		identitySvc := identity.NewService(queries, tokenManager, tokenStore, asyncMailer, d.Cfg.PasswordResetTTL, d.Cfg.FrontendURL)
+		identityHandler := identity.NewHandler(identitySvc, permSvc, scopeSvc, d.Limiter, d.Cfg.RateLimitLoginPerMin, d.Cfg.Env == "production", d.Cfg.JWTRefreshTTL, googleOAuth, d.Cfg.FrontendURL, auditSvc, d.Cfg.RateLimitLoginPerMin)
+		identity.RegisterRoutes(api, identityHandler, requireAuth, d.Limiter, d.Cfg.RateLimitLoginIPPerMin, d.Cfg.RateLimitRefreshPerMin, d.Cfg.RateLimitLoginIPPerMin, d.Cfg.RateLimitLoginPerMin)
 
 		userHandler := user.NewHandler(user.NewService(queries), fieldSvc, auditSvc)
 		user.RegisterRoutes(api, userHandler, requireAuth, middleware.RequirePermission(permSvc, "user.manage"))

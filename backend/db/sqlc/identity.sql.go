@@ -53,7 +53,7 @@ func (q *Queries) CreateRole(ctx context.Context, arg CreateRoleParams) (Identit
 const createUser = `-- name: CreateUser :one
 INSERT INTO identity.users (name, email, password_hash, role_id, office_id, employee_id)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, employee_id, office_id, name, email, password_hash, google_id, avatar_url, role_id, status, created_at, updated_at, deleted_at
+RETURNING id, employee_id, office_id, name, email, password_hash, google_id, avatar_url, role_id, status, created_at, updated_at, deleted_at, password_changed_at
 `
 
 type CreateUserParams struct {
@@ -89,6 +89,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Identit
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.PasswordChangedAt,
 	)
 	return i, err
 }
@@ -148,7 +149,7 @@ func (q *Queries) GetRoleByCode(ctx context.Context, code string) (IdentityRole,
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, employee_id, office_id, name, email, password_hash, google_id, avatar_url, role_id, status, created_at, updated_at, deleted_at FROM identity.users
+SELECT id, employee_id, office_id, name, email, password_hash, google_id, avatar_url, role_id, status, created_at, updated_at, deleted_at, password_changed_at FROM identity.users
 WHERE email = $1 AND deleted_at IS NULL
 `
 
@@ -169,12 +170,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (IdentityUse
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.PasswordChangedAt,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, employee_id, office_id, name, email, password_hash, google_id, avatar_url, role_id, status, created_at, updated_at, deleted_at FROM identity.users
+SELECT id, employee_id, office_id, name, email, password_hash, google_id, avatar_url, role_id, status, created_at, updated_at, deleted_at, password_changed_at FROM identity.users
 WHERE id = $1 AND deleted_at IS NULL
 `
 
@@ -195,6 +197,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (IdentityUser, 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.PasswordChangedAt,
 	)
 	return i, err
 }
@@ -482,4 +485,20 @@ func (q *Queries) UpdateRole(ctx context.Context, arg UpdateRoleParams) (Identit
 		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const updateUserPassword = `-- name: UpdateUserPassword :exec
+UPDATE identity.users
+SET password_hash = $2, password_changed_at = now()
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+type UpdateUserPasswordParams struct {
+	ID           uuid.UUID `json:"id"`
+	PasswordHash *string   `json:"password_hash"`
+}
+
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
+	_, err := q.db.Exec(ctx, updateUserPassword, arg.ID, arg.PasswordHash)
+	return err
 }

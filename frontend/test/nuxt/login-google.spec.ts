@@ -4,12 +4,13 @@ import { mountSuspended, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import LoginPage from '~/pages/login.vue'
 
 // Hoisted mocks — must be created before any mockNuxtImport calls.
-const { refreshMock, fetchMeMock, navigateToMock, routeQuery } = vi.hoisted(() => {
+const { refreshMock, fetchMeMock, navigateToMock, toastAddMock, routeQuery } = vi.hoisted(() => {
   const routeQuery: Record<string, string | undefined> = {}
   return {
     refreshMock: vi.fn(() => Promise.resolve(true)),
     fetchMeMock: vi.fn(() => Promise.resolve()),
     navigateToMock: vi.fn(),
+    toastAddMock: vi.fn(),
     routeQuery
   }
 })
@@ -22,14 +23,17 @@ mockNuxtImport('useAuthApi', () => () => ({
 }))
 mockNuxtImport('navigateTo', () => navigateToMock)
 mockNuxtImport('useRoute', () => () => ({ query: routeQuery }))
+mockNuxtImport('useToast', () => () => ({ add: toastAddMock }))
 
 beforeEach(() => {
   refreshMock.mockClear()
   fetchMeMock.mockClear()
   navigateToMock.mockClear()
+  toastAddMock.mockClear()
   // Reset query on each test by clearing known keys
   routeQuery.oauth = undefined
   routeQuery.reason = undefined
+  routeQuery.reset = undefined
 })
 
 describe('login.vue Google landing', () => {
@@ -53,5 +57,12 @@ describe('login.vue Google landing', () => {
     const hasId = html.includes('belum terdaftar')
     const hasEn = html.includes('No account exists for this Google email')
     expect(hasId || hasEn).toBe(true)
+  })
+
+  it('on ?reset=success it shows a success toast', async () => {
+    routeQuery.reset = 'success'
+    await mountSuspended(LoginPage)
+    await new Promise(r => setTimeout(r, 10))
+    expect(toastAddMock).toHaveBeenCalledWith(expect.objectContaining({ color: 'success' }))
   })
 })

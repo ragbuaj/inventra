@@ -420,6 +420,85 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /api/v1/auth/password/forgot:
+    post:
+      tags: [Auth]
+      operationId: authPasswordForgot
+      summary: Request a password reset email
+      description: Initiates a password reset flow. Always returns 200, even if the email does not exist (anti-enumeration).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Accepted (password reset email sent if the account exists)
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /api/v1/auth/password/reset:
+    post:
+      tags: [Auth]
+      operationId: authPasswordReset
+      summary: Reset a password using an emailed token
+      description: Completes a password reset using a token sent to the user's email.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, new_password]
+              properties:
+                token:
+                  type: string
+                new_password:
+                  type: string
+                  minLength: 8
+      responses:
+        "200":
+          description: Password reset successfully
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/v1/auth/password:
+    put:
+      tags: [Auth]
+      operationId: authPasswordChange
+      summary: Change the authenticated user's password
+      description: Changes the current password; invalidates all active sessions for this user.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [old_password, new_password]
+              properties:
+                old_password:
+                  type: string
+                new_password:
+                  type: string
+                  minLength: 8
+      responses:
+        "200":
+          description: Password changed; all sessions invalidated
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /api/v1/users:
     get:
       tags: [Users]

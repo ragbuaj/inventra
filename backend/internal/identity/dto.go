@@ -58,3 +58,20 @@ func newUserResponse(u sqlc.IdentityUser) userResponse {
 	}
 	return resp
 }
+
+// forgotPasswordRequest starts a reset; response is always 200 (anti-enumeration).
+type forgotPasswordRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+// resetPasswordRequest completes a reset with the emailed token.
+type resetPasswordRequest struct {
+	Token       string `json:"token" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=8"`
+}
+
+// changePasswordRequest changes the authenticated user's password.
+type changePasswordRequest struct {
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=8"`
+}

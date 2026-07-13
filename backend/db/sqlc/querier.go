@@ -442,6 +442,7 @@ type Querier interface {
 	UpdateRoom(ctx context.Context, arg UpdateRoomParams) (MasterdataRoom, error)
 	UpdateThreshold(ctx context.Context, arg UpdateThresholdParams) (ApprovalApprovalThreshold, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (IdentityUser, error)
+	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 	// The DO UPDATE's WHERE guard makes a closed period unmatchable (0 rows →
 	// pgx.ErrNoRows): even if a ComputePeriod raced past its status pre-check, it
 	// can never flip a closed period back to 'computed'. The service maps that
