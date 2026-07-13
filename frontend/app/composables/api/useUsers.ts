@@ -37,20 +37,23 @@ export interface Lookups { roles: Option[] }
 interface RoleDTO { id: string, name: string }
 
 /**
- * User management, wired to /api/v1/users. List is server-side search+pagination
- * (the backend supports only search/limit/offset). Role names are resolved
- * client-side from lookups() (the list returns FK UUIDs only) — office/employee
- * names resolve on demand via the office/employee picker adapters
- * (usePickerSource.ts) instead of an eager `{ limit: 100 }` list.
+ * User management, wired to /api/v1/users. List is server-side search+filter+
+ * pagination (search, role_id, office_id, status, limit, offset). Role names
+ * are resolved client-side from lookups() (the list returns FK UUIDs only) —
+ * office/employee names resolve on demand via the office/employee picker
+ * adapters (usePickerSource.ts) instead of an eager `{ limit: 100 }` list.
  */
 export function useUsers() {
   const { request } = useApiClient()
 
-  async function list(params: { search?: string, limit: number, offset: number }): Promise<{ rows: UserView[], total: number }> {
+  async function list(params: { search?: string, roleId?: string, officeId?: string, status?: UserStatus, limit: number, offset: number }): Promise<{ rows: UserView[], total: number }> {
     const q = new URLSearchParams()
     q.set('limit', String(params.limit))
     q.set('offset', String(params.offset))
     if (params.search) q.set('search', params.search)
+    if (params.roleId) q.set('role_id', params.roleId)
+    if (params.officeId) q.set('office_id', params.officeId)
+    if (params.status) q.set('status', params.status)
     const res = await request<{ data: UserView[], total: number }>(`/users?${q.toString()}`)
     return { rows: res.data, total: res.total }
   }

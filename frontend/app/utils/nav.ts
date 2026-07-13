@@ -171,8 +171,7 @@ export const staffNav: NavGroup[] = [
       {
         labelKey: 'nav.approvalStaff',
         icon: 'i-lucide-check-square',
-        disabled: true,
-        badgeCount: 2
+        disabled: true
       }
     ]
   }

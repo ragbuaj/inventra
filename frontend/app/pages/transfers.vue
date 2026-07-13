@@ -130,10 +130,10 @@ async function loadLookups() {
   lookupsError.value = false
   try {
     const [offs, types] = await Promise.all([
-      officesApi.list({ limit: 100 }),
+      officesApi.tree(),
       refApi.list('office-types', { limit: 100 })
     ])
-    offices.value = offs.data
+    offices.value = offs
     officeTypeRows.value = types.data
   } catch {
     lookupsError.value = true

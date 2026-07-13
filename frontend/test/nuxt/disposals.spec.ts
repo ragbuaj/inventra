@@ -112,8 +112,9 @@ vi.mock('~/composables/api/useAssetAttachments', () => ({
 }))
 
 const officesListMock = vi.fn()
+const officesTreeMock = vi.fn()
 vi.mock('~/composables/api/useOffices', () => ({
-  useOffices: () => ({ list: officesListMock, get: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() })
+  useOffices: () => ({ list: officesListMock, get: vi.fn(), tree: officesTreeMock, create: vi.fn(), update: vi.fn(), remove: vi.fn() })
 }))
 
 const assetsListMock = vi.fn()
@@ -173,6 +174,7 @@ function scheduleResp(over: Partial<AssetDepreciationResponse> = {}): AssetDepre
 beforeEach(() => {
   vi.clearAllMocks()
   officesListMock.mockResolvedValue(page(OFFICES))
+  officesTreeMock.mockResolvedValue(OFFICES)
   assetsListMock.mockResolvedValue(page([]))
   disposalsListMock.mockResolvedValue(page([disposal()]))
   approvalListMock.mockResolvedValue(page([reqRow()]))

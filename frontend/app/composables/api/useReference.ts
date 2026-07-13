@@ -28,5 +28,9 @@ export function useReference() {
     await request(`/${key}/${id}`, { method: 'DELETE' })
   }
 
-  return { list, create, update, remove }
+  async function get(key: ReferenceKey, id: string): Promise<ReferenceRow> {
+    return request<ReferenceRow>(`/${key}/${id}`)
+  }
+
+  return { list, get, create, update, remove }
 }

@@ -66,16 +66,9 @@ function referenceRowToItem(row: ReferenceRow): PickerItem {
   return { id: row.id, label: row.name, sublabel: row.code }
 }
 
-/**
- * Generic reference-resource adapter for AsyncSearchPicker — label = name, sublabel = code
- * when present. `useReference()` only exposes list/create/update/remove (no per-id getter),
- * even though the backend's generic reference engine serves GET /<resource>/:id (see
- * backend/internal/masterdata/reference/routes.go). resolveFn hits that endpoint directly
- * via useApiClient() until useReference() grows a get().
- */
+/** Generic reference-resource adapter for AsyncSearchPicker — label = name, sublabel = code when present. */
 export function useReferencePicker(resource: ReferenceKey) {
   const api = useReference()
-  const { request } = useApiClient()
   return {
     async searchFn(term: string): Promise<PickerItem[]> {
       const res = await api.list(resource, { search: term, limit: 20 })
@@ -83,7 +76,7 @@ export function useReferencePicker(resource: ReferenceKey) {
     },
     async resolveFn(id: string): Promise<PickerItem | null> {
       try {
-        const row = await request<ReferenceRow>(`/${resource}/${id}`)
+        const row = await api.get(resource, id)
         return referenceRowToItem(row)
       } catch {
         return null
@@ -95,7 +88,7 @@ export function useReferencePicker(resource: ReferenceKey) {
 /**
  * User adapter for AsyncSearchPicker — label = name, sublabel = email.
  * useUsers() exposes no per-id getter, so resolveFn reaches around via
- * useApiClient() directly (same pattern as useReferencePicker).
+ * useApiClient() directly.
  */
 export function useUserPicker() {
   const api = useUsers()

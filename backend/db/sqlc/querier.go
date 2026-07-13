@@ -57,7 +57,7 @@ type Querier interface {
 	CountRequests(ctx context.Context, arg CountRequestsParams) (int64, error)
 	CountRoomsByFloor(ctx context.Context, arg CountRoomsByFloorParams) (int64, error)
 	CountTransfers(ctx context.Context, arg CountTransfersParams) (int64, error)
-	CountUsers(ctx context.Context, search string) (int64, error)
+	CountUsers(ctx context.Context, arg CountUsersParams) (int64, error)
 	CountUsersByRole(ctx context.Context, roleID uuid.UUID) (int64, error)
 	CreateAsset(ctx context.Context, arg CreateAssetParams) (AssetAsset, error)
 	CreateAssetDocument(ctx context.Context, arg CreateAssetDocumentParams) (AssetAssetDocument, error)
@@ -292,6 +292,9 @@ type Querier interface {
 	// Geo-enriched, scoped office list for the Peta Lokasi screen: resolves
 	// office-type/province/city names + a per-office (non-deleted) asset count.
 	ListOfficesMap(ctx context.Context, arg ListOfficesMapParams) ([]ListOfficesMapRow, error)
+	// Full scoped office set (no pagination) for building the office hierarchy tree
+	// client-side. Mirrors ListOffices' scope filter but without LIMIT/OFFSET/search.
+	ListOfficesTree(ctx context.Context, arg ListOfficesTreeParams) ([]MasterdataOffice, error)
 	ListOpnameItemsEnriched(ctx context.Context, arg ListOpnameItemsEnrichedParams) ([]ListOpnameItemsEnrichedRow, error)
 	ListOpnameSessions(ctx context.Context, arg ListOpnameSessionsParams) ([]ListOpnameSessionsRow, error)
 	// id/name lookup for the employee importer's optional "jabatan" column

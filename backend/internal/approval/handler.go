@@ -199,6 +199,21 @@ func (h *Handler) inbox(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": data, "total": len(data)})
 }
 
+// inboxCount handles GET /requests/inbox/count — the pending count for the sidebar badge.
+func (h *Handler) inboxCount(c *gin.Context) {
+	caller, err := h.callerFromCtx(c)
+	if err != nil {
+		common.WriteError(c, err)
+		return
+	}
+	rows, err := h.svc.Inbox(c, caller)
+	if err != nil {
+		h.svcError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"count": len(rows)})
+}
+
 // list handles GET /requests.
 func (h *Handler) list(c *gin.Context) {
 	all, ids, err := h.scoped.CallerOfficeScope(c, "requests")

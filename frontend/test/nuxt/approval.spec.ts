@@ -1,8 +1,9 @@
 // @vitest-environment nuxt
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import type { ApprovalRequestRow, ApprovalRequestDetail } from '~/composables/api/useApproval'
+import { useInboxStore } from '~/stores/inbox'
 
 const row = (over: Partial<ApprovalRequestRow> = {}): ApprovalRequestRow => ({
   id: 'r1', type: 'asset_create', status: 'pending', amount: '1500000',
@@ -251,6 +252,61 @@ describe('pages/approval — wired', () => {
     await w.find('[data-testid="approval-tab-approved"]').trigger('click')
     await flushPromises()
     expect(w.text()).toContain('Tidak ada pengajuan dipilih')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Inbox store refresh (Task 9 — live sidebar badge)
+// ---------------------------------------------------------------------------
+
+describe('pages/approval — inbox store refresh', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('calls inboxStore.refresh() on mount', async () => {
+    const spy = vi.spyOn(useInboxStore(), 'refresh').mockResolvedValue(undefined)
+    await mountSuspended(ApprovalPage)
+    await flushPromises()
+    expect(spy).toHaveBeenCalled()
+  })
+
+  it('calls inboxStore.refresh() after approve()', async () => {
+    const spy = vi.spyOn(useInboxStore(), 'refresh').mockResolvedValue(undefined)
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    spy.mockClear()
+    await w.find('[data-testid="approval-card"]').trigger('click')
+    await flushPromises()
+    await w.find('[data-testid="approval-approve"]').trigger('click')
+    await flushPromises()
+    expect(spy).toHaveBeenCalled()
+  })
+
+  it('calls inboxStore.refresh() after reject()', async () => {
+    const spy = vi.spyOn(useInboxStore(), 'refresh').mockResolvedValue(undefined)
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    spy.mockClear()
+    await w.find('[data-testid="approval-card"]').trigger('click')
+    await flushPromises()
+    await w.find('[data-testid="approval-reject"]').trigger('click')
+    await flushPromises()
+    expect(spy).toHaveBeenCalled()
+  })
+
+  it('calls inboxStore.refresh() even when approve() fails (403 SoD / 409 stale-step re-sync)', async () => {
+    const spy = vi.spyOn(useInboxStore(), 'refresh').mockResolvedValue(undefined)
+    approveMock.mockRejectedValueOnce(new Error('403'))
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    spy.mockClear()
+    await w.find('[data-testid="approval-card"]').trigger('click')
+    await flushPromises()
+    await w.find('[data-testid="approval-approve"]').trigger('click')
+    await flushPromises()
+    expect(approveMock).toHaveBeenCalled()
+    expect(spy).toHaveBeenCalled()
   })
 })
 

@@ -39,6 +39,7 @@ export interface AuditListParams {
 }
 
 export type Translate = (key: string, params?: Record<string, unknown>) => string
+export type TranslateExists = (key: string) => boolean
 
 interface AuditChange { before?: unknown, after?: unknown }
 export interface AuditDTO {
@@ -75,16 +76,26 @@ function toDiff(changes: Record<string, AuditChange> | null): AuditDiffView[] {
   })
 }
 
+/**
+ * Localizes an entity_type key via settings.audit.entity.<key>, falling back
+ * to the raw key when there is no i18n entry for it. Shared by the derived
+ * summary and the Entity column/filter (frontend/app/pages/settings/audit.vue).
+ */
+export function entityLabel(key: string, t: Translate, te: TranslateExists): string {
+  const k = `settings.audit.entity.${key}`
+  return te(k) ? t(k) : key
+}
+
 /** Derives a localized one-line summary from the action + entity + changed-field count. */
-function toSummary(d: AuditDTO, t: Translate): string {
+function toSummary(d: AuditDTO, t: Translate, te: TranslateExists): string {
   const count = d.changes ? Object.keys(d.changes).length : 0
-  const params = { entity: d.entity_type, id: d.entity_id, count }
+  const params = { entity: entityLabel(d.entity_type, t, te), id: d.entity_id, count }
   if (d.action === 'create') return t('audit.summary.create', params)
   if (d.action === 'delete') return t('audit.summary.delete', params)
   return t('audit.summary.update', params)
 }
 
-export function toRow(d: AuditDTO, t: Translate): AuditRow {
+export function toRow(d: AuditDTO, t: Translate, te: TranslateExists): AuditRow {
   const name = d.actor?.name ?? ''
   return {
     id: d.id,
@@ -100,7 +111,7 @@ export function toRow(d: AuditDTO, t: Translate): AuditRow {
     entity_id: d.entity_id,
     ip: d.ip,
     office_name: d.office_name ?? '',
-    summary: toSummary(d, t),
+    summary: toSummary(d, t, te),
     diff: toDiff(d.changes)
   }
 }
@@ -112,7 +123,7 @@ export function toRow(d: AuditDTO, t: Translate): AuditRow {
 export function useAudit() {
   const { request } = useApiClient()
 
-  async function list(params: AuditListParams, t: Translate): Promise<{ rows: AuditRow[], total: number }> {
+  async function list(params: AuditListParams, t: Translate, te: TranslateExists): Promise<{ rows: AuditRow[], total: number }> {
     const q = new URLSearchParams()
     q.set('limit', String(params.limit))
     q.set('offset', String(params.offset))
@@ -123,7 +134,7 @@ export function useAudit() {
     if (params.from) q.set('from', params.from)
     if (params.to) q.set('to', params.to)
     const res = await request<{ data: AuditDTO[], total: number, limit: number, offset: number }>(`/audit?${q.toString()}`)
-    return { rows: res.data.map(d => toRow(d, t)), total: res.total }
+    return { rows: res.data.map(d => toRow(d, t, te)), total: res.total }
   }
 
   return { list }

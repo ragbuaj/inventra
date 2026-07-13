@@ -18,6 +18,7 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW gin.HandlerFunc, per
 	g.POST("", authMW, create, h.submit)
 	g.GET("", authMW, h.list)
 	g.GET("/inbox", authMW, decide, h.inbox)
+	g.GET("/inbox/count", authMW, decide, h.inboxCount)
 	g.GET("/:id", authMW, h.get)
 	g.POST("/:id/approve", authMW, decide, h.approve)
 	g.POST("/:id/reject", authMW, decide, h.reject)

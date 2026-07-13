@@ -4,15 +4,23 @@ package office_test
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/audit"
+	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
 	"github.com/ragbuaj/inventra/internal/masterdata/office"
+	"github.com/ragbuaj/inventra/internal/middleware"
 	"github.com/ragbuaj/inventra/internal/testsupport"
 )
 
@@ -277,4 +285,133 @@ func TestOfficeCoordinates(t *testing.T) {
 		require.NotNil(t, after.Latitude)
 		assert.InDelta(t, -6.29, *after.Latitude, 1e-9)
 	})
+}
+
+// seedOfficeCaller inserts an identity.users row for roleID (CallerOfficeScope
+// resolves the caller's office scope via the user row, not the JWT claims) and
+// returns its id.
+func seedOfficeCaller(t *testing.T, pool *pgxpool.Pool, roleID, officeID uuid.UUID, email string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO identity.users (name, email, role_id, office_id, status)
+		 VALUES ($1, $2, $3, $4, 'active') RETURNING id`,
+		email, email, roleID, officeID).Scan(&id))
+	return id
+}
+
+// officeDoRequest builds a fresh gin engine wired to the real office handler
+// (via office.RegisterRoutes) with a stub auth middleware that injects the
+// caller's user/role directly (bypassing real JWT), then drives an HTTP
+// request and decodes the JSON body into a map for inspection.
+func officeDoRequest(t *testing.T, h *office.Handler, method, path string, userID, roleID uuid.UUID) (int, map[string]any) {
+	t.Helper()
+	stubAuth := func(c *gin.Context) {
+		c.Set(middleware.CtxUserID, userID.String())
+		c.Set(middleware.CtxRoleID, roleID.String())
+		c.Next()
+	}
+	r := gin.New()
+	v1 := r.Group("/api/v1")
+	office.RegisterRoutes(v1, h, stubAuth, stubAuth)
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(method, path, nil)
+	require.NoError(t, err)
+	r.ServeHTTP(w, req)
+	var body map[string]any
+	if w.Body.Len() > 0 {
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
+	}
+	return w.Code, body
+}
+
+// TestOffice_Tree_ReturnsFullScopedSetNoLimit drives the real HTTP handler
+// end-to-end and proves GET /offices/tree returns the full scoped set with
+// no 100-row cap, unlike the paginated list endpoint.
+func TestOffice_Tree_ReturnsFullScopedSetNoLimit(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	testsupport.Reset(t, pool)
+
+	q := sqlc.New(pool)
+	scopeSvc := authz.NewScopeService(q, rdb)
+	auditSvc := audit.NewService(q)
+	h := office.NewHandler(q, scopeSvc, auditSvc)
+
+	ctx := context.Background()
+	tree := testsupport.SeedOfficeTree(t, pool)
+
+	const seedCount = 105
+	for i := 0; i < seedCount; i++ {
+		_, err := pool.Exec(ctx,
+			`INSERT INTO masterdata.offices (parent_id, office_type_id, name, code)
+			 VALUES ($1, $2, $3, $4)`,
+			tree.Wilayah, tree.OfficeTypeID, "Tree Office", uuid.NewString())
+		require.NoError(t, err)
+	}
+
+	gin.SetMode(gin.TestMode)
+	role := testsupport.SeedRole(t, pool, "r-office-tree-global")
+	testsupport.SeedScopePolicy(t, pool, role, "offices", sqlc.SharedScopeLevelGlobal)
+	caller := seedOfficeCaller(t, pool, role, tree.Pusat, "office-tree-global@test.local")
+
+	code, body := officeDoRequest(t, h, http.MethodGet, "/api/v1/offices/tree", caller, role)
+	require.Equal(t, http.StatusOK, code)
+
+	data, ok := body["data"].([]any)
+	require.True(t, ok, "data is an array")
+	assert.GreaterOrEqual(t, len(data), seedCount, "no 100-row cap")
+
+	total, ok := body["total"].(float64)
+	require.True(t, ok, "total is present")
+	assert.Equal(t, float64(len(data)), total)
+}
+
+// TestOffice_Tree_RespectsSubtreeScope proves GET /offices/tree still enforces
+// the caller's office-subtree data scope: an office outside the subtree must
+// not appear in the response.
+func TestOffice_Tree_RespectsSubtreeScope(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	testsupport.Reset(t, pool)
+
+	q := sqlc.New(pool)
+	scopeSvc := authz.NewScopeService(q, rdb)
+	auditSvc := audit.NewService(q)
+	h := office.NewHandler(q, scopeSvc, auditSvc)
+
+	ctx := context.Background()
+	tree := testsupport.SeedOfficeTree(t, pool)
+
+	var inScopeChild uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx,
+		`INSERT INTO masterdata.offices (parent_id, office_type_id, name, code)
+		 VALUES ($1, $2, $3, $4) RETURNING id`,
+		tree.Cabang, tree.OfficeTypeID, "In Scope Child", "TREE-IN").Scan(&inScopeChild))
+
+	gin.SetMode(gin.TestMode)
+	role := testsupport.SeedRole(t, pool, "r-office-tree-subtree")
+	testsupport.SeedScopePolicy(t, pool, role, "offices", sqlc.SharedScopeLevelOfficeSubtree)
+	caller := seedOfficeCaller(t, pool, role, tree.Wilayah, "office-tree-subtree@test.local")
+
+	code, body := officeDoRequest(t, h, http.MethodGet, "/api/v1/offices/tree", caller, role)
+	require.Equal(t, http.StatusOK, code)
+
+	data, ok := body["data"].([]any)
+	require.True(t, ok, "data is an array")
+
+	ids := make(map[string]bool, len(data))
+	for _, item := range data {
+		row, ok := item.(map[string]any)
+		require.True(t, ok)
+		id, ok := row["id"].(string)
+		require.True(t, ok)
+		ids[id] = true
+	}
+
+	assert.True(t, ids[inScopeChild.String()], "in-scope child present")
+	assert.True(t, ids[tree.Wilayah.String()], "caller's own office present")
+	assert.False(t, ids[tree.Wilayah2.String()], "out-of-scope sibling absent")
+	assert.False(t, ids[tree.Cabang2.String()], "out-of-scope office absent")
+	assert.False(t, ids[tree.Pusat.String()], "out-of-scope ancestor absent")
 }

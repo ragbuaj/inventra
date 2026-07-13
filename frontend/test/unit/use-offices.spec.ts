@@ -59,4 +59,11 @@ describe('useOffices', () => {
     await useOffices().remove('o1')
     expect(request).toHaveBeenCalledWith('/offices/o1', { method: 'DELETE' })
   })
+
+  it('tree GETs /offices/tree and returns the flat data array', async () => {
+    request.mockResolvedValueOnce({ data: [{ id: 'o1' }, { id: 'o2' }], total: 2 })
+    const res = await useOffices().tree()
+    expect(request).toHaveBeenCalledWith('/offices/tree')
+    expect(res).toEqual([{ id: 'o1' }, { id: 'o2' }])
+  })
 })

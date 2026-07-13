@@ -85,6 +85,14 @@ WHERE o.deleted_at IS NULL
   AND (sqlc.arg(all_scope)::bool OR o.id = ANY(sqlc.arg(office_ids)::uuid[]))
 ORDER BY o.name;
 
+-- name: ListOfficesTree :many
+-- Full scoped office set (no pagination) for building the office hierarchy tree
+-- client-side. Mirrors ListOffices' scope filter but without LIMIT/OFFSET/search.
+SELECT * FROM masterdata.offices
+WHERE deleted_at IS NULL
+  AND (sqlc.arg(all_scope)::bool OR id = ANY(sqlc.arg(office_ids)::uuid[]))
+ORDER BY name;
+
 -- name: GetOfficeAncestors :many
 WITH RECURSIVE anc AS (
   SELECT o.id, o.parent_id, o.office_type_id

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { AuditRow, AuditAction } from '~/composables/api/useAudit'
-import { useAudit } from '~/composables/api/useAudit'
+import { useAudit, entityLabel } from '~/composables/api/useAudit'
 import { AUDIT_ENTITY_TYPES } from '~/constants/auditCatalog'
 
 definePageMeta({ middleware: 'can', permission: 'audit.view' })
@@ -34,9 +34,8 @@ const ACTION_META: Record<AuditAction, { tone: 'success' | 'warning' | 'error', 
   delete: { tone: 'error', icon: 'i-lucide-trash-2' }
 }
 
-function entityLabel(key: string): string {
-  const k = `settings.audit.entity.${key}`
-  return te(k) ? t(k) : key
+function entityLabelFor(key: string): string {
+  return entityLabel(key, t, te)
 }
 
 const actionOptions = computed(() => [
@@ -47,7 +46,7 @@ const actionOptions = computed(() => [
 ])
 const entityOptions = computed(() => [
   { value: ALL, label: t('settings.audit.filter.allEntities') },
-  ...AUDIT_ENTITY_TYPES.map(e => ({ value: e, label: entityLabel(e) }))
+  ...AUDIT_ENTITY_TYPES.map(e => ({ value: e, label: entityLabelFor(e) }))
 ])
 
 const anyFilter = computed(() =>
@@ -95,7 +94,7 @@ async function load() {
       to: toRfc(dateTo.value, true),
       limit: PAGE_SIZE,
       offset: (page.value - 1) * PAGE_SIZE
-    }, t)
+    }, t, te)
     rows.value = res.rows
     total.value = res.total
   } catch {
@@ -302,7 +301,7 @@ onMounted(() => load())
                   </UBadge>
                 </td>
                 <td class="px-3.5 py-3 text-muted whitespace-nowrap">
-                  {{ entityLabel(r.entity_type) }}
+                  {{ entityLabelFor(r.entity_type) }}
                 </td>
                 <td class="px-3.5 py-3 max-w-[320px]">
                   <span class="block overflow-hidden text-ellipsis whitespace-nowrap">{{ r.summary }}</span>

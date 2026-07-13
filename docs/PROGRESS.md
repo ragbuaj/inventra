@@ -773,13 +773,56 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >       maps + `assets/index` brand/model filters still `limit:100` (same office-tree class);
 >       `useReference.get()`; `assets/index` resetFilters double-fetch (pre-existing); `user`
 >       create/update/delete handler tests; audit summary echoes raw `entity_type`/`entity_id`.
-> 51. **Next session — pick the next real step.** Remaining item 49 candidates: **(a) notifications**
+> 51. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-13): candidate (c) — tech-debt
+>     sweep #2 (see item 52).** Remaining item 49/51 candidates for the *next* session: **(a) notifications**
 >     (`mock/notifications.ts` — the last app-shell mock; needs a backend feed) — biggest remaining "real
->     feature" gap; **(b) room/floor import targets**; **(c)** the rest of the standing tech-debt list
->     (Users screen server-side filters + reset-password; approval/route badge counts; failure-safe
->     Data-Scope e2e cleanup; + the sweep's own follow-ups above — notably a `GET /offices/tree` endpoint
->     to unblock `master/offices` pagination and the remaining office-map `limit:100` truncations);
->     **(d)** the **Analytics/OLAP** read layer. Confirm priority before starting.
+>     feature" gap; **(b) room/floor import targets**; **(d)** the **Analytics/OLAP** read layer.
+> 52. ~~**Tech-debt sweep #2 (offices/tree + kill office-class `limit:100` · user list filters · live
+>     approval badge · a11y/e2e/audit polish)**~~ ✅ **DONE (2026-07-13, branch `feat/tech-debt-sweep-2`,
+>     20 commits, base 534a9a3).** Design: `docs/superpowers/specs/2026-07-13-tech-debt-sweep-2-design.md`
+>     + plan `docs/superpowers/plans/2026-07-13-tech-debt-sweep-2.md`. Four independent parts, subagent-driven
+>     (13 tasks + final gate + whole-branch review, all task-reviewed):
+>     - **Part A — `GET /offices/tree` + kill office-class `limit:100`:** new unbounded scope-filtered
+>       `ListOfficesTree`/`Service.Tree`/`GET /offices/tree` (byte-identical scope filter to `ListOffices`,
+>       no LIMIT; 2 integration tests incl. 105-row no-cap + subtree presence/absence). Frontend
+>       `useOffices.tree()` now builds the office **tree** (complete past 100) and the transfer/disposal
+>       office **name-maps**; assets **Katalog + Detail** brand/model resolution moved off eager `limit:100`
+>       fetches to on-demand `useResolveCache` (the `assets/index` "brand/model filter" the plan named
+>       **does not exist** — no such filter control in page/backend/mockup, verified; reduced to the real
+>       goal of killing the `limit:100`). `useReference.get()` added; `useReferencePicker.resolveFn`
+>       switched to it (dropped the `request()` reach-around).
+>     - **Part B — user list server-side filters:** `role_id`/`office_id`/`status` narg predicates on
+>       `ListUsers`+`CountUsers` (in sync), 400 on malformed uuid/status; frontend filter bar (role USelect
+>       reusing `/authz/roles`, office `AsyncSearchPicker`, status USelect) + status-filter e2e. **Reset-password
+>       DEFERRED** (no email infra — product decision).
+>     - **Part C — live approval badge:** lightweight `GET /requests/inbox/count` (shares `svc.Inbox`,
+>       `request.decide`-gated, count == `/inbox` len); Pinia `stores/inbox.ts` + `AppSidebar` badge from
+>       the store (hides at 0), hardcoded `nav.ts` `badgeCount:2` removed; **event-driven** refresh
+>       (fetchMe choke-point + approval mount + post-decide), **no polling**.
+>     - **Part D — polish:** `AsyncSearchPicker` a11y (combobox/listbox roles, ARIA on the real `<input>`,
+>       Arrow/Enter/Escape/Home-End keyboard nav, Enter guarded against leaking into wrapping `UForm`
+>       submit); **failure-safe Data-Scope/field-perm e2e** (`afterEach` API restore of Superadmin
+>       `*`-scope→`global`, healing the recurring shared-dev-DB corruption); `assets/index` `resetFilters`
+>       single-fetch; `user` create/update/delete handler tests; audit summary **localizes** the entity
+>       label (was raw `entity_type`).
+>     - **Approved deviation (catat-deviasi):** the plan's "migrate brand/model **filters** to
+>       AsyncSearchPicker" (Part A) was a factually-wrong premise — no such filter exists (verified against
+>       page/`GET /assets` params/`Katalog Aset.dc.html`, which shows Brand/Model as a **column** only);
+>       reduced to killing the `limit:100` name-resolution fetch. Adding a filter would need a backend
+>       `brand_id`/`model_id` param + a mockup change — not done (out of scope).
+>     - **Gate:** backend build/vet/test + full `go test -tags=integration ./... -p 1` (32 pkgs, no flakes)
+>       + Spectral 0err/9warn; frontend lint/typecheck/**test 1314**/build; whole-branch review (opus):
+>       **ready to merge**. E2E: all local failures traced to pre-existing dev-DB debris (none touch this
+>       branch's source).
+>     - **Follow-ups (open, non-blocking):** `settings/users.vue` `resetFilters` fires up to 4 identical
+>       `loadList()` (same double-fetch class as `assets/index`, benign); `master/offices.vue:219`
+>       office-**types** select still `limit:100` (a reference picker, different from the office-tree class);
+>       `useUserPicker`/`useUsers` still lack a `get()` (reach-around); disposals `officesTreeMock` has no
+>       asserting test; a11y edge polish. Deferred by decision: reset-password, force-change-on-next-login,
+>       badge polling.
+> 53. **Next session — pick the next real step.** Remaining candidates: **(a) notifications** (last
+>     app-shell mock — biggest real-feature gap); **(b) room/floor import targets**; **(d) Analytics/OLAP**
+>     read layer. Confirm priority before starting.
 
 ## ✅ Done
 
@@ -950,7 +993,12 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       construction; SoD enforcement (maker cannot approve own request); pull-model eligibility
       (pending step scoped to checker's office); executors: `asset_create`, `asset_disposal`,
       `valuation_exclusion`; authz-admin CRUD endpoints for `approval_thresholds` (Superadmin-gated).
-      **Done — (2026-06-28).**
+      **Done — (2026-06-28).** Added lightweight `GET /requests/inbox/count` (gate `request.decide`,
+      shares `Service.Inbox` — no per-row enrichment/field-filter) to unblock a real sidebar approval
+      badge count (frontend wiring still pending — see item 51(c)). Integration test asserts
+      `count == len(GET /requests/inbox.data)` for the same caller and 403 for a caller without
+      `request.decide`. OpenAPI documented; Spectral 0 errors. **Done (2026-07-13, Tech-Debt Sweep #2
+      Task 8).**
 - [x] **Assignment** — `internal/assignment` (service/dto/handler/routes + executor, ADR-0008 split) on
       migration `000011_assignment` (one-active-per-asset partial-unique index) + seed `000026`
       (`assignment.view`, `assignments` data-scope, single office-level `assignment` approval band).
@@ -1055,7 +1103,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
   - [x] **Field Permission** (`/settings/field-permission`) → wired to `/authz/roles` + `/authz/roles/:id/fields`; catalog
         `assets`+`users` (English field keys); UUID `id` identity; default-allow; save preserves other-entity rows + only PUTs changed roles; e2e spec added against real seeded backend; orphaned `mock/fieldPermission.ts` deleted. **Done (2026-06-28).** ⚠️ TODO: `FilterView` enforcement now also covers `requests` (see the Pengajuan & Approval entry below); remaining: `employees` + other masterdata entities.
   - [x] **Audit Trail** (`/settings/audit`) ✅ wired to `GET /api/v1/audit` — server-side filter + pagination (limit/offset); gate `audit.view`; entity-type filter from frontend `AUDIT_ENTITY_TYPES` catalog; expandable diff viewer; e2e spec against real backend; orphaned `mock/audit.ts` deleted. **Done (2026-06-29).** ⚠️ TODO: actor filter + role/summary/office-name columns dropped — backend response has no role/summary; resolving actor/office names requires `user.manage`/masterdata reads that an `audit.view`-only viewer may lack. Revisit if a viewer-accessible name lookup or enriched audit response lands.
-  - [x] **User Management** (`/settings/users`) ✅ wired to `/api/v1/users` — CRUD (GET list with server-side search+pagination, POST create, PUT update, DELETE remove); gate `user.manage`; role/office/employee pickers from real API lookups; employee picker filtered by selected office (office_id-aware `employeeFormOptions`); e2e spec against real seeded backend; status toggled via update endpoint. **Done (2026-06-29). Authz/settings screen wiring batch complete (RBAC + Data Scope + Field Permission + Audit Trail + User Management).** ⚠️ TODO: server-side role/office/status filter dropdowns + reset-password action dropped pending backend support; office/employee lookup capped at 100 (searchable async picker is a follow-up if counts grow); `mock/users.ts` retained until `useGlobalSearch` is wired to the real `/search` endpoint.
+  - [x] **User Management** (`/settings/users`) ✅ wired to `/api/v1/users` — CRUD (GET list with server-side search+pagination, POST create, PUT update, DELETE remove); gate `user.manage`; role/office/employee pickers from real API lookups; employee picker filtered by selected office (office_id-aware `employeeFormOptions`); e2e spec against real seeded backend; status toggled via update endpoint. **Done (2026-06-29). Authz/settings screen wiring batch complete (RBAC + Data Scope + Field Permission + Audit Trail + User Management).** Filter bar now has server-side role/office/status filter controls (role `USelect`, office `AsyncSearchPicker`, status `USelect`, reset button matching the mockup) driving `GET /users?role_id&office_id&status`; `useUsers().list()` extended; 12-case component spec (`users-filters.spec.ts`); verified live against the real backend. **Done (2026-07-13, Tech-Debt Sweep #2 Task 7).** ⚠️ TODO: reset-password action still dropped pending backend support; office/employee lookup capped at 100 (searchable async picker is a follow-up if counts grow); `mock/users.ts` retained until `useGlobalSearch` is wired to the real `/search` endpoint; no dedicated e2e assertion added yet for the new filter controls (component-test only).
 - [x] **Peta Lokasi** (`/master/map`) ✅ wired to `GET /api/v1/offices/map` — office lat/lng columns + geo endpoint with resolved type/province/city names + per-office asset count; data-scoped. `useOfficeMap` rewritten (real `$fetch`); types `MapOffice`/`OfficeTier`; 3-tier legend (Pusat/Wilayah/Cabang; Outlet folded into Cabang — `office_types.tier` not yet editable); coord-filtered Leaflet pins; load-error/retry; e2e spec added; orphaned `mock/officeMap.ts` deleted. **Done (2026-06-29).** ⚠️ TODO: map shows empty-state until offices have coordinates (no production seed); asset count real but 0 until asset module populated. (`office_types.tier` now editable via Referensi screen — resolved as part of §Referensi wiring below.)
 - [x] **Master Data Referensi** (`/master/reference`) ✅ wired to generic reference engine (`GET/POST/PUT/DELETE /api/v1/masterdata/reference/:resource`) — 11 resources (office-types, departments, positions, units, maintenance-categories, problem-categories, brands, vendors, provinces, cities, models); FK pickers (cities→provinces, models→brands); `office-types` `tier` editable (select: pusat/wilayah/office) — **office map now meaningful** (tier settable → real Pusat/Wilayah/Cabang pins); `vendors` gains `contact_name` + `address` fields; `is_active` toggle/column hidden for provinces & cities (no `is_active` column); `departments` `code` field restored; `brands` label corrected to "Brand". Backend: `typeEnum` + `tier` column in reference engine. Orphaned `mock/reference.ts` deleted; e2e spec added (`frontend/e2e/master-reference.spec.ts`). **Done (2026-06-29).** ⚠️ TODO: cities and models need at least one province/brand created first (no production seed); empty FK picker shows a warning.
 - [x] **Pegawai** (`/master/employees`) ✅ wired to `GET/POST/PUT/DELETE /api/v1/employees` — server-enforced `employees` data-scope; `useEmployees` composable rewritten (real `$fetch`, CRUD); `Employee`/`EmployeeInput` English DTO; UUID FK pickers for office (required), department, position with table name-resolution; inline `GET /offices?limit=100` for office options; backend `phone` column added (migration + DTO + query + OpenAPI); `data-testid` on office/dept/position USelects; e2e spec (`frontend/e2e/employees.spec.ts`); mockup comparison 1:1 (7 cols, 4-filter bar, slideover); `mock/employees.ts` retained (still used by `useGlobalSearch`). **Done (2026-06-30).** ⚠️ TODO: `mock/employees.ts` — delete when `useGlobalSearch` is wired to real `/search` endpoint.

@@ -170,20 +170,21 @@ const referenceListMock = vi.fn((key: string) => {
   if (key === 'vendors') return Promise.resolve(page(VENDORS))
   return Promise.resolve(page([]))
 })
+const referenceGetMock = vi.fn((key: string, id: string) => {
+  const rows = key === 'problem-categories'
+    ? PROBLEM_CATEGORIES
+    : key === 'maintenance-categories' ? MAINT_CATEGORIES : key === 'vendors' ? VENDORS : []
+  const row = rows.find(r => r.id === id)
+  return row ? Promise.resolve(row) : Promise.reject(new Error('not found'))
+})
 vi.mock('~/composables/api/useReference', () => ({
   useReference: () => ({
     list: referenceListMock,
+    get: referenceGetMock,
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn()
   })
-}))
-
-// useReferencePicker's resolveFn (the problem-category picker in Laporan
-// Kerusakan) hits GET /problem-categories/:id directly via useApiClient.
-const { requestMock } = vi.hoisted(() => ({ requestMock: vi.fn() }))
-vi.mock('~/composables/useApiClient', () => ({
-  useApiClient: () => ({ request: requestMock, requestBlob: vi.fn() })
 }))
 
 // eslint-disable-next-line import/first
@@ -231,12 +232,6 @@ function clickTab(wrapper: Wrapper, label: string) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  requestMock.mockImplementation((path: string) => {
-    const m = path.match(/^\/problem-categories\/([^/?]+)$/)
-    if (!m) return Promise.reject(new Error(`Unhandled request: ${path}`))
-    const row = PROBLEM_CATEGORIES.find(r => r.id === m[1])
-    return row ? Promise.resolve(row) : Promise.reject(new Error('not found'))
-  })
   schedulesMock.mockResolvedValue(page([schedule()]))
   recordsMock.mockResolvedValue(page([record()]))
   attentionMock.mockResolvedValue({ data: [] })

@@ -61,6 +61,11 @@ func (s *Service) MapList(ctx context.Context, all bool, ids []uuid.UUID) ([]sql
 	return s.q.ListOfficesMap(ctx, sqlc.ListOfficesMapParams{AllScope: all, OfficeIds: ids})
 }
 
+// Tree returns the full scoped office set (unbounded) for building the hierarchy tree.
+func (s *Service) Tree(ctx context.Context, all bool, ids []uuid.UUID) ([]sqlc.MasterdataOffice, error) {
+	return s.q.ListOfficesTree(ctx, sqlc.ListOfficesTreeParams{AllScope: all, OfficeIds: ids})
+}
+
 // Get returns one office within the caller's scope.
 func (s *Service) Get(ctx context.Context, id uuid.UUID, all bool, ids []uuid.UUID) (sqlc.MasterdataOffice, error) {
 	o, err := s.q.GetOffice(ctx, sqlc.GetOfficeParams{ID: id, AllScope: all, OfficeIds: ids})

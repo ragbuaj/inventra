@@ -433,6 +433,20 @@ paths:
           in: query
           schema: { type: string }
           description: Filter by name or email (case-insensitive).
+        - name: role_id
+          in: query
+          schema: { type: string, format: uuid }
+          description: Filter by exact role.
+        - name: office_id
+          in: query
+          schema: { type: string, format: uuid }
+          description: Filter by exact office.
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, suspended]
+          description: Filter by user status.
         - name: limit
           in: query
           schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
@@ -446,6 +460,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UserList"
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
     post:
@@ -849,6 +864,32 @@ paths:
                   data:
                     type: array
                     items: { $ref: "#/components/schemas/OfficeMapItem" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/offices/tree:
+    get:
+      tags: [Master Data]
+      operationId: listOfficesTree
+      summary: Full office tree (unbounded, data-scoped)
+      description: |
+        Returns the caller's full **data-scoped** office set with no pagination and
+        no 100-row cap, so the frontend can build a complete office hierarchy tree
+        past what the paginated `/offices` list can return. Readable by any
+        authenticated user.
+      security: [{ bearerJWT: [] }]
+      responses:
+        "200":
+          description: The full in-scope office set
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, total]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Office" }
+                  total: { type: integer }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
   /api/v1/offices/{id}:
@@ -1589,6 +1630,27 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/RequestInbox" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/requests/inbox/count:
+    get:
+      tags: [Requests]
+      operationId: countRequestsInbox
+      summary: Pending inbox count for the sidebar approval badge
+      description: Returns the count of requests currently at a step the caller is eligible to approve or reject — equivalent to the length of `GET /requests/inbox`'s `data`, without per-row enrichment/field-filtering. Requires the `request.decide` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Inbox count
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [count]
+                properties:
+                  count: { type: integer }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
 
