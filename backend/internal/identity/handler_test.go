@@ -147,7 +147,7 @@ func TestUpdateProfile_BindError_MissingName_400(t *testing.T) {
 
 // --- requestEmailChange ---------------------------------------------------
 
-func TestRequestEmailChange_WrongPassword_401(t *testing.T) {
+func TestRequestEmailChange_WrongPassword_400(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	u := activeUserEmail(t, "old@x.com")
 	fs := &fakeStore{byID: map[uuid.UUID]sqlc.IdentityUser{u.ID: u}}
@@ -155,9 +155,18 @@ func TestRequestEmailChange_WrongPassword_401(t *testing.T) {
 	r := gin.New()
 	r.POST("/email/change-request", withCaller(u.ID), h.requestEmailChange)
 
+	// Must be 400, not 401: the frontend's authenticated-request interceptor
+	// treats any 401 as an expired access token and force-logs the user out.
 	w := doJSON(t, r, http.MethodPost, "/email/change-request", emailChangeRequest{NewEmail: "new@x.com", CurrentPassword: "wrong"})
-	if w.Code != http.StatusUnauthorized {
-		t.Fatalf("want 401, got %d: %s", w.Code, w.Body.String())
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+	}
+	var got map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if got["error"] != "password salah" {
+		t.Fatalf("want error message %q, got %v", "password salah", got["error"])
 	}
 }
 
@@ -246,7 +255,7 @@ func TestConfirmEmailChange_BindError_MissingToken_400(t *testing.T) {
 
 // --- requestPasswordChange -------------------------------------------------
 
-func TestRequestPasswordChange_WrongPassword_401(t *testing.T) {
+func TestRequestPasswordChange_WrongPassword_400(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	u := activeUserEmail(t, "u@x.com")
 	fs := &fakeStore{byID: map[uuid.UUID]sqlc.IdentityUser{u.ID: u}}
@@ -254,9 +263,18 @@ func TestRequestPasswordChange_WrongPassword_401(t *testing.T) {
 	r := gin.New()
 	r.POST("/password/change-request", withCaller(u.ID), h.requestPasswordChange)
 
+	// Must be 400, not 401: the frontend's authenticated-request interceptor
+	// treats any 401 as an expired access token and force-logs the user out.
 	w := doJSON(t, r, http.MethodPost, "/password/change-request", passwordChangeRequestRequest{CurrentPassword: "wrong"})
-	if w.Code != http.StatusUnauthorized {
-		t.Fatalf("want 401, got %d: %s", w.Code, w.Body.String())
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+	}
+	var got map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if got["error"] != "password lama salah" {
+		t.Fatalf("want error message %q, got %v", "password lama salah", got["error"])
 	}
 }
 

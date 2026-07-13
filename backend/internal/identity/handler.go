@@ -333,11 +333,12 @@ func (h *Handler) requestEmailChange(c *gin.Context) {
 	newEmail := strings.ToLower(strings.TrimSpace(req.NewEmail))
 	if err := h.svc.RequestEmailChange(c.Request.Context(), userID, newEmail, req.CurrentPassword); err != nil {
 		switch {
+		// 400, not 401: the frontend's authenticated-request interceptor treats any
+		// 401 as an expired access token and force-logs the user out. A wrong
+		// *current* password here is a validation failure, not an auth failure.
 		case errors.Is(err, ErrInvalidCredentials):
-			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-		case errors.Is(err, ErrEmailInUse):
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-		case errors.Is(err, ErrSameEmail):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "password salah"})
+		case errors.Is(err, ErrEmailInUse), errors.Is(err, ErrSameEmail):
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
@@ -389,8 +390,10 @@ func (h *Handler) requestPasswordChange(c *gin.Context) {
 	}
 	if err := h.svc.RequestPasswordChange(c.Request.Context(), userID, req.CurrentPassword); err != nil {
 		switch {
+		// 400, not 401: see requestEmailChange above — a wrong current password
+		// must not trip the frontend's "access token expired" 401 interceptor.
 		case errors.Is(err, ErrInvalidCredentials):
-			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "password lama salah"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		}

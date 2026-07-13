@@ -591,13 +591,13 @@ paths:
                     type: string
                     examples: ["ok"]
         "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          description: Wrong current password
+          description: Malformed request body, or the current password is wrong
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "409":
           description: New email is already in use, or matches the current email
           content:
@@ -683,13 +683,13 @@ paths:
                     type: string
                     examples: ["ok"]
         "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          description: Wrong current password
+          description: Malformed request body, or the current password is wrong
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /api/v1/users:
     get:
