@@ -3,6 +3,7 @@ package identity
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -218,6 +219,7 @@ func (h *Handler) forgotPassword(c *gin.Context) {
 	}
 	if err := h.svc.RequestPasswordReset(c.Request.Context(), strings.ToLower(strings.TrimSpace(req.Email))); err != nil {
 		// Log server-side; never leak whether the address exists.
+		slog.Error("password reset request failed", "error", err)
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 		return
 	}
