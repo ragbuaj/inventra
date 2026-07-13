@@ -47,20 +47,30 @@ func seedUserWithOfficeStatus(t *testing.T, pool *pgxpool.Pool, roleID uuid.UUID
 	return id
 }
 
-// doRequest builds a fresh gin engine wired to the real user handler (via
-// user.RegisterRoutes) with a stub auth middleware that injects the caller's
-// role directly (bypassing real JWT), then drives an HTTP request and decodes
-// the JSON body into a map for inspection.
-func doRequest(t *testing.T, h *user.Handler, method, path string, roleID uuid.UUID) (int, map[string]any) {
-	t.Helper()
+// newTestRouter builds a fresh gin engine wired to the real user handler (via
+// user.RegisterRoutes) with a stub auth middleware that injects the given
+// caller identity directly (bypassing real JWT). Shared by doRequest and
+// doJSON so both request styles use identical router/auth wiring.
+func newTestRouter(h *user.Handler, roleID, userID uuid.UUID) *gin.Engine {
 	stubAuth := func(c *gin.Context) {
-		c.Set(middleware.CtxUserID, uuid.New().String())
+		c.Set(middleware.CtxUserID, userID.String())
 		c.Set(middleware.CtxRoleID, roleID.String())
 		c.Next()
 	}
 	r := gin.New()
 	v1 := r.Group("/api/v1")
 	user.RegisterRoutes(v1, h, stubAuth)
+	return r
+}
+
+// doRequest drives an HTTP request through a fresh router (see newTestRouter)
+// and decodes the JSON body into a map for inspection. The stub caller's
+// CtxUserID is a random, DB-unbacked uuid — fine for the read-only paths this
+// helper exercises, since GET handlers never trigger audit.Record (which is
+// the thing that requires a real identity.users-backed actor).
+func doRequest(t *testing.T, h *user.Handler, method, path string, roleID uuid.UUID) (int, map[string]any) {
+	t.Helper()
+	r := newTestRouter(h, roleID, uuid.New())
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest(method, path, nil)
 	require.NoError(t, err)
@@ -72,19 +82,16 @@ func doRequest(t *testing.T, h *user.Handler, method, path string, roleID uuid.U
 	return w.Code, body
 }
 
-// doJSON is doRequest's write-path counterpart: same fresh-router/stub-auth
-// wiring, but for POST/PUT/DELETE requests that carry a JSON body. Pass a nil
-// body for requests with no payload (e.g. DELETE).
-func doJSON(t *testing.T, h *user.Handler, method, path string, roleID uuid.UUID, body any) (int, map[string]any) {
+// doJSON is doRequest's write-path counterpart: same router/stub-auth wiring
+// (via newTestRouter), but for POST/PUT/DELETE requests that carry a JSON
+// body. Pass a nil body for requests with no payload (e.g. DELETE). Unlike
+// doRequest, callers must pass a real identity.users-backed userID (seeded via
+// seedUserDirect) — create/update/delete call audit.Record on success, which
+// writes actor_id = CtxUserID into audit_logs; a DB-unbacked actor id would
+// violate audit_logs_actor_id_fkey and log a WARN on every run.
+func doJSON(t *testing.T, h *user.Handler, method, path string, roleID, userID uuid.UUID, body any) (int, map[string]any) {
 	t.Helper()
-	stubAuth := func(c *gin.Context) {
-		c.Set(middleware.CtxUserID, uuid.New().String())
-		c.Set(middleware.CtxRoleID, roleID.String())
-		c.Next()
-	}
-	r := gin.New()
-	v1 := r.Group("/api/v1")
-	user.RegisterRoutes(v1, h, stubAuth)
+	r := newTestRouter(h, roleID, userID)
 
 	var req *http.Request
 	var err error
@@ -380,6 +387,7 @@ func TestUser_Create_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	role := testsupport.SeedRole(t, pool, "r-create-success")
+	actor := seedUserDirect(t, pool, role, "actor.create-success@test.local")
 
 	body := map[string]any{
 		"name":     "Created User",
@@ -387,7 +395,7 @@ func TestUser_Create_Success(t *testing.T) {
 		"password": "secret123",
 		"role_id":  role.String(),
 	}
-	code, respBody := doJSON(t, h, http.MethodPost, "/api/v1/users", role, body)
+	code, respBody := doJSON(t, h, http.MethodPost, "/api/v1/users", role, actor, body)
 	require.Equal(t, http.StatusCreated, code)
 	assert.Equal(t, "Created User", respBody["name"])
 	assert.Equal(t, "create.success@test.local", respBody["email"])
@@ -419,32 +427,53 @@ func TestUser_Create_ValidationError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	role := testsupport.SeedRole(t, pool, "r-create-validation")
+	actor := seedUserDirect(t, pool, role, "actor.create-validation@test.local")
+
+	// countByEmail asserts no phantom identity.users row was inserted for the
+	// given (well-formed) email despite the 400 response — proves validation
+	// failure short-circuits before any write, not just that the status code
+	// happens to be 400.
+	countByEmail := func(t *testing.T, email string) int {
+		t.Helper()
+		var count int
+		require.NoError(t, pool.QueryRow(context.Background(),
+			`SELECT count(*) FROM identity.users WHERE email = $1`, email).
+			Scan(&count))
+		return count
+	}
 
 	t.Run("missing name responds 400", func(t *testing.T) {
+		const email = "missing.name@test.local"
 		body := map[string]any{
-			"email":   "missing.name@test.local",
+			"email":   email,
 			"role_id": role.String(),
 		}
-		code, _ := doJSON(t, h, http.MethodPost, "/api/v1/users", role, body)
+		code, _ := doJSON(t, h, http.MethodPost, "/api/v1/users", role, actor, body)
 		assert.Equal(t, http.StatusBadRequest, code)
+		assert.Equal(t, 0, countByEmail(t, email), "rejected create must not insert a row")
 	})
 
 	t.Run("missing role_id responds 400", func(t *testing.T) {
+		const email = "no.role@test.local"
 		body := map[string]any{
 			"name":  "No Role",
-			"email": "no.role@test.local",
+			"email": email,
 		}
-		code, _ := doJSON(t, h, http.MethodPost, "/api/v1/users", role, body)
+		code, _ := doJSON(t, h, http.MethodPost, "/api/v1/users", role, actor, body)
 		assert.Equal(t, http.StatusBadRequest, code)
+		assert.Equal(t, 0, countByEmail(t, email), "rejected create must not insert a row")
 	})
 
 	t.Run("invalid email format responds 400", func(t *testing.T) {
+		// No DB-absence check here: the submitted email ("not-an-email") is
+		// itself malformed, so there's no well-formed email to look up — the
+		// 400 assertion already covers the only meaningful behavior.
 		body := map[string]any{
 			"name":    "Bad Email",
 			"email":   "not-an-email",
 			"role_id": role.String(),
 		}
-		code, _ := doJSON(t, h, http.MethodPost, "/api/v1/users", role, body)
+		code, _ := doJSON(t, h, http.MethodPost, "/api/v1/users", role, actor, body)
 		assert.Equal(t, http.StatusBadRequest, code)
 	})
 }
@@ -466,13 +495,14 @@ func TestUser_Create_DuplicateEmail(t *testing.T) {
 	role := testsupport.SeedRole(t, pool, "r-create-dup")
 	const existingEmail = "dup.email@test.local"
 	seedUserDirect(t, pool, role, existingEmail)
+	actor := seedUserDirect(t, pool, role, "actor.create-dup@test.local")
 
 	body := map[string]any{
 		"name":    "Dup User",
 		"email":   existingEmail,
 		"role_id": role.String(),
 	}
-	code, respBody := doJSON(t, h, http.MethodPost, "/api/v1/users", role, body)
+	code, respBody := doJSON(t, h, http.MethodPost, "/api/v1/users", role, actor, body)
 	assert.Equal(t, http.StatusConflict, code)
 	assert.Contains(t, respBody, "error")
 
@@ -500,13 +530,14 @@ func TestUser_Update_Success(t *testing.T) {
 	roleOld := testsupport.SeedRole(t, pool, "r-update-old")
 	roleNew := testsupport.SeedRole(t, pool, "r-update-new")
 	target := seedUserDirect(t, pool, roleOld, "update.target@test.local")
+	actor := seedUserDirect(t, pool, roleOld, "actor.update-success@test.local")
 
 	body := map[string]any{
 		"name":    "Updated Name",
 		"role_id": roleNew.String(),
 		"status":  "inactive",
 	}
-	code, respBody := doJSON(t, h, http.MethodPut, "/api/v1/users/"+target.String(), roleOld, body)
+	code, respBody := doJSON(t, h, http.MethodPut, "/api/v1/users/"+target.String(), roleOld, actor, body)
 	require.Equal(t, http.StatusOK, code)
 	assert.Equal(t, "Updated Name", respBody["name"])
 	assert.Equal(t, roleNew.String(), respBody["role_id"])
@@ -537,13 +568,14 @@ func TestUser_Update_NotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	role := testsupport.SeedRole(t, pool, "r-update-notfound")
+	actor := seedUserDirect(t, pool, role, "actor.update-notfound@test.local")
 
 	body := map[string]any{
 		"name":    "Ghost",
 		"role_id": role.String(),
 		"status":  "active",
 	}
-	code, respBody := doJSON(t, h, http.MethodPut, "/api/v1/users/"+uuid.New().String(), role, body)
+	code, respBody := doJSON(t, h, http.MethodPut, "/api/v1/users/"+uuid.New().String(), role, actor, body)
 	assert.Equal(t, http.StatusNotFound, code)
 	assert.Contains(t, respBody, "error")
 }
@@ -564,8 +596,9 @@ func TestUser_Delete_Success(t *testing.T) {
 
 	role := testsupport.SeedRole(t, pool, "r-delete-success")
 	target := seedUserDirect(t, pool, role, "delete.target@test.local")
+	actor := seedUserDirect(t, pool, role, "actor.delete-success@test.local")
 
-	code, body := doJSON(t, h, http.MethodDelete, "/api/v1/users/"+target.String(), role, nil)
+	code, body := doJSON(t, h, http.MethodDelete, "/api/v1/users/"+target.String(), role, actor, nil)
 	require.Equal(t, http.StatusNoContent, code)
 	assert.Empty(t, body)
 
@@ -601,8 +634,9 @@ func TestUser_Delete_NotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	role := testsupport.SeedRole(t, pool, "r-delete-notfound")
+	actor := seedUserDirect(t, pool, role, "actor.delete-notfound@test.local")
 
-	code, respBody := doJSON(t, h, http.MethodDelete, "/api/v1/users/"+uuid.New().String(), role, nil)
+	code, respBody := doJSON(t, h, http.MethodDelete, "/api/v1/users/"+uuid.New().String(), role, actor, nil)
 	assert.Equal(t, http.StatusNotFound, code)
 	assert.Contains(t, respBody, "error")
 }
