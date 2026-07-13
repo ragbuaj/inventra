@@ -950,7 +950,12 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       construction; SoD enforcement (maker cannot approve own request); pull-model eligibility
       (pending step scoped to checker's office); executors: `asset_create`, `asset_disposal`,
       `valuation_exclusion`; authz-admin CRUD endpoints for `approval_thresholds` (Superadmin-gated).
-      **Done — (2026-06-28).**
+      **Done — (2026-06-28).** Added lightweight `GET /requests/inbox/count` (gate `request.decide`,
+      shares `Service.Inbox` — no per-row enrichment/field-filter) to unblock a real sidebar approval
+      badge count (frontend wiring still pending — see item 51(c)). Integration test asserts
+      `count == len(GET /requests/inbox.data)` for the same caller and 403 for a caller without
+      `request.decide`. OpenAPI documented; Spectral 0 errors. **Done (2026-07-13, Tech-Debt Sweep #2
+      Task 8).**
 - [x] **Assignment** — `internal/assignment` (service/dto/handler/routes + executor, ADR-0008 split) on
       migration `000011_assignment` (one-active-per-asset partial-unique index) + seed `000026`
       (`assignment.view`, `assignments` data-scope, single office-level `assignment` approval band).

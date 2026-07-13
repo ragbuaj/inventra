@@ -1633,6 +1633,27 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
 
+  /api/v1/requests/inbox/count:
+    get:
+      tags: [Requests]
+      operationId: countRequestsInbox
+      summary: Pending inbox count for the sidebar approval badge
+      description: Returns the count of requests currently at a step the caller is eligible to approve or reject — equivalent to the length of `GET /requests/inbox`'s `data`, without per-row enrichment/field-filtering. Requires the `request.decide` permission.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Inbox count
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [count]
+                properties:
+                  count: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
   /api/v1/requests/{id}:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string, format: uuid } }

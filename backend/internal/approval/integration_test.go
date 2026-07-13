@@ -1611,3 +1611,99 @@ func TestApproval_ThresholdPreview(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, code)
 	})
 }
+
+// TestApproval_InboxCount drives GET /api/v1/requests/inbox/count end-to-end
+// (real gin engine via approval.RegisterRoutes + stub auth MW, exactly like
+// TestApproval_FieldMasking_HandlerWiring) and verifies two things: the
+// returned count equals len(GET /requests/inbox's data) for the same eligible
+// decider, and a caller lacking the request.decide permission is rejected
+// with 403 rather than being counted.
+func TestApproval_InboxCount(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	ctx := context.Background()
+	resetAll(t, pool)
+
+	tr := seedTieredOfficeTree(t, pool)
+	catID := seedCategory(t, pool, "IBC")
+
+	officeRoleID := lookupRole(t, pool, "Kepala Unit")
+	maker := seedUser(t, pool, officeRoleID, "maker.inboxcount@test.local")
+	approver := seedUser(t, pool, officeRoleID, "approver.inboxcount@test.local")
+	// Place the approver in Cabang so their office_subtree scope (kepala_unit's
+	// default data-scope policy) covers the request's office.
+	_, err := pool.Exec(ctx,
+		`UPDATE identity.users SET office_id = $1 WHERE id = $2`, tr.CabangID, approver)
+	require.NoError(t, err)
+
+	q := sqlc.New(pool)
+	scopeSvc := authz.NewScopeService(q, rdb)
+	svc := approval.NewService(q, pool, scopeSvc, rdb)
+
+	catIDStr := catID.String()
+	officeIDStr := tr.CabangID.String()
+	payload, _ := json.Marshal(asset.AssetCreatePayload{
+		Name:       "Inbox Count Asset",
+		CategoryID: catIDStr,
+		OfficeID:   officeIDStr,
+		AssetClass: "intangible",
+	})
+	// 1,000,000 falls in the 1-step (office) band per migration 000016.
+	_, err = svc.Submit(ctx, approval.SubmitInput{
+		Type:     sqlc.SharedRequestTypeAssetCreate,
+		Amount:   "1000000",
+		OfficeID: tr.CabangID,
+		Payload:  payload,
+		Maker:    maker,
+	})
+	require.NoError(t, err)
+
+	gin.SetMode(gin.TestMode)
+	auditSvc := audit.NewService(q)
+	fieldSvc := authz.NewFieldService(q, rdb)
+	scoped := common.ScopedDeps{Q: q, Scope: scopeSvc}
+	h := approval.NewHandler(svc, fieldSvc, scoped, auditSvc)
+	permSvc := authz.NewPermissionService(q, rdb)
+
+	doGet := func(path string, userID, roleID uuid.UUID) (int, map[string]any) {
+		stubAuth := func(c *gin.Context) {
+			c.Set(middleware.CtxUserID, userID.String())
+			c.Set(middleware.CtxRoleID, roleID.String())
+			c.Next()
+		}
+		r := gin.New()
+		v1 := r.Group("/api/v1")
+		approval.RegisterRoutes(v1, h, stubAuth, permSvc)
+		w := httptest.NewRecorder()
+		httpReq, err := http.NewRequest(http.MethodGet, path, nil)
+		require.NoError(t, err)
+		r.ServeHTTP(w, httpReq)
+		var body map[string]any
+		if w.Body.Len() > 0 {
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+		}
+		return w.Code, body
+	}
+
+	t.Run("count equals length of inbox data for an eligible decider", func(t *testing.T) {
+		code, inboxBody := doGet("/api/v1/requests/inbox", approver, officeRoleID)
+		require.Equal(t, http.StatusOK, code)
+		data, ok := inboxBody["data"].([]any)
+		require.True(t, ok)
+		require.NotEmpty(t, data, "approver placed in Cabang must see the pending request in inbox")
+
+		code, countBody := doGet("/api/v1/requests/inbox/count", approver, officeRoleID)
+		require.Equal(t, http.StatusOK, code)
+		count, ok := countBody["count"].(float64)
+		require.True(t, ok, "response must have a numeric count field")
+		assert.Equal(t, float64(len(data)), count, "inbox/count must equal len(inbox data) for the same caller")
+	})
+
+	t.Run("caller without request.decide is rejected with 403", func(t *testing.T) {
+		stafRoleID := lookupRole(t, pool, "Staf")
+		stafUser := seedUser(t, pool, stafRoleID, "staf.inboxcount@test.local")
+		code, body := doGet("/api/v1/requests/inbox/count", stafUser, stafRoleID)
+		assert.Equal(t, http.StatusForbidden, code)
+		assert.NotContains(t, body, "count", "a rejected caller must not receive a count")
+	})
+}
