@@ -5,6 +5,8 @@ import { useUsers } from '~/composables/api/useUsers'
 
 definePageMeta({ middleware: 'can', permission: 'user.manage' })
 
+const ALL = '__all__'
+
 const { t } = useI18n()
 const toast = useToast()
 const can = useCan()
@@ -21,6 +23,9 @@ const lookups = ref<Lookups>({ roles: [] })
 const limit = ref(PAGE_SIZE)
 const offset = ref(0)
 const search = ref('')
+const fRole = ref<string>(ALL)
+const fOffice = ref<string | null>(null)
+const fStatus = ref<string>(ALL)
 const loading = ref(true)
 const loadFailed = ref(false)
 
@@ -55,6 +60,21 @@ const statusFormOptions = [
   { value: 'inactive', label: t('settings.users.status.inactive') },
   { value: 'suspended', label: t('settings.users.status.suspended') }
 ]
+
+// Filter-bar options — same source lists as the form, prefixed with an
+// "all" clear option so the USelect can represent "no filter".
+const roleFilterOptions = computed(() => [
+  { value: ALL, label: t('settings.users.filter.allRoles') },
+  ...roleFormOptions.value
+])
+const statusFilterOptions = computed(() => [
+  { value: ALL, label: t('settings.users.filter.allStatus') },
+  ...statusFormOptions
+])
+
+const anyFilter = computed(() =>
+  !!(search.value.trim() || fRole.value !== ALL || fOffice.value || fStatus.value !== ALL)
+)
 
 const statusMeta: Record<UserStatus, { color: BadgeColor, dot: string }> = {
   active: { color: 'success', dot: 'bg-success' },
@@ -106,11 +126,22 @@ function rowActions(row: Record<string, unknown>): RowAction[] {
   ]
 }
 
+function listParams() {
+  return {
+    search: search.value.trim() || undefined,
+    roleId: fRole.value !== ALL ? fRole.value : undefined,
+    officeId: fOffice.value ?? undefined,
+    status: fStatus.value !== ALL ? (fStatus.value as UserStatus) : undefined,
+    limit: limit.value,
+    offset: offset.value
+  }
+}
+
 async function loadList() {
   loading.value = true
   loadFailed.value = false
   try {
-    const res = await api.list({ search: search.value.trim() || undefined, limit: limit.value, offset: offset.value })
+    const res = await api.list(listParams())
     rows.value = res.rows
     total.value = res.total
   } catch {
@@ -126,7 +157,7 @@ async function load() {
   try {
     const [lk, res] = await Promise.all([
       api.lookups(),
-      api.list({ search: search.value.trim() || undefined, limit: limit.value, offset: offset.value })
+      api.list(listParams())
     ])
     lookups.value = lk
     rows.value = res.rows
@@ -136,6 +167,13 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+function resetFilters() {
+  search.value = ''
+  fRole.value = ALL
+  fOffice.value = null
+  fStatus.value = ALL
 }
 
 function clearErrors() {
@@ -225,6 +263,18 @@ watch(search, () => {
   offset.value = 0
   loadList()
 })
+watch(fRole, () => {
+  offset.value = 0
+  loadList()
+})
+watch(fOffice, () => {
+  offset.value = 0
+  loadList()
+})
+watch(fStatus, () => {
+  offset.value = 0
+  loadList()
+})
 watch(offset, () => loadList())
 onMounted(() => load())
 </script>
@@ -255,6 +305,36 @@ onMounted(() => load())
         :placeholder="t('settings.users.searchPlaceholder')"
         class="flex-1 min-w-[200px]"
       />
+      <USelect
+        v-model="fRole"
+        :items="roleFilterOptions"
+        class="min-w-[150px]"
+      />
+      <AsyncSearchPicker
+        :model-value="fOffice"
+        :search-fn="office.searchFn"
+        :resolve-fn="office.resolveFn"
+        :placeholder="t('common.searchOffice')"
+        testid="users-filter-office"
+        clearable
+        class="min-w-[190px]"
+        @update:model-value="fOffice = $event"
+      />
+      <USelect
+        v-model="fStatus"
+        :items="statusFilterOptions"
+        class="min-w-[140px]"
+      />
+      <UButton
+        v-if="anyFilter"
+        data-testid="users-filter-reset"
+        color="error"
+        variant="ghost"
+        icon="i-lucide-x"
+        @click="resetFilters"
+      >
+        {{ t('common.reset') }}
+      </UButton>
     </div>
 
     <div
@@ -283,7 +363,7 @@ onMounted(() => load())
         :total="total"
         :limit="limit"
         :offset="offset"
-        :empty-title="search ? t('settings.users.emptyFilter') : t('settings.users.empty')"
+        :empty-title="anyFilter ? t('settings.users.emptyFilter') : t('settings.users.empty')"
         :actions="rowActions"
         @update:offset="offset = $event"
       >
