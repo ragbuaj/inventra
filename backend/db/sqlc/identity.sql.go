@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const countUsersByRole = `-- name: CountUsersByRole :one
@@ -198,6 +199,48 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (IdentityUser, 
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.PasswordChangedAt,
+	)
+	return i, err
+}
+
+const getUserProfile = `-- name: GetUserProfile :one
+SELECT u.id, u.name, u.email, u.role_id, u.office_id, u.employee_id, u.status,
+       u.avatar_url, u.google_id, u.created_at,
+       e.phone AS employee_phone
+FROM identity.users u
+LEFT JOIN masterdata.employees e ON e.id = u.employee_id AND e.deleted_at IS NULL
+WHERE u.id = $1 AND u.deleted_at IS NULL
+`
+
+type GetUserProfileRow struct {
+	ID            uuid.UUID          `json:"id"`
+	Name          string             `json:"name"`
+	Email         string             `json:"email"`
+	RoleID        uuid.UUID          `json:"role_id"`
+	OfficeID      *uuid.UUID         `json:"office_id"`
+	EmployeeID    *uuid.UUID         `json:"employee_id"`
+	Status        SharedUserStatus   `json:"status"`
+	AvatarUrl     *string            `json:"avatar_url"`
+	GoogleID      *string            `json:"google_id"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	EmployeePhone *string            `json:"employee_phone"`
+}
+
+func (q *Queries) GetUserProfile(ctx context.Context, id uuid.UUID) (GetUserProfileRow, error) {
+	row := q.db.QueryRow(ctx, getUserProfile, id)
+	var i GetUserProfileRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.RoleID,
+		&i.OfficeID,
+		&i.EmployeeID,
+		&i.Status,
+		&i.AvatarUrl,
+		&i.GoogleID,
+		&i.CreatedAt,
+		&i.EmployeePhone,
 	)
 	return i, err
 }
@@ -483,6 +526,70 @@ func (q *Queries) UpdateRole(ctx context.Context, arg UpdateRoleParams) (Identit
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const updateUserEmail = `-- name: UpdateUserEmail :one
+UPDATE identity.users SET email = $2 WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, employee_id, office_id, name, email, password_hash, google_id, avatar_url, role_id, status, created_at, updated_at, deleted_at, password_changed_at
+`
+
+type UpdateUserEmailParams struct {
+	ID    uuid.UUID `json:"id"`
+	Email string    `json:"email"`
+}
+
+func (q *Queries) UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams) (IdentityUser, error) {
+	row := q.db.QueryRow(ctx, updateUserEmail, arg.ID, arg.Email)
+	var i IdentityUser
+	err := row.Scan(
+		&i.ID,
+		&i.EmployeeID,
+		&i.OfficeID,
+		&i.Name,
+		&i.Email,
+		&i.PasswordHash,
+		&i.GoogleID,
+		&i.AvatarUrl,
+		&i.RoleID,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.PasswordChangedAt,
+	)
+	return i, err
+}
+
+const updateUserName = `-- name: UpdateUserName :one
+UPDATE identity.users SET name = $2 WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, employee_id, office_id, name, email, password_hash, google_id, avatar_url, role_id, status, created_at, updated_at, deleted_at, password_changed_at
+`
+
+type UpdateUserNameParams struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+func (q *Queries) UpdateUserName(ctx context.Context, arg UpdateUserNameParams) (IdentityUser, error) {
+	row := q.db.QueryRow(ctx, updateUserName, arg.ID, arg.Name)
+	var i IdentityUser
+	err := row.Scan(
+		&i.ID,
+		&i.EmployeeID,
+		&i.OfficeID,
+		&i.Name,
+		&i.Email,
+		&i.PasswordHash,
+		&i.GoogleID,
+		&i.AvatarUrl,
+		&i.RoleID,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.PasswordChangedAt,
 	)
 	return i, err
 }

@@ -62,3 +62,6 @@ RETURNING *;
 UPDATE masterdata.employees SET deleted_at = now()
 WHERE id = sqlc.arg(id) AND deleted_at IS NULL
   AND (sqlc.arg(all_scope)::bool OR office_id = ANY(sqlc.arg(office_ids)::uuid[]));
+
+-- name: UpdateEmployeePhone :exec
+UPDATE masterdata.employees SET phone = $2 WHERE id = $1 AND deleted_at IS NULL;
