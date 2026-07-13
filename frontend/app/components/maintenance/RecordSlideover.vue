@@ -139,8 +139,7 @@ const canSave = computed(() => {
 })
 
 function costPayload(): string | null {
-  const digits = form.cost.replace(/\D/g, '')
-  return digits === '' ? null : digits
+  return form.cost === '' ? null : form.cost
 }
 
 async function onSubmit() {
@@ -318,18 +317,14 @@ defineExpose({ form, canSave, onSubmit, statusItems })
       </UFormField>
 
       <UFormField :label="t('maintenance.note.cost')">
-        <UInput
+        <NumberInput
           v-model="form.cost"
+          money
           data-testid="record-slideover-cost"
-          inputmode="numeric"
           placeholder="0"
           :disabled="isTerminal"
           class="w-full"
-        >
-          <template #leading>
-            <span class="text-xs text-dimmed">Rp</span>
-          </template>
-        </UInput>
+        />
       </UFormField>
 
       <UFormField :label="t('maintenance.note.vendor')">

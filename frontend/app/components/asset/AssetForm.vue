@@ -557,13 +557,13 @@ onMounted(async () => {
               :required="mode === 'new'"
               :error="errors.harga"
             >
-              <UInput
+              <NumberInput
                 v-if="mode === 'new'"
                 :model-value="form.harga"
-                type="number"
+                money
                 placeholder="0"
                 class="w-full"
-                @update:model-value="setField('harga', String($event))"
+                @update:model-value="setField('harga', $event)"
               />
               <UInput
                 v-else

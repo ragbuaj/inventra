@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Category, FiscalGroup } from '~/types'
 import type { CategoryInput } from '~/composables/api/useCategories'
-import { FISCAL_GROUPS, isBuildingGroup, formatThousands, parseThousands } from '~/constants/categoryMeta'
+import { FISCAL_GROUPS, isBuildingGroup } from '~/constants/categoryMeta'
 
 const props = defineProps<{
   category: Category | null
@@ -59,7 +59,7 @@ function hydrate() {
     default_fiscal_group: c.default_fiscal_group ?? '__none__',
     default_fiscal_life_months: c.default_fiscal_life_months != null ? String(c.default_fiscal_life_months) : '',
     gl_account_code: c.gl_account_code ?? '',
-    capitalization_threshold: formatThousands(c.capitalization_threshold),
+    capitalization_threshold: c.capitalization_threshold ?? '',
     is_active: c.is_active
   })
 }
@@ -103,17 +103,13 @@ const formSub = computed(() =>
   props.category ? t('masterdata.categories.editSub') : t('masterdata.categories.createSub')
 )
 
-function onCapitalInput(e: Event) {
-  form.capitalization_threshold = formatThousands((e.target as HTMLInputElement).value)
-}
-
 function toInput(): CategoryInput {
   const numOrNull = (s: string): number | null => {
     const n = Number(s)
     return s.trim() !== '' && Number.isFinite(n) ? Math.trunc(n) : null
   }
   const strOrNull = (s: string): string | null => (s.trim() !== '' ? s.trim() : null)
-  const cap = parseThousands(form.capitalization_threshold)
+  const cap = form.capitalization_threshold
   return {
     name: form.name.trim(),
     code: strOrNull(form.code),
@@ -255,28 +251,27 @@ defineExpose({ form, isIntangible, isBuilding, onSubmit })
           </UFormField>
           <div class="grid grid-cols-2 gap-3">
             <UFormField :label="t('masterdata.categories.fields.life')">
-              <UInput
+              <NumberInput
                 v-model="form.default_useful_life_months"
-                inputmode="numeric"
                 placeholder="48"
                 class="w-full"
               >
                 <template #trailing>
                   <span class="text-xs text-dimmed">{{ t('masterdata.categories.months') }}</span>
                 </template>
-              </UInput>
+              </NumberInput>
             </UFormField>
             <UFormField :label="t('masterdata.categories.fields.salvage')">
-              <UInput
+              <NumberInput
                 v-model="form.default_salvage_rate"
-                inputmode="numeric"
+                :max="100"
                 placeholder="0"
                 class="w-full"
               >
                 <template #trailing>
                   <span class="text-xs text-dimmed">%</span>
                 </template>
-              </UInput>
+              </NumberInput>
             </UFormField>
           </div>
         </div>
@@ -300,16 +295,15 @@ defineExpose({ form, isIntangible, isBuilding, onSubmit })
             />
           </UFormField>
           <UFormField :label="t('masterdata.categories.fields.fiscalLife')">
-            <UInput
+            <NumberInput
               v-model="form.default_fiscal_life_months"
-              inputmode="numeric"
               placeholder="48"
               class="w-full"
             >
               <template #trailing>
                 <span class="text-xs text-dimmed">{{ t('masterdata.categories.months') }}</span>
               </template>
-            </UInput>
+            </NumberInput>
           </UFormField>
         </div>
       </section>
@@ -335,17 +329,12 @@ defineExpose({ form, isIntangible, isBuilding, onSubmit })
             :label="t('masterdata.categories.fields.capitalization')"
             :hint="t('masterdata.categories.hint.capitalization')"
           >
-            <UInput
-              :model-value="form.capitalization_threshold"
-              inputmode="numeric"
+            <NumberInput
+              v-model="form.capitalization_threshold"
+              money
               placeholder="1.000.000"
               class="w-full"
-              @input="onCapitalInput"
-            >
-              <template #leading>
-                <span class="text-xs text-dimmed">Rp</span>
-              </template>
-            </UInput>
+            />
           </UFormField>
         </div>
       </section>

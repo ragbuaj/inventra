@@ -427,6 +427,28 @@ describe('pages/depreciation — impairment modal', () => {
     expect(bodyEl('depr-impair-loss').textContent).toContain('5.802.083')
   })
 
+  it('NumberInput: typing into the recoverable field keeps recordImpairment fed the raw digit-string', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'impairTarget', SCHEDULE_ROWS[0])
+    await setVmRef(w, 'impairOpen', true)
+
+    // The recoverable field is rendered inside a UModal (teleported to
+    // document.body), so it's queried/driven via the raw DOM, not w.find().
+    const input = bodyEl('depr-impair-recoverable') as HTMLInputElement
+    input.value = '10000000'
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    await w.vm.$nextTick()
+    await flushPromises()
+    // NumberInput groups the display ("10.000.000") but the underlying
+    // v-model (impairRecoverRaw) stays the raw digit-string.
+    expect((w.vm as unknown as { impairRecoverRaw: string }).impairRecoverRaw).toBe('10000000')
+    expect(input.value).toBe('10.000.000')
+
+    bodyEl('depr-impair-save').click()
+    await flushPromises()
+    expect(recordImpairmentMock).toHaveBeenCalledWith('a1', '10000000', '')
+  })
+
   it('saves with the exact recordImpairment args and refreshes the schedule', async () => {
     const w = await mountAndWait()
     await setVmRef(w, 'impairTarget', SCHEDULE_ROWS[0])

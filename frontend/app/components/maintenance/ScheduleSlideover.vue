@@ -180,11 +180,10 @@ defineExpose({ form, canSave, onSubmit })
         :label="t('maintenance.schedule.interval')"
         required
       >
-        <UInput
+        <NumberInput
           v-model="form.intervalMonths"
           data-testid="schedule-slideover-interval"
-          type="number"
-          min="1"
+          :min="1"
           class="w-full"
         />
       </UFormField>
