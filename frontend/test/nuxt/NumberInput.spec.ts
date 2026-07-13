@@ -30,4 +30,24 @@ describe('NumberInput', () => {
     await c.find('input').setValue('-6.2000000')
     expect(c.emitted('update:modelValue')?.at(-1)?.[0]).toBe('-6.2000000')
   })
+  it('does not corrupt raw value when sequentially typing a decimal money amount', async () => {
+    const c = await mountSuspended(NumberInput, { props: { modelValue: '', money: true, decimals: 2 } })
+    const input = c.find('input')
+    for (const key of ['1', '2', '3', '4', '5', ',', '6', '7']) {
+      const current = input.element.value
+      await input.setValue(current + key)
+    }
+    expect(c.emitted('update:modelValue')?.at(-1)?.[0]).toBe('12345.67')
+    expect(input.element.value).toBe('12.345,67')
+  })
+  it('does not corrupt raw value when sequentially typing with thousandSeparator and decimals', async () => {
+    const c = await mountSuspended(NumberInput, { props: { modelValue: '', thousandSeparator: true, decimals: 2 } })
+    const input = c.find('input')
+    for (const key of ['1', '2', '3', '4', '5', ',', '6', '7']) {
+      const current = input.element.value
+      await input.setValue(current + key)
+    }
+    expect(c.emitted('update:modelValue')?.at(-1)?.[0]).toBe('12345.67')
+    expect(input.element.value).toBe('12.345,67')
+  })
 })

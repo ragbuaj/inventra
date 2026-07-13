@@ -45,7 +45,10 @@ function toDisplay(raw: string): string {
   const body = neg ? raw.slice(1) : raw
   const [int, dec] = body.split('.')
   const grouped = formatThousands(int || '0')
-  return (neg ? '-' : '') + grouped + (dec !== undefined ? '.' + dec : '')
+  // Grouping uses '.' for thousands, so the decimal separator moves to ',' (id-ID) to stay
+  // distinguishable from the grouping dots.
+  const decimalPart = props.decimals > 0 && dec !== undefined ? ',' + dec : ''
+  return (neg ? '-' : '') + grouped + decimalPart
 }
 
 const display = ref(toDisplay(model.value))
@@ -61,21 +64,27 @@ function onInput(val: string) {
   display.value = toDisplay(raw)
 }
 
-// Strip thousand-group separators ('.') while preserving a leading '-' and a decimal point.
-// Grouped display uses '.' both as the group separator and (when decimals are enabled) as the
-// decimal point, so only the LAST '.' is treated as a decimal point; all earlier ones are grouping.
+// Strip the display representation back to a '.'-decimal raw string. When decimals are enabled,
+// the grouped display uses '.' purely for thousands and ',' as the (id-ID) decimal separator, so
+// the two are unambiguous: drop every grouping '.', then turn the first ',' into the decimal '.'.
+// When decimals are disabled, '.' is only ever a grouping separator and is dropped entirely.
 function parseThousandsKeepDecimal(v: string): string {
   const neg = v.trim().startsWith('-')
-  const cleaned = v.replace(/[^\d.]/g, '')
-  const lastDot = cleaned.lastIndexOf('.')
+  const cleaned = v.replace(/[^\d.,]/g, '')
   const hasDecimals = props.decimals > 0
   let result: string
-  if (hasDecimals && lastDot !== -1) {
-    const intPart = cleaned.slice(0, lastDot).replace(/\./g, '')
-    const decPart = cleaned.slice(lastDot + 1)
-    result = intPart + '.' + decPart
+  if (hasDecimals) {
+    const withoutGrouping = cleaned.replace(/\./g, '')
+    const commaIndex = withoutGrouping.indexOf(',')
+    if (commaIndex !== -1) {
+      const intPart = withoutGrouping.slice(0, commaIndex)
+      const decPart = withoutGrouping.slice(commaIndex + 1).replace(/,/g, '')
+      result = intPart + '.' + decPart
+    } else {
+      result = withoutGrouping
+    }
   } else {
-    result = cleaned.replace(/\./g, '')
+    result = cleaned.replace(/[.,]/g, '')
   }
   return (neg ? '-' : '') + result
 }
