@@ -290,7 +290,7 @@ function resetView() {
             <!-- Empty map overlay -->
             <div
               v-if="mapped.length === 0"
-              class="absolute inset-0 flex flex-col items-center justify-center gap-2.5"
+              class="absolute inset-0 z-[1000] flex flex-col items-center justify-center gap-2.5"
               style="background: color-mix(in srgb, var(--ui-bg) 55%, transparent)"
             >
               <div class="size-[50px] rounded-[13px] bg-default text-dimmed flex items-center justify-center shadow-sm">
@@ -308,7 +308,7 @@ function resetView() {
             </div>
 
             <!-- Zoom controls (top-right) -->
-            <div class="absolute top-3.5 right-3.5 flex flex-col gap-px bg-default border border-default rounded-[10px] shadow-sm overflow-hidden">
+            <div class="absolute top-3.5 right-3.5 z-[1000] flex flex-col gap-px bg-default border border-default rounded-[10px] shadow-sm overflow-hidden">
               <button
                 class="flex items-center justify-center size-[34px] text-muted hover:bg-muted hover:text-default transition-colors"
                 :title="$t('common.add')"
@@ -334,7 +334,7 @@ function resetView() {
 
             <!-- Reset View button (bottom-right) -->
             <button
-              class="absolute bottom-3.5 right-3.5 inline-flex items-center gap-1.5 px-3 py-[7px] text-[12.5px] font-medium text-default bg-default border border-default rounded-[9px] shadow-sm hover:bg-muted transition-colors"
+              class="absolute bottom-3.5 right-3.5 z-[1000] inline-flex items-center gap-1.5 px-3 py-[7px] text-[12.5px] font-medium text-default bg-default border border-default rounded-[9px] shadow-sm hover:bg-muted transition-colors"
               :title="$t('map.resetTip')"
               @click="resetView"
             >
@@ -350,7 +350,7 @@ function resetView() {
               <div
                 v-if="selected"
                 data-testid="office-detail-card"
-                class="absolute left-4 bottom-4 w-[312px] max-w-[calc(100%-32px)] bg-elevated border border-default rounded-[14px] shadow-xl overflow-hidden"
+                class="absolute left-4 bottom-4 z-[1100] w-[312px] max-w-[calc(100%-32px)] bg-elevated border border-default rounded-[14px] shadow-xl overflow-hidden"
               >
                 <!-- Header row: icon + name/tier/code + close -->
                 <div class="flex items-start gap-3 px-4 pt-4 pb-3">

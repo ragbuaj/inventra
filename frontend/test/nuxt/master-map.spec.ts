@@ -60,6 +60,16 @@ describe('Peta Lokasi page', () => {
     expect(card.text()).toContain('12')
   })
 
+  it('detail card sits above the Leaflet map (z-index)', async () => {
+    request.mockResolvedValueOnce({ data: OFFICES })
+    const wrapper = await mountMap()
+    ;(wrapper.vm as unknown as { selId: string | null }).selId = 'o1'
+    await wrapper.vm.$nextTick()
+    const card = wrapper.find('[data-testid="office-detail-card"]')
+    expect(card.exists()).toBe(true)
+    expect(card.classes()).toContain('z-[1100]')
+  })
+
   it('shows the error state + retry on load failure, then recovers', async () => {
     request.mockRejectedValueOnce(new Error('500'))
     const wrapper = await mountMap()
