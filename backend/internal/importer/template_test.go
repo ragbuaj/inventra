@@ -10,8 +10,33 @@ func TestBuildTemplateCSV(t *testing.T) {
 	if ext != "csv" || ct != "text/csv" {
 		t.Fatalf("bad meta: %s %s", ct, ext)
 	}
-	if string(body) != "nama,harga\n" {
+	if string(body) != "\xEF\xBB\xBFnama,harga\n" {
 		t.Fatalf("bad body: %q", string(body))
+	}
+}
+
+// TestBuildTemplateCSVHasBOM asserts the CSV template body is prefixed with
+// the UTF-8 BOM so Excel on a Windows locale reads it as UTF-8 instead of
+// mojibaking non-ASCII header/data as Windows-1252.
+func TestBuildTemplateCSVHasBOM(t *testing.T) {
+	body, _, _, err := BuildTemplate("csv", testCols)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(body) < 3 || body[0] != 0xEF || body[1] != 0xBB || body[2] != 0xBF {
+		t.Fatalf("expected UTF-8 BOM, got % x", body[:min(3, len(body))])
+	}
+}
+
+// TestBuildTemplateXLSXHasNoBOM ensures the BOM fix is scoped to the CSV
+// branch only; XLSX is a binary zip format and must be untouched.
+func TestBuildTemplateXLSXHasNoBOM(t *testing.T) {
+	body, _, _, err := BuildTemplate("xlsx", testCols)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(body) >= 3 && body[0] == 0xEF && body[1] == 0xBB && body[2] == 0xBF {
+		t.Fatalf("xlsx body should not carry a UTF-8 BOM")
 	}
 }
 

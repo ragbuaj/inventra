@@ -62,6 +62,11 @@ func BuildErrorReport(format string, cols []ColumnSpec, rows []sqlc.ImportImport
 	switch strings.ToLower(format) {
 	case "csv":
 		var buf bytes.Buffer
+		// Prepend the UTF-8 BOM so Excel on a Windows locale reads the
+		// "keterangan" error text as UTF-8 instead of Windows-1252 (which
+		// mojibakes non-ASCII). Must be written before the csv.Writer so it
+		// lands at byte offset 0 of the final output.
+		buf.Write([]byte{0xEF, 0xBB, 0xBF})
 		w := csv.NewWriter(&buf)
 		if wErr := w.WriteAll(records); wErr != nil {
 			return nil, "", "", wErr

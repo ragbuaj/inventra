@@ -90,6 +90,24 @@ func TestParseCSV_ShortRow(t *testing.T) {
 	}
 }
 
+// TestParseCSV_StripsLeadingBOM ensures a CSV that itself starts with a
+// UTF-8 BOM (as BuildTemplate/BuildErrorReport now emit, and as Excel emits
+// when re-saving) still parses: the BOM must not be treated as part of the
+// first header cell's name, or header matching for the first column breaks.
+func TestParseCSV_StripsLeadingBOM(t *testing.T) {
+	csv := "\xEF\xBB\xBFnama,harga\nMeja,1000\n"
+	rows, err := Parse("csv", []byte(csv), testCols, 100)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("want 1 row, got %d", len(rows))
+	}
+	if rows[0].Cells["nama"] != "Meja" || rows[0].Cells["harga"] != "1000" {
+		t.Fatalf("bad cell values: %+v", rows[0])
+	}
+}
+
 func TestParseXLSX_RoundTrip(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()

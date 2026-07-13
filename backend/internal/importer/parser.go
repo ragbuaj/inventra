@@ -27,6 +27,11 @@ func Parse(format string, body []byte, cols []ColumnSpec, maxRows int) ([]RawRow
 	var records [][]string
 	switch strings.ToLower(format) {
 	case "csv":
+		// Strip a leading UTF-8 BOM: BuildTemplate/BuildErrorReport emit one
+		// (for Excel's benefit), and Excel itself writes one when re-saving
+		// a CSV. Without stripping, the BOM sticks to the first header
+		// cell's name and breaks header matching for that column.
+		body = bytes.TrimPrefix(body, []byte{0xEF, 0xBB, 0xBF})
 		r := csv.NewReader(bytes.NewReader(body))
 		r.FieldsPerRecord = -1
 		recs, err := r.ReadAll()
