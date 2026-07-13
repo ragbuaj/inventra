@@ -85,3 +85,8 @@ RETURNING *;
 -- name: SoftDeleteFieldPermissionsByRole :execrows
 UPDATE identity.field_permissions SET deleted_at = now()
 WHERE role_id = $1 AND deleted_at IS NULL;
+
+-- name: UpdateUserPassword :exec
+UPDATE identity.users
+SET password_hash = $2, password_changed_at = now()
+WHERE id = $1 AND deleted_at IS NULL;

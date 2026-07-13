@@ -45,7 +45,7 @@ func (q *Queries) CountUsers(ctx context.Context, arg CountUsersParams) (int64, 
 
 const listUsers = `-- name: ListUsers :many
 
-SELECT id, employee_id, office_id, name, email, password_hash, google_id, avatar_url, role_id, status, created_at, updated_at, deleted_at FROM identity.users
+SELECT id, employee_id, office_id, name, email, password_hash, google_id, avatar_url, role_id, status, created_at, updated_at, deleted_at, password_changed_at FROM identity.users
 WHERE deleted_at IS NULL
   AND (
     $1::text = ''
@@ -99,6 +99,7 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]Identit
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.PasswordChangedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -132,7 +133,7 @@ SET name = $2,
     employee_id = $5,
     status = $6
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, employee_id, office_id, name, email, password_hash, google_id, avatar_url, role_id, status, created_at, updated_at, deleted_at
+RETURNING id, employee_id, office_id, name, email, password_hash, google_id, avatar_url, role_id, status, created_at, updated_at, deleted_at, password_changed_at
 `
 
 type UpdateUserParams struct {
@@ -168,6 +169,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (Identit
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.PasswordChangedAt,
 	)
 	return i, err
 }
