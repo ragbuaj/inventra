@@ -5,6 +5,7 @@ const { login, refresh, fetchMe } = useAuthApi()
 const config = useRuntimeConfig()
 const route = useRoute()
 const localePath = useLocalePath()
+const toast = useToast()
 
 const state = reactive({ email: '', password: '' })
 const showPassword = ref(false)
@@ -49,6 +50,10 @@ onMounted(async () => {
   } else if (route.query.oauth === 'error') {
     const reason = String(route.query.reason ?? 'server')
     errorMsg.value = t(`auth.google.error.${GOOGLE_REASONS.includes(reason) ? reason : 'server'}`)
+  }
+
+  if (route.query.reset === 'success') {
+    toast.add({ title: t('auth.resetSuccess'), color: 'success' })
   }
 })
 </script>

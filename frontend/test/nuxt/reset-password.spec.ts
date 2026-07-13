@@ -4,19 +4,22 @@ import { mountSuspended, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import ResetPassword from '~/pages/reset-password.vue'
 
 // Hoisted mocks — must be created before any mockNuxtImport calls.
-const { resetPassword, routeQuery } = vi.hoisted(() => {
+const { resetPassword, routeQuery, navigateToMock } = vi.hoisted(() => {
   const routeQuery: Record<string, string | undefined> = { token: 'tok123' }
   return {
     resetPassword: vi.fn(),
-    routeQuery
+    routeQuery,
+    navigateToMock: vi.fn()
   }
 })
 
 mockNuxtImport('useAccount', () => () => ({ resetPassword }))
 mockNuxtImport('useRoute', () => () => ({ query: routeQuery }))
+mockNuxtImport('navigateTo', () => navigateToMock)
 
 beforeEach(() => {
   resetPassword.mockClear()
+  navigateToMock.mockClear()
   routeQuery.token = 'tok123'
 })
 
@@ -49,6 +52,19 @@ describe('reset-password page', () => {
     await wrapper.find('form').trigger('submit')
     await new Promise(r => setTimeout(r, 0))
     expect(resetPassword).toHaveBeenCalledWith('tok123', 'brandnewpass')
+  })
+
+  it('navigates to /login with ?reset=success on a successful reset', async () => {
+    resetPassword.mockResolvedValueOnce(undefined)
+    const wrapper = await mountSuspended(ResetPassword)
+    await wrapper.find('[data-testid="reset-new"]').setValue('brandnewpass')
+    await wrapper.find('[data-testid="reset-confirm"]').setValue('brandnewpass')
+    await wrapper.find('form').trigger('submit')
+    await new Promise(r => setTimeout(r, 0))
+    // localePath resolves against the active test-env locale (prefix_except_default,
+    // default 'id') — the vitest/nuxt environment resolves to 'en', so the path is
+    // prefixed. What matters here is the reset=success query survives the navigation.
+    expect(navigateToMock).toHaveBeenCalledWith({ path: expect.stringMatching(/\/login$/), query: { reset: 'success' } })
   })
 
   it('shows the invalid-token error inline when the API rejects with 400', async () => {
