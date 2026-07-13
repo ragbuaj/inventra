@@ -117,13 +117,32 @@ func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-// List returns a page of users plus the total count, optionally filtered by search.
-func (s *Service) List(ctx context.Context, search string, limit, offset int32) ([]sqlc.IdentityUser, int64, error) {
-	users, err := s.q.ListUsers(ctx, sqlc.ListUsersParams{Search: search, Lim: limit, Off: offset})
+// List returns a page of users plus the total count, optionally filtered by
+// search text and/or exact role/office/status.
+func (s *Service) List(ctx context.Context, search string, roleID, officeID *uuid.UUID, status *string, limit, offset int32) ([]sqlc.IdentityUser, int64, error) {
+	var statusArg *sqlc.SharedUserStatus
+	if status != nil {
+		st := sqlc.SharedUserStatus(*status)
+		statusArg = &st
+	}
+
+	users, err := s.q.ListUsers(ctx, sqlc.ListUsersParams{
+		Search:   search,
+		RoleID:   roleID,
+		OfficeID: officeID,
+		Status:   statusArg,
+		Lim:      limit,
+		Off:      offset,
+	})
 	if err != nil {
 		return nil, 0, err
 	}
-	total, err := s.q.CountUsers(ctx, search)
+	total, err := s.q.CountUsers(ctx, sqlc.CountUsersParams{
+		Search:   search,
+		RoleID:   roleID,
+		OfficeID: officeID,
+		Status:   statusArg,
+	})
 	if err != nil {
 		return nil, 0, err
 	}

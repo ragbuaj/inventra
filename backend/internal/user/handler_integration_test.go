@@ -34,6 +34,18 @@ func seedUserDirect(t *testing.T, pool *pgxpool.Pool, roleID uuid.UUID, email st
 	return id
 }
 
+// seedUserWithOfficeStatus inserts an identity.users row with an explicit
+// office and status (for filter tests) and returns its id.
+func seedUserWithOfficeStatus(t *testing.T, pool *pgxpool.Pool, roleID uuid.UUID, officeID *uuid.UUID, status, email string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO identity.users (name, email, role_id, office_id, status)
+		 VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+		email, email, roleID, officeID, status).Scan(&id))
+	return id
+}
+
 // doRequest builds a fresh gin engine wired to the real user handler (via
 // user.RegisterRoutes) with a stub auth middleware that injects the caller's
 // role directly (bypassing real JWT), then drives an HTTP request and decodes
@@ -234,5 +246,86 @@ func TestUser_FieldMasking_FailsClosed_InvalidRoleID(t *testing.T) {
 		code, body := doWith(t, stubAuthMissingRole, http.MethodGet, "/api/v1/users")
 		require.Equal(t, http.StatusInternalServerError, code, "must fail closed (500) when CtxRoleID is missing")
 		assert.NotContains(t, body, "data", "unfiltered user list must never leak when role id is missing")
+	})
+}
+
+// TestUser_ListFilters_RoleOfficeStatus proves GET /users narrows results by
+// the role_id/office_id/status query params (server-side filters), alone and
+// combined, and rejects malformed values with 400.
+func TestUser_ListFilters_RoleOfficeStatus(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+
+	q := sqlc.New(pool)
+	svc := user.NewService(q)
+	fieldSvc := authz.NewFieldService(q, rdb)
+	auditSvc := audit.NewService(q)
+	h := user.NewHandler(svc, fieldSvc, auditSvc)
+
+	gin.SetMode(gin.TestMode)
+
+	tree := testsupport.SeedOfficeTree(t, pool)
+	roleA := testsupport.SeedRole(t, pool, "r-filter-a")
+	roleB := testsupport.SeedRole(t, pool, "r-filter-b")
+	caller := testsupport.SeedRole(t, pool, "r-filter-caller")
+
+	officeA := tree.Cabang
+	officeB := tree.Cabang2
+
+	u1 := seedUserWithOfficeStatus(t, pool, roleA, &officeA, "active", "filter.u1@test.local")
+	u2 := seedUserWithOfficeStatus(t, pool, roleB, &officeB, "inactive", "filter.u2@test.local")
+	u3 := seedUserWithOfficeStatus(t, pool, roleA, &officeB, "suspended", "filter.u3@test.local")
+
+	rowIDs := func(body map[string]any) []string {
+		rows, ok := body["data"].([]any)
+		require.True(t, ok)
+		ids := make([]string, 0, len(rows))
+		for _, raw := range rows {
+			row, ok := raw.(map[string]any)
+			require.True(t, ok)
+			id, _ := row["id"].(string)
+			ids = append(ids, id)
+		}
+		return ids
+	}
+
+	t.Run("role_id narrows to matching role", func(t *testing.T) {
+		code, body := doRequest(t, h, http.MethodGet, "/api/v1/users?role_id="+roleA.String(), caller)
+		require.Equal(t, http.StatusOK, code)
+		assert.ElementsMatch(t, []string{u1.String(), u3.String()}, rowIDs(body))
+	})
+
+	t.Run("office_id narrows to matching office", func(t *testing.T) {
+		code, body := doRequest(t, h, http.MethodGet, "/api/v1/users?office_id="+officeB.String(), caller)
+		require.Equal(t, http.StatusOK, code)
+		assert.ElementsMatch(t, []string{u2.String(), u3.String()}, rowIDs(body))
+	})
+
+	t.Run("status narrows to matching status", func(t *testing.T) {
+		code, body := doRequest(t, h, http.MethodGet, "/api/v1/users?status=inactive", caller)
+		require.Equal(t, http.StatusOK, code)
+		assert.ElementsMatch(t, []string{u2.String()}, rowIDs(body))
+	})
+
+	t.Run("combined filters narrow to the single matching user", func(t *testing.T) {
+		path := "/api/v1/users?role_id=" + roleA.String() + "&office_id=" + officeB.String() + "&status=suspended"
+		code, body := doRequest(t, h, http.MethodGet, path, caller)
+		require.Equal(t, http.StatusOK, code)
+		assert.ElementsMatch(t, []string{u3.String()}, rowIDs(body))
+	})
+
+	t.Run("malformed role_id responds 400", func(t *testing.T) {
+		code, _ := doRequest(t, h, http.MethodGet, "/api/v1/users?role_id=not-a-uuid", caller)
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+
+	t.Run("malformed office_id responds 400", func(t *testing.T) {
+		code, _ := doRequest(t, h, http.MethodGet, "/api/v1/users?office_id=not-a-uuid", caller)
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+
+	t.Run("invalid status responds 400", func(t *testing.T) {
+		code, _ := doRequest(t, h, http.MethodGet, "/api/v1/users?status=bogus", caller)
+		assert.Equal(t, http.StatusBadRequest, code)
 	})
 }

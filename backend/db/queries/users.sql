@@ -8,6 +8,9 @@ WHERE deleted_at IS NULL
     OR name ILIKE '%' || sqlc.arg(search) || '%'
     OR email ILIKE '%' || sqlc.arg(search) || '%'
   )
+  AND (sqlc.narg(role_id)::uuid IS NULL OR role_id = sqlc.narg(role_id))
+  AND (sqlc.narg(office_id)::uuid IS NULL OR office_id = sqlc.narg(office_id))
+  AND (sqlc.narg(status)::shared.user_status IS NULL OR status = sqlc.narg(status))
 ORDER BY created_at DESC
 LIMIT sqlc.arg(lim) OFFSET sqlc.arg(off);
 
@@ -18,7 +21,10 @@ WHERE deleted_at IS NULL
     sqlc.arg(search)::text = ''
     OR name ILIKE '%' || sqlc.arg(search) || '%'
     OR email ILIKE '%' || sqlc.arg(search) || '%'
-  );
+  )
+  AND (sqlc.narg(role_id)::uuid IS NULL OR role_id = sqlc.narg(role_id))
+  AND (sqlc.narg(office_id)::uuid IS NULL OR office_id = sqlc.narg(office_id))
+  AND (sqlc.narg(status)::shared.user_status IS NULL OR status = sqlc.narg(status));
 
 -- name: UpdateUser :one
 UPDATE identity.users

@@ -26,12 +26,37 @@ func NewHandler(svc *Service, fields *authz.FieldService, aud *audit.Service) *H
 	return &Handler{svc: svc, fields: fields, aud: aud}
 }
 
+// validUserStatuses are the accepted values for the `status` filter on
+// GET /users, matching the shared.user_status enum.
+var validUserStatuses = map[string]bool{"active": true, "inactive": true, "suspended": true}
+
 func (h *Handler) list(c *gin.Context) {
 	search := c.Query("search")
 	limit := clampInt(c.Query("limit"), 20, 1, 100)
 	offset := clampInt(c.Query("offset"), 0, 0, 1<<31-1)
 
-	users, total, err := h.svc.List(c.Request.Context(), search, limit, offset)
+	roleIDRaw := c.Query("role_id")
+	roleID, err := parseUUIDPtr(&roleIDRaw)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid role_id"})
+		return
+	}
+	officeIDRaw := c.Query("office_id")
+	officeID, err := parseUUIDPtr(&officeIDRaw)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid office_id"})
+		return
+	}
+	var status *string
+	if raw := c.Query("status"); raw != "" {
+		if !validUserStatuses[raw] {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid status"})
+			return
+		}
+		status = &raw
+	}
+
+	users, total, err := h.svc.List(c.Request.Context(), search, roleID, officeID, status, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list users"})
 		return

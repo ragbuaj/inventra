@@ -19,10 +19,25 @@ WHERE deleted_at IS NULL
     OR name ILIKE '%' || $1 || '%'
     OR email ILIKE '%' || $1 || '%'
   )
+  AND ($2::uuid IS NULL OR role_id = $2)
+  AND ($3::uuid IS NULL OR office_id = $3)
+  AND ($4::shared.user_status IS NULL OR status = $4)
 `
 
-func (q *Queries) CountUsers(ctx context.Context, search string) (int64, error) {
-	row := q.db.QueryRow(ctx, countUsers, search)
+type CountUsersParams struct {
+	Search   string            `json:"search"`
+	RoleID   *uuid.UUID        `json:"role_id"`
+	OfficeID *uuid.UUID        `json:"office_id"`
+	Status   *SharedUserStatus `json:"status"`
+}
+
+func (q *Queries) CountUsers(ctx context.Context, arg CountUsersParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countUsers,
+		arg.Search,
+		arg.RoleID,
+		arg.OfficeID,
+		arg.Status,
+	)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -37,19 +52,32 @@ WHERE deleted_at IS NULL
     OR name ILIKE '%' || $1 || '%'
     OR email ILIKE '%' || $1 || '%'
   )
+  AND ($2::uuid IS NULL OR role_id = $2)
+  AND ($3::uuid IS NULL OR office_id = $3)
+  AND ($4::shared.user_status IS NULL OR status = $4)
 ORDER BY created_at DESC
-LIMIT $3 OFFSET $2
+LIMIT $6 OFFSET $5
 `
 
 type ListUsersParams struct {
-	Search string `json:"search"`
-	Off    int32  `json:"off"`
-	Lim    int32  `json:"lim"`
+	Search   string            `json:"search"`
+	RoleID   *uuid.UUID        `json:"role_id"`
+	OfficeID *uuid.UUID        `json:"office_id"`
+	Status   *SharedUserStatus `json:"status"`
+	Off      int32             `json:"off"`
+	Lim      int32             `json:"lim"`
 }
 
 // User management queries (Superadmin). All respect soft delete.
 func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]IdentityUser, error) {
-	rows, err := q.db.Query(ctx, listUsers, arg.Search, arg.Off, arg.Lim)
+	rows, err := q.db.Query(ctx, listUsers,
+		arg.Search,
+		arg.RoleID,
+		arg.OfficeID,
+		arg.Status,
+		arg.Off,
+		arg.Lim,
+	)
 	if err != nil {
 		return nil, err
 	}
