@@ -890,8 +890,11 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     ✅, Spectral 0 errors ✅; frontend `pnpm lint/typecheck/test` (1383) ✅. **Follow-ups (open,
 >     non-blocking):** live browser 1:1 mockup pass (account/forgot-password/map, both themes) not run —
 >     stack unreachable in the build env; e2e `account-security.spec.ts` (email + password change via
->     Mailpit) is **CI-deferred**; `/auth/email/change-request` + `/auth/password/change-request` are not
->     rate-limited (client cooldown only); NumberInput's paste-of-`.`-decimal into a grouping+`decimals>0`
+>     Mailpit) is **CI-deferred**; **`UpdateProfile` is not wrapped in a single transaction** — name and phone are
+>     two separate writes, so a phone-write failure after the name commits leaves a partial update (spec
+>     §2 asked for one tx; low harm — caller's own data, retriable — deferred pending tx wiring); the two
+>     authed send endpoints now have a **server-side per-IP rate limit** (fix #2) on top of the client
+>     cooldown; NumberInput's paste-of-`.`-decimal into a grouping+`decimals>0`
 >     field is latent-only (no field combines them); `kantor`/`pegawai` display names show `—` (API returns
 >     only IDs — needs a masterdata join or profile enrichment).
 > 57. **Next session — pick the next real step.** Leading candidate: **Spec B — Device Sessions**
