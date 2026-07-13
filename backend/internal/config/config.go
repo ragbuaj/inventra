@@ -78,6 +78,17 @@ type Config struct {
 	ImportMaxBytes      int64
 	ImportWorkerEnabled bool
 	ImportWorkerPoll    time.Duration
+
+	// Email / SMTP (password reset + notifications).
+	MailEnabled      bool
+	SMTPHost         string
+	SMTPPort         int
+	SMTPUsername     string
+	SMTPPassword     string
+	SMTPFrom         string
+	SMTPFromName     string
+	SMTPTLS          string
+	PasswordResetTTL time.Duration
 }
 
 // Load reads configuration from the environment, applying sensible development
@@ -136,6 +147,16 @@ func Load() *Config {
 		ImportMaxBytes:      int64(getEnvInt("IMPORT_MAX_BYTES", 10*1024*1024)),
 		ImportWorkerEnabled: getEnvBool("IMPORT_WORKER_ENABLED", true),
 		ImportWorkerPoll:    getEnvDuration("IMPORT_WORKER_POLL", 2*time.Second),
+
+		MailEnabled:      getEnvBool("MAIL_ENABLED", false),
+		SMTPHost:         getEnv("SMTP_HOST", ""),
+		SMTPPort:         getEnvInt("SMTP_PORT", 1025),
+		SMTPUsername:     getEnv("SMTP_USERNAME", ""),
+		SMTPPassword:     getEnv("SMTP_PASSWORD", ""),
+		SMTPFrom:         getEnv("SMTP_FROM", "no-reply@inventra.local"),
+		SMTPFromName:     getEnv("SMTP_FROM_NAME", "Inventra"),
+		SMTPTLS:          getEnv("SMTP_TLS", "none"),
+		PasswordResetTTL: getEnvDuration("PASSWORD_RESET_TTL", 30*time.Minute),
 	}
 }
 

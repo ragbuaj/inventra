@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/middleware"
 	"github.com/ragbuaj/inventra/internal/oauth"
@@ -34,11 +35,13 @@ type Handler struct {
 	refreshTTL   time.Duration
 	googleOAuth  googleAuth
 	frontendURL  string
+	audit        *audit.Service
+	forgotPerMin int
 }
 
 // NewHandler builds the identity Handler.
-func NewHandler(svc *Service, perms *authz.PermissionService, scopes *authz.ScopeService, limiter ratelimit.Allower, loginPerMin int, secureCookie bool, refreshTTL time.Duration, googleOAuth googleAuth, frontendURL string) *Handler {
-	return &Handler{svc: svc, perms: perms, scopes: scopes, limiter: limiter, loginPerMin: loginPerMin, secureCookie: secureCookie, refreshTTL: refreshTTL, googleOAuth: googleOAuth, frontendURL: frontendURL}
+func NewHandler(svc *Service, perms *authz.PermissionService, scopes *authz.ScopeService, limiter ratelimit.Allower, loginPerMin int, secureCookie bool, refreshTTL time.Duration, googleOAuth googleAuth, frontendURL string, auditSvc *audit.Service, forgotPerMin int) *Handler {
+	return &Handler{svc: svc, perms: perms, scopes: scopes, limiter: limiter, loginPerMin: loginPerMin, secureCookie: secureCookie, refreshTTL: refreshTTL, googleOAuth: googleOAuth, frontendURL: frontendURL, audit: auditSvc, forgotPerMin: forgotPerMin}
 }
 
 // permissions returns the caller's effective RBAC permission keys.
@@ -200,4 +203,73 @@ func googleReason(err error) string {
 	default:
 		return "server"
 	}
+}
+
+func (h *Handler) forgotPassword(c *gin.Context) {
+	var req forgotPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	acctKey := "pwforgot:acct:" + strings.ToLower(strings.TrimSpace(req.Email))
+	if res := h.limiter.Allow(c.Request.Context(), acctKey, h.forgotPerMin, true); !res.Allowed {
+		middleware.WriteRateLimited(c, res)
+		return
+	}
+	if err := h.svc.RequestPasswordReset(c.Request.Context(), strings.ToLower(strings.TrimSpace(req.Email))); err != nil {
+		// Log server-side; never leak whether the address exists.
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
+func (h *Handler) resetPassword(c *gin.Context) {
+	var req resetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	user, err := h.svc.ResetPassword(c.Request.Context(), req.Token, req.NewPassword)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrInvalidToken):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "tautan tidak valid atau kedaluwarsa"})
+		case errors.Is(err, ErrWeakPassword):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		}
+		return
+	}
+	audit.Record(c, h.audit, audit.ActionUpdate, "user", user.ID, user.OfficeID, gin.H{"event": "password_reset"})
+	c.JSON(http.StatusOK, gin.H{"status": "password_reset"})
+}
+
+func (h *Handler) changePassword(c *gin.Context) {
+	var req changePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	userID, err := uuid.Parse(c.GetString(middleware.CtxUserID))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid subject"})
+		return
+	}
+	user, err := h.svc.ChangePassword(c.Request.Context(), userID, req.OldPassword, req.NewPassword)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrInvalidCredentials):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "password lama salah"})
+		case errors.Is(err, ErrWeakPassword):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		}
+		return
+	}
+	audit.Record(c, h.audit, audit.ActionUpdate, "user", user.ID, user.OfficeID, gin.H{"event": "password_changed"})
+	clearRefreshCookie(c, h.secureCookie)
+	c.JSON(http.StatusOK, gin.H{"status": "password_changed"})
 }
