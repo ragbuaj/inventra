@@ -1496,7 +1496,19 @@
         "disabled": "Google sign-in is not available.",
         "server": "Google sign-in failed. Please try again."
       }
-    }
+    },
+    "forgotTitle": "Forgot Password",
+    "forgotSubtitle": "Enter your account email. If it's registered, we'll send a reset link.",
+    "forgotSubmit": "Send Reset Link",
+    "forgotSent": "If the email is registered, a reset link has been sent. Check your inbox.",
+    "forgotRateLimited": "Too many attempts. Please try again shortly.",
+    "backToLogin": "Back to Login",
+    "resetTitle": "Create New Password",
+    "resetSubmit": "Save Password",
+    "resetInvalid": "The link is invalid or has expired.",
+    "resetSuccess": "Password changed successfully. Please sign in again.",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password"
   },
   "nav": {
     "profile": "My Profile",
@@ -1921,7 +1933,8 @@
     "toastLogoutTitle": "Sessions ended",
     "toastLogoutMsg": "You have been logged out of all other devices.",
     "errRequired": "Required.",
-    "errConfirmMismatch": "Password confirmation does not match."
+    "errConfirmMismatch": "Password confirmation does not match.",
+    "errWeak": "Password must be at least 8 characters"
   },
   "search": {
     "topbarPlaceholder": "Search assets, staff, offices, requests…",

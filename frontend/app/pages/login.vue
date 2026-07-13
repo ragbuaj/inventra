@@ -2,9 +2,9 @@
 definePageMeta({ layout: 'auth' })
 const { t } = useI18n()
 const { login, refresh, fetchMe } = useAuthApi()
-const toast = useToast()
 const config = useRuntimeConfig()
 const route = useRoute()
+const localePath = useLocalePath()
 
 const state = reactive({ email: '', password: '' })
 const showPassword = ref(false)
@@ -51,11 +51,6 @@ onMounted(async () => {
     errorMsg.value = t(`auth.google.error.${GOOGLE_REASONS.includes(reason) ? reason : 'server'}`)
   }
 })
-
-// Password reset is not wired to the backend yet.
-function notAvailable() {
-  toast.add({ title: t('auth.featureComingSoon'), color: 'info' })
-}
 </script>
 
 <template>
@@ -130,14 +125,12 @@ function notAvailable() {
           v-model="rememberMe"
           :label="$t('auth.rememberMe')"
         />
-        <UButton
-          type="button"
-          variant="link"
-          class="p-0"
-          @click="notAvailable"
+        <NuxtLink
+          :to="localePath('/forgot-password')"
+          class="text-primary text-sm hover:underline"
         >
           {{ $t('auth.forgotPassword') }}
-        </UButton>
+        </NuxtLink>
       </div>
 
       <UButton
