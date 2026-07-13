@@ -271,7 +271,7 @@ func (s *Service) UpdateProfile(ctx context.Context, userID uuid.UUID, name, pho
 		return ProfileView{}, err
 	}
 	if row.EmployeeID != nil {
-		if err := s.q.UpdateEmployeePhone(ctx, sqlc.UpdateEmployeePhoneParams{ID: *row.EmployeeID, Phone: ptrOrNil(phone)}); err != nil {
+		if err := s.q.UpdateEmployeePhone(ctx, sqlc.UpdateEmployeePhoneParams{ID: *row.EmployeeID, Phone: ptrOrNil(strings.TrimSpace(phone))}); err != nil {
 			return ProfileView{}, err
 		}
 	}

@@ -66,7 +66,8 @@ export function useAccount() {
   async function requestEmailChange(newEmail: string, currentPassword: string): Promise<void> {
     await client.request('/auth/email/change-request', {
       method: 'POST',
-      body: { new_email: newEmail, current_password: currentPassword }
+      body: { new_email: newEmail, current_password: currentPassword },
+      suppressErrorToast: true
     })
   }
 
@@ -82,7 +83,8 @@ export function useAccount() {
   async function requestPasswordChange(currentPassword: string): Promise<void> {
     await client.request('/auth/password/change-request', {
       method: 'POST',
-      body: { current_password: currentPassword }
+      body: { current_password: currentPassword },
+      suppressErrorToast: true
     })
   }
 

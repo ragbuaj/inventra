@@ -107,7 +107,8 @@ describe('useAccount', () => {
       await useAccount().requestEmailChange('new@inventra.local', 'secret123')
       expect(requestMock).toHaveBeenCalledWith('/auth/email/change-request', {
         method: 'POST',
-        body: { new_email: 'new@inventra.local', current_password: 'secret123' }
+        body: { new_email: 'new@inventra.local', current_password: 'secret123' },
+        suppressErrorToast: true
       })
     })
 
@@ -144,7 +145,8 @@ describe('useAccount', () => {
       await useAccount().requestPasswordChange('secret123')
       expect(requestMock).toHaveBeenCalledWith('/auth/password/change-request', {
         method: 'POST',
-        body: { current_password: 'secret123' }
+        body: { current_password: 'secret123' },
+        suppressErrorToast: true
       })
     })
 

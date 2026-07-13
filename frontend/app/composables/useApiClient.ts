@@ -56,21 +56,22 @@ export function useApiClient() {
   }
 
   async function doFetch<T>(path: string, opts: Record<string, unknown> = {}): Promise<T> {
-    const headers: Record<string, string> = { ...(opts.headers as Record<string, string> || {}) }
+    const { suppressErrorToast, ...fetchOpts } = opts
+    const headers: Record<string, string> = { ...(fetchOpts.headers as Record<string, string> || {}) }
     if (auth.accessToken) headers.Authorization = `Bearer ${auth.accessToken}`
     if (!headers['X-Request-ID']) headers['X-Request-ID'] = crypto.randomUUID()
     try {
-      return await $fetch<T>(`${base}${path}`, { ...opts, headers })
+      return await $fetch<T>(`${base}${path}`, { ...fetchOpts, headers })
     } catch (err: unknown) {
       const status = (err as { statusCode?: number }).statusCode
       if (status === 401 && await refreshToken()) {
         headers.Authorization = `Bearer ${auth.accessToken}`
-        return await $fetch<T>(`${base}${path}`, { ...opts, headers })
+        return await $fetch<T>(`${base}${path}`, { ...fetchOpts, headers })
       }
       if (status === 401) {
         auth.clear()
         await nuxtApp.runWithContext(() => navigateTo('/login'))
-      } else {
+      } else if (!suppressErrorToast) {
         notifyError(status)
       }
       throw err

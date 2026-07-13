@@ -28,6 +28,6 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW gin.HandlerFunc, lim
 	authed.PUT("/password", h.changePassword)
 	authed.GET("/profile", h.getProfile)
 	authed.PUT("/profile", h.updateProfile)
-	authed.POST("/email/change-request", h.requestEmailChange)
-	authed.POST("/password/change-request", h.requestPasswordChange)
+	authed.POST("/email/change-request", middleware.PerIP(limiter, forgotPerMin, "auth_emailchangereq", true), h.requestEmailChange)
+	authed.POST("/password/change-request", middleware.PerIP(limiter, forgotPerMin, "auth_pwchangereq", true), h.requestPasswordChange)
 }

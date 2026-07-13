@@ -1,12 +1,15 @@
 // @vitest-environment nuxt
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mountSuspended } from '@nuxt/test-utils/runtime'
+import { mountSuspended, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { defineComponent } from 'vue'
 import { useApiClient } from '~/composables/useApiClient'
 import { useAuthStore } from '~/stores/auth'
 
 const fetchMock = vi.fn((_path?: string, _opts?: Record<string, unknown>) => Promise.resolve({} as unknown))
 vi.stubGlobal('$fetch', fetchMock)
+
+const { toastAddMock } = vi.hoisted(() => ({ toastAddMock: vi.fn() }))
+mockNuxtImport('useToast', () => () => ({ add: toastAddMock }))
 
 const Harness = defineComponent({
   setup() {
@@ -197,5 +200,61 @@ describe('useApiClient refresh single-flight', () => {
     expect(await p2).toBe(false)
     const refreshCalls = fetchMock.mock.calls.filter(c => String(c[0]).includes('/auth/refresh'))
     expect(refreshCalls).toHaveLength(1)
+  })
+})
+
+describe('useApiClient suppressErrorToast', () => {
+  beforeEach(() => {
+    fetchMock.mockReset()
+    toastAddMock.mockClear()
+  })
+
+  it('skips the generic error toast for a non-401 error when suppressErrorToast is set, but still throws', async () => {
+    fetchMock.mockImplementationOnce(() => Promise.reject(Object.assign(new Error('conflict'), { statusCode: 409 })))
+
+    const w = await mountSuspended(Harness)
+    const api = (w.vm as unknown as { api: ReturnType<typeof useApiClient> }).api
+
+    await expect(api.request('/auth/email/change-request', { method: 'POST', suppressErrorToast: true }))
+      .rejects.toThrow('conflict')
+    expect(toastAddMock).not.toHaveBeenCalled()
+  })
+
+  it('still shows the generic error toast for a non-401 error when suppressErrorToast is NOT set', async () => {
+    fetchMock.mockImplementationOnce(() => Promise.reject(Object.assign(new Error('conflict'), { statusCode: 409 })))
+
+    const w = await mountSuspended(Harness)
+    const api = (w.vm as unknown as { api: ReturnType<typeof useApiClient> }).api
+
+    await expect(api.request('/some/path', { method: 'POST' })).rejects.toThrow('conflict')
+    expect(toastAddMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not forward suppressErrorToast to the underlying $fetch call', async () => {
+    fetchMock.mockImplementationOnce(() => Promise.reject(Object.assign(new Error('bad'), { statusCode: 400 })))
+
+    const w = await mountSuspended(Harness)
+    const api = (w.vm as unknown as { api: ReturnType<typeof useApiClient> }).api
+
+    await expect(api.request('/x', { method: 'POST', suppressErrorToast: true })).rejects.toThrow('bad')
+    const opts = fetchMock.mock.calls.at(-1)![1] as Record<string, unknown>
+    expect(opts).not.toHaveProperty('suppressErrorToast')
+  })
+
+  it('suppressErrorToast does NOT affect 401 handling — refresh still runs and the retried request still succeeds', async () => {
+    useAuthStore().setSession('tok', { id: '1', name: 'A', email: 'a@b.com', role_id: 'r', role_name: 'Superadmin', office_id: null }, ['*'])
+    fetchMock.mockImplementationOnce(() => Promise.reject(Object.assign(new Error('unauthorized'), { statusCode: 401 })))
+    fetchMock.mockImplementationOnce(() => Promise.resolve({ access_token: 'tok2' }))
+    fetchMock.mockImplementationOnce(() => Promise.resolve({ status: 'ok' }))
+
+    const w = await mountSuspended(Harness)
+    const api = (w.vm as unknown as { api: ReturnType<typeof useApiClient> }).api
+
+    const result = await api.request('/auth/email/change-request', { method: 'POST', suppressErrorToast: true })
+    expect(result).toEqual({ status: 'ok' })
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    // 401 path never reaches notifyError regardless of the flag.
+    expect(toastAddMock).not.toHaveBeenCalled()
+    useAuthStore().clear()
   })
 })

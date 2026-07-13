@@ -374,6 +374,55 @@ func TestUpdateProfile_WithEmployee_UpdatesOwnEmployeePhoneOnly(t *testing.T) {
 	}
 }
 
+func TestUpdateProfile_WhitespaceOnlyPhone_ClearsToNil(t *testing.T) {
+	u := activeUserEmail(t, "u@x.com")
+	empID := uuid.New()
+	fs := &fakeStore{
+		byID: map[uuid.UUID]sqlc.IdentityUser{u.ID: u},
+		profiles: map[uuid.UUID]sqlc.GetUserProfileRow{
+			u.ID: {ID: u.ID, Name: u.Name, Email: u.Email, EmployeeID: &empID},
+		},
+	}
+	svc := newTestService(t, fs, &fakeMailer{})
+	view, err := svc.UpdateProfile(context.Background(), u.ID, "Budi Baru", "   ")
+	if err != nil {
+		t.Fatalf("UpdateProfile: %v", err)
+	}
+	phone, ok := fs.phoneUpdates[empID]
+	if !ok {
+		t.Fatalf("expected phone update for caller's own employee id %s", empID)
+	}
+	if phone != nil {
+		t.Fatalf("want nil phone (whitespace-only trims to empty), got %q", *phone)
+	}
+	if view.Phone != nil {
+		t.Fatalf("want nil profile view phone, got %q", *view.Phone)
+	}
+}
+
+func TestUpdateProfile_PhoneWithSurroundingWhitespace_IsTrimmed(t *testing.T) {
+	u := activeUserEmail(t, "u@x.com")
+	empID := uuid.New()
+	fs := &fakeStore{
+		byID: map[uuid.UUID]sqlc.IdentityUser{u.ID: u},
+		profiles: map[uuid.UUID]sqlc.GetUserProfileRow{
+			u.ID: {ID: u.ID, Name: u.Name, Email: u.Email, EmployeeID: &empID},
+		},
+	}
+	svc := newTestService(t, fs, &fakeMailer{})
+	view, err := svc.UpdateProfile(context.Background(), u.ID, "Budi Baru", " 0812 ")
+	if err != nil {
+		t.Fatalf("UpdateProfile: %v", err)
+	}
+	phone, ok := fs.phoneUpdates[empID]
+	if !ok || phone == nil || *phone != "0812" {
+		t.Fatalf("want trimmed phone 0812, got %v", phone)
+	}
+	if view.Phone == nil || *view.Phone != "0812" {
+		t.Fatalf("want profile view phone 0812, got %v", view.Phone)
+	}
+}
+
 func TestUpdateProfile_WithoutEmployee_SkipsPhoneUpdate(t *testing.T) {
 	u := activeUserEmail(t, "u@x.com")
 	fs := &fakeStore{
