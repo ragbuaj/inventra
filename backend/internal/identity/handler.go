@@ -275,3 +275,127 @@ func (h *Handler) changePassword(c *gin.Context) {
 	clearRefreshCookie(c, h.secureCookie)
 	c.JSON(http.StatusOK, gin.H{"status": "password_changed"})
 }
+
+// getProfile returns the caller's own profile.
+func (h *Handler) getProfile(c *gin.Context) {
+	userID, err := uuid.Parse(c.GetString(middleware.CtxUserID))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid subject"})
+		return
+	}
+	profile, err := h.svc.GetProfile(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
+	c.JSON(http.StatusOK, profile)
+}
+
+// updateProfile sets the caller's display name and (if linked) employee phone.
+func (h *Handler) updateProfile(c *gin.Context) {
+	var req updateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	userID, err := uuid.Parse(c.GetString(middleware.CtxUserID))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid subject"})
+		return
+	}
+	profile, err := h.svc.UpdateProfile(c.Request.Context(), userID, req.Name, req.Phone)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrInvalidInput):
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		}
+		return
+	}
+	audit.Record(c, h.audit, audit.ActionUpdate, "user", userID, officeIDFromView(profile.OfficeID), gin.H{"event": "profile_updated"})
+	c.JSON(http.StatusOK, profile)
+}
+
+// requestEmailChange verifies the current password and emails a confirmation
+// link to the new address (the address is not changed until confirmed).
+func (h *Handler) requestEmailChange(c *gin.Context) {
+	var req emailChangeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	userID, err := uuid.Parse(c.GetString(middleware.CtxUserID))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid subject"})
+		return
+	}
+	newEmail := strings.ToLower(strings.TrimSpace(req.NewEmail))
+	if err := h.svc.RequestEmailChange(c.Request.Context(), userID, newEmail, req.CurrentPassword); err != nil {
+		switch {
+		case errors.Is(err, ErrInvalidCredentials):
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		case errors.Is(err, ErrEmailInUse):
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		case errors.Is(err, ErrSameEmail):
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		}
+		return
+	}
+	audit.Record(c, h.audit, audit.ActionUpdate, "user", userID, nil, gin.H{"event": "email_change_requested", "new_email": newEmail})
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
+// confirmEmailChange consumes the emailed token and updates the address. It
+// is a PUBLIC endpoint (the confirmation link may be opened from any device,
+// not necessarily an authenticated session), so the audit actor is the
+// affected user itself, mirroring resetPassword's public-route convention.
+func (h *Handler) confirmEmailChange(c *gin.Context) {
+	var req emailConfirmRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	user, err := h.svc.ConfirmEmailChange(c.Request.Context(), req.Token)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrInvalidToken):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "tautan tidak valid atau kedaluwarsa"})
+		case errors.Is(err, ErrEmailInUse):
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		}
+		return
+	}
+	audit.Record(c, h.audit, audit.ActionUpdate, "user", user.ID, user.OfficeID, gin.H{"event": "email_changed"})
+	c.JSON(http.StatusOK, gin.H{"status": "email_changed"})
+}
+
+// requestPasswordChange verifies the current password then emails a reset
+// link (reusing the forgot-password flow) to complete the change.
+func (h *Handler) requestPasswordChange(c *gin.Context) {
+	var req passwordChangeRequestRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	userID, err := uuid.Parse(c.GetString(middleware.CtxUserID))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid subject"})
+		return
+	}
+	if err := h.svc.RequestPasswordChange(c.Request.Context(), userID, req.CurrentPassword); err != nil {
+		switch {
+		case errors.Is(err, ErrInvalidCredentials):
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		}
+		return
+	}
+	audit.Record(c, h.audit, audit.ActionUpdate, "user", userID, nil, gin.H{"event": "password_change_requested"})
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}

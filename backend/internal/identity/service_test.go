@@ -321,6 +321,25 @@ func TestUpdateProfile_EmptyName_ErrInvalidInput(t *testing.T) {
 	}
 }
 
+func TestUpdateProfile_TrimsNameWhitespace(t *testing.T) {
+	u := activeUserEmail(t, "u@x.com")
+	fs := &fakeStore{
+		byID:     map[uuid.UUID]sqlc.IdentityUser{u.ID: u},
+		profiles: map[uuid.UUID]sqlc.GetUserProfileRow{u.ID: {ID: u.ID, Name: u.Name, Email: u.Email}},
+	}
+	svc := newTestService(t, fs, &fakeMailer{})
+	view, err := svc.UpdateProfile(context.Background(), u.ID, "  Budi Baru  ", "")
+	if err != nil {
+		t.Fatalf("UpdateProfile: %v", err)
+	}
+	if view.Name != "Budi Baru" {
+		t.Fatalf("want trimmed name %q, got %q", "Budi Baru", view.Name)
+	}
+	if fs.nameUpdates[u.ID] != "Budi Baru" {
+		t.Fatalf("want the STORED name trimmed, got %q", fs.nameUpdates[u.ID])
+	}
+}
+
 func TestUpdateProfile_WithEmployee_UpdatesOwnEmployeePhoneOnly(t *testing.T) {
 	u := activeUserEmail(t, "u@x.com")
 	empID := uuid.New()

@@ -499,6 +499,198 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /api/v1/auth/profile:
+    get:
+      tags: [Auth]
+      operationId: authGetProfile
+      summary: Get the caller's own profile
+      description: Returns the caller's profile, including the linked employee's phone number (if any).
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The caller's profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags: [Auth]
+      operationId: authUpdateProfile
+      summary: Update the caller's display name and phone
+      description: >
+        Updates the display name and (if the caller is linked to an employee)
+        the employee's phone number. An empty `phone` clears it.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          description: Name is blank after trimming whitespace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/auth/email/change-request:
+    post:
+      tags: [Auth]
+      operationId: authEmailChangeRequest
+      summary: Request an email address change
+      description: >
+        Verifies the caller's current password and emails a confirmation link
+        to the NEW address. The address is not changed until the link is
+        confirmed via `POST /auth/email/confirm`.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [new_email, current_password]
+              properties:
+                new_email:
+                  type: string
+                  format: email
+                current_password:
+                  type: string
+      responses:
+        "200":
+          description: Confirmation email sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    examples: ["ok"]
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: Wrong current password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: New email is already in use, or matches the current email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/auth/email/confirm:
+    post:
+      tags: [Auth]
+      operationId: authEmailConfirm
+      summary: Confirm an email address change
+      description: >
+        Consumes the token emailed to the new address and applies the change.
+        Public endpoint (rate-limited per IP) — the confirmation link may be
+        opened from any device, not necessarily an authenticated session.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+      responses:
+        "200":
+          description: Email changed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    examples: ["email_changed"]
+        "400":
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: The target email was taken by another account meanwhile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /api/v1/auth/password/change-request:
+    post:
+      tags: [Auth]
+      operationId: authPasswordChangeRequest
+      summary: Request a password change via emailed link
+      description: >
+        Verifies the caller's current password, then emails a reset link
+        (reusing the forgot-password flow) to complete the change.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password]
+              properties:
+                current_password:
+                  type: string
+      responses:
+        "200":
+          description: Password-change email sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    examples: ["ok"]
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: Wrong current password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /api/v1/users:
     get:
       tags: [Users]
@@ -4652,6 +4844,54 @@ components:
         updated_at:
           type: [string, "null"]
           format: date-time
+
+    Profile:
+      type: object
+      description: >
+        The caller's own profile. Deliberately omits password_hash and the
+        raw google_id (exposed only as google_linked).
+      required: [id, name, email, role_id, status, google_linked, joined_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: [string, "null"]
+          description: The linked employee's phone number, if any.
+        role_id:
+          type: string
+          format: uuid
+        office_id:
+          type: [string, "null"]
+          format: uuid
+        employee_id:
+          type: [string, "null"]
+          format: uuid
+        status:
+          type: string
+          enum: [active, inactive, suspended]
+        avatar_url:
+          type: [string, "null"]
+        google_linked:
+          type: boolean
+        joined_at:
+          type: string
+          format: date-time
+
+    UpdateProfileRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+          description: The linked employee's phone number; an empty string clears it.
 
     CreateUserRequest:
       type: object

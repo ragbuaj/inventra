@@ -17,6 +17,7 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW gin.HandlerFunc, lim
 	grp.GET("/google/callback", middleware.PerIP(limiter, googleIPPerMin, "auth_google", true), h.googleCallback)
 	grp.POST("/password/forgot", middleware.PerIP(limiter, forgotPerMin, "auth_pwforgot", true), h.forgotPassword)
 	grp.POST("/password/reset", middleware.PerIP(limiter, forgotPerMin, "auth_pwreset", true), h.resetPassword)
+	grp.POST("/email/confirm", middleware.PerIP(limiter, forgotPerMin, "auth_emailconfirm", true), h.confirmEmailChange)
 
 	authed := grp.Group("")
 	authed.Use(authMW)
@@ -25,4 +26,8 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW gin.HandlerFunc, lim
 	authed.GET("/permissions", h.permissions)
 	authed.GET("/scope/:module", h.scope)
 	authed.PUT("/password", h.changePassword)
+	authed.GET("/profile", h.getProfile)
+	authed.PUT("/profile", h.updateProfile)
+	authed.POST("/email/change-request", h.requestEmailChange)
+	authed.POST("/password/change-request", h.requestPasswordChange)
 }

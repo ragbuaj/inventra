@@ -3,6 +3,8 @@ package identity
 import (
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/auth"
 )
@@ -80,17 +82,17 @@ type changePasswordRequest struct {
 // phone number. It deliberately omits password_hash and the raw google_id
 // (exposed only as GoogleLinked) — never serialize those.
 type ProfileView struct {
-	ID           string
-	Name         string
-	Email        string
-	Phone        *string
-	RoleID       string
-	OfficeID     *string
-	EmployeeID   *string
-	Status       string
-	AvatarURL    *string
-	GoogleLinked bool
-	JoinedAt     time.Time
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	Email        string    `json:"email"`
+	Phone        *string   `json:"phone"`
+	RoleID       string    `json:"role_id"`
+	OfficeID     *string   `json:"office_id"`
+	EmployeeID   *string   `json:"employee_id"`
+	Status       string    `json:"status"`
+	AvatarURL    *string   `json:"avatar_url"`
+	GoogleLinked bool      `json:"google_linked"`
+	JoinedAt     time.Time `json:"joined_at"`
 }
 
 // profileFromRow maps a sqlc.GetUserProfileRow into a ProfileView.
@@ -124,4 +126,43 @@ func ptrOrNil(s string) *string {
 		return nil
 	}
 	return &s
+}
+
+// updateProfileRequest updates the caller's own display name and (if linked)
+// employee phone number.
+type updateProfileRequest struct {
+	Name  string `json:"name" binding:"required"`
+	Phone string `json:"phone"`
+}
+
+// emailChangeRequest starts an email-change flow: verifies the current
+// password and emails a confirmation link to the NEW address.
+type emailChangeRequest struct {
+	NewEmail        string `json:"new_email" binding:"required,email"`
+	CurrentPassword string `json:"current_password" binding:"required"`
+}
+
+// emailConfirmRequest completes an email change with the emailed token.
+type emailConfirmRequest struct {
+	Token string `json:"token" binding:"required"`
+}
+
+// passwordChangeRequestRequest verifies the caller's current password and
+// triggers a password-reset email (the actual change happens via the reset
+// link, same as a forgotten-password flow).
+type passwordChangeRequestRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required"`
+}
+
+// officeIDFromView parses a ProfileView's string office id (if any) back into
+// a *uuid.UUID for audit logging. A malformed/absent id yields nil rather
+// than failing the request — auditing must never break the caller's flow.
+func officeIDFromView(s *string) *uuid.UUID {
+	if s == nil {
+		return nil
+	}
+	if id, err := uuid.Parse(*s); err == nil {
+		return &id
+	}
+	return nil
 }

@@ -259,7 +259,8 @@ func (s *Service) GetProfile(ctx context.Context, userID uuid.UUID) (ProfileView
 // caller's own profile row, so a user can only ever update their own
 // employee's phone number.
 func (s *Service) UpdateProfile(ctx context.Context, userID uuid.UUID, name, phone string) (ProfileView, error) {
-	if strings.TrimSpace(name) == "" {
+	name = strings.TrimSpace(name)
+	if name == "" {
 		return ProfileView{}, ErrInvalidInput
 	}
 	if _, err := s.q.UpdateUserName(ctx, sqlc.UpdateUserNameParams{ID: userID, Name: name}); err != nil {
