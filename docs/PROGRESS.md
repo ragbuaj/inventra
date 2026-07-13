@@ -820,9 +820,42 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >       `useUserPicker`/`useUsers` still lack a `get()` (reach-around); disposals `officesTreeMock` has no
 >       asserting test; a11y edge polish. Deferred by decision: reset-password, force-change-on-next-login,
 >       badge polling.
-> 53. **Next session — pick the next real step.** Remaining candidates: **(a) notifications** (last
->     app-shell mock — biggest real-feature gap); **(b) room/floor import targets**; **(d) Analytics/OLAP**
->     read layer. Confirm priority before starting.
+> 53. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-13): Account Security via
+>     Email (Spec A) — see item 54.** (User request: "reset password dan sesi perangkat"; scoped to
+>     email-based flows first, device sessions deferred to Spec B.)
+> 54. ~~**Account Security via Email (Spec A) — forgot-password + authenticated change-password + email
+>     infra**~~ ✅ **DONE (2026-07-13, branch `feat/account-security-email`).** Design:
+>     `docs/superpowers/specs/2026-07-13-account-security-email-design.md`; plan:
+>     `docs/superpowers/plans/2026-07-13-account-security-email.md` (13 tasks, subagent-driven, each
+>     task-reviewed). Backend: migration **`000033_password_reset`** (`identity.users.password_changed_at`)
+>     + `UpdateUserPassword`; new `internal/email` (provider-agnostic SMTP via `github.com/wneessen/go-mail`
+>     + `LogSender` fallback + embedded Indonesian templates + `Mailer`); Redis single-use hashed
+>     reset-token store (`auth/pwreset.go`, 32-byte→base64url raw, SHA-256-at-rest, 30-min TTL, GETDEL);
+>     identity service `RequestPasswordReset`/`ResetPassword`/`ChangePassword` + a **token-epoch** check in
+>     `Refresh` (rejects any refresh token issued before `password_changed_at`); 3 endpoints
+>     (`POST /auth/password/forgot` always-200 anti-enumeration + rate-limited, `POST /auth/password/reset`,
+>     `PUT /auth/password` authed) with audit (`ActionUpdate` + `{"event":...}`, no password material) +
+>     OpenAPI. Frontend: `/forgot-password` + `/reset-password` pages (public routes), login "Lupa password?"
+>     wired, `useAccount` real `changePassword`/`requestPasswordReset`/`resetPassword`, account "Ganti
+>     Password" card now logs out + redirects to `/login`. Dev/CI **Mailpit** mail-catcher + real-backend
+>     e2e (`password-reset.spec.ts`, Mailpit HTTP API, failure-safe admin-password restore).
+>     **Approved deviations / decisions:** **(a)** change-password revokes **ALL** sessions incl. the
+>     current device (user decision — no email click-gate on #3; instead verify-old-password + a
+>     notification email, per industry standard); **(b)** migration numbered **000033** (000028 was
+>     already taken); **(c)** forgot always returns 200 and Google-only/inactive accounts silently no-op
+>     (anti-enumeration); **(d)** email transport is provider-agnostic SMTP + `LogSender` when
+>     `MAIL_ENABLED=false`, Mailpit for dev/CI; **(e)** the full email-flow e2e is validated in **CI**
+>     (Mailpit wired into the e2e job), the invalid-token path passes locally — the shared local :8080
+>     backend was stale so the full local run was CI-deferred (repo convention).
+>     **Follow-ups (open, non-blocking):** device-session list/revoke/logout-others (`useAccount`
+>     `listSessions`/`revokeSession`/`logoutAllOthers` still mock) is **Spec B**; profile-field editing
+>     (telepon/kantor) still mock; admin-initiated reset + force-change-on-next-login not built;
+>     per-user email localization (Indonesian default used).
+> 55. **Next session — pick the next real step.** Leading candidate: **Spec B — Device Sessions**
+>     (session list / revoke-per-device / logout-all-others — the last `useAccount` mock, natural
+>     continuation of this feature). Other candidates carried from item 53: **(a) notifications** (last
+>     app-shell mock); **(b) room/floor import targets**; **(d) Analytics/OLAP** read layer. Confirm
+>     priority before starting.
 
 ## ✅ Done
 
