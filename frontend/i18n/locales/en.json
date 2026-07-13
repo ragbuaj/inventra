@@ -1501,6 +1501,8 @@
     "forgotSubmit": "Send Reset Link",
     "forgotSent": "If the email is registered, a reset link has been sent. Check your inbox.",
     "forgotRateLimited": "Too many attempts. Please try again shortly.",
+    "forgotResend": "Resend link",
+    "forgotResendWait": "Resend in {s}s",
     "backToLogin": "Back to Login",
     "resetTitle": "Create New Password",
     "resetSubmit": "Save Password",

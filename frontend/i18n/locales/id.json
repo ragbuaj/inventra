@@ -1501,6 +1501,8 @@
     "forgotSubmit": "Kirim Tautan Reset",
     "forgotSent": "Jika email terdaftar, tautan reset telah dikirim. Cek kotak masuk Anda.",
     "forgotRateLimited": "Terlalu banyak percobaan. Coba lagi beberapa saat.",
+    "forgotResend": "Kirim ulang tautan",
+    "forgotResendWait": "Kirim ulang dalam {s}s",
     "backToLogin": "Kembali ke Login",
     "resetTitle": "Buat Password Baru",
     "resetSubmit": "Simpan Password",
