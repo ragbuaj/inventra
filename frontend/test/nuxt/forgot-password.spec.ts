@@ -67,4 +67,33 @@ describe('forgot-password page', () => {
     expect(resend.attributes('disabled')).toBeDefined()
     vi.useRealTimers()
   })
+
+  it('shows the rate-limit error on a failed resend and does not advance the cooldown tier', async () => {
+    vi.useFakeTimers()
+    requestPasswordReset.mockClear()
+    requestPasswordReset.mockResolvedValueOnce(undefined)
+    const wrapper = await mountSuspended(ForgotPassword)
+    await wrapper.find('[data-testid="forgot-email"]').setValue('u@example.com')
+    await wrapper.find('form').trigger('submit')
+    await vi.advanceTimersByTimeAsync(0)
+    expect(wrapper.find('[data-testid="forgot-sent"]').exists()).toBe(true)
+
+    // advance past the first cooldown (base 30s) so resend is enabled
+    await vi.advanceTimersByTimeAsync(30_000)
+    let resend = wrapper.find('[data-testid="forgot-resend"]')
+    expect(resend.attributes('disabled')).toBeUndefined()
+
+    requestPasswordReset.mockRejectedValueOnce(Object.assign(new Error('rate limited'), { statusCode: 429 }))
+    await resend.trigger('click')
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(wrapper.text()).toContain('Terlalu banyak percobaan. Coba lagi beberapa saat.')
+
+    // a failed resend must not advance the exponential-backoff tier: the
+    // cooldown from the first successful send already expired, so resend
+    // should be immediately available again, not locked out for a longer tier
+    resend = wrapper.find('[data-testid="forgot-resend"]')
+    expect(resend.attributes('disabled')).toBeUndefined()
+    vi.useRealTimers()
+  })
 })

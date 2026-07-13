@@ -15,22 +15,24 @@ async function doRequest() {
   try {
     await account.requestPasswordReset(email.value.trim())
     sent.value = true
+    return true
   } catch (err: unknown) {
     errorKey.value = (err as { statusCode?: number }).statusCode === 429 ? 'auth.forgotRateLimited' : 'common.error'
+    return false
   } finally {
     loading.value = false
   }
 }
 
 async function submit() {
-  await doRequest()
-  if (sent.value) cooldown.start()
+  const ok = await doRequest()
+  if (ok) cooldown.start()
 }
 
 async function resend() {
   if (!cooldown.canResend.value) return
-  await doRequest()
-  cooldown.start()
+  const ok = await doRequest()
+  if (ok) cooldown.start()
 }
 </script>
 
@@ -61,6 +63,12 @@ async function resend() {
       >
         {{ cooldown.canResend.value ? t('auth.forgotResend') : t('auth.forgotResendWait', { s: cooldown.remaining.value }) }}
       </UButton>
+      <p
+        v-if="errorKey"
+        class="text-error text-sm mt-2"
+      >
+        {{ t(errorKey) }}
+      </p>
     </template>
 
     <UForm
