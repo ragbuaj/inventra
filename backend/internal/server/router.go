@@ -175,7 +175,8 @@ func NewRouter(d Deps) (*gin.Engine, *importer.Worker) {
 			FromName: d.Cfg.SMTPFromName,
 			TLS:      d.Cfg.SMTPTLS,
 		}, slog.Default()))
-		identitySvc := identity.NewService(queries, tokenManager, tokenStore, mailer, d.Cfg.PasswordResetTTL, d.Cfg.FrontendURL)
+		asyncMailer := email.NewAsyncMailer(mailer, slog.Default())
+		identitySvc := identity.NewService(queries, tokenManager, tokenStore, asyncMailer, d.Cfg.PasswordResetTTL, d.Cfg.FrontendURL)
 		identityHandler := identity.NewHandler(identitySvc, permSvc, scopeSvc, d.Limiter, d.Cfg.RateLimitLoginPerMin, d.Cfg.Env == "production", d.Cfg.JWTRefreshTTL, googleOAuth, d.Cfg.FrontendURL, auditSvc, d.Cfg.RateLimitLoginPerMin)
 		identity.RegisterRoutes(api, identityHandler, requireAuth, d.Limiter, d.Cfg.RateLimitLoginIPPerMin, d.Cfg.RateLimitRefreshPerMin, d.Cfg.RateLimitLoginIPPerMin, d.Cfg.RateLimitLoginPerMin)
 
