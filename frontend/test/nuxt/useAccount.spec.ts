@@ -154,37 +154,6 @@ describe('useAccount', () => {
     })
   })
 
-  // Legacy inline password change (PUT /auth/password) — kept only because
-  // account.vue still calls it (Task 19 switches it to requestPasswordChange).
-  // These guard clauses throw before touching the client, so they don't hit
-  // the (stubbed) network at all.
-  it('changePassword rejects a blank field without calling the API', async () => {
-    await expect(useAccount().changePassword({ oldPass: '', newPass: 'Abcdefg1!', confirmPass: 'Abcdefg1!' }))
-      .rejects.toThrow('account.errRequired')
-    expect(requestMock).not.toHaveBeenCalled()
-  })
-
-  it('changePassword rejects mismatched confirmation without calling the API', async () => {
-    await expect(useAccount().changePassword({ oldPass: 'oldpass12', newPass: 'newpass12', confirmPass: 'different' }))
-      .rejects.toThrow('account.errConfirmMismatch')
-    expect(requestMock).not.toHaveBeenCalled()
-  })
-
-  it('changePassword rejects a short new password without calling the API', async () => {
-    await expect(useAccount().changePassword({ oldPass: 'oldpass12', newPass: 'short', confirmPass: 'short' }))
-      .rejects.toThrow('account.errWeak')
-    expect(requestMock).not.toHaveBeenCalled()
-  })
-
-  it('changePassword PUTs /auth/password when valid', async () => {
-    requestMock.mockResolvedValueOnce({ status: 'password_changed' })
-    await useAccount().changePassword({ oldPass: 'oldpass12', newPass: 'Abcdefg1!', confirmPass: 'Abcdefg1!' })
-    expect(requestMock).toHaveBeenCalledWith('/auth/password', {
-      method: 'PUT',
-      body: { old_password: 'oldpass12', new_password: 'Abcdefg1!' }
-    })
-  })
-
   it('requestPasswordReset POSTs to the public forgot-password endpoint via raw $fetch', async () => {
     fetchMock.mockResolvedValueOnce({ status: 'ok' })
     await useAccount().requestPasswordReset('u@example.com')

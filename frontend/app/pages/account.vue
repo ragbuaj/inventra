@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { AccountProfile, AccountSession, NotifPrefs } from '~/types'
-import { passwordStrength } from '~/utils/passwordStrength'
 
 const { t, setLocale, locale } = useI18n()
 const route = useRoute()
@@ -37,12 +36,16 @@ const emailSent = ref(false)
 const emailLoading = ref(false)
 const emailCooldown = useResendCooldown(30)
 
-// security — used by Keamanan tab (C4)
-const oldPass = ref('')
-const newPass = ref('')
-const confirmPass = ref('')
-const secErr = reactive<{ old?: boolean, newp?: boolean, confirm?: boolean }>({})
-const strength = computed(() => passwordStrength(newPass.value))
+// "Ganti Password" modal — request/sent two-step flow (Task 19). Mirrors the
+// "Ubah Email" modal above: verifies the current password, then emails a
+// reset link (the backend's password/change-request → reset-password flow)
+// rather than changing the password inline — no logout on success.
+const pwModalOpen = ref(false)
+const pwCurrentInput = ref('')
+const pwApiErr = ref('')
+const pwSent = ref(false)
+const pwLoading = ref(false)
+const pwCooldown = useResendCooldown(30)
 const sessions = ref<AccountSession[]>([])
 
 // preferences — used by Preferensi tab (C5)
@@ -151,18 +154,43 @@ async function resendEmailChange() {
   }
 }
 
-async function changePassword() {
-  secErr.old = !oldPass.value
-  secErr.newp = !newPass.value
-  secErr.confirm = !confirmPass.value || confirmPass.value !== newPass.value
-  if (secErr.old || secErr.newp || secErr.confirm) return
+function openPasswordModal() {
+  pwCurrentInput.value = ''
+  pwApiErr.value = ''
+  pwSent.value = false
+  pwCooldown.reset()
+  pwModalOpen.value = true
+}
+
+async function submitPasswordChange() {
+  if (pwSent.value) {
+    pwModalOpen.value = false
+    return
+  }
+  pwApiErr.value = ''
+  pwLoading.value = true
   try {
-    await account.changePassword({ oldPass: oldPass.value, newPass: newPass.value, confirmPass: confirmPass.value })
-    useAuthStore().clear()
-    toast.add({ title: t('account.toastPassTitle'), description: t('account.secReloginMsg'), color: 'success' })
-    await navigateTo('/login')
-  } catch {
-    toast.add({ title: t('common.error'), color: 'error' })
+    await account.requestPasswordChange(pwCurrentInput.value)
+    pwSent.value = true
+    pwCooldown.start()
+  } catch (err) {
+    pwApiErr.value = extractApiError(err)
+  } finally {
+    pwLoading.value = false
+  }
+}
+
+async function resendPasswordChange() {
+  if (!pwCooldown.canResend.value) return
+  pwApiErr.value = ''
+  pwLoading.value = true
+  try {
+    await account.requestPasswordChange(pwCurrentInput.value)
+    pwCooldown.start()
+  } catch (err) {
+    pwApiErr.value = extractApiError(err)
+  } finally {
+    pwLoading.value = false
   }
 }
 
@@ -194,20 +222,6 @@ const initials = computed(() => {
 const joinDateLabel = computed(() => {
   if (!profile.value) return ''
   return new Date(profile.value.joinDate).toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
-})
-
-function strengthBarClass(i: number): string {
-  if (i > strength.value.score) return 'bg-muted'
-  if (strength.value.score === 1) return 'bg-error'
-  if (strength.value.score === 2) return 'bg-warning'
-  return 'bg-primary'
-}
-
-const strengthLabelClass = computed(() => {
-  if (strength.value.score === 1) return 'text-error'
-  if (strength.value.score === 2) return 'text-warning'
-  if (strength.value.score >= 3) return 'text-primary'
-  return 'text-muted'
 })
 </script>
 
@@ -624,106 +638,21 @@ const strengthLabelClass = computed(() => {
             v-if="!isGoogle"
             class="bg-default border border-default rounded-[14px] shadow-sm p-[18px_20px]"
           >
-            <div class="text-[13px] font-semibold mb-4">
+            <div class="text-[13px] font-semibold mb-2">
               {{ t('account.secPassword') }}
             </div>
-            <div class="flex flex-col gap-[15px] max-w-[420px]">
-              <!-- Current password -->
-              <div>
-                <label class="block text-[13px] font-medium mb-[6px]">
-                  {{ t('account.lOldPass') }} <span class="text-error">*</span>
-                </label>
-                <UInput
-                  v-model="oldPass"
-                  type="password"
-                  placeholder="••••••••"
-                  :class="secErr.old ? 'ring-1 ring-error [&_input]:border-error' : ''"
-                  size="md"
-                />
-                <div
-                  v-if="secErr.old"
-                  class="mt-[6px] text-[12px] text-error"
-                >
-                  {{ t('account.required') }}
-                </div>
-              </div>
-
-              <!-- New password + strength meter -->
-              <div>
-                <label class="block text-[13px] font-medium mb-[6px]">
-                  {{ t('account.lNewPass') }} <span class="text-error">*</span>
-                </label>
-                <UInput
-                  v-model="newPass"
-                  type="password"
-                  placeholder="••••••••"
-                  :class="secErr.newp ? 'ring-1 ring-error [&_input]:border-error' : ''"
-                  size="md"
-                />
-                <div
-                  v-if="secErr.newp"
-                  class="mt-[6px] text-[12px] text-error"
-                >
-                  {{ t('account.required') }}
-                </div>
-                <!-- Strength meter -->
-                <div
-                  v-if="newPass.length"
-                  class="mt-[9px]"
-                >
-                  <div class="flex gap-[5px] mb-[5px]">
-                    <div
-                      v-for="i in 4"
-                      :key="i"
-                      class="flex-1 h-[5px] rounded-full transition-colors"
-                      :class="strengthBarClass(i)"
-                    />
-                  </div>
-                  <div
-                    class="text-[11.5px] font-medium"
-                    :class="strengthLabelClass"
-                  >
-                    {{ strength.labelKey ? t(strength.labelKey) : '' }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- Confirm password -->
-              <div>
-                <label class="block text-[13px] font-medium mb-[6px]">
-                  {{ t('account.lConfirmPass') }} <span class="text-error">*</span>
-                </label>
-                <UInput
-                  v-model="confirmPass"
-                  type="password"
-                  placeholder="••••••••"
-                  :class="secErr.confirm ? 'ring-1 ring-error [&_input]:border-error' : ''"
-                  size="md"
-                />
-                <div
-                  v-if="secErr.confirm"
-                  class="mt-[6px] flex items-center gap-[5px] text-[12px] text-error"
-                >
-                  <UIcon
-                    name="i-lucide-alert-circle"
-                    class="size-[13px] flex-none"
-                  />
-                  {{ t('account.confirmMismatch') }}
-                </div>
-              </div>
-
-              <!-- Submit -->
-              <div class="flex justify-start">
-                <UButton
-                  color="primary"
-                  icon="i-lucide-lock"
-                  size="md"
-                  @click="changePassword"
-                >
-                  {{ t('account.changePass') }}
-                </UButton>
-              </div>
-            </div>
+            <p class="text-[12.5px] text-muted mb-4 max-w-[420px]">
+              {{ t('account.changePasswordDesc') }}
+            </p>
+            <UButton
+              color="primary"
+              icon="i-lucide-lock"
+              size="md"
+              data-testid="security-change-password"
+              @click="openPasswordModal"
+            >
+              {{ t('account.changePassword') }}
+            </UButton>
           </div>
 
           <!-- Google login info card -->
@@ -807,6 +736,71 @@ const strengthLabelClass = computed(() => {
               </div>
             </div>
           </div>
+
+          <!-- "Ganti Password" modal -->
+          <FormModal
+            v-model:open="pwModalOpen"
+            :title="t('account.changePassword')"
+            :loading="pwLoading"
+            :hide-footer="pwSent"
+            @submit="submitPasswordChange"
+          >
+            <template v-if="!pwSent">
+              <div class="flex flex-col gap-4">
+                <UFormField :label="t('account.currentPassword')">
+                  <UInput
+                    v-model="pwCurrentInput"
+                    type="password"
+                    class="w-full"
+                    data-testid="change-password-current"
+                  />
+                </UFormField>
+                <div
+                  v-if="pwApiErr"
+                  class="text-[12px] text-error"
+                  data-testid="change-password-error"
+                >
+                  {{ pwApiErr }}
+                </div>
+              </div>
+            </template>
+            <template v-else>
+              <div class="flex flex-col gap-3">
+                <UAlert
+                  color="success"
+                  variant="soft"
+                  :title="t('account.pwChangeSent')"
+                  data-testid="change-password-sent"
+                />
+                <div
+                  v-if="pwApiErr"
+                  class="text-[12px] text-error"
+                  data-testid="change-password-error"
+                >
+                  {{ pwApiErr }}
+                </div>
+                <div class="flex justify-end gap-2">
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    data-testid="change-password-close"
+                    @click="pwModalOpen = false"
+                  >
+                    {{ t('common.cancel') }}
+                  </UButton>
+                  <UButton
+                    variant="soft"
+                    :disabled="!pwCooldown.canResend.value || pwLoading"
+                    :loading="pwLoading"
+                    data-testid="change-password-resend"
+                    @click="resendPasswordChange"
+                  >
+                    {{ pwCooldown.canResend.value ? t('auth.forgotResend') : t('auth.forgotResendWait', { s: pwCooldown.remaining.value }) }}
+                  </UButton>
+                </div>
+              </div>
+            </template>
+          </FormModal>
         </div>
 
         <!-- TAB: PREFERENSI -->

@@ -5,7 +5,6 @@ const NOTIF_KEY = 'inventra.account.notif'
 const DEFAULT_NOTIF: NotifPrefs = { approval: true, maint: true, assign: false }
 
 export interface ProfileInput { nama: string, telepon: string }
-export interface PasswordInput { oldPass: string, newPass: string, confirmPass: string }
 
 // Shape returned by GET/PUT /auth/profile (backend `ProfileView`, snake_case).
 interface ProfileApiResponse {
@@ -78,26 +77,12 @@ export function useAccount() {
   }
 
   // Verifies the current password and emails a reset link to complete the
-  // change (reuses the forgot-password flow). Replaces the old inline
-  // changePassword(oldPass, newPass) below — see the note on that function.
+  // change (reuses the forgot-password flow) — the Keamanan tab's "Ganti
+  // Password" modal (account.vue) calls this instead of changing inline.
   async function requestPasswordChange(currentPassword: string): Promise<void> {
     await client.request('/auth/password/change-request', {
       method: 'POST',
       body: { current_password: currentPassword }
-    })
-  }
-
-  // Legacy direct password change (PUT /auth/password) — still a live backend
-  // endpoint, kept here only because account.vue's Keamanan tab still calls it.
-  // Task 19 rewires account.vue to the request/confirm-via-email flow above
-  // (requestPasswordChange); once that lands this function can be removed.
-  async function changePassword(input: PasswordInput): Promise<void> {
-    if (!input.oldPass || !input.newPass || !input.confirmPass) throw new Error('account.errRequired')
-    if (input.newPass !== input.confirmPass) throw new Error('account.errConfirmMismatch')
-    if (input.newPass.length < 8) throw new Error('account.errWeak')
-    await client.request('/auth/password', {
-      method: 'PUT',
-      body: { old_password: input.oldPass, new_password: input.newPass }
     })
   }
 
@@ -145,5 +130,5 @@ export function useAccount() {
     }
   }
 
-  return { getProfile, updateProfile, requestEmailChange, confirmEmailChange, requestPasswordChange, changePassword, requestPasswordReset, resetPassword, listSessions, revokeSession, logoutAllOthers, getNotifPrefs, setNotifPrefs }
+  return { getProfile, updateProfile, requestEmailChange, confirmEmailChange, requestPasswordChange, requestPasswordReset, resetPassword, listSessions, revokeSession, logoutAllOthers, getNotifPrefs, setNotifPrefs }
 }
