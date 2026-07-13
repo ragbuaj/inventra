@@ -307,6 +307,7 @@ onMounted(() => load())
       />
       <USelect
         v-model="fRole"
+        data-testid="users-role-filter"
         :items="roleFilterOptions"
         class="min-w-[150px]"
       />
@@ -322,6 +323,7 @@ onMounted(() => load())
       />
       <USelect
         v-model="fStatus"
+        data-testid="users-status-filter"
         :items="statusFilterOptions"
         class="min-w-[140px]"
       />

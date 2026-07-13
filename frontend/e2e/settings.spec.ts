@@ -37,6 +37,36 @@ test.describe('User Management screen — real backend', () => {
     // The slideover heading renders (proves the create form mounted correctly).
     await expect(page.getByRole('heading', { name: 'Tambah User' })).toBeVisible({ timeout: 5_000 })
   })
+
+  // Read-only — no user is created/mutated, avoiding pollution of the shared dev DB.
+  test('status filter sends the selected status as a query param to the backend', async ({ page }) => {
+    await login(page)
+    await page.goto('/settings/users')
+    await expect(page.getByRole('heading', { name: 'Pengguna' })).toBeVisible({ timeout: 10_000 })
+    await expect(
+      page.getByText('admin@inventra.local').or(page.getByText('Belum ada pengguna', { exact: true }))
+    ).toBeVisible({ timeout: 10_000 })
+
+    // Filter USelect trigger, targeted via its data-testid (frontend/app/pages/settings/users.vue).
+    const statusFilter = page.getByTestId('users-status-filter')
+    await expect(statusFilter).toBeVisible()
+
+    // Assert the outgoing GET /users request carries status=inactive — robust against
+    // dev-DB row contention (unlike asserting on visible row contents/count).
+    const responsePromise = page.waitForResponse(res =>
+      res.url().includes('/users?') && res.url().includes('status=inactive') && res.request().method() === 'GET'
+    )
+    await statusFilter.click()
+    // Option role="option" comes from reka-ui's SelectItem; label from i18n
+    // settings.users.status.inactive = "Nonaktif".
+    await page.getByRole('option', { name: 'Nonaktif' }).click()
+    const response = await responsePromise
+    expect(response.ok()).toBe(true)
+
+    // Reset button (users-filter-reset) appears once the filter is active — UI proof
+    // the page registered the change, in addition to the network assertion above.
+    await expect(page.getByTestId('users-filter-reset')).toBeVisible()
+  })
 })
 
 // ---------------------------------------------------------------------------
