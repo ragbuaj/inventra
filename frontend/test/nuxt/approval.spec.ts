@@ -294,6 +294,20 @@ describe('pages/approval — inbox store refresh', () => {
     await flushPromises()
     expect(spy).toHaveBeenCalled()
   })
+
+  it('calls inboxStore.refresh() even when approve() fails (403 SoD / 409 stale-step re-sync)', async () => {
+    const spy = vi.spyOn(useInboxStore(), 'refresh').mockResolvedValue(undefined)
+    approveMock.mockRejectedValueOnce(new Error('403'))
+    const w = await mountSuspended(ApprovalPage)
+    await flushPromises()
+    spy.mockClear()
+    await w.find('[data-testid="approval-card"]').trigger('click')
+    await flushPromises()
+    await w.find('[data-testid="approval-approve"]').trigger('click')
+    await flushPromises()
+    expect(approveMock).toHaveBeenCalled()
+    expect(spy).toHaveBeenCalled()
+  })
 })
 
 // ---------------------------------------------------------------------------

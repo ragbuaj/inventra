@@ -278,6 +278,7 @@ async function decide(action: 'approve' | 'reject') {
   } catch {
     // useApiClient already raised a toast; re-sync state (403 SoD / 409 stale step).
     await loadTab()
+    await useInboxStore().refresh()
     if (selectedId.value) await selectRequest(selectedId.value)
   } finally {
     deciding.value = false

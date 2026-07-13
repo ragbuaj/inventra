@@ -23,6 +23,16 @@ function setupSuperadminEnumerated() {
   )
 }
 
+// Staff user — lacks 'user.manage', so AppSidebar's `can('user.manage') ? superadminNav : staffNav`
+// selects staffNav (which renders the disabled nav.approvalStaff leaf).
+function setupStaff() {
+  useAuthStore().setSession(
+    'tok',
+    { id: '2', name: 'Budi Santoso', email: 'budi@inventra.local', role_id: 'r2', role_name: 'Staff', office_id: 'o1' },
+    ['request.create']
+  )
+}
+
 describe('AppSidebar', () => {
   beforeEach(() => {
     useAuthStore().clear()
@@ -186,6 +196,33 @@ describe('AppSidebar — live pending-approval badge (nav.approval)', () => {
     const approvalLink = links.find(a => a.attributes('href') === '/approval')
     expect(approvalLink).toBeDefined()
     expect(approvalLink!.text()).toContain('5')
+  })
+})
+
+describe('AppSidebar — live pending-approval badge (nav.approvalStaff, disabled leaf)', () => {
+  beforeEach(() => {
+    useAuthStore().clear()
+    useUiStore().sidebarCollapsed = false
+    useInboxStore().pendingCount = 0
+  })
+
+  it('renders the inbox store pendingCount as the badge on the disabled staff approval leaf', async () => {
+    setupStaff()
+    useInboxStore().pendingCount = 3
+    const wrapper = await mountSuspended(AppSidebar)
+    const staffLeaf = wrapper.find('[aria-label="Pengajuan"]')
+    expect(staffLeaf.exists()).toBe(true)
+    expect(staffLeaf.text()).toContain('3')
+  })
+
+  it('hides the badge on the disabled staff approval leaf when pendingCount is 0', async () => {
+    setupStaff()
+    useInboxStore().pendingCount = 0
+    const wrapper = await mountSuspended(AppSidebar)
+    const staffLeaf = wrapper.find('[aria-label="Pengajuan"]')
+    expect(staffLeaf.exists()).toBe(true)
+    // No badge span should render for a 0 count
+    expect(staffLeaf.find('.bg-error').exists()).toBe(false)
   })
 })
 
