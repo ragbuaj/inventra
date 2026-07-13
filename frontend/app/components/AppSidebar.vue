@@ -5,6 +5,7 @@ import type { NavItem } from '~/types'
 const ui = useUiStore()
 const can = useCan()
 const auth = useAuthStore()
+const inboxStore = useInboxStore()
 const { t } = useI18n()
 const localePath = useLocalePath()
 
@@ -33,6 +34,15 @@ function toggleGroup(labelKey: string) {
 function isVisible(item: NavItem): boolean {
   if (!item.permission) return true
   return can(item.permission)
+}
+
+// The approval leaves (superadmin + staff) show the live pending-approval
+// count from the inbox store instead of any static badgeCount.
+function badgeFor(item: NavItem): number | undefined {
+  if (item.labelKey === 'nav.approval' || item.labelKey === 'nav.approvalStaff') {
+    return inboxStore.pendingCount || undefined
+  }
+  return item.badgeCount
 }
 
 // Compute initials from the user's name (first letter of each word, max 2)
@@ -200,14 +210,14 @@ const userScope = computed(() => auth.user?.role_name ?? '')
                 >{{ $t(item.labelKey) }}</span>
                 <!-- Badge expanded -->
                 <span
-                  v-if="!ui.sidebarCollapsed && item.badgeCount"
+                  v-if="!ui.sidebarCollapsed && badgeFor(item)"
                   class="flex-none min-w-[20px] h-[20px] px-[6px] inline-flex items-center justify-center text-[11px] font-bold text-inverted bg-error rounded-full"
-                >{{ item.badgeCount }}</span>
+                >{{ badgeFor(item) }}</span>
                 <!-- Badge collapsed -->
                 <span
-                  v-if="ui.sidebarCollapsed && item.badgeCount"
+                  v-if="ui.sidebarCollapsed && badgeFor(item)"
                   class="absolute top-[6px] right-[10px] min-w-[16px] h-[16px] px-[4px] inline-flex items-center justify-center text-[9px] font-bold text-inverted bg-error rounded-full"
-                >{{ item.badgeCount }}</span>
+                >{{ badgeFor(item) }}</span>
               </NuxtLink>
 
               <!-- Disabled leaf -->
@@ -231,14 +241,14 @@ const userScope = computed(() => auth.user?.role_name ?? '')
                 >{{ $t(item.labelKey) }}</span>
                 <!-- Badge expanded -->
                 <span
-                  v-if="!ui.sidebarCollapsed && item.badgeCount"
+                  v-if="!ui.sidebarCollapsed && badgeFor(item)"
                   class="flex-none min-w-[20px] h-[20px] px-[6px] inline-flex items-center justify-center text-[11px] font-bold text-inverted bg-error rounded-full"
-                >{{ item.badgeCount }}</span>
+                >{{ badgeFor(item) }}</span>
                 <!-- Badge collapsed -->
                 <span
-                  v-if="ui.sidebarCollapsed && item.badgeCount"
+                  v-if="ui.sidebarCollapsed && badgeFor(item)"
                   class="absolute top-[6px] right-[10px] min-w-[16px] h-[16px] px-[4px] inline-flex items-center justify-center text-[9px] font-bold text-inverted bg-error rounded-full"
-                >{{ item.badgeCount }}</span>
+                >{{ badgeFor(item) }}</span>
               </span>
             </template>
           </template>

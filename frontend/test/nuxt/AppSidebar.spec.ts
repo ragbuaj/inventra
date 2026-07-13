@@ -4,6 +4,7 @@ import { mountSuspended } from '@nuxt/test-utils/runtime'
 import AppSidebar from '~/components/AppSidebar.vue'
 import { useAuthStore } from '~/stores/auth'
 import { useUiStore } from '~/stores/ui'
+import { useInboxStore } from '~/stores/inbox'
 
 function setupSuperadmin() {
   useAuthStore().setSession(
@@ -145,6 +146,46 @@ describe('AppSidebar', () => {
     const wrapper = await mountSuspended(AppSidebar)
     const aside = wrapper.find('aside')
     expect(aside.classes()).toContain('w-[76px]')
+  })
+})
+
+describe('AppSidebar — live pending-approval badge (nav.approval)', () => {
+  beforeEach(() => {
+    useAuthStore().clear()
+    useUiStore().sidebarCollapsed = false
+    useInboxStore().pendingCount = 0
+  })
+
+  it('renders the inbox store pendingCount as the badge on the approval leaf', async () => {
+    setupSuperadmin()
+    useInboxStore().pendingCount = 3
+    const wrapper = await mountSuspended(AppSidebar)
+    const links = wrapper.findAll('a')
+    const approvalLink = links.find(a => a.attributes('href') === '/approval')
+    expect(approvalLink).toBeDefined()
+    expect(approvalLink!.text()).toContain('3')
+  })
+
+  it('hides the badge on the approval leaf when pendingCount is 0', async () => {
+    setupSuperadmin()
+    useInboxStore().pendingCount = 0
+    const wrapper = await mountSuspended(AppSidebar)
+    const links = wrapper.findAll('a')
+    const approvalLink = links.find(a => a.attributes('href') === '/approval')
+    expect(approvalLink).toBeDefined()
+    // No badge span should render for a 0 count
+    expect(approvalLink!.find('.bg-error').exists()).toBe(false)
+  })
+
+  it('renders the inbox store pendingCount as the badge when the sidebar is collapsed', async () => {
+    setupSuperadmin()
+    useInboxStore().pendingCount = 5
+    useUiStore().sidebarCollapsed = true
+    const wrapper = await mountSuspended(AppSidebar)
+    const links = wrapper.findAll('a')
+    const approvalLink = links.find(a => a.attributes('href') === '/approval')
+    expect(approvalLink).toBeDefined()
+    expect(approvalLink!.text()).toContain('5')
   })
 })
 

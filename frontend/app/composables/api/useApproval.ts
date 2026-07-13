@@ -58,6 +58,11 @@ export function useApproval() {
     return res.data
   }
 
+  async function inboxCount(): Promise<number> {
+    const res = await request<{ count: number }>('/requests/inbox/count')
+    return res.count
+  }
+
   async function list(q: ApprovalListQuery = {}): Promise<ApprovalListPage> {
     const query: Record<string, string | number> = {}
     if (q.status) query.status = q.status
@@ -91,5 +96,5 @@ export function useApproval() {
     })
   }
 
-  return { inbox, list, get, approve, reject }
+  return { inbox, inboxCount, list, get, approve, reject }
 }

@@ -50,6 +50,10 @@ export function useAuthApi() {
       employee_id: me.employee_id
     }
     auth.setSession(auth.accessToken as string, user, perms.permissions)
+    // Prime the sidebar's live pending-approval badge as soon as the session
+    // is established (covers login, Google OAuth callback, and session
+    // restore on app boot — fetchMe() is the single choke point for all three).
+    await useInboxStore().refresh()
   }
 
   async function logout(): Promise<void> {

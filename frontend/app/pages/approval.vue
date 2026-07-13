@@ -273,6 +273,7 @@ async function decide(action: 'approve' | 'reject') {
     else await api.reject(d.id, note.value || undefined)
     note.value = ''
     await loadTab()
+    await useInboxStore().refresh()
     await selectRequest(d.id)
   } catch {
     // useApiClient already raised a toast; re-sync state (403 SoD / 409 stale step).
@@ -316,7 +317,7 @@ async function viewAttachment() {
 }
 
 onMounted(async () => {
-  await Promise.all([loadTab(), loadLookups()])
+  await Promise.all([loadTab(), loadLookups(), useInboxStore().refresh()])
 })
 </script>
 
