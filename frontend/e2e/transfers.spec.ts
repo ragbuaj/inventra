@@ -1,6 +1,6 @@
 import { test, expect, request } from '@playwright/test'
 import type { APIRequestContext, APIResponse } from '@playwright/test'
-import { login, EMAIL, PASSWORD } from './helpers'
+import { login, pickAsync, EMAIL, PASSWORD } from './helpers'
 
 // ---------------------------------------------------------------------------
 // Transfer (Mutasi) — real backend (`/transfers` wired to /api/v1/transfers +
@@ -172,8 +172,7 @@ test.describe('Transfer (Mutasi) — real backend (submit → approve → ship �
     await picker.getByTestId('asset-picker-input').fill(asset1Name)
     await picker.getByTestId('asset-picker-item').first().click()
 
-    await page.getByTestId('transfer-to-office').click()
-    await page.getByRole('option', { name: officeBName, exact: true }).click()
+    await pickAsync(page, 'to-office', officeBName, officeBName)
 
     await page.getByTestId('transfer-date').fill(todayISO())
 

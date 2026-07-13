@@ -1,6 +1,6 @@
 import { test, expect, request } from '@playwright/test'
 import type { APIRequestContext, APIResponse, Page } from '@playwright/test'
-import { login, EMAIL, PASSWORD } from './helpers'
+import { login, pickAsync, EMAIL, PASSWORD } from './helpers'
 
 // ---------------------------------------------------------------------------
 // Maintenance (Jadwal/Catatan/Laporan Kerusakan) — real backend
@@ -288,13 +288,12 @@ test.describe('Maintenance (Jadwal/Catatan/Laporan Kerusakan) — real backend e
     await assetPicker.getByTestId('asset-picker-input').fill(asset1Name)
     await assetPicker.getByTestId('asset-picker-item').first().click()
 
-    await scheduleDialog.getByTestId('schedule-slideover-category').click()
-    await page.getByRole('option', { name: maintCatName, exact: true }).click()
+    await pickAsync(page, 'schedule-slideover-category', maintCatName, maintCatName)
 
-    // The category USelectMenu's option list stays mounted (off-screen) after
-    // selection rather than being removed — a bare .fill() on the next field
-    // occasionally lands before Vue settles the DOM, leaving it empty. An
-    // explicit .click() first (focusing the real input) makes it reliable.
+    // The category AsyncSearchPicker's result list stays mounted (off-screen)
+    // after selection rather than being removed — a bare .fill() on the next
+    // field occasionally lands before Vue settles the DOM, leaving it empty.
+    // An explicit .click() first (focusing the real input) makes it reliable.
     const intervalField = scheduleDialog.getByTestId('schedule-slideover-interval')
     await intervalField.click()
     await intervalField.fill('2')
@@ -406,8 +405,7 @@ test.describe('Maintenance (Jadwal/Catatan/Laporan Kerusakan) — real backend e
     // --- Negative (part of scenario 3): submit stays disabled with kategori empty. ---
     await expect(page.getByTestId('report-submit')).toBeDisabled()
 
-    await page.getByTestId('report-problem-picker').click()
-    await page.getByRole('option', { name: problemCatName, exact: true }).click()
+    await pickAsync(page, 'report-problem', problemCatName, problemCatName)
 
     await expect(page.getByTestId('report-submit')).toBeEnabled()
     await page.getByTestId('report-submit').click()

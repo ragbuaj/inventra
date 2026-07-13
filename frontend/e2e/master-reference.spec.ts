@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { login } from './helpers'
+import { login, pickAsync } from './helpers'
 
 // ---------------------------------------------------------------------------
 // Master Data Referensi screen — real backend (GET/POST/PUT/DELETE via
@@ -150,22 +150,16 @@ test.describe('Master Data Referensi — cities FK picker (provinces)', () => {
     await expect(page.getByText('Tambah Data', { exact: true })).toBeVisible({ timeout: 5_000 })
 
     // --- Step 4: assert the Provinsi FK picker is present ---
-    // The USelect for province_id renders with data-testid="ref-field-province_id"
-    // (added to reference.vue so this locator is deterministic — no broad div/button filter).
-    const provinsiTrigger = page.getByTestId('ref-field-province_id')
-    await expect(provinsiTrigger).toBeVisible({ timeout: 5_000 })
+    // The FK field renders as an AsyncSearchPicker with
+    // :testid="`ref-field-${field.key}`" (i.e. `ref-field-province_id`), so its
+    // input carries data-testid="ref-field-province_id-picker-input" and its
+    // result rows "ref-field-province_id-picker-item" (added to reference.vue
+    // so this locator is deterministic — no broad div/button filter).
+    const provinsiInput = page.getByTestId('ref-field-province_id-picker-input')
+    await expect(provinsiInput).toBeVisible({ timeout: 5_000 })
 
-    // Click the trigger (or its inner button if the testid lands on the wrapper).
-    // Scoping getByRole('button') to a single testid element is acceptable — it is
-    // not a broad filter; there is exactly one element with this testid in the DOM.
-    await provinsiTrigger.click()
-
-    // The dropdown listbox should appear with the province we just created.
-    // USelect renders options as role="option" inside a popover.
-    await expect(page.getByRole('option', { name: provinceName2, exact: true })).toBeVisible({ timeout: 8_000 })
-
-    // Pick the province by clicking its option.
-    await page.getByRole('option', { name: provinceName2, exact: true }).click()
+    // Search + pick the province we just created via the async picker.
+    await pickAsync(page, 'ref-field-province_id', provinceName2, provinceName2)
 
     // --- Step 5: fill the city name + code (code unique per run — see above) ---
     await page.getByLabel('Nama', { exact: true }).fill(cityName)
