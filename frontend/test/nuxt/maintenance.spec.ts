@@ -187,13 +187,6 @@ vi.mock('~/composables/api/useReference', () => ({
   })
 }))
 
-// useReferencePicker's resolveFn (the problem-category picker in Laporan
-// Kerusakan) hits useReference().get('problem-categories', id).
-const { requestMock } = vi.hoisted(() => ({ requestMock: vi.fn() }))
-vi.mock('~/composables/useApiClient', () => ({
-  useApiClient: () => ({ request: requestMock, requestBlob: vi.fn() })
-}))
-
 // eslint-disable-next-line import/first
 import MaintenancePage from '~/pages/maintenance.vue'
 
@@ -239,12 +232,6 @@ function clickTab(wrapper: Wrapper, label: string) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  requestMock.mockImplementation((path: string) => {
-    const m = path.match(/^\/problem-categories\/([^/?]+)$/)
-    if (!m) return Promise.reject(new Error(`Unhandled request: ${path}`))
-    const row = PROBLEM_CATEGORIES.find(r => r.id === m[1])
-    return row ? Promise.resolve(row) : Promise.reject(new Error('not found'))
-  })
   schedulesMock.mockResolvedValue(page([schedule()]))
   recordsMock.mockResolvedValue(page([record()]))
   attentionMock.mockResolvedValue({ data: [] })

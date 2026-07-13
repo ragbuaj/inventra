@@ -88,7 +88,7 @@ export function useReferencePicker(resource: ReferenceKey) {
 /**
  * User adapter for AsyncSearchPicker — label = name, sublabel = email.
  * useUsers() exposes no per-id getter, so resolveFn reaches around via
- * useApiClient() directly (same pattern as useReferencePicker).
+ * useApiClient() directly.
  */
 export function useUserPicker() {
   const api = useUsers()

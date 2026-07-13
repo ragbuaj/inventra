@@ -130,8 +130,31 @@ const MAINTENANCE_RECORDS = [
   }
 ]
 
+// GET /brands/:id and /models/:id (resolve-cache, on-demand per-id name
+// resolution) must be matched before the plain GET /brands, /models list
+// routes below — both share the '/brands' / '/models' prefix. The Detail
+// page no longer fetches these lists eagerly (no more `{ limit: 100 }`);
+// brand/model names resolve on demand, same pattern as the office field.
+function brandsHandler(path: string): unknown {
+  const m = /^\/brands\/([^/?]+)$/.exec(path)
+  if (m) return BRANDS.find(b => b.id === m[1]) ?? null
+  return { data: BRANDS, total: BRANDS.length, limit: 20, offset: 0 }
+}
+
+function modelsHandler(path: string): unknown {
+  const m = /^\/models\/([^/?]+)$/.exec(path)
+  if (m) return MODELS.find(x => x.id === m[1]) ?? null
+  return { data: MODELS, total: MODELS.length, limit: 20, offset: 0 }
+}
+
+// Records every path requested through the stub, so tests can assert which
+// endpoints a given render actually hit (e.g. per-id resolve vs. an eager
+// `{ limit: 100 }` list).
+const requestedPaths: string[] = []
+
 function defaultHandler(asset: Record<string, unknown>): RequestHandler {
   return (path: string) => {
+    requestedPaths.push(path)
     if (path.startsWith('/assets/by-tag/')) {
       const requestedTag = decodeURIComponent(path.split('/assets/by-tag/')[1] ?? '')
       if (requestedTag !== asset.asset_tag) {
@@ -147,8 +170,8 @@ function defaultHandler(asset: Record<string, unknown>): RequestHandler {
       return OFFICES.find(o => o.id === id) ?? null
     }
     if (path.startsWith('/offices')) return { data: OFFICES, total: OFFICES.length, limit: 100, offset: 0 }
-    if (path.startsWith('/brands')) return { data: BRANDS, total: BRANDS.length, limit: 100, offset: 0 }
-    if (path.startsWith('/models')) return { data: MODELS, total: MODELS.length, limit: 100, offset: 0 }
+    if (path.startsWith('/brands')) return brandsHandler(path)
+    if (path.startsWith('/models')) return modelsHandler(path)
     if (path.startsWith('/vendors')) return { data: VENDORS, total: VENDORS.length, limit: 100, offset: 0 }
     if (path.startsWith('/units')) return { data: UNITS, total: UNITS.length, limit: 100, offset: 0 }
     if (path.startsWith('/floors')) return { data: FLOORS, total: FLOORS.length, limit: 100, offset: 0 }
@@ -174,6 +197,7 @@ function grantAdmin() {
 }
 
 beforeEach(() => {
+  requestedPaths.length = 0
   setHandler(defaultHandler(FULL_ASSET))
   setBlobHandler(() => new Blob(['thumb'], { type: 'image/jpeg' }))
   grantAdmin()
@@ -261,6 +285,72 @@ describe('Asset Detail page — header and Info tab', () => {
     })
     const wrapper = await mountTag('JKT01-ELK-2026-00001')
     expect(wrapper.text()).toContain('Lantai 2 — Ruang Server')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Brand/model resolution — on-demand per-id resolve-cache (Tech-Debt Sweep #2
+// follow-up), not an eager `{ limit: 100 }` list. Mirrors the fallback
+// assertions in assets-catalog.spec.ts's "resilient name resolution" block.
+// ---------------------------------------------------------------------------
+
+describe('Asset Detail page — brand/model resolution', () => {
+  it('resolves brand_id/model_id via per-id reference.get lookups, not an eager `{ limit: 100 }` list', async () => {
+    const wrapper = await mountTag('JKT01-ELK-2026-00001')
+    const text = wrapper.text()
+    expect(text).toContain('Dell')
+    expect(text).toContain('Latitude 5440')
+
+    expect(requestedPaths).toContain('/brands/b1')
+    expect(requestedPaths).toContain('/models/m1')
+    expect(requestedPaths.some(p => p.startsWith('/brands?limit=100'))).toBe(false)
+    expect(requestedPaths.some(p => p.startsWith('/models?limit=100'))).toBe(false)
+  })
+
+  it('falls back to the raw id when the per-id brand lookup fails, without crashing the page', async () => {
+    const unhandled: unknown[] = []
+    const onUnhandledRejection = (reason: unknown) => unhandled.push(reason)
+    process.on('unhandledRejection', onUnhandledRejection)
+    try {
+      setHandler((path: string) => {
+        if (/^\/brands\/[^/?]+$/.test(path)) throw Object.assign(new Error('Server Error'), { statusCode: 500 })
+        return defaultHandler(FULL_ASSET)(path)
+      })
+
+      const wrapper = await mountTag('JKT01-ELK-2026-00001')
+
+      // Page still renders — the resolve-cache failure doesn't crash it.
+      expect(wrapper.text()).toContain('Laptop Dell Latitude 5440')
+      // Falls back to the raw brand id (same `?? id` fallback as office).
+      expect(wrapper.text()).toContain('b1')
+
+      expect(unhandled).toEqual([])
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection)
+    }
+  })
+
+  it('falls back to the raw id when the per-id model lookup fails, without crashing the page', async () => {
+    const unhandled: unknown[] = []
+    const onUnhandledRejection = (reason: unknown) => unhandled.push(reason)
+    process.on('unhandledRejection', onUnhandledRejection)
+    try {
+      setHandler((path: string) => {
+        if (/^\/models\/[^/?]+$/.test(path)) throw Object.assign(new Error('Server Error'), { statusCode: 500 })
+        return defaultHandler(FULL_ASSET)(path)
+      })
+
+      const wrapper = await mountTag('JKT01-ELK-2026-00001')
+
+      // Page still renders — the resolve-cache failure doesn't crash it.
+      expect(wrapper.text()).toContain('Laptop Dell Latitude 5440')
+      // Falls back to the raw model id (same `?? id` fallback as office/brand).
+      expect(wrapper.text()).toContain('m1')
+
+      expect(unhandled).toEqual([])
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection)
+    }
   })
 })
 

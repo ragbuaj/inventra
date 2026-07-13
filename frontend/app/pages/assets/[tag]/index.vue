@@ -23,6 +23,8 @@ const assetsApi = useAssets()
 const attachmentsApi = useAssetAttachments()
 const categoriesApi = useCategories()
 const office = useOfficePicker()
+const brand = useReferencePicker('brands')
+const model = useReferencePicker('models')
 const floorsApi = useFloors()
 const referenceApi = useReference()
 const deprApi = useDepreciation()
@@ -36,13 +38,13 @@ const notFound = ref(false)
 const tab = ref<'info' | 'assign' | 'maint' | 'depr'>('info')
 
 // FK id → name maps, populated by loadLookups() once the asset itself is
-// known. Missing/unresolved ids render as "—" (see `name()` below). Office
-// resolves on-demand via useResolveCache — only ever one id on this page, so
-// no more eager `{ limit: 100 }` list.
+// known. Missing/unresolved ids render as "—" (see `name()` below). Office/
+// brand/model resolve on-demand via useResolveCache — only ever one id apiece
+// on this page, so no more eager `{ limit: 100 }` list (see loadLookups).
 const categoryMap = ref(new Map<string, string>())
 const officeCache = useResolveCache(office.resolveFn)
-const brandMap = ref(new Map<string, string>())
-const modelMap = ref(new Map<string, string>())
+const brandCache = useResolveCache(brand.resolveFn)
+const modelCache = useResolveCache(model.resolveFn)
 const vendorMap = ref(new Map<string, string>())
 const unitMap = ref(new Map<string, string>())
 const roomLabel = ref('—')
@@ -65,9 +67,9 @@ function name(id: string | null | undefined, map: Map<string, string>): string {
 function brandModelLabel(): string {
   const a = asset.value
   if (!a) return '—'
-  const brand = a.brand_id ? brandMap.value.get(a.brand_id) : undefined
-  const model = a.model_id ? modelMap.value.get(a.model_id) : undefined
-  const parts = [brand, model].filter((v): v is string => !!v)
+  const brandLabel = a.brand_id ? brandCache.get(a.brand_id) : undefined
+  const modelLabel = a.model_id ? modelCache.get(a.model_id) : undefined
+  const parts = [brandLabel, modelLabel].filter((v): v is string => !!v && v !== '—')
   return parts.length > 0 ? parts.join(' ') : '—'
 }
 
@@ -212,8 +214,8 @@ const infoSections = computed<{ title: string, rows: InfoField[] }[]>(() => {
   return [
     { title: t('assets.detail.sections.identity'), rows: [
       { label: t('assets.detail.fields.kategori'), value: name(a.category_id, categoryMap.value) },
-      { label: t('assets.detail.fields.brand'), value: name(a.brand_id, brandMap.value) },
-      { label: t('assets.detail.fields.model'), value: name(a.model_id, modelMap.value) },
+      { label: t('assets.detail.fields.brand'), value: brandCache.get(a.brand_id) },
+      { label: t('assets.detail.fields.model'), value: modelCache.get(a.model_id) },
       { label: t('assets.detail.fields.serial'), value: a.serial_number || '—' },
       { label: t('assets.detail.fields.unit'), value: name(a.unit_id, unitMap.value) },
       { label: t('assets.detail.fields.assetClass'), value: t(classMeta[a.asset_class].labelKey) }
@@ -320,8 +322,6 @@ async function resolveRoom(a: Asset, mine: number) {
 async function loadLookups(a: Asset, mine: number) {
   await Promise.all([
     categoriesApi.tree().then((cats) => { if (mine === seq) categoryMap.value = new Map(cats.map(c => [c.id, c.name])) }).catch(() => {}),
-    referenceApi.list('brands', { limit: 100 }).then((res) => { if (mine === seq) brandMap.value = new Map(res.data.map(b => [b.id, b.name])) }).catch(() => {}),
-    referenceApi.list('models', { limit: 100 }).then((res) => { if (mine === seq) modelMap.value = new Map(res.data.map(m => [m.id, m.name])) }).catch(() => {}),
     referenceApi.list('vendors', { limit: 100 }).then((res) => { if (mine === seq) vendorMap.value = new Map(res.data.map(v => [v.id, v.name])) }).catch(() => {}),
     referenceApi.list('units', { limit: 100 }).then((res) => { if (mine === seq) unitMap.value = new Map(res.data.map(u => [u.id, u.name])) }).catch(() => {}),
     resolveRoom(a, mine)

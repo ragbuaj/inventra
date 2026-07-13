@@ -49,14 +49,6 @@ vi.mock('~/composables/api/useReference', () => ({
   useReference: () => ({ list: refListMock, get: refGetMock, create: vi.fn(), update: vi.fn(), remove: vi.fn() })
 }))
 
-// useReferencePicker's resolveFn (maintenance-category/vendor pickers) hits
-// useReference().get(key, id) — route it to the same CATEGORIES/VENDORS
-// fixtures the list mock above uses.
-const { requestMock } = vi.hoisted(() => ({ requestMock: vi.fn() }))
-vi.mock('~/composables/useApiClient', () => ({
-  useApiClient: () => ({ request: requestMock, requestBlob: vi.fn() })
-}))
-
 const assetsListMock = vi.fn()
 vi.mock('~/composables/api/useAssets', () => ({
   useAssets: () => ({ list: assetsListMock, get: vi.fn(), getByTag: vi.fn(), update: vi.fn() })
@@ -190,14 +182,6 @@ beforeEach(() => {
     Promise.resolve(page(key === 'maintenance-categories' ? CATEGORIES : key === 'vendors' ? VENDORS : [])))
   refGetMock.mockImplementation((key: string, id: string) => {
     const rows = key === 'maintenance-categories' ? CATEGORIES : key === 'vendors' ? VENDORS : []
-    const row = rows.find(r => r.id === id)
-    return row ? Promise.resolve(row) : Promise.reject(new Error('not found'))
-  })
-  requestMock.mockImplementation((path: string) => {
-    const m = path.match(/^\/(maintenance-categories|vendors)\/([^/?]+)$/)
-    if (!m) return Promise.reject(new Error(`Unhandled request: ${path}`))
-    const [, key, id] = m
-    const rows = key === 'maintenance-categories' ? CATEGORIES : VENDORS
     const row = rows.find(r => r.id === id)
     return row ? Promise.resolve(row) : Promise.reject(new Error('not found'))
   })
