@@ -105,4 +105,129 @@ describe('AsyncSearchPicker', () => {
     await flushPromises()
     expect(w.find('[data-testid="office-picker-clear"]').exists()).toBe(false)
   })
+
+  describe('a11y: combobox/listbox roles and keyboard navigation', () => {
+    async function openWithResults(w: Awaited<ReturnType<typeof picker>>, term = 'ka') {
+      await w.find('[data-testid="office-picker-input"]').setValue(term)
+      vi.advanceTimersByTime(300)
+      await flushPromises()
+      await w.vm.$nextTick()
+    }
+
+    it('renders the input as a combobox with aria-expanded reflecting open state', async () => {
+      const w = await picker()
+      const input = w.find('[data-testid="office-picker-input"]')
+      expect(input.attributes('role')).toBe('combobox')
+      expect(input.attributes('aria-haspopup')).toBe('listbox')
+      expect(input.attributes('aria-expanded')).toBe('false')
+
+      vi.useFakeTimers()
+      await openWithResults(w)
+      expect(w.find('[data-testid="office-picker-input"]').attributes('aria-expanded')).toBe('true')
+      vi.useRealTimers()
+    })
+
+    it('renders the listbox and options with proper roles and aria-selected', async () => {
+      vi.useFakeTimers()
+      const w = await picker()
+      await openWithResults(w)
+      vi.useRealTimers()
+
+      const list = w.find('ul')
+      expect(list.attributes('role')).toBe('listbox')
+      const options = w.findAll('[data-testid="office-picker-item"]')
+      expect(options).toHaveLength(2)
+      for (const opt of options) {
+        expect(opt.attributes('role')).toBe('option')
+        expect(opt.attributes('aria-selected')).toBe('false')
+      }
+    })
+
+    it('ArrowDown moves activeIndex and sets aria-activedescendant on the input', async () => {
+      vi.useFakeTimers()
+      const w = await picker()
+      await openWithResults(w)
+
+      await w.find('[data-testid="office-picker-input"]').trigger('keydown', { key: 'ArrowDown' })
+      await w.vm.$nextTick()
+      vi.useRealTimers()
+
+      const input = w.find('[data-testid="office-picker-input"]')
+      const options = w.findAll('[data-testid="office-picker-item"]')
+      const activeId = options[0]!.attributes('id')
+      expect(activeId).toBeTruthy()
+      expect(input.attributes('aria-activedescendant')).toBe(activeId)
+      expect(options[0]!.attributes('aria-selected')).toBe('true')
+    })
+
+    it('Enter selects the active option and emits update:modelValue', async () => {
+      vi.useFakeTimers()
+      const w = await picker()
+      await openWithResults(w)
+
+      const input = w.find('[data-testid="office-picker-input"]')
+      await input.trigger('keydown', { key: 'ArrowDown' })
+      await input.trigger('keydown', { key: 'ArrowDown' })
+      await input.trigger('keydown', { key: 'Enter' })
+      await w.vm.$nextTick()
+      vi.useRealTimers()
+
+      expect(w.emitted('update:modelValue')?.at(-1)).toEqual(['o2'])
+    })
+
+    it('Escape closes the popover', async () => {
+      vi.useFakeTimers()
+      const w = await picker()
+      await openWithResults(w)
+
+      const input = w.find('[data-testid="office-picker-input"]')
+      expect(input.attributes('aria-expanded')).toBe('true')
+      await input.trigger('keydown', { key: 'Escape' })
+      await w.vm.$nextTick()
+      vi.useRealTimers()
+
+      expect(w.find('[data-testid="office-picker-input"]').attributes('aria-expanded')).toBe('false')
+      expect(w.find('ul').exists()).toBe(false)
+    })
+
+    it('does nothing destructive on ArrowDown/Enter when results are empty', async () => {
+      vi.useFakeTimers()
+      const w = await picker({ searchFn: vi.fn(async () => []) })
+      await openWithResults(w, 'zzz')
+
+      const input = w.find('[data-testid="office-picker-input"]')
+      expect(input.attributes('aria-expanded')).toBe('true')
+      await input.trigger('keydown', { key: 'ArrowDown' })
+      await input.trigger('keydown', { key: 'Enter' })
+      await w.vm.$nextTick()
+      vi.useRealTimers()
+
+      expect(w.emitted('update:modelValue')).toBeUndefined()
+      expect(w.find('[data-testid="office-picker-input"]').attributes('aria-activedescendant')).toBeUndefined()
+    })
+
+    it('shows role=status on the loading skeleton', async () => {
+      vi.useFakeTimers()
+      const w = await picker({ searchFn: vi.fn(() => new Promise(() => {})) })
+      await w.find('[data-testid="office-picker-input"]').setValue('ka')
+      vi.advanceTimersByTime(300)
+      await flushPromises()
+      await w.vm.$nextTick()
+      vi.useRealTimers()
+
+      const loadingEls = w.findAll('[role="status"]')
+      expect(loadingEls.length).toBeGreaterThan(0)
+    })
+
+    it('shows role=status on the empty state', async () => {
+      vi.useFakeTimers()
+      const w = await picker({ searchFn: vi.fn(async () => []) })
+      await openWithResults(w, 'zzz')
+      vi.useRealTimers()
+
+      const empty = w.find('[data-testid="office-picker-empty"]')
+      expect(empty.attributes('role')).toBe('status')
+      expect(empty.attributes('aria-live')).toBe('polite')
+    })
+  })
 })
