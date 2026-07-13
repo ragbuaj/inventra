@@ -66,6 +66,36 @@ func (a *AsyncMailer) SendPasswordChanged(_ context.Context, to, name string) er
 	return nil
 }
 
+// SendEmailChangeVerify dispatches the email-change verification link
+// asynchronously and returns nil immediately.
+func (a *AsyncMailer) SendEmailChangeVerify(_ context.Context, to, name, link string) error {
+	a.wg.Add(1)
+	go func() {
+		defer a.wg.Done()
+		ctx, cancel := context.WithTimeout(context.Background(), asyncSendTimeout)
+		defer cancel()
+		if err := a.inner.SendEmailChangeVerify(ctx, to, name, link); err != nil {
+			a.logger.Error("send email change verify email failed", "error", err)
+		}
+	}()
+	return nil
+}
+
+// SendEmailChanged dispatches the email-changed notice asynchronously and
+// returns nil immediately.
+func (a *AsyncMailer) SendEmailChanged(_ context.Context, to, name, newEmail string) error {
+	a.wg.Add(1)
+	go func() {
+		defer a.wg.Done()
+		ctx, cancel := context.WithTimeout(context.Background(), asyncSendTimeout)
+		defer cancel()
+		if err := a.inner.SendEmailChanged(ctx, to, name, newEmail); err != nil {
+			a.logger.Error("send email changed email failed", "error", err)
+		}
+	}()
+	return nil
+}
+
 // Wait blocks until all dispatched sends have completed. Intended for
 // deterministic unit tests; harmless (a no-op once drained) in production.
 func (a *AsyncMailer) Wait() {

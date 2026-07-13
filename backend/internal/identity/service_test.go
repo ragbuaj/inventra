@@ -42,7 +42,11 @@ func (f *fakeStore) UpdateUserPassword(_ context.Context, a sqlc.UpdateUserPassw
 	return nil
 }
 
-type fakeMailer struct{ resetLink, changedTo string }
+type fakeMailer struct {
+	resetLink, changedTo string
+	verifyLink           string
+	emailChangedTo       string
+}
 
 func (m *fakeMailer) SendPasswordReset(_ context.Context, _, _, link string) error {
 	m.resetLink = link
@@ -50,6 +54,14 @@ func (m *fakeMailer) SendPasswordReset(_ context.Context, _, _, link string) err
 }
 func (m *fakeMailer) SendPasswordChanged(_ context.Context, to, _ string) error {
 	m.changedTo = to
+	return nil
+}
+func (m *fakeMailer) SendEmailChangeVerify(_ context.Context, _, _, link string) error {
+	m.verifyLink = link
+	return nil
+}
+func (m *fakeMailer) SendEmailChanged(_ context.Context, to, _, _ string) error {
+	m.emailChangedTo = to
 	return nil
 }
 

@@ -1,0 +1,7 @@
+Email Akun Diubah
+
+Halo {{.Name}},
+
+Alamat email akun Inventra Anda baru saja diubah menjadi {{.NewEmail}}.
+
+Jika ini bukan Anda, segera hubungi administrator sistem Anda.

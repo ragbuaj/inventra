@@ -36,6 +36,8 @@ type userStore interface {
 type mailSender interface {
 	SendPasswordReset(ctx context.Context, to, name, link string) error
 	SendPasswordChanged(ctx context.Context, to, name string) error
+	SendEmailChangeVerify(ctx context.Context, to, name, link string) error
+	SendEmailChanged(ctx context.Context, to, name, newEmail string) error
 }
 
 // Service handles login, token refresh/rotation, logout, current-user lookup,
