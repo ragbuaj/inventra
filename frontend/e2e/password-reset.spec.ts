@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, request } from '@playwright/test'
 import type { APIRequestContext, Page } from '@playwright/test'
 
 // Credentials of the seeded superadmin (see CLAUDE.md `cmd/createadmin`).
@@ -8,6 +8,11 @@ const PASSWORD_SEED = process.env.E2E_PASSWORD || 'admin12345'
 const PASSWORD_RESET = 'admin12345new'
 
 const MAILPIT = 'http://localhost:8025'
+// Same convention as the other real-backend specs (dashboard.spec.ts,
+// reports.spec.ts, ...): a raw APIRequestContext against the backend,
+// independent of `helpers.ts`'s `apiContext()` — that helper assumes the
+// seeded password already works, which is exactly what test 1 below breaks.
+const API_BASE = `${process.env.E2E_API_BASE || 'http://localhost:8080/api/v1'}/`
 
 /**
  * Logs in trying the two passwords this spec knows about, in order: the
@@ -41,6 +46,51 @@ async function latestResetLink(request: APIRequestContext): Promise<string> {
   if (!match) throw new Error(`reset link not found in email: ${body.slice(0, 200)}`)
   return match[0]
 }
+
+/**
+ * Failure-safe restore of the shared seeded admin's password to
+ * `PASSWORD_SEED`, run after every test in this file regardless of pass/fail.
+ *
+ * Test 1 permanently changes the admin password via the real reset flow.
+ * `afterAll` doesn't receive the per-test `request` fixture, so this opens
+ * its own `APIRequestContext` (mirroring the other specs' `login_`/`API_BASE`
+ * pattern — see dashboard.spec.ts). In CI, the full e2e suite runs serially
+ * (`workers: 1`) with one shared DB, in alphabetical file order — this spec
+ * runs before reports/settings/stock-opname/transfers/etc., all of which log
+ * in via `helpers.ts`'s `login()`, which hardcodes `PASSWORD_SEED` with no
+ * fallback. Leaving the password changed breaks every sibling spec after
+ * this one; this teardown is the primary protection against that (test 1's
+ * `loginWithKnownPassword` fallback only helps *this* file's own reruns).
+ *
+ * Best-effort by design: any login/HTTP failure here is swallowed rather
+ * than thrown, so a teardown hiccup never masks the real test result — but
+ * it always attempts the restore first.
+ */
+test.afterAll(async () => {
+  let api: APIRequestContext | undefined
+  try {
+    api = await request.newContext({ baseURL: API_BASE })
+
+    // Already the seed password (e.g. test 1 never ran, or a prior teardown
+    // already restored it) — nothing to do.
+    const seedRes = await api.post('auth/login', { data: { email: ADMIN, password: PASSWORD_SEED } })
+    if (seedRes.ok()) return
+
+    // Password is (still) the reset value — log in with it and flip it back.
+    const resetRes = await api.post('auth/login', { data: { email: ADMIN, password: PASSWORD_RESET } })
+    if (!resetRes.ok()) return // neither known password works — nothing safe to do here
+
+    const { access_token } = await resetRes.json() as { access_token: string }
+    await api.put('auth/password', {
+      headers: { Authorization: `Bearer ${access_token}` },
+      data: { old_password: PASSWORD_RESET, new_password: PASSWORD_SEED }
+    })
+  } catch {
+    // Swallow — teardown must never throw and mask the actual test outcome.
+  } finally {
+    await api?.dispose()
+  }
+})
 
 test('forgot-password -> email link -> reset -> login with new password', async ({ page, request }) => {
   // Purge the mailbox so the /message/latest read below is deterministic.
