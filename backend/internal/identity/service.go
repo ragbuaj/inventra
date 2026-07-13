@@ -4,10 +4,12 @@ package identity
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/auth"
@@ -21,6 +23,9 @@ var (
 	ErrNotProvisioned     = errors.New("no account exists for this Google email")
 	ErrGoogleMismatch     = errors.New("email is linked to a different Google account")
 	ErrWeakPassword       = errors.New("password must be at least 8 characters")
+	ErrEmailInUse         = errors.New("email is already in use")
+	ErrSameEmail          = errors.New("new email must differ from the current email")
+	ErrInvalidInput       = errors.New("invalid input")
 )
 
 // userStore is the data surface the identity Service needs (seam for tests).
@@ -30,6 +35,10 @@ type userStore interface {
 	GetUserByEmail(ctx context.Context, email string) (sqlc.IdentityUser, error)
 	LinkGoogleID(ctx context.Context, arg sqlc.LinkGoogleIDParams) error
 	UpdateUserPassword(ctx context.Context, arg sqlc.UpdateUserPasswordParams) error
+	GetUserProfile(ctx context.Context, id uuid.UUID) (sqlc.GetUserProfileRow, error)
+	UpdateUserName(ctx context.Context, arg sqlc.UpdateUserNameParams) (sqlc.IdentityUser, error)
+	UpdateUserEmail(ctx context.Context, arg sqlc.UpdateUserEmailParams) (sqlc.IdentityUser, error)
+	UpdateEmployeePhone(ctx context.Context, arg sqlc.UpdateEmployeePhoneParams) error
 }
 
 // mailSender is the account-security mail surface (satisfied by *email.Mailer).
@@ -236,12 +245,131 @@ func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 	return user, nil
 }
 
+// GetProfile returns the caller's profile incl. employee phone.
+func (s *Service) GetProfile(ctx context.Context, userID uuid.UUID) (ProfileView, error) {
+	row, err := s.q.GetUserProfile(ctx, userID)
+	if err != nil {
+		return ProfileView{}, err
+	}
+	return profileFromRow(row), nil
+}
+
+// UpdateProfile sets the display name and (if linked) the employee phone. The
+// employee id is never taken from caller input — it is resolved from the
+// caller's own profile row, so a user can only ever update their own
+// employee's phone number.
+func (s *Service) UpdateProfile(ctx context.Context, userID uuid.UUID, name, phone string) (ProfileView, error) {
+	if strings.TrimSpace(name) == "" {
+		return ProfileView{}, ErrInvalidInput
+	}
+	if _, err := s.q.UpdateUserName(ctx, sqlc.UpdateUserNameParams{ID: userID, Name: name}); err != nil {
+		return ProfileView{}, err
+	}
+	row, err := s.q.GetUserProfile(ctx, userID)
+	if err != nil {
+		return ProfileView{}, err
+	}
+	if row.EmployeeID != nil {
+		if err := s.q.UpdateEmployeePhone(ctx, sqlc.UpdateEmployeePhoneParams{ID: *row.EmployeeID, Phone: ptrOrNil(phone)}); err != nil {
+			return ProfileView{}, err
+		}
+	}
+	return s.GetProfile(ctx, userID)
+}
+
+// RequestEmailChange verifies the password, checks the new email is free, and
+// emails a verification link to the NEW address.
+func (s *Service) RequestEmailChange(ctx context.Context, userID uuid.UUID, newEmail, currentPassword string) error {
+	user, err := s.q.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if user.PasswordHash == nil || !auth.VerifyPassword(*user.PasswordHash, currentPassword) {
+		return ErrInvalidCredentials
+	}
+	if strings.EqualFold(newEmail, user.Email) {
+		return ErrSameEmail
+	}
+	if _, err := s.q.GetUserByEmail(ctx, newEmail); err == nil {
+		return ErrEmailInUse
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
+	raw, hash, err := auth.GenerateEmailChangeToken()
+	if err != nil {
+		return err
+	}
+	if err := s.store.SaveEmailChange(ctx, hash, user.ID.String(), newEmail, s.resetTTL); err != nil {
+		return err
+	}
+	link := s.frontendURL + "/verify-email?token=" + raw
+	return s.mail.SendEmailChangeVerify(ctx, newEmail, user.Name, link)
+}
+
+// ConfirmEmailChange consumes the token and updates the email, notifying the old address.
+func (s *Service) ConfirmEmailChange(ctx context.Context, token string) (sqlc.IdentityUser, error) {
+	userIDStr, newEmail, err := s.store.ConsumeEmailChange(ctx, auth.HashEmailChangeToken(token))
+	if err != nil {
+		return sqlc.IdentityUser{}, ErrInvalidToken
+	}
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return sqlc.IdentityUser{}, ErrInvalidToken
+	}
+	// Guard: reject if the target email got taken meanwhile.
+	if _, err := s.q.GetUserByEmail(ctx, newEmail); err == nil {
+		return sqlc.IdentityUser{}, ErrEmailInUse
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return sqlc.IdentityUser{}, err
+	}
+	oldUser, err := s.q.GetUserByID(ctx, userID)
+	if err != nil {
+		return sqlc.IdentityUser{}, ErrInvalidToken
+	}
+	updated, err := s.q.UpdateUserEmail(ctx, sqlc.UpdateUserEmailParams{ID: userID, Email: newEmail})
+	if err != nil {
+		return sqlc.IdentityUser{}, mapDBError(err)
+	}
+	_ = s.mail.SendEmailChanged(ctx, oldUser.Email, oldUser.Name, newEmail) // best-effort
+	return updated, nil
+}
+
+// RequestPasswordChange verifies the current password then emails a reset link.
+func (s *Service) RequestPasswordChange(ctx context.Context, userID uuid.UUID, currentPassword string) error {
+	user, err := s.q.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if user.PasswordHash == nil || !auth.VerifyPassword(*user.PasswordHash, currentPassword) {
+		return ErrInvalidCredentials
+	}
+	raw, hash, err := auth.GenerateResetToken()
+	if err != nil {
+		return err
+	}
+	if err := s.store.SavePasswordReset(ctx, hash, user.ID.String(), s.resetTTL); err != nil {
+		return err
+	}
+	link := s.frontendURL + "/reset-password?token=" + raw
+	return s.mail.SendPasswordReset(ctx, user.Email, user.Name, link)
+}
+
 func (s *Service) setPassword(ctx context.Context, userID uuid.UUID, newPassword string) error {
 	hash, err := auth.HashPassword(newPassword)
 	if err != nil {
 		return err
 	}
 	return s.q.UpdateUserPassword(ctx, sqlc.UpdateUserPasswordParams{ID: userID, PasswordHash: &hash})
+}
+
+// mapDBError translates a Postgres unique-violation on the email-change race
+// (two confirmations for the same target email) into ErrEmailInUse.
+func mapDBError(err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return ErrEmailInUse
+	}
+	return err
 }
 
 func (s *Service) issue(ctx context.Context, user sqlc.IdentityUser) (auth.TokenPair, error) {

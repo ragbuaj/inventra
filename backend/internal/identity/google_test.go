@@ -36,6 +36,18 @@ func (f *fakeUserStore) LinkGoogleID(_ context.Context, p sqlc.LinkGoogleIDParam
 func (f *fakeUserStore) UpdateUserPassword(_ context.Context, _ sqlc.UpdateUserPasswordParams) error {
 	return nil
 }
+func (f *fakeUserStore) GetUserProfile(_ context.Context, _ uuid.UUID) (sqlc.GetUserProfileRow, error) {
+	return sqlc.GetUserProfileRow{}, f.getErr
+}
+func (f *fakeUserStore) UpdateUserName(_ context.Context, _ sqlc.UpdateUserNameParams) (sqlc.IdentityUser, error) {
+	return f.user, f.getErr
+}
+func (f *fakeUserStore) UpdateUserEmail(_ context.Context, _ sqlc.UpdateUserEmailParams) (sqlc.IdentityUser, error) {
+	return f.user, f.getErr
+}
+func (f *fakeUserStore) UpdateEmployeePhone(_ context.Context, _ sqlc.UpdateEmployeePhoneParams) error {
+	return nil
+}
 
 func newGoogleSvc(store userStore) *Service {
 	cfg := &config.Config{JWTSecret: "test-secret-please-change", JWTAccessTTL: 15 * time.Minute, JWTRefreshTTL: time.Hour}

@@ -75,3 +75,53 @@ type changePasswordRequest struct {
 	OldPassword string `json:"old_password" binding:"required"`
 	NewPassword string `json:"new_password" binding:"required,min=8"`
 }
+
+// ProfileView is the caller's own profile, including the linked employee's
+// phone number. It deliberately omits password_hash and the raw google_id
+// (exposed only as GoogleLinked) — never serialize those.
+type ProfileView struct {
+	ID           string
+	Name         string
+	Email        string
+	Phone        *string
+	RoleID       string
+	OfficeID     *string
+	EmployeeID   *string
+	Status       string
+	AvatarURL    *string
+	GoogleLinked bool
+	JoinedAt     time.Time
+}
+
+// profileFromRow maps a sqlc.GetUserProfileRow into a ProfileView.
+func profileFromRow(row sqlc.GetUserProfileRow) ProfileView {
+	v := ProfileView{
+		ID:           row.ID.String(),
+		Name:         row.Name,
+		Email:        row.Email,
+		Phone:        row.EmployeePhone,
+		RoleID:       row.RoleID.String(),
+		Status:       string(row.Status),
+		AvatarURL:    row.AvatarUrl,
+		GoogleLinked: row.GoogleID != nil,
+		JoinedAt:     row.CreatedAt.Time,
+	}
+	if row.OfficeID != nil {
+		s := row.OfficeID.String()
+		v.OfficeID = &s
+	}
+	if row.EmployeeID != nil {
+		s := row.EmployeeID.String()
+		v.EmployeeID = &s
+	}
+	return v
+}
+
+// ptrOrNil returns nil for an empty string, else a pointer to it — used to
+// clear a nullable column when the caller submits an empty value.
+func ptrOrNil(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
