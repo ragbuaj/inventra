@@ -110,8 +110,9 @@ vi.mock('~/composables/api/useApproval', () => ({
 
 const officesListMock = vi.fn()
 const officesGetMock = vi.fn()
+const officesTreeMock = vi.fn()
 vi.mock('~/composables/api/useOffices', () => ({
-  useOffices: () => ({ list: officesListMock, get: officesGetMock, create: vi.fn(), update: vi.fn(), remove: vi.fn() })
+  useOffices: () => ({ list: officesListMock, get: officesGetMock, tree: officesTreeMock, create: vi.fn(), update: vi.fn(), remove: vi.fn() })
 }))
 
 const listByOfficeMock = vi.fn()
@@ -181,6 +182,7 @@ function bodyButton(testid: string): HTMLButtonElement {
 beforeEach(() => {
   vi.clearAllMocks()
   officesListMock.mockResolvedValue(page(OFFICES))
+  officesTreeMock.mockResolvedValue(OFFICES)
   officesGetMock.mockImplementation((id: string) => {
     const o = OFFICES.find(off => off.id === id)
     return o ? Promise.resolve(o) : Promise.reject(new Error('not found'))

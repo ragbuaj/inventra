@@ -65,8 +65,7 @@ const officeNameMap = computed(() => new Map(offices.value.map(o => [o.id, o.nam
 
 async function loadOffices() {
   try {
-    const page = await officesApi.list({ limit: 100 })
-    offices.value = page.data
+    offices.value = await officesApi.tree()
   } catch {
     // Best-effort — the picker just shows '—' for office names if this fails.
   }

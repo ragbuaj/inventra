@@ -29,6 +29,11 @@ export function useOffices() {
     return request<Office>(`/offices/${id}`)
   }
 
+  async function tree(): Promise<Office[]> {
+    const res = await request<{ data: Office[], total: number }>('/offices/tree')
+    return res.data
+  }
+
   // parent_id is sent as-is (null → head office); the backend validates it as an
   // optional UUID. Empty optional FKs / coordinates are omitted so they stay null.
   function toBody(input: OfficeInput): Record<string, unknown> {
@@ -59,5 +64,5 @@ export function useOffices() {
     await request(`/offices/${id}`, { method: 'DELETE' })
   }
 
-  return { list, get, create, update, remove }
+  return { list, get, tree, create, update, remove }
 }

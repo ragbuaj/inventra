@@ -206,8 +206,7 @@ async function refresh() {
   loading.value = true
   loadFailed.value = false
   try {
-    const res = await api.list({ limit: 100 })
-    offices.value = res.data
+    offices.value = await api.tree()
   } catch {
     loadFailed.value = true
   } finally {
