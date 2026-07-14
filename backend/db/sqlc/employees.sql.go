@@ -318,3 +318,17 @@ func (q *Queries) UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) 
 	)
 	return i, err
 }
+
+const updateEmployeePhone = `-- name: UpdateEmployeePhone :exec
+UPDATE masterdata.employees SET phone = $2 WHERE id = $1 AND deleted_at IS NULL
+`
+
+type UpdateEmployeePhoneParams struct {
+	ID    uuid.UUID `json:"id"`
+	Phone *string   `json:"phone"`
+}
+
+func (q *Queries) UpdateEmployeePhone(ctx context.Context, arg UpdateEmployeePhoneParams) error {
+	_, err := q.db.Exec(ctx, updateEmployeePhone, arg.ID, arg.Phone)
+	return err
+}

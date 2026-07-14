@@ -1,5 +1,8 @@
 <script setup lang="ts">
-const props = defineProps<{ title: string, subtitle?: string, loading?: boolean }>()
+// hideFooter lets a caller replace the default Cancel/Save footer with its
+// own controls in the body slot (e.g. the account email-change modal swaps
+// to a "sent" state with a resend button instead of a submit action).
+const props = defineProps<{ title: string, subtitle?: string, loading?: boolean, hideFooter?: boolean }>()
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ submit: [] }>()
 </script>
@@ -13,7 +16,10 @@ const emit = defineEmits<{ submit: [] }>()
     <template #body>
       <slot />
     </template>
-    <template #footer>
+    <template
+      v-if="!props.hideFooter"
+      #footer
+    >
       <div class="flex justify-end gap-2 w-full">
         <UButton
           color="neutral"

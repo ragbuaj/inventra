@@ -485,6 +485,31 @@ describe('MaintenanceRecordSlideover — edit mode status transitions', () => {
   })
 })
 
+describe('MaintenanceRecordSlideover — cost is a NumberInput (money)', () => {
+  it('typing a formatted-looking value keeps the submitted cost a raw digit-string', async () => {
+    const wrapper = await mountRecord(null, { asset: { id: 'a9', name: 'Laptop', asset_tag: 'TAG-1' } })
+    const vm = wrapper.vm as unknown as RecordVm
+
+    const input = bodyEl('record-slideover-cost') as HTMLInputElement
+    input.value = '2500000'
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    await wrapper.vm.$nextTick()
+
+    // NumberInput groups the display ("2.500.000") but the underlying
+    // v-model (form.cost) stays the raw digit-string.
+    expect(vm.form.cost).toBe('2500000')
+    expect(input.value).toBe('2.500.000')
+
+    vm.form.scheduledDate = '2026-07-10'
+    vm.form.description = 'Servis rutin'
+    await wrapper.vm.$nextTick()
+    await vm.onSubmit()
+    await settle()
+
+    expect(createRecordMock).toHaveBeenCalledWith(expect.objectContaining({ cost: '2500000' }))
+  })
+})
+
 describe('MaintenanceRecordSlideover — terminal records are read-only', () => {
   it.each(['completed', 'cancelled'] as const)('renders %s records read-only with no save button', async (status) => {
     const wrapper = await mountRecord(record({ status, completed_date: status === 'completed' ? '2026-06-20' : null }))

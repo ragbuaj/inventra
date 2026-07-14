@@ -96,11 +96,6 @@ const methodItems = computed(() => METHOD_KEYS.map(k => ({ value: k, label: t(`d
 
 const formReady = computed(() => !!(selectedAsset.value && disposalDate.value && method.value))
 
-const proceedsDisplay = computed(() => (proceedsRaw.value ? Number(proceedsRaw.value).toLocaleString('id-ID') : ''))
-function onProceedsInput(v: string | number) {
-  proceedsRaw.value = String(v).replace(/\D/g, '')
-}
-
 function onSelectAsset(asset: Asset) {
   selectedAsset.value = asset
   evidenceUploads.value = []
@@ -818,11 +813,11 @@ onMounted(() => {
                   />
                 </UFormField>
                 <UFormField :label="t('disposal.form.value')">
-                  <UInput
-                    :model-value="proceedsDisplay"
+                  <NumberInput
+                    v-model="proceedsRaw"
+                    money
                     data-testid="disposal-proceeds"
                     class="w-full"
-                    @update:model-value="onProceedsInput"
                   />
                   <template #hint>
                     {{ t('disposal.form.valueHint') }}

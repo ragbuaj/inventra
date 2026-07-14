@@ -1,7 +1,13 @@
 // @vitest-environment nuxt
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
+import { enableAutoUnmount } from '@vue/test-utils'
 import CategoryFormSlideover from '~/components/category/CategoryFormSlideover.vue'
+
+// USlideover teleports its content to document.body — without cleanup,
+// successive tests' mounted panels would accumulate there and body-scoped
+// queries (e.g. document.body.querySelector) could match a stale instance.
+enableAutoUnmount(afterEach)
 
 type Vm = {
   form: Record<string, unknown>
@@ -82,6 +88,28 @@ describe('CategoryFormSlideover', () => {
     expect(payload.parent_id).toBeNull()
   })
 
+  it('capitalization_threshold: typing a formatted-looking value keeps the emitted payload a raw digit-string', async () => {
+    const wrapper = await mountOpen()
+    const vm = wrapper.vm as unknown as Vm
+    Object.assign(vm.form, { name: 'Genset', code: 'GEN' })
+
+    const input = document.body.querySelector('input[placeholder="1.000.000"]') as HTMLInputElement
+    expect(input).toBeTruthy()
+    input.value = '10000000'
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    await wrapper.vm.$nextTick()
+
+    // NumberInput groups the display ("Rp 10.000.000") but the underlying
+    // v-model (form.capitalization_threshold) stays the raw digit-string.
+    expect((vm.form as Record<string, unknown>).capitalization_threshold).toBe('10000000')
+    expect(input.value).toBe('10.000.000')
+
+    vm.onSubmit()
+    await wrapper.vm.$nextTick()
+    const payload = wrapper.emitted('submit')?.[0]?.[0] as Record<string, unknown>
+    expect(payload.capitalization_threshold).toBe('10000000')
+  })
+
   it('emits submit with a snake_case CategoryInput payload', async () => {
     const wrapper = await mountOpen()
     const vm = wrapper.vm as unknown as Vm
@@ -95,7 +123,7 @@ describe('CategoryFormSlideover', () => {
       default_fiscal_group: 'kelompok_2',
       default_fiscal_life_months: '96',
       gl_account_code: '1.2.7.00',
-      capitalization_threshold: '10.000.000',
+      capitalization_threshold: '10000000',
       parent_id: 'c-it',
       is_active: true
     })

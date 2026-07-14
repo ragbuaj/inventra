@@ -6,6 +6,7 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const account = useAccount()
+const auth = useAuthStore()
 const token = computed(() => (route.query.token as string) || '')
 const newPass = ref('')
 const confirmPass = ref('')
@@ -26,6 +27,11 @@ async function submit() {
   loading.value = true
   try {
     await account.resetPassword(token.value, newPass.value)
+    // Resetting the password invalidates all sessions server-side (password_changed_at
+    // epoch). Drop any stale local session so a still-"authenticated" client isn't
+    // bounced /login -> / by auth.global.ts (happens when a logged-in user changes
+    // their password via the emailed link).
+    auth.clear()
     await navigateTo({ path: localePath('/login'), query: { reset: 'success' } })
   } catch (err: unknown) {
     errorKey.value = (err as { statusCode?: number }).statusCode === 400 ? 'auth.resetInvalid' : 'common.error'

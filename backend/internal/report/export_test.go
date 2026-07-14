@@ -103,6 +103,21 @@ func TestBuildReportPDFAssets(t *testing.T) {
 	assert.True(t, bytes.HasPrefix(body, []byte("%PDF")))
 }
 
+// TestBuildReportPDFUsesEmbeddedUnicodeFont proves the mojibake bug is fixed:
+// testMeta's subtitle interpolates "PeriodLabel · OfficeLabel" (a middle dot,
+// U+00B7) which core-font Helvetica (cp1252) cannot render faithfully. The
+// PDF must be built with the embedded DejaVu Unicode font instead of the
+// fpdf core "Helvetica" font — assert the raw PDF bytes carry no
+// "/BaseFont /Helvetica" font-object reference.
+func TestBuildReportPDFUsesEmbeddedUnicodeFont(t *testing.T) {
+	s := nilSvc()
+	body, err := s.BuildReportPDF(context.Background(), assetsFixture(), testMeta)
+	require.NoError(t, err)
+	assert.True(t, bytes.HasPrefix(body, []byte("%PDF")))
+	assert.False(t, bytes.Contains(body, []byte("/BaseFont /Helvetica")), "PDF still references core Helvetica font — expected embedded Unicode font")
+	assert.True(t, bytes.Contains([]byte(testMeta.PeriodLabel+" · "+testMeta.OfficeLabel), []byte("·")), "sanity: subtitle fixture must contain a middle dot")
+}
+
 // ── depreciation ─────────────────────────────────────────────────────────────
 
 func TestBuildReportXLSXDepreciation(t *testing.T) {

@@ -1,0 +1,9 @@
+Verifikasi Perubahan Email Inventra
+
+Halo {{.Name}},
+
+Kami menerima permintaan untuk mengubah alamat email akun Anda menjadi alamat email ini. Buka tautan berikut untuk mengonfirmasi perubahan (berlaku 30 menit):
+
+{{.Link}}
+
+Jika Anda tidak meminta perubahan ini, abaikan email ini — email akun Anda tidak berubah.

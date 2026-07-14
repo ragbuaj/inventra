@@ -5,7 +5,21 @@ const NOTIF_KEY = 'inventra.account.notif'
 const DEFAULT_NOTIF: NotifPrefs = { approval: true, maint: true, assign: false }
 
 export interface ProfileInput { nama: string, telepon: string }
-export interface PasswordInput { oldPass: string, newPass: string, confirmPass: string }
+
+// Shape returned by GET/PUT /auth/profile (backend `ProfileView`, snake_case).
+interface ProfileApiResponse {
+  id: string
+  name: string
+  email: string
+  phone: string | null
+  role_id: string
+  office_id: string | null
+  employee_id: string | null
+  status: string
+  avatar_url: string | null
+  google_linked: boolean
+  joined_at: string
+}
 
 export function useAccount() {
   const auth = useAuthStore()
@@ -13,32 +27,64 @@ export function useAccount() {
   const config = useRuntimeConfig()
   const base = config.public.apiBase as string
 
-  async function getProfile(): Promise<AccountProfile> {
-    await fakeLatency(400)
+  // Maps the backend ProfileView (snake_case) onto the UI-facing AccountProfile
+  // (Indonesian field names). `peran`/`kantor`/`pegawai` have no display-name
+  // equivalent in the profile payload (the API only returns role_id/office_id/
+  // employee_id) — fall back to what the auth store already knows rather than
+  // hardcoding fake values.
+  function mapProfile(raw: ProfileApiResponse): AccountProfile {
+    const hasEmployee = raw.employee_id != null
     return {
-      nama: auth.user?.name ?? '',
-      email: auth.user?.email ?? '',
-      telepon: '0812-3456-7890',
+      nama: raw.name,
+      email: raw.email,
+      telepon: raw.phone ?? '',
       peran: auth.user?.role_name ?? '',
-      kantor: 'Cabang Jakarta Selatan',
-      pegawai: auth.user?.name ?? '',
-      loginMethod: 'email',
-      joinDate: '2024-03-12'
+      kantor: '',
+      pegawai: hasEmployee ? raw.name : '',
+      loginMethod: raw.google_linked ? 'google' : 'email',
+      joinDate: raw.joined_at,
+      hasEmployee
     }
   }
 
-  async function updateProfile(input: ProfileInput): Promise<void> {
-    if (!input.nama.trim()) throw new Error('account.errRequired')
-    await fakeLatency()
+  async function getProfile(): Promise<AccountProfile> {
+    const raw = await client.request<ProfileApiResponse>('/auth/profile')
+    return mapProfile(raw)
   }
 
-  async function changePassword(input: PasswordInput): Promise<void> {
-    if (!input.oldPass || !input.newPass || !input.confirmPass) throw new Error('account.errRequired')
-    if (input.newPass !== input.confirmPass) throw new Error('account.errConfirmMismatch')
-    if (input.newPass.length < 8) throw new Error('account.errWeak')
-    await client.request('/auth/password', {
+  async function updateProfile(input: ProfileInput): Promise<AccountProfile> {
+    if (!input.nama.trim()) throw new Error('account.errRequired')
+    const raw = await client.request<ProfileApiResponse>('/auth/profile', {
       method: 'PUT',
-      body: { old_password: input.oldPass, new_password: input.newPass }
+      body: { name: input.nama, phone: input.telepon }
+    })
+    return mapProfile(raw)
+  }
+
+  // Verifies the current password and emails a confirmation link to the NEW
+  // address; the change completes when the user opens the link (confirmEmailChange).
+  async function requestEmailChange(newEmail: string, currentPassword: string): Promise<void> {
+    await client.request('/auth/email/change-request', {
+      method: 'POST',
+      body: { new_email: newEmail, current_password: currentPassword },
+      suppressErrorToast: true
+    })
+  }
+
+  // Public route (reached from an emailed link, no session yet) — raw $fetch,
+  // same pattern as requestPasswordReset/resetPassword below.
+  async function confirmEmailChange(token: string): Promise<void> {
+    await $fetch(`${base}/auth/email/confirm`, { method: 'POST', body: { token } })
+  }
+
+  // Verifies the current password and emails a reset link to complete the
+  // change (reuses the forgot-password flow) — the Keamanan tab's "Ganti
+  // Password" modal (account.vue) calls this instead of changing inline.
+  async function requestPasswordChange(currentPassword: string): Promise<void> {
+    await client.request('/auth/password/change-request', {
+      method: 'POST',
+      body: { current_password: currentPassword },
+      suppressErrorToast: true
     })
   }
 
@@ -86,5 +132,5 @@ export function useAccount() {
     }
   }
 
-  return { getProfile, updateProfile, changePassword, requestPasswordReset, resetPassword, listSessions, revokeSession, logoutAllOthers, getNotifPrefs, setNotifPrefs }
+  return { getProfile, updateProfile, requestEmailChange, confirmEmailChange, requestPasswordChange, requestPasswordReset, resetPassword, listSessions, revokeSession, logoutAllOthers, getNotifPrefs, setNotifPrefs }
 }

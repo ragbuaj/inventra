@@ -279,6 +279,7 @@ export interface AccountProfile {
   pegawai: string
   loginMethod: 'email' | 'google'
   joinDate: string
+  hasEmployee: boolean
 }
 
 export interface AccountSession {

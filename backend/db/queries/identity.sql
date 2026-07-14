@@ -90,3 +90,19 @@ WHERE role_id = $1 AND deleted_at IS NULL;
 UPDATE identity.users
 SET password_hash = $2, password_changed_at = now()
 WHERE id = $1 AND deleted_at IS NULL;
+
+-- name: UpdateUserName :one
+UPDATE identity.users SET name = $2 WHERE id = $1 AND deleted_at IS NULL
+RETURNING *;
+
+-- name: UpdateUserEmail :one
+UPDATE identity.users SET email = $2 WHERE id = $1 AND deleted_at IS NULL
+RETURNING *;
+
+-- name: GetUserProfile :one
+SELECT u.id, u.name, u.email, u.role_id, u.office_id, u.employee_id, u.status,
+       u.avatar_url, u.google_id, u.created_at,
+       e.phone AS employee_phone
+FROM identity.users u
+LEFT JOIN masterdata.employees e ON e.id = u.employee_id AND e.deleted_at IS NULL
+WHERE u.id = $1 AND u.deleted_at IS NULL;

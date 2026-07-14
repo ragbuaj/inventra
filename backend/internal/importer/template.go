@@ -23,7 +23,10 @@ func BuildTemplate(format string, cols []ColumnSpec) (body []byte, contentType, 
 
 	switch strings.ToLower(format) {
 	case "csv":
-		body = []byte(strings.Join(names, ",") + "\n")
+		// Prepend the UTF-8 BOM so Excel on a Windows locale reads the file
+		// as UTF-8 instead of Windows-1252 (which mojibakes non-ASCII column
+		// names). XLSX is a binary zip format and needs no such marker.
+		body = []byte("\xEF\xBB\xBF" + strings.Join(names, ",") + "\n")
 		return body, "text/csv", "csv", nil
 	case "xlsx":
 		f := excelize.NewFile()

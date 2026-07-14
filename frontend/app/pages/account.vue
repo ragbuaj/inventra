@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { AccountProfile, AccountSession, NotifPrefs } from '~/types'
-import { passwordStrength } from '~/utils/passwordStrength'
 
 const { t, setLocale, locale } = useI18n()
 const route = useRoute()
@@ -21,12 +20,32 @@ const fTelepon = ref('')
 const nameErr = ref(false)
 const isGoogle = computed(() => profile.value?.loginMethod === 'google')
 
-// security — used by Keamanan tab (C4)
-const oldPass = ref('')
-const newPass = ref('')
-const confirmPass = ref('')
-const secErr = reactive<{ old?: boolean, newp?: boolean, confirm?: boolean }>({})
-const strength = computed(() => passwordStrength(newPass.value))
+// Profil tab — view/edit toggle (defaults read-only; Edit snapshots current
+// values so Batal can revert without a re-fetch).
+const editing = ref(false)
+const savingProfile = ref(false)
+let profileSnapshot: { nama: string, telepon: string } | null = null
+
+// "Ubah Email" modal — request/sent two-step flow (Task 18).
+const emailModalOpen = ref(false)
+const newEmailInput = ref('')
+const currentPasswordInput = ref('')
+const newEmailErr = ref(false)
+const emailApiErr = ref('')
+const emailSent = ref(false)
+const emailLoading = ref(false)
+const emailCooldown = useResendCooldown(30)
+
+// "Ganti Password" modal — request/sent two-step flow (Task 19). Mirrors the
+// "Ubah Email" modal above: verifies the current password, then emails a
+// reset link (the backend's password/change-request → reset-password flow)
+// rather than changing the password inline — no logout on success.
+const pwModalOpen = ref(false)
+const pwCurrentInput = ref('')
+const pwApiErr = ref('')
+const pwSent = ref(false)
+const pwLoading = ref(false)
+const pwCooldown = useResendCooldown(30)
 const sessions = ref<AccountSession[]>([])
 
 // preferences — used by Preferensi tab (C5)
@@ -45,29 +64,133 @@ onMounted(async () => {
   loading.value = false
 })
 
+function startEdit() {
+  profileSnapshot = { nama: fNama.value, telepon: fTelepon.value }
+  nameErr.value = false
+  editing.value = true
+}
+
+function cancelEdit() {
+  if (profileSnapshot) {
+    fNama.value = profileSnapshot.nama
+    fTelepon.value = profileSnapshot.telepon
+  }
+  nameErr.value = false
+  editing.value = false
+}
+
 async function saveProfil() {
   nameErr.value = !fNama.value.trim()
   if (nameErr.value) return
+  savingProfile.value = true
   try {
     await account.updateProfile({ nama: fNama.value, telepon: fTelepon.value })
+    editing.value = false
     toast.add({ title: t('account.toastProfileTitle'), description: t('account.toastProfileMsg'), color: 'success' })
   } catch {
     toast.add({ title: t('common.error'), color: 'error' })
+  } finally {
+    savingProfile.value = false
   }
 }
 
-async function changePassword() {
-  secErr.old = !oldPass.value
-  secErr.newp = !newPass.value
-  secErr.confirm = !confirmPass.value || confirmPass.value !== newPass.value
-  if (secErr.old || secErr.newp || secErr.confirm) return
+function isValidEmail(v: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
+}
+
+// The backend returns {error: "..."} for both the 400 (wrong password) and
+// 409 (email in use / same email) cases; ofetch/$fetch surfaces the parsed
+// body on `err.data` (see useApiClient's doFetch).
+function extractApiError(err: unknown): string {
+  const data = (err as { data?: unknown } | undefined)?.data
+  if (data && typeof data === 'object' && 'error' in data && typeof (data as { error?: unknown }).error === 'string') {
+    return (data as { error: string }).error
+  }
+  if (typeof data === 'string' && data) return data
+  return t('common.error')
+}
+
+function openEmailModal() {
+  newEmailInput.value = ''
+  currentPasswordInput.value = ''
+  newEmailErr.value = false
+  emailApiErr.value = ''
+  emailSent.value = false
+  emailCooldown.reset()
+  emailModalOpen.value = true
+}
+
+async function submitEmailChange() {
+  if (emailSent.value) {
+    emailModalOpen.value = false
+    return
+  }
+  newEmailErr.value = !isValidEmail(newEmailInput.value)
+  if (newEmailErr.value) return
+  emailApiErr.value = ''
+  emailLoading.value = true
   try {
-    await account.changePassword({ oldPass: oldPass.value, newPass: newPass.value, confirmPass: confirmPass.value })
-    useAuthStore().clear()
-    toast.add({ title: t('account.toastPassTitle'), description: t('account.secReloginMsg'), color: 'success' })
-    await navigateTo('/login')
-  } catch {
-    toast.add({ title: t('common.error'), color: 'error' })
+    await account.requestEmailChange(newEmailInput.value.trim(), currentPasswordInput.value)
+    emailSent.value = true
+    emailCooldown.start()
+  } catch (err) {
+    emailApiErr.value = extractApiError(err)
+  } finally {
+    emailLoading.value = false
+  }
+}
+
+async function resendEmailChange() {
+  if (!emailCooldown.canResend.value) return
+  emailApiErr.value = ''
+  emailLoading.value = true
+  try {
+    await account.requestEmailChange(newEmailInput.value.trim(), currentPasswordInput.value)
+    emailCooldown.start()
+  } catch (err) {
+    emailApiErr.value = extractApiError(err)
+  } finally {
+    emailLoading.value = false
+  }
+}
+
+function openPasswordModal() {
+  pwCurrentInput.value = ''
+  pwApiErr.value = ''
+  pwSent.value = false
+  pwCooldown.reset()
+  pwModalOpen.value = true
+}
+
+async function submitPasswordChange() {
+  if (pwSent.value) {
+    pwModalOpen.value = false
+    return
+  }
+  pwApiErr.value = ''
+  pwLoading.value = true
+  try {
+    await account.requestPasswordChange(pwCurrentInput.value)
+    pwSent.value = true
+    pwCooldown.start()
+  } catch (err) {
+    pwApiErr.value = extractApiError(err)
+  } finally {
+    pwLoading.value = false
+  }
+}
+
+async function resendPasswordChange() {
+  if (!pwCooldown.canResend.value) return
+  pwApiErr.value = ''
+  pwLoading.value = true
+  try {
+    await account.requestPasswordChange(pwCurrentInput.value)
+    pwCooldown.start()
+  } catch (err) {
+    pwApiErr.value = extractApiError(err)
+  } finally {
+    pwLoading.value = false
   }
 }
 
@@ -99,20 +222,6 @@ const initials = computed(() => {
 const joinDateLabel = computed(() => {
   if (!profile.value) return ''
   return new Date(profile.value.joinDate).toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
-})
-
-function strengthBarClass(i: number): string {
-  if (i > strength.value.score) return 'bg-muted'
-  if (strength.value.score === 1) return 'bg-error'
-  if (strength.value.score === 2) return 'bg-warning'
-  return 'bg-primary'
-}
-
-const strengthLabelClass = computed(() => {
-  if (strength.value.score === 1) return 'text-error'
-  if (strength.value.score === 2) return 'text-warning'
-  if (strength.value.score >= 3) return 'text-primary'
-  return 'text-muted'
 })
 </script>
 
@@ -176,7 +285,7 @@ const strengthLabelClass = computed(() => {
                   name="i-lucide-building-2"
                   class="size-[14px]"
                 />
-                {{ profile?.kantor }}
+                {{ profile?.kantor || '—' }}
               </span>
             </div>
           </div>
@@ -275,7 +384,9 @@ const strengthLabelClass = computed(() => {
                 </label>
                 <UInput
                   v-model="fNama"
+                  :disabled="!editing"
                   :class="nameErr ? 'ring-1 ring-error [&_input]:border-error' : ''"
+                  data-testid="profile-nama"
                   size="md"
                 />
                 <div
@@ -294,20 +405,41 @@ const strengthLabelClass = computed(() => {
                   v-model="fTelepon"
                   type="tel"
                   placeholder="08xx-xxxx-xxxx"
+                  :disabled="!editing || !profile?.hasEmployee"
+                  data-testid="profile-telepon"
                   size="md"
                 />
+                <div
+                  v-if="!profile?.hasEmployee"
+                  class="mt-[6px] text-[12px] text-dimmed"
+                  data-testid="profile-telepon-hint"
+                >
+                  {{ t('account.phoneManagedNote') }}
+                </div>
               </div>
               <!-- Email (full width) -->
               <div class="col-span-2">
                 <label class="block text-[13px] font-medium mb-[6px]">
                   {{ t('account.lEmail') }}
                 </label>
-                <UInput
-                  :model-value="profile?.email ?? ''"
-                  :disabled="isGoogle"
-                  :class="isGoogle ? 'opacity-60 cursor-not-allowed' : ''"
-                  size="md"
-                />
+                <div class="flex items-center gap-[10px]">
+                  <UInput
+                    :model-value="profile?.email ?? ''"
+                    disabled
+                    class="flex-1 opacity-60 cursor-not-allowed"
+                    size="md"
+                  />
+                  <UButton
+                    v-if="!isGoogle"
+                    color="neutral"
+                    variant="outline"
+                    size="md"
+                    data-testid="profile-change-email"
+                    @click="openEmailModal"
+                  >
+                    {{ t('account.changeEmail') }}
+                  </UButton>
+                </div>
                 <div
                   v-if="isGoogle"
                   class="mt-[6px] flex items-center gap-[5px] text-[12px] text-dimmed"
@@ -344,7 +476,7 @@ const strengthLabelClass = computed(() => {
                   {{ t('account.iOffice') }}
                 </div>
                 <div class="text-[14px] font-medium">
-                  {{ profile?.kantor }}
+                  {{ profile?.kantor || '—' }}
                 </div>
               </div>
               <div>
@@ -352,7 +484,7 @@ const strengthLabelClass = computed(() => {
                   {{ t('account.iEmployee') }}
                 </div>
                 <div class="text-[14px] font-medium">
-                  {{ profile?.pegawai }}
+                  {{ profile?.pegawai || '—' }}
                 </div>
               </div>
               <div>
@@ -378,17 +510,122 @@ const strengthLabelClass = computed(() => {
             </div>
           </div>
 
-          <!-- Save button -->
+          <!-- Edit / Save / Cancel controls -->
           <div class="flex justify-end gap-[10px]">
-            <UButton
-              color="primary"
-              icon="i-lucide-save"
-              size="md"
-              @click="saveProfil"
-            >
-              {{ t('account.save') }}
-            </UButton>
+            <template v-if="!editing">
+              <UButton
+                color="primary"
+                variant="outline"
+                icon="i-lucide-pencil"
+                size="md"
+                data-testid="profile-edit"
+                @click="startEdit"
+              >
+                {{ t('account.edit') }}
+              </UButton>
+            </template>
+            <template v-else>
+              <UButton
+                color="neutral"
+                variant="ghost"
+                size="md"
+                data-testid="profile-cancel"
+                @click="cancelEdit"
+              >
+                {{ t('account.cancel') }}
+              </UButton>
+              <UButton
+                color="primary"
+                icon="i-lucide-save"
+                size="md"
+                :loading="savingProfile"
+                data-testid="profile-save"
+                @click="saveProfil"
+              >
+                {{ t('account.save') }}
+              </UButton>
+            </template>
           </div>
+
+          <!-- "Ubah Email" modal -->
+          <FormModal
+            v-model:open="emailModalOpen"
+            :title="t('account.changeEmail')"
+            :loading="emailLoading"
+            :hide-footer="emailSent"
+            @submit="submitEmailChange"
+          >
+            <template v-if="!emailSent">
+              <div class="flex flex-col gap-4">
+                <UFormField :label="t('account.newEmail')">
+                  <UInput
+                    v-model="newEmailInput"
+                    type="email"
+                    class="w-full"
+                    :class="newEmailErr ? 'ring-1 ring-error [&_input]:border-error' : ''"
+                    data-testid="change-email-input"
+                  />
+                  <div
+                    v-if="newEmailErr"
+                    class="mt-[6px] text-[12px] text-error"
+                  >
+                    {{ t('account.invalidEmail') }}
+                  </div>
+                </UFormField>
+                <UFormField :label="t('account.currentPassword')">
+                  <UInput
+                    v-model="currentPasswordInput"
+                    type="password"
+                    class="w-full"
+                    data-testid="change-email-password"
+                  />
+                </UFormField>
+                <div
+                  v-if="emailApiErr"
+                  class="text-[12px] text-error"
+                  data-testid="change-email-error"
+                >
+                  {{ emailApiErr }}
+                </div>
+              </div>
+            </template>
+            <template v-else>
+              <div class="flex flex-col gap-3">
+                <UAlert
+                  color="success"
+                  variant="soft"
+                  :title="t('account.emailVerifySent', { email: newEmailInput })"
+                  data-testid="change-email-sent"
+                />
+                <div
+                  v-if="emailApiErr"
+                  class="text-[12px] text-error"
+                  data-testid="change-email-error"
+                >
+                  {{ emailApiErr }}
+                </div>
+                <div class="flex justify-end gap-2">
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    data-testid="change-email-close"
+                    @click="emailModalOpen = false"
+                  >
+                    {{ t('common.cancel') }}
+                  </UButton>
+                  <UButton
+                    variant="soft"
+                    :disabled="!emailCooldown.canResend.value || emailLoading"
+                    :loading="emailLoading"
+                    data-testid="change-email-resend"
+                    @click="resendEmailChange"
+                  >
+                    {{ emailCooldown.canResend.value ? t('auth.forgotResend') : t('auth.forgotResendWait', { s: emailCooldown.remaining.value }) }}
+                  </UButton>
+                </div>
+              </div>
+            </template>
+          </FormModal>
         </div>
 
         <!-- TAB: KEAMANAN -->
@@ -401,106 +638,21 @@ const strengthLabelClass = computed(() => {
             v-if="!isGoogle"
             class="bg-default border border-default rounded-[14px] shadow-sm p-[18px_20px]"
           >
-            <div class="text-[13px] font-semibold mb-4">
+            <div class="text-[13px] font-semibold mb-2">
               {{ t('account.secPassword') }}
             </div>
-            <div class="flex flex-col gap-[15px] max-w-[420px]">
-              <!-- Current password -->
-              <div>
-                <label class="block text-[13px] font-medium mb-[6px]">
-                  {{ t('account.lOldPass') }} <span class="text-error">*</span>
-                </label>
-                <UInput
-                  v-model="oldPass"
-                  type="password"
-                  placeholder="••••••••"
-                  :class="secErr.old ? 'ring-1 ring-error [&_input]:border-error' : ''"
-                  size="md"
-                />
-                <div
-                  v-if="secErr.old"
-                  class="mt-[6px] text-[12px] text-error"
-                >
-                  {{ t('account.required') }}
-                </div>
-              </div>
-
-              <!-- New password + strength meter -->
-              <div>
-                <label class="block text-[13px] font-medium mb-[6px]">
-                  {{ t('account.lNewPass') }} <span class="text-error">*</span>
-                </label>
-                <UInput
-                  v-model="newPass"
-                  type="password"
-                  placeholder="••••••••"
-                  :class="secErr.newp ? 'ring-1 ring-error [&_input]:border-error' : ''"
-                  size="md"
-                />
-                <div
-                  v-if="secErr.newp"
-                  class="mt-[6px] text-[12px] text-error"
-                >
-                  {{ t('account.required') }}
-                </div>
-                <!-- Strength meter -->
-                <div
-                  v-if="newPass.length"
-                  class="mt-[9px]"
-                >
-                  <div class="flex gap-[5px] mb-[5px]">
-                    <div
-                      v-for="i in 4"
-                      :key="i"
-                      class="flex-1 h-[5px] rounded-full transition-colors"
-                      :class="strengthBarClass(i)"
-                    />
-                  </div>
-                  <div
-                    class="text-[11.5px] font-medium"
-                    :class="strengthLabelClass"
-                  >
-                    {{ strength.labelKey ? t(strength.labelKey) : '' }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- Confirm password -->
-              <div>
-                <label class="block text-[13px] font-medium mb-[6px]">
-                  {{ t('account.lConfirmPass') }} <span class="text-error">*</span>
-                </label>
-                <UInput
-                  v-model="confirmPass"
-                  type="password"
-                  placeholder="••••••••"
-                  :class="secErr.confirm ? 'ring-1 ring-error [&_input]:border-error' : ''"
-                  size="md"
-                />
-                <div
-                  v-if="secErr.confirm"
-                  class="mt-[6px] flex items-center gap-[5px] text-[12px] text-error"
-                >
-                  <UIcon
-                    name="i-lucide-alert-circle"
-                    class="size-[13px] flex-none"
-                  />
-                  {{ t('account.confirmMismatch') }}
-                </div>
-              </div>
-
-              <!-- Submit -->
-              <div class="flex justify-start">
-                <UButton
-                  color="primary"
-                  icon="i-lucide-lock"
-                  size="md"
-                  @click="changePassword"
-                >
-                  {{ t('account.changePass') }}
-                </UButton>
-              </div>
-            </div>
+            <p class="text-[12.5px] text-muted mb-4 max-w-[420px]">
+              {{ t('account.changePasswordDesc') }}
+            </p>
+            <UButton
+              color="primary"
+              icon="i-lucide-lock"
+              size="md"
+              data-testid="security-change-password"
+              @click="openPasswordModal"
+            >
+              {{ t('account.changePassword') }}
+            </UButton>
           </div>
 
           <!-- Google login info card -->
@@ -584,6 +736,71 @@ const strengthLabelClass = computed(() => {
               </div>
             </div>
           </div>
+
+          <!-- "Ganti Password" modal -->
+          <FormModal
+            v-model:open="pwModalOpen"
+            :title="t('account.changePassword')"
+            :loading="pwLoading"
+            :hide-footer="pwSent"
+            @submit="submitPasswordChange"
+          >
+            <template v-if="!pwSent">
+              <div class="flex flex-col gap-4">
+                <UFormField :label="t('account.currentPassword')">
+                  <UInput
+                    v-model="pwCurrentInput"
+                    type="password"
+                    class="w-full"
+                    data-testid="change-password-current"
+                  />
+                </UFormField>
+                <div
+                  v-if="pwApiErr"
+                  class="text-[12px] text-error"
+                  data-testid="change-password-error"
+                >
+                  {{ pwApiErr }}
+                </div>
+              </div>
+            </template>
+            <template v-else>
+              <div class="flex flex-col gap-3">
+                <UAlert
+                  color="success"
+                  variant="soft"
+                  :title="t('account.pwChangeSent')"
+                  data-testid="change-password-sent"
+                />
+                <div
+                  v-if="pwApiErr"
+                  class="text-[12px] text-error"
+                  data-testid="change-password-error"
+                >
+                  {{ pwApiErr }}
+                </div>
+                <div class="flex justify-end gap-2">
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    data-testid="change-password-close"
+                    @click="pwModalOpen = false"
+                  >
+                    {{ t('common.cancel') }}
+                  </UButton>
+                  <UButton
+                    variant="soft"
+                    :disabled="!pwCooldown.canResend.value || pwLoading"
+                    :loading="pwLoading"
+                    data-testid="change-password-resend"
+                    @click="resendPasswordChange"
+                  >
+                    {{ pwCooldown.canResend.value ? t('auth.forgotResend') : t('auth.forgotResendWait', { s: pwCooldown.remaining.value }) }}
+                  </UButton>
+                </div>
+              </div>
+            </template>
+          </FormModal>
         </div>
 
         <!-- TAB: PREFERENSI -->

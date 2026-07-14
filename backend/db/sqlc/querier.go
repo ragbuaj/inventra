@@ -199,6 +199,7 @@ type Querier interface {
 	GetUnitByName(ctx context.Context, lower string) (MasterdataUnit, error)
 	GetUserByEmail(ctx context.Context, email string) (IdentityUser, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (IdentityUser, error)
+	GetUserProfile(ctx context.Context, id uuid.UUID) (GetUserProfileRow, error)
 	// Audit log: append-only writes + an office-scoped, filterable read model.
 	// all_scope bypasses the office filter (global scope); otherwise only rows whose
 	// office_id is in office_ids are returned. NULL-office (global) rows are visible
@@ -433,6 +434,7 @@ type Querier interface {
 	UpdateAssetDocument(ctx context.Context, arg UpdateAssetDocumentParams) (AssetAssetDocument, error)
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (MasterdataCategory, error)
 	UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) (MasterdataEmployee, error)
+	UpdateEmployeePhone(ctx context.Context, arg UpdateEmployeePhoneParams) error
 	UpdateFloor(ctx context.Context, arg UpdateFloorParams) (MasterdataFloor, error)
 	UpdateJobStatus(ctx context.Context, arg UpdateJobStatusParams) (ImportImportJob, error)
 	UpdateMaintRecord(ctx context.Context, arg UpdateMaintRecordParams) (MaintenanceMaintenanceRecord, error)
@@ -442,6 +444,8 @@ type Querier interface {
 	UpdateRoom(ctx context.Context, arg UpdateRoomParams) (MasterdataRoom, error)
 	UpdateThreshold(ctx context.Context, arg UpdateThresholdParams) (ApprovalApprovalThreshold, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (IdentityUser, error)
+	UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams) (IdentityUser, error)
+	UpdateUserName(ctx context.Context, arg UpdateUserNameParams) (IdentityUser, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 	// The DO UPDATE's WHERE guard makes a closed period unmatchable (0 rows →
 	// pgx.ErrNoRows): even if a ComputePeriod raced past its status pre-check, it

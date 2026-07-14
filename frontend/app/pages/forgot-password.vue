@@ -7,18 +7,32 @@ const email = ref('')
 const sent = ref(false)
 const loading = ref(false)
 const errorKey = ref('')
+const cooldown = useResendCooldown(30)
 
-async function submit() {
+async function doRequest() {
   loading.value = true
   errorKey.value = ''
   try {
     await account.requestPasswordReset(email.value.trim())
     sent.value = true
+    return true
   } catch (err: unknown) {
     errorKey.value = (err as { statusCode?: number }).statusCode === 429 ? 'auth.forgotRateLimited' : 'common.error'
+    return false
   } finally {
     loading.value = false
   }
+}
+
+async function submit() {
+  const ok = await doRequest()
+  if (ok) cooldown.start()
+}
+
+async function resend() {
+  if (!cooldown.canResend.value) return
+  const ok = await doRequest()
+  if (ok) cooldown.start()
 }
 </script>
 
@@ -31,13 +45,31 @@ async function submit() {
       {{ t('auth.forgotSubtitle') }}
     </p>
 
-    <UAlert
-      v-if="sent"
-      color="success"
-      variant="soft"
-      :title="t('auth.forgotSent')"
-      data-testid="forgot-sent"
-    />
+    <template v-if="sent">
+      <UAlert
+        color="success"
+        variant="soft"
+        :title="t('auth.forgotSent')"
+        data-testid="forgot-sent"
+      />
+      <UButton
+        data-testid="forgot-resend"
+        variant="soft"
+        block
+        class="mt-3"
+        :disabled="!cooldown.canResend.value || loading"
+        :loading="loading"
+        @click="resend"
+      >
+        {{ cooldown.canResend.value ? t('auth.forgotResend') : t('auth.forgotResendWait', { s: cooldown.remaining.value }) }}
+      </UButton>
+      <p
+        v-if="errorKey"
+        class="text-error text-sm mt-2"
+      >
+        {{ t(errorKey) }}
+      </p>
+    </template>
 
     <UForm
       v-else
@@ -53,6 +85,7 @@ async function submit() {
           type="email"
           required
           autocomplete="email"
+          class="w-full"
           data-testid="forgot-email"
         />
       </UFormField>

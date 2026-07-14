@@ -506,6 +506,16 @@ describe('AssetForm — create mode: submit', () => {
     await wrapper.vm.$nextTick()
   }
 
+  it('harga: typing a formatted-looking value keeps form.harga a raw digit-string (NumberInput money)', async () => {
+    const wrapper = await mountNew()
+    const input = wrapper.find('input[placeholder="0"]')
+    expect(input.exists()).toBe(true)
+    await input.setValue('18500000')
+    const vm = wrapper.vm as unknown as FormVm
+    expect(vm.form.harga).toBe('18500000')
+    expect((input.element as HTMLInputElement).value).toBe('18.500.000')
+  })
+
   it('submits an exact AssetCreateInput (purchase_cost as a decimal string, all filled FK ids present)', async () => {
     const wrapper = await mountNew()
     await fillValidForm(wrapper)

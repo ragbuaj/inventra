@@ -335,10 +335,6 @@ const impairRecoverRaw = ref('')
 const impairReason = ref('')
 const impairSubmitting = ref(false)
 
-const impairRecoverDisplay = computed(() => (impairRecoverRaw.value ? Number(impairRecoverRaw.value).toLocaleString('id-ID') : ''))
-function onImpairRecoverInput(v: string | number) {
-  impairRecoverRaw.value = String(v).replace(/\D/g, '')
-}
 const impairLoss = computed<number | null>(() => {
   if (!impairTarget.value || impairRecoverRaw.value === '') return null
   const closingVal = Number(impairTarget.value.closing)
@@ -1010,16 +1006,12 @@ onBeforeUnmount(() => {
             :label="t('depreciation.impairment.recoverableAmount')"
             required
           >
-            <UInput
-              :model-value="impairRecoverDisplay"
+            <NumberInput
+              v-model="impairRecoverRaw"
+              money
               data-testid="depr-impair-recoverable"
               class="w-full"
-              @update:model-value="onImpairRecoverInput"
-            >
-              <template #leading>
-                Rp
-              </template>
-            </UInput>
+            />
           </UFormField>
           <div
             v-if="impairLoss !== null"

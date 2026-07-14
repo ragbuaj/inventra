@@ -375,6 +375,24 @@ describe('pages/disposals — Ajukan Penghapusan form', () => {
     expect(submit().attributes('disabled')).toBeUndefined()
   })
 
+  it('NumberInput: typing a formatted-looking value into the proceeds field keeps the submitted payload a raw digit-string', async () => {
+    const w = await mountAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    await w.find('[data-testid="disposal-date"]').setValue('2026-07-04')
+
+    // The NumberInput shows grouped digits ("1.500.000") but its v-model
+    // (proceedsRaw) and the submitted payload must stay the raw digit-string.
+    const field = w.find('[data-testid="disposal-proceeds"]')
+    await field.setValue('1500000')
+    await flushPromises()
+    expect((w.vm as unknown as { proceedsRaw: string }).proceedsRaw).toBe('1500000')
+    expect((field.element as HTMLInputElement).value).toBe('1.500.000')
+
+    await w.find('[data-testid="disposal-submit"]').trigger('click')
+    await flushPromises()
+    expect(disposalsSubmitMock).toHaveBeenCalledWith(expect.objectContaining({ proceeds: '1500000' }))
+  })
+
   it('submits the exact body — book_value_at_disposal is server-computed, never sent by the client', async () => {
     const w = await mountAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)

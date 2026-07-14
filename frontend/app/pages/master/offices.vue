@@ -902,19 +902,19 @@ onMounted(() => {
         <div>
           <div class="grid grid-cols-2 gap-3.5">
             <UFormField :label="t('masterdata.offices.fields.latitude')">
-              <UInput
+              <NumberInput
                 v-model="formLat"
-                type="number"
-                step="any"
+                :decimals="7"
+                allow-negative
                 placeholder="-6.2000"
                 class="w-full font-mono"
               />
             </UFormField>
             <UFormField :label="t('masterdata.offices.fields.longitude')">
-              <UInput
+              <NumberInput
                 v-model="formLng"
-                type="number"
-                step="any"
+                :decimals="7"
+                allow-negative
                 placeholder="106.8166"
                 class="w-full font-mono"
               />

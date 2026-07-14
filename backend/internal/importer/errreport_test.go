@@ -29,6 +29,10 @@ func TestBuildErrorReportCSV(t *testing.T) {
 	if ct != "text/csv" || ext != "csv" {
 		t.Fatalf("bad meta: %s %s", ct, ext)
 	}
+	if len(body) < 3 || body[0] != 0xEF || body[1] != 0xBB || body[2] != 0xBF {
+		t.Fatalf("expected UTF-8 BOM, got % x", body[:min(3, len(body))])
+	}
+	body = body[3:]
 
 	lines := strings.Split(strings.TrimRight(string(body), "\n"), "\n")
 	if len(lines) != 3 {
@@ -42,6 +46,38 @@ func TestBuildErrorReportCSV(t *testing.T) {
 	}
 	if !strings.HasSuffix(lines[2], ",") {
 		t.Fatalf("row B (valid) should have an empty keterangan, got %q", lines[2])
+	}
+}
+
+// TestBuildErrorReportCSVHasBOM asserts the error-report CSV body is
+// prefixed with the UTF-8 BOM at byte offset 0, so Excel on a Windows
+// locale reads the "keterangan" error text as UTF-8 rather than mojibaking
+// it as Windows-1252.
+func TestBuildErrorReportCSVHasBOM(t *testing.T) {
+	rows := []sqlc.ImportImportRow{
+		{Data: []byte(`{"nama":"Meja","harga":"1000"}`), Errors: []byte(`[]`)},
+	}
+	body, _, _, err := BuildErrorReport("csv", testCols, rows)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if len(body) < 3 || body[0] != 0xEF || body[1] != 0xBB || body[2] != 0xBF {
+		t.Fatalf("expected UTF-8 BOM, got % x", body[:min(3, len(body))])
+	}
+}
+
+// TestBuildErrorReportXLSXHasNoBOM ensures the BOM fix is scoped to the CSV
+// branch only; XLSX is a binary zip format and must be untouched.
+func TestBuildErrorReportXLSXHasNoBOM(t *testing.T) {
+	rows := []sqlc.ImportImportRow{
+		{Data: []byte(`{"nama":"Meja","harga":"1000"}`), Errors: []byte(`[]`)},
+	}
+	body, _, _, err := BuildErrorReport("xlsx", testCols, rows)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if len(body) >= 3 && body[0] == 0xEF && body[1] == 0xBB && body[2] == 0xBF {
+		t.Fatalf("xlsx body should not carry a UTF-8 BOM")
 	}
 }
 

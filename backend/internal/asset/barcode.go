@@ -17,6 +17,7 @@ import (
 	sqlc "github.com/ragbuaj/inventra/db/sqlc"
 	bc "github.com/ragbuaj/inventra/internal/barcode"
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
+	"github.com/ragbuaj/inventra/internal/pdfutil"
 )
 
 var (
@@ -112,11 +113,12 @@ func renderLabelPDF(items []labelItem, opts labelOpts) ([]byte, error) {
 	}
 	var pdf *fpdf.Fpdf
 	if opts.Layout == "sheet" {
-		pdf = fpdf.New("P", "mm", "A4", "")
+		pdf = pdfutil.NewUTF8PDF("P", "mm", "A4")
 	} else {
 		pdf = fpdf.NewCustom(&fpdf.InitType{UnitStr: "mm", Size: fpdf.SizeType{Wd: opts.MediaW, Ht: opts.LabelH}})
+		pdfutil.RegisterFonts(pdf)
 	}
-	pdf.SetFont("Helvetica", "", 6)
+	pdf.SetFont(pdfutil.FontFamily, "", 6)
 
 	drawBTN := func(x, y float64, it labelItem) error {
 		pad := 1.0
@@ -133,23 +135,23 @@ func renderLabelPDF(items []labelItem, opts labelOpts) ([]byte, error) {
 		rx := x + pad + qrSide + 1.5
 		rw := opts.LabelW - (rx - x) - pad
 		ry := y + pad
-		pdf.SetFont("Helvetica", "B", 5)
+		pdf.SetFont(pdfutil.FontFamily, "B", 5)
 		pdf.SetXY(rx, ry)
 		pdf.CellFormat(rw, 2.4, trunc(opts.CompanyName, 40), "", 0, "L", false, 0, "")
 		ry += 2.6
-		pdf.SetFont("Helvetica", "", 5)
+		pdf.SetFont(pdfutil.FontFamily, "", 5)
 		pdf.SetXY(rx, ry)
 		pdf.CellFormat(rw, 2.4, it.Tag, "", 0, "L", false, 0, "")
 		ry += 2.4
 		pdf.Line(rx, ry, rx+rw, ry)
 		ry += 0.6
-		pdf.SetFont("Helvetica", "B", 6)
+		pdf.SetFont(pdfutil.FontFamily, "B", 6)
 		pdf.SetXY(rx, ry)
 		pdf.CellFormat(rw/2, 2.8, it.OfficeCode, "", 0, "L", false, 0, "")
 		pdf.SetXY(rx+rw/2, ry)
 		pdf.CellFormat(rw/2, 2.8, "TP: "+it.Year, "", 0, "R", false, 0, "")
 		ry += 2.9
-		pdf.SetFont("Helvetica", "", 5)
+		pdf.SetFont(pdfutil.FontFamily, "", 5)
 		pdf.SetXY(rx, ry)
 		pdf.CellFormat(rw, 2.4, trunc(it.CategoryName, 38), "", 0, "L", false, 0, "")
 		ry += 2.4
@@ -157,7 +159,7 @@ func renderLabelPDF(items []labelItem, opts labelOpts) ([]byte, error) {
 		pdf.CellFormat(rw, 2.4, trunc(it.Name, 38), "", 0, "L", false, 0, "")
 		ry += 2.6
 		pdf.SetTextColor(200, 0, 0)
-		pdf.SetFont("Helvetica", "", 3.5)
+		pdf.SetFont(pdfutil.FontFamily, "", 3.5)
 		pdf.SetXY(rx, ry)
 		pdf.MultiCell(rw, 1.8, opts.Disclaimer, "", "L", false)
 		pdf.SetTextColor(0, 0, 0)
