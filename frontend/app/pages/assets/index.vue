@@ -177,6 +177,25 @@ const contextItems = ref<ContextMenuItem[][]>([])
 function onRowContextMenu(row: Asset) {
   contextItems.value = buildActionGroups(rowActions(row)) as ContextMenuItem[][]
 }
+// Safety net mirroring ResourceTable's onContextMenu: a right-click that
+// bubbles up from outside a `tbody tr` (header row, empty table area, a row
+// that has since paginated/filtered away) must clear any stale items left
+// over from a previous row's right-click — otherwise the menu would surface
+// the previous row's actions and e.g. "Ubah" would edit the wrong asset.
+function onTableContextMenu(e: MouseEvent) {
+  const tr = (e.target as HTMLElement | null)?.closest('tbody tr')
+  if (!tr) contextItems.value = []
+}
+// NOTE: unlike ResourceTable's `:disabled="!props.actions"` (a value fixed
+// before any click happens), `UContextMenu`'s `:disabled` below deliberately
+// does NOT read `contextItems.length`. Reka's ContextMenuTrigger checks its
+// `disabled` prop synchronously inside the same `contextmenu` event that
+// `onRowContextMenu`/`onTableContextMenu` run in, but Vue only propagates a
+// ref mutation into a child's props on the next render flush — so a
+// same-tick `!contextItems.length` binding reads the *pre-click* value and
+// intermittently blocks the menu from opening at all. `rows.length === 0`
+// mirrors "no valid actions" without racing the click that populates
+// `contextItems`; the stale-item guarantee itself comes from the reset above.
 
 // Guards against a stale, out-of-order response: only the most recently
 // *started* load() is allowed to write rows/total/loadError/loading.
@@ -451,8 +470,14 @@ onUnmounted(() => {
       v-else-if="view === 'table'"
       class="bg-default border border-default rounded-[13px] shadow-sm overflow-hidden"
     >
-      <UContextMenu :items="contextItems">
-        <div class="overflow-x-auto">
+      <UContextMenu
+        :items="contextItems"
+        :disabled="rows.length === 0"
+      >
+        <div
+          class="overflow-x-auto"
+          @contextmenu="onTableContextMenu"
+        >
           <table class="w-full border-collapse text-[13.5px] whitespace-nowrap">
             <thead>
               <tr class="bg-muted text-muted">

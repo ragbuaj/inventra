@@ -157,3 +157,33 @@ describe('Asset Catalog page — row action navigation targets', () => {
     expect(calledWithPathEnding(`/assets/${TAG}/edit`)).toBe(true)
   })
 })
+
+// Regression test for the stale-context-menu bug: `contextItems` was only
+// ever WRITTEN by the per-row `@contextmenu` handler and never reset, so a
+// right-click on a non-row area inside the same `UContextMenu` wrapper (the
+// header row here) surfaced the previous row's actions — picking "Ubah" from
+// that ghost menu would then edit a row the user never targeted.
+describe('Asset Catalog page — context menu reset on non-row right-click', () => {
+  it('right-clicking the table header after right-clicking a row shows no stale row actions', async () => {
+    const wrapper = await mountAndWait()
+
+    // 1. Right-click a real row — sanity-check its actions actually appear.
+    const tr = wrapper.findAll('tbody tr')[0]!.element
+    tr.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(r => setTimeout(r, 0))
+    expect(menuItemByIcon('i-lucide-pencil')).toBeTruthy()
+
+    // 2. Close it.
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await new Promise(r => setTimeout(r, 0))
+
+    // 3. Right-click a non-row area inside the same wrapper (the header row
+    // is not a `tbody tr`) — this must NOT resurface row A's items.
+    const thead = wrapper.find('thead tr').element
+    thead.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(r => setTimeout(r, 0))
+
+    expect(document.querySelectorAll('[role="menuitem"]').length).toBe(0)
+    expect(menuItemByIcon('i-lucide-pencil')).toBeFalsy()
+  })
+})
