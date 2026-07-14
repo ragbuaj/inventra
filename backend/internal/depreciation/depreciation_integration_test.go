@@ -1813,6 +1813,7 @@ func TestSchedulePaginationAndParity(t *testing.T) {
 	assert.True(t, rowC.FullyDepreciated)
 
 	// KPI/Totals: SQL-aggregated sums across all three rows.
+	assert.Equal(t, int64(3), full.KPI.AssetCount, "unfiltered asset_count matches the three seeded schedule rows")
 	assert.Equal(t, "29100000.00", full.KPI.TotalCost, "18,500,000 + 9,600,000 + 1,000,000")
 	assert.Equal(t, "3635119.05", full.KPI.TotalAccumulated, "1,387,500.00 + 1,247,619.05 + 1,000,000.00")
 	assert.Equal(t, "24944880.95", full.KPI.TotalBookValue, "17,112,500.00 + 7,832,380.95 + 0.00")
@@ -1848,6 +1849,7 @@ func TestSchedulePaginationAndParity(t *testing.T) {
 	assert.Equal(t, full.KPI.TotalAccumulated, filtered.KPI.TotalAccumulated)
 	assert.Equal(t, full.KPI.TotalBookValue, filtered.KPI.TotalBookValue)
 	assert.Equal(t, full.KPI.PeriodExpense, filtered.KPI.PeriodExpense)
+	assert.Equal(t, full.KPI.AssetCount, filtered.KPI.AssetCount, "kpi asset_count must NOT shrink under the search filter")
 
 	// category_id/office_id filters behave the same way (row-level, not kpi).
 	byCategory, err := h.svc.Schedule(ctx, target, commercial, true, nil, "", &h.catID, nil, 100, 0)

@@ -72,7 +72,7 @@ describe('useDepreciation — close', () => {
 
 describe('useDepreciation — schedule', () => {
   const RESULT: ScheduleResponse = {
-    kpi: { total_cost: '10', total_accumulated: '2', total_book_value: '8', period_expense: '1' },
+    kpi: { asset_count: 0, total_cost: '10', total_accumulated: '2', total_book_value: '8', period_expense: '1' },
     rows: [],
     totals: { opening: '0', amount: '0', accumulated: '0', closing: '0' },
     total: 0

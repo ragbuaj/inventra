@@ -67,6 +67,7 @@ func scheduleToMap(r ScheduleResult, limit, offset int32) gin.H {
 	}
 	return gin.H{
 		"kpi": gin.H{
+			"asset_count":       r.KPI.AssetCount,
 			"total_cost":        r.KPI.TotalCost,
 			"total_accumulated": r.KPI.TotalAccumulated,
 			"total_book_value":  r.KPI.TotalBookValue,

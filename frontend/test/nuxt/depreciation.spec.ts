@@ -58,21 +58,29 @@ const SCHEDULE_ROWS: ScheduleRow[] = [
   })
 ]
 
+// The unfiltered kpi block: period+basis+scope only. The real backend never
+// varies this across search/category/office filters (ScheduleKpi has no
+// filter params) — filteredScheduleResponse() below reuses this SAME object
+// so the fixtures mirror that invariant.
+const UNFILTERED_KPI = { asset_count: 3, total_cost: '120500000', total_accumulated: '37260417', total_book_value: '83239583', period_expense: '1198917' }
+
 function scheduleResponse(rows: ScheduleRow[] = SCHEDULE_ROWS, total = rows.length): ScheduleResponse {
   return {
-    kpi: { total_cost: '120500000', total_accumulated: '37260417', total_book_value: '83239583', period_expense: '1198917' },
+    kpi: UNFILTERED_KPI,
     rows,
     totals: { opening: '85937500', amount: '1198917', accumulated: '37260417', closing: '83239583' },
     total
   }
 }
 
-// A *filtered* schedule response: fewer rows AND a smaller KPI block. In the
-// single-call architecture the KPI tiles come from THIS SAME response — i.e.
-// filtering the table now legitimately changes the tiles too (bug #2 fix).
+// A *filtered* schedule response: fewer rows/totals, but the SAME kpi block
+// as the unfiltered response — this is what the real backend does (ScheduleKpi
+// ignores search/category_id/office_id entirely), so the KPI tiles (including
+// the "{n} aset" sub-label, sourced from kpi.asset_count) must stay invariant
+// under table filters.
 function filteredScheduleResponse(): ScheduleResponse {
   return {
-    kpi: { total_cost: '67437500', total_accumulated: '10562500', total_book_value: '67437500', period_expense: '1687000' },
+    kpi: UNFILTERED_KPI,
     rows: [SCHEDULE_ROWS[1]!],
     totals: { opening: '67437500', amount: '1687000', accumulated: '10562500', closing: '67437500' },
     total: 1
@@ -221,19 +229,29 @@ describe('pages/depreciation — mount + KPI', () => {
     expect(periodExpense.attributes('title')).toContain('1.198.917')
   })
 
-  it('derives KPI tiles from the SAME schedule() response as the table — filtering the table changes the tiles too (single-call architecture)', async () => {
+  it('derives KPI tiles from the SAME schedule() response as the table, but they stay invariant under table filters (kpi block is unfiltered)', async () => {
+    // beforeEach already wires scheduleMock to filteredScheduleResponse() for
+    // filtered calls and scheduleResponse() otherwise.
     const w = await mountAndWait()
     expect(w.findAll('[data-testid="depr-schedule-row"]').length).toBe(3)
     const acquisitionBefore = w.find('[data-testid="depr-kpi-acquisition"]').find('[title]')
     expect(acquisitionBefore.attributes('title')).toContain('120.500.000')
+    // "{n} aset" sub-label reflects the unfiltered kpi.asset_count (3), not
+    // the filtered row/total count.
+    expect(w.find('[data-testid="depr-kpi-acquisition"]').text()).toContain('3 aset')
 
     scheduleMock.mockClear()
     await setVmRef(w, 'categoryId', 'c1')
     // Exactly one refetch for the filter change — still no parallel KPI call.
     expect(scheduleMock).toHaveBeenCalledTimes(1)
+    // The table narrows to the filtered rows...
     expect(w.findAll('[data-testid="depr-schedule-row"]').length).toBe(1)
+    // ...but the acquisition tile's money value AND its "{n} aset" sub-label
+    // must NOT shrink — the backend's kpi block (incl. asset_count) is
+    // unfiltered, so filtering the table must never shrink the KPI tiles.
     const acquisitionAfter = w.find('[data-testid="depr-kpi-acquisition"]').find('[title]')
-    expect(acquisitionAfter.attributes('title')).toContain('67.437.500')
+    expect(acquisitionAfter.attributes('title')).toContain('120.500.000')
+    expect(w.find('[data-testid="depr-kpi-acquisition"]').text()).toContain('3 aset')
   })
 })
 

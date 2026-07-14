@@ -214,6 +214,7 @@ WHERE a.deleted_at IS NULL
 -- shrink the tiles). Same FROM/WHERE as ScheduleTotals MINUS the search/
 -- category/office filters.
 SELECT
+  COUNT(*) AS asset_count,
   COALESCE(round(SUM(a.purchase_cost::numeric), 2), 0)::text AS total_cost,
   COALESCE(round(SUM(acc.accumulated::numeric), 2), 0)::text AS total_accumulated,
   COALESCE(round(SUM(CASE WHEN e.id IS NOT NULL THEN e.closing_value::numeric

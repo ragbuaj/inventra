@@ -573,6 +573,7 @@ func (q *Queries) ListEntriesForPeriod(ctx context.Context, arg ListEntriesForPe
 
 const scheduleKpi = `-- name: ScheduleKpi :one
 SELECT
+  COUNT(*) AS asset_count,
   COALESCE(round(SUM(a.purchase_cost::numeric), 2), 0)::text AS total_cost,
   COALESCE(round(SUM(acc.accumulated::numeric), 2), 0)::text AS total_accumulated,
   COALESCE(round(SUM(CASE WHEN e.id IS NOT NULL THEN e.closing_value::numeric
@@ -618,6 +619,7 @@ type ScheduleKpiParams struct {
 }
 
 type ScheduleKpiRow struct {
+	AssetCount       int64  `json:"asset_count"`
 	TotalCost        string `json:"total_cost"`
 	TotalAccumulated string `json:"total_accumulated"`
 	TotalBookValue   string `json:"total_book_value"`
@@ -637,6 +639,7 @@ func (q *Queries) ScheduleKpi(ctx context.Context, arg ScheduleKpiParams) (Sched
 	)
 	var i ScheduleKpiRow
 	err := row.Scan(
+		&i.AssetCount,
 		&i.TotalCost,
 		&i.TotalAccumulated,
 		&i.TotalBookValue,

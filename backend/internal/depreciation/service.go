@@ -519,6 +519,7 @@ type ScheduleRow struct {
 
 // ScheduleKPI summarizes Schedule() rows for the dashboard tiles.
 type ScheduleKPI struct {
+	AssetCount       int64
 	TotalCost        string
 	TotalAccumulated string
 	TotalBookValue   string
@@ -621,7 +622,8 @@ func (s *Service) Schedule(ctx context.Context, period time.Time, basis sqlc.Sha
 
 	return ScheduleResult{
 		KPI: ScheduleKPI{
-			TotalCost: kpi.TotalCost, TotalAccumulated: kpi.TotalAccumulated,
+			AssetCount: kpi.AssetCount,
+			TotalCost:  kpi.TotalCost, TotalAccumulated: kpi.TotalAccumulated,
 			TotalBookValue: kpi.TotalBookValue, PeriodExpense: kpi.PeriodExpense,
 		},
 		Rows:  rows,

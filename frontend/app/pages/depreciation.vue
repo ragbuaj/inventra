@@ -197,12 +197,16 @@ async function loadSchedule() {
 
 // ---------------------------------------------------------------------------
 // KPI tiles — derived from the SAME schedule() response as the table (single
-// backend call, bug #2 fix). Filtering the table now also updates the tiles,
-// since both read from the one authoritative response.
+// backend call, bug #2 fix), but from its `kpi` block specifically, NOT
+// `rows`/`total`/`totals`. The backend computes `kpi` (money values AND
+// `kpi.asset_count`) unfiltered — scoped only by period+basis+caller office
+// scope — so the tiles (including the "{n} aset" sub-label) stay invariant
+// under the table's search/category/office filters. Only `rows`, `total`,
+// and `totals` shrink when a filter narrows the table.
 // ---------------------------------------------------------------------------
 const kpiItems = computed(() => {
   const kpi = scheduleResp.value?.kpi ?? null
-  const kpiAssetCount = scheduleResp.value?.total ?? 0
+  const kpiAssetCount = scheduleResp.value?.kpi.asset_count ?? 0
   return [
     {
       key: 'acquisition', testid: 'depr-kpi-acquisition', icon: 'i-lucide-wallet', tone: 'info',

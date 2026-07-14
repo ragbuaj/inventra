@@ -26,6 +26,7 @@ export interface ScheduleRow {
 
 export interface ScheduleResponse {
   kpi: {
+    asset_count: number
     total_cost: string
     total_accumulated: string
     total_book_value: string
