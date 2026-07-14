@@ -33,6 +33,15 @@ export default defineNuxtConfig({
     }
   },
 
+  // Cache policy for the SPA. Hashed build assets are content-addressed, so they
+  // are safe to cache forever; the HTML shell must always be revalidated or a
+  // browser keeps serving a stale shell that references the previous deploy's
+  // (now-404) chunk URLs — the "still broken until I hard-refresh" trap.
+  routeRules: {
+    '/_nuxt/**': { headers: { 'cache-control': 'public, max-age=31536000, immutable' } },
+    '/**': { headers: { 'cache-control': 'no-cache' } }
+  },
+
   watchers: {
     chokidar: devPolling ? { usePolling: true, interval: 300 } : {}
   },
