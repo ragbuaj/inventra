@@ -48,7 +48,7 @@ const rowsTotal = ref(0)
 const rowsLoading = ref(false)
 const rowsError = ref(false)
 const onlyErrors = ref(false)
-const limit = ref(20)
+const limit = ref(10)
 const offset = ref(0)
 
 let timer: ReturnType<typeof setTimeout> | undefined
