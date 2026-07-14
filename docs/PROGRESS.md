@@ -952,7 +952,49 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     at 3, Import label renders, sidebar collapses to 76px with under-icon labels, collapsed parent opens
 >     the rail + group, reports KPI count renders `63.084`. **Follow-up (open):** screenshots time out in the
 >     in-app preview pane, so the collapsed-rail look was verified via DOM measurement, not a visual capture.
-> 59. **Next session — pick the next real step.** Leading candidate: **Spec B — Device Sessions**
+> 59. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-14): live-app fix batch —
+>     depreciation schedule perf + table-action UX (user-reported against the live deploy, not from the
+>     candidate list below) — see item 60.**
+> 60. ~~**Depreciation schedule perf + table-action UX batch**~~ ✅ **DONE (2026-07-14, branch
+>     `feat/depreciation-perf-and-table-ux`, not yet merged).** Live-app fix batch against
+>     `https://inventra.ragilbuaj.web.id`. **`/depreciation/schedule` rewrite (perf + double-call):**
+>     replaced 3 unbounded queries + a full-set Go loop with 3 SQL-aggregated/paginated queries —
+>     `ScheduleRows` (one asset-based, filtered, `LIMIT`/`OFFSET` page — assets `LEFT JOIN` this-period
+>     entry `LEFT JOIN` lateral accumulated-sum, with the parameterizable-union predicate mirroring
+>     `engine.go`'s `ResolveCommercial`/`ResolveFiscal` Skip checks in SQL), `ScheduleTotals` (filtered
+>     tfoot + `total` count), `ScheduleKpi` (UNFILTERED KPI tiles + `asset_count`). Removed
+>     `ListAssetsForScheduleUnion` + `SumAmountsThroughPeriodByAsset`; kept `ListEntriesForPeriod`
+>     (journal). Handler gained `limit`/`offset` (default 10, clamp 1–100) + `total`/`limit`/`offset` in
+>     the response; OpenAPI updated. Engine now resolves method/life only for the ≤10 page rows. The
+>     frontend dropped the separate unfiltered KPI fetch (`loadKpis`) — the single `/schedule` response now
+>     carries `kpi` — so the endpoint is called **once** per change (was twice), and server pagination
+>     (10/page) bounds the table. **KPI-card overflow (#3):** new `formatRupiahCompact` util (`Rp 1,23 M` /
+>     `Rp 3,4 T`) + `min-w-0 truncate` + `:title` full-precision tooltip on the 4 KPI tiles; table totals
+>     keep full precision. **Row actions standardized (#1):** new shared `RowActionsMenu` (kebab `⋮`
+>     dropdown) + `buildActionGroups` util, extracted from `ResourceTable`, applied with a wrapper-level
+>     right-click `UContextMenu` (reset-`contextItems`-on-non-row-target) to all 8 action-bearing tables:
+>     assets catalog, transfers, disposals, peminjaman, stock-opname items, reports opname, maintenance
+>     records, and depreciation schedule (Impair). Read-only (journal, audit, assignment history, detail
+>     sub-tables) + matrix/segmented (data-scope, field-permission) tables intentionally left as-is.
+>     **Pagination = 10 (#5):** every list-screen page size set to 10 (`ResourceTable` default, assets,
+>     audit, reference, employees, categories 7→10, ImportWizard preview) + composable `?? 20 → ?? 10`
+>     fallbacks. Picker/lookup/existence-check limits untouched. **Deviations (recorded):** **(a)** the
+>     unified schedule query applies `a.deleted_at IS NULL` uniformly, so entries for **soft-deleted assets
+>     no longer appear in the schedule** (the old entry-row query lacked this filter; consistent with the
+>     union path) — a deliberate consistency tightening; **(b)** the peminjaman **cancel** action lost its
+>     per-row loading spinner (`RowAction` has no `loading` field) — now disabled-while-in-flight,
+>     re-entrancy guard intact; **(c)** added **unfiltered** `kpi.asset_count` so the acquisition tile's
+>     "n aset" sub-label stays full-set under table filters (matches the documented "tiles never shrink"
+>     intent). **Known minor/follow-ups:** orphaned i18n key `impairDisabledFiscalTooltip` now dead (Impair
+>     tooltip dropped in the menu conversion); `formatRupiahCompact` renders `Rp 1.000 rb` at 999.999
+>     (bucket chosen pre-rounding — documented/tested); a flaky `EnvironmentTeardownError` in
+>     `assets-index.spec.ts` teardown is a pre-existing Nuxt UI overlay-teardown artifact (not introduced;
+>     full suite passes 1466/1466 with exit 0 on a clean run). **Verification gate (2026-07-14):** backend
+>     `go build`/`go vet`/`go test` green; `go test -tags=integration ./internal/depreciation/` green
+>     (parity + pagination + filter-shrinks-rows-not-KPI + scope); Spectral 0 errors; frontend
+>     lint/typecheck green, `pnpm test` 1466/1466 green, `pnpm build` green.
+> 61. **Next session — pick the next real step.** This batch's branch (`feat/depreciation-perf-and-table-ux`)
+>     is **not yet merged** — merge/PR it first. After that, leading candidate: **Spec B — Device Sessions**
 >     (session list / revoke-per-device / logout-all-others — the last `useAccount` mock). Or close the
 >     item-56 follow-ups: the **live mockup visual pass** + **profile office/employee name enrichment**
 >     (so the account header shows real `kantor`/`pegawai`). Other carried candidates: **notifications**
