@@ -10,7 +10,7 @@ export function useReference() {
 
   async function list(key: ReferenceKey, query: ListQuery = {}): Promise<Paginated<ReferenceRow>> {
     const q = new URLSearchParams()
-    q.set('limit', String(query.limit ?? 20))
+    q.set('limit', String(query.limit ?? 10))
     q.set('offset', String(query.offset ?? 0))
     if (query.search) q.set('search', String(query.search))
     return request<Paginated<ReferenceRow>>(`/${key}?${q.toString()}`)

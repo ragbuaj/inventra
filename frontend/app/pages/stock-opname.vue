@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { BadgeColor } from '~/types'
+import type { ContextMenuItem } from '@nuxt/ui'
+import type { BadgeColor, RowAction } from '~/types'
 import type { OpnameItem, OpnameSession, OpnameSessionDetail } from '~/composables/api/useStockOpname'
 import { ITEM_RESULT_TONE, SESSION_STATUS_TONE, type ItemResult, type SessionStatus } from '~/constants/stockOpnameMeta'
 import { formatInt } from '~/utils/format'
@@ -226,6 +227,34 @@ async function setItemResult(item: OpnameItem, result: ItemResult) {
   } catch {
     // useApiClient surfaces the error toast
   }
+}
+
+// Per-row actions (kebab dropdown via RowActionsMenu, and the table's
+// right-click context menu below) — both built from this same list via
+// buildActionGroups so their grouping/dividers stay in sync (see Task 8,
+// mirrors assets/index.vue's Task 7 pattern). The segmented control stays as
+// a fast-path; this menu is the standardized affordance and maps 1:1 onto
+// SEG_ORDER via the existing setItemResult() setter. A locked (non-editable)
+// session shows the read-only status badge instead — no menu.
+function itemRowActions(item: OpnameItem): RowAction[] {
+  if (!isEditable.value) return []
+  return SEG_ORDER.map(seg => ({
+    label: t('stockOpname.action.setResult', { result: t(`stockOpname.result.${seg}`) }),
+    icon: SEG_ICON[seg],
+    onSelect: () => setItemResult(item, seg)
+  }))
+}
+
+const contextItems = ref<ContextMenuItem[][]>([])
+function onItemRowContextMenu(item: OpnameItem) {
+  contextItems.value = buildActionGroups(itemRowActions(item)) as ContextMenuItem[][]
+}
+// Safety net mirroring ResourceTable/disposals: a right-click that bubbles up
+// from outside an actual item `tbody tr` (header, empty area) must clear any
+// stale items left over from a previous row's right-click.
+function onItemsTableContextMenu(e: MouseEvent) {
+  const tr = (e.target as HTMLElement | null)?.closest('tbody tr')
+  if (!tr) contextItems.value = []
 }
 
 // ---------------------------------------------------------------------------
@@ -809,80 +838,96 @@ onMounted(() => {
             >
               {{ t('stockOpname.itemsNoMatch') }}
             </div>
-            <div
+            <UContextMenu
               v-else
-              class="overflow-x-auto"
+              :items="contextItems"
+              :disabled="filteredItems.length === 0"
             >
-              <table class="w-full border-collapse text-[13px] whitespace-nowrap">
-                <thead>
-                  <tr class="bg-muted text-muted">
-                    <th class="text-left px-4 py-[10px] text-[11.5px] font-semibold uppercase tracking-wide">
-                      {{ t('stockOpname.column.asset') }}
-                    </th>
-                    <th class="text-left px-3 py-[10px] text-[11.5px] font-semibold uppercase tracking-wide">
-                      {{ t('stockOpname.column.location') }}
-                    </th>
-                    <th class="text-left px-3 py-[10px] text-[11.5px] font-semibold uppercase tracking-wide">
-                      {{ t('stockOpname.column.result') }}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    v-for="it in filteredItems"
-                    :key="it.id"
-                    data-testid="opname-item-row"
-                    class="border-t border-default hover:bg-muted/60 transition-colors"
-                  >
-                    <td class="px-4 py-2.5">
-                      <div class="font-medium">
-                        {{ it.asset_name ?? '—' }}
-                      </div>
-                      <div class="font-mono text-[11px] text-dimmed">
-                        {{ it.asset_tag ?? '—' }}
-                      </div>
-                    </td>
-                    <td class="px-3 py-2.5 text-muted">
-                      {{ locationOf(it) }}
-                    </td>
-                    <td class="px-3 py-2.5">
-                      <div
-                        v-if="isEditable"
-                        class="inline-flex gap-0.5 p-0.5 bg-muted rounded-lg"
-                      >
-                        <button
-                          v-for="seg in SEG_ORDER"
-                          :key="seg"
-                          type="button"
-                          :data-testid="`opname-result-${seg}`"
-                          :title="t(`stockOpname.result.${seg}`)"
-                          class="flex items-center justify-center size-[26px] rounded-md"
-                          :class="it.result === seg ? SEG_ACTIVE_CLASS[seg] : 'text-dimmed hover:bg-default'"
-                          @click="setItemResult(it, seg)"
+              <div
+                class="overflow-x-auto"
+                @contextmenu="onItemsTableContextMenu"
+              >
+                <table class="w-full border-collapse text-[13px] whitespace-nowrap">
+                  <thead>
+                    <tr class="bg-muted text-muted">
+                      <th class="text-left px-4 py-[10px] text-[11.5px] font-semibold uppercase tracking-wide">
+                        {{ t('stockOpname.column.asset') }}
+                      </th>
+                      <th class="text-left px-3 py-[10px] text-[11.5px] font-semibold uppercase tracking-wide">
+                        {{ t('stockOpname.column.location') }}
+                      </th>
+                      <th class="text-left px-3 py-[10px] text-[11.5px] font-semibold uppercase tracking-wide">
+                        {{ t('stockOpname.column.result') }}
+                      </th>
+                      <th class="text-right px-4 py-[10px] text-[11.5px] font-semibold uppercase tracking-wide">
+                        {{ t('common.actions') }}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="it in filteredItems"
+                      :key="it.id"
+                      data-testid="opname-item-row"
+                      class="border-t border-default hover:bg-muted/60 transition-colors"
+                      @contextmenu="onItemRowContextMenu(it)"
+                    >
+                      <td class="px-4 py-2.5">
+                        <div class="font-medium">
+                          {{ it.asset_name ?? '—' }}
+                        </div>
+                        <div class="font-mono text-[11px] text-dimmed">
+                          {{ it.asset_tag ?? '—' }}
+                        </div>
+                      </td>
+                      <td class="px-3 py-2.5 text-muted">
+                        {{ locationOf(it) }}
+                      </td>
+                      <td class="px-3 py-2.5">
+                        <div
+                          v-if="isEditable"
+                          class="inline-flex gap-0.5 p-0.5 bg-muted rounded-lg"
+                        >
+                          <button
+                            v-for="seg in SEG_ORDER"
+                            :key="seg"
+                            type="button"
+                            :data-testid="`opname-result-${seg}`"
+                            :title="t(`stockOpname.result.${seg}`)"
+                            class="flex items-center justify-center size-[26px] rounded-md"
+                            :class="it.result === seg ? SEG_ACTIVE_CLASS[seg] : 'text-dimmed hover:bg-default'"
+                            @click="setItemResult(it, seg)"
+                          >
+                            <UIcon
+                              :name="SEG_ICON[seg]"
+                              class="size-[13px]"
+                            />
+                          </button>
+                        </div>
+                        <UBadge
+                          v-else
+                          :color="ITEM_RESULT_TONE[it.result as ItemResult]"
+                          variant="subtle"
+                          class="rounded-full gap-1.5"
                         >
                           <UIcon
-                            :name="SEG_ICON[seg]"
-                            class="size-[13px]"
+                            :name="RESULT_ICON[it.result as ItemResult]"
+                            class="size-3"
                           />
-                        </button>
-                      </div>
-                      <UBadge
-                        v-else
-                        :color="ITEM_RESULT_TONE[it.result as ItemResult]"
-                        variant="subtle"
-                        class="rounded-full gap-1.5"
+                          {{ t(`stockOpname.result.${it.result}`) }}
+                        </UBadge>
+                      </td>
+                      <td
+                        class="px-3 py-2.5 text-right"
+                        @click.stop
                       >
-                        <UIcon
-                          :name="RESULT_ICON[it.result as ItemResult]"
-                          class="size-3"
-                        />
-                        {{ t(`stockOpname.result.${it.result}`) }}
-                      </UBadge>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+                        <RowActionsMenu :items="itemRowActions(it)" />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </UContextMenu>
           </div>
 
           <!-- Variance panel -->

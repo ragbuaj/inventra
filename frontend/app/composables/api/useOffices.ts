@@ -19,7 +19,7 @@ export function useOffices() {
 
   async function list(query: ListQuery = {}): Promise<Paginated<Office>> {
     const q = new URLSearchParams()
-    q.set('limit', String(query.limit ?? 20))
+    q.set('limit', String(query.limit ?? 10))
     q.set('offset', String(query.offset ?? 0))
     if (query.search) q.set('search', String(query.search))
     return request<Paginated<Office>>(`/offices?${q.toString()}`)

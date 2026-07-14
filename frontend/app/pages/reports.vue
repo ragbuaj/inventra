@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ContextMenuItem } from '@nuxt/ui'
 import type {
   ReportResult, ReportFilters,
   AssetReportRow, DeprReportRow, UtilReportRow, MaintReportRow,
@@ -6,6 +7,7 @@ import type {
 } from '~/composables/api/useReports'
 import { useReports } from '~/composables/api/useReports'
 import { useCategories } from '~/composables/api/useCategories'
+import type { RowAction } from '~/types'
 import type { ReportKey, PeriodValue, PeriodPreset } from '~/constants/reportMeta'
 import { REPORT_KEYS, REPORT_ICON, formatMoneyShort } from '~/constants/reportMeta'
 import { formatInt } from '~/utils/format'
@@ -363,6 +365,33 @@ async function doOpnameBa(sessionId: string, format: 'pdf' | 'xlsx') {
   }
 }
 
+// Per-row actions for the opname table (kebab dropdown via RowActionsMenu,
+// and the table's right-click context menu below) — both built from this
+// same list via buildActionGroups so their grouping/dividers stay in sync
+// (see Task 8, mirrors assets/index.vue's Task 7 pattern). Gated on
+// canExport so a right-click never surfaces actions the caller can't use.
+function opnameRowActions(row: { sessionId: string }): RowAction[] {
+  if (!canExport.value) return []
+  return [
+    { label: t('reports.action.downloadBaPdf'), icon: 'i-lucide-file-text', onSelect: () => doOpnameBa(row.sessionId, 'pdf') },
+    { label: t('reports.action.downloadBaExcel'), icon: 'i-lucide-file-spreadsheet', onSelect: () => doOpnameBa(row.sessionId, 'xlsx') }
+  ]
+}
+
+const contextItems = ref<ContextMenuItem[][]>([])
+function onOpnameRowContextMenu(row: { sessionId: string }) {
+  contextItems.value = buildActionGroups(opnameRowActions(row)) as ContextMenuItem[][]
+}
+// Safety net mirroring ResourceTable/disposals: the wrapping table area also
+// renders the generic (non-opname) report table, whose rows never call
+// onOpnameRowContextMenu — a right-click landing there (or on the header /
+// empty area) must clear any stale items left over from a previous opname
+// row's right-click.
+function onTableContextMenu(e: MouseEvent) {
+  const tr = (e.target as HTMLElement | null)?.closest('[data-testid="reports-opname-row"]')
+  if (!tr) contextItems.value = []
+}
+
 const glItems = computed(() => [[
   { 'label': t('reports.pdf'), 'icon': 'i-lucide-file-text', 'data-testid': 'reports-export-gl-pdf', 'onSelect': () => doExportGl('pdf') },
   { 'label': t('reports.excel'), 'icon': 'i-lucide-file-spreadsheet', 'data-testid': 'reports-export-gl-xlsx', 'onSelect': () => doExportGl('xlsx') }
@@ -680,118 +709,112 @@ defineExpose({ apply, doExport, doExportGl, doOpnameBa, resetFilters, selectRepo
 
         <!-- Table -->
         <div class="bg-default border border-default rounded-[13px] shadow-sm overflow-hidden">
-          <div class="overflow-x-auto">
-            <!-- Opname: rows carry a Berita Acara download action -->
-            <table
-              v-if="view.mode === 'opname'"
-              class="w-full border-collapse text-[13px] whitespace-nowrap"
+          <UContextMenu
+            :items="contextItems"
+            :disabled="view.mode !== 'opname' || view.rows.length === 0"
+          >
+            <div
+              class="overflow-x-auto"
+              @contextmenu="onTableContextMenu"
             >
-              <thead>
-                <tr class="bg-muted">
-                  <th
-                    v-for="(c, i) in view.cols"
-                    :key="i"
-                    class="px-4 py-[11px] text-[11.5px] font-semibold uppercase text-muted"
-                    :class="c.align === 'right' ? 'text-right' : 'text-left'"
-                  >
-                    {{ c.label }}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="(row, ri) in view.rows"
-                  :key="ri"
-                  class="border-t border-default hover:bg-muted transition-colors"
-                >
-                  <td
-                    v-for="(c, ci) in row.cells"
-                    :key="ci"
-                    class="px-4 py-[11px] tabular-nums"
-                    :class="[c.align === 'right' ? 'text-right' : 'text-left', TONE_CLASS[c.tone], WEIGHT_CLASS[c.weight], c.mono ? 'font-mono' : '']"
-                  >
-                    {{ c.text }}
-                  </td>
-                  <td class="px-4 py-[11px] text-right">
-                    <div
-                      v-if="canExport"
-                      class="flex gap-1.5 justify-end"
+              <!-- Opname: rows carry a Berita Acara download action -->
+              <table
+                v-if="view.mode === 'opname'"
+                class="w-full border-collapse text-[13px] whitespace-nowrap"
+              >
+                <thead>
+                  <tr class="bg-muted">
+                    <th
+                      v-for="(c, i) in view.cols"
+                      :key="i"
+                      class="px-4 py-[11px] text-[11.5px] font-semibold uppercase text-muted"
+                      :class="c.align === 'right' ? 'text-right' : 'text-left'"
                     >
-                      <UButton
-                        icon="i-lucide-file-text"
-                        color="neutral"
-                        variant="outline"
-                        size="xs"
-                        :aria-label="t('reports.pdf')"
-                        :data-testid="`reports-opname-ba-pdf-${row.sessionId}`"
-                        @click="doOpnameBa(row.sessionId, 'pdf')"
+                      {{ c.label }}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(row, ri) in view.rows"
+                    :key="ri"
+                    data-testid="reports-opname-row"
+                    class="border-t border-default hover:bg-muted transition-colors"
+                    @contextmenu="onOpnameRowContextMenu(row)"
+                  >
+                    <td
+                      v-for="(c, ci) in row.cells"
+                      :key="ci"
+                      class="px-4 py-[11px] tabular-nums"
+                      :class="[c.align === 'right' ? 'text-right' : 'text-left', TONE_CLASS[c.tone], WEIGHT_CLASS[c.weight], c.mono ? 'font-mono' : '']"
+                    >
+                      {{ c.text }}
+                    </td>
+                    <td
+                      class="px-4 py-[11px] text-right"
+                      @click.stop
+                    >
+                      <RowActionsMenu
+                        v-if="canExport"
+                        :items="opnameRowActions(row)"
                       />
-                      <UButton
-                        icon="i-lucide-file-spreadsheet"
-                        color="neutral"
-                        variant="outline"
-                        size="xs"
-                        :aria-label="t('reports.excel')"
-                        :data-testid="`reports-opname-ba-xlsx-${row.sessionId}`"
-                        @click="doOpnameBa(row.sessionId, 'xlsx')"
-                      />
-                    </div>
-                    <span
-                      v-else
-                      class="text-dimmed"
-                    >—</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                      <span
+                        v-else
+                        class="text-dimmed"
+                      >—</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
 
-            <!-- Generic report table -->
-            <table
-              v-else
-              class="w-full border-collapse text-[13px] whitespace-nowrap"
-            >
-              <thead>
-                <tr class="bg-muted">
-                  <th
-                    v-for="(c, i) in view.cols"
-                    :key="i"
-                    class="px-4 py-[11px] text-[11.5px] font-semibold uppercase text-muted"
-                    :class="c.align === 'right' ? 'text-right' : 'text-left'"
+              <!-- Generic report table -->
+              <table
+                v-else
+                class="w-full border-collapse text-[13px] whitespace-nowrap"
+              >
+                <thead>
+                  <tr class="bg-muted">
+                    <th
+                      v-for="(c, i) in view.cols"
+                      :key="i"
+                      class="px-4 py-[11px] text-[11.5px] font-semibold uppercase text-muted"
+                      :class="c.align === 'right' ? 'text-right' : 'text-left'"
+                    >
+                      {{ c.label }}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(row, ri) in view.rows"
+                    :key="ri"
+                    class="border-t border-default hover:bg-muted transition-colors"
                   >
-                    {{ c.label }}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="(row, ri) in view.rows"
-                  :key="ri"
-                  class="border-t border-default hover:bg-muted transition-colors"
-                >
-                  <td
-                    v-for="(c, ci) in row"
-                    :key="ci"
-                    class="px-4 py-[11px] tabular-nums"
-                    :class="[c.align === 'right' ? 'text-right' : 'text-left', TONE_CLASS[c.tone], WEIGHT_CLASS[c.weight], c.mono ? 'font-mono' : '']"
-                  >
-                    {{ c.text }}
-                  </td>
-                </tr>
-              </tbody>
-              <tfoot v-if="view.footer">
-                <tr class="border-t-2 border-default bg-muted">
-                  <td
-                    v-for="(c, ci) in view.footer"
-                    :key="ci"
-                    class="px-4 py-3 text-[13px] font-bold tabular-nums"
-                    :class="[c.align === 'right' ? 'text-right' : 'text-left', TONE_CLASS[c.tone]]"
-                  >
-                    {{ c.text }}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+                    <td
+                      v-for="(c, ci) in row"
+                      :key="ci"
+                      class="px-4 py-[11px] tabular-nums"
+                      :class="[c.align === 'right' ? 'text-right' : 'text-left', TONE_CLASS[c.tone], WEIGHT_CLASS[c.weight], c.mono ? 'font-mono' : '']"
+                    >
+                      {{ c.text }}
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot v-if="view.footer">
+                  <tr class="border-t-2 border-default bg-muted">
+                    <td
+                      v-for="(c, ci) in view.footer"
+                      :key="ci"
+                      class="px-4 py-3 text-[13px] font-bold tabular-nums"
+                      :class="[c.align === 'right' ? 'text-right' : 'text-left', TONE_CLASS[c.tone]]"
+                    >
+                      {{ c.text }}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </UContextMenu>
         </div>
       </div>
 

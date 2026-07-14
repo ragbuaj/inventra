@@ -33,14 +33,14 @@ vi.mock('~/composables/useApiClient', () => ({
 import CatalogPage from '~/pages/assets/index.vue'
 
 // ---------------------------------------------------------------------------
-// Fixtures — 45 rows so page 2 exists (PAGE_SIZE = 20 → 3 pages).
+// Fixtures — 45 rows so page 2 exists (PAGE_SIZE = 10 → 5 pages).
 // ---------------------------------------------------------------------------
 
 const CATEGORIES = [{ id: 'c1', name: 'Elektronik' }]
 const OFFICES = [{ id: 'o1', name: 'Kantor Pusat' }]
 
 function makeAssetsPage(offset: number, total: number) {
-  const count = Math.max(0, Math.min(20, total - offset))
+  const count = Math.max(0, Math.min(10, total - offset))
   const data = Array.from({ length: count }, (_, i) => ({
     id: `a${offset + i}`,
     asset_tag: `TAG-${offset + i}`,
@@ -53,7 +53,7 @@ function makeAssetsPage(offset: number, total: number) {
     asset_class: 'tangible',
     purchase_date: '2026-01-01'
   }))
-  return { data, total, limit: 20, offset }
+  return { data, total, limit: 10, offset }
 }
 
 interface Call { path: string, opts?: Record<string, unknown> }

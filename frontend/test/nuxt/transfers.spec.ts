@@ -179,6 +179,14 @@ function bodyButton(testid: string): HTMLButtonElement {
   return el as HTMLButtonElement
 }
 
+// Row-actions kebab/context-menu items are portaled to document.body; locale
+// is 'id' here (navigateTo isn't mocked in this file), so matching on the
+// resolved Indonesian label text is reliable.
+function menuItemByText(text: string): HTMLElement | undefined {
+  return Array.from(document.querySelectorAll('[role="menuitem"]'))
+    .find(el => el.textContent?.trim() === text) as HTMLElement | undefined
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   officesListMock.mockResolvedValue(page(OFFICES))
@@ -451,13 +459,22 @@ describe('pages/transfers — Riwayat', () => {
     expect(rows[0]!.text()).toContain('UPS APC Smart-UPS 1500')
   })
 
-  it('shows the Kirim button only on approved rows and calls ship()', async () => {
+  it('shows a Kirim kebab action only on the approved row and calls ship()', async () => {
     const w = await mountAndWait()
     await clickTab(w, 'history')
-    const shipButtons = w.findAll('[data-testid="transfer-ship"]')
-    expect(shipButtons).toHaveLength(1)
+    const rows = w.findAll('[data-testid="transfer-history-row"]')
+    const approvedRow = rows.find(r => r.text().includes('Laptop Dell Latitude'))!
+    const otherRows = rows.filter(r => r !== approvedRow)
 
-    await shipButtons[0]!.trigger('click')
+    // Only the approved row (canShip) renders a kebab trigger.
+    expect(approvedRow.find('button[aria-haspopup="menu"]').exists()).toBe(true)
+    for (const r of otherRows) {
+      expect(r.find('button[aria-haspopup="menu"]').exists()).toBe(false)
+    }
+
+    await approvedRow.find('button[aria-haspopup="menu"]').trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    menuItemByText('Kirim')!.click()
     await w.vm.$nextTick()
     await setVmRef(w, 'shipDate', '2026-07-06')
     bodyButton('transfer-ship-confirm').click()
@@ -466,11 +483,54 @@ describe('pages/transfers — Riwayat', () => {
     expect(transfersShipMock).toHaveBeenCalledWith('t-approved', '2026-07-06')
   })
 
-  it('hides the Kirim button without the transfer.manage permission', async () => {
+  it('hides the Kirim kebab on every row without the transfer.manage permission', async () => {
     grantSession('o-mine', ['transfer.view'])
     const w = await mountAndWait()
     await clickTab(w, 'history')
-    expect(w.findAll('[data-testid="transfer-ship"]')).toHaveLength(0)
+    const rows = w.findAll('[data-testid="transfer-history-row"]')
+    expect(rows.length).toBeGreaterThan(0)
+    for (const r of rows) {
+      expect(r.find('button[aria-haspopup="menu"]').exists()).toBe(false)
+    }
+  })
+
+  it('right-clicking the approved row surfaces Kirim in the context menu and fires the same ship() flow', async () => {
+    const w = await mountAndWait()
+    await clickTab(w, 'history')
+    const rows = w.findAll('[data-testid="transfer-history-row"]')
+    const approvedRow = rows.find(r => r.text().includes('Laptop Dell Latitude'))!
+
+    approvedRow.element.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(menuItemByText('Kirim')).toBeTruthy()
+
+    menuItemByText('Kirim')!.click()
+    await w.vm.$nextTick()
+    await setVmRef(w, 'shipDate', '2026-07-06')
+    bodyButton('transfer-ship-confirm').click()
+    await flushPromises()
+
+    expect(transfersShipMock).toHaveBeenCalledWith('t-approved', '2026-07-06')
+  })
+
+  it('right-clicking a non-row area after right-clicking the approved row shows no stale context menu', async () => {
+    const w = await mountAndWait()
+    await clickTab(w, 'history')
+    const rows = w.findAll('[data-testid="transfer-history-row"]')
+    const approvedRow = rows.find(r => r.text().includes('Laptop Dell Latitude'))!
+
+    approvedRow.element.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(menuItemByText('Kirim')).toBeTruthy()
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    const thead = w.find('thead tr').element
+    thead.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(document.querySelectorAll('[role="menuitem"]').length).toBe(0)
   })
 
   it('shows the empty state when there is no history', async () => {

@@ -43,8 +43,10 @@ func periodInfoToMap(p PeriodInfo) gin.H {
 	}
 }
 
-// scheduleToMap serializes a ScheduleResult.
-func scheduleToMap(r ScheduleResult) gin.H {
+// scheduleToMap serializes a ScheduleResult. limit/offset are the pagination
+// params the handler resolved for this request (echoed back alongside
+// r.Total so the frontend can render pagination without recomputing them).
+func scheduleToMap(r ScheduleResult, limit, offset int32) gin.H {
 	rows := make([]gin.H, 0, len(r.Rows))
 	for _, row := range r.Rows {
 		rows = append(rows, gin.H{
@@ -65,6 +67,7 @@ func scheduleToMap(r ScheduleResult) gin.H {
 	}
 	return gin.H{
 		"kpi": gin.H{
+			"asset_count":       r.KPI.AssetCount,
 			"total_cost":        r.KPI.TotalCost,
 			"total_accumulated": r.KPI.TotalAccumulated,
 			"total_book_value":  r.KPI.TotalBookValue,
@@ -77,6 +80,9 @@ func scheduleToMap(r ScheduleResult) gin.H {
 			"accumulated": r.Totals.Accumulated,
 			"closing":     r.Totals.Closing,
 		},
+		"total":  r.Total,
+		"limit":  limit,
+		"offset": offset,
 	}
 }
 

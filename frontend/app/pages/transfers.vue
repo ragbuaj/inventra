@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { Asset, AssetStatus, BadgeColor, Floor, Office, ReferenceRow, Room } from '~/types'
+import type { ContextMenuItem } from '@nuxt/ui'
+import type { Asset, AssetStatus, BadgeColor, Floor, Office, ReferenceRow, RowAction, Room } from '~/types'
 import type { Transfer, TransferSubmitInput } from '~/composables/api/useTransfers'
 import type { ApprovalRequestRow } from '~/composables/api/useApproval'
 import type { OfficeNode } from '~/utils/officeRegion'
@@ -439,6 +440,30 @@ async function confirmShip() {
   } finally {
     shipSubmitting.value = false
   }
+}
+
+// Per-row actions (kebab dropdown via RowActionsMenu, and the table's
+// right-click context menu below) — both built from this same list via
+// buildActionGroups so their grouping/dividers stay in sync (see Task 8,
+// mirrors assets/index.vue's Task 7 pattern). "Kirim" only applies once a
+// row is approved and hasn't shipped yet (row.canShip).
+function rowActions(row: TransferHistoryRow): RowAction[] {
+  return row.canShip
+    ? [{ label: t('transfer.ship.action'), icon: 'i-lucide-send', onSelect: () => openShip(row) }]
+    : []
+}
+
+const contextItems = ref<ContextMenuItem[][]>([])
+function onRowContextMenu(row: TransferHistoryRow) {
+  contextItems.value = buildActionGroups(rowActions(row)) as ContextMenuItem[][]
+}
+// Safety net mirroring ResourceTable/assets-index: a right-click that bubbles
+// up from outside a `tbody tr` (header row, empty table area) must clear any
+// stale items left over from a previous row's right-click — otherwise the
+// menu would surface the previous row's actions.
+function onTableContextMenu(e: MouseEvent) {
+  const tr = (e.target as HTMLElement | null)?.closest('tbody tr')
+  if (!tr) contextItems.value = []
 }
 
 // ---------------------------------------------------------------------------
@@ -944,106 +969,110 @@ onBeforeUnmount(() => {
         v-else
         class="bg-default border border-default rounded-[13px] shadow-sm overflow-hidden"
       >
-        <div class="overflow-x-auto">
-          <table class="w-full border-collapse text-[13.5px] whitespace-nowrap">
-            <thead>
-              <tr class="bg-muted text-muted">
-                <th class="text-left px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('transfer.history.column.asset') }}
-                </th>
-                <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('transfer.history.column.route') }}
-                </th>
-                <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('transfer.history.column.date') }}
-                </th>
-                <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('transfer.history.column.actor') }}
-                </th>
-                <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('transfer.history.column.status') }}
-                </th>
-                <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('transfer.history.column.bast') }}
-                </th>
-                <th class="px-4 py-[11px]" />
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="row in filteredHistory"
-                :key="row.key"
-                data-testid="transfer-history-row"
-                class="border-t border-default hover:bg-muted/60 transition-colors"
-                :class="row.status === 'in_transit' ? 'bg-info/5' : ''"
-              >
-                <td class="px-4 py-3">
-                  <div class="flex items-center gap-1.5">
-                    <span class="font-medium">{{ row.assetLabel }}</span>
-                    <UIcon
-                      v-if="row.interRegion"
-                      name="i-lucide-globe"
-                      :title="t('transfer.interRegion.badge')"
-                      class="size-3.5 text-violet-600 dark:text-violet-400"
-                    />
-                  </div>
-                  <div
-                    v-if="row.assetTag"
-                    class="font-mono text-[11.5px] text-dimmed"
-                  >
-                    {{ row.assetTag }}
-                  </div>
-                </td>
-                <td class="px-3.5 py-3">
-                  <div class="flex items-center gap-1.5">
-                    <span class="text-muted">{{ row.fromLabel }}</span>
-                    <UIcon
-                      name="i-lucide-arrow-right"
-                      class="size-3.5 text-dimmed"
-                    />
-                    <span class="font-medium">{{ row.toLabel }}</span>
-                  </div>
-                </td>
-                <td class="px-3.5 py-3 text-muted">
-                  {{ row.dateLabel }}
-                </td>
-                <td class="px-3.5 py-3">
-                  <div class="flex items-center gap-2">
-                    <span class="size-[26px] rounded-full bg-muted text-muted flex items-center justify-center text-[10px] font-semibold flex-none">{{ initials(row.actorName) }}</span>
-                    <span>{{ row.actorName ?? '—' }}</span>
-                  </div>
-                </td>
-                <td class="px-3.5 py-3">
-                  <UBadge
-                    data-testid="transfer-history-status"
-                    :color="HISTORY_STATUS_TONE[row.status]"
-                    variant="subtle"
-                    class="rounded-full gap-1.5"
-                  >
-                    <span
-                      class="size-1.5 rounded-full"
-                      :class="DOT_CLASS[HISTORY_STATUS_TONE[row.status]]"
-                    />
-                    {{ t(`transfer.status.${STATUS_I18N_KEY[row.status]}`) }}
-                  </UBadge>
-                </td>
-                <td class="px-3.5 py-3 font-mono text-[12.5px]">
-                  {{ row.bastNo ?? '—' }}
-                </td>
-                <td class="px-4 py-3 text-right">
-                  <UButton
-                    v-if="row.canShip"
-                    size="xs"
-                    icon="i-lucide-send"
-                    :label="t('transfer.ship.action')"
-                    data-testid="transfer-ship"
-                    @click="openShip(row)"
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <UContextMenu
+          :items="contextItems"
+          :disabled="filteredHistory.length === 0"
+        >
+          <div
+            class="overflow-x-auto"
+            @contextmenu="onTableContextMenu"
+          >
+            <table class="w-full border-collapse text-[13.5px] whitespace-nowrap">
+              <thead>
+                <tr class="bg-muted text-muted">
+                  <th class="text-left px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('transfer.history.column.asset') }}
+                  </th>
+                  <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('transfer.history.column.route') }}
+                  </th>
+                  <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('transfer.history.column.date') }}
+                  </th>
+                  <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('transfer.history.column.actor') }}
+                  </th>
+                  <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('transfer.history.column.status') }}
+                  </th>
+                  <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('transfer.history.column.bast') }}
+                  </th>
+                  <th class="px-4 py-[11px]" />
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="row in filteredHistory"
+                  :key="row.key"
+                  data-testid="transfer-history-row"
+                  class="border-t border-default hover:bg-muted/60 transition-colors"
+                  :class="row.status === 'in_transit' ? 'bg-info/5' : ''"
+                  @contextmenu="onRowContextMenu(row)"
+                >
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-1.5">
+                      <span class="font-medium">{{ row.assetLabel }}</span>
+                      <UIcon
+                        v-if="row.interRegion"
+                        name="i-lucide-globe"
+                        :title="t('transfer.interRegion.badge')"
+                        class="size-3.5 text-violet-600 dark:text-violet-400"
+                      />
+                    </div>
+                    <div
+                      v-if="row.assetTag"
+                      class="font-mono text-[11.5px] text-dimmed"
+                    >
+                      {{ row.assetTag }}
+                    </div>
+                  </td>
+                  <td class="px-3.5 py-3">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-muted">{{ row.fromLabel }}</span>
+                      <UIcon
+                        name="i-lucide-arrow-right"
+                        class="size-3.5 text-dimmed"
+                      />
+                      <span class="font-medium">{{ row.toLabel }}</span>
+                    </div>
+                  </td>
+                  <td class="px-3.5 py-3 text-muted">
+                    {{ row.dateLabel }}
+                  </td>
+                  <td class="px-3.5 py-3">
+                    <div class="flex items-center gap-2">
+                      <span class="size-[26px] rounded-full bg-muted text-muted flex items-center justify-center text-[10px] font-semibold flex-none">{{ initials(row.actorName) }}</span>
+                      <span>{{ row.actorName ?? '—' }}</span>
+                    </div>
+                  </td>
+                  <td class="px-3.5 py-3">
+                    <UBadge
+                      data-testid="transfer-history-status"
+                      :color="HISTORY_STATUS_TONE[row.status]"
+                      variant="subtle"
+                      class="rounded-full gap-1.5"
+                    >
+                      <span
+                        class="size-1.5 rounded-full"
+                        :class="DOT_CLASS[HISTORY_STATUS_TONE[row.status]]"
+                      />
+                      {{ t(`transfer.status.${STATUS_I18N_KEY[row.status]}`) }}
+                    </UBadge>
+                  </td>
+                  <td class="px-3.5 py-3 font-mono text-[12.5px]">
+                    {{ row.bastNo ?? '—' }}
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    <div class="flex justify-end">
+                      <RowActionsMenu :items="rowActions(row)" />
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </UContextMenu>
         <div class="px-4 py-3 border-t border-default text-[13px] text-muted">
           {{ t('transfer.history.info', { n: filteredHistory.length }) }}
         </div>

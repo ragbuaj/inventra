@@ -163,6 +163,14 @@ function bodyButton(testid: string): HTMLButtonElement {
   return el as HTMLButtonElement
 }
 
+// Row-actions kebab/context-menu items are portaled to document.body; locale
+// is 'id' here (navigateTo isn't mocked in this file), so matching on the
+// resolved Indonesian label text is reliable.
+function menuItemByText(text: string): HTMLElement | undefined {
+  return Array.from(document.querySelectorAll('[role="menuitem"]'))
+    .find(el => el.textContent?.trim() === text) as HTMLElement | undefined
+}
+
 function previewStep(over: Partial<PreviewStep> = {}): PreviewStep {
   return { step_order: 2, required_level: 'wilayah', ...over }
 }
@@ -617,13 +625,21 @@ describe('pages/disposals — Riwayat', () => {
     expect(w.text()).toContain('Total 2 pengajuan')
   })
 
-  it('shows the "Lampirkan BAST" action only on Selesai rows and sends multipart via attachDocument', async () => {
+  it('shows a "Lampirkan BAST" kebab action only on the Selesai row and sends multipart via attachDocument', async () => {
     const w = await mountAndWait()
     await clickTab(w, 'history')
-    const attachButtons = w.findAll('[data-testid="disposal-attach-bast"]')
-    expect(attachButtons).toHaveLength(1)
+    const rows = w.findAll('[data-testid="disposal-history-row"]')
+    const selesaiRow = rows.find(r => r.text().includes('Laptop Asus X441 (Lama)'))!
+    const otherRows = rows.filter(r => r !== selesaiRow)
 
-    await attachButtons[0]!.trigger('click')
+    expect(selesaiRow.find('button[aria-haspopup="menu"]').exists()).toBe(true)
+    for (const r of otherRows) {
+      expect(r.find('button[aria-haspopup="menu"]').exists()).toBe(false)
+    }
+
+    await selesaiRow.find('button[aria-haspopup="menu"]').trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    menuItemByText('Lampirkan BAST Penghapusan')!.click()
     await w.vm.$nextTick()
     expect(document.body.textContent).toContain('Lampirkan BAST Penghapusan')
 
@@ -640,10 +656,49 @@ describe('pages/disposals — Riwayat', () => {
     }))
   })
 
-  it('hides the "Lampirkan BAST" action without disposal.manage', async () => {
+  it('hides the "Lampirkan BAST" kebab on every row without disposal.manage', async () => {
     grantSession(['disposal.view'])
     const w = await mountAndWait()
     await clickTab(w, 'history')
-    expect(w.findAll('[data-testid="disposal-attach-bast"]')).toHaveLength(0)
+    const rows = w.findAll('[data-testid="disposal-history-row"]')
+    expect(rows.length).toBeGreaterThan(0)
+    for (const r of rows) {
+      expect(r.find('button[aria-haspopup="menu"]').exists()).toBe(false)
+    }
+  })
+
+  it('right-clicking the Selesai row surfaces "Lampirkan BAST" in the context menu', async () => {
+    const w = await mountAndWait()
+    await clickTab(w, 'history')
+    const rows = w.findAll('[data-testid="disposal-history-row"]')
+    const selesaiRow = rows.find(r => r.text().includes('Laptop Asus X441 (Lama)'))!
+
+    selesaiRow.element.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(menuItemByText('Lampirkan BAST Penghapusan')).toBeTruthy()
+
+    menuItemByText('Lampirkan BAST Penghapusan')!.click()
+    await w.vm.$nextTick()
+    expect(document.body.textContent).toContain('Lampirkan BAST Penghapusan')
+  })
+
+  it('right-clicking a non-row area after right-clicking the Selesai row shows no stale context menu', async () => {
+    const w = await mountAndWait()
+    await clickTab(w, 'history')
+    const rows = w.findAll('[data-testid="disposal-history-row"]')
+    const selesaiRow = rows.find(r => r.text().includes('Laptop Asus X441 (Lama)'))!
+
+    selesaiRow.element.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(menuItemByText('Lampirkan BAST Penghapusan')).toBeTruthy()
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    const thead = w.find('thead tr').element
+    thead.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(document.querySelectorAll('[role="menuitem"]').length).toBe(0)
   })
 })

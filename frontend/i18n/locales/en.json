@@ -624,6 +624,9 @@
       "damaged": "Damaged",
       "misplaced": "Misplaced"
     },
+    "action": {
+      "setResult": "Set: {result}"
+    },
     "kpi": {
       "total": "Total Assets",
       "found": "Found",
@@ -842,6 +845,7 @@
       "colStatus": "Status",
       "colCost": "Cost",
       "colVendor": "Vendor / Technician",
+      "editRecord": "Edit Record",
       "emptyTitle": "No notes",
       "emptySub": "No matching maintenance notes yet."
     },
@@ -1053,6 +1057,10 @@
     "pdf": "Export PDF",
     "excel": "Export Excel",
     "exportGl": "GL Journal Recap",
+    "action": {
+      "downloadBaPdf": "Download Berita Acara PDF",
+      "downloadBaExcel": "Download Excel"
+    },
     "reset": "Reset Filters",
     "phTitle": "Choose report criteria",
     "phSub": "Set the report type and filters above, then click \"Apply\" to show the result.",

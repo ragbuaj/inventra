@@ -5,7 +5,7 @@ import { AUDIT_ENTITY_TYPES } from '~/constants/auditCatalog'
 
 definePageMeta({ middleware: 'can', permission: 'audit.view' })
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 10
 const ALL = '__all__'
 
 const { t, te } = useI18n()

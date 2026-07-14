@@ -217,10 +217,10 @@ describe('Audit Trail page — loaded rows', () => {
     expect(text).toContain('192.168.1.5')
   })
 
-  it('initial GET /audit uses offset=0 and limit=20', async () => {
+  it('initial GET /audit uses offset=0 and limit=10', async () => {
     await mountAndWait()
     expect(_lastQuery['offset']).toBe('0')
-    expect(_lastQuery['limit']).toBe('20')
+    expect(_lastQuery['limit']).toBe('10')
   })
 })
 
@@ -341,7 +341,7 @@ describe('Audit Trail page — action filter', () => {
 // ---------------------------------------------------------------------------
 
 describe('Audit Trail page — pagination', () => {
-  it('clicking next page button sends offset=20', async () => {
+  it('clicking next page button sends offset=10', async () => {
     const capturedQueries: Array<Record<string, string>> = []
     setHandler((path) => {
       if (path.startsWith('/audit')) {
@@ -355,16 +355,16 @@ describe('Audit Trail page — pagination', () => {
     const wrapper = await mountAndWait()
     capturedQueries.length = 0
 
-    // With total=25 and PAGE_SIZE=20, there are 2 pages. Click the "2" button.
+    // With total=25 and PAGE_SIZE=10, there are 3 pages. Click the "2" button.
     const page2Btn = wrapper.findAll('button').find(b => b.text().trim() === '2')
     expect(page2Btn).toBeDefined()
     await page2Btn!.trigger('click')
     await new Promise(r => setTimeout(r, 400))
     await wrapper.vm.$nextTick()
 
-    const page2Query = capturedQueries.find(q => q['offset'] === '20')
+    const page2Query = capturedQueries.find(q => q['offset'] === '10')
     expect(page2Query).toBeDefined()
-    expect(page2Query!['limit']).toBe('20')
+    expect(page2Query!['limit']).toBe('10')
   })
 
   it('filter change resets page to 1 (offset=0) even when on page 2', async () => {
@@ -388,8 +388,8 @@ describe('Audit Trail page — pagination', () => {
     await new Promise(r => setTimeout(r, 400))
     await wrapper.vm.$nextTick()
 
-    // Confirm we are on page 2 (offset=20 was sent)
-    expect(capturedQueries.some(q => q['offset'] === '20')).toBe(true)
+    // Confirm we are on page 2 (offset=10 was sent)
+    expect(capturedQueries.some(q => q['offset'] === '10')).toBe(true)
     capturedQueries.length = 0
 
     // Now change the entity filter — page must reset to 1
@@ -401,7 +401,7 @@ describe('Audit Trail page — pagination', () => {
   })
 
   it('next-page button is disabled when on last page', async () => {
-    // total=25, PAGE_SIZE=20 → 2 pages; on page 2 the next button is disabled
+    // total=25, PAGE_SIZE=10 → 3 pages; on page 3 the next button is disabled
     const wrapper = await mountAndWait()
 
     // On page 1 (not the last page) the next button must be ENABLED
@@ -409,17 +409,17 @@ describe('Audit Trail page — pagination', () => {
     expect(nextBtnPage1.exists()).toBe(true)
     expect(nextBtnPage1.attributes('disabled')).toBeUndefined()
 
-    // Go to page 2 (the last page)
-    const page2Btn = wrapper.findAll('button').find(b => b.text().trim() === '2')
-    expect(page2Btn).toBeDefined()
-    await page2Btn!.trigger('click')
+    // Go to page 3 (the last page)
+    const page3Btn = wrapper.findAll('button').find(b => b.text().trim() === '3')
+    expect(page3Btn).toBeDefined()
+    await page3Btn!.trigger('click')
     await new Promise(r => setTimeout(r, 400))
     await wrapper.vm.$nextTick()
 
     // On the last page the next (chevron-right) button must be disabled
-    const nextBtnPage2 = wrapper.find('[data-testid="pagination-next"]')
-    expect(nextBtnPage2.exists()).toBe(true)
-    expect(nextBtnPage2.attributes('disabled')).toBeDefined()
+    const nextBtnPage3 = wrapper.find('[data-testid="pagination-next"]')
+    expect(nextBtnPage3.exists()).toBe(true)
+    expect(nextBtnPage3.attributes('disabled')).toBeDefined()
   })
 })
 

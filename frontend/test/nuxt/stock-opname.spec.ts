@@ -177,6 +177,14 @@ async function openDetail(w: Wrapper, id = 's1') {
   await w.vm.$nextTick()
 }
 
+// Row-actions kebab/context-menu items are portaled to document.body; locale
+// is 'id' here, so matching on the resolved Indonesian label text is
+// reliable (mirrors peminjaman.spec.ts / disposals.spec.ts).
+function menuItemByText(text: string): HTMLElement | undefined {
+  return Array.from(document.querySelectorAll('[role="menuitem"]'))
+    .find(el => el.textContent?.trim() === text) as HTMLElement | undefined
+}
+
 const FLOORS: Floor[] = [{ id: 'f1', office_id: 'o-other', name: 'Lantai 1', level: 1, created_at: null, updated_at: null }]
 const ROOMS: Room[] = [{ id: 'room1', floor_id: 'f1', name: 'Ruang Server', code: null, created_at: null, updated_at: null }]
 
@@ -370,6 +378,79 @@ describe('pages/stock-opname — detail (counting)', () => {
     await w.find('[data-testid="opname-reconcile"]').trigger('click')
     await flushPromises()
     expect(reconcileMock).toHaveBeenCalledWith('s1')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Row-actions menu (Task 9): kebab + right-click on an editable item row
+// ---------------------------------------------------------------------------
+
+describe('pages/stock-opname — item row actions menu (editable session)', () => {
+  it('shows a kebab exposing Set: Found/Rusak/Salah Lokasi/Tidak Ditemukan; each calls setResult()', async () => {
+    const w = await mountAndWait()
+    await openDetail(w)
+    const row = w.findAll('[data-testid="opname-item-row"]').find(r => r.text().includes('Switch Cisco Catalyst 1000'))!
+    await row.find('button[aria-haspopup="menu"]').trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(menuItemByText('Tandai: Ditemukan')).toBeTruthy()
+    expect(menuItemByText('Tandai: Rusak')).toBeTruthy()
+    expect(menuItemByText('Tandai: Salah Lokasi')).toBeTruthy()
+    expect(menuItemByText('Tandai: Tidak Ditemukan')).toBeTruthy()
+
+    menuItemByText('Tandai: Rusak')!.click()
+    await flushPromises()
+    expect(setResultMock).toHaveBeenCalledWith('s1', 'i6', { result: 'damaged' })
+  })
+
+  it('right-clicking an editable row surfaces the same result actions in the context menu', async () => {
+    const w = await mountAndWait()
+    await openDetail(w)
+    const row = w.findAll('[data-testid="opname-item-row"]').find(r => r.text().includes('Switch Cisco Catalyst 1000'))!
+    row.element.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(menuItemByText('Tandai: Ditemukan')).toBeTruthy()
+
+    menuItemByText('Tandai: Ditemukan')!.click()
+    await flushPromises()
+    expect(setResultMock).toHaveBeenCalledWith('s1', 'i6', { result: 'found' })
+  })
+
+  it('right-clicking a non-row area after right-clicking an item row shows no stale context menu', async () => {
+    const w = await mountAndWait()
+    await openDetail(w)
+    const row = w.findAll('[data-testid="opname-item-row"]').find(r => r.text().includes('Switch Cisco Catalyst 1000'))!
+    row.element.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(menuItemByText('Tandai: Ditemukan')).toBeTruthy()
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    const thead = w.find('thead tr').element
+    thead.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(document.querySelectorAll('[role="menuitem"]').length).toBe(0)
+  })
+})
+
+describe('pages/stock-opname — item row actions menu (locked session)', () => {
+  it('shows no kebab on a reconciling (locked) session — only the read-only status badge', async () => {
+    getMock.mockResolvedValue(detail({ status: 'reconciling', total: 6, found: 2, pending: 0, variance: 3 }))
+    const w = await mountAndWait()
+    await openDetail(w)
+    const row = w.findAll('[data-testid="opname-item-row"]').find(r => r.text().includes('Laptop Dell Latitude 5440'))!
+    expect(row.find('button[aria-haspopup="menu"]').exists()).toBe(false)
+    expect(row.text()).toContain('Ditemukan')
+  })
+
+  it('shows no kebab on a closed session either', async () => {
+    getMock.mockResolvedValue(detail({ status: 'closed' }))
+    const w = await mountAndWait()
+    await openDetail(w)
+    const row = w.find('[data-testid="opname-item-row"]')
+    expect(row.find('button[aria-haspopup="menu"]').exists()).toBe(false)
   })
 })
 

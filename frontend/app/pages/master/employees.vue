@@ -17,7 +17,7 @@ const ALL = '__all__'
 // `allRows` holds one of two shapes depending on whether an "extra" filter
 // (office/dept/position/jabatan/status — none of which the backend list
 // endpoint accepts as query params, unlike `search`) is active:
-//  - no extra filter: the current *server* page (real pagination — limit 20 +
+//  - no extra filter: the current *server* page (real pagination — limit 10 +
 //    offset, `serverTotal` from the response). No more eager `{ limit: 100 }`
 //    load, so browsing beyond 100 employees works.
 //  - an extra filter active: an up-to-100-row search-scoped batch, filtered
@@ -26,7 +26,7 @@ const ALL = '__all__'
 //    status query params).
 const allRows = ref<Employee[]>([])
 const serverTotal = ref(0)
-const limit = ref(20)
+const limit = ref(10)
 const offset = ref(0)
 const search = ref('')
 const debouncedSearch = ref('')

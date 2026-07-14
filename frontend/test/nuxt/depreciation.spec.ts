@@ -58,23 +58,32 @@ const SCHEDULE_ROWS: ScheduleRow[] = [
   })
 ]
 
-function scheduleResponse(rows: ScheduleRow[] = SCHEDULE_ROWS): ScheduleResponse {
+// The unfiltered kpi block: period+basis+scope only. The real backend never
+// varies this across search/category/office filters (ScheduleKpi has no
+// filter params) — filteredScheduleResponse() below reuses this SAME object
+// so the fixtures mirror that invariant.
+const UNFILTERED_KPI = { asset_count: 3, total_cost: '120500000', total_accumulated: '37260417', total_book_value: '83239583', period_expense: '1198917' }
+
+function scheduleResponse(rows: ScheduleRow[] = SCHEDULE_ROWS, total = rows.length): ScheduleResponse {
   return {
-    kpi: { total_cost: '120500000', total_accumulated: '37260417', total_book_value: '83239583', period_expense: '1198917' },
+    kpi: UNFILTERED_KPI,
     rows,
-    totals: { opening: '85937500', amount: '1198917', accumulated: '37260417', closing: '83239583' }
+    totals: { opening: '85937500', amount: '1198917', accumulated: '37260417', closing: '83239583' },
+    total
   }
 }
 
-// A *filtered* schedule response: fewer rows AND a smaller KPI block. The page
-// must never surface this KPI block on the tiles (those come from the unfiltered
-// call) — so if the tiles ever read from a filtered call, this distinct value
-// would leak and the KPI-invariance test would fail.
+// A *filtered* schedule response: fewer rows/totals, but the SAME kpi block
+// as the unfiltered response — this is what the real backend does (ScheduleKpi
+// ignores search/category_id/office_id entirely), so the KPI tiles (including
+// the "{n} aset" sub-label, sourced from kpi.asset_count) must stay invariant
+// under table filters.
 function filteredScheduleResponse(): ScheduleResponse {
   return {
-    kpi: { total_cost: '67437500', total_accumulated: '10562500', total_book_value: '67437500', period_expense: '1687000' },
+    kpi: UNFILTERED_KPI,
     rows: [SCHEDULE_ROWS[1]!],
-    totals: { opening: '67437500', amount: '1687000', accumulated: '10562500', closing: '67437500' }
+    totals: { opening: '67437500', amount: '1687000', accumulated: '10562500', closing: '67437500' },
+    total: 1
   }
 }
 
@@ -167,6 +176,14 @@ function bodyEl(testid: string): HTMLElement {
   return el as HTMLElement
 }
 
+// Row-actions kebab/context-menu items are portaled to document.body; locale
+// is 'id' here (navigateTo isn't mocked in this file), so matching on the
+// resolved Indonesian label text is reliable (mirrors disposals.spec.ts).
+function menuItemByText(text: string): HTMLElement | undefined {
+  return Array.from(document.querySelectorAll('[role="menuitem"]'))
+    .find(el => el.textContent?.trim() === text) as HTMLElement | undefined
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   periodsMock.mockResolvedValue([...PERIODS])
@@ -195,34 +212,54 @@ describe('pages/depreciation — mount + KPI', () => {
     expect(scheduleMock).toHaveBeenCalledWith(expect.objectContaining({ period: '2026-07', basis: 'commercial' }))
   })
 
-  it('renders the four KPI tiles with values from the schedule response', async () => {
-    const w = await mountAndWait()
-    expect(w.find('[data-testid="depr-kpi-acquisition"]').text()).toContain('120.500.000')
-    expect(w.find('[data-testid="depr-kpi-accumulated"]').text()).toContain('37.260.417')
-    expect(w.find('[data-testid="depr-kpi-book-value"]').text()).toContain('83.239.583')
-    expect(w.find('[data-testid="depr-kpi-period-expense"]').text()).toContain('1.198.917')
-  })
-
-  it('fetches KPIs from an UNFILTERED schedule() call (period + basis only)', async () => {
+  // Regression guard for bug #2: the page used to call schedule() TWICE on
+  // mount (once for the table, once more for an "unfiltered" KPI fetch).
+  it('calls schedule() exactly ONCE on mount (regression: no separate KPI call)', async () => {
     await mountAndWait()
-    // The KPI fetch carries no search/category/office keys.
-    expect(scheduleMock).toHaveBeenCalledWith({ period: '2026-07', basis: 'commercial' })
+    expect(scheduleMock).toHaveBeenCalledTimes(1)
   })
 
-  it('keeps the KPI tiles unchanged when a table filter is applied (only the rows shrink)', async () => {
+  it('renders the four KPI tiles compactly, with the exact value in the title tooltip (bug #3)', async () => {
+    const w = await mountAndWait()
+    const acquisition = w.find('[data-testid="depr-kpi-acquisition"]').find('[title]')
+    // Compact form must not be the raw full-precision digit string (that's
+    // what overflowed the tile) — the exact value only lives in the tooltip.
+    expect(acquisition.text()).not.toContain('120.500.000')
+    expect(acquisition.attributes('title')).toContain('120.500.000')
+
+    const accumulated = w.find('[data-testid="depr-kpi-accumulated"]').find('[title]')
+    expect(accumulated.attributes('title')).toContain('37.260.417')
+
+    const bookValue = w.find('[data-testid="depr-kpi-book-value"]').find('[title]')
+    expect(bookValue.attributes('title')).toContain('83.239.583')
+
+    const periodExpense = w.find('[data-testid="depr-kpi-period-expense"]').find('[title]')
+    expect(periodExpense.attributes('title')).toContain('1.198.917')
+  })
+
+  it('derives KPI tiles from the SAME schedule() response as the table, but they stay invariant under table filters (kpi block is unfiltered)', async () => {
+    // beforeEach already wires scheduleMock to filteredScheduleResponse() for
+    // filtered calls and scheduleResponse() otherwise.
     const w = await mountAndWait()
     expect(w.findAll('[data-testid="depr-schedule-row"]').length).toBe(3)
-    const kpiBefore = w.find('[data-testid="depr-kpi-acquisition"]').text()
-    expect(kpiBefore).toContain('120.500.000')
+    const acquisitionBefore = w.find('[data-testid="depr-kpi-acquisition"]').find('[title]')
+    expect(acquisitionBefore.attributes('title')).toContain('120.500.000')
+    // "{n} aset" sub-label reflects the unfiltered kpi.asset_count (3), not
+    // the filtered row/total count.
+    expect(w.find('[data-testid="depr-kpi-acquisition"]').text()).toContain('3 aset')
 
-    // Apply a category filter — the table now uses the filtered call (1 row,
-    // a different KPI block), but the tiles must stay on the unfiltered totals.
+    scheduleMock.mockClear()
     await setVmRef(w, 'categoryId', 'c1')
+    // Exactly one refetch for the filter change — still no parallel KPI call.
+    expect(scheduleMock).toHaveBeenCalledTimes(1)
+    // The table narrows to the filtered rows...
     expect(w.findAll('[data-testid="depr-schedule-row"]').length).toBe(1)
-    const kpiAfter = w.find('[data-testid="depr-kpi-acquisition"]').text()
-    expect(kpiAfter).toContain('120.500.000')
-    expect(kpiAfter).not.toContain('67.437.500') // the filtered call's total_cost
-    expect(kpiAfter).toBe(kpiBefore)
+    // ...but the acquisition tile's money value AND its "{n} aset" sub-label
+    // must NOT shrink — the backend's kpi block (incl. asset_count) is
+    // unfiltered, so filtering the table must never shrink the KPI tiles.
+    const acquisitionAfter = w.find('[data-testid="depr-kpi-acquisition"]').find('[title]')
+    expect(acquisitionAfter.attributes('title')).toContain('120.500.000')
+    expect(w.find('[data-testid="depr-kpi-acquisition"]').text()).toContain('3 aset')
   })
 })
 
@@ -330,12 +367,15 @@ describe('pages/depreciation — manage gate', () => {
     expect(w.find('[data-testid="depr-close"]').attributes('disabled')).toBeDefined()
   })
 
-  it('disables the impairment row action without depreciation.manage (commercial basis)', async () => {
+  it('keeps the Impair kebab action present but disabled without depreciation.manage (commercial basis)', async () => {
     grantSession(['depreciation.view'])
     const w = await mountAndWait()
-    const btn = w.findAll('[data-testid="depr-impair"]')[0]!
-    expect(btn.attributes('disabled')).toBeDefined()
-    expect(btn.attributes('title')).toBe('Anda tidak punya izin untuk mengelola depresiasi.')
+    const row = w.findAll('[data-testid="depr-schedule-row"]')[0]!
+    await row.find('button[aria-haspopup="menu"]').trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    const item = menuItemByText('Catat Penurunan Nilai')
+    expect(item).toBeTruthy()
+    expect(item!.getAttribute('aria-disabled')).toBe('true')
   })
 })
 
@@ -376,6 +416,54 @@ describe('pages/depreciation — Jadwal per Aset', () => {
   })
 })
 
+describe('pages/depreciation — schedule pagination (bug #4)', () => {
+  it('fetches the first page with limit=10, offset=0 on mount', async () => {
+    await mountAndWait()
+    expect(scheduleMock).toHaveBeenCalledWith(expect.objectContaining({ limit: 10, offset: 0 }))
+  })
+
+  it('disables the next-page button when total fits on one page', async () => {
+    const w = await mountAndWait()
+    expect(w.find('[data-testid="pagination-next"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('renders an enabled next-page button and refetches with offset=10 on click when total exceeds PAGE_SIZE', async () => {
+    scheduleMock.mockResolvedValue(scheduleResponse(SCHEDULE_ROWS, 25))
+    const w = await mountAndWait()
+    expect(w.find('[data-testid="pagination-next"]').attributes('disabled')).toBeUndefined()
+    scheduleMock.mockClear()
+    await w.find('[data-testid="pagination-next"]').trigger('click')
+    await flushPromises()
+    expect(scheduleMock).toHaveBeenLastCalledWith(expect.objectContaining({ limit: 10, offset: 10 }))
+  })
+
+  it('resets offset to 0 when a table filter changes after paging forward', async () => {
+    scheduleMock.mockImplementation(async (q: { search?: string, category_id?: string, office_id?: string }) =>
+      isFilteredScheduleCall(q) ? filteredScheduleResponse() : scheduleResponse(SCHEDULE_ROWS, 25))
+    const w = await mountAndWait()
+    await w.find('[data-testid="pagination-next"]').trigger('click')
+    await flushPromises()
+    expect(scheduleMock).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 10 }))
+
+    scheduleMock.mockClear()
+    await setVmRef(w, 'categoryId', 'c1')
+    expect(scheduleMock).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 0, category_id: 'c1' }))
+  })
+
+  it('resets offset to 0 when the period or basis changes after paging forward', async () => {
+    scheduleMock.mockResolvedValue(scheduleResponse(SCHEDULE_ROWS, 25))
+    const w = await mountAndWait()
+    await w.find('[data-testid="pagination-next"]').trigger('click')
+    await flushPromises()
+    expect(scheduleMock).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 10 }))
+
+    scheduleMock.mockClear()
+    await w.find('[data-testid="depr-basis-fiscal"]').trigger('click')
+    await flushPromises()
+    expect(scheduleMock).toHaveBeenCalledWith(expect.objectContaining({ offset: 0, basis: 'fiscal' }))
+  })
+})
+
 describe('pages/depreciation — office filter picker', () => {
   it('renders the office filter as an async search picker, not a USelect', async () => {
     const w = await mountAndWait()
@@ -409,13 +497,66 @@ describe('pages/depreciation — office filter picker', () => {
 })
 
 describe('pages/depreciation — impairment modal', () => {
-  it('is disabled (with a fiscal tooltip) when the basis is fiscal', async () => {
+  it('keeps the Impair kebab action present but disabled when the basis is fiscal', async () => {
     const w = await mountAndWait()
     await w.find('[data-testid="depr-basis-fiscal"]').trigger('click')
     await flushPromises()
-    const btn = w.findAll('[data-testid="depr-impair"]')[0]!
-    expect(btn.attributes('disabled')).toBeDefined()
-    expect(btn.attributes('title')).toBe('Fiskal tidak mengakui impairment — PSAK 48 hanya basis komersial')
+    const row = w.findAll('[data-testid="depr-schedule-row"]')[0]!
+    await row.find('button[aria-haspopup="menu"]').trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    const item = menuItemByText('Catat Penurunan Nilai')
+    expect(item).toBeTruthy()
+    expect(item!.getAttribute('aria-disabled')).toBe('true')
+    // Clicking a disabled menu item must not open the modal (reka-ui no-ops
+    // onSelect internally when disabled — belt-and-suspenders with
+    // openImpair()'s own impairDisabled() guard).
+    item!.click()
+    await w.vm.$nextTick()
+    expect((w.vm as unknown as { impairOpen: boolean }).impairOpen).toBe(false)
+  })
+
+  it('opens the impairment modal via the schedule row kebab menu (commercial basis, manage permission)', async () => {
+    const w = await mountAndWait()
+    const row = w.findAll('[data-testid="depr-schedule-row"]')[0]!
+    await row.find('button[aria-haspopup="menu"]').trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    const item = menuItemByText('Catat Penurunan Nilai')
+    expect(item).toBeTruthy()
+    expect(item!.getAttribute('aria-disabled')).toBeNull()
+    item!.click()
+    await w.vm.$nextTick()
+    expect((w.vm as unknown as { impairOpen: boolean }).impairOpen).toBe(true)
+    expect((w.vm as unknown as { impairTarget: ScheduleRow | null }).impairTarget?.asset_id).toBe('a1')
+  })
+
+  it('right-clicking a schedule row surfaces "Catat Penurunan Nilai" in the context menu', async () => {
+    const w = await mountAndWait()
+    const row = w.findAll('[data-testid="depr-schedule-row"]')[0]!
+    row.element.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    const item = menuItemByText('Catat Penurunan Nilai')
+    expect(item).toBeTruthy()
+
+    item!.click()
+    await w.vm.$nextTick()
+    expect((w.vm as unknown as { impairOpen: boolean }).impairOpen).toBe(true)
+  })
+
+  it('right-clicking a non-row area (thead) after right-clicking a row shows no stale context menu', async () => {
+    const w = await mountAndWait()
+    const row = w.findAll('[data-testid="depr-schedule-row"]')[0]!
+    row.element.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(menuItemByText('Catat Penurunan Nilai')).toBeTruthy()
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    const thead = w.find('thead tr').element
+    thead.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(document.querySelectorAll('[role="menuitem"]').length).toBe(0)
   })
 
   it('computes the loss preview from the row closing value and the recoverable input', async () => {

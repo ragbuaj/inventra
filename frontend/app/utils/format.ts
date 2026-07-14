@@ -38,3 +38,25 @@ export function formatThousands(v: string | number | null | undefined): string {
 export function parseThousands(v: string | null | undefined): string {
   return String(v ?? '').replace(/\D/g, '')
 }
+
+// Compact IDR for tight KPI tiles: 'Rp 1,23 M', 'Rp 3,4 T'. Full precision
+// belongs in tables — pair this with a title tooltip carrying formatRupiah().
+export function formatRupiahCompact(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '—'
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(n)) return '—'
+  const sign = n < 0 ? '-' : ''
+  const abs = Math.abs(n)
+  const scales: Array<{ v: number, s: string }> = [
+    { v: 1e12, s: 'T' }, { v: 1e9, s: 'M' }, { v: 1e6, s: 'jt' }, { v: 1e3, s: 'rb' }
+  ]
+  for (const { v, s } of scales) {
+    if (abs >= v) {
+      const scaled = abs / v
+      const digits = scaled >= 100 ? 0 : scaled >= 10 ? 1 : 2
+      const num = scaled.toLocaleString('id-ID', { maximumFractionDigits: digits })
+      return `${sign}Rp ${num} ${s}`
+    }
+  }
+  return `${sign}Rp ${abs.toLocaleString('id-ID')}`
+}

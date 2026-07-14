@@ -2977,7 +2977,9 @@ paths:
         depreciated earlier (rendered with `fully_depreciated: true`, `amount: "0.00"`).
         Scoped to the caller's offices (data-scope module `depreciation`); `category_id` and
         `office_id` are additional exact-match filters on top of that scope, and `search`
-        matches asset name/tag case-insensitively. Requires the `depreciation.view` permission.
+        matches asset name/tag case-insensitively. `rows` is paginated by `limit`/`offset`;
+        `kpi` and `totals` are aggregated across every in-scope row, not just the current page.
+        Requires the `depreciation.view` permission.
       security:
         - bearerJWT: []
       parameters:
@@ -2986,6 +2988,8 @@ paths:
         - { name: search, in: query, schema: { type: string }, description: Case-insensitive match on asset name/tag. }
         - { name: category_id, in: query, schema: { type: string, format: uuid } }
         - { name: office_id, in: query, schema: { type: string, format: uuid } }
+        - { name: limit, in: query, schema: { type: integer, default: 10, minimum: 1, maximum: 100 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0, minimum: 0 } }
       responses:
         "200":
           description: The schedule for the requested period/basis
@@ -6464,29 +6468,37 @@ components:
 
     DepreciationScheduleResponse:
       type: object
-      required: [kpi, rows, totals]
+      required: [kpi, rows, totals, total, limit, offset]
       properties:
         kpi:
           type: object
-          description: Dashboard KPI tiles, summed across every in-scope row (not just the current page — this endpoint is unpaginated).
-          required: [total_cost, total_accumulated, total_book_value, period_expense]
+          description: |
+            Dashboard KPI tiles, summed across every in-scope row for the period+basis — unaffected by
+            the `search`/`category_id`/`office_id` table filters (unlike `rows`/`total`/`totals`, which
+            shrink under those filters). This includes `asset_count`, the tiles' "{n} aset" sub-label.
+          required: [asset_count, total_cost, total_accumulated, total_book_value, period_expense]
           properties:
+            asset_count: { type: integer, description: Unfiltered count of in-scope rows for the period+basis (not affected by table filters). }
             total_cost: { type: string, description: Decimal string (IDR). }
             total_accumulated: { type: string, description: Decimal string (IDR). }
             total_book_value: { type: string, description: Decimal string (IDR). }
             period_expense: { type: string, description: Decimal string (IDR). Sum of `amount` across rows. }
         rows:
           type: array
+          description: The current page only (see `limit`/`offset`/`total`).
           items: { $ref: "#/components/schemas/DepreciationScheduleRow" }
         totals:
           type: object
-          description: Table footer totals (sum of the `rows` array's own columns).
+          description: Table footer totals, summed across every in-scope row (not just the current page).
           required: [opening, amount, accumulated, closing]
           properties:
             opening: { type: string, description: Decimal string (IDR). }
             amount: { type: string, description: Decimal string (IDR). }
             accumulated: { type: string, description: Decimal string (IDR). }
             closing: { type: string, description: Decimal string (IDR). }
+        total: { type: integer, description: Total matching rows across all pages. }
+        limit: { type: integer }
+        offset: { type: integer }
 
     DepreciationJournalRow:
       type: object

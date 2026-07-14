@@ -16,7 +16,7 @@ export function useAssets() {
 
   async function list(query: AssetListQuery = {}): Promise<Paginated<Asset>> {
     const q = new URLSearchParams()
-    q.set('limit', String(query.limit ?? 20))
+    q.set('limit', String(query.limit ?? 10))
     q.set('offset', String(query.offset ?? 0))
     if (query.search) q.set('search', String(query.search))
     if (query.status) q.set('status', query.status)

@@ -3,6 +3,7 @@ package depreciation
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -186,12 +187,14 @@ func (h *Handler) schedule(c *gin.Context) {
 		common.WriteError(c, err)
 		return
 	}
-	result, err := h.svc.Schedule(c.Request.Context(), period, basis, all, ids, c.Query("search"), categoryID, officeID)
+	limit := clampInt(c.Query("limit"), 10, 1, 100)
+	offset := clampInt(c.Query("offset"), 0, 0, 1<<31-1)
+	result, err := h.svc.Schedule(c.Request.Context(), period, basis, all, ids, c.Query("search"), categoryID, officeID, limit, offset)
 	if err != nil {
 		h.svcError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, scheduleToMap(result))
+	c.JSON(http.StatusOK, scheduleToMap(result, limit, offset))
 }
 
 // journal handles GET /depreciation/journal.
@@ -411,4 +414,24 @@ func (h *Handler) recordImpairment(c *gin.Context) {
 		delete(result, "accumulated_depreciation")
 	}
 	c.JSON(http.StatusOK, result)
+}
+
+// clampInt parses raw as a base-10 integer, falling back to def when raw is
+// empty or unparseable, and clamping the result to [min, max].
+func clampInt(raw string, def, min, max int32) int32 {
+	if raw == "" {
+		return def
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil {
+		return def
+	}
+	v := int32(n)
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
 }

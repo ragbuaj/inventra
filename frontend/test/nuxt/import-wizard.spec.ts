@@ -44,7 +44,7 @@ const job = (over: Partial<ImportJob> = {}): ImportJob => ({
   ...over
 })
 
-const rowsPage = (data: ImportRow[]) => ({ data, total: data.length, limit: 20, offset: 0 })
+const rowsPage = (data: ImportRow[]) => ({ data, total: data.length, limit: 10, offset: 0 })
 
 // Backend/OpenAPI ImportRow shape: target-column values are flat siblings of
 // id/row_no/valid/errors (additionalProperties), NOT nested under a `data`
@@ -157,7 +157,7 @@ describe('ImportWizard — step 2 (validate)', () => {
     const w = await mount()
 
     expect(getJob).toHaveBeenCalledWith('job-1')
-    expect(getRows).toHaveBeenCalledWith('job-1', { onlyErrors: false, limit: 20, offset: 0 })
+    expect(getRows).toHaveBeenCalledWith('job-1', { onlyErrors: false, limit: 10, offset: 0 })
     const text = w.text()
     expect(text).toContain('Total baris')
     expect(text).toContain('2 Valid')
@@ -184,7 +184,7 @@ describe('ImportWizard — step 2 (validate)', () => {
     await checkbox.trigger('click')
     await flushPromises()
 
-    expect(getRows).toHaveBeenCalledWith('job-1', { onlyErrors: true, limit: 20, offset: 0 })
+    expect(getRows).toHaveBeenCalledWith('job-1', { onlyErrors: true, limit: 10, offset: 0 })
     w.unmount()
   })
 

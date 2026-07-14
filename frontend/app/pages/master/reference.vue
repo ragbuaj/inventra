@@ -27,7 +27,7 @@ const entityCounts = ref<Partial<Record<ReferenceKey, number>>>({})
 
 const rows = ref<ReferenceRow[]>([])
 const total = ref(0)
-const limit = ref(20)
+const limit = ref(10)
 const offset = ref(0)
 const search = ref('')
 const sorting = ref<TableSorting>([])

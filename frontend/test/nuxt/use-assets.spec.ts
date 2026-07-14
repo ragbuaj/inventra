@@ -20,18 +20,18 @@ const sampleAsset = {
 beforeEach(() => request.mockReset())
 
 describe('useAssets.list', () => {
-  it('builds the default query (limit=20, offset=0) with no other params', async () => {
-    request.mockResolvedValueOnce({ data: [sampleAsset], total: 1, limit: 20, offset: 0 })
+  it('builds the default query (limit=10, offset=0) with no other params', async () => {
+    request.mockResolvedValueOnce({ data: [sampleAsset], total: 1, limit: 10, offset: 0 })
     const res = await useAssets().list()
-    expect(request).toHaveBeenCalledWith('/assets?limit=20&offset=0')
+    expect(request).toHaveBeenCalledWith('/assets?limit=10&offset=0')
     expect(res.total).toBe(1)
   })
 
   it('appends only the provided filters, omitting the rest', async () => {
-    request.mockResolvedValueOnce({ data: [], total: 0, limit: 20, offset: 0 })
+    request.mockResolvedValueOnce({ data: [], total: 0, limit: 10, offset: 0 })
     await useAssets().list({ status: 'available', category_id: 'c1' })
     const path = request.mock.calls[0]![0] as string
-    expect(path).toContain('limit=20')
+    expect(path).toContain('limit=10')
     expect(path).toContain('offset=0')
     expect(path).toContain('status=available')
     expect(path).toContain('category_id=c1')

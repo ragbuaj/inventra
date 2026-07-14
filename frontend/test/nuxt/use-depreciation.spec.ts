@@ -72,9 +72,10 @@ describe('useDepreciation — close', () => {
 
 describe('useDepreciation — schedule', () => {
   const RESULT: ScheduleResponse = {
-    kpi: { total_cost: '10', total_accumulated: '2', total_book_value: '8', period_expense: '1' },
+    kpi: { asset_count: 0, total_cost: '10', total_accumulated: '2', total_book_value: '8', period_expense: '1' },
     rows: [],
-    totals: { opening: '0', amount: '0', accumulated: '0', closing: '0' }
+    totals: { opening: '0', amount: '0', accumulated: '0', closing: '0' },
+    total: 0
   }
 
   it('GETs /depreciation/schedule with required period+basis and omits undefined optionals', async () => {
@@ -87,6 +88,8 @@ describe('useDepreciation — schedule', () => {
     expect(query).not.toHaveProperty('search')
     expect(query).not.toHaveProperty('category_id')
     expect(query).not.toHaveProperty('office_id')
+    expect(query).not.toHaveProperty('limit')
+    expect(query).not.toHaveProperty('offset')
     expect(out).toEqual(RESULT)
   })
 
@@ -97,6 +100,16 @@ describe('useDepreciation — schedule', () => {
     })
     expect(requestMock).toHaveBeenCalledWith('/depreciation/schedule', {
       query: { period: '2026-07', basis: 'fiscal', search: 'laptop', category_id: 'cat-1', office_id: 'off-1' }
+    })
+  })
+
+  it('forwards limit/offset as stringified query params for server pagination', async () => {
+    requestMock.mockResolvedValue(RESULT)
+    await useDepreciation().schedule({
+      period: '2026-07', basis: 'commercial', limit: 10, offset: 10
+    })
+    expect(requestMock).toHaveBeenCalledWith('/depreciation/schedule', {
+      query: { period: '2026-07', basis: 'commercial', limit: '10', offset: '10' }
     })
   })
 })
