@@ -115,6 +115,18 @@ RETURNING *;
 -- entry for this period+basis (entry row) OR the asset is a parameterizable
 -- "union" row (fully depreciated, no entry this period). The parameterizable
 -- predicate mirrors ResolveCommercial/ResolveFiscal's Skip checks in SQL.
+--
+-- SYNC WARNING: this WHERE clause is a hand-maintained re-derivation of
+-- internal/depreciation/engine.go's Skip logic — disposed/not_capitalized/
+-- no_cost/no_purchase_date map 1:1 to a.status/a.capitalized/a.purchase_cost/
+-- a.purchase_date above, and missing_params/non_susut map to the
+-- is_commercial branch's method+life / fiscal_group checks. There is no
+-- shared source of truth between Go and SQL, so any new Skip reason added to
+-- ResolveCommercial/ResolveFiscal (or a new shared.fiscal_asset_group enum
+-- value without a FiscalRules entry) must be mirrored here explicitly, or a
+-- disposed/skip asset can silently reappear as a "fully depreciated" row (or
+-- vice versa). The identical predicate is duplicated in ScheduleTotals and
+-- ScheduleKpi below — keep all three in lockstep.
 SELECT sqlc.embed(a), sqlc.embed(c),
        o.name AS office_name,
        (e.id IS NOT NULL)::boolean AS has_entry,

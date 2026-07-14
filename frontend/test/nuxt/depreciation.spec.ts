@@ -176,6 +176,14 @@ function bodyEl(testid: string): HTMLElement {
   return el as HTMLElement
 }
 
+// Row-actions kebab/context-menu items are portaled to document.body; locale
+// is 'id' here (navigateTo isn't mocked in this file), so matching on the
+// resolved Indonesian label text is reliable (mirrors disposals.spec.ts).
+function menuItemByText(text: string): HTMLElement | undefined {
+  return Array.from(document.querySelectorAll('[role="menuitem"]'))
+    .find(el => el.textContent?.trim() === text) as HTMLElement | undefined
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   periodsMock.mockResolvedValue([...PERIODS])
@@ -359,12 +367,15 @@ describe('pages/depreciation — manage gate', () => {
     expect(w.find('[data-testid="depr-close"]').attributes('disabled')).toBeDefined()
   })
 
-  it('disables the impairment row action without depreciation.manage (commercial basis)', async () => {
+  it('keeps the Impair kebab action present but disabled without depreciation.manage (commercial basis)', async () => {
     grantSession(['depreciation.view'])
     const w = await mountAndWait()
-    const btn = w.findAll('[data-testid="depr-impair"]')[0]!
-    expect(btn.attributes('disabled')).toBeDefined()
-    expect(btn.attributes('title')).toBe('Anda tidak punya izin untuk mengelola depresiasi.')
+    const row = w.findAll('[data-testid="depr-schedule-row"]')[0]!
+    await row.find('button[aria-haspopup="menu"]').trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    const item = menuItemByText('Catat Penurunan Nilai')
+    expect(item).toBeTruthy()
+    expect(item!.getAttribute('aria-disabled')).toBe('true')
   })
 })
 
@@ -486,13 +497,66 @@ describe('pages/depreciation — office filter picker', () => {
 })
 
 describe('pages/depreciation — impairment modal', () => {
-  it('is disabled (with a fiscal tooltip) when the basis is fiscal', async () => {
+  it('keeps the Impair kebab action present but disabled when the basis is fiscal', async () => {
     const w = await mountAndWait()
     await w.find('[data-testid="depr-basis-fiscal"]').trigger('click')
     await flushPromises()
-    const btn = w.findAll('[data-testid="depr-impair"]')[0]!
-    expect(btn.attributes('disabled')).toBeDefined()
-    expect(btn.attributes('title')).toBe('Fiskal tidak mengakui impairment — PSAK 48 hanya basis komersial')
+    const row = w.findAll('[data-testid="depr-schedule-row"]')[0]!
+    await row.find('button[aria-haspopup="menu"]').trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    const item = menuItemByText('Catat Penurunan Nilai')
+    expect(item).toBeTruthy()
+    expect(item!.getAttribute('aria-disabled')).toBe('true')
+    // Clicking a disabled menu item must not open the modal (reka-ui no-ops
+    // onSelect internally when disabled — belt-and-suspenders with
+    // openImpair()'s own impairDisabled() guard).
+    item!.click()
+    await w.vm.$nextTick()
+    expect((w.vm as unknown as { impairOpen: boolean }).impairOpen).toBe(false)
+  })
+
+  it('opens the impairment modal via the schedule row kebab menu (commercial basis, manage permission)', async () => {
+    const w = await mountAndWait()
+    const row = w.findAll('[data-testid="depr-schedule-row"]')[0]!
+    await row.find('button[aria-haspopup="menu"]').trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    const item = menuItemByText('Catat Penurunan Nilai')
+    expect(item).toBeTruthy()
+    expect(item!.getAttribute('aria-disabled')).toBeNull()
+    item!.click()
+    await w.vm.$nextTick()
+    expect((w.vm as unknown as { impairOpen: boolean }).impairOpen).toBe(true)
+    expect((w.vm as unknown as { impairTarget: ScheduleRow | null }).impairTarget?.asset_id).toBe('a1')
+  })
+
+  it('right-clicking a schedule row surfaces "Catat Penurunan Nilai" in the context menu', async () => {
+    const w = await mountAndWait()
+    const row = w.findAll('[data-testid="depr-schedule-row"]')[0]!
+    row.element.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    const item = menuItemByText('Catat Penurunan Nilai')
+    expect(item).toBeTruthy()
+
+    item!.click()
+    await w.vm.$nextTick()
+    expect((w.vm as unknown as { impairOpen: boolean }).impairOpen).toBe(true)
+  })
+
+  it('right-clicking a non-row area (thead) after right-clicking a row shows no stale context menu', async () => {
+    const w = await mountAndWait()
+    const row = w.findAll('[data-testid="depr-schedule-row"]')[0]!
+    row.element.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(menuItemByText('Catat Penurunan Nilai')).toBeTruthy()
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    const thead = w.find('thead tr').element
+    thead.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(document.querySelectorAll('[role="menuitem"]').length).toBe(0)
   })
 
   it('computes the loss preview from the row closing value and the recoverable input', async () => {

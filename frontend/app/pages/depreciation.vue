@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { Category } from '~/types'
+import type { ContextMenuItem } from '@nuxt/ui'
+import type { Category, RowAction } from '~/types'
 import type { DepreciationPeriod, JournalResponse, ScheduleResponse, ScheduleRow } from '~/composables/api/useDepreciation'
 import { BASIS_META, PERIOD_STATUS_TONE, type DepreciationBasis, type PeriodStatus } from '~/constants/depreciationMeta'
 import { formatRupiah, formatRupiahCompact } from '~/utils/format'
@@ -242,13 +243,37 @@ function expenseFor(row: ScheduleRow): string {
   // expense, regardless of any residual rounding the backend returns.
   return formatRupiah(row.fully_depreciated ? '0' : row.amount)
 }
-function impairTitleFor(): string {
-  if (basis.value === 'fiscal') return t('depreciation.schedule.impairDisabledFiscalTooltip')
-  if (!canManage.value) return t('depreciation.noManageNote')
-  return t('depreciation.schedule.impairAction')
-}
 function impairDisabled(): boolean {
   return basis.value === 'fiscal' || !canManage.value
+}
+
+// Per-row actions (kebab dropdown via RowActionsMenu, and the table's
+// right-click context menu below) — both built from this same list via
+// buildActionGroups so their grouping/dividers stay in sync (mirrors
+// transfers.vue / disposals.vue). Unlike those tables, Impair is ALWAYS
+// present — it stays discoverable and is merely disabled on fiscal basis or
+// without manage permission (openImpair() already no-ops when disabled).
+function scheduleRowActions(row: ScheduleRow): RowAction[] {
+  return [
+    {
+      label: t('depreciation.schedule.impairAction'),
+      icon: 'i-lucide-trending-down',
+      disabled: impairDisabled(),
+      onSelect: () => openImpair(row)
+    }
+  ]
+}
+
+const scheduleContextItems = ref<ContextMenuItem[][]>([])
+function onScheduleRowContextMenu(row: ScheduleRow) {
+  scheduleContextItems.value = buildActionGroups(scheduleRowActions(row)) as ContextMenuItem[][]
+}
+// Safety net mirroring transfers.vue/disposals.vue: a right-click that
+// bubbles up from outside a `tbody tr` (header row, empty table area) must
+// clear any stale items left over from a previous row's right-click.
+function onScheduleTableContextMenu(e: MouseEvent) {
+  const tr = (e.target as HTMLElement | null)?.closest('tbody tr')
+  if (!tr) scheduleContextItems.value = []
 }
 
 // ---------------------------------------------------------------------------
@@ -687,124 +712,122 @@ onBeforeUnmount(() => {
         v-else
         class="bg-default border border-default rounded-[13px] shadow-sm overflow-hidden"
       >
-        <div class="overflow-x-auto">
-          <table class="w-full border-collapse text-[13px] whitespace-nowrap">
-            <thead>
-              <tr class="bg-muted text-muted">
-                <th class="text-left px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('depreciation.schedule.column.asset') }}
-                </th>
-                <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('depreciation.schedule.column.method') }}
-                </th>
-                <th class="text-right px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('depreciation.schedule.column.life') }}
-                </th>
-                <th class="text-right px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('depreciation.schedule.column.opening') }}
-                </th>
-                <th class="text-right px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('depreciation.schedule.column.expense') }}
-                </th>
-                <th class="text-right px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('depreciation.schedule.column.accumulated') }}
-                </th>
-                <th class="text-right px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('depreciation.schedule.column.closing') }}
-                </th>
-                <th class="text-right px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('depreciation.schedule.column.actions') }}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="row in scheduleRows"
-                :key="row.asset_id"
-                data-testid="depr-schedule-row"
-                class="border-t border-default hover:bg-muted/60 transition-colors"
-              >
-                <td class="px-4 py-3">
-                  <div class="flex items-center gap-1.5">
-                    <span class="font-medium">{{ row.asset_name }}</span>
-                    <UIcon
-                      v-if="row.impaired"
-                      name="i-lucide-trending-down"
-                      :title="t('depreciation.schedule.impairedTooltip')"
-                      class="size-3.5 text-violet-600 dark:text-violet-400"
-                    />
-                  </div>
-                  <div class="font-mono text-[11px] text-dimmed">
-                    {{ row.asset_tag }}
-                  </div>
-                </td>
-                <td class="px-3 py-3">
-                  <UBadge
-                    :color="methodTone(row.method)"
-                    variant="subtle"
-                    class="rounded-full"
-                  >
-                    {{ methodLabel(row.method) }}
-                  </UBadge>
-                </td>
-                <td class="px-3 py-3 text-right text-muted tabular-nums">
-                  {{ row.life_months }}
-                </td>
-                <td class="px-3 py-3 text-right tabular-nums text-muted">
-                  {{ formatRupiah(row.opening) }}
-                </td>
-                <td class="px-3 py-3 text-right tabular-nums text-error font-medium">
-                  {{ expenseFor(row) }}
-                </td>
-                <td class="px-3 py-3 text-right tabular-nums text-muted">
-                  {{ formatRupiah(row.accumulated) }}
-                </td>
-                <td class="px-3 py-3 text-right tabular-nums font-semibold">
-                  {{ formatRupiah(row.closing) }}
-                </td>
-                <td class="px-4 py-3 text-right">
-                  <button
-                    type="button"
-                    data-testid="depr-impair"
-                    :disabled="impairDisabled()"
-                    :title="impairTitleFor()"
-                    class="inline-flex items-center justify-center size-[30px] rounded-lg border border-strong text-muted transition-colors"
-                    :class="impairDisabled() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-violet-500/10 hover:text-violet-600 hover:border-transparent cursor-pointer'"
-                    @click="openImpair(row)"
-                  >
-                    <UIcon
-                      name="i-lucide-trending-down"
-                      class="size-[15px]"
-                    />
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-            <tfoot>
-              <tr class="border-t-2 border-strong bg-muted">
-                <td
-                  class="px-4 py-3 font-bold text-[12.5px]"
-                  colspan="3"
+        <UContextMenu
+          :items="scheduleContextItems"
+          :disabled="scheduleRows.length === 0"
+        >
+          <div
+            class="overflow-x-auto"
+            @contextmenu="onScheduleTableContextMenu"
+          >
+            <table class="w-full border-collapse text-[13px] whitespace-nowrap">
+              <thead>
+                <tr class="bg-muted text-muted">
+                  <th class="text-left px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('depreciation.schedule.column.asset') }}
+                  </th>
+                  <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('depreciation.schedule.column.method') }}
+                  </th>
+                  <th class="text-right px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('depreciation.schedule.column.life') }}
+                  </th>
+                  <th class="text-right px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('depreciation.schedule.column.opening') }}
+                  </th>
+                  <th class="text-right px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('depreciation.schedule.column.expense') }}
+                  </th>
+                  <th class="text-right px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('depreciation.schedule.column.accumulated') }}
+                  </th>
+                  <th class="text-right px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('depreciation.schedule.column.closing') }}
+                  </th>
+                  <th class="text-right px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('depreciation.schedule.column.actions') }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="row in scheduleRows"
+                  :key="row.asset_id"
+                  data-testid="depr-schedule-row"
+                  class="border-t border-default hover:bg-muted/60 transition-colors"
+                  @contextmenu="onScheduleRowContextMenu(row)"
                 >
-                  {{ t('depreciation.total') }}
-                </td>
-                <td class="px-3 py-3 text-right font-bold text-[12.5px] tabular-nums">
-                  {{ formatRupiah(scheduleResp?.totals?.opening) }}
-                </td>
-                <td class="px-3 py-3 text-right font-bold text-[12.5px] tabular-nums text-error">
-                  {{ formatRupiah(scheduleResp?.totals?.amount) }}
-                </td>
-                <td class="px-3 py-3 text-right font-bold text-[12.5px] tabular-nums">
-                  {{ formatRupiah(scheduleResp?.totals?.accumulated) }}
-                </td>
-                <td class="px-3 py-3 text-right font-bold text-[12.5px] tabular-nums">
-                  {{ formatRupiah(scheduleResp?.totals?.closing) }}
-                </td>
-                <td />
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-1.5">
+                      <span class="font-medium">{{ row.asset_name }}</span>
+                      <UIcon
+                        v-if="row.impaired"
+                        name="i-lucide-trending-down"
+                        :title="t('depreciation.schedule.impairedTooltip')"
+                        class="size-3.5 text-violet-600 dark:text-violet-400"
+                      />
+                    </div>
+                    <div class="font-mono text-[11px] text-dimmed">
+                      {{ row.asset_tag }}
+                    </div>
+                  </td>
+                  <td class="px-3 py-3">
+                    <UBadge
+                      :color="methodTone(row.method)"
+                      variant="subtle"
+                      class="rounded-full"
+                    >
+                      {{ methodLabel(row.method) }}
+                    </UBadge>
+                  </td>
+                  <td class="px-3 py-3 text-right text-muted tabular-nums">
+                    {{ row.life_months }}
+                  </td>
+                  <td class="px-3 py-3 text-right tabular-nums text-muted">
+                    {{ formatRupiah(row.opening) }}
+                  </td>
+                  <td class="px-3 py-3 text-right tabular-nums text-error font-medium">
+                    {{ expenseFor(row) }}
+                  </td>
+                  <td class="px-3 py-3 text-right tabular-nums text-muted">
+                    {{ formatRupiah(row.accumulated) }}
+                  </td>
+                  <td class="px-3 py-3 text-right tabular-nums font-semibold">
+                    {{ formatRupiah(row.closing) }}
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    <div class="flex justify-end">
+                      <RowActionsMenu :items="scheduleRowActions(row)" />
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr class="border-t-2 border-strong bg-muted">
+                  <td
+                    class="px-4 py-3 font-bold text-[12.5px]"
+                    colspan="3"
+                  >
+                    {{ t('depreciation.total') }}
+                  </td>
+                  <td class="px-3 py-3 text-right font-bold text-[12.5px] tabular-nums">
+                    {{ formatRupiah(scheduleResp?.totals?.opening) }}
+                  </td>
+                  <td class="px-3 py-3 text-right font-bold text-[12.5px] tabular-nums text-error">
+                    {{ formatRupiah(scheduleResp?.totals?.amount) }}
+                  </td>
+                  <td class="px-3 py-3 text-right font-bold text-[12.5px] tabular-nums">
+                    {{ formatRupiah(scheduleResp?.totals?.accumulated) }}
+                  </td>
+                  <td class="px-3 py-3 text-right font-bold text-[12.5px] tabular-nums">
+                    {{ formatRupiah(scheduleResp?.totals?.closing) }}
+                  </td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </UContextMenu>
         <div
           v-if="scheduleRows.length === 0"
           data-testid="depr-schedule-empty"
