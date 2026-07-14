@@ -897,7 +897,50 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     cooldown; NumberInput's paste-of-`.`-decimal into a grouping+`decimals>0`
 >     field is latent-only (no field combines them); `kantor`/`pegawai` display names show `—` (API returns
 >     only IDs — needs a masterdata join or profile enrichment).
-> 57. **Next session — pick the next real step.** Leading candidate: **Spec B — Device Sessions**
+> 57. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-14): UX fixes batch #2 — see item 58.**
+> 58. ~~**UX Fixes Batch #2 (7 fixes)**~~ ✅ **DONE (2026-07-14, branch `feat/ux-fixes-batch`).** User request:
+>     7 UX/correctness fixes. **(1) Date inputs → Nuxt UI calendar** — new reusable
+>     `frontend/app/components/DateField.vue` (ISO `YYYY-MM-DD` v-model, `UInput` + `UCalendar` popover
+>     picker; typeable ISO **and** calendar-pick) replaces every native `<UInput type="date">` across 9
+>     files (asset form ×2, maintenance record/schedule slideovers, disposals ×2, transfers ×3, assignment
+>     ×2, peminjaman, ajukan-peminjaman modal, audit filters ×2). `assignment.vue` date fields gained
+>     testids; e2e `assignment.spec` switched off the removed `input[type="date"]` selector. **(2) Pagination
+>     — max 3 page buttons** — `TablePagination.vue` rebuilt as a compact sliding window (≤3 numbered
+>     buttons centred on current + prev/next chevrons + range text) replacing `UPagination` (reka-ui always
+>     renders first+last, so it couldn't be capped). **(3) i18n `assets.import`** — the Katalog toolbar
+>     button used `t('assets.import')`, which resolves to the wizard **namespace object** (a JSON duplicate
+>     key: string at top, object at `assets.import.*`) → raw key rendered; renamed the button string to
+>     `assets.importBtn` (id/en). **(4) Dashboard refresh icon** — the `:loading` button swapped the
+>     refresh glyph for a spinner ("ikon muncul tapi tidak sesuai"); now the `i-lucide-refresh-cw` icon
+>     always shows and spins via `animate-spin` while loading. **(5) Collapsed submenu click** — clicking a
+>     parent-with-children while the sidebar is collapsed did nothing (children only render when expanded);
+>     `onParentClick` now opens the rail (`sidebarCollapsed = false`) **and** expands that group. **(6) Labels
+>     under icons when collapsed** — collapsed nav items now stack icon-over-label (`flex-col` + `text-[10px]`
+>     truncated label) for leaf, disabled, and parent items. **(7) Thousand separators in reports** — new
+>     `formatInt()` in `utils/format.ts` (id-ID grouping, sign-preserving, `—` on invalid) applied to the
+>     plain counts in `reports.vue` (KPI default + chart bars + utilization days/loans + maintenance actions
+>     + opname total-items/variance) and the 4 stock-opname detail KPIs (total/found/pending/variance);
+>     money already grouped via `formatRupiah`/`formatMoneyShort`, dashboard already via `formatCount`.
+>     **Notable bug found + fixed during live verification (#6):** adding `truncate` (nowrap) labels made
+>     each collapsed item's min-content as wide as its full label; the `<aside>` is a **flex item** with
+>     default `min-width:auto`, so it refused to shrink to `w-[76px]` and stayed **264px**. Root cause
+>     confirmed empirically in-browser: a bare `width`/`flex-basis` is overridable by the flex row, and the
+>     `transition-all` on the rail left the size **stuck at the start value** in the preview pane. Fixed by
+>     pinning the rail with inline **`width` + `minWidth` + `maxWidth`** (`sidebarWidth` computed;
+>     `max-width` is a hard cap the flex algorithm honours) and narrowing the transition to
+>     `transition-colors` so the width change applies instantly (no stuck animation). **Approved deviations /
+>     decisions:** **(a)** `DateField` keeps a **typeable ISO text field paired with** the `UCalendar` picker
+>     (industry-standard combo; preserves all existing `.fill()`/`.setValue()` tests) rather than a
+>     calendar-only read-only trigger; **(b)** collapsed rail width is pinned via inline min/max/width, so
+>     `AppSidebar` no longer relies on the `w-[76px]`/`w-[264px]` class for sizing (tests updated to assert
+>     the inline style). **Verification:** `pnpm typecheck`/`lint`/`build` ✅; **full `pnpm test` — 108 files,
+>     1413 tests, exit 0** ✅ (new: `formatInt` unit cases, `table-pagination` windowing spec, `date-field`
+>     spec, AppSidebar collapsed-label + collapsed-parent-opens-rail specs). **Live-verified in-browser**
+>     (seeded demo, admin login): date-pick fills ISO, pagination window slides `[1,2,3]→[2,3,4]` and caps
+>     at 3, Import label renders, sidebar collapses to 76px with under-icon labels, collapsed parent opens
+>     the rail + group, reports KPI count renders `63.084`. **Follow-up (open):** screenshots time out in the
+>     in-app preview pane, so the collapsed-rail look was verified via DOM measurement, not a visual capture.
+> 59. **Next session — pick the next real step.** Leading candidate: **Spec B — Device Sessions**
 >     (session list / revoke-per-device / logout-all-others — the last `useAccount` mock). Or close the
 >     item-56 follow-ups: the **live mockup visual pass** + **profile office/employee name enrichment**
 >     (so the account header shows real `kantor`/`pegawai`). Other carried candidates: **notifications**

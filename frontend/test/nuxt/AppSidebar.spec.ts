@@ -142,20 +142,52 @@ describe('AppSidebar', () => {
     expect(wrapper.html()).toContain('AI')
   })
 
-  it('sidebar has w-[264px] class when expanded', async () => {
+  it('pins the rail to 264px when expanded', async () => {
     setupSuperadmin()
     useUiStore().sidebarCollapsed = false
     const wrapper = await mountSuspended(AppSidebar)
     const aside = wrapper.find('aside')
-    expect(aside.classes()).toContain('w-[264px]')
+    // Width is locked via inline min/max/width (a bare width is treated as a
+    // flex-basis the flex row can override) — see AppSidebar's sidebarWidth.
+    const style = aside.attributes('style') ?? ''
+    expect(style).toContain('width: 264px')
+    expect(style).toContain('max-width: 264px')
   })
 
-  it('sidebar has w-[76px] class when collapsed', async () => {
+  it('pins the rail to 76px when collapsed', async () => {
     setupSuperadmin()
     useUiStore().sidebarCollapsed = true
     const wrapper = await mountSuspended(AppSidebar)
     const aside = wrapper.find('aside')
-    expect(aside.classes()).toContain('w-[76px]')
+    const style = aside.attributes('style') ?? ''
+    expect(style).toContain('width: 76px')
+    expect(style).toContain('max-width: 76px')
+  })
+
+  it('shows a label under the icon for a leaf item when collapsed', async () => {
+    setupSuperadmin()
+    useUiStore().sidebarCollapsed = true
+    const wrapper = await mountSuspended(AppSidebar)
+    // The Dasbor leaf keeps its label (rendered under the icon) while collapsed.
+    const dasbor = wrapper.find('a[href="/"]')
+    expect(dasbor.exists()).toBe(true)
+    expect(dasbor.text()).toContain('Dasbor')
+  })
+
+  it('opens the sidebar and expands the group when a collapsed parent is clicked', async () => {
+    setupSuperadmin()
+    const ui = useUiStore()
+    ui.sidebarCollapsed = true
+    const wrapper = await mountSuspended(AppSidebar)
+    // Collapsed: Master Data children are not rendered yet.
+    expect(wrapper.html()).not.toContain('/master/offices')
+    const masterData = wrapper.findAll('button').find(b => b.text().includes('Master Data'))
+    expect(masterData).toBeDefined()
+    await masterData!.trigger('click')
+    await wrapper.vm.$nextTick()
+    // Clicking a parent while collapsed expands the rail and opens the group.
+    expect(ui.sidebarCollapsed).toBe(false)
+    expect(wrapper.html()).toContain('/master/offices')
   })
 })
 

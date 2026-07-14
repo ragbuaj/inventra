@@ -177,11 +177,9 @@ async function submit() {
         </UFormField>
 
         <UFormField :label="t('peminjaman.form.tempo')">
-          <UInput
+          <DateField
             v-model="dueDate"
-            data-testid="peminjaman-modal-due-date"
-            type="date"
-            class="w-full"
+            testid="peminjaman-modal-due-date"
           />
           <template #hint>
             <span class="text-xs text-dimmed">{{ t('peminjaman.form.tempoHint') }}</span>

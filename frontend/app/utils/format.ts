@@ -18,6 +18,15 @@ export function formatDate(iso: string | null, opts: { withTime?: boolean } = {}
   }).format(d)
 }
 
+// Display an integer count with id-ID thousands grouping ('1500' → '1.500',
+// -1500 → '-1.500'); '—' when absent or non-numeric. For plain counts in reports.
+export function formatInt(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '—'
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(n)) return '—'
+  return Math.trunc(n).toLocaleString('id-ID')
+}
+
 // Display a numeric string with id-ID thousands grouping ('1000000' → '1.000.000').
 export function formatThousands(v: string | number | null | undefined): string {
   const s = String(v ?? '').replace(/\D/g, '')

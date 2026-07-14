@@ -283,12 +283,10 @@ defineExpose({ form, canSave, onSubmit, statusItems })
           :label="t('maintenance.note.date')"
           required
         >
-          <UInput
+          <DateField
             v-model="form.scheduledDate"
-            data-testid="record-slideover-date"
-            type="date"
+            testid="record-slideover-date"
             :disabled="isTerminal"
-            class="w-full"
           />
         </UFormField>
         <UFormField :label="t('maintenance.note.status')">
@@ -307,12 +305,10 @@ defineExpose({ form, canSave, onSubmit, statusItems })
         v-if="showCompletedDate"
         :label="t('maintenance.note.completedDate')"
       >
-        <UInput
+        <DateField
           v-model="form.completedDate"
-          data-testid="record-slideover-completed-date"
-          type="date"
+          testid="record-slideover-completed-date"
           :disabled="isTerminal"
-          class="w-full"
         />
       </UFormField>
 

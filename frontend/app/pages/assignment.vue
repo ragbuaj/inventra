@@ -274,10 +274,9 @@ onMounted(refresh)
               :label="t('assignment.checkout.borrowDate')"
               required
             >
-              <UInput
+              <DateField
                 v-model="coTgl"
-                type="date"
-                class="w-full"
+                testid="assignment-checkout-date"
               />
             </UFormField>
           </div>
@@ -372,10 +371,9 @@ onMounted(refresh)
               :label="t('assignment.checkin.returnDate')"
               required
             >
-              <UInput
+              <DateField
                 v-model="ciTgl"
-                type="date"
-                class="w-full"
+                testid="assignment-checkin-date"
               />
             </UFormField>
             <UFormField :label="t('assignment.checkin.condIn')">

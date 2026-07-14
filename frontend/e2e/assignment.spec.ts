@@ -255,7 +255,7 @@ test.describe('Assignment (Penugasan/Peminjaman) — real backend e2e', () => {
     // unique RUN-suffixed name both searches and disambiguates the result.
     await pickAsync(page, 'employee', employeeLabel, employeeLabel)
 
-    await page.locator('input[type="date"]').first().fill(todayISO())
+    await page.getByTestId('assignment-checkout-date').fill(todayISO())
 
     // Submit button (its accessible name "Check-out" collides with the tab of the
     // same name, so target the submit by testid).
@@ -288,7 +288,7 @@ test.describe('Assignment (Penugasan/Peminjaman) — real backend e2e', () => {
     await page.getByText('Pilih penugasan…', { exact: true }).click()
     await page.getByRole('option', { name: new RegExp(asset1Tag) }).click()
 
-    await page.locator('input[type="date"]').first().fill(todayISO())
+    await page.getByTestId('assignment-checkin-date').fill(todayISO())
     // Submit button (name collides with the "Check-in" tab — target by testid).
     await page.getByTestId('assignment-checkin-submit').click()
 

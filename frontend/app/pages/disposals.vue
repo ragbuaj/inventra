@@ -829,11 +829,9 @@ onMounted(() => {
                   :label="t('disposal.form.date')"
                   required
                 >
-                  <UInput
+                  <DateField
                     v-model="disposalDate"
-                    data-testid="disposal-date"
-                    type="date"
-                    class="w-full"
+                    testid="disposal-date"
                   />
                 </UFormField>
                 <UFormField :label="t('disposal.form.bastNo')">
@@ -1305,11 +1303,9 @@ onMounted(() => {
             />
           </UFormField>
           <UFormField :label="t('disposal.attachBast.docDate')">
-            <UInput
+            <DateField
               v-model="attachDocDate"
-              data-testid="disposal-attach-doc-date"
-              type="date"
-              class="w-full"
+              testid="disposal-attach-doc-date"
             />
           </UFormField>
           <UFormField :label="t('disposal.attachBast.counterparty')">

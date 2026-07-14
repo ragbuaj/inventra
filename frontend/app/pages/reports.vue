@@ -8,6 +8,7 @@ import { useReports } from '~/composables/api/useReports'
 import { useCategories } from '~/composables/api/useCategories'
 import type { ReportKey, PeriodValue, PeriodPreset } from '~/constants/reportMeta'
 import { REPORT_KEYS, REPORT_ICON, formatMoneyShort } from '~/constants/reportMeta'
+import { formatInt } from '~/utils/format'
 
 definePageMeta({ middleware: 'can', permission: 'report.view' })
 
@@ -140,15 +141,15 @@ const MONEY_CHART = new Set<ReportKey>(['assets', 'depreciation', 'maintenance',
 function kpiValue(key: string, value: string): string {
   if (MONEY_KPI.has(key)) return formatMoneyShort(value)
   if (key === 'avg_utilization') return `${value}%`
-  if (key === 'total_days') return `${value} ${t('reports.unit.days')}`
-  return value
+  if (key === 'total_days') return `${formatInt(value)} ${t('reports.unit.days')}`
+  return /^-?\d+$/.test(value.trim()) ? formatInt(value) : value
 }
 function toChartBars(chart: { label: string, value: string }[], money: boolean): Bar[] {
   const nums = chart.map(c => Number(c.value) || 0)
   const max = Math.max(1, ...nums)
   return chart.map((c, i) => ({
     label: c.label,
-    display: money ? formatMoneyShort(c.value) : String(nums[i]),
+    display: money ? formatMoneyShort(c.value) : formatInt(nums[i]),
     w: `${Math.round((nums[i]! / max) * 100)}%`
   }))
 }
@@ -210,8 +211,8 @@ const view = computed<View | null>(() => {
     return {
       mode: 'table', ...shared,
       cols: colDefs([t('reports.col.assetName'), t('reports.col.category'), t('reports.col.daysLoaned'), t('reports.col.loanCount'), t('reports.col.utilization')], 2),
-      rows: rows.map(u => [cell(u.name, 'left', { weight: 'medium' }), cell(u.category_name, 'left', { tone: 'muted' }), cell(`${u.days_loaned} ${daysShort}`, 'right', { tone: 'muted' }), cell(`${u.loan_count}×`, 'right', { tone: 'muted' }), cell(`${u.utilization_pct}%`, 'right', { weight: 'semibold' })]),
-      footer: [cell(TOTAL, 'left', { weight: 'bold' }), cell('', 'left'), cell(`${T.days_loaned ?? 0} ${daysShort}`, 'right', { weight: 'bold' }), cell(`${T.loan_count ?? 0}×`, 'right', { weight: 'bold' }), cell('', 'right')]
+      rows: rows.map(u => [cell(u.name, 'left', { weight: 'medium' }), cell(u.category_name, 'left', { tone: 'muted' }), cell(`${formatInt(u.days_loaned)} ${daysShort}`, 'right', { tone: 'muted' }), cell(`${formatInt(u.loan_count)}×`, 'right', { tone: 'muted' }), cell(`${u.utilization_pct}%`, 'right', { weight: 'semibold' })]),
+      footer: [cell(TOTAL, 'left', { weight: 'bold' }), cell('', 'left'), cell(`${formatInt(T.days_loaned ?? 0)} ${daysShort}`, 'right', { weight: 'bold' }), cell(`${formatInt(T.loan_count ?? 0)}×`, 'right', { weight: 'bold' }), cell('', 'right')]
     }
   }
   if (r.type === 'maintenance') {
@@ -219,8 +220,8 @@ const view = computed<View | null>(() => {
     return {
       mode: 'table', ...shared,
       cols: colDefs([t('reports.col.asset'), t('reports.col.category'), t('reports.col.type'), t('reports.col.actions'), t('reports.col.totalCost')], 3),
-      rows: rows.map(b => [cell(b.asset_name, 'left', { weight: 'medium' }), cell(b.category_name, 'left', { tone: 'muted' }), cell(b.type, 'left', { tone: 'muted' }), cell(String(b.actions), 'right', { tone: 'muted' }), cell(money(b.total_cost), 'right', { weight: 'semibold' })]),
-      footer: [cell(TOTAL, 'left', { weight: 'bold' }), cell('', 'left'), cell('', 'left'), cell(String(T.actions ?? 0), 'right', { weight: 'bold' }), cell(money(T.total_cost), 'right', { weight: 'bold' })]
+      rows: rows.map(b => [cell(b.asset_name, 'left', { weight: 'medium' }), cell(b.category_name, 'left', { tone: 'muted' }), cell(b.type, 'left', { tone: 'muted' }), cell(formatInt(b.actions), 'right', { tone: 'muted' }), cell(money(b.total_cost), 'right', { weight: 'semibold' })]),
+      footer: [cell(TOTAL, 'left', { weight: 'bold' }), cell('', 'left'), cell('', 'left'), cell(formatInt(T.actions ?? 0), 'right', { weight: 'bold' }), cell(money(T.total_cost), 'right', { weight: 'bold' })]
     }
   }
   if (r.type === 'transfers') {
@@ -260,8 +261,8 @@ const view = computed<View | null>(() => {
         cell(o.name, 'left', { weight: 'medium' }),
         cell(o.office_name, 'left', { tone: 'muted' }),
         cell(o.period, 'left', { tone: 'muted', mono: true }),
-        cell(String(o.total_items), 'right', { tone: 'muted' }),
-        cell(String(o.variance), 'right', { weight: o.variance !== 0 ? 'semibold' : 'normal', tone: o.variance !== 0 ? 'error' : 'default' }),
+        cell(formatInt(o.total_items), 'right', { tone: 'muted' }),
+        cell(formatInt(o.variance), 'right', { weight: o.variance !== 0 ? 'semibold' : 'normal', tone: o.variance !== 0 ? 'error' : 'default' }),
         cell(statusLabel('stockOpname.status', o.status), 'left')
       ]
     }))

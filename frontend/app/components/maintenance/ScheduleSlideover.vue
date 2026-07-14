@@ -193,23 +193,19 @@ defineExpose({ form, canSave, onSubmit })
         :label="t('maintenance.schedule.startDate')"
         required
       >
-        <UInput
+        <DateField
           v-model="form.dateValue"
-          data-testid="schedule-slideover-date"
-          type="date"
-          class="w-full"
+          testid="schedule-slideover-date"
         />
       </UFormField>
       <UFormField
         v-else
         :label="t('maintenance.schedule.nextDue')"
       >
-        <UInput
+        <DateField
           :model-value="form.dateValue"
-          data-testid="schedule-slideover-date"
-          type="date"
+          testid="schedule-slideover-date"
           disabled
-          class="w-full"
         />
       </UFormField>
 

@@ -291,11 +291,9 @@ onMounted(async () => {
         </UFormField>
 
         <UFormField :label="t('peminjaman.form.tempo')">
-          <UInput
+          <DateField
             v-model="dueDate"
-            data-testid="peminjaman-due-date"
-            type="date"
-            class="w-full"
+            testid="peminjaman-due-date"
           />
           <template #hint>
             <span class="text-xs text-dimmed">{{ t('peminjaman.form.tempoHint') }}</span>

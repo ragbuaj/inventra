@@ -142,15 +142,13 @@ onMounted(() => load())
         class="flex-1 min-w-[180px]"
       />
       <div class="flex items-center gap-1.5">
-        <UInput
+        <DateField
           v-model="dateFrom"
-          type="date"
           :aria-label="t('settings.audit.dateFrom')"
         />
         <span class="text-dimmed">–</span>
-        <UInput
+        <DateField
           v-model="dateTo"
-          type="date"
           :aria-label="t('settings.audit.dateTo')"
         />
       </div>
