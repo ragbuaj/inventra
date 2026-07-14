@@ -249,7 +249,7 @@ onUnmounted(() => {
           icon="i-lucide-upload"
           color="neutral"
           variant="outline"
-          :label="t('assets.import')"
+          :label="t('assets.importBtn')"
           :to="localePath('/assets/import')"
         />
         <UButton

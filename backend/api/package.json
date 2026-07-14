@@ -1,0 +1,15 @@
+{
+  "name": "inventra-api-docs",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Tooling-only package: pins Spectral (and its @asyncapi/specs transitive dep) so the OpenAPI lint is reproducible in CI. @asyncapi/specs 6.11.x ships an ESM/CJS mismatch that crashes under Node 24 when pulled fresh via npx, so it is overridden to a known-good version and locked here.",
+  "scripts": {
+    "lint": "spectral lint openapi.yaml --ruleset ../../.spectral.yaml"
+  },
+  "devDependencies": {
+    "@stoplight/spectral-cli": "6.14.2"
+  },
+  "overrides": {
+    "@asyncapi/specs": "6.8.1"
+  }
+}

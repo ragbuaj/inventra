@@ -2,6 +2,7 @@
 import type { BadgeColor } from '~/types'
 import type { OpnameItem, OpnameSession, OpnameSessionDetail } from '~/composables/api/useStockOpname'
 import { ITEM_RESULT_TONE, SESSION_STATUS_TONE, type ItemResult, type SessionStatus } from '~/constants/stockOpnameMeta'
+import { formatInt } from '~/utils/format'
 
 definePageMeta({ middleware: 'can', permission: 'stockopname.view' })
 
@@ -666,7 +667,7 @@ onMounted(() => {
               {{ t('stockOpname.kpi.total') }}
             </div>
             <div class="text-[26px] font-bold tracking-tight mt-2">
-              {{ detailSession.total }}
+              {{ formatInt(detailSession.total) }}
             </div>
           </div>
           <div
@@ -681,7 +682,7 @@ onMounted(() => {
               {{ t('stockOpname.kpi.found') }}
             </div>
             <div class="text-[26px] font-bold tracking-tight mt-2">
-              {{ detailSession.found }}
+              {{ formatInt(detailSession.found) }}
             </div>
           </div>
           <div
@@ -696,7 +697,7 @@ onMounted(() => {
               {{ t('stockOpname.kpi.pending') }}
             </div>
             <div class="text-[26px] font-bold tracking-tight mt-2">
-              {{ detailSession.pending }}
+              {{ formatInt(detailSession.pending) }}
             </div>
           </div>
           <div
@@ -715,7 +716,7 @@ onMounted(() => {
               class="text-[26px] font-bold tracking-tight mt-2"
               :class="detailSession.variance > 0 ? 'text-error' : ''"
             >
-              {{ detailSession.variance }}
+              {{ formatInt(detailSession.variance) }}
             </div>
           </div>
         </div>

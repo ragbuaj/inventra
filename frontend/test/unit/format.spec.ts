@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatRupiah, formatDate, formatThousands, parseThousands } from '~/utils/format'
+import { formatRupiah, formatDate, formatThousands, parseThousands, formatInt } from '~/utils/format'
 
 describe('formatRupiah', () => {
   it('formats a number with Rp prefix and no decimals', () => {
@@ -82,5 +82,32 @@ describe('thousand helpers', () => {
   it('parses back to raw digits', () => {
     expect(parseThousands('1.000.000')).toBe('1000000')
     expect(parseThousands('')).toBe('')
+  })
+})
+
+describe('formatInt', () => {
+  it('groups thousands id-ID', () => {
+    expect(formatInt(1500)).toBe('1.500')
+    expect(formatInt(1234567)).toBe('1.234.567')
+  })
+  it('formats a numeric string', () => {
+    expect(formatInt('2500')).toBe('2.500')
+  })
+  it('keeps the sign for negative counts', () => {
+    expect(formatInt(-1500)).toBe('-1.500')
+  })
+  it('leaves values below a thousand ungrouped', () => {
+    expect(formatInt(8)).toBe('8')
+    expect(formatInt(0)).toBe('0')
+  })
+  it('truncates fractional input to an integer', () => {
+    expect(formatInt(1999.9)).toBe('1.999')
+  })
+  it('returns em dash for null, undefined, empty, and NaN', () => {
+    expect(formatInt(null)).toBe('—')
+    expect(formatInt(undefined)).toBe('—')
+    expect(formatInt('')).toBe('—')
+    expect(formatInt('abc')).toBe('—')
+    expect(formatInt(NaN)).toBe('—')
   })
 })

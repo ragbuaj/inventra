@@ -31,6 +31,18 @@ function toggleGroup(labelKey: string) {
   }
 }
 
+// Clicking a parent group while the sidebar is collapsed can't reveal its
+// children (they only render when expanded), so open the sidebar first and
+// force this group open instead of silently toggling nothing.
+function onParentClick(labelKey: string) {
+  if (ui.sidebarCollapsed) {
+    ui.sidebarCollapsed = false
+    expandedGroups.value[labelKey] = true
+    return
+  }
+  toggleGroup(labelKey)
+}
+
 function isVisible(item: NavItem): boolean {
   if (!item.permission) return true
   return can(item.permission)
@@ -58,12 +70,17 @@ const userInitials = computed(() => {
 
 const userName = computed(() => auth.user?.name ?? '')
 const userScope = computed(() => auth.user?.role_name ?? '')
+
+// Lock the rail to an exact px width. A bare `width` is treated as a flex-basis
+// the flex row can override (leaving the rail content-wide); pinning min/max as
+// well makes the collapse deterministic. Transitions smoothly via `transition-all`.
+const sidebarWidth = computed(() => ui.sidebarCollapsed ? '76px' : '264px')
 </script>
 
 <template>
   <aside
-    class="flex flex-col border-e border-default bg-default transition-all duration-200 overflow-hidden"
-    :class="ui.sidebarCollapsed ? 'w-[76px]' : 'w-[264px]'"
+    class="flex flex-col border-e border-default bg-default transition-colors duration-200 overflow-hidden shrink-0"
+    :style="{ width: sidebarWidth, minWidth: sidebarWidth, maxWidth: sidebarWidth }"
   >
     <!-- Logo row -->
     <div class="flex items-center gap-[11px] h-[61px] px-[18px] border-b border-default flex-none">
@@ -121,16 +138,20 @@ const userScope = computed(() => auth.user?.role_name ?? '')
               <button
                 type="button"
                 :title="ui.sidebarCollapsed ? t(item.labelKey) : undefined"
-                class="relative flex items-center w-full mb-[2px] rounded-[9px] gap-[11px] px-3 py-[9px] text-sm font-normal text-default hover:bg-muted transition-colors cursor-pointer border-0"
-                :class="{ 'justify-center': ui.sidebarCollapsed }"
+                class="relative flex w-full mb-[2px] rounded-[9px] text-sm font-normal text-default hover:bg-muted transition-colors cursor-pointer border-0"
+                :class="ui.sidebarCollapsed ? 'flex-col items-center justify-center gap-[3px] px-1 py-[8px]' : 'items-center gap-[11px] px-3 py-[9px]'"
                 :style="{ boxShadow: 'inset 3px 0 0 transparent' }"
-                @click="toggleGroup(item.labelKey)"
+                @click="onParentClick(item.labelKey)"
               >
                 <UIcon
                   v-if="item.icon"
                   :name="item.icon"
                   class="size-[19px] shrink-0"
                 />
+                <span
+                  v-if="ui.sidebarCollapsed"
+                  class="w-full text-[10px] leading-tight text-center truncate"
+                >{{ $t(item.labelKey) }}</span>
                 <template v-if="!ui.sidebarCollapsed">
                   <span class="flex-1 overflow-hidden text-ellipsis text-left">{{ $t(item.labelKey) }}</span>
                   <!-- Chevron -->
@@ -194,8 +215,8 @@ const userScope = computed(() => auth.user?.role_name ?? '')
                 :to="localePath(item.to)"
                 :aria-label="t(item.labelKey)"
                 :title="ui.sidebarCollapsed ? t(item.labelKey) : undefined"
-                class="relative flex items-center w-full mb-[2px] rounded-[9px] gap-[11px] px-3 py-[9px] text-sm text-default hover:bg-muted transition-colors"
-                :class="{ 'justify-center': ui.sidebarCollapsed }"
+                class="relative flex w-full mb-[2px] rounded-[9px] text-sm text-default hover:bg-muted transition-colors"
+                :class="ui.sidebarCollapsed ? 'flex-col items-center justify-center gap-[3px] px-1 py-[8px]' : 'items-center gap-[11px] px-3 py-[9px]'"
                 active-class="text-primary font-medium bg-primary/10 shadow-[inset_3px_0_0_var(--ui-primary)]"
                 :style="{ boxShadow: 'inset 3px 0 0 transparent' }"
               >
@@ -207,6 +228,10 @@ const userScope = computed(() => auth.user?.role_name ?? '')
                 <span
                   v-if="!ui.sidebarCollapsed"
                   class="flex-1 overflow-hidden text-ellipsis"
+                >{{ $t(item.labelKey) }}</span>
+                <span
+                  v-else
+                  class="w-full text-[10px] leading-tight text-center truncate"
                 >{{ $t(item.labelKey) }}</span>
                 <!-- Badge expanded -->
                 <span
@@ -227,8 +252,8 @@ const userScope = computed(() => auth.user?.role_name ?? '')
                 :title="ui.sidebarCollapsed ? t(item.labelKey) : t('nav.comingSoon')"
                 tabindex="-1"
                 aria-disabled="true"
-                class="relative flex items-center w-full mb-[2px] rounded-[9px] gap-[11px] px-3 py-[9px] text-sm text-dimmed cursor-not-allowed select-none"
-                :class="{ 'justify-center': ui.sidebarCollapsed }"
+                class="relative flex w-full mb-[2px] rounded-[9px] text-sm text-dimmed cursor-not-allowed select-none"
+                :class="ui.sidebarCollapsed ? 'flex-col items-center justify-center gap-[3px] px-1 py-[8px]' : 'items-center gap-[11px] px-3 py-[9px]'"
               >
                 <UIcon
                   v-if="item.icon"
@@ -238,6 +263,10 @@ const userScope = computed(() => auth.user?.role_name ?? '')
                 <span
                   v-if="!ui.sidebarCollapsed"
                   class="flex-1 overflow-hidden text-ellipsis"
+                >{{ $t(item.labelKey) }}</span>
+                <span
+                  v-else
+                  class="w-full text-[10px] leading-tight text-center truncate"
                 >{{ $t(item.labelKey) }}</span>
                 <!-- Badge expanded -->
                 <span

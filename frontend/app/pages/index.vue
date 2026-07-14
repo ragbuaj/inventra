@@ -311,14 +311,19 @@ defineExpose({ doExport, load, officeId })
           @update:model-value="onOfficeChange"
         />
         <UButton
-          icon="i-lucide-refresh-cw"
           color="neutral"
           variant="outline"
           square
           :aria-label="t('dashboard.reload')"
-          :loading="loading"
+          :disabled="loading"
           @click="load"
-        />
+        >
+          <UIcon
+            name="i-lucide-refresh-cw"
+            class="size-5"
+            :class="{ 'animate-spin': loading }"
+          />
+        </UButton>
         <UDropdownMenu
           v-if="canExport"
           :items="exportItems"

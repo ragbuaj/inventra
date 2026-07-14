@@ -663,11 +663,9 @@ onBeforeUnmount(() => {
             :label="t('transfer.form.date')"
             required
           >
-            <UInput
+            <DateField
               v-model="transferDate"
-              data-testid="transfer-date"
-              type="date"
-              class="w-full"
+              testid="transfer-date"
             />
           </UFormField>
         </div>
@@ -1060,11 +1058,9 @@ onBeforeUnmount(() => {
       <template #body>
         <div class="space-y-4">
           <UFormField :label="t('transfer.inbox.acceptModal.receivedDate')">
-            <UInput
+            <DateField
               v-model="acceptReceivedDate"
-              data-testid="transfer-accept-received-date"
-              type="date"
-              class="w-full"
+              testid="transfer-accept-received-date"
             />
           </UFormField>
           <UFormField :label="t('transfer.inbox.acceptModal.room')">
@@ -1173,11 +1169,9 @@ onBeforeUnmount(() => {
             </UBadge>
           </div>
           <UFormField :label="t('transfer.ship.dateLabel')">
-            <UInput
+            <DateField
               v-model="shipDate"
-              data-testid="transfer-ship-date"
-              type="date"
-              class="w-full"
+              testid="transfer-ship-date"
             />
           </UFormField>
         </div>

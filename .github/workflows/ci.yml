@@ -62,7 +62,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-      - run: npx --yes @stoplight/spectral-cli lint backend/api/openapi.yaml --ruleset .spectral.yaml
+          cache: npm
+          cache-dependency-path: backend/api/package-lock.json
+      # Spectral is pinned + locked in backend/api (its @asyncapi/specs transitive
+      # dep crashes under Node 24 when resolved fresh via `npx`); install from the
+      # lockfile so the OpenAPI lint is reproducible.
+      - run: npm ci
+        working-directory: backend/api
+      - run: npm run lint
+        working-directory: backend/api
 
   # End-to-end: bring up the real backend stack, seed an admin, then run the
   # Playwright login flow against a freshly built frontend.

@@ -545,10 +545,8 @@ onMounted(async () => {
               :required="mode === 'new'"
               :error="errors.tglBeli"
             >
-              <UInput
+              <DateField
                 :model-value="form.tglBeli"
-                type="date"
-                class="w-full"
                 @update:model-value="setField('tglBeli', String($event))"
               />
             </UFormField>
@@ -604,10 +602,8 @@ onMounted(async () => {
               />
             </UFormField>
             <UFormField :label="t('assets.form.fields.warranty')">
-              <UInput
+              <DateField
                 :model-value="form.warrantyExpiry"
-                type="date"
-                class="w-full"
                 @update:model-value="setField('warrantyExpiry', String($event))"
               />
             </UFormField>
