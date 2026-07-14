@@ -405,7 +405,7 @@ describe('Audit Trail page — pagination', () => {
     const wrapper = await mountAndWait()
 
     // On page 1 (not the last page) the next button must be ENABLED
-    const nextBtnPage1 = wrapper.find('[data-testid="audit-next-page"]')
+    const nextBtnPage1 = wrapper.find('[data-testid="pagination-next"]')
     expect(nextBtnPage1.exists()).toBe(true)
     expect(nextBtnPage1.attributes('disabled')).toBeUndefined()
 
@@ -417,7 +417,7 @@ describe('Audit Trail page — pagination', () => {
     await wrapper.vm.$nextTick()
 
     // On the last page the next (chevron-right) button must be disabled
-    const nextBtnPage2 = wrapper.find('[data-testid="audit-next-page"]')
+    const nextBtnPage2 = wrapper.find('[data-testid="pagination-next"]')
     expect(nextBtnPage2.exists()).toBe(true)
     expect(nextBtnPage2.attributes('disabled')).toBeDefined()
   })

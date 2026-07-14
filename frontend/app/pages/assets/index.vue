@@ -88,11 +88,14 @@ const anyFilter = computed(() =>
   !!(search.value.trim() || fStatus.value !== ALL || fKat.value !== ALL || fKantor.value || fClass.value !== ALL)
 )
 
-const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
-const pageInfo = computed(() => {
-  const from = total.value === 0 ? 0 : (page.value - 1) * PAGE_SIZE + 1
-  const to = Math.min(page.value * PAGE_SIZE, total.value)
-  return t('assets.showing', { from, to, total: total.value })
+// Bridge the 1-based `page` ref to the shared TablePagination's 0-based offset
+// contract, so the catalog uses the same paginator (capped page buttons) as
+// every other list screen.
+const pageOffset = computed({
+  get: () => (page.value - 1) * PAGE_SIZE,
+  set: (o: number) => {
+    page.value = Math.floor(o / PAGE_SIZE) + 1
+  }
 })
 
 const pageTags = computed(() => rows.value.map(r => r.asset_tag))
@@ -587,42 +590,13 @@ onUnmounted(() => {
           </tbody>
         </table>
       </div>
-      <div class="flex items-center justify-between flex-wrap gap-2.5 px-4 py-3 border-t border-default">
-        <span class="text-[13px] text-muted">{{ pageInfo }}</span>
-        <div class="flex items-center gap-1.5">
-          <UButton
-            icon="i-lucide-chevron-left"
-            color="neutral"
-            variant="outline"
-            size="sm"
-            square
-            :disabled="page <= 1"
-            :aria-label="t('common.actions')"
-            @click="page = Math.max(1, page - 1)"
-          />
-          <UButton
-            v-for="p in totalPages"
-            :key="p"
-            :color="p === Math.min(page, totalPages) ? 'primary' : 'neutral'"
-            :variant="p === Math.min(page, totalPages) ? 'solid' : 'outline'"
-            size="sm"
-            class="min-w-[34px] justify-center"
-            @click="page = p"
-          >
-            {{ p }}
-          </UButton>
-          <UButton
-            icon="i-lucide-chevron-right"
-            color="neutral"
-            variant="outline"
-            size="sm"
-            square
-            :disabled="page >= totalPages"
-            :aria-label="t('common.actions')"
-            @click="page = Math.min(totalPages, page + 1)"
-          />
-        </div>
-      </div>
+      <TablePagination
+        v-if="total > 0"
+        :total="total"
+        :limit="PAGE_SIZE"
+        :offset="pageOffset"
+        @update:offset="pageOffset = $event"
+      />
     </div>
 
     <!-- Grid view -->
@@ -638,42 +612,14 @@ onUnmounted(() => {
           @open="openDetail(r.tag)"
         />
       </div>
-      <div class="flex items-center justify-between flex-wrap gap-2.5 mt-4">
-        <span class="text-[13px] text-muted">{{ pageInfo }}</span>
-        <div class="flex items-center gap-1.5">
-          <UButton
-            icon="i-lucide-chevron-left"
-            color="neutral"
-            variant="outline"
-            size="sm"
-            square
-            :disabled="page <= 1"
-            :aria-label="t('common.actions')"
-            @click="page = Math.max(1, page - 1)"
-          />
-          <UButton
-            v-for="p in totalPages"
-            :key="p"
-            :color="p === Math.min(page, totalPages) ? 'primary' : 'neutral'"
-            :variant="p === Math.min(page, totalPages) ? 'solid' : 'outline'"
-            size="sm"
-            class="min-w-[34px] justify-center"
-            @click="page = p"
-          >
-            {{ p }}
-          </UButton>
-          <UButton
-            icon="i-lucide-chevron-right"
-            color="neutral"
-            variant="outline"
-            size="sm"
-            square
-            :disabled="page >= totalPages"
-            :aria-label="t('common.actions')"
-            @click="page = Math.min(totalPages, page + 1)"
-          />
-        </div>
-      </div>
+      <TablePagination
+        v-if="total > 0"
+        :total="total"
+        :limit="PAGE_SIZE"
+        :offset="pageOffset"
+        class="mt-4"
+        @update:offset="pageOffset = $event"
+      />
     </div>
   </div>
 </template>
