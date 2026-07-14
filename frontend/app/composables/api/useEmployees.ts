@@ -17,7 +17,7 @@ export function useEmployees() {
 
   async function list(query: ListQuery = {}): Promise<Paginated<Employee>> {
     const q = new URLSearchParams()
-    q.set('limit', String(query.limit ?? 20))
+    q.set('limit', String(query.limit ?? 10))
     q.set('offset', String(query.offset ?? 0))
     if (query.search) q.set('search', String(query.search))
     return request<Paginated<Employee>>(`/employees?${q.toString()}`)

@@ -6,7 +6,7 @@ import { ASSET_CLASSES, ASSET_STATUSES, classMeta, statusMeta } from '~/constant
 
 definePageMeta({ middleware: 'can', permission: 'asset.view' })
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 10
 const ALL = '__all__'
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
 

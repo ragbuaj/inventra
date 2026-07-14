@@ -17,7 +17,7 @@ const props = withDefaults(defineProps<{
   offset?: number
   emptyTitle?: string
   actions?: RowActions
-}>(), { loading: false, total: 0, limit: 20, offset: 0, emptyTitle: '' })
+}>(), { loading: false, total: 0, limit: 10, offset: 0, emptyTitle: '' })
 
 const emit = defineEmits<{ 'update:offset': [number] }>()
 const sorting = defineModel<TableSorting>('sorting', { default: () => [] })

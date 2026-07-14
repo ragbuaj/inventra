@@ -12,7 +12,7 @@ const api = useCategories()
 
 const PERM = 'masterdata.global.manage'
 const ALL = '__all__'
-const PAGE_SIZE = 7
+const PAGE_SIZE = 10
 
 const allRows = ref<Category[]>([])
 const search = ref('')

@@ -286,7 +286,7 @@ describe('Asset Catalog page — loaded rows', () => {
   it('shows the initial GET /assets call with default paging', async () => {
     await mountAndWait()
     const q = lastAssetQuery()
-    expect(q.get('limit')).toBe('20')
+    expect(q.get('limit')).toBe('10')
     expect(q.get('offset')).toBe('0')
   })
 })
@@ -541,7 +541,7 @@ describe('Asset Catalog page — debounced search', () => {
 // ---------------------------------------------------------------------------
 
 describe('Asset Catalog page — server-side pagination', () => {
-  it('clicking page 2 sends offset=20', async () => {
+  it('clicking page 2 sends offset=10', async () => {
     setHandler((path, opts) => {
       if (path.startsWith('/assets')) {
         assetCalls.push({ path, opts })
@@ -562,8 +562,8 @@ describe('Asset Catalog page — server-side pagination', () => {
     await wrapper.vm.$nextTick()
 
     const q = lastAssetQuery()
-    expect(q.get('offset')).toBe('20')
-    expect(q.get('limit')).toBe('20')
+    expect(q.get('offset')).toBe('10')
+    expect(q.get('limit')).toBe('10')
   })
 })
 
