@@ -3,6 +3,7 @@ package depreciation
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -17,15 +18,6 @@ import (
 // scopeModule is the data_scope_policies module for the periods/schedule/
 // journal endpoints (migration 000023 seeds it per role).
 const scopeModule = "depreciation"
-
-// scheduleUnpagedLimit is a placeholder page size for GET /depreciation/schedule
-// until the endpoint's own limit/offset query params + {data,total,limit,offset}
-// envelope are wired end-to-end (handler/DTO/OpenAPI/frontend — a follow-up
-// task; Service.Schedule itself is now SQL-paginated, see internal/depreciation/
-// service.go). Passing this here preserves the endpoint's pre-existing
-// "return every matching row" behavior while the service-layer signature
-// gained mandatory limit/offset params.
-const scheduleUnpagedLimit = 1_000_000
 
 // assetEntity is the field_permissions/data-scope entity reused from the
 // asset module for GET /assets/:id/depreciation (it is a view onto asset data,
@@ -195,12 +187,14 @@ func (h *Handler) schedule(c *gin.Context) {
 		common.WriteError(c, err)
 		return
 	}
-	result, err := h.svc.Schedule(c.Request.Context(), period, basis, all, ids, c.Query("search"), categoryID, officeID, scheduleUnpagedLimit, 0)
+	limit := clampInt(c.Query("limit"), 10, 1, 100)
+	offset := clampInt(c.Query("offset"), 0, 0, 1<<31-1)
+	result, err := h.svc.Schedule(c.Request.Context(), period, basis, all, ids, c.Query("search"), categoryID, officeID, limit, offset)
 	if err != nil {
 		h.svcError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, scheduleToMap(result))
+	c.JSON(http.StatusOK, scheduleToMap(result, limit, offset))
 }
 
 // journal handles GET /depreciation/journal.
@@ -420,4 +414,24 @@ func (h *Handler) recordImpairment(c *gin.Context) {
 		delete(result, "accumulated_depreciation")
 	}
 	c.JSON(http.StatusOK, result)
+}
+
+// clampInt parses raw as a base-10 integer, falling back to def when raw is
+// empty or unparseable, and clamping the result to [min, max].
+func clampInt(raw string, def, min, max int32) int32 {
+	if raw == "" {
+		return def
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil {
+		return def
+	}
+	v := int32(n)
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
 }
