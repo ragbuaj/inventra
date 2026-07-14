@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { Asset, AssetClass, AssetStatus } from '~/types'
+import type { ContextMenuItem } from '@nuxt/ui'
+import type { Asset, AssetClass, AssetStatus, RowAction } from '~/types'
 import type { CatalogCardAsset } from '~/components/asset/AssetCard.vue'
 import { ASSET_CLASSES, ASSET_STATUSES, classMeta, statusMeta } from '~/constants/assetMeta'
 
@@ -159,6 +160,22 @@ function openLabel(tags: string[]) {
 }
 function comingSoon() {
   toast.add({ title: t('assets.comingSoon'), color: 'neutral', icon: 'i-lucide-info' })
+}
+
+// Per-row actions (kebab dropdown via RowActionsMenu, and the table's
+// right-click context menu below) — both built from this same list via
+// buildActionGroups so their grouping/dividers stay in sync (see Task 6).
+function rowActions(row: Asset): RowAction[] {
+  return [
+    { label: t('common.view'), icon: 'i-lucide-eye', onSelect: () => openDetail(row.asset_tag) },
+    { label: t('common.edit'), icon: 'i-lucide-pencil', onSelect: () => openEdit(row.asset_tag) },
+    { label: t('assets.printLabels'), icon: 'i-lucide-printer', onSelect: () => openLabel([row.asset_tag]) }
+  ]
+}
+
+const contextItems = ref<ContextMenuItem[][]>([])
+function onRowContextMenu(row: Asset) {
+  contextItems.value = buildActionGroups(rowActions(row)) as ContextMenuItem[][]
 }
 
 // Guards against a stale, out-of-order response: only the most recently
@@ -434,162 +451,142 @@ onUnmounted(() => {
       v-else-if="view === 'table'"
       class="bg-default border border-default rounded-[13px] shadow-sm overflow-hidden"
     >
-      <div class="overflow-x-auto">
-        <table class="w-full border-collapse text-[13.5px] whitespace-nowrap">
-          <thead>
-            <tr class="bg-muted text-muted">
-              <th class="px-3.5 py-[11px] w-[42px]">
-                <UCheckbox
-                  :model-value="allChecked"
-                  @update:model-value="toggleAll"
-                />
-              </th>
-              <th
-                v-for="col in [
-                  { key: 'tag', label: t('assets.columns.tag') },
-                  { key: 'nama', label: t('assets.columns.nama') },
-                  { key: 'kategori', label: t('assets.columns.kategori') },
-                  { key: 'brand', label: t('assets.columns.brand') },
-                  { key: 'status', label: t('assets.columns.status') },
-                  { key: 'kantor', label: t('assets.columns.kantor') },
-                  { key: 'holder', label: t('assets.columns.holder') },
-                  { key: 'tgl', label: t('assets.columns.date') }
-                ]"
-                :key="col.key"
-                class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide"
-              >
-                {{ col.label }}
-              </th>
-              <template v-if="showPrice">
-                <th class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('assets.columns.harga') }}
+      <UContextMenu :items="contextItems">
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse text-[13.5px] whitespace-nowrap">
+            <thead>
+              <tr class="bg-muted text-muted">
+                <th class="px-3.5 py-[11px] w-[42px]">
+                  <UCheckbox
+                    :model-value="allChecked"
+                    @update:model-value="toggleAll"
+                  />
                 </th>
-                <th class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('assets.columns.buku') }}
+                <th
+                  v-for="col in [
+                    { key: 'tag', label: t('assets.columns.tag') },
+                    { key: 'nama', label: t('assets.columns.nama') },
+                    { key: 'kategori', label: t('assets.columns.kategori') },
+                    { key: 'brand', label: t('assets.columns.brand') },
+                    { key: 'status', label: t('assets.columns.status') },
+                    { key: 'kantor', label: t('assets.columns.kantor') },
+                    { key: 'holder', label: t('assets.columns.holder') },
+                    { key: 'tgl', label: t('assets.columns.date') }
+                  ]"
+                  :key="col.key"
+                  class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide"
+                >
+                  {{ col.label }}
                 </th>
-              </template>
-              <th class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                {{ t('assets.columns.aksi') }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="r in rows"
-              :key="r.asset_tag"
-              class="border-t border-default hover:bg-muted transition-colors"
-              :class="selected.has(r.asset_tag) ? 'bg-primary/5' : ''"
-            >
-              <td class="px-3.5 py-3">
-                <UCheckbox
-                  :model-value="selected.has(r.asset_tag)"
-                  @update:model-value="toggle(r.asset_tag)"
-                />
-              </td>
-              <td class="px-3.5 py-3 font-mono text-[12.5px] text-muted">
-                <NuxtLink
-                  :to="localePath(`/assets/${r.asset_tag}`)"
-                  class="hover:text-primary"
-                >
-                  {{ r.asset_tag }}
-                </NuxtLink>
-              </td>
-              <td class="px-3.5 py-3 font-medium">
-                {{ r.name }}
-              </td>
-              <td class="px-3.5 py-3">
-                <UBadge
-                  color="neutral"
-                  variant="subtle"
-                  class="rounded-full"
-                >
-                  {{ categoryName(r.category_id) }}
-                </UBadge>
-              </td>
-              <td
-                data-testid="asset-brand-cell"
-                class="px-3.5 py-3 text-muted"
+                <template v-if="showPrice">
+                  <th class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('assets.columns.harga') }}
+                  </th>
+                  <th class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('assets.columns.buku') }}
+                  </th>
+                </template>
+                <th class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                  {{ t('assets.columns.aksi') }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="r in rows"
+                :key="r.asset_tag"
+                class="border-t border-default hover:bg-muted transition-colors"
+                :class="selected.has(r.asset_tag) ? 'bg-primary/5' : ''"
+                @contextmenu="onRowContextMenu(r)"
               >
-                {{ brandModelLabel(r.brand_id, r.model_id) }}
-              </td>
-              <td class="px-3.5 py-3">
-                <AssetStatusBadge :status="r.status" />
-              </td>
-              <td class="px-3.5 py-3 text-muted">
-                {{ officeName(r.office_id) }}
-              </td>
-              <td class="px-3.5 py-3 text-dimmed">
-                —
-              </td>
-              <td class="px-3.5 py-3 text-muted">
-                {{ formatDate(r.purchase_date) }}
-              </td>
-              <template v-if="showPrice">
-                <td class="px-3.5 py-3 text-right tabular-nums">
-                  <span
-                    v-if="moneyCell(r.purchase_cost).masked"
-                    class="inline-flex items-center gap-1 text-dimmed justify-end"
-                    :title="t('assets.masked')"
-                  >
-                    {{ moneyCell(r.purchase_cost).text }}
-                    <UIcon
-                      name="i-lucide-lock"
-                      class="size-3"
-                    />
-                  </span>
-                  <template v-else>
-                    {{ moneyCell(r.purchase_cost).text }}
-                  </template>
+                <td class="px-3.5 py-3">
+                  <UCheckbox
+                    :model-value="selected.has(r.asset_tag)"
+                    @update:model-value="toggle(r.asset_tag)"
+                  />
                 </td>
-                <td class="px-3.5 py-3 text-right tabular-nums text-muted">
-                  <span
-                    v-if="moneyCell(r.book_value).masked"
-                    class="inline-flex items-center gap-1 text-dimmed justify-end"
-                    :title="t('assets.masked')"
+                <td class="px-3.5 py-3 font-mono text-[12.5px] text-muted">
+                  <NuxtLink
+                    :to="localePath(`/assets/${r.asset_tag}`)"
+                    class="hover:text-primary"
                   >
-                    {{ moneyCell(r.book_value).text }}
-                    <UIcon
-                      name="i-lucide-lock"
-                      class="size-3"
-                    />
-                  </span>
-                  <template v-else>
-                    {{ moneyCell(r.book_value).text }}
-                  </template>
+                    {{ r.asset_tag }}
+                  </NuxtLink>
                 </td>
-              </template>
-              <td class="px-3.5 py-3 text-right">
-                <div class="inline-flex gap-0.5">
-                  <UButton
-                    icon="i-lucide-eye"
+                <td class="px-3.5 py-3 font-medium">
+                  {{ r.name }}
+                </td>
+                <td class="px-3.5 py-3">
+                  <UBadge
                     color="neutral"
-                    variant="ghost"
-                    size="xs"
-                    :aria-label="t('common.view', 'Lihat')"
-                    @click="openDetail(r.asset_tag)"
-                  />
-                  <UButton
-                    icon="i-lucide-pencil"
-                    color="neutral"
-                    variant="ghost"
-                    size="xs"
-                    :aria-label="t('common.edit')"
-                    @click="openEdit(r.asset_tag)"
-                  />
-                  <UButton
-                    icon="i-lucide-printer"
-                    color="neutral"
-                    variant="ghost"
-                    size="xs"
-                    :aria-label="t('assets.printLabels')"
-                    @click="openLabel([r.asset_tag])"
-                  />
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                    variant="subtle"
+                    class="rounded-full"
+                  >
+                    {{ categoryName(r.category_id) }}
+                  </UBadge>
+                </td>
+                <td
+                  data-testid="asset-brand-cell"
+                  class="px-3.5 py-3 text-muted"
+                >
+                  {{ brandModelLabel(r.brand_id, r.model_id) }}
+                </td>
+                <td class="px-3.5 py-3">
+                  <AssetStatusBadge :status="r.status" />
+                </td>
+                <td class="px-3.5 py-3 text-muted">
+                  {{ officeName(r.office_id) }}
+                </td>
+                <td class="px-3.5 py-3 text-dimmed">
+                  —
+                </td>
+                <td class="px-3.5 py-3 text-muted">
+                  {{ formatDate(r.purchase_date) }}
+                </td>
+                <template v-if="showPrice">
+                  <td class="px-3.5 py-3 text-right tabular-nums">
+                    <span
+                      v-if="moneyCell(r.purchase_cost).masked"
+                      class="inline-flex items-center gap-1 text-dimmed justify-end"
+                      :title="t('assets.masked')"
+                    >
+                      {{ moneyCell(r.purchase_cost).text }}
+                      <UIcon
+                        name="i-lucide-lock"
+                        class="size-3"
+                      />
+                    </span>
+                    <template v-else>
+                      {{ moneyCell(r.purchase_cost).text }}
+                    </template>
+                  </td>
+                  <td class="px-3.5 py-3 text-right tabular-nums text-muted">
+                    <span
+                      v-if="moneyCell(r.book_value).masked"
+                      class="inline-flex items-center gap-1 text-dimmed justify-end"
+                      :title="t('assets.masked')"
+                    >
+                      {{ moneyCell(r.book_value).text }}
+                      <UIcon
+                        name="i-lucide-lock"
+                        class="size-3"
+                      />
+                    </span>
+                    <template v-else>
+                      {{ moneyCell(r.book_value).text }}
+                    </template>
+                  </td>
+                </template>
+                <td class="px-3.5 py-3 text-right">
+                  <div class="flex justify-end">
+                    <RowActionsMenu :items="rowActions(r)" />
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </UContextMenu>
       <TablePagination
         v-if="total > 0"
         :total="total"
