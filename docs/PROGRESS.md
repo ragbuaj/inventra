@@ -907,7 +907,13 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     testids; e2e `assignment.spec` switched off the removed `input[type="date"]` selector. **(2) Pagination
 >     — max 3 page buttons** — `TablePagination.vue` rebuilt as a compact sliding window (≤3 numbered
 >     buttons centred on current + prev/next chevrons + range text) replacing `UPagination` (reka-ui always
->     renders first+last, so it couldn't be capped). **(3) i18n `assets.import`** — the Katalog toolbar
+>     renders first+last, so it couldn't be capped). **Follow-up (2026-07-14, branch `fix/unify-pagination`):**
+>     the **Katalog Aset** (`pages/assets/index.vue`, table **and** grid views) and **Audit Trail**
+>     (`pages/settings/audit.vue`) had their own hand-rolled paginators that enumerated *every* page (Katalog
+>     showed 22+ buttons over 63k rows); both now use the shared `TablePagination` via a `pageOffset`
+>     writable-computed bridging their 1-based `page` ref to the component's 0-based offset contract. All
+>     list screens now share one paginator (master screens already did via `ResourceTable`); the
+>     `audit-next-page` testid was replaced by the component's `pagination-next` (spec updated). **(3) i18n `assets.import`** — the Katalog toolbar
 >     button used `t('assets.import')`, which resolves to the wizard **namespace object** (a JSON duplicate
 >     key: string at top, object at `assets.import.*`) → raw key rendered; renamed the button string to
 >     `assets.importBtn` (id/en). **(4) Dashboard refresh icon** — the `:loading` button swapped the

@@ -52,11 +52,13 @@ const entityOptions = computed(() => [
 const anyFilter = computed(() =>
   !!(search.value.trim() || dateFrom.value || dateTo.value || fAction.value !== ALL || fEntity.value !== ALL || fActorId.value)
 )
-const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
-const pageInfo = computed(() => {
-  const from = total.value === 0 ? 0 : (page.value - 1) * PAGE_SIZE + 1
-  const to = Math.min(page.value * PAGE_SIZE, total.value)
-  return t('settings.audit.showing', { from, to, total: total.value })
+// Bridge the 1-based `page` ref to the shared TablePagination's 0-based offset
+// contract so this screen uses the same paginator as every other list.
+const pageOffset = computed({
+  get: () => (page.value - 1) * PAGE_SIZE,
+  set: (o: number) => {
+    page.value = Math.floor(o / PAGE_SIZE) + 1
+  }
 })
 
 // A 'YYYY-MM-DD' date input → an RFC3339 day bound for the backend from/to filter.
@@ -363,43 +365,13 @@ onMounted(() => load())
       </div>
 
       <!-- Pagination -->
-      <div class="flex items-center justify-between flex-wrap gap-2.5 px-4 py-3 border-t border-default">
-        <span class="text-[13px] text-muted">{{ pageInfo }}</span>
-        <div class="flex items-center gap-1.5">
-          <UButton
-            icon="i-lucide-chevron-left"
-            color="neutral"
-            variant="outline"
-            size="sm"
-            square
-            :disabled="page <= 1"
-            :aria-label="t('common.actions')"
-            @click="page = Math.max(1, page - 1)"
-          />
-          <UButton
-            v-for="p in totalPages"
-            :key="p"
-            :color="p === Math.min(page, totalPages) ? 'primary' : 'neutral'"
-            :variant="p === Math.min(page, totalPages) ? 'solid' : 'outline'"
-            size="sm"
-            class="min-w-[34px] justify-center"
-            @click="page = p"
-          >
-            {{ p }}
-          </UButton>
-          <UButton
-            data-testid="audit-next-page"
-            icon="i-lucide-chevron-right"
-            color="neutral"
-            variant="outline"
-            size="sm"
-            square
-            :disabled="page >= totalPages"
-            :aria-label="t('common.actions')"
-            @click="page = Math.min(totalPages, page + 1)"
-          />
-        </div>
-      </div>
+      <TablePagination
+        v-if="total > 0"
+        :total="total"
+        :limit="PAGE_SIZE"
+        :offset="pageOffset"
+        @update:offset="pageOffset = $event"
+      />
     </div>
 
     <!-- Empty state -->
