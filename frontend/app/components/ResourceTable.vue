@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TableColumn, DropdownMenuItem, ContextMenuItem } from '@nuxt/ui'
+import type { TableColumn, ContextMenuItem } from '@nuxt/ui'
 import type { RowActions, TableSorting } from '~/types'
 
 interface Column {
@@ -81,32 +81,10 @@ function toggleSort(id: string) {
   else sorting.value = []
 }
 
-// Map row actions to grouped menu items; a `separator` flag starts a new group
-// so a divider is drawn before it (e.g. destructive actions). Shared by both
-// the row dropdown and the right-click context menu.
-function buildItems(row: Record<string, unknown>): DropdownMenuItem[][] {
-  const acts = props.actions ? props.actions(row) : []
-  const groups: DropdownMenuItem[][] = []
-  let current: DropdownMenuItem[] = []
-  for (const a of acts) {
-    if (a.separator && current.length) {
-      groups.push(current)
-      current = []
-    }
-    current.push({
-      label: a.label,
-      icon: a.icon,
-      color: a.color,
-      disabled: a.disabled,
-      onSelect: () => a.onSelect?.()
-    })
-  }
-  if (current.length) groups.push(current)
-  return groups
-}
-
 // Right-click handler: resolve which rendered row the cursor is over and load
-// that row's actions into the context menu before Reka UI opens it.
+// that row's actions into the context menu before Reka UI opens it. Grouping
+// (a `separator` flag starts a new group so a divider is drawn before it) is
+// shared with the row dropdown (RowActionsMenu) via `buildActionGroups`.
 const contextItems = ref<ContextMenuItem[][]>([])
 function onContextMenu(e: MouseEvent) {
   const tr = (e.target as HTMLElement | null)?.closest('tbody tr')
@@ -116,7 +94,9 @@ function onContextMenu(e: MouseEvent) {
   }
   const index = Array.from(tr.parentElement.children).indexOf(tr)
   const row = displayRows.value[index]
-  contextItems.value = row ? (buildItems(row) as ContextMenuItem[][]) : []
+  contextItems.value = row && props.actions
+    ? (buildActionGroups(props.actions(row)) as ContextMenuItem[][])
+    : []
 }
 </script>
 
@@ -186,19 +166,10 @@ function onContextMenu(e: MouseEvent) {
               #__actions-cell="{ row }"
             >
               <div class="flex justify-end">
-                <UDropdownMenu
-                  v-if="props.actions && buildItems(row.original).length"
-                  :items="buildItems(row.original)"
-                  :content="{ align: 'end' }"
-                >
-                  <UButton
-                    icon="i-lucide-ellipsis-vertical"
-                    color="neutral"
-                    variant="ghost"
-                    size="xs"
-                    :aria-label="t('common.actions')"
-                  />
-                </UDropdownMenu>
+                <RowActionsMenu
+                  v-if="props.actions && buildActionGroups(props.actions(row.original)).length"
+                  :items="props.actions(row.original)"
+                />
                 <slot
                   v-else
                   name="row-actions"
