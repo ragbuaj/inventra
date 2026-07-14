@@ -297,7 +297,9 @@ test.describe('Depreciation (Penyusutan) — real backend (compute/close/impair/
     const row = page.locator('[data-testid="depr-schedule-row"]', { hasText: assetName })
     await expect(row).toHaveCount(1, { timeout: 10_000 })
 
-    await row.getByTestId('depr-impair').click()
+    // Impair action moved into the shared RowActionsMenu kebab (⋮).
+    await row.getByRole('button', { name: 'Aksi', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Catat Penurunan Nilai', exact: true }).click()
     await expect(page.getByTestId('depr-impair-current-value')).toContainText('4.400.000', { timeout: 10_000 })
 
     await page.getByTestId('depr-impair-recoverable').fill('1000000')

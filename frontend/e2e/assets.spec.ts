@@ -273,7 +273,10 @@ test.describe('Assets — real backend (maker-checker e2e)', () => {
     await expect(rowLink).toBeVisible({ timeout: 10_000 })
 
     const row = page.locator('tr', { has: rowLink })
-    await row.getByRole('button', { name: 'Cetak Label', exact: true }).click()
+    // Row actions moved into the shared RowActionsMenu kebab (⋮) — open it, then
+    // pick the menu item instead of clicking a now-gone inline button.
+    await row.getByRole('button', { name: 'Aksi', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Cetak Label', exact: true }).click()
 
     await expect(page).toHaveURL(new RegExp(`/assets/label\\?tags=${assetTag}$`))
     await expect(page.getByRole('heading', { name: 'Label & Barcode', exact: true })).toBeVisible({ timeout: 10_000 })

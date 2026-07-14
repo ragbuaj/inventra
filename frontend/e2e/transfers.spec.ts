@@ -209,9 +209,11 @@ test.describe('Transfer (Mutasi) — real backend (submit → approve → ship �
     await expect(row).toBeVisible({ timeout: 10_000 })
     await expect(row.getByTestId('transfer-history-status')).toHaveText('Disetujui')
 
-    const shipBtn = row.getByTestId('transfer-ship')
-    await expect(shipBtn).toBeVisible()
-    await shipBtn.click()
+    // Ship action moved into the shared RowActionsMenu kebab (⋮).
+    const actionsBtn = row.getByRole('button', { name: 'Aksi', exact: true })
+    await expect(actionsBtn).toBeVisible()
+    await actionsBtn.click()
+    await page.getByRole('menuitem', { name: 'Kirim', exact: true }).click()
 
     await page.getByTestId('transfer-ship-confirm').click()
 

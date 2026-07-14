@@ -227,7 +227,9 @@ test.describe('Disposal (Penghapusan) — real backend (submit → approve → B
 
     const row = page.locator('[data-testid="disposal-history-row"]', { hasText: assetName }).first()
     await expect(row).toBeVisible({ timeout: 10_000 })
-    await row.getByTestId('disposal-attach-bast').click()
+    // Attach-BAST action moved into the shared RowActionsMenu kebab (⋮).
+    await row.getByRole('button', { name: 'Aksi', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Lampirkan BAST Penghapusan', exact: true }).click()
 
     const bastNo = `BAP/E2E/${RUN}`
     await page.getByTestId('disposal-attach-bast-no').fill(bastNo)
