@@ -624,6 +624,9 @@
       "damaged": "Rusak",
       "misplaced": "Salah Lokasi"
     },
+    "action": {
+      "setResult": "Tandai: {result}"
+    },
     "kpi": {
       "total": "Total Aset",
       "found": "Ditemukan",
@@ -842,6 +845,7 @@
       "colStatus": "Status",
       "colCost": "Biaya",
       "colVendor": "Vendor / Teknisi",
+      "editRecord": "Ubah Catatan",
       "emptyTitle": "Tidak ada catatan",
       "emptySub": "Belum ada catatan maintenance yang cocok."
     },
@@ -1053,6 +1057,10 @@
     "pdf": "Ekspor PDF",
     "excel": "Ekspor Excel",
     "exportGl": "Rekap Jurnal GL",
+    "action": {
+      "downloadBaPdf": "Unduh Berita Acara PDF",
+      "downloadBaExcel": "Unduh Excel"
+    },
     "reset": "Atur Ulang Filter",
     "phTitle": "Pilih kriteria laporan",
     "phSub": "Tentukan jenis laporan dan filter di atas, lalu klik \"Terapkan\" untuk menampilkan hasil.",

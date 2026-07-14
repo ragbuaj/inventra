@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { BadgeColor } from '~/types'
+import type { ContextMenuItem } from '@nuxt/ui'
+import type { BadgeColor, RowAction } from '~/types'
 import type { MaintenanceSchedule, MaintenanceRecord, AttentionItem } from '~/composables/api/useMaintenance'
 import type { RecordPrefill } from '~/components/maintenance/RecordSlideover.vue'
 import { MAINT_STATUS_TONE, MAINT_TYPE_TONE, dueDiffDays, dueKind, formatRupiah, type DueKind } from '~/constants/maintenanceMeta'
@@ -222,6 +223,29 @@ function onRecordSaved() {
   loadRecords()
   loadSchedules()
   loadAttention()
+}
+
+// Per-row actions (kebab dropdown via RowActionsMenu, and the table's
+// right-click context menu below) — both built from this same list via
+// buildActionGroups so their grouping/dividers stay in sync (see Task 8,
+// mirrors assets/index.vue's Task 7 pattern). The whole-row click still opens
+// the edit slideover as a convenience; the kebab is the standardized
+// affordance and reaches the same openRecordEdit().
+function recordRowActions(r: MaintenanceRecord): RowAction[] {
+  if (!canManage.value) return []
+  return [{ label: t('maintenance.records.editRecord'), icon: 'i-lucide-pencil', onSelect: () => openRecordEdit(r) }]
+}
+
+const recordContextItems = ref<ContextMenuItem[][]>([])
+function onRecordRowContextMenu(r: MaintenanceRecord) {
+  recordContextItems.value = buildActionGroups(recordRowActions(r)) as ContextMenuItem[][]
+}
+// Safety net mirroring ResourceTable/disposals: a right-click that bubbles up
+// from outside an actual record `tbody tr` (header, empty area) must clear
+// any stale items left over from a previous row's right-click.
+function onRecordsTableContextMenu(e: MouseEvent) {
+  const tr = (e.target as HTMLElement | null)?.closest('tbody tr')
+  if (!tr) recordContextItems.value = []
 }
 
 function makeNoteFromSchedule(s: MaintenanceSchedule) {
@@ -751,88 +775,107 @@ onMounted(async () => {
         v-else
         class="bg-default border border-default rounded-[13px] shadow-sm overflow-hidden"
       >
-        <div class="overflow-x-auto">
-          <table class="w-full border-collapse text-[13.5px] whitespace-nowrap">
-            <thead>
-              <tr class="bg-muted text-muted">
-                <th class="text-left px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('maintenance.records.colAsset') }}
-                </th>
-                <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('maintenance.records.colType') }}
-                </th>
-                <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('maintenance.records.colCategory') }}
-                </th>
-                <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('maintenance.records.colDate') }}
-                </th>
-                <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('maintenance.records.colStatus') }}
-                </th>
-                <th class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('maintenance.records.colCost') }}
-                </th>
-                <th class="text-left px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('maintenance.records.colVendor') }}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="r in recordRows"
-                :key="r.id"
-                class="border-t border-default transition-colors"
-                :class="canManage ? 'cursor-pointer hover:bg-muted' : ''"
-                :data-testid="`record-row-${r.id}`"
-                @click="openRecordEdit(r.raw)"
-              >
-                <td class="px-4 py-3">
-                  <div class="font-medium">
-                    {{ r.assetName }}
-                  </div>
-                  <div class="font-mono text-[11.5px] text-dimmed">
-                    {{ r.assetTag }}
-                  </div>
-                </td>
-                <td class="px-3.5 py-3">
-                  <UBadge
-                    :color="r.typeTone"
-                    variant="subtle"
-                    class="rounded-full"
+        <UContextMenu
+          :items="recordContextItems"
+          :disabled="recordRows.length === 0"
+        >
+          <div
+            class="overflow-x-auto"
+            @contextmenu="onRecordsTableContextMenu"
+          >
+            <table class="w-full border-collapse text-[13.5px] whitespace-nowrap">
+              <thead>
+                <tr class="bg-muted text-muted">
+                  <th class="text-left px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('maintenance.records.colAsset') }}
+                  </th>
+                  <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('maintenance.records.colType') }}
+                  </th>
+                  <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('maintenance.records.colCategory') }}
+                  </th>
+                  <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('maintenance.records.colDate') }}
+                  </th>
+                  <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('maintenance.records.colStatus') }}
+                  </th>
+                  <th class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('maintenance.records.colCost') }}
+                  </th>
+                  <th class="text-left px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('maintenance.records.colVendor') }}
+                  </th>
+                  <th class="text-right px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('common.actions') }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="r in recordRows"
+                  :key="r.id"
+                  class="border-t border-default transition-colors"
+                  :class="canManage ? 'cursor-pointer hover:bg-muted' : ''"
+                  :data-testid="`record-row-${r.id}`"
+                  @click="openRecordEdit(r.raw)"
+                  @contextmenu="onRecordRowContextMenu(r.raw)"
+                >
+                  <td class="px-4 py-3">
+                    <div class="font-medium">
+                      {{ r.assetName }}
+                    </div>
+                    <div class="font-mono text-[11.5px] text-dimmed">
+                      {{ r.assetTag }}
+                    </div>
+                  </td>
+                  <td class="px-3.5 py-3">
+                    <UBadge
+                      :color="r.typeTone"
+                      variant="subtle"
+                      class="rounded-full"
+                    >
+                      {{ r.typeLabel }}
+                    </UBadge>
+                  </td>
+                  <td class="px-3.5 py-3 text-muted">
+                    {{ r.categoryLabel }}
+                  </td>
+                  <td class="px-3.5 py-3 text-muted">
+                    {{ r.dateLabel }}
+                  </td>
+                  <td class="px-3.5 py-3">
+                    <UBadge
+                      :color="r.statusTone"
+                      variant="subtle"
+                      class="rounded-full gap-1.5"
+                    >
+                      <span
+                        class="size-1.5 rounded-full"
+                        :class="DOT_CLASS[r.statusTone]"
+                      />
+                      {{ r.statusLabel }}
+                    </UBadge>
+                  </td>
+                  <td class="px-3.5 py-3 text-right tabular-nums">
+                    {{ r.costLabel }}
+                  </td>
+                  <td class="px-4 py-3 text-muted">
+                    {{ r.vendorLabel }}
+                  </td>
+                  <td
+                    class="px-4 py-3 text-right"
+                    :data-testid="`record-actions-${r.id}`"
+                    @click.stop
                   >
-                    {{ r.typeLabel }}
-                  </UBadge>
-                </td>
-                <td class="px-3.5 py-3 text-muted">
-                  {{ r.categoryLabel }}
-                </td>
-                <td class="px-3.5 py-3 text-muted">
-                  {{ r.dateLabel }}
-                </td>
-                <td class="px-3.5 py-3">
-                  <UBadge
-                    :color="r.statusTone"
-                    variant="subtle"
-                    class="rounded-full gap-1.5"
-                  >
-                    <span
-                      class="size-1.5 rounded-full"
-                      :class="DOT_CLASS[r.statusTone]"
-                    />
-                    {{ r.statusLabel }}
-                  </UBadge>
-                </td>
-                <td class="px-3.5 py-3 text-right tabular-nums">
-                  {{ r.costLabel }}
-                </td>
-                <td class="px-4 py-3 text-muted">
-                  {{ r.vendorLabel }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                    <RowActionsMenu :items="recordRowActions(r.raw)" />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </UContextMenu>
       </div>
     </div>
 

@@ -230,6 +230,14 @@ function clickTab(wrapper: Wrapper, label: string) {
   return btn!.trigger('click')
 }
 
+// Row-actions kebab/context-menu items are portaled to document.body; locale
+// here is 'id', so matching on the resolved Indonesian label text is
+// reliable (mirrors peminjaman.spec.ts / disposals.spec.ts).
+function menuItemByText(text: string): HTMLElement | undefined {
+  return Array.from(document.querySelectorAll('[role="menuitem"]'))
+    .find(el => el.textContent?.trim() === text) as HTMLElement | undefined
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   schedulesMock.mockResolvedValue(page([schedule()]))
@@ -473,6 +481,66 @@ describe('Maintenance page — Catatan tab', () => {
     await w.find('[data-testid="catatan-retry"]').trigger('click')
     await flushPromises()
     expect(w.text()).toContain('Tidak ada catatan')
+  })
+
+  it('exposes "Ubah Catatan" in a row-actions kebab (with maintenance.manage); selecting it opens the edit slideover without double-firing the row click', async () => {
+    const w = await mountAndWait()
+    await clickTab(w, 'Catatan')
+    const row = w.find('[data-testid="record-row-r1"]')
+    await row.find('button[aria-haspopup="menu"]').trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(menuItemByText('Ubah Catatan')).toBeTruthy()
+    menuItemByText('Ubah Catatan')!.click()
+    await flushPromises()
+
+    const vm = w.vm as unknown as Vm
+    expect(vm.recordSlideoverOpen).toBe(true)
+    expect((vm.recordSlideoverTarget as MaintenanceRecord).id).toBe('r1')
+  })
+
+  it('hides the row-actions kebab without maintenance.manage', async () => {
+    grant(['maintenance.view', 'request.create'])
+    const w = await mountAndWait()
+    await clickTab(w, 'Catatan')
+    const row = w.find('[data-testid="record-row-r1"]')
+    expect(row.find('button[aria-haspopup="menu"]').exists()).toBe(false)
+  })
+
+  it('the whole row still opens the edit slideover on click (kebab is a convenience, not a replacement)', async () => {
+    const w = await mountAndWait()
+    await clickTab(w, 'Catatan')
+    await w.find('[data-testid="record-row-r1"]').trigger('click')
+    const vm = w.vm as unknown as Vm
+    expect(vm.recordSlideoverOpen).toBe(true)
+    expect((vm.recordSlideoverTarget as MaintenanceRecord).id).toBe('r1')
+  })
+
+  it('right-clicking a record row surfaces "Ubah Catatan" in the context menu', async () => {
+    const w = await mountAndWait()
+    await clickTab(w, 'Catatan')
+    const row = w.find('[data-testid="record-row-r1"]').element
+    row.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(menuItemByText('Ubah Catatan')).toBeTruthy()
+  })
+
+  it('right-clicking the table header after right-clicking a row shows no stale context menu', async () => {
+    const w = await mountAndWait()
+    await clickTab(w, 'Catatan')
+    const row = w.find('[data-testid="record-row-r1"]').element
+    row.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(menuItemByText('Ubah Catatan')).toBeTruthy()
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    const thead = w.find('thead tr').element
+    thead.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(document.querySelectorAll('[role="menuitem"]').length).toBe(0)
   })
 })
 

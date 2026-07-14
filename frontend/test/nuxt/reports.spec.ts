@@ -170,6 +170,14 @@ async function applyAndSettle(wrapper: Awaited<ReturnType<typeof mountPage>>) {
   await wrapper.vm.$nextTick()
 }
 
+// Row-actions kebab/context-menu items are portaled to document.body; locale
+// here is 'id', so matching on the resolved Indonesian label text is
+// reliable (mirrors peminjaman.spec.ts / disposals.spec.ts).
+function menuItemByText(text: string): HTMLElement | undefined {
+  return Array.from(document.querySelectorAll('[role="menuitem"]'))
+    .find(el => el.textContent?.trim() === text) as HTMLElement | undefined
+}
+
 // ---------------------------------------------------------------------------
 // 1 — cards
 // ---------------------------------------------------------------------------
@@ -452,21 +460,82 @@ describe('Reports page — opname BA', () => {
     expect(cells[2]).toBe('2026-06') // Periode cell for sess-1
   })
 
-  it('renders per-row BA buttons that call opnameBa(sessionId, format)', async () => {
+  it('renders a row-actions kebab with Berita Acara PDF/Excel that call opnameBa(sessionId, format)', async () => {
     runMock.mockResolvedValue(opnameResult)
     const wrapper = await mountPage()
     ;(wrapper.vm as unknown as Vm).selectReport('opname')
     await wrapper.vm.$nextTick()
     await applyAndSettle(wrapper)
-    const pdfBtn = wrapper.find('[data-testid="reports-opname-ba-pdf-sess-1"]')
-    expect(pdfBtn.exists()).toBe(true)
-    await pdfBtn.trigger('click')
+
+    const row = wrapper.find('[data-testid="reports-opname-row"]')
+    expect(row.exists()).toBe(true)
+    await row.find('button[aria-haspopup="menu"]').trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(menuItemByText('Unduh Berita Acara PDF')).toBeTruthy()
+    expect(menuItemByText('Unduh Excel')).toBeTruthy()
+
+    menuItemByText('Unduh Berita Acara PDF')!.click()
     await flushPromises()
     expect(opnameBaMock).toHaveBeenCalledWith('sess-1', 'pdf')
 
-    await wrapper.find('[data-testid="reports-opname-ba-xlsx-sess-1"]').trigger('click')
+    await row.find('button[aria-haspopup="menu"]').trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    menuItemByText('Unduh Excel')!.click()
     await flushPromises()
     expect(opnameBaMock).toHaveBeenCalledWith('sess-1', 'xlsx')
+  })
+
+  it('right-clicking an opname row surfaces the same BA actions in the context menu', async () => {
+    runMock.mockResolvedValue(opnameResult)
+    const wrapper = await mountPage()
+    ;(wrapper.vm as unknown as Vm).selectReport('opname')
+    await wrapper.vm.$nextTick()
+    await applyAndSettle(wrapper)
+
+    const row = wrapper.find('[data-testid="reports-opname-row"]').element
+    row.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(menuItemByText('Unduh Berita Acara PDF')).toBeTruthy()
+
+    menuItemByText('Unduh Berita Acara PDF')!.click()
+    await flushPromises()
+    expect(opnameBaMock).toHaveBeenCalledWith('sess-1', 'pdf')
+  })
+
+  it('right-clicking the table header after right-clicking an opname row shows no stale context menu', async () => {
+    runMock.mockResolvedValue(opnameResult)
+    const wrapper = await mountPage()
+    ;(wrapper.vm as unknown as Vm).selectReport('opname')
+    await wrapper.vm.$nextTick()
+    await applyAndSettle(wrapper)
+
+    const row = wrapper.find('[data-testid="reports-opname-row"]').element
+    row.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(menuItemByText('Unduh Berita Acara PDF')).toBeTruthy()
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    const thead = wrapper.find('thead tr').element
+    thead.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(document.querySelectorAll('[role="menuitem"]').length).toBe(0)
+  })
+
+  it('hides the BA kebab (dash placeholder, no menu) without report.export', async () => {
+    grant(['report.view'])
+    runMock.mockResolvedValue(opnameResult)
+    const wrapper = await mountPage()
+    ;(wrapper.vm as unknown as Vm).selectReport('opname')
+    await wrapper.vm.$nextTick()
+    await applyAndSettle(wrapper)
+
+    const row = wrapper.find('[data-testid="reports-opname-row"]')
+    expect(row.find('button[aria-haspopup="menu"]').exists()).toBe(false)
+    expect(row.text()).toContain('—')
   })
 })
 
