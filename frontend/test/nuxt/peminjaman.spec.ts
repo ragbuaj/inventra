@@ -123,6 +123,13 @@ async function mountAndWait() {
   return wrapper
 }
 
+// Row-actions kebab/context-menu items are portaled to document.body; locale
+// here is 'id', so matching on the resolved Indonesian label text is reliable.
+function menuItemByText(text: string): HTMLElement | undefined {
+  return Array.from(document.querySelectorAll('[role="menuitem"]'))
+    .find(el => el.textContent?.trim() === text) as HTMLElement | undefined
+}
+
 beforeEach(() => {
   availableMock.mockReset()
   borrowMock.mockReset()
@@ -229,7 +236,7 @@ describe('Peminjaman page — Pengajuan Peminjaman Saya list', () => {
     expect(wrapper.text()).toContain('Disetujui, harap kembalikan tepat waktu.')
   })
 
-  it('shows Batalkan only for pending rows; clicking calls cancel then reloads', async () => {
+  it('shows a Batalkan kebab action only for pending rows; selecting it calls cancel then reloads', async () => {
     myRequestsMock.mockResolvedValueOnce({
       data: [
         myRequestRow({ id: 'r-pending', status: 'pending' }),
@@ -239,16 +246,89 @@ describe('Peminjaman page — Pengajuan Peminjaman Saya list', () => {
     })
     const wrapper = await mountAndWait()
 
-    expect(wrapper.find('[data-testid="peminjaman-cancel-r-pending"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="peminjaman-cancel-r-approved"]').exists()).toBe(false)
+    const pendingRow = wrapper.find('[data-testid="peminjaman-row-r-pending"]')
+    const approvedRow = wrapper.find('[data-testid="peminjaman-row-r-approved"]')
+    expect(pendingRow.find('button[aria-haspopup="menu"]').exists()).toBe(true)
+    expect(approvedRow.find('button[aria-haspopup="menu"]').exists()).toBe(false)
 
     cancelMock.mockResolvedValueOnce({})
     myRequestsMock.mockClear()
-    await wrapper.find('[data-testid="peminjaman-cancel-r-pending"]').trigger('click')
+    await pendingRow.find('button[aria-haspopup="menu"]').trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    menuItemByText('Batalkan')!.click()
     await flushPromises()
 
     expect(cancelMock).toHaveBeenCalledWith('r-pending')
     expect(myRequestsMock).toHaveBeenCalled()
+  })
+
+  it('opening the kebab / selecting Batalkan does not toggle the row timeline', async () => {
+    myRequestsMock.mockResolvedValueOnce({ data: [myRequestRow({ id: 'r-pending', status: 'pending' })], total: 1 })
+    approvalGetMock.mockResolvedValue(detail())
+    const wrapper = await mountAndWait()
+
+    const pendingRow = wrapper.find('[data-testid="peminjaman-row-r-pending"]')
+    await pendingRow.find('button[aria-haspopup="menu"]').trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    // Opening the kebab (a click inside the actions cell, which stops
+    // propagation) must not have expanded the timeline row.
+    expect(wrapper.find('[data-testid="peminjaman-timeline-r-pending"]').exists()).toBe(false)
+    expect(approvalGetMock).not.toHaveBeenCalled()
+
+    cancelMock.mockResolvedValueOnce({})
+    menuItemByText('Batalkan')!.click()
+    await flushPromises()
+
+    expect(cancelMock).toHaveBeenCalledWith('r-pending')
+    expect(wrapper.find('[data-testid="peminjaman-timeline-r-pending"]').exists()).toBe(false)
+  })
+
+  it('the row itself (outside the actions cell) still toggles the timeline on click', async () => {
+    approvalGetMock.mockResolvedValueOnce(detail())
+    const wrapper = await mountAndWait()
+
+    await wrapper.find('[data-testid="peminjaman-row-req1"]').trigger('click')
+    await flushPromises()
+
+    expect(approvalGetMock).toHaveBeenCalledWith('req1')
+    expect(wrapper.find('[data-testid="peminjaman-timeline-req1"]').exists()).toBe(true)
+  })
+
+  it('right-clicking a pending row surfaces Batalkan in the context menu', async () => {
+    myRequestsMock.mockResolvedValueOnce({ data: [myRequestRow({ id: 'r-pending', status: 'pending' })], total: 1 })
+    const wrapper = await mountAndWait()
+
+    const pendingRow = wrapper.find('[data-testid="peminjaman-row-r-pending"]').element
+    pendingRow.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(menuItemByText('Batalkan')).toBeTruthy()
+  })
+
+  it('right-clicking a non-row area (or the expanded timeline row) after right-clicking a pending row shows no stale context menu', async () => {
+    myRequestsMock.mockResolvedValueOnce({ data: [myRequestRow({ id: 'r-pending', status: 'pending' })], total: 1 })
+    approvalGetMock.mockResolvedValueOnce(detail())
+    const wrapper = await mountAndWait()
+
+    const pendingRow = wrapper.find('[data-testid="peminjaman-row-r-pending"]').element
+    pendingRow.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(menuItemByText('Batalkan')).toBeTruthy()
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    // Expand the row's timeline, then right-click inside it — the timeline
+    // row is a `tbody tr` too, but not a request row, so this must not
+    // resurface the pending row's stale "Batalkan" item.
+    await wrapper.find('[data-testid="peminjaman-row-r-pending"]').trigger('click')
+    await flushPromises()
+    const timeline = wrapper.find('[data-testid="peminjaman-timeline-r-pending"]').element
+    timeline.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(document.querySelectorAll('[role="menuitem"]').length).toBe(0)
   })
 
   it('shows the empty state when myRequests returns []', async () => {

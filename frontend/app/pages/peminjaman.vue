@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import type { ContextMenuItem } from '@nuxt/ui'
 import type { AvailableAsset } from '~/composables/api/useAssignment'
 import type { ApprovalStep } from '~/composables/api/useApproval'
-import type { BadgeColor } from '~/types'
+import type { BadgeColor, RowAction } from '~/types'
 import type { RequestStatus } from '~/constants/assignmentMeta'
 import { REQUEST_STATUS_TONE, formatDateID } from '~/constants/assignmentMeta'
 
@@ -234,6 +235,38 @@ async function cancelRequest(id: string) {
   }
 }
 
+// Per-row actions (kebab dropdown via RowActionsMenu, and the table's
+// right-click context menu below) — both built from this same list via
+// buildActionGroups so their grouping/dividers stay in sync (see Task 8,
+// mirrors assets/index.vue's Task 7 pattern). "Batalkan" only applies to
+// still-pending requests (row.canCancel); disabled while its own cancel
+// call is in flight.
+function rowActions(row: { id: string, canCancel: boolean }): RowAction[] {
+  return row.canCancel
+    ? [{
+        label: t('peminjaman.list.cancelAction'),
+        icon: 'i-lucide-x',
+        color: 'error',
+        disabled: cancellingId.value === row.id,
+        onSelect: () => cancelRequest(row.id)
+      }]
+    : []
+}
+
+const contextItems = ref<ContextMenuItem[][]>([])
+function onRowContextMenu(row: { id: string, canCancel: boolean }) {
+  contextItems.value = buildActionGroups(rowActions(row)) as ContextMenuItem[][]
+}
+// Safety net mirroring ResourceTable/assets-index: a right-click that
+// bubbles up from outside an actual request row (header, empty area, or the
+// row's own expandable timeline `<tr>` — which is a `tbody tr` too but not a
+// request row) must clear any stale items left over from a previous row's
+// right-click.
+function onTableContextMenu(e: MouseEvent) {
+  const tr = (e.target as HTMLElement | null)?.closest('[data-testid^="peminjaman-row-"]')
+  if (!tr) contextItems.value = []
+}
+
 onMounted(async () => {
   await Promise.all([loadAvailable(), loadRequests()])
 })
@@ -421,181 +454,179 @@ onMounted(async () => {
       v-else
       class="bg-default border border-default rounded-[13px] shadow-sm overflow-hidden"
     >
-      <div class="overflow-x-auto">
-        <table class="w-full border-collapse text-[13.5px]">
-          <thead>
-            <tr class="bg-muted text-muted">
-              <th class="w-[30px] px-2 py-[11px]" />
-              <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
-                {{ t('peminjaman.list.colAsset') }}
-              </th>
-              <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
-                {{ t('peminjaman.list.colDiajukan') }}
-              </th>
-              <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
-                {{ t('peminjaman.list.colTempo') }}
-              </th>
-              <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
-                {{ t('peminjaman.list.colStatus') }}
-              </th>
-              <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                {{ t('peminjaman.list.colCatatan') }}
-              </th>
-              <th class="text-right px-4 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
-                {{ t('peminjaman.list.colAksi') }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <template
-              v-for="row in rows"
-              :key="row.id"
-            >
-              <tr
-                class="border-t border-default cursor-pointer hover:bg-muted transition-colors"
-                :class="row.open ? 'bg-muted' : ''"
-                :data-testid="`peminjaman-row-${row.id}`"
-                @click="toggleRow(row.id)"
+      <UContextMenu
+        :items="contextItems"
+        :disabled="rows.length === 0"
+      >
+        <div
+          class="overflow-x-auto"
+          @contextmenu="onTableContextMenu"
+        >
+          <table class="w-full border-collapse text-[13.5px]">
+            <thead>
+              <tr class="bg-muted text-muted">
+                <th class="w-[30px] px-2 py-[11px]" />
+                <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
+                  {{ t('peminjaman.list.colAsset') }}
+                </th>
+                <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
+                  {{ t('peminjaman.list.colDiajukan') }}
+                </th>
+                <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
+                  {{ t('peminjaman.list.colTempo') }}
+                </th>
+                <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
+                  {{ t('peminjaman.list.colStatus') }}
+                </th>
+                <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                  {{ t('peminjaman.list.colCatatan') }}
+                </th>
+                <th class="text-right px-4 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
+                  {{ t('peminjaman.list.colAksi') }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <template
+                v-for="row in rows"
+                :key="row.id"
               >
-                <td class="px-2 py-3">
-                  <UIcon
-                    name="i-lucide-chevron-right"
-                    class="size-[15px] text-dimmed transition-transform"
-                    :class="row.open ? 'rotate-90' : ''"
-                  />
-                </td>
-                <td class="px-3 py-3">
-                  <div class="font-medium whitespace-nowrap">
-                    {{ row.assetName ?? row.assetTag ?? '—' }}
-                  </div>
-                  <div class="font-mono text-[11px] text-dimmed">
-                    {{ row.assetName ? row.assetTag : '' }}
-                  </div>
-                </td>
-                <td class="px-3 py-3 text-muted whitespace-nowrap">
-                  {{ row.diajukan }}
-                </td>
-                <td
-                  class="px-3 py-3 whitespace-nowrap"
-                  :class="row.tempo ? 'text-muted' : 'text-dimmed'"
+                <tr
+                  class="border-t border-default cursor-pointer hover:bg-muted transition-colors"
+                  :class="row.open ? 'bg-muted' : ''"
+                  :data-testid="`peminjaman-row-${row.id}`"
+                  @click="toggleRow(row.id)"
+                  @contextmenu="onRowContextMenu(row)"
                 >
-                  {{ row.tempo ?? '—' }}
-                </td>
-                <td class="px-3 py-3">
-                  <UBadge
-                    :color="row.statusTone"
-                    variant="subtle"
-                    class="rounded-full gap-1.5"
-                    :data-testid="`peminjaman-status-${row.id}`"
-                  >
-                    <span
-                      class="size-1.5 rounded-full"
-                      :class="STATUS_DOT[row.statusTone]"
+                  <td class="px-2 py-3">
+                    <UIcon
+                      name="i-lucide-chevron-right"
+                      class="size-[15px] text-dimmed transition-transform"
+                      :class="row.open ? 'rotate-90' : ''"
                     />
-                    {{ t(`peminjaman.status.${row.status}`) }}
-                  </UBadge>
-                </td>
-                <td class="px-3 py-3 text-muted max-w-[200px]">
-                  <span class="block truncate">{{ row.catatan ?? '—' }}</span>
-                </td>
-                <td class="px-4 py-3 text-right whitespace-nowrap">
-                  <UButton
-                    v-if="row.canCancel"
-                    size="xs"
-                    color="error"
-                    variant="outline"
-                    icon="i-lucide-x"
-                    :loading="cancellingId === row.id"
-                    :data-testid="`peminjaman-cancel-${row.id}`"
-                    @click.stop="cancelRequest(row.id)"
+                  </td>
+                  <td class="px-3 py-3">
+                    <div class="font-medium whitespace-nowrap">
+                      {{ row.assetName ?? row.assetTag ?? '—' }}
+                    </div>
+                    <div class="font-mono text-[11px] text-dimmed">
+                      {{ row.assetName ? row.assetTag : '' }}
+                    </div>
+                  </td>
+                  <td class="px-3 py-3 text-muted whitespace-nowrap">
+                    {{ row.diajukan }}
+                  </td>
+                  <td
+                    class="px-3 py-3 whitespace-nowrap"
+                    :class="row.tempo ? 'text-muted' : 'text-dimmed'"
                   >
-                    {{ t('peminjaman.list.cancelAction') }}
-                  </UButton>
-                  <span
-                    v-else
-                    class="text-xs text-dimmed"
-                  >—</span>
-                </td>
-              </tr>
-              <tr
-                v-if="row.open"
-                class="bg-muted"
-              >
-                <td
-                  colspan="7"
-                  class="px-5 py-4"
-                  :data-testid="`peminjaman-timeline-${row.id}`"
+                    {{ row.tempo ?? '—' }}
+                  </td>
+                  <td class="px-3 py-3">
+                    <UBadge
+                      :color="row.statusTone"
+                      variant="subtle"
+                      class="rounded-full gap-1.5"
+                      :data-testid="`peminjaman-status-${row.id}`"
+                    >
+                      <span
+                        class="size-1.5 rounded-full"
+                        :class="STATUS_DOT[row.statusTone]"
+                      />
+                      {{ t(`peminjaman.status.${row.status}`) }}
+                    </UBadge>
+                  </td>
+                  <td class="px-3 py-3 text-muted max-w-[200px]">
+                    <span class="block truncate">{{ row.catatan ?? '—' }}</span>
+                  </td>
+                  <td
+                    class="px-4 py-3 text-right whitespace-nowrap"
+                    :data-testid="`peminjaman-actions-${row.id}`"
+                    @click.stop
+                  >
+                    <RowActionsMenu :items="rowActions(row)" />
+                  </td>
+                </tr>
+                <tr
+                  v-if="row.open"
+                  class="bg-muted"
                 >
-                  <div class="text-[11px] font-semibold uppercase tracking-wider text-dimmed mb-3">
-                    {{ t('peminjaman.list.timelineTitle') }}
-                  </div>
-                  <div
-                    v-if="timelineLoading.has(row.id)"
-                    class="flex flex-col gap-2"
+                  <td
+                    colspan="7"
+                    class="px-5 py-4"
+                    :data-testid="`peminjaman-timeline-${row.id}`"
                   >
-                    <USkeleton class="h-4 w-2/3 rounded" />
-                    <USkeleton class="h-4 w-1/2 rounded" />
-                  </div>
-                  <div
-                    v-else-if="!submittedEntryFor(row.id) && timelineFor(row.id).length === 0"
-                    class="text-[12.5px] text-dimmed"
-                  >
-                    {{ t('peminjaman.list.timelineEmpty') }}
-                  </div>
-                  <div
-                    v-else
-                    class="flex flex-col gap-3"
-                  >
+                    <div class="text-[11px] font-semibold uppercase tracking-wider text-dimmed mb-3">
+                      {{ t('peminjaman.list.timelineTitle') }}
+                    </div>
                     <div
-                      v-if="submittedEntryFor(row.id)"
-                      class="flex gap-3"
-                      :data-testid="`peminjaman-timeline-submitted-${row.id}`"
+                      v-if="timelineLoading.has(row.id)"
+                      class="flex flex-col gap-2"
                     >
-                      <span class="size-[22px] rounded-full bg-info text-inverted flex items-center justify-center flex-none">
-                        <UIcon
-                          name="i-lucide-user"
-                          class="size-3"
-                        />
-                      </span>
-                      <div class="min-w-0 flex-1">
-                        <div class="text-[13px] font-semibold">
-                          {{ submittedEntryFor(row.id)?.label }}
+                      <USkeleton class="h-4 w-2/3 rounded" />
+                      <USkeleton class="h-4 w-1/2 rounded" />
+                    </div>
+                    <div
+                      v-else-if="!submittedEntryFor(row.id) && timelineFor(row.id).length === 0"
+                      class="text-[12.5px] text-dimmed"
+                    >
+                      {{ t('peminjaman.list.timelineEmpty') }}
+                    </div>
+                    <div
+                      v-else
+                      class="flex flex-col gap-3"
+                    >
+                      <div
+                        v-if="submittedEntryFor(row.id)"
+                        class="flex gap-3"
+                        :data-testid="`peminjaman-timeline-submitted-${row.id}`"
+                      >
+                        <span class="size-[22px] rounded-full bg-info text-inverted flex items-center justify-center flex-none">
+                          <UIcon
+                            name="i-lucide-user"
+                            class="size-3"
+                          />
+                        </span>
+                        <div class="min-w-0 flex-1">
+                          <div class="text-[13px] font-semibold">
+                            {{ submittedEntryFor(row.id)?.label }}
+                          </div>
+                          <div class="text-xs text-muted mt-px">
+                            {{ submittedEntryFor(row.id)?.meta }}
+                          </div>
                         </div>
-                        <div class="text-xs text-muted mt-px">
-                          {{ submittedEntryFor(row.id)?.meta }}
+                      </div>
+                      <div
+                        v-for="(step, i) in timelineFor(row.id)"
+                        :key="i"
+                        class="flex gap-3"
+                      >
+                        <span class="size-[22px] rounded-full bg-default border border-default flex items-center justify-center flex-none text-[11px] font-semibold">
+                          {{ step.step_order }}
+                        </span>
+                        <div class="min-w-0 flex-1">
+                          <div class="text-[13px] font-semibold">
+                            {{ t(`peminjaman.list.decision.${step.decision}`) }}
+                          </div>
+                          <div class="text-xs text-muted mt-px">
+                            {{ step.approver_name ?? t('peminjaman.list.timelineWaiting') }} · {{ fmtDateTime(step.decided_at) }}
+                          </div>
+                          <div
+                            v-if="step.note"
+                            class="mt-1.5 px-2.5 py-2 rounded-lg bg-default border border-default text-[12.5px] leading-snug text-muted"
+                          >
+                            "{{ step.note }}"
+                          </div>
                         </div>
                       </div>
                     </div>
-                    <div
-                      v-for="(step, i) in timelineFor(row.id)"
-                      :key="i"
-                      class="flex gap-3"
-                    >
-                      <span class="size-[22px] rounded-full bg-default border border-default flex items-center justify-center flex-none text-[11px] font-semibold">
-                        {{ step.step_order }}
-                      </span>
-                      <div class="min-w-0 flex-1">
-                        <div class="text-[13px] font-semibold">
-                          {{ t(`peminjaman.list.decision.${step.decision}`) }}
-                        </div>
-                        <div class="text-xs text-muted mt-px">
-                          {{ step.approver_name ?? t('peminjaman.list.timelineWaiting') }} · {{ fmtDateTime(step.decided_at) }}
-                        </div>
-                        <div
-                          v-if="step.note"
-                          class="mt-1.5 px-2.5 py-2 rounded-lg bg-default border border-default text-[12.5px] leading-snug text-muted"
-                        >
-                          "{{ step.note }}"
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </UContextMenu>
       <div class="px-4 py-3 border-t border-default text-[13px] text-muted">
         {{ t('peminjaman.list.total', { n: rows.length }) }}
       </div>

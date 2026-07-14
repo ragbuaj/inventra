@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { Asset, AssetAttachment, AssetStatus, BadgeColor, Office } from '~/types'
+import type { ContextMenuItem } from '@nuxt/ui'
+import type { Asset, AssetAttachment, AssetStatus, BadgeColor, Office, RowAction } from '~/types'
 import type { Disposal, DisposalSubmitInput } from '~/composables/api/useDisposals'
 import type { ApprovalRequestRow, ApprovalStep } from '~/composables/api/useApproval'
 import type { PreviewStep } from '~/composables/api/useApprovalPreview'
@@ -462,6 +463,30 @@ async function confirmAttach() {
   } finally {
     attachSubmitting.value = false
   }
+}
+
+// Per-row actions (kebab dropdown via RowActionsMenu, and the table's
+// right-click context menu below) — both built from this same list via
+// buildActionGroups so their grouping/dividers stay in sync (see Task 8,
+// mirrors assets/index.vue's Task 7 pattern). "Lampirkan BAST" only applies
+// to executed (selesai) disposals without a BAST yet (row.canAttach).
+function rowActions(row: DisposalHistoryRow): RowAction[] {
+  return row.canAttach
+    ? [{ label: t('disposal.attachBast.title'), icon: 'i-lucide-paperclip', onSelect: () => openAttach(row) }]
+    : []
+}
+
+const contextItems = ref<ContextMenuItem[][]>([])
+function onRowContextMenu(row: DisposalHistoryRow) {
+  contextItems.value = buildActionGroups(rowActions(row)) as ContextMenuItem[][]
+}
+// Safety net mirroring ResourceTable/assets-index: a right-click that bubbles
+// up from outside a `tbody tr` (header row, empty table area) must clear any
+// stale items left over from a previous row's right-click — otherwise the
+// menu would surface the previous row's actions.
+function onTableContextMenu(e: MouseEvent) {
+  const tr = (e.target as HTMLElement | null)?.closest('tbody tr')
+  if (!tr) contextItems.value = []
 }
 
 // ---------------------------------------------------------------------------
@@ -1182,98 +1207,102 @@ onMounted(() => {
         v-else
         class="bg-default border border-default rounded-[13px] shadow-sm overflow-hidden"
       >
-        <div class="overflow-x-auto">
-          <table class="w-full border-collapse text-[13.5px] whitespace-nowrap">
-            <thead>
-              <tr class="bg-muted text-muted">
-                <th class="text-left px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('disposal.history.column.asset') }}
-                </th>
-                <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('disposal.history.column.method') }}
-                </th>
-                <th class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('disposal.history.column.value') }}
-                </th>
-                <th class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('disposal.history.column.gainLoss') }}
-                </th>
-                <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('disposal.history.column.date') }}
-                </th>
-                <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('disposal.history.column.status') }}
-                </th>
-                <th class="px-4 py-[11px]" />
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="row in filteredHistory"
-                :key="row.key"
-                data-testid="disposal-history-row"
-                class="border-t border-default hover:bg-muted/60 transition-colors"
-              >
-                <td class="px-4 py-3">
-                  <div class="font-medium">
-                    {{ row.assetLabel }}
-                  </div>
-                  <div
-                    v-if="row.assetTag"
-                    class="font-mono text-[11.5px] text-dimmed"
-                  >
-                    {{ row.assetTag }}
-                  </div>
-                </td>
-                <td class="px-3.5 py-3">
-                  <UBadge
-                    v-if="row.methodKey"
-                    :color="METHOD_TONE[row.methodKey]"
-                    variant="subtle"
-                    class="rounded-full"
-                  >
-                    {{ t(`disposal.method.${row.methodKey}`) }}
-                  </UBadge>
-                  <span
-                    v-else
-                    class="text-dimmed"
-                  >—</span>
-                </td>
-                <td class="px-3.5 py-3 text-right tabular-nums">
-                  {{ row.proceeds && Number(row.proceeds) !== 0 ? formatRupiah(row.proceeds) : '—' }}
-                </td>
-                <td
-                  class="px-3.5 py-3 text-right tabular-nums font-semibold"
-                  :class="row.gainLoss === null ? 'text-muted' : (Number(row.gainLoss) > 0 ? 'text-success' : (Number(row.gainLoss) < 0 ? 'text-error' : 'text-muted'))"
+        <UContextMenu
+          :items="contextItems"
+          :disabled="filteredHistory.length === 0"
+        >
+          <div
+            class="overflow-x-auto"
+            @contextmenu="onTableContextMenu"
+          >
+            <table class="w-full border-collapse text-[13.5px] whitespace-nowrap">
+              <thead>
+                <tr class="bg-muted text-muted">
+                  <th class="text-left px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('disposal.history.column.asset') }}
+                  </th>
+                  <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('disposal.history.column.method') }}
+                  </th>
+                  <th class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('disposal.history.column.value') }}
+                  </th>
+                  <th class="text-right px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('disposal.history.column.gainLoss') }}
+                  </th>
+                  <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('disposal.history.column.date') }}
+                  </th>
+                  <th class="text-left px-3.5 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('disposal.history.column.status') }}
+                  </th>
+                  <th class="px-4 py-[11px]" />
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="row in filteredHistory"
+                  :key="row.key"
+                  data-testid="disposal-history-row"
+                  class="border-t border-default hover:bg-muted/60 transition-colors"
+                  @contextmenu="onRowContextMenu(row)"
                 >
-                  {{ row.gainLoss === null ? '—' : formatSigned(Number(row.gainLoss)) }}
-                </td>
-                <td class="px-3.5 py-3 text-muted">
-                  {{ row.dateLabel }}
-                </td>
-                <td class="px-3.5 py-3">
-                  <UBadge
-                    :color="HISTORY_STATUS_TONE[row.status]"
-                    variant="subtle"
-                    class="rounded-full gap-1.5"
+                  <td class="px-4 py-3">
+                    <div class="font-medium">
+                      {{ row.assetLabel }}
+                    </div>
+                    <div
+                      v-if="row.assetTag"
+                      class="font-mono text-[11.5px] text-dimmed"
+                    >
+                      {{ row.assetTag }}
+                    </div>
+                  </td>
+                  <td class="px-3.5 py-3">
+                    <UBadge
+                      v-if="row.methodKey"
+                      :color="METHOD_TONE[row.methodKey]"
+                      variant="subtle"
+                      class="rounded-full"
+                    >
+                      {{ t(`disposal.method.${row.methodKey}`) }}
+                    </UBadge>
+                    <span
+                      v-else
+                      class="text-dimmed"
+                    >—</span>
+                  </td>
+                  <td class="px-3.5 py-3 text-right tabular-nums">
+                    {{ row.proceeds && Number(row.proceeds) !== 0 ? formatRupiah(row.proceeds) : '—' }}
+                  </td>
+                  <td
+                    class="px-3.5 py-3 text-right tabular-nums font-semibold"
+                    :class="row.gainLoss === null ? 'text-muted' : (Number(row.gainLoss) > 0 ? 'text-success' : (Number(row.gainLoss) < 0 ? 'text-error' : 'text-muted'))"
                   >
-                    {{ t(`disposal.status.${row.status}`) }}
-                  </UBadge>
-                </td>
-                <td class="px-4 py-3 text-right">
-                  <UButton
-                    v-if="row.canAttach"
-                    size="xs"
-                    icon="i-lucide-paperclip"
-                    :label="t('disposal.attachBast.title')"
-                    data-testid="disposal-attach-bast"
-                    @click="openAttach(row)"
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                    {{ row.gainLoss === null ? '—' : formatSigned(Number(row.gainLoss)) }}
+                  </td>
+                  <td class="px-3.5 py-3 text-muted">
+                    {{ row.dateLabel }}
+                  </td>
+                  <td class="px-3.5 py-3">
+                    <UBadge
+                      :color="HISTORY_STATUS_TONE[row.status]"
+                      variant="subtle"
+                      class="rounded-full gap-1.5"
+                    >
+                      {{ t(`disposal.status.${row.status}`) }}
+                    </UBadge>
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    <div class="flex justify-end">
+                      <RowActionsMenu :items="rowActions(row)" />
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </UContextMenu>
         <div class="px-4 py-3 border-t border-default text-[13px] text-muted">
           {{ t('disposal.history.info', { n: filteredHistory.length }) }}
         </div>
