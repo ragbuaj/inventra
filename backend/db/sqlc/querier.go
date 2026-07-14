@@ -227,12 +227,6 @@ type Querier interface {
 	ListAssets(ctx context.Context, arg ListAssetsParams) ([]AssetAsset, error)
 	// Every capitalized, non-deleted asset with its category (engine resolves/skips per-asset).
 	ListAssetsForDepreciation(ctx context.Context) ([]ListAssetsForDepreciationRow, error)
-	// Capitalized assets in scope with NO entry for the requested period+basis —
-	// the schedule's "fully depreciated, no new entry this period" union rows.
-	// The service further drops any row whose Resolve{Commercial,Fiscal} skips
-	// (data drift since the asset last depreciated), keeping only "parameterized"
-	// assets per the module spec.
-	ListAssetsForScheduleUnion(ctx context.Context, arg ListAssetsForScheduleUnionParams) ([]ListAssetsForScheduleUnionRow, error)
 	ListAssignmentsByAssetEnriched(ctx context.Context, arg ListAssignmentsByAssetEnrichedParams) ([]ListAssignmentsByAssetEnrichedRow, error)
 	ListAssignmentsEnriched(ctx context.Context, arg ListAssignmentsEnrichedParams) ([]ListAssignmentsEnrichedRow, error)
 	ListAttachments(ctx context.Context, assetID uuid.UUID) ([]AssetAssetAttachment, error)
@@ -379,6 +373,18 @@ type Querier interface {
 	ReportTransferRows(ctx context.Context, arg ReportTransferRowsParams) ([]ReportTransferRowsRow, error)
 	ReportUtilizationKpis(ctx context.Context, arg ReportUtilizationKpisParams) (int64, error)
 	ReportUtilizationRows(ctx context.Context, arg ReportUtilizationRowsParams) ([]ReportUtilizationRowsRow, error)
+	// Unfiltered KPI tiles (period + basis + scope only — table filters must never
+	// shrink the tiles). Same FROM/WHERE as ScheduleTotals MINUS the search/
+	// category/office filters.
+	ScheduleKpi(ctx context.Context, arg ScheduleKpiParams) (ScheduleKpiRow, error)
+	// One asset-based, paginated schedule page. A row is included if it has an
+	// entry for this period+basis (entry row) OR the asset is a parameterizable
+	// "union" row (fully depreciated, no entry this period). The parameterizable
+	// predicate mirrors ResolveCommercial/ResolveFiscal's Skip checks in SQL.
+	ScheduleRows(ctx context.Context, arg ScheduleRowsParams) ([]ScheduleRowsRow, error)
+	// Filtered tfoot totals + row count (same FROM/WHERE as ScheduleRows, incl.
+	// the search/category/office filters, no pagination).
+	ScheduleTotals(ctx context.Context, arg ScheduleTotalsParams) (ScheduleTotalsRow, error)
 	// Global search (command palette). Each query returns the top matches for one
 	// entity plus the full match count via a window function. Callers gate by
 	// permission + data scope; queries only enforce the office scope filter.
@@ -423,10 +429,6 @@ type Querier interface {
 	SoftDeleteRoom(ctx context.Context, arg SoftDeleteRoomParams) (int64, error)
 	SoftDeleteThreshold(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteUser(ctx context.Context, id uuid.UUID) (int64, error)
-	// Per-asset accumulated depreciation for one basis, through (inclusive of) a
-	// given period — the schedule's "accumulated" column source, for both the
-	// entry-sourced and union rows.
-	SumAmountsThroughPeriodByAsset(ctx context.Context, arg SumAmountsThroughPeriodByAssetParams) ([]SumAmountsThroughPeriodByAssetRow, error)
 	SumAssetAmounts(ctx context.Context, arg SumAssetAmountsParams) (string, error)
 	TouchMaintScheduleDone(ctx context.Context, arg TouchMaintScheduleDoneParams) (MaintenanceMaintenanceSchedule, error)
 	UpdateAsset(ctx context.Context, arg UpdateAssetParams) (AssetAsset, error)

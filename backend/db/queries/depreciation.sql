@@ -88,25 +88,6 @@ ORDER BY a.name;
 SELECT COALESCE(SUM(depreciation_amount), 0)::text FROM depreciation.depreciation_entries
 WHERE asset_id = $1 AND basis = $2 AND deleted_at IS NULL;
 
--- name: ListAssetsForScheduleUnion :many
--- Capitalized assets in scope with NO entry for the requested period+basis —
--- the schedule's "fully depreciated, no new entry this period" union rows.
--- The service further drops any row whose Resolve{Commercial,Fiscal} skips
--- (data drift since the asset last depreciated), keeping only "parameterized"
--- assets per the module spec.
-SELECT sqlc.embed(a), sqlc.embed(c), o.name AS office_name
-FROM asset.assets a
-JOIN masterdata.categories c ON c.id = a.category_id
-LEFT JOIN masterdata.offices o ON o.id = a.office_id AND o.deleted_at IS NULL
-WHERE a.deleted_at IS NULL AND a.capitalized = true
-  AND (sqlc.arg(all_scope)::boolean OR a.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
-  AND NOT EXISTS (
-    SELECT 1 FROM depreciation.depreciation_entries e
-    WHERE e.asset_id = a.id AND e.deleted_at IS NULL
-      AND e.period = sqlc.arg(period) AND e.basis = sqlc.arg(basis)
-  )
-ORDER BY a.name;
-
 -- name: GetAssetForUpdate :one
 -- Row-locked read for RecordImpairment's read-modify-write (precedent:
 -- approval.sql GetRequestForUpdate): a second concurrent impairment blocks
@@ -129,11 +110,141 @@ SET impairment_loss = sqlc.arg(impairment_loss),
 WHERE id = sqlc.arg(id) AND deleted_at IS NULL
 RETURNING *;
 
--- name: SumAmountsThroughPeriodByAsset :many
--- Per-asset accumulated depreciation for one basis, through (inclusive of) a
--- given period — the schedule's "accumulated" column source, for both the
--- entry-sourced and union rows.
-SELECT asset_id, COALESCE(SUM(depreciation_amount), 0)::text AS accumulated
-FROM depreciation.depreciation_entries
-WHERE basis = sqlc.arg(basis) AND period <= sqlc.arg(period) AND deleted_at IS NULL
-GROUP BY asset_id;
+-- name: ScheduleRows :many
+-- One asset-based, paginated schedule page. A row is included if it has an
+-- entry for this period+basis (entry row) OR the asset is a parameterizable
+-- "union" row (fully depreciated, no entry this period). The parameterizable
+-- predicate mirrors ResolveCommercial/ResolveFiscal's Skip checks in SQL.
+SELECT sqlc.embed(a), sqlc.embed(c),
+       o.name AS office_name,
+       (e.id IS NOT NULL)::boolean AS has_entry,
+       e.method AS entry_method,
+       CASE WHEN e.id IS NOT NULL THEN e.opening_value::text
+            ELSE round(a.purchase_cost::numeric - acc.accumulated::numeric, 2)::text END AS opening,
+       CASE WHEN e.id IS NOT NULL THEN e.depreciation_amount::text ELSE '0.00' END AS amount,
+       acc.accumulated AS accumulated,
+       CASE WHEN e.id IS NOT NULL THEN e.closing_value::text
+            ELSE round(a.purchase_cost::numeric - acc.accumulated::numeric, 2)::text END AS closing
+FROM asset.assets a
+JOIN masterdata.categories c ON c.id = a.category_id
+LEFT JOIN masterdata.offices o ON o.id = a.office_id AND o.deleted_at IS NULL
+LEFT JOIN depreciation.depreciation_entries e
+       ON e.asset_id = a.id AND e.basis = sqlc.arg(basis)
+      AND e.period = sqlc.arg(period) AND e.deleted_at IS NULL
+LEFT JOIN LATERAL (
+  SELECT COALESCE(SUM(de.depreciation_amount), 0)::text AS accumulated
+  FROM depreciation.depreciation_entries de
+  WHERE de.asset_id = a.id AND de.basis = sqlc.arg(basis)
+    AND de.period <= sqlc.arg(period) AND de.deleted_at IS NULL
+) acc ON true
+WHERE a.deleted_at IS NULL
+  AND (sqlc.arg(all_scope)::boolean OR a.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
+  AND (
+    e.id IS NOT NULL
+    OR (
+      a.capitalized AND a.status <> 'disposed'
+      AND a.purchase_cost IS NOT NULL
+      AND a.purchase_date IS NOT NULL
+      AND (
+        (sqlc.arg(is_commercial)::boolean
+         AND COALESCE(a.depreciation_method, c.default_depreciation_method) IS NOT NULL
+         AND COALESCE(a.useful_life_months, c.default_useful_life_months) IS NOT NULL)
+        OR (NOT sqlc.arg(is_commercial)::boolean
+         AND COALESCE(a.fiscal_group, c.default_fiscal_group) IS NOT NULL
+         AND COALESCE(a.fiscal_group, c.default_fiscal_group) <> 'non_susut')
+      )
+    )
+  )
+  AND (sqlc.narg(search)::text IS NULL
+       OR a.name ILIKE '%' || sqlc.narg(search) || '%'
+       OR a.asset_tag ILIKE '%' || sqlc.narg(search) || '%')
+  AND (sqlc.narg(category_id)::uuid IS NULL OR a.category_id = sqlc.narg(category_id))
+  AND (sqlc.narg(office_id)::uuid IS NULL OR a.office_id = sqlc.narg(office_id))
+ORDER BY a.name, a.id
+LIMIT sqlc.arg(lim) OFFSET sqlc.arg(off);
+
+-- name: ScheduleTotals :one
+-- Filtered tfoot totals + row count (same FROM/WHERE as ScheduleRows, incl.
+-- the search/category/office filters, no pagination).
+SELECT
+  COUNT(*) AS total,
+  COALESCE(round(SUM(CASE WHEN e.id IS NOT NULL THEN e.opening_value::numeric
+                          ELSE round(a.purchase_cost::numeric - acc.accumulated::numeric, 2) END), 2), 0)::text AS opening,
+  COALESCE(round(SUM(CASE WHEN e.id IS NOT NULL THEN e.depreciation_amount::numeric ELSE 0 END), 2), 0)::text AS amount,
+  COALESCE(round(SUM(acc.accumulated::numeric), 2), 0)::text AS accumulated,
+  COALESCE(round(SUM(CASE WHEN e.id IS NOT NULL THEN e.closing_value::numeric
+                          ELSE round(a.purchase_cost::numeric - acc.accumulated::numeric, 2) END), 2), 0)::text AS closing
+FROM asset.assets a
+JOIN masterdata.categories c ON c.id = a.category_id
+LEFT JOIN depreciation.depreciation_entries e
+       ON e.asset_id = a.id AND e.basis = sqlc.arg(basis)
+      AND e.period = sqlc.arg(period) AND e.deleted_at IS NULL
+LEFT JOIN LATERAL (
+  SELECT COALESCE(SUM(de.depreciation_amount), 0)::text AS accumulated
+  FROM depreciation.depreciation_entries de
+  WHERE de.asset_id = a.id AND de.basis = sqlc.arg(basis)
+    AND de.period <= sqlc.arg(period) AND de.deleted_at IS NULL
+) acc ON true
+WHERE a.deleted_at IS NULL
+  AND (sqlc.arg(all_scope)::boolean OR a.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
+  AND (
+    e.id IS NOT NULL
+    OR (
+      a.capitalized AND a.status <> 'disposed'
+      AND a.purchase_cost IS NOT NULL
+      AND a.purchase_date IS NOT NULL
+      AND (
+        (sqlc.arg(is_commercial)::boolean
+         AND COALESCE(a.depreciation_method, c.default_depreciation_method) IS NOT NULL
+         AND COALESCE(a.useful_life_months, c.default_useful_life_months) IS NOT NULL)
+        OR (NOT sqlc.arg(is_commercial)::boolean
+         AND COALESCE(a.fiscal_group, c.default_fiscal_group) IS NOT NULL
+         AND COALESCE(a.fiscal_group, c.default_fiscal_group) <> 'non_susut')
+      )
+    )
+  )
+  AND (sqlc.narg(search)::text IS NULL
+       OR a.name ILIKE '%' || sqlc.narg(search) || '%'
+       OR a.asset_tag ILIKE '%' || sqlc.narg(search) || '%')
+  AND (sqlc.narg(category_id)::uuid IS NULL OR a.category_id = sqlc.narg(category_id))
+  AND (sqlc.narg(office_id)::uuid IS NULL OR a.office_id = sqlc.narg(office_id));
+
+-- name: ScheduleKpi :one
+-- Unfiltered KPI tiles (period + basis + scope only — table filters must never
+-- shrink the tiles). Same FROM/WHERE as ScheduleTotals MINUS the search/
+-- category/office filters.
+SELECT
+  COALESCE(round(SUM(a.purchase_cost::numeric), 2), 0)::text AS total_cost,
+  COALESCE(round(SUM(acc.accumulated::numeric), 2), 0)::text AS total_accumulated,
+  COALESCE(round(SUM(CASE WHEN e.id IS NOT NULL THEN e.closing_value::numeric
+                          ELSE round(a.purchase_cost::numeric - acc.accumulated::numeric, 2) END), 2), 0)::text AS total_book_value,
+  COALESCE(round(SUM(CASE WHEN e.id IS NOT NULL THEN e.depreciation_amount::numeric ELSE 0 END), 2), 0)::text AS period_expense
+FROM asset.assets a
+JOIN masterdata.categories c ON c.id = a.category_id
+LEFT JOIN depreciation.depreciation_entries e
+       ON e.asset_id = a.id AND e.basis = sqlc.arg(basis)
+      AND e.period = sqlc.arg(period) AND e.deleted_at IS NULL
+LEFT JOIN LATERAL (
+  SELECT COALESCE(SUM(de.depreciation_amount), 0)::text AS accumulated
+  FROM depreciation.depreciation_entries de
+  WHERE de.asset_id = a.id AND de.basis = sqlc.arg(basis)
+    AND de.period <= sqlc.arg(period) AND de.deleted_at IS NULL
+) acc ON true
+WHERE a.deleted_at IS NULL
+  AND (sqlc.arg(all_scope)::boolean OR a.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
+  AND (
+    e.id IS NOT NULL
+    OR (
+      a.capitalized AND a.status <> 'disposed'
+      AND a.purchase_cost IS NOT NULL
+      AND a.purchase_date IS NOT NULL
+      AND (
+        (sqlc.arg(is_commercial)::boolean
+         AND COALESCE(a.depreciation_method, c.default_depreciation_method) IS NOT NULL
+         AND COALESCE(a.useful_life_months, c.default_useful_life_months) IS NOT NULL)
+        OR (NOT sqlc.arg(is_commercial)::boolean
+         AND COALESCE(a.fiscal_group, c.default_fiscal_group) IS NOT NULL
+         AND COALESCE(a.fiscal_group, c.default_fiscal_group) <> 'non_susut')
+      )
+    )
+  );
