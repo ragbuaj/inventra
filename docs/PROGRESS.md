@@ -913,7 +913,13 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     showed 22+ buttons over 63k rows); both now use the shared `TablePagination` via a `pageOffset`
 >     writable-computed bridging their 1-based `page` ref to the component's 0-based offset contract. All
 >     list screens now share one paginator (master screens already did via `ResourceTable`); the
->     `audit-next-page` testid was replaced by the component's `pagination-next` (spec updated). **(3) i18n `assets.import`** — the Katalog toolbar
+>     `audit-next-page` testid was replaced by the component's `pagination-next` (spec updated). **Second
+>     follow-up (2026-07-14, branch `fix/spa-cache-headers`):** after the unify deploy the catalog still
+>     showed the old pagination until a manual hard refresh — the SPA `index.html` shell was served with
+>     **no `Cache-Control`**, so the browser heuristically cached a stale shell pointing at the previous
+>     build's chunk URLs. Added Nitro `routeRules` in `nuxt.config.ts`: `/_nuxt/**` stays
+>     `immutable` (content-hashed), `/**` (the HTML shell) is `no-cache` (always revalidate) — verified via
+>     `node .output/server/index.mjs` + curl. New deploys now land without a hard refresh. **(3) i18n `assets.import`** — the Katalog toolbar
 >     button used `t('assets.import')`, which resolves to the wizard **namespace object** (a JSON duplicate
 >     key: string at top, object at `assets.import.*`) → raw key rendered; renamed the button string to
 >     `assets.importBtn` (id/en). **(4) Dashboard refresh icon** — the `:loading` button swapped the
