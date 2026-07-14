@@ -38,6 +38,7 @@ export interface ScheduleResponse {
     accumulated: string
     closing: string
   }
+  total: number
 }
 
 export interface JournalRow {
@@ -75,6 +76,8 @@ export interface ScheduleQuery {
   search?: string
   category_id?: string
   office_id?: string
+  limit?: number
+  offset?: number
 }
 
 export interface ImpairmentResult {
@@ -116,6 +119,8 @@ export function useDepreciation() {
     if (q.search !== undefined) query.search = q.search
     if (q.category_id !== undefined) query.category_id = q.category_id
     if (q.office_id !== undefined) query.office_id = q.office_id
+    if (q.limit !== undefined) query.limit = String(q.limit)
+    if (q.offset !== undefined) query.offset = String(q.offset)
     return request<ScheduleResponse>('/depreciation/schedule', { query })
   }
 

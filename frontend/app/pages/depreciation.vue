@@ -2,7 +2,7 @@
 import type { Category } from '~/types'
 import type { DepreciationPeriod, JournalResponse, ScheduleResponse, ScheduleRow } from '~/composables/api/useDepreciation'
 import { BASIS_META, PERIOD_STATUS_TONE, type DepreciationBasis, type PeriodStatus } from '~/constants/depreciationMeta'
-import { formatRupiah } from '~/utils/format'
+import { formatRupiah, formatRupiahCompact } from '~/utils/format'
 
 definePageMeta({ middleware: 'can', permission: 'depreciation.view' })
 
@@ -100,7 +100,7 @@ async function computePeriod() {
   try {
     const updated = await depApi.compute(period.value)
     upsertPeriod(updated)
-    await Promise.all([loadSchedule(), loadJournal(), loadKpis()])
+    await Promise.all([loadSchedule(), loadJournal()])
   } catch {
     // useApiClient surfaces the error toast
   } finally {
@@ -114,7 +114,7 @@ async function closePeriod() {
   try {
     const updated = await depApi.close(period.value)
     upsertPeriod(updated)
-    await Promise.all([loadSchedule(), loadJournal(), loadKpis()])
+    await Promise.all([loadSchedule(), loadJournal()])
   } catch {
     // useApiClient surfaces the error toast
   } finally {
@@ -144,6 +144,9 @@ async function loadLookups() {
 // ---------------------------------------------------------------------------
 // Jadwal per Aset
 // ---------------------------------------------------------------------------
+const PAGE_SIZE = 10
+const offset = ref(0)
+
 const scheduleResp = ref<ScheduleResponse | null>(null)
 const scheduleLoading = ref(true)
 const scheduleError = ref(false)
@@ -177,7 +180,9 @@ async function loadSchedule() {
       basis: basis.value,
       search: debouncedSearch.value.trim() || undefined,
       category_id: categoryId.value !== 'all' ? categoryId.value : undefined,
-      office_id: officeId.value ?? undefined
+      office_id: officeId.value ?? undefined,
+      limit: PAGE_SIZE,
+      offset: offset.value
     })
     if (mine !== scheduleSeq) return
     scheduleResp.value = res
@@ -191,55 +196,32 @@ async function loadSchedule() {
 }
 
 // ---------------------------------------------------------------------------
-// KPI tiles — driven by an UNFILTERED schedule() call (period + basis only).
-// The mockup computes KPIs across the full asset set unconditionally, so the
-// table filters (search/category/office) must never shrink the tiles.
+// KPI tiles — derived from the SAME schedule() response as the table (single
+// backend call, bug #2 fix). Filtering the table now also updates the tiles,
+// since both read from the one authoritative response.
 // ---------------------------------------------------------------------------
-const kpiResp = ref<ScheduleResponse | null>(null)
-const kpiLoading = ref(true)
-
-let kpiSeq = 0
-async function loadKpis() {
-  if (!period.value) {
-    kpiLoading.value = false
-    return
-  }
-  const mine = ++kpiSeq
-  kpiLoading.value = true
-  try {
-    const res = await depApi.schedule({ period: period.value, basis: basis.value })
-    if (mine !== kpiSeq) return
-    kpiResp.value = res
-  } catch {
-    if (mine !== kpiSeq) return
-    kpiResp.value = null
-  } finally {
-    if (mine === kpiSeq) kpiLoading.value = false
-  }
-}
-
 const kpiItems = computed(() => {
-  const kpi = kpiResp.value?.kpi ?? null
-  const kpiAssetCount = kpiResp.value?.rows.length ?? 0
+  const kpi = scheduleResp.value?.kpi ?? null
+  const kpiAssetCount = scheduleResp.value?.total ?? 0
   return [
     {
       key: 'acquisition', testid: 'depr-kpi-acquisition', icon: 'i-lucide-wallet', tone: 'info',
-      label: t('depreciation.kpi.acquisition'), value: formatRupiah(kpi?.total_cost),
+      label: t('depreciation.kpi.acquisition'), value: formatRupiahCompact(kpi?.total_cost), exact: formatRupiah(kpi?.total_cost),
       sub: t('depreciation.kpi.acquisitionSub', { n: kpiAssetCount }), valueClass: ''
     },
     {
       key: 'accumulated', testid: 'depr-kpi-accumulated', icon: 'i-lucide-trending-down', tone: 'neutral',
-      label: t('depreciation.kpi.accumulated'), value: formatRupiah(kpi?.total_accumulated),
+      label: t('depreciation.kpi.accumulated'), value: formatRupiahCompact(kpi?.total_accumulated), exact: formatRupiah(kpi?.total_accumulated),
       sub: t(BASIS_META[basis.value].refKey), valueClass: ''
     },
     {
       key: 'book-value', testid: 'depr-kpi-book-value', icon: 'i-lucide-book-open', tone: 'primary',
-      label: t('depreciation.kpi.bookValue'), value: formatRupiah(kpi?.total_book_value),
+      label: t('depreciation.kpi.bookValue'), value: formatRupiahCompact(kpi?.total_book_value), exact: formatRupiah(kpi?.total_book_value),
       sub: period.value ? periodLabel(period.value) : '—', valueClass: ''
     },
     {
       key: 'period-expense', testid: 'depr-kpi-period-expense', icon: 'i-lucide-receipt', tone: 'warning',
-      label: t('depreciation.kpi.periodExpense'), value: formatRupiah(kpi?.period_expense),
+      label: t('depreciation.kpi.periodExpense'), value: formatRupiahCompact(kpi?.period_expense), exact: formatRupiah(kpi?.period_expense),
       sub: t('depreciation.kpi.periodExpenseSub'), valueClass: 'text-error'
     }
   ]
@@ -318,13 +300,16 @@ async function doExport(format: 'pdf' | 'xlsx') {
 }
 
 watch([period, basis], () => {
+  offset.value = 0
   loadSchedule()
   loadJournal()
-  loadKpis()
 })
-// KPIs are intentionally NOT refetched here — the table filters must never
-// shrink the tiles (they stay period+basis scoped).
-watch([debouncedSearch, categoryId, officeId], () => loadSchedule())
+// The table filters (search/category/office) now also drive the KPI tiles,
+// since both come from the same single schedule() response.
+watch([debouncedSearch, categoryId, officeId], () => {
+  offset.value = 0
+  loadSchedule()
+})
 
 // ---------------------------------------------------------------------------
 // Impairment modal
@@ -470,13 +455,14 @@ onBeforeUnmount(() => {
           <span class="text-xs font-medium text-muted">{{ k.label }}</span>
         </div>
         <USkeleton
-          v-if="kpiLoading"
+          v-if="scheduleLoading"
           class="h-6 w-24 rounded mt-2"
         />
         <div
           v-else
-          class="text-[22px] font-bold tracking-tight mt-2"
+          class="text-[22px] font-bold tracking-tight mt-2 min-w-0 truncate"
           :class="k.valueClass"
+          :title="k.exact"
         >
           {{ k.value }}
         </div>
@@ -822,6 +808,13 @@ onBeforeUnmount(() => {
         >
           {{ t('depreciation.schedule.noMatch') }}
         </div>
+        <TablePagination
+          v-if="(scheduleResp?.total ?? 0) > 0"
+          :total="scheduleResp?.total ?? 0"
+          :limit="PAGE_SIZE"
+          :offset="offset"
+          @update:offset="(v) => { offset = v; loadSchedule() }"
+        />
       </div>
     </div>
 

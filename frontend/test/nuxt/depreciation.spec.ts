@@ -58,23 +58,24 @@ const SCHEDULE_ROWS: ScheduleRow[] = [
   })
 ]
 
-function scheduleResponse(rows: ScheduleRow[] = SCHEDULE_ROWS): ScheduleResponse {
+function scheduleResponse(rows: ScheduleRow[] = SCHEDULE_ROWS, total = rows.length): ScheduleResponse {
   return {
     kpi: { total_cost: '120500000', total_accumulated: '37260417', total_book_value: '83239583', period_expense: '1198917' },
     rows,
-    totals: { opening: '85937500', amount: '1198917', accumulated: '37260417', closing: '83239583' }
+    totals: { opening: '85937500', amount: '1198917', accumulated: '37260417', closing: '83239583' },
+    total
   }
 }
 
-// A *filtered* schedule response: fewer rows AND a smaller KPI block. The page
-// must never surface this KPI block on the tiles (those come from the unfiltered
-// call) — so if the tiles ever read from a filtered call, this distinct value
-// would leak and the KPI-invariance test would fail.
+// A *filtered* schedule response: fewer rows AND a smaller KPI block. In the
+// single-call architecture the KPI tiles come from THIS SAME response — i.e.
+// filtering the table now legitimately changes the tiles too (bug #2 fix).
 function filteredScheduleResponse(): ScheduleResponse {
   return {
     kpi: { total_cost: '67437500', total_accumulated: '10562500', total_book_value: '67437500', period_expense: '1687000' },
     rows: [SCHEDULE_ROWS[1]!],
-    totals: { opening: '67437500', amount: '1687000', accumulated: '10562500', closing: '67437500' }
+    totals: { opening: '67437500', amount: '1687000', accumulated: '10562500', closing: '67437500' },
+    total: 1
   }
 }
 
@@ -195,34 +196,44 @@ describe('pages/depreciation — mount + KPI', () => {
     expect(scheduleMock).toHaveBeenCalledWith(expect.objectContaining({ period: '2026-07', basis: 'commercial' }))
   })
 
-  it('renders the four KPI tiles with values from the schedule response', async () => {
-    const w = await mountAndWait()
-    expect(w.find('[data-testid="depr-kpi-acquisition"]').text()).toContain('120.500.000')
-    expect(w.find('[data-testid="depr-kpi-accumulated"]').text()).toContain('37.260.417')
-    expect(w.find('[data-testid="depr-kpi-book-value"]').text()).toContain('83.239.583')
-    expect(w.find('[data-testid="depr-kpi-period-expense"]').text()).toContain('1.198.917')
-  })
-
-  it('fetches KPIs from an UNFILTERED schedule() call (period + basis only)', async () => {
+  // Regression guard for bug #2: the page used to call schedule() TWICE on
+  // mount (once for the table, once more for an "unfiltered" KPI fetch).
+  it('calls schedule() exactly ONCE on mount (regression: no separate KPI call)', async () => {
     await mountAndWait()
-    // The KPI fetch carries no search/category/office keys.
-    expect(scheduleMock).toHaveBeenCalledWith({ period: '2026-07', basis: 'commercial' })
+    expect(scheduleMock).toHaveBeenCalledTimes(1)
   })
 
-  it('keeps the KPI tiles unchanged when a table filter is applied (only the rows shrink)', async () => {
+  it('renders the four KPI tiles compactly, with the exact value in the title tooltip (bug #3)', async () => {
+    const w = await mountAndWait()
+    const acquisition = w.find('[data-testid="depr-kpi-acquisition"]').find('[title]')
+    // Compact form must not be the raw full-precision digit string (that's
+    // what overflowed the tile) — the exact value only lives in the tooltip.
+    expect(acquisition.text()).not.toContain('120.500.000')
+    expect(acquisition.attributes('title')).toContain('120.500.000')
+
+    const accumulated = w.find('[data-testid="depr-kpi-accumulated"]').find('[title]')
+    expect(accumulated.attributes('title')).toContain('37.260.417')
+
+    const bookValue = w.find('[data-testid="depr-kpi-book-value"]').find('[title]')
+    expect(bookValue.attributes('title')).toContain('83.239.583')
+
+    const periodExpense = w.find('[data-testid="depr-kpi-period-expense"]').find('[title]')
+    expect(periodExpense.attributes('title')).toContain('1.198.917')
+  })
+
+  it('derives KPI tiles from the SAME schedule() response as the table — filtering the table changes the tiles too (single-call architecture)', async () => {
     const w = await mountAndWait()
     expect(w.findAll('[data-testid="depr-schedule-row"]').length).toBe(3)
-    const kpiBefore = w.find('[data-testid="depr-kpi-acquisition"]').text()
-    expect(kpiBefore).toContain('120.500.000')
+    const acquisitionBefore = w.find('[data-testid="depr-kpi-acquisition"]').find('[title]')
+    expect(acquisitionBefore.attributes('title')).toContain('120.500.000')
 
-    // Apply a category filter — the table now uses the filtered call (1 row,
-    // a different KPI block), but the tiles must stay on the unfiltered totals.
+    scheduleMock.mockClear()
     await setVmRef(w, 'categoryId', 'c1')
+    // Exactly one refetch for the filter change — still no parallel KPI call.
+    expect(scheduleMock).toHaveBeenCalledTimes(1)
     expect(w.findAll('[data-testid="depr-schedule-row"]').length).toBe(1)
-    const kpiAfter = w.find('[data-testid="depr-kpi-acquisition"]').text()
-    expect(kpiAfter).toContain('120.500.000')
-    expect(kpiAfter).not.toContain('67.437.500') // the filtered call's total_cost
-    expect(kpiAfter).toBe(kpiBefore)
+    const acquisitionAfter = w.find('[data-testid="depr-kpi-acquisition"]').find('[title]')
+    expect(acquisitionAfter.attributes('title')).toContain('67.437.500')
   })
 })
 
@@ -373,6 +384,54 @@ describe('pages/depreciation — Jadwal per Aset', () => {
     expect(scheduleMock).toHaveBeenLastCalledWith(expect.objectContaining({
       period: '2026-07', basis: 'commercial', search: 'Genset', category_id: 'c1', office_id: 'o1'
     }))
+  })
+})
+
+describe('pages/depreciation — schedule pagination (bug #4)', () => {
+  it('fetches the first page with limit=10, offset=0 on mount', async () => {
+    await mountAndWait()
+    expect(scheduleMock).toHaveBeenCalledWith(expect.objectContaining({ limit: 10, offset: 0 }))
+  })
+
+  it('disables the next-page button when total fits on one page', async () => {
+    const w = await mountAndWait()
+    expect(w.find('[data-testid="pagination-next"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('renders an enabled next-page button and refetches with offset=10 on click when total exceeds PAGE_SIZE', async () => {
+    scheduleMock.mockResolvedValue(scheduleResponse(SCHEDULE_ROWS, 25))
+    const w = await mountAndWait()
+    expect(w.find('[data-testid="pagination-next"]').attributes('disabled')).toBeUndefined()
+    scheduleMock.mockClear()
+    await w.find('[data-testid="pagination-next"]').trigger('click')
+    await flushPromises()
+    expect(scheduleMock).toHaveBeenLastCalledWith(expect.objectContaining({ limit: 10, offset: 10 }))
+  })
+
+  it('resets offset to 0 when a table filter changes after paging forward', async () => {
+    scheduleMock.mockImplementation(async (q: { search?: string, category_id?: string, office_id?: string }) =>
+      isFilteredScheduleCall(q) ? filteredScheduleResponse() : scheduleResponse(SCHEDULE_ROWS, 25))
+    const w = await mountAndWait()
+    await w.find('[data-testid="pagination-next"]').trigger('click')
+    await flushPromises()
+    expect(scheduleMock).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 10 }))
+
+    scheduleMock.mockClear()
+    await setVmRef(w, 'categoryId', 'c1')
+    expect(scheduleMock).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 0, category_id: 'c1' }))
+  })
+
+  it('resets offset to 0 when the period or basis changes after paging forward', async () => {
+    scheduleMock.mockResolvedValue(scheduleResponse(SCHEDULE_ROWS, 25))
+    const w = await mountAndWait()
+    await w.find('[data-testid="pagination-next"]').trigger('click')
+    await flushPromises()
+    expect(scheduleMock).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 10 }))
+
+    scheduleMock.mockClear()
+    await w.find('[data-testid="depr-basis-fiscal"]').trigger('click')
+    await flushPromises()
+    expect(scheduleMock).toHaveBeenCalledWith(expect.objectContaining({ offset: 0, basis: 'fiscal' }))
   })
 })
 
