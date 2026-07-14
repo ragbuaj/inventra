@@ -18,6 +18,15 @@ import (
 // journal endpoints (migration 000023 seeds it per role).
 const scopeModule = "depreciation"
 
+// scheduleUnpagedLimit is a placeholder page size for GET /depreciation/schedule
+// until the endpoint's own limit/offset query params + {data,total,limit,offset}
+// envelope are wired end-to-end (handler/DTO/OpenAPI/frontend — a follow-up
+// task; Service.Schedule itself is now SQL-paginated, see internal/depreciation/
+// service.go). Passing this here preserves the endpoint's pre-existing
+// "return every matching row" behavior while the service-layer signature
+// gained mandatory limit/offset params.
+const scheduleUnpagedLimit = 1_000_000
+
 // assetEntity is the field_permissions/data-scope entity reused from the
 // asset module for GET /assets/:id/depreciation (it is a view onto asset data,
 // gated by the SAME "assets" scope + book_value field policy as the asset
@@ -186,7 +195,7 @@ func (h *Handler) schedule(c *gin.Context) {
 		common.WriteError(c, err)
 		return
 	}
-	result, err := h.svc.Schedule(c.Request.Context(), period, basis, all, ids, c.Query("search"), categoryID, officeID)
+	result, err := h.svc.Schedule(c.Request.Context(), period, basis, all, ids, c.Query("search"), categoryID, officeID, scheduleUnpagedLimit, 0)
 	if err != nil {
 		h.svcError(c, err)
 		return

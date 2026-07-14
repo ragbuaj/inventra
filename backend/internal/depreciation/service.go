@@ -537,177 +537,98 @@ type ScheduleTotals struct {
 type ScheduleResult struct {
 	KPI    ScheduleKPI
 	Rows   []ScheduleRow
+	Total  int64
 	Totals ScheduleTotals
 }
 
-// Schedule builds the per-asset depreciation schedule for one period+basis,
-// scoped to the caller's offices. Rows are the union of (a) real entries
-// posted for the period and (b) capitalized, parameterized assets that have
-// NO entry this period — these already reached full depreciation earlier, so
-// they are rendered with amount "0.00" and opening==closing==their current
-// book value, sourced from SumAmountsThroughPeriodByAsset (works uniformly
-// for both row kinds, impairment aside — see regenerateBasis's doc comment).
-// search matches asset name/tag case-insensitively; categoryID/officeID are
-// additional (optional) exact-match filters layered on top of the caller's
-// data scope, which is already enforced in SQL via allScope/officeIDs.
-func (s *Service) Schedule(ctx context.Context, period time.Time, basis sqlc.SharedDepreciationBasis, allScope bool, officeIDs []uuid.UUID, search string, categoryID, officeID *uuid.UUID) (ScheduleResult, error) {
-	target := firstOfMonth(period)
-	targetDate := pgtype.Date{Time: target, Valid: true}
+// Schedule builds one page of the per-asset depreciation schedule for one
+// period+basis, scoped to the caller's offices. Rows are the union of (a)
+// real entries posted for the period and (b) capitalized, parameterized
+// assets that have NO entry this period — these already reached full
+// depreciation earlier, so they are rendered with amount "0.00" and
+// opening==closing==their current book value. All aggregation (row union,
+// per-row accumulated, tfoot totals, KPI tiles, row count) and pagination
+// happen in SQL (ScheduleRows/ScheduleTotals/ScheduleKpi) — this method only
+// re-resolves display-only method/life_months per row and maps rows to the
+// domain type. search matches asset name/tag case-insensitively;
+// categoryID/officeID are additional (optional) exact-match filters layered
+// on top of the caller's data scope, which is already enforced in SQL via
+// allScope/officeIDs. The KPI tiles are intentionally unaffected by
+// search/categoryID/officeID (see ScheduleKpi's doc comment) — only Total,
+// Rows, and Totals shrink under those filters. limit/offset paginate Rows;
+// Total always reflects the full filtered row count, unaffected by paging.
+func (s *Service) Schedule(ctx context.Context, period time.Time, basis sqlc.SharedDepreciationBasis, allScope bool, officeIDs []uuid.UUID, search string, categoryID, officeID *uuid.UUID, limit, offset int32) (ScheduleResult, error) {
+	target := pgtype.Date{Time: firstOfMonth(period), Valid: true}
+	isCommercial := basis == sqlc.SharedDepreciationBasisCommercial
+	var searchArg *string
+	if s := strings.TrimSpace(search); s != "" {
+		searchArg = &s
+	}
 
-	entryRows, err := s.q.ListEntriesForPeriod(ctx, sqlc.ListEntriesForPeriodParams{
-		Period: targetDate, Basis: basis, AllScope: allScope, OfficeIds: officeIDs,
+	rowsRaw, err := s.q.ScheduleRows(ctx, sqlc.ScheduleRowsParams{
+		Basis: basis, Period: target, AllScope: allScope, OfficeIds: officeIDs,
+		IsCommercial: isCommercial, Search: searchArg, CategoryID: categoryID,
+		OfficeID: officeID, Lim: limit, Off: offset,
+	})
+	if err != nil {
+		return ScheduleResult{}, err
+	}
+	tot, err := s.q.ScheduleTotals(ctx, sqlc.ScheduleTotalsParams{
+		Basis: basis, Period: target, AllScope: allScope, OfficeIds: officeIDs,
+		IsCommercial: isCommercial, Search: searchArg, CategoryID: categoryID, OfficeID: officeID,
+	})
+	if err != nil {
+		return ScheduleResult{}, err
+	}
+	kpi, err := s.q.ScheduleKpi(ctx, sqlc.ScheduleKpiParams{
+		Basis: basis, Period: target, AllScope: allScope, OfficeIds: officeIDs, IsCommercial: isCommercial,
 	})
 	if err != nil {
 		return ScheduleResult{}, err
 	}
 
-	unionRows, err := s.q.ListAssetsForScheduleUnion(ctx, sqlc.ListAssetsForScheduleUnionParams{
-		Period: targetDate, Basis: basis, AllScope: allScope, OfficeIds: officeIDs,
-	})
-	if err != nil {
-		return ScheduleResult{}, err
-	}
-
-	accRows, err := s.q.SumAmountsThroughPeriodByAsset(ctx, sqlc.SumAmountsThroughPeriodByAssetParams{
-		Basis: basis, Period: targetDate,
-	})
-	if err != nil {
-		return ScheduleResult{}, err
-	}
-	accByAsset := make(map[uuid.UUID]string, len(accRows))
-	for _, r := range accRows {
-		accByAsset[r.AssetID] = r.Accumulated
-	}
-
-	search = strings.ToLower(strings.TrimSpace(search))
-	matchesFilter := func(a sqlc.AssetAsset) bool {
-		if categoryID != nil && a.CategoryID != *categoryID {
-			return false
-		}
-		if officeID != nil && a.OfficeID != *officeID {
-			return false
-		}
-		if search != "" && !strings.Contains(strings.ToLower(a.Name), search) && !strings.Contains(strings.ToLower(a.AssetTag), search) {
-			return false
-		}
-		return true
-	}
-
-	var rows []ScheduleRow
-	totalCost := new(big.Rat)
-	totalAccumulated := new(big.Rat)
-	totalClosing := new(big.Rat)
-	totOpening := new(big.Rat)
-	totAmount := new(big.Rat)
-
-	addTotals := func(a sqlc.AssetAsset, opening, amount, accumulated, closing string) error {
-		if a.PurchaseCost != nil {
-			cost, err := parseMoney(*a.PurchaseCost)
-			if err != nil {
-				return err
+	rows := make([]ScheduleRow, 0, len(rowsRaw))
+	for _, r := range rowsRaw {
+		a, c := r.AssetAsset, r.MasterdataCategory
+		var method sqlc.SharedDepreciationMethod
+		var life int32
+		if r.HasEntry {
+			em := sqlc.SharedDepreciationMethod("")
+			if r.EntryMethod != nil {
+				em = *r.EntryMethod
 			}
-			totalCost.Add(totalCost, cost)
-		}
-		acc, err := parseMoney(accumulated)
-		if err != nil {
-			return err
-		}
-		totalAccumulated.Add(totalAccumulated, acc)
-		cl, err := parseMoney(closing)
-		if err != nil {
-			return err
-		}
-		totalClosing.Add(totalClosing, cl)
-		op, err := parseMoney(opening)
-		if err != nil {
-			return err
-		}
-		totOpening.Add(totOpening, op)
-		amt, err := parseMoney(amount)
-		if err != nil {
-			return err
-		}
-		totAmount.Add(totAmount, amt)
-		return nil
-	}
-
-	for _, er := range entryRows {
-		a := er.AssetAsset
-		if !matchesFilter(a) {
-			continue
-		}
-		c := er.MasterdataCategory
-		e := er.DepreciationDepreciationEntry
-		method, life := resolveScheduleParams(a, c, basis, e.Method)
-		accumulated := accByAsset[a.ID]
-		if accumulated == "" {
-			accumulated = "0.00"
-		}
-		if err := addTotals(a, e.OpeningValue, e.DepreciationAmount, accumulated, e.ClosingValue); err != nil {
-			return ScheduleResult{}, err
-		}
-		rows = append(rows, ScheduleRow{
-			AssetID: a.ID, AssetName: a.Name, AssetTag: a.AssetTag,
-			CategoryName: c.Name, OfficeName: er.OfficeName,
-			Method: method, LifeMonths: life,
-			Opening: e.OpeningValue, Amount: e.DepreciationAmount,
-			Accumulated: accumulated, Closing: e.ClosingValue,
-			Impaired: isImpaired(a), FullyDepreciated: false,
-		})
-	}
-
-	for _, ur := range unionRows {
-		a := ur.AssetAsset
-		c := ur.MasterdataCategory
-		var params *Params
-		var skip *Skip
-		if basis == sqlc.SharedDepreciationBasisCommercial {
-			params, skip = ResolveCommercial(a, c)
+			method, life = resolveScheduleParams(a, c, basis, em)
 		} else {
-			params, skip = ResolveFiscal(a, c)
-		}
-		if skip != nil || !matchesFilter(a) {
-			continue
-		}
-		accumulated := accByAsset[a.ID]
-		if accumulated == "" {
-			accumulated = "0.00"
-		}
-		cost, err := parseMoney(*a.PurchaseCost)
-		if err != nil {
-			return ScheduleResult{}, err
-		}
-		accRat, err := parseMoney(accumulated)
-		if err != nil {
-			return ScheduleResult{}, err
-		}
-		bookValue := roundHalfUp2(new(big.Rat).Sub(cost, accRat))
-		if err := addTotals(a, bookValue, "0.00", accumulated, bookValue); err != nil {
-			return ScheduleResult{}, err
+			var params *Params
+			if isCommercial {
+				params, _ = ResolveCommercial(a, c)
+			} else {
+				params, _ = ResolveFiscal(a, c)
+			}
+			if params != nil {
+				method, life = params.Method, params.LifeMonths
+			}
 		}
 		rows = append(rows, ScheduleRow{
 			AssetID: a.ID, AssetName: a.Name, AssetTag: a.AssetTag,
-			CategoryName: c.Name, OfficeName: ur.OfficeName,
-			Method: params.Method, LifeMonths: params.LifeMonths,
-			Opening: bookValue, Amount: "0.00",
-			Accumulated: accumulated, Closing: bookValue,
-			Impaired: isImpaired(a), FullyDepreciated: true,
+			CategoryName: c.Name, OfficeName: r.OfficeName,
+			Method: method, LifeMonths: life,
+			Opening: r.Opening, Amount: r.Amount,
+			Accumulated: r.Accumulated, Closing: r.Closing,
+			Impaired: isImpaired(a), FullyDepreciated: !r.HasEntry,
 		})
 	}
 
 	return ScheduleResult{
 		KPI: ScheduleKPI{
-			TotalCost:        roundHalfUp2(totalCost),
-			TotalAccumulated: roundHalfUp2(totalAccumulated),
-			TotalBookValue:   roundHalfUp2(totalClosing),
-			PeriodExpense:    roundHalfUp2(totAmount),
+			TotalCost: kpi.TotalCost, TotalAccumulated: kpi.TotalAccumulated,
+			TotalBookValue: kpi.TotalBookValue, PeriodExpense: kpi.PeriodExpense,
 		},
-		Rows: rows,
+		Rows:  rows,
+		Total: tot.Total,
 		Totals: ScheduleTotals{
-			Opening:     roundHalfUp2(totOpening),
-			Amount:      roundHalfUp2(totAmount),
-			Accumulated: roundHalfUp2(totalAccumulated),
-			Closing:     roundHalfUp2(totalClosing),
+			Opening: tot.Opening, Amount: tot.Amount,
+			Accumulated: tot.Accumulated, Closing: tot.Closing,
 		},
 	}, nil
 }

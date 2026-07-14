@@ -1696,3 +1696,179 @@ func TestDepreciation_HTTP_JournalExport(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, code)
 	})
 }
+
+// ─── Task 2 — SQL-aggregated, paginated schedule ───────────────────────────
+
+// TestSchedulePaginationAndParity seeds three assets exercising the three row
+// kinds Schedule() must union in SQL now:
+//
+//   - "Sched A Alpha Berjalan" — a normal, still-depreciating asset (real
+//     entry this period). Cost 18,500,000.00, purchased 3 months ago; same
+//     numbers as TestDepreciation_Compute_HappyPath, so the anchor values
+//     (amount 346,875.00, closing 17,112,500.00, accumulated 1,387,500.00)
+//     are independently known-correct.
+//   - "Sched B Beta Impairment" — an impaired asset (real entry this period,
+//     but closing != cost-accumulated because the write-down isn't part of
+//     `accumulated`, which is a pure SUM of depreciation_amount entries).
+//     Cost 9,600,000.00, purchased 6 months ago; same numbers as
+//     TestDepreciation_Impairment_ProspectiveRecompute, so month2's opening
+//     8,000,000.00 / amount 167,619.05 / closing 7,832,380.95 are
+//     independently known-correct.
+//   - "Sched C Gamma Habis" — a fully-depreciated asset with NO entry this
+//     period (synthetic union row). Cost 1,000,000.00, useful_life_months=1,
+//     salvage 0, purchased 5 months ago; same numbers as
+//     TestDepreciation_HTTP_Schedule's "exhausted" asset.
+//
+// Names are chosen to sort A < B < C under the query's `ORDER BY a.name,
+// a.id` so pagination order is deterministic.
+func TestSchedulePaginationAndParity(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	// Asset A: normal, still depreciating.
+	seedAssetMonthsAgo(t, h.pool, "DPR-2026-00050", "Sched A Alpha Berjalan", h.catID, h.office, "18500000.00", 3)
+
+	// Asset B: impaired.
+	assetB := seedAssetMonthsAgo(t, h.pool, "DPR-2026-00051", "Sched B Beta Impairment", h.catID, h.office, "9600000.00", 6)
+
+	// Asset C: fully depreciated, no entry this period (union row).
+	exhaustedPurchase := firstOfMonthUTC(time.Now()).AddDate(0, -5, 0)
+	require.NoError(t, h.pool.QueryRow(ctx,
+		`INSERT INTO asset.assets
+		   (asset_tag, name, category_id, office_id, asset_class, capitalized, specifications, status,
+		    purchase_date, purchase_cost, useful_life_months, salvage_value, depreciation_method)
+		 VALUES ($1, $2, $3, $4, 'intangible', true, '{}', 'available', $5, $6, 1, '0', 'straight_line')
+		 RETURNING id`,
+		"DPR-2026-00052", "Sched C Gamma Habis", h.catID, h.office, exhaustedPurchase, "1000000.00").Scan(new(uuid.UUID)))
+
+	month1 := firstOfMonthUTC(time.Now()).AddDate(0, -1, 0)
+	target := firstOfMonthUTC(time.Now())
+
+	// Compute+close month1 (asset B's book value lands at 8,520,000.00),
+	// impair asset B down to 8,000,000.00, then compute the open target month
+	// — this generates asset A's and B's target-period entries in one shot;
+	// asset C never gets one (exhausted long before target).
+	_, err := h.svc.ComputePeriod(ctx, month1, h.actorID)
+	require.NoError(t, err)
+	require.NoError(t, h.svc.ClosePeriod(ctx, month1, h.actorID))
+
+	assetBAfterClose, err := h.q.GetAsset(ctx, assetB)
+	require.NoError(t, err)
+	require.NotNil(t, assetBAfterClose.BookValue)
+	require.Equal(t, "8520000.00", *assetBAfterClose.BookValue, "sanity: matches TestDepreciation_Impairment_ProspectiveRecompute's anchor")
+
+	_, err = h.svc.RecordImpairment(ctx, assetB, "8000000.00", "uji parity jadwal", h.actorID)
+	require.NoError(t, err)
+
+	_, err = h.svc.ComputePeriod(ctx, target, h.actorID)
+	require.NoError(t, err)
+
+	commercial := sqlc.SharedDepreciationBasisCommercial
+
+	// Full page (limit big enough for all rows).
+	full, err := h.svc.Schedule(ctx, target, commercial, true, nil, "", nil, nil, 100, 0)
+	require.NoError(t, err)
+	require.Len(t, full.Rows, 3, "asset A entry row + asset B entry row (impaired) + asset C union row")
+	require.Equal(t, int64(len(full.Rows)), full.Total)
+
+	// Row order is deterministic (ORDER BY a.name, a.id): A, B, C.
+	require.Equal(t, "Sched A Alpha Berjalan", full.Rows[0].AssetName)
+	require.Equal(t, "Sched B Beta Impairment", full.Rows[1].AssetName)
+	require.Equal(t, "Sched C Gamma Habis", full.Rows[2].AssetName)
+
+	rowA, rowB, rowC := full.Rows[0], full.Rows[1], full.Rows[2]
+
+	// Asset A: known-correct anchor values (TestDepreciation_Compute_HappyPath).
+	assert.Equal(t, "346875.00", rowA.Amount)
+	assert.Equal(t, "17112500.00", rowA.Closing)
+	assert.Equal(t, "1387500.00", rowA.Accumulated)
+	assert.False(t, rowA.FullyDepreciated)
+	assert.False(t, rowA.Impaired)
+
+	// Asset B: known-correct anchor values (TestDepreciation_Impairment_ProspectiveRecompute).
+	// accumulated is the pure SUM of depreciation_amount entries (6*180,000.00
+	// through month1, plus month2's 167,619.05) — it does NOT absorb the
+	// impairment write-down, so closing != cost - accumulated by exactly the
+	// impairment_loss (520,000.00): 9,600,000.00 - 1,247,619.05 = 8,352,380.95,
+	// but the entry's actual closing is 7,832,380.95.
+	assert.Equal(t, "167619.05", rowB.Amount)
+	assert.Equal(t, "7832380.95", rowB.Closing)
+	assert.Equal(t, "1247619.05", rowB.Accumulated)
+	assert.False(t, rowB.FullyDepreciated)
+	assert.True(t, rowB.Impaired, "asset B carries a positive impairment_loss")
+	costB, err := parseMoneyForTest(t, "9600000.00")
+	require.NoError(t, err)
+	accB, err := parseMoneyForTest(t, rowB.Accumulated)
+	require.NoError(t, err)
+	costMinusAccB := new(big.Rat).Sub(costB, accB)
+	closingB, err := parseMoneyForTest(t, rowB.Closing)
+	require.NoError(t, err)
+	assert.NotEqual(t, costMinusAccB.RatString(), closingB.RatString(),
+		"impaired asset: closing must diverge from cost-accumulated (the write-down isn't in `accumulated`)")
+
+	// Asset C: known-correct anchor values (TestDepreciation_HTTP_Schedule).
+	assert.Equal(t, "0.00", rowC.Amount)
+	assert.Equal(t, "0.00", rowC.Opening)
+	assert.Equal(t, "0.00", rowC.Closing)
+	assert.True(t, rowC.FullyDepreciated)
+
+	// KPI/Totals: SQL-aggregated sums across all three rows.
+	assert.Equal(t, "29100000.00", full.KPI.TotalCost, "18,500,000 + 9,600,000 + 1,000,000")
+	assert.Equal(t, "3635119.05", full.KPI.TotalAccumulated, "1,387,500.00 + 1,247,619.05 + 1,000,000.00")
+	assert.Equal(t, "24944880.95", full.KPI.TotalBookValue, "17,112,500.00 + 7,832,380.95 + 0.00")
+	assert.Equal(t, "514494.05", full.KPI.PeriodExpense, "346,875.00 + 167,619.05 + 0 (asset C has no entry this period)")
+	assert.Equal(t, full.KPI.PeriodExpense, full.Totals.Amount, "tfoot amount must match the KPI period-expense tile when unfiltered")
+	assert.Equal(t, "25459375.00", full.Totals.Opening, "17,459,375.00 + 8,000,000.00 + 0.00")
+	assert.Equal(t, full.KPI.TotalAccumulated, full.Totals.Accumulated)
+	assert.Equal(t, full.KPI.TotalBookValue, full.Totals.Closing)
+
+	// Page 1 of size 2 + page 2 of size 2 == the full ordered set, no overlap.
+	p1, err := h.svc.Schedule(ctx, target, commercial, true, nil, "", nil, nil, 2, 0)
+	require.NoError(t, err)
+	p2, err := h.svc.Schedule(ctx, target, commercial, true, nil, "", nil, nil, 2, 2)
+	require.NoError(t, err)
+	require.Len(t, p1.Rows, 2)
+	require.Len(t, p2.Rows, 1)
+	assert.Equal(t, full.Total, p1.Total, "total is unaffected by paging")
+	assert.Equal(t, full.Total, p2.Total, "total is unaffected by paging")
+	assert.Equal(t, full.Rows[0].AssetID, p1.Rows[0].AssetID)
+	assert.Equal(t, full.Rows[1].AssetID, p1.Rows[1].AssetID)
+	assert.Equal(t, full.Rows[2].AssetID, p2.Rows[0].AssetID)
+	assert.NotEqual(t, p1.Rows[0].AssetID, p2.Rows[0].AssetID, "no overlap between pages")
+	assert.NotEqual(t, p1.Rows[1].AssetID, p2.Rows[0].AssetID, "no overlap between pages")
+
+	// A search filter shrinks rows/total/tfoot but NOT the kpi tiles.
+	filtered, err := h.svc.Schedule(ctx, target, commercial, true, nil, full.Rows[0].AssetName, nil, nil, 100, 0)
+	require.NoError(t, err)
+	assert.Less(t, filtered.Total, full.Total)
+	require.Len(t, filtered.Rows, 1)
+	assert.Equal(t, full.Rows[0].AssetID, filtered.Rows[0].AssetID)
+	assert.NotEqual(t, full.Totals.Amount, filtered.Totals.Amount, "tfoot must shrink under the search filter")
+	assert.Equal(t, full.KPI.TotalCost, filtered.KPI.TotalCost, "kpi tiles must NOT shrink under the search filter")
+	assert.Equal(t, full.KPI.TotalAccumulated, filtered.KPI.TotalAccumulated)
+	assert.Equal(t, full.KPI.TotalBookValue, filtered.KPI.TotalBookValue)
+	assert.Equal(t, full.KPI.PeriodExpense, filtered.KPI.PeriodExpense)
+
+	// category_id/office_id filters behave the same way (row-level, not kpi).
+	byCategory, err := h.svc.Schedule(ctx, target, commercial, true, nil, "", &h.catID, nil, 100, 0)
+	require.NoError(t, err)
+	assert.Equal(t, full.Total, byCategory.Total, "all seeded assets share the one test category")
+
+	otherCategory := seedCategory(t, h.pool, "OTH"+uuid.New().String()[:4], 36, "0.05", sqlc.SharedFiscalAssetGroupKelompok1)
+	byOtherCategory, err := h.svc.Schedule(ctx, target, commercial, true, nil, "", &otherCategory, nil, 100, 0)
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), byOtherCategory.Total, "no seeded asset belongs to this category")
+	assert.Equal(t, full.KPI.TotalCost, byOtherCategory.KPI.TotalCost, "kpi tiles ignore the category_id filter too")
+}
+
+// parseMoneyForTest exposes engine.go's unexported parseMoney to this
+// external test package via the one exported Schedule/Journal-adjacent path
+// available — computed inline instead, since parseMoney is unexported.
+func parseMoneyForTest(t *testing.T, s string) (*big.Rat, error) {
+	t.Helper()
+	r, ok := new(big.Rat).SetString(s)
+	if !ok {
+		return nil, fmt.Errorf("invalid money string %q", s)
+	}
+	return r, nil
+}
