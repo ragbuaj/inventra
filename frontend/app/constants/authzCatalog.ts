@@ -6,6 +6,7 @@ export const GROUP_ICON: Record<string, string> = {
   'Master Data': 'i-lucide-database',
   'Aset': 'i-lucide-box',
   'Persetujuan': 'i-lucide-git-pull-request',
+  'Stock Opname': 'i-lucide-clipboard-check',
   'Cadangan': 'i-lucide-layers'
 }
 

@@ -1261,6 +1261,7 @@
           "Master Data": "Master Data",
           "Aset": "Asset",
           "Persetujuan": "Approval",
+          "Stock Opname": "Stock Opname",
           "Cadangan": "Reserved"
         },
         "perm": {
@@ -1271,6 +1272,7 @@
           "audit.view": "View audit trail",
           "masterdata.global.manage": "Manage global master data",
           "masterdata.office.manage": "Manage offices & employees",
+          "masterdata.employee.manage": "Import employee data (batch)",
           "asset.view": "View assets",
           "asset.manage": "Manage assets",
           "request.create": "Create requests",
@@ -1281,7 +1283,9 @@
           "maintenance.manage": "Manage maintenance",
           "depreciation.manage": "Manage depreciation",
           "valuation.exclude.approve": "Approve valuation exclusion",
-          "assignment.manage": "Manage asset assignment"
+          "assignment.manage": "Manage asset assignment",
+          "stockopname.view": "View stock opname",
+          "stockopname.manage": "Manage stock opname"
         }
       }
     },

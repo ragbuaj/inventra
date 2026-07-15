@@ -81,6 +81,59 @@ func TestCatalog_DepreciationPermissions(t *testing.T) {
 	}
 }
 
+// enforcedPermissionKeys is every permission key the app actually gates on via
+// middleware.RequirePermission (router.go) or Service.PermissionKey (importer).
+// Each MUST be assignable through the RBAC admin catalog, otherwise a Superadmin
+// can neither grant it nor re-save any role that already holds it (SetRolePermissions
+// → dedupePermissions rejects uncataloged keys with ErrUnknownPermission).
+var enforcedPermissionKeys = []string{
+	"user.manage",
+	"role.manage", "scope.manage", "fieldperm.manage",
+	"audit.view",
+	"masterdata.global.manage", "masterdata.office.manage", "masterdata.employee.manage",
+	"asset.view", "asset.manage",
+	"request.create", "request.decide", "approval.config.manage",
+	"transfer.view", "transfer.manage",
+	"disposal.view", "disposal.manage",
+	"stockopname.view", "stockopname.manage",
+	"depreciation.view", "depreciation.manage",
+	"assignment.view", "assignment.manage",
+	"maintenance.view", "maintenance.manage",
+	"report.view", "report.export",
+	"valuation.exclude.approve",
+}
+
+// TestCatalog_CoversEveryEnforcedKey guards against the class of gap where a key
+// is enforced + seeded in a migration but never added to the assignable catalog.
+func TestCatalog_CoversEveryEnforcedKey(t *testing.T) {
+	for _, k := range enforcedPermissionKeys {
+		if !IsKnownPermission(k) {
+			t.Errorf("enforced permission %q is not in the assignable catalog", k)
+		}
+	}
+}
+
+func TestCatalog_StockOpnamePermissions(t *testing.T) {
+	if !IsKnownPermission("stockopname.view") || !IsKnownPermission("stockopname.manage") {
+		t.Fatal("stockopname.view/manage must be known permissions")
+	}
+	found := false
+	for _, m := range ScopeModules() {
+		if m == "stockopname" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("scope module 'stockopname' missing")
+	}
+}
+
+func TestCatalog_EmployeeImportPermission(t *testing.T) {
+	if !IsKnownPermission("masterdata.employee.manage") {
+		t.Fatal("masterdata.employee.manage must be a known permission (gates employee batch import)")
+	}
+}
+
 func TestCatalog_ReportScopeModule(t *testing.T) {
 	if !IsKnownPermission("report.view") {
 		t.Fatal("report.view must be a known permission")
