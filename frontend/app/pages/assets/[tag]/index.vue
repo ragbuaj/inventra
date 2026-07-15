@@ -477,7 +477,7 @@ onUnmounted(() => {
               icon="i-lucide-hand"
               :label="t('peminjaman.action.borrow')"
               :disabled="asset.status !== 'available'"
-              @click="borrowOpen = true"
+              @click="() => { borrowOpen = true }"
             />
           </span>
           <UButton

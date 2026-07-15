@@ -634,7 +634,7 @@ onMounted(() => {
             color="neutral"
             variant="outline"
             icon="i-lucide-rotate-cw"
-            @click="requestId && loadTimeline(requestId)"
+            @click="() => { requestId && loadTimeline(requestId) }"
           >
             {{ t('common.retry') }}
           </UButton>
@@ -1359,7 +1359,7 @@ onMounted(() => {
           <UButton
             color="neutral"
             variant="ghost"
-            @click="attachOpen = false"
+            @click="() => { attachOpen = false }"
           >
             {{ t('disposal.attachBast.cancel') }}
           </UButton>

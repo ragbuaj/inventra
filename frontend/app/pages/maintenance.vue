@@ -449,7 +449,7 @@ onMounted(async () => {
           size="xs"
           :label="t('maintenance.seeSchedule')"
           data-testid="due-banner-see-schedule"
-          @click="tab = 'jadwal'"
+          @click="() => { tab = 'jadwal' }"
         />
       </div>
       <div class="flex flex-col gap-2">

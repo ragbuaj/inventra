@@ -196,7 +196,7 @@ defineExpose({ form, isIntangible, isBuilding, onSubmit })
                 :variant="form.asset_class === 'tangible' ? 'solid' : 'outline'"
                 icon="i-lucide-box"
                 class="flex-1 justify-center"
-                @click="form.asset_class = 'tangible'"
+                @click="() => { form.asset_class = 'tangible' }"
               >
                 {{ t('masterdata.categories.class.tangible') }}
               </UButton>
@@ -205,7 +205,7 @@ defineExpose({ form, isIntangible, isBuilding, onSubmit })
                 :variant="form.asset_class === 'intangible' ? 'solid' : 'outline'"
                 icon="i-lucide-sparkles"
                 class="flex-1 justify-center"
-                @click="form.asset_class = 'intangible'"
+                @click="() => { form.asset_class = 'intangible' }"
               >
                 {{ t('masterdata.categories.class.intangible') }}
               </UButton>

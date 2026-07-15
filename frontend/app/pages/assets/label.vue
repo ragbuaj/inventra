@@ -396,7 +396,7 @@ onUnmounted(() => {
                 size="sm"
                 class="flex-1 justify-center"
                 :disabled="n > maxCols"
-                @click="cols = n"
+                @click="() => { cols = n }"
               >
                 {{ n }}
               </UButton>
@@ -417,7 +417,7 @@ onUnmounted(() => {
                 :variant="mode === m.value ? 'soft' : 'ghost'"
                 size="sm"
                 class="flex-1 justify-center"
-                @click="mode = m.value as 'barcode' | 'qr' | 'both'"
+                @click="() => { mode = m.value as 'barcode' | 'qr' | 'both' }"
               >
                 {{ m.label }}
               </UButton>

@@ -614,7 +614,7 @@ const joinDateLabel = computed(() => {
                     color="neutral"
                     variant="ghost"
                     data-testid="change-email-close"
-                    @click="emailModalOpen = false"
+                    @click="() => { emailModalOpen = false }"
                   >
                     {{ t('common.cancel') }}
                   </UButton>
@@ -789,7 +789,7 @@ const joinDateLabel = computed(() => {
                     color="neutral"
                     variant="ghost"
                     data-testid="change-password-close"
-                    @click="pwModalOpen = false"
+                    @click="() => { pwModalOpen = false }"
                   >
                     {{ t('common.cancel') }}
                   </UButton>
