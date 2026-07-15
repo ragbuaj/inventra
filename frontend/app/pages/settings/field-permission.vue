@@ -3,7 +3,7 @@ import type { RoleColumn, EntityRules } from '~/composables/api/useFieldPermissi
 import { useFieldPermission } from '~/composables/api/useFieldPermission'
 import type { CellRule } from '~/constants/fieldCatalog'
 
-definePageMeta({ middleware: 'can', permission: 'user.manage' })
+definePageMeta({ middleware: 'can', permission: 'fieldperm.manage' })
 
 const { t, te } = useI18n()
 const toast = useToast()

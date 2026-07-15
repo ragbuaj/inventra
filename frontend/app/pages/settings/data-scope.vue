@@ -4,7 +4,7 @@ import { useDataScope } from '~/composables/api/useDataScope'
 import type { ScopeLevel, ScopeTone } from '~/constants/dataScope'
 import { SCOPE_LEVEL_KEYS, SCOPE_LEVEL_TONE } from '~/constants/dataScope'
 
-definePageMeta({ middleware: 'can', permission: 'user.manage' })
+definePageMeta({ middleware: 'can', permission: 'scope.manage' })
 
 const { t, te } = useI18n()
 const toast = useToast()

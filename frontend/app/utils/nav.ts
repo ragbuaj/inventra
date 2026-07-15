@@ -1,11 +1,14 @@
 import type { NavGroup } from '~/types'
 
 /**
- * Full Superadmin nav model — reproduces the App Shell mockup exactly.
- * Built routes: /, /master/offices, /master/employees, /master/reference, /settings/users.
- * Every other item is disabled: true with no `to`.
+ * Single per-permission nav model — the source of truth for the sidebar and
+ * the topbar breadcrumb. Every item carries the exact permission(s) that gate
+ * its page and endpoints, so menu visibility equals page reachability equals
+ * endpoint authorization. An item with no `permission` is visible to every
+ * authenticated user (Dashboard). Array permissions use OR semantics (visible
+ * when the caller holds any one of them).
  */
-export const superadminNav: NavGroup[] = [
+export const appNav: NavGroup[] = [
   {
     labelKey: 'nav.group.operasional',
     items: [
@@ -20,23 +23,32 @@ export const superadminNav: NavGroup[] = [
         children: [
           {
             labelKey: 'nav.assetCatalog',
-            to: '/assets'
+            to: '/assets',
+            permission: 'asset.view'
           },
           {
             labelKey: 'nav.assetImport',
-            to: '/assets/import'
+            to: '/assets/import',
+            permission: 'asset.manage'
           },
           {
             labelKey: 'nav.assetLabel',
-            to: '/assets/label'
+            to: '/assets/label',
+            permission: 'asset.view'
           }
         ]
+      },
+      {
+        labelKey: 'nav.peminjaman',
+        icon: 'i-lucide-hand',
+        to: '/peminjaman',
+        permission: 'request.create'
       },
       {
         labelKey: 'nav.assignment',
         icon: 'i-lucide-clipboard-check',
         to: '/assignment',
-        permission: 'assignment.manage'
+        permission: 'assignment.view'
       },
       {
         labelKey: 'nav.stockOpname',
@@ -66,7 +78,7 @@ export const superadminNav: NavGroup[] = [
         labelKey: 'nav.maintenance',
         icon: 'i-lucide-wrench',
         to: '/maintenance',
-        permission: 'maintenance.view'
+        permission: ['maintenance.view', 'request.create']
       },
       {
         labelKey: 'nav.approval',
@@ -91,23 +103,33 @@ export const superadminNav: NavGroup[] = [
         children: [
           {
             labelKey: 'nav.offices',
-            to: '/master/offices'
+            to: '/master/offices',
+            permission: 'masterdata.office.manage'
           },
           {
             labelKey: 'nav.employees',
-            to: '/master/employees'
+            to: '/master/employees',
+            permission: 'masterdata.office.manage'
           },
           {
             labelKey: 'nav.categories',
-            to: '/master/categories'
+            to: '/master/categories',
+            permission: 'masterdata.global.manage'
           },
           {
             labelKey: 'nav.officeMap',
-            to: '/master/map'
+            to: '/master/map',
+            permission: 'masterdata.office.manage'
           },
           {
             labelKey: 'nav.reference',
-            to: '/master/reference'
+            to: '/master/reference',
+            permission: 'masterdata.global.manage'
+          },
+          {
+            labelKey: 'nav.masterImport',
+            to: '/master/import',
+            permission: ['masterdata.employee.manage', 'masterdata.office.manage', 'masterdata.global.manage']
           }
         ]
       },
@@ -117,61 +139,30 @@ export const superadminNav: NavGroup[] = [
         children: [
           {
             labelKey: 'nav.users',
-            to: '/settings/users'
+            to: '/settings/users',
+            permission: 'user.manage'
           },
           {
             labelKey: 'nav.rbac',
-            to: '/settings/rbac'
+            to: '/settings/rbac',
+            permission: 'role.manage'
           },
           {
             labelKey: 'nav.dataScope',
-            to: '/settings/data-scope'
+            to: '/settings/data-scope',
+            permission: 'scope.manage'
           },
           {
             labelKey: 'nav.fieldPermission',
-            to: '/settings/field-permission'
+            to: '/settings/field-permission',
+            permission: 'fieldperm.manage'
           },
           {
             labelKey: 'nav.auditTrail',
-            to: '/settings/audit'
+            to: '/settings/audit',
+            permission: 'audit.view'
           }
         ]
-      }
-    ]
-  }
-]
-
-/** Staff nav — minimal menu for non-admin users */
-export const staffNav: NavGroup[] = [
-  {
-    labelKey: 'nav.group.menu',
-    items: [
-      {
-        labelKey: 'nav.dashboard',
-        icon: 'i-lucide-layout-dashboard',
-        to: '/'
-      },
-      {
-        labelKey: 'nav.myAssets',
-        icon: 'i-lucide-package',
-        disabled: true
-      },
-      {
-        labelKey: 'nav.peminjaman',
-        icon: 'i-lucide-hand',
-        to: '/peminjaman',
-        permission: 'request.create'
-      },
-      {
-        labelKey: 'nav.maintenance',
-        icon: 'i-lucide-wrench',
-        to: '/maintenance',
-        permission: 'request.create'
-      },
-      {
-        labelKey: 'nav.approvalStaff',
-        icon: 'i-lucide-check-square',
-        disabled: true
       }
     ]
   }

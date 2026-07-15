@@ -94,6 +94,8 @@ func newTestHarness(t *testing.T) *testHarness {
 		middleware.RequirePermission(permSvc, "role.manage"),
 		middleware.RequirePermission(permSvc, "scope.manage"),
 		middleware.RequirePermission(permSvc, "fieldperm.manage"),
+		middleware.RequireAnyPermission(permSvc, "role.manage", "scope.manage", "fieldperm.manage"),
+		middleware.RequireAnyPermission(permSvc, "role.manage", "scope.manage", "fieldperm.manage", "user.manage"),
 	)
 
 	return &testHarness{
@@ -164,6 +166,8 @@ func (h *testHarness) callAs(userID, roleID uuid.UUID, method, path string, body
 		middleware.RequirePermission(h.permSvc, "role.manage"),
 		middleware.RequirePermission(h.permSvc, "scope.manage"),
 		middleware.RequirePermission(h.permSvc, "fieldperm.manage"),
+		middleware.RequireAnyPermission(h.permSvc, "role.manage", "scope.manage", "fieldperm.manage"),
+		middleware.RequireAnyPermission(h.permSvc, "role.manage", "scope.manage", "fieldperm.manage", "user.manage"),
 	)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -652,12 +656,100 @@ func TestAuthzAdmin_Forbidden_WithoutPermission(t *testing.T) {
 
 	w := h.callAs(unprivUserID, unprivRoleID, http.MethodGet, "/api/v1/authz/roles", nil)
 	require.Equal(t, http.StatusForbidden, w.Code,
-		"role without role.manage must receive 403 Forbidden")
+		"role holding none of the authz-admin read keys must receive 403 Forbidden")
 
 	b := body(t, w)
 	assert.Equal(t, "forbidden", b["error"])
-	assert.Equal(t, "role.manage", b["required_permission"],
-		"response must name the missing permission")
+	anyKeys, ok := b["required_permission_any"].([]any)
+	require.True(t, ok, "response must carry required_permission_any for the loosened read gate")
+	assert.ElementsMatch(t,
+		[]any{"role.manage", "scope.manage", "fieldperm.manage", "user.manage"}, anyKeys,
+		"response must name every accepted read permission")
+}
+
+// Case 12: Delegation_ScopeOnly — a role holding ONLY scope.manage can reach the
+// shared reads (catalog, roles list) and manage data scope, but is blocked from
+// role-permission mutations. This proves scope.manage is independently delegable.
+func TestAuthzAdmin_Delegation_ScopeOnly(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	// Seed a role with ONLY scope.manage and a user carrying it.
+	scopeRoleID := testsupport.SeedRole(t, h.pool, "scope-only-"+uuid.New().String()[:8])
+	_, err := h.pool.Exec(ctx,
+		`INSERT INTO identity.role_permissions (role_id, permission_key) VALUES ($1, 'scope.manage')`,
+		scopeRoleID)
+	require.NoError(t, err)
+	var scopeUserID uuid.UUID
+	require.NoError(t, h.pool.QueryRow(ctx,
+		`INSERT INTO identity.users (name, email, role_id, status)
+		 VALUES ('Scope Admin', 'scopeonly@authzadmin.test', $1, 'active') RETURNING id`,
+		scopeRoleID).Scan(&scopeUserID))
+
+	// A target role whose scope this delegate will manage.
+	wCreate := h.call(http.MethodPost, "/api/v1/authz/roles", map[string]any{
+		"code": "scope-target",
+		"name": "Scope Target",
+	})
+	require.Equal(t, http.StatusCreated, wCreate.Code)
+	targetID := body(t, wCreate)["id"].(string)
+
+	t.Run("GET catalog allowed", func(t *testing.T) {
+		w := h.callAs(scopeUserID, scopeRoleID, http.MethodGet, "/api/v1/authz/catalog", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+	t.Run("GET roles allowed", func(t *testing.T) {
+		w := h.callAs(scopeUserID, scopeRoleID, http.MethodGet, "/api/v1/authz/roles", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+	t.Run("GET role scope allowed", func(t *testing.T) {
+		w := h.callAs(scopeUserID, scopeRoleID, http.MethodGet, "/api/v1/authz/roles/"+targetID+"/scope", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+	t.Run("PUT role scope allowed", func(t *testing.T) {
+		w := h.callAs(scopeUserID, scopeRoleID, http.MethodPut, "/api/v1/authz/roles/"+targetID+"/scope", map[string]any{
+			"policies": []map[string]any{
+				{"module": "*", "scope_level": "global"},
+			},
+		})
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+	t.Run("PUT role permissions forbidden", func(t *testing.T) {
+		w := h.callAs(scopeUserID, scopeRoleID, http.MethodPut, "/api/v1/authz/roles/"+targetID+"/permissions", map[string]any{
+			"permissions": []string{"asset.view"},
+		})
+		assert.Equal(t, http.StatusForbidden, w.Code,
+			"scope.manage must not permit role-permission mutations")
+	})
+}
+
+// Case 13: Delegation_UserManage — a role holding ONLY user.manage can list roles
+// (for the Users-screen role picker) but is blocked from the catalog, which is
+// reserved for the three authz-admin manage capabilities.
+func TestAuthzAdmin_Delegation_UserManage(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	userRoleID := testsupport.SeedRole(t, h.pool, "user-only-"+uuid.New().String()[:8])
+	_, err := h.pool.Exec(ctx,
+		`INSERT INTO identity.role_permissions (role_id, permission_key) VALUES ($1, 'user.manage')`,
+		userRoleID)
+	require.NoError(t, err)
+	var userUserID uuid.UUID
+	require.NoError(t, h.pool.QueryRow(ctx,
+		`INSERT INTO identity.users (name, email, role_id, status)
+		 VALUES ('User Admin', 'useronly@authzadmin.test', $1, 'active') RETURNING id`,
+		userRoleID).Scan(&userUserID))
+
+	t.Run("GET roles allowed for the role picker", func(t *testing.T) {
+		w := h.callAs(userUserID, userRoleID, http.MethodGet, "/api/v1/authz/roles", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+	t.Run("GET catalog forbidden", func(t *testing.T) {
+		w := h.callAs(userUserID, userRoleID, http.MethodGet, "/api/v1/authz/catalog", nil)
+		assert.Equal(t, http.StatusForbidden, w.Code,
+			"user.manage must not reach the authz-admin catalog")
+	})
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────

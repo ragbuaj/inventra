@@ -3246,7 +3246,8 @@ paths:
         Returns the complete set of assignable permission keys (grouped for the admin UI),
         valid data-scope levels, and known scope-module strings. Used to drive the
         Peran & RBAC / Data Scope / Field Permission admin screens.
-        Requires the `role.manage` permission.
+        Loosened read gate: requires any one of `role.manage`, `scope.manage`, or
+        `fieldperm.manage`, so those capabilities can be delegated independently.
       security:
         - bearerJWT: []
       responses:
@@ -3264,7 +3265,10 @@ paths:
       tags: [Authorization Admin]
       operationId: listRoles
       summary: List roles
-      description: Returns all non-deleted roles. Requires the `role.manage` permission.
+      description: |
+        Returns all non-deleted roles. Loosened read gate: requires any one of
+        `role.manage`, `scope.manage`, `fieldperm.manage`, or `user.manage`
+        (`user.manage` lets the Users screen populate its role picker).
       security:
         - bearerJWT: []
       responses:
@@ -3311,7 +3315,9 @@ paths:
       tags: [Authorization Admin]
       operationId: getRole
       summary: Get a role by id
-      description: Requires the `role.manage` permission.
+      description: |
+        Loosened read gate: requires any one of `role.manage`, `scope.manage`,
+        `fieldperm.manage`, or `user.manage`.
       security:
         - bearerJWT: []
       responses:

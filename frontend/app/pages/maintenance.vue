@@ -6,7 +6,7 @@ import type { RecordPrefill } from '~/components/maintenance/RecordSlideover.vue
 import { MAINT_STATUS_TONE, MAINT_TYPE_TONE, dueDiffDays, dueKind, formatRupiah, type DueKind } from '~/constants/maintenanceMeta'
 import { formatDateID, REQUEST_STATUS_TONE, type RequestStatus } from '~/constants/assignmentMeta'
 
-definePageMeta({ middleware: 'can', permission: 'request.create' })
+definePageMeta({ middleware: 'can', permission: ['maintenance.view', 'request.create'] })
 
 type TabKey = 'jadwal' | 'catatan' | 'laporan'
 

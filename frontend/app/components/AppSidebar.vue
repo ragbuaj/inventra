@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { superadminNav, staffNav } from '~/utils/nav'
+import { appNav } from '~/utils/nav'
 import type { NavItem } from '~/types'
 
 const ui = useUiStore()
@@ -9,9 +9,9 @@ const inboxStore = useInboxStore()
 const { t } = useI18n()
 const localePath = useLocalePath()
 
-// Gate on 'user.manage': an admin-only capability the backend always returns for admins.
-// The backend never returns the literal '*' in the permissions list, only enumerated keys.
-const nav = computed(() => can('user.manage') ? superadminNav : staffNav)
+// Single per-permission nav model: every role sees exactly the items its
+// permissions unlock (see isVisible). No more binary superadmin/staff split.
+const nav = appNav
 
 // Track which parent groups are expanded; default all open
 const expandedGroups = ref<Record<string, boolean>>({})
@@ -43,15 +43,28 @@ function onParentClick(labelKey: string) {
   toggleGroup(labelKey)
 }
 
-function isVisible(item: NavItem): boolean {
-  if (!item.permission) return true
-  return can(item.permission)
+// OR semantics: no permission means always visible; an array is satisfied when
+// the caller holds any one of its keys.
+function hasAny(permission?: string | string[]): boolean {
+  if (!permission) return true
+  return Array.isArray(permission) ? permission.some(p => can(p)) : can(permission)
 }
 
-// The approval leaves (superadmin + staff) show the live pending-approval
-// count from the inbox store instead of any static badgeCount.
+function isVisible(item: NavItem): boolean {
+  // A parent group is visible only when at least one of its children is; this
+  // auto-hides an entire group whose items the caller cannot reach.
+  if (item.children) return item.children.some(isVisible)
+  return hasAny(item.permission)
+}
+
+// Drop a whole top-level section (e.g. Administrasi) when none of its items are
+// visible, so the section header never renders over an empty list.
+const visibleNav = computed(() => nav.filter(group => group.items.some(isVisible)))
+
+// The approval leaf shows the live pending-approval count from the inbox store
+// instead of any static badgeCount.
 function badgeFor(item: NavItem): number | undefined {
-  if (item.labelKey === 'nav.approval' || item.labelKey === 'nav.approvalStaff') {
+  if (item.labelKey === 'nav.approval') {
     return inboxStore.pendingCount || undefined
   }
   return item.badgeCount
@@ -112,7 +125,7 @@ const sidebarWidth = computed(() => ui.sidebarCollapsed ? '76px' : '264px')
     <!-- Nav -->
     <nav class="flex-1 overflow-y-auto overflow-x-hidden px-3 pt-3 pb-[18px]">
       <div
-        v-for="group in nav"
+        v-for="group in visibleNav"
         :key="group.labelKey"
         class="mb-[6px]"
       >
@@ -185,24 +198,26 @@ const sidebarWidth = computed(() => ui.sidebarCollapsed ? '76px' : '264px')
                   v-for="child in item.children"
                   :key="child.labelKey"
                 >
-                  <!-- Built child (has `to`) -->
-                  <NuxtLink
-                    v-if="!child.disabled && child.to"
-                    :to="localePath(child.to)"
-                    class="flex items-center w-full px-3 py-[8px] text-[13.5px] rounded-[8px] text-default hover:bg-muted transition-colors"
-                    active-class="bg-primary/10 text-primary font-medium shadow-[inset_3px_0_0_var(--ui-primary)]"
-                    :style="{ boxShadow: 'inset 3px 0 0 transparent' }"
-                  >
-                    {{ $t(child.labelKey) }}
-                  </NuxtLink>
-                  <!-- Disabled child -->
-                  <span
-                    v-else
-                    :title="t('nav.comingSoon')"
-                    class="flex items-center w-full px-3 py-[8px] text-[13.5px] rounded-[8px] text-dimmed cursor-not-allowed select-none"
-                  >
-                    {{ $t(child.labelKey) }}
-                  </span>
+                  <template v-if="isVisible(child)">
+                    <!-- Built child (has `to`) -->
+                    <NuxtLink
+                      v-if="!child.disabled && child.to"
+                      :to="localePath(child.to)"
+                      class="flex items-center w-full px-3 py-[8px] text-[13.5px] rounded-[8px] text-default hover:bg-muted transition-colors"
+                      active-class="bg-primary/10 text-primary font-medium shadow-[inset_3px_0_0_var(--ui-primary)]"
+                      :style="{ boxShadow: 'inset 3px 0 0 transparent' }"
+                    >
+                      {{ $t(child.labelKey) }}
+                    </NuxtLink>
+                    <!-- Disabled child -->
+                    <span
+                      v-else
+                      :title="t('nav.comingSoon')"
+                      class="flex items-center w-full px-3 py-[8px] text-[13.5px] rounded-[8px] text-dimmed cursor-not-allowed select-none"
+                    >
+                      {{ $t(child.labelKey) }}
+                    </span>
+                  </template>
                 </template>
               </div>
             </template>

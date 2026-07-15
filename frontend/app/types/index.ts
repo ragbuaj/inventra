@@ -225,7 +225,7 @@ export interface NavItem {
   labelKey: string
   icon?: string
   to?: string
-  permission?: string
+  permission?: string | string[]
   badgeCount?: number
   disabled?: boolean
   children?: NavItem[]

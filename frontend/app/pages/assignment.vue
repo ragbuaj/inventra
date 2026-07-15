@@ -4,7 +4,7 @@ import type { AssetCondition } from '~/constants/assignmentMeta'
 import { useAssignment } from '~/composables/api/useAssignment'
 import { ASSIGNMENT_STATUS_TONE, CONDITION_KEYS, formatDateID } from '~/constants/assignmentMeta'
 
-definePageMeta({ middleware: 'can', permission: 'assignment.manage' })
+definePageMeta({ middleware: 'can', permission: 'assignment.view' })
 
 const ALL = '__all__'
 const CONDITION_TEXT: Record<AssetCondition, string> = {
@@ -14,8 +14,16 @@ const CONDITION_TEXT: Record<AssetCondition, string> = {
 }
 
 const { t } = useI18n()
+const can = useCan()
 const api = useAssignment()
 const employee = useEmployeePicker()
+
+// The page is reachable by any viewer (assignment.view). The checkout picker's
+// `/assignments/available` fetch is a create-time concern, and the check-out /
+// check-in mutations are management actions — each stays behind its own key so
+// a read-only viewer never triggers a request it is not authorized for.
+const canCreate = computed(() => can('request.create'))
+const canManage = computed(() => can('assignment.manage'))
 
 const tab = ref<'checkout' | 'checkin' | 'history'>('checkout')
 const assignments = ref<Assignment[]>([])
@@ -88,6 +96,10 @@ const histRows = computed(() => {
 async function loadAssignments() {
   const page = await api.list()
   assignments.value = page.data
+  if (!canCreate.value) {
+    availableAssets.value = []
+    return
+  }
   const avail = await api.available()
   availableAssets.value = avail.data.map(a => ({ label: `${a.name} · ${a.asset_tag}`, value: a.id }))
 }
@@ -113,6 +125,7 @@ function resetCheckout() {
 }
 
 async function doCheckout() {
+  if (!canManage.value) return
   if (!coReady.value) {
     coMsg.value = { text: t('assignment.checkout.errIncomplete'), type: 'error' }
     return
@@ -137,6 +150,7 @@ async function doCheckout() {
 }
 
 async function doCheckin() {
+  if (!canManage.value) return
   if (!ciReady.value) {
     ciMsg.value = { text: t('assignment.checkin.errIncomplete'), type: 'error' }
     return
@@ -309,7 +323,7 @@ onMounted(refresh)
             <UButton
               icon="i-lucide-circle-check-big"
               :label="t('assignment.checkout.submit')"
-              :disabled="!coReady"
+              :disabled="!coReady || !canManage"
               data-testid="assignment-checkout-submit"
               @click="doCheckout"
             />
@@ -401,7 +415,7 @@ onMounted(refresh)
             <UButton
               icon="i-lucide-square-check-big"
               :label="t('assignment.checkin.submit')"
-              :disabled="!ciReady"
+              :disabled="!ciReady || !canManage"
               data-testid="assignment-checkin-submit"
               @click="doCheckin"
             />

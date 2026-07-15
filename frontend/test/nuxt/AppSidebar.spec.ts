@@ -23,16 +23,6 @@ function setupSuperadminEnumerated() {
   )
 }
 
-// Staff user — lacks 'user.manage', so AppSidebar's `can('user.manage') ? superadminNav : staffNav`
-// selects staffNav (which renders the disabled nav.approvalStaff leaf).
-function setupStaff() {
-  useAuthStore().setSession(
-    'tok',
-    { id: '2', name: 'Budi Santoso', email: 'budi@inventra.local', role_id: 'r2', role_name: 'Staff', office_id: 'o1' },
-    ['request.create']
-  )
-}
-
 describe('AppSidebar', () => {
   beforeEach(() => {
     useAuthStore().clear()
@@ -231,46 +221,19 @@ describe('AppSidebar — live pending-approval badge (nav.approval)', () => {
   })
 })
 
-describe('AppSidebar — live pending-approval badge (nav.approvalStaff, disabled leaf)', () => {
-  beforeEach(() => {
-    useAuthStore().clear()
-    useUiStore().sidebarCollapsed = false
-    useInboxStore().pendingCount = 0
-  })
-
-  it('renders the inbox store pendingCount as the badge on the disabled staff approval leaf', async () => {
-    setupStaff()
-    useInboxStore().pendingCount = 3
-    const wrapper = await mountSuspended(AppSidebar)
-    const staffLeaf = wrapper.find('[aria-label="Pengajuan"]')
-    expect(staffLeaf.exists()).toBe(true)
-    expect(staffLeaf.text()).toContain('3')
-  })
-
-  it('hides the badge on the disabled staff approval leaf when pendingCount is 0', async () => {
-    setupStaff()
-    useInboxStore().pendingCount = 0
-    const wrapper = await mountSuspended(AppSidebar)
-    const staffLeaf = wrapper.find('[aria-label="Pengajuan"]')
-    expect(staffLeaf.exists()).toBe(true)
-    // No badge span should render for a 0 count
-    expect(staffLeaf.find('.bg-error').exists()).toBe(false)
-  })
-})
-
-describe('AppSidebar — enumerated superadmin permissions (Bug 3)', () => {
+describe('AppSidebar — enumerated permissions (no wildcard)', () => {
   beforeEach(() => {
     useAuthStore().clear()
     useUiStore().sidebarCollapsed = false
   })
 
-  it('renders superadminNav (Master Data group) when permissions are enumerated without wildcard', async () => {
+  it('renders the Master Data group when master-data permissions are enumerated without wildcard', async () => {
     // Backend returns specific keys, never '*', so can('*') would always be false.
-    // The sidebar must gate on a real admin-only capability instead.
+    // The single per-permission nav must gate each item on its real permission.
     setupSuperadminEnumerated()
     const wrapper = await mountSuspended(AppSidebar)
     const html = wrapper.html()
-    // superadminNav contains a "Master Data" group — staffNav does not
+    // A user holding masterdata.*.manage keys sees the "Master Data" group.
     expect(html).toContain('Master Data')
   })
 

@@ -1,220 +1,231 @@
 import { describe, it, expect } from 'vitest'
-import { superadminNav, staffNav } from '~/utils/nav'
+import { appNav } from '~/utils/nav'
 import type { NavItem } from '~/types'
 
-const BUILT_ROUTES = ['/', '/master/offices', '/master/employees', '/master/categories', '/master/map', '/master/reference', '/settings/users', '/settings/rbac', '/settings/data-scope', '/settings/field-permission', '/settings/audit', '/assets', '/assets/import', '/assets/label', '/assignment', '/stock-opname', '/transfers', '/disposals', '/depreciation', '/maintenance', '/approval', '/reports']
+// ---------------------------------------------------------------------------
+// Visibility logic — mirrors AppSidebar.hasAny/isVisible + useCan (which treats
+// the wildcard '*' as "all permissions"). Kept in lockstep with the component
+// so this unit test is an honest oracle for what the sidebar renders.
+// ---------------------------------------------------------------------------
+
+function can(perms: Set<string>, key: string): boolean {
+  return perms.has('*') || perms.has(key)
+}
+
+function hasAny(perms: Set<string>, permission?: string | string[]): boolean {
+  if (!permission) return true
+  return Array.isArray(permission)
+    ? permission.some(p => can(perms, p))
+    : can(perms, permission)
+}
+
+function isVisible(perms: Set<string>, item: NavItem): boolean {
+  if (item.children) return item.children.some(c => isVisible(perms, c))
+  return hasAny(perms, item.permission)
+}
+
+/** Flattened set of leaf `to` routes visible to a caller holding `perms`. */
+function visibleLeafRoutes(perms: Set<string>): string[] {
+  const out: string[] = []
+  function walk(items: NavItem[]) {
+    for (const item of items) {
+      if (item.children) {
+        walk(item.children)
+      } else if (item.to && isVisible(perms, item)) {
+        out.push(item.to)
+      }
+    }
+  }
+  for (const g of appNav) walk(g.items)
+  return out.sort()
+}
 
 function collectItems(items: NavItem[]): NavItem[] {
   return items.flatMap(item => [item, ...(item.children ? collectItems(item.children) : [])])
 }
 
-function allItems(nav: typeof superadminNav): NavItem[] {
-  return nav.flatMap(g => collectItems(g.items))
+const ALL_ITEMS = appNav.flatMap(g => collectItems(g.items))
+
+// ---------------------------------------------------------------------------
+// Seed role -> permission matrix (from the design spec's authoritative table).
+// superadmin holds the wildcard; the rest are enumerated explicitly.
+// ---------------------------------------------------------------------------
+
+const ROLE_PERMS: Record<string, string[]> = {
+  superadmin: ['*'],
+  kepala_kanwil: [
+    'audit.view',
+    'masterdata.office.manage', 'masterdata.employee.manage',
+    'asset.view',
+    'request.create', 'request.decide',
+    'valuation.exclude.approve',
+    'report.view', 'report.export',
+    'transfer.view', 'transfer.manage',
+    'disposal.view', 'disposal.manage',
+    'stockopname.view', 'stockopname.manage',
+    'assignment.view',
+    'maintenance.view'
+  ],
+  kepala_unit: [
+    'audit.view',
+    'asset.view',
+    'request.create', 'request.decide',
+    'report.view', 'report.export',
+    'transfer.view', 'transfer.manage',
+    'disposal.view', 'disposal.manage',
+    'stockopname.view', 'stockopname.manage',
+    'assignment.view',
+    'maintenance.view'
+  ],
+  manager: [
+    'asset.view', 'asset.manage',
+    'request.create', 'request.decide',
+    'report.view', 'report.export',
+    'transfer.view', 'transfer.manage',
+    'disposal.view', 'disposal.manage',
+    'stockopname.view', 'stockopname.manage',
+    'assignment.view', 'assignment.manage',
+    'maintenance.view', 'maintenance.manage'
+  ],
+  staf: [
+    'asset.view',
+    'request.create',
+    'report.view'
+  ]
 }
 
-describe('superadminNav — structure', () => {
-  it('has exactly 2 groups', () => {
-    expect(superadminNav).toHaveLength(2)
+// Hand-computed expected visible leaf routes per role (the test oracle).
+const EXPECTED_ROUTES: Record<string, string[]> = {
+  superadmin: [
+    '/', '/assets', '/assets/import', '/assets/label', '/peminjaman', '/assignment',
+    '/stock-opname', '/transfers', '/disposals', '/depreciation', '/maintenance',
+    '/approval', '/reports',
+    '/master/offices', '/master/employees', '/master/categories', '/master/map',
+    '/master/reference', '/master/import',
+    '/settings/users', '/settings/rbac', '/settings/data-scope',
+    '/settings/field-permission', '/settings/audit'
+  ],
+  kepala_kanwil: [
+    '/', '/assets', '/assets/label', '/peminjaman', '/assignment', '/stock-opname',
+    '/transfers', '/disposals', '/maintenance', '/approval', '/reports',
+    '/master/offices', '/master/employees', '/master/map', '/master/import',
+    '/settings/audit'
+  ],
+  kepala_unit: [
+    '/', '/assets', '/assets/label', '/peminjaman', '/assignment', '/stock-opname',
+    '/transfers', '/disposals', '/maintenance', '/approval', '/reports',
+    '/settings/audit'
+  ],
+  manager: [
+    '/', '/assets', '/assets/import', '/assets/label', '/peminjaman', '/assignment',
+    '/stock-opname', '/transfers', '/disposals', '/maintenance', '/approval', '/reports'
+  ],
+  staf: [
+    '/', '/assets', '/assets/label', '/peminjaman', '/maintenance', '/reports'
+  ]
+}
+
+// ---------------------------------------------------------------------------
+// Structure
+// ---------------------------------------------------------------------------
+
+describe('appNav — structure', () => {
+  it('has exactly 2 groups: Operasional then Administrasi', () => {
+    expect(appNav).toHaveLength(2)
+    expect(appNav[0]!.labelKey).toBe('nav.group.operasional')
+    expect(appNav[1]!.labelKey).toBe('nav.group.administrasi')
   })
 
-  it('first group labelKey is nav.group.operasional', () => {
-    expect(superadminNav[0].labelKey).toBe('nav.group.operasional')
+  it('Operasional has 11 top-level items (Aset is a parent, the rest leaves)', () => {
+    expect(appNav[0]!.items).toHaveLength(11)
   })
 
-  it('second group labelKey is nav.group.administrasi', () => {
-    expect(superadminNav[1].labelKey).toBe('nav.group.administrasi')
-  })
-
-  it('Operasional has 10 top-level items', () => {
-    expect(superadminNav[0].items).toHaveLength(10)
-  })
-
-  it('Administrasi has 2 top-level items (Master Data, Pengaturan)', () => {
-    expect(superadminNav[1].items).toHaveLength(2)
-  })
-})
-
-describe('superadminNav — built items have `to`, unbuilt are disabled', () => {
-  const items = allItems(superadminNav)
-
-  it('every item with `to` is one of the known built routes', () => {
-    const withTo = items.filter(i => i.to !== undefined)
-    for (const item of withTo) {
-      expect(BUILT_ROUTES).toContain(item.to)
-    }
-  })
-
-  it('every built route appears exactly once', () => {
-    const tos = items.map(i => i.to).filter(Boolean)
-    for (const route of BUILT_ROUTES) {
-      expect(tos.filter(t => t === route)).toHaveLength(1)
-    }
-  })
-
-  it('items without `to` have disabled=true', () => {
-    const withoutTo = items.filter(i => i.to === undefined && !i.children)
-    for (const item of withoutTo) {
-      expect(item.disabled).toBe(true)
-    }
-  })
-
-  it('no item has both `to` and disabled=true', () => {
-    for (const item of items) {
-      if (item.to) {
-        expect(item.disabled).toBeFalsy()
-      }
-    }
-  })
-})
-
-describe('superadminNav — assignment', () => {
-  it('assignment item links to /assignment and is gated by assignment.manage', () => {
-    const assignment = superadminNav[0].items.find(i => i.labelKey === 'nav.assignment')
-    expect(assignment?.to).toBe('/assignment')
-    expect(assignment?.permission).toBe('assignment.manage')
-  })
-})
-
-describe('superadminNav — approval', () => {
-  it('approval item is gated by the request.decide permission and has no hardcoded badge', () => {
-    const approval = superadminNav[0].items.find(i => i.labelKey === 'nav.approval')
-    expect(approval?.permission).toBe('request.decide')
-    expect(approval?.badgeCount).toBeUndefined()
-  })
-})
-
-describe('superadminNav — stock opname', () => {
-  it('stockOpname item links to /stock-opname and is gated by stockopname.view', () => {
-    const stockOpname = superadminNav[0].items.find(i => i.labelKey === 'nav.stockOpname')
-    expect(stockOpname?.to).toBe('/stock-opname')
-    expect(stockOpname?.permission).toBe('stockopname.view')
-    expect(stockOpname?.icon).toBe('i-lucide-clipboard-list')
-  })
-
-  it('stockOpname appears after assignment and before transfers', () => {
-    const keys = superadminNav[0].items.map(i => i.labelKey)
-    const assignmentIdx = keys.indexOf('nav.assignment')
-    const stockOpnameIdx = keys.indexOf('nav.stockOpname')
-    const transfersIdx = keys.indexOf('nav.transfers')
-    expect(assignmentIdx).toBeLessThan(stockOpnameIdx)
-    expect(stockOpnameIdx).toBeLessThan(transfersIdx)
-  })
-})
-
-describe('superadminNav — transfers and disposals', () => {
-  it('transfers item links to /transfers and is gated by transfer.view', () => {
-    const transfers = superadminNav[0].items.find(i => i.labelKey === 'nav.transfers')
-    expect(transfers?.to).toBe('/transfers')
-    expect(transfers?.permission).toBe('transfer.view')
-  })
-
-  it('disposals item links to /disposals and is gated by disposal.view', () => {
-    const disposals = superadminNav[0].items.find(i => i.labelKey === 'nav.disposals')
-    expect(disposals?.to).toBe('/disposals')
-    expect(disposals?.permission).toBe('disposal.view')
-  })
-
-  it('depreciation item links to /depreciation and is gated by depreciation.view', () => {
-    const depreciation = superadminNav[0].items.find(i => i.labelKey === 'nav.depreciation')
-    expect(depreciation?.to).toBe('/depreciation')
-    expect(depreciation?.permission).toBe('depreciation.view')
-    expect(depreciation?.icon).toBe('i-lucide-trending-down')
-  })
-
-  it('transfers appears after assignment and before maintenance', () => {
-    const keys = superadminNav[0].items.map(i => i.labelKey)
-    const assignmentIdx = keys.indexOf('nav.assignment')
-    const transfersIdx = keys.indexOf('nav.transfers')
-    const disposalsIdx = keys.indexOf('nav.disposals')
-    const depreciationIdx = keys.indexOf('nav.depreciation')
-    const maintenanceIdx = keys.indexOf('nav.maintenance')
-    expect(assignmentIdx).toBeLessThan(transfersIdx)
-    expect(transfersIdx).toBeLessThan(disposalsIdx)
-    expect(disposalsIdx).toBeLessThan(depreciationIdx)
-    expect(depreciationIdx).toBeLessThan(maintenanceIdx)
-  })
-})
-
-describe('superadminNav — maintenance', () => {
-  it('maintenance item links to /maintenance and is gated by maintenance.view', () => {
-    const maintenance = superadminNav[0].items.find(i => i.labelKey === 'nav.maintenance')
-    expect(maintenance?.to).toBe('/maintenance')
-    expect(maintenance?.permission).toBe('maintenance.view')
-    expect(maintenance?.icon).toBe('i-lucide-wrench')
-  })
-
-  it('maintenance appears after depreciation and before approval', () => {
-    const keys = superadminNav[0].items.map(i => i.labelKey)
-    const depreciationIdx = keys.indexOf('nav.depreciation')
-    const maintenanceIdx = keys.indexOf('nav.maintenance')
-    const approvalIdx = keys.indexOf('nav.approval')
-    expect(depreciationIdx).toBeLessThan(maintenanceIdx)
-    expect(maintenanceIdx).toBeLessThan(approvalIdx)
-  })
-})
-
-describe('superadminNav — reports', () => {
-  it('reports item links to /reports and is gated by report.view', () => {
-    const reports = superadminNav[0].items.find(i => i.labelKey === 'nav.reports')
-    expect(reports?.to).toBe('/reports')
-    expect(reports?.permission).toBe('report.view')
-    expect(reports?.icon).toBe('i-lucide-bar-chart-2')
-  })
-})
-
-describe('superadminNav — children groups', () => {
-  it('Aset parent has 3 children (Katalog/Import/Label)', () => {
-    const aset = superadminNav[0].items.find(i => i.labelKey === 'nav.assets')
-    expect(aset?.children).toHaveLength(3)
-  })
-
-  it('Master Data parent has 5 children', () => {
-    const master = superadminNav[1].items.find(i => i.labelKey === 'nav.masterData')
-    expect(master?.children).toHaveLength(5)
-  })
-
-  it('includes a Kategori entry under Master Data linking to /master/categories', () => {
-    const master = superadminNav
-      .flatMap(g => g.items)
-      .find(i => i.labelKey === 'nav.masterData')
-    expect(master?.children?.some(c => c.to === '/master/categories' && c.labelKey === 'nav.categories')).toBe(true)
-  })
-
-  it('Pengaturan parent has 5 children', () => {
-    const settings = superadminNav[1].items.find(i => i.labelKey === 'nav.settings')
+  it('Administrasi has 2 parents: Master Data (6 children) and Pengaturan (5 children)', () => {
+    const master = appNav[1]!.items.find(i => i.labelKey === 'nav.masterData')
+    const settings = appNav[1]!.items.find(i => i.labelKey === 'nav.settings')
+    expect(master?.children).toHaveLength(6)
     expect(settings?.children).toHaveLength(5)
   })
+
+  it('no disabled placeholder items remain (My Assets / staff Approval removed)', () => {
+    expect(ALL_ITEMS.some(i => i.disabled)).toBe(false)
+    expect(ALL_ITEMS.some(i => i.labelKey === 'nav.myAssets')).toBe(false)
+    expect(ALL_ITEMS.some(i => i.labelKey === 'nav.approvalStaff')).toBe(false)
+  })
+
+  it('Dashboard has no permission (visible to every authenticated user)', () => {
+    const dash = appNav[0]!.items.find(i => i.labelKey === 'nav.dashboard')
+    expect(dash?.to).toBe('/')
+    expect(dash?.permission).toBeUndefined()
+  })
 })
 
-describe('staffNav', () => {
-  it('has 1 group with 5 items', () => {
-    expect(staffNav).toHaveLength(1)
-    expect(staffNav[0].items).toHaveLength(5)
+describe('appNav — key per-item permissions match the spec map', () => {
+  const byRoute = new Map(ALL_ITEMS.filter(i => i.to).map(i => [i.to!, i]))
+
+  it('Maintenance is an OR of maintenance.view and request.create', () => {
+    expect(byRoute.get('/maintenance')?.permission).toEqual(['maintenance.view', 'request.create'])
   })
 
-  it('Dashboard has route /', () => {
-    const dash = staffNav[0].items.find(i => i.labelKey === 'nav.dashboard')
-    expect(dash?.to).toBe('/')
+  it('Master > Impor is an OR of the three masterdata manage keys', () => {
+    expect(byRoute.get('/master/import')?.permission).toEqual([
+      'masterdata.employee.manage', 'masterdata.office.manage', 'masterdata.global.manage'
+    ])
   })
 
-  it('has an enabled nav.peminjaman item linking to /peminjaman, gated by request.create', () => {
-    const peminjaman = staffNav[0].items.find(i => i.labelKey === 'nav.peminjaman')
-    expect(peminjaman?.to).toBe('/peminjaman')
-    expect(peminjaman?.permission).toBe('request.create')
-    expect(peminjaman?.icon).toBe('i-lucide-hand')
-    expect(peminjaman?.disabled).toBeFalsy()
+  it('Penugasan (/assignment) is gated by assignment.view, Peminjaman by request.create', () => {
+    expect(byRoute.get('/assignment')?.permission).toBe('assignment.view')
+    expect(byRoute.get('/peminjaman')?.permission).toBe('request.create')
   })
 
-  it('has an enabled nav.maintenance item linking to /maintenance, gated by request.create', () => {
-    const maintenance = staffNav[0].items.find(i => i.labelKey === 'nav.maintenance')
-    expect(maintenance?.to).toBe('/maintenance')
-    expect(maintenance?.permission).toBe('request.create')
-    expect(maintenance?.icon).toBe('i-lucide-wrench')
-    expect(maintenance?.disabled).toBeFalsy()
+  it('each settings child carries its dedicated manage/view key', () => {
+    expect(byRoute.get('/settings/rbac')?.permission).toBe('role.manage')
+    expect(byRoute.get('/settings/data-scope')?.permission).toBe('scope.manage')
+    expect(byRoute.get('/settings/field-permission')?.permission).toBe('fieldperm.manage')
+    expect(byRoute.get('/settings/users')?.permission).toBe('user.manage')
+    expect(byRoute.get('/settings/audit')?.permission).toBe('audit.view')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Per-role visible set = permission set
+// ---------------------------------------------------------------------------
+
+describe('appNav — per-role visible leaf routes equal the permission-derived set', () => {
+  for (const role of Object.keys(ROLE_PERMS)) {
+    it(`${role} sees exactly the expected routes`, () => {
+      const perms = new Set(ROLE_PERMS[role]!)
+      expect(visibleLeafRoutes(perms)).toEqual([...EXPECTED_ROUTES[role]!].sort())
+    })
+  }
+})
+
+describe('appNav — kepala_kanwil visibility (explicit)', () => {
+  const perms = new Set(ROLE_PERMS.kepala_kanwil)
+  const routes = visibleLeafRoutes(perms)
+
+  it('SEES Mutasi/Penghapusan/Stock Opname/Approval/Laporan/Audit', () => {
+    for (const r of ['/transfers', '/disposals', '/stock-opname', '/approval', '/reports', '/settings/audit']) {
+      expect(routes).toContain(r)
+    }
   })
 
-  it('no longer has a disabled nav.assignment item', () => {
-    const assignment = staffNav[0].items.find(i => i.labelKey === 'nav.assignment')
-    expect(assignment).toBeUndefined()
+  it('does NOT see RBAC/Data-scope/Field-permission/Depreciation', () => {
+    for (const r of ['/settings/rbac', '/settings/data-scope', '/settings/field-permission', '/depreciation']) {
+      expect(routes).not.toContain(r)
+    }
+  })
+})
+
+describe('appNav — staf sees no Administrasi group', () => {
+  const perms = new Set(ROLE_PERMS.staf)
+
+  it('renders neither the Administrasi section nor any of its routes', () => {
+    // No leaf under /master or /settings is visible ...
+    const routes = visibleLeafRoutes(perms)
+    expect(routes.some(r => r.startsWith('/master') || r.startsWith('/settings'))).toBe(false)
+    // ... so both Administrasi parents auto-hide, and the whole group drops out.
+    const administrasi = appNav[1]!
+    expect(administrasi.items.some(item => isVisible(perms, item))).toBe(false)
   })
 })
