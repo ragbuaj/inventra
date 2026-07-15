@@ -1,10 +1,30 @@
 import type { AccountProfile, AccountSession, NotifPrefs } from '~/types'
-import { fakeLatency } from '~/mock/helpers'
+import { formatRelativeTime } from '~/utils/format'
 
 const NOTIF_KEY = 'inventra.account.notif'
 const DEFAULT_NOTIF: NotifPrefs = { approval: true, maint: true, assign: false }
 
 export interface ProfileInput { nama: string, telepon: string }
+
+// Shape returned by GET /auth/sessions (backend `SessionView`, snake_case).
+interface SessionApiResponse {
+  id: string
+  browser: string
+  os: string
+  device_type: string
+  ip_address: string
+  location: string
+  created_at: string
+  last_seen_at: string
+  current: boolean
+}
+
+// Lucide icon per device-type bucket returned by the backend UA parser.
+const DEVICE_ICONS: Record<string, string> = {
+  desktop: 'i-lucide-monitor',
+  mobile: 'i-lucide-smartphone',
+  tablet: 'i-lucide-tablet'
+}
 
 // Shape returned by GET/PUT /auth/profile (backend `ProfileView`, snake_case).
 interface ProfileApiResponse {
@@ -26,6 +46,30 @@ export function useAccount() {
   const client = useApiClient()
   const config = useRuntimeConfig()
   const base = config.public.apiBase as string
+  // useI18n() requires an active component instance; this composable is also
+  // called from plain code (its own spec), so resolve t/locale off the nuxt app
+  // instance instead — same pattern as useGlobalSearch.ts.
+  const i18n = useNuxtApp().$i18n as { t: (key: string) => string, locale: { value: string } }
+  const t = i18n.t
+
+  // Maps a backend SessionView onto the UI-facing AccountSession. device is
+  // "Browser · OS" (falling back to a generic label when neither is known);
+  // meta is "location-or-IP · relative-last-seen" (the current session reads
+  // "Now" rather than a computed delta); icon is chosen from the device type.
+  function mapSession(raw: SessionApiResponse): AccountSession {
+    const parts = [raw.browser, raw.os].filter(Boolean)
+    const device = parts.length ? parts.join(' · ') : t('account.unknownDevice')
+    const where = raw.location || raw.ip_address
+    const when = raw.current ? t('account.now') : formatRelativeTime(raw.last_seen_at, i18n.locale.value)
+    const meta = [where, when].filter(Boolean).join(' · ')
+    return {
+      id: raw.id,
+      device,
+      meta,
+      icon: DEVICE_ICONS[raw.device_type] ?? 'i-lucide-globe',
+      current: raw.current
+    }
+  }
 
   // Maps the backend ProfileView (snake_case) onto the UI-facing AccountProfile
   // (Indonesian field names). `peran`/`kantor`/`pegawai` have no display-name
@@ -98,20 +142,16 @@ export function useAccount() {
   }
 
   async function listSessions(): Promise<AccountSession[]> {
-    await fakeLatency(300)
-    return [
-      { id: 's1', device: 'Chrome · macOS', meta: 'Jakarta, Indonesia · Sekarang', icon: 'i-lucide-laptop', current: true },
-      { id: 's2', device: 'Safari · iPhone 15', meta: 'Jakarta, Indonesia · 2 jam lalu', icon: 'i-lucide-smartphone', current: false },
-      { id: 's3', device: 'Edge · Windows 11', meta: 'Bandung, Indonesia · kemarin', icon: 'i-lucide-monitor', current: false }
-    ]
+    const res = await client.request<{ data: SessionApiResponse[] }>('/auth/sessions')
+    return (res.data ?? []).map(mapSession)
   }
 
-  async function revokeSession(_id: string): Promise<void> {
-    await fakeLatency()
+  async function revokeSession(id: string): Promise<void> {
+    await client.request(`/auth/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' })
   }
 
   async function logoutAllOthers(): Promise<void> {
-    await fakeLatency()
+    await client.request('/auth/sessions/revoke-others', { method: 'POST' })
   }
 
   function getNotifPrefs(): NotifPrefs {

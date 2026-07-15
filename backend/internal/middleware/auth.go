@@ -18,6 +18,7 @@ const (
 	CtxRoleID    = "role_id"
 	CtxAccessJTI = "access_jti"
 	CtxAccessExp = "access_exp"
+	CtxSessionID = "session_id"
 )
 
 // RequireAuth validates the Bearer access token, rejects revoked tokens, and
@@ -39,10 +40,22 @@ func RequireAuth(tm *auth.TokenManager, store *auth.TokenStore) gin.HandlerFunc 
 			abort(c, "token revoked")
 			return
 		}
+		// Session-alive check: if the token belongs to a device session that has
+		// been revoked (or expired), reject it even though the access token has
+		// not yet expired. Tokens minted before device sessions carry no sid and
+		// skip this check (they age out at their TTL).
+		if claims.SID != "" {
+			alive, err := store.SessionAlive(c.Request.Context(), claims.SID)
+			if err != nil || !alive {
+				abort(c, "session revoked")
+				return
+			}
+		}
 
 		c.Set(CtxUserID, claims.Subject)
 		c.Set(CtxRoleID, claims.RoleID)
 		c.Set(CtxAccessJTI, claims.ID)
+		c.Set(CtxSessionID, claims.SID)
 		if claims.ExpiresAt != nil {
 			c.Set(CtxAccessExp, claims.ExpiresAt.Time)
 		} else {

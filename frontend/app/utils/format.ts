@@ -39,6 +39,34 @@ export function parseThousands(v: string | null | undefined): string {
   return String(v ?? '').replace(/\D/g, '')
 }
 
+// Localized relative time ('2 jam lalu' / '2 hours ago', 'kemarin' / 'yesterday')
+// via the built-in Intl.RelativeTimeFormat — no hardcoded per-locale strings.
+// `now` is injectable so tests are deterministic. Returns '' for a bad date.
+export function formatRelativeTime(iso: string | null | undefined, locale: string, now: number = Date.now()): string {
+  if (!iso) return ''
+  const then = new Date(iso).getTime()
+  if (Number.isNaN(then)) return ''
+  const diffSec = Math.round((now - then) / 1000)
+  const abs = Math.abs(diffSec)
+  const units: Array<{ limit: number, div: number, unit: Intl.RelativeTimeFormatUnit }> = [
+    { limit: 60, div: 1, unit: 'second' },
+    { limit: 3600, div: 60, unit: 'minute' },
+    { limit: 86400, div: 3600, unit: 'hour' },
+    { limit: 604800, div: 86400, unit: 'day' },
+    { limit: 2592000, div: 604800, unit: 'week' },
+    { limit: 31536000, div: 2592000, unit: 'month' }
+  ]
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+  for (const { limit, div, unit } of units) {
+    if (abs < limit) {
+      // Past → negative value ('… ago'); clamp sub-minute to 0 → 'just now'/'baru saja'.
+      const value = unit === 'second' ? 0 : -Math.round(diffSec / div)
+      return rtf.format(value, unit)
+    }
+  }
+  return rtf.format(-Math.round(diffSec / 31536000), 'year')
+}
+
 // Compact IDR for tight KPI tiles: 'Rp 1,23 M', 'Rp 3,4 T'. Full precision
 // belongs in tables — pair this with a title tooltip carrying formatRupiah().
 export function formatRupiahCompact(value: string | number | null | undefined): string {

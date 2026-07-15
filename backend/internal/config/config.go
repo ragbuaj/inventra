@@ -73,6 +73,11 @@ type Config struct {
 	// Label printing.
 	LabelLogoPath string
 
+	// GeoIP — path to a MaxMind GeoLite2-City .mmdb used to resolve a device
+	// session's city/country from its IP. Empty (the default) selects a no-op
+	// locator, so dev/CI run without the DB; ops provision it in production.
+	GeoIPDBPath string
+
 	// Bulk import.
 	ImportMaxRows       int
 	ImportMaxBytes      int64
@@ -142,6 +147,8 @@ func Load() *Config {
 		TrustedProxies: splitCSV(getEnv("TRUSTED_PROXIES", "")),
 
 		LabelLogoPath: getEnv("LABEL_LOGO_PATH", "assets/logo-btn.png"),
+
+		GeoIPDBPath: getEnv("GEOIP_DB_PATH", ""),
 
 		ImportMaxRows:       getEnvInt("IMPORT_MAX_ROWS", 10000),
 		ImportMaxBytes:      int64(getEnvInt("IMPORT_MAX_BYTES", 10*1024*1024)),

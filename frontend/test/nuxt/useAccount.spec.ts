@@ -179,10 +179,37 @@ describe('useAccount', () => {
     })
   })
 
-  it('lists sessions with exactly one current session', async () => {
+  it('GETs /auth/sessions and maps SessionView → AccountSession (icon, device, one current)', async () => {
+    requestMock.mockResolvedValueOnce({
+      data: [
+        { id: 's1', browser: 'Chrome', os: 'macOS', device_type: 'desktop', ip_address: '1.1.1.1', location: 'Jakarta, Indonesia', created_at: '2026-07-15T10:00:00Z', last_seen_at: '2026-07-15T12:00:00Z', current: true },
+        { id: 's2', browser: 'Safari', os: 'iOS', device_type: 'mobile', ip_address: '2.2.2.2', location: '', created_at: '2026-07-14T10:00:00Z', last_seen_at: '2026-07-15T10:00:00Z', current: false }
+      ]
+    })
     const s = await useAccount().listSessions()
-    expect(s.length).toBeGreaterThanOrEqual(1)
+    expect(requestMock).toHaveBeenCalledWith('/auth/sessions')
+    expect(s).toHaveLength(2)
     expect(s.filter(x => x.current)).toHaveLength(1)
+    expect(s[0]).toMatchObject({ id: 's1', device: 'Chrome · macOS', icon: 'i-lucide-monitor', current: true })
+    expect(s[1]).toMatchObject({ id: 's2', device: 'Safari · iOS', icon: 'i-lucide-smartphone', current: false })
+    // Current session's meta uses the resolved location + the "now" label.
+    expect(s[0]!.meta).toContain('Jakarta, Indonesia')
+    // The other session (no GeoIP) falls back to its IP.
+    expect(s[1]!.meta).toContain('2.2.2.2')
+  })
+
+  it('maps an unknown user-agent to a generic device label + globe icon', async () => {
+    requestMock.mockResolvedValueOnce({
+      data: [{ id: 's3', browser: '', os: '', device_type: 'unknown', ip_address: '3.3.3.3', location: '', created_at: '2026-07-15T10:00:00Z', last_seen_at: '2026-07-15T11:00:00Z', current: false }]
+    })
+    const s = await useAccount().listSessions()
+    expect(s[0]).toMatchObject({ icon: 'i-lucide-globe' })
+    expect(s[0]!.device).toBe('Perangkat tidak dikenal')
+  })
+
+  it('returns an empty list when the API sends no data', async () => {
+    requestMock.mockResolvedValueOnce({})
+    expect(await useAccount().listSessions()).toEqual([])
   })
 
   it('persists notification preferences', () => {
@@ -191,9 +218,15 @@ describe('useAccount', () => {
     expect(a.getNotifPrefs()).toEqual({ approval: false, maint: true, assign: true })
   })
 
-  it('resolves revokeSession and logoutAllOthers without throwing', async () => {
-    const a = useAccount()
-    await expect(a.revokeSession('s2')).resolves.toBeUndefined()
-    await expect(a.logoutAllOthers()).resolves.toBeUndefined()
+  it('revokeSession DELETEs /auth/sessions/:id (id url-encoded)', async () => {
+    requestMock.mockResolvedValueOnce(undefined)
+    await useAccount().revokeSession('s2')
+    expect(requestMock).toHaveBeenCalledWith('/auth/sessions/s2', { method: 'DELETE' })
+  })
+
+  it('logoutAllOthers POSTs /auth/sessions/revoke-others', async () => {
+    requestMock.mockResolvedValueOnce(undefined)
+    await useAccount().logoutAllOthers()
+    expect(requestMock).toHaveBeenCalledWith('/auth/sessions/revoke-others', { method: 'POST' })
   })
 })

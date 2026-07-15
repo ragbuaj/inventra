@@ -33,12 +33,15 @@ func testManager() *TokenManager {
 
 func TestIssueAndParse(t *testing.T) {
 	tm := testManager()
-	pair, err := tm.Issue("user-123", "role-abc")
+	pair, err := tm.Issue("user-123", "role-abc", "sess-xyz")
 	if err != nil {
 		t.Fatalf("issue: %v", err)
 	}
 	if pair.AccessJTI == pair.RefreshJTI {
 		t.Fatal("access and refresh JTIs must differ")
+	}
+	if pair.SID != "sess-xyz" {
+		t.Fatalf("expected pair.SID sess-xyz, got %q", pair.SID)
 	}
 
 	access, err := tm.Parse(pair.AccessToken)
@@ -48,6 +51,9 @@ func TestIssueAndParse(t *testing.T) {
 	if access.Subject != "user-123" || access.RoleID != "role-abc" || access.Type != TokenAccess {
 		t.Fatalf("unexpected access claims: %+v", access)
 	}
+	if access.SID != "sess-xyz" {
+		t.Fatalf("expected access sid sess-xyz, got %q", access.SID)
+	}
 
 	refresh, err := tm.Parse(pair.RefreshToken)
 	if err != nil {
@@ -55,6 +61,10 @@ func TestIssueAndParse(t *testing.T) {
 	}
 	if refresh.Type != TokenRefresh {
 		t.Fatalf("expected refresh type, got %q", refresh.Type)
+	}
+	// The sid must be identical on both tokens so a rotation preserves session identity.
+	if refresh.SID != "sess-xyz" {
+		t.Fatalf("expected refresh sid sess-xyz, got %q", refresh.SID)
 	}
 }
 

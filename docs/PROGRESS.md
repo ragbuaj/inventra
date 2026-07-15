@@ -847,10 +847,9 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     `MAIL_ENABLED=false`, Mailpit for dev/CI; **(e)** the full email-flow e2e is validated in **CI**
 >     (Mailpit wired into the e2e job), the invalid-token path passes locally — the shared local :8080
 >     backend was stale so the full local run was CI-deferred (repo convention).
->     **Follow-ups (open, non-blocking):** device-session list/revoke/logout-others (`useAccount`
->     `listSessions`/`revokeSession`/`logoutAllOthers` still mock) is **Spec B**; profile-field editing
->     (telepon/kantor) still mock; admin-initiated reset + force-change-on-next-login not built;
->     per-user email localization (Indonesian default used).
+>     **Follow-ups:** ~~device-session list/revoke/logout-others is **Spec B**~~ ✅ **DONE — see item 62
+>     (2026-07-15).** Still open (non-blocking): admin-initiated reset + force-change-on-next-login not
+>     built; per-user email localization (Indonesian default used).
 > 55. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-13): UX fixes batch — see item 56.**
 >     (User request: 7 UX/correctness fixes bundled — number input, profile/email, security, forgot-resend,
 >     search focus, map z-index, PDF/CSV mojibake.)
@@ -993,13 +992,38 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     `go build`/`go vet`/`go test` green; `go test -tags=integration ./internal/depreciation/` green
 >     (parity + pagination + filter-shrinks-rows-not-KPI + scope); Spectral 0 errors; frontend
 >     lint/typecheck green, `pnpm test` 1466/1466 green, `pnpm build` green.
-> 61. **Next session — pick the next real step.** This batch's branch (`feat/depreciation-perf-and-table-ux`)
->     is **not yet merged** — merge/PR it first. After that, leading candidate: **Spec B — Device Sessions**
->     (session list / revoke-per-device / logout-all-others — the last `useAccount` mock). Or close the
->     item-56 follow-ups: the **live mockup visual pass** + **profile office/employee name enrichment**
->     (so the account header shows real `kantor`/`pegawai`). Other carried candidates: **notifications**
->     (last app-shell mock); **room/floor import targets**; **Analytics/OLAP** read layer. Confirm priority
->     before starting.
+> 61. ~~**Merge the depreciation-perf batch + pick the next step.**~~ ✅ Branch
+>     `feat/depreciation-perf-and-table-ux` **merged (PR #72, `a7fc370`, 2026-07-14)**; next step picked:
+>     **Spec B — Device Sessions**.
+> 62. ~~**Device Sessions (Spec B) — session list / revoke-per-device / logout-all-others**~~ ✅ **DONE
+>     (2026-07-15).** Replaces the last `useAccount` mock (`listSessions`/`revokeSession`/`logoutAllOthers`).
+>     **Backend:** a stable `sid` claim minted at login and carried unchanged through refresh rotation
+>     (embedded in both access + refresh JWTs); a **Redis** session store (`internal/auth/sessionstore.go`:
+>     `auth:session:<sid>` hash + `auth:usessions:<uid>` per-user index, TTL = refresh TTL) recording
+>     device metadata; **instant revocation** via a `RequireAuth` session-alive check (a revoked session's
+>     still-unexpired access token now 401s on its next request; pre-`sid` legacy tokens skip the check and
+>     age out); **GeoIP** (`internal/geoip`, MaxMind GeoLite2 via `oschwald/geoip2-golang`, config
+>     `GEOIP_DB_PATH`) resolved once at login with a **no-op fallback** so dev/CI run without a DB (location
+>     degrades to the raw IP — decision [[Lokasi Sesi via GeoIP]]); a pure-Go UA parser
+>     (`internal/identity/useragent.go`); 3 endpoints `GET /auth/sessions`, `DELETE /auth/sessions/:id`
+>     (SoD-gated: a foreign sid → 404), `POST /auth/sessions/revoke-others`; a password change/reset now
+>     also **clears all sessions** (uniform logout everywhere). **Frontend:** real `useAccount` sessions
+>     (mapped to the existing `AccountSession` shape via `useNuxtApp().$i18n` so the composable stays
+>     callable outside setup), a `formatRelativeTime` util (built-in `Intl.RelativeTimeFormat`, id/en), and
+>     `account.vue`'s "logout all" re-fetches so the list collapses to the current device. **Verification
+>     gate (2026-07-15):** backend `go build`/`go vet`/`go test` green; `go test -tags=integration -p 1
+>     ./internal/auth/ ./internal/identity/ ./internal/middleware/` green (session store CRUD/prune/order,
+>     login-creates-session, refresh-keeps-sid, revoke→SessionAlive-false + 401, revoke-others-keeps-current,
+>     password-change-clears-all, handler current-flag + 404); Spectral 0 errors; frontend
+>     lint/typecheck/test/build green. Spec `docs/superpowers/specs/2026-07-15-device-sessions-design.md`,
+>     plan `docs/superpowers/plans/2026-07-15-device-sessions.md`.
+> 63. **Next session — pick the next real step.** Leading candidate: **notifications** (the last app-shell
+>     mock, `mock/notifications.ts` — needs a backend notification feed). Or close the item-56 follow-ups:
+>     the **live mockup visual pass** + **profile office/employee name enrichment** (account header real
+>     `kantor`/`pegawai`). Other carried candidates: **room/floor import targets**; **Analytics/OLAP** read
+>     layer; **admin-initiated password reset** from User Management. **GeoIP DB provisioning** in prod
+>     (drop a GeoLite2-City.mmdb + set `GEOIP_DB_PATH`) is an ops follow-up — sessions work without it.
+>     Confirm priority before starting.
 
 ## ✅ Done
 

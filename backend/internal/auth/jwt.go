@@ -24,6 +24,11 @@ type Claims struct {
 	jwt.RegisteredClaims
 	RoleID string `json:"role_id,omitempty"`
 	Type   string `json:"typ"`
+	// SID is the stable session id, minted at login and carried unchanged
+	// through every refresh rotation (the refresh JTI rotates; the sid does
+	// not). It links a token to its device-session record. Empty on tokens
+	// issued before device sessions existed.
+	SID string `json:"sid,omitempty"`
 }
 
 // TokenPair is the result of issuing access + refresh tokens.
@@ -32,6 +37,7 @@ type TokenPair struct {
 	RefreshToken     string
 	AccessJTI        string
 	RefreshJTI       string
+	SID              string
 	AccessExpiresAt  time.Time
 	RefreshExpiresAt time.Time
 }
@@ -58,17 +64,19 @@ func NewTokenManager(cfg *config.Config) *TokenManager {
 func (tm *TokenManager) AccessTTL() time.Duration  { return tm.accessTTL }
 func (tm *TokenManager) RefreshTTL() time.Duration { return tm.refreshTTL }
 
-// Issue creates a fresh access + refresh token pair for the user.
-func (tm *TokenManager) Issue(userID, roleID string) (TokenPair, error) {
+// Issue creates a fresh access + refresh token pair for the user, both bound to
+// the given session id (sid). At login the caller mints a new sid; on refresh it
+// passes the rotating token's existing sid so the session identity stays stable.
+func (tm *TokenManager) Issue(userID, roleID, sid string) (TokenPair, error) {
 	now := time.Now()
 	accessJTI := uuid.NewString()
 	refreshJTI := uuid.NewString()
 
-	access, err := tm.sign(userID, roleID, TokenAccess, accessJTI, now, tm.accessTTL)
+	access, err := tm.sign(userID, roleID, sid, TokenAccess, accessJTI, now, tm.accessTTL)
 	if err != nil {
 		return TokenPair{}, err
 	}
-	refresh, err := tm.sign(userID, "", TokenRefresh, refreshJTI, now, tm.refreshTTL)
+	refresh, err := tm.sign(userID, "", sid, TokenRefresh, refreshJTI, now, tm.refreshTTL)
 	if err != nil {
 		return TokenPair{}, err
 	}
@@ -78,12 +86,13 @@ func (tm *TokenManager) Issue(userID, roleID string) (TokenPair, error) {
 		RefreshToken:     refresh,
 		AccessJTI:        accessJTI,
 		RefreshJTI:       refreshJTI,
+		SID:              sid,
 		AccessExpiresAt:  now.Add(tm.accessTTL),
 		RefreshExpiresAt: now.Add(tm.refreshTTL),
 	}, nil
 }
 
-func (tm *TokenManager) sign(userID, roleID, typ, jti string, now time.Time, ttl time.Duration) (string, error) {
+func (tm *TokenManager) sign(userID, roleID, sid, typ, jti string, now time.Time, ttl time.Duration) (string, error) {
 	claims := Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    tm.issuer,
@@ -94,6 +103,7 @@ func (tm *TokenManager) sign(userID, roleID, typ, jti string, now time.Time, ttl
 		},
 		RoleID: roleID,
 		Type:   typ,
+		SID:    sid,
 	}
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(tm.secret)
 }

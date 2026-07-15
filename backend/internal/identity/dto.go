@@ -147,6 +147,22 @@ type emailConfirmRequest struct {
 	Token string `json:"token" binding:"required"`
 }
 
+// SessionView is one active device session in the caller's session list.
+// browser/os/device_type are derived from the stored user-agent; location is a
+// best-effort GeoIP city/country (empty when unresolved — the UI falls back to
+// the IP). It never carries the raw refresh token or JTI.
+type SessionView struct {
+	ID         string    `json:"id"`
+	Browser    string    `json:"browser"`
+	OS         string    `json:"os"`
+	DeviceType string    `json:"device_type"`
+	IPAddress  string    `json:"ip_address"`
+	Location   string    `json:"location"`
+	CreatedAt  time.Time `json:"created_at"`
+	LastSeenAt time.Time `json:"last_seen_at"`
+	Current    bool      `json:"current"`
+}
+
 // passwordChangeRequestRequest verifies the caller's current password and
 // triggers a password-reset email (the actual change happens via the reset
 // link, same as a forgotten-password flow).
