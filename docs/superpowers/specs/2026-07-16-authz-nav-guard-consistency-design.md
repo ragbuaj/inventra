@@ -1,7 +1,7 @@
-# Design — Konsistensi Authz: Nav ↔ Page-Guard ↔ Endpoint
+# Design — Konsistensi Authz: Nav, Page-Guard, Endpoint
 
 **Tanggal:** 2026-07-16
-**Status:** Disetujui (2026-07-16) — Opsi 1 (§C) & dua entri menu terpisah (§A) dipilih
+**Status:** Disetujui (2026-07-16) — Opsi 1 (bagian C) & dua entri menu terpisah (bagian A) dipilih
 **Cakupan:** Perbaikan lintas-cutting pada tiga lapis otorisasi frontend/backend agar **visibilitas menu =
 keterjangkauan halaman = izin endpoint**. Frontend (nav model + page-guard + item permission) dan sedikit
 backend (pelonggaran read authz-admin). Diikuti satu rencana implementasi bertahap.
@@ -14,14 +14,14 @@ tidak sinkron.
 
 | Bug | Ringkas | Area |
 |-----|---------|------|
-| A | Pemilihan nav biner `can('user.manage') ? superadminNav : staffNav` → kanwil/kepala_unit/manager jatuh ke menu staf | Frontend |
-| B | Item nav grup Aset/Master/Settings **tanpa** `permission` → tampil tanpa syarat, lalu page-guard 403 saat diklik | Frontend |
-| C | Page-guard ≠ endpoint pada layar authz (`rbac`/`data-scope`/`field-permission` guard `user.manage`, endpoint butuh `role`/`scope`/`fieldperm.manage`) + Dashboard tanpa guard | Frontend + Backend |
+| A | Pemilihan nav biner `can('user.manage') ? superadminNav : staffNav`, sehingga kanwil/kepala_unit/manager jatuh ke menu staf | Frontend |
+| B | Item nav grup Aset/Master/Settings **tanpa** `permission`, sehingga tampil tanpa syarat, lalu page-guard 403 saat diklik | Frontend |
+| C | Page-guard tidak sama dengan endpoint pada layar authz (`rbac`/`data-scope`/`field-permission` guard `user.manage`, endpoint butuh `role`/`scope`/`fieldperm.manage`) + Dashboard tanpa guard | Frontend + Backend |
 | D | Inkonsistensi key: Assignment di-gate `assignment.manage` padahal list butuh `assignment.view`; Maintenance nav pakai `maintenance.view` tapi page-guard `request.create` | Frontend |
 
 **Tiga lapis** (harus konsisten):
 1. **Nav visibility** — `AppSidebar.isVisible`: tampil bila `!item.permission || can(item.permission)`.
-2. **Page guard** — `middleware/can.ts` → `abortNavigation(403)` bila `!can(to.meta.permission)`.
+2. **Page guard** — `middleware/can.ts` memanggil `abortNavigation(403)` bila `!can(to.meta.permission)`.
 3. **Endpoint** — `middleware.RequirePermission` di backend.
 
 Prinsip lintas-perbaikan: ikuti CLAUDE.md (komponen `U*`, token tema, i18n `id`/`en`, test proaktif per-role,
@@ -29,7 +29,7 @@ least-privilege / SoD sesuai konteks bank).
 
 ---
 
-## Matriks role → permission (dari seed, otoritatif)
+## Matriks permission per role (dari seed, otoritatif)
 
 | Permission | superadmin | kepala_kanwil | kepala_unit | manager | staf |
 |---|:--:|:--:|:--:|:--:|:--:|
@@ -69,7 +69,7 @@ Stock Opname, Approval, Laporan, Master Data, Audit) tidak terjangkau.
   salah satu). Diperlukan karena beberapa halaman punya dua pintu masuk (mis. Maintenance).
 - `AppSidebar.isVisible(item)`:
   - item daun: `true` bila `!permission` atau `hasAny(permission)`.
-  - item parent (punya `children`): `true` bila **ada** anak yang `isVisible` → grup/parent otomatis
+  - item parent (punya `children`): `true` bila **ada** anak yang `isVisible`, sehingga grup/parent otomatis
     tersembunyi ketika semua anaknya tersembunyi.
 - `AppTopbar` breadcrumb memakai `appNav` yang sama (hapus import `superadminNav`).
 - Hapus placeholder mati (`My Assets` disabled, `Approval (staff)` disabled) — digantikan item ber-permission.
@@ -80,9 +80,9 @@ Stock Opname, Approval, Laporan, Master Data, Audit) tidak terjangkau.
 | Item | `to` | permission |
 |---|---|---|
 | Dashboard | `/` | *(tanpa — semua authenticated)* |
-| Aset ▸ Katalog | `/assets` | `asset.view` |
-| Aset ▸ Impor | `/assets/import` | `asset.manage` |
-| Aset ▸ Cetak Label | `/assets/label` | `asset.view` |
+| Aset > Katalog | `/assets` | `asset.view` |
+| Aset > Impor | `/assets/import` | `asset.manage` |
+| Aset > Cetak Label | `/assets/label` | `asset.view` |
 | Peminjaman | `/peminjaman` | `request.create` |
 | Penugasan Aset | `/assignment` | `assignment.view` |
 | Stock Opname | `/stock-opname` | `stockopname.view` |
@@ -96,17 +96,17 @@ Stock Opname, Approval, Laporan, Master Data, Audit) tidak terjangkau.
 **Grup Administrasi**
 | Item | `to` | permission |
 |---|---|---|
-| Master ▸ Kantor | `/master/offices` | `masterdata.office.manage` |
-| Master ▸ Pegawai | `/master/employees` | `masterdata.office.manage` |
-| Master ▸ Kategori | `/master/categories` | `masterdata.global.manage` |
-| Master ▸ Peta Lokasi | `/master/map` | `masterdata.office.manage` |
-| Master ▸ Referensi | `/master/reference` | `masterdata.global.manage` |
-| Master ▸ Impor | `/master/import` | `['masterdata.employee.manage','masterdata.office.manage','masterdata.global.manage']` |
-| Settings ▸ Users | `/settings/users` | `user.manage` |
-| Settings ▸ RBAC | `/settings/rbac` | `role.manage` |
-| Settings ▸ Data Scope | `/settings/data-scope` | `scope.manage` |
-| Settings ▸ Field Permission | `/settings/field-permission` | `fieldperm.manage` |
-| Settings ▸ Audit Trail | `/settings/audit` | `audit.view` |
+| Master > Kantor | `/master/offices` | `masterdata.office.manage` |
+| Master > Pegawai | `/master/employees` | `masterdata.office.manage` |
+| Master > Kategori | `/master/categories` | `masterdata.global.manage` |
+| Master > Peta Lokasi | `/master/map` | `masterdata.office.manage` |
+| Master > Referensi | `/master/reference` | `masterdata.global.manage` |
+| Master > Impor | `/master/import` | `['masterdata.employee.manage','masterdata.office.manage','masterdata.global.manage']` |
+| Settings > Users | `/settings/users` | `user.manage` |
+| Settings > RBAC | `/settings/rbac` | `role.manage` |
+| Settings > Data Scope | `/settings/data-scope` | `scope.manage` |
+| Settings > Field Permission | `/settings/field-permission` | `fieldperm.manage` |
+| Settings > Audit Trail | `/settings/audit` | `audit.view` |
 
 > Catatan Peminjaman vs Penugasan: keduanya sengaja dipertahankan sebagai entri berbeda — Peminjaman
 > (`request.create`, self-service ajukan pinjam) dan Penugasan (`assignment.view`, manajemen check-out/in).
@@ -146,7 +146,7 @@ Halaman lain (`/assets*`, `/transfers`, `/disposals`, `/stock-opname`, `/depreci
 
 ### Masalah
 Ketiga layar authz memuat `GET /authz/catalog` + `GET /authz/roles` (keduanya kini `role.manage`), plus
-mutasi spesifik (`/roles/:id/scope` → `scope.manage`, `/roles/:id/fields` → `fieldperm.manage`). Selain itu
+mutasi spesifik (`/roles/:id/scope` butuh `scope.manage`, `/roles/:id/fields` butuh `fieldperm.manage`). Selain itu
 `/settings/users` memuat `GET /authz/roles` (untuk dropdown peran) — juga `role.manage`. Akibatnya
 `scope.manage` & `fieldperm.manage` **tidak bisa didelegasikan mandiri**: semuanya runtuh ke "harus punya
 `role.manage`", dan admin-user (`user.manage`) tak bisa memuat daftar peran.
@@ -154,12 +154,12 @@ mutasi spesifik (`/roles/:id/scope` → `scope.manage`, `/roles/:id/fields` → 
 ### Opsi
 - **Opsi 1 (disarankan — least privilege / SoD):** longgarkan **read** authz-admin dengan middleware baru
   `RequireAnyPermission(permSvc, keys...)`:
-  - `GET /authz/catalog` → **any of** `role.manage`, `scope.manage`, `fieldperm.manage`.
-  - `GET /authz/roles` (list) + `GET /authz/roles/:id` → **any of** `role.manage`, `scope.manage`,
+  - `GET /authz/catalog` boleh salah satu dari `role.manage`, `scope.manage`, `fieldperm.manage`.
+  - `GET /authz/roles` (list) + `GET /authz/roles/:id` boleh salah satu dari `role.manage`, `scope.manage`,
     `fieldperm.manage`, `user.manage`.
-  - `GET /authz/roles/:id/permissions|scope|fields` → tetap spesifik per manage-key.
+  - `GET /authz/roles/:id/permissions|scope|fields` tetap spesifik per manage-key.
   - **Mutasi** (`POST/PUT/DELETE`) tetap ketat: `role.manage` / `scope.manage` / `fieldperm.manage`.
-  - Hasil: role bisa diberi **hanya** `scope.manage` → layar Data Scope berfungsi; `user.manage` bisa
+  - Hasil: role bisa diberi **hanya** `scope.manage`, sehingga layar Data Scope berfungsi; `user.manage` bisa
     membaca daftar peran untuk assign. Cocok dengan pemisahan tugas (SoD) bank.
 - **Opsi 2 (lebih sederhana):** jadikan `role.manage` payung untuk ketiga layar (page-guard ketiganya
   `role.manage`); `scope.manage`/`fieldperm.manage` hanya jadi gate mutasi endpoint, tak berdiri sendiri di UI.
@@ -200,19 +200,19 @@ Tidak ada perubahan skema/migrasi. Read master-data tetap auth-only (tak diubah)
 - `middleware/can` (logika OR): string tunggal & array; hasil allow/deny.
 
 **Runtime (Vitest + `mountSuspended`):**
-- `AppSidebar` per-role: render dengan `permissions` tiap role → assert menu yang muncul & yang tersembunyi
+- `AppSidebar` per-role: render dengan `permissions` tiap role, lalu assert menu yang muncul & yang tersembunyi
   (mis. kanwil melihat Mutasi/Penghapusan/Stock Opname/Approval/Laporan/Audit; staf tidak).
-- Auto-hide parent: role tanpa satu pun anak Settings → grup Settings tidak dirender.
+- Auto-hide parent: role tanpa satu pun anak Settings, sehingga grup Settings tidak dirender.
 
 **E2E (Playwright, backend nyata):**
-- Login tiap role seed; untuk **setiap** item nav yang terlihat → klik → assert halaman terbuka **tanpa 403**
+- Login tiap role seed; untuk **setiap** item nav yang terlihat, klik, lalu assert halaman terbuka **tanpa 403**
   dan memuat konten utamanya (menutup seluruh kelas bug ini end-to-end). Seed sudah menyediakan login demo.
-- Kasus Opsi 1: buat role kustom hanya `scope.manage` → layar Data Scope terbuka & memuat katalog/roles.
+- Kasus Opsi 1: buat role kustom hanya `scope.manage`, sehingga layar Data Scope terbuka & memuat katalog/roles.
 
 **Backend (Go):**
 - `TestRequireAnyPermission` (allow bila salah satu, deny bila tak ada, 401 tanpa role).
 - Integration authzadmin: role dengan hanya `scope.manage` bisa `GET /catalog` & `GET /roles`, `PUT /scope`;
-  tapi `PUT /permissions` (role.manage) → 403.
+  tapi `PUT /permissions` (role.manage) menghasilkan 403.
 
 ---
 
@@ -221,7 +221,7 @@ Tidak ada perubahan skema/migrasi. Read master-data tetap auth-only (tak diubah)
 **Selalu:** samakan ketiga lapis; least-privilege; i18n `id`/`en` untuk label/menu baru; test tiap role
 sebelum klaim selesai; jalankan gate CI (go build/vet/test, spectral; pnpm lint/typecheck/test/build).
 
-**Tanya dulu:** perubahan cakupan permission per role di seed (spec ini **tidak** mengubah seed/role→perm —
+**Tanya dulu:** perubahan cakupan permission per role di seed (spec ini **tidak** mengubah seed/peran-permission —
 hanya menyelaraskan gating agar sesuai izin yang sudah ada); perubahan desain menu di luar penyelarasan ini.
 
 **Jangan:** mengubah skema/migrasi; menambah/menghapus permission key; mengubah data-scope enforcement;
@@ -230,5 +230,5 @@ melonggarkan **mutasi** endpoint; redesign layout menu (hanya visibilitas/gating
 ---
 
 ## Keputusan (disetujui 2026-07-16)
-1. **§C → Opsi 1** — longgarkan read authz-admin via `RequireAnyPermission`; mutasi tetap ketat per-key.
-2. **§A → dua entri terpisah** — Peminjaman (`request.create`) & Penugasan (`assignment.view`) tetap terpisah.
+1. **Bagian C — Opsi 1** — longgarkan read authz-admin via `RequireAnyPermission`; mutasi tetap ketat per-key.
+2. **Bagian A — dua entri terpisah** — Peminjaman (`request.create`) & Penugasan (`assignment.view`) tetap terpisah.

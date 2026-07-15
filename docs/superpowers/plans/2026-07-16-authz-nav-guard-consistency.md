@@ -23,7 +23,7 @@ Playwright; i18n `id`/`en`.
 - CI gates: backend `go build ./... && go vet ./... && go test ./...` + Spectral; frontend `pnpm lint && pnpm typecheck && pnpm test && pnpm build`.
 - Commits: Conventional Commits with scope; **no AI co-author trailers**.
 - Update `docs/PROGRESS.md` when the batch lands.
-- **Scope guard:** do NOT change seed/role→permission, schema, migrations, data-scope enforcement, or menu
+- **Scope guard:** do NOT change seed/peran-permission, schema, migrations, data-scope enforcement, or menu
   layout. Only visibility/gating alignment.
 
 ## File Structure
@@ -68,8 +68,8 @@ Playwright; i18n `id`/`en`.
 ## Task A2: Relax read gates in authzadmin routes
 **Files:** `backend/internal/authzadmin/routes.go`
 **Steps:**
-- [ ] `GET /authz/catalog` → `RequireAnyPermission(permSvc, "role.manage","scope.manage","fieldperm.manage")`.
-- [ ] `GET /authz/roles` + `GET /authz/roles/:id` → `RequireAnyPermission(permSvc,
+- [ ] `GET /authz/catalog` pakai `RequireAnyPermission(permSvc, "role.manage","scope.manage","fieldperm.manage")`.
+- [ ] `GET /authz/roles` + `GET /authz/roles/:id` pakai `RequireAnyPermission(permSvc,
       "role.manage","scope.manage","fieldperm.manage","user.manage")` (user.manage for the users-screen role picker).
 - [ ] Leave `POST/PUT/DELETE /roles`, `PUT /roles/:id/permissions` on `role.manage`; `.../scope` on
       `scope.manage`; `.../fields` on `fieldperm.manage` — **unchanged**.
@@ -81,8 +81,8 @@ Playwright; i18n `id`/`en`.
 **Files:** `backend/internal/authzadmin/integration_test.go`, `backend/api/openapi.yaml`
 **Steps:**
 - [ ] Role with **only** `scope.manage`: `GET /catalog` 200, `GET /roles` 200, `GET /roles/:id/scope` 200,
-      `PUT /roles/:id/scope` 200; but `PUT /roles/:id/permissions` → 403.
-- [ ] Role with only `user.manage`: `GET /roles` 200 (picker); `GET /catalog` → 403.
+      `PUT /roles/:id/scope` 200; but `PUT /roles/:id/permissions` menghasilkan 403.
+- [ ] Role with only `user.manage`: `GET /roles` 200 (picker); `GET /catalog` menghasilkan 403.
 - [ ] Update OpenAPI security descriptions for the three relaxed read endpoints.
 - [ ] `npx --yes @stoplight/spectral-cli lint backend/api/openapi.yaml --ruleset .spectral.yaml` clean.
 **Acceptance:** `go test ./internal/authzadmin/` + Spectral green.
@@ -95,17 +95,17 @@ Playwright; i18n `id`/`en`.
 **Files:** `frontend/app/types/index.ts`, `frontend/app/middleware/can.ts`, `frontend/test/unit/use-can.spec.ts`
 **Steps:**
 - [ ] `NavItem.permission?: string | string[]`.
-- [ ] `can.ts`: read `to.meta.permission` as `string | string[]`; allow if `!permission` or (array → some /
-      string → single) `can(...)` true; else `abortNavigation(403)`.
-- [ ] Unit test the OR branch (string allow/deny; array allow-if-any; missing → allowed).
+- [ ] `can.ts`: read `to.meta.permission` as `string | string[]`; allow if `!permission` or (array pakai some() /
+      string pakai nilai tunggal) `can(...)` true; else `abortNavigation(403)`.
+- [ ] Unit test the OR branch (string allow/deny; array allow-if-any; missing berarti allowed).
 **Acceptance:** `pnpm test` for the middleware/unit specs green.
 
 ## Task B2: Single `appNav` model
 **Files:** `frontend/app/utils/nav.ts`
 **Steps:**
-- [ ] Replace `superadminNav` + `staffNav` with one exported `appNav: NavGroup[]` using the §A permission
+- [ ] Replace `superadminNav` + `staffNav` with one exported `appNav: NavGroup[]` using the bagian A permission
       map from the spec (Operasional + Administrasi groups). Set `permission` per item; Maintenance =
-      `['maintenance.view','request.create']`; Master ▸ Impor = the 3-key array; Dashboard = none.
+      `['maintenance.view','request.create']`; Master > Impor = the 3-key array; Dashboard = none.
 - [ ] Remove disabled placeholders (`My Assets`, staff `Approval`).
 - [ ] Keep `labelKey`/`icon`/`to`/`children` shape unchanged so templates need no structural change.
 **Acceptance:** typecheck passes; no remaining imports of `superadminNav`/`staffNav` except updated ones.
@@ -114,7 +114,7 @@ Playwright; i18n `id`/`en`.
 **Files:** `frontend/app/components/AppSidebar.vue`, `frontend/app/components/AppTopbar.vue`
 **Steps:**
 - [ ] Sidebar: `const nav = appNav` (drop the `user.manage ? ... : ...` ternary). Add `hasAny(perm)` helper.
-- [ ] `isVisible(item)`: leaf → `!perm || hasAny(perm)`; parent (has `children`) → some child visible.
+- [ ] `isVisible(item)`: leaf: `!perm || hasAny(perm)`; parent (has `children`): some child visible.
 - [ ] Ensure the render loop hides a parent group and a top-level group whose visible children are empty.
 - [ ] Topbar: build breadcrumb from `appNav` (replace `superadminNav` import).
 **Acceptance:** `pnpm typecheck` + existing sidebar tests updated green.
@@ -127,10 +127,10 @@ Playwright; i18n `id`/`en`.
 **Files:** `pages/assignment.vue`, `pages/maintenance.vue`, `pages/settings/rbac.vue`,
 `pages/settings/data-scope.vue`, `pages/settings/field-permission.vue`
 **Steps:**
-- [ ] `/assignment` → `permission: 'assignment.view'`.
-- [ ] `/maintenance` → `permission: ['maintenance.view','request.create']`.
-- [ ] `/settings/rbac` → `'role.manage'`; `/settings/data-scope` → `'scope.manage'`;
-      `/settings/field-permission` → `'fieldperm.manage'`.
+- [ ] `/assignment` pakai `permission: 'assignment.view'`.
+- [ ] `/maintenance` pakai `permission: ['maintenance.view','request.create']`.
+- [ ] `/settings/rbac` pakai `'role.manage'`; `/settings/data-scope` pakai `'scope.manage'`;
+      `/settings/field-permission` pakai `'fieldperm.manage'`.
 **Acceptance:** each page opens for the intended role, 403 for roles lacking the permission (covered by e2e).
 
 ## Task C2: In-page defensive fetch gating
@@ -159,7 +159,7 @@ Playwright; i18n `id`/`en`.
 **Files:** `frontend/test/nuxt/app-sidebar.spec.ts` (new, `// @vitest-environment nuxt`)
 **Steps:**
 - [ ] Mount `AppSidebar` with each role's `permissions` (stub `useAuthStore`); assert rendered menu labels
-      match; assert a group with no visible children is not rendered (e.g., staf → no Settings group).
+      match; assert a group with no visible children is not rendered (e.g., staf tanpa grup Settings).
 **Acceptance:** `pnpm test app-sidebar` green.
 
 ## Task D3: E2E — per-role reachability (the class-of-bug closer)
@@ -168,13 +168,13 @@ Playwright; i18n `id`/`en`.
 - [ ] Using the demo seed logins, for each role: log in, enumerate visible sidebar links, click each,
       assert the page renders its primary content and **no 403** error boundary appears. Use unique-run
       hygiene per e2e memory; assert-after-navigation.
-- [ ] One case: create a `scope.manage`-only custom role → Data Scope screen loads catalog+roles.
+- [ ] One case: create a `scope.manage`-only custom role membuka Data Scope screen yang memuat catalog+roles.
 **Acceptance:** `pnpm test:e2e nav-access` green against the seeded stack.
 
 ## Task D4: i18n
 **Files:** `frontend/i18n/locales/{id,en}.json`
 **Steps:**
-- [ ] Add/verify labels for any nav entry now surfaced that lacked a key (e.g., Master ▸ Impor, Penugasan).
+- [ ] Add/verify labels for any nav entry now surfaced that lacked a key (e.g., Master > Impor, Penugasan).
 **Acceptance:** no missing-key fallback for visible nav items; `pnpm lint`/`typecheck` green.
 
 ---
@@ -193,5 +193,5 @@ Playwright; i18n `id`/`en`.
 ---
 
 ## Dependency order
-A (backend, independent) ∥ B (nav model) → C (guards, needs B types) → D (tests, needs A+B+C) → E.
+A (backend, independent) paralel dengan B (nav model) lalu C (guards, perlu tipe dari B) lalu D (tests, perlu A+B+C) lalu E.
 Parts A and B can proceed in parallel; C depends on B1 (type/middleware); D depends on all; E last.
