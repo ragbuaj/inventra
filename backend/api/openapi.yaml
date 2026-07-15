@@ -4958,12 +4958,21 @@ components:
         role_id:
           type: string
           format: uuid
+        role_name:
+          type: [string, "null"]
+          description: The caller's role display name (null if the role was removed).
         office_id:
           type: [string, "null"]
           format: uuid
+        office_name:
+          type: [string, "null"]
+          description: The assigned office's name (null when the caller has no office).
         employee_id:
           type: [string, "null"]
           format: uuid
+        employee_name:
+          type: [string, "null"]
+          description: The linked employee's name (null when no employee is linked).
         status:
           type: string
           enum: [active, inactive, suspended]

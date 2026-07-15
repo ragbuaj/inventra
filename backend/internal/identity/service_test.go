@@ -460,6 +460,54 @@ func TestGetProfile_GoogleLinkedReflectsGoogleID(t *testing.T) {
 	}
 }
 
+func TestGetProfile_EnrichedNames(t *testing.T) {
+	u := activeUserEmail(t, "u@x.com")
+	role, office, emp := "Asset Manager", "Cabang Jakarta Selatan", "Andi Saputra"
+	fs := &fakeStore{
+		profiles: map[uuid.UUID]sqlc.GetUserProfileRow{
+			u.ID: {ID: u.ID, Name: u.Name, Email: u.Email, RoleName: &role, OfficeName: &office, EmployeeName: &emp},
+		},
+	}
+	svc := newTestService(t, fs, &fakeMailer{})
+	view, err := svc.GetProfile(context.Background(), u.ID)
+	if err != nil {
+		t.Fatalf("GetProfile: %v", err)
+	}
+	if view.RoleName == nil || *view.RoleName != role {
+		t.Fatalf("want role_name %q, got %v", role, view.RoleName)
+	}
+	if view.OfficeName == nil || *view.OfficeName != office {
+		t.Fatalf("want office_name %q, got %v", office, view.OfficeName)
+	}
+	if view.EmployeeName == nil || *view.EmployeeName != emp {
+		t.Fatalf("want employee_name %q, got %v", emp, view.EmployeeName)
+	}
+}
+
+func TestGetProfile_NullOfficeEmployeeNames(t *testing.T) {
+	u := activeUserEmail(t, "u@x.com")
+	role := "Superadmin"
+	fs := &fakeStore{
+		profiles: map[uuid.UUID]sqlc.GetUserProfileRow{
+			u.ID: {ID: u.ID, Name: u.Name, Email: u.Email, RoleName: &role}, // no office/employee link
+		},
+	}
+	svc := newTestService(t, fs, &fakeMailer{})
+	view, err := svc.GetProfile(context.Background(), u.ID)
+	if err != nil {
+		t.Fatalf("GetProfile: %v", err)
+	}
+	if view.OfficeName != nil {
+		t.Fatalf("want nil office_name for unlinked office, got %q", *view.OfficeName)
+	}
+	if view.EmployeeName != nil {
+		t.Fatalf("want nil employee_name for unlinked employee, got %q", *view.EmployeeName)
+	}
+	if view.RoleName == nil || *view.RoleName != role {
+		t.Fatalf("want role_name %q, got %v", role, view.RoleName)
+	}
+}
+
 func TestGetProfile_NotFound(t *testing.T) {
 	fs := &fakeStore{}
 	svc := newTestService(t, fs, &fakeMailer{})

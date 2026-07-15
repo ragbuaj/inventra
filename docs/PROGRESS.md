@@ -894,8 +894,10 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     §2 asked for one tx; low harm — caller's own data, retriable — deferred pending tx wiring); the two
 >     authed send endpoints now have a **server-side per-IP rate limit** (fix #2) on top of the client
 >     cooldown; NumberInput's paste-of-`.`-decimal into a grouping+`decimals>0`
->     field is latent-only (no field combines them); `kantor`/`pegawai` display names show `—` (API returns
->     only IDs — needs a masterdata join or profile enrichment).
+>     field is latent-only (no field combines them); ~~`kantor`/`pegawai` display names show `—` (API returns
+>     only IDs — needs a masterdata join or profile enrichment)~~ ✅ **RESOLVED (2026-07-16) — see item 64**
+>     (profile enrichment: `role_name`/`office_name`/`employee_name`); the live browser 1:1 mockup pass
+>     (account/forgot-password/map, both themes) was also run in that session.
 > 57. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-14): UX fixes batch #2 — see item 58.**
 > 58. ~~**UX Fixes Batch #2 (7 fixes)**~~ ✅ **DONE (2026-07-14, branch `feat/ux-fixes-batch`).** User request:
 >     7 UX/correctness fixes. **(1) Date inputs → Nuxt UI calendar** — new reusable
@@ -1017,13 +1019,42 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     password-change-clears-all, handler current-flag + 404); Spectral 0 errors; frontend
 >     lint/typecheck/test/build green. Spec `docs/superpowers/specs/2026-07-15-device-sessions-design.md`,
 >     plan `docs/superpowers/plans/2026-07-15-device-sessions.md`.
-> 63. **Next session — pick the next real step.** Leading candidate: **notifications** (the last app-shell
->     mock, `mock/notifications.ts` — needs a backend notification feed). Or close the item-56 follow-ups:
->     the **live mockup visual pass** + **profile office/employee name enrichment** (account header real
->     `kantor`/`pegawai`). Other carried candidates: **room/floor import targets**; **Analytics/OLAP** read
->     layer; **admin-initiated password reset** from User Management. **GeoIP DB provisioning** in prod
->     (drop a GeoLite2-City.mmdb + set `GEOIP_DB_PATH`) is an ops follow-up — sessions work without it.
->     Confirm priority before starting.
+> 63. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-16): item-56 follow-ups —
+>     profile office/employee/role name enrichment + live mockup visual pass — see item 64.**
+> 64. ~~**Profile enrichment (`role_name`/`office_name`/`employee_name`) + live visual pass**~~ ✅ **DONE
+>     (2026-07-16, branch `feat/profile-enrichment`).** The account **Profil** tab showed `—` for Peran /
+>     Kantor Penempatan / Pegawai Tertaut because `GET /auth/profile` returned only `role_id`/`office_id`/
+>     `employee_id`, and `peran` fell back to the auth store's `role_name` which is **always `''`**
+>     (`/auth/me` never populates it). **Backend:** `GetUserProfile` now LEFT JOINs `identity.roles` +
+>     `masterdata.offices` (employees already joined for phone) and selects `role_name`/`office_name`/
+>     `employee_name` (all `*string` — nullable via LEFT JOIN + `deleted_at IS NULL`); `ProfileView` DTO +
+>     `profileFromRow` + OpenAPI `Profile` schema extended; `sqlc generate` (no migration — additive SELECT
+>     only). **Frontend:** `useAccount.mapProfile` now uses `raw.role_name || auth-store fallback`,
+>     `raw.office_name ?? ''`, `raw.employee_name ?? ''` (was hardcoded `kantor:''` and `pegawai: raw.name`
+>     — the **user** name, not the employee's). **Tests:** backend service/handler (enriched + null
+>     office/employee cases, no-`google_id`/`password_hash` leak); frontend `useAccount.spec` (API-first,
+>     store fallback when empty, null→'', employee_name≠user-name) + `account-profile.spec` (renders
+>     enriched rows). **Gates:** `go build/vet/test` + `-tags=integration ./internal/identity/` ✅; Spectral
+>     0 errors ✅; frontend lint/typecheck ✅, full `pnpm test` **1484 passed** (114 files; the lone
+>     `assets-index.spec.ts` teardown `EnvironmentTeardownError` is the pre-existing Nuxt-UI flake noted in
+>     item 60, unrelated), `pnpm build` ✅. **Runtime-verified** against the seeded demo DB: `GET
+>     /auth/profile` for a staff user returned `role_name:"Staf"`, `office_name:"Kantor Cabang Pekanbaru"`,
+>     `employee_name:"Wahyu Siregar"`; the browser account page renders those 1:1 in **light + dark** (header
+>     + "Informasi Akun" rows), and the Superadmin (no office/employee) correctly shows Peran "Superadmin" +
+>     `—`/`—`. **Live visual pass** also covered `/forgot-password` (full-width input, split-panel) and
+>     `/master/map` (pins + legend + controls above Leaflet panes) — both match their mockup/intent.
+>     **Known (pre-existing, not a regression):** a user linked to a **soft-deleted** employee still reports
+>     `hasEmployee=true` (telepon editable) while `pegawai`/phone resolve blank — the `employee_phone` join
+>     and `hasEmployee` already behaved this way; the pegawai fix (user-name → employee_name) only improves
+>     the display. **Not in scope:** filling `role_name` on `/auth/me` / login (drives `UserMenu`/
+>     `AppSidebar` badge via `auth.user.role_name`) — a separate path; follow-up if a consistent shell badge
+>     is wanted.
+> 65. **Next session — pick the next real step.** Leading candidate: **notifications** (the last app-shell
+>     mock, `mock/notifications.ts` — needs a backend notification feed). Other carried candidates:
+>     **room/floor import targets**; **Analytics/OLAP** read layer; **admin-initiated password reset** from
+>     User Management; **`/auth/me` `role_name`** (shell badge consistency, item-64 out-of-scope note).
+>     **GeoIP DB provisioning** in prod (drop a GeoLite2-City.mmdb + set `GEOIP_DB_PATH`) is an ops
+>     follow-up — sessions work without it. Confirm priority before starting.
 
 ## ✅ Done
 

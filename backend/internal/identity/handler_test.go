@@ -44,7 +44,10 @@ func doJSON(t *testing.T, r http.Handler, method, path string, body any) *httpte
 func TestGetProfile_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	u := activeUserEmail(t, "u@x.com")
-	fs := &fakeStore{profiles: map[uuid.UUID]sqlc.GetUserProfileRow{u.ID: {ID: u.ID, Name: u.Name, Email: u.Email}}}
+	role, office, emp := "Asset Manager", "Cabang Jakarta Selatan", "Andi Saputra"
+	fs := &fakeStore{profiles: map[uuid.UUID]sqlc.GetUserProfileRow{
+		u.ID: {ID: u.ID, Name: u.Name, Email: u.Email, RoleName: &role, OfficeName: &office, EmployeeName: &emp},
+	}}
 	h := &Handler{svc: newTestService(t, fs, &fakeMailer{})}
 	r := gin.New()
 	r.GET("/profile", withCaller(u.ID), h.getProfile)
@@ -60,8 +63,15 @@ func TestGetProfile_Success(t *testing.T) {
 	if got["email"] != "u@x.com" {
 		t.Fatalf("want email field u@x.com, got %v", got["email"])
 	}
+	if got["role_name"] != role || got["office_name"] != office || got["employee_name"] != emp {
+		t.Fatalf("want enriched names role=%q office=%q employee=%q, got %v/%v/%v",
+			role, office, emp, got["role_name"], got["office_name"], got["employee_name"])
+	}
 	if _, hasPwHash := got["password_hash"]; hasPwHash {
 		t.Fatalf("must never serialize password_hash")
+	}
+	if _, hasGoogleID := got["google_id"]; hasGoogleID {
+		t.Fatalf("must never serialize google_id")
 	}
 }
 

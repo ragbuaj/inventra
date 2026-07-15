@@ -27,8 +27,11 @@ const PROFILE_RESPONSE = {
   email: 'andi@inventra.local',
   phone: '0812-3456-7890',
   role_id: 'r1',
+  role_name: 'Asset Manager',
   office_id: 'o1',
+  office_name: 'Cabang Jakarta Selatan',
   employee_id: 'e1',
+  employee_name: 'Andi Saputra',
   status: 'active',
   avatar_url: null,
   google_linked: false,
@@ -54,6 +57,9 @@ describe('useAccount', () => {
       expect(p.loginMethod).toBe('email')
       expect(p.joinDate).toBe('2024-03-12T00:00:00Z')
       expect(p.hasEmployee).toBe(true)
+      expect(p.peran).toBe('Asset Manager')
+      expect(p.kantor).toBe('Cabang Jakarta Selatan')
+      expect(p.pegawai).toBe('Andi Saputra')
     })
 
     it('maps a null phone to an empty string', async () => {
@@ -69,10 +75,32 @@ describe('useAccount', () => {
       expect(p.loginMethod).toBe('google')
     })
 
-    it('falls back to the auth store role_name (API has no role_name field)', async () => {
-      requestMock.mockResolvedValueOnce(PROFILE_RESPONSE)
+    it('prefers the API role_name over the auth store', async () => {
+      useAuthStore().setSession('t', { id: '1', name: 'Andi Saputra', email: 'andi@inventra.local', role_id: 'r', role_name: 'Stale Store Role', office_id: null }, ['*'])
+      requestMock.mockResolvedValueOnce({ ...PROFILE_RESPONSE, role_name: 'Asset Manager' })
       const p = await useAccount().getProfile()
       expect(p.peran).toBe('Asset Manager')
+    })
+
+    it('falls back to the auth store role_name when the API role_name is empty', async () => {
+      requestMock.mockResolvedValueOnce({ ...PROFILE_RESPONSE, role_name: null })
+      const p = await useAccount().getProfile()
+      expect(p.peran).toBe('Asset Manager') // from the seeded auth store
+    })
+
+    it('maps null office_name / employee_name to empty strings', async () => {
+      requestMock.mockResolvedValueOnce({ ...PROFILE_RESPONSE, office_name: null, employee_name: null, employee_id: null })
+      const p = await useAccount().getProfile()
+      expect(p.kantor).toBe('')
+      expect(p.pegawai).toBe('')
+      expect(p.hasEmployee).toBe(false)
+    })
+
+    it('uses employee_name (not the user name) for pegawai', async () => {
+      requestMock.mockResolvedValueOnce({ ...PROFILE_RESPONSE, name: 'Login User', employee_name: 'Andi Saputra' })
+      const p = await useAccount().getProfile()
+      expect(p.nama).toBe('Login User')
+      expect(p.pegawai).toBe('Andi Saputra')
     })
 
     it('propagates a backend error', async () => {

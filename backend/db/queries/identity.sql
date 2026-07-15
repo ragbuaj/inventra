@@ -102,7 +102,12 @@ RETURNING *;
 -- name: GetUserProfile :one
 SELECT u.id, u.name, u.email, u.role_id, u.office_id, u.employee_id, u.status,
        u.avatar_url, u.google_id, u.created_at,
-       e.phone AS employee_phone
+       e.phone AS employee_phone,
+       r.name  AS role_name,
+       o.name  AS office_name,
+       e.name  AS employee_name
 FROM identity.users u
 LEFT JOIN masterdata.employees e ON e.id = u.employee_id AND e.deleted_at IS NULL
+LEFT JOIN identity.roles       r ON r.id = u.role_id     AND r.deleted_at IS NULL
+LEFT JOIN masterdata.offices   o ON o.id = u.office_id   AND o.deleted_at IS NULL
 WHERE u.id = $1 AND u.deleted_at IS NULL;

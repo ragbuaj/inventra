@@ -19,8 +19,11 @@ interface ProfileApiResponse {
   email: string
   phone: string | null
   role_id: string
+  role_name: string | null
   office_id: string | null
+  office_name: string | null
   employee_id: string | null
+  employee_name: string | null
   status: string
   avatar_url: string | null
   google_linked: boolean
@@ -33,8 +36,11 @@ const defaultProfileResponse: ProfileApiResponse = {
   email: 'andi@inventra.local',
   phone: '0812-3456-7890',
   role_id: 'r1',
+  role_name: 'Asset Manager',
   office_id: null,
+  office_name: null,
   employee_id: null,
+  employee_name: null,
   status: 'active',
   avatar_url: null,
   google_linked: false,
@@ -135,6 +141,15 @@ describe('Account page — Profil tab', () => {
     expect(w.text()).toContain('—')
     // employee_id is null in the default mock, so pegawai must not show a name.
     expect(w.text()).not.toContain('Kantor Pusat')
+  })
+
+  it('renders the enriched kantor/pegawai names resolved by the API', async () => {
+    profileResponse = { ...defaultProfileResponse, office_id: 'o1', office_name: 'Cabang Jakarta Selatan', employee_id: 'e1', employee_name: 'Andi Saputra' }
+    const w = await mountLoaded()
+    expect(w.text()).toContain('Cabang Jakarta Selatan')
+    expect(w.text()).toContain('Pegawai Tertaut')
+    // the employee name renders in the "Pegawai Tertaut" row, not just the header.
+    expect(w.text()).toContain('Andi Saputra')
   })
 
   describe('view/edit state', () => {
