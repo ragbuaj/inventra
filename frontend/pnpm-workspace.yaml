@@ -6,6 +6,15 @@ allowBuilds:
   unrs-resolver: false
   vue-demi: false
 
+# Allowlist for pnpm's minimumReleaseAge supply-chain gate (rejects packages
+# younger than the cutoff). These first-party Vue org releases were still within
+# the window when the pinia v4 major landed; without the exclude, CI's
+# `pnpm install --frozen-lockfile` fails the policy check. Prune entries once the
+# versions have aged well past the cutoff.
+minimumReleaseAgeExclude:
+  - '@pinia/nuxt@1.0.0'
+  - 'pinia@4.0.2'
+
 # Force patched versions of transitive (build/dev-time) deps flagged by Dependabot.
 overrides:
   shell-quote: '>=1.8.4'
