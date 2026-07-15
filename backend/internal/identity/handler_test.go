@@ -301,3 +301,41 @@ func TestRequestPasswordChange_Unauthorized_NoCaller(t *testing.T) {
 		t.Fatalf("want 401, got %d", w.Code)
 	}
 }
+
+// --- device sessions: auth guards (no caller → 401 before touching svc) ----
+
+func TestListSessions_Unauthorized_NoCaller(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := &Handler{}
+	r := gin.New()
+	r.GET("/sessions", h.listSessions)
+
+	w := doJSON(t, r, http.MethodGet, "/sessions", nil)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("want 401, got %d", w.Code)
+	}
+}
+
+func TestRevokeSession_Unauthorized_NoCaller(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := &Handler{}
+	r := gin.New()
+	r.DELETE("/sessions/:id", h.revokeSession)
+
+	w := doJSON(t, r, http.MethodDelete, "/sessions/some-sid", nil)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("want 401, got %d", w.Code)
+	}
+}
+
+func TestRevokeOtherSessions_Unauthorized_NoCaller(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := &Handler{}
+	r := gin.New()
+	r.POST("/sessions/revoke-others", h.revokeOtherSessions)
+
+	w := doJSON(t, r, http.MethodPost, "/sessions/revoke-others", nil)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("want 401, got %d", w.Code)
+	}
+}

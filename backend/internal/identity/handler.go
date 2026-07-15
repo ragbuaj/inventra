@@ -91,7 +91,7 @@ func (h *Handler) login(c *gin.Context) {
 		middleware.WriteRateLimited(c, res)
 		return
 	}
-	pair, _, err := h.svc.Login(c.Request.Context(), req.Email, req.Password)
+	pair, _, err := h.svc.Login(c.Request.Context(), req.Email, req.Password, c.Request.UserAgent(), c.ClientIP())
 	if err != nil {
 		h.authError(c, err)
 		return
@@ -106,7 +106,7 @@ func (h *Handler) refresh(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing refresh token"})
 		return
 	}
-	pair, err := h.svc.Refresh(c.Request.Context(), rt)
+	pair, err := h.svc.Refresh(c.Request.Context(), rt, c.Request.UserAgent(), c.ClientIP())
 	if err != nil {
 		h.authError(c, err)
 		return
@@ -119,7 +119,9 @@ func (h *Handler) logout(c *gin.Context) {
 	rt, _ := c.Cookie(refreshCookieName)
 	jti, _ := c.Get(middleware.CtxAccessJTI)
 	exp, _ := c.Get(middleware.CtxAccessExp)
-	if err := h.svc.Logout(c.Request.Context(), jti.(string), exp.(time.Time), rt); err != nil {
+	userID := c.GetString(middleware.CtxUserID)
+	sid := c.GetString(middleware.CtxSessionID)
+	if err := h.svc.Logout(c.Request.Context(), jti.(string), exp.(time.Time), rt, userID, sid); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "logout failed"})
 		return
 	}
@@ -140,6 +142,59 @@ func (h *Handler) me(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, newUserResponse(user))
+}
+
+// listSessions returns the caller's active device sessions (current flagged).
+func (h *Handler) listSessions(c *gin.Context) {
+	userID, err := uuid.Parse(c.GetString(middleware.CtxUserID))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid subject"})
+		return
+	}
+	sessions, err := h.svc.ListSessions(c.Request.Context(), userID, c.GetString(middleware.CtxSessionID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load sessions"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": sessions})
+}
+
+// revokeSession kills one of the caller's own sessions. A sid that is not the
+// caller's own returns 404 (never reveals or touches another user's session).
+func (h *Handler) revokeSession(c *gin.Context) {
+	userID, err := uuid.Parse(c.GetString(middleware.CtxUserID))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid subject"})
+		return
+	}
+	sid := c.Param("id")
+	if err := h.svc.RevokeSession(c.Request.Context(), userID, sid); err != nil {
+		switch {
+		case errors.Is(err, ErrNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "session not found"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		}
+		return
+	}
+	audit.Record(c, h.audit, audit.ActionUpdate, "user", userID, nil, gin.H{"event": "session_revoked", "session_id": sid})
+	c.JSON(http.StatusOK, gin.H{"status": "revoked"})
+}
+
+// revokeOtherSessions logs the caller out of every device except the current one.
+func (h *Handler) revokeOtherSessions(c *gin.Context) {
+	userID, err := uuid.Parse(c.GetString(middleware.CtxUserID))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid subject"})
+		return
+	}
+	revoked, err := h.svc.RevokeOtherSessions(c.Request.Context(), userID, c.GetString(middleware.CtxSessionID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		return
+	}
+	audit.Record(c, h.audit, audit.ActionUpdate, "user", userID, nil, gin.H{"event": "sessions_revoked_others", "revoked": revoked})
+	c.JSON(http.StatusOK, gin.H{"revoked": revoked})
 }
 
 func (h *Handler) authError(c *gin.Context, err error) {
@@ -175,7 +230,7 @@ func (h *Handler) googleCallback(c *gin.Context) {
 		h.redirectAuthError(c, googleReason(err))
 		return
 	}
-	pair, _, err := h.svc.LoginWithGoogle(c.Request.Context(), email, sub)
+	pair, _, err := h.svc.LoginWithGoogle(c.Request.Context(), email, sub, c.Request.UserAgent(), c.ClientIP())
 	if err != nil {
 		h.redirectAuthError(c, googleReason(err))
 		return

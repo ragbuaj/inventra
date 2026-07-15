@@ -54,7 +54,7 @@ func newGoogleSvc(store userStore) *Service {
 	// Unreachable Redis: issue()'s SaveRefresh returns an error fast (never panics),
 	// so error-path tests run cleanly and the link side-effect is still observable.
 	rdb := redis.NewClient(&redis.Options{Addr: "127.0.0.1:1", MaxRetries: -1, DialTimeout: 50 * time.Millisecond})
-	return NewService(store, auth.NewTokenManager(cfg), auth.NewTokenStore(rdb), &fakeMailer{}, 30*time.Minute, "https://app")
+	return NewService(store, auth.NewTokenManager(cfg), auth.NewTokenStore(rdb), &fakeMailer{}, nil, 30*time.Minute, "https://app")
 }
 
 func activeUser() sqlc.IdentityUser {
@@ -63,7 +63,7 @@ func activeUser() sqlc.IdentityUser {
 
 func TestLoginWithGoogleNotProvisioned(t *testing.T) {
 	svc := newGoogleSvc(&fakeUserStore{getErr: pgx.ErrNoRows})
-	if _, _, err := svc.LoginWithGoogle(context.Background(), "x@y.com", "sub"); !errors.Is(err, ErrNotProvisioned) {
+	if _, _, err := svc.LoginWithGoogle(context.Background(), "x@y.com", "sub", "ua", "1.2.3.4"); !errors.Is(err, ErrNotProvisioned) {
 		t.Fatalf("expected ErrNotProvisioned, got %v", err)
 	}
 }
@@ -72,7 +72,7 @@ func TestLoginWithGoogleMismatch(t *testing.T) {
 	u := activeUser()
 	other := "another-sub"
 	u.GoogleID = &other
-	if _, _, err := newGoogleSvc(&fakeUserStore{user: u}).LoginWithGoogle(context.Background(), "a@b.com", "sub"); !errors.Is(err, ErrGoogleMismatch) {
+	if _, _, err := newGoogleSvc(&fakeUserStore{user: u}).LoginWithGoogle(context.Background(), "a@b.com", "sub", "ua", "1.2.3.4"); !errors.Is(err, ErrGoogleMismatch) {
 		t.Fatalf("expected ErrGoogleMismatch, got %v", err)
 	}
 }
@@ -80,7 +80,7 @@ func TestLoginWithGoogleMismatch(t *testing.T) {
 func TestLoginWithGoogleInactive(t *testing.T) {
 	u := activeUser()
 	u.Status = sqlc.SharedUserStatusInactive
-	if _, _, err := newGoogleSvc(&fakeUserStore{user: u}).LoginWithGoogle(context.Background(), "a@b.com", "sub"); !errors.Is(err, ErrUserInactive) {
+	if _, _, err := newGoogleSvc(&fakeUserStore{user: u}).LoginWithGoogle(context.Background(), "a@b.com", "sub", "ua", "1.2.3.4"); !errors.Is(err, ErrUserInactive) {
 		t.Fatalf("expected ErrUserInactive, got %v", err)
 	}
 }
@@ -89,7 +89,7 @@ func TestLoginWithGoogleLinksWhenUnset(t *testing.T) {
 	store := &fakeUserStore{user: activeUser()} // GoogleID nil → must link before issuing
 	// issue() then fails (Redis unreachable) — irrelevant here; the assertion is
 	// that an unlinked, active account gets its google_id linked.
-	_, _, _ = newGoogleSvc(store).LoginWithGoogle(context.Background(), "a@b.com", "sub-123")
+	_, _, _ = newGoogleSvc(store).LoginWithGoogle(context.Background(), "a@b.com", "sub-123", "ua", "1.2.3.4")
 	if store.linked == nil || *store.linked != "sub-123" {
 		t.Fatalf("expected LinkGoogleID called with sub-123, got %v", store.linked)
 	}

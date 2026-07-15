@@ -18,6 +18,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/cache"
 	"github.com/ragbuaj/inventra/internal/config"
 	"github.com/ragbuaj/inventra/internal/db"
+	"github.com/ragbuaj/inventra/internal/geoip"
 	"github.com/ragbuaj/inventra/internal/logging"
 	"github.com/ragbuaj/inventra/internal/ratelimit"
 	"github.com/ragbuaj/inventra/internal/server"
@@ -72,7 +73,11 @@ func main() {
 	}
 	slog.Info("MinIO connected", "bucket", cfg.MinIOBucket)
 
-	handler, importWorker := server.NewRouter(server.Deps{Cfg: cfg, Pool: pool, Redis: rdb, Log: logger, Limiter: limiter, Storage: store})
+	// GeoIP locator for device-session locations (no-op without a provisioned DB).
+	geoLocator := geoip.New(cfg.GeoIPDBPath, logger)
+	defer func() { _ = geoLocator.Close() }()
+
+	handler, importWorker := server.NewRouter(server.Deps{Cfg: cfg, Pool: pool, Redis: rdb, Log: logger, Limiter: limiter, Storage: store, GeoIP: geoLocator})
 	srv := &http.Server{
 		Addr:              ":" + cfg.ServerPort,
 		Handler:           handler,

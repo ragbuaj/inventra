@@ -147,7 +147,7 @@ func newTestService(t *testing.T, fs *fakeStore, fm *fakeMailer) *Service {
 	// real Redis. Tests asserting an actual store WRITE (save reset/email-change
 	// token) are integration-level — see service_integration_test.go.
 	rdb := redis.NewClient(&redis.Options{Addr: "127.0.0.1:1", MaxRetries: -1, DialTimeout: 50 * time.Millisecond})
-	return NewService(fs, tm, auth.NewTokenStore(rdb), fm, 30*time.Minute, "https://app")
+	return NewService(fs, tm, auth.NewTokenStore(rdb), fm, nil, 30*time.Minute, "https://app")
 }
 
 func TestChangePassword_WrongOld(t *testing.T) {

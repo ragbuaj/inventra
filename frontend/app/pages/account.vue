@@ -196,6 +196,8 @@ async function resendPasswordChange() {
 
 async function logoutAll() {
   await account.logoutAllOthers()
+  // Re-fetch so the list collapses to just the current device.
+  sessions.value = await account.listSessions()
   toast.add({ title: t('account.toastLogoutTitle'), description: t('account.toastLogoutMsg'), color: 'success' })
 }
 

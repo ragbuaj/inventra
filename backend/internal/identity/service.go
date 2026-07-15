@@ -13,6 +13,7 @@ import (
 
 	"github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/auth"
+	"github.com/ragbuaj/inventra/internal/geoip"
 )
 
 // Service-level errors.
@@ -26,6 +27,7 @@ var (
 	ErrEmailInUse         = errors.New("email is already in use")
 	ErrSameEmail          = errors.New("new email must differ from the current email")
 	ErrInvalidInput       = errors.New("invalid input")
+	ErrNotFound           = errors.New("not found")
 )
 
 // userStore is the data surface the identity Service needs (seam for tests).
@@ -50,23 +52,29 @@ type mailSender interface {
 }
 
 // Service handles login, token refresh/rotation, logout, current-user lookup,
-// and password reset/change.
+// password reset/change, and device-session management.
 type Service struct {
 	q           userStore
 	tm          *auth.TokenManager
 	store       *auth.TokenStore
 	mail        mailSender
+	locator     geoip.Locator
 	resetTTL    time.Duration
 	frontendURL string
 }
 
-// NewService builds the identity Service.
-func NewService(q userStore, tm *auth.TokenManager, store *auth.TokenStore, mailer mailSender, resetTTL time.Duration, frontendURL string) *Service {
-	return &Service{q: q, tm: tm, store: store, mail: mailer, resetTTL: resetTTL, frontendURL: frontendURL}
+// NewService builds the identity Service. locator may be nil (a no-op locator is
+// substituted), so callers without GeoIP configured still function.
+func NewService(q userStore, tm *auth.TokenManager, store *auth.TokenStore, mailer mailSender, locator geoip.Locator, resetTTL time.Duration, frontendURL string) *Service {
+	if locator == nil {
+		locator = geoip.New("", nil)
+	}
+	return &Service{q: q, tm: tm, store: store, mail: mailer, locator: locator, resetTTL: resetTTL, frontendURL: frontendURL}
 }
 
-// Login verifies credentials and issues an access + refresh token pair.
-func (s *Service) Login(ctx context.Context, email, password string) (auth.TokenPair, sqlc.IdentityUser, error) {
+// Login verifies credentials and issues an access + refresh token pair, opening
+// a new device session tagged with the caller's user-agent and IP.
+func (s *Service) Login(ctx context.Context, email, password, userAgent, ip string) (auth.TokenPair, sqlc.IdentityUser, error) {
 	user, err := s.q.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -81,7 +89,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (auth.Token
 		return auth.TokenPair{}, sqlc.IdentityUser{}, ErrUserInactive
 	}
 
-	pair, err := s.issue(ctx, user)
+	pair, err := s.startSession(ctx, user, userAgent, ip)
 	if err != nil {
 		return auth.TokenPair{}, sqlc.IdentityUser{}, err
 	}
@@ -90,7 +98,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (auth.Token
 
 // LoginWithGoogle links a verified Google identity to an EXISTING user (link-only)
 // and issues the same token pair as local login. It never creates a user.
-func (s *Service) LoginWithGoogle(ctx context.Context, email, googleSub string) (auth.TokenPair, sqlc.IdentityUser, error) {
+func (s *Service) LoginWithGoogle(ctx context.Context, email, googleSub, userAgent, ip string) (auth.TokenPair, sqlc.IdentityUser, error) {
 	user, err := s.q.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -111,15 +119,18 @@ func (s *Service) LoginWithGoogle(ctx context.Context, email, googleSub string) 
 			return auth.TokenPair{}, sqlc.IdentityUser{}, err
 		}
 	}
-	pair, err := s.issue(ctx, user)
+	pair, err := s.startSession(ctx, user, userAgent, ip)
 	if err != nil {
 		return auth.TokenPair{}, sqlc.IdentityUser{}, err
 	}
 	return pair, user, nil
 }
 
-// Refresh validates a refresh token, rotates it, and issues a new token pair.
-func (s *Service) Refresh(ctx context.Context, refreshToken string) (auth.TokenPair, error) {
+// Refresh validates a refresh token, rotates it, and issues a new token pair on
+// the SAME session id (so the device session survives rotation), updating the
+// session's last-seen. A legacy token with no sid is promoted into a managed
+// session so pre-Spec-B logins become visible/revocable after their first refresh.
+func (s *Service) Refresh(ctx context.Context, refreshToken, userAgent, ip string) (auth.TokenPair, error) {
 	claims, err := s.tm.Parse(refreshToken)
 	if err != nil || claims.Type != auth.TokenRefresh {
 		return auth.TokenPair{}, ErrInvalidToken
@@ -150,15 +161,34 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (auth.TokenP
 		return auth.TokenPair{}, ErrInvalidToken
 	}
 
-	// Rotate: invalidate the old refresh token, issue a fresh pair.
+	// Rotate: invalidate the old refresh token first.
 	if err := s.store.DeleteRefresh(ctx, claims.ID); err != nil {
 		return auth.TokenPair{}, err
 	}
-	return s.issue(ctx, user)
+	// Legacy (pre-session) token: mint a fresh managed session.
+	if claims.SID == "" {
+		return s.startSession(ctx, user, userAgent, ip)
+	}
+	// Normal rotation: reuse the sid so the session record is preserved.
+	pair, err := s.tm.Issue(user.ID.String(), user.RoleID.String(), claims.SID)
+	if err != nil {
+		return auth.TokenPair{}, err
+	}
+	ttl := s.tm.RefreshTTL()
+	if err := s.store.SaveRefresh(ctx, pair.RefreshJTI, user.ID.String(), ttl); err != nil {
+		return auth.TokenPair{}, err
+	}
+	if err := s.store.TouchSession(ctx, claims.SID, user.ID.String(), pair.RefreshJTI, time.Now(), ttl); err != nil {
+		return auth.TokenPair{}, err
+	}
+	return pair, nil
 }
 
-// Logout revokes the current access token and deletes the supplied refresh token.
-func (s *Service) Logout(ctx context.Context, accessJTI string, accessExp time.Time, refreshToken string) error {
+// Logout revokes the current access token, deletes the supplied refresh token,
+// and tears down the caller's device session. userID/sid come from the caller's
+// access token (may be empty for legacy tokens — the session delete is then a
+// no-op).
+func (s *Service) Logout(ctx context.Context, accessJTI string, accessExp time.Time, refreshToken, userID, sid string) error {
 	if err := s.store.DenyAccess(ctx, accessJTI, time.Until(accessExp)); err != nil {
 		return err
 	}
@@ -166,6 +196,9 @@ func (s *Service) Logout(ctx context.Context, accessJTI string, accessExp time.T
 		if claims, err := s.tm.Parse(refreshToken); err == nil && claims.Type == auth.TokenRefresh {
 			_ = s.store.DeleteRefresh(ctx, claims.ID)
 		}
+	}
+	if userID != "" && sid != "" {
+		_, _ = s.store.DeleteSession(ctx, userID, sid) // best-effort
 	}
 	return nil
 }
@@ -221,12 +254,14 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 	if err := s.setPassword(ctx, user.ID, newPassword); err != nil {
 		return sqlc.IdentityUser{}, err
 	}
+	s.revokeAllSessions(ctx, user.ID.String()) // clear every device session (uniform logout)
 	_ = s.mail.SendPasswordChanged(ctx, user.Email, user.Name) // best-effort
 	return user, nil
 }
 
 // ChangePassword verifies the caller's current password and sets a new one,
-// invalidating all sessions (including the caller's) via the epoch.
+// invalidating all sessions (including the caller's) via the epoch and by
+// clearing every device-session record.
 func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) (sqlc.IdentityUser, error) {
 	if len(newPassword) < 8 {
 		return sqlc.IdentityUser{}, ErrWeakPassword
@@ -241,6 +276,7 @@ func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 	if err := s.setPassword(ctx, user.ID, newPassword); err != nil {
 		return sqlc.IdentityUser{}, err
 	}
+	s.revokeAllSessions(ctx, user.ID.String())
 	_ = s.mail.SendPasswordChanged(ctx, user.Email, user.Name) // best-effort
 	return user, nil
 }
@@ -373,13 +409,124 @@ func mapDBError(err error) error {
 	return err
 }
 
-func (s *Service) issue(ctx context.Context, user sqlc.IdentityUser) (auth.TokenPair, error) {
-	pair, err := s.tm.Issue(user.ID.String(), user.RoleID.String())
+// startSession issues a token pair for a NEW login session and records its
+// device metadata: browser/OS (derived on read from the user-agent), IP, and a
+// best-effort GeoIP location. The session's stable sid is minted here and
+// embedded in both tokens.
+func (s *Service) startSession(ctx context.Context, user sqlc.IdentityUser, userAgent, ip string) (auth.TokenPair, error) {
+	sid := uuid.NewString()
+	pair, err := s.tm.Issue(user.ID.String(), user.RoleID.String(), sid)
 	if err != nil {
 		return auth.TokenPair{}, err
 	}
-	if err := s.store.SaveRefresh(ctx, pair.RefreshJTI, user.ID.String(), s.tm.RefreshTTL()); err != nil {
+	ttl := s.tm.RefreshTTL()
+	if err := s.store.SaveRefresh(ctx, pair.RefreshJTI, user.ID.String(), ttl); err != nil {
+		return auth.TokenPair{}, err
+	}
+	city, country := s.locator.Lookup(ip)
+	if err := s.store.SaveSession(ctx, sid, auth.SessionMeta{
+		UserID:     user.ID.String(),
+		UserAgent:  userAgent,
+		IP:         ip,
+		Location:   joinLocation(city, country),
+		RefreshJTI: pair.RefreshJTI,
+	}, ttl); err != nil {
 		return auth.TokenPair{}, err
 	}
 	return pair, nil
+}
+
+// ListSessions returns the caller's active device sessions, current one flagged.
+func (s *Service) ListSessions(ctx context.Context, userID uuid.UUID, currentSID string) ([]SessionView, error) {
+	sessions, err := s.store.ListSessions(ctx, userID.String())
+	if err != nil {
+		return nil, err
+	}
+	views := make([]SessionView, 0, len(sessions))
+	for _, se := range sessions {
+		browser, os, deviceType := parseUserAgent(se.UserAgent)
+		views = append(views, SessionView{
+			ID:         se.ID,
+			Browser:    browser,
+			OS:         os,
+			DeviceType: deviceType,
+			IPAddress:  se.IP,
+			Location:   se.Location,
+			CreatedAt:  se.CreatedAt,
+			LastSeenAt: se.LastSeenAt,
+			Current:    se.ID == currentSID,
+		})
+	}
+	return views, nil
+}
+
+// RevokeSession kills one of the caller's own sessions. It is SoD-gated: a sid
+// that is not in the caller's session index yields ErrNotFound (never touches
+// another user's session). The revoked device fails its next request because
+// both its refresh token and its session record are gone.
+func (s *Service) RevokeSession(ctx context.Context, userID uuid.UUID, sid string) error {
+	owned, err := s.store.SessionOwnedBy(ctx, userID.String(), sid)
+	if err != nil {
+		return err
+	}
+	if !owned {
+		return ErrNotFound
+	}
+	jti, err := s.store.DeleteSession(ctx, userID.String(), sid)
+	if err != nil {
+		return err
+	}
+	if jti != "" {
+		_ = s.store.DeleteRefresh(ctx, jti)
+	}
+	return nil
+}
+
+// RevokeOtherSessions kills every session except the caller's current one
+// ("log out of all other devices"). Returns how many were revoked.
+func (s *Service) RevokeOtherSessions(ctx context.Context, userID uuid.UUID, currentSID string) (int, error) {
+	sessions, err := s.store.ListSessions(ctx, userID.String())
+	if err != nil {
+		return 0, err
+	}
+	revoked := 0
+	for _, se := range sessions {
+		if se.ID == currentSID {
+			continue
+		}
+		jti, err := s.store.DeleteSession(ctx, userID.String(), se.ID)
+		if err != nil {
+			continue
+		}
+		if jti != "" {
+			_ = s.store.DeleteRefresh(ctx, jti)
+		}
+		revoked++
+	}
+	return revoked, nil
+}
+
+// revokeAllSessions clears every device session for a user (best-effort), used
+// on password change/reset so the whole account is logged out everywhere.
+func (s *Service) revokeAllSessions(ctx context.Context, userID string) {
+	jtis, err := s.store.DeleteAllSessions(ctx, userID)
+	if err != nil {
+		return
+	}
+	for _, jti := range jtis {
+		_ = s.store.DeleteRefresh(ctx, jti)
+	}
+}
+
+// joinLocation renders a GeoIP city/country into a display string:
+// "City, Country", just the country, or "" when nothing resolved.
+func joinLocation(city, country string) string {
+	switch {
+	case city != "" && country != "":
+		return city + ", " + country
+	case country != "":
+		return country
+	default:
+		return city
+	}
 }
