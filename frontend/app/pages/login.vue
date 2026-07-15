@@ -119,7 +119,7 @@ onMounted(async () => {
               size="sm"
               :icon="showPassword ? 'i-lucide-eye-off' : 'i-lucide-eye'"
               :aria-label="$t('auth.togglePassword')"
-              @click="showPassword = !showPassword"
+              @click="() => { showPassword = !showPassword }"
             />
           </template>
         </UInput>

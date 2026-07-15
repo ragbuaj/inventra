@@ -349,7 +349,7 @@ onUnmounted(() => {
           size="sm"
           square
           :aria-label="t('assets.viewTable')"
-          @click="view = 'table'"
+          @click="() => { view = 'table' }"
         />
         <UButton
           icon="i-lucide-layout-grid"
@@ -358,7 +358,7 @@ onUnmounted(() => {
           size="sm"
           square
           :aria-label="t('assets.viewGrid')"
-          @click="view = 'grid'"
+          @click="() => { view = 'grid' }"
         />
       </div>
     </div>

@@ -288,7 +288,7 @@ onMounted(() => load())
           <UButton
             color="neutral"
             variant="ghost"
-            @click="addOpen = false"
+            @click="() => { addOpen = false }"
           >
             {{ t('common.cancel') }}
           </UButton>

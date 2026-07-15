@@ -827,7 +827,7 @@ onMounted(() => {
                 color="neutral"
                 variant="outline"
                 icon="i-lucide-rotate-cw"
-                @click="activeId && loadItems(activeId)"
+                @click="() => { activeId && loadItems(activeId) }"
               >
                 {{ t('common.retry') }}
               </UButton>

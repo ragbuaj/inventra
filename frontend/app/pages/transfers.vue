@@ -1124,7 +1124,7 @@ onBeforeUnmount(() => {
           <UButton
             color="neutral"
             variant="ghost"
-            @click="acceptOpen = false"
+            @click="() => { acceptOpen = false }"
           >
             {{ t('common.cancel') }}
           </UButton>
@@ -1160,7 +1160,7 @@ onBeforeUnmount(() => {
           <UButton
             color="neutral"
             variant="ghost"
-            @click="rejectOpen = false"
+            @click="() => { rejectOpen = false }"
           >
             {{ t('common.cancel') }}
           </UButton>
@@ -1210,7 +1210,7 @@ onBeforeUnmount(() => {
           <UButton
             color="neutral"
             variant="ghost"
-            @click="shipOpen = false"
+            @click="() => { shipOpen = false }"
           >
             {{ t('transfer.ship.cancel') }}
           </UButton>

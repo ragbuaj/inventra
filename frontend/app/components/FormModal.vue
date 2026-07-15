@@ -24,7 +24,7 @@ const emit = defineEmits<{ submit: [] }>()
         <UButton
           color="neutral"
           variant="ghost"
-          @click="open = false"
+          @click="() => { open = false }"
         >
           {{ $t('common.cancel') }}
         </UButton>
