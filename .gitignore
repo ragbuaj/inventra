@@ -39,5 +39,6 @@ Thumbs.db
 # Playwright MCP screenshot/output scratch
 .playwright-mcp/
 
-# Claude Code local config (hooks, settings, plugins) — personal, not shared
+# Claude Code local config (hooks, settings, plugins, project instructions) — personal, not shared
 .claude/
+CLAUDE.md
