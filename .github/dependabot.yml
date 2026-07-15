@@ -33,6 +33,14 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      # TypeScript 7 is the native (Go) compiler port; vue-tsc / nuxt typecheck
+      # don't support it yet (install fails with "Cannot read properties of
+      # undefined (reading 'Cjs')"). Hold the major until the Vue toolchain
+      # catches up — minor/patch bumps within v6 still flow through.
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
 
   # OpenAPI lint tooling (Spectral CLI) — backend/api/package-lock.json.
   # Dev/CI-only; pinned deliberately for reproducible lint, so keep bumps grouped.
