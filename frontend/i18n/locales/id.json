@@ -1261,6 +1261,7 @@
           "Master Data": "Master Data",
           "Aset": "Aset",
           "Persetujuan": "Persetujuan",
+          "Stock Opname": "Stock Opname",
           "Cadangan": "Cadangan"
         },
         "perm": {
@@ -1271,6 +1272,7 @@
           "audit.view": "Lihat audit trail",
           "masterdata.global.manage": "Kelola master data global",
           "masterdata.office.manage": "Kelola kantor & pegawai",
+          "masterdata.employee.manage": "Impor data pegawai (batch)",
           "asset.view": "Lihat aset",
           "asset.manage": "Kelola aset",
           "request.create": "Buat pengajuan",
@@ -1281,7 +1283,9 @@
           "maintenance.manage": "Kelola maintenance",
           "depreciation.manage": "Kelola penyusutan",
           "valuation.exclude.approve": "Setujui pengecualian valuasi",
-          "assignment.manage": "Kelola penugasan aset"
+          "assignment.manage": "Kelola penugasan aset",
+          "stockopname.view": "Lihat stock opname",
+          "stockopname.manage": "Kelola stock opname"
         }
       }
     },
