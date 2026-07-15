@@ -1,0 +1,64 @@
+# Dependabot configuration — https://docs.github.com/code-security/dependabot
+# Keeps security alerts actionable by opening version-update PRs on a weekly
+# cadence across every ecosystem in the repo. Minor/patch bumps are grouped to
+# cut PR noise; majors stay individual so they get a deliberate review.
+version: 2
+updates:
+  # Go backend (modular monolith) — backend/go.mod
+  - package-ecosystem: gomod
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      go-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  # Frontend (Nuxt 4, pnpm) — frontend/pnpm-lock.yaml
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      frontend-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  # OpenAPI lint tooling (Spectral CLI) — backend/api/package-lock.json.
+  # Dev/CI-only; pinned deliberately for reproducible lint, so keep bumps grouped.
+  - package-ecosystem: npm
+    directory: /backend/api
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      api-tooling:
+        patterns:
+          - "*"
+
+  # GitHub Actions workflows — .github/workflows/*.yml
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      actions:
+        patterns:
+          - "*"
