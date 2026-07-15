@@ -56,12 +56,15 @@ watch(() => colorMode.preference, (v) => {
 const notif = ref<NotifPrefs>(account.getNotifPrefs())
 
 onMounted(async () => {
-  const [p, s] = await Promise.all([account.getProfile(), account.listSessions()])
+  // The device-session list is supplementary: a failure to load it must never
+  // block the whole account page (profile / security / preferences), so it is
+  // fetched with its own catch rather than inside the page-critical Promise.all.
+  const p = await account.getProfile()
   profile.value = p
   fNama.value = p.nama
   fTelepon.value = p.telepon
-  sessions.value = s
   loading.value = false
+  sessions.value = await account.listSessions().catch(() => [])
 })
 
 function startEdit() {

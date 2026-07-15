@@ -37,9 +37,16 @@ const otherSession: SessionApiResponse = {
 // The list the /auth/sessions GET returns; mutated by revoke/revoke-others so a
 // refetch reflects the new state.
 let sessionList: SessionApiResponse[] = []
+// When true, GET /auth/sessions rejects — asserts the session fetch is
+// non-critical to the page load.
+let sessionsShouldFail = false
 
 const requestMock = vi.fn((path: string, opts?: Record<string, unknown>) => {
-  if (path === '/auth/sessions') return Promise.resolve({ data: sessionList })
+  if (path === '/auth/sessions') {
+    return sessionsShouldFail
+      ? Promise.reject(Object.assign(new Error('sessions unavailable'), { statusCode: 500 }))
+      : Promise.resolve({ data: sessionList })
+  }
   if (path === '/auth/sessions/revoke-others') {
     sessionList = sessionList.filter(s => s.current)
     return Promise.resolve({ revoked: 1 })
@@ -86,6 +93,7 @@ describe('Account page — Sesi & Perangkat', () => {
     useAuthStore().clear()
     login()
     sessionList = [structuredClone(currentSession), structuredClone(otherSession)]
+    sessionsShouldFail = false
     requestMock.mockClear()
   })
 
@@ -135,5 +143,19 @@ describe('Account page — Sesi & Perangkat', () => {
     expect(w.text()).toContain('Chrome · macOS')
     expect(w.text()).not.toContain('Safari · iOS')
     expect(revokeButtons(w)).toHaveLength(0)
+  })
+
+  it('a failed session fetch does not block the page — profile/tabs still load', async () => {
+    // Regression: onMounted must not gate the whole account page on the
+    // (supplementary) device-session list. A rejected GET /auth/sessions must
+    // still leave the page fully usable, with just an empty sessions card.
+    sessionsShouldFail = true
+    const w = await mountLoaded()
+    await openSecurityTab(w)
+    // Page loaded past its spinner: the Keamanan section rendered.
+    expect(w.text()).toContain('Sesi & Perangkat')
+    // No session rows, and no crash/hang.
+    expect(revokeButtons(w)).toHaveLength(0)
+    expect(w.findAll('span').filter(s => s.text().trim() === 'Sesi ini')).toHaveLength(0)
   })
 })
