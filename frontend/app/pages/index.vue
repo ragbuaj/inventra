@@ -29,6 +29,7 @@ const office = useOfficePicker()
 
 const canDecide = computed(() => can('request.decide'))
 const canExport = computed(() => can('report.export'))
+const canReport = computed(() => can('report.view'))
 
 // ---------------------------------------------------------------------------
 // Filters + state
@@ -64,8 +65,10 @@ async function load() {
   loading.value = true
   loadError.value = false
   try {
+    // The summary endpoint requires report.view; a caller without it still
+    // loads the shell with an empty (placeholder) summary rather than 403-ing.
     const [summ, inbox] = await Promise.all([
-      summary(currentQuery()),
+      canReport.value ? summary(currentQuery()) : Promise.resolve(null),
       canDecide.value ? approvalApi.inbox() : Promise.resolve([] as ApprovalRequestRow[])
     ])
     data.value = summ

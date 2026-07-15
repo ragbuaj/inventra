@@ -1557,6 +1557,7 @@
     "categories": "Asset Categories",
     "officeMap": "Location Map",
     "reference": "Reference",
+    "masterImport": "Data Import",
     "settings": "Settings",
     "users": "Users",
     "rbac": "Roles & RBAC",

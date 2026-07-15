@@ -2,7 +2,7 @@
 import type { RoleView, ModuleView } from '~/composables/api/useRbac'
 import { useRbac } from '~/composables/api/useRbac'
 
-definePageMeta({ middleware: 'can', permission: 'user.manage' })
+definePageMeta({ middleware: 'can', permission: 'role.manage' })
 
 const { t } = useI18n()
 const toast = useToast()

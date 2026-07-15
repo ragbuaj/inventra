@@ -282,6 +282,8 @@ func NewRouter(d Deps) (*gin.Engine, *importer.Worker) {
 			middleware.RequirePermission(permSvc, "role.manage"),
 			middleware.RequirePermission(permSvc, "scope.manage"),
 			middleware.RequirePermission(permSvc, "fieldperm.manage"),
+			middleware.RequireAnyPermission(permSvc, "role.manage", "scope.manage", "fieldperm.manage"),
+			middleware.RequireAnyPermission(permSvc, "role.manage", "scope.manage", "fieldperm.manage", "user.manage"),
 		)
 
 		importerSvc := importer.NewService(queries, d.Pool, d.Storage, d.Redis, d.Cfg.ImportMaxRows, d.Cfg.ImportMaxBytes)

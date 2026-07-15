@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { superadminNav } from '~/utils/nav'
+import { appNav } from '~/utils/nav'
 
 const ui = useUiStore()
 const { t } = useI18n()
@@ -10,7 +10,7 @@ const routeLabel = computed(() => {
   const path = route.path
 
   // Flatten all nav items + their children to find a match
-  for (const group of superadminNav) {
+  for (const group of appNav) {
     for (const item of group.items) {
       if (item.to && item.to === path) {
         return { parent: null, label: t(item.labelKey) }

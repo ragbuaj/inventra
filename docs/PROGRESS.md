@@ -1050,12 +1050,38 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     the display. **Not in scope:** filling `role_name` on `/auth/me` / login (drives `UserMenu`/
 >     `AppSidebar` badge via `auth.user.role_name`) — a separate path; follow-up if a consistent shell badge
 >     is wanted.
-> 65. **Next session — pick the next real step.** Leading candidate: **notifications** (the last app-shell
+> 65. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-16): authz nav/guard consistency
+>     bug** — reported as "kanwil role has a menu but cannot open it". Audit found three misaligned layers
+>     (nav visibility, page can-guard, backend endpoint permission).
+> 66. ~~**Authz nav/guard/endpoint consistency**~~ ✅ **DONE (2026-07-16, branch `feat/authz-nav-guards`).**
+>     Root cause: the sidebar picked the whole nav from a single `user.manage` bit
+>     (`can('user.manage') ? superadminNav : staffNav`), so kepala_kanwil/kepala_unit/manager fell to the
+>     staff menu and could not reach menus their permissions grant; several nav items had no `permission` and
+>     403'd on click; the authz-admin screens guarded on `user.manage` while their endpoints need
+>     `role`/`scope`/`fieldperm.manage`. Fix: one per-permission `appNav` (`NavItem.permission: string |
+>     string[]`, OR semantics), `can` middleware accepts arrays, AppSidebar/AppTopbar rewired with
+>     empty-group auto-hide + per-child visibility, five page-guards aligned to their entry permission
+>     (assignment→view, maintenance→view-or-create, rbac→role.manage, data-scope→scope.manage,
+>     field-permission→fieldperm.manage), dashboard summary fetch gated on `report.view`, assignment
+>     available-fetch gated on `request.create`. Backend (Opsi 1): new `RequireAnyPermission`; authz-admin
+>     READS loosened via two gates (`GET /catalog` = any of role/scope/fieldperm.manage; `GET /roles` +
+>     `GET /roles/:id` = those + `user.manage` for the Users role picker), all mutations left strict — so
+>     `scope.manage`/`fieldperm.manage` can now be delegated independently. Tests: per-role unit
+>     (visible-set = permission-set), runtime AppSidebar per role, `can` OR unit, backend
+>     `TestRequireAnyPermission` + delegation integration (scope-only / user-only), e2e Superadmin full-nav
+>     reachability sweep. No schema/seed/role-permission changes. Spec
+>     `docs/superpowers/specs/2026-07-16-authz-nav-guard-consistency-design.md`, plan
+>     `docs/superpowers/plans/2026-07-16-authz-nav-guard-consistency.md`.
+> 67. **Next session — pick the next real step.** Leading candidate: **notifications** (the last app-shell
 >     mock, `mock/notifications.ts` — needs a backend notification feed). Other carried candidates:
 >     **room/floor import targets**; **Analytics/OLAP** read layer; **admin-initiated password reset** from
 >     User Management; **`/auth/me` `role_name`** (shell badge consistency, item-64 out-of-scope note).
 >     **GeoIP DB provisioning** in prod (drop a GeoLite2-City.mmdb + set `GEOIP_DB_PATH`) is an ops
 >     follow-up — sessions work without it. Confirm priority before starting.
+>     **Follow-up (optional):** a per-limited-role UI e2e (log in as a created `scope.manage`-only user and
+>     confirm Data Scope opens while RBAC is hidden) — the seeded-superadmin CI e2e can't log in as demo
+>     roles, so this needs an API-created user; the per-role guarantee is already covered by unit/runtime/
+>     integration tests.
 
 ## ✅ Done
 
