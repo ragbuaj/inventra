@@ -42,3 +42,13 @@ Thumbs.db
 # Claude Code local config (hooks, settings, plugins, project instructions) — personal, not shared
 .claude/
 CLAUDE.md
+
+# Other AI assistant instruction files — keep all AI docs out of the repo
+AGENTS.md
+GEMINI.md
+.cursor/
+.cursorrules
+.aider*
+.clinerules
+.windsurfrules
+.github/copilot-instructions.md
