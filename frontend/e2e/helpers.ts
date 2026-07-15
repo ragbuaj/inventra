@@ -1,5 +1,5 @@
 import { expect, request } from '@playwright/test'
-import type { APIRequestContext, Page } from '@playwright/test'
+import type { APIRequestContext, Locator, Page } from '@playwright/test'
 
 // Credentials of the seeded superadmin (see CLAUDE.md `cmd/createadmin`).
 // Override via env when the seed differs.
@@ -25,6 +25,30 @@ export async function login(page: Page): Promise<void> {
   await page.locator('input[type="password"]').fill(PASSWORD)
   await page.getByRole('button', { name: 'Masuk', exact: true }).click()
   await expect(page).toHaveURL(/\/$/)
+}
+
+/**
+ * Opens a table row's shared `RowActionsMenu` kebab ("Aksi") and clicks one of
+ * its menu items. The menu is a teleported Reka UI (Nuxt UI) popover whose item
+ * can DETACH from the DOM if the row/list re-renders between opening the menu
+ * and clicking the item — surfacing as "element is not stable" / "element was
+ * detached from the DOM" flakes (observed on the depreciation impairment and
+ * assets-label rows, and known to fail intermittently on `main` too).
+ *
+ * Retrying the open+click as a single unit via `expect.toPass()` makes it
+ * robust: each attempt first presses Escape (closing any menu a prior failed
+ * attempt left open — clicking the trigger again would otherwise TOGGLE it
+ * shut), re-opens the kebab, then clicks the freshly-resolved item. On a detach
+ * the item click throws and the whole unit retries against a re-rendered row.
+ */
+export async function clickRowAction(page: Page, row: Locator, actionName: string): Promise<void> {
+  const trigger = row.getByRole('button', { name: 'Aksi', exact: true })
+  await expect(trigger).toBeVisible()
+  await expect(async () => {
+    await page.keyboard.press('Escape').catch(() => {})
+    await trigger.click()
+    await page.getByRole('menuitem', { name: actionName, exact: true }).click({ timeout: 2_000 })
+  }).toPass({ timeout: 20_000 })
 }
 
 /**

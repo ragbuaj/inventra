@@ -1,6 +1,6 @@
 import { test, expect, request } from '@playwright/test'
 import type { APIRequestContext, APIResponse } from '@playwright/test'
-import { login, EMAIL, PASSWORD } from './helpers'
+import { login, EMAIL, PASSWORD, clickRowAction } from './helpers'
 
 // ---------------------------------------------------------------------------
 // Depreciation (Penyusutan) — real backend (`/depreciation` wired to
@@ -298,8 +298,7 @@ test.describe('Depreciation (Penyusutan) — real backend (compute/close/impair/
     await expect(row).toHaveCount(1, { timeout: 10_000 })
 
     // Impair action moved into the shared RowActionsMenu kebab (⋮).
-    await row.getByRole('button', { name: 'Aksi', exact: true }).click()
-    await page.getByRole('menuitem', { name: 'Catat Penurunan Nilai', exact: true }).click()
+    await clickRowAction(page, row, 'Catat Penurunan Nilai')
     await expect(page.getByTestId('depr-impair-current-value')).toContainText('4.400.000', { timeout: 10_000 })
 
     await page.getByTestId('depr-impair-recoverable').fill('1000000')
