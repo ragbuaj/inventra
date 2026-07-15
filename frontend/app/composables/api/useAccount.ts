@@ -33,8 +33,11 @@ interface ProfileApiResponse {
   email: string
   phone: string | null
   role_id: string
+  role_name: string | null
   office_id: string | null
+  office_name: string | null
   employee_id: string | null
+  employee_name: string | null
   status: string
   avatar_url: string | null
   google_linked: boolean
@@ -72,19 +75,19 @@ export function useAccount() {
   }
 
   // Maps the backend ProfileView (snake_case) onto the UI-facing AccountProfile
-  // (Indonesian field names). `peran`/`kantor`/`pegawai` have no display-name
-  // equivalent in the profile payload (the API only returns role_id/office_id/
-  // employee_id) — fall back to what the auth store already knows rather than
-  // hardcoding fake values.
+  // (Indonesian field names). The API resolves the display names server-side
+  // (role_name/office_name/employee_name via masterdata joins); `peran` still
+  // falls back to the auth store when the API name is absent (e.g. a removed
+  // role), and `kantor`/`pegawai` render '—' in the page when empty.
   function mapProfile(raw: ProfileApiResponse): AccountProfile {
     const hasEmployee = raw.employee_id != null
     return {
       nama: raw.name,
       email: raw.email,
       telepon: raw.phone ?? '',
-      peran: auth.user?.role_name ?? '',
-      kantor: '',
-      pegawai: hasEmployee ? raw.name : '',
+      peran: raw.role_name || (auth.user?.role_name ?? ''),
+      kantor: raw.office_name ?? '',
+      pegawai: raw.employee_name ?? '',
       loginMethod: raw.google_linked ? 'google' : 'email',
       joinDate: raw.joined_at,
       hasEmployee

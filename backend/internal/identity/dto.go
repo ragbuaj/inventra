@@ -87,8 +87,11 @@ type ProfileView struct {
 	Email        string    `json:"email"`
 	Phone        *string   `json:"phone"`
 	RoleID       string    `json:"role_id"`
+	RoleName     *string   `json:"role_name"`
 	OfficeID     *string   `json:"office_id"`
+	OfficeName   *string   `json:"office_name"`
 	EmployeeID   *string   `json:"employee_id"`
+	EmployeeName *string   `json:"employee_name"`
 	Status       string    `json:"status"`
 	AvatarURL    *string   `json:"avatar_url"`
 	GoogleLinked bool      `json:"google_linked"`
@@ -103,6 +106,9 @@ func profileFromRow(row sqlc.GetUserProfileRow) ProfileView {
 		Email:        row.Email,
 		Phone:        row.EmployeePhone,
 		RoleID:       row.RoleID.String(),
+		RoleName:     row.RoleName,
+		OfficeName:   row.OfficeName,
+		EmployeeName: row.EmployeeName,
 		Status:       string(row.Status),
 		AvatarURL:    row.AvatarUrl,
 		GoogleLinked: row.GoogleID != nil,
