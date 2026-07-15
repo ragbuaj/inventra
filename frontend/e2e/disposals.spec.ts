@@ -1,6 +1,6 @@
 import { test, expect, request } from '@playwright/test'
 import type { APIRequestContext, APIResponse } from '@playwright/test'
-import { login, EMAIL, PASSWORD } from './helpers'
+import { login, EMAIL, PASSWORD, clickRowAction } from './helpers'
 
 // ---------------------------------------------------------------------------
 // Disposal (Penghapusan) — real backend (`/disposals` wired to
@@ -228,8 +228,7 @@ test.describe('Disposal (Penghapusan) — real backend (submit → approve → B
     const row = page.locator('[data-testid="disposal-history-row"]', { hasText: assetName }).first()
     await expect(row).toBeVisible({ timeout: 10_000 })
     // Attach-BAST action moved into the shared RowActionsMenu kebab (⋮).
-    await row.getByRole('button', { name: 'Aksi', exact: true }).click()
-    await page.getByRole('menuitem', { name: 'Lampirkan BAST Penghapusan', exact: true }).click()
+    await clickRowAction(page, row, 'Lampirkan BAST Penghapusan')
 
     const bastNo = `BAP/E2E/${RUN}`
     await page.getByTestId('disposal-attach-bast-no').fill(bastNo)

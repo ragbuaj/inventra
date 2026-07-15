@@ -1,6 +1,6 @@
 import { test, expect, request } from '@playwright/test'
 import type { APIRequestContext, APIResponse } from '@playwright/test'
-import { login, pickAsync, EMAIL, PASSWORD } from './helpers'
+import { login, pickAsync, EMAIL, PASSWORD, clickRowAction } from './helpers'
 
 // ---------------------------------------------------------------------------
 // Transfer (Mutasi) — real backend (`/transfers` wired to /api/v1/transfers +
@@ -210,10 +210,7 @@ test.describe('Transfer (Mutasi) — real backend (submit → approve → ship �
     await expect(row.getByTestId('transfer-history-status')).toHaveText('Disetujui')
 
     // Ship action moved into the shared RowActionsMenu kebab (⋮).
-    const actionsBtn = row.getByRole('button', { name: 'Aksi', exact: true })
-    await expect(actionsBtn).toBeVisible()
-    await actionsBtn.click()
-    await page.getByRole('menuitem', { name: 'Kirim', exact: true }).click()
+    await clickRowAction(page, row, 'Kirim')
 
     await page.getByTestId('transfer-ship-confirm').click()
 
