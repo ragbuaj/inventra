@@ -49,10 +49,21 @@ func (s *stubResolver) ApproversForStep(_ context.Context, requestID uuid.UUID, 
 	return s.approvers, nil
 }
 
-// newPendingConsumer builds a consumer wired to the given resolver, with a
-// ~instant min-idle so the XAUTOCLAIM path needs no waiting.
+// consumerMinIdle is the XAUTOCLAIM min-idle the test consumers use: small, so
+// a parked message becomes reclaimable quickly, but NOT zero (NewConsumer clamps
+// a non-positive min-idle to its 60s default).
+const consumerMinIdle = time.Millisecond
+
+// reclaimWait is how long a retry test waits before re-ticking, so the parked
+// PEL message is reliably idle past consumerMinIdle. It must stay comfortably
+// larger than consumerMinIdle: an immediate re-tick can happen within a
+// millisecond on a fast runner, leaving the message too fresh for XAUTOCLAIM and
+// flaking the retry.
+const reclaimWait = 25 * time.Millisecond
+
+// newPendingConsumer builds a consumer wired to the given resolver.
 func (h *harness) newPendingConsumer(name string, r notification.ApproverResolver) *notification.Consumer {
-	return notification.NewConsumer(h.q, h.rdb, r, nil, name, time.Second, time.Millisecond)
+	return notification.NewConsumer(h.q, h.rdb, r, nil, name, time.Second, consumerMinIdle)
 }
 
 // enqueuePending writes a request_submitted or chain_advanced outbox row
@@ -275,7 +286,11 @@ func TestConsumerPendingResolverFailureStaysInPEL(t *testing.T) {
 	assert.EqualValues(t, 1, h.pendingCount(t))
 
 	// Genuinely retried, not merely parked: once the resolver recovers, the
-	// re-claimed message succeeds and the PEL drains.
+	// re-claimed message succeeds and the PEL drains. XAUTOCLAIM only re-delivers
+	// a PEL message idle past the consumer's min-idle (1ms in this harness), so
+	// wait comfortably past it -- an immediate second tick races that boundary and
+	// flaked on fast CI runners.
+	time.Sleep(reclaimWait)
 	stub.err = nil
 	stub.approvers = []uuid.UUID{approver}
 	n, err = consumer.Tick(ctx)
@@ -313,7 +328,10 @@ func TestConsumerPendingPartialFailureKeepsGoodRowsAndRetries(t *testing.T) {
 		"one bad recipient must not roll back a good one")
 	assert.EqualValues(t, 1, h.pendingCount(t))
 
-	// The retry is idempotent for the row that already landed.
+	// The retry is idempotent for the row that already landed. Wait past the
+	// min-idle first so XAUTOCLAIM re-delivers the parked message deterministically
+	// (same reclaim-boundary race as the resolver-failure test above).
+	time.Sleep(reclaimWait)
 	stub.approvers = []uuid.UUID{good}
 	n, err = consumer.Tick(ctx)
 	require.NoError(t, err)

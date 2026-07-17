@@ -239,6 +239,10 @@ func TestConsumerFailingMessageIsNotAckedAndStaysInPEL(t *testing.T) {
 		 VALUES ($1, 'late', 'late@e2e.local', $2, 'active')`, ev.MakerID, roleID)
 	require.NoError(t, err)
 
+	// Wait past the consumer min-idle so XAUTOCLAIM re-delivers the parked message
+	// deterministically. The DB round-trips above usually cover it, but that is a
+	// borderline lower bound rather than a guarantee -- see reclaimWait.
+	time.Sleep(reclaimWait)
 	n, err = consumer.Tick(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, 1, n)
