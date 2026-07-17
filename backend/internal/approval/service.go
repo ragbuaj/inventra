@@ -22,6 +22,7 @@ var (
 	ErrNotEligible  = errors.New("approval: caller is not eligible for this step")
 	ErrNoThreshold  = errors.New("approval: no threshold configured for this amount")
 	ErrInvalidState = errors.New("approval: request is not in a state that allows this action")
+	ErrStepPassed   = errors.New("approval: request is no longer awaiting a decision on that step")
 	ErrNotFound     = errors.New("approval: record not found")
 	ErrForbidden    = errors.New("approval: caller lacks permission")
 	ErrConflict     = errors.New("approval: duplicate record")
@@ -126,6 +127,12 @@ func (s *Service) Submit(ctx context.Context, in SubmitInput) (sqlc.ApprovalRequ
 		}); err != nil {
 			return sqlc.ApprovalRequest{}, mapDBError(err)
 		}
+	}
+
+	// The chain rows must exist before this: the consumer resolves the step's
+	// approvers by reading them back.
+	if err := s.enqueueRequestPending(ctx, qtx, EventRequestSubmitted, req); err != nil {
+		return sqlc.ApprovalRequest{}, err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -345,6 +352,11 @@ func (s *Service) Decide(ctx context.Context, requestID uuid.UUID, caller Caller
 		out, err := qtx.AdvanceRequestStep(ctx, requestID)
 		if err != nil {
 			return req, mapDBError(err)
+		}
+		// out carries the already-incremented current_step, so the event
+		// announces the step now waiting rather than the one just decided.
+		if err := s.enqueueRequestPending(ctx, qtx, EventChainAdvanced, out); err != nil {
+			return req, err
 		}
 		if err := tx.Commit(ctx); err != nil {
 			return req, err

@@ -63,6 +63,41 @@ func (s *Service) NotifiableApprovers(ctx context.Context, req sqlc.ApprovalRequ
 	return out, nil
 }
 
+// ApproversForStep resolves who must act on the given step of the given
+// request, reading the request and its chain fresh. It is the entry point the
+// notification fan-out uses, since a worker holds an id and a step number
+// rather than the rows themselves.
+//
+// It returns ErrStepPassed when the request is no longer pending on that step,
+// and ErrNotFound when it no longer exists. Both are load-bearing rather than
+// defensive: uq_notif_dedup is partial on deleted_at IS NULL, so once the
+// stale-notification sweep soft-deletes a passed step's notifications, nothing
+// in the database would stop a redelivered event from inserting them again.
+// This check is what keeps a decided or cancelled request from resurrecting an
+// unactionable "waiting for you" in someone's feed.
+func (s *Service) ApproversForStep(ctx context.Context, requestID uuid.UUID, step int32) ([]uuid.UUID, error) {
+	req, err := s.q.GetRequest(ctx, requestID)
+	if err != nil {
+		return nil, mapDBError(err)
+	}
+	if req.Status != sqlc.SharedRequestStatusPending || req.CurrentStep != step {
+		return nil, ErrStepPassed
+	}
+
+	approvals, err := s.q.ListRequestApprovals(ctx, requestID)
+	if err != nil {
+		return nil, mapDBError(err)
+	}
+	for _, a := range approvals {
+		if a.StepOrder == step {
+			return s.NotifiableApprovers(ctx, req, a)
+		}
+	}
+	// current_step points at no chain row: the request cannot be decided by
+	// anyone, so there is nobody to notify (and no retry would change that).
+	return nil, ErrStepPassed
+}
+
 // priorApprovers collects the approvers who already decided an earlier step:
 // the same derivation Decide and Inbox feed to eligibleToDecide.
 func priorApprovers(approvals []sqlc.ApprovalRequestApproval, currentStep int32) []uuid.UUID {

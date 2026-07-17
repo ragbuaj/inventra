@@ -162,19 +162,57 @@ Go dengan `eligibleToDecide` (`approval/service.go:172`), membangun `Caller` per
 ### Task 9: Enqueue submit + rantai maju -> `approval_pending`
 **Deskripsi:** Enqueue di tx `Submit` (`service.go:99-133`, sebelum commit `:131`) dan di cabang
 rantai maju (`:342`). Consumer memakai Task 8 untuk resolve penerima.
+
+Dua event terpisah (`request_submitted`, `chain_advanced`) dengan satu payload
+`approval.RequestPendingEvent` (`request_id` + `request_type` + `step`) dan satu handler consumer:
+fan-out in-app-nya identik, tapi keduanya fakta bisnis berbeda sehingga konsumen email nanti bisa
+membedakannya. Payload tidak memuat penerima — sesuai bagian 5, penerima diresolve di consumer.
+Consumer memanggil `approval.Service.ApproversForStep(ctx, requestID, step)` (wrapper Task 8 yang
+membaca request + baris step-nya) lewat interface sempit `notification.ApproverResolver` (preseden
+`importer.Submitter`).
+
+**Event basi wajib dilewati, bukan sekadar detail:** `uq_notif_dedup` partial `WHERE deleted_at IS
+NULL`, jadi baris yang sudah di-soft-delete Task 10 **tidak** menghalangi insert ulang. Tanpa
+pengecekan status, event yang dikirim ulang akan menghidupkan lagi `approval_pending` untuk step
+yang sudah lewat. `ApproversForStep` karena itu mengembalikan `ErrStepPassed` bila request tidak
+lagi `pending` di step itu (sudah maju/ditolak/final/dibatalkan) dan consumer meng-ack tanpa menulis
+apa pun.
+
+Fan-out N baris per event **tanpa transaksi**: tiap insert idempoten sendiri lewat dedup key, jadi
+kegagalan di tengah menyisakan baris yang sudah benar dan redelivery menambal sisanya. Transaksi
+hanya akan me-rollback notifikasi yang sebenarnya sudah benar.
 **Acceptance:**
 - [ ] `dedup_key = 'request:<id>:step:<n>'` terisi
 - [ ] Approver berhak menerima; maker tidak
 - [ ] Rantai maju menghasilkan `approval_pending` untuk step baru
+- [ ] Event basi (request sudah diputus/dibatalkan) di-ack tanpa menulis notifikasi
 **Verify:** `go test -tags=integration ./internal/notification/... ./internal/approval/...`
 **Dependencies:** 7, 8 · **Scope:** M (3-4 file)
 
 ### Task 10: Auto-resolve notifikasi basi
 **Deskripsi:** Saat giliran step lewat — rantai maju (`:342`), ditolak (`:311`), final (`:353`),
 dibatalkan (`:377`) — soft-delete semua `approval_pending` step itu via `dedup_key`.
+
+**JEBAKAN — `SoftDeleteNotificationsByDedupPrefix` (`LIKE prefix || '%'`) berbahaya di sini.**
+`dedup_key` berbentuk `request:<id>:step:<n>`, jadi prefix `request:<id>:step:1` **juga menyapu
+step 10, 11, 12...** — `step:1` adalah awalan dari `step:10`. Yang benar:
+- **rantai maju** (bersihkan satu step): **exact match** `dedup_key = 'request:<id>:step:<n>'`.
+  Semua penerima step itu berbagi dedup_key yang sama (hanya `user_id` yang beda), jadi exact match
+  sudah menyapu semuanya — prefix tidak pernah dibutuhkan. Butuh query exact baru.
+- **terminal** (ditolak/final/dibatalkan — bersihkan semua step): prefix `request:<id>:step:`
+  **dengan titik dua di ujung**. Aman: tidak menyentuh `request:<id>:decided`, dan mencakup semua step.
+
+Catatan Task 9 yang jadi tanggungan Task 10: `ApproversForStep` mengembalikan `ErrStepPassed` untuk
+step yang sudah lewat, dan consumer meng-ack tanpa menulis. Itu **wajib ada**, karena
+`uq_notif_dedup` partial pada `deleted_at IS NULL` — baris ter-soft-delete tidak memblokir insert
+ulang, sehingga event yang dikirim ulang akan menghidupkan kembali notifikasi yang baru dibersihkan.
+
 **Acceptance:**
 - [ ] Keempat cabang membersihkan step yang lewat
 - [ ] Approver yang belum sempat lihat tidak lagi melihatnya di feed
+- [ ] **Step 1 dibersihkan tidak ikut menghapus step 10+** (uji eksplisit dengan rantai >= 10 step,
+      atau buktikan exact-match dipakai)
+- [ ] Notifikasi `approval_decided` (`request:<id>:decided`) TIDAK ikut tersapu saat terminal
 - [ ] Audit log tidak tersentuh
 **Verify:** `go test ./internal/approval/...`
 **Dependencies:** 9 · **Scope:** S (2-3 file)

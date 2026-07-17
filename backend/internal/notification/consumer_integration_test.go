@@ -87,8 +87,10 @@ func (h *harness) pendingCount(t *testing.T) int64 {
 
 // newConsumer builds a consumer whose min-idle is ~instant, so a test can drive
 // the XAUTOCLAIM takeover path without waiting out a production idle window.
+// The approver resolver is nil: these tests carry no approval_pending events,
+// and the fan-out tests that do supply a real one.
 func (h *harness) newConsumer(name string) *notification.Consumer {
-	return notification.NewConsumer(h.q, h.rdb, name, time.Second, time.Millisecond)
+	return notification.NewConsumer(h.q, h.rdb, nil, name, time.Second, time.Millisecond)
 }
 
 // decidedEvent builds a well-formed event for the given maker.
@@ -295,7 +297,7 @@ func TestConsumerUnknownEventTypeIsAcked(t *testing.T) {
 	h.resetConsumer(t)
 	ctx := context.Background()
 
-	h.enqueue(t, "chain_advanced", map[string]any{"anything": true})
+	h.enqueue(t, "something_nobody_handles", map[string]any{"anything": true})
 
 	relay := notification.NewRelay(h.q, h.pool, h.rdb, 10000, time.Second)
 	_, err := relay.Tick(ctx)
@@ -437,7 +439,7 @@ func TestConsumerRunStopsOnContextCancel(t *testing.T) {
 	require.NoError(t, err)
 
 	// A non-positive poll must default rather than panic in time.NewTicker.
-	consumer := notification.NewConsumer(h.q, h.rdb, "runner", 0, time.Millisecond)
+	consumer := notification.NewConsumer(h.q, h.rdb, nil, "runner", 0, time.Millisecond)
 
 	runCtx, cancel := context.WithCancel(ctx)
 	done := make(chan struct{})

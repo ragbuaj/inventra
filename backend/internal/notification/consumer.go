@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -57,15 +58,30 @@ var errUndecodable = errors.New("notification: undecodable event payload")
 // acks it.
 type eventHandler func(ctx context.Context, payload []byte) error
 
+// ApproverResolver is the narrow slice of *approval.Service the consumer
+// depends on: given a request and a step, who is currently allowed to decide
+// it. Declared here rather than depended on wholesale (the precedent is
+// importer.Submitter) so the fan-out's need is one method wide and a test can
+// substitute a stub.
+//
+// The direction matters: notification imports approval, never the reverse.
+// Recipients are resolved here, at consume time, precisely so the business
+// transaction that produced the event does not have to wait on the scope and
+// office-ancestor queries this involves.
+type ApproverResolver interface {
+	ApproversForStep(ctx context.Context, requestID uuid.UUID, step int32) ([]uuid.UUID, error)
+}
+
 // Consumer reads published events off the Redis Stream and fans them out into
 // per-user notification rows.
 type Consumer struct {
-	q        *sqlc.Queries
-	rdb      *redis.Client
-	name     string
-	poll     time.Duration
-	minIdle  time.Duration
-	handlers map[string]eventHandler
+	q         *sqlc.Queries
+	rdb       *redis.Client
+	approvers ApproverResolver
+	name      string
+	poll      time.Duration
+	minIdle   time.Duration
+	handlers  map[string]eventHandler
 }
 
 // NewConsumer constructs a Consumer. name identifies this instance within the
@@ -74,7 +90,11 @@ type Consumer struct {
 // messages as their own. A non-positive poll defaults to 2s (a zero-value
 // time.Duration would make time.NewTicker panic); a non-positive minIdle
 // defaults to defaultClaimMinIdle.
-func NewConsumer(q *sqlc.Queries, rdb *redis.Client, name string, poll, minIdle time.Duration) *Consumer {
+//
+// approvers may be nil only where approval events are known not to flow (tests
+// of other event types): a nil resolver makes an approval_pending event a
+// retryable failure rather than a silent drop.
+func NewConsumer(q *sqlc.Queries, rdb *redis.Client, approvers ApproverResolver, name string, poll, minIdle time.Duration) *Consumer {
 	if poll <= 0 {
 		poll = 2 * time.Second
 	}
@@ -88,11 +108,13 @@ func NewConsumer(q *sqlc.Queries, rdb *redis.Client, name string, poll, minIdle 
 		}
 		name = fmt.Sprintf("%s-%d", host, os.Getpid())
 	}
-	c := &Consumer{q: q, rdb: rdb, name: name, poll: poll, minIdle: minIdle}
+	c := &Consumer{q: q, rdb: rdb, approvers: approvers, name: name, poll: poll, minIdle: minIdle}
 	// Dispatch is a map keyed on the outbox event_type, so adding an event type
 	// is one entry plus its handler.
 	c.handlers = map[string]eventHandler{
 		approval.EventRequestDecided:      c.handleRequestDecided,
+		approval.EventRequestSubmitted:    c.handleRequestPending,
+		approval.EventChainAdvanced:       c.handleRequestPending,
 		assignment.EventAssignmentCheckin: c.handleAssignmentCheckin,
 	}
 	return c
@@ -221,8 +243,7 @@ func (c *Consumer) handleMessages(ctx context.Context, msgs []redis.XMessage) (i
 // process routes one message to its handler. An unrecognized event type is
 // acked, not retried: no redelivery can make it recognizable, and leaving it
 // unacked would wedge it in the PEL to be re-claimed on every pass forever.
-// Other event types (request_submitted, chain_advanced, maintenance_due) land
-// here as handlers in later tasks.
+// Other event types (maintenance_due) land here as handlers in later tasks.
 func (c *Consumer) process(ctx context.Context, msg redis.XMessage) error {
 	eventType, _ := msg.Values[FieldEventType].(string)
 	handler, ok := c.handlers[eventType]
@@ -281,6 +302,85 @@ func (c *Consumer) handleRequestDecided(ctx context.Context, payload []byte) err
 		EntityID:   &entityID,
 		DedupKey:   &dedupKey,
 	})
+}
+
+// handleRequestPending fans a "step N now awaits approval" event
+// (request_submitted or chain_advanced -- identical fan-out) out to every user
+// currently eligible to decide that step.
+//
+// Recipients are resolved here rather than carried by the event, so eligibility
+// is evaluated against the state at consume time, moments after the business
+// transaction committed, not at enqueue time. That is the intended semantics:
+// the EVENT is fanned out on write, the recipients are snapshotted on consume.
+// A role or scope change landing in that window is honoured; one landing after
+// the rows are written is not.
+func (c *Consumer) handleRequestPending(ctx context.Context, payload []byte) error {
+	var ev approval.RequestPendingEvent
+	if err := json.Unmarshal(payload, &ev); err != nil {
+		return fmt.Errorf("%w: %v", errUndecodable, err)
+	}
+	if ev.RequestID == uuid.Nil || ev.Step < 1 {
+		return fmt.Errorf("%w: missing request_id or step", errUndecodable)
+	}
+	if c.approvers == nil {
+		// Retryable, deliberately: dropping the event would lose the
+		// notification silently, and a misconfigured process should be loud.
+		return errors.New("notification: approval events received but no approver resolver is configured")
+	}
+
+	recipients, err := c.approvers.ApproversForStep(ctx, ev.RequestID, ev.Step)
+	switch {
+	case errors.Is(err, approval.ErrStepPassed), errors.Is(err, approval.ErrNotFound):
+		// The request was decided, cancelled or advanced before this event was
+		// consumed. Ack and write nothing: a "waiting for you" nobody can act on
+		// is noise, and inserting one here would undo the stale-notification
+		// sweep that already cleared this step. No retry can make it current.
+		slog.Info("notification consumer: approval step no longer pending, skipping",
+			"request_id", ev.RequestID, "step", ev.Step)
+		return nil
+	case err != nil:
+		return err
+	}
+
+	// Only interpolation params, never rendered text: the client renders the
+	// sentence via i18n, so storing an Indonesian string here would freeze the
+	// notification into one locale.
+	params, err := json.Marshal(map[string]string{
+		"request_type": string(ev.RequestType),
+		"step":         strconv.Itoa(int(ev.Step)),
+	})
+	if err != nil {
+		return err
+	}
+
+	// CONTRACT: the stale-notification sweep finds this step's notifications by
+	// this exact key ("request:<id>:step:<n>") to soft-delete them once the step
+	// passes. Changing the format silently breaks that sweep -- the rows would
+	// simply never be found.
+	dedupKey := fmt.Sprintf("request:%s:step:%d", ev.RequestID, ev.Step)
+	entityType := approval.AggregateRequests
+	entityID := ev.RequestID
+
+	// One row per recipient, no enclosing transaction. Each insert is
+	// independently idempotent (ON CONFLICT DO NOTHING on the dedup key), so a
+	// failure partway through leaves the rows already written correct and the
+	// unacked message redelivers only the missing ones. A transaction would buy
+	// atomicity over rows that need no atomicity, at the price of rolling back
+	// good notifications on one bad recipient.
+	var errs []error
+	for _, userID := range recipients {
+		if err := c.q.CreateNotification(ctx, sqlc.CreateNotificationParams{
+			UserID:     userID,
+			Type:       sqlc.SharedNotificationTypeApprovalPending,
+			Params:     params,
+			EntityType: &entityType,
+			EntityID:   &entityID,
+			DedupKey:   &dedupKey,
+		}); err != nil {
+			errs = append(errs, fmt.Errorf("notify %s: %w", userID, err))
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // handleAssignmentCheckin turns a check-in into one asset_returned notification
