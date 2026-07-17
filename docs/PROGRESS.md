@@ -140,9 +140,14 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     image; if e2e results ever look impossible, check container source freshness first.
 >     (2) the **Superadmin default (`*`) data-scope policy** was found corrupted to `own` — a
 >     parallel-worker run of the Data Scope settings e2e failed mid-mutation and never reverted it
->     (that test mutates live RBAC config as its subject; its cleanup is not failure-safe —
->     **follow-up: make that e2e revert via `afterEach`/API instead of in-test steps**). Restored
->     to `global` (user-approved). (3) local full `pnpm test:e2e` needs `RATELIMIT_ENABLED=false`
+>     (that test mutates live RBAC config as its subject; its cleanup was not failure-safe —
+>     ~~**follow-up: make that e2e revert via `afterEach`/API instead of in-test steps**~~ ✅ **DONE
+>     (2026-07-13) — see item 52 Part D (tech-debt sweep #2, PR #64).** The mutating test now sits in
+>     its own nested describe in `frontend/e2e/settings.spec.ts` whose `afterEach` restores the policy
+>     unconditionally via `restoreDefaultScope` (`frontend/e2e/helpers.ts`) — idempotent, and it heals
+>     a policy left corrupted by an earlier interrupted run. The same pattern covers the
+>     field-permission `purchase_cost` test). Restored to `global` (user-approved).
+>     (3) local full `pnpm test:e2e` needs `RATELIMIT_ENABLED=false`
 >     on the backend (now set via `backend/.env`; CI's e2e job already sets it). (4) the legacy
 >     mock-backed approval test in `e2e/operasional.spec.ts` was deleted — superseded by the
 >     real-backend `e2e/approval.spec.ts`.
