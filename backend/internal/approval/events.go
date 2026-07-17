@@ -3,6 +3,7 @@ package approval
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/google/uuid"
 
@@ -79,6 +80,39 @@ func (s *Service) enqueueRequestPending(ctx context.Context, qtx *sqlc.Queries, 
 		Payload:       payload,
 	})
 	return mapDBError(err)
+}
+
+// pendingDedupKey rebuilds the dedup key the notification consumer writes for
+// "step N of this request awaits a decision". The format is a contract shared
+// with the consumer; the two must be changed together.
+func pendingDedupKey(requestID uuid.UUID, step int32) string {
+	return fmt.Sprintf("request:%s:step:%d", requestID, step)
+}
+
+// clearPendingStep soft-deletes the approval_pending notifications for exactly
+// one step of one request -- the step whose turn has just passed. Every
+// recipient of that step shares the one dedup key, so the exact match sweeps
+// all of them.
+//
+// It must NOT use the prefix query: 'request:<id>:step:1' is a prefix of
+// 'request:<id>:step:10', so a LIKE would also clear steps 10 and up while the
+// chain is still waiting on them.
+func (s *Service) clearPendingStep(ctx context.Context, qtx *sqlc.Queries, requestID uuid.UUID, step int32) error {
+	key := pendingDedupKey(requestID, step)
+	return mapDBError(qtx.SoftDeleteNotificationsByDedupKey(ctx, &key))
+}
+
+// clearAllPendingSteps soft-deletes the approval_pending notifications for every
+// step of a request, for the terminal transitions (rejected, approved at the
+// final step, cancelled) after which no step can be acted on again.
+//
+// The trailing colon is what makes the prefix safe: it matches every
+// 'request:<id>:step:<n>' and nothing else. In particular it cannot reach
+// 'request:<id>:decided' -- the maker's approval_decided notification, which is
+// the entire point of the terminal event and must survive this.
+func (s *Service) clearAllPendingSteps(ctx context.Context, qtx *sqlc.Queries, requestID uuid.UUID) error {
+	prefix := "request:" + requestID.String() + ":step:"
+	return mapDBError(qtx.SoftDeleteNotificationsByDedupPrefix(ctx, &prefix))
 }
 
 // enqueueRequestDecided writes the request_decided outbox row using the caller's

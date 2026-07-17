@@ -122,16 +122,15 @@ func TestApproval_ChainAdvance_notifies_new_step_end_to_end(t *testing.T) {
 	require.Equal(t, int32(2), out.CurrentStep)
 	f.drainPipeline(t)
 
-	// The feed is newest-first, so the new step leads.
-	assert.Equal(t, []string{
-		"request:" + req.ID.String() + ":step:2",
-		"request:" + req.ID.String() + ":step:1",
-	}, f.pendingKeys(t, fresh), "the new step must reach an approver who has not decided yet")
+	// Only the new step remains: step 1's turn has passed, so the auto-resolve
+	// in the advance transaction cleared it out of every feed.
+	assert.Equal(t, []string{"request:" + req.ID.String() + ":step:2"},
+		f.pendingKeys(t, fresh), "the new step must reach an approver who has not decided yet")
 
 	// The SoD rules survive the trip through the pipeline: the approver who
 	// already decided step 1 is not asked again, and the maker is never asked.
-	assert.Equal(t, []string{"request:" + req.ID.String() + ":step:1"}, f.pendingKeys(t, decider),
-		"a prior approver must not be notified about the next step")
+	assert.Empty(t, f.pendingKeys(t, decider),
+		"a prior approver must not be notified about the next step, and their passed step is cleared")
 	assert.Empty(t, f.pendingKeys(t, maker))
 }
 

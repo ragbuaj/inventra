@@ -327,6 +327,10 @@ func (s *Service) Decide(ctx context.Context, requestID uuid.UUID, caller Caller
 		if err := s.enqueueRequestDecided(ctx, qtx, out, caller.UserID); err != nil {
 			return req, err
 		}
+		// Rejection is terminal: no step of this chain can be acted on again.
+		if err := s.clearAllPendingSteps(ctx, qtx, requestID); err != nil {
+			return req, err
+		}
 		if err := tx.Commit(ctx); err != nil {
 			return req, err
 		}
@@ -353,6 +357,12 @@ func (s *Service) Decide(ctx context.Context, requestID uuid.UUID, caller Caller
 		if err != nil {
 			return req, mapDBError(err)
 		}
+		// The step just decided is step.StepOrder, not out.CurrentStep: out
+		// carries the already-incremented step. Clearing the wrong one would
+		// wipe the notification the chain now depends on.
+		if err := s.clearPendingStep(ctx, qtx, requestID, step.StepOrder); err != nil {
+			return req, err
+		}
 		// out carries the already-incremented current_step, so the event
 		// announces the step now waiting rather than the one just decided.
 		if err := s.enqueueRequestPending(ctx, qtx, EventChainAdvanced, out); err != nil {
@@ -377,6 +387,11 @@ func (s *Service) Decide(ctx context.Context, requestID uuid.UUID, caller Caller
 	if err := s.enqueueRequestDecided(ctx, qtx, out, caller.UserID); err != nil {
 		return req, err
 	}
+	// Approving the final step is terminal: no step of this chain can be acted
+	// on again.
+	if err := s.clearAllPendingSteps(ctx, qtx, requestID); err != nil {
+		return req, err
+	}
 	exec, ok := s.exec[req.Type]
 	if !ok {
 		return req, ErrInvalidState
@@ -392,10 +407,28 @@ func (s *Service) Decide(ctx context.Context, requestID uuid.UUID, caller Caller
 
 // Cancel cancels a pending request on behalf of its maker.
 // Returns ErrNotFound if the request is not pending or does not belong to maker.
+//
+// The cancel and the clearing of the request's pending notifications share one
+// transaction: a cancel that committed while the notifications survived would
+// leave approvers holding a "waiting for you" for a request nobody can decide.
 func (s *Service) Cancel(ctx context.Context, requestID, maker uuid.UUID) (sqlc.ApprovalRequest, error) {
-	out, err := s.q.CancelRequest(ctx, sqlc.CancelRequestParams{ID: requestID, RequestedByID: maker})
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return sqlc.ApprovalRequest{}, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	qtx := s.q.WithTx(tx)
+
+	out, err := qtx.CancelRequest(ctx, sqlc.CancelRequestParams{ID: requestID, RequestedByID: maker})
 	if err != nil {
 		return out, mapDBError(err)
+	}
+	// Cancelling is terminal: no step of this chain can be acted on again.
+	if err := s.clearAllPendingSteps(ctx, qtx, requestID); err != nil {
+		return out, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return out, err
 	}
 	return out, nil
 }

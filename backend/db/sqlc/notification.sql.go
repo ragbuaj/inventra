@@ -292,14 +292,34 @@ func (q *Queries) PurgeOutbox(ctx context.Context, cutoff pgtype.Timestamptz) er
 	return err
 }
 
+const softDeleteNotificationsByDedupKey = `-- name: SoftDeleteNotificationsByDedupKey :exec
+
+UPDATE notification.notifications
+SET deleted_at = now()
+WHERE dedup_key = $1 AND deleted_at IS NULL
+`
+
+// Auto-resolve: a notification whose turn has passed is soft-deleted, not just
+// marked read -- it cannot be acted on, so it should not sit in the feed.
+// Clears exactly one step. Every recipient of a step shares the same dedup_key
+// (only user_id differs), so an exact match already sweeps all of them.
+// Prefer this over the prefix form whenever a single step is meant: the prefix
+// 'request:<id>:step:1' also matches step:10, step:11, ...
+func (q *Queries) SoftDeleteNotificationsByDedupKey(ctx context.Context, dedupKey *string) error {
+	_, err := q.db.Exec(ctx, softDeleteNotificationsByDedupKey, dedupKey)
+	return err
+}
+
 const softDeleteNotificationsByDedupPrefix = `-- name: SoftDeleteNotificationsByDedupPrefix :exec
 UPDATE notification.notifications
 SET deleted_at = now()
 WHERE dedup_key LIKE $1 || '%' AND deleted_at IS NULL
 `
 
-// Auto-resolve: a notification whose turn has passed is soft-deleted, not just
-// marked read -- it cannot be acted on, so it should not sit in the feed.
+// Prefix form, for sweeping every step of a request at once. Callers must pass
+// a prefix that cannot straddle a boundary -- 'request:<id>:step:' with the
+// trailing colon, never 'request:<id>:step:<n>'. The keys carry no LIKE
+// metacharacter (no '%' or '_'), so no escaping is needed.
 func (q *Queries) SoftDeleteNotificationsByDedupPrefix(ctx context.Context, prefix *string) error {
 	_, err := q.db.Exec(ctx, softDeleteNotificationsByDedupPrefix, prefix)
 	return err

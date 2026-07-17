@@ -476,6 +476,15 @@ type Querier interface {
 	SoftDeleteMaintSchedule(ctx context.Context, id uuid.UUID) (int64, error)
 	// Auto-resolve: a notification whose turn has passed is soft-deleted, not just
 	// marked read -- it cannot be acted on, so it should not sit in the feed.
+	// Clears exactly one step. Every recipient of a step shares the same dedup_key
+	// (only user_id differs), so an exact match already sweeps all of them.
+	// Prefer this over the prefix form whenever a single step is meant: the prefix
+	// 'request:<id>:step:1' also matches step:10, step:11, ...
+	SoftDeleteNotificationsByDedupKey(ctx context.Context, dedupKey *string) error
+	// Prefix form, for sweeping every step of a request at once. Callers must pass
+	// a prefix that cannot straddle a boundary -- 'request:<id>:step:' with the
+	// trailing colon, never 'request:<id>:step:<n>'. The keys carry no LIKE
+	// metacharacter (no '%' or '_'), so no escaping is needed.
 	SoftDeleteNotificationsByDedupPrefix(ctx context.Context, prefix *string) error
 	SoftDeleteOffice(ctx context.Context, arg SoftDeleteOfficeParams) (int64, error)
 	SoftDeleteRole(ctx context.Context, id uuid.UUID) (int64, error)
