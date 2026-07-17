@@ -650,3 +650,87 @@ describe('pages/stock-opname — item table client-side filters', () => {
     expect(itemsMock).not.toHaveBeenCalled()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Client-side pagination of the item table (PAGE_SIZE 10 via TablePagination)
+// ---------------------------------------------------------------------------
+
+describe('pages/stock-opname — item table pagination', () => {
+  // 12 distinct found items → 2 pages (10 + 2) under the client-side paginator.
+  const MANY: OpnameItem[] = Array.from({ length: 12 }, (_, i) => item({
+    id: `p${i}`,
+    asset_name: `Aset Paginasi ${i}`,
+    asset_tag: `JKT01-PAG-2026-${String(i).padStart(5, '0')}`,
+    result: 'found'
+  }))
+
+  it('renders only the first 10 rows and shows the paginator when items exceed a page', async () => {
+    itemsMock.mockResolvedValue(page(MANY))
+    const w = await mountAndWait()
+    await openDetail(w)
+    expect(w.findAll('[data-testid="opname-item-row"]')).toHaveLength(10)
+    expect(w.find('[data-testid="pagination-next"]').exists()).toBe(true)
+    // The showing-range summary reflects the full filtered total.
+    expect(w.text()).toContain('12')
+  })
+
+  it('steps to the next page to reveal the remaining rows', async () => {
+    itemsMock.mockResolvedValue(page(MANY))
+    const w = await mountAndWait()
+    await openDetail(w)
+    await w.find('[data-testid="pagination-next"]').trigger('click')
+    await w.vm.$nextTick()
+    expect(w.findAll('[data-testid="opname-item-row"]')).toHaveLength(2)
+  })
+
+  it('resets to the first page when a search filter narrows the set', async () => {
+    itemsMock.mockResolvedValue(page(MANY))
+    const w = await mountAndWait()
+    await openDetail(w)
+    // Move to page 2, then search — if the page did not reset, slicing page 2
+    // of a single match would render zero rows.
+    await w.find('[data-testid="pagination-next"]').trigger('click')
+    await w.vm.$nextTick()
+    await w.find('[data-testid="opname-item-search"]').setValue('Aset Paginasi 5')
+    await w.vm.$nextTick()
+    const rows = w.findAll('[data-testid="opname-item-row"]')
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.text()).toContain('Aset Paginasi 5')
+  })
+
+  it('does not show a next-page control when items fit on a single page', async () => {
+    // The default ITEMS fixture has 6 rows — one page.
+    const w = await mountAndWait()
+    await openDetail(w)
+    expect(w.findAll('[data-testid="opname-item-row"]')).toHaveLength(6)
+    const next = w.find('[data-testid="pagination-next"]')
+    // Paginator still renders (range summary), but next is disabled on a single page.
+    expect(next.attributes('disabled')).toBeDefined()
+  })
+
+  it('preserves a chosen result when navigating between table pages', async () => {
+    itemsMock.mockResolvedValue(page(MANY))
+    // Echo the requested result so the in-place allItems update reflects the choice.
+    setResultMock.mockImplementation((_s: string, id: string, input: { result: string }) =>
+      Promise.resolve({ id, session_id: 's1', asset_id: 'a', expected: true, result: input.result, note: null, counted_at: null }))
+    const w = await mountAndWait()
+    await openDetail(w)
+
+    // Mark the first item (page 1) as damaged.
+    const row0 = w.findAll('[data-testid="opname-item-row"]').find(r => r.text().includes('Aset Paginasi 0'))!
+    await row0.find('[data-testid="opname-result-damaged"]').trigger('click')
+    await flushPromises()
+    expect(setResultMock).toHaveBeenCalledWith('s1', 'p0', { result: 'damaged' })
+
+    // Go to page 2, then back to page 1 — the choice must still be reflected in
+    // the segmented control (the result lives in allItems, not page-local state).
+    await w.find('[data-testid="pagination-next"]').trigger('click')
+    await w.vm.$nextTick()
+    await w.find('[data-testid="pagination-prev"]').trigger('click')
+    await w.vm.$nextTick()
+
+    const row0Again = w.findAll('[data-testid="opname-item-row"]').find(r => r.text().includes('Aset Paginasi 0'))!
+    // Active "damaged" segment carries the warning-tone active class.
+    expect(row0Again.find('[data-testid="opname-result-damaged"]').classes()).toContain('bg-warning')
+  })
+})

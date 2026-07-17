@@ -212,6 +212,28 @@ const filteredItems = computed(() => {
   })
 })
 
+// Client-side pagination over the filtered items. The item list is loaded in
+// full (the backend filters only by `result`), so search/room/result narrow
+// the in-memory set and this paginates what's left — using the same shared
+// TablePagination contract (0-based offset, PAGE_SIZE 10) as every other list
+// screen.
+const ITEM_PAGE_SIZE = 10
+const itemPage = ref(1)
+const pagedItems = computed(() => {
+  const start = (itemPage.value - 1) * ITEM_PAGE_SIZE
+  return filteredItems.value.slice(start, start + ITEM_PAGE_SIZE)
+})
+const itemOffset = computed({
+  get: () => (itemPage.value - 1) * ITEM_PAGE_SIZE,
+  set: (o: number) => { itemPage.value = Math.floor(o / ITEM_PAGE_SIZE) + 1 }
+})
+// Reset to the first page whenever the filtered set changes shape — a new item
+// set loaded, or a search/room/result filter applied — so the view never
+// sticks on a now-out-of-range page.
+watch([itemQuery, resultFilter, roomFilter, allItems], () => {
+  itemPage.value = 1
+})
+
 function locationOf(it: OpnameItem): string {
   const parts = [it.floor_name, it.room_name].filter(Boolean)
   return parts.length ? parts.join(' · ') : '—'
@@ -866,7 +888,7 @@ onMounted(() => {
                   </thead>
                   <tbody>
                     <tr
-                      v-for="it in filteredItems"
+                      v-for="it in pagedItems"
                       :key="it.id"
                       data-testid="opname-item-row"
                       class="border-t border-default hover:bg-muted/60 transition-colors"
@@ -928,6 +950,13 @@ onMounted(() => {
                 </table>
               </div>
             </UContextMenu>
+            <TablePagination
+              v-if="!itemsLoading && !itemsError && filteredItems.length > 0"
+              :total="filteredItems.length"
+              :limit="ITEM_PAGE_SIZE"
+              :offset="itemOffset"
+              @update:offset="itemOffset = $event"
+            />
           </div>
 
           <!-- Variance panel -->

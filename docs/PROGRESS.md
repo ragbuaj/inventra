@@ -1160,7 +1160,23 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >       failures (`account` change-password modal, `maintenance` "jatuh tempo hari ini" date-boundary) are
 >       **pre-existing and unrelated** — different screens, deterministic, and the e2e backend didn't even
 >       carry the Resend change. `admin-password-reset` + `settings` both pass.
-> 71. **Next session — pick the next real step.** Carried candidates: **room/floor import targets**;
+> 71. ~~**Paginate the Stock Opname item table + the Laporan result table**~~ ✅ **DONE (2026-07-18).**
+>     Both tables loaded their full row set in memory and rendered every row (stock-opname `listItems`
+>     returns `total=len, limit=len`; `GET /reports/:type` returns all rows capped by a truncation guard),
+>     so the fix is **client-side pagination** via the shared `TablePagination` component (0-based offset,
+>     PAGE_SIZE 10 — the same paginator as every other list screen). `stock-opname.vue`: paginate over
+>     `filteredItems` (search/room/result stay client-side), reset to page 1 when the filtered set changes.
+>     `reports.vue`: paginate over `view.rows` for both the generic and opname result tables, reset on
+>     `apply()` and report-type switch; the TOTAL `tfoot` still reflects the whole dataset and the
+>     truncation notice is unchanged. **Approved user-requested deviation (catat-deviasi convention):** the
+>     `docs/design/Stock Opname.dc.html` and `docs/design/Laporan.dc.html` mockups have no paginator — the
+>     user asked for one, so the shared design-system paginator was added at each table's foot. A chosen
+>     opname item result survives page navigation because it lives in `allItems` (persisted server-side via
+>     `setItemResult`), not in page-local state — the paginator only slices the derived view, with a
+>     regression test locking it. 11 new runtime tests (stock-opname + reports), full suite green
+>     (1609 passed; the one `assets-index` teardown unhandled-rejection is a pre-existing @nuxt/test-utils
+>     flake, unrelated); `pnpm typecheck`/`lint` clean.
+> 72. **Next session — pick the next real step.** Carried candidates: **room/floor import targets**;
 >     **Analytics/OLAP** read layer; **`/auth/me` `role_name`** (shell badge consistency); **admin
 >     reset-password: audit as a dedicated `shared.audit_action` value** instead of `update` (needs a
 >     migration); **pre-existing e2e failures** (`account` change-password modal, `maintenance`

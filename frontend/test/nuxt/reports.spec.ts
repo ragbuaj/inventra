@@ -614,6 +614,88 @@ describe('Reports page — truncated', () => {
 })
 
 // ---------------------------------------------------------------------------
+// 14b — client-side pagination of the result rows (PAGE_SIZE 10)
+// ---------------------------------------------------------------------------
+describe('Reports page — result pagination', () => {
+  function manyAssets(n: number): ReportResult {
+    return {
+      ...assetsResult,
+      rows: Array.from({ length: n }, (_, i) => ({
+        asset_tag: `AST-${i}`, name: `Aset ${i}`, category_name: 'Elektronik',
+        status: 'available', purchase_cost: '1000', accum_deprec: '0', book_value: '1000'
+      })),
+      row_count: n
+    }
+  }
+
+  it('renders only the first 10 rows and steps to the remainder on the assets report', async () => {
+    runMock.mockResolvedValue(manyAssets(12))
+    const wrapper = await mountPage()
+    await applyAndSettle(wrapper)
+    expect(wrapper.findAll('tbody tr')).toHaveLength(10)
+
+    const next = wrapper.find('[data-testid="pagination-next"]')
+    expect(next.exists()).toBe(true)
+    await next.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.findAll('tbody tr')).toHaveLength(2)
+  })
+
+  it('keeps the full-dataset TOTAL footer regardless of the current page', async () => {
+    runMock.mockResolvedValue(manyAssets(12))
+    const wrapper = await mountPage()
+    await applyAndSettle(wrapper)
+    // Footer totals come from result.totals (whole dataset), not the visible page.
+    expect(wrapper.find('tfoot').exists()).toBe(true)
+    expect(wrapper.find('tfoot').text()).toContain('TOTAL')
+  })
+
+  it('resets to the first page on re-apply', async () => {
+    runMock.mockResolvedValue(manyAssets(12))
+    const wrapper = await mountPage()
+    await applyAndSettle(wrapper)
+    await wrapper.find('[data-testid="pagination-next"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.findAll('tbody tr')).toHaveLength(2)
+    await applyAndSettle(wrapper)
+    expect(wrapper.findAll('tbody tr')).toHaveLength(10)
+  })
+
+  it('resets to the first page when the report type changes', async () => {
+    runMock.mockResolvedValue(manyAssets(12))
+    const wrapper = await mountPage()
+    await applyAndSettle(wrapper)
+    await wrapper.find('[data-testid="pagination-next"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    const vm = wrapper.vm as unknown as Vm & { resultPage: number }
+    expect(vm.resultPage).toBe(2)
+    vm.selectReport('disposals')
+    await wrapper.vm.$nextTick()
+    expect(vm.resultPage).toBe(1)
+  })
+
+  it('paginates the opname report rows too', async () => {
+    const manyOpname: ReportResult = {
+      ...opnameResult,
+      rows: Array.from({ length: 12 }, (_, i) => ({
+        session_id: `sess-${i}`, name: `Opname ${i}`, office_name: 'KC Jakarta',
+        period: '2026-06', status: 'closed', total_items: 10, variance: 0
+      })),
+      row_count: 12
+    }
+    runMock.mockResolvedValue(manyOpname)
+    const wrapper = await mountPage()
+    ;(wrapper.vm as unknown as Vm).selectReport('opname')
+    await wrapper.vm.$nextTick()
+    await applyAndSettle(wrapper)
+    expect(wrapper.findAll('[data-testid="reports-opname-row"]')).toHaveLength(10)
+    await wrapper.find('[data-testid="pagination-next"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.findAll('[data-testid="reports-opname-row"]')).toHaveLength(2)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // 15 — result meta (honest office label)
 // ---------------------------------------------------------------------------
 describe('Reports page — result meta', () => {

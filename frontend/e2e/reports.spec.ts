@@ -1,6 +1,6 @@
 import { test, expect, request } from '@playwright/test'
 import type { APIRequestContext, APIResponse, Page } from '@playwright/test'
-import { login, EMAIL, PASSWORD } from './helpers'
+import { login, EMAIL, PASSWORD, pickAsync } from './helpers'
 
 // ---------------------------------------------------------------------------
 // Reports — real backend (`/reports` wired to /api/v1/reports/:type[/export]).
@@ -178,7 +178,10 @@ test.describe('Reports — real backend e2e', () => {
     await page.goto('/reports')
     await expect(page.getByRole('heading', { name: 'Laporan' })).toBeVisible({ timeout: 10_000 })
 
-    // 'assets' is the default active card. Apply and assert this run's asset row.
+    // 'assets' is the default active card. Scope to this run's unique office so
+    // the result is a single row on page 1 (the table now paginates at 10/page,
+    // and as Superadmin the unfiltered report spans every asset in the DB).
+    await pickAsync(page, 'reports-office-filter', `E2E Report Office ${RUN}`, `E2E Report Office ${RUN}`)
     await page.getByTestId('reports-apply').click()
     await expect(page.getByText(assetTag, { exact: true })).toBeVisible({ timeout: 10_000 })
     await expect(page.getByText('TOTAL', { exact: true })).toBeVisible()
@@ -200,6 +203,9 @@ test.describe('Reports — real backend e2e', () => {
     await login(page)
     await page.goto('/reports')
     await page.getByTestId('reports-card-maintenance').click()
+    // Scope to this run's unique office so the asset row lands on page 1 (the
+    // result table now paginates at 10/page).
+    await pickAsync(page, 'reports-office-filter', `E2E Report Office ${RUN}`, `E2E Report Office ${RUN}`)
     await page.getByTestId('reports-apply').click()
 
     await expect(page.getByText(assetName, { exact: true })).toBeVisible({ timeout: 10_000 })
@@ -232,8 +238,10 @@ test.describe('Reports — real backend e2e', () => {
     await page.getByTestId('reports-apply').click()
     await expect(page.getByTestId('reports-export-gl')).toBeVisible({ timeout: 10_000 })
 
-    // Switch to the assets card → apply → the GL recap button is gone.
+    // Switch to the assets card → scope to this run's office (so the asset row
+    // lands on page 1) → apply → the GL recap button is gone.
     await page.getByTestId('reports-card-assets').click()
+    await pickAsync(page, 'reports-office-filter', `E2E Report Office ${RUN}`, `E2E Report Office ${RUN}`)
     await page.getByTestId('reports-apply').click()
     await expect(page.getByText(assetTag, { exact: true })).toBeVisible({ timeout: 10_000 })
     await expect(page.getByTestId('reports-export-gl')).toHaveCount(0)
