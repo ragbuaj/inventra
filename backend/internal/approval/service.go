@@ -317,6 +317,9 @@ func (s *Service) Decide(ctx context.Context, requestID uuid.UUID, caller Caller
 		if err != nil {
 			return req, mapDBError(err)
 		}
+		if err := s.enqueueRequestDecided(ctx, qtx, out, caller.UserID); err != nil {
+			return req, err
+		}
 		if err := tx.Commit(ctx); err != nil {
 			return req, err
 		}
@@ -358,6 +361,9 @@ func (s *Service) Decide(ctx context.Context, requestID uuid.UUID, caller Caller
 	})
 	if err != nil {
 		return req, mapDBError(err)
+	}
+	if err := s.enqueueRequestDecided(ctx, qtx, out, caller.UserID); err != nil {
+		return req, err
 	}
 	exec, ok := s.exec[req.Type]
 	if !ok {
