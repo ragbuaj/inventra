@@ -31,9 +31,9 @@ func main() {
 	slog.SetDefault(logger)
 	ctx := context.Background()
 
-	// Cancellable root context for background work (the import worker) tied to
-	// graceful shutdown below — cancelled once the SIGINT/SIGTERM handler
-	// starts shutting the HTTP server down.
+	// Cancellable root context for background work (the import worker and the
+	// notification pipeline) tied to graceful shutdown below — cancelled once
+	// the SIGINT/SIGTERM handler starts shutting the HTTP server down.
 	workerCtx, stopWorker := context.WithCancel(context.Background())
 	defer stopWorker()
 
@@ -77,7 +77,7 @@ func main() {
 	geoLocator := geoip.New(cfg.GeoIPDBPath, logger)
 	defer func() { _ = geoLocator.Close() }()
 
-	handler, importWorker := server.NewRouter(server.Deps{Cfg: cfg, Pool: pool, Redis: rdb, Log: logger, Limiter: limiter, Storage: store, GeoIP: geoLocator})
+	handler, workers := server.NewRouter(server.Deps{Cfg: cfg, Pool: pool, Redis: rdb, Log: logger, Limiter: limiter, Storage: store, GeoIP: geoLocator})
 	srv := &http.Server{
 		Addr:              ":" + cfg.ServerPort,
 		Handler:           handler,
@@ -93,10 +93,26 @@ func main() {
 	}()
 
 	if cfg.ImportWorkerEnabled {
-		if err := importWorker.Recover(workerCtx); err != nil {
+		if err := workers.Import.Recover(workerCtx); err != nil {
 			slog.Error("import worker recover failed", "error", err)
 		}
-		go importWorker.Run(workerCtx)
+		go workers.Import.Run(workerCtx)
+	}
+
+	// The notification pipeline. All three run or none do: the relay alone would
+	// fill a stream nobody reads, and the consumer alone would never see an
+	// event. Each loop returns on workerCtx cancellation, which happens before
+	// srv.Shutdown below.
+	if cfg.NotificationWorkerEnabled {
+		go workers.Relay.Run(workerCtx)
+		go workers.Consumer.Run(workerCtx)
+		go workers.Sweeper.Run(workerCtx)
+		slog.Info("notification workers started",
+			"relay_poll", cfg.NotificationRelayPoll,
+			"sweep_poll", cfg.NotificationSweepPoll,
+			"retention_days", cfg.NotificationRetentionDays)
+	} else {
+		slog.Info("notification workers disabled")
 	}
 
 	quit := make(chan os.Signal, 1)

@@ -61,10 +61,29 @@ type Deps struct {
 	GeoIP   geoip.Locator
 }
 
+// Workers holds the background components the router constructs but does not
+// start. They are grouped in a struct rather than added as extra return values:
+// the count only grows as modules gain async work, the fields name themselves at
+// the call site (five bare values would not), and a new worker becomes a new
+// field instead of a signature change that churns every caller and test.
+//
+// Fields are nil-free once NewRouter returns; whether each one actually runs is
+// main.go's decision, gated on config.
+type Workers struct {
+	// Import drains the bulk-import queue.
+	Import *importer.Worker
+	// Relay publishes the notification outbox onto the Redis Stream.
+	Relay *notification.Relay
+	// Consumer fans stream events out into per-user notification rows.
+	Consumer *notification.Consumer
+	// Sweeper enqueues maintenance-due reminders and purges past retention.
+	Sweeper *notification.Sweeper
+}
+
 // NewRouter builds the Gin engine with base middleware, health, and readiness
-// probes. It also returns the bulk-import async worker so main.go can start
-// (and cleanly stop) its background polling loop alongside the HTTP server.
-func NewRouter(d Deps) (*gin.Engine, *importer.Worker) {
+// probes. It also returns the background workers so main.go can start (and
+// cleanly stop) their polling loops alongside the HTTP server.
+func NewRouter(d Deps) (*gin.Engine, Workers) {
 	if d.Cfg.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -141,10 +160,10 @@ func NewRouter(d Deps) (*gin.Engine, *importer.Worker) {
 	tokenStore := auth.NewTokenStore(d.Redis)
 	requireAuth := middleware.RequireAuth(tokenManager, tokenStore)
 
-	// importWorker is constructed inside the api group below (it needs
+	// The workers are constructed inside the api group below (they need
 	// permSvc/scopeSvc/approvalSvc/auditSvc built there) but must be visible
-	// here so it can be returned to main.go for the graceful-shutdown wiring.
-	var importWorker *importer.Worker
+	// here so they can be returned to main.go for the graceful-shutdown wiring.
+	var workers Workers
 
 	api := r.Group("/api/v1")
 	api.Use(middleware.PerIP(d.Limiter, d.Cfg.RateLimitGlobalPerMin, "global", false))
@@ -281,6 +300,19 @@ func NewRouter(d Deps) (*gin.Engine, *importer.Worker) {
 		notificationHandler := notification.NewHandler(notificationSvc)
 		notification.RegisterRoutes(api, notificationHandler, requireAuth)
 
+		// The notification pipeline: outbox -> relay -> Redis Stream -> consumer
+		// -> per-user rows, with the sweeper feeding maintenance reminders in at
+		// the outbox end and purging the far end. The consumer reuses the very
+		// approvalSvc and scopeSvc built above rather than second copies: those
+		// carry the Redis-backed caches, and a duplicate would resolve the same
+		// recipients off a cold cache. Both are mandatory here -- a nil resolver
+		// or scope would make approval_pending / maintenance_due events fail and
+		// pile up in the stream's pending list. The empty consumer name selects
+		// the host-pid default, which is unique per process.
+		workers.Relay = notification.NewRelay(queries, d.Pool, d.Redis, d.Cfg.NotificationStreamMaxLen, d.Cfg.NotificationRelayPoll)
+		workers.Consumer = notification.NewConsumer(queries, d.Redis, approvalSvc, scopeSvc, "", d.Cfg.NotificationRelayPoll, d.Cfg.NotificationClaimMinIdle)
+		workers.Sweeper = notification.NewSweeper(queries, d.Pool, d.Cfg.NotificationRetentionDays, d.Cfg.NotificationSweepPoll)
+
 		authzAdminSvc := authzadmin.NewService(queries, d.Pool, permSvc, scopeSvc, fieldSvc)
 		authzAdminHandler := authzadmin.NewHandler(authzAdminSvc, auditSvc)
 		authzadmin.RegisterRoutes(api, authzAdminHandler, requireAuth,
@@ -303,8 +335,8 @@ func NewRouter(d Deps) (*gin.Engine, *importer.Worker) {
 		importerSvc.RegisterTarget(reference.NewImporter(refSvc, "units"))
 		importerHandler := importer.NewHandler(importerSvc, permSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)
 		importer.RegisterRoutes(api, importerHandler, requireAuth)
-		importWorker = importer.NewWorker(importerSvc, d.Pool, d.Redis, approvalSvc, scopeSvc, d.Cfg.ImportWorkerPoll)
+		workers.Import = importer.NewWorker(importerSvc, d.Pool, d.Redis, approvalSvc, scopeSvc, d.Cfg.ImportWorkerPoll)
 	}
 
-	return r, importWorker
+	return r, workers
 }
