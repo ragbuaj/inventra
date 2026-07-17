@@ -121,7 +121,10 @@ dan disetujui final `:353`). Produsen termudah dulu: penerima = `requests.maker_
 **Acceptance:**
 - [ ] Approve & reject sama-sama meng-enqueue, `payload` membedakan hasilnya
 - [ ] **Rollback tx bisnis -> tidak ada baris outbox** (dibuktikan tes)
-- [ ] `approval` tidak meng-import `notification`
+- [ ] `approval` tidak meng-import `notification` — cek dengan
+      `go list -deps ./internal/approval | grep "inventra/internal/notification"`. **Grep polos
+      `notification` tidak berguna**: dia kena `go-redis/v9/maintnotifications` yang ditarik
+      transitif, jadi selalu positif palsu.
 **Verify:** `go test ./internal/approval/...`
 **Dependencies:** 2 · **Scope:** S (2-3 file)
 

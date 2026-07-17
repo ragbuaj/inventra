@@ -84,6 +84,13 @@ type Config struct {
 	ImportWorkerEnabled bool
 	ImportWorkerPoll    time.Duration
 
+	// In-app notifications. The relay publishes the transactional outbox to a
+	// Redis Stream; the stream is transport, not storage, so it is trimmed to
+	// NotificationStreamMaxLen (approximate trimming).
+	NotificationWorkerEnabled bool
+	NotificationRelayPoll     time.Duration
+	NotificationStreamMaxLen  int64
+
 	// Email / SMTP (password reset + notifications).
 	MailEnabled      bool
 	SMTPHost         string
@@ -154,6 +161,10 @@ func Load() *Config {
 		ImportMaxBytes:      int64(getEnvInt("IMPORT_MAX_BYTES", 10*1024*1024)),
 		ImportWorkerEnabled: getEnvBool("IMPORT_WORKER_ENABLED", true),
 		ImportWorkerPoll:    getEnvDuration("IMPORT_WORKER_POLL", 2*time.Second),
+
+		NotificationWorkerEnabled: getEnvBool("NOTIFICATION_WORKER_ENABLED", true),
+		NotificationRelayPoll:     getEnvDuration("NOTIFICATION_RELAY_POLL", 2*time.Second),
+		NotificationStreamMaxLen:  int64(getEnvInt("NOTIFICATION_STREAM_MAXLEN", 10000)),
 
 		MailEnabled:      getEnvBool("MAIL_ENABLED", false),
 		SMTPHost:         getEnv("SMTP_HOST", ""),
