@@ -224,6 +224,32 @@ func TestRequestPasswordReset_InactiveUser_SilentOK(t *testing.T) {
 	}
 }
 
+func TestAdminInitiatePasswordReset_NotFound(t *testing.T) {
+	fs := &fakeStore{byID: map[uuid.UUID]sqlc.IdentityUser{}}
+	fm := &fakeMailer{}
+	svc := newTestService(t, fs, fm)
+	if _, err := svc.AdminInitiatePasswordReset(context.Background(), uuid.New()); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("want ErrNotFound, got %v", err)
+	}
+	if fm.resetLink != "" {
+		t.Fatalf("no email should be sent for a missing user")
+	}
+}
+
+func TestAdminInitiatePasswordReset_GoogleOnly_ErrNoPasswordLogin(t *testing.T) {
+	u := activeUserEmail(t, "g@x.com")
+	u.PasswordHash = nil // Google-only
+	fs := &fakeStore{byID: map[uuid.UUID]sqlc.IdentityUser{u.ID: u}}
+	fm := &fakeMailer{}
+	svc := newTestService(t, fs, fm)
+	if _, err := svc.AdminInitiatePasswordReset(context.Background(), u.ID); !errors.Is(err, ErrNoPasswordLogin) {
+		t.Fatalf("want ErrNoPasswordLogin, got %v", err)
+	}
+	if fm.resetLink != "" {
+		t.Fatalf("Google-only account must not receive a reset link")
+	}
+}
+
 // --- RequestEmailChange ---------------------------------------------------
 
 func TestRequestEmailChange_WrongPassword_ErrInvalidCredentials(t *testing.T) {

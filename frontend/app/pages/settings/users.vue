@@ -119,6 +119,7 @@ function rowActions(row: Record<string, unknown>): RowAction[] {
   const r = row as unknown as UserView
   return [
     { label: t('settings.users.actions.edit'), icon: 'i-lucide-pencil', onSelect: () => openEdit(r) },
+    { label: t('settings.users.actions.resetPassword'), icon: 'i-lucide-key-round', onSelect: () => onResetPassword(r) },
     r.status === 'active'
       ? { label: t('settings.users.actions.deactivate'), icon: 'i-lucide-ban', onSelect: () => onToggleStatus(r) }
       : { label: t('settings.users.actions.activate'), icon: 'i-lucide-circle-check', onSelect: () => onToggleStatus(r) },
@@ -245,6 +246,30 @@ async function onToggleStatus(row: UserView) {
     toast.add({ title: t('settings.users.toast.statusChanged'), color: 'success', icon: 'i-lucide-check' })
     await loadList()
   } catch { /* useApiClient toasts */ }
+}
+
+async function onResetPassword(row: UserView) {
+  const ok = await confirm({
+    title: t('settings.users.resetTitle'),
+    description: t('settings.users.resetConfirm', { nama: row.name, email: row.email }),
+    confirmLabel: t('settings.users.resetConfirmLabel'),
+    color: 'primary'
+  })
+  if (!ok) return
+  try {
+    const res = await api.resetPassword(row.id)
+    toast.add({
+      title: t('settings.users.toast.passwordReset', { email: res.email }),
+      color: 'success',
+      icon: 'i-lucide-mail-check'
+    })
+  } catch (err: unknown) {
+    if ((err as { statusCode?: number }).statusCode === 422) {
+      toast.add({ title: t('settings.users.toast.resetGoogleOnly'), color: 'warning', icon: 'i-lucide-triangle-alert' })
+    } else {
+      toast.add({ title: t('settings.users.toast.resetError'), color: 'error' })
+    }
+  }
 }
 
 async function onDelete(row: UserView) {

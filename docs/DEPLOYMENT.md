@@ -137,6 +137,8 @@ Isi minimal:
 | `MINIO_ROOT_USER`     | mis. `inventra-minio`                                      |
 | `MINIO_ROOT_PASSWORD` | `openssl rand -hex 24`                                     |
 | `GOOGLE_CLIENT_*`     | isi hanya jika memakai login Google; kosongkan bila tidak  |
+| `EMAIL_PROVIDER`      | `resend` (disarankan produksi) atau `smtp`; kosong = `smtp`|
+| `RESEND_API_KEY`      | API key Resend (bila `EMAIL_PROVIDER=resend`) — rahasia    |
 
 Bangkitkan rahasia cepat:
 
@@ -147,6 +149,20 @@ echo "MINIO_ROOT_PASSWORD=$(openssl rand -hex 24)"
 ```
 
 > `.env.prod` sudah masuk `.gitignore` — jangan pernah commit file ini.
+
+### Email (reset password, notifikasi, ganti email)
+
+Backend mengirim email transaksional (tautan reset password, pemberitahuan ganti
+password/email) lewat `EMAIL_PROVIDER`:
+
+- **`resend` (disarankan produksi)** — Resend HTTP API (`POST api.resend.com/emails`).
+  Set `RESEND_API_KEY` (rahasia, jangan di-commit) dan `SMTP_FROM` ke alamat pengirim
+  pada domain yang **sudah diverifikasi** di Resend. Tahan egress ketat (hanya HTTPS
+  keluar), tanpa relay SMTP. Bila `RESEND_API_KEY` kosong, sender jatuh ke mode log.
+- **`smtp`** — relay SMTP mana pun (`SMTP_HOST`/`SMTP_PORT`/`SMTP_USERNAME`/
+  `SMTP_PASSWORD`/`SMTP_TLS`). Dipakai dev/e2e via Mailpit (`host=mailpit:1025`).
+- `MAIL_ENABLED=false` (atau host/kunci kosong) memakai **log-only sender** — email
+  hanya dicatat ke log, tidak dikirim (aman untuk dev tanpa relay).
 
 ---
 

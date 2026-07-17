@@ -189,6 +189,7 @@ func NewRouter(d Deps) (*gin.Engine, Workers) {
 
 		mailer := email.NewMailer(email.NewSender(email.Options{
 			Enabled:  d.Cfg.MailEnabled,
+			Provider: d.Cfg.EmailProvider,
 			Host:     d.Cfg.SMTPHost,
 			Port:     d.Cfg.SMTPPort,
 			Username: d.Cfg.SMTPUsername,
@@ -196,6 +197,7 @@ func NewRouter(d Deps) (*gin.Engine, Workers) {
 			From:     d.Cfg.SMTPFrom,
 			FromName: d.Cfg.SMTPFromName,
 			TLS:      d.Cfg.SMTPTLS,
+			APIKey:   d.Cfg.ResendAPIKey,
 		}, slog.Default()))
 		asyncMailer := email.NewAsyncMailer(mailer, slog.Default())
 		locator := d.GeoIP
@@ -206,7 +208,7 @@ func NewRouter(d Deps) (*gin.Engine, Workers) {
 		identityHandler := identity.NewHandler(identitySvc, permSvc, scopeSvc, d.Limiter, d.Cfg.RateLimitLoginPerMin, d.Cfg.Env == "production", d.Cfg.JWTRefreshTTL, googleOAuth, d.Cfg.FrontendURL, auditSvc, d.Cfg.RateLimitLoginPerMin)
 		identity.RegisterRoutes(api, identityHandler, requireAuth, d.Limiter, d.Cfg.RateLimitLoginIPPerMin, d.Cfg.RateLimitRefreshPerMin, d.Cfg.RateLimitLoginIPPerMin, d.Cfg.RateLimitLoginPerMin)
 
-		userHandler := user.NewHandler(user.NewService(queries), fieldSvc, auditSvc)
+		userHandler := user.NewHandler(user.NewService(queries), fieldSvc, auditSvc, identitySvc)
 		user.RegisterRoutes(api, userHandler, requireAuth, middleware.RequirePermission(permSvc, "user.manage"))
 
 		masterdata.RegisterRoutes(api, queries, d.Pool, permSvc, scopeSvc, fieldSvc, auditSvc, requireAuth)

@@ -1,10 +1,18 @@
 // @vitest-environment nuxt
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { mountSuspended } from '@nuxt/test-utils/runtime'
+import { mountSuspended, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { enableAutoUnmount, flushPromises } from '@vue/test-utils'
 import { useAuthStore } from '~/stores/auth'
 import { useConfirm } from '~/composables/useConfirm'
 import type { UserView } from '~/composables/api/useUsers'
+
+// useToast's real toast portal isn't mounted in these component tests (no UApp
+// wrapper) — mock and capture add() calls so the reset-password toasts can be
+// asserted (success email, Google-only warning, generic error).
+const { toastAddMock } = vi.hoisted(() => ({ toastAddMock: vi.fn() }))
+mockNuxtImport('useToast', () => () => ({ add: toastAddMock }))
+
+// eslint-disable-next-line import/first
 import UsersPage from '~/pages/settings/users.vue'
 
 // ---------------------------------------------------------------------------
@@ -124,6 +132,7 @@ function grantAdmin() {
 beforeEach(() => {
   setHandler(defaultHandler)
   grantAdmin()
+  toastAddMock.mockReset()
 })
 
 async function mountAndWait() {
@@ -757,6 +766,98 @@ describe('User Management page — delete', () => {
     await new Promise(r => setTimeout(r, 200))
 
     expect(deleteCalled).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Reset password (admin-initiated)
+// ---------------------------------------------------------------------------
+
+describe('User Management page — reset password', () => {
+  // Handler that records the reset-password POST and returns a canned result,
+  // falling back to the shared defaultHandler for every other request.
+  function resetHandler(result: () => unknown) {
+    const calls: string[] = []
+    setHandler((path, opts) => {
+      if (/^\/users\/[^/]+\/reset-password$/.test(path) && opts?.method === 'POST') {
+        calls.push(path)
+        return result()
+      }
+      return defaultHandler(path, opts)
+    })
+    return calls
+  }
+
+  it('rowActions include a Reset Password action for user.manage', async () => {
+    const wrapper = await mountAndWait()
+    const actions = (wrapper.vm as unknown as { rowActions: (r: unknown) => Array<{ label: string }> }).rowActions(USERS[0])
+    expect(actions.map(a => a.label)).toContain('Reset Password')
+  })
+
+  it('onResetPassword POSTs /users/:id/reset-password after confirmation and toasts the email', async () => {
+    const calls = resetHandler(() => ({ status: 'sent', email: 'andi@inventra.go.id' }))
+    const wrapper = await mountAndWait()
+
+    const p = (wrapper.vm as unknown as { onResetPassword: (r: unknown) => Promise<void> }).onResetPassword(USERS[0])
+    await wrapper.vm.$nextTick()
+    useConfirm().resolve(true)
+    await p
+    await new Promise(r => setTimeout(r, 50))
+
+    expect(calls).toEqual(['/users/u1/reset-password'])
+    expect(toastAddMock).toHaveBeenCalledTimes(1)
+    const toast = toastAddMock.mock.calls[0]![0] as { title: string, color: string }
+    expect(toast.color).toBe('success')
+    expect(toast.title).toContain('andi@inventra.go.id')
+  })
+
+  it('onResetPassword does not call the endpoint when the confirm is cancelled', async () => {
+    const calls = resetHandler(() => ({ status: 'sent', email: 'x@y.z' }))
+    const wrapper = await mountAndWait()
+
+    const p = (wrapper.vm as unknown as { onResetPassword: (r: unknown) => Promise<void> }).onResetPassword(USERS[0])
+    await wrapper.vm.$nextTick()
+    useConfirm().resolve(false)
+    await p
+    await new Promise(r => setTimeout(r, 50))
+
+    expect(calls).toEqual([])
+    expect(toastAddMock).not.toHaveBeenCalled()
+  })
+
+  it('a 422 (Google-only account) shows the Google-only warning toast, not the success toast', async () => {
+    resetHandler(() => {
+      throw Object.assign(new Error('Unprocessable'), { statusCode: 422 })
+    })
+    const wrapper = await mountAndWait()
+
+    const p = (wrapper.vm as unknown as { onResetPassword: (r: unknown) => Promise<void> }).onResetPassword(USERS[1])
+    await wrapper.vm.$nextTick()
+    useConfirm().resolve(true)
+    await p
+    await new Promise(r => setTimeout(r, 50))
+
+    expect(toastAddMock).toHaveBeenCalledTimes(1)
+    const toast = toastAddMock.mock.calls[0]![0] as { title: string, color: string }
+    expect(toast.color).toBe('warning')
+    expect(toast.title).toContain('Google')
+  })
+
+  it('a non-422 failure shows the generic error toast', async () => {
+    resetHandler(() => {
+      throw Object.assign(new Error('Server Error'), { statusCode: 500 })
+    })
+    const wrapper = await mountAndWait()
+
+    const p = (wrapper.vm as unknown as { onResetPassword: (r: unknown) => Promise<void> }).onResetPassword(USERS[0])
+    await wrapper.vm.$nextTick()
+    useConfirm().resolve(true)
+    await p
+    await new Promise(r => setTimeout(r, 50))
+
+    expect(toastAddMock).toHaveBeenCalledTimes(1)
+    const toast = toastAddMock.mock.calls[0]![0] as { color: string }
+    expect(toast.color).toBe('error')
   })
 })
 

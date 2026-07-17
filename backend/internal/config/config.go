@@ -104,8 +104,11 @@ type Config struct {
 	NotificationSweepPoll     time.Duration
 	NotificationRetentionDays int
 
-	// Email / SMTP (password reset + notifications).
+	// Email (password reset + notifications). EmailProvider selects the
+	// transport: "smtp" (default) or "resend" (HTTP API, needs ResendAPIKey).
 	MailEnabled      bool
+	EmailProvider    string
+	ResendAPIKey     string
 	SMTPHost         string
 	SMTPPort         int
 	SMTPUsername     string
@@ -183,6 +186,8 @@ func Load() *Config {
 		NotificationRetentionDays: getEnvInt("NOTIFICATION_RETENTION_DAYS", 90),
 
 		MailEnabled:      getEnvBool("MAIL_ENABLED", false),
+		EmailProvider:    getEnv("EMAIL_PROVIDER", "smtp"),
+		ResendAPIKey:     getEnv("RESEND_API_KEY", ""),
 		SMTPHost:         getEnv("SMTP_HOST", ""),
 		SMTPPort:         getEnvInt("SMTP_PORT", 1025),
 		SMTPUsername:     getEnv("SMTP_USERNAME", ""),

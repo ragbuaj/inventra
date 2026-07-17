@@ -1193,9 +1193,14 @@
         "delete": "Hapus"
       },
       "toast": {
-        "passwordReset": "Tautan reset password dikirim",
+        "passwordReset": "Tautan reset password dikirim ke {email}",
+        "resetGoogleOnly": "Akun ini login lewat Google — tidak ada password untuk direset.",
+        "resetError": "Gagal mengirim tautan reset password.",
         "statusChanged": "Status pengguna diperbarui"
       },
+      "resetTitle": "Reset password pengguna ini?",
+      "resetConfirm": "Tautan reset password akan dikirim ke email “{nama}” ({email}). Pengguna menyetel password baru sendiri lewat tautan itu — Anda tidak melihat atau menyetel passwordnya.",
+      "resetConfirmLabel": "Kirim tautan reset",
       "empty": "Belum ada pengguna",
       "emptyFilter": "Belum ada akun yang cocok dengan pencarian atau filter.",
       "createTitle": "Tambah User",
