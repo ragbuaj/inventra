@@ -4,8 +4,8 @@
  * The API returns a `type` plus free-form `params` and never a rendered
  * sentence (backend/internal/notification/dto.go). Everything visual — icon,
  * tint, message key, deep link — is therefore a frontend concern and lives
- * here, in one place, instead of being baked into the data as the old
- * `app/mock/notifications.ts` fixture did. Same idiom as `approvalMeta.ts`.
+ * here, in one place, rather than being baked into the data. Same idiom as
+ * `approvalMeta.ts`.
  */
 
 /** Backend `shared.notification_type` values. */
