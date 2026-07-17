@@ -77,10 +77,19 @@ export function useUsers() {
     await request(`/users/${id}`, { method: 'DELETE' })
   }
 
+  // Admin-initiated password reset: the backend generates a single-use token
+  // and emails the reset link to the user. Resolves with the notified address;
+  // a 422 (Google-only account, no password login) propagates to the caller.
+  async function resetPassword(id: string): Promise<{ status: string, email: string }> {
+    // suppressErrorToast: the page handles its own toasts (a Google-only 422 is
+    // a warning, not a generic error), so skip useApiClient's default error toast.
+    return request<{ status: string, email: string }>(`/users/${id}/reset-password`, { method: 'POST', suppressErrorToast: true })
+  }
+
   async function lookups(): Promise<Lookups> {
     const roles = await request<{ data: RoleDTO[] }>('/authz/roles')
     return { roles: roles.data.map(r => ({ id: r.id, name: r.name })) }
   }
 
-  return { list, create, update, remove, lookups }
+  return { list, create, update, remove, resetPassword, lookups }
 }

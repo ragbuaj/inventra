@@ -1193,9 +1193,14 @@
         "delete": "Delete"
       },
       "toast": {
-        "passwordReset": "Password reset link sent",
+        "passwordReset": "Password reset link sent to {email}",
+        "resetGoogleOnly": "This account signs in with Google — there is no password to reset.",
+        "resetError": "Failed to send the password reset link.",
         "statusChanged": "User status updated"
       },
+      "resetTitle": "Reset this user's password?",
+      "resetConfirm": "A password reset link will be emailed to “{nama}” ({email}). The user sets a new password themselves via that link — you never see or set their password.",
+      "resetConfirmLabel": "Send reset link",
       "empty": "No users yet",
       "emptyFilter": "No accounts match the search or filter.",
       "createTitle": "Add User",
