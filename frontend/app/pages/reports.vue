@@ -272,12 +272,27 @@ const view = computed<View | null>(() => {
 })
 
 // ---------------------------------------------------------------------------
+// Client-side pagination over the result rows. The `run` endpoint returns the
+// full row set (capped by the backend truncation guard), so this paginates the
+// in-memory rows using the shared TablePagination contract (0-based offset,
+// PAGE_SIZE 10) — the same paginator every other list screen uses.
+// ---------------------------------------------------------------------------
+const RESULT_PAGE_SIZE = 10
+const resultPage = ref(1)
+const resultOffset = computed({
+  get: () => (resultPage.value - 1) * RESULT_PAGE_SIZE,
+  set: (o: number) => { resultPage.value = Math.floor(o / RESULT_PAGE_SIZE) + 1 }
+})
+const rowTotal = computed(() => view.value?.rows.length ?? 0)
+
+// ---------------------------------------------------------------------------
 // Data loading
 // ---------------------------------------------------------------------------
 async function apply() {
   loading.value = true
   loadError.value = false
   applied.value = true
+  resultPage.value = 1
   try {
     result.value = await api.run(report.value, currentFilters())
   } catch {
@@ -303,6 +318,7 @@ function selectReport(k: ReportKey) {
   applied.value = false
   loadError.value = false
   result.value = null
+  resultPage.value = 1
 }
 
 async function loadCategories() {
@@ -403,7 +419,7 @@ onMounted(() => {
 
 // Driving teleported menus / Nuxt UI selects via DOM is brittle — expose the
 // flows and filter state so tests can drive them deterministically.
-defineExpose({ apply, doExport, doExportGl, doOpnameBa, resetFilters, selectReport, report, period, officeId, categoryId, status, basis })
+defineExpose({ apply, doExport, doExportGl, doOpnameBa, resetFilters, selectReport, report, period, officeId, categoryId, status, basis, resultPage, resultOffset })
 </script>
 
 <template>
@@ -736,7 +752,7 @@ defineExpose({ apply, doExport, doExportGl, doOpnameBa, resetFilters, selectRepo
                 </thead>
                 <tbody>
                   <tr
-                    v-for="(row, ri) in view.rows"
+                    v-for="(row, ri) in view.rows.slice(resultOffset, resultOffset + RESULT_PAGE_SIZE)"
                     :key="ri"
                     data-testid="reports-opname-row"
                     class="border-t border-default hover:bg-muted transition-colors"
@@ -786,7 +802,7 @@ defineExpose({ apply, doExport, doExportGl, doOpnameBa, resetFilters, selectRepo
                 </thead>
                 <tbody>
                   <tr
-                    v-for="(row, ri) in view.rows"
+                    v-for="(row, ri) in view.rows.slice(resultOffset, resultOffset + RESULT_PAGE_SIZE)"
                     :key="ri"
                     class="border-t border-default hover:bg-muted transition-colors"
                   >
@@ -815,6 +831,13 @@ defineExpose({ apply, doExport, doExportGl, doOpnameBa, resetFilters, selectRepo
               </table>
             </div>
           </UContextMenu>
+          <TablePagination
+            v-if="rowTotal > 0"
+            :total="rowTotal"
+            :limit="RESULT_PAGE_SIZE"
+            :offset="resultOffset"
+            @update:offset="resultOffset = $event"
+          />
         </div>
       </div>
 
