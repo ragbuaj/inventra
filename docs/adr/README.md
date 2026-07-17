@@ -31,6 +31,7 @@ domain genuinely needs custom, and document the trade-off either way.
 | [0011](0011-observability.md) | Observability: self-hosted Prometheus/Grafana/Loki + Alertmanager→Telegram | Accepted | ops hardening — Phase 3 |
 | [0012](0012-waf.md) | WAF: Coraza + OWASP CRS as a Caddy module (DetectionOnly → Blocking rollout) | Accepted | ops hardening — Phase 1 |
 | [0013](0013-iac.md) | Infrastructure as Code: Ansible (`base`+`docker`+`app` roles, containerized tooling, Vault secrets) | Accepted | ops hardening — Phase 2 |
+| [0014](0014-notification-delivery.md) | Notification delivery: transactional outbox (Postgres) + Redis Streams transport; supersedes PRD A1b (Redis is transport, not the notification store) | Accepted | notification module |
 
 > ADRs are **decisions**, not implementation. Code lands in follow-up work; each ADR notes the libraries
 > and the integration points. ADR-0007's refactor (folder regroup + field-key rename) is tracked as

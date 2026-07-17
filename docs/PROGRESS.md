@@ -1072,12 +1072,54 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     reachability sweep. No schema/seed/role-permission changes. Spec
 >     `docs/superpowers/specs/2026-07-16-authz-nav-guard-consistency-design.md`, plan
 >     `docs/superpowers/plans/2026-07-16-authz-nav-guard-consistency.md`.
-> 67. **Next session — pick the next real step.** Leading candidate: **notifications** (the last app-shell
->     mock, `mock/notifications.ts` — needs a backend notification feed). Other carried candidates:
->     **room/floor import targets**; **Analytics/OLAP** read layer; **admin-initiated password reset** from
->     User Management; **`/auth/me` `role_name`** (shell badge consistency, item-64 out-of-scope note).
->     **GeoIP DB provisioning** in prod (drop a GeoLite2-City.mmdb + set `GEOIP_DB_PATH`) is an ops
->     follow-up — sessions work without it. Confirm priority before starting.
+> 67. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-17): notifications.**
+> 68. ~~**Notification module — full pipeline** (`feat/notifications`)~~ ✅ **DONE (2026-07-18).**
+>     Modul notifikasi in-app dari nol: **transactional outbox (Postgres) lalu Redis Stream lalu
+>     consumer fan-out lalu feed per-user**, plus sweeper `maintenance_due` + purge retensi. Mengganti
+>     `frontend/app/mock/notifications.ts` — **mock terakhir di app-shell terhapus seluruhnya**
+>     (`app/mock/` tidak ada lagi). Spec `docs/superpowers/specs/2026-07-17-notifications-design.md`
+>     + plan `docs/superpowers/plans/2026-07-17-notifications.md`; keputusan arsitektur di
+>     **[ADR-0014](adr/0014-notification-delivery.md)**. 19 task, subagent-driven, tiap task diverifikasi
+>     + di-commit terpisah.
+>     - **Backend:** migrasi `000034` (skema `notification`: outbox + feed, `uq_notif_dedup` menopang
+>       consumer at-least-once) + `000035` (index lookup outbox). Empat jenis: `approval_pending` (ke
+>       approver berhak — **invers kelayakan** `NotifiableApprovers` yang menyaring lewat
+>       `eligibleToDecide` yang sudah ada, aturan SoD **tidak** diduplikasi di SQL), `approval_decided`
+>       (ke maker), `asset_returned` (ke yang meng-check-out — `assigned_by_id`), `maintenance_due`
+>       (sweeper, `pg_advisory_xact_lock`). Enqueue **se-transaksi** di service (bukan handler
+>       best-effort) — rollback tidak meninggalkan event yatim. Auto-resolve notifikasi basi saat
+>       giliran step lewat. 4 endpoint feed (`RequireAuth`, per-user, mark-read milik orang lain jadi 404).
+>       Relay/consumer/sweeper dijalankan dari `main.go` (`NOTIFICATION_WORKER_ENABLED`), diverifikasi
+>       dengan **menjalankan binary sungguhan** + menyuntik event dan mengamatinya mengalir.
+>     - **Frontend:** `useNotifications` nyata (async), Pinia store (refresh event-driven dari
+>       choke-point fetchMe, **tanpa polling**), `notificationMeta` catalog, bel `NotificationBell.vue`
+>       lengkap, halaman `/notifications` penuh (paginasi/filter/state), `NotificationItem` +
+>       `useNotificationLink` bersama (bel & halaman satu sumber). E2E backend-nyata
+>       (`e2e/notifications.spec.ts`, 2 tes, async-aware).
+>     - **Deviasi disetujui (catat-deviasi):** (a) **storage Postgres bukan Redis** — menyimpang PRD A1b,
+>       di-supersede ADR-0014; (b) **lock Postgres advisory bukan Redis** (PRD baris 458); (c) **Redis
+>       Streams sebagai transport + AOF dinyalakan** (`--appendonly yes` di 3 compose); (d) **halaman
+>       `/notifications` tanpa mockup** — dirancang mengikuti bahasa visual App Shell; (e) **subtree i18n
+>       `notifications.item.*`/`time.*` diganti** (kunci lama meng-hardcode nama); (f) **panel dropdown
+>       bel dark-mode pakai bg-default bukan bg-elevated** (konsistensi dengan semua panel mengambang);
+>       (g) **baris unread bertint bg-primary/5** (mockup tak menggambarkan state dibaca). Deviasi
+>       peminjaman: `asset_returned` dinotifikasi ke **approver** (pemegang `assigned_by_id`), bukan Staf
+>       peminjam — `employee_id` bukan user login.
+>     - **Follow-up (tercatat, tidak memblokir):** SSE untuk push real-time (perlu verifikasi buffering
+>       di balik Caddy/Coraza); job arsip/partisi notifikasi lama ke cold storage; penyelarasan retensi
+>       90 hari ke kebijakan records-retention korporat; `importer.resolveMakerScope` adalah salinan
+>       terakhir aturan scope yang belum dilipat ke `common.OfficeScopeFor`; celah rute maker
+>       (`approval_decided` menaut ke `/approval` yang digerbangi `request.decide`, permission yang
+>       mungkin tak dimiliki maker — klik sudah digerbangi, tapi rute detail-request menghadap maker
+>       adalah keputusan produk); **`EnvironmentTeardownError` pre-existing** membuat `pnpm test` lokal
+>       exit 1 meski semua tes lulus (race teardown modul lazy Nuxt di bawah beban paralel; menunjuk
+>       file berbeda tiap run; **CI hijau di main** — bukan dari fitur ini).
+> 69. **Next session — pick the next real step.** Carried candidates: **room/floor import targets**;
+>     **Analytics/OLAP** read layer; **admin-initiated password reset** from User Management (blokir email
+>     sudah hilang sejak item 54); **`/auth/me` `role_name`** (shell badge consistency). **GeoIP DB
+>     provisioning** in prod (drop a GeoLite2-City.mmdb + set `GEOIP_DB_PATH`) is an ops follow-up.
+>     Notification follow-ups above (SSE, retention archival, maker-route gap). Confirm priority before
+>     starting.
 >     **Follow-up (optional):** a per-limited-role UI e2e (log in as a created `scope.manage`-only user and
 >     confirm Data Scope opens while RBAC is hidden) — the seeded-superadmin CI e2e can't log in as demo
 >     roles, so this needs an API-created user; the per-role guarantee is already covered by unit/runtime/
