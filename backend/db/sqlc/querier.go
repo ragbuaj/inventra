@@ -16,6 +16,9 @@ type Querier interface {
 	// Depreciation engine queries. See docs/DATABASE.md §4.4 and spec 2026-07-05.
 	// Transaction-scoped exclusive lock; released automatically at COMMIT/ROLLBACK.
 	AdvisoryLockDepreciation(ctx context.Context) error
+	// Sweeper: one instance at a time. Transaction-scoped exclusive lock, released
+	// automatically at COMMIT/ROLLBACK (precedent: AdvisoryLockDepreciation).
+	AdvisoryLockNotificationSweep(ctx context.Context) error
 	// PSAK 48 impairment write-down: sets the money fields directly. No
 	// depreciation entry is posted here — impairment is a separate loss, not a
 	// depreciation expense. book_value is the DERIVED carrying amount (compute
@@ -119,6 +122,17 @@ type Querier interface {
 	DeleteEntriesAfterWatermark(ctx context.Context, arg DeleteEntriesAfterWatermarkParams) error
 	// First-ever run (no watermark): clear everything ≤ target.
 	DeleteEntriesThrough(ctx context.Context, target pgtype.Date) error
+	// Outbox-side idempotency for the sweeper's due scan. uq_notif_dedup guards the
+	// notifications table, not the outbox: without this guard every sweep tick would
+	// enqueue the same reminder again and the relay would faithfully publish each
+	// one. The insert and its existence check are ONE statement, so correctness does
+	// not rest on the advisory lock alone.
+	//
+	// Identity is (schedule, due date), read out of the payload -- the same identity
+	// as the notification's dedup_key. `deleted_at IS NULL` mirrors uq_notif_dedup's
+	// partial predicate so both sides forget at the same retention boundary: a
+	// schedule still overdue after its reminder is purged earns a fresh one.
+	EnqueueMaintenanceDueOutbox(ctx context.Context, arg EnqueueMaintenanceDueOutboxParams) (int64, error)
 	// Outbox: written inside the caller's business transaction, so a rollback leaves
 	// no orphan event and a commit can never lose one.
 	EnqueueOutbox(ctx context.Context, arg EnqueueOutboxParams) (NotificationOutbox, error)

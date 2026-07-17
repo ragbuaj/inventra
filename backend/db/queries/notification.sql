@@ -20,6 +20,32 @@ LIMIT $1;
 -- name: MarkOutboxPublished :exec
 UPDATE notification.outbox SET published_at = now() WHERE id = $1;
 
+-- Sweeper: one instance at a time. Transaction-scoped exclusive lock, released
+-- automatically at COMMIT/ROLLBACK (precedent: AdvisoryLockDepreciation).
+-- name: AdvisoryLockNotificationSweep :exec
+SELECT pg_advisory_xact_lock(hashtext('notification.sweep'));
+
+-- Outbox-side idempotency for the sweeper's due scan. uq_notif_dedup guards the
+-- notifications table, not the outbox: without this guard every sweep tick would
+-- enqueue the same reminder again and the relay would faithfully publish each
+-- one. The insert and its existence check are ONE statement, so correctness does
+-- not rest on the advisory lock alone.
+--
+-- Identity is (schedule, due date), read out of the payload -- the same identity
+-- as the notification's dedup_key. `deleted_at IS NULL` mirrors uq_notif_dedup's
+-- partial predicate so both sides forget at the same retention boundary: a
+-- schedule still overdue after its reminder is purged earns a fresh one.
+-- name: EnqueueMaintenanceDueOutbox :execrows
+INSERT INTO notification.outbox (event_type, aggregate_type, aggregate_id, payload)
+SELECT @event_type::text, @aggregate_type::text, @aggregate_id::uuid, @payload::jsonb
+WHERE NOT EXISTS (
+  SELECT 1 FROM notification.outbox
+  WHERE event_type = @event_type::text
+    AND aggregate_id = @aggregate_id::uuid
+    AND payload->>'due_date' = @payload::jsonb->>'due_date'
+    AND deleted_at IS NULL
+);
+
 -- Notifications: the permanent per-user feed.
 
 -- ON CONFLICT DO NOTHING against uq_notif_dedup is what makes the at-least-once

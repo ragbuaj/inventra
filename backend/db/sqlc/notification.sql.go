@@ -12,6 +12,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const advisoryLockNotificationSweep = `-- name: AdvisoryLockNotificationSweep :exec
+SELECT pg_advisory_xact_lock(hashtext('notification.sweep'))
+`
+
+// Sweeper: one instance at a time. Transaction-scoped exclusive lock, released
+// automatically at COMMIT/ROLLBACK (precedent: AdvisoryLockDepreciation).
+func (q *Queries) AdvisoryLockNotificationSweep(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, advisoryLockNotificationSweep)
+	return err
+}
+
 const claimUnpublishedOutbox = `-- name: ClaimUnpublishedOutbox :many
 SELECT id, event_type, aggregate_type, aggregate_id, payload, published_at, created_at, updated_at, deleted_at FROM notification.outbox
 WHERE published_at IS NULL AND deleted_at IS NULL
@@ -115,6 +126,48 @@ func (q *Queries) CreateNotification(ctx context.Context, arg CreateNotification
 		arg.DedupKey,
 	)
 	return err
+}
+
+const enqueueMaintenanceDueOutbox = `-- name: EnqueueMaintenanceDueOutbox :execrows
+INSERT INTO notification.outbox (event_type, aggregate_type, aggregate_id, payload)
+SELECT $1::text, $2::text, $3::uuid, $4::jsonb
+WHERE NOT EXISTS (
+  SELECT 1 FROM notification.outbox
+  WHERE event_type = $1::text
+    AND aggregate_id = $3::uuid
+    AND payload->>'due_date' = $4::jsonb->>'due_date'
+    AND deleted_at IS NULL
+)
+`
+
+type EnqueueMaintenanceDueOutboxParams struct {
+	EventType     string    `json:"event_type"`
+	AggregateType string    `json:"aggregate_type"`
+	AggregateID   uuid.UUID `json:"aggregate_id"`
+	Payload       []byte    `json:"payload"`
+}
+
+// Outbox-side idempotency for the sweeper's due scan. uq_notif_dedup guards the
+// notifications table, not the outbox: without this guard every sweep tick would
+// enqueue the same reminder again and the relay would faithfully publish each
+// one. The insert and its existence check are ONE statement, so correctness does
+// not rest on the advisory lock alone.
+//
+// Identity is (schedule, due date), read out of the payload -- the same identity
+// as the notification's dedup_key. `deleted_at IS NULL` mirrors uq_notif_dedup's
+// partial predicate so both sides forget at the same retention boundary: a
+// schedule still overdue after its reminder is purged earns a fresh one.
+func (q *Queries) EnqueueMaintenanceDueOutbox(ctx context.Context, arg EnqueueMaintenanceDueOutboxParams) (int64, error) {
+	result, err := q.db.Exec(ctx, enqueueMaintenanceDueOutbox,
+		arg.EventType,
+		arg.AggregateType,
+		arg.AggregateID,
+		arg.Payload,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const enqueueOutbox = `-- name: EnqueueOutbox :one

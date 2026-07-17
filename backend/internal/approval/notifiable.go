@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 
 	sqlc "github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/masterdata/common"
 )
 
 // scopeModule is the data_scope_policies module the approval module resolves
@@ -111,28 +112,16 @@ func priorApprovers(approvals []sqlc.ApprovalRequestApproval, currentStep int32)
 }
 
 // callerFor builds a candidate's Caller outside any Gin context, since the
-// fan-out runs in a worker rather than an HTTP request. It mirrors
-// masterdata/common.CallerOfficeScope (same precedent as
-// importer.resolveMakerScope), including its "own" -> caller's own office
-// translation: a bare ScopeService.Resolve leaves OfficeIDs empty for "own",
-// which would silently notify a narrower set than the one allowed to decide.
+// fan-out runs in a worker rather than an HTTP request. The scope translation
+// itself is common.OfficeScopeFor -- the same rule, and the same single
+// implementation, that CallerOfficeScope applies to a live request. Resolving
+// it any other way (a bare ScopeService.Resolve, which leaves OfficeIDs empty
+// for "own") would silently notify a narrower set than the one allowed to
+// decide.
 func (s *Service) callerFor(ctx context.Context, u sqlc.ListUsersWithPermissionRow) (Caller, error) {
-	sc, err := s.scope.Resolve(ctx, u.RoleID, u.OfficeID, scopeModule)
+	all, ids, err := common.OfficeScopeFor(ctx, s.scope, u.RoleID, u.OfficeID, scopeModule)
 	if err != nil {
 		return Caller{}, err
 	}
-	caller := Caller{UserID: u.ID, RoleID: u.RoleID}
-	switch sc.Level {
-	case sqlc.SharedScopeLevelGlobal:
-		caller.AllScope = true
-	case sqlc.SharedScopeLevelOwn:
-		if u.OfficeID != nil {
-			caller.OfficeIDs = []uuid.UUID{*u.OfficeID}
-		} else {
-			caller.OfficeIDs = []uuid.UUID{}
-		}
-	default: // office / office_subtree
-		caller.OfficeIDs = sc.OfficeIDs
-	}
-	return caller, nil
+	return Caller{UserID: u.ID, RoleID: u.RoleID, AllScope: all, OfficeIDs: ids}, nil
 }

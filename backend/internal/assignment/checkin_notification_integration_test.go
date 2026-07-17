@@ -38,7 +38,7 @@ func (h *harness) drainPipeline(t *testing.T) {
 	// The real approval.Service resolves approval_pending recipients: a borrow
 	// goes through the approval chain, so this pipeline carries those events too
 	// and a nil resolver would (correctly) refuse them.
-	_, err = notification.NewConsumer(h.q, h.rdb, h.apprSvc, "checkin-e2e", time.Second, time.Millisecond).Tick(ctx)
+	_, err = notification.NewConsumer(h.q, h.rdb, h.apprSvc, nil, "checkin-e2e", time.Second, time.Millisecond).Tick(ctx)
 	require.NoError(t, err)
 }
 

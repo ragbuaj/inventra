@@ -52,7 +52,7 @@ func (s *stubResolver) ApproversForStep(_ context.Context, requestID uuid.UUID, 
 // newPendingConsumer builds a consumer wired to the given resolver, with a
 // ~instant min-idle so the XAUTOCLAIM path needs no waiting.
 func (h *harness) newPendingConsumer(name string, r notification.ApproverResolver) *notification.Consumer {
-	return notification.NewConsumer(h.q, h.rdb, r, name, time.Second, time.Millisecond)
+	return notification.NewConsumer(h.q, h.rdb, r, nil, name, time.Second, time.Millisecond)
 }
 
 // enqueuePending writes a request_submitted or chain_advanced outbox row

@@ -31,6 +31,8 @@ import (
 	sqlc "github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/approval"
 	"github.com/ragbuaj/inventra/internal/assignment"
+	"github.com/ragbuaj/inventra/internal/authz"
+	"github.com/ragbuaj/inventra/internal/masterdata/common"
 )
 
 // ConsumerGroup is the fan-out consumer group on StreamKey. A future channel
@@ -78,6 +80,7 @@ type Consumer struct {
 	q         *sqlc.Queries
 	rdb       *redis.Client
 	approvers ApproverResolver
+	scope     *authz.ScopeService
 	name      string
 	poll      time.Duration
 	minIdle   time.Duration
@@ -93,8 +96,9 @@ type Consumer struct {
 //
 // approvers may be nil only where approval events are known not to flow (tests
 // of other event types): a nil resolver makes an approval_pending event a
-// retryable failure rather than a silent drop.
-func NewConsumer(q *sqlc.Queries, rdb *redis.Client, approvers ApproverResolver, name string, poll, minIdle time.Duration) *Consumer {
+// retryable failure rather than a silent drop. scope may be nil under the same
+// condition and with the same consequence for maintenance_due.
+func NewConsumer(q *sqlc.Queries, rdb *redis.Client, approvers ApproverResolver, scope *authz.ScopeService, name string, poll, minIdle time.Duration) *Consumer {
 	if poll <= 0 {
 		poll = 2 * time.Second
 	}
@@ -108,7 +112,7 @@ func NewConsumer(q *sqlc.Queries, rdb *redis.Client, approvers ApproverResolver,
 		}
 		name = fmt.Sprintf("%s-%d", host, os.Getpid())
 	}
-	c := &Consumer{q: q, rdb: rdb, approvers: approvers, name: name, poll: poll, minIdle: minIdle}
+	c := &Consumer{q: q, rdb: rdb, approvers: approvers, scope: scope, name: name, poll: poll, minIdle: minIdle}
 	// Dispatch is a map keyed on the outbox event_type, so adding an event type
 	// is one entry plus its handler.
 	c.handlers = map[string]eventHandler{
@@ -116,6 +120,7 @@ func NewConsumer(q *sqlc.Queries, rdb *redis.Client, approvers ApproverResolver,
 		approval.EventRequestSubmitted:    c.handleRequestPending,
 		approval.EventChainAdvanced:       c.handleRequestPending,
 		assignment.EventAssignmentCheckin: c.handleAssignmentCheckin,
+		EventMaintenanceDue:               c.handleMaintenanceDue,
 	}
 	return c
 }
@@ -243,7 +248,6 @@ func (c *Consumer) handleMessages(ctx context.Context, msgs []redis.XMessage) (i
 // process routes one message to its handler. An unrecognized event type is
 // acked, not retried: no redelivery can make it recognizable, and leaving it
 // unacked would wedge it in the PEL to be re-claimed on every pass forever.
-// Other event types (maintenance_due) land here as handlers in later tasks.
 func (c *Consumer) process(ctx context.Context, msg redis.XMessage) error {
 	eventType, _ := msg.Values[FieldEventType].(string)
 	handler, ok := c.handlers[eventType]
@@ -430,4 +434,106 @@ func (c *Consumer) handleAssignmentCheckin(ctx context.Context, payload []byte) 
 		EntityID:   &entityID,
 		DedupKey:   &dedupKey,
 	})
+}
+
+// maintenanceScopeModule is the data_scope_policies module the maintenance
+// module resolves callers against (internal/maintenance/handler.go scopeModule).
+// It must stay identical to that value, or the users told a schedule is due
+// would diverge from the users allowed to act on it.
+const maintenanceScopeModule = "maintenance"
+
+// maintenancePermission gates the maintenance schedule and record writes
+// (internal/server/router.go). Recipients of a due reminder are exactly the
+// users who can do something about it.
+const maintenancePermission = "maintenance.manage"
+
+// handleMaintenanceDue fans a due reminder out to every user holding
+// maintenance.manage whose data scope covers the asset's office -- the users who
+// can actually schedule the work.
+//
+// Recipients are resolved here rather than carried by the event, matching
+// handleRequestPending: the event says what happened, the consumer decides who
+// hears about it, against the state at consume time.
+func (c *Consumer) handleMaintenanceDue(ctx context.Context, payload []byte) error {
+	var ev MaintenanceDueEvent
+	if err := json.Unmarshal(payload, &ev); err != nil {
+		return fmt.Errorf("%w: %v", errUndecodable, err)
+	}
+	if ev.ScheduleID == uuid.Nil || ev.AssetID == uuid.Nil || ev.OfficeID == uuid.Nil || ev.DueDate == "" {
+		return fmt.Errorf("%w: missing schedule_id, asset_id, office_id or due_date", errUndecodable)
+	}
+	if c.scope == nil {
+		// Retryable, deliberately: without a scope service every candidate would
+		// have to be either notified or dropped, and both are wrong. A
+		// misconfigured process should be loud, not quietly over- or
+		// under-notifying.
+		return errors.New("notification: maintenance_due received but no scope service is configured")
+	}
+
+	recipients, err := c.maintenanceRecipients(ctx, ev.OfficeID)
+	if err != nil {
+		return err
+	}
+
+	// Only interpolation params, never rendered text: the client renders the
+	// sentence via i18n, so storing an Indonesian string here would freeze the
+	// notification into one locale.
+	params, err := json.Marshal(map[string]string{
+		"asset_tag":  ev.AssetTag,
+		"asset_name": ev.AssetName,
+		"due_date":   ev.DueDate,
+	})
+	if err != nil {
+		return err
+	}
+
+	// The due date is part of the key, not just the schedule id: one schedule
+	// recurs, and each occurrence deserves its own reminder. The sweeper's
+	// outbox-side guard keys on the same (schedule, due date) pair.
+	dedupKey := fmt.Sprintf("schedule:%s:due:%s", ev.ScheduleID, ev.DueDate)
+	// The notification points at the asset, not the schedule: that is what the
+	// recipient opens and what the feed links to.
+	entityType := "assets"
+	entityID := ev.AssetID
+
+	// One row per recipient, no enclosing transaction -- same reasoning as
+	// handleRequestPending: each insert is independently idempotent, so a partial
+	// failure leaves the written rows correct and redelivery fills the rest.
+	var errs []error
+	for _, userID := range recipients {
+		if err := c.q.CreateNotification(ctx, sqlc.CreateNotificationParams{
+			UserID:     userID,
+			Type:       sqlc.SharedNotificationTypeMaintenanceDue,
+			Params:     params,
+			EntityType: &entityType,
+			EntityID:   &entityID,
+			DedupKey:   &dedupKey,
+		}); err != nil {
+			errs = append(errs, fmt.Errorf("notify %s: %w", userID, err))
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// maintenanceRecipients returns the users holding maintenance.manage whose data
+// scope covers officeID: the inverse of the permission-plus-scope check a live
+// request passes through, built from the same two pieces
+// (ListUsersWithPermission, common.OfficeScopeFor + common.InScope) rather than
+// a second copy of the rule in SQL.
+func (c *Consumer) maintenanceRecipients(ctx context.Context, officeID uuid.UUID) ([]uuid.UUID, error) {
+	candidates, err := c.q.ListUsersWithPermission(ctx, maintenancePermission)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]uuid.UUID, 0, len(candidates))
+	for _, cand := range candidates {
+		all, ids, err := common.OfficeScopeFor(ctx, c.scope, cand.RoleID, cand.OfficeID, maintenanceScopeModule)
+		if err != nil {
+			return nil, err
+		}
+		if common.InScope(all, ids, officeID) {
+			out = append(out, cand.ID)
+		}
+	}
+	return out, nil
 }

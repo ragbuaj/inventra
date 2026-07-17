@@ -40,7 +40,7 @@ func (f outboxFixture) drainPipeline(t *testing.T) {
 	require.NoError(t, err)
 	// The resolver is the real approval.Service: eligibility is decided by the
 	// same predicate that guards a real decision, not a stub of it.
-	_, err = notification.NewConsumer(q, f.rdb, f.svc, "pending-e2e", time.Second, time.Millisecond).Tick(ctx)
+	_, err = notification.NewConsumer(q, f.rdb, f.svc, nil, "pending-e2e", time.Second, time.Millisecond).Tick(ctx)
 	require.NoError(t, err)
 }
 
