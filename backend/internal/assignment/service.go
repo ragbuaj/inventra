@@ -169,7 +169,9 @@ func (s *Service) Checkout(ctx context.Context, all bool, ids []uuid.UUID, assig
 
 // Checkin returns an active assignment; the asset goes back to available, or to
 // under_maintenance when NeedsMaintenance is set. Returns (before, after).
-func (s *Service) Checkin(ctx context.Context, all bool, ids []uuid.UUID, id uuid.UUID, in CheckinInput) (before, after sqlc.AssignmentAssignment, err error) {
+// checkedInBy is the acting user: it decides whether the check-in notification
+// is worth emitting (see enqueueCheckin).
+func (s *Service) Checkin(ctx context.Context, all bool, ids []uuid.UUID, id uuid.UUID, checkedInBy uuid.UUID, in CheckinInput) (before, after sqlc.AssignmentAssignment, err error) {
 	before, err = s.q.GetAssignmentScoped(ctx, sqlc.GetAssignmentScopedParams{ID: id, AllScope: all, OfficeIds: ids})
 	if err != nil {
 		return before, before, mapDBError(err)
@@ -197,8 +199,16 @@ func (s *Service) Checkin(ctx context.Context, all bool, ids []uuid.UUID, id uui
 	if in.NeedsMaintenance {
 		newStatus = sqlc.SharedAssetStatusUnderMaintenance
 	}
-	if _, err = qtx.SetAssetStatus(ctx, sqlc.SetAssetStatusParams{ID: before.AssetID, Status: newStatus}); err != nil {
+	// SetAssetStatus returns the asset row, so the event's i18n params (tag +
+	// name) come from the mutation already in flight -- no extra read.
+	asset, err := qtx.SetAssetStatus(ctx, sqlc.SetAssetStatusParams{ID: before.AssetID, Status: newStatus})
+	if err != nil {
 		return before, before, mapDBError(err)
+	}
+	// Transactional outbox: the event lands in the same tx as the business
+	// change, so a rollback leaves no orphan event and a commit cannot lose one.
+	if err = s.enqueueCheckin(ctx, qtx, after, asset, checkedInBy); err != nil {
+		return before, before, err
 	}
 	if err = tx.Commit(ctx); err != nil {
 		return before, before, err

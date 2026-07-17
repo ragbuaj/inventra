@@ -29,6 +29,7 @@ import (
 
 	sqlc "github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/approval"
+	"github.com/ragbuaj/inventra/internal/assignment"
 )
 
 // ConsumerGroup is the fan-out consumer group on StreamKey. A future channel
@@ -91,7 +92,8 @@ func NewConsumer(q *sqlc.Queries, rdb *redis.Client, name string, poll, minIdle 
 	// Dispatch is a map keyed on the outbox event_type, so adding an event type
 	// is one entry plus its handler.
 	c.handlers = map[string]eventHandler{
-		approval.EventRequestDecided: c.handleRequestDecided,
+		approval.EventRequestDecided:      c.handleRequestDecided,
+		assignment.EventAssignmentCheckin: c.handleAssignmentCheckin,
 	}
 	return c
 }
@@ -219,8 +221,8 @@ func (c *Consumer) handleMessages(ctx context.Context, msgs []redis.XMessage) (i
 // process routes one message to its handler. An unrecognized event type is
 // acked, not retried: no redelivery can make it recognizable, and leaving it
 // unacked would wedge it in the PEL to be re-claimed on every pass forever.
-// Other event types (request_submitted, chain_advanced, assignment_checkin,
-// maintenance_due) land here as handlers in later tasks.
+// Other event types (request_submitted, chain_advanced, maintenance_due) land
+// here as handlers in later tasks.
 func (c *Consumer) process(ctx context.Context, msg redis.XMessage) error {
 	eventType, _ := msg.Values[FieldEventType].(string)
 	handler, ok := c.handlers[eventType]
@@ -274,6 +276,55 @@ func (c *Consumer) handleRequestDecided(ctx context.Context, payload []byte) err
 	return c.q.CreateNotification(ctx, sqlc.CreateNotificationParams{
 		UserID:     ev.MakerID,
 		Type:       sqlc.SharedNotificationTypeApprovalDecided,
+		Params:     params,
+		EntityType: &entityType,
+		EntityID:   &entityID,
+		DedupKey:   &dedupKey,
+	})
+}
+
+// handleAssignmentCheckin turns a check-in into one asset_returned notification
+// for the user who checked the asset out. The recipient is carried by the event
+// (AssignedByID, from assignments.assigned_by_id), so no re-read of state that
+// may have moved on is needed.
+//
+// Self-notification is already suppressed at the producer: assignment only
+// enqueues when the acting user differs from the recipient, so an event reaching
+// this handler always has someone to notify.
+func (c *Consumer) handleAssignmentCheckin(ctx context.Context, payload []byte) error {
+	var ev assignment.AssignmentCheckinEvent
+	if err := json.Unmarshal(payload, &ev); err != nil {
+		return fmt.Errorf("%w: %v", errUndecodable, err)
+	}
+	if ev.AssignmentID == uuid.Nil || ev.AssetID == uuid.Nil || ev.AssignedByID == uuid.Nil {
+		return fmt.Errorf("%w: missing assignment_id, asset_id or assigned_by_id", errUndecodable)
+	}
+
+	// Only interpolation params, never rendered text: the client renders the
+	// sentence via i18n, so storing an Indonesian string here would freeze the
+	// notification into one locale.
+	params, err := json.Marshal(map[string]string{
+		"asset_tag":  ev.AssetTag,
+		"asset_name": ev.AssetName,
+	})
+	if err != nil {
+		return err
+	}
+
+	// The assignment id is the natural identity of this event: an assignment is
+	// checked in at most once (Checkin rejects a non-active assignment), so one
+	// assignment can never produce two distinct check-ins that would collide on
+	// this key. That, plus ON CONFLICT DO NOTHING on (user_id, dedup_key), is
+	// what makes redelivery a no-op.
+	dedupKey := "assignment:" + ev.AssignmentID.String() + ":checkin"
+	// The notification points at the asset, not the assignment: that is what the
+	// recipient cares about and what the feed links to.
+	entityType := "assets"
+	entityID := ev.AssetID
+
+	return c.q.CreateNotification(ctx, sqlc.CreateNotificationParams{
+		UserID:     ev.AssignedByID,
+		Type:       sqlc.SharedNotificationTypeAssetReturned,
 		Params:     params,
 		EntityType: &entityType,
 		EntityID:   &entityID,
