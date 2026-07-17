@@ -1,6 +1,41 @@
 package config
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
+
+func TestLoadNotificationDefaults(t *testing.T) {
+	t.Setenv("NOTIFICATION_WORKER_ENABLED", "")
+	t.Setenv("NOTIFICATION_RELAY_POLL", "")
+	t.Setenv("NOTIFICATION_STREAM_MAXLEN", "")
+	cfg := Load()
+	if !cfg.NotificationWorkerEnabled {
+		t.Fatal("NotificationWorkerEnabled default should be true")
+	}
+	if cfg.NotificationRelayPoll != 2*time.Second {
+		t.Fatalf("NotificationRelayPoll default: %v", cfg.NotificationRelayPoll)
+	}
+	if cfg.NotificationStreamMaxLen != 10000 {
+		t.Fatalf("NotificationStreamMaxLen default: %d", cfg.NotificationStreamMaxLen)
+	}
+}
+
+func TestLoadNotificationFromEnv(t *testing.T) {
+	t.Setenv("NOTIFICATION_WORKER_ENABLED", "false")
+	t.Setenv("NOTIFICATION_RELAY_POLL", "500ms")
+	t.Setenv("NOTIFICATION_STREAM_MAXLEN", "250")
+	cfg := Load()
+	if cfg.NotificationWorkerEnabled {
+		t.Fatal("NOTIFICATION_WORKER_ENABLED=false not applied")
+	}
+	if cfg.NotificationRelayPoll != 500*time.Millisecond {
+		t.Fatalf("NOTIFICATION_RELAY_POLL: %v", cfg.NotificationRelayPoll)
+	}
+	if cfg.NotificationStreamMaxLen != 250 {
+		t.Fatalf("NOTIFICATION_STREAM_MAXLEN: %d", cfg.NotificationStreamMaxLen)
+	}
+}
 
 func TestLoadLoggingDefaults(t *testing.T) {
 	t.Setenv("LOG_LEVEL", "")

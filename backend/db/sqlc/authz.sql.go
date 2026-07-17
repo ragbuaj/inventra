@@ -83,3 +83,45 @@ func (q *Queries) ListFieldPermissionsByRole(ctx context.Context, roleID uuid.UU
 	}
 	return items, nil
 }
+
+const listUsersWithPermission = `-- name: ListUsersWithPermission :many
+SELECT u.id, u.role_id, u.office_id
+FROM identity.users u
+JOIN identity.role_permissions rp
+  ON rp.role_id = u.role_id AND rp.deleted_at IS NULL
+WHERE rp.permission_key = $1
+  AND u.status = 'active'
+  AND u.deleted_at IS NULL
+`
+
+type ListUsersWithPermissionRow struct {
+	ID       uuid.UUID  `json:"id"`
+	RoleID   uuid.UUID  `json:"role_id"`
+	OfficeID *uuid.UUID `json:"office_id"`
+}
+
+// The inverse of the request-time permission check: given a permission key, who
+// holds it? Needed to fan notifications out to concrete users, because every
+// other authorization path here answers only "may THIS caller act?".
+// Callers must still apply scope and SoD by running the existing eligibility
+// predicate over each candidate -- deliberately not reimplemented in SQL, or the
+// rules would drift from approval.eligibleToDecide.
+func (q *Queries) ListUsersWithPermission(ctx context.Context, permissionKey string) ([]ListUsersWithPermissionRow, error) {
+	rows, err := q.db.Query(ctx, listUsersWithPermission, permissionKey)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListUsersWithPermissionRow{}
+	for rows.Next() {
+		var i ListUsersWithPermissionRow
+		if err := rows.Scan(&i.ID, &i.RoleID, &i.OfficeID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

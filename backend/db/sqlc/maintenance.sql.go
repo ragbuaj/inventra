@@ -670,6 +670,64 @@ func (q *Queries) ListMaintSchedulesEnriched(ctx context.Context, arg ListMaintS
 	return items, nil
 }
 
+const listSchedulesDueBetween = `-- name: ListSchedulesDueBetween :many
+SELECT ms.id, ms.asset_id, ms.maintenance_category_id, ms.interval_months, ms.last_done_date, ms.next_due_date, ms.is_active, ms.created_at, ms.updated_at, ms.deleted_at,
+       a.name      AS asset_name,
+       a.asset_tag AS asset_tag,
+       a.office_id AS office_id
+FROM maintenance.maintenance_schedules ms
+JOIN asset.assets a ON a.id = ms.asset_id AND a.deleted_at IS NULL
+WHERE ms.deleted_at IS NULL
+  AND ms.is_active
+  AND ms.next_due_date IS NOT NULL
+  AND ms.next_due_date <= $1::date
+ORDER BY ms.next_due_date ASC
+`
+
+type ListSchedulesDueBetweenRow struct {
+	MaintenanceMaintenanceSchedule MaintenanceMaintenanceSchedule `json:"maintenance_maintenance_schedule"`
+	AssetName                      string                         `json:"asset_name"`
+	AssetTag                       string                         `json:"asset_tag"`
+	OfficeID                       uuid.UUID                      `json:"office_id"`
+}
+
+// Unscoped, unlimited sweep for the notification due-reminder job. Distinct from
+// DashboardMaintenanceDueList, which is scope-filtered and hardcodes LIMIT 3 for
+// the dashboard card, so it cannot drive a sweep.
+func (q *Queries) ListSchedulesDueBetween(ctx context.Context, dueBefore pgtype.Date) ([]ListSchedulesDueBetweenRow, error) {
+	rows, err := q.db.Query(ctx, listSchedulesDueBetween, dueBefore)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListSchedulesDueBetweenRow{}
+	for rows.Next() {
+		var i ListSchedulesDueBetweenRow
+		if err := rows.Scan(
+			&i.MaintenanceMaintenanceSchedule.ID,
+			&i.MaintenanceMaintenanceSchedule.AssetID,
+			&i.MaintenanceMaintenanceSchedule.MaintenanceCategoryID,
+			&i.MaintenanceMaintenanceSchedule.IntervalMonths,
+			&i.MaintenanceMaintenanceSchedule.LastDoneDate,
+			&i.MaintenanceMaintenanceSchedule.NextDueDate,
+			&i.MaintenanceMaintenanceSchedule.IsActive,
+			&i.MaintenanceMaintenanceSchedule.CreatedAt,
+			&i.MaintenanceMaintenanceSchedule.UpdatedAt,
+			&i.MaintenanceMaintenanceSchedule.DeletedAt,
+			&i.AssetName,
+			&i.AssetTag,
+			&i.OfficeID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const softDeleteMaintSchedule = `-- name: SoftDeleteMaintSchedule :execrows
 UPDATE maintenance.maintenance_schedules
 SET deleted_at = now()

@@ -25,6 +25,10 @@ services:
   redis:
     image: redis:7-alpine
     container_name: inventra-redis
+    # AOF on: the notification relay publishes to a Redis Stream, and the default
+    # RDB-only config can drop a snapshot window on crash. See ADR + spec
+    # docs/superpowers/specs/2026-07-17-notifications-design.md.
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
     ports:
       - "6379:6379"
     volumes:

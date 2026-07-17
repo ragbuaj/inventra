@@ -178,6 +178,22 @@ tags:
       created — another caller's job id returns 403. Row validation is scoped to the
       caller's offices (data-scope module `imports`). `GET /imports/template` and
       `GET /imports/{id}/error-report` stream binary CSV/xlsx downloads.
+  - name: Notifications
+    description: |
+      The per-user notification feed. Unlike every other module these endpoints
+      require **no permission key and no data scope**: ownership is the whole
+      authorization model, and each endpoint reads or writes only the
+      authenticated caller's own rows (`user_id = caller`).
+
+      Each notification carries a `type` and a free-form `params` object; the
+      client renders the message text from that pair against its i18n catalogue,
+      so the message string itself is never stored or sent. `entity_type` and
+      `entity_id` link the notification to the record it is about.
+
+      Because ownership is enforced in the query predicate, acting on a
+      notification owned by another user is **indistinguishable from acting on
+      one that does not exist** — both return 404, never 403, so the response
+      cannot confirm an id exists.
 
 paths:
   /health:
@@ -4795,6 +4811,91 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { description: Not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
 
+  /api/v1/notifications:
+    get:
+      tags: [Notifications]
+      operationId: listNotifications
+      summary: List the caller's notifications
+      description: |
+        Returns a page of the authenticated caller's own notifications, newest
+        first. No permission key is required, and another user's notifications
+        are never returned. The optional `read` filter narrows the feed; omit it
+        for everything. `total` counts the rows matching the same filter, not the
+        page.
+      security:
+        - bearerJWT: []
+      parameters:
+        - { name: read, in: query, schema: { type: boolean }, description: '`false` returns unread only, `true` returns read only. Omit for the whole feed.' }
+        - { name: limit, in: query, schema: { type: integer, default: 20, minimum: 1, maximum: 100 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0, minimum: 0 } }
+      responses:
+        "200":
+          description: A page of the caller's notifications
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/notifications/unread-count:
+    get:
+      tags: [Notifications]
+      operationId: countUnreadNotifications
+      summary: Unread notification count for the bell badge
+      description: Returns how many of the caller's own notifications are unread. Same shape as `GET /requests/inbox/count`.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [count]
+                properties:
+                  count: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/notifications/read-all:
+    post:
+      tags: [Notifications]
+      operationId: markAllNotificationsRead
+      summary: Mark every unread notification read
+      description: Marks all of the caller's own unread notifications read. Never touches another user's rows. Idempotent — an already-empty unread list still returns 204.
+      security:
+        - bearerJWT: []
+      responses:
+        "204": { description: All of the caller's notifications are now read }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/notifications/{id}/read:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Notifications]
+      operationId: markNotificationRead
+      summary: Mark one notification read
+      description: |
+        Marks a single notification read and returns it. Idempotent — re-marking
+        an already-read notification succeeds.
+
+        `user_id` is part of the update predicate, so an id owned by another user
+        matches no row and returns **404, not 403** — the response is byte-for-byte
+        identical to that of an id which does not exist, and so cannot be used to
+        probe for real ids. A soft-deleted (auto-resolved) notification returns 404
+        the same way.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The notification, now read
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Notification" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { description: 'No such notification for this caller (also returned when the id belongs to another user)', content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
 components:
   securitySchemes:
     bearerJWT:
@@ -5168,6 +5269,37 @@ components:
         data:
           type: array
           items: { $ref: "#/components/schemas/Category" }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+
+    Notification:
+      type: object
+      required: [id, type, params, entity_type, entity_id, read_at, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        type:
+          type: string
+          enum: [approval_pending, approval_decided, maintenance_due, asset_returned]
+        params:
+          type: object
+          additionalProperties: true
+          description: 'Free-form values the client interpolates into the localized message for `type` (e.g. `{ "asset": "Laptop Dell", "when": "2026-07-20" }`). Never a message string.'
+        entity_type:
+          type: string
+          nullable: true
+          description: 'The kind of record this notification is about (e.g. `assets`, `requests`), used to build the click-through link.'
+        entity_id: { type: string, format: uuid, nullable: true }
+        read_at: { type: string, format: date-time, nullable: true, description: Null while unread. }
+        created_at: { type: string, format: date-time }
+
+    NotificationList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/Notification" }
         total: { type: integer }
         limit: { type: integer }
         offset: { type: integer }

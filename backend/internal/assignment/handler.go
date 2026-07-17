@@ -95,12 +95,12 @@ func (h *Handler) checkin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	_, all, ids, err := h.caller(c)
+	caller, all, ids, err := h.caller(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
 		return
 	}
-	before, after, err := h.svc.Checkin(c.Request.Context(), all, ids, id, CheckinInput{
+	before, after, err := h.svc.Checkin(c.Request.Context(), all, ids, id, caller.UserID, CheckinInput{
 		CheckinDate: req.CheckinDate, ConditionIn: req.ConditionIn, NeedsMaintenance: req.NeedsMaintenance,
 	})
 	if err != nil {

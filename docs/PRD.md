@@ -440,7 +440,7 @@ import       → import massal CSV/XLSX (aset & master data): template, validasi
 |---|---|
 | Bahasa/Framework | Go 1.25 · Gin |
 | Database | PostgreSQL 16 |
-| Cache & state | **Redis 7** (caching, session/token, rate limiting, token TTL, notifikasi) |
+| Cache & state | **Redis 7** (caching, session/token, rate limiting, token TTL, transport notifikasi via Streams — lihat ADR-0014) |
 | Query | sqlc |
 | Migrasi | golang-migrate |
 | Auth | JWT (access + refresh) + OAuth2 (Google login) |
@@ -455,7 +455,8 @@ import       → import massal CSV/XLSX (aset & master data): template, validasi
 - **Session/token**: penyimpanan **refresh token** + **denylist** access token (mendukung logout & pencabutan sesi), serta data sesi ringan.
 - **Rate limiting**: batasi percobaan **login** (anti brute-force) dan throttle API per user/IP.
 - **Token ber-TTL**: token **reset password**, **verifikasi email**, dan OTP (bila ada) dengan kedaluwarsa otomatis.
-- **Notifikasi & lock**: backing store notifikasi in-app (approval/maintenance) dan **distributed lock** untuk operasi sensitif (mis. generate `asset_tag` berurutan, penjadwal reminder/depresiasi) bila diperlukan.
+- **Notifikasi (transport, bukan penyimpanan)**: sejak modul notifikasi (ADR-0014), notifikasi in-app disimpan **permanen di PostgreSQL** (`notification.notifications`, feed per-user). Redis dipakai sebagai **transport** lewat **Redis Streams** dalam pola **transactional outbox** — event bisnis ditulis se-transaksi ke `notification.outbox`, relay mem-publish ke stream, consumer group mem-fan-out ke feed. Kehilangan Redis tidak menghilangkan notifikasi (relay mengirim ulang dari outbox). Ini menyelaraskan notifikasi dengan prinsip "Redis bukan sumber kebenaran" di bawah.
+- **Lock**: **distributed lock** untuk operasi sensitif (mis. penjadwal reminder/sweeper notifikasi, penutupan periode depresiasi) memakai **Postgres advisory lock** (`pg_advisory_xact_lock`, lihat ADR-0010 & ADR-0014), bukan lock Redis.
 
 > Catatan: Redis bersifat pelengkap, bukan sumber kebenaran. Kehilangan Redis tidak menyebabkan kehilangan data (PostgreSQL tetap otoritatif); sistem tetap berjalan dengan degradasi performa.
 
@@ -508,8 +509,8 @@ Tiap tahap fitur akan punya spec + plan implementasi tersendiri.
 ## 11. Asumsi & Pertanyaan Terbuka
 
 - **A1** — Storage file memakai **MinIO** (S3-compatible) sejak awal; gambar dikompres + dibuat thumbnail saat unggah.
-- **A1b** — **Redis** dipakai untuk caching, session/refresh-token + denylist, rate limiting, token ber-TTL, dan backing notifikasi/lock. Bersifat pelengkap (bukan sumber kebenaran).
-- **A2** — Notifikasi (maintenance & approval) bersifat in-app dulu; email menyusul.
+- **A1b** — **Redis** dipakai untuk caching, session/refresh-token + denylist, rate limiting, dan token ber-TTL. Bersifat pelengkap (bukan sumber kebenaran). **Diperbarui (ADR-0014):** notifikasi in-app **tidak** lagi disimpan di Redis — sumber kebenarannya PostgreSQL; Redis hanya **transport** (Redis Streams, pola outbox). Distributed lock memakai Postgres advisory lock, bukan Redis.
+- **A2** — Notifikasi (maintenance & approval) bersifat in-app dulu; email menyusul. **Terwujud (ADR-0014):** modul notifikasi in-app dibangun dengan empat jenis (`approval_pending`, `approval_decided`, `maintenance_due`, `asset_returned`); kanal email siap ditambah sebagai consumer group kedua di stream yang sama tanpa menyentuh produsen.
 - **A3** — Mata uang default IDR; format angka mengikuti lokal.
 - **A4** — Periode depresiasi/amortisasi dihitung bulanan, untuk **dua basis** (komersial & fiskal).
 - **A5** — Login Google memakai OAuth2 authorization-code; kredensial (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URL`) disimpan sebagai env var. User Google baru mendapat peran default Staf.

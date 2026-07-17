@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -98,6 +99,7 @@ func buildCaller(userID, roleID uuid.UUID, allScope bool, officeIDs []uuid.UUID)
 // and a shared category.
 type harness struct {
 	pool      *pgxpool.Pool
+	rdb       *redis.Client
 	q         *sqlc.Queries
 	apprSvc   *approval.Service
 	asvc      *assignment.Service
@@ -131,6 +133,7 @@ func newHarness(t *testing.T) *harness {
 
 	return &harness{
 		pool:      pool,
+		rdb:       rdb,
 		q:         q,
 		apprSvc:   apprSvc,
 		asvc:      asvc,
@@ -269,7 +272,7 @@ func TestAssignment_Checkin_returns_and_frees_asset(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	before, after, err := h.asvc.Checkin(ctx, false, []uuid.UUID{h.office}, a.ID, assignment.CheckinInput{})
+	before, after, err := h.asvc.Checkin(ctx, false, []uuid.UUID{h.office}, a.ID, manager, assignment.CheckinInput{})
 	require.NoError(t, err)
 	assert.Equal(t, sqlc.SharedAssignmentStatusActive, before.Status)
 	assert.Equal(t, sqlc.SharedAssignmentStatusReturned, after.Status)
@@ -291,7 +294,7 @@ func TestAssignment_Checkin_needs_maintenance_sets_under_maintenance(t *testing.
 	})
 	require.NoError(t, err)
 
-	_, after, err := h.asvc.Checkin(ctx, false, []uuid.UUID{h.office}, a.ID, assignment.CheckinInput{NeedsMaintenance: true})
+	_, after, err := h.asvc.Checkin(ctx, false, []uuid.UUID{h.office}, a.ID, manager, assignment.CheckinInput{NeedsMaintenance: true})
 	require.NoError(t, err)
 	assert.Equal(t, sqlc.SharedAssignmentStatusReturned, after.Status)
 
@@ -311,11 +314,11 @@ func TestAssignment_Checkin_rejects_non_active(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, _, err = h.asvc.Checkin(ctx, false, []uuid.UUID{h.office}, a.ID, assignment.CheckinInput{})
+	_, _, err = h.asvc.Checkin(ctx, false, []uuid.UUID{h.office}, a.ID, manager, assignment.CheckinInput{})
 	require.NoError(t, err)
 
 	// Check-in an already-returned assignment must fail.
-	_, _, err = h.asvc.Checkin(ctx, false, []uuid.UUID{h.office}, a.ID, assignment.CheckinInput{})
+	_, _, err = h.asvc.Checkin(ctx, false, []uuid.UUID{h.office}, a.ID, manager, assignment.CheckinInput{})
 	require.ErrorIs(t, err, assignment.ErrNotActive)
 }
 
@@ -460,7 +463,7 @@ func TestAssignment_ListByAsset_history(t *testing.T) {
 		AssetID: assetID, EmployeeID: emp1, CheckoutDate: "2026-07-01",
 	})
 	require.NoError(t, err)
-	_, _, err = h.asvc.Checkin(ctx, false, []uuid.UUID{h.office}, a1.ID, assignment.CheckinInput{})
+	_, _, err = h.asvc.Checkin(ctx, false, []uuid.UUID{h.office}, a1.ID, manager, assignment.CheckinInput{})
 	require.NoError(t, err)
 
 	// Cycle 2: checkout to emp2, then check in.
@@ -468,7 +471,7 @@ func TestAssignment_ListByAsset_history(t *testing.T) {
 		AssetID: assetID, EmployeeID: emp2, CheckoutDate: "2026-07-05",
 	})
 	require.NoError(t, err)
-	_, _, err = h.asvc.Checkin(ctx, false, []uuid.UUID{h.office}, a2.ID, assignment.CheckinInput{})
+	_, _, err = h.asvc.Checkin(ctx, false, []uuid.UUID{h.office}, a2.ID, manager, assignment.CheckinInput{})
 	require.NoError(t, err)
 
 	rows, err := h.asvc.ListByAsset(ctx, assetID, true, nil)

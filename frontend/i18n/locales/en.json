@@ -1536,6 +1536,7 @@
     "scopeOffice": "My office",
     "searchPlaceholder": "Search assets, employees, offices…",
     "dashboard": "Dashboard",
+    "notifications": "Notifications",
     "assets": "Assets",
     "assetCatalog": "Catalog",
     "assetImport": "Import",
@@ -1619,18 +1620,31 @@
   },
   "notifications": {
     "title": "Notifications",
+    "subtitle": "Every notification for your account.",
     "markRead": "Mark read",
+    "markAllRead": "Mark all as read",
+    "unreadCount": "{n} unread",
     "viewAll": "View all notifications",
     "empty": "No new notifications",
-    "item": {
-      "approvalPending": "A new lending request is awaiting approval",
-      "maintenanceDue": "Toyota Avanza maintenance is due tomorrow",
-      "assetReturned": "Asset INV-2024-0312 has been returned"
+    "emptyTitle": "No notifications yet",
+    "emptySub": {
+      "all": "Notifications about requests, maintenance, and assets will show up here.",
+      "unread": "You have read every notification.",
+      "read": "No notification has been read yet."
     },
-    "time": {
-      "fiveMinutesAgo": "5 minutes ago",
-      "oneHourAgo": "1 hour ago",
-      "threeHoursAgo": "3 hours ago"
+    "filter": {
+      "all": "All",
+      "unread": "Unread",
+      "read": "Read"
+    },
+    "loadError": "Failed to load notifications.",
+    "retry": "Retry",
+    "item": {
+      "approval_pending": "A {request_type} request is awaiting your approval (step {step})",
+      "approval_decided": "Your {request_type} request was {status}",
+      "maintenance_due": "Maintenance for {asset_name} ({asset_tag}) is due {due_date}",
+      "asset_returned": "Asset {asset_name} ({asset_tag}) has been returned",
+      "unknown": "New notification"
     }
   },
   "theme": {

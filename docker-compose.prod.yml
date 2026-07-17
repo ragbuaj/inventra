@@ -28,6 +28,10 @@ services:
     image: redis:7-alpine
     container_name: inventra-redis
     restart: unless-stopped
+    # AOF on: the notification relay publishes to a Redis Stream. The default
+    # RDB-only config can drop a snapshot window on crash; everysec bounds the
+    # loss window to ~1s. The outbox remains the source of truth either way.
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
     volumes:
       - inventra-redis:/data
     healthcheck:

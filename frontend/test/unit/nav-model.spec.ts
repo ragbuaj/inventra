@@ -97,7 +97,7 @@ const ROLE_PERMS: Record<string, string[]> = {
 // Hand-computed expected visible leaf routes per role (the test oracle).
 const EXPECTED_ROUTES: Record<string, string[]> = {
   superadmin: [
-    '/', '/assets', '/assets/import', '/assets/label', '/peminjaman', '/assignment',
+    '/', '/notifications', '/assets', '/assets/import', '/assets/label', '/peminjaman', '/assignment',
     '/stock-opname', '/transfers', '/disposals', '/depreciation', '/maintenance',
     '/approval', '/reports',
     '/master/offices', '/master/employees', '/master/categories', '/master/map',
@@ -106,22 +106,22 @@ const EXPECTED_ROUTES: Record<string, string[]> = {
     '/settings/field-permission', '/settings/audit'
   ],
   kepala_kanwil: [
-    '/', '/assets', '/assets/label', '/peminjaman', '/assignment', '/stock-opname',
+    '/', '/notifications', '/assets', '/assets/label', '/peminjaman', '/assignment', '/stock-opname',
     '/transfers', '/disposals', '/maintenance', '/approval', '/reports',
     '/master/offices', '/master/employees', '/master/map', '/master/import',
     '/settings/audit'
   ],
   kepala_unit: [
-    '/', '/assets', '/assets/label', '/peminjaman', '/assignment', '/stock-opname',
+    '/', '/notifications', '/assets', '/assets/label', '/peminjaman', '/assignment', '/stock-opname',
     '/transfers', '/disposals', '/maintenance', '/approval', '/reports',
     '/settings/audit'
   ],
   manager: [
-    '/', '/assets', '/assets/import', '/assets/label', '/peminjaman', '/assignment',
+    '/', '/notifications', '/assets', '/assets/import', '/assets/label', '/peminjaman', '/assignment',
     '/stock-opname', '/transfers', '/disposals', '/maintenance', '/approval', '/reports'
   ],
   staf: [
-    '/', '/assets', '/assets/label', '/peminjaman', '/maintenance', '/reports'
+    '/', '/notifications', '/assets', '/assets/label', '/peminjaman', '/maintenance', '/reports'
   ]
 }
 
@@ -136,8 +136,8 @@ describe('appNav — structure', () => {
     expect(appNav[1]!.labelKey).toBe('nav.group.administrasi')
   })
 
-  it('Operasional has 11 top-level items (Aset is a parent, the rest leaves)', () => {
-    expect(appNav[0]!.items).toHaveLength(11)
+  it('Operasional has 12 top-level items (Aset is a parent, the rest leaves)', () => {
+    expect(appNav[0]!.items).toHaveLength(12)
   })
 
   it('Administrasi has 2 parents: Master Data (6 children) and Pengaturan (5 children)', () => {
@@ -157,6 +157,17 @@ describe('appNav — structure', () => {
     const dash = appNav[0]!.items.find(i => i.labelKey === 'nav.dashboard')
     expect(dash?.to).toBe('/')
     expect(dash?.permission).toBeUndefined()
+  })
+
+  it('Notifikasi has no permission — the feed is per-user, not permission-gated', () => {
+    const notif = appNav[0]!.items.find(i => i.labelKey === 'nav.notifications')
+    expect(notif?.to).toBe('/notifications')
+    expect(notif?.permission).toBeUndefined()
+  })
+
+  it('Dashboard and Notifikasi are the only permission-free leaves', () => {
+    const free = ALL_ITEMS.filter(i => i.to && !i.permission).map(i => i.to)
+    expect(free.sort()).toEqual(['/', '/notifications'])
   })
 })
 

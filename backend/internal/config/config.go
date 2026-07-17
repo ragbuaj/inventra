@@ -84,6 +84,26 @@ type Config struct {
 	ImportWorkerEnabled bool
 	ImportWorkerPoll    time.Duration
 
+	// In-app notifications. The relay publishes the transactional outbox to a
+	// Redis Stream; the stream is transport, not storage, so it is trimmed to
+	// NotificationStreamMaxLen (approximate trimming).
+	//
+	// NotificationWorkerEnabled gates all three background components (relay,
+	// consumer, sweeper) as one unit: they form a single pipeline, and running
+	// any subset of it only produces a half-delivered backlog.
+	//
+	// NotificationClaimMinIdle is how long a message must sit unacked in the
+	// stream's Pending Entries List before another consumer may take it over;
+	// it must comfortably exceed a healthy processing time or a live consumer's
+	// in-flight message gets stolen mid-work. NotificationRetentionDays <= 0
+	// disables the retention purge without disabling the due scan.
+	NotificationWorkerEnabled bool
+	NotificationRelayPoll     time.Duration
+	NotificationStreamMaxLen  int64
+	NotificationClaimMinIdle  time.Duration
+	NotificationSweepPoll     time.Duration
+	NotificationRetentionDays int
+
 	// Email / SMTP (password reset + notifications).
 	MailEnabled      bool
 	SMTPHost         string
@@ -154,6 +174,13 @@ func Load() *Config {
 		ImportMaxBytes:      int64(getEnvInt("IMPORT_MAX_BYTES", 10*1024*1024)),
 		ImportWorkerEnabled: getEnvBool("IMPORT_WORKER_ENABLED", true),
 		ImportWorkerPoll:    getEnvDuration("IMPORT_WORKER_POLL", 2*time.Second),
+
+		NotificationWorkerEnabled: getEnvBool("NOTIFICATION_WORKER_ENABLED", true),
+		NotificationRelayPoll:     getEnvDuration("NOTIFICATION_RELAY_POLL", 2*time.Second),
+		NotificationStreamMaxLen:  int64(getEnvInt("NOTIFICATION_STREAM_MAXLEN", 10000)),
+		NotificationClaimMinIdle:  getEnvDuration("NOTIFICATION_CLAIM_MIN_IDLE", 60*time.Second),
+		NotificationSweepPoll:     getEnvDuration("NOTIFICATION_SWEEP_POLL", time.Hour),
+		NotificationRetentionDays: getEnvInt("NOTIFICATION_RETENTION_DAYS", 90),
 
 		MailEnabled:      getEnvBool("MAIL_ENABLED", false),
 		SMTPHost:         getEnv("SMTP_HOST", ""),

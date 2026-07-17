@@ -196,3 +196,19 @@ SELECT count(*)
 FROM approval.requests
 WHERE type = 'maintenance' AND status = 'pending' AND deleted_at IS NULL
   AND target_id = sqlc.arg(asset_id) AND requested_by_id = sqlc.arg(requested_by_id);
+
+-- name: ListSchedulesDueBetween :many
+-- Unscoped, unlimited sweep for the notification due-reminder job. Distinct from
+-- DashboardMaintenanceDueList, which is scope-filtered and hardcodes LIMIT 3 for
+-- the dashboard card, so it cannot drive a sweep.
+SELECT sqlc.embed(ms),
+       a.name      AS asset_name,
+       a.asset_tag AS asset_tag,
+       a.office_id AS office_id
+FROM maintenance.maintenance_schedules ms
+JOIN asset.assets a ON a.id = ms.asset_id AND a.deleted_at IS NULL
+WHERE ms.deleted_at IS NULL
+  AND ms.is_active
+  AND ms.next_due_date IS NOT NULL
+  AND ms.next_due_date <= sqlc.arg(due_before)::date
+ORDER BY ms.next_due_date ASC;

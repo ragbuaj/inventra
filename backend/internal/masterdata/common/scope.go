@@ -1,6 +1,8 @@
 package common
 
 import (
+	"context"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
@@ -8,6 +10,38 @@ import (
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/middleware"
 )
+
+// OfficeScopeFor translates a user's placement into the (allScope, officeIDs)
+// pair every scope-aware query takes, for the given data_scope_policies module.
+// allScope=true means no office filter (global); otherwise rows are limited to
+// the returned office IDs.
+//
+// This is the single implementation of the rule. It exists apart from
+// CallerOfficeScope because background workers (the notification fan-out and
+// sweeper, the approval notifiable inverse) resolve users outside any HTTP
+// request and so have no Gin context to resolve a caller from.
+//
+// The "own" branch is the reason a bare ScopeService.Resolve is not enough:
+// Resolve leaves OfficeIDs empty for "own", which a caller would read as "no
+// offices" and silently apply a narrower filter than intended.
+func OfficeScopeFor(ctx context.Context, scope *authz.ScopeService, roleID uuid.UUID, officeID *uuid.UUID, module string) (bool, []uuid.UUID, error) {
+	sc, err := scope.Resolve(ctx, roleID, officeID, module)
+	if err != nil {
+		return false, nil, err
+	}
+	switch sc.Level {
+	case sqlc.SharedScopeLevelGlobal:
+		return true, nil, nil
+	case sqlc.SharedScopeLevelOwn:
+		// For org-structure data, "own" resolves to the caller's own office.
+		if officeID != nil {
+			return false, []uuid.UUID{*officeID}, nil
+		}
+		return false, []uuid.UUID{}, nil
+	default: // office / office_subtree
+		return false, sc.OfficeIDs, nil
+	}
+}
 
 // ScopedDeps resolves the caller's office-based data scope for list/row filtering.
 // Resource handlers embed it to translate the caller into (allScope, officeIDs)
@@ -29,23 +63,7 @@ func (d ScopedDeps) CallerOfficeScope(c *gin.Context, module string) (bool, []uu
 	if err != nil {
 		return false, nil, err
 	}
-	sc, err := d.Scope.Resolve(c.Request.Context(), user.RoleID, user.OfficeID, module)
-	if err != nil {
-		return false, nil, err
-	}
-
-	switch sc.Level {
-	case sqlc.SharedScopeLevelGlobal:
-		return true, nil, nil
-	case sqlc.SharedScopeLevelOwn:
-		// For org-structure data, "own" resolves to the caller's own office.
-		if user.OfficeID != nil {
-			return false, []uuid.UUID{*user.OfficeID}, nil
-		}
-		return false, []uuid.UUID{}, nil
-	default: // office / office_subtree
-		return false, sc.OfficeIDs, nil
-	}
+	return OfficeScopeFor(c.Request.Context(), d.Scope, user.RoleID, user.OfficeID, module)
 }
 
 // InScope reports whether target is permitted under the caller's scope.
