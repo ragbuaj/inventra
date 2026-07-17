@@ -33,6 +33,9 @@ services:
   redis:
     image: redis:7-alpine
     container_name: inventra-redis
+    # AOF on: keeps dev/CI faithful to prod, where the notification stream needs
+    # durability the default RDB-only config does not give.
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
     ports:
       - "6379:6379"
     volumes:
