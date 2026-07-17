@@ -1,6 +1,7 @@
 // Package email sends transactional mail (password reset / change notices).
-// It is provider-agnostic: any SMTP relay works via Options, and a LogSender
-// fallback keeps dev/CI functional without a real relay.
+// It is provider-agnostic: an SMTP relay or the Resend HTTP API works via
+// Options, and a LogSender fallback keeps dev/CI functional without a real
+// provider.
 package email
 
 import (
@@ -15,9 +16,10 @@ type Sender interface {
 	Send(ctx context.Context, to, subject, htmlBody, textBody string) error
 }
 
-// Options configures the SMTP sender (mapped from env in the composition root).
+// Options configures the mail sender (mapped from env in the composition root).
 type Options struct {
 	Enabled  bool
+	Provider string // "smtp" (default) | "resend" | "log"
 	Host     string
 	Port     int
 	Username string
@@ -25,14 +27,33 @@ type Options struct {
 	From     string
 	FromName string
 	TLS      string // "none" | "starttls" | "tls"
+	APIKey   string // Resend API key (Provider == "resend")
 }
 
-// NewSender returns an SMTPSender when enabled with a host, else a LogSender.
+// NewSender selects the sender by Provider. Disabled mail always logs. Provider
+// "resend" needs an APIKey (falls back to LogSender with a warning if absent);
+// the default/"smtp" provider uses SMTP when a host is set, else logs. This
+// preserves the pre-Resend behavior for every deployment that doesn't set
+// EMAIL_PROVIDER.
 func NewSender(opts Options, logger *slog.Logger) Sender {
-	if !opts.Enabled || opts.Host == "" {
+	if !opts.Enabled {
 		return &LogSender{logger: logger, from: opts.From}
 	}
-	return &SMTPSender{opts: opts, logger: logger}
+	switch opts.Provider {
+	case "log":
+		return &LogSender{logger: logger, from: opts.From}
+	case "resend":
+		if opts.APIKey == "" {
+			logger.Warn("email provider 'resend' selected but RESEND_API_KEY is empty; using log sender")
+			return &LogSender{logger: logger, from: opts.From}
+		}
+		return NewResendSender(opts, logger)
+	default: // "" or "smtp"
+		if opts.Host == "" {
+			return &LogSender{logger: logger, from: opts.From}
+		}
+		return &SMTPSender{opts: opts, logger: logger}
+	}
 }
 
 // LogSender logs the message instead of sending — used in dev/CI without a relay.

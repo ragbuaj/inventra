@@ -189,6 +189,7 @@ func NewRouter(d Deps) (*gin.Engine, Workers) {
 
 		mailer := email.NewMailer(email.NewSender(email.Options{
 			Enabled:  d.Cfg.MailEnabled,
+			Provider: d.Cfg.EmailProvider,
 			Host:     d.Cfg.SMTPHost,
 			Port:     d.Cfg.SMTPPort,
 			Username: d.Cfg.SMTPUsername,
@@ -196,6 +197,7 @@ func NewRouter(d Deps) (*gin.Engine, Workers) {
 			From:     d.Cfg.SMTPFrom,
 			FromName: d.Cfg.SMTPFromName,
 			TLS:      d.Cfg.SMTPTLS,
+			APIKey:   d.Cfg.ResendAPIKey,
 		}, slog.Default()))
 		asyncMailer := email.NewAsyncMailer(mailer, slog.Default())
 		locator := d.GeoIP

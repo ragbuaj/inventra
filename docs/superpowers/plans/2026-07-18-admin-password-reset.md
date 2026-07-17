@@ -49,6 +49,24 @@ Setiap task diverifikasi hijau sebelum lanjut. Gate akhir: `go build/vet/test ./
   failure-safe (soft-delete). Reuse helper mailpit dari `password-reset.spec.ts`.
 - Verifikasi: `pnpm test:e2e` (spec ini), lalu jalankan suite penuh.
 
+## Task 7 — Email transport: Resend (HTTP API)
+
+Terpisah dari fitur reset (menguntungkan semua email). Grounding via agent-skill
+**source-driven-development** ke dokumentasi API Resend resmi sebelum menulis kode.
+
+- `internal/email/sender.go` (atau file baru `resend.go`): `ResendSender` implementasi `Sender`
+  lewat `POST https://api.resend.com/emails` (Bearer API key, JSON `{from,to,subject,html,text}`),
+  timeout + error jelas (status non-2xx lalu error dengan body ringkas, tanpa membocorkan API key).
+- Factory `NewSender`/`Options`: tambah pemilihan provider via env `EMAIL_PROVIDER=resend|smtp|log`
+  (default menjaga perilaku lama: smtp bila host di-set, else log). `resend` butuh `RESEND_API_KEY`.
+- `internal/config`: env `EMAIL_PROVIDER` + `RESEND_API_KEY`; map ke `email.Options`.
+- Dev/e2e tetap Mailpit SMTP (tak berubah). `.env.prod`/deploy docs: `EMAIL_PROVIDER=resend` +
+  `RESEND_API_KEY` (secret, gitignored).
+- Tests: `ResendSender.Send` sukses (mock HTTP server 200), error non-2xx, factory memilih provider
+  benar per env. API key tak pernah ter-log.
+- Docs: `docs/DEPLOYMENT.md` (bagian email) + ADR bila keputusan transport perlu dicatat.
+- Verifikasi: `go build/vet/test ./...`.
+
 ## Task 6 — Dokumentasi + finalisasi
 
 - `docs/PROGRESS.md`: centang follow-up "admin-initiated password reset" (item 69 carried candidate +
