@@ -53,10 +53,13 @@ export function useAuthApi() {
     // Prime the sidebar's live pending-approval badge and the notification bell
     // as soon as the session is established (covers login, Google OAuth
     // callback, and session restore on app boot — fetchMe() is the single choke
-    // point for all three). Both stores swallow their own fetch failures, so
-    // neither can break login.
-    await useInboxStore().refresh()
-    await useNotificationsStore().refresh()
+    // point for all three). These two refreshes are independent, so run them
+    // concurrently rather than one after the other — halving the added latency
+    // on the auth path. Still awaited (not fire-and-forget) so callers can rely
+    // on the badges being primed once fetchMe resolves, matching the prior
+    // contract. Both stores swallow their own fetch failures, so neither can
+    // break login.
+    await Promise.all([useInboxStore().refresh(), useNotificationsStore().refresh()])
   }
 
   async function logout(): Promise<void> {

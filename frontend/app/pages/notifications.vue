@@ -41,6 +41,13 @@ async function load() {
   loadError.value = false
   try {
     const page = await api.list({ read: readParam.value, limit: PAGE_SIZE, offset: offset.value })
+    // A mark-read on a filtered tab can shrink the set below the current offset,
+    // leaving this page empty though earlier pages still have rows. Fall back to
+    // page 1 (the offset watcher reloads) rather than showing a false empty-state.
+    if (page.data.length === 0 && offset.value > 0) {
+      offset.value = 0
+      return
+    }
     rows.value = page.data
     total.value = page.total
   } catch {
@@ -86,9 +93,12 @@ async function handleMarkAllRead() {
   markingAll.value = false
 }
 
+// Changing the filter resets to page 1. Load directly only when already on page
+// 1; otherwise just reset the offset and let its watcher do the single reload —
+// calling load() here as well would fire two identical requests.
 watch(filter, () => {
-  offset.value = 0
-  load()
+  if (offset.value === 0) load()
+  else offset.value = 0
 })
 watch(offset, () => load())
 onMounted(() => load())

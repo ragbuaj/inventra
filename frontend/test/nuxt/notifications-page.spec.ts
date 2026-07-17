@@ -356,6 +356,43 @@ describe('pages/notifications', () => {
       expect(lastPageQuery()).toEqual({ read: false, limit: PAGE_SIZE, offset: 0 })
     })
 
+    it('issues exactly one page query when the filter changes from a later page', async () => {
+      seed([maintenanceRow()], 60)
+      const w = await mountPage()
+
+      await w.findAll('[data-testid="pagination-page"]')[1]!.trigger('click')
+      await settle()
+      const before = pageQueries().length
+
+      await w.find('[data-testid="notifications-tab-unread"]').trigger('click')
+      await settle()
+      // The filter watcher resets the offset and lets the offset watcher reload:
+      // one query, not the two a redundant load() in both watchers would fire.
+      expect(pageQueries().length - before).toBe(1)
+    })
+
+    it('falls back to page 1 when a page beyond the shrunken data loads empty', async () => {
+      // Page 1 has data (total says 2 pages); any offset>0 comes back empty, as
+      // if a mark-read shrank the set below the current page. Keyed on offset
+      // rather than mockResolvedValueOnce, so the store's own refresh() list()
+      // calls cannot consume the queued value out from under the page.
+      listMock.mockImplementation((q: { offset?: number } = {}) =>
+        Promise.resolve((q.offset ?? 0) > 0
+          ? { data: [], total: 20, limit: PAGE_SIZE, offset: q.offset }
+          : { data: [maintenanceRow()], total: 40, limit: PAGE_SIZE, offset: 0 }))
+      unreadCountMock.mockResolvedValue(1)
+      const w = await mountPage()
+
+      await w.findAll('[data-testid="pagination-page"]')[1]!.trigger('click')
+      await settle()
+
+      // load() saw an empty page at offset>0 and fell back to page 1 instead of
+      // showing a false empty-state.
+      expect(lastPageQuery()!.offset).toBe(0)
+      expect(w.find('[data-testid="notifications-empty"]').exists()).toBe(false)
+      expect(w.findAll('[data-testid="notifications-row"]')).toHaveLength(1)
+    })
+
     it('shows the filter-specific empty copy on each tab', async () => {
       const w = await mountPage()
       expect(text(w)).toContain(EN_TEXT.emptySubAll)
