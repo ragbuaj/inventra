@@ -30,17 +30,22 @@ INSERT INTO notification.notifications
 VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT DO NOTHING;
 
+-- unread_only and read_only are mutually exclusive flags carrying the tri-state
+-- "read" filter: both false means no filter (the whole feed).
 -- name: ListNotifications :many
 SELECT * FROM notification.notifications
 WHERE user_id = @user_id AND deleted_at IS NULL
   AND (NOT @unread_only::boolean OR read_at IS NULL)
+  AND (NOT @read_only::boolean OR read_at IS NOT NULL)
 ORDER BY created_at DESC
 LIMIT @lim OFFSET @off;
 
+-- Same predicate as ListNotifications so total always matches the filtered page.
 -- name: CountNotifications :one
 SELECT count(*) FROM notification.notifications
 WHERE user_id = @user_id AND deleted_at IS NULL
-  AND (NOT @unread_only::boolean OR read_at IS NULL);
+  AND (NOT @unread_only::boolean OR read_at IS NULL)
+  AND (NOT @read_only::boolean OR read_at IS NOT NULL);
 
 -- name: CountUnreadNotifications :one
 SELECT count(*) FROM notification.notifications

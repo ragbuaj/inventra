@@ -39,6 +39,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/masterdata/office"
 	"github.com/ragbuaj/inventra/internal/masterdata/reference"
 	"github.com/ragbuaj/inventra/internal/middleware"
+	"github.com/ragbuaj/inventra/internal/notification"
 	"github.com/ragbuaj/inventra/internal/oauth"
 	"github.com/ragbuaj/inventra/internal/ratelimit"
 	"github.com/ragbuaj/inventra/internal/report"
@@ -275,6 +276,10 @@ func NewRouter(d Deps) (*gin.Engine, *importer.Worker) {
 			middleware.RequirePermission(permSvc, "report.view"),
 			middleware.RequirePermission(permSvc, "report.export"),
 		)
+
+		notificationSvc := notification.NewService(queries)
+		notificationHandler := notification.NewHandler(notificationSvc)
+		notification.RegisterRoutes(api, notificationHandler, requireAuth)
 
 		authzAdminSvc := authzadmin.NewService(queries, d.Pool, permSvc, scopeSvc, fieldSvc)
 		authzAdminHandler := authzadmin.NewHandler(authzAdminSvc, auditSvc)

@@ -49,6 +49,7 @@ type Querier interface {
 	CountImportRows(ctx context.Context, arg CountImportRowsParams) (int64, error)
 	CountMaintRecords(ctx context.Context, arg CountMaintRecordsParams) (int64, error)
 	CountMaintSchedules(ctx context.Context, arg CountMaintSchedulesParams) (int64, error)
+	// Same predicate as ListNotifications so total always matches the filtered page.
 	CountNotifications(ctx context.Context, arg CountNotificationsParams) (int64, error)
 	CountOffices(ctx context.Context, arg CountOfficesParams) (int64, error)
 	CountOpenEarlierPeriods(ctx context.Context, period pgtype.Date) (int64, error)
@@ -290,6 +291,8 @@ type Querier interface {
 	// (brand_id, name) pairs for the models importer's composite dupNama check
 	// (uq_models_brand_name).
 	ListModelsLookup(ctx context.Context) ([]ListModelsLookupRow, error)
+	// unread_only and read_only are mutually exclusive flags carrying the tri-state
+	// "read" filter: both false means no filter (the whole feed).
 	ListNotifications(ctx context.Context, arg ListNotificationsParams) ([]NotificationNotification, error)
 	// Flat id/name lookup for the office importer's "tipe" column. office_types
 	// has no code column (only name), so the importer matches by name only.

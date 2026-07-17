@@ -56,15 +56,18 @@ const countNotifications = `-- name: CountNotifications :one
 SELECT count(*) FROM notification.notifications
 WHERE user_id = $1 AND deleted_at IS NULL
   AND (NOT $2::boolean OR read_at IS NULL)
+  AND (NOT $3::boolean OR read_at IS NOT NULL)
 `
 
 type CountNotificationsParams struct {
 	UserID     uuid.UUID `json:"user_id"`
 	UnreadOnly bool      `json:"unread_only"`
+	ReadOnly   bool      `json:"read_only"`
 }
 
+// Same predicate as ListNotifications so total always matches the filtered page.
 func (q *Queries) CountNotifications(ctx context.Context, arg CountNotificationsParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countNotifications, arg.UserID, arg.UnreadOnly)
+	row := q.db.QueryRow(ctx, countNotifications, arg.UserID, arg.UnreadOnly, arg.ReadOnly)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -156,21 +159,26 @@ const listNotifications = `-- name: ListNotifications :many
 SELECT id, user_id, type, params, entity_type, entity_id, dedup_key, read_at, created_at, updated_at, deleted_at FROM notification.notifications
 WHERE user_id = $1 AND deleted_at IS NULL
   AND (NOT $2::boolean OR read_at IS NULL)
+  AND (NOT $3::boolean OR read_at IS NOT NULL)
 ORDER BY created_at DESC
-LIMIT $4 OFFSET $3
+LIMIT $5 OFFSET $4
 `
 
 type ListNotificationsParams struct {
 	UserID     uuid.UUID `json:"user_id"`
 	UnreadOnly bool      `json:"unread_only"`
+	ReadOnly   bool      `json:"read_only"`
 	Off        int32     `json:"off"`
 	Lim        int32     `json:"lim"`
 }
 
+// unread_only and read_only are mutually exclusive flags carrying the tri-state
+// "read" filter: both false means no filter (the whole feed).
 func (q *Queries) ListNotifications(ctx context.Context, arg ListNotificationsParams) ([]NotificationNotification, error) {
 	rows, err := q.db.Query(ctx, listNotifications,
 		arg.UserID,
 		arg.UnreadOnly,
+		arg.ReadOnly,
 		arg.Off,
 		arg.Lim,
 	)
