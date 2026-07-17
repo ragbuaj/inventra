@@ -1622,6 +1622,8 @@
     "markRead": "Tandai dibaca",
     "viewAll": "Lihat semua notifikasi",
     "empty": "Tidak ada notifikasi baru",
+    "loadError": "Gagal memuat notifikasi.",
+    "retry": "Coba lagi",
     "item": {
       "approval_pending": "Pengajuan {request_type} menunggu persetujuan Anda (tahap {step})",
       "approval_decided": "Pengajuan {request_type} Anda telah {status}",

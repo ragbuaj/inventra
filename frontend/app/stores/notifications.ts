@@ -10,7 +10,11 @@ export const BELL_PAGE_SIZE = 20
 export const useNotificationsStore = defineStore('notifications', {
   state: () => ({
     items: [] as NotificationRow[],
-    unreadCount: 0
+    unreadCount: 0,
+    /** True while a refresh is in flight — drives the bell's skeleton. */
+    loading: false,
+    /** True when the last refresh failed — drives the bell's retry block. */
+    error: false
   }),
   actions: {
     async refresh() {
@@ -23,9 +27,12 @@ export const useNotificationsStore = defineStore('notifications', {
       if (!auth.isAuthenticated) {
         this.items = []
         this.unreadCount = 0
+        this.loading = false
+        this.error = false
         return
       }
       const api = useNotifications()
+      this.loading = true
       try {
         const [page, count] = await Promise.all([
           api.list({ limit: BELL_PAGE_SIZE }),
@@ -35,10 +42,15 @@ export const useNotificationsStore = defineStore('notifications', {
         // leave a list and a badge that disagree with each other.
         this.items = page.data
         this.unreadCount = count
+        this.error = false
       } catch {
         // Keep the last known items/count rather than zeroing the badge on a
         // transient failure (precedent: stores/inbox.ts). useApiClient has
-        // already toasted the error.
+        // already toasted the error. The flag only lets the bell offer a retry
+        // when it has nothing else to show.
+        this.error = true
+      } finally {
+        this.loading = false
       }
     }
   }

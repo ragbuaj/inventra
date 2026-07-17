@@ -1622,6 +1622,8 @@
     "markRead": "Mark read",
     "viewAll": "View all notifications",
     "empty": "No new notifications",
+    "loadError": "Failed to load notifications.",
+    "retry": "Retry",
     "item": {
       "approval_pending": "A {request_type} request is awaiting your approval (step {step})",
       "approval_decided": "Your {request_type} request was {status}",
