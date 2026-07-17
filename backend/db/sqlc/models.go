@@ -671,6 +671,50 @@ func (ns NullSharedMaintenanceType) Value() (driver.Value, error) {
 	return string(ns.SharedMaintenanceType), nil
 }
 
+type SharedNotificationType string
+
+const (
+	SharedNotificationTypeApprovalPending SharedNotificationType = "approval_pending"
+	SharedNotificationTypeApprovalDecided SharedNotificationType = "approval_decided"
+	SharedNotificationTypeMaintenanceDue  SharedNotificationType = "maintenance_due"
+	SharedNotificationTypeAssetReturned   SharedNotificationType = "asset_returned"
+)
+
+func (e *SharedNotificationType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedNotificationType(s)
+	case string:
+		*e = SharedNotificationType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedNotificationType: %T", src)
+	}
+	return nil
+}
+
+type NullSharedNotificationType struct {
+	SharedNotificationType SharedNotificationType `json:"shared_notification_type"`
+	Valid                  bool                   `json:"valid"` // Valid is true if SharedNotificationType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedNotificationType) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedNotificationType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedNotificationType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedNotificationType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedNotificationType), nil
+}
+
 type SharedOpnameItemResult string
 
 const (
@@ -1551,6 +1595,32 @@ type MasterdataVendor struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type NotificationNotification struct {
+	ID         uuid.UUID              `json:"id"`
+	UserID     uuid.UUID              `json:"user_id"`
+	Type       SharedNotificationType `json:"type"`
+	Params     []byte                 `json:"params"`
+	EntityType *string                `json:"entity_type"`
+	EntityID   *uuid.UUID             `json:"entity_id"`
+	DedupKey   *string                `json:"dedup_key"`
+	ReadAt     pgtype.Timestamptz     `json:"read_at"`
+	CreatedAt  pgtype.Timestamptz     `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz     `json:"updated_at"`
+	DeletedAt  pgtype.Timestamptz     `json:"deleted_at"`
+}
+
+type NotificationOutbox struct {
+	ID            uuid.UUID          `json:"id"`
+	EventType     string             `json:"event_type"`
+	AggregateType string             `json:"aggregate_type"`
+	AggregateID   uuid.UUID          `json:"aggregate_id"`
+	Payload       []byte             `json:"payload"`
+	PublishedAt   pgtype.Timestamptz `json:"published_at"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt     pgtype.Timestamptz `json:"deleted_at"`
 }
 
 type StockopnameStockOpnameItem struct {

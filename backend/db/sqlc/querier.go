@@ -31,6 +31,9 @@ type Querier interface {
 	CheckoutAssignment(ctx context.Context, arg CheckoutAssignmentParams) (AssignmentAssignment, error)
 	ClaimConfirmedJob(ctx context.Context) (ImportImportJob, error)
 	ClaimPendingJob(ctx context.Context) (ImportImportJob, error)
+	// Same FOR UPDATE SKIP LOCKED claim the import worker uses, so two relays never
+	// publish the same row.
+	ClaimUnpublishedOutbox(ctx context.Context, limit int32) ([]NotificationOutbox, error)
 	ConfirmJob(ctx context.Context, id uuid.UUID) (ImportImportJob, error)
 	// Active = scheduled or in_progress. exclude_id lets the caller ignore the row
 	// it is about to transition (release check).
@@ -46,6 +49,7 @@ type Querier interface {
 	CountImportRows(ctx context.Context, arg CountImportRowsParams) (int64, error)
 	CountMaintRecords(ctx context.Context, arg CountMaintRecordsParams) (int64, error)
 	CountMaintSchedules(ctx context.Context, arg CountMaintSchedulesParams) (int64, error)
+	CountNotifications(ctx context.Context, arg CountNotificationsParams) (int64, error)
 	CountOffices(ctx context.Context, arg CountOfficesParams) (int64, error)
 	CountOpenEarlierPeriods(ctx context.Context, period pgtype.Date) (int64, error)
 	CountOpnameSessions(ctx context.Context, arg CountOpnameSessionsParams) (int64, error)
@@ -57,6 +61,7 @@ type Querier interface {
 	CountRequests(ctx context.Context, arg CountRequestsParams) (int64, error)
 	CountRoomsByFloor(ctx context.Context, arg CountRoomsByFloorParams) (int64, error)
 	CountTransfers(ctx context.Context, arg CountTransfersParams) (int64, error)
+	CountUnreadNotifications(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountUsers(ctx context.Context, arg CountUsersParams) (int64, error)
 	CountUsersByRole(ctx context.Context, roleID uuid.UUID) (int64, error)
 	CreateAsset(ctx context.Context, arg CreateAssetParams) (AssetAsset, error)
@@ -73,6 +78,10 @@ type Querier interface {
 	CreateMaintRecord(ctx context.Context, arg CreateMaintRecordParams) (MaintenanceMaintenanceRecord, error)
 	CreateMaintSchedule(ctx context.Context, arg CreateMaintScheduleParams) (MaintenanceMaintenanceSchedule, error)
 	CreateModel(ctx context.Context, arg CreateModelParams) (MasterdataModel, error)
+	// Notifications: the permanent per-user feed.
+	// ON CONFLICT DO NOTHING against uq_notif_dedup is what makes the at-least-once
+	// consumer safe -- redelivery cannot duplicate a row.
+	CreateNotification(ctx context.Context, arg CreateNotificationParams) error
 	CreateOffice(ctx context.Context, arg CreateOfficeParams) (MasterdataOffice, error)
 	CreateOpnameSession(ctx context.Context, arg CreateOpnameSessionParams) (StockopnameStockOpnameSession, error)
 	// Dedicated queries for the reference-target bulk importer (provinces, cities).
@@ -109,6 +118,9 @@ type Querier interface {
 	DeleteEntriesAfterWatermark(ctx context.Context, arg DeleteEntriesAfterWatermarkParams) error
 	// First-ever run (no watermark): clear everything ≤ target.
 	DeleteEntriesThrough(ctx context.Context, target pgtype.Date) error
+	// Outbox: written inside the caller's business transaction, so a rollback leaves
+	// no orphan event and a commit can never lose one.
+	EnqueueOutbox(ctx context.Context, arg EnqueueOutboxParams) (NotificationOutbox, error)
 	// F3 crash-window fix: an approval request for this import batch may already
 	// exist from a prior run that crashed between Submit committing and
 	// SetJobRequest persisting the request_id. Look it up by (target_entity,
@@ -278,6 +290,7 @@ type Querier interface {
 	// (brand_id, name) pairs for the models importer's composite dupNama check
 	// (uq_models_brand_name).
 	ListModelsLookup(ctx context.Context) ([]ListModelsLookupRow, error)
+	ListNotifications(ctx context.Context, arg ListNotificationsParams) ([]NotificationNotification, error)
 	// Flat id/name lookup for the office importer's "tipe" column. office_types
 	// has no code column (only name), so the importer matches by name only.
 	ListOfficeTypesLookup(ctx context.Context) ([]ListOfficeTypesLookupRow, error)
@@ -311,6 +324,10 @@ type Querier interface {
 	// bypasses the office filter; otherwise only rooms whose office is in office_ids
 	// are returned.
 	ListRoomsLookup(ctx context.Context, arg ListRoomsLookupParams) ([]ListRoomsLookupRow, error)
+	// Unscoped, unlimited sweep for the notification due-reminder job. Distinct from
+	// DashboardMaintenanceDueList, which is scope-filtered and hardcodes LIMIT 3 for
+	// the dashboard card, so it cannot drive a sweep.
+	ListSchedulesDueBetween(ctx context.Context, dueBefore pgtype.Date) ([]ListSchedulesDueBetweenRow, error)
 	ListThresholds(ctx context.Context) ([]ApprovalApprovalThreshold, error)
 	// Per-asset history, scoped by from- or to-office. Same enrichment as
 	// GetTransferEnriched/ListTransfersEnriched.
@@ -321,6 +338,13 @@ type Querier interface {
 	ListUnitNames(ctx context.Context) ([]string, error)
 	// User management queries (Superadmin). All respect soft delete.
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]IdentityUser, error)
+	// The inverse of the request-time permission check: given a permission key, who
+	// holds it? Needed to fan notifications out to concrete users, because every
+	// other authorization path here answers only "may THIS caller act?".
+	// Callers must still apply scope and SoD by running the existing eligibility
+	// predicate over each candidate -- deliberately not reimplemented in SQL, or the
+	// rules would drift from approval.eligibleToDecide.
+	ListUsersWithPermission(ctx context.Context, permissionKey string) ([]ListUsersWithPermissionRow, error)
 	ListValidImportRows(ctx context.Context, jobID uuid.UUID) ([]ImportImportRow, error)
 	// Vendor master data (masterdata.vendors). Vendors are managed via the generic
 	// reference engine; this file holds only bespoke queries needed by other
@@ -328,11 +352,23 @@ type Querier interface {
 	// Flat vendor lookup (id, name) for the asset importer. Vendors are not
 	// office-scoped, so the full non-deleted set is returned.
 	ListVendorsLookup(ctx context.Context) ([]ListVendorsLookupRow, error)
+	MarkAllNotificationsRead(ctx context.Context, userID uuid.UUID) error
+	// user_id is part of the predicate, not just the lookup: marking someone else's
+	// notification read must affect zero rows (the handler turns that into a 404).
+	MarkNotificationRead(ctx context.Context, arg MarkNotificationReadParams) (NotificationNotification, error)
+	// Only ever called after XADD succeeds: an unpublished row is retried next tick
+	// rather than lost.
+	MarkOutboxPublished(ctx context.Context, id uuid.UUID) error
 	MarkRowFailed(ctx context.Context, arg MarkRowFailedParams) error
 	MarkRowResult(ctx context.Context, arg MarkRowResultParams) error
 	// Approval / maker-checker queries (approval schema).
 	// See docs/DATABASE.md §4.5 and PRD §3.6 for schema context.
 	MatchThresholdSteps(ctx context.Context, arg MatchThresholdStepsParams) ([]ApprovalApprovalThreshold, error)
+	// Retention purge. Soft delete keeps the convention; because every index is
+	// partial on deleted_at IS NULL, purged rows leave the indexes entirely, so the
+	// feed and unread count stay fast however large the table grows.
+	PurgeNotifications(ctx context.Context, cutoff pgtype.Timestamptz) error
+	PurgeOutbox(ctx context.Context, cutoff pgtype.Timestamptz) error
 	RecoverStuckJobs(ctx context.Context) (int64, error)
 	// book value per category (top 8)
 	ReportAssetChart(ctx context.Context, arg ReportAssetChartParams) ([]ReportAssetChartRow, error)
@@ -435,6 +471,9 @@ type Querier interface {
 	SoftDeleteFieldPermissionsByRole(ctx context.Context, roleID uuid.UUID) (int64, error)
 	SoftDeleteFloor(ctx context.Context, arg SoftDeleteFloorParams) (int64, error)
 	SoftDeleteMaintSchedule(ctx context.Context, id uuid.UUID) (int64, error)
+	// Auto-resolve: a notification whose turn has passed is soft-deleted, not just
+	// marked read -- it cannot be acted on, so it should not sit in the feed.
+	SoftDeleteNotificationsByDedupPrefix(ctx context.Context, prefix *string) error
 	SoftDeleteOffice(ctx context.Context, arg SoftDeleteOfficeParams) (int64, error)
 	SoftDeleteRole(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteRolePermissionsByRole(ctx context.Context, roleID uuid.UUID) (int64, error)

@@ -172,7 +172,7 @@ arsip/partisi di masa depan. Follow-up tercatat.
 | Jenis | Penerima | Cara resolusi (di consumer) |
 |---|---|---|
 | `approval_pending` | Approver berhak di step berjalan | **Invers baru** (bagian 8) |
-| `approval_decided` | Maker pengajuan | `requests.maker_id` — sudah konkret |
+| `approval_decided` | Maker pengajuan | `requests.requested_by_id` — sudah konkret |
 | `maintenance_due` | User dengan `maintenance.manage` dalam scope kantor aset | Invers yang sama |
 | `asset_returned` | User yang meng-check-out | `assignments.assigned_by_id` — sudah konkret |
 
@@ -182,10 +182,14 @@ arsip/partisi di masa depan. Follow-up tercatat.
 -- name: ListUsersWithPermission :many
 SELECT u.id, u.role_id, u.office_id
 FROM identity.users u
-JOIN identity.role_permissions rp ON rp.role_id = u.role_id
-WHERE rp.permission = @permission
+JOIN identity.role_permissions rp
+  ON rp.role_id = u.role_id AND rp.deleted_at IS NULL
+WHERE rp.permission_key = @permission_key
   AND u.status = 'active' AND u.deleted_at IS NULL;
 ```
+
+Nama kolom terverifikasi langsung ke DB: `role_permissions.permission_key` (bukan `permission`),
+dan tabelnya punya `deleted_at` sehingga wajib difilter.
 
 Kandidat disaring **di Go** dengan predikat yang sudah ada, bukan SQL baru yang menduplikasi
 aturannya: `approval.Service` mendapat `NotifiableApprovers(ctx, req, step) ([]uuid.UUID, error)`
