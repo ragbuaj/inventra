@@ -50,10 +50,13 @@ export function useAuthApi() {
       employee_id: me.employee_id
     }
     auth.setSession(auth.accessToken as string, user, perms.permissions)
-    // Prime the sidebar's live pending-approval badge as soon as the session
-    // is established (covers login, Google OAuth callback, and session
-    // restore on app boot — fetchMe() is the single choke point for all three).
+    // Prime the sidebar's live pending-approval badge and the notification bell
+    // as soon as the session is established (covers login, Google OAuth
+    // callback, and session restore on app boot — fetchMe() is the single choke
+    // point for all three). Both stores swallow their own fetch failures, so
+    // neither can break login.
     await useInboxStore().refresh()
+    await useNotificationsStore().refresh()
   }
 
   async function logout(): Promise<void> {

@@ -1623,14 +1623,11 @@
     "viewAll": "Lihat semua notifikasi",
     "empty": "Tidak ada notifikasi baru",
     "item": {
-      "approvalPending": "Pengajuan peminjaman baru menunggu persetujuan",
-      "maintenanceDue": "Maintenance Toyota Avanza jatuh tempo besok",
-      "assetReturned": "Aset INV-2024-0312 berhasil dikembalikan"
-    },
-    "time": {
-      "fiveMinutesAgo": "5 menit lalu",
-      "oneHourAgo": "1 jam lalu",
-      "threeHoursAgo": "3 jam lalu"
+      "approval_pending": "Pengajuan {request_type} menunggu persetujuan Anda (tahap {step})",
+      "approval_decided": "Pengajuan {request_type} Anda telah {status}",
+      "maintenance_due": "Maintenance {asset_name} ({asset_tag}) jatuh tempo {due_date}",
+      "asset_returned": "Aset {asset_name} ({asset_tag}) telah dikembalikan",
+      "unknown": "Notifikasi baru"
     }
   },
   "theme": {

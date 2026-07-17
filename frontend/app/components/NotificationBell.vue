@@ -1,14 +1,24 @@
 <script setup lang="ts">
-const { t } = useI18n()
+import { notificationMeta, notificationI18nParams } from '~/constants/notificationMeta'
+import { formatRelativeTime } from '~/utils/format'
+
+// Minimal wiring only: the composable went sync -> async, so the old
+// `computed(() => notifs.list())` no longer type-checks or reacts. State now
+// comes from the store (primed at the fetchMe choke point). The full rewrite --
+// click to mark-read + navigate, "view all" -> /notifications, loading/error
+// states, mockup comparison -- is Task 15.
+const { t, locale } = useI18n()
 const notifs = useNotifications()
+const store = useNotificationsStore()
 
 const open = ref(false)
 
-const list = computed(() => notifs.list())
-const unread = computed(() => notifs.unreadCount())
+const list = computed(() => store.items)
+const unread = computed(() => store.unreadCount)
 
-function handleMarkRead() {
-  notifs.markAllRead()
+async function handleMarkRead() {
+  await notifs.markAllRead()
+  await store.refresh()
 }
 </script>
 
@@ -58,23 +68,23 @@ function handleMarkRead() {
             :key="n.id"
             :class="[
               'flex gap-[11px] px-[15px] py-3 border-b border-default cursor-pointer hover:bg-muted transition-colors',
-              !n.read ? 'bg-primary/5' : ''
+              !n.read_at ? 'bg-primary/5' : ''
             ]"
           >
             <span
-              :class="['w-8 h-8 rounded-[8px] flex items-center justify-center flex-none', n.iconBg]"
+              :class="['w-8 h-8 rounded-[8px] flex items-center justify-center flex-none', notificationMeta(n.type).iconBg]"
             >
               <UIcon
-                :name="n.icon"
-                :class="['size-[15px]', n.iconColor]"
+                :name="notificationMeta(n.type).icon"
+                :class="['size-[15px]', notificationMeta(n.type).iconColor]"
               />
             </span>
             <div class="min-w-0">
               <div class="text-[13px] font-medium leading-snug text-default">
-                {{ t(n.title) }}
+                {{ t(notificationMeta(n.type).i18nKey, notificationI18nParams(n, t)) }}
               </div>
               <div class="text-[12px] text-dimmed mt-0.5">
-                {{ t(n.time) }}
+                {{ formatRelativeTime(n.created_at, locale) }}
               </div>
             </div>
           </div>

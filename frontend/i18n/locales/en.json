@@ -1623,14 +1623,11 @@
     "viewAll": "View all notifications",
     "empty": "No new notifications",
     "item": {
-      "approvalPending": "A new lending request is awaiting approval",
-      "maintenanceDue": "Toyota Avanza maintenance is due tomorrow",
-      "assetReturned": "Asset INV-2024-0312 has been returned"
-    },
-    "time": {
-      "fiveMinutesAgo": "5 minutes ago",
-      "oneHourAgo": "1 hour ago",
-      "threeHoursAgo": "3 hours ago"
+      "approval_pending": "A {request_type} request is awaiting your approval (step {step})",
+      "approval_decided": "Your {request_type} request was {status}",
+      "maintenance_due": "Maintenance for {asset_name} ({asset_tag}) is due {due_date}",
+      "asset_returned": "Asset {asset_name} ({asset_tag}) has been returned",
+      "unknown": "New notification"
     }
   },
   "theme": {
