@@ -58,7 +58,7 @@ const ROLE_PERMS: Record<string, string[]> = {
 
 const EXPECTED_ROUTES: Record<string, string[]> = {
   superadmin: [
-    '/', '/assets', '/assets/import', '/assets/label', '/peminjaman', '/assignment',
+    '/', '/notifications', '/assets', '/assets/import', '/assets/label', '/peminjaman', '/assignment',
     '/stock-opname', '/transfers', '/disposals', '/depreciation', '/maintenance',
     '/approval', '/reports',
     '/master/offices', '/master/employees', '/master/categories', '/master/map',
@@ -67,22 +67,22 @@ const EXPECTED_ROUTES: Record<string, string[]> = {
     '/settings/field-permission', '/settings/audit'
   ],
   kepala_kanwil: [
-    '/', '/assets', '/assets/label', '/peminjaman', '/assignment', '/stock-opname',
+    '/', '/notifications', '/assets', '/assets/label', '/peminjaman', '/assignment', '/stock-opname',
     '/transfers', '/disposals', '/maintenance', '/approval', '/reports',
     '/master/offices', '/master/employees', '/master/map', '/master/import',
     '/settings/audit'
   ],
   kepala_unit: [
-    '/', '/assets', '/assets/label', '/peminjaman', '/assignment', '/stock-opname',
+    '/', '/notifications', '/assets', '/assets/label', '/peminjaman', '/assignment', '/stock-opname',
     '/transfers', '/disposals', '/maintenance', '/approval', '/reports',
     '/settings/audit'
   ],
   manager: [
-    '/', '/assets', '/assets/import', '/assets/label', '/peminjaman', '/assignment',
+    '/', '/notifications', '/assets', '/assets/import', '/assets/label', '/peminjaman', '/assignment',
     '/stock-opname', '/transfers', '/disposals', '/maintenance', '/approval', '/reports'
   ],
   staf: [
-    '/', '/assets', '/assets/label', '/peminjaman', '/maintenance', '/reports'
+    '/', '/notifications', '/assets', '/assets/label', '/peminjaman', '/maintenance', '/reports'
   ]
 }
 

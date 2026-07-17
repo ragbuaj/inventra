@@ -18,6 +18,15 @@ export const appNav: NavGroup[] = [
         to: '/'
       },
       {
+        // No `permission`: the notification feed is per-user and every
+        // authenticated user has one (the endpoints are RequireAuth-only). The
+        // entry also feeds AppTopbar's breadcrumb — without it the page title
+        // would fall back to the app name.
+        labelKey: 'nav.notifications',
+        icon: 'i-lucide-bell',
+        to: '/notifications'
+      },
+      {
         labelKey: 'nav.assets',
         icon: 'i-lucide-package',
         children: [

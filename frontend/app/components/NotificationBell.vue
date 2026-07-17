@@ -1,35 +1,18 @@
 <script setup lang="ts">
-import { notificationMeta, notificationI18nParams, notificationLink } from '~/constants/notificationMeta'
 import type { NotificationRow } from '~/composables/api/useNotifications'
-import { formatRelativeTime } from '~/utils/format'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const localePath = useLocalePath()
-const can = useCan()
 const notifs = useNotifications()
 const store = useNotificationsStore()
+// The /approval authorization gate is shared with pages/notifications.vue so
+// the two feeds can never disagree about what is navigable.
+const { resolveLink } = useNotificationLink()
 
 const open = ref(false)
 
 const list = computed(() => store.items)
 const unread = computed(() => store.unreadCount)
-
-/**
- * Where a row navigates to, or null when it is not navigable.
- *
- * notificationLink() answers with the route the entity lives on; the extra gate
- * here is authorization. `requests` rows resolve to /approval, which is gated on
- * `request.decide` (definePageMeta in pages/approval.vue). An `approval_pending`
- * recipient always holds that permission, but an `approval_decided` recipient is
- * the MAKER, who often does not — sending them there would land them on a 403.
- * There is no maker-facing request-detail route today, so such a row is
- * click-to-mark-read only.
- */
-function resolveLink(n: NotificationRow): string | null {
-  const link = notificationLink(n)
-  if (link === '/approval' && !can('request.decide')) return null
-  return link
-}
 
 async function markReadOnce(n: NotificationRow) {
   if (n.read_at) return
@@ -118,33 +101,13 @@ async function handleViewAll() {
           </div>
 
           <template v-else-if="list.length > 0">
-            <button
+            <NotificationItem
               v-for="n in list"
               :key="n.id"
-              :class="[
-                'flex gap-[11px] w-full px-[15px] py-3 border-b border-default text-left cursor-pointer hover:bg-muted transition-colors',
-                !n.read_at ? 'bg-primary/5' : ''
-              ]"
-              data-testid="notification-row"
-              @click="handleRowClick(n)"
-            >
-              <span
-                :class="['w-8 h-8 rounded-[8px] flex items-center justify-center flex-none', notificationMeta(n.type).iconBg]"
-              >
-                <UIcon
-                  :name="notificationMeta(n.type).icon"
-                  :class="['size-[15px]', notificationMeta(n.type).iconColor]"
-                />
-              </span>
-              <div class="min-w-0">
-                <div class="text-[13px] font-medium leading-snug text-default">
-                  {{ t(notificationMeta(n.type).i18nKey, notificationI18nParams(n, t)) }}
-                </div>
-                <div class="text-[12px] text-dimmed mt-0.5">
-                  {{ formatRelativeTime(n.created_at, locale) }}
-                </div>
-              </div>
-            </button>
+              :notification="n"
+              dense
+              @select="handleRowClick"
+            />
           </template>
 
           <div

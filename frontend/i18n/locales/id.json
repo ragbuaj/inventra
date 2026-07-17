@@ -1536,6 +1536,7 @@
     "scopeOffice": "Kantor saya",
     "searchPlaceholder": "Cari aset, pegawai, kantor…",
     "dashboard": "Dasbor",
+    "notifications": "Notifikasi",
     "assets": "Aset",
     "assetCatalog": "Katalog",
     "assetImport": "Import",
@@ -1619,9 +1620,23 @@
   },
   "notifications": {
     "title": "Notifikasi",
+    "subtitle": "Semua notifikasi untuk akun Anda.",
     "markRead": "Tandai dibaca",
+    "markAllRead": "Tandai semua dibaca",
+    "unreadCount": "{n} belum dibaca",
     "viewAll": "Lihat semua notifikasi",
     "empty": "Tidak ada notifikasi baru",
+    "emptyTitle": "Belum ada notifikasi",
+    "emptySub": {
+      "all": "Notifikasi tentang pengajuan, maintenance, dan aset akan muncul di sini.",
+      "unread": "Semua notifikasi sudah dibaca.",
+      "read": "Belum ada notifikasi yang dibaca."
+    },
+    "filter": {
+      "all": "Semua",
+      "unread": "Belum dibaca",
+      "read": "Sudah dibaca"
+    },
     "loadError": "Gagal memuat notifikasi.",
     "retry": "Coba lagi",
     "item": {

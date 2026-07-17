@@ -1536,6 +1536,7 @@
     "scopeOffice": "My office",
     "searchPlaceholder": "Search assets, employees, offices…",
     "dashboard": "Dashboard",
+    "notifications": "Notifications",
     "assets": "Assets",
     "assetCatalog": "Catalog",
     "assetImport": "Import",
@@ -1619,9 +1620,23 @@
   },
   "notifications": {
     "title": "Notifications",
+    "subtitle": "Every notification for your account.",
     "markRead": "Mark read",
+    "markAllRead": "Mark all as read",
+    "unreadCount": "{n} unread",
     "viewAll": "View all notifications",
     "empty": "No new notifications",
+    "emptyTitle": "No notifications yet",
+    "emptySub": {
+      "all": "Notifications about requests, maintenance, and assets will show up here.",
+      "unread": "You have read every notification.",
+      "read": "No notification has been read yet."
+    },
+    "filter": {
+      "all": "All",
+      "unread": "Unread",
+      "read": "Read"
+    },
     "loadError": "Failed to load notifications.",
     "retry": "Retry",
     "item": {
