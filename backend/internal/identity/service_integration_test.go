@@ -240,6 +240,36 @@ func TestConfirmEmailChange_EmailTakenMeanwhile_ErrEmailInUse(t *testing.T) {
 	}
 }
 
+func TestAdminInitiatePasswordReset_Success_SavesTokenAndSendsMail(t *testing.T) {
+	u := activeUserEmail(t, "target@x.com")
+	fs := &fakeStore{byID: map[uuid.UUID]sqlc.IdentityUser{u.ID: u}}
+	fm := &fakeMailer{}
+	svc, store := newIntegrationService(t, fs, fm)
+
+	email, err := svc.AdminInitiatePasswordReset(context.Background(), u.ID)
+	if err != nil {
+		t.Fatalf("AdminInitiatePasswordReset: %v", err)
+	}
+	if email != "target@x.com" {
+		t.Fatalf("want returned email target@x.com, got %q", email)
+	}
+	if fm.resetTo != "target@x.com" {
+		t.Fatalf("want reset mail sent to target@x.com, got %q", fm.resetTo)
+	}
+	if fm.resetLink == "" || !strings.Contains(fm.resetLink, "token=") {
+		t.Fatalf("want a reset link with a token, got %q", fm.resetLink)
+	}
+	// The saved token must be consumable exactly once and map to the target user.
+	rawToken := fm.resetLink[strings.Index(fm.resetLink, "token=")+len("token="):]
+	gotID, err := store.ConsumePasswordReset(context.Background(), auth.HashResetToken(rawToken))
+	if err != nil {
+		t.Fatalf("ConsumePasswordReset: %v", err)
+	}
+	if gotID != u.ID.String() {
+		t.Fatalf("token maps to %q, want %q", gotID, u.ID.String())
+	}
+}
+
 func TestRequestPasswordChange_Success_SavesTokenAndSendsMail(t *testing.T) {
 	u := activeUserEmail(t, "u@x.com")
 	fs := &fakeStore{byID: map[uuid.UUID]sqlc.IdentityUser{u.ID: u}}

@@ -19,10 +19,28 @@ import (
 	"github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/authz"
+	"github.com/ragbuaj/inventra/internal/identity"
 	"github.com/ragbuaj/inventra/internal/middleware"
 	"github.com/ragbuaj/inventra/internal/testsupport"
 	"github.com/ragbuaj/inventra/internal/user"
 )
+
+// fakeResetInitiator stubs the admin password-reset initiator so the user
+// handler tests need no real Redis/mailer. Configure email (returned on
+// success) or err (returned instead); calledWith records the target id.
+type fakeResetInitiator struct {
+	email      string
+	err        error
+	calledWith uuid.UUID
+}
+
+func (f *fakeResetInitiator) AdminInitiatePasswordReset(_ context.Context, id uuid.UUID) (string, error) {
+	f.calledWith = id
+	if f.err != nil {
+		return "", f.err
+	}
+	return f.email, nil
+}
 
 // seedUserDirect inserts an identity.users row directly and returns its id.
 func seedUserDirect(t *testing.T, pool *pgxpool.Pool, roleID uuid.UUID, email string) uuid.UUID {
@@ -127,7 +145,7 @@ func TestUser_FieldMasking_HandlerWiring(t *testing.T) {
 	svc := user.NewService(q)
 	fieldSvc := authz.NewFieldService(q, rdb)
 	auditSvc := audit.NewService(q)
-	h := user.NewHandler(svc, fieldSvc, auditSvc)
+	h := user.NewHandler(svc, fieldSvc, auditSvc, &fakeResetInitiator{})
 
 	// Deny view on "email" for this role on the "users" entity.
 	role := testsupport.SeedRole(t, pool, "r-user-masking")
@@ -194,7 +212,7 @@ func TestUser_FieldMasking_FailsClosed(t *testing.T) {
 	poisonQ := sqlc.New(poisonPool)
 	fieldSvc := authz.NewFieldService(poisonQ, rdb)
 
-	h := user.NewHandler(svc, fieldSvc, auditSvc)
+	h := user.NewHandler(svc, fieldSvc, auditSvc, &fakeResetInitiator{})
 	gin.SetMode(gin.TestMode)
 
 	// This role's field-permission cache is cold (first-ever lookup), so
@@ -235,7 +253,7 @@ func TestUser_FieldMasking_FailsClosed_InvalidRoleID(t *testing.T) {
 	svc := user.NewService(q)
 	fieldSvc := authz.NewFieldService(q, rdb)
 	auditSvc := audit.NewService(q)
-	h := user.NewHandler(svc, fieldSvc, auditSvc)
+	h := user.NewHandler(svc, fieldSvc, auditSvc, &fakeResetInitiator{})
 
 	role := testsupport.SeedRole(t, pool, "r-user-badrole")
 	testsupport.SeedFieldPermission(t, pool, role, "users", "email", false, false)
@@ -303,7 +321,7 @@ func TestUser_ListFilters_RoleOfficeStatus(t *testing.T) {
 	svc := user.NewService(q)
 	fieldSvc := authz.NewFieldService(q, rdb)
 	auditSvc := audit.NewService(q)
-	h := user.NewHandler(svc, fieldSvc, auditSvc)
+	h := user.NewHandler(svc, fieldSvc, auditSvc, &fakeResetInitiator{})
 
 	gin.SetMode(gin.TestMode)
 
@@ -383,7 +401,7 @@ func TestUser_Create_Success(t *testing.T) {
 	svc := user.NewService(q)
 	fieldSvc := authz.NewFieldService(q, rdb)
 	auditSvc := audit.NewService(q)
-	h := user.NewHandler(svc, fieldSvc, auditSvc)
+	h := user.NewHandler(svc, fieldSvc, auditSvc, &fakeResetInitiator{})
 	gin.SetMode(gin.TestMode)
 
 	role := testsupport.SeedRole(t, pool, "r-create-success")
@@ -423,7 +441,7 @@ func TestUser_Create_ValidationError(t *testing.T) {
 	svc := user.NewService(q)
 	fieldSvc := authz.NewFieldService(q, rdb)
 	auditSvc := audit.NewService(q)
-	h := user.NewHandler(svc, fieldSvc, auditSvc)
+	h := user.NewHandler(svc, fieldSvc, auditSvc, &fakeResetInitiator{})
 	gin.SetMode(gin.TestMode)
 
 	role := testsupport.SeedRole(t, pool, "r-create-validation")
@@ -489,7 +507,7 @@ func TestUser_Create_DuplicateEmail(t *testing.T) {
 	svc := user.NewService(q)
 	fieldSvc := authz.NewFieldService(q, rdb)
 	auditSvc := audit.NewService(q)
-	h := user.NewHandler(svc, fieldSvc, auditSvc)
+	h := user.NewHandler(svc, fieldSvc, auditSvc, &fakeResetInitiator{})
 	gin.SetMode(gin.TestMode)
 
 	role := testsupport.SeedRole(t, pool, "r-create-dup")
@@ -524,7 +542,7 @@ func TestUser_Update_Success(t *testing.T) {
 	svc := user.NewService(q)
 	fieldSvc := authz.NewFieldService(q, rdb)
 	auditSvc := audit.NewService(q)
-	h := user.NewHandler(svc, fieldSvc, auditSvc)
+	h := user.NewHandler(svc, fieldSvc, auditSvc, &fakeResetInitiator{})
 	gin.SetMode(gin.TestMode)
 
 	roleOld := testsupport.SeedRole(t, pool, "r-update-old")
@@ -564,7 +582,7 @@ func TestUser_Update_NotFound(t *testing.T) {
 	svc := user.NewService(q)
 	fieldSvc := authz.NewFieldService(q, rdb)
 	auditSvc := audit.NewService(q)
-	h := user.NewHandler(svc, fieldSvc, auditSvc)
+	h := user.NewHandler(svc, fieldSvc, auditSvc, &fakeResetInitiator{})
 	gin.SetMode(gin.TestMode)
 
 	role := testsupport.SeedRole(t, pool, "r-update-notfound")
@@ -591,7 +609,7 @@ func TestUser_Delete_Success(t *testing.T) {
 	svc := user.NewService(q)
 	fieldSvc := authz.NewFieldService(q, rdb)
 	auditSvc := audit.NewService(q)
-	h := user.NewHandler(svc, fieldSvc, auditSvc)
+	h := user.NewHandler(svc, fieldSvc, auditSvc, &fakeResetInitiator{})
 	gin.SetMode(gin.TestMode)
 
 	role := testsupport.SeedRole(t, pool, "r-delete-success")
@@ -630,7 +648,7 @@ func TestUser_Delete_NotFound(t *testing.T) {
 	svc := user.NewService(q)
 	fieldSvc := authz.NewFieldService(q, rdb)
 	auditSvc := audit.NewService(q)
-	h := user.NewHandler(svc, fieldSvc, auditSvc)
+	h := user.NewHandler(svc, fieldSvc, auditSvc, &fakeResetInitiator{})
 	gin.SetMode(gin.TestMode)
 
 	role := testsupport.SeedRole(t, pool, "r-delete-notfound")
@@ -639,4 +657,84 @@ func TestUser_Delete_NotFound(t *testing.T) {
 	code, respBody := doJSON(t, h, http.MethodDelete, "/api/v1/users/"+uuid.New().String(), role, actor, nil)
 	assert.Equal(t, http.StatusNotFound, code)
 	assert.Contains(t, respBody, "error")
+}
+
+// TestUser_ResetPassword_Success proves POST /users/:id/reset-password responds
+// 200 with {status:"sent", email}, forwards the target id to the initiator, and
+// records an audit entry (the seeded actor makes audit.Record's FK satisfiable).
+func TestUser_ResetPassword_Success(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+
+	q := sqlc.New(pool)
+	svc := user.NewService(q)
+	fieldSvc := authz.NewFieldService(q, rdb)
+	auditSvc := audit.NewService(q)
+	initiator := &fakeResetInitiator{email: "reset.target@test.local"}
+	h := user.NewHandler(svc, fieldSvc, auditSvc, initiator)
+	gin.SetMode(gin.TestMode)
+
+	role := testsupport.SeedRole(t, pool, "r-reset-success")
+	target := seedUserDirect(t, pool, role, "reset.target@test.local")
+	actor := seedUserDirect(t, pool, role, "actor.reset-success@test.local")
+
+	code, body := doJSON(t, h, http.MethodPost, "/api/v1/users/"+target.String()+"/reset-password", role, actor, nil)
+	require.Equal(t, http.StatusOK, code)
+	assert.Equal(t, "sent", body["status"])
+	assert.Equal(t, "reset.target@test.local", body["email"])
+	assert.Equal(t, target, initiator.calledWith, "handler must forward the target id to the initiator")
+
+	// The security-sensitive action must be audited (update-semantics on users).
+	var auditCount int
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`SELECT count(*) FROM audit.audit_logs WHERE entity_type = 'users' AND entity_id = $1 AND action = 'update'`, target).
+		Scan(&auditCount))
+	assert.Positive(t, auditCount, "admin password reset must write an audit entry")
+}
+
+// TestUser_ResetPassword_GoogleOnly proves a Google-only target (initiator
+// returns identity.ErrNoPasswordLogin) maps to 422, not a 500.
+func TestUser_ResetPassword_GoogleOnly(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+
+	q := sqlc.New(pool)
+	svc := user.NewService(q)
+	fieldSvc := authz.NewFieldService(q, rdb)
+	auditSvc := audit.NewService(q)
+	initiator := &fakeResetInitiator{err: identity.ErrNoPasswordLogin}
+	h := user.NewHandler(svc, fieldSvc, auditSvc, initiator)
+	gin.SetMode(gin.TestMode)
+
+	role := testsupport.SeedRole(t, pool, "r-reset-google")
+	target := seedUserDirect(t, pool, role, "reset.google@test.local")
+	actor := seedUserDirect(t, pool, role, "actor.reset-google@test.local")
+
+	code, respBody := doJSON(t, h, http.MethodPost, "/api/v1/users/"+target.String()+"/reset-password", role, actor, nil)
+	assert.Equal(t, http.StatusUnprocessableEntity, code)
+	assert.Contains(t, respBody, "error")
+}
+
+// TestUser_ResetPassword_NotFound proves POST /users/:id/reset-password responds
+// 404 for a missing user (handler fetches "before" via svc.Get first, so the
+// initiator is never called).
+func TestUser_ResetPassword_NotFound(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+
+	q := sqlc.New(pool)
+	svc := user.NewService(q)
+	fieldSvc := authz.NewFieldService(q, rdb)
+	auditSvc := audit.NewService(q)
+	initiator := &fakeResetInitiator{email: "unused@test.local"}
+	h := user.NewHandler(svc, fieldSvc, auditSvc, initiator)
+	gin.SetMode(gin.TestMode)
+
+	role := testsupport.SeedRole(t, pool, "r-reset-notfound")
+	actor := seedUserDirect(t, pool, role, "actor.reset-notfound@test.local")
+
+	code, respBody := doJSON(t, h, http.MethodPost, "/api/v1/users/"+uuid.New().String()+"/reset-password", role, actor, nil)
+	assert.Equal(t, http.StatusNotFound, code)
+	assert.Contains(t, respBody, "error")
+	assert.Equal(t, uuid.Nil, initiator.calledWith, "missing user must 404 before the initiator is called")
 }

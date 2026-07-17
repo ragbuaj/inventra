@@ -12,4 +12,5 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler, mws ...gin.HandlerFunc) {
 	g.GET("/:id", h.get)
 	g.PUT("/:id", h.update)
 	g.DELETE("/:id", h.delete)
+	g.POST("/:id/reset-password", h.resetPassword)
 }

@@ -28,6 +28,7 @@ var (
 	ErrSameEmail          = errors.New("new email must differ from the current email")
 	ErrInvalidInput       = errors.New("invalid input")
 	ErrNotFound           = errors.New("not found")
+	ErrNoPasswordLogin    = errors.New("account has no password login (Google-only)")
 )
 
 // userStore is the data surface the identity Service needs (seam for tests).
@@ -231,6 +232,42 @@ func (s *Service) RequestPasswordReset(ctx context.Context, email string) error 
 	}
 	link := s.frontendURL + "/reset-password?token=" + raw
 	return s.mail.SendPasswordReset(ctx, user.Email, user.Name, link)
+}
+
+// AdminInitiatePasswordReset issues a single-use reset token and emails the
+// reset link to the TARGET user, on behalf of an administrator acting from the
+// User Management screen (gated by user.manage at the route). Unlike the
+// self-service RequestPasswordReset it is NOT silent — the caller already knows
+// the user exists, so it returns clear errors (ErrNotFound / ErrNoPasswordLogin)
+// for the admin UI to surface, and returns the notified email on success.
+//
+// It is deliberately permissive about status: an inactive/suspended user that
+// still has a password login is emailed anyway (the status gate is enforced at
+// login time; an admin may legitimately reset a password before reactivating).
+// A Google-only account (no password hash) has nothing to reset and is rejected.
+func (s *Service) AdminInitiatePasswordReset(ctx context.Context, targetUserID uuid.UUID) (string, error) {
+	user, err := s.q.GetUserByID(ctx, targetUserID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", ErrNotFound
+		}
+		return "", err
+	}
+	if user.PasswordHash == nil {
+		return "", ErrNoPasswordLogin
+	}
+	raw, hash, err := auth.GenerateResetToken()
+	if err != nil {
+		return "", err
+	}
+	if err := s.store.SavePasswordReset(ctx, hash, user.ID.String(), s.resetTTL); err != nil {
+		return "", err
+	}
+	link := s.frontendURL + "/reset-password?token=" + raw
+	if err := s.mail.SendPasswordReset(ctx, user.Email, user.Name, link); err != nil {
+		return "", err
+	}
+	return user.Email, nil
 }
 
 // ResetPassword consumes a valid reset token and sets a new password. All

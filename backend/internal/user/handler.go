@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
@@ -11,19 +12,28 @@ import (
 	"github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/authz"
+	"github.com/ragbuaj/inventra/internal/identity"
 	"github.com/ragbuaj/inventra/internal/middleware"
 )
+
+// passwordResetInitiator issues an admin-initiated password reset (token +
+// email) for a target user. *identity.Service satisfies it; kept as a narrow
+// interface here so the handler stays testable without a real Redis/mailer.
+type passwordResetInitiator interface {
+	AdminInitiatePasswordReset(ctx context.Context, targetUserID uuid.UUID) (string, error)
+}
 
 // Handler exposes the user-management HTTP endpoints.
 type Handler struct {
 	svc    *Service
 	fields *authz.FieldService
 	aud    *audit.Service
+	reset  passwordResetInitiator
 }
 
 // NewHandler builds the user Handler.
-func NewHandler(svc *Service, fields *authz.FieldService, aud *audit.Service) *Handler {
-	return &Handler{svc: svc, fields: fields, aud: aud}
+func NewHandler(svc *Service, fields *authz.FieldService, aud *audit.Service, reset passwordResetInitiator) *Handler {
+	return &Handler{svc: svc, fields: fields, aud: aud, reset: reset}
 }
 
 // validUserStatuses are the accepted values for the `status` filter on
@@ -179,6 +189,37 @@ func (h *Handler) delete(c *gin.Context) {
 	}
 	audit.Record(c, h.aud, audit.ActionDelete, "users", id, before.OfficeID, audit.Diff(userToMap(before), nil))
 	c.Status(http.StatusNoContent)
+}
+
+// resetPassword issues an admin-initiated password reset: it generates a
+// single-use token and emails the reset link to the target user, who sets a new
+// password via the /reset-password page. The admin never sees or sets the
+// password. Gated by user.manage (route middleware).
+func (h *Handler) resetPassword(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	before, err := h.svc.Get(c.Request.Context(), id)
+	if err != nil {
+		h.svcError(c, err)
+		return
+	}
+	email, err := h.reset.AdminInitiatePasswordReset(c.Request.Context(), id)
+	if err != nil {
+		switch {
+		case errors.Is(err, identity.ErrNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		case errors.Is(err, identity.ErrNoPasswordLogin):
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "account signs in with Google; no password to reset"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to initiate password reset"})
+		}
+		return
+	}
+	audit.Record(c, h.aud, audit.ActionUpdate, "users", id, before.OfficeID, gin.H{"password_reset": "email_sent"})
+	c.JSON(http.StatusOK, gin.H{"status": "sent", "email": email})
 }
 
 // one builds a single field-filtered user record. On a field-policy lookup
