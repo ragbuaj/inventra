@@ -4,9 +4,11 @@ Dokumen kebutuhan produk untuk **aplikasi mobile companion** Inventra (Flutter).
 [PRD web](../PRD.md) agar mudah dibaca; PRD web tetap **otoritatif untuk domain** (peran, aturan
 bisnis, otorisasi, regulasi) — dokumen ini hanya mencakup klien mobile. Keputusan arsitektur:
 [ADR-0015](adr/0015-mobile-companion-flutter.md) (Flutter) dan
-[ADR-0016](adr/0016-stock-opname-offline-sync.md) (offline sync). Roadmap fase:
+[ADR-0016](adr/0016-stock-opname-offline-sync.md) (offline sync). Arsitektur klien:
+[ARCHITECTURE.md](ARCHITECTURE.md); konvensi kode: [CONVENTIONS.md](CONVENTIONS.md). Roadmap fase:
 `docs/superpowers/plans/2026-07-18-mobile-app-roadmap.md`. Design brief mockup:
-[DESIGN_BRIEF.md](DESIGN_BRIEF.md) (hasil di `docs/mobile/design/`).
+[DESIGN_BRIEF.md](DESIGN_BRIEF.md) (hasil di `docs/mobile/design/`). Indeks semua dokumen mobile:
+[README.md](README.md).
 
 Versi: **v1.0 (2026-07-18)** — scope dibuka via PRD web v1.2 (non-goal v1.1 dicabut).
 

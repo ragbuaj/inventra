@@ -1258,7 +1258,9 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     prompt kit mockup** `docs/mobile/DESIGN_BRIEF.md` (master brief mobile + component library +
 >     12 prompt per-layar, siap di-generate di Claude design; hasil ke `docs/mobile/design/`).
 >     **Belum ada kode** — pengembangan mulai dari fase M0 setelah dokumen di-merge.
-> 77. **Next session — start here: Mobile M0 prep** — generate mockup mobile dari prompt kit
+> 77. ~~**Next session — start here: Mobile M0 prep**~~ ✅ **Disela (2026-07-18): dokumentasi
+>     arsitektur & konvensi mobile dilengkapi dulu — lihat item 78; M0 prep pindah ke item 79.**
+>     Rincian lama: generate mockup mobile dari prompt kit
 >     `docs/mobile/DESIGN_BRIEF.md` (13 artifact, hasil ke `docs/mobile/design/`) lalu spec + plan
 >     fase M0 (scaffold Flutter `mobile/`, tema + i18n,
 >     navigasi shell, login/refresh/logout cookie-jar, CI analyze/test/APK). Kandidat lain yang dibawa:
@@ -1266,6 +1268,29 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     reset-password audit action** (migration); **pre-existing e2e failures** (`account` change-password
 >     modal, `maintenance` date-boundary); **GeoIP DB provisioning** (ops); notification follow-ups (SSE,
 >     retention archival, maker-route gap). Confirm priority before starting.
+> 78. ~~**Mobile companion — dokumentasi arsitektur & konvensi**~~ ✅ **DONE (2026-07-18, branch
+>     `feat/mobile-arch-docs`, PR #102).** Melengkapi dokumen mobile sebelum kode, di `docs/mobile/`:
+>     **ARCHITECTURE.md** — klien tipis, struktur folder feature-first (`lib/features/*` dengan
+>     `data/` + `presentation/`, aturan tanpa impor antar-fitur), Riverpod `AsyncNotifier` (tanpa
+>     codegen provider), go_router + deep-link push, Dio tiga interceptor (cookie jar, refresh
+>     single-flight, error mapper `AppFailure` sealed), drift `scan_queue` + sync engine (ADR-0016),
+>     auth/token lifecycle, FCM, tema token Material 3, observability, peta testing per lapisan;
+>     **CONVENTIONS.md** — Effective Dart + `flutter_lints` diperketat (`avoid_print` dkk., analyze
+>     nol warning), tabel penamaan (file/provider/DTO/tabel drift/kunci ARB), file generated
+>     di-commit (preseden sqlc), error handling wajib 3-cabang `AsyncValue`, konvensi tes ekspansif
+>     (unit/widget/golden light+dark/integration vs compose), git scope `feat(mobile):`, keamanan
+>     (secret via dart-define, larangan log token/PII); **README.md** — indeks peta dokumen mobile +
+>     dokumen menyusul yang disarankan (SETUP.md di M0, TESTING.md evaluasi M1, RELEASE.md di M6,
+>     katalog error API level repo). PRD mobile diberi penunjuk ke ketiganya. Belum ada kode.
+> 79. **Next session — start here: Mobile M0 prep** — generate mockup mobile dari prompt kit
+>     `docs/mobile/DESIGN_BRIEF.md` (13 artifact, hasil ke `docs/mobile/design/`) lalu spec + plan
+>     fase M0 (scaffold Flutter `mobile/`, tema + i18n, navigasi shell, login/refresh/logout
+>     cookie-jar, CI analyze/test/APK). Kandidat lain yang dibawa: room/floor import targets;
+>     Analytics/OLAP read layer; `/auth/me` `role_name`; admin reset-password audit action
+>     (migration); pre-existing e2e failures (`account` change-password modal, `maintenance`
+>     date-boundary); GeoIP DB provisioning (ops); notification follow-ups (SSE, retention archival,
+>     maker-route gap); sapuan simbol section di komentar kode backend (task chip terpisah).
+>     Confirm priority before starting.
 
 ## ✅ Done
 
@@ -1688,7 +1713,8 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > Scope dibuka pemilik produk 2026-07-18 (dulu non-goal v1.1). Bentuk: **field companion** Flutter
 > (Android dulu, folder `mobile/`). **Dokumentasi mobile dipisah di `docs/mobile/`**: PRD mobile
 > (`PRD.md`), ADR (`adr/0015` Flutter + `adr/0016` offline sync — penomoran global), design brief +
-> prompt kit (`DESIGN_BRIEF.md`). Rencana penuh: `docs/superpowers/plans/2026-07-18-mobile-app-roadmap.md`.
+> prompt kit (`DESIGN_BRIEF.md`), arsitektur klien (`ARCHITECTURE.md`), konvensi kode
+> (`CONVENTIONS.md`), dan indeks (`README.md`). Rencana penuh: `docs/superpowers/plans/2026-07-18-mobile-app-roadmap.md`.
 > Konvensi design-fidelity berlaku — mockup mobile (`docs/mobile/design/`) dibuat **sebelum** layar
 > dibangun; tiap fase dapat spec + plan.
 
