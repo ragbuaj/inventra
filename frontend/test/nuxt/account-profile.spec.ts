@@ -242,20 +242,46 @@ describe('Account page — Profil tab', () => {
       const w = await mountLoaded()
       await w.find('[data-testid="profile-edit"]').trigger('click')
       await flushPromises()
-      const block = w.find('[data-testid="profile-employee-detail"]')
-      expect(block.exists()).toBe(true)
-      expect(block.findAll('input')).toHaveLength(0)
-      expect(block.find('[data-testid="profile-employee-code"]').text()).toBe('PEG-0012')
+      expect(w.find('[data-testid="profile-employee-detail"]').exists()).toBe(true)
+      // Edit mode turns only nama + telepon into inputs; every employee field
+      // stays plain text.
+      for (const id of ['profile-employee-name', 'profile-employee-code', 'profile-department', 'profile-position']) {
+        expect(w.find(`[data-testid="${id}"]`).find('input').exists(), id).toBe(false)
+      }
+      expect(w.find('[data-testid="profile-employee-code"]').text()).toBe('PEG-0012')
+      // exactly the two editable fields, nothing more
+      const personalCard = w.findAll('.rounded-\\[14px\\]').find(c => c.text().includes('Data Diri'))
+      expect(personalCard!.findAll('input')).toHaveLength(2)
     })
   })
 
   describe('view/edit state', () => {
-    it('starts read-only: Edit button shown, Simpan/Batal hidden, inputs disabled', async () => {
+    it('starts read-only: Edit button shown, Simpan/Batal hidden, values render as plain text', async () => {
       const w = await mountLoaded()
       expect(w.find('[data-testid="profile-edit"]').exists()).toBe(true)
       expect(w.find('[data-testid="profile-save"]').exists()).toBe(false)
       expect(w.find('[data-testid="profile-cancel"]').exists()).toBe(false)
-      expect(w.find('[data-testid="profile-nama"]').attributes('disabled')).toBeDefined()
+      // Outside edit mode the card must not look like a form at all.
+      const nama = w.find('[data-testid="profile-nama"]')
+      expect(nama.element.tagName).not.toBe('INPUT')
+      expect(nama.find('input').exists()).toBe(false)
+      expect(nama.text()).toBe('Andi Saputra')
+      const telepon = w.find('[data-testid="profile-telepon"]')
+      expect(telepon.find('input').exists()).toBe(false)
+      expect(telepon.text()).toBe('0812-3456-7890')
+    })
+
+    it('renders no input at all in the Data Diri card outside edit mode', async () => {
+      profileResponse = { ...defaultProfileResponse, ...linkedEmployee }
+      const w = await mountLoaded()
+      const personalCard = w.findAll('.rounded-\\[14px\\]').find(c => c.text().includes('Data Diri'))
+      expect(personalCard!.findAll('input')).toHaveLength(0)
+    })
+
+    it('shows "—" for an empty phone in read mode rather than a blank field', async () => {
+      profileResponse = { ...defaultProfileResponse, phone: null }
+      const w = await mountLoaded()
+      expect(w.find('[data-testid="profile-telepon"]').text()).toBe('—')
     })
 
     it('places the Edit control inside the Data Diri card, since it only edits that card', async () => {
@@ -284,11 +310,13 @@ describe('Account page — Profil tab', () => {
       expect(w.text()).toContain('Andi Baru')
     })
 
-    it('clicking Edit enables the name input and swaps to Simpan/Batal', async () => {
+    it('clicking Edit swaps the text into a real input and shows Simpan/Batal', async () => {
       const w = await mountLoaded()
       await w.find('[data-testid="profile-edit"]').trigger('click')
       await flushPromises()
-      expect(w.find('[data-testid="profile-nama"]').attributes('disabled')).toBeUndefined()
+      const nama = w.find('[data-testid="profile-nama"]')
+      expect(nama.find('input').exists() || nama.element.tagName === 'INPUT').toBe(true)
+      expect(nama.attributes('disabled')).toBeUndefined()
       expect(w.find('[data-testid="profile-save"]').exists()).toBe(true)
       expect(w.find('[data-testid="profile-cancel"]').exists()).toBe(true)
       expect(w.find('[data-testid="profile-edit"]').exists()).toBe(false)
@@ -301,7 +329,9 @@ describe('Account page — Profil tab', () => {
       await w.find('[data-testid="profile-nama"]').setValue('Nama Berubah')
       await w.find('[data-testid="profile-cancel"]').trigger('click')
       await flushPromises()
-      expect((w.find('[data-testid="profile-nama"]').element as HTMLInputElement).value).toBe('Andi Saputra')
+      // Back in read mode the reverted value renders as text, not a field.
+      expect(w.find('[data-testid="profile-nama"]').text()).toBe('Andi Saputra')
+      expect(w.find('[data-testid="profile-nama"]').find('input').exists()).toBe(false)
       expect(w.find('[data-testid="profile-edit"]').exists()).toBe(true)
       expect(requestMock).not.toHaveBeenCalledWith('/auth/profile', expect.objectContaining({ method: 'PUT' }))
     })
@@ -340,10 +370,50 @@ describe('Account page — Profil tab', () => {
       expect(w.find('[data-testid="profile-telepon-hint"]').exists()).toBe(false)
     })
 
-    it('stays disabled (read-only) when hasEmployee is true but not editing', async () => {
+    it('renders as text (not a disabled field) when hasEmployee is true but not editing', async () => {
       profileResponse = { ...defaultProfileResponse, employee_id: 'e1' }
       const w = await mountLoaded()
-      expect(w.find('[data-testid="profile-telepon"]').attributes('disabled')).toBeDefined()
+      const telepon = w.find('[data-testid="profile-telepon"]')
+      expect(telepon.find('input').exists()).toBe(false)
+      expect(telepon.text()).toBe('0812-3456-7890')
+    })
+  })
+
+  describe('email placement', () => {
+    it('renders the email in the Informasi Akun card, not the Data Diri card', async () => {
+      profileResponse = { ...defaultProfileResponse, ...linkedEmployee }
+      const w = await mountLoaded()
+      const cards = w.findAll('.rounded-\\[14px\\]')
+      const accountCard = cards.find(c => c.text().includes('Informasi Akun'))
+      const personalCard = cards.find(c => c.text().includes('Data Diri'))
+      expect(accountCard!.find('[data-testid="profile-email"]').exists()).toBe(true)
+      expect(accountCard!.find('[data-testid="profile-email"]').text()).toBe('andi@inventra.local')
+      expect(personalCard!.find('[data-testid="profile-email"]').exists()).toBe(false)
+      expect(personalCard!.text()).not.toContain('andi@inventra.local')
+    })
+
+    it('keeps the Ubah Email button next to the email, in the account card', async () => {
+      const w = await mountLoaded()
+      const accountCard = w.findAll('.rounded-\\[14px\\]').find(c => c.text().includes('Informasi Akun'))
+      expect(accountCard!.find('[data-testid="profile-change-email"]').exists()).toBe(true)
+      expect(w.findAll('[data-testid="profile-change-email"]')).toHaveLength(1)
+    })
+
+    it('email is not turned into an input by the Data Diri edit mode', async () => {
+      const w = await mountLoaded()
+      await w.find('[data-testid="profile-edit"]').trigger('click')
+      await flushPromises()
+      const accountCard = w.findAll('.rounded-\\[14px\\]').find(c => c.text().includes('Informasi Akun'))
+      expect(accountCard!.findAll('input')).toHaveLength(0)
+      expect(accountCard!.find('[data-testid="profile-email"]').text()).toBe('andi@inventra.local')
+    })
+
+    it('hides the Ubah Email button and shows the lock note for Google accounts', async () => {
+      profileResponse = { ...defaultProfileResponse, google_linked: true }
+      const w = await mountLoaded()
+      const accountCard = w.findAll('.rounded-\\[14px\\]').find(c => c.text().includes('Informasi Akun'))
+      expect(accountCard!.find('[data-testid="profile-change-email"]').exists()).toBe(false)
+      expect(accountCard!.text()).toContain('dikelola oleh akun Google')
     })
   })
 

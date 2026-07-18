@@ -495,8 +495,10 @@ const joinDateLabel = computed(() => {
           <!-- Data Diri form. The edit controls live in this card's header
                because editing only ever touches the fields inside it. -->
           <div class="bg-default border border-default rounded-[14px] shadow-sm p-[18px_20px]">
-            <div class="flex items-start justify-between gap-4 mb-4 flex-wrap">
-              <div>
+            <div class="flex items-start justify-between gap-4 mb-4">
+              <!-- min-w-0 lets the hint wrap inside its own column instead of
+                   pushing the edit controls onto a line of their own. -->
+              <div class="min-w-0">
                 <div class="text-[13px] font-semibold">
                   {{ t('account.secPersonal') }}
                 </div>
@@ -540,19 +542,34 @@ const joinDateLabel = computed(() => {
                 </template>
               </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- One unified grid: the two self-editable fields sit alongside the
+                 employee master-data fields, which are read-only in every state
+                 (they are maintained on the Master Data Pegawai screen). Outside
+                 edit mode nothing renders as an input — plain label/value rows,
+                 matching the Informasi Akun card below. -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-7 gap-y-[14px]">
               <!-- Full Name -->
               <div>
-                <label class="block text-[13px] font-medium mb-[6px]">
-                  {{ t('account.lName') }} <span class="text-error">*</span>
-                </label>
+                <div class="text-[12px] text-muted mb-[3px]">
+                  {{ t('account.lName') }} <span
+                    v-if="editing"
+                    class="text-error"
+                  >*</span>
+                </div>
                 <UInput
+                  v-if="editing"
                   v-model="fNama"
-                  :disabled="!editing"
                   :class="nameErr ? 'ring-1 ring-error [&_input]:border-error' : ''"
                   data-testid="profile-nama"
                   size="md"
                 />
+                <div
+                  v-else
+                  class="text-[14px] font-medium"
+                  data-testid="profile-nama"
+                >
+                  {{ profile?.nama || '—' }}
+                </div>
                 <div
                   v-if="nameErr"
                   class="mt-[6px] text-[12px] text-error"
@@ -562,17 +579,25 @@ const joinDateLabel = computed(() => {
               </div>
               <!-- Phone -->
               <div>
-                <label class="block text-[13px] font-medium mb-[6px]">
+                <div class="text-[12px] text-muted mb-[3px]">
                   {{ t('account.lPhone') }}
-                </label>
+                </div>
                 <UInput
+                  v-if="editing"
                   v-model="fTelepon"
                   type="tel"
                   placeholder="08xx-xxxx-xxxx"
-                  :disabled="!editing || !profile?.hasEmployee"
+                  :disabled="!profile?.hasEmployee"
                   data-testid="profile-telepon"
                   size="md"
                 />
+                <div
+                  v-else
+                  class="text-[14px] font-medium"
+                  data-testid="profile-telepon"
+                >
+                  {{ profile?.telepon || '—' }}
+                </div>
                 <div
                   v-if="!profile?.hasEmployee"
                   class="mt-[6px] text-[12px] text-dimmed"
@@ -581,57 +606,10 @@ const joinDateLabel = computed(() => {
                   {{ t('account.phoneManagedNote') }}
                 </div>
               </div>
-              <!-- Email (full width) -->
-              <div class="col-span-2">
-                <label class="block text-[13px] font-medium mb-[6px]">
-                  {{ t('account.lEmail') }}
-                </label>
-                <div class="flex items-center gap-[10px]">
-                  <UInput
-                    :model-value="profile?.email ?? ''"
-                    disabled
-                    class="flex-1 opacity-60 cursor-not-allowed"
-                    size="md"
-                  />
-                  <UButton
-                    v-if="!isGoogle"
-                    color="neutral"
-                    variant="outline"
-                    size="md"
-                    data-testid="profile-change-email"
-                    @click="openEmailModal"
-                  >
-                    {{ t('account.changeEmail') }}
-                  </UButton>
-                </div>
-                <div
-                  v-if="isGoogle"
-                  class="mt-[6px] flex items-center gap-[5px] text-[12px] text-dimmed"
-                >
-                  <UIcon
-                    name="i-lucide-lock"
-                    class="size-3"
-                  />
-                  {{ t('account.emailLockNote') }}
-                </div>
-              </div>
-            </div>
 
-            <!-- Employee master-data detail — always read-only here; it is
-                 maintained on the Master Data Pegawai screen, not by the user. -->
-            <div class="mt-5 pt-[18px] border-t border-default">
-              <div class="text-[13px] font-semibold mb-1">
-                {{ t('account.secEmployee') }}
-              </div>
-              <div class="text-[12px] text-dimmed mb-[14px]">
-                {{ t('account.secEmployeeHint') }}
-              </div>
-              <div
-                v-if="profile?.hasEmployee"
-                class="grid grid-cols-1 sm:grid-cols-2 gap-x-7 gap-y-[14px]"
-                data-testid="profile-employee-detail"
-              >
-                <div>
+              <!-- Employee master-data fields — read-only in every state. -->
+              <template v-if="profile?.hasEmployee">
+                <div data-testid="profile-employee-detail">
                   <div class="text-[12px] text-muted mb-[3px]">
                     {{ t('account.iEmployee') }}
                   </div>
@@ -696,10 +674,10 @@ const joinDateLabel = computed(() => {
                     —
                   </div>
                 </div>
-              </div>
+              </template>
               <div
                 v-else
-                class="text-[13px] text-dimmed"
+                class="col-span-full text-[13px] text-dimmed"
                 data-testid="profile-no-employee"
               >
                 {{ t('account.noEmployeeLinked') }}
@@ -716,6 +694,41 @@ const joinDateLabel = computed(() => {
               {{ t('account.secAccountHint') }}
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-7 gap-y-[14px]">
+              <!-- Email lives here, not under Data Diri: it identifies the login
+                   account rather than the person. Changing it is a verified flow
+                   of its own, hence the dedicated button instead of the card's
+                   edit mode. -->
+              <div class="sm:col-span-2">
+                <div class="text-[12px] text-muted mb-[3px]">
+                  {{ t('account.lEmail') }}
+                </div>
+                <div class="flex items-center gap-[10px] flex-wrap">
+                  <span
+                    class="text-[14px] font-medium"
+                    data-testid="profile-email"
+                  >{{ profile?.email }}</span>
+                  <UButton
+                    v-if="!isGoogle"
+                    color="neutral"
+                    variant="outline"
+                    size="xs"
+                    data-testid="profile-change-email"
+                    @click="openEmailModal"
+                  >
+                    {{ t('account.changeEmail') }}
+                  </UButton>
+                </div>
+                <div
+                  v-if="isGoogle"
+                  class="mt-[6px] flex items-center gap-[5px] text-[12px] text-dimmed"
+                >
+                  <UIcon
+                    name="i-lucide-lock"
+                    class="size-3"
+                  />
+                  {{ t('account.emailLockNote') }}
+                </div>
+              </div>
               <div>
                 <div class="text-[12px] text-muted mb-[3px]">
                   {{ t('account.iRole') }}
