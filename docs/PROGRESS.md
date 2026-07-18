@@ -1294,7 +1294,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     maker-route gap); sapuan simbol section di komentar kode backend (task chip terpisah).
 >     Confirm priority before starting.
 > 80. ~~**Mobile companion — dokumentasi kesiapan iOS**~~ ✅ **DONE (2026-07-18, branch
->     `feat/mobile-ios-docs`).** Keputusan produk: **fokus rilis tetap Android** (ADR-0015 tidak
+>     `feat/mobile-ios-docs`, PR #103).** Keputusan produk: **fokus rilis tetap Android** (ADR-0015 tidak
 >     berubah), tetapi kesiapan iOS didokumentasikan lengkap di **`docs/mobile/IOS.md`**: aturan
 >     "iOS-ready sejak M0" yang mengikat kode sejak scaffold (folder `ios/` di-commit, tanpa API
 >     Android-only di kode bersama, SafeArea sejak awal, back-swipe tidak dimatikan, izin
