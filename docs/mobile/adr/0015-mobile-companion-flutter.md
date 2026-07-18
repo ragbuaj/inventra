@@ -6,6 +6,8 @@
   `docs/superpowers/plans/2026-07-18-mobile-app-roadmap.md`)
 - Terkait: [ADR-0016](0016-stock-opname-offline-sync.md) (strategi offline sync opname).
   Men-supersede butir non-goal PRD v1.1 "Aplikasi mobile native" (PRD dinaikkan ke v1.2).
+  Butir "Auth" (cookie jar persisten) di-supersede oleh
+  [ADR-0017](0017-mobile-client-identity.md) — jalur refresh per-klien diadopsi sebelum M1.
 
 ## Konteks
 

@@ -13,7 +13,7 @@ fase M0.
 | [CONVENTIONS.md](CONVENTIONS.md) | Coding style Dart, lint, penamaan, kode generated, error handling, konvensi tes, git, keamanan | Aktif |
 | [DESIGN_BRIEF.md](DESIGN_BRIEF.md) | Prompt kit mockup: master brief mobile + component library + 12 prompt per-layar (untuk Claude design) | Siap dipakai |
 | [IOS.md](IOS.md) | Kesiapan iOS: aturan "iOS-ready sejak M0", kompatibilitas library, prasyarat aktivasi (macOS/Apple Developer/APNs), push, CI macOS, distribusi TestFlight, checklist QA | Rencana (rilis tetap Android dulu) |
-| [adr/](adr/) | ADR mobile — 0015 (Flutter) + 0016 (offline sync); penomoran global, indeks induk di `docs/adr/README.md` | Accepted |
+| [adr/](adr/) | ADR mobile — 0015 (Flutter) + 0016 (offline sync) + 0017 (identitas klien & kontrak endpoint); penomoran global, indeks induk di `docs/adr/README.md` | Accepted |
 | `design/` | Hasil mockup per layar (`<Nama Layar>.dc.html`) — sumber kebenaran visual sebelum layar dibangun | Belum digenerate |
 
 Rujukan lintas-dokumen: roadmap fase M0-M6 di

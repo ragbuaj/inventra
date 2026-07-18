@@ -34,6 +34,7 @@ domain genuinely needs custom, and document the trade-off either way.
 | [0014](0014-notification-delivery.md) | Notification delivery: transactional outbox (Postgres) + Redis Streams transport; supersedes PRD A1b (Redis is transport, not the notification store) | Accepted | notification module |
 | [0015](../mobile/adr/0015-mobile-companion-flutter.md) | Mobile companion: Flutter (field companion, Android-first, `mobile/` monorepo); supersedes PRD v1.1 non-goal "aplikasi mobile native" (PRD v1.2) | Accepted | mobile roadmap M0 |
 | [0016](../mobile/adr/0016-stock-opname-offline-sync.md) | Stock opname offline-first: local snapshot + idempotent batch sync (`client_scan_id`), first-write-wins per asset per session, conflicts reported | Accepted | mobile roadmap M5 |
+| [0017](../mobile/adr/0017-mobile-client-identity.md) | Mobile client identity: shared backend (no BFF), `aud` claim + `RequireAudience`, per-client refresh path (supersedes ADR-0015 "Auth" cookie-jar plan), shared-endpoint response contract | Accepted | mobile roadmap M1 |
 
 > **Mobile ADRs** live in [`docs/mobile/adr/`](../mobile/adr/) (docs web/mobile are separated for
 > readability) but keep this **single global numbering sequence** — this table remains the master
