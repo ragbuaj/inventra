@@ -299,10 +299,10 @@ Navigasi: AppBar dengan tombol kembali, tanpa bottom nav.
 Elemen yang harus ada:
 - Header: tipe pengajuan (badge) + judul + status; pengaju (avatar, nama, kantor)
   dan tanggal.
-- Kartu ringkasan data yang diajukan: daftar field → nilai; untuk perubahan tampilkan
-  before → after (nilai lama dicoret, nilai baru hijau). Untuk penghapusan: nilai
-  buku vs nilai jual + laba/rugi berwarna.
-- Kartu "Jenjang persetujuan": timeline vertikal (maker → checker berjenjang) dengan
+- Kartu ringkasan data yang diajukan: daftar field beserta nilainya; untuk perubahan
+  tampilkan nilai lama dan baru berdampingan (nilai lama dicoret, nilai baru hijau).
+  Untuk penghapusan: nilai buku vs nilai jual + laba/rugi berwarna.
+- Kartu "Jenjang persetujuan": timeline vertikal (maker lalu checker berjenjang) dengan
   status per langkah (selesai/menunggu/berikutnya), nama & peran.
 - Lampiran: baris berkas (ikon PDF/gambar + nama) — tap membuka pratinjau (cukup
   tersirat).

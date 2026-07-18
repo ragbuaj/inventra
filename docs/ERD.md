@@ -17,7 +17,7 @@
 - `||--o{` satu-ke-banyak (wajib→opsional) · `||--o|` satu-ke-nol/satu · `}o--||` banyak-ke-satu
 - **PK** primary key · **FK** foreign key · `?` nullable
 - Semua tabel memakai `id uuid` PK + `created_at`/`updated_at`/`deleted_at` (soft delete) — lihat
-  DATABASE.md §1. Tabel append-only (`audit_logs`) hanya `created_at`.
+  DATABASE.md bagian 1. Tabel append-only (`audit_logs`) hanya `created_at`.
 
 ---
 
@@ -187,7 +187,7 @@ erDiagram
 
 > Alur: `requests.amount` + `type` dicocokkan ke band `approval_thresholds` → menghasilkan rantai
 > `request_approvals` (berurutan). Eksekusi aksi nyata terjadi setelah langkah terakhir `approved`.
-> SoD: tiap `approver_id` berbeda & ≠ maker (PRD §2.4 / §FR-6.4).
+> SoD: tiap `approver_id` berbeda & ≠ maker (PRD bagian 2.4 / FR-6.4).
 
 ### 3.3 Mutasi, Stock Opname, Disposal & Dokumen 🆕
 
@@ -246,7 +246,7 @@ erDiagram
 ## 4. Catatan integritas lintas-entitas
 
 - **Scoping** (`office_subtree`/`office`/`own`) ditegakkan di service layer pada **read & write**
-  untuk assets, transfers, opname, disposals, requests — bukan hanya UI (PRD §2.2).
+  untuk assets, transfers, opname, disposals, requests — bukan hanya UI (PRD bagian 2.2).
 - **Intangible**: `assets.room_id` NULL + CHECK (`asset_class='intangible' OR room_id IS NOT NULL`);
   dikecualikan dari barcode (`asset_tag` tetap ada) dan `stock_opname_items`.
 - **Mutasi**: saat `asset_transfers.status='received'`, service memperbarui `assets.office_id`/`room_id`.
@@ -256,4 +256,4 @@ erDiagram
   kecuali `ON DELETE CASCADE` eksplisit (asset_attachments, stock_opname_items, request_approvals).
 
 > Untuk daftar index lengkap, tipe enum, generator `asset_tag`, dan pemetaan migrasi
-> (`000015`–`000021` untuk v1.1), lihat [DATABASE.md](DATABASE.md) §2, §4.6, §4.7, §6.
+> (`000015`–`000021` untuk v1.1), lihat [DATABASE.md](DATABASE.md) bagian 2, bagian 4.6, bagian 4.7, bagian 6.

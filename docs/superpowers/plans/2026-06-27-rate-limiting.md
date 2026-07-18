@@ -999,9 +999,9 @@ git commit -m "feat(security): wire rate limiting (global + auth IP + login acco
 ## Self-Review
 
 **1. Spec coverage:**
-- §3 berkas: config (T1), backstop (T2), ratelimit+Allower (T3), middleware PerIP+helpers (T4), identity handler/routes + router + main + openapi (T5). `.env.example` (T1). All present.
-- §4 Limiter/Result/Allower/keyPrefix/fail-open/backstop/disabled — T3. §5 backstop bounded+janitor+eviction — T2 (janitor started in T3 `New`). §6 PerIP + headers + WriteRateLimited — T4. §7 account-key in handler (post-parse, normalized email) — T5. §8 config env — T1. §9 wiring (global throttle, auth IP-limits, main, Deps) — T5. §10 testing — each task. §11 risks (no email in logs via keyPrefix/prefix; fail-open; ClientIP; bounded backstop; openapi; deps) — covered. Added beyond spec: CI e2e opt-out (T5 Step 11) — necessary so limiting doesn't break the existing e2e (not in spec; flagged here).
-- Spec §10 "integration via running stack/manual" — not a unit task; the final verification + CI e2e (with limiting off) cover regressions; a manual flood check is recommended at finish.
+- bagian 3 berkas: config (T1), backstop (T2), ratelimit+Allower (T3), middleware PerIP+helpers (T4), identity handler/routes + router + main + openapi (T5). `.env.example` (T1). All present.
+- bagian 4 Limiter/Result/Allower/keyPrefix/fail-open/backstop/disabled — T3. bagian 5 backstop bounded+janitor+eviction — T2 (janitor started in T3 `New`). bagian 6 PerIP + headers + WriteRateLimited — T4. bagian 7 account-key in handler (post-parse, normalized email) — T5. bagian 8 config env — T1. bagian 9 wiring (global throttle, auth IP-limits, main, Deps) — T5. bagian 10 testing — each task. bagian 11 risks (no email in logs via keyPrefix/prefix; fail-open; ClientIP; bounded backstop; openapi; deps) — covered. Added beyond spec: CI e2e opt-out (T5 Step 11) — necessary so limiting doesn't break the existing e2e (not in spec; flagged here).
+- Spec bagian 10 "integration via running stack/manual" — not a unit task; the final verification + CI e2e (with limiting off) cover regressions; a manual flood check is recommended at finish.
 
 **2. Placeholder scan:** No TBD/TODO. Every code step has full code; commands have expected output. The OpenAPI step references the actual file structure (`components.responses`, operation `responses`) the implementer edits in place — concrete, not vague.
 

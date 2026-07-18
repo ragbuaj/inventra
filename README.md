@@ -265,7 +265,7 @@ Loki, Alertmanager) is available. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) f
 
 ## Project Status
 
-**In active development**, built in phases per the PRD roadmap (§10). The core system is
+**In active development**, built in phases per the PRD roadmap (section 10). The core system is
 feature-complete: identity & 3-layer authorization, master data, the full asset lifecycle (catalog,
 attachments, barcode, import), maker-checker approvals, assignment, transfers, maintenance, stock
 opname, disposal, dual-basis depreciation, reporting/dashboard, and the audit trail — backend modules

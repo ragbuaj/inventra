@@ -213,7 +213,7 @@ new `validateXRows` branch (required, miss, optional-empty, dup, FK-miss, scope 
   dup-collision (proving no tx poisoning); employee import with dept/position resolved and with
   unknown dept/position → row failed; error-report object written to MinIO + `error_report_key` set +
   endpoint streams it.
-- **E2E** (Playwright): §6.
+- **E2E** (Playwright): bagian 6.
 
 ## 8. Verification gate (must be green before done)
 
@@ -242,6 +242,6 @@ new `validateXRows` branch (required, miss, optional-empty, dup, FK-miss, scope 
 - Exact NOT NULL/optional column sets for `brands`/`models`/`units` in migration `000006` — the INSERT
   queries must match (e.g. does `brands` have a `code`? does `models` require anything beyond
   `brand_id,name`?). Verify before writing queries.
-- `storage.Storage.Get` availability (§5) — add if missing, mirroring attachments read-back.
+- `storage.Storage.Get` availability (bagian 5) — add if missing, mirroring attachments read-back.
 - Whether the ImportWizard's client-side error map already knows `dupNama`/`merek` keys, or needs them
   added for human-readable messages.

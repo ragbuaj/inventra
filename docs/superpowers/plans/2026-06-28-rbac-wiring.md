@@ -633,15 +633,15 @@ git commit -m "test(rbac): e2e against real backend + progress update"
 ## Self-Review
 
 **Spec coverage:**
-- §2 composable rewrite (English keys, id, getCatalog/listRoles/getRolePermissions/createRole/updateRolePermissions) → Task 2. ✓
-- §3 labels/icons (frontend i18n + icon map, fallback to catalog label) → Task 1 (constants+i18n) + Task 2 (getCatalog uses catalog label; component resolves i18n with fallback — note: components display `p.label`/`m.label` which carry the catalog label; the i18n override is applied in the card/label resolution). ⚠️ See note below.
-- §4 create role (auto-derive code via slugify; 409 inline; client-side copy-from) → Task 2 (slugify+copy) + Task 3 (409 inline). ✓
-- §5 permissions load/save (eager parallel; PUT replace; system roles editable) → Task 3. ✓
-- §6 states/i18n/error → Task 1 (i18n) + Task 3 (loading/error/retry). ✓
-- §7 tests (unit/component/e2e) → Tasks 2,4,5. ✓
-- §8 done (gate, mockup compare, PROGRESS) → Task 5. ✓
+- bagian 2 composable rewrite (English keys, id, getCatalog/listRoles/getRolePermissions/createRole/updateRolePermissions) → Task 2. ✓
+- bagian 3 labels/icons (frontend i18n + icon map, fallback to catalog label) → Task 1 (constants+i18n) + Task 2 (getCatalog uses catalog label; component resolves i18n with fallback — note: components display `p.label`/`m.label` which carry the catalog label; the i18n override is applied in the card/label resolution). ⚠️ See note below.
+- bagian 4 create role (auto-derive code via slugify; 409 inline; client-side copy-from) → Task 2 (slugify+copy) + Task 3 (409 inline). ✓
+- bagian 5 permissions load/save (eager parallel; PUT replace; system roles editable) → Task 3. ✓
+- bagian 6 states/i18n/error → Task 1 (i18n) + Task 3 (loading/error/retry). ✓
+- bagian 7 tests (unit/component/e2e) → Tasks 2,4,5. ✓
+- bagian 8 done (gate, mockup compare, PROGRESS) → Task 5. ✓
 
-**Resolved ambiguity (label i18n vs catalog label):** The composable's `getCatalog` returns `perms[].label` = the catalog API label (Indonesian) and `m.label` = the group string. To honor i18n with fallback (§3), the DISPLAY label must be resolved in the components via `t('settings.rbac.catalog.perm.<code>')` with fallback to the carried catalog label, and `t('settings.rbac.catalog.group.<key>')` for the group. **Add to Task 3** a small change in `RbacPermissionCard.vue` and `rbac.vue`'s card header: resolve labels through i18n with fallback. Concretely, in `RbacPermissionCard.vue` use a helper:
+**Resolved ambiguity (label i18n vs catalog label):** The composable's `getCatalog` returns `perms[].label` = the catalog API label (Indonesian) and `m.label` = the group string. To honor i18n with fallback (bagian 3), the DISPLAY label must be resolved in the components via `t('settings.rbac.catalog.perm.<code>')` with fallback to the carried catalog label, and `t('settings.rbac.catalog.group.<key>')` for the group. **Add to Task 3** a small change in `RbacPermissionCard.vue` and `rbac.vue`'s card header: resolve labels through i18n with fallback. Concretely, in `RbacPermissionCard.vue` use a helper:
 ```ts
 const { t, te } = useI18n()
 function permLabel(code: string, fallback: string) { const k = `settings.rbac.catalog.perm.${code}`; return te(k) ? t(k) : fallback }

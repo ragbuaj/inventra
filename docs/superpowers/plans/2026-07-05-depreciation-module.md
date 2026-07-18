@@ -16,11 +16,11 @@
 - Never hand-edit `backend/db/sqlc/`; `sqlc generate` from `backend/`. Migration `000023` (up+down, soft-delete/trigger conventions).
 - ADR-0008 split; scope enforced read+write; money as decimal strings; `big.Rat` half-up 2dp for arithmetic.
 - Frontend: ESLint `commaDangle: 'never'`, 1tbs; i18n id/en parity; `U*` components; `useApiClient`.
-- Mockup fidelity 1:1 to `docs/design/Depresiasi.dc.html` except spec §6 deviations (a)–(e).
+- Mockup fidelity 1:1 to `docs/design/Depresiasi.dc.html` except spec bagian 6 deviations (a)–(e).
 - Verify per task: backend `go build ./... ; go vet ./... ; go test ./...` (+ `-tags=integration` for touched pkg); frontend `pnpm lint ; pnpm typecheck ; pnpm test`.
 - Local e2e: Docker stack + `RATELIMIT_ENABLED=false` (already in backend/.env). Migration 000023 must be applied to the dev DB before live checks (`docker compose -f docker-compose.dev.yml --profile app up -d migrate backend` after building).
 
-**Domain rules quick-reference (engine — normative, from spec §2):**
+**Domain rules quick-reference (engine — normative, from spec bagian 2):**
 - Start month = month of `purchase_date` (full-month). Skip+report: `capitalized=false`, missing cost/date, unresolved commercial params, status `disposed`. `excluded_from_valuation` still depreciates. Intangible = same path.
 - Commercial: params = asset override ?? category default (`salvage = asset.salvage_value ?? round(cost × default_salvage_rate)`); straight line monthly = `(opening − salvage)/remaining_months`; declining = `opening × (2/lifeYears)/12` floored at salvage; last month absorbs rounding so final closing == salvage exactly. Fully-depreciated ⇒ no new entries.
 - Fiscal (PMK 72/2023, **no salvage**): params from `fiscal_group` constant table — kelompok_1 48m (SL 25%/DB 50%), kelompok_2 96m (12.5%/25%), kelompok_3 192m (6.25%/12.5%), kelompok_4 240m (5%/10%), bangunan_permanen 240m SL-only, bangunan_non_permanen 120m SL-only, non_susut ⇒ no fiscal entries. Method follows the asset's commercial method when valid for the group, else straight line; DB final month absorbs the whole remainder (disusutkan sekaligus). SL fiscal monthly = `(opening − 0)/remaining_months` (equivalent to cost/life with catch-up-safe form).
@@ -36,7 +36,7 @@
 - Test: `backend/internal/authzadmin/catalog_test.go` (extend or create)
 
 **Interfaces:**
-- Produces: table `depreciation.depreciation_periods` + enum `shared.depreciation_period_status`; index `idx_depr_basis_period`; permissions `depreciation.view`/`depreciation.manage` seeded (Superadmin, Manager? NO — **Superadmin only** per PRD §2.1) + data-scope module `depreciation`; app_settings key `depreciation.accumulated_gl_account`; catalog group "Penyusutan Aset". sqlc model `DepreciationDepreciationPeriod`.
+- Produces: table `depreciation.depreciation_periods` + enum `shared.depreciation_period_status`; index `idx_depr_basis_period`; permissions `depreciation.view`/`depreciation.manage` seeded (Superadmin, Manager? NO — **Superadmin only** per PRD bagian 2.1) + data-scope module `depreciation`; app_settings key `depreciation.accumulated_gl_account`; catalog group "Penyusutan Aset". sqlc model `DepreciationDepreciationPeriod`.
 
 - [ ] **Step 1: Write the failing catalog test**
 
@@ -126,7 +126,7 @@ SELECT 'depreciation.accumulated_gl_account', '1.2.9.001', 'string',
        'GL account credited by the depreciation journal (Akumulasi Penyusutan) — placeholder, confirm with bank COA'
 WHERE NOT EXISTS (SELECT 1 FROM identity.app_settings WHERE key = 'depreciation.accumulated_gl_account' AND deleted_at IS NULL);
 
--- Permissions: Superadmin ONLY (PRD §2.1: konfigurasi & jalankan depresiasi).
+-- Permissions: Superadmin ONLY (PRD bagian 2.1: konfigurasi & jalankan depresiasi).
 INSERT INTO identity.role_permissions (role_id, permission_key)
 SELECT r.id, p.key
 FROM identity.roles r
@@ -318,7 +318,7 @@ var ErrPeriodClosed, ErrPeriodNotComputed, ErrPriorPeriodOpen, ErrNotFound error
 `db/queries/depreciation.sql` (complete file to create):
 
 ```sql
--- Depreciation engine queries. See docs/DATABASE.md §4.4 and spec 2026-07-05.
+-- Depreciation engine queries. See docs/DATABASE.md bagian 4.4 and spec 2026-07-05.
 
 -- name: AdvisoryLockDepreciation :exec
 -- Transaction-scoped exclusive lock; released automatically at COMMIT/ROLLBACK.
@@ -541,7 +541,7 @@ Document: tag `Depreciation`; schemas `DepreciationPeriod` (period `YYYY-MM` str
 
 **Files:**
 - Create: `frontend/app/composables/api/useDepreciation.ts`, `frontend/app/constants/depreciationMeta.ts`
-- Modify: `frontend/i18n/locales/{id,en}.json` (new `depreciation.*` section — extract exact strings from the mockup's `CH.id`/`CH.en` tables; the spec's §4 lists the required keys incl. additions: reminder banner, no-manage note, amortization term, impairment-disabled-fiscal tooltip), `frontend/app/utils/nav.ts` (+item after disposals: labelKey `nav.depreciation`, icon `i-lucide-trending-down`, to `/depreciation`, permission `depreciation.view`), nav label keys both locales
+- Modify: `frontend/i18n/locales/{id,en}.json` (new `depreciation.*` section — extract exact strings from the mockup's `CH.id`/`CH.en` tables; the spec's bagian 4 lists the required keys incl. additions: reminder banner, no-manage note, amortization term, impairment-disabled-fiscal tooltip), `frontend/app/utils/nav.ts` (+item after disposals: labelKey `nav.depreciation`, icon `i-lucide-trending-down`, to `/depreciation`, permission `depreciation.view`), nav label keys both locales
 - Test: `frontend/test/unit/depreciation-meta.spec.ts`; update `nav-model.spec.ts`
 
 **Interfaces (produced — Tasks 10–11 consume EXACTLY):**
@@ -584,7 +584,7 @@ Steps: failing meta unit test (tone map, basis meta keys) → RED → implement 
 
 **Files:** Create `frontend/app/pages/depreciation.vue`; Test: `frontend/test/nuxt/depreciation.spec.ts`.
 
-**Open `docs/design/Depresiasi.dc.html` first — visual source of truth.** Build per spec §4: header+subtitle; basis segmented toggle (chips PSAK 16 / PMK 72/2023) driving ALL data; 4 KPI tiles; Jalankan Periode panel (period select from `periods()`, status badge, Hitung/Tutup/closed-badge by state, preview `asset_count`+`total_amount`, computed note, **reminder banner** when current month open-and-never-computed, manage-gated with disabled+note pattern from transfers.vue); tabs Jadwal per Aset (search/category/office filters — category via `useCategories().tree()`, office via `useOffices().list({limit:100})`; table columns exactly per mockup; impaired violet icon; fully-depreciated rows amount 0; tfoot TOTAL; empty state; row action Catat Penurunan Nilai → impairment modal per mockup (current book value, recoverable input Rp, loss preview red, reason textarea, Simpan & Sesuaikan) — action disabled with tooltip when basis is fiscal (deviation (b)) or when !manage) and Rekap Siap-Jurnal (subtitle + Ekspor PDF/Excel buttons → `exportJournal` blob → anchor download, revoke URL; journal table + TOTAL + balanced banner). Amortisasi wording: rows of intangible assets show method label "Amortisasi — Garis Lurus" style suffix? — mockup doesn't differentiate; keep method badge as mockup, add the intangible nuance ONLY if the mockup shows it (it doesn't — skip, note nothing). Loading/error/empty per fetch; testids: `depr-basis-toggle`, `depr-kpi-*`, `depr-period-select`, `depr-compute`, `depr-close`, `depr-reminder`, `depr-schedule-row`, `depr-impair`, `depr-impair-save`, `depr-journal-row`, `depr-export-xlsx`, `depr-export-pdf`.
+**Open `docs/design/Depresiasi.dc.html` first — visual source of truth.** Build per spec bagian 4: header+subtitle; basis segmented toggle (chips PSAK 16 / PMK 72/2023) driving ALL data; 4 KPI tiles; Jalankan Periode panel (period select from `periods()`, status badge, Hitung/Tutup/closed-badge by state, preview `asset_count`+`total_amount`, computed note, **reminder banner** when current month open-and-never-computed, manage-gated with disabled+note pattern from transfers.vue); tabs Jadwal per Aset (search/category/office filters — category via `useCategories().tree()`, office via `useOffices().list({limit:100})`; table columns exactly per mockup; impaired violet icon; fully-depreciated rows amount 0; tfoot TOTAL; empty state; row action Catat Penurunan Nilai → impairment modal per mockup (current book value, recoverable input Rp, loss preview red, reason textarea, Simpan & Sesuaikan) — action disabled with tooltip when basis is fiscal (deviation (b)) or when !manage) and Rekap Siap-Jurnal (subtitle + Ekspor PDF/Excel buttons → `exportJournal` blob → anchor download, revoke URL; journal table + TOTAL + balanced banner). Amortisasi wording: rows of intangible assets show method label "Amortisasi — Garis Lurus" style suffix? — mockup doesn't differentiate; keep method badge as mockup, add the intangible nuance ONLY if the mockup shows it (it doesn't — skip, note nothing). Loading/error/empty per fetch; testids: `depr-basis-toggle`, `depr-kpi-*`, `depr-period-select`, `depr-compute`, `depr-close`, `depr-reminder`, `depr-schedule-row`, `depr-impair`, `depr-impair-save`, `depr-journal-row`, `depr-export-xlsx`, `depr-export-pdf`.
 
 Component spec ≥18 cases (vi.mock `useApproval`-style all composables): KPI render; basis toggle refetches with `basis:'fiscal'`; period states (open→Hitung visible; computed→Tutup + note; closed→badge + select disabled); compute calls composable + refresh; reminder banner shown/hidden; manage-gate disabled+note; schedule rows incl. impaired icon + fully-depreciated zero row; filters call schedule with params; empty state; impairment modal (loss preview computation, save calls recordImpairment with exact args, disabled on fiscal basis); journal renders + balanced banner; export triggers blob download (assert exportJournal called + anchor click spied); loading/error states.
 
@@ -630,7 +630,7 @@ Gates: lint/typecheck; each spec green against live stack; FULL `pnpm test:e2e -
 ### Task 13: Full gates, mockup side-by-side, PROGRESS.md + DATABASE.md
 
 1. Full sweep: backend build/vet/test + `-tags=integration ./...` FULL; Spectral; frontend lint/typecheck/test/build; full e2e workers=1.
-2. Side-by-side `Depresiasi.dc.html` vs `http://localhost:3000/depreciation` (Playwright MCP tools; serve mockup via local static server; seed data via API; light+dark) — checklist: header/toggle/KPI/run-panel 3 states/schedule table anatomy/journal/impairment modal/empty states. Only spec §6 deviations (a)–(e) allowed.
-3. `docs/DATABASE.md`: add `depreciation_periods` to §4.4 data dictionary + migration mapping §6 (000023) + note DB-Q7 resolved per implementation (commercial summary on assets; fiscal from entries).
+2. Side-by-side `Depresiasi.dc.html` vs `http://localhost:3000/depreciation` (Playwright MCP tools; serve mockup via local static server; seed data via API; light+dark) — checklist: header/toggle/KPI/run-panel 3 states/schedule table anatomy/journal/impairment modal/empty states. Only spec bagian 6 deviations (a)–(e) allowed.
+3. `docs/DATABASE.md`: add `depreciation_periods` to bagian 4.4 data dictionary + migration mapping bagian 6 (000023) + note DB-Q7 resolved per implementation (commercial summary on assets; fiscal from entries).
 4. `docs/PROGRESS.md`: tick **Dual-basis depreciation** + **Journal-ready export** items; close the disposal basis-switch follow-up; update the Scheduler item to reference ADR-0010 stages 2/3; record deviations (a)–(e) + limitations (useful-life revision UI, opening-balance import, Rp-1 flat category default); note the disposed-asset regeneration rule (history survives only in closed periods); new Done entry + next-session pointer refresh (remaining: stock opname / assignment / maintenance / global search / reporting).
 5. Commit `docs(progress): mark depreciation module done`. NO push/PR (controller runs final review first).

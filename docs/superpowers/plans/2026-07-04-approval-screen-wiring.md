@@ -19,7 +19,7 @@
 - Frontend: ESLint `commaDangle: 'never'`, 1tbs braces; i18n mandatory (`i18n/locales/{id,en}.json`, no hardcoded UI strings); build on `U*` Nuxt UI components; API via `useApiClient` (never hardcode backend URL).
 - All list endpoints return `{data, total, limit, offset}`.
 - Verify per task: `go build ./... ; go vet ./... ; go test ./...` (backend) / `pnpm lint ; pnpm typecheck ; pnpm test` (frontend, from `frontend/`). Integration tests: `go test -tags=integration ./internal/approval/` (needs Docker running).
-- Mockup fidelity: final screen must match `docs/design/Pengajuan Approval.dc.html` 1:1 **except** the 4 user-approved deviations listed in the spec §5.
+- Mockup fidelity: final screen must match `docs/design/Pengajuan Approval.dc.html` 1:1 **except** the 4 user-approved deviations listed in the spec bagian 5.
 
 ---
 

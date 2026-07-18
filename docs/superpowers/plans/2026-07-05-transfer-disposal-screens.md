@@ -9,7 +9,7 @@
 **Tech Stack:** Go 1.25 + Gin + sqlc (pgx/v5) + golang-migrate + testcontainers; Nuxt 4 + Nuxt UI + Vitest (`mountSuspended`) + Playwright.
 
 **Spec (read first):** `docs/superpowers/specs/2026-07-05-transfer-disposal-screens-design.md`
-**Contract reference (exact current code excerpts):** `.superpowers/sdd/contract-report.md` — sections: §1 DDL, §2 queries, §3 transfer module, §4 disposal module, §5 approval, §6 frontend signatures, §9 OpenAPI excerpts, §10 integration-test harness patterns. Consult it before touching a file you haven't read.
+**Contract reference (exact current code excerpts):** `.superpowers/sdd/contract-report.md` — sections: bagian 1 DDL, bagian 2 queries, bagian 3 transfer module, bagian 4 disposal module, bagian 5 approval, bagian 6 frontend signatures, bagian 9 OpenAPI excerpts, bagian 10 integration-test harness patterns. Consult it before touching a file you haven't read.
 
 ## Global Constraints
 
@@ -19,7 +19,7 @@
 - ADR-0008 module split: service = logic + sentinel errors (no Gin); dto = serialization; handler = HTTP mapping; routes = mounting.
 - Scope enforced on read AND write for every new endpoint; FilterView untouched by this feature (transfer/disposal money fields are not in the field catalog yet — out of scope).
 - Frontend: ESLint `commaDangle: 'never'`, 1tbs; i18n id/en for every string (mockup Indonesian strings are the `id` values); `U*` Nuxt UI components; API via `useApiClient`; list endpoints `{data,total,limit,offset}`.
-- Mockup fidelity 1:1 to `docs/design/Mutasi Aset.dc.html` and `docs/design/Penghapusan Aset.dc.html` EXCEPT the nine approved deviations (spec §8 (a)–(i)). Open both mockups in a browser before building each page.
+- Mockup fidelity 1:1 to `docs/design/Mutasi Aset.dc.html` and `docs/design/Penghapusan Aset.dc.html` EXCEPT the nine approved deviations (spec bagian 8 (a)–(i)). Open both mockups in a browser before building each page.
 - Verify per task: backend `go build ./... ; go vet ./... ; go test ./...` (+ `-tags=integration` for the touched package); frontend `pnpm lint ; pnpm typecheck ; pnpm test` from `frontend/`.
 - Local e2e needs the Docker stack + `RATELIMIT_ENABLED=false` (already set in `backend/.env`).
 
@@ -36,7 +36,7 @@
 - Test: `backend/internal/transfer/transfer_integration_test.go`, `backend/internal/transfer/dto_test.go`
 
 **Interfaces:**
-- Consumes: existing `transfer.Service.Submit(ctx, caller, SubmitInput)`, `marshalPayload`, harness helpers `newHarness`/`seedAssetWithCost`/`approveThroughChain` (see contract-report §3/§10).
+- Consumes: existing `transfer.Service.Submit(ctx, caller, SubmitInput)`, `marshalPayload`, harness helpers `newHarness`/`seedAssetWithCost`/`approveThroughChain` (see contract-report bagian 3/bagian 10).
 - Produces: `POST /transfers` accepts `condition_sent` (`baik|rusak_ringan|rusak_berat`, optional at API level) and `transfer_date` (`YYYY-MM-DD`, optional at API level — UI enforces required, spec deviation (i)); `Transfer` response carries `condition_sent`, `transfer_date`, `return_note` (all nullable). Enum value `returned` exists on `shared.transfer_status` (used by Task 2). sqlc type `sqlc.NullSharedTransferCondition` / constants `sqlc.SharedTransferConditionBaik` etc. exist after generate.
 
 - [ ] **Step 1: Write the migration**
@@ -704,7 +704,7 @@ git commit -m "feat(approval): threshold chain preview endpoint for submit-side 
 
 **Files:** `backend/api/openapi.yaml`
 
-Document, matching the file's existing style (see contract-report §9 for the current blocks):
+Document, matching the file's existing style (see contract-report bagian 9 for the current blocks):
 1. `TransferSubmitRequest` + `condition_sent` (enum) + `transfer_date` (date).
 2. `Transfer` schema: + `condition_sent` (`[string,"null"]` enum), `transfer_date`, `return_note`; `status` enum + `returned`; + the 7 enrichment name fields (`[string,"null"]`).
 3. New path `POST /api/v1/transfers/{id}/reject-receive` (body `{note}`, 200 Transfer, 401/403/404/409 refs; description: destination-office scope; asset does not move).
@@ -751,7 +751,7 @@ export const METHOD_TONE: Record<DisposalMethod, BadgeColor> = {
 }
 ```
 
-- `AuthUser` gains `office_id: string | null`; `fetchMe`/`setSession` thread it through (MeResponse already has it — see contract-report §6, it is currently discarded).
+- `AuthUser` gains `office_id: string | null`; `fetchMe`/`setSession` thread it through (MeResponse already has it — see contract-report bagian 6, it is currently discarded).
 - Nav: two items after `nav.assignment`, before `nav.maintenance`:
 
 ```ts
@@ -991,6 +991,6 @@ Gates: `pnpm lint ; pnpm typecheck`; run each new spec against the live stack (a
 **Files:** `docs/PROGRESS.md`
 
 1. Full gate sweep: backend `go build ./... ; go vet ./... ; go test ./...` + `go test -tags=integration ./...` (FULL module); Spectral; frontend `pnpm lint ; pnpm typecheck ; pnpm test ; pnpm build`; FULL `pnpm test:e2e`.
-2. **Side-by-side (mandatory, both screens, light + dark)** with the Playwright MCP browser tools: mockup files (serve via a local static server — `file://` is blocked) vs `http://localhost:3000/transfers` and `/disposals` seeded with visible data (submit fixtures via API as in the e2e beforeAll). Checklist per mockup section (legend, tabs, form anatomy, inbox card anatomy, history columns, gain/loss variants, chain card, post-submit timeline, empty states). The ONLY allowed deviations are spec §8 (a)–(i). Screenshot evidence to the session scratchpad. Fix any other gap before proceeding.
+2. **Side-by-side (mandatory, both screens, light + dark)** with the Playwright MCP browser tools: mockup files (serve via a local static server — `file://` is blocked) vs `http://localhost:3000/transfers` and `/disposals` seeded with visible data (submit fixtures via API as in the e2e beforeAll). Checklist per mockup section (legend, tabs, form anatomy, inbox card anatomy, history columns, gain/loss variants, chain card, post-submit timeline, empty states). The ONLY allowed deviations are spec bagian 8 (a)–(i). Screenshot evidence to the session scratchpad. Fix any other gap before proceeding.
 3. PROGRESS.md: mark *Next session* candidate **(d)** done (new numbered entry, dated, summarizing backend additions + both screens + e2e); update the two Bank-FAM `Remaining` bullets (transfer/disposal: "Frontend screen … still to build" → done notes mirroring previous entries' style); record deviations (a)–(i) per the catat-deviasi convention; add follow-ups — "switch disposal approval-amount basis to server-computed commercial book value once depreciation lands", "BAST link in Mutasi history when Dokumen BAST screen lands", "transfer/disposal money fields into field-permission catalog when needed"; refresh the "Next session — start here" pointer (remaining: stock opname / depreciation / assignment / maintenance / global search).
 4. Commit `docs(progress): mark Mutasi + Penghapusan screens done`. Do NOT push / PR — the controller runs the final whole-branch review first.

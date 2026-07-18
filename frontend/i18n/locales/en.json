@@ -512,7 +512,7 @@
     },
     "chain": {
       "title": "Required Approval Chain",
-      "ref": "Authorization Limit §2.4",
+      "ref": "Authorization Limit section 2.4",
       "sensitiveNote": "Sensitive action — asset disposal alters the fixed-asset records and requires tiered approval based on book value.",
       "basedOnBookValue": "based on book value: {value}",
       "notConfigured": "Approval band not configured.",

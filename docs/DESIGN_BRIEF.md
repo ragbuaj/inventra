@@ -8,9 +8,9 @@ hijau, neutral slate, dark mode, i18n id/en).
 > dipisah di [mobile/DESIGN_BRIEF.md](mobile/DESIGN_BRIEF.md); hasil mockup mobile disimpan di
 > `docs/mobile/design/`.
 
-**Cara pakai:** jangan generate semua sekaligus. Tempel **Master Brief** (§1) sekali di awal
-percakapan sebagai konteks tetap, jalankan **Component Library** (§4) lebih dulu untuk mengunci
-bahasa visual, lalu generate layar satu per satu (§2) memakai **template per-screen** (§3).
+**Cara pakai:** jangan generate semua sekaligus. Tempel **Master Brief** (bagian 1) sekali di awal
+percakapan sebagai konteks tetap, jalankan **Component Library** (bagian 4) lebih dulu untuk mengunci
+bahasa visual, lalu generate layar satu per satu (bagian 2) memakai **template per-screen** (bagian 3).
 
 ---
 
@@ -71,7 +71,7 @@ Konfirmasi kamu paham brief ini, lalu tunggu saya menyebut layar pertama.
 
 ## 2. Daftar layar untuk di-generate (minta satu per satu)
 
-Checklist. Untuk tiap item, kirim template di §3.
+Checklist. Untuk tiap item, kirim template di bagian 3.
 
 **Auth & shell**
 1. Login (email/password + tombol "Masuk dengan Google") + lupa/reset password
@@ -95,11 +95,11 @@ Checklist. Untuk tiap item, kirim template di §3.
 13. Kantor — tampilan pohon hierarki (Pusat→Wilayah→Cabang→Outlet) + lantai/ruangan bertingkat
 14. Pegawai (list + form, scoped per kantor)
 
-> **Layar/komponen tambahan — mockup sudah tersedia** di `docs/design/` (prompt siap-pakai di §5.21–§5.24):
-> - **Lokasi & Geografi** (`nav.geography`, anak Master Data) — **peta lokasi kantor** (provinsi/kota sudah di Referensi) → **§5.21**
-> - **Profil & Pengaturan Akun** (menu profil topbar: `nav.profile` + `nav.accountSettings`) → **§5.22**
-> - **Global Search** (command palette dari search topbar) → **§5.23**
-> - **Kategori Aset** (`nav` Master Data) — entitas kaya (penyusutan komersial+fiskal, akun GL, golongan pajak, batas kapitalisasi); terpisah dari Referensi → **§5.24**
+> **Layar/komponen tambahan — mockup sudah tersedia** di `docs/design/` (prompt siap-pakai di bagian 5.21–bagian 5.24):
+> - **Lokasi & Geografi** (`nav.geography`, anak Master Data) — **peta lokasi kantor** (provinsi/kota sudah di Referensi) → **bagian 5.21**
+> - **Profil & Pengaturan Akun** (menu profil topbar: `nav.profile` + `nav.accountSettings`) → **bagian 5.22**
+> - **Global Search** (command palette dari search topbar) → **bagian 5.23**
+> - **Kategori Aset** (`nav` Master Data) — entitas kaya (penyusutan komersial+fiskal, akun GL, golongan pajak, batas kapitalisasi); terpisah dari Referensi → **bagian 5.24**
 
 **Pengaturan/Admin (Superadmin)**
 15. Manajemen user (list + form: peran, kantor, pegawai tertaut)
@@ -111,15 +111,15 @@ Checklist. Untuk tiap item, kirim template di §3.
 **Laporan**
 20. Laporan (daftar aset + nilai buku, depresiasi per periode, utilisasi, biaya maintenance) + tombol ekspor PDF/Excel
 
-> **Layar v1.1 bank-grade — mockup sudah tersedia** di `docs/design/` (prompt siap-pakai di **§6**):
-> - **Mutasi Aset** (transfer antar-kantor) — PRD §3.8 → **§6.1** · `Mutasi Aset.dc.html`
-> - **Stock Opname** (inventarisasi fisik) — PRD §3.9 → **§6.2** · `Stock Opname.dc.html`
-> - **Penghapusan / Disposal** (laba-rugi, approval berjenjang) — PRD §3.6 & §2.4 → **§6.3** · `Penghapusan Aset.dc.html`
-> - **Depresiasi** (jadwal & run dua-basis komersial+fiskal, rekap siap-jurnal) — PRD §3.5 → **§6.4** · `Depresiasi.dc.html`
-> - **Dokumen & BAST** aset — PRD §3.10 → **§6.5** · `Dokumen BAST.dc.html`
-> - **Konfigurasi Limit Otorisasi** (`approval_thresholds`) — PRD §2.4 → **§6.6** · `Limit Otorisasi.dc.html`
+> **Layar v1.1 bank-grade — mockup sudah tersedia** di `docs/design/` (prompt siap-pakai di **bagian 6**):
+> - **Mutasi Aset** (transfer antar-kantor) — PRD bagian 3.8 → **bagian 6.1** · `Mutasi Aset.dc.html`
+> - **Stock Opname** (inventarisasi fisik) — PRD bagian 3.9 → **bagian 6.2** · `Stock Opname.dc.html`
+> - **Penghapusan / Disposal** (laba-rugi, approval berjenjang) — PRD bagian 3.6 & bagian 2.4 → **bagian 6.3** · `Penghapusan Aset.dc.html`
+> - **Depresiasi** (jadwal & run dua-basis komersial+fiskal, rekap siap-jurnal) — PRD bagian 3.5 → **bagian 6.4** · `Depresiasi.dc.html`
+> - **Dokumen & BAST** aset — PRD bagian 3.10 → **bagian 6.5** · `Dokumen BAST.dc.html`
+> - **Konfigurasi Limit Otorisasi** (`approval_thresholds`) — PRD bagian 2.4 → **bagian 6.6** · `Limit Otorisasi.dc.html`
 >
-> Impairment (PSAK 48) = modal di §6.4; laporan baru v1.1 = tab tambahan di Laporan (§5.20).
+> Impairment (PSAK 48) = modal di bagian 6.4; laporan baru v1.1 = tab tambahan di Laporan (bagian 5.20).
 
 ---
 
@@ -162,8 +162,8 @@ beranotasi nama komponennya. Ini jadi acuan untuk semua layar berikutnya.
 
 ## 5. Prompt per-screen lengkap (siap copy-paste)
 
-Tiap blok di bawah sudah terisi penuh sesuai PRD. Kirim satu per satu setelah Master Brief (§1)
-dan Component Library (§4). Semua mengikuti format §3.
+Tiap blok di bawah sudah terisi penuh sesuai PRD. Kirim satu per satu setelah Master Brief (bagian 1)
+dan Component Library (bagian 4). Semua mengikuti format bagian 3.
 
 ### 5.1 Login
 
@@ -751,7 +751,7 @@ Pengajuan "Registrasi 12 Laptop Asus ExpertBook B1" (Menunggu). Patuhi master br
 > Kategori aset **bukan** entitas referensi datar — ia kaya: hierarki induk, default
 > **penyusutan komersial (PSAK 16)** & **fiskal (PMK 72/2023)**, akun GL, golongan pajak, dan
 > batas kapitalisasi (konteks bank fixed-asset). Karena itu butuh layar/form sendiri, terpisah
-> dari "Master Data Referensi" (§5.12). Konteks tambahan: produk ini sistem **manajemen aset
+> dari "Master Data Referensi" (bagian 5.12). Konteks tambahan: produk ini sistem **manajemen aset
 > tetap bank** — gunakan istilah akuntansi/pajak Indonesia yang natural.
 
 ```
@@ -799,13 +799,13 @@ Patuhi master brief.
 ## 6. Layar v1.1 bank-grade (prompt siap-pakai — mockup sudah tersedia)
 
 > Fitur yang diperkaya di **PRD v1.1** (mutasi, stock opname, disposal, depresiasi
-> dua-basis, BAST, limit otorisasi) tidak tercakup di §5.1–5.24; mockup hasilnya
-> kini ada di `docs/design/` (lihat daftar file di catatan §2). Prompt di bawah
-> mengasumsikan master brief (§1) sudah ditempel di awal percakapan. Impairment
-> (PSAK 48) dijadikan modal di dalam §6.4 (Depresiasi), bukan layar tersendiri;
-> laporan-laporan baru v1.1 menjadi tab tambahan di Laporan (§5.20), bukan mockup baru.
+> dua-basis, BAST, limit otorisasi) tidak tercakup di bagian 5.1–5.24; mockup hasilnya
+> kini ada di `docs/design/` (lihat daftar file di catatan bagian 2). Prompt di bawah
+> mengasumsikan master brief (bagian 1) sudah ditempel di awal percakapan. Impairment
+> (PSAK 48) dijadikan modal di dalam bagian 6.4 (Depresiasi), bukan layar tersendiri;
+> laporan-laporan baru v1.1 menjadi tab tambahan di Laporan (bagian 5.20), bukan mockup baru.
 
-### 6.1 Mutasi Aset (Transfer Antar-Kantor) — PRD §3.8
+### 6.1 Mutasi Aset (Transfer Antar-Kantor) — PRD bagian 3.8
 
 ```
 Sekarang desain layar: Mutasi Aset (Transfer Antar-Kantor).
@@ -836,7 +836,7 @@ Pakai data contoh realistis berbahasa Indonesia (nama kantor cabang/kanwil BTN).
 Patuhi master brief.
 ```
 
-### 6.2 Stock Opname (Inventarisasi Fisik) — PRD §3.9
+### 6.2 Stock Opname (Inventarisasi Fisik) — PRD bagian 3.9
 
 ```
 Sekarang desain layar: Stock Opname (Inventarisasi Fisik).
@@ -866,7 +866,7 @@ Tampilkan versi light dan dark.
 Pakai data contoh realistis berbahasa Indonesia. Patuhi master brief.
 ```
 
-### 6.3 Penghapusan / Disposal Aset (dengan laba-rugi) — PRD §3.6, §2.4
+### 6.3 Penghapusan / Disposal Aset (dengan laba-rugi) — PRD bagian 3.6, bagian 2.4
 
 ```
 Sekarang desain layar: Penghapusan / Disposal Aset.
@@ -885,7 +885,7 @@ Elemen yang harus ada:
   (hijau bila laba, merah bila rugi), dengan rincian per basis.
 - Panel "Jenjang persetujuan yang diperlukan" yang otomatis muncul berdasarkan
   nilai buku (mis. > Rp 50 jt → wajib sampai Kantor Pusat) — mengacu limit
-  otorisasi §2.4; tandai sebagai tindakan sensitif.
+  otorisasi bagian 2.4; tandai sebagai tindakan sensitif.
 - Setelah diajukan: status pengajuan + timeline approval berlapis.
 - Daftar riwayat penghapusan (data table): Aset, Metode, Nilai Jual, Laba/Rugi,
   Tanggal, Status. Filter & search.
@@ -896,7 +896,7 @@ Tampilkan versi light dan dark.
 Pakai data contoh realistis berbahasa Indonesia, rupiah Rp. Patuhi master brief.
 ```
 
-### 6.4 Depresiasi — Jadwal & Run (komersial + fiskal) — PRD §3.5
+### 6.4 Depresiasi — Jadwal & Run (komersial + fiskal) — PRD bagian 3.5
 
 ```
 Sekarang desain layar: Depresiasi (Jadwal & Proses Perhitungan).
@@ -925,7 +925,7 @@ Tampilkan versi light dan dark.
 Pakai data contoh realistis berbahasa Indonesia, rupiah Rp. Patuhi master brief.
 ```
 
-### 6.5 Dokumen & BAST Aset — PRD §3.10
+### 6.5 Dokumen & BAST Aset — PRD bagian 3.10
 
 ```
 Sekarang desain layar: Dokumen & BAST (Berita Acara Serah Terima) Aset.
@@ -950,7 +950,7 @@ Tampilkan versi light dan dark.
 Pakai data contoh realistis berbahasa Indonesia. Patuhi master brief.
 ```
 
-### 6.6 Konfigurasi Limit Otorisasi (approval_thresholds) — PRD §2.4
+### 6.6 Konfigurasi Limit Otorisasi (approval_thresholds) — PRD bagian 2.4
 
 ```
 Sekarang desain layar: Konfigurasi Limit Otorisasi (Approval Thresholds).
@@ -970,7 +970,7 @@ Elemen yang harus ada:
 - Tombol "Tambah Aturan"; edit inline atau via slideover; validasi rentang tidak
   tumpang-tindih (peringatan bila overlap/celah).
 - Banner "Angka default masih placeholder — sesuaikan dengan kebijakan bank".
-States: tabel terisi (contoh tabel default §2.4 PRD), form tambah/edit, peringatan
+States: tabel terisi (contoh tabel default bagian 2.4 PRD), form tambah/edit, peringatan
 rentang tumpang-tindih, empty state per jenis.
 Tampilkan versi light dan dark.
 

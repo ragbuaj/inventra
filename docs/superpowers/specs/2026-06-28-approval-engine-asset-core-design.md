@@ -5,8 +5,8 @@ Status: Approved (decisions confirmed with user)
 
 ## Goal
 
-Build the **value-tiered maker-checker approval engine** (PRD §2.4, §3.6 / FR-6.x) **together with
-the Asset core module** (PRD §3.2 / FR-2.x), integrated end-to-end so the full maker-checker flow
+Build the **value-tiered maker-checker approval engine** (PRD bagian 2.4, bagian 3.6 / FR-6.x) **together with
+the Asset core module** (PRD bagian 3.2 / FR-2.x), integrated end-to-end so the full maker-checker flow
 actually executes: a maker submits a request, a configurable multi-step chain routes it by value and
 office tier, and final approval **executes the real side effect** (an asset row is created, disposed,
 or flagged). The approval schema (`000010_approval`) and asset schema (`000008_asset`, `000015_fam_tables`)
@@ -75,7 +75,7 @@ ALTER TABLE masterdata.office_types DROP COLUMN tier;
 - `tier` is nullable: office types not relevant to approval routing may leave it unset.
 - Seeds live **in the migration** after the `ALTER` (repo convention bakes seeds into migrations; see
   the "5 roles, 45 RBAC perms" seed in earlier migrations). The column add plus all data seeds for this
-  feature (office-type tiers, thresholds, permissions, scope policies, field permissions — §Seeds) go
+  feature (office-type tiers, thresholds, permissions, scope policies, field permissions — bagian Seeds) go
   in `000016`, with the `.down.sql` reversing both DDL and seed rows. Office-type tier backfill is an
   idempotent `UPDATE masterdata.office_types SET tier=... WHERE name=...`.
 - `office_type` service/dto + OpenAPI extended so admins can set `tier` going forward.
@@ -104,7 +104,7 @@ ALTER TABLE masterdata.office_types DROP COLUMN tier;
 - `CreateRequestApproval` (per step), `ListRequestApprovals` (by request), `GetCurrentStepApproval`,
   `DecideRequestApproval` (set `approver_id`/`decision`/`note`/`decided_at`).
 - `ListInboxCandidates` — pending requests whose **current step** is undecided (eligibility is then
-  filtered in Go against the caller's scope/tier + SoD; see §6).
+  filtered in Go against the caller's scope/tier + SoD; see bagian 6).
 
 `db/queries/offices.sql` (extend):
 - `GetOfficeAncestors` — recursive CTE walking **up** via `parent_id` from a given office, returning
@@ -123,7 +123,7 @@ Key methods:
   `payload` JSON), insert one `request_approvals` row per step. **SoD pre-check**: maker recorded as
   `requested_by_id`.
 - `Decide(ctx, requestID, approver Caller, decision, note) (Request, error)` — load request + current
-  step; enforce `eligibleToDecide` (§6); on **approve**: mark step approved; if more steps remain →
+  step; enforce `eligibleToDecide` (bagian 6); on **approve**: mark step approved; if more steps remain →
   `AdvanceRequestStep` (`current_step++`); if last step → set request `approved` + run executor in the
   **same tx** (atomic). On **reject**: mark step rejected, request `rejected`, stop. Records audit on
   every decision.
@@ -153,7 +153,7 @@ form where they expose asset payloads.
 service, maps sentinel → HTTP via `svcError`, serializes, records audit. SoD/eligibility violations →
 `403`; invalid state (e.g. deciding a non-current step) → `409`.
 
-**`routes.go`** — see §6 endpoint table.
+**`routes.go`** — see bagian 6 endpoint table.
 
 ### 4. `internal/asset/` module
 
@@ -185,7 +185,7 @@ re-validated defensively in the executor.
 `accumulated_depreciation` (default-allow for unlisted fields, per existing FieldService). Update
 handler rejects edits to fields the role can't edit (`field_permissions` edit flag).
 
-**`routes.go`** — see §6.
+**`routes.go`** — see bagian 6.
 
 ### 5. Field-permission masking (FR-2.3)
 
@@ -204,7 +204,7 @@ Seed `field_permissions` for entity `assets`:
 `"assets"`, `"requests"`. Read/list and the direct update path resolve caller scope via
 `common.ScopedDeps.CallerOfficeScope(c, module)` and pass `(allScope, officeIDs)` into queries.
 
-**Eligibility — `eligibleToDecide(caller, request, step)`** (pull model, §Decision 3/4):
+**Eligibility — `eligibleToDecide(caller, request, step)`** (pull model, bagian Decision 3/4):
 1. caller has `request.decide` permission, AND
 2. caller is **not** the maker (`requested_by_id`) and **not** an `approver_id` on any prior step
    (SoD; DB also enforces `decided_by_id <> requested_by_id`), AND
@@ -259,7 +259,7 @@ approval.RegisterRoutes(api, approval.NewHandler(approvalSvc, fieldSvc, scopeSvc
 
 Seeded in migration `000016` (idempotent; reversed in `.down.sql`):
 - `office_types.tier`: Pusat→`pusat`, Wilayah→`wilayah`, Cabang→`office`, Outlet→`office`.
-- `approval_thresholds` (cumulative, per PRD §2.4 placeholders — flagged "confirm with bank policy"):
+- `approval_thresholds` (cumulative, per PRD bagian 2.4 placeholders — flagged "confirm with bank policy"):
   - `asset_create`: ≤10jt → [office]; 10–100jt → [office, wilayah]; >100jt → [office, wilayah, pusat].
   - `asset_disposal`: ≤5jt → [office]; 5–50jt → [office, wilayah]; >50jt → [office, wilayah, pusat].
   - `valuation_exclusion`: [wilayah].

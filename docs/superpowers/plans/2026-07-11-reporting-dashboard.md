@@ -24,7 +24,7 @@
 - Branch: `feat/reporting-dashboard` (already created; spec committed there).
 - Backend period contract: `period=last30|this_month|this_quarter|ytd` **or** `date_from=YYYY-MM-DD&date_to=YYYY-MM-DD` (both required together, `from ≤ to`); giving both `period` and dates is a 400.
 - Report `:type` whitelist: `assets|depreciation|utilization|maintenance|transfers|disposals|opname`.
-- Approved mockup deviations (a)–(h) are in spec §6. Two plan-time refinements to record in PROGRESS.md as deviations **(i)** and **(j)** (flag to the user at final review): **(i)** the status donut renders **all 7 real enum statuses** (`in_transfer`, `retired` appended after the mockup's 5) — hiding nonzero statuses would make the donut lie; **(j)** the "Maintenance Jatuh Tempo" KPI uses a fixed **`next_due_date ≤ today+7d`** window (matches the mockup's own "dalam 7 hari" trend text), independent of the period filter — a past-looking period makes no sense for future due dates.
+- Approved mockup deviations (a)–(h) are in spec bagian 6. Two plan-time refinements to record in PROGRESS.md as deviations **(i)** and **(j)** (flag to the user at final review): **(i)** the status donut renders **all 7 real enum statuses** (`in_transfer`, `retired` appended after the mockup's 5) — hiding nonzero statuses would make the donut lie; **(j)** the "Maintenance Jatuh Tempo" KPI uses a fixed **`next_due_date ≤ today+7d`** window (matches the mockup's own "dalam 7 hari" trend text), independent of the period filter — a past-looking period makes no sense for future due dates.
 
 ---
 
@@ -102,7 +102,7 @@ ON CONFLICT DO NOTHING;
 DELETE FROM identity.data_scope_policies WHERE module = 'report';
 ```
 
-> Note the per-spec role mapping (PRD §2.2): Kepala Kanwil/Unit see their subtree, Manager their office, Staf `own` (a Staf's `own` resolves to their office in `CallerOfficeScope`, which for aggregate dashboards means "their office's numbers" — matching "🔵 (miliknya)" pragmatically since assets are office-owned, not user-owned).
+> Note the per-spec role mapping (PRD bagian 2.2): Kepala Kanwil/Unit see their subtree, Manager their office, Staf `own` (a Staf's `own` resolves to their office in `CallerOfficeScope`, which for aggregate dashboards means "their office's numbers" — matching "🔵 (miliknya)" pragmatically since assets are office-owned, not user-owned).
 
 - [ ] **Step 2: Add `"report"` to `ScopeModules()`** in `backend/internal/authzadmin/catalog.go` (alphabetical/consistent position with existing entries like `"maintenance"`, `"stockopname"`). If `catalog_test.go` asserts the module list/length, update it.
 
@@ -1386,6 +1386,6 @@ Follow the maintenance.spec.ts conventions: `RUN = Date.now()` unique names, API
 
 ## Self-Review Notes
 
-- **Spec coverage:** §Keputusan 1–7 → Tasks 5/6 (7 reports), 2 (period), 12 (office select/export/approval panel), 4 (cache), 3+5 (exclusion rule); §Arsitektur → Tasks 3–8; §1 backend table → Tasks 1–9; §2 report table → Tasks 5/6/13; §3 frontend → Tasks 10–13; §4 keamanan → Tasks 1/8 (403 tests), §5 pengujian → every task + 14/15; §6 deviasi → recorded in Global Constraints + Task 15; §7 batasan → Task 15 PROGRESS notes. GL recap endpoint variant (spec §2 jenis 6) → Tasks 6/8/13.
+- **Spec coverage:** bagian Keputusan 1–7 → Tasks 5/6 (7 reports), 2 (period), 12 (office select/export/approval panel), 4 (cache), 3+5 (exclusion rule); bagian Arsitektur → Tasks 3–8; bagian 1 backend table → Tasks 1–9; bagian 2 report table → Tasks 5/6/13; bagian 3 frontend → Tasks 10–13; bagian 4 keamanan → Tasks 1/8 (403 tests), bagian 5 pengujian → every task + 14/15; bagian 6 deviasi → recorded in Global Constraints + Task 15; bagian 7 batasan → Task 15 PROGRESS notes. GL recap endpoint variant (spec bagian 2 jenis 6) → Tasks 6/8/13.
 - **Type consistency:** `ReportParams`/`ReportResult`/`GlRecapResult` defined once (Task 2) and consumed in 5–8; frontend DTO names in Task 11 are consumed verbatim in 12/13; `PeriodValue`/`periodToQuery` defined in Task 10, consumed in 11–13. KPI `key` strings listed in Task 5/6 are the same ones i18n'd in Task 13.
 - **Two refinements ((i) donut 7 statuses, (j) due-window ≤ today+7) must be surfaced to the user at review** — they are marked in Global Constraints and Task 15.

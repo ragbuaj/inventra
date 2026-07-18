@@ -16,7 +16,7 @@ Tujuan: bangun modul admin Superadmin untuk keempat tabel itu, dengan **invalida
 ### Temuan yang melatari (diverifikasi dari kode)
 
 - **Tidak ada bypass superadmin**: `RequirePermission` murni `Has(roleID, key)`.
-- **Drift key**: kode menegakkan `asset.view`/`asset.manage`, `request.decide`, `approval.config.manage`; tetapi seed `000005` memberi `asset.read/create/update/delete/checkout`, `request.approve`, dan tak punya `approval.config.manage`. Akibatnya, dengan seed produksi **tak ada peran** yang punya `asset.view`/`asset.manage` → endpoint aset tertutup untuk semua (integration test lolos karena seed izin ad-hoc). Bug laten ini diperbaiki di sini (§4).
+- **Drift key**: kode menegakkan `asset.view`/`asset.manage`, `request.decide`, `approval.config.manage`; tetapi seed `000005` memberi `asset.read/create/update/delete/checkout`, `request.approve`, dan tak punya `approval.config.manage`. Akibatnya, dengan seed produksi **tak ada peran** yang punya `asset.view`/`asset.manage` → endpoint aset tertutup untuk semua (integration test lolos karena seed izin ad-hoc). Bug laten ini diperbaiki di sini (bagian 4).
 - Permission key yang **benar-benar ditegakkan** saat ini (grep `RequirePermission`): `approval.config.manage`, `asset.manage`, `asset.view`, `audit.view`, `masterdata.global.manage`, `masterdata.office.manage`, `request.create`, `request.decide`, `user.manage`. Modul ini menambah penegakan `role.manage`/`scope.manage`/`fieldperm.manage` (gerbang endpoint admin).
 
 ### Skema tabel (sudah ada)
@@ -37,7 +37,7 @@ Tujuan: bangun modul admin Superadmin untuk keempat tabel itu, dengan **invalida
 
 Package baru `internal/authzadmin/` (konvensi four-file):
 - `service.go` — logika + sentinel error (`ErrNotFound`, `ErrConflict`, `ErrSystemRole`, `ErrRoleInUse`, `ErrUnknownPermission`, `ErrInvalidScope`, `ErrValidation`) + `mapDBError`; pegang `*sqlc.Queries`, `*pgxpool.Pool` (untuk tx replace-set), dan `*authz.PermissionService`/`*authz.ScopeService`/`*authz.FieldService` (untuk invalidasi).
-- `dto.go` — request structs (`binding`) + serialisasi (`roleToMap`, dst.) + katalog (§3).
+- `dto.go` — request structs (`binding`) + serialisasi (`roleToMap`, dst.) + katalog (bagian 3).
 - `handler.go` — `Handler` (bind→service→audit→respond; map sentinel→HTTP via `svcError`).
 - `routes.go` — `RegisterRoutes(rg, h, authMW, requireRole, requireScope, requireField)` (gerbang per-endpoint).
 
@@ -70,7 +70,7 @@ Tulis ulang blok `role_permissions` agar **hanya** memakai key katalog dan mence
 - Tambah `approval.config.manage` ke Superadmin.
 - Pertahankan key cadangan yang sudah diberikan (report.*, maintenance.manage, depreciation.manage, valuation.exclude.approve) — semuanya ada di katalog.
 - Superadmin = **seluruh** katalog (termasuk `role.manage`/`scope.manage`/`fieldperm.manage` yang sudah ada).
-`.down.sql` disesuaikan bila perlu. Karena greenfield (DATABASE.md §6), edit seed langsung; DB dev di-reset.
+`.down.sql` disesuaikan bila perlu. Karena greenfield (DATABASE.md bagian 6), edit seed langsung; DB dev di-reset.
 
 ## 5. Endpoint (semua `authMW` + gerbang izin)
 
@@ -81,7 +81,7 @@ Tulis ulang blok `role_permissions` agar **hanya** memakai key katalog dan mence
 | | `POST /authz/roles` | role.manage | buat peran kustom (`is_system=false`) → 201 |
 | | `GET /authz/roles/:id` | role.manage | detail |
 | | `PUT /authz/roles/:id` | role.manage | edit name/description (+ code bila bukan sistem) |
-| | `DELETE /authz/roles/:id` | role.manage | 204; lihat aturan §6 |
+| | `DELETE /authz/roles/:id` | role.manage | 204; lihat aturan bagian 6 |
 | Role permissions | `GET /authz/roles/:id/permissions` | role.manage | `{permissions:[key…]}` |
 | | `PUT /authz/roles/:id/permissions` | role.manage | replace-set |
 | Data scope | `GET /authz/roles/:id/scope` | scope.manage | `{policies:[{module,scope_level}…]}` |

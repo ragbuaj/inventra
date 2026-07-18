@@ -81,7 +81,7 @@ UPDATE masterdata.office_types SET tier = 'pusat'   WHERE name ILIKE '%pusat%'  
 UPDATE masterdata.office_types SET tier = 'wilayah' WHERE name ILIKE '%wilayah%' AND deleted_at IS NULL;
 UPDATE masterdata.office_types SET tier = 'office'  WHERE (name ILIKE '%cabang%' OR name ILIKE '%unit%' OR name ILIKE '%outlet%') AND deleted_at IS NULL;
 
--- Approval thresholds (placeholder bands per PRD §2.4 — confirm with bank policy)
+-- Approval thresholds (placeholder bands per PRD bagian 2.4 — confirm with bank policy)
 INSERT INTO approval.approval_thresholds (request_type, amount_from, amount_to, required_level, step_order) VALUES
   ('asset_create', 0,          10000000,  'office',  1),
   ('asset_create', 10000000,   100000000, 'office',  1),
@@ -1971,9 +1971,9 @@ git commit -m "docs(progress): approval engine + asset core landed"
 
 ## Self-Review notes (spec coverage)
 
-- Spec §1 migration → Task 1. §2 queries → Tasks 2–4. §3 approval module → Tasks 10–18.
-  §4 asset module → Tasks 5–9, 16. §5 field masking → Tasks 1 (seed), 9 (apply).
-  §6 authz/eligibility/endpoints → Tasks 11–13, 18, 19. §7 wiring → Task 19. Seeds → Task 1.
+- Spec bagian 1 migration → Task 1. bagian 2 queries → Tasks 2–4. bagian 3 approval module → Tasks 10–18.
+  bagian 4 asset module → Tasks 5–9, 16. bagian 5 field masking → Tasks 1 (seed), 9 (apply).
+  bagian 6 authz/eligibility/endpoints → Tasks 11–13, 18, 19. bagian 7 wiring → Task 19. Seeds → Task 1.
   Testing → all unit tasks + Task 21. OpenAPI → Task 20. PROGRESS + gates → Task 22.
 - Import-cycle risk (asset↔approval) resolved: `approval.Executor` interface lives in approval; asset
   imports approval; wiring injects (Tasks 10, 16, 19).

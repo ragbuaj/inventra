@@ -35,10 +35,10 @@ interface CreateRoleInput { name: string; description?: string; copyFromId?: str
 ```
 
 Fungsi (semua via `useApiClient().request`):
-- `async getCatalog(): Promise<ModuleView[]>` — `GET /authz/catalog`; map tiap `group`→`{group, icon: iconForGroup(group), items}`. `icon` & label tampilan di-resolve di layer presentasi (§3); composable mengembalikan data katalog mentah + ikon grup.
+- `async getCatalog(): Promise<ModuleView[]>` — `GET /authz/catalog`; map tiap `group`→`{group, icon: iconForGroup(group), items}`. `icon` & label tampilan di-resolve di layer presentasi (bagian 3); composable mengembalikan data katalog mentah + ikon grup.
 - `async listRoles(): Promise<RoleView[]>` — `GET /authz/roles`, kembalikan `data`.
 - `async getRolePermissions(id: string): Promise<string[]>` — `GET /authz/roles/:id/permissions` → `.permissions`.
-- `async createRole(input: CreateRoleInput): Promise<RoleView>` — derive `code = slugify(input.name)` (§4); `POST /authz/roles {code, name, description}`; bila `copyFromId` → `getRolePermissions(copyFromId)` lalu `updateRolePermissions(newRole.id, perms)`; kembalikan role baru.
+- `async createRole(input: CreateRoleInput): Promise<RoleView>` — derive `code = slugify(input.name)` (bagian 4); `POST /authz/roles {code, name, description}`; bila `copyFromId` → `getRolePermissions(copyFromId)` lalu `updateRolePermissions(newRole.id, perms)`; kembalikan role baru.
 - `async updateRolePermissions(id: string, perms: string[]): Promise<void>` — `PUT /authz/roles/:id/permissions {permissions: perms}`.
 
 `slugify(name)` → lowercase, spasi/karakter non-alfanumerik → `_`, trim `_` beruntun (mis. "Auditor Cabang" → `auditor_cabang`). Murni, dapat diuji unit.

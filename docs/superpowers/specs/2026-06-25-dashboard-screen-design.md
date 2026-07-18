@@ -31,7 +31,7 @@ work builds **only the `<main>` content** of the dashboard page. The sidebar alr
 ### Out of scope (later phases / other specs)
 - Real backend `/dashboard/summary` endpoint (backend reporting module not built).
 - The destinations behind Export and "Lihat semua" (assets/maintenance/approval screens). These render
-  as in the mockup but trigger a "belum tersedia" toast (see §6).
+  as in the mockup but trigger a "belum tersedia" toast (see bagian 6).
 - Any change to the app shell, topbar, or sidebar.
 
 ## 3. Component architecture
@@ -88,7 +88,7 @@ export interface ApprovalSeed { id: string; title: Localized; meta: Localized; i
 ```
 
 - **Static UI labels** (KPI labels, status labels, chart/panel titles, trend phrases, scope-note, export,
-  period options, empty-state copy) are **not** in the fixture — they are i18n keys (§5).
+  period options, empty-state copy) are **not** in the fixture — they are i18n keys (bagian 5).
 - **Dynamic record text** the mockup localizes (`maint.task`, `maint.due`, `appr.title`, `appr.meta`,
   scope `name`) is stored as `{id, en}` and picked by current locale in the composable — this is
   mock-only data a real API would return already-resolved.

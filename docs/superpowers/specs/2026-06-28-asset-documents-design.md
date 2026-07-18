@@ -9,7 +9,7 @@
 
 ## 1. Konteks & tujuan
 
-PRD §3.10 (FR-10.1–10.3): transaksi perolehan/mutasi/penghapusan punya **nomor BAST** dan
+PRD bagian 3.10 (FR-10.1–10.3): transaksi perolehan/mutasi/penghapusan punya **nomor BAST** dan
 dokumen pendukung di MinIO; entitas `asset_documents` menautkan dokumen ke aset & transaksi
 terkait (jenis, nomor, tanggal, pihak, berkas), dan **mengikuti hak akses & scope aset** dengan
 perubahan tercatat di audit trail.

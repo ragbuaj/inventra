@@ -1,8 +1,8 @@
 # Modul Maintenance (Jadwal · Catatan · Laporan Kerusakan) — Design
 
 **Tanggal:** 2026-07-11 · **Status:** Disetujui user (brainstorming session)
-**Referensi:** PRD §3.4 (FR-4.1–4.6) + §3.6 (maker-checker) + RBAC matrix §2.1 + state machine §5 ·
-DATABASE.md §4.4 (schema `maintenance`) · migrasi `000012_maintenance` (tabel sudah ada) ·
+**Referensi:** PRD bagian 3.4 (FR-4.1–4.6) + bagian 3.6 (maker-checker) + RBAC matrix bagian 2.1 + state machine bagian 5 ·
+DATABASE.md bagian 4.4 (schema `maintenance`) · migrasi `000012_maintenance` (tabel sudah ada) ·
 enum `shared.maintenance_type('preventive','corrective')` +
 `shared.maintenance_status('scheduled','in_progress','completed','cancelled')` +
 `shared.request_type` (nilai `maintenance` sudah ada) · mockup `docs/design/Maintenance.dc.html` ·
@@ -159,7 +159,7 @@ scheduled ──mulai──▶ in_progress ──selesai──▶ completed
 - `UpdateRecord(id, in)`: transisi hanya sesuai diagram (`ErrInvalidTransition` untuk lainnya;
   record `completed`/`cancelled` tidak bisa diedit lagi).
 - Efek samping (dalam tx yang sama):
-  - → `in_progress`: aset `available`/`assigned` → `under_maintenance` (state machine PRD §5);
+  - → `in_progress`: aset `available`/`assigned` → `under_maintenance` (state machine PRD bagian 5);
     aset `in_transfer` ditolak (`ErrAssetBusy`); aset sudah `under_maintenance` → no-op.
   - → `completed`: set `completed_date` (default hari ini) + `cost` final; **release** aset:
     bila aset `under_maintenance` **dan** `CountActiveRecordsByAsset == 0` (setelah record ini)
@@ -180,7 +180,7 @@ scheduled ──mulai──▶ in_progress ──selesai──▶ completed
 **Attention & follow-up:**
 - `ListAttention(scope)`: daftar aset `under_maintenance` tanpa record aktif (untuk UI
   "Perlu Tindak Lanjut").
-- `CreateFromOpname(...)`: dipanggil stockopname (lihat §1.6) — buat record corrective
+- `CreateFromOpname(...)`: dipanggil stockopname (lihat bagian 1.6) — buat record corrective
   `scheduled` untuk item `damaged` (deskripsi dari catatan opname, `reported_by_id` = caller).
 
 ### 1.4 `executor.go` — approval executor
@@ -313,7 +313,7 @@ Schemas `MaintenanceSchedule`, `MaintenanceRecord`, `MaintenanceAttentionItem` +
 
 **Gate akhir:** `go build/vet/test` + full integration + Spectral + `pnpm lint/typecheck/test/build`
 + e2e; side-by-side 1:1 vs `Maintenance.dc.html` (light & dark); update `PROGRESS.md` (checkbox
-Maintenance + daftar deviasi sesuai §"Batasan yang jujur dicatat" + blok "Next session") dalam
+Maintenance + daftar deviasi sesuai bagian "Batasan yang jujur dicatat" + blok "Next session") dalam
 PR yang sama.
 
 ## Urutan implementasi (ringkas)

@@ -229,7 +229,7 @@ HTTPS hijau (sertifikat Let's Encrypt).
 
 ## 10. Update / redeploy
 
-> **Otomatis?** Kalau auto-deploy (CD) sudah diaktifkan (§13), setiap merge ke
+> **Otomatis?** Kalau auto-deploy (CD) sudah diaktifkan (bagian 13), setiap merge ke
 > `main` yang lolos CI akan otomatis ter-deploy — Anda tidak perlu menjalankan
 > perintah di bawah secara manual. Bagian ini untuk redeploy manual / server
 > tanpa CD.
@@ -431,10 +431,10 @@ docker run --rm -it -v "$PWD:/work" -w /work -v ~/.ssh:/root/.ssh:ro \
 `inventory.ini` & `vault.yml` di-gitignore (rahasia). WAF ikut ter-provision
 karena role `app` menjalankan `docker compose up --build` (image Caddy+Coraza).
 
-Role `monitoring` (langkah §16 di bawah) menyusul role `app` di `site.yml` dan
+Role `monitoring` (langkah bagian 16 di bawah) menyusul role `app` di `site.yml` dan
 menaikkan overlay observability dengan cara yang sama (`docker_compose_v2`,
 `state: present`) — file rahasia overlay (`alertmanager.yml`, `grafana.env`)
-harus sudah disiapkan di server sebelum menjalankan playbook (lihat §16).
+harus sudah disiapkan di server sebelum menjalankan playbook (lihat bagian 16).
 
 ---
 

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Feature** | Inter-office asset transfer (mutasi) — PRD v1.1 §3.8 |
+| **Feature** | Inter-office asset transfer (mutasi) — PRD v1.1 bagian 3.8 |
 | **Date** | 2026-07-02 |
 | **Scope** | **Backend-only** (no frontend mockup exists yet) |
 | **Status** | Approved — ready for implementation plan |

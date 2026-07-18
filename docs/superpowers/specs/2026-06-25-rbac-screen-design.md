@@ -41,7 +41,7 @@ pass maps them to the real `identity.role_permissions` keys.
 
 The mockup models module/permission labels and role names as bilingual `{id,en}` — these are catalog
 **data** a real API returns already-localized, so they live in the fixture (not i18n), resolved by locale
-in `useRbac`. Page chrome is i18n (§6).
+in `useRbac`. Page chrome is i18n (bagian 6).
 
 ```ts
 export interface Localized { id: string; en: string }

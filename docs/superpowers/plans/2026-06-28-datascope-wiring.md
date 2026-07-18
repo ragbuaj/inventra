@@ -522,11 +522,11 @@ git commit -m "test(datascope): e2e against real backend + progress; drop orphan
 ## Self-Review
 
 **Spec coverage:**
-- §2 composable rewrite (getModules drops `*`; listRoles eager per-role scope → def/ov; saveRoleScope always-`*`) → Task 2. ✓
-- §3 constants relocation + i18n (level desc + module labels + loadError/retry; tone map) → Task 1 + Task 3 (ScopeCell/page import from constants, i18n). ✓
-- §4 page (id identity, dirtyIds per-role save, loadError, moduleLabel) → Task 3. ✓
-- §5 tests (unit/component/e2e) → Tasks 2, 4, 5. ✓
-- §6 done (mockup compare, delete mock, PROGRESS, gate) → Task 5. ✓
+- bagian 2 composable rewrite (getModules drops `*`; listRoles eager per-role scope → def/ov; saveRoleScope always-`*`) → Task 2. ✓
+- bagian 3 constants relocation + i18n (level desc + module labels + loadError/retry; tone map) → Task 1 + Task 3 (ScopeCell/page import from constants, i18n). ✓
+- bagian 4 page (id identity, dirtyIds per-role save, loadError, moduleLabel) → Task 3. ✓
+- bagian 5 tests (unit/component/e2e) → Tasks 2, 4, 5. ✓
+- bagian 6 done (mockup compare, delete mock, PROGRESS, gate) → Task 5. ✓
 
 **Placeholder scan:** Task 4 + Task 5 give explicit assertion lists / steps (Step 1 says read the existing stub pattern first, since ScopeCell popover interaction + the stub helper differ across the repo). Concrete checklists, not "TODO"s.
 

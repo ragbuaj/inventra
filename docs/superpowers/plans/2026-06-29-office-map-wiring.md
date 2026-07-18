@@ -900,17 +900,17 @@ git commit -m "test(master-map): e2e + drop mock; wire Peta Lokasi end-to-end"
 ## Self-Review
 
 **Spec coverage:**
-- §2.1 migration `000018` lat/lng → Task 1 (uses `double precision`, resolving the spec's numeric↔number open question per Global Constraints). ✓
-- §2.2 office write DTO/response lat/lng + validation → Task 1. ✓
-- §2.3 `ListOfficesMap` (JOINs + asset_count + scope) + `GET /offices/map` (authMW+scope) → Task 2. ✓
-- §2.4 openapi + Go tests (scope, name resolution, asset_count, lat/lng) → Task 1 (coords) + Task 2 (map query/openapi). ✓
-- §3.1 `useOfficeMap` rewrite + §3.2 types/`officeMapMeta` → Task 3. ✓
-- §3.3 page rebind + load-error/retry + coord-filtered pins + null guards → Task 4. ✓
-- §3.4 `OfficeMap` Leaflet field rename → Task 4. ✓
-- §3.5 i18n tier labels + loadError/retry → Task 4. ✓
-- §4 tests unit/component/e2e → Tasks 3/4/5. ✓
-- §5 done (delete mock, mockup compare, PROGRESS, gate) → Task 5. ✓
-- §6 risks (tier null→Cabang, empty map, route conflict, numeric↔number) → handled: tier mapping in Task 3 + constraint; route `/map` before `/:id` (Gin 1.12 supports static+param) in Task 2; double precision in Task 1.
+- bagian 2.1 migration `000018` lat/lng → Task 1 (uses `double precision`, resolving the spec's numeric↔number open question per Global Constraints). ✓
+- bagian 2.2 office write DTO/response lat/lng + validation → Task 1. ✓
+- bagian 2.3 `ListOfficesMap` (JOINs + asset_count + scope) + `GET /offices/map` (authMW+scope) → Task 2. ✓
+- bagian 2.4 openapi + Go tests (scope, name resolution, asset_count, lat/lng) → Task 1 (coords) + Task 2 (map query/openapi). ✓
+- bagian 3.1 `useOfficeMap` rewrite + bagian 3.2 types/`officeMapMeta` → Task 3. ✓
+- bagian 3.3 page rebind + load-error/retry + coord-filtered pins + null guards → Task 4. ✓
+- bagian 3.4 `OfficeMap` Leaflet field rename → Task 4. ✓
+- bagian 3.5 i18n tier labels + loadError/retry → Task 4. ✓
+- bagian 4 tests unit/component/e2e → Tasks 3/4/5. ✓
+- bagian 5 done (delete mock, mockup compare, PROGRESS, gate) → Task 5. ✓
+- bagian 6 risks (tier null→Cabang, empty map, route conflict, numeric↔number) → handled: tier mapping in Task 3 + constraint; route `/map` before `/:id` (Gin 1.12 supports static+param) in Task 2; double precision in Task 1.
 
 **Placeholder scan:** Tasks 4-5 contain explicit "read X first" pointers (settings-audit harness, helpers.ts, mockup) with concrete assertion lists and full code — no "TODO"/"add validation"/"similar to" placeholders. The i18n step names exact keys/values for both locales.
 

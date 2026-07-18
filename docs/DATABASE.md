@@ -5,7 +5,7 @@
 | **Produk** | Inventra (Asset Management System) |
 | **Database** | PostgreSQL 16 |
 | **Akses kode** | sqlc (type-safe) · migrasi golang-migrate |
-| **Sumber kebenaran** | Dokumen ini menjabarkan [PRD.md §6](PRD.md) menjadi skema konkret |
+| **Sumber kebenaran** | Dokumen ini menjabarkan [PRD.md bagian 6](PRD.md) menjadi skema konkret |
 | **Tanggal** | 2026-06-26 (selaras PRD v1.1 — Bank Fixed Asset Management) |
 | **ERD ringkas** | Lihat [ERD.md](ERD.md) untuk diagram relasi konsolidasi seluruh skema |
 
@@ -28,7 +28,7 @@
 |---|---|
 | **Primary key** | `id UUID PRIMARY KEY DEFAULT gen_random_uuid()` (pgcrypto, migrasi `000001_init`) |
 | **Penamaan** | tabel `snake_case` jamak; kolom `snake_case`; FK `<entitas>_id` |
-| **Schema (per modul)** | Tabel ditempatkan di **PostgreSQL schema per modul** (lihat §1.2). Enum & fungsi `set_updated_at` di schema `shared`; extensions di `public`. |
+| **Schema (per modul)** | Tabel ditempatkan di **PostgreSQL schema per modul** (lihat bagian 1.2). Enum & fungsi `set_updated_at` di schema `shared`; extensions di `public`. |
 | **Timestamp (wajib)** | **Semua tabel** punya `created_at timestamptz NOT NULL DEFAULT now()` & `updated_at timestamptz NOT NULL DEFAULT now()` (di-update via trigger `set_updated_at()`). Pengecualian: tabel append-only `audit_logs` hanya `created_at`. |
 | **Soft delete (semua tabel)** | Setiap tabel punya `deleted_at timestamptz NULL`. "Hapus" = set `deleted_at = now()` (+ catat di `audit_logs`); data tidak pernah dibuang fisik. Semua query default memfilter `WHERE deleted_at IS NULL`. |
 | **Unique + soft delete** | Semua constraint UNIQUE memakai **partial index** `... WHERE deleted_at IS NULL` agar kode/email dapat dipakai ulang setelah baris dihapus. |
@@ -36,26 +36,26 @@
 | **Uang** | `numeric(18,2)` (mata uang default IDR) |
 | **Rate/persen** | `numeric(5,4)` (mis. salvage rate 0.1000 = 10%) |
 | **Periode depresiasi** | `date` pada hari-1 bulan (mis. `2026-06-01`) |
-| **Enum vs tabel** | Himpunan **domain tetap** (status, dll) → ENUM PostgreSQL (§2). Himpunan yang **dapat dikonfigurasi superadmin** (peran) → **tabel** `roles` (§4.1), bukan enum. |
+| **Enum vs tabel** | Himpunan **domain tetap** (status, dll) → ENUM PostgreSQL (bagian 2). Himpunan yang **dapat dikonfigurasi superadmin** (peran) → **tabel** `roles` (bagian 4.1), bukan enum. |
 | **`is_active` ≠ `deleted_at`** | `is_active boolean DEFAULT true` = toggle bisnis (aktif/nonaktif, FR-7.5) pada master data; `deleted_at` = terhapus. Keduanya berbeda dan bisa hidup berdampingan. |
 | **Scoping** | tabel beroperasi-aset menyimpan `office_id` (didenormalisasi) untuk filter subtree; "kepemilikan" via `employee_id`/`created_by`. |
 | **URL & ID** | UUID v4 aman ditampilkan di URL (tak bisa di-enumerasi) — **tidak ada** kolom `label_id` terpisah. URL ramah-baca memakai kode manusiawi yang ada (`asset_tag`, `offices.code`, `employees.code`) sebagai slug. |
 | **FK on delete** | Dengan soft delete, FK fisik umumnya `RESTRICT`/`NO ACTION`; "cascade soft delete" (mis. attachment ikut terhapus saat aset dihapus) ditangani di service layer. |
 
-### 1.1 Refinement terhadap PRD §6
-- **Peran = tabel, bukan enum.** `user_role` enum diganti tabel **`roles`** (lihat §4.1) karena superadmin dapat menambah/mengubah peran. RBAC per-aksi dibuat data-driven via `role_permissions`. Referensi `role` di `users`, `field_permissions`, `data_scope_policies` menjadi `role_id` (FK `roles`).
+### 1.1 Refinement terhadap PRD bagian 6
+- **Peran = tabel, bukan enum.** `user_role` enum diganti tabel **`roles`** (lihat bagian 4.1) karena superadmin dapat menambah/mengubah peran. RBAC per-aksi dibuat data-driven via `role_permissions`. Referensi `role` di `users`, `field_permissions`, `data_scope_policies` menjadi `role_id` (FK `roles`).
 - `data_scope_policies.module` memakai sentinel **`'*'`** (NOT NULL, default `'*'`) untuk baris default per-role — agar `UNIQUE(role_id, module)` dapat ditegakkan (NULL di Postgres dianggap distinct).
 - `assets.office_id` ditambahkan (diturunkan dari `room → floor → office`) untuk mempercepat filter scoping.
 - `assets.asset_tag` **adalah kode aset unik** (mis. `AST-2026-0001`, FR-2.2) sekaligus payload **barcode** (FR-2.12) — bukan dua hal berbeda.
-- Soft delete & `created_at`/`updated_at` diterapkan ke seluruh tabel (lihat §1).
+- Soft delete & `created_at`/`updated_at` diterapkan ke seluruh tabel (lihat bagian 1).
 
 ### 1.2 Organisasi Schema (per modul)
 
-Tabel dipisah ke **PostgreSQL schema per modul**, selaras dengan modul backend (PRD §7). Batas modul jadi eksplisit di level database; FK lintas-schema tetap diperbolehkan.
+Tabel dipisah ke **PostgreSQL schema per modul**, selaras dengan modul backend (PRD bagian 7). Batas modul jadi eksplisit di level database; FK lintas-schema tetap diperbolehkan.
 
 | Schema | Isi |
 |---|---|
-| `shared` | Semua **tipe enum** (§2) + fungsi trigger `set_updated_at()` — kosakata bersama |
+| `shared` | Semua **tipe enum** (bagian 2) + fungsi trigger `set_updated_at()` — kosakata bersama |
 | `identity` | `roles`, `role_permissions`, `users`, `field_permissions`, `data_scope_policies` |
 | `audit` | `audit_logs` |
 | `masterdata` | offices, floors, rooms, provinces, cities, office_types, departments, positions, employees, vendors, brands, models, categories, maintenance_categories, problem_categories, units *(fase 3)* |
@@ -74,7 +74,7 @@ Tabel dipisah ke **PostgreSQL schema per modul**, selaras dengan modul backend (
 
 ## 2. Tipe Enum
 
-> **Peran (role) BUKAN enum** — disimpan di tabel `roles` (§4.1) agar dapat dikonfigurasi superadmin.
+> **Peran (role) BUKAN enum** — disimpan di tabel `roles` (bagian 4.1) agar dapat dikonfigurasi superadmin.
 > Semua tipe enum di bawah dibuat di schema **`shared`** (diacu sebagai `shared.<enum>`, mis. `shared.user_status`).
 
 ```sql
@@ -119,7 +119,7 @@ ALTER TYPE request_type ADD VALUE IF NOT EXISTS 'asset_disposal';  -- 'asset_del
 > dalam transaksi yang juga memakai nilai itu. Karena golang-migrate membungkus tiap migrasi dalam satu
 > transaksi, **migrasi 000015 hanya menambah nilai enum** (tanpa memakainya); pemakaian nilai baru
 > (kolom/constraint/seed) dilakukan di migrasi berikutnya (000016+). `disposed`/`in_transfer` melengkapi
-> state machine PRD §5; `retired` lama dipertahankan untuk kompatibilitas.
+> state machine PRD bagian 5; `retired` lama dipertahankan untuk kompatibilitas.
 
 > `assignment.status = active` yang melewati `due_date` dianggap **overdue** (turunan, bukan kolom).
 > Penyusutan **dua basis** memakai `depreciation_basis` di `depreciation_entries` (komersial & fiskal).
@@ -220,7 +220,7 @@ erDiagram
 
 Notasi: **PK** primary key · **FK** foreign key · `?` nullable.
 
-> **Kolom implisit di SEMUA tabel** (tidak diulang di tiap baris, lihat §1): `created_at`, `updated_at`, `deleted_at` (soft delete). `audit_logs` hanya `created_at`. Semua `UNIQUE` adalah partial `WHERE deleted_at IS NULL`.
+> **Kolom implisit di SEMUA tabel** (tidak diulang di tiap baris, lihat bagian 1): `created_at`, `updated_at`, `deleted_at` (soft delete). `audit_logs` hanya `created_at`. Semua `UNIQUE` adalah partial `WHERE deleted_at IS NULL`.
 
 ### 4.1 Identity & Otorisasi  · schema `identity`
 
@@ -240,7 +240,7 @@ Index: partial `UNIQUE(code)`. Seed: 5 peran bawaan `is_system=true`. Superadmin
 |---|---|---|---|
 | id | uuid | no | **PK** |
 | role_id | uuid | no | **FK** roles |
-| permission_key | text | no | kunci aksi, mis. `asset.create`, `asset.checkout`, `request.approve`, `user.manage`, `report.export` — katalog kunci di-seed dari matriks PRD §2.1 |
+| permission_key | text | no | kunci aksi, mis. `asset.create`, `asset.checkout`, `request.approve`, `user.manage`, `report.export` — katalog kunci di-seed dari matriks PRD bagian 2.1 |
 
 Index: partial `UNIQUE(role_id, permission_key)`, `idx_role_permissions_role`. Ditembolok di Redis.
 
@@ -260,7 +260,7 @@ Index: partial `UNIQUE(role_id, permission_key)`, `idx_role_permissions_role`. D
 
 Index: partial `UNIQUE(email)`, partial `UNIQUE(google_id)`, `idx_users_office_id`, `idx_users_role_id`, `idx_users_employee_id`.
 
-#### `field_permissions` — hak akses per-field per-role (§2.3 PRD, **semua entitas**)
+#### `field_permissions` — hak akses per-field per-role (bagian 2.3 PRD, **semua entitas**)
 | Kolom | Tipe | Null | Default | Keterangan |
 |---|---|---|---|---|
 | id | uuid | no | gen_random_uuid() | **PK** |
@@ -272,7 +272,7 @@ Index: partial `UNIQUE(email)`, partial `UNIQUE(google_id)`, `idx_users_office_i
 
 Index: partial `UNIQUE(entity, field, role_id)`, `idx_field_permissions_role`. Ditembolok di Redis; invalidasi saat berubah.
 
-#### `data_scope_policies` — lingkup data per-role (+ override per-modul) (§2.2 PRD)
+#### `data_scope_policies` — lingkup data per-role (+ override per-modul) (bagian 2.2 PRD)
 | Kolom | Tipe | Null | Default | Keterangan |
 |---|---|---|---|---|
 | id | uuid | no | gen_random_uuid() | **PK** |
@@ -375,7 +375,7 @@ Index: partial `UNIQUE(key)`. Ditembolok di Redis (invalidasi saat berubah). See
 | is_active | boolean | no | |
 | ts | timestamptz | no | |
 
-Index: `idx_offices_parent_id`, `UNIQUE(code)`. Lihat §5 untuk komputasi subtree.
+Index: `idx_offices_parent_id`, `UNIQUE(code)`. Lihat bagian 5 untuk komputasi subtree.
 
 > **Hierarki tetap 4 jenjang** (Pusat → Wilayah → Cabang/Unit → Outlet) via `parent_id`; `office_type`
 > boleh banyak label tanpa menambah kedalaman. `cost_center_code` ditambah migrasi 000016 (🆕 v1.1).
@@ -415,7 +415,7 @@ Index: partial `UNIQUE(code)`, `idx_employees_office_id`, `idx_employees_departm
 | Kolom | Tipe | Null | Default | Keterangan |
 |---|---|---|---|---|
 | id | uuid | no | gen_random_uuid() | **PK** |
-| asset_tag | text | no | | **UNIQUE** (partial) — **kode aset** unik, format `<kode_kantor>-<kode_kategori>-<tahun>-<seq5>` (lihat §4.7) = payload **barcode** Code128 (FR-2.12); slug URL |
+| asset_tag | text | no | | **UNIQUE** (partial) — **kode aset** unik, format `<kode_kantor>-<kode_kategori>-<tahun>-<seq5>` (lihat bagian 4.7) = payload **barcode** Code128 (FR-2.12); slug URL |
 | name | text | no | | |
 | category_id | uuid | no | | **FK** categories |
 | brand_id | uuid? | yes | | **FK** brands |
@@ -423,7 +423,7 @@ Index: partial `UNIQUE(code)`, `idx_employees_office_id`, `idx_employees_departm
 | room_id | uuid? | yes 🆕 | | **FK** rooms — lokasi fisik (NULL untuk aset **intangible**) |
 | office_id | uuid | no | | **FK** offices — diturunkan dari room (tangible) / kantor pengelola (intangible), untuk scoping |
 | unit_id | uuid? | yes | | **FK** units |
-| status | asset_status | no | 'available' | state machine PRD §5 (+ `in_transfer`/`disposed` 🆕) |
+| status | asset_status | no | 'available' | state machine PRD bagian 5 (+ `in_transfer`/`disposed` 🆕) |
 | serial_number | text? | yes | | |
 | purchase_date | date? | yes | | tanggal perolehan |
 | purchase_cost | numeric(18,2)? | yes | | harga/nilai perolehan |
@@ -444,7 +444,7 @@ Index: partial `UNIQUE(code)`, `idx_employees_office_id`, `idx_employees_departm
 | **impairment_loss** 🆕 | numeric(18,2)? | yes | | akumulasi rugi penurunan nilai (PSAK 48, FR-5.4) |
 | **acquisition_bast_no** 🆕 | text? | yes | | nomor BAST perolehan (dokumen lengkap di `asset_documents`) |
 | current_holder_employee_id | uuid? | yes | | **FK** employees — pemegang aktif |
-| excluded_from_valuation | boolean | no | false | hasil approval (§3.6) |
+| excluded_from_valuation | boolean | no | false | hasil approval (bagian 3.6) |
 | valuation_exclusion_reason | text? | yes | | |
 | created_by_id | uuid? | yes | | **FK** users |
 | notes | text? | yes | | |
@@ -540,13 +540,13 @@ menampilkan banner pengingat sebelum run pertama.
 
 ### 4.5 Approval, Audit & Import
 
-#### `requests` — maker-checker generik (§3.6 PRD)
+#### `requests` — maker-checker generik (bagian 3.6 PRD)
 | Kolom | Tipe | Null | Keterangan |
 |---|---|---|---|
 | id | uuid | no | **PK** |
 | type | request_type | no | asset_create / asset_disposal / asset_transfer 🆕 / assignment / maintenance / valuation_exclusion |
 | office_id | uuid? | yes | **FK** offices — routing approver berjenjang |
-| **amount** 🆕 | numeric(18,2)? | yes | nilai transaksi (perolehan/nilai buku) — dasar pemilihan band `approval_thresholds` (§2.4 PRD) |
+| **amount** 🆕 | numeric(18,2)? | yes | nilai transaksi (perolehan/nilai buku) — dasar pemilihan band `approval_thresholds` (bagian 2.4 PRD) |
 | **current_step** 🆕 | int | no | langkah rantai persetujuan berjalan (default 1) |
 | target_entity | text? | yes | entitas terkait (mis. `assets`) |
 | target_id | uuid? | yes | ID objek eksisting (untuk disposal/exclusion/transfer) |
@@ -559,9 +559,9 @@ menampilkan banner pengingat sebelum run pertama.
 | decided_at | timestamptz? | yes | |
 | ts | timestamptz | no | created/updated |
 
-Index: `idx_requests_status_type`, `idx_requests_office_id`, `idx_requests_requester`. Aturan: `requested_by_id <> decided_by_id` (segregation of duty, §FR-6.4). 🆕 v1.1: persetujuan **berjenjang per nilai** dirinci di `request_approvals`; `amount`/`current_step` ditambah migrasi 000016.
+Index: `idx_requests_status_type`, `idx_requests_office_id`, `idx_requests_requester`. Aturan: `requested_by_id <> decided_by_id` (segregation of duty, FR-6.4). 🆕 v1.1: persetujuan **berjenjang per nilai** dirinci di `request_approvals`; `amount`/`current_step` ditambah migrasi 000016.
 
-#### `approval_thresholds` — limit otorisasi berjenjang per nilai 🆕 v1.1 (§2.4 PRD)
+#### `approval_thresholds` — limit otorisasi berjenjang per nilai 🆕 v1.1 (bagian 2.4 PRD)
 | Kolom | Tipe | Null | Default | Keterangan |
 |---|---|---|---|---|
 | id | uuid | no | gen_random_uuid() | **PK** |
@@ -572,9 +572,9 @@ Index: `idx_requests_status_type`, `idx_requests_office_id`, `idx_requests_reque
 | step_order | int | no | 1 | urutan langkah dalam rantai (maker → checker → approver berlapis) |
 | is_active | boolean | no | true | |
 
-Index: `idx_apprthr_type`, partial `UNIQUE(request_type, amount_from, step_order)`. Ditembolok Redis. Seed: band placeholder PRD §2.4 (⚠️ kebijakan bank). Aturan: band per `request_type` tidak boleh tumpang tindih.
+Index: `idx_apprthr_type`, partial `UNIQUE(request_type, amount_from, step_order)`. Ditembolok Redis. Seed: band placeholder PRD bagian 2.4 (⚠️ kebijakan bank). Aturan: band per `request_type` tidak boleh tumpang tindih.
 
-#### `request_approvals` — jejak rantai persetujuan per langkah 🆕 v1.1 (§3.6 PRD)
+#### `request_approvals` — jejak rantai persetujuan per langkah 🆕 v1.1 (bagian 3.6 PRD)
 | Kolom | Tipe | Null | Default | Keterangan |
 |---|---|---|---|---|
 | id | uuid | no | gen_random_uuid() | **PK** |
@@ -586,9 +586,9 @@ Index: `idx_apprthr_type`, partial `UNIQUE(request_type, amount_from, step_order
 | note | text? | yes | | catatan keputusan |
 | decided_at | timestamptz? | yes | | |
 
-Index: partial `UNIQUE(request_id, step_order)`, `idx_reqappr_request`, `idx_reqappr_approver`. Aturan: tiap `approver_id` dalam satu request harus **berbeda** dan **≠ maker** (SoD, §FR-6.4).
+Index: partial `UNIQUE(request_id, step_order)`, `idx_reqappr_request`, `idx_reqappr_approver`. Aturan: tiap `approver_id` dalam satu request harus **berbeda** dan **≠ maker** (SoD, FR-6.4).
 
-#### `audit_logs` — jejak seluruh tabel (§5.7 PRD)
+#### `audit_logs` — jejak seluruh tabel (bagian 5.7 PRD)
 | id uuid PK · actor_id uuid? **FK** users · entity_type text · entity_id uuid · action audit_action · changes jsonb (diff before/after) · ip text? · created_at timestamptz |
 
 Index: `idx_audit_entity (entity_type, entity_id)`, `idx_audit_actor`, `idx_audit_created_at`. Diisi terpusat (decorator service/repository), bukan per-handler.
@@ -617,7 +617,7 @@ Index: `idx_import_created_by`, `idx_import_status`.
 
 Index: `idx_assetdoc_asset`, `idx_assetdoc_type`. Mengikuti hak akses & scope aset terkait.
 
-#### `asset_transfers` — mutasi antar-kantor · schema `transfer` (§3.8 PRD)
+#### `asset_transfers` — mutasi antar-kantor · schema `transfer` (bagian 3.8 PRD)
 | Kolom | Tipe | Null | Keterangan |
 |---|---|---|---|
 | id | uuid | no | **PK** |
@@ -638,7 +638,7 @@ Index: `idx_assetdoc_asset`, `idx_assetdoc_type`. Mengikuti hak akses & scope as
 
 Index: `idx_transfer_asset`, `idx_transfer_from`, `idx_transfer_to`, `idx_transfer_status`. Saat `received`: `assets.office_id`/`room_id` diperbarui (service layer). Scope ditegakkan di sisi asal **dan** tujuan.
 
-#### `stock_opname_sessions` — sesi inventarisasi fisik · schema `stockopname` (§3.9 PRD)
+#### `stock_opname_sessions` — sesi inventarisasi fisik · schema `stockopname` (bagian 3.9 PRD)
 | Kolom | Tipe | Null | Keterangan |
 |---|---|---|---|
 | id | uuid | no | **PK** |
@@ -667,7 +667,7 @@ Index: `idx_opname_office`, `idx_opname_status`.
 
 Index: partial `UNIQUE(session_id, asset_id)`, `idx_opnitem_session`, `idx_opnitem_result`. Selisih (variance) = item `expected=true & result IN (not_found)` atau aset fisik tak ber-`expected`.
 
-#### `disposals` — penghapusan/pelepasan · schema `disposal` (§3.6/§5 PRD)
+#### `disposals` — penghapusan/pelepasan · schema `disposal` (bagian 3.6/bagian 5 PRD)
 | Kolom | Tipe | Null | Keterangan |
 |---|---|---|---|
 | id | uuid | no | **PK** |
@@ -793,7 +793,7 @@ SELECT id FROM subtree;
 
 ## 6. Pemetaan ke Migrasi & Roadmap
 
-Tiap fase roadmap (PRD §10) menambah migrasi `golang-migrate` di `backend/db/migrations`:
+Tiap fase roadmap (PRD bagian 10) menambah migrasi `golang-migrate` di `backend/db/migrations`:
 
 | Migrasi | Fase | Objek |
 |---|---|---|
@@ -812,7 +812,7 @@ Tiap fase roadmap (PRD §10) menambah migrasi `golang-migrate` di `backend/db/mi
 | `000013_depreciation` | 8 | `depreciation`: depreciation_entries (read model) ✅ |
 | `000014_audit_office` | 2 | `audit`: tambah `audit_logs.office_id` (scoping audit) ✅ |
 | **`000015_fam_tables`** 🆕 | v1.1 | skema/tabel **baru**: `transfer.asset_transfers`, `disposal.disposals`, `stockopname.stock_opname_{sessions,items}`, `asset.asset_documents` (BAST) ✅ |
-| `000016`–`000022` 🆕 | v1.1 | migrasi inkremental modul transaksi v1.1: kolom akuntansi/fiskal/intangible via `ALTER TABLE` (offices/categories/assets/requests, lihat catatan inline §4 di atas), `approval_thresholds` + `request_approvals`, `depreciation_entries.basis`, dan tabel/kolom pendukung modul transfer/disposal (mis. `000022_transfer_condition_return`: `asset_transfers.{condition_sent,transfer_date,returned}` + `return_note`) ✅ |
+| `000016`–`000022` 🆕 | v1.1 | migrasi inkremental modul transaksi v1.1: kolom akuntansi/fiskal/intangible via `ALTER TABLE` (offices/categories/assets/requests, lihat catatan inline bagian 4 di atas), `approval_thresholds` + `request_approvals`, `depreciation_entries.basis`, dan tabel/kolom pendukung modul transfer/disposal (mis. `000022_transfer_condition_return`: `asset_transfers.{condition_sent,transfer_date,returned}` + `return_note`) ✅ |
 | **`000023_depreciation_periods`** 🆕 | v1.1 | `depreciation`: tabel `depreciation_periods` (state machine `open`/`computed`/`closed`, ringkasan run) + enum `shared.depreciation_period_status`; seed `app_settings` key `depreciation.accumulated_gl_account` + permission `depreciation.view`/`depreciation.manage` ✅ |
 | **`000024_asset_impaired_floor`** 🆕 | v1.1 | `asset.assets.impaired_book_value numeric(18,2)` (nullable) — floor nilai buku stabil yang HANYA ditulis oleh impairment (PSAK 48) dan dikonsumsi engine sebagai titik resume; memisahkan sinyal impairment dari `book_value` turunan agar recompute tetap idempotent. Tidak diekspos di respons Aset (internal) ✅ |
 | `000025`–`000033` | v1.1+ | migrasi inkremental modul-modul setelahnya (import, account security, dsb.) — lihat riwayat migrasi untuk detail per-file |
@@ -844,8 +844,8 @@ Tiap fase roadmap (PRD §10) menambah migrasi `golang-migrate` di `backend/db/mi
 ## 7. Catatan & Keputusan Terbuka
 
 **Keputusan yang sudah final (sesi ini):**
-- **Soft delete menyeluruh** — semua tabel punya `deleted_at`; tak ada hard-delete (§1).
-- **Peran = tabel `roles`** (configurable superadmin), bukan enum; RBAC per-aksi via `role_permissions` (§4.1).
+- **Soft delete menyeluruh** — semua tabel punya `deleted_at`; tak ada hard-delete (bagian 1).
+- **Peran = tabel `roles`** (configurable superadmin), bukan enum; RBAC per-aksi via `role_permissions` (bagian 4.1).
 - **`created_at`/`updated_at` wajib** di semua tabel; `created_by` hanya pada tabel operasional; `updated_by` tidak dipakai.
 - **Tanpa `label_id`** — UUID dipakai langsung di URL; slug ramah-baca via kode manusiawi.
 - **`asset_tag` = kode aset = barcode** (satu hal yang sama).
@@ -882,5 +882,5 @@ Tiap fase roadmap (PRD §10) menambah migrasi `golang-migrate` di `backend/db/mi
 - **DB-Q8** — Penomoran `bast_no` & dokumen: pakai generator terformat (seperti `asset_tag`) atau input manual.
 
 > Skema inti final & terimplementasi (000001–000014). Lapisan v1.1 disetujui dan **terimplementasi
-> sampai `000023`** (lihat §6) — `000015_fam_tables` + `000016`–`000022` (kolom akuntansi/fiskal/
+> sampai `000023`** (lihat bagian 6) — `000015_fam_tables` + `000016`–`000022` (kolom akuntansi/fiskal/
 > intangible, approval berjenjang, transfer/disposal) + `000023_depreciation_periods`.

@@ -20,7 +20,7 @@ Gerbang layar tetap `definePageMeta({ middleware:'can', permission:'user.manage'
 
 ### Keputusan & batasan (disetujui)
 - **Entity yang dijadikan field-maskable = `assets` + `users`** — satu-satunya entity yang backend benar-benar `FilterView`-kan saat ini (`asset` & `user` handler memanggil `ForEntity(role,"assets"|"users")`). Aturan pada entity/field yang tak cocok key serialisasi backend tak berefek, jadi katalog HARUS memakai key nyata.
-- **Field = key map serialisasi backend nyata** (English), bukan kode Indonesia mock. Subset kurасi per entity (§2).
+- **Field = key map serialisasi backend nyata** (English), bukan kode Indonesia mock. Subset kurасi per entity (bagian 2).
 - **Kolom peran dinamis** dari `GET /authz/roles` (UUID id + name), bukan 5 key tetap mock.
 - **Default-allow**: tak ada policy = `view+edit`. Hanya sel **restriksi** (`can_view=false` atau `can_edit=false`) yang disimpan; sel full-allow dihilangkan.
 - **Simpan = replace-set per-peran lintas SEMUA entity** → menyimpan satu entity harus **mempertahankan** rules entity lain (termasuk entity tak-dikenal katalog).
@@ -44,7 +44,7 @@ export const FIELD_CATALOG: CatalogEntity[] = [
   { entity: 'users', fields: ['name','email','role_id','office_id','employee_id','status'] }
 ]
 ```
-Key = key serialisasi nyata (`assetToMap`/`userToMap`). Label entity & field via i18n dengan fallback ke key (§5).
+Key = key serialisasi nyata (`assetToMap`/`userToMap`). Label entity & field via i18n dengan fallback ke key (bagian 5).
 
 ## 3. Composable `useFieldPermission.ts` — tulis ulang
 

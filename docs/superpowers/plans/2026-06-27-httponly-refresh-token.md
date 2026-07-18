@@ -607,8 +607,8 @@ Changing auth cookie handling is exactly the class of change that can pass unit 
 ## Self-Review
 
 **1. Spec coverage:**
-- §3 berkas: cookie helper (T1), handler/dto/router (T2), openapi/bruno/readme (T3 = spec §6b), frontend + delete useRefreshCookie (T4). All covered.
-- §4 cookie attrs + env-gated Secure — T1 + T2 (router passes `Env=="production"`). §5 handler login/refresh/logout — T2. §6 frontend credentials + plugin — T4. §6b consumers — T3. §7 CORS (no change) — noted. §8 testing — T1/T2/T4 + Verification (e2e). §9 risks (Secure env-gated, SameSite, rehydration, no deps/migration) — covered.
+- bagian 3 berkas: cookie helper (T1), handler/dto/router (T2), openapi/bruno/readme (T3 = spec bagian 6b), frontend + delete useRefreshCookie (T4). All covered.
+- bagian 4 cookie attrs + env-gated Secure — T1 + T2 (router passes `Env=="production"`). bagian 5 handler login/refresh/logout — T2. bagian 6 frontend credentials + plugin — T4. bagian 6b consumers — T3. bagian 7 CORS (no change) — noted. bagian 8 testing — T1/T2/T4 + Verification (e2e). bagian 9 risks (Secure env-gated, SameSite, rehydration, no deps/migration) — covered.
 
 **2. Placeholder scan:** No TBD/TODO; every code step has full code; commands have expected output. The two "if the test harness needs tweaks" notes (T4 Step 2) name a concrete fallback (registerEndpoint/mockNuxtImport) without changing assertions — not vague.
 

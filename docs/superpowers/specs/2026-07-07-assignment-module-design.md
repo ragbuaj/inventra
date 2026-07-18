@@ -1,12 +1,12 @@
 # Modul Assignment (Penugasan / Peminjaman) — Design
 
 **Tanggal:** 2026-07-07 · **Status:** Disetujui user (brainstorming session)
-**Referensi:** PRD §3.3 (FR-3.1–3.4) + §3.6 (maker-checker) + RBAC matrix §2.2 ·
-DATABASE.md §4.4 (schema `assignment`) · migrasi `000011_assignment` (tabel sudah ada) ·
+**Referensi:** PRD bagian 3.3 (FR-3.1–3.4) + bagian 3.6 (maker-checker) + RBAC matrix bagian 2.2 ·
+DATABASE.md bagian 4.4 (schema `assignment`) · migrasi `000011_assignment` (tabel sudah ada) ·
 enum `shared.assignment_status('active','returned')` + `shared.request_type` (nilai `assignment`
 sudah ada) · mockup `docs/design/Penugasan Aset.dc.html` (Manager, sudah terbangun mock),
 `docs/design/Peminjaman Aset.dc.html` (Staf, baru), `docs/design/Modal Ajukan Peminjaman.dc.html`
-(baru) · DESIGN_BRIEF §5.9 + §5.25 · pola modul `internal/transfer` (PR #44/#49),
+(baru) · DESIGN_BRIEF bagian 5.9 + bagian 5.25 · pola modul `internal/transfer` (PR #44/#49),
 `internal/disposal` (PR #45), `internal/stockopname` (PR #56) · ADR-0008 (4-file split)
 
 ## Tujuan
@@ -33,7 +33,7 @@ oleh modul ini; `asset.assets.status` di-transisikan `available ↔ assigned` (+
 1. **Lingkup: penuh** — direct check-out/check-in + executor peminjaman + **screen Staf baru**
    (halaman `/peminjaman` DAN modal di Detail Aset). User memilih opsi terlengkap secara eksplisit;
    mockup untuk keduanya sudah dibuat user (`Peminjaman Aset.dc.html` + `Modal Ajukan
-   Peminjaman.dc.html`) dan diverifikasi cocok 1:1 dengan prompt di DESIGN_BRIEF §5.25.
+   Peminjaman.dc.html`) dan diverifikasi cocok 1:1 dengan prompt di DESIGN_BRIEF bagian 5.25.
 2. **Peminjaman bukan value-tiered** — 1 langkah approval (`required_level='office'`, `step_order=1`,
    `amount=0`) oleh Manager/Kepala kantor aset. Beda dari disposal/transfer yang bertingkat per nilai.
 3. **Employee peminjaman = pegawai milik Staf** — di-resolve server-side dari `users.employee_id`
@@ -121,7 +121,7 @@ assigned  ──Checkin───▶ returned      (assignment.status='returned';
 
 - **`Checkout(ctx, in, allScope, officeIDs)`** — dalam `pgx.Tx`:
   1. Load aset FOR UPDATE; wajib in-scope (else `ErrOutOfScope`) dan `status='available'`
-     (else `ErrAssetNotAvailable` — blokir `under_maintenance`/`in_transfer`/`assigned`/dll, PRD §3.3).
+     (else `ErrAssetNotAvailable` — blokir `under_maintenance`/`in_transfer`/`assigned`/dll, PRD bagian 3.3).
   2. Validasi employee ada + (opsional) in-scope.
   3. INSERT assignment; `23505` pada unique index → `ErrAlreadyAssigned`.
   4. UPDATE `asset.status='assigned'`.
@@ -203,7 +203,7 @@ scope — masuk item PROGRESS "Staff role menus" terpisah.
   Ditolak=error, Dibatalkan=neutral) · Catatan Keputusan · Aksi (Batalkan untuk Menunggu →
   `POST /requests/:id/cancel`). Baris expand → **timeline persetujuan** (Diajukan oleh saya →
   Disetujui/Ditolak oleh approver, nama+waktu+catatan). Empty state + skeleton + total count.
-- Data list = `GET /requests?type=assignment&mine=true` (lihat §1.5). Resolusi nama aset di
+- Data list = `GET /requests?type=assignment&mine=true` (lihat bagian 1.5). Resolusi nama aset di
   payload best-effort.
 - Gate halaman: `middleware: 'can', permission: 'request.create'`.
 
@@ -214,12 +214,12 @@ scope — masuk item PROGRESS "Staff role menus" terpisah.
   bisa dipinjam"), gate `request.create` via `useCan`.
 - Modal (`UModal`): blok aset terkunci read-only (nama/kode mono/kategori/kantor/lokasi + ikon
   gembok) + Jatuh Tempo (opsional) + Alasan* + banner hijau + Batal/Kirim Pengajuan (loading).
-  Submit identik §2.2. Sukses → tutup modal + toast + tautan kecil "Lihat di Peminjaman Saya".
+  Submit identik bagian 2.2. Sukses → tutup modal + toast + tautan kecil "Lihat di Peminjaman Saya".
 
 ### 2.4 Shared + i18n + tests
 
-- **Komponen** `components/assignment/AjukanPeminjamanModal.vue` — dipakai §2.2 (opsional, form
-  di kartu bisa inline) **dan** §2.3 (modal). Satu sumber logika submit peminjaman.
+- **Komponen** `components/assignment/AjukanPeminjamanModal.vue` — dipakai bagian 2.2 (opsional, form
+  di kartu bisa inline) **dan** bagian 2.3 (modal). Satu sumber logika submit peminjaman.
 - **`constants/assignmentMeta.ts`** — `STATUS_TONE` (assignment active/returned),
   `REQUEST_STATUS_TONE` (pending/approved/rejected/cancelled), `CONDITION_TONE/CONDITION_KEYS`
   (pindah dari `mock/assignment.ts`), formatter tanggal Indonesia.
@@ -272,4 +272,4 @@ scope — masuk item PROGRESS "Staff role menus" terpisah.
 
 Backend: `go build/vet/test` + `go test -tags=integration ./...` (semua paket). Spectral 0 error.
 Frontend: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`. E2E `assignment.spec.ts`
-(suite penuh via CI fresh-DB). PROGRESS.md item 35 → assignment ✅ + entri di §Remaining.
+(suite penuh via CI fresh-DB). PROGRESS.md item 35 → assignment ✅ + entri di bagian Remaining.

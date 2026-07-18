@@ -101,7 +101,7 @@ dengan **lingkup akses (scoping) mengikuti subtree kantor**.
 
 ### 2.1 Matriks Hak Akses (RBAC)
 
-Legend: ✅ penuh · 🔵 terbatas pada lingkup kantor/wilayahnya (lihat §2.2) · ❌ tidak.
+Legend: ✅ penuh · 🔵 terbatas pada lingkup kantor/wilayahnya (lihat bagian 2.2) · ❌ tidak.
 
 | Kapabilitas | Superadmin | Kepala Kanwil | Kepala Unit | Manager | Staf |
 |---|:---:|:---:|:---:|:---:|:---:|
@@ -125,9 +125,9 @@ Legend: ✅ penuh · 🔵 terbatas pada lingkup kantor/wilayahnya (lihat §2.2) 
 
 ¹ Provinsi, kota, jenis kantor, kategori aset, kategori perawatan, kategori masalah, satuan, brand/model.
 ² Manager hanya untuk pengajuan operasional ringan; penghapusan aset & hal sensitif naik ke Kepala Unit/Kanwil/Superadmin.
-³ Jenjang approver penghapusan mengikuti **limit otorisasi per nilai** (§2.4) — makin besar nilai aset, makin tinggi jenjang yang wajib menyetujui.
+³ Jenjang approver penghapusan mengikuti **limit otorisasi per nilai** (bagian 2.4) — makin besar nilai aset, makin tinggi jenjang yang wajib menyetujui.
 
-> **Peran dapat dikonfigurasi.** 5 peran & matriks di atas adalah **default ter-seed**. Peran disimpan di tabel `roles` dan izin per-aksi di `role_permissions`, sehingga Superadmin dapat menambah peran kustom & menyesuaikan izin. Detail skema: [DATABASE.md §4.1](DATABASE.md).
+> **Peran dapat dikonfigurasi.** 5 peran & matriks di atas adalah **default ter-seed**. Peran disimpan di tabel `roles` dan izin per-aksi di `role_permissions`, sehingga Superadmin dapat menambah peran kustom & menyesuaikan izin. Detail skema: [DATABASE.md bagian 4.1](DATABASE.md).
 
 ### 2.2 Lingkup Akses Data (Data Scoping / Ownership)
 
@@ -177,7 +177,7 @@ Tata kelola aset bank menuntut lebih dari sekadar RBAC. Dua kontrol tambahan:
 **(a) Segregation of Duties (Pemisahan Fungsi).** Peran **pengaju (maker)**, **pencatat**,
 **kustodian** (pemegang aset), dan **penyetuju (approver)** atas satu transaksi **tidak boleh orang
 yang sama**. Minimal yang ditegakkan sistem: pengaju **tidak boleh** menyetujui pengajuannya sendiri
-(§3.6), dan approver harus berbeda identitas dari maker. Pemisahan kustodian↔pencatat didukung lewat
+(bagian 3.6), dan approver harus berbeda identitas dari maker. Pemisahan kustodian↔pencatat didukung lewat
 pemodelan `employee` (kustodian) terpisah dari `user` (aktor sistem).
 
 **(b) Limit Otorisasi per Nilai (`approval_thresholds`).** Untuk transaksi sensitif yang nilainya
@@ -218,31 +218,31 @@ kedua sisi (atau Pusat). *Pengecualian valuasi* → Kepala Kanwil/Superadmin.
 - **FR-1.3** **Login dengan Google (OAuth2)**: user dapat masuk memakai akun Google. Alur authorization-code: `GET /auth/google` (redirect ke Google) → `GET /auth/google/callback` → backend menukar code, mengambil profil (email terverifikasi), lalu menerbitkan JWT yang sama seperti login biasa.
 - **FR-1.4** **Akun & penautan (account linking)**: jika email Google sudah ada sebagai user lokal, akun ditautkan (bukan duplikat). User baru via Google dibuat dengan peran default **Staf**; Superadmin dapat menaikkan perannya & menetapkan kantor penempatannya kemudian. Email Google harus berstatus terverifikasi.
 - **FR-1.5** Password di-hash (bcrypt/argon2), reset password via token. User yang dibuat lewat Google boleh tanpa password (login hanya via Google) sampai mereka menyetel password.
-- **FR-1.6** Penegakan RBAC di setiap endpoint sesuai matriks pada §2.1.
+- **FR-1.6** Penegakan RBAC di setiap endpoint sesuai matriks pada bagian 2.1.
 - **FR-1.7** Profil user: ubah nama, password, lihat status penautan Google, lihat aset yang sedang dipegang.
 - **FR-1.8** **Rate limiting** (via Redis): batasi percobaan login per akun/IP (anti brute-force) dan throttle endpoint sensitif; token reset password & verifikasi email memakai TTL Redis.
 
 ### 3.2 Katalog & Registrasi Aset
-- **FR-2.1** CRUD aset dengan atribut: kode/tag unik, nama, **kelas aset** (`tangible`/`intangible`), kategori, lokasi, status, nomor seri, tanggal beli, harga beli, pemasok, garansi, spesifikasi (fleksibel/JSON), foto, catatan, **sumber dana**, **nomor PO/kontrak** (opsional), **nomor BAST perolehan** (§3.10).
-- **FR-2.2** **Kode aset (`asset_tag`) unik** dibuat otomatis dengan format **`<kode_kantor>-<kode_kategori>-<tahun_beli>-<sequence>`**, di mana `sequence` = **5 digit** yang berjalan **per kantor & kategori** dan **direset tiap tahun**. Contoh: `JKT01-ELK-2026-00001`. Validasi unik; detail generator di [DATABASE.md §4.7](DATABASE.md).
-- **FR-2.3** **Status aset**: `available`, `assigned`, `under_maintenance`, `in_transfer`, `retired`, `disposed`, `lost`. Perubahan status mengikuti aturan transisi (lihat §5).
+- **FR-2.1** CRUD aset dengan atribut: kode/tag unik, nama, **kelas aset** (`tangible`/`intangible`), kategori, lokasi, status, nomor seri, tanggal beli, harga beli, pemasok, garansi, spesifikasi (fleksibel/JSON), foto, catatan, **sumber dana**, **nomor PO/kontrak** (opsional), **nomor BAST perolehan** (bagian 3.10).
+- **FR-2.2** **Kode aset (`asset_tag`) unik** dibuat otomatis dengan format **`<kode_kantor>-<kode_kategori>-<tahun_beli>-<sequence>`**, di mana `sequence` = **5 digit** yang berjalan **per kantor & kategori** dan **direset tiap tahun**. Contoh: `JKT01-ELK-2026-00001`. Validasi unik; detail generator di [DATABASE.md bagian 4.7](DATABASE.md).
+- **FR-2.3** **Status aset**: `available`, `assigned`, `under_maintenance`, `in_transfer`, `retired`, `disposed`, `lost`. Perubahan status mengikuti aturan transisi (lihat bagian 5).
 - **FR-2.4** Master data **Kategori** dengan nilai default akuntansi/pajak (lihat FR-7.4 yang diperkaya): metode & masa manfaat penyusutan **komersial** dan **fiskal**, **akun GL**, **golongan/kelompok pajak**, **batas kapitalisasi**.
-- **FR-2.5** Master data **Lokasi berjenjang**: **Kantor → Lantai → Ruangan**. Aset (tangible) menunjuk ke Ruangan (yang mewarisi Lantai & Kantor). Aset intangible tidak menunjuk lokasi fisik. Lihat daftar master data lengkap di §3.7.
+- **FR-2.5** Master data **Lokasi berjenjang**: **Kantor → Lantai → Ruangan**. Aset (tangible) menunjuk ke Ruangan (yang mewarisi Lantai & Kantor). Aset intangible tidak menunjuk lokasi fisik. Lihat daftar master data lengkap di bagian 3.7.
 - **FR-2.6** Upload **foto/lampiran** aset disimpan di **MinIO** (S3-compatible) via Storage interface.
   - **Validasi**: tipe file di-whitelist (mis. jpg/png/webp/pdf), tolak file kosong/korup, dan **batas ukuran** (maks. mis. 5 MB; tolak di bawah ambang minimal yang wajar). Ambang dikonfigurasi via env.
   - **Kompresi saat simpan**: gambar di-resize ke dimensi maks. & di-re-encode (mis. WebP/JPEG mutu ~80%) sebelum disimpan, untuk hemat storage; thumbnail dibuat untuk tampilan daftar.
 - **FR-2.7** Pencarian, filter (kategori/lokasi/status/kelas aset), sort, dan pagination pada daftar aset.
-- **FR-2.8** Detail aset menampilkan: info, riwayat penugasan, **riwayat mutasi**, riwayat maintenance, dan jadwal depresiasi (komersial & fiskal) — **dengan field dibatasi sesuai §2.3**.
-- **FR-2.9** **Registrasi & penghapusan aset lewat pengajuan + approval** (maker-checker, berjenjang per nilai §2.4) — lihat §3.6.
-- **FR-2.10** Aset dapat ditandai **dikecualikan dari penghitungan kekayaan/valuasi** lewat pengajuan + approval (§3.6); aset terkecuali tidak dihitung dalam total nilai aset di laporan/dashboard, namun tetap terdata.
-- **FR-2.11** **Import massal aset** via **CSV & XLSX**: unduh template, unggah berkas, **validasi per-baris** (tipe data, referensi master data, tag unik), dan **laporan hasil** (baris sukses vs gagal + alasan). Baris valid dibuat; baris gagal dilewati & dapat diunduh untuk dikoreksi. Import mengikuti aturan otorisasi & approval yang berlaku (§3.6) sesuai konfigurasi.
-- **FR-2.12** **Barcode per aset**: setiap aset **tangible** otomatis memiliki **barcode** (mis. Code128) yang di-encode dari `asset_tag`. Barcode dapat **dicetak sebagai label** (tunggal maupun massal/batch) dan **dipindai** untuk look-up / pencarian aset cepat (termasuk saat stock opname §3.9). **QR code** juga disediakan sebagai alternatif label.
-- **FR-2.13** **Batas kapitalisasi**: pengadaan dengan nilai **di bawah batas kapitalisasi** (config global, override per-kategori — §3.7) ditandai **dibebankan (expense)**, bukan dikapitalisasi sebagai aset tetap & tidak disusutkan. Default placeholder ⚠️ **Rp 1.000.000** (dapat diubah).
+- **FR-2.8** Detail aset menampilkan: info, riwayat penugasan, **riwayat mutasi**, riwayat maintenance, dan jadwal depresiasi (komersial & fiskal) — **dengan field dibatasi sesuai bagian 2.3**.
+- **FR-2.9** **Registrasi & penghapusan aset lewat pengajuan + approval** (maker-checker, berjenjang per nilai bagian 2.4) — lihat bagian 3.6.
+- **FR-2.10** Aset dapat ditandai **dikecualikan dari penghitungan kekayaan/valuasi** lewat pengajuan + approval (bagian 3.6); aset terkecuali tidak dihitung dalam total nilai aset di laporan/dashboard, namun tetap terdata.
+- **FR-2.11** **Import massal aset** via **CSV & XLSX**: unduh template, unggah berkas, **validasi per-baris** (tipe data, referensi master data, tag unik), dan **laporan hasil** (baris sukses vs gagal + alasan). Baris valid dibuat; baris gagal dilewati & dapat diunduh untuk dikoreksi. Import mengikuti aturan otorisasi & approval yang berlaku (bagian 3.6) sesuai konfigurasi.
+- **FR-2.12** **Barcode per aset**: setiap aset **tangible** otomatis memiliki **barcode** (mis. Code128) yang di-encode dari `asset_tag`. Barcode dapat **dicetak sebagai label** (tunggal maupun massal/batch) dan **dipindai** untuk look-up / pencarian aset cepat (termasuk saat stock opname bagian 3.9). **QR code** juga disediakan sebagai alternatif label.
+- **FR-2.13** **Batas kapitalisasi**: pengadaan dengan nilai **di bawah batas kapitalisasi** (config global, override per-kategori — bagian 3.7) ditandai **dibebankan (expense)**, bukan dikapitalisasi sebagai aset tetap & tidak disusutkan. Default placeholder ⚠️ **Rp 1.000.000** (dapat diubah).
 
 ### 3.3 Check-out / Check-in (Assignment / Peminjaman)
 - **FR-3.1** **Check-out**: tugaskan aset `available` ke seorang **pegawai** (custodian) dan/atau lokasi, dengan tanggal pinjam, jatuh tempo (opsional), dan catatan kondisi keluar. Status aset → `assigned`.
 - **FR-3.2** **Check-in**: kembalikan aset, catat tanggal kembali & kondisi masuk. Status aset → `available` (atau `under_maintenance` bila perlu servis).
-- **FR-3.3** **Permintaan peminjaman**: Staf mengajukan (§3.6); Manager/Kepala Unit meng-approve atau menolak. Approve memicu check-out.
+- **FR-3.3** **Permintaan peminjaman**: Staf mengajukan (bagian 3.6); Manager/Kepala Unit meng-approve atau menolak. Approve memicu check-out.
 - **FR-3.4** **Riwayat penugasan** per aset dan per pegawai (siapa memegang apa, dan kapan).
 - **FR-3.5** Penanda **overdue** untuk aset yang lewat jatuh tempo (dipakai di dashboard).
 - **FR-3.6** Satu aset hanya boleh ditugaskan ke satu pemegang aktif pada satu waktu.
@@ -262,22 +262,22 @@ kedua sisi (atau Pusat). *Pengecualian valuasi* → Kepala Kanwil/Superadmin.
   - Aset **intangible** memakai jalur **amortisasi** (engine yang sama, istilah berbeda) per PSAK 19.
 - **FR-5.2** Hitung **nilai buku (book value)** aset pada periode berjalan secara otomatis (basis komersial; basis fiskal dihitung paralel untuk keperluan pajak).
 - **FR-5.3** **Jadwal depresiasi** per aset (per periode: nilai awal, beban penyusutan, nilai akhir) untuk **kedua basis** — disajikan via **read model** khusus agar laporan cepat.
-- **FR-5.4** **Penurunan nilai (impairment, PSAK 48)**: pencatatan **write-down satu kali** + alasan bila nilai tercatat melampaui nilai terpulihkan (mis. aset rusak/usang sebelum habis umur); nilai buku turun & jadwal penyusutan disesuaikan. (Model revaluasi penuh di luar lingkup — §1.3.)
+- **FR-5.4** **Penurunan nilai (impairment, PSAK 48)**: pencatatan **write-down satu kali** + alasan bila nilai tercatat melampaui nilai terpulihkan (mis. aset rusak/usang sebelum habis umur); nilai buku turun & jadwal penyusutan disesuaikan. (Model revaluasi penuh di luar lingkup — bagian 1.3.)
 - **FR-5.5** **Dashboard**: total aset, nilai aset (perolehan vs buku), aset per status/kategori/lokasi/kelas, aset overdue, maintenance jatuh tempo, biaya maintenance.
 - **FR-5.6** **Laporan**: daftar aset + nilai buku, **laporan penyusutan per periode (komersial & fiskal)**, laporan utilisasi/penugasan, laporan biaya maintenance, **laporan mutasi**, **berita acara/hasil stock opname**, **laporan penghapusan/pelepasan (laba-rugi)**.
-- **FR-5.7** **Ekspor** laporan ke **PDF** (layout cetak rapi), **Excel (.xlsx)** (data tabular), dan **output siap-jurnal** (rekap per akun GL: beban penyusutan, akumulasi, laba/rugi pelepasan) untuk diposting ke sistem akuntansi — *tanpa* integrasi langsung (§1.3).
+- **FR-5.7** **Ekspor** laporan ke **PDF** (layout cetak rapi), **Excel (.xlsx)** (data tabular), dan **output siap-jurnal** (rekap per akun GL: beban penyusutan, akumulasi, laba/rugi pelepasan) untuk diposting ke sistem akuntansi — *tanpa* integrasi langsung (bagian 1.3).
 - **FR-5.8** **Audit trail menyeluruh**: setiap operasi tulis (create/update/delete) pada **seluruh entitas/tabel** dicatat ke `audit_logs` — aktor, entitas, ID, aksi, perubahan (diff before/after), dan waktu. Dapat ditelusuri per entitas maupun per user. Diterapkan secara terpusat (mis. lewat hook/decorator di repository/service), bukan per-handler manual.
 
 ### 3.6 Pengajuan & Persetujuan (Approval / Maker-Checker)
 
 Beberapa aksi sensitif tidak langsung dieksekusi, melainkan melalui **pengajuan → review → approve/tolak**. Satu mekanisme generik melayani beberapa jenis:
 
-- **FR-6.1** Jenis pengajuan: **Registrasi aset baru**, **Penghapusan/disposal aset**, **Mutasi aset** (§3.8), **Peminjaman** (§3.3), **Laporan kerusakan/maintenance** (§3.4), dan **Pengecualian aset dari penghitungan kekayaan** (§3.7-valuasi).
+- **FR-6.1** Jenis pengajuan: **Registrasi aset baru**, **Penghapusan/disposal aset**, **Mutasi aset** (bagian 3.8), **Peminjaman** (bagian 3.3), **Laporan kerusakan/maintenance** (bagian 3.4), dan **Pengecualian aset dari penghitungan kekayaan** (bagian 3.7-valuasi).
 - **FR-6.2** Pengaju (maker) membuat request berisi payload + alasan; status awal `pending`.
-- **FR-6.3** Approver (checker) **approve** atau **tolak** dengan catatan. **Jenjang approver mengikuti `approval_thresholds` (§2.4)** — untuk transaksi bernilai, rantai persetujuan berlapis sesuai nilai aset & lingkup kantor. Approve (di jenjang terakhir) memicu eksekusi aksi sebenarnya (aset benar-benar dibuat/dihapus/dimutasi, atau flag pengecualian diset). Tolak menutup request tanpa efek.
-- **FR-6.4** Pengaju tidak boleh menyetujui pengajuannya sendiri (**segregation of duties**, §2.4); tiap approver dalam rantai harus berbeda identitas dari maker dan dari approver sebelumnya.
+- **FR-6.3** Approver (checker) **approve** atau **tolak** dengan catatan. **Jenjang approver mengikuti `approval_thresholds` (bagian 2.4)** — untuk transaksi bernilai, rantai persetujuan berlapis sesuai nilai aset & lingkup kantor. Approve (di jenjang terakhir) memicu eksekusi aksi sebenarnya (aset benar-benar dibuat/dihapus/dimutasi, atau flag pengecualian diset). Tolak menutup request tanpa efek.
+- **FR-6.4** Pengaju tidak boleh menyetujui pengajuannya sendiri (**segregation of duties**, bagian 2.4); tiap approver dalam rantai harus berbeda identitas dari maker dan dari approver sebelumnya.
 - **FR-6.5** Daftar pengajuan dengan filter status & jenis; notifikasi in-app ke approver saat ada pengajuan baru/giliran, dan ke pengaju saat diputuskan.
-- **FR-6.6** Setiap keputusan tercatat di audit trail (§5.8) — termasuk tiap langkah rantai persetujuan.
+- **FR-6.6** Setiap keputusan tercatat di audit trail (bagian 5.8) — termasuk tiap langkah rantai persetujuan.
 
 ### 3.7 Master Data & Pengecualian Valuasi
 
@@ -294,19 +294,19 @@ Beberapa aksi sensitif tidak langsung dieksekusi, melainkan melalui **pengajuan 
   - **Kategori perawatan** (maintenance category — mis. Servis Rutin, Kalibrasi, Perbaikan)
   - **Kategori masalah** (problem category — dipakai saat laporan kerusakan, mis. Hardware, Listrik, Fisik)
   - **Satuan** (unit of measure — mis. Unit, Pcs, Set)
-- **FR-7.5** Semua master data mendukung CRUD oleh peran berwenang (§2.1), pencarian, dan status aktif/nonaktif.
+- **FR-7.5** Semua master data mendukung CRUD oleh peran berwenang (bagian 2.1), pencarian, dan status aktif/nonaktif.
 - **FR-7.5b** **Import massal master data** (CSV/XLSX) untuk entitas bervolume besar — terutama **Pegawai** dan **Kantor**, serta provinsi/kota — dengan template, validasi per-baris, dan laporan hasil (sama seperti FR-2.11).
-- **FR-7.6** **Pengecualian valuasi**: aset yang disetujui dikecualikan (§3.6) diberi flag `excluded_from_valuation` + alasan; laporan/dashboard total kekayaan mengabaikan aset ini namun tetap menampilkannya sebagai "terkecuali".
-- **FR-7.7** **Limit otorisasi (`approval_thresholds`)** & **batas kapitalisasi** dapat dikelola Superadmin sebagai konfigurasi (§2.4, FR-2.13).
+- **FR-7.6** **Pengecualian valuasi**: aset yang disetujui dikecualikan (bagian 3.6) diberi flag `excluded_from_valuation` + alasan; laporan/dashboard total kekayaan mengabaikan aset ini namun tetap menampilkannya sebagai "terkecuali".
+- **FR-7.7** **Limit otorisasi (`approval_thresholds`)** & **batas kapitalisasi** dapat dikelola Superadmin sebagai konfigurasi (bagian 2.4, FR-2.13).
 
 ### 3.8 Mutasi Aset (Transfer Antar-Kantor)
 
 Berbeda dari *assignment* (check-out ke pegawai), **mutasi** adalah **perpindahan aset antar kantor/unit** — krusial pada bank dengan banyak cabang.
 
 - **FR-8.1** Pengajuan **mutasi** aset dari kantor asal ke kantor tujuan (alasan, tanggal, kondisi).
-- **FR-8.2** Persetujuan mengikuti `approval_thresholds` (§2.4): dalam subtree sendiri → Kepala Unit asal; **antar-wilayah** → Kepala Kanwil kedua sisi / Pusat.
+- **FR-8.2** Persetujuan mengikuti `approval_thresholds` (bagian 2.4): dalam subtree sendiri → Kepala Unit asal; **antar-wilayah** → Kepala Kanwil kedua sisi / Pusat.
 - **FR-8.3** Saat mutasi disetujui & **diterima** di tujuan, `office_id` (dan ruangan) aset diperbarui; status sementara `in_transfer` selama proses, kembali `available`/`assigned` setelah diterima.
-- **FR-8.4** **BAST mutasi** (§3.10) tercatat; **riwayat mutasi** per aset (asal, tujuan, tanggal, pelaku, dokumen).
+- **FR-8.4** **BAST mutasi** (bagian 3.10) tercatat; **riwayat mutasi** per aset (asal, tujuan, tanggal, pelaku, dokumen).
 - **FR-8.5** Penegakan scope: pengaju & penerima harus berada dalam lingkup kantor yang relevan.
 
 ### 3.9 Stock Opname (Inventarisasi Fisik)
@@ -369,7 +369,7 @@ available/assigned ──dispose (approved)──▶ disposed
 
 - Aset `assigned` harus di-check-in dulu sebelum bisa di-**mutasi** atau **dihapus** (kecuali `lost`).
 - Aset `under_maintenance` atau `in_transfer` tidak bisa di-check-out.
-- **Penghapusan/disposal** hanya lewat approval berjenjang (§2.4, §3.6); status akhir `disposed` (mencatat metode pelepasan, nilai jual, laba/rugi).
+- **Penghapusan/disposal** hanya lewat approval berjenjang (bagian 2.4, bagian 3.6); status akhir `disposed` (mencatat metode pelepasan, nilai jual, laba/rugi).
 - Transisi tidak valid ditolak oleh service layer.
 
 ---
@@ -382,7 +382,7 @@ Entitas inti dan relasi (detail kolom final ditentukan saat migrasi DB):
 - **users** (id, employee_id?, office_id, name, email, password_hash?, google_id?, avatar_url?, role[superadmin/kepala_kanwil/kepala_unit/manager/staf], status, timestamps) — `password_hash` & `google_id` nullable; `office_id` = kantor penempatan (dasar scoping hierarki)
 - **field_permissions** (id, entity, field, role, can_view, can_edit)
 - **data_scope_policies** (id, role, module?, scope_level[global/office_subtree/office/own]) — `module` null = default per-role (semua modul); terisi = **override per-modul** (menimpa default). Unik per (role, module).
-- **approval_thresholds** (id, request_type, amount_from, amount_to?, required_level[office/office_subtree/wilayah/pusat], step_order, active) — limit otorisasi berjenjang per nilai (§2.4)
+- **approval_thresholds** (id, request_type, amount_from, amount_to?, required_level[office/office_subtree/wilayah/pusat], step_order, active) — limit otorisasi berjenjang per nilai (bagian 2.4)
 
 **Master data — referensi & geografi**
 - **provinces** (id, name, code)
@@ -391,7 +391,7 @@ Entitas inti dan relasi (detail kolom final ditentukan saat migrasi DB):
 - **departments** (id, name, code) · **positions** (id, name) — jabatan
 - **vendors** (id, name, contact, address)
 - **brands** (id, name) · **models** (id, brand_id, name)
-- **categories** (id, name, code, parent_id?, asset_class[tangible/intangible], default_depreciation_method, default_useful_life_months, default_fiscal_group, default_fiscal_life_months, default_salvage_rate, gl_account_code, tax_group, capitalization_threshold?) — kategori aset diperkaya (§3.7)
+- **categories** (id, name, code, parent_id?, asset_class[tangible/intangible], default_depreciation_method, default_useful_life_months, default_fiscal_group, default_fiscal_life_months, default_salvage_rate, gl_account_code, tax_group, capitalization_threshold?) — kategori aset diperkaya (bagian 3.7)
 - **maintenance_categories** (id, name) · **problem_categories** (id, name)
 - **units** (id, name, symbol) — satuan
 
@@ -403,17 +403,17 @@ Entitas inti dan relasi (detail kolom final ditentukan saat migrasi DB):
 **Aset & operasional**
 - **assets** (id, asset_tag, name, asset_class[tangible/intangible], category_id, brand_id?, model_id?, room_id?, office_id, unit_id?, status, serial_number, purchase_date, purchase_cost, capitalized[bool], vendor_id?, po_number?, funding_source?, warranty_expiry, specifications JSONB, depreciation_method, useful_life_months, salvage_value, fiscal_group?, fiscal_life_months?, accumulated_depreciation, book_value, impairment_loss?, current_holder_employee_id?, excluded_from_valuation, acquisition_bast_no?, notes, timestamps) — `office_id` (diturunkan dari ruangan untuk tangible) dipakai untuk scoping
 - **asset_attachments** (id, asset_id, kind[photo/document], object_key, thumbnail_key?, size, mime, created_at) — file di MinIO
-- **asset_documents** (id, asset_id, doc_type[bast_acquisition/bast_transfer/bast_disposal/other], doc_no, doc_date, counterparty?, object_key?, related_request_id?, created_at) — BAST & dokumen resmi (§3.10)
+- **asset_documents** (id, asset_id, doc_type[bast_acquisition/bast_transfer/bast_disposal/other], doc_no, doc_date, counterparty?, object_key?, related_request_id?, created_at) — BAST & dokumen resmi (bagian 3.10)
 - **assignments** (id, asset_id, employee_id, assigned_by_id, checkout_date, due_date, checkin_date, condition_out, condition_in, status, notes)
-- **asset_transfers** (id, asset_id, from_office_id, to_office_id, requested_by_id, approved_by_id?, status[pending/approved/in_transfer/received/rejected], shipped_date?, received_date?, bast_no?, reason, notes) — mutasi antar-kantor (§3.8)
-- **stock_opname_sessions** (id, office_id, period, status[open/counting/reconciling/closed], started_by_id, started_at, closed_at?) · **stock_opname_items** (id, session_id, asset_id, expected[bool], result[found/not_found/damaged/misplaced], counted_by_id?, counted_at?, note) — inventarisasi fisik (§3.9)
+- **asset_transfers** (id, asset_id, from_office_id, to_office_id, requested_by_id, approved_by_id?, status[pending/approved/in_transfer/received/rejected], shipped_date?, received_date?, bast_no?, reason, notes) — mutasi antar-kantor (bagian 3.8)
+- **stock_opname_sessions** (id, office_id, period, status[open/counting/reconciling/closed], started_by_id, started_at, closed_at?) · **stock_opname_items** (id, session_id, asset_id, expected[bool], result[found/not_found/damaged/misplaced], counted_by_id?, counted_at?, note) — inventarisasi fisik (bagian 3.9)
 - **maintenance_schedules** (id, asset_id, maintenance_category_id?, interval_months, last_done_date, next_due_date)
 - **maintenance_records** (id, asset_id, maintenance_category_id?, problem_category_id?, type, status, scheduled_date, completed_date, cost, vendor_id?, performed_by, description, reported_by_id?)
 - **depreciation_entries** (read model) (id, asset_id, basis[commercial/fiscal], period, opening_value, depreciation_amount, closing_value) — **dua basis** (komersial/PSAK & fiskal/pajak)
-- **disposals** (id, asset_id, method[sale/auction/donation/write_off], disposal_date, proceeds, book_value_at_disposal, gain_loss, bast_no?, approved_by_id, request_id?) — penghapusan/pelepasan (§3.6, status aset `disposed`)
+- **disposals** (id, asset_id, method[sale/auction/donation/write_off], disposal_date, proceeds, book_value_at_disposal, gain_loss, bast_no?, approved_by_id, request_id?) — penghapusan/pelepasan (bagian 3.6, status aset `disposed`)
 
 **Approval & audit**
-- **requests** (id, type[asset_create/asset_disposal/asset_transfer/assignment/maintenance/valuation_exclusion], office_id, amount?, payload JSONB, reason, status[pending/approved/rejected], current_step, requested_by_id, decided_by_id?, decision_note?, timestamps) — maker-checker generik berjenjang (§3.6); `office_id` & `amount` untuk routing approver per nilai (§2.4)
+- **requests** (id, type[asset_create/asset_disposal/asset_transfer/assignment/maintenance/valuation_exclusion], office_id, amount?, payload JSONB, reason, status[pending/approved/rejected], current_step, requested_by_id, decided_by_id?, decision_note?, timestamps) — maker-checker generik berjenjang (bagian 3.6); `office_id` & `amount` untuk routing approver per nilai (bagian 2.4)
 - **request_approvals** (id, request_id, step_order, approver_role/level, approver_id?, decision[pending/approved/rejected], note?, decided_at?) — jejak tiap langkah rantai persetujuan
 - **audit_logs** (id, actor_id, entity_type, entity_id, action[create/update/delete], changes JSONB, created_at) — mencakup **seluruh tabel**
 - **import_jobs** (id, target[asset/employee/office/…], format[csv/xlsx], filename, status[pending/processing/completed/failed], total_rows, success_rows, failed_rows, error_report_key?, created_by_id, created_at) — melacak proses import massal; berkas error tersimpan di MinIO, progres dapat ditembolok di Redis
@@ -502,7 +502,7 @@ detail aset, stock opname (offline-first), approval, notifikasi, profil/sesi (ba
 
 ## 9. Metrik Keberhasilan (untuk konteks portfolio)
 
-- Semua fitur inti (§3) berjalan end-to-end dengan data nyata di DB.
+- Semua fitur inti (bagian 3) berjalan end-to-end dengan data nyata di DB.
 - Arsitektur modular terbukti: menambah modul/fitur baru tidak mengubah modul lain.
 - Cakupan test bermakna pada business logic (service layer).
 - Penyusutan dua basis & laporan siap-jurnal terbukti benar pada contoh aset.
@@ -537,7 +537,7 @@ Tiap tahap fitur akan punya spec + plan implementasi tersendiri.
 - **A4** — Periode depresiasi/amortisasi dihitung bulanan, untuk **dua basis** (komersial & fiskal).
 - **A5** — Login Google memakai OAuth2 authorization-code; kredensial (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URL`) disimpan sebagai env var. User Google baru mendapat peran default Staf.
 - **A6** — Validasi batas ukuran file (menolak kosong/terlalu kecil & melebihi maks, mis. 5 MB); ambang via env.
-- **A7** — **Routing approver berjenjang per nilai** (`approval_thresholds`, §2.4): operasional ringan → Manager/Kepala Unit; penghapusan/pengadaan/mutasi sesuai band nilai → Kanwil/Pusat. Angka **placeholder**, disesuaikan kebijakan bank.
+- **A7** — **Routing approver berjenjang per nilai** (`approval_thresholds`, bagian 2.4): operasional ringan → Manager/Kepala Unit; penghapusan/pengadaan/mutasi sesuai band nilai → Kanwil/Pusat. Angka **placeholder**, disesuaikan kebijakan bank.
 - **A8** — Role **Kepala Unit** & **Kepala Kanwil** masuk model sejak awal (memengaruhi data scoping & skema kantor), implementasi UI-nya dapat dilakukan bertahap.
 - **A9 (baru)** — **Domain = fixed asset bank** (bukan investment/wealth AM). Hierarki kantor **4 jenjang** (Pusat→Wilayah→Cabang/Unit→Outlet); `office_type` boleh banyak label. ⚠️ *Penamaan jenjang persis di BTN dikonfirmasi internal.*
 - **A10 (baru)** — **Aset intangible (PSAK 19)**: field disiapkan (`asset_class`), amortisasi reuse engine penyusutan, dikecualikan dari fitur fisik. Workflow khusus menyusul.
@@ -615,7 +615,7 @@ IAI/DSAK Sosialisasi PMK 72/2023 · peraturan.bpk.go.id/Details/257823.
 
 > *Catatan interpretatif:* POJK di atas mengatur pengendalian intern bank secara umum dan **tidak
 > menyebut "aset tetap" secara eksplisit**; penerapannya ke kontrol pencatatan aset tetap (SoD,
-> dual-control/maker-checker, jejak audit — §2.4) adalah inferensi wajar, bukan kutipan harfiah.
+> dual-control/maker-checker, jejak audit — bagian 2.4) adalah inferensi wajar, bukan kutipan harfiah.
 > Istilah "dual control / maker-checker" adalah terminologi industri; padanan regulasinya adalah
 > *prinsip pemisahan fungsi (four-eyes)*.
 

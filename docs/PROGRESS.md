@@ -10,7 +10,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > **value-tiered maker-checker** (`approval_thresholds`, SoD per POJK 17/2023 & 18/POJK.03/2016).
 > Design docs (PRD/DATABASE/ERD) are updated, and the **bank-FAM schema is now built** — v1.1
 > enums/columns are **baked into the initial migrations** (greenfield) + new tables in
-> `000015_fam_tables` (see *Database* below and DATABASE.md §6). Architecture decisions from the pivot
+> `000015_fam_tables` (see *Database* below and DATABASE.md bagian 6). Architecture decisions from the pivot
 > are recorded as ADRs in [adr/](adr/) (**ADR-0001–0009**: testing, logging, config, rate-limit, authz
 > build-vs-buy, map, frontend API convention, masterdata split, third-party sign-in). What's already ✅
 > predates the pivot and remains valid — the office hierarchy + 3-layer authorization are the foundation
@@ -31,7 +31,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >    - **TODO — extend field-permission ENFORCEMENT (`FilterView`) beyond `assets`+`users`:** `requests` (approval handler already injects `fieldSvc` + has `requestToMap`; add `ForEntity`/`FilterView` calls), `employees` (needs `fieldSvc`+map wiring), and other masterdata modules. Until then the Field Permission screen configures rules but they only take effect for `assets`+`users`. Add each new entity to `frontend/app/constants/fieldCatalog.ts` once its backend enforcement lands.
 > 11. ~~**Wire Audit Trail screen** (`/settings/audit`) to real `GET /api/v1/audit`~~ ✅ **DONE (2026-06-29).** `useAudit` composable rewritten to server-side list (`GET /api/v1/audit`, limit/offset/filter params); gate `audit.view`; entity-type filter from `AUDIT_ENTITY_TYPES` frontend catalog; expandable diff viewer unchanged; orphaned `mock/audit.ts` deleted; e2e spec updated against real seeded backend.
 >    - **TODO — actor filter + role/summary/office-name columns are dropped:** the backend audit response has no `role` or `summary` fields, and resolving actor/office **names** needs `user.manage`/masterdata reads that an `audit.view`-only viewer may lack. Revisit if a viewer-accessible actor/office name lookup (or an enriched `GET /api/v1/audit` response) lands.
-> 12. ~~**Wire User Management screen** (`/settings/users`) to real `/api/v1/users`~~ ✅ **DONE (2026-06-29).** `useUsers` composable rewritten to server-side CRUD (`GET/POST/PUT/DELETE /api/v1/users`, limit/offset/search params); gate `user.manage`; role/office/employee pickers from real API lookups; employee picker filtered by selected office; orphaned mock NOT deleted (still imported by `useGlobalSearch` — see §TODO below); e2e spec updated against real seeded backend. **Authz/settings screen wiring batch now complete (RBAC + Data Scope + Field Permission + Audit Trail + User Management).**
+> 12. ~~**Wire User Management screen** (`/settings/users`) to real `/api/v1/users`~~ ✅ **DONE (2026-06-29).** `useUsers` composable rewritten to server-side CRUD (`GET/POST/PUT/DELETE /api/v1/users`, limit/offset/search params); gate `user.manage`; role/office/employee pickers from real API lookups; employee picker filtered by selected office; orphaned mock NOT deleted (still imported by `useGlobalSearch` — see bagian TODO below); e2e spec updated against real seeded backend. **Authz/settings screen wiring batch now complete (RBAC + Data Scope + Field Permission + Audit Trail + User Management).**
 >    - **TODO — server-side role/office/status filter dropdowns** dropped pending backend filter-param support on `GET /api/v1/users`; ~~**reset-password** action dropped pending a backend reset endpoint~~ ✅ **done (item 70, 2026-07-18)** — `POST /users/:id/reset-password` emails the target a reset link. The office/employee lookup is capped at 100 entries (a searchable async picker is a follow-up if user/employee counts grow).
 >    - **TODO — `mock/users.ts` cleanup**: still imported by `useGlobalSearch.ts` for the mock global search. Delete it when `useGlobalSearch` is wired to the real backend `/search` endpoint.
 > 13. ~~**Wire Peta Lokasi screen** (`/master/map`) to real `GET /api/v1/offices/map`~~ ✅ **DONE (2026-06-29).** First of the master-data screen wiring batch. `useOfficeMap` rewritten to `GET /offices/map`; types migrated to `MapOffice`/`OfficeTier` (English snake_case DTO); `officeMapMeta` constants (3 tiers: pusat/wilayah/office → Pusat/Wilayah/Cabang); page rebound (lat/lng null-guard, load-error/retry, data-scoped); Leaflet `OfficeMap` component field-rename; e2e spec (`frontend/e2e/master-map.spec.ts`) + component test added; orphaned `mock/officeMap.ts` deleted.
@@ -75,7 +75,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     cross-check for `asset_create` on `POST /requests`~~ ✅ **DONE (2026-07-04).** Enforced in
 >     `SubmitRequest.validate()` (numeric big.Rat equality; zero when payload has no cost; malformed
 >     payload/amount rejected). Unit tests + OpenAPI updated. See the resolved note under *Assets
->     cluster* in §Remaining.
+>     cluster* in bagian Remaining.
 > 23. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-04): wire the Pengajuan &
 >     Approval screen** (candidate (a) below — see item 24). Remaining candidates (see *Remaining*
 >     below) for the *next* session: **(b)** build the last core Bank-FAM backend module — **Stock
@@ -264,7 +264,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     ~full i18n id/en coverage; nav item "Depresiasi" (`depreciation.view`-gated) between Penghapusan
 >     and Maintenance.
 >     **Approved mockup deviations** (catat-deviasi convention, confirmed 1:1 against
->     `docs/design/Depresiasi.dc.html` in both light and dark mode; see spec §6) — **(a)** fully
+>     `docs/design/Depresiasi.dc.html` in both light and dark mode; see spec bagian 6) — **(a)** fully
 >     depreciated assets are still shown in the schedule with a Rp 0 expense row (the mockup has no
 >     example of this state — added so the KPI/"aset disusutkan: n" preview stays honest, only counting
 >     assets with expense > 0); **(b)** the impairment row-action is disabled with a tooltip when the
@@ -334,7 +334,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > 31. ~~**Ops hardening Phase 2 — IaC (Ansible)**~~ ✅ **DONE (2026-07-06).** `ops/ansible/` playbook
 >     (`base` + `docker` + `app` roles, idempotent, containerized tooling — host needs only Docker),
 >     secrets via Ansible Vault (`*.example` committed, real `inventory.ini`/`vault.yml` gitignored);
->     ADR-0013 + `docs/DEPLOYMENT.md` §15 IaC sub-section. See *Foundation & DevOps* above.
+>     ADR-0013 + `docs/DEPLOYMENT.md` bagian 15 IaC sub-section. See *Foundation & DevOps* above.
 > 32. ~~**Ops hardening Phase 3 — Monitoring/observability**~~ ✅ **DONE (2026-07-06).** Self-hosted
 >     stack as a toggleable compose overlay (`docker-compose.monitoring.yml`): backend RED metrics
 >     (`/metrics`, internal-only), Prometheus (15d retention + `mem_limit`) + exporters (node/cAdvisor/
@@ -342,7 +342,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     dashboard as-code) — only Grafana public, via its own subdomain, no WAF/no login bypass; secrets
 >     via `*.example` + gitignore. Ansible `monitoring` role (`ops/ansible/roles/monitoring/`) brings the
 >     overlay up idempotently, appended after `app` in `site.yml` — completes the ops-hardening trilogy.
->     ADR-0011 + `docs/DEPLOYMENT.md` §16. **Ops hardening (WAF → IaC → Monitoring) is now fully
+>     ADR-0011 + `docs/DEPLOYMENT.md` bagian 16. **Ops hardening (WAF → IaC → Monitoring) is now fully
 >     complete** — see *Foundation & DevOps* below.
 > 33. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-06): Stock opname (candidate
 >     (b) — see item 34).**
@@ -377,7 +377,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     labels follow **DB enum semantics** (`pending` = "Belum dicek", `not_found` = "Tidak ditemukan",
 >     etc.) rather than the mockup's own copy where it differs; **(d)** the mockup's green "tap to
 >     simulate" scan tile is **omitted** — the real manual/scan-gun code-entry path is kept instead
->     (camera scanning itself is deferred per spec §9, user-approved; simulate-tap has no real backend
+>     (camera scanning itself is deferred per spec bagian 9, user-approved; simulate-tap has no real backend
 >     analog to bind to).
 >     **Follow-ups (tracked, not yet done):** the follow-up button has no "sudah diajukan"
 >     submitted-state indicator in the UI (the backend safely rejects a duplicate follow-up request,
@@ -514,7 +514,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     call would stop 403ing. Code review caught that this reopened the door wider than intended: with
 >     `assignment.view` + the existing office-level data scope, `employee_id` being client-supplied and
 >     optional meant any Staf could simply omit it and read **every coworker's assignments in the office**
->     — a regression against PRD §2.2 (Staf = data miliknya) and against 000026's own recorded decision to
+>     — a regression against PRD bagian 2.2 (Staf = data miliknya) and against 000026's own recorded decision to
 >     withhold `assignment.view` from Staf. **Final design (mirrors the `/assignments/available`
 >     precedent):** a dedicated `GET /assignments/mine` endpoint, gated by `request.create` (already
 >     seeded for Staf in `000005` — **no new permission grant**), which resolves the caller's employee id
@@ -897,7 +897,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     stack unreachable in the build env; e2e `account-security.spec.ts` (email + password change via
 >     Mailpit) is **CI-deferred**; **`UpdateProfile` is not wrapped in a single transaction** — name and phone are
 >     two separate writes, so a phone-write failure after the name commits leaves a partial update (spec
->     §2 asked for one tx; low harm — caller's own data, retriable — deferred pending tx wiring); the two
+>     bagian 2 asked for one tx; low harm — caller's own data, retriable — deferred pending tx wiring); the two
 >     authed send endpoints now have a **server-side per-IP rate limit** (fix #2) on top of the client
 >     cooldown; NumberInput's paste-of-`.`-decimal into a grouping+`decimals>0`
 >     field is latent-only (no field combines them); ~~`kantor`/`pegawai` display names show `—` (API returns
@@ -1290,7 +1290,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       host needs only Docker); secrets via Ansible Vault (`*.example` files
       committed, real `inventory.ini`/`vault.yml` gitignored); `ops/ansible/lint.sh`
       (`--syntax-check` + `ansible-lint`) green in CI-less dev. ADR-0013 +
-      `docs/DEPLOYMENT.md` §15 IaC sub-section. **Done (2026-07-06).**
+      `docs/DEPLOYMENT.md` bagian 15 IaC sub-section. **Done (2026-07-06).**
 - [x] **Ops hardening Phase 3 — Monitoring/observability** ✅ self-hosted stack as
       a toggleable compose overlay (`docker-compose.monitoring.yml`): backend RED
       metrics (`/metrics`, internal-only), Prometheus (15d retention + `mem_limit`)
@@ -1300,7 +1300,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
       (`alertmanager.yml`, `grafana.env`). Ansible `monitoring` role
       (`ops/ansible/roles/monitoring/`) brings the overlay up idempotently via
       `community.docker.docker_compose_v2`, appended after `app` in `site.yml`.
-      ADR-0011 + `docs/DEPLOYMENT.md` §16. **Done (2026-07-06). Ops-hardening
+      ADR-0011 + `docs/DEPLOYMENT.md` bagian 16. **Done (2026-07-06). Ops-hardening
       trilogy (WAF → IaC → Monitoring) now COMPLETE.**
 
 ### Database (15 migrations · 12 schemas)
@@ -1350,7 +1350,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > render mock fixtures; they need wiring to real backend modules as those land (below).
 > (Peta Lokasi uses a real Leaflet map per an explicit product decision, in place of the
 > mockup's illustrative SVG; everything else matches its mockup 1:1.)
-> **Six new v1.1 bank-grade mockups added 2026-07-03** (DESIGN_BRIEF §6: `Mutasi Aset`,
+> **Six new v1.1 bank-grade mockups added 2026-07-03** (DESIGN_BRIEF bagian 6: `Mutasi Aset`,
 > `Stock Opname`, `Penghapusan Aset`, `Depresiasi`, `Dokumen BAST`, `Limit Otorisasi`) —
 > screens **not yet built**; see *Remaining* below.
 
@@ -1547,7 +1547,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
         `assets`+`users` (English field keys); UUID `id` identity; default-allow; save preserves other-entity rows + only PUTs changed roles; e2e spec added against real seeded backend; orphaned `mock/fieldPermission.ts` deleted. **Done (2026-06-28).** ⚠️ TODO: `FilterView` enforcement now also covers `requests` (see the Pengajuan & Approval entry below); remaining: `employees` + other masterdata entities.
   - [x] **Audit Trail** (`/settings/audit`) ✅ wired to `GET /api/v1/audit` — server-side filter + pagination (limit/offset); gate `audit.view`; entity-type filter from frontend `AUDIT_ENTITY_TYPES` catalog; expandable diff viewer; e2e spec against real backend; orphaned `mock/audit.ts` deleted. **Done (2026-06-29).** ⚠️ TODO: actor filter + role/summary/office-name columns dropped — backend response has no role/summary; resolving actor/office names requires `user.manage`/masterdata reads that an `audit.view`-only viewer may lack. Revisit if a viewer-accessible name lookup or enriched audit response lands.
   - [x] **User Management** (`/settings/users`) ✅ wired to `/api/v1/users` — CRUD (GET list with server-side search+pagination, POST create, PUT update, DELETE remove); gate `user.manage`; role/office/employee pickers from real API lookups; employee picker filtered by selected office (office_id-aware `employeeFormOptions`); e2e spec against real seeded backend; status toggled via update endpoint. **Done (2026-06-29). Authz/settings screen wiring batch complete (RBAC + Data Scope + Field Permission + Audit Trail + User Management).** Filter bar now has server-side role/office/status filter controls (role `USelect`, office `AsyncSearchPicker`, status `USelect`, reset button matching the mockup) driving `GET /users?role_id&office_id&status`; `useUsers().list()` extended; 12-case component spec (`users-filters.spec.ts`); verified live against the real backend. **Done (2026-07-13, Tech-Debt Sweep #2 Task 7).** ⚠️ TODO: ~~reset-password action still dropped pending backend support~~ ✅ **done (item 70, 2026-07-18)** — Reset Password row action → `POST /users/:id/reset-password` emails the target user a reset link; office/employee lookup capped at 100 (searchable async picker is a follow-up if counts grow); `mock/users.ts` retained until `useGlobalSearch` is wired to the real `/search` endpoint; no dedicated e2e assertion added yet for the new filter controls (component-test only).
-- [x] **Peta Lokasi** (`/master/map`) ✅ wired to `GET /api/v1/offices/map` — office lat/lng columns + geo endpoint with resolved type/province/city names + per-office asset count; data-scoped. `useOfficeMap` rewritten (real `$fetch`); types `MapOffice`/`OfficeTier`; 3-tier legend (Pusat/Wilayah/Cabang; Outlet folded into Cabang — `office_types.tier` not yet editable); coord-filtered Leaflet pins; load-error/retry; e2e spec added; orphaned `mock/officeMap.ts` deleted. **Done (2026-06-29).** ⚠️ TODO: map shows empty-state until offices have coordinates (no production seed); asset count real but 0 until asset module populated. (`office_types.tier` now editable via Referensi screen — resolved as part of §Referensi wiring below.)
+- [x] **Peta Lokasi** (`/master/map`) ✅ wired to `GET /api/v1/offices/map` — office lat/lng columns + geo endpoint with resolved type/province/city names + per-office asset count; data-scoped. `useOfficeMap` rewritten (real `$fetch`); types `MapOffice`/`OfficeTier`; 3-tier legend (Pusat/Wilayah/Cabang; Outlet folded into Cabang — `office_types.tier` not yet editable); coord-filtered Leaflet pins; load-error/retry; e2e spec added; orphaned `mock/officeMap.ts` deleted. **Done (2026-06-29).** ⚠️ TODO: map shows empty-state until offices have coordinates (no production seed); asset count real but 0 until asset module populated. (`office_types.tier` now editable via Referensi screen — resolved as part of bagian Referensi wiring below.)
 - [x] **Master Data Referensi** (`/master/reference`) ✅ wired to generic reference engine (`GET/POST/PUT/DELETE /api/v1/masterdata/reference/:resource`) — 11 resources (office-types, departments, positions, units, maintenance-categories, problem-categories, brands, vendors, provinces, cities, models); FK pickers (cities→provinces, models→brands); `office-types` `tier` editable (select: pusat/wilayah/office) — **office map now meaningful** (tier settable → real Pusat/Wilayah/Cabang pins); `vendors` gains `contact_name` + `address` fields; `is_active` toggle/column hidden for provinces & cities (no `is_active` column); `departments` `code` field restored; `brands` label corrected to "Brand". Backend: `typeEnum` + `tier` column in reference engine. Orphaned `mock/reference.ts` deleted; e2e spec added (`frontend/e2e/master-reference.spec.ts`). **Done (2026-06-29).** ⚠️ TODO: cities and models need at least one province/brand created first (no production seed); empty FK picker shows a warning.
 - [x] **Pegawai** (`/master/employees`) ✅ wired to `GET/POST/PUT/DELETE /api/v1/employees` — server-enforced `employees` data-scope; `useEmployees` composable rewritten (real `$fetch`, CRUD); `Employee`/`EmployeeInput` English DTO; UUID FK pickers for office (required), department, position with table name-resolution; inline `GET /offices?limit=100` for office options; backend `phone` column added (migration + DTO + query + OpenAPI); `data-testid` on office/dept/position USelects; e2e spec (`frontend/e2e/employees.spec.ts`); mockup comparison 1:1 (7 cols, 4-filter bar, slideover); `mock/employees.ts` retained (still used by `useGlobalSearch`). **Done (2026-06-30).** ⚠️ TODO: `mock/employees.ts` — delete when `useGlobalSearch` is wired to real `/search` endpoint.
 - [x] **Kantor + Lantai + Ruangan** (`/master/offices`) ✅ wired to `/api/v1/offices` + `/api/v1/floors` (`?office_id=`) + `/api/v1/rooms` (`?floor_id=`) — split-panel tree (built client-side from the flat scoped list) + detail + inline floor/room CRUD; server-enforced `offices` data-scope. `useOffices`/`useFloors` rewritten (real `$fetch`); `Office`/`Floor`/`Room` English DTO; FK pickers (office-type/province/city via `useReference`, city filtered by province) + optional `latitude`/`longitude` inputs (product decision → Peta Lokasi pins); tree icon/colour from office-type **tier** (`tierMeta`); FK id → name resolution in detail; floor/room updates resend required `office_id`/`floor_id`; load-error/retry; `data-testid` on office-type/province/city USelects. Deleted `mock/floors.ts` + `floors-mock.spec.ts` + `offices-mock.spec.ts`; `mock/offices.ts` retained (decoupled `MockOffice`, used by `useGlobalSearch`). Unit + 20-case component spec + real-backend e2e (create office-type via Referensi → create office). **Done (2026-07-02). Master-data screen-wiring batch complete.** ⚠️ TODO: delete `mock/offices.ts` when `useGlobalSearch` is wired to real `/search`.

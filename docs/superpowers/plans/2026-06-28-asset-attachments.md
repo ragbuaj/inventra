@@ -1079,7 +1079,7 @@ git commit -m "docs(progress): asset attachments (MinIO) landed"
 
 ## Self-Review notes (spec coverage)
 
-- Spec §1 storage package → Task 1. §2 config+wiring → Task 2. §3 service/handlers/routes → Tasks 5/6/7. §4 queries → Task 3. §5 DTO → Task 6. Thumbnail → Task 4. Authz scope-gating → Task 7 (`resolveAssetInScope`). Error handling (415/413/404/403) → Task 7 `handleErr`. Testing (unit fake + integration MinIO) → Tasks 1/4/5/6 (unit) + 9/10 (integration). OpenAPI → Task 8. Gates+PROGRESS → Task 11.
+- Spec bagian 1 storage package → Task 1. bagian 2 config+wiring → Task 2. bagian 3 service/handlers/routes → Tasks 5/6/7. bagian 4 queries → Task 3. bagian 5 DTO → Task 6. Thumbnail → Task 4. Authz scope-gating → Task 7 (`resolveAssetInScope`). Error handling (415/413/404/403) → Task 7 `handleErr`. Testing (unit fake + integration MinIO) → Tasks 1/4/5/6 (unit) + 9/10 (integration). OpenAPI → Task 8. Gates+PROGRESS → Task 11.
 - `kind` derivation, MIME whitelist, key format, has_thumbnail, no-key-exposure all have concrete tasks/tests.
 - Upload rollback: storage-failure path unit-tested (Task 5); DB-insert-failure rollback integration-tested (Task 10).
 - Type consistency: `UploadInput`, `Storage`, `ObjectInfo`, `attachmentToMap`, `makeThumbnail`, `NewService(q,pool,store,maxBytes)` are defined once and referenced consistently across tasks.

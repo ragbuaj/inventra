@@ -136,12 +136,12 @@ Mengacu aturan domain PRD web bagian 3.9; strategi sync di ADR-0016.
 
 ## 4. Alur utama
 
-1. **Opname offline**: login → buka sesi → unduh snapshot → (sinyal hilang) → scan ratusan label,
-   hasil masuk antrean → kembali ke area bersinyal → antrean tersinkron otomatis → cek variance →
-   selesai; konflik (bila ada) tampil untuk dikoreksi.
-2. **Approval dari push**: push masuk → tap → detail pengajuan → tinjau → approve/reject +
-   catatan → maker menerima push keputusan.
-3. **Identifikasi aset**: buka Scan → arahkan kamera ke label → detail aset tampil → selesai
+1. **Opname offline**: login, buka sesi, unduh snapshot; sinyal hilang; scan ratusan label dan
+   hasil masuk antrean; kembali ke area bersinyal; antrean tersinkron otomatis; cek variance;
+   selesai. Konflik (bila ada) tampil untuk dikoreksi.
+2. **Approval dari push**: push masuk, tap, detail pengajuan tampil; tinjau lalu approve/reject
+   dengan catatan; maker menerima push keputusan.
+3. **Identifikasi aset**: buka Scan, arahkan kamera ke label, detail aset tampil, selesai
    (atau tandai hasil bila sedang dalam sesi opname).
 
 ## 5. Kebutuhan Non-Fungsional

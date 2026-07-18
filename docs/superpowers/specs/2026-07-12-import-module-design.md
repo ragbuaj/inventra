@@ -3,7 +3,7 @@
 - **Tanggal:** 2026-07-12
 - **Status:** Disetujui (brainstorming session)
 - **Referensi:** PRD FR-2.11 (import massal aset), FR-7.5b (import massal master data),
-  DATABASE.md §4.5 (`import.import_jobs`), mockup `docs/design/Import Aset.dc.html`,
+  DATABASE.md bagian 4.5 (`import.import_jobs`), mockup `docs/design/Import Aset.dc.html`,
   ADR-0008 (konvensi modul backend).
 
 ## 1. Ringkasan
@@ -47,7 +47,7 @@ master data), menggantikan seam mock (`mock/assets.ts` dihapus).
 | `error_key` | `text?` | Alasan gagal fatal (kunci i18n: file rusak, header salah, dst.) |
 
 `error_report_key` yang sudah ada **dibiarkan null** — laporan error dibangun on-demand dari
-`import_rows` (lihat §4, endpoint error-report), tidak disimpan ke MinIO.
+`import_rows` (lihat bagian 4, endpoint error-report), tidak disimpan ke MinIO.
 
 ### 2.3 Tabel baru `import.import_rows`
 
@@ -231,7 +231,7 @@ lookup dan unik yang sama polanya.
 ## 7. Testing
 
 - **Backend unit**: parser (csv/xlsx, header salah, cap baris/ukuran, sel kosong, tipe salah);
-  validator per target (setiap error_key §4.4 termasuk `multiOffice`, `scope`, duplikat file+DB);
+  validator per target (setiap error_key bagian 4.4 termasuk `multiOffice`, `scope`, duplikat file+DB);
   state machine (semua transisi ilegal); template generator; error-report generator.
 - **Backend integration** (pola repo, `-tags=integration`): siklus penuh per target
   (upload→validate→rows→confirm→execute→completed); asset: approve → aset tercipta; reject →

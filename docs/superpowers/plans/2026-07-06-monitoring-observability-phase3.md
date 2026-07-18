@@ -928,7 +928,7 @@ dikecualikan (YAGNI).
 
 - [ ] **Step 3: Update adr/README.md** — add the ADR-0011 row in the file's existing format (read it first; 0011 was reserved for this).
 
-- [ ] **Step 4: Tambah bagian Monitoring ke DEPLOYMENT.md** (before "## Referensi perintah cepat", numbered §16):
+- [ ] **Step 4: Tambah bagian Monitoring ke DEPLOYMENT.md** (before "## Referensi perintah cepat", numbered bagian 16):
 
 ```markdown
 ---

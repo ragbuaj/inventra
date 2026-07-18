@@ -512,7 +512,7 @@
     },
     "chain": {
       "title": "Jenjang Persetujuan Diperlukan",
-      "ref": "Limit Otorisasi §2.4",
+      "ref": "Limit Otorisasi bagian 2.4",
       "sensitiveNote": "Tindakan sensitif — penghapusan aset mengubah catatan aktiva tetap dan memerlukan approval berjenjang sesuai nilai buku.",
       "basedOnBookValue": "berdasar nilai buku: {value}",
       "notConfigured": "Band approval belum dikonfigurasi.",
