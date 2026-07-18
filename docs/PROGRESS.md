@@ -1269,7 +1269,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     modal, `maintenance` date-boundary); **GeoIP DB provisioning** (ops); notification follow-ups (SSE,
 >     retention archival, maker-route gap). Confirm priority before starting.
 > 78. ~~**Mobile companion — dokumentasi arsitektur & konvensi**~~ ✅ **DONE (2026-07-18, branch
->     `feat/mobile-arch-docs`).** Melengkapi dokumen mobile sebelum kode, di `docs/mobile/`:
+>     `feat/mobile-arch-docs`, PR #102).** Melengkapi dokumen mobile sebelum kode, di `docs/mobile/`:
 >     **ARCHITECTURE.md** — klien tipis, struktur folder feature-first (`lib/features/*` dengan
 >     `data/` + `presentation/`, aturan tanpa impor antar-fitur), Riverpod `AsyncNotifier` (tanpa
 >     codegen provider), go_router + deep-link push, Dio tiga interceptor (cookie jar, refresh
