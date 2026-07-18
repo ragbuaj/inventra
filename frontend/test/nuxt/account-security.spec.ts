@@ -22,7 +22,7 @@ interface ProfileApiResponse {
   office_id: string | null
   employee_id: string | null
   status: string
-  avatar_url: string | null
+  has_avatar: boolean
   google_linked: boolean
   joined_at: string
 }
@@ -36,7 +36,7 @@ const defaultProfileResponse: ProfileApiResponse = {
   office_id: null,
   employee_id: null,
   status: 'active',
-  avatar_url: null,
+  has_avatar: false,
   google_linked: false,
   joined_at: '2024-03-12T00:00:00Z'
 }

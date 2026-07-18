@@ -204,8 +204,8 @@ func NewRouter(d Deps) (*gin.Engine, Workers) {
 		if locator == nil {
 			locator = geoip.New(d.Cfg.GeoIPDBPath, d.Log)
 		}
-		identitySvc := identity.NewService(queries, tokenManager, tokenStore, asyncMailer, locator, d.Cfg.PasswordResetTTL, d.Cfg.FrontendURL)
-		identityHandler := identity.NewHandler(identitySvc, permSvc, scopeSvc, d.Limiter, d.Cfg.RateLimitLoginPerMin, d.Cfg.Env == "production", d.Cfg.JWTRefreshTTL, googleOAuth, d.Cfg.FrontendURL, auditSvc, d.Cfg.RateLimitLoginPerMin)
+		identitySvc := identity.NewService(queries, tokenManager, tokenStore, asyncMailer, locator, d.Cfg.PasswordResetTTL, d.Cfg.FrontendURL, d.Storage, d.Cfg.AvatarMaxBytes)
+		identityHandler := identity.NewHandler(identitySvc, permSvc, scopeSvc, d.Limiter, d.Cfg.RateLimitLoginPerMin, d.Cfg.Env == "production", d.Cfg.JWTRefreshTTL, googleOAuth, d.Cfg.FrontendURL, auditSvc, d.Cfg.RateLimitLoginPerMin, d.Cfg.AvatarMaxBytes)
 		identity.RegisterRoutes(api, identityHandler, requireAuth, d.Limiter, d.Cfg.RateLimitLoginIPPerMin, d.Cfg.RateLimitRefreshPerMin, d.Cfg.RateLimitLoginIPPerMin, d.Cfg.RateLimitLoginPerMin)
 
 		userHandler := user.NewHandler(user.NewService(queries), fieldSvc, auditSvc, identitySvc)

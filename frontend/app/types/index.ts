@@ -277,9 +277,16 @@ export interface AccountProfile {
   peran: string
   kantor: string
   pegawai: string
+  /** Employee master-data detail; empty string when unlinked or unset. */
+  kodePegawai: string
+  departemen: string
+  jabatan: string
+  statusPegawai: '' | 'active' | 'inactive' | 'suspended'
   loginMethod: 'email' | 'google'
   joinDate: string
   hasEmployee: boolean
+  /** Whether a profile photo is stored; fetch the bytes via getAvatarUrl(). */
+  hasAvatar: boolean
 }
 
 export interface AccountSession {

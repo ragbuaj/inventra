@@ -45,7 +45,7 @@ func userToMap(u sqlc.IdentityUser) map[string]any {
 		"office_id":     uuidPtrStr(u.OfficeID),
 		"employee_id":   uuidPtrStr(u.EmployeeID),
 		"status":        string(u.Status),
-		"avatar_url":    u.AvatarUrl,
+		"has_avatar":    u.AvatarKey != nil,
 		"google_linked": u.GoogleID != nil,
 		"created_at":    tsStr(u.CreatedAt),
 		"updated_at":    tsStr(u.UpdatedAt),

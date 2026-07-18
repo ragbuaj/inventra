@@ -10,7 +10,7 @@ beforeEach(() => request.mockReset())
 
 describe('useUsers', () => {
   it('list builds the query (omits empty search) and returns {rows,total}', async () => {
-    request.mockResolvedValueOnce({ data: [{ id: 'u1', name: 'A', email: 'a@x.id', role_id: 'r1', office_id: null, employee_id: null, status: 'active', avatar_url: null, google_linked: false, created_at: null, updated_at: null }], total: 1 })
+    request.mockResolvedValueOnce({ data: [{ id: 'u1', name: 'A', email: 'a@x.id', role_id: 'r1', office_id: null, employee_id: null, status: 'active', has_avatar: false, google_linked: false, created_at: null, updated_at: null }], total: 1 })
     const res = await useUsers().list({ search: '', limit: 20, offset: 40 })
     const path = request.mock.calls[0][0] as string
     expect(path).toContain('/users?')

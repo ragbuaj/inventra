@@ -515,6 +515,110 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /api/v1/auth/avatar:
+    get:
+      tags: [Auth]
+      operationId: authGetAvatar
+      summary: Download the caller's profile photo
+      description: >
+        Streams the caller's stored avatar as image bytes. The endpoint is
+        authenticated, so it cannot be used as a bare `<img src>` — fetch it as
+        a blob. Returns 404 when no avatar is set.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The avatar image
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No avatar set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Object storage is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags: [Auth]
+      operationId: authUploadAvatar
+      summary: Upload the caller's profile photo
+      description: >
+        Accepts a JPG or PNG image (default limit 2 MB, `AVATAR_MAX_BYTES`).
+        The image is cropped to a centered square and re-encoded to JPEG, which
+        also strips any EXIF metadata. Re-uploading replaces the previous photo.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "400":
+          description: Missing or unreadable file field
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "413":
+          description: File exceeds the size limit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          description: Unsupported image type (only JPG and PNG are accepted)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Object storage is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags: [Auth]
+      operationId: authRemoveAvatar
+      summary: Remove the caller's profile photo
+      description: Clears the avatar. Idempotent — removing when none is set succeeds.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /api/v1/auth/profile:
     get:
       tags: [Auth]
@@ -5074,8 +5178,11 @@ components:
         status:
           type: string
           enum: [active, inactive, suspended]
-        avatar_url:
-          type: [string, "null"]
+        has_avatar:
+          type: boolean
+          description: >
+            Whether a profile photo is stored. The object key is never exposed;
+            fetch the image bytes from GET /api/v1/auth/avatar.
         google_linked:
           type: boolean
         created_at:
@@ -5121,11 +5228,28 @@ components:
         employee_name:
           type: [string, "null"]
           description: The linked employee's name (null when no employee is linked).
+        employee_code:
+          type: [string, "null"]
+          description: The linked employee's code/NIP (null when no employee is linked).
+        employee_status:
+          type: [string, "null"]
+          description: >
+            The linked employee's master-data status — one of active, inactive
+            or suspended; null when no employee is linked.
+        department_name:
+          type: [string, "null"]
+          description: The linked employee's department name (null when unset or no employee is linked).
+        position_name:
+          type: [string, "null"]
+          description: The linked employee's position name (null when unset or no employee is linked).
         status:
           type: string
           enum: [active, inactive, suspended]
-        avatar_url:
-          type: [string, "null"]
+        has_avatar:
+          type: boolean
+          description: >
+            Whether a profile photo is stored. The object key is never exposed;
+            fetch the image bytes from GET /api/v1/auth/avatar.
         google_linked:
           type: boolean
         joined_at:

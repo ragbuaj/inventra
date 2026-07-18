@@ -38,8 +38,12 @@ interface ProfileApiResponse {
   office_name: string | null
   employee_id: string | null
   employee_name: string | null
+  employee_code: string | null
+  employee_status: string | null
+  department_name: string | null
+  position_name: string | null
   status: string
-  avatar_url: string | null
+  has_avatar: boolean
   google_linked: boolean
   joined_at: string
 }
@@ -88,9 +92,14 @@ export function useAccount() {
       peran: raw.role_name || (auth.user?.role_name ?? ''),
       kantor: raw.office_name ?? '',
       pegawai: raw.employee_name ?? '',
+      kodePegawai: raw.employee_code ?? '',
+      departemen: raw.department_name ?? '',
+      jabatan: raw.position_name ?? '',
+      statusPegawai: (raw.employee_status ?? '') as AccountProfile['statusPegawai'],
       loginMethod: raw.google_linked ? 'google' : 'email',
       joinDate: raw.joined_at,
-      hasEmployee
+      hasEmployee,
+      hasAvatar: raw.has_avatar === true
     }
   }
 
@@ -106,6 +115,47 @@ export function useAccount() {
       body: { name: input.nama, phone: input.telepon }
     })
     return mapProfile(raw)
+  }
+
+  // Avatar limits mirror the backend (AVATAR_MAX_BYTES, JPG/PNG only) so an
+  // obviously-invalid file is rejected without a round trip. The backend
+  // re-validates — this is UX, not the security boundary.
+  const AVATAR_MAX_BYTES = 2 * 1024 * 1024
+  const AVATAR_TYPES = ['image/jpeg', 'image/png']
+
+  // Throws a translatable key rather than a message, matching updateProfile's
+  // 'account.errRequired' convention.
+  function validateAvatar(file: File): void {
+    if (!AVATAR_TYPES.includes(file.type)) throw new Error('account.errAvatarType')
+    if (file.size > AVATAR_MAX_BYTES) throw new Error('account.errAvatarSize')
+  }
+
+  async function uploadAvatar(file: File): Promise<AccountProfile> {
+    validateAvatar(file)
+    const formData = new FormData()
+    formData.append('file', file)
+    // ofetch detects FormData and sets the multipart boundary itself — do not
+    // add a Content-Type header here.
+    const raw = await client.request<ProfileApiResponse>('/auth/avatar', { method: 'POST', body: formData })
+    return mapProfile(raw)
+  }
+
+  async function removeAvatar(): Promise<AccountProfile> {
+    const raw = await client.request<ProfileApiResponse>('/auth/avatar', { method: 'DELETE' })
+    return mapProfile(raw)
+  }
+
+  // The avatar endpoint is authenticated, so it can't be used as a bare <img
+  // src>. Fetch the bytes and hand back an object URL — the caller owns it and
+  // must revokeObjectURL when replacing or unmounting.
+  async function getAvatarObjectURL(): Promise<string | null> {
+    try {
+      const blob = await client.requestBlob('/auth/avatar', { suppressErrorToast: true })
+      return URL.createObjectURL(blob)
+    } catch {
+      // 404 (no avatar) and transient failures both degrade to initials.
+      return null
+    }
   }
 
   // Verifies the current password and emails a confirmation link to the NEW
@@ -175,5 +225,5 @@ export function useAccount() {
     }
   }
 
-  return { getProfile, updateProfile, requestEmailChange, confirmEmailChange, requestPasswordChange, requestPasswordReset, resetPassword, listSessions, revokeSession, logoutAllOthers, getNotifPrefs, setNotifPrefs }
+  return { getProfile, updateProfile, uploadAvatar, removeAvatar, getAvatarObjectURL, requestEmailChange, confirmEmailChange, requestPasswordChange, requestPasswordReset, resetPassword, listSessions, revokeSession, logoutAllOthers, getNotifPrefs, setNotifPrefs }
 }

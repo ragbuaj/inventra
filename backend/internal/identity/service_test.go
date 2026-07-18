@@ -13,6 +13,7 @@ import (
 	"github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/auth"
 	"github.com/ragbuaj/inventra/internal/config"
+	"github.com/ragbuaj/inventra/internal/storage"
 )
 
 type fakeStore struct {
@@ -24,6 +25,8 @@ type fakeStore struct {
 	nameUpdates  map[uuid.UUID]string
 	emailUpdates map[uuid.UUID]string
 	phoneUpdates map[uuid.UUID]*string // employeeID -> new phone (nil clears)
+
+	avatarErr error // when set, UpdateUserAvatarKey fails (rollback-path tests)
 }
 
 func (f *fakeStore) GetUserByID(_ context.Context, id uuid.UUID) (sqlc.IdentityUser, error) {
@@ -103,6 +106,25 @@ func (f *fakeStore) UpdateEmployeePhone(_ context.Context, a sqlc.UpdateEmployee
 	return nil
 }
 
+// UpdateUserAvatarKey mirrors the real query: it writes the key onto the stored
+// user row (and the profile row) so GetProfile reflects it, or fails when
+// avatarErr is set.
+func (f *fakeStore) UpdateUserAvatarKey(_ context.Context, a sqlc.UpdateUserAvatarKeyParams) error {
+	if f.avatarErr != nil {
+		return f.avatarErr
+	}
+	if u, ok := f.byID[a.ID]; ok {
+		u.AvatarKey = a.AvatarKey
+		f.byID[a.ID] = u
+		f.byEmail[u.Email] = u
+	}
+	if row, ok := f.profiles[a.ID]; ok {
+		row.AvatarKey = a.AvatarKey
+		f.profiles[a.ID] = row
+	}
+	return nil
+}
+
 type fakeMailer struct {
 	resetLink, changedTo string
 	resetTo              string
@@ -138,6 +160,15 @@ func activeUserEmail(t *testing.T, email string) sqlc.IdentityUser {
 
 func newTestService(t *testing.T, fs *fakeStore, fm *fakeMailer) *Service {
 	t.Helper()
+	svc, _ := newTestServiceWithStorage(t, fs, fm)
+	return svc
+}
+
+// newTestServiceWithStorage additionally hands back the in-memory object store
+// so avatar tests can assert what was (or wasn't) written.
+func newTestServiceWithStorage(t *testing.T, fs *fakeStore, fm *fakeMailer) (*Service, *storage.Fake) {
+	t.Helper()
+	objStore := storage.NewFake()
 	cfg := &config.Config{JWTSecret: "test-secret", JWTAccessTTL: 15 * time.Minute, JWTRefreshTTL: time.Hour}
 	tm := auth.NewTokenManager(cfg)
 	// The token store wraps an UNREACHABLE Redis (fast dial timeout) rather than
@@ -147,7 +178,7 @@ func newTestService(t *testing.T, fs *fakeStore, fm *fakeMailer) *Service {
 	// real Redis. Tests asserting an actual store WRITE (save reset/email-change
 	// token) are integration-level — see service_integration_test.go.
 	rdb := redis.NewClient(&redis.Options{Addr: "127.0.0.1:1", MaxRetries: -1, DialTimeout: 50 * time.Millisecond})
-	return NewService(fs, tm, auth.NewTokenStore(rdb), fm, nil, 30*time.Minute, "https://app")
+	return NewService(fs, tm, auth.NewTokenStore(rdb), fm, nil, 30*time.Minute, "https://app", objStore, 2*1024*1024), objStore
 }
 
 func TestChangePassword_WrongOld(t *testing.T) {

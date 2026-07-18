@@ -35,9 +35,11 @@ type userResponse struct {
 	RoleID       string  `json:"role_id"`
 	OfficeID     *string `json:"office_id"`
 	EmployeeID   *string `json:"employee_id"`
-	Status       string  `json:"status"`
-	AvatarURL    *string `json:"avatar_url"`
-	GoogleLinked bool    `json:"google_linked"`
+	Status string `json:"status"`
+	// HasAvatar reports whether an avatar object exists; the object key itself
+	// is never serialized. Fetch the image from GET /auth/avatar.
+	HasAvatar    bool `json:"has_avatar"`
+	GoogleLinked bool `json:"google_linked"`
 }
 
 func newUserResponse(u sqlc.IdentityUser) userResponse {
@@ -47,7 +49,7 @@ func newUserResponse(u sqlc.IdentityUser) userResponse {
 		Email:        u.Email,
 		RoleID:       u.RoleID.String(),
 		Status:       string(u.Status),
-		AvatarURL:    u.AvatarUrl,
+		HasAvatar:    u.AvatarKey != nil,
 		GoogleLinked: u.GoogleID != nil,
 	}
 	if u.OfficeID != nil {
@@ -92,8 +94,15 @@ type ProfileView struct {
 	OfficeName   *string   `json:"office_name"`
 	EmployeeID   *string   `json:"employee_id"`
 	EmployeeName *string   `json:"employee_name"`
-	Status       string    `json:"status"`
-	AvatarURL    *string   `json:"avatar_url"`
+	// Employee master-data detail, all nil when the user has no linked employee.
+	EmployeeCode   *string `json:"employee_code"`
+	EmployeeStatus *string `json:"employee_status"`
+	DepartmentName *string `json:"department_name"`
+	PositionName   *string `json:"position_name"`
+	Status string `json:"status"`
+	// HasAvatar reports whether an avatar object exists; the object key itself
+	// is never serialized. Fetch the image from GET /auth/avatar.
+	HasAvatar    bool      `json:"has_avatar"`
 	GoogleLinked bool      `json:"google_linked"`
 	JoinedAt     time.Time `json:"joined_at"`
 }
@@ -108,9 +117,12 @@ func profileFromRow(row sqlc.GetUserProfileRow) ProfileView {
 		RoleID:       row.RoleID.String(),
 		RoleName:     row.RoleName,
 		OfficeName:   row.OfficeName,
-		EmployeeName: row.EmployeeName,
-		Status:       string(row.Status),
-		AvatarURL:    row.AvatarUrl,
+		EmployeeName:   row.EmployeeName,
+		EmployeeCode:   row.EmployeeCode,
+		DepartmentName: row.DepartmentName,
+		PositionName:   row.PositionName,
+		Status:         string(row.Status),
+		HasAvatar:    row.AvatarKey != nil,
 		GoogleLinked: row.GoogleID != nil,
 		JoinedAt:     row.CreatedAt.Time,
 	}
@@ -121,6 +133,10 @@ func profileFromRow(row sqlc.GetUserProfileRow) ProfileView {
 	if row.EmployeeID != nil {
 		s := row.EmployeeID.String()
 		v.EmployeeID = &s
+	}
+	if row.EmployeeStatus != nil {
+		s := string(*row.EmployeeStatus)
+		v.EmployeeStatus = &s
 	}
 	return v
 }

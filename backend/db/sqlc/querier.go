@@ -523,6 +523,7 @@ type Querier interface {
 	UpdateRoom(ctx context.Context, arg UpdateRoomParams) (MasterdataRoom, error)
 	UpdateThreshold(ctx context.Context, arg UpdateThresholdParams) (ApprovalApprovalThreshold, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (IdentityUser, error)
+	UpdateUserAvatarKey(ctx context.Context, arg UpdateUserAvatarKeyParams) error
 	UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams) (IdentityUser, error)
 	UpdateUserName(ctx context.Context, arg UpdateUserNameParams) (IdentityUser, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
