@@ -16,10 +16,12 @@ scope ini. Tiga keputusan arah sudah diambil:
 3. **Offline-first untuk stock opname** — snapshot sesi diunduh ke device, scan tercatat lokal,
    sinkron saat online kembali. Sesuai realita lapangan (gudang, basement, lokasi ATM tanpa sinyal).
 
-Tindak lanjut dokumen (selesai 2026-07-18, branch `feat/mobile-docs`): amendemen **PRD v1.2**
-(non-goal dicabut, FR bagian 3.11, tahap 11 roadmap), **ADR-0015** (pilihan Flutter) dan
-**ADR-0016** (strategi offline sync), entri PROGRESS.md bagian Mobile, dan catatan keputusan
-produk di vault Obsidian (`Keputusan/Produk/`).
+Tindak lanjut dokumen (selesai 2026-07-18, branch `feat/mobile-docs`): **dokumentasi mobile
+dipisah ke `docs/mobile/`** — **PRD mobile** (`docs/mobile/PRD.md`, FR-M1 sampai FR-M6),
+**ADR-0015** (Flutter) + **ADR-0016** (offline sync) di `docs/mobile/adr/` (penomoran global),
+**design brief + prompt kit mockup** (`docs/mobile/DESIGN_BRIEF.md`); amendemen **PRD web v1.2**
+(non-goal dicabut, bagian 3.11 jadi penunjuk, tahap 11 roadmap); entri PROGRESS.md bagian Mobile;
+catatan keputusan produk di vault Obsidian (`Keputusan/Produk/`).
 
 ## 2. Persona dan use case v1
 
@@ -90,8 +92,9 @@ sqlc generate, handler + RegisterRoutes, authz eksplisit per endpoint, wiring Ne
 ## 5. Desain UI — mockup dulu (konvensi proyek)
 
 Konvensi "design fidelity is mandatory" berlaku juga untuk mobile: **sebelum membangun layar,
-mockup mobile harus dibuat dulu** (perluas `docs/DESIGN_BRIEF.md` dengan prompt kit mobile, hasil
-di `docs/design/mobile/`). Daftar layar v1:
+mockup mobile harus dibuat dulu**. Prompt kit lengkapnya sudah tersedia di
+`docs/mobile/DESIGN_BRIEF.md` (master brief + component library + 12 prompt per-layar, siap
+di-generate di Claude design); hasilnya disimpan di `docs/mobile/design/`. Daftar layar v1:
 
 Login; Home (ringkasan tugas: opname aktif, approval menunggu, notifikasi); Scan (kamera full
 screen + input manual); Detail Aset (read-only, hormati field permission); Daftar Sesi Opname;

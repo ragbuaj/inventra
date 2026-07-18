@@ -326,30 +326,17 @@ Berbeda dari *assignment* (check-out ke pegawai), **mutasi** adalah **perpindaha
 
 ### 3.11 Aplikasi Mobile Companion (v1.2)
 
-Aplikasi pendamping lapangan (**field companion**) berbasis **Flutter** (ADR-0015) — bukan paritas
-penuh dengan web. Web tetap aplikasi utama untuk administrasi; mobile melayani petugas lapangan dan
-pejabat pemutus. Fase implementasi dirinci di `docs/superpowers/plans/2026-07-18-mobile-app-roadmap.md`.
+Scope aplikasi **mobile companion** (Flutter, field companion) dibuka pada v1.2. **Dokumentasinya
+dipisah** dari PRD web agar mudah dibaca — kebutuhan lengkap klien mobile ada di
+**[`docs/mobile/PRD.md`](mobile/PRD.md)** (FR-M1 sampai FR-M6: auth & sesi, scan aset, approval
+on-the-go, notifikasi push FCM, stock opname offline-first, profil & preferensi). Keputusan
+arsitektur di `docs/mobile/adr/` (ADR-0015 Flutter, ADR-0016 offline sync — penomoran ADR tetap
+satu urutan global); design brief + prompt kit mockup di `docs/mobile/DESIGN_BRIEF.md` (hasil di
+`docs/mobile/design/`); roadmap fase M0-M6 di `docs/superpowers/plans/2026-07-18-mobile-app-roadmap.md`.
 
-- **FR-11.1** Login dengan akun yang sama (email + password); sesi tercatat sebagai **device
-  session**; token disimpan di secure storage; refresh memakai mekanisme cookie httpOnly yang ada
-  (cookie jar di klien — tanpa perubahan backend).
-- **FR-11.2** **Scan kamera** barcode/QR label aset untuk membuka **detail aset** (read-only);
-  hak akses per-field dan data scope berlaku sama dengan web.
-- **FR-11.3** **Approval on-the-go**: inbox pengajuan, detail, approve/reject dengan catatan;
-  maker-checker, SoD, dan `approval_thresholds` (bagian 2.4) ditegakkan server — tidak ada logika
-  otorisasi di klien.
-- **FR-11.4** **Notifikasi push (FCM)** untuk jenis notifikasi yang ada (approval_pending,
-  approval_decided, maintenance_due, asset_returned) + feed in-app; deep-link ke layar terkait.
-  Dispatcher push menjadi consumer tambahan pada pipeline notifikasi (ADR-0014).
-- **FR-11.5** **Stock opname mobile offline-first** (bagian 3.9): snapshot sesi diunduh ke device,
-  scan tercatat lokal saat tanpa sinyal, sinkron via endpoint **batch idempoten**; konflik
-  antar-device diselesaikan **first-write-wins per aset per sesi** dan dilaporkan eksplisit
-  (ADR-0016).
-- **FR-11.6** i18n id/en dan tema terang/gelap konsisten dengan web; mockup
-  `docs/design/mobile/` adalah sumber kebenaran visual (dibuat sebelum layar dibangun).
-- **Non-scope mobile v1**: CRUD master data, laporan/dashboard penuh, administrasi user/RBAC,
-  import massal, dan pembuatan pengajuan modul non-opname (tetap dibuat di web; mobile hanya
-  memutus approval-nya).
+Prinsip yang mengikat dari PRD web: web tetap aplikasi utama administrasi; mobile tidak membuat
+pengajuan modul non-opname (hanya memutus approval-nya); dan **semua otorisasi** (permission, data
+scope, field permission, SoD, `approval_thresholds`) tetap ditegakkan server.
 
 ---
 
@@ -649,8 +636,9 @@ IAI/DSAK Sosialisasi PMK 72/2023 · peraturan.bpk.go.id/Details/257823.
 
 - **v1.2 (2026-07-18)** — **Scope mobile dibuka**: non-goal v1.1 "aplikasi mobile native" dicabut;
   masuk **aplikasi mobile companion** berbasis Flutter (field companion: scan aset, approval
-  on-the-go, push FCM, stock opname offline-first) — bagian 3.11 baru, tahap 11 roadmap,
-  ADR-0015/0016. Web tetap aplikasi utama administrasi; semua otorisasi tetap ditegakkan server.
+  on-the-go, push FCM, stock opname offline-first) — bagian 3.11 (penunjuk), tahap 11 roadmap.
+  **Dokumentasi mobile dipisah** ke `docs/mobile/` (PRD mobile, ADR-0015/0016, design brief +
+  prompt kit). Web tetap aplikasi utama administrasi; semua otorisasi tetap ditegakkan server.
 - **v1.1 (2026-06-26)** — Reframe ke **Fixed Asset Management bank** (konteks BTN). Tambah: pemisahan
   fungsi (SoD) & limit otorisasi berjenjang per nilai (`approval_thresholds`); **mutasi aset**;
   **stock opname**; **BAST/dokumen**; **penyusutan dua basis** (komersial PSAK + fiskal pajak),

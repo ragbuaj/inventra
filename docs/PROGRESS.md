@@ -1248,12 +1248,19 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     `docs/superpowers/plans/2026-07-18-mobile-app-roadmap.md` (fase M0-M6, kesenjangan backend: push
 >     FCM, batch sync opname, refresh via cookie jar tanpa perubahan backend); **ADR-0015** (Flutter;
 >     alternatif Capacitor/PWA/React Native/Kotlin ditolak); **ADR-0016** (offline sync: batch idempoten
->     `client_scan_id`, konflik first-write-wins per aset per sesi + dilaporkan per-item); **PRD v1.2**
->     (non-goal mobile dicabut, FR baru bagian 3.11, baris stack + tahap 11 roadmap, changelog); bagian
->     *Mobile companion* di bagian Remaining; vault Obsidian (keputusan produk, indeks ADR, Status & Roadmap,
->     catatan sesi). **Belum ada kode** — pengembangan mulai dari fase M0 setelah dokumen di-merge.
-> 77. **Next session — start here: Mobile M0 prep** — buat set mockup mobile (`docs/design/mobile/`,
->     perluas `docs/DESIGN_BRIEF.md`) lalu spec + plan fase M0 (scaffold Flutter `mobile/`, tema + i18n,
+>     `client_scan_id`, konflik first-write-wins per aset per sesi + dilaporkan per-item); **PRD web
+>     v1.2** (non-goal mobile dicabut, bagian 3.11 jadi penunjuk, baris stack + tahap 11 roadmap,
+>     changelog); bagian *Mobile companion* di bagian Remaining; vault Obsidian (keputusan produk,
+>     indeks ADR, Status & Roadmap, catatan sesi). **Dokumentasi mobile dipisah ke `docs/mobile/`**
+>     (permintaan pemilik produk, agar dokumen web vs mobile mudah dibaca): **PRD mobile**
+>     `docs/mobile/PRD.md` (FR-M1..M6 + NFR + asumsi), **ADR** pindah ke `docs/mobile/adr/`
+>     (0015+0016, penomoran global tetap; `docs/adr/README.md` tetap indeks induk), **design brief +
+>     prompt kit mockup** `docs/mobile/DESIGN_BRIEF.md` (master brief mobile + component library +
+>     12 prompt per-layar, siap di-generate di Claude design; hasil ke `docs/mobile/design/`).
+>     **Belum ada kode** — pengembangan mulai dari fase M0 setelah dokumen di-merge.
+> 77. **Next session — start here: Mobile M0 prep** — generate mockup mobile dari prompt kit
+>     `docs/mobile/DESIGN_BRIEF.md` (13 artifact, hasil ke `docs/mobile/design/`) lalu spec + plan
+>     fase M0 (scaffold Flutter `mobile/`, tema + i18n,
 >     navigasi shell, login/refresh/logout cookie-jar, CI analyze/test/APK). Kandidat lain yang dibawa:
 >     **room/floor import targets**; **Analytics/OLAP** read layer; **`/auth/me` `role_name`**; **admin
 >     reset-password audit action** (migration); **pre-existing e2e failures** (`account` change-password
@@ -1679,11 +1686,13 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 ### Mobile companion (PRD v1.2 — planned; docs landed 2026-07-18, no code yet)
 
 > Scope dibuka pemilik produk 2026-07-18 (dulu non-goal v1.1). Bentuk: **field companion** Flutter
-> (Android dulu, folder `mobile/`). Rencana penuh: `docs/superpowers/plans/2026-07-18-mobile-app-roadmap.md`;
-> keputusan: ADR-0015 (Flutter) + ADR-0016 (offline sync opname). Konvensi design-fidelity berlaku —
-> mockup mobile (`docs/design/mobile/`) dibuat **sebelum** layar dibangun; tiap fase dapat spec + plan.
+> (Android dulu, folder `mobile/`). **Dokumentasi mobile dipisah di `docs/mobile/`**: PRD mobile
+> (`PRD.md`), ADR (`adr/0015` Flutter + `adr/0016` offline sync — penomoran global), design brief +
+> prompt kit (`DESIGN_BRIEF.md`). Rencana penuh: `docs/superpowers/plans/2026-07-18-mobile-app-roadmap.md`.
+> Konvensi design-fidelity berlaku — mockup mobile (`docs/mobile/design/`) dibuat **sebelum** layar
+> dibangun; tiap fase dapat spec + plan.
 
-- [ ] **Mockup mobile** — perluas `docs/DESIGN_BRIEF.md` dengan prompt kit mobile; hasil di `docs/design/mobile/` (12 layar v1: login, home, scan, detail aset, sesi opname, counting, variance, inbox approval, detail approval, notifikasi, profil/sesi, pengaturan)
+- [ ] **Mockup mobile** — generate dari prompt kit `docs/mobile/DESIGN_BRIEF.md` (sudah tersedia: master brief + component library + 12 prompt per-layar); hasil di `docs/mobile/design/` (login, home, scan, detail aset, sesi opname, counting, variance, inbox approval, detail approval, notifikasi, profil/sesi, pengaturan)
 - [ ] **M0 Fondasi** — scaffold Flutter `mobile/`, tema token Inventra + i18n id/en, navigasi shell, auth login/refresh/logout (cookie jar), secure storage, CI job (analyze/test/build APK)
 - [ ] **M1 Scan aset** — kamera QR/barcode (`mobile_scanner`) + fallback input manual, `GET /assets/by-tag/:tag`, detail read-only dengan field-permission masking
 - [ ] **M2 Approval on-the-go** — inbox `/requests`, detail, approve/reject + catatan (SoD/threshold server-side)

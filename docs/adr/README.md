@@ -32,8 +32,12 @@ domain genuinely needs custom, and document the trade-off either way.
 | [0012](0012-waf.md) | WAF: Coraza + OWASP CRS as a Caddy module (DetectionOnly → Blocking rollout) | Accepted | ops hardening — Phase 1 |
 | [0013](0013-iac.md) | Infrastructure as Code: Ansible (`base`+`docker`+`app` roles, containerized tooling, Vault secrets) | Accepted | ops hardening — Phase 2 |
 | [0014](0014-notification-delivery.md) | Notification delivery: transactional outbox (Postgres) + Redis Streams transport; supersedes PRD A1b (Redis is transport, not the notification store) | Accepted | notification module |
-| [0015](0015-mobile-companion-flutter.md) | Mobile companion: Flutter (field companion, Android-first, `mobile/` monorepo); supersedes PRD v1.1 non-goal "aplikasi mobile native" (PRD v1.2) | Accepted | mobile roadmap M0 |
-| [0016](0016-stock-opname-offline-sync.md) | Stock opname offline-first: local snapshot + idempotent batch sync (`client_scan_id`), first-write-wins per asset per session, conflicts reported | Accepted | mobile roadmap M5 |
+| [0015](../mobile/adr/0015-mobile-companion-flutter.md) | Mobile companion: Flutter (field companion, Android-first, `mobile/` monorepo); supersedes PRD v1.1 non-goal "aplikasi mobile native" (PRD v1.2) | Accepted | mobile roadmap M0 |
+| [0016](../mobile/adr/0016-stock-opname-offline-sync.md) | Stock opname offline-first: local snapshot + idempotent batch sync (`client_scan_id`), first-write-wins per asset per session, conflicts reported | Accepted | mobile roadmap M5 |
+
+> **Mobile ADRs** live in [`docs/mobile/adr/`](../mobile/adr/) (docs web/mobile are separated for
+> readability) but keep this **single global numbering sequence** — this table remains the master
+> index for every ADR in the repo.
 
 > ADRs are **decisions**, not implementation. Code lands in follow-up work; each ADR notes the libraries
 > and the integration points. ADR-0007's refactor (folder regroup + field-key rename) is tracked as

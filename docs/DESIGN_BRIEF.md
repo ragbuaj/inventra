@@ -4,6 +4,10 @@ Prompt siap-pakai untuk men-generate desain UI Inventra di Claude (mode artifact
 Disusun dari [PRD.md](PRD.md) (peran, fitur) dan design system frontend (Nuxt UI v4, primary
 hijau, neutral slate, dark mode, i18n id/en).
 
+> **Mobile companion (v1.2):** dokumen ini khusus **web**. Brief & prompt kit mockup **mobile**
+> dipisah di [mobile/DESIGN_BRIEF.md](mobile/DESIGN_BRIEF.md); hasil mockup mobile disimpan di
+> `docs/mobile/design/`.
+
 **Cara pakai:** jangan generate semua sekaligus. Tempel **Master Brief** (§1) sekali di awal
 percakapan sebagai konteks tetap, jalankan **Component Library** (§4) lebih dulu untuk mengunci
 bahasa visual, lalu generate layar satu per satu (§2) memakai **template per-screen** (§3).

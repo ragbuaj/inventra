@@ -62,7 +62,7 @@ Prinsip proyek (README ADR): pilih standar industri yang matang, bukan shortcut 
 - Stack ketiga di repo (Go, TypeScript/Vue, kini Dart) — biaya belajar diterima; mitigasi lewat
   fase M0 kecil dan source-driven development (dokumentasi resmi Flutter/Riverpod/drift).
 - Konvensi design-fidelity berlaku juga di mobile: **mockup mobile dibuat lebih dulu**
-  (`docs/design/mobile/`, perluasan `docs/DESIGN_BRIEF.md`) sebelum layar dibangun.
+  (`docs/mobile/design/`, dari prompt kit `docs/mobile/DESIGN_BRIEF.md`) sebelum layar dibangun.
 - Backend perlu dua kemampuan baru: **push FCM** (tabel device token + dispatcher sebagai consumer
   tambahan di pipeline notifikasi ADR-0014) dan **endpoint batch sync opname** (ADR-0016).
 - Otorisasi tidak berubah: semua enforcement (permission, data scope, field permission, SoD)
