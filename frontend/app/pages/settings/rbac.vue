@@ -16,6 +16,10 @@ const dirty = ref(false)
 const loading = ref(true)
 const loadFailed = ref(false)
 const saving = ref(false)
+// Mobile drill-down (below lg): false = role list full-width, true = permission
+// pane full-width with a back button. On lg+ both panes are always visible.
+// Stays false on the initial auto-select so mobile starts on the list.
+const showDetailMobile = ref(false)
 
 const selectedRole = computed(() => roles.value.find(r => r.id === selectedId.value))
 const saveDisabled = computed(() => !dirty.value)
@@ -47,6 +51,7 @@ async function load() {
 
 function selectRole(id: string) {
   selectedId.value = id
+  showDetailMobile.value = true
   draft.value = [...(roles.value.find(r => r.id === id)?.perms ?? [])]
   dirty.value = false
 }
@@ -128,7 +133,7 @@ onMounted(() => load())
 </script>
 
 <template>
-  <div class="-mx-8 -my-7 h-[calc(100%+3.5rem)] flex overflow-hidden">
+  <div class="-mx-4 -my-5 sm:-mx-6 sm:-my-6 lg:-mx-8 lg:-my-7 h-[calc(100%+2.5rem)] sm:h-[calc(100%+3rem)] lg:h-[calc(100%+3.5rem)] flex overflow-hidden">
     <div
       v-if="loading"
       class="flex-1 flex items-center justify-center"
@@ -161,13 +166,29 @@ onMounted(() => load())
       <RbacRoleList
         :roles="roles"
         :selected-id="selectedId"
+        :mobile-hidden="showDetailMobile"
         @select="selectRole"
         @add="openAdd"
       />
 
-      <!-- Right pane: header + matrix -->
-      <div class="flex-1 flex flex-col min-w-0 bg-muted/40">
-        <div class="flex-none flex items-center justify-between gap-3.5 flex-wrap px-7 py-[18px] border-b border-default bg-default">
+      <!-- Right pane: header + matrix (mobile: only visible after selecting a role) -->
+      <div
+        class="flex-1 flex-col min-w-0 bg-muted/40"
+        :class="showDetailMobile ? 'flex' : 'hidden lg:flex'"
+      >
+        <!-- mobile back bar -->
+        <div class="lg:hidden flex-none border-b border-default bg-default px-3 py-2">
+          <UButton
+            icon="i-lucide-arrow-left"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            :label="t('common.back')"
+            data-testid="rbac-back"
+            @click="() => { showDetailMobile = false }"
+          />
+        </div>
+        <div class="flex-none flex items-center justify-between gap-3.5 flex-wrap px-4 py-4 lg:px-7 lg:py-[18px] border-b border-default bg-default">
           <div class="min-w-0">
             <div class="flex items-center gap-[9px] flex-wrap">
               <h1 class="text-[19px] font-bold tracking-tight">
@@ -217,7 +238,7 @@ onMounted(() => load())
           </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto px-7 py-[22px]">
+        <div class="flex-1 overflow-y-auto px-4 py-4 lg:px-7 lg:py-[22px]">
           <div
             v-if="selectedRole?.is_system"
             class="flex gap-[11px] items-center px-3.5 py-3 mb-[18px] rounded-[11px] bg-muted border border-default"

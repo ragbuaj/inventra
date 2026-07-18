@@ -105,15 +105,25 @@ async function mountAndWait() {
   return wrapper
 }
 
+// Master-detail UI: the first role (Superadmin per fixture order) is
+// auto-selected on load; other roles are selected via their list item.
+async function selectRole(wrapper: Awaited<ReturnType<typeof mountAndWait>>, code: string) {
+  const item = wrapper.find(`[data-testid="scope-role-item-${code}"]`)
+  expect(item.exists()).toBe(true)
+  await item.trigger('click')
+  await new Promise(r => setTimeout(r, 50))
+  await wrapper.vm.$nextTick()
+}
+
 // ---------------------------------------------------------------------------
-// Loaded grid
+// Loaded editor
 // ---------------------------------------------------------------------------
 
-describe('Data Scope page — loaded grid', () => {
+describe('Data Scope page — loaded editor', () => {
   it('renders title and legend with all 4 scope-level keys', async () => {
     const wrapper = await mountAndWait()
     const text = wrapper.text()
-    // Page title
+    // Page title (role-list pane header)
     expect(text).toContain('Data Scope')
     // Legend section header
     expect(text).toContain('Level lingkup data')
@@ -134,7 +144,7 @@ describe('Data Scope page — loaded grid', () => {
     expect(text).toContain('Hanya data miliknya')
   })
 
-  it('renders module column headers with i18n labels from catalog', async () => {
+  it('renders module rows with i18n labels from catalog for the selected role', async () => {
     const wrapper = await mountAndWait()
     const text = wrapper.text()
     // Module labels from settings.dataScope.module.*
@@ -143,15 +153,30 @@ describe('Data Scope page — loaded grid', () => {
     expect(text).toContain('Aset') // assets
     expect(text).toContain('Pengajuan') // requests
     expect(text).toContain('Audit') // audit
-    // The "Default" column header
+    // The "Default" card label
     expect(text).toContain('Default')
+    // One row per module
+    expect(wrapper.find('[data-testid="scope-module-row-assets"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="scope-module-row-audit"]').exists()).toBe(true)
   })
 
-  it('renders seeded role names in rows', async () => {
+  it('renders seeded role names in the role list', async () => {
     const wrapper = await mountAndWait()
     const text = wrapper.text()
     expect(text).toContain('Superadmin')
     expect(text).toContain('Manager')
+    expect(wrapper.find('[data-testid="scope-role-item-superadmin"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="scope-role-item-manager"]').exists()).toBe(true)
+  })
+
+  it('lazy-loads scope: only the auto-selected role is fetched on mount', async () => {
+    const scopeGets: string[] = []
+    setHandler((path, opts = {}) => {
+      if (/\/scope$/.test(path) && opts?.method !== 'PUT') scopeGets.push(path)
+      return defaultHandler(path, opts)
+    })
+    await mountAndWait()
+    expect(scopeGets).toEqual(['/authz/roles/r-superadmin/scope'])
   })
 
   it('Save is disabled when first loaded (no dirty changes)', async () => {
@@ -163,16 +188,17 @@ describe('Data Scope page — loaded grid', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Changing a role's DEFAULT via ScopeCell
+// Changing the selected role's DEFAULT via ScopeCell
 // ---------------------------------------------------------------------------
 
 describe('Data Scope page — change role default', () => {
   it('changing Superadmin default marks dirty and enables Save', async () => {
     const wrapper = await mountAndWait()
-    // Superadmin's Default cell shows "global" — find its pill button
-    const pill = wrapper.findAll('button').find(b => b.text().includes('global'))
-    expect(pill).toBeDefined()
-    await pill!.trigger('click')
+    // Superadmin is auto-selected; its Default cell pill shows "global"
+    const pill = wrapper.find('[data-testid="scope-default-cell"] button')
+    expect(pill.exists()).toBe(true)
+    expect(pill.text()).toContain('global')
+    await pill.trigger('click')
     await wrapper.vm.$nextTick()
     await new Promise(r => setTimeout(r, 20))
 
@@ -200,10 +226,9 @@ describe('Data Scope page — change role default', () => {
 
     const wrapper = await mountAndWait()
 
-    // Open Superadmin's default cell (shows "global")
-    const pill = wrapper.findAll('button').find(b => b.text().includes('global'))
-    expect(pill).toBeDefined()
-    await pill!.trigger('click')
+    // Superadmin auto-selected — open its default cell (shows "global")
+    const pill = wrapper.find('[data-testid="scope-default-cell"] button')
+    await pill.trigger('click')
     await wrapper.vm.$nextTick()
     await new Promise(r => setTimeout(r, 20))
 
@@ -237,16 +262,17 @@ describe('Data Scope page — change role default', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Module override — set and clear
+// Module override — set and clear (on the Manager role via the role list)
 // ---------------------------------------------------------------------------
 
 describe('Data Scope page — module overrides', () => {
-  it('Manager row already has assets override (office_subtree), visible in the grid', async () => {
+  it('selecting Manager shows its assets override (office_subtree)', async () => {
     const wrapper = await mountAndWait()
-    // Manager has assets=office_subtree override — the pill for that cell shows "office_subtree"
-    // The text already contains "office_subtree" from the Manager row
-    const text = wrapper.text()
-    expect(text).toContain('office_subtree')
+    await selectRole(wrapper, 'manager')
+    // Manager has assets=office_subtree override — its pill shows "office_subtree"
+    const assetsRow = wrapper.find('[data-testid="scope-module-row-assets"]')
+    expect(assetsRow.exists()).toBe(true)
+    expect(assetsRow.text()).toContain('office_subtree')
   })
 
   it('PUT for Manager includes both the * default and the assets override', async () => {
@@ -257,14 +283,12 @@ describe('Data Scope page — module overrides', () => {
     })
 
     const wrapper = await mountAndWait()
+    await selectRole(wrapper, 'manager')
 
     // Change Manager's DEFAULT (currently "office") → pick "global"
-    // There are two pills showing "office" (Default + module cells that inherit it);
-    // we want the Default column pill. Find the first "office" pill which is Manager's default.
-    const officePills = wrapper.findAll('button').filter(b => b.text().trim() === 'office')
-    expect(officePills.length).toBeGreaterThan(0)
-    // Manager Default cell is the first "office" pill (Superadmin's default is "global")
-    await officePills[0]!.trigger('click')
+    const pill = wrapper.find('[data-testid="scope-default-cell"] button')
+    expect(pill.text()).toContain('office')
+    await pill.trigger('click')
     await wrapper.vm.$nextTick()
     await new Promise(r => setTimeout(r, 20))
 
@@ -306,10 +330,11 @@ describe('Data Scope page — module overrides', () => {
     })
 
     const wrapper = await mountAndWait()
+    await selectRole(wrapper, 'manager')
 
-    // Manager's assets cell shows "office_subtree" (the override).
-    // Click that pill to open the popover.
-    const overridePill = wrapper.findAll('button').find(b => b.text().includes('office_subtree'))
+    // Manager's assets row shows "office_subtree" (the override) — open its popover.
+    const overridePill = wrapper.find('[data-testid="scope-module-row-assets"]').findAll('button')
+      .find(b => b.text().includes('office_subtree'))
     expect(overridePill).toBeDefined()
     await overridePill!.trigger('click')
     await wrapper.vm.$nextTick()
@@ -363,10 +388,9 @@ describe('Data Scope page — only dirty roles PUT', () => {
 
     const wrapper = await mountAndWait()
 
-    // Change ONLY Superadmin's default
-    const pill = wrapper.findAll('button').find(b => b.text().includes('global'))
-    expect(pill).toBeDefined()
-    await pill!.trigger('click')
+    // Change ONLY Superadmin's default (auto-selected)
+    const pill = wrapper.find('[data-testid="scope-default-cell"] button')
+    await pill.trigger('click')
     await wrapper.vm.$nextTick()
     await new Promise(r => setTimeout(r, 20))
 
@@ -385,6 +409,43 @@ describe('Data Scope page — only dirty roles PUT', () => {
     // Exactly one PUT, for Superadmin only
     expect(putPaths).toHaveLength(1)
     expect(putPaths[0]).toBe('/authz/roles/r-superadmin/scope')
+  })
+
+  it('edits on two roles survive switching and both PUT on save', async () => {
+    const putPaths: string[] = []
+    setHandler((path, opts = {}) => {
+      if (opts?.method === 'PUT') putPaths.push(path)
+      return defaultHandler(path, opts)
+    })
+
+    const wrapper = await mountAndWait()
+
+    // Dirty Superadmin (auto-selected): default → own
+    await wrapper.find('[data-testid="scope-default-cell"] button').trigger('click')
+    await new Promise(r => setTimeout(r, 20))
+    Array.from(document.body.querySelectorAll('button')).find(b =>
+      b.textContent?.includes('Hanya data miliknya')
+    )!.click()
+    await wrapper.vm.$nextTick()
+
+    // Switch to Manager and dirty it too: default → global
+    await selectRole(wrapper, 'manager')
+    await wrapper.find('[data-testid="scope-default-cell"] button').trigger('click')
+    await new Promise(r => setTimeout(r, 20))
+    Array.from(document.body.querySelectorAll('button')).find(b =>
+      b.textContent?.includes('global') && b.textContent?.includes('Semua data lintas kantor')
+    )!.click()
+    await wrapper.vm.$nextTick()
+
+    // Save flushes BOTH dirty roles
+    const save = wrapper.findAll('button').find(b => b.text().trim() === 'Simpan')
+    await save!.trigger('click')
+    await new Promise(r => setTimeout(r, 350))
+    await wrapper.vm.$nextTick()
+
+    expect(putPaths).toHaveLength(2)
+    expect(putPaths).toContain('/authz/roles/r-superadmin/scope')
+    expect(putPaths).toContain('/authz/roles/r-manager/scope')
   })
 })
 
@@ -406,7 +467,7 @@ describe('Data Scope page — load error', () => {
     expect(text).toContain('Gagal memuat kebijakan data scope.')
     // i18n: settings.dataScope.retry
     expect(text).toContain('Coba lagi')
-    // Grid should NOT be visible
+    // Editor should NOT be visible
     expect(text).not.toContain('Superadmin')
   })
 
@@ -444,7 +505,7 @@ describe('Data Scope page — load error', () => {
     await new Promise(r => setTimeout(r, 400))
     await wrapper.vm.$nextTick()
 
-    // Should now show the grid
+    // Should now show the role list + editor
     expect(wrapper.text()).toContain('Superadmin')
     expect(wrapper.text()).toContain('Manager')
     expect(wrapper.text()).not.toContain('Gagal memuat kebijakan data scope.')

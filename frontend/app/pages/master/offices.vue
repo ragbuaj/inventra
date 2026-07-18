@@ -413,6 +413,12 @@ function toggleFloor(floorId: string) {
   floorOpen.value[floorId] = !floorOpen.value[floorId]
 }
 
+// Mobile drill-down: below lg only one pane shows at a time (tree, or detail
+// once an office is selected); the back button returns to the tree.
+function backToTree() {
+  selectedId.value = undefined
+}
+
 onMounted(() => {
   refresh()
   loadFkData()
@@ -420,13 +426,17 @@ onMounted(() => {
 </script>
 
 <template>
-  <!-- Full-bleed split-panel: break out of layout's px-8 py-7 padding -->
-  <div class="-mx-8 -my-7 flex h-[calc(100vh-61px)] overflow-hidden">
-    <!-- LEFT: Tree panel (340px) -->
-    <div class="w-[340px] flex-none flex flex-col overflow-hidden border-e border-default bg-default">
+  <!-- Full-bleed split-panel: break out of the layout's responsive padding -->
+  <div class="-mx-4 -my-5 sm:-mx-6 sm:-my-6 lg:-mx-8 lg:-my-7 flex h-[calc(100vh-61px)] overflow-hidden">
+    <!-- LEFT: Tree panel (full-width on mobile, 340px on lg+); below lg it
+         hides once an office is selected (drill-down navigation) -->
+    <div
+      class="w-full lg:w-[340px] flex-none flex-col overflow-hidden border-e border-default bg-default lg:flex"
+      :class="selected ? 'hidden' : 'flex'"
+    >
       <!-- Tree panel header -->
       <div class="flex-none px-4 pt-4 pb-3 border-b border-default">
-        <div class="flex items-center justify-between mb-2.5">
+        <div class="flex items-center justify-between flex-wrap gap-y-2 mb-2.5">
           <span class="font-bold text-[15px]">{{ t('masterdata.offices.hierarki') }}</span>
           <div class="flex items-center gap-2">
             <Can permission="masterdata.office.manage">
@@ -497,8 +507,11 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- RIGHT: Detail panel -->
-    <div class="flex-1 overflow-y-auto bg-muted/30">
+    <!-- RIGHT: Detail panel; below lg it only shows once an office is selected -->
+    <div
+      class="flex-1 min-w-0 overflow-y-auto bg-muted/30 lg:block"
+      :class="selected ? 'block' : 'hidden'"
+    >
       <!-- Placeholder when nothing selected -->
       <div
         v-if="!selected"
@@ -521,8 +534,19 @@ onMounted(() => {
       <!-- Detail view -->
       <div
         v-else
-        class="px-7 py-6 max-w-[760px]"
+        class="px-4 py-5 sm:px-6 sm:py-6 lg:px-7 max-w-[760px]"
       >
+        <!-- Mobile back-to-tree button -->
+        <UButton
+          color="neutral"
+          variant="ghost"
+          size="sm"
+          icon="i-lucide-arrow-left"
+          class="lg:hidden mb-3 -ms-2"
+          @click="backToTree"
+        >
+          {{ t('assets.import.back') }}
+        </UButton>
         <!-- Detail header -->
         <div class="flex items-start justify-between gap-4 flex-wrap mb-[18px]">
           <div class="min-w-0">
@@ -679,7 +703,7 @@ onMounted(() => {
               <template v-if="editingFloorId === floor.id">
                 <input
                   v-model="editingFloorName"
-                  class="flex-1 font-semibold text-[14px] bg-default border border-primary rounded-[6px] px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary/30"
+                  class="flex-1 min-w-0 font-semibold text-[14px] bg-default border border-primary rounded-[6px] px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary/30"
                   :aria-label="t('masterdata.floors.editName')"
                   @click.stop
                   @blur="commitEditFloor"
@@ -696,7 +720,7 @@ onMounted(() => {
                 />
               </template>
               <template v-else>
-                <span class="flex-1 font-semibold text-[14px]">{{ floor.name }}</span>
+                <span class="flex-1 min-w-0 truncate font-semibold text-[14px]">{{ floor.name }}</span>
                 <UButton
                   color="neutral"
                   variant="ghost"
@@ -706,7 +730,7 @@ onMounted(() => {
                   @click.stop="startEditFloor(floor)"
                 />
               </template>
-              <span class="text-[12px] text-muted font-medium">
+              <span class="flex-none whitespace-nowrap text-[12px] text-muted font-medium">
                 {{ t('masterdata.offices.roomCount', { n: (floorRooms[floor.id] ?? []).length }) }}
               </span>
               <UButton
@@ -729,7 +753,7 @@ onMounted(() => {
             <!-- Floor rooms -->
             <div
               v-if="floorOpen[floor.id]"
-              class="border-t border-default px-[15px] pb-2.5 pt-1.5 ps-[50px]"
+              class="border-t border-default px-[15px] pb-2.5 pt-1.5 ps-6 sm:ps-[50px]"
             >
               <div
                 v-for="room in (floorRooms[floor.id] ?? [])"
@@ -744,7 +768,7 @@ onMounted(() => {
                 <template v-if="editingRoomId === room.id">
                   <input
                     v-model="editingRoomName"
-                    class="flex-1 text-[13.5px] font-medium bg-default border border-primary rounded-[6px] px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary/30"
+                    class="flex-1 min-w-0 text-[13.5px] font-medium bg-default border border-primary rounded-[6px] px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary/30"
                     :aria-label="t('masterdata.rooms.editName')"
                     @blur="commitEditRoom"
                     @keydown.enter.prevent="commitEditRoom"
@@ -760,7 +784,7 @@ onMounted(() => {
                   />
                 </template>
                 <template v-else>
-                  <span class="flex-1 text-[13.5px] font-medium">{{ room.name }}</span>
+                  <span class="flex-1 min-w-0 truncate text-[13.5px] font-medium">{{ room.name }}</span>
                   <UButton
                     color="neutral"
                     variant="ghost"
@@ -770,7 +794,7 @@ onMounted(() => {
                     @click.stop="startEditRoom(room)"
                   />
                 </template>
-                <span class="font-mono text-[11.5px] text-dimmed">{{ room.code ?? '—' }}</span>
+                <span class="flex-none font-mono text-[11.5px] text-dimmed">{{ room.code ?? '—' }}</span>
                 <UButton
                   color="error"
                   variant="ghost"

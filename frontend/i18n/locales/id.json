@@ -57,11 +57,44 @@
       "intangible": "Takberwujud"
     },
     "masked": "Tersembunyi (izin)",
+    "scanModal": {
+      "title": "Scan Barcode Aset",
+      "instruction": "Arahkan kamera ke barcode atau kode QR pada label aset.",
+      "cameraError": "Kamera tidak tersedia di perangkat ini. Masukkan tag aset secara manual di bawah.",
+      "cameraDenied": "Izin kamera ditolak. Izinkan akses kamera di browser Anda, atau masukkan tag aset secara manual.",
+      "manualLabel": "Masukkan tag aset secara manual",
+      "manualPlaceholder": "mis. JKT01-ELK-2026-00042",
+      "submit": "Cari",
+      "rescan": "Pindai ulang",
+      "notFound": "Aset dengan tag \"{tag}\" tidak ditemukan."
+    },
     "detail": {
       "checkout": "Check-out",
       "printLabel": "Cetak Label",
       "requestMaintenance": "Ajukan Maintenance",
       "requestValuationException": "Ajukan Pengecualian Valuasi",
+      "checkoutModal": {
+        "title": "Check-out Aset",
+        "subtitle": "Serahkan aset ini langsung ke pegawai.",
+        "disabledTip": "Hanya aset tersedia yang bisa di-check-out",
+        "recipientErr": "Pegawai penerima wajib dipilih.",
+        "dateErr": "Tanggal pinjam wajib diisi."
+      },
+      "maintModal": {
+        "title": "Ajukan Maintenance",
+        "subtitle": "Laporkan kerusakan aset ini untuk ditinjau Manager.",
+        "problemErr": "Kategori masalah wajib dipilih."
+      },
+      "valexModal": {
+        "title": "Ajukan Pengecualian Valuasi",
+        "subtitle": "Ajukan agar aset ini dikecualikan dari perhitungan valuasi.",
+        "reason": "Alasan",
+        "reasonPlaceholder": "mis. Nilai tidak material…",
+        "reasonErr": "Alasan wajib diisi.",
+        "alreadyExcluded": "Aset ini sudah dikecualikan dari valuasi.",
+        "info": "Pengajuan akan dikirim ke antrean persetujuan (maker-checker) sebelum berlaku.",
+        "success": "Pengajuan pengecualian valuasi terkirim — menunggu persetujuan."
+      },
       "keyInfo": "Informasi Utama",
       "gallery": "Foto Aset",
       "noPhotos": "Belum ada foto aset.",
@@ -1296,10 +1329,13 @@
     },
     "dataScope": {
       "title": "Data Scope",
-      "subtitle": "Tetapkan level lingkup data per peran. Kolom Default berlaku untuk semua modul; kolom modul dapat menimpa (override) default bila perlu.",
+      "subtitle": "Pilih peran, lalu tetapkan level lingkup datanya. Default berlaku untuk semua modul; tiap modul dapat menimpa (override) default bila perlu.",
       "save": "Simpan",
       "unsavedChanges": "Perubahan belum disimpan",
       "savedToast": "Lingkup data disimpan",
+      "roleSearchPlaceholder": "Cari peran…",
+      "modulesTitle": "Override per Modul",
+      "defaultDesc": "Berlaku untuk semua modul tanpa override.",
       "legendTitle": "Level lingkup data",
       "roleColumn": "Peran",
       "defaultColumn": "Default",
@@ -1333,6 +1369,7 @@
       "savedToast": "Aturan field disimpan",
       "entityLabel": "Entitas",
       "searchPlaceholder": "Cari field…",
+      "roleSearchPlaceholder": "Cari peran…",
       "viewLabel": "Lihat (L)",
       "editLabel": "Edit (E)",
       "fieldColumn": "Field",
@@ -1540,6 +1577,7 @@
   "nav": {
     "profile": "Profil Saya",
     "accountSettings": "Pengaturan Akun",
+    "language": "Bahasa",
     "signOut": "Keluar",
     "scopeGlobal": "Seluruh jaringan",
     "scopeOffice": "Kantor saya",
@@ -1596,6 +1634,7 @@
     "active": "Aktif",
     "inactive": "Nonaktif",
     "retry": "Coba lagi",
+    "back": "Kembali",
     "loadError": "Gagal memuat data.",
     "yes": "Ya",
     "no": "Tidak",

@@ -32,8 +32,8 @@ vi.mock('~/composables/useApiClient', () => ({
 // ---------------------------------------------------------------------------
 
 const ROLES = [
-  { id: 'r-super', name: 'Superadmin' },
-  { id: 'r-manager', name: 'Manager' }
+  { id: 'r-super', code: 'superadmin', name: 'Superadmin' },
+  { id: 'r-manager', code: 'manager', name: 'Manager' }
 ]
 
 // Manager has explicit restrictions: purchase_cost fully off, users/email view-only (no edit)
@@ -89,34 +89,61 @@ async function mountAndWait() {
   return wrapper
 }
 
+// Master-detail UI: the first role (Superadmin per fixture order) is
+// auto-selected on load; other roles are selected via their list item.
+async function selectRole(wrapper: Awaited<ReturnType<typeof mountAndWait>>, code: string) {
+  const item = wrapper.find(`[data-testid="fieldperm-role-item-${code}"]`)
+  expect(item.exists()).toBe(true)
+  await item.trigger('click')
+  await new Promise(r => setTimeout(r, 50))
+  await wrapper.vm.$nextTick()
+}
+
+function fieldRow(wrapper: Awaited<ReturnType<typeof mountAndWait>>, field: string) {
+  return wrapper.find(`[data-testid="fieldperm-row-${field}"]`)
+}
+
 // ---------------------------------------------------------------------------
-// Loaded grid — assets entity (default)
+// Loaded editor — assets entity (default), Superadmin auto-selected
 // ---------------------------------------------------------------------------
 
-describe('Field Permission page — loaded grid (assets)', () => {
+describe('Field Permission page — loaded editor (assets)', () => {
   it('renders page title', async () => {
     const wrapper = await mountAndWait()
     expect(wrapper.text()).toContain('Field-Permission')
   })
 
-  it('renders role column headers for both seeded roles', async () => {
+  it('renders both seeded roles in the role list', async () => {
     const wrapper = await mountAndWait()
     const text = wrapper.text()
     expect(text).toContain('Superadmin')
     expect(text).toContain('Manager')
+    expect(wrapper.find('[data-testid="fieldperm-role-item-superadmin"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="fieldperm-role-item-manager"]').exists()).toBe(true)
+  })
+
+  it('lazy-loads rules: only the auto-selected role is fetched on mount', async () => {
+    const fieldGets: string[] = []
+    setHandler((path, opts = {}) => {
+      if (/\/fields$/.test(path) && opts?.method !== 'PUT') fieldGets.push(path)
+      return defaultHandler(path, opts)
+    })
+    await mountAndWait()
+    expect(fieldGets).toEqual(['/authz/roles/r-super/fields'])
   })
 
   it('shows purchase_cost field row with i18n label "Harga beli"', async () => {
     const wrapper = await mountAndWait()
-    const text = wrapper.text()
-    expect(text).toContain('purchase_cost')
-    expect(text).toContain('Harga beli')
+    const row = fieldRow(wrapper, 'purchase_cost')
+    expect(row.exists()).toBe(true)
+    expect(row.text()).toContain('purchase_cost')
+    expect(row.text()).toContain('Harga beli')
   })
 
-  it('shows Default badge for fields with no explicit restriction (e.g. name for all roles)', async () => {
+  it('shows Default badge for fields with no explicit restriction', async () => {
     const wrapper = await mountAndWait()
-    // "name" field has no restriction for either role — should show Default badge
-    expect(wrapper.text()).toContain('Default')
+    // Superadmin has zero restrictions — every row shows the Default badge
+    expect(fieldRow(wrapper, 'purchase_cost').text()).toContain('Default')
   })
 
   it('Save is disabled when first loaded (no dirty changes)', async () => {
@@ -128,19 +155,17 @@ describe('Field Permission page — loaded grid (assets)', () => {
 
   it('purchase_cost for Manager shows view+edit OFF (explicit restriction)', async () => {
     const wrapper = await mountAndWait()
-    const rows = wrapper.findAll('tr')
-    const purchaseCostRow = rows.find(r => r.text().includes('purchase_cost'))
-    expect(purchaseCostRow).toBeDefined()
+    await selectRole(wrapper, 'manager')
+    const row = fieldRow(wrapper, 'purchase_cost')
+    expect(row.exists()).toBe(true)
     // purchase_cost has explicit rules → no "Default" badge on that row
-    expect(purchaseCostRow!.text()).not.toContain('Default')
-    // L buttons: index 0 = Superadmin, index 1 = Manager (fixture order)
-    const lBtns = purchaseCostRow!.findAll('button').filter(b => b.text().includes('L'))
-    expect(lBtns.length).toBeGreaterThanOrEqual(2)
-    // Manager's L (index 1) must be in the OFF/restricted visual state:
+    expect(row.text()).not.toContain('Default')
+    // The single L (view) toggle must be in the OFF/restricted visual state:
     // offPill class includes 'border-dashed'; view-ON class includes 'text-info'
-    const managerL = lBtns[1]!
-    expect(managerL.classes().join(' ')).toContain('border-dashed')
-    expect(managerL.classes().join(' ')).not.toContain('text-info')
+    const lBtn = row.findAll('button').find(b => b.text().includes('L'))
+    expect(lBtn).toBeDefined()
+    expect(lBtn!.classes().join(' ')).toContain('border-dashed')
+    expect(lBtn!.classes().join(' ')).not.toContain('text-info')
   })
 })
 
@@ -152,6 +177,7 @@ describe('Field Permission page — entity switch', () => {
   it('switching entity to users shows email row', async () => {
     const wrapper = await mountAndWait()
     // Default is assets — email should not be visible
+    expect(fieldRow(wrapper, 'email').exists()).toBe(false)
     // Switch to users via USelect
     const select = wrapper.find('select')
     if (select.exists()) {
@@ -159,16 +185,16 @@ describe('Field Permission page — entity switch', () => {
       await wrapper.vm.$nextTick()
       await new Promise(r => setTimeout(r, 50))
     } else {
-      // USelect may not render as a native <select>; trigger onEntityChange via the USelect component
-      // Find the entity select by looking for the USelect near "Entitas" label
+      // USelect may not render as a native <select>; set the value on the component
       const selects = wrapper.findAllComponents({ name: 'USelect' })
       expect(selects.length).toBeGreaterThan(0)
       await selects[0]!.setValue('users')
       await wrapper.vm.$nextTick()
       await new Promise(r => setTimeout(r, 50))
     }
-    expect(wrapper.text()).toContain('email')
-    expect(wrapper.text()).toContain('Email')
+    const row = fieldRow(wrapper, 'email')
+    expect(row.exists()).toBe(true)
+    expect(row.text()).toContain('Email')
   })
 })
 
@@ -179,7 +205,7 @@ describe('Field Permission page — entity switch', () => {
 describe('Field Permission page — toggle and save', () => {
   it('toggling a cell marks dirty and enables Save', async () => {
     const wrapper = await mountAndWait()
-    // Find an L button (view toggle) for a field; use the first one found (name/Superadmin default-allow)
+    // Toggle any L (view) button — Superadmin default-allow
     const lBtn = wrapper.findAll('button').find(b => b.text().trim() === 'L')
     expect(lBtn).toBeDefined()
     await lBtn!.trigger('click')
@@ -189,7 +215,7 @@ describe('Field Permission page — toggle and save', () => {
     expect(save!.attributes('disabled')).toBeUndefined()
   })
 
-  it('Save PUT body preserves other-entity rows and contains only restriction cells for the edited entity', async () => {
+  it('Save PUT body preserves other-entity rows and contains only restriction cells', async () => {
     const capturedRequests: Array<{ path: string, opts: Record<string, unknown> }> = []
     setHandler((path, opts = {}) => {
       capturedRequests.push({ path, opts })
@@ -197,21 +223,14 @@ describe('Field Permission page — toggle and save', () => {
     })
 
     const wrapper = await mountAndWait()
+    await selectRole(wrapper, 'manager')
 
-    // We're on "assets" entity. Toggle Manager's purchase_cost view-L button (index 1
-    // in the row — Superadmin is index 0, Manager is index 1 per fixture order).
     // Manager's purchase_cost starts as {can_view:false, can_edit:false}; clicking L
     // sets view=true (edit stays false since toggleView only flips view).
-    // That makes r-manager dirty → saveRules issues a PUT for r-manager.
-    const rows = wrapper.findAll('tr')
-    const purchaseCostRow = rows.find(r => r.text().includes('purchase_cost'))
-    expect(purchaseCostRow).toBeDefined()
-
-    // L buttons in purchase_cost row: [0]=Superadmin, [1]=Manager
-    const lBtns = purchaseCostRow!.findAll('button').filter(b => b.text().includes('L'))
-    expect(lBtns.length).toBeGreaterThanOrEqual(2)
-    // Toggle Manager's L (index 1) to make r-manager dirty
-    await lBtns[1]!.trigger('click')
+    const row = fieldRow(wrapper, 'purchase_cost')
+    const lBtn = row.findAll('button').find(b => b.text().includes('L'))
+    expect(lBtn).toBeDefined()
+    await lBtn!.trigger('click')
     await wrapper.vm.$nextTick()
 
     // Click Save
@@ -223,14 +242,10 @@ describe('Field Permission page — toggle and save', () => {
     // Dirty clears
     expect(wrapper.text()).not.toContain('Perubahan belum disimpan')
 
-    // Find any PUT to /authz/roles/*/fields
-    const putReqs = capturedRequests.filter(r =>
-      /^\/authz\/roles\/.+\/fields$/.test(r.path) && r.opts.method === 'PUT'
+    // r-manager MUST have been PUT
+    const managerPut = capturedRequests.find(r =>
+      r.path === '/authz/roles/r-manager/fields' && r.opts.method === 'PUT'
     )
-    expect(putReqs.length).toBeGreaterThan(0)
-
-    // r-manager MUST have been PUT — hard assertion (no if-guard)
-    const managerPut = putReqs.find(r => r.path === '/authz/roles/r-manager/fields')
     expect(managerPut).toBeTruthy()
 
     const body = managerPut!.opts.body as { fields: FieldRow[] }
@@ -239,11 +254,14 @@ describe('Field Permission page — toggle and save', () => {
     expect(emailRow).toBeDefined()
     expect(emailRow!.can_view).toBe(true)
     expect(emailRow!.can_edit).toBe(false)
-    // Body.fields for assets must contain only restriction cells (not full-allow rows)
-    const assetRows = body.fields.filter(f => f.entity === 'assets')
-    for (const row of assetRows) {
-      const isFullAllow = row.can_view && row.can_edit
-      expect(isFullAllow).toBe(false)
+    // purchase_cost became view-only — still a restriction, still present
+    const pcRow = body.fields.find(f => f.entity === 'assets' && f.field === 'purchase_cost')
+    expect(pcRow).toBeDefined()
+    expect(pcRow!.can_view).toBe(true)
+    expect(pcRow!.can_edit).toBe(false)
+    // Body.fields must contain only restriction cells (never full-allow rows)
+    for (const r of body.fields) {
+      expect(r.can_view && r.can_edit).toBe(false)
     }
   })
 
@@ -271,7 +289,7 @@ describe('Field Permission page — toggle and save', () => {
 // ---------------------------------------------------------------------------
 
 describe('Field Permission page — only dirty roles PUT', () => {
-  it('toggling exactly one role cell fires exactly one PUT on save', async () => {
+  it('toggling one role cell fires exactly one PUT on save', async () => {
     const putPaths: string[] = []
     setHandler((path, opts = {}) => {
       if ((opts as { method?: string }).method === 'PUT') putPaths.push(path)
@@ -280,15 +298,11 @@ describe('Field Permission page — only dirty roles PUT', () => {
 
     const wrapper = await mountAndWait()
 
-    // Find purchase_cost row — Manager has explicit rules there, Superadmin has default-allow
-    // Toggle purchase_cost's L for Superadmin (first L button in the row)
-    const rows = wrapper.findAll('tr')
-    const purchaseCostRow = rows.find(r => r.text().includes('purchase_cost'))
-    expect(purchaseCostRow).toBeDefined()
-    const lBtns = purchaseCostRow!.findAll('button').filter(b => b.text().includes('L'))
-    expect(lBtns.length).toBeGreaterThanOrEqual(2)
-    // Click the first L button (Superadmin column — default-allow, so this makes it explicit)
-    await lBtns[0]!.trigger('click')
+    // Superadmin is auto-selected — toggle purchase_cost's L (default-allow → explicit)
+    const row = fieldRow(wrapper, 'purchase_cost')
+    const lBtn = row.findAll('button').find(b => b.text().includes('L'))
+    expect(lBtn).toBeDefined()
+    await lBtn!.trigger('click')
     await wrapper.vm.$nextTick()
 
     const save = wrapper.findAll('button').find(b => b.text().trim() === 'Simpan')
@@ -296,23 +310,51 @@ describe('Field Permission page — only dirty roles PUT', () => {
     await new Promise(r => setTimeout(r, 350))
     await wrapper.vm.$nextTick()
 
-    // Only one PUT should be issued (only Superadmin's rules changed for assets)
+    // Only one PUT should be issued (only Superadmin's rules changed)
     expect(putPaths).toHaveLength(1)
     expect(putPaths[0]).toBe('/authz/roles/r-super/fields')
+  })
+
+  it('edits on two roles survive switching and both PUT on save', async () => {
+    const putPaths: string[] = []
+    setHandler((path, opts = {}) => {
+      if ((opts as { method?: string }).method === 'PUT') putPaths.push(path)
+      return defaultHandler(path, opts)
+    })
+
+    const wrapper = await mountAndWait()
+
+    // Dirty Superadmin (auto-selected)
+    let lBtn = fieldRow(wrapper, 'purchase_cost').findAll('button').find(b => b.text().includes('L'))
+    await lBtn!.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    // Switch to Manager and dirty it too
+    await selectRole(wrapper, 'manager')
+    lBtn = fieldRow(wrapper, 'purchase_cost').findAll('button').find(b => b.text().includes('L'))
+    await lBtn!.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    const save = wrapper.findAll('button').find(b => b.text().trim() === 'Simpan')
+    await save!.trigger('click')
+    await new Promise(r => setTimeout(r, 350))
+    await wrapper.vm.$nextTick()
+
+    expect(putPaths).toHaveLength(2)
+    expect(putPaths).toContain('/authz/roles/r-super/fields')
+    expect(putPaths).toContain('/authz/roles/r-manager/fields')
   })
 })
 
 // ---------------------------------------------------------------------------
-// Default-allow toggle baseline (covers Task-3 fix)
+// Default-allow toggle baseline
 // ---------------------------------------------------------------------------
 
 describe('Field Permission page — default-allow toggle baseline', () => {
-  it('toggling view OFF for a field on Superadmin (who has no restriction) creates a restriction PUT', async () => {
+  it('toggling view OFF on Superadmin (no restriction) creates a restriction PUT', async () => {
     // Superadmin has ZERO stored restrictions (FIELDS_SUPERADMIN = []).
-    // purchase_cost appears as default-allow (view+edit ON, dimmed) for Superadmin.
-    // Clicking Superadmin's L button on purchase_cost should turn view OFF (not leave it ON).
-    // The resulting PUT for r-super must include {entity:'assets', field:'purchase_cost', can_view:false, can_edit:false}.
-
+    // purchase_cost appears as default-allow (view+edit ON, dimmed).
+    // Clicking its L button turns view OFF, which forces edit OFF too.
     const capturedRequests: Array<{ path: string, opts: Record<string, unknown> }> = []
     setHandler((path, opts = {}) => {
       capturedRequests.push({ path, opts })
@@ -321,19 +363,10 @@ describe('Field Permission page — default-allow toggle baseline', () => {
 
     const wrapper = await mountAndWait()
 
-    const rows = wrapper.findAll('tr')
-    const purchaseCostRow = rows.find(r => r.text().includes('purchase_cost'))
-    expect(purchaseCostRow).toBeDefined()
-
-    // Buttons in purchase_cost row: each role column has L then E buttons
-    // roleCols order: [Superadmin, Manager] — so buttons[0]=Superadmin-L, buttons[1]=Superadmin-E,
-    //                                              buttons[2]=Manager-L, buttons[3]=Manager-E
-    // (header row reset button is NOT in the data row, so no interference)
-    const lBtns = purchaseCostRow!.findAll('button').filter(b => b.text().includes('L'))
-    // Superadmin's L is the first L button in the row
-    expect(lBtns.length).toBeGreaterThanOrEqual(2)
-    const superadminL = lBtns[0]!
-    await superadminL.trigger('click')
+    const row = fieldRow(wrapper, 'purchase_cost')
+    const lBtn = row.findAll('button').find(b => b.text().includes('L'))
+    expect(lBtn).toBeDefined()
+    await lBtn!.trigger('click')
     await wrapper.vm.$nextTick()
 
     // Should be dirty
@@ -357,37 +390,45 @@ describe('Field Permission page — default-allow toggle baseline', () => {
     const body = superPut!.opts.body as { fields: FieldRow[] }
     const restriction = body.fields.find(f => f.entity === 'assets' && f.field === 'purchase_cost')
     expect(restriction).toBeDefined()
-    // Toggling view OFF also forces edit OFF (see toggleView logic: if !cur.view => cur.edit = false)
+    // Toggling view OFF also forces edit OFF (toggleView: if !cur.view => cur.edit = false)
     expect(restriction!.can_view).toBe(false)
     expect(restriction!.can_edit).toBe(false)
   })
 
-  it('Manager PUT for purchase_cost is NOT issued when only Superadmin cell was toggled', async () => {
-    const putPaths: string[] = []
+  it('reset returns an explicit field to default and drops it from the PUT', async () => {
+    const capturedRequests: Array<{ path: string, opts: Record<string, unknown> }> = []
     setHandler((path, opts = {}) => {
-      if ((opts as { method?: string }).method === 'PUT') putPaths.push(path)
+      capturedRequests.push({ path, opts })
       return defaultHandler(path, opts)
     })
 
     const wrapper = await mountAndWait()
+    await selectRole(wrapper, 'manager')
 
-    // Toggle only Superadmin's L on purchase_cost (first L in the row)
-    const rows = wrapper.findAll('tr')
-    const purchaseCostRow = rows.find(r => r.text().includes('purchase_cost'))
-    expect(purchaseCostRow).toBeDefined()
-    const lBtns = purchaseCostRow!.findAll('button').filter(b => b.text().includes('L'))
-    expect(lBtns.length).toBeGreaterThanOrEqual(2)
-    await lBtns[0]!.trigger('click')
+    // purchase_cost is explicit for Manager — its row shows the reset button
+    const row = fieldRow(wrapper, 'purchase_cost')
+    const resetBtn = row.findAll('button').find(b => b.attributes('title') === 'Kembalikan ke default')
+    expect(resetBtn).toBeDefined()
+    await resetBtn!.trigger('click')
     await wrapper.vm.$nextTick()
 
+    // Row shows the Default badge again
+    expect(fieldRow(wrapper, 'purchase_cost').text()).toContain('Default')
+
+    // Save
     const save = wrapper.findAll('button').find(b => b.text().trim() === 'Simpan')
     await save!.trigger('click')
     await new Promise(r => setTimeout(r, 350))
     await wrapper.vm.$nextTick()
 
-    // Only r-super PUT
-    expect(putPaths).toHaveLength(1)
-    expect(putPaths[0]).toBe('/authz/roles/r-super/fields')
+    const managerPut = capturedRequests.find(r =>
+      r.path === '/authz/roles/r-manager/fields' && (r.opts as { method?: string }).method === 'PUT'
+    )
+    expect(managerPut).toBeDefined()
+    const body = managerPut!.opts.body as { fields: FieldRow[] }
+    // purchase_cost restriction removed; users/email still preserved
+    expect(body.fields.find(f => f.field === 'purchase_cost')).toBeUndefined()
+    expect(body.fields.find(f => f.entity === 'users' && f.field === 'email')).toBeDefined()
   })
 })
 
@@ -408,7 +449,7 @@ describe('Field Permission page — load error', () => {
     expect(text).toContain('Gagal memuat field permission.')
     // i18n: settings.fieldPermission.retry
     expect(text).toContain('Coba lagi')
-    // Grid should NOT be visible
+    // Editor should NOT be visible
     expect(text).not.toContain('Superadmin')
   })
 
@@ -434,7 +475,7 @@ describe('Field Permission page — load error', () => {
     await new Promise(r => setTimeout(r, 400))
     await wrapper.vm.$nextTick()
 
-    // Should now show the grid
+    // Should now show the role list + editor
     expect(wrapper.text()).toContain('Superadmin')
     expect(wrapper.text()).toContain('Manager')
     expect(wrapper.text()).not.toContain('Gagal memuat field permission.')

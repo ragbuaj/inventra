@@ -138,7 +138,9 @@ export const appNav: NavGroup[] = [
           {
             labelKey: 'nav.masterImport',
             to: '/master/import',
-            permission: ['masterdata.employee.manage', 'masterdata.office.manage', 'masterdata.global.manage']
+            permission: ['masterdata.employee.manage', 'masterdata.office.manage', 'masterdata.global.manage'],
+            // Bulk CSV import is a desktop workflow; hide the menu on mobile.
+            desktopOnly: true
           }
         ]
       },

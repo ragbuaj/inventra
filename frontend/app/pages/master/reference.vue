@@ -219,8 +219,8 @@ onMounted(async () => {
 
 <template>
   <div class="flex h-full min-h-0">
-    <!-- Secondary entity-nav panel (218px) -->
-    <aside class="w-[218px] flex-none border-e border-default bg-default flex flex-col overflow-hidden">
+    <!-- Secondary entity-nav panel (218px, lg+ only — mobile uses the chip bar below) -->
+    <aside class="hidden lg:flex w-[218px] flex-none border-e border-default bg-default flex-col overflow-hidden">
       <!-- Panel header -->
       <div class="flex-none px-4 pt-4 pb-2">
         <div
@@ -259,7 +259,30 @@ onMounted(async () => {
 
     <!-- Main content column -->
     <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
-      <div class="px-8 py-7">
+      <!-- Mobile entity chip bar (horizontal scroll, mirrors the aside nav) -->
+      <div class="lg:hidden flex-none px-4 pt-4 sm:px-6">
+        <div class="flex gap-2 overflow-x-auto pb-1">
+          <button
+            v-for="res in referenceResources"
+            :key="res.key"
+            :data-testid="`ref-nav-chip-${res.key}`"
+            class="flex-none inline-flex items-center gap-1.5 px-3 py-1.5 text-[12.5px] rounded-full border cursor-pointer whitespace-nowrap transition-colors"
+            :class="resourceKey === res.key
+              ? 'bg-primary/10 border-primary text-primary font-semibold'
+              : 'bg-default border-default text-default hover:bg-muted font-normal'"
+            @click="selectResource(res.key)"
+          >
+            <span>{{ t(res.labelKey) }}</span>
+            <span
+              class="font-mono text-[11px] font-semibold"
+              :class="resourceKey === res.key ? 'text-primary' : 'text-muted'"
+            >
+              {{ entityCounts[res.key] ?? '…' }}
+            </span>
+          </button>
+        </div>
+      </div>
+      <div class="px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
         <!-- Page header -->
         <div class="flex items-start justify-between gap-4 flex-wrap mb-[22px]">
           <div>

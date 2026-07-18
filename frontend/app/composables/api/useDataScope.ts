@@ -4,11 +4,14 @@ export interface ScopeModuleView {
   key: string
 }
 
-export interface ScopeRoleView {
+export interface ScopeRoleItem {
   id: string
   code: string
   name: string
   sub: string
+}
+
+export interface RoleScopeView {
   def: ScopeLevel
   ov: Record<string, ScopeLevel>
 }
@@ -34,9 +37,10 @@ interface ScopeResponse {
 }
 
 /**
- * Data-scope policies, wired to /api/v1/authz. Module columns come from the
- * catalog's scope_modules; each role's default (module "*") + per-module
- * overrides come from /authz/roles/:id/scope.
+ * Data-scope policies, wired to /api/v1/authz. Module rows come from the
+ * catalog's scope_modules. The roles list is a single GET /authz/roles; a
+ * role's default (module "*") + per-module overrides are fetched lazily per
+ * role via getRoleScope when that role is selected (no eager N+1 fan-out).
  */
 export function useDataScope() {
   const { request } = useApiClient()
@@ -46,17 +50,19 @@ export function useDataScope() {
     return cat.scope_modules.filter(m => m !== '*').map(key => ({ key }))
   }
 
-  async function listRoles(): Promise<ScopeRoleView[]> {
+  async function listRoles(): Promise<ScopeRoleItem[]> {
     const res = await request<{ data: RoleDTO[], total: number }>('/authz/roles')
-    return Promise.all(res.data.map(async (r) => {
-      const sc = await request<ScopeResponse>(`/authz/roles/${r.id}/scope`)
-      const def: ScopeLevel = sc.policies.find(p => p.module === '*')?.scope_level ?? 'own'
-      const ov: Record<string, ScopeLevel> = {}
-      for (const p of sc.policies) {
-        if (p.module !== '*') ov[p.module] = p.scope_level
-      }
-      return { id: r.id, code: r.code, name: r.name, sub: r.description ?? '', def, ov }
-    }))
+    return res.data.map(r => ({ id: r.id, code: r.code, name: r.name, sub: r.description ?? '' }))
+  }
+
+  async function getRoleScope(id: string): Promise<RoleScopeView> {
+    const sc = await request<ScopeResponse>(`/authz/roles/${id}/scope`)
+    const def: ScopeLevel = sc.policies.find(p => p.module === '*')?.scope_level ?? 'own'
+    const ov: Record<string, ScopeLevel> = {}
+    for (const p of sc.policies) {
+      if (p.module !== '*') ov[p.module] = p.scope_level
+    }
+    return { def, ov }
   }
 
   async function saveRoleScope(id: string, def: ScopeLevel, ov: Record<string, ScopeLevel>): Promise<void> {
@@ -67,5 +73,5 @@ export function useDataScope() {
     await request(`/authz/roles/${id}/scope`, { method: 'PUT', body: { policies } })
   }
 
-  return { getModules, listRoles, saveRoleScope }
+  return { getModules, listRoles, getRoleScope, saveRoleScope }
 }

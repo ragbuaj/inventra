@@ -88,7 +88,7 @@ function resetView() {
 </script>
 
 <template>
-  <div class="flex flex-col h-full min-h-0">
+  <div class="flex flex-col lg:h-full min-h-0">
     <!-- Page header -->
     <div class="mb-3">
       <h1 class="text-2xl font-bold tracking-tight mb-1">
@@ -103,10 +103,10 @@ function resetView() {
       </div>
     </div>
 
-    <!-- Two-column layout -->
-    <div class="flex gap-4 flex-1 min-h-0">
-      <!-- LEFT: Office list panel (w-[312px]) -->
-      <div class="w-[312px] flex-none flex flex-col bg-default border border-default rounded-[14px] shadow-sm overflow-hidden">
+    <!-- Two-column layout on lg+; stacked (list above map) below lg -->
+    <div class="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
+      <!-- LEFT: Office list panel (full-width capped height on mobile, w-[312px] on lg+) -->
+      <div class="w-full lg:w-[312px] max-h-[280px] lg:max-h-none flex-none flex flex-col bg-default border border-default rounded-[14px] shadow-sm overflow-hidden">
         <!-- Filters -->
         <div class="flex-none px-3 pt-3 pb-2.5 border-b border-default">
           <!-- Search -->
@@ -238,8 +238,8 @@ function resetView() {
         </div>
       </div>
 
-      <!-- RIGHT: Map panel -->
-      <div class="flex-1 flex flex-col min-w-0 bg-default border border-default rounded-[14px] shadow-sm overflow-hidden">
+      <!-- RIGHT: Map panel (min height keeps the map visible in the mobile column) -->
+      <div class="flex-1 min-h-[420px] lg:min-h-0 flex flex-col min-w-0 bg-default border border-default rounded-[14px] shadow-sm overflow-hidden">
         <!-- Header: summary strip + legend -->
         <div class="flex-none flex items-center justify-between gap-3 flex-wrap px-4 py-3 border-b border-default">
           <span class="inline-flex items-center gap-2 text-[13px] font-semibold">
