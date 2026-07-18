@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  .ico { font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap; direction: ltr; -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; user-select: none; }
+</style>
+</helmet>
+<div style="font-family: 'Inter', sans-serif; background: #eef2f6; padding: 48px 40px 80px; min-height: 100vh; color: #0f172a;">
+
+  <div style="max-width: 1240px; margin: 0 auto;">
+
+    <!-- ===== PAGE HEADER ===== -->
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 8px;">
+      <div>
+        <div style="display: inline-flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+          <div style="width: 40px; height: 40px; border-radius: 11px; background: #16a34a; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(22,163,74,0.35);">
+            <span class="ico" style="font-size: 24px; color: #fff;">inventory_2</span>
+          </div>
+          <span style="font-size: 15px; font-weight: 700; letter-spacing: -0.01em;">Inventra Mobile</span>
+        </div>
+        <h1 style="font-size: 40px; font-weight: 800; letter-spacing: -0.03em; margin: 0 0 8px;">Component Library</h1>
+        <p style="font-size: 15px; color: #64748b; margin: 0; max-width: 640px; line-height: 1.5;">Komponen dasar mobile — Material 3 / Flutter. Setiap komponen ditampilkan dalam <strong style="color:#0f172a;">light &amp; dark mode</strong>. Acuan tunggal untuk semua layar berikutnya.</p>
+      </div>
+      <div style="display: flex; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px;">
+        <span style="padding: 6px 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 999px; color: #16a34a; font-weight: 500;">● primary green</span>
+        <span style="padding: 6px 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 999px; color: #64748b; font-weight: 500;">● neutral slate</span>
+      </div>
+    </div>
+
+    <!-- color token legend -->
+    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 28px 0 40px;">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;font-size:12px;font-weight:600;"><span style="width:16px;height:16px;border-radius:5px;background:#16a34a;"></span>primary</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;font-size:12px;font-weight:600;"><span style="width:16px;height:16px;border-radius:5px;background:#64748b;"></span>neutral</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;font-size:12px;font-weight:600;"><span style="width:16px;height:16px;border-radius:5px;background:#16a34a;"></span>success</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;font-size:12px;font-weight:600;"><span style="width:16px;height:16px;border-radius:5px;background:#d97706;"></span>warning</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;font-size:12px;font-weight:600;"><span style="width:16px;height:16px;border-radius:5px;background:#dc2626;"></span>error</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;font-size:12px;font-weight:600;"><span style="width:16px;height:16px;border-radius:5px;background:#2563eb;"></span>info</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+
+      <!-- ============ 01 BOTTOM NAVIGATION ============ -->
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:28px 28px 32px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#94a3b8;font-weight:500;">01</span>
+          <h2 style="font-size:20px;font-weight:700;margin:0;letter-spacing:-0.01em;">Bottom Navigation</h2>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#16a34a;background:#dcfce7;padding:3px 9px;border-radius:6px;">NavigationBar + FloatingActionButton</span>
+        </div>
+        <p style="font-size:13px;color:#64748b;margin:0 0 22px;">5 slot: Beranda · Opname · <strong style="color:#16a34a;">[Pindai — FAB menonjol]</strong> · Approval · Notifikasi. Konsisten di semua layar utama.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <!-- LIGHT -->
+          <div style="background:#f1f5f9;border-radius:16px;padding:20px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Light · tab Beranda aktif</div>
+            <div style="position:relative;background:#ffffff;border:1px solid #e2e8f0;border-radius:20px;padding:10px 8px 12px;box-shadow:0 -2px 12px rgba(15,23,42,0.05);">
+              <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
+                  <div style="display:flex;align-items:center;justify-content:center;width:56px;height:30px;border-radius:999px;background:#dcfce7;"><span class="ico" style="font-size:23px;color:#15803d;">home</span></div>
+                  <span style="font-size:11px;font-weight:700;color:#15803d;">Beranda</span>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
+                  <div style="display:flex;align-items:center;justify-content:center;width:56px;height:30px;"><span class="ico" style="font-size:23px;color:#64748b;">fact_check</span></div>
+                  <span style="font-size:11px;font-weight:500;color:#64748b;">Opname</span>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;">
+                  <div style="width:58px;height:58px;border-radius:20px;background:#16a34a;display:flex;align-items:center;justify-content:center;margin-top:-34px;box-shadow:0 8px 18px rgba(22,163,74,0.45);border:4px solid #fff;"><span class="ico" style="font-size:30px;color:#fff;">qr_code_scanner</span></div>
+                  <span style="font-size:11px;font-weight:700;color:#16a34a;">Pindai</span>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
+                  <div style="display:flex;align-items:center;justify-content:center;width:56px;height:30px;"><span class="ico" style="font-size:23px;color:#64748b;">approval</span></div>
+                  <span style="font-size:11px;font-weight:500;color:#64748b;">Approval</span>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
+                  <div style="position:relative;display:flex;align-items:center;justify-content:center;width:56px;height:30px;"><span class="ico" style="font-size:23px;color:#64748b;">notifications</span><span style="position:absolute;top:-1px;right:14px;min-width:16px;height:16px;padding:0 4px;background:#dc2626;color:#fff;border-radius:999px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff;">3</span></div>
+                  <span style="font-size:11px;font-weight:500;color:#64748b;">Notif</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- DARK -->
+          <div style="background:#0f172a;border-radius:16px;padding:20px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Dark · tab Approval aktif</div>
+            <div style="position:relative;background:#1e293b;border:1px solid #334155;border-radius:20px;padding:10px 8px 12px;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
+                  <div style="display:flex;align-items:center;justify-content:center;width:56px;height:30px;"><span class="ico" style="font-size:23px;color:#94a3b8;">home</span></div>
+                  <span style="font-size:11px;font-weight:500;color:#94a3b8;">Beranda</span>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
+                  <div style="display:flex;align-items:center;justify-content:center;width:56px;height:30px;"><span class="ico" style="font-size:23px;color:#94a3b8;">fact_check</span></div>
+                  <span style="font-size:11px;font-weight:500;color:#94a3b8;">Opname</span>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;">
+                  <div style="width:58px;height:58px;border-radius:20px;background:#22c55e;display:flex;align-items:center;justify-content:center;margin-top:-34px;box-shadow:0 8px 18px rgba(34,197,94,0.4);border:4px solid #1e293b;"><span class="ico" style="font-size:30px;color:#052e16;">qr_code_scanner</span></div>
+                  <span style="font-size:11px;font-weight:700;color:#22c55e;">Pindai</span>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
+                  <div style="display:flex;align-items:center;justify-content:center;width:56px;height:30px;border-radius:999px;background:rgba(34,197,94,0.18);"><span class="ico" style="font-size:23px;color:#4ade80;">approval</span></div>
+                  <span style="font-size:11px;font-weight:700;color:#4ade80;">Approval</span>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
+                  <div style="position:relative;display:flex;align-items:center;justify-content:center;width:56px;height:30px;"><span class="ico" style="font-size:23px;color:#94a3b8;">notifications</span><span style="position:absolute;top:-1px;right:14px;min-width:16px;height:16px;padding:0 4px;background:#f87171;color:#450a0a;border-radius:999px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #1e293b;">3</span></div>
+                  <span style="font-size:11px;font-weight:500;color:#94a3b8;">Notif</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 02 APP BARS ============ -->
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:28px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#94a3b8;font-weight:500;">02</span>
+          <h2 style="font-size:20px;font-weight:700;margin:0;letter-spacing:-0.01em;">App Bar</h2>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#16a34a;background:#dcfce7;padding:3px 9px;border-radius:6px;">AppBar</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div style="background:#f1f5f9;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:16px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Light</div>
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
+              <div style="height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;">
+                <div><div style="font-size:11px;color:#64748b;">Selamat pagi,</div><div style="font-size:16px;font-weight:700;">Budi Santoso</div></div>
+                <div style="display:flex;gap:6px;"><div style="width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;position:relative;"><span class="ico" style="font-size:24px;color:#334155;">notifications</span><span style="position:absolute;top:6px;right:6px;width:8px;height:8px;background:#dc2626;border-radius:999px;border:2px solid #fff;"></span></div></div>
+              </div>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;">AppBar utama</span>
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
+              <div style="height:56px;display:flex;align-items:center;gap:8px;padding:0 8px;">
+                <div style="width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+                <div style="font-size:17px;font-weight:600;">Detail Aset</div>
+              </div>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;">AppBar sekunder</span>
+          </div>
+          <div style="background:#0f172a;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:16px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Dark</div>
+            <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;">
+              <div style="height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;">
+                <div><div style="font-size:11px;color:#94a3b8;">Selamat pagi,</div><div style="font-size:16px;font-weight:700;color:#f1f5f9;">Budi Santoso</div></div>
+                <div style="display:flex;gap:6px;"><div style="width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;position:relative;"><span class="ico" style="font-size:24px;color:#cbd5e1;">notifications</span><span style="position:absolute;top:6px;right:6px;width:8px;height:8px;background:#f87171;border-radius:999px;border:2px solid #1e293b;"></span></div></div>
+              </div>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;">AppBar utama</span>
+            <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;">
+              <div style="height:56px;display:flex;align-items:center;gap:8px;padding:0 8px;">
+                <div style="width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+                <div style="font-size:17px;font-weight:600;color:#f1f5f9;">Detail Aset</div>
+              </div>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;">AppBar sekunder</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 03 BUTTONS ============ -->
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:28px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#94a3b8;font-weight:500;">03</span>
+          <h2 style="font-size:20px;font-weight:700;margin:0;letter-spacing:-0.01em;">Buttons</h2>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#16a34a;background:#dcfce7;padding:3px 9px;border-radius:6px;">FilledButton · OutlinedButton · TextButton</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <!-- light -->
+          <div style="background:#f1f5f9;border-radius:16px;padding:24px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">Light</div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px;">
+              <button style="height:48px;padding:0 22px;border:none;border-radius:14px;background:#16a34a;color:#fff;font-family:inherit;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:8px;cursor:pointer;box-shadow:0 4px 12px rgba(22,163,74,0.28);"><span class="ico" style="font-size:20px;">check</span>Setujui</button>
+              <button style="height:48px;padding:0 22px;border:1.5px solid #16a34a;border-radius:14px;background:transparent;color:#15803d;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;">Outlined</button>
+              <button style="height:48px;padding:0 16px;border:none;border-radius:14px;background:transparent;color:#15803d;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;">Text button</button>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px;">
+              <button style="height:48px;padding:0 22px;border:none;border-radius:14px;background:#dc2626;color:#fff;font-family:inherit;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:8px;cursor:pointer;"><span class="ico" style="font-size:20px;">close</span>Tolak</button>
+              <button style="height:48px;padding:0 22px;border:1.5px solid #fecaca;border-radius:14px;background:transparent;color:#dc2626;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;">Hapus</button>
+              <button style="height:40px;padding:0 16px;border:none;border-radius:12px;background:#16a34a;color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">Compact</button>
+            </div>
+            <button style="width:100%;height:52px;border:none;border-radius:14px;background:#16a34a;color:#fff;font-family:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;box-shadow:0 4px 12px rgba(22,163,74,0.28);margin-bottom:12px;"><span class="ico" style="font-size:22px;">qr_code_scanner</span>Mulai Pindai</button>
+            <div style="display:flex;gap:10px;">
+              <button disabled style="flex:1;height:48px;border:none;border-radius:14px;background:#e2e8f0;color:#94a3b8;font-family:inherit;font-size:14px;font-weight:600;">Disabled</button>
+              <button style="flex:1;height:48px;border:none;border-radius:14px;background:#16a34a;color:#fff;font-family:inherit;font-size:14px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:10px;"><span style="width:18px;height:18px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;"></span>Menyimpan…</button>
+            </div>
+          </div>
+          <!-- dark -->
+          <div style="background:#0f172a;border-radius:16px;padding:24px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">Dark</div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px;">
+              <button style="height:48px;padding:0 22px;border:none;border-radius:14px;background:#22c55e;color:#052e16;font-family:inherit;font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:8px;cursor:pointer;"><span class="ico" style="font-size:20px;">check</span>Setujui</button>
+              <button style="height:48px;padding:0 22px;border:1.5px solid #22c55e;border-radius:14px;background:transparent;color:#4ade80;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;">Outlined</button>
+              <button style="height:48px;padding:0 16px;border:none;border-radius:14px;background:transparent;color:#4ade80;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;">Text button</button>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px;">
+              <button style="height:48px;padding:0 22px;border:none;border-radius:14px;background:#ef4444;color:#fff;font-family:inherit;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:8px;cursor:pointer;"><span class="ico" style="font-size:20px;">close</span>Tolak</button>
+              <button style="height:48px;padding:0 22px;border:1.5px solid #7f1d1d;border-radius:14px;background:transparent;color:#f87171;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;">Hapus</button>
+              <button style="height:40px;padding:0 16px;border:none;border-radius:12px;background:#22c55e;color:#052e16;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;">Compact</button>
+            </div>
+            <button style="width:100%;height:52px;border:none;border-radius:14px;background:#22c55e;color:#052e16;font-family:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;margin-bottom:12px;"><span class="ico" style="font-size:22px;">qr_code_scanner</span>Mulai Pindai</button>
+            <div style="display:flex;gap:10px;">
+              <button disabled style="flex:1;height:48px;border:none;border-radius:14px;background:#334155;color:#64748b;font-family:inherit;font-size:14px;font-weight:600;">Disabled</button>
+              <button style="flex:1;height:48px;border:none;border-radius:14px;background:#22c55e;color:#052e16;font-family:inherit;font-size:14px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:10px;"><span style="width:18px;height:18px;border:2px solid rgba(5,46,22,0.35);border-top-color:#052e16;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;"></span>Menyimpan…</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 04 TEXT FIELDS ============ -->
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:28px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#94a3b8;font-weight:500;">04</span>
+          <h2 style="font-size:20px;font-weight:700;margin:0;letter-spacing:-0.01em;">Text Fields</h2>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#16a34a;background:#dcfce7;padding:3px 9px;border-radius:6px;">TextField (outlined)</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div style="background:#f1f5f9;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:18px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Light</div>
+            <div><label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Kode aset</label><div style="height:52px;border:1.5px solid #cbd5e1;border-radius:14px;background:#fff;display:flex;align-items:center;padding:0 16px;font-size:14px;color:#94a3b8;">Masukkan atau pindai kode</div><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;">normal</span></div>
+            <div><label style="font-size:12px;font-weight:600;color:#16a34a;display:block;margin-bottom:6px;">Lokasi</label><div style="height:52px;border:2px solid #16a34a;border-radius:14px;background:#fff;display:flex;align-items:center;padding:0 16px;font-size:14px;color:#0f172a;box-shadow:0 0 0 4px rgba(22,163,74,0.1);">Lantai 3 — Ruang Server<span style="width:1px;height:20px;background:#16a34a;margin-left:2px;"></span></div><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#16a34a;">focus</span></div>
+            <div><label style="font-size:12px;font-weight:600;color:#dc2626;display:block;margin-bottom:6px;">Jumlah fisik</label><div style="height:52px;border:2px solid #dc2626;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:14px;color:#0f172a;">0<span class="ico" style="font-size:20px;color:#dc2626;">error</span></div><span style="font-size:11px;color:#dc2626;display:flex;align-items:center;gap:4px;margin-top:5px;"><span class="ico" style="font-size:14px;">info</span>Jumlah tidak boleh nol</span></div>
+            <div><label style="font-size:12px;font-weight:600;color:#94a3b8;display:block;margin-bottom:6px;">Cabang</label><div style="height:52px;border:1.5px solid #e2e8f0;border-radius:14px;background:#f1f5f9;display:flex;align-items:center;padding:0 16px;font-size:14px;color:#94a3b8;">Cabang Jakarta Selatan</div><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;">disabled</span></div>
+            <div><label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Kata sandi</label><div style="height:52px;border:1.5px solid #cbd5e1;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:16px;color:#0f172a;letter-spacing:2px;">••••••••<span class="ico" style="font-size:20px;color:#64748b;">visibility_off</span></div><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;">password</span></div>
+            <div style="height:48px;border:none;border-radius:999px;background:#fff;border:1px solid #e2e8f0;display:flex;align-items:center;gap:10px;padding:0 18px;font-size:14px;color:#94a3b8;"><span class="ico" style="font-size:20px;color:#64748b;">search</span>Cari aset atau kode…</div><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;margin-top:-8px;">search field</span>
+          </div>
+          <div style="background:#0f172a;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:18px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Dark</div>
+            <div><label style="font-size:12px;font-weight:600;color:#cbd5e1;display:block;margin-bottom:6px;">Kode aset</label><div style="height:52px;border:1.5px solid #475569;border-radius:14px;background:#1e293b;display:flex;align-items:center;padding:0 16px;font-size:14px;color:#64748b;">Masukkan atau pindai kode</div><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;">normal</span></div>
+            <div><label style="font-size:12px;font-weight:600;color:#4ade80;display:block;margin-bottom:6px;">Lokasi</label><div style="height:52px;border:2px solid #22c55e;border-radius:14px;background:#1e293b;display:flex;align-items:center;padding:0 16px;font-size:14px;color:#f1f5f9;box-shadow:0 0 0 4px rgba(34,197,94,0.15);">Lantai 3 — Ruang Server<span style="width:1px;height:20px;background:#22c55e;margin-left:2px;"></span></div><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#4ade80;">focus</span></div>
+            <div><label style="font-size:12px;font-weight:600;color:#f87171;display:block;margin-bottom:6px;">Jumlah fisik</label><div style="height:52px;border:2px solid #ef4444;border-radius:14px;background:#1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:14px;color:#f1f5f9;">0<span class="ico" style="font-size:20px;color:#f87171;">error</span></div><span style="font-size:11px;color:#f87171;display:flex;align-items:center;gap:4px;margin-top:5px;"><span class="ico" style="font-size:14px;">info</span>Jumlah tidak boleh nol</span></div>
+            <div><label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:6px;">Cabang</label><div style="height:52px;border:1.5px solid #334155;border-radius:14px;background:#172033;display:flex;align-items:center;padding:0 16px;font-size:14px;color:#64748b;">Cabang Jakarta Selatan</div><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;">disabled</span></div>
+            <div><label style="font-size:12px;font-weight:600;color:#cbd5e1;display:block;margin-bottom:6px;">Kata sandi</label><div style="height:52px;border:1.5px solid #475569;border-radius:14px;background:#1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:16px;color:#f1f5f9;letter-spacing:2px;">••••••••<span class="ico" style="font-size:20px;color:#94a3b8;">visibility_off</span></div><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;">password</span></div>
+            <div style="height:48px;border-radius:999px;background:#1e293b;border:1px solid #334155;display:flex;align-items:center;gap:10px;padding:0 18px;font-size:14px;color:#64748b;"><span class="ico" style="font-size:20px;color:#94a3b8;">search</span>Cari aset atau kode…</div><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;margin-top:-8px;">search field</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 05 CARDS & LIST TILES ============ -->
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:28px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#94a3b8;font-weight:500;">05</span>
+          <h2 style="font-size:20px;font-weight:700;margin:0;letter-spacing:-0.01em;">Card Aset &amp; ListTile</h2>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#16a34a;background:#dcfce7;padding:3px 9px;border-radius:6px;">Card · ListTile</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div style="background:#f1f5f9;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:14px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Light</div>
+            <!-- asset card -->
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px;display:flex;gap:14px;align-items:center;box-shadow:0 1px 3px rgba(15,23,42,0.06);">
+              <div style="width:56px;height:56px;border-radius:12px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 6px,#e2e8f0 6px,#e2e8f0 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:26px;color:#94a3b8;">desktop_windows</span></div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:15px;font-weight:700;margin-bottom:2px;">Monitor Dell U2723</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#64748b;margin-bottom:8px;">JKT01-ELK-2026-00001</div>
+                <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:12px;font-weight:600;"><span style="width:7px;height:7px;border-radius:999px;background:#16a34a;"></span>Tersedia</span>
+              </div>
+              <span class="ico" style="font-size:22px;color:#cbd5e1;">chevron_right</span>
+            </div>
+            <!-- list tile -->
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">
+              <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;">
+                <div style="width:44px;height:44px;border-radius:999px;background:#dbeafe;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:22px;color:#2563eb;">print</span></div>
+                <div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;">Printer HP LaserJet</div><div style="font-size:12px;color:#64748b;">Dipinjam · Andi Wijaya</div></div>
+                <span class="ico" style="font-size:22px;color:#cbd5e1;">chevron_right</span>
+              </div>
+              <div style="height:1px;background:#f1f5f9;margin-left:74px;"></div>
+              <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;">
+                <div style="width:44px;height:44px;border-radius:999px;background:#fef3c7;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:22px;color:#b45309;">chair</span></div>
+                <div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;">Kursi Ergonomis</div><div style="font-size:12px;color:#64748b;">Maintenance · sejak 12 Jul</div></div>
+                <span class="ico" style="font-size:22px;color:#cbd5e1;">chevron_right</span>
+              </div>
+            </div>
+          </div>
+          <div style="background:#0f172a;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:14px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Dark</div>
+            <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:14px;display:flex;gap:14px;align-items:center;">
+              <div style="width:56px;height:56px;border-radius:12px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 6px,#334155 6px,#334155 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:26px;color:#64748b;">desktop_windows</span></div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:15px;font-weight:700;color:#f1f5f9;margin-bottom:2px;">Monitor Dell U2723</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;margin-bottom:8px;">JKT01-ELK-2026-00001</div>
+                <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;background:#14532d;color:#86efac;font-size:12px;font-weight:600;"><span style="width:7px;height:7px;border-radius:999px;background:#22c55e;"></span>Tersedia</span>
+              </div>
+              <span class="ico" style="font-size:22px;color:#475569;">chevron_right</span>
+            </div>
+            <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;overflow:hidden;">
+              <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;">
+                <div style="width:44px;height:44px;border-radius:999px;background:#1e3a5f;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:22px;color:#93c5fd;">print</span></div>
+                <div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;color:#f1f5f9;">Printer HP LaserJet</div><div style="font-size:12px;color:#94a3b8;">Dipinjam · Andi Wijaya</div></div>
+                <span class="ico" style="font-size:22px;color:#475569;">chevron_right</span>
+              </div>
+              <div style="height:1px;background:#334155;margin-left:74px;"></div>
+              <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;">
+                <div style="width:44px;height:44px;border-radius:999px;background:#422006;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:22px;color:#fcd34d;">chair</span></div>
+                <div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;color:#f1f5f9;">Kursi Ergonomis</div><div style="font-size:12px;color:#94a3b8;">Maintenance · sejak 12 Jul</div></div>
+                <span class="ico" style="font-size:22px;color:#475569;">chevron_right</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 06 CHIPS & BADGES ============ -->
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:28px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#94a3b8;font-weight:500;">06</span>
+          <h2 style="font-size:20px;font-weight:700;margin:0;letter-spacing:-0.01em;">Chips &amp; Badges</h2>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#16a34a;background:#dcfce7;padding:3px 9px;border-radius:6px;">Chip · Badge</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <!-- LIGHT chips -->
+          <div style="background:#f1f5f9;border-radius:16px;padding:24px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Light</div>
+            <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:10px;">Status aset</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:12px;font-weight:600;"><span style="width:7px;height:7px;border-radius:999px;background:#16a34a;"></span>Tersedia</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-size:12px;font-weight:600;"><span style="width:7px;height:7px;border-radius:999px;background:#2563eb;"></span>Dipinjam</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:#fef3c7;color:#b45309;font-size:12px;font-weight:600;"><span style="width:7px;height:7px;border-radius:999px;background:#d97706;"></span>Maintenance</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:#f1f5f9;color:#475569;font-size:12px;font-weight:600;border:1px solid #e2e8f0;"><span style="width:7px;height:7px;border-radius:999px;background:#64748b;"></span>Dilepas</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:#fee2e2;color:#b91c1c;font-size:12px;font-weight:600;"><span style="width:7px;height:7px;border-radius:999px;background:#dc2626;"></span>Hilang</span>
+            </div>
+            <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:10px;">Hasil opname</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:12px;font-weight:600;"><span class="ico" style="font-size:15px;">check_circle</span>Ditemukan</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;background:#fef3c7;color:#b45309;font-size:12px;font-weight:600;"><span class="ico" style="font-size:15px;">build</span>Rusak</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-size:12px;font-weight:600;"><span class="ico" style="font-size:15px;">wrong_location</span>Salah lokasi</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;background:#fee2e2;color:#b91c1c;font-size:12px;font-weight:600;"><span class="ico" style="font-size:15px;">help</span>Tidak ditemukan</span>
+            </div>
+            <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:10px;">Status pengajuan</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;background:#fef3c7;color:#b45309;font-size:12px;font-weight:600;"><span class="ico" style="font-size:15px;">schedule</span>Menunggu</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:12px;font-weight:600;"><span class="ico" style="font-size:15px;">check_circle</span>Disetujui</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;background:#fee2e2;color:#b91c1c;font-size:12px;font-weight:600;"><span class="ico" style="font-size:15px;">cancel</span>Ditolak</span>
+            </div>
+          </div>
+          <!-- DARK chips -->
+          <div style="background:#0f172a;border-radius:16px;padding:24px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Dark</div>
+            <div style="font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:10px;">Status aset</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:#14532d;color:#86efac;font-size:12px;font-weight:600;"><span style="width:7px;height:7px;border-radius:999px;background:#22c55e;"></span>Tersedia</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:#1e3a5f;color:#93c5fd;font-size:12px;font-weight:600;"><span style="width:7px;height:7px;border-radius:999px;background:#60a5fa;"></span>Dipinjam</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:#422006;color:#fcd34d;font-size:12px;font-weight:600;"><span style="width:7px;height:7px;border-radius:999px;background:#f59e0b;"></span>Maintenance</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:#334155;color:#cbd5e1;font-size:12px;font-weight:600;"><span style="width:7px;height:7px;border-radius:999px;background:#94a3b8;"></span>Dilepas</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:#450a0a;color:#fca5a5;font-size:12px;font-weight:600;"><span style="width:7px;height:7px;border-radius:999px;background:#f87171;"></span>Hilang</span>
+            </div>
+            <div style="font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:10px;">Hasil opname</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;background:#14532d;color:#86efac;font-size:12px;font-weight:600;"><span class="ico" style="font-size:15px;">check_circle</span>Ditemukan</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;background:#422006;color:#fcd34d;font-size:12px;font-weight:600;"><span class="ico" style="font-size:15px;">build</span>Rusak</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;background:#1e3a5f;color:#93c5fd;font-size:12px;font-weight:600;"><span class="ico" style="font-size:15px;">wrong_location</span>Salah lokasi</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;background:#450a0a;color:#fca5a5;font-size:12px;font-weight:600;"><span class="ico" style="font-size:15px;">help</span>Tidak ditemukan</span>
+            </div>
+            <div style="font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:10px;">Status pengajuan</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;background:#422006;color:#fcd34d;font-size:12px;font-weight:600;"><span class="ico" style="font-size:15px;">schedule</span>Menunggu</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;background:#14532d;color:#86efac;font-size:12px;font-weight:600;"><span class="ico" style="font-size:15px;">check_circle</span>Disetujui</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;background:#450a0a;color:#fca5a5;font-size:12px;font-weight:600;"><span class="ico" style="font-size:15px;">cancel</span>Ditolak</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 07 SEGMENTED BUTTON ============ -->
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:28px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#94a3b8;font-weight:500;">07</span>
+          <h2 style="font-size:20px;font-weight:700;margin:0;letter-spacing:-0.01em;">Segmented Button</h2>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#16a34a;background:#dcfce7;padding:3px 9px;border-radius:6px;">SegmentedButton</span>
+        </div>
+        <p style="font-size:13px;color:#64748b;margin:0 0 22px;">4 opsi hasil opname — pilihan tunggal per aset saat menghitung fisik.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div style="background:#f1f5f9;border-radius:16px;padding:24px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Light · "Ditemukan" terpilih</div>
+            <div style="display:flex;background:#fff;border:1px solid #cbd5e1;border-radius:14px;overflow:hidden;">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:12px 4px;background:#16a34a;color:#fff;"><span class="ico" style="font-size:20px;">check_circle</span><span style="font-size:11px;font-weight:700;">Ditemukan</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:12px 4px;color:#64748b;border-left:1px solid #e2e8f0;"><span class="ico" style="font-size:20px;">build</span><span style="font-size:11px;font-weight:600;">Rusak</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:12px 4px;color:#64748b;border-left:1px solid #e2e8f0;"><span class="ico" style="font-size:20px;">wrong_location</span><span style="font-size:11px;font-weight:600;">Salah lokasi</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:12px 4px;color:#64748b;border-left:1px solid #e2e8f0;"><span class="ico" style="font-size:20px;">help</span><span style="font-size:11px;font-weight:600;">Tidak ada</span></div>
+            </div>
+          </div>
+          <div style="background:#0f172a;border-radius:16px;padding:24px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Dark · "Rusak" terpilih</div>
+            <div style="display:flex;background:#1e293b;border:1px solid #475569;border-radius:14px;overflow:hidden;">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:12px 4px;color:#94a3b8;"><span class="ico" style="font-size:20px;">check_circle</span><span style="font-size:11px;font-weight:600;">Ditemukan</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:12px 4px;background:#d97706;color:#fff;border-left:1px solid #334155;"><span class="ico" style="font-size:20px;">build</span><span style="font-size:11px;font-weight:700;">Rusak</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:12px 4px;color:#94a3b8;border-left:1px solid #334155;"><span class="ico" style="font-size:20px;">wrong_location</span><span style="font-size:11px;font-weight:600;">Salah lokasi</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:12px 4px;color:#94a3b8;border-left:1px solid #334155;"><span class="ico" style="font-size:20px;">help</span><span style="font-size:11px;font-weight:600;">Tidak ada</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 08 CONNECTIVITY ============ -->
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:28px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#94a3b8;font-weight:500;">08</span>
+          <h2 style="font-size:20px;font-weight:700;margin:0;letter-spacing:-0.01em;">Konektivitas &amp; Sinkronisasi</h2>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#d97706;background:#fef3c7;padding:3px 9px;border-radius:6px;">Banner · Sync Pill</span>
+        </div>
+        <p style="font-size:13px;color:#64748b;margin:0 0 22px;">Warga kelas satu. Offline = tenang &amp; informatif, bukan alarm.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div style="background:#f1f5f9;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:14px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Light</div>
+            <div style="display:flex;align-items:center;gap:10px;background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:10px 14px;"><span class="ico" style="font-size:20px;color:#b45309;">cloud_off</span><span style="font-size:13px;font-weight:600;color:#92400e;">Offline — scan tersimpan di perangkat</span></div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;">banner offline (slim)</span>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <span style="display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;background:#fef3c7;color:#b45309;font-size:12px;font-weight:600;"><span class="ico" style="font-size:17px;">cloud_upload</span>12 belum tersinkron</span>
+              <span style="display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:12px;font-weight:600;"><span class="ico" style="font-size:17px;">cloud_done</span>Tersinkron</span>
+              <span style="display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;background:#fee2e2;color:#b91c1c;font-size:12px;font-weight:600;"><span class="ico" style="font-size:17px;">sync_problem</span>Gagal — coba lagi</span>
+              <span style="display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-size:12px;font-weight:600;"><span class="ico" style="font-size:17px;animation:spin 1.2s linear infinite;">sync</span>Menyinkronkan…</span>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;">pill status sync</span>
+          </div>
+          <div style="background:#0f172a;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:14px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Dark</div>
+            <div style="display:flex;align-items:center;gap:10px;background:#422006;border:1px solid #78350f;border-radius:12px;padding:10px 14px;"><span class="ico" style="font-size:20px;color:#fcd34d;">cloud_off</span><span style="font-size:13px;font-weight:600;color:#fde68a;">Offline — scan tersimpan di perangkat</span></div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;">banner offline (slim)</span>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <span style="display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;background:#422006;color:#fcd34d;font-size:12px;font-weight:600;"><span class="ico" style="font-size:17px;">cloud_upload</span>12 belum tersinkron</span>
+              <span style="display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;background:#14532d;color:#86efac;font-size:12px;font-weight:600;"><span class="ico" style="font-size:17px;">cloud_done</span>Tersinkron</span>
+              <span style="display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;background:#450a0a;color:#fca5a5;font-size:12px;font-weight:600;"><span class="ico" style="font-size:17px;">sync_problem</span>Gagal — coba lagi</span>
+              <span style="display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;background:#1e3a5f;color:#93c5fd;font-size:12px;font-weight:600;"><span class="ico" style="font-size:17px;animation:spin 1.2s linear infinite;">sync</span>Menyinkronkan…</span>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;">pill status sync</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 09 OVERLAYS ============ -->
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:28px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#94a3b8;font-weight:500;">09</span>
+          <h2 style="font-size:20px;font-weight:700;margin:0;letter-spacing:-0.01em;">BottomSheet · Dialog · SnackBar</h2>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#16a34a;background:#dcfce7;padding:3px 9px;border-radius:6px;">BottomSheet · AlertDialog · SnackBar</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <!-- LIGHT overlays -->
+          <div style="background:#f1f5f9;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:18px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Light</div>
+            <!-- bottom sheet -->
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:20px 20px 14px 14px;padding:8px 18px 18px;box-shadow:0 -6px 24px rgba(15,23,42,0.1);">
+              <div style="width:36px;height:4px;border-radius:999px;background:#cbd5e1;margin:6px auto 14px;"></div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;"><span class="ico" style="font-size:22px;color:#16a34a;">check_circle</span><span style="font-size:16px;font-weight:700;">Aset ditemukan</span></div>
+              <div style="display:flex;gap:12px;align-items:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:10px;margin-bottom:14px;">
+                <div style="width:40px;height:40px;border-radius:10px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 5px,#e2e8f0 5px,#e2e8f0 10px);"></div>
+                <div><div style="font-size:14px;font-weight:600;">Monitor Dell U2723</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#64748b;">JKT01-ELK-2026-00001</div></div>
+              </div>
+              <button style="width:100%;height:48px;border:none;border-radius:12px;background:#16a34a;color:#fff;font-family:inherit;font-size:14px;font-weight:700;">Tandai Ditemukan</button>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;">BottomSheet — hasil scan</span>
+            <!-- dialog -->
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:22px;box-shadow:0 10px 30px rgba(15,23,42,0.12);">
+              <div style="width:48px;height:48px;border-radius:999px;background:#fee2e2;display:flex;align-items:center;justify-content:center;margin-bottom:14px;"><span class="ico" style="font-size:26px;color:#dc2626;">report</span></div>
+              <div style="font-size:17px;font-weight:700;margin-bottom:6px;">Tolak pengajuan?</div>
+              <div style="font-size:13px;color:#64748b;line-height:1.5;margin-bottom:18px;">Pengajuan pelepasan aset dari Andi Wijaya akan ditolak. Tindakan ini tidak dapat dibatalkan.</div>
+              <div style="display:flex;gap:10px;"><button style="flex:1;height:46px;border:1.5px solid #cbd5e1;border-radius:12px;background:transparent;color:#475569;font-family:inherit;font-size:14px;font-weight:600;">Batal</button><button style="flex:1;height:46px;border:none;border-radius:12px;background:#dc2626;color:#fff;font-family:inherit;font-size:14px;font-weight:700;">Tolak</button></div>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;">AlertDialog — konfirmasi destruktif</span>
+            <!-- snackbars -->
+            <div style="display:flex;align-items:center;gap:10px;background:#1e293b;border-radius:12px;padding:12px 16px;"><span class="ico" style="font-size:20px;color:#4ade80;">check_circle</span><span style="flex:1;font-size:13px;color:#f1f5f9;font-weight:500;">Aset berhasil disetujui</span><span style="font-size:13px;color:#4ade80;font-weight:700;">Urungkan</span></div>
+            <div style="display:flex;align-items:center;gap:10px;background:#7f1d1d;border-radius:12px;padding:12px 16px;"><span class="ico" style="font-size:20px;color:#fca5a5;">error</span><span style="flex:1;font-size:13px;color:#fee2e2;font-weight:500;">Gagal menyimpan — periksa koneksi</span><span style="font-size:13px;color:#fecaca;font-weight:700;">Coba lagi</span></div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;">SnackBar sukses &amp; error</span>
+          </div>
+          <!-- DARK overlays -->
+          <div style="background:#0f172a;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:18px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Dark</div>
+            <div style="background:#1e293b;border:1px solid #334155;border-radius:20px 20px 14px 14px;padding:8px 18px 18px;">
+              <div style="width:36px;height:4px;border-radius:999px;background:#475569;margin:6px auto 14px;"></div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;"><span class="ico" style="font-size:22px;color:#4ade80;">check_circle</span><span style="font-size:16px;font-weight:700;color:#f1f5f9;">Aset ditemukan</span></div>
+              <div style="display:flex;gap:12px;align-items:center;background:#0f172a;border:1px solid #334155;border-radius:12px;padding:10px;margin-bottom:14px;">
+                <div style="width:40px;height:40px;border-radius:10px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 5px,#334155 5px,#334155 10px);"></div>
+                <div><div style="font-size:14px;font-weight:600;color:#f1f5f9;">Monitor Dell U2723</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;">JKT01-ELK-2026-00001</div></div>
+              </div>
+              <button style="width:100%;height:48px;border:none;border-radius:12px;background:#22c55e;color:#052e16;font-family:inherit;font-size:14px;font-weight:700;">Tandai Ditemukan</button>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;">BottomSheet — hasil scan</span>
+            <div style="background:#1e293b;border:1px solid #334155;border-radius:20px;padding:22px;">
+              <div style="width:48px;height:48px;border-radius:999px;background:#450a0a;display:flex;align-items:center;justify-content:center;margin-bottom:14px;"><span class="ico" style="font-size:26px;color:#f87171;">report</span></div>
+              <div style="font-size:17px;font-weight:700;margin-bottom:6px;color:#f1f5f9;">Tolak pengajuan?</div>
+              <div style="font-size:13px;color:#94a3b8;line-height:1.5;margin-bottom:18px;">Pengajuan pelepasan aset dari Andi Wijaya akan ditolak. Tindakan ini tidak dapat dibatalkan.</div>
+              <div style="display:flex;gap:10px;"><button style="flex:1;height:46px;border:1.5px solid #475569;border-radius:12px;background:transparent;color:#cbd5e1;font-family:inherit;font-size:14px;font-weight:600;">Batal</button><button style="flex:1;height:46px;border:none;border-radius:12px;background:#ef4444;color:#fff;font-family:inherit;font-size:14px;font-weight:700;">Tolak</button></div>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;">AlertDialog — konfirmasi destruktif</span>
+            <div style="display:flex;align-items:center;gap:10px;background:#f1f5f9;border-radius:12px;padding:12px 16px;"><span class="ico" style="font-size:20px;color:#16a34a;">check_circle</span><span style="flex:1;font-size:13px;color:#0f172a;font-weight:500;">Aset berhasil disetujui</span><span style="font-size:13px;color:#15803d;font-weight:700;">Urungkan</span></div>
+            <div style="display:flex;align-items:center;gap:10px;background:#fecaca;border-radius:12px;padding:12px 16px;"><span class="ico" style="font-size:20px;color:#b91c1c;">error</span><span style="flex:1;font-size:13px;color:#7f1d1d;font-weight:500;">Gagal menyimpan — periksa koneksi</span><span style="font-size:13px;color:#991b1b;font-weight:700;">Coba lagi</span></div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;">SnackBar sukses &amp; error</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 10 PROGRESS & STATES ============ -->
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:28px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#94a3b8;font-weight:500;">10</span>
+          <h2 style="font-size:20px;font-weight:700;margin:0;letter-spacing:-0.01em;">Progress · Skeleton · Empty State</h2>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#16a34a;background:#dcfce7;padding:3px 9px;border-radius:6px;">LinearProgressIndicator · Badge</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div style="background:#f1f5f9;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:20px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Light</div>
+            <div style="display:flex;align-items:center;gap:18px;">
+              <div style="width:88px;height:88px;border-radius:50%;background:conic-gradient(#16a34a 68%,#e2e8f0 0);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div style="width:66px;height:66px;border-radius:50%;background:#f1f5f9;display:flex;flex-direction:column;align-items:center;justify-content:center;"><span style="font-size:20px;font-weight:800;color:#16a34a;line-height:1;">68%</span><span style="font-size:9px;color:#64748b;">opname</span></div></div>
+              <div style="flex:1;">
+                <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#334155;">Progres opname</div>
+                <div style="height:8px;border-radius:999px;background:#e2e8f0;overflow:hidden;margin-bottom:6px;"><div style="width:68%;height:100%;background:#16a34a;border-radius:999px;"></div></div>
+                <div style="font-size:11px;color:#64748b;">102 dari 150 aset</div>
+              </div>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;">ring progress + LinearProgressIndicator</span>
+            <!-- skeleton -->
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;display:flex;gap:12px;align-items:center;">
+                <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+                <div style="flex:1;"><div style="height:12px;width:60%;border-radius:6px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:10px;width:40%;border-radius:6px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+              </div>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;">skeleton loader</span>
+            <!-- empty -->
+            <div style="background:#fff;border:1px dashed #cbd5e1;border-radius:16px;padding:28px 20px;text-align:center;">
+              <div style="width:56px;height:56px;border-radius:999px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><span class="ico" style="font-size:30px;color:#94a3b8;">inventory_2</span></div>
+              <div style="font-size:14px;font-weight:600;margin-bottom:6px;">Belum ada sesi opname</div>
+              <div style="font-size:12px;color:#64748b;margin-bottom:16px;">Mulai sesi baru untuk menginventaris aset di lokasi Anda.</div>
+              <button style="height:44px;padding:0 20px;border:none;border-radius:12px;background:#16a34a;color:#fff;font-family:inherit;font-size:13px;font-weight:700;">Mulai Sesi Opname</button>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;">empty state</span>
+            <!-- notif badges -->
+            <div style="display:flex;gap:22px;align-items:center;">
+              <div style="position:relative;width:44px;height:44px;border-radius:999px;background:#fff;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#334155;">notifications</span><span style="position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;padding:0 5px;background:#dc2626;color:#fff;border-radius:999px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #f1f5f9;">3</span></div>
+              <div style="position:relative;width:44px;height:44px;border-radius:999px;background:#fff;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#334155;">approval</span><span style="position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;padding:0 5px;background:#dc2626;color:#fff;border-radius:999px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #f1f5f9;">12</span></div>
+              <div style="position:relative;width:44px;height:44px;border-radius:999px;background:#fff;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#334155;">shopping_cart</span><span style="position:absolute;top:2px;right:2px;width:9px;height:9px;background:#dc2626;border-radius:999px;border:2px solid #f1f5f9;"></span></div>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;">badge angka &amp; dot</span>
+          </div>
+          <div style="background:#0f172a;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:20px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Dark</div>
+            <div style="display:flex;align-items:center;gap:18px;">
+              <div style="width:88px;height:88px;border-radius:50%;background:conic-gradient(#22c55e 68%,#334155 0);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div style="width:66px;height:66px;border-radius:50%;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;"><span style="font-size:20px;font-weight:800;color:#4ade80;line-height:1;">68%</span><span style="font-size:9px;color:#94a3b8;">opname</span></div></div>
+              <div style="flex:1;">
+                <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#cbd5e1;">Progres opname</div>
+                <div style="height:8px;border-radius:999px;background:#334155;overflow:hidden;margin-bottom:6px;"><div style="width:68%;height:100%;background:#22c55e;border-radius:999px;"></div></div>
+                <div style="font-size:11px;color:#94a3b8;">102 dari 150 aset</div>
+              </div>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;">ring progress + LinearProgressIndicator</span>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:14px;display:flex;gap:12px;align-items:center;">
+                <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+                <div style="flex:1;"><div style="height:12px;width:60%;border-radius:6px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:10px;width:40%;border-radius:6px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+              </div>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;">skeleton loader</span>
+            <div style="background:#1e293b;border:1px dashed #475569;border-radius:16px;padding:28px 20px;text-align:center;">
+              <div style="width:56px;height:56px;border-radius:999px;background:#0f172a;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><span class="ico" style="font-size:30px;color:#64748b;">inventory_2</span></div>
+              <div style="font-size:14px;font-weight:600;margin-bottom:6px;color:#f1f5f9;">Belum ada sesi opname</div>
+              <div style="font-size:12px;color:#94a3b8;margin-bottom:16px;">Mulai sesi baru untuk menginventaris aset di lokasi Anda.</div>
+              <button style="height:44px;padding:0 20px;border:none;border-radius:12px;background:#22c55e;color:#052e16;font-family:inherit;font-size:13px;font-weight:700;">Mulai Sesi Opname</button>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;">empty state</span>
+            <div style="display:flex;gap:22px;align-items:center;">
+              <div style="position:relative;width:44px;height:44px;border-radius:999px;background:#1e293b;border:1px solid #334155;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#cbd5e1;">notifications</span><span style="position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;padding:0 5px;background:#f87171;color:#450a0a;border-radius:999px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #0f172a;">3</span></div>
+              <div style="position:relative;width:44px;height:44px;border-radius:999px;background:#1e293b;border:1px solid #334155;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#cbd5e1;">approval</span><span style="position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;padding:0 5px;background:#f87171;color:#450a0a;border-radius:999px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #0f172a;">12</span></div>
+              <div style="position:relative;width:44px;height:44px;border-radius:999px;background:#1e293b;border:1px solid #334155;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#cbd5e1;">shopping_cart</span><span style="position:absolute;top:2px;right:2px;width:9px;height:9px;background:#f87171;border-radius:999px;border:2px solid #0f172a;"></span></div>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;">badge angka &amp; dot</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

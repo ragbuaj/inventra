@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ico { font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap; direction: ltr; -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; user-select: none; }
+</style>
+</helmet>
+<div style="font-family:'Inter',sans-serif;background:#eef2f6;padding:48px 40px 80px;min-height:100vh;color:#0f172a;">
+  <div style="margin:0 auto;max-width:2300px;">
+    <div style="margin-bottom:36px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#16a34a;font-weight:500;margin-bottom:6px;">INVENTRA MOBILE · LAYAR 09</div>
+      <h1 style="font-size:32px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;">Opname Counting</h1>
+      <p style="font-size:14px;color:#64748b;margin:0;">Layar kerja utama petugas — ritme scan-simpan-scan, penuh offline · 5 state × light &amp; dark.</p>
+    </div>
+
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">Light mode</div>
+    <div style="display:flex;gap:32px;align-items:flex-start;margin-bottom:48px;">
+
+      <!-- L1 NORMAL ONLINE -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Counting — online normal</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:8;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Opname Tahunan 2026</div><div style="font-size:11px;color:#64748b;">Cabang Jakarta Selatan · Lantai 1–3</div></div>
+            </div>
+            <!-- sticky header -->
+            <div style="flex-shrink:0;margin:2px 20px 0;background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:14px;">
+              <div style="width:72px;height:72px;border-radius:50%;background:conic-gradient(#16a34a 85%,#e2e8f0 0);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div style="width:54px;height:54px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;"><span style="font-size:14px;font-weight:800;color:#15803d;line-height:1.1;">128</span><span style="font-size:9.5px;color:#94a3b8;">/150</span></div></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#15803d;"><span class="ico" style="font-size:14px;">check_circle</span>120</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#b45309;"><span class="ico" style="font-size:14px;">build</span>5</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#1d4ed8;"><span class="ico" style="font-size:14px;">wrong_location</span>3</span>
+                </div>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#fef3c7;color:#b45309;font-size:11px;font-weight:600;align-self:flex-start;"><span class="ico" style="font-size:14px;">cloud_upload</span>12 belum tersinkron</span>
+              </div>
+            </div>
+            <!-- scan buttons -->
+            <div style="flex-shrink:0;padding:12px 20px 4px;">
+              <button style="width:100%;height:58px;border:none;border-radius:16px;background:#16a34a;color:#fff;font-family:inherit;font-size:15.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 6px 16px rgba(22,163,74,0.3);"><span class="ico" style="font-size:24px;">qr_code_scanner</span>Pindai Aset Berikutnya</button>
+              <button style="width:100%;height:44px;border:none;border-radius:12px;background:transparent;color:#15803d;font-family:inherit;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:4px;"><span class="ico" style="font-size:17px;">keyboard</span>Ketik kode</button>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;display:flex;flex-direction:column;gap:8px;">
+              <div style="font-size:11.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;padding:4px 0 0;">Baru saja dipindai</div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Monitor Dell U2723</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;">JKT01-ELK-2026-00014 · 09.40</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">check_circle</span>Ditemukan</span>
+                <span class="ico" style="font-size:16px;color:#d97706;" title="antre">hourglass_top</span>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Kursi Ergonomis Fantoni</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;">JKT01-FUR-2025-00112 · 09.38</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#fef3c7;color:#b45309;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">build</span>Rusak</span>
+                <span class="ico" style="font-size:16px;color:#d97706;">hourglass_top</span>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Printer HP LaserJet M404</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;">JKT01-ELK-2025-00087 · 09.36</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">wrong_location</span>Salah lokasi</span>
+                <span class="ico" style="font-size:16px;color:#16a34a;">check_circle</span>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">UPS APC Smart 1500VA</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;">JKT01-ELK-2024-00042 · 09.35</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">check_circle</span>Ditemukan</span>
+                <span class="ico" style="font-size:16px;color:#16a34a;">check_circle</span>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:10px 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L2 SHEET -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:5px 12px;border-radius:999px;font-weight:500;">Bottom sheet hasil scan</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:8;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:700;">Opname Tahunan 2026</div><div style="font-size:11px;color:#64748b;">Cabang Jakarta Selatan · Lantai 1–3</div></div>
+            </div>
+            <div style="flex-shrink:0;margin:2px 20px 0;background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:14px;">
+              <div style="width:72px;height:72px;border-radius:50%;background:conic-gradient(#16a34a 85%,#e2e8f0 0);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div style="width:54px;height:54px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;"><span style="font-size:14px;font-weight:800;color:#15803d;line-height:1.1;">128</span><span style="font-size:9.5px;color:#94a3b8;">/150</span></div></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#15803d;"><span class="ico" style="font-size:14px;">check_circle</span>120</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#b45309;"><span class="ico" style="font-size:14px;">build</span>5</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#1d4ed8;"><span class="ico" style="font-size:14px;">wrong_location</span>3</span>
+                </div>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#fef3c7;color:#b45309;font-size:11px;font-weight:600;align-self:flex-start;"><span class="ico" style="font-size:14px;">cloud_upload</span>12 belum tersinkron</span>
+              </div>
+            </div>
+            <div style="position:absolute;inset:0;background:rgba(15,23,42,0.4);z-index:9;"></div>
+            <!-- sheet -->
+            <div style="position:absolute;left:0;right:0;bottom:0;z-index:10;background:#ffffff;border-radius:28px 28px 44px 44px;padding:8px 20px 14px;box-shadow:0 -10px 40px rgba(15,23,42,0.3);">
+              <div style="width:36px;height:4px;border-radius:999px;background:#cbd5e1;margin:6px auto 14px;"></div>
+              <div style="display:flex;gap:12px;align-items:center;margin-bottom:14px;">
+                <div style="width:50px;height:50px;border-radius:12px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 6px,#e2e8f0 6px,#e2e8f0 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:24px;color:#94a3b8;">laptop_mac</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:15px;font-weight:700;">Laptop Dell Latitude 5440</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#64748b;">JKT01-ELK-2026-00001 · R. Operasional</div>
+                </div>
+                <span class="ico" style="font-size:22px;color:#16a34a;">check_circle</span>
+              </div>
+              <div style="font-size:12px;font-weight:700;color:#64748b;margin-bottom:8px;">Hasil:</div>
+              <div style="display:flex;background:#fff;border:1px solid #cbd5e1;border-radius:14px;overflow:hidden;margin-bottom:12px;">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:11px 4px;background:#16a34a;color:#fff;"><span class="ico" style="font-size:20px;">check_circle</span><span style="font-size:11px;font-weight:700;">Ditemukan</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:11px 4px;color:#64748b;border-left:1px solid #e2e8f0;"><span class="ico" style="font-size:20px;">build</span><span style="font-size:11px;font-weight:600;">Rusak</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:11px 4px;color:#64748b;border-left:1px solid #e2e8f0;"><span class="ico" style="font-size:20px;">wrong_location</span><span style="font-size:11px;font-weight:600;">Salah Lokasi</span></div>
+              </div>
+              <div style="height:44px;border:1.5px solid #cbd5e1;border-radius:12px;background:#fff;display:flex;align-items:center;padding:0 13px;font-size:13px;color:#94a3b8;margin-bottom:12px;">Catatan (opsional)</div>
+              <button style="width:100%;height:54px;border:none;border-radius:14px;background:#16a34a;color:#fff;font-family:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(22,163,74,0.3);"><span class="ico" style="font-size:21px;">save</span>Simpan &amp; Lanjut</button>
+              <div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:14px auto 0;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L3 OFFLINE -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b45309;background:#fef3c7;border:1px solid #fde68a;padding:5px 12px;border-radius:999px;font-weight:500;">Offline — antrean bertambah</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:8;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">10.02</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;color:#94a3b8;">signal_cellular_off</span><span class="ico" style="font-size:16px;color:#94a3b8;">wifi_off</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:700;">Opname Tahunan 2026</div><div style="font-size:11px;color:#64748b;">Cabang Jakarta Selatan · Basement</div></div>
+            </div>
+            <div style="margin:0 20px;display:flex;align-items:center;gap:9px;background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:9px 13px;flex-shrink:0;"><span class="ico" style="font-size:18px;color:#b45309;">cloud_off</span><span style="font-size:12px;font-weight:600;color:#92400e;">Offline — scan tersimpan di perangkat</span></div>
+            <div style="flex-shrink:0;margin:10px 20px 0;background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:14px;">
+              <div style="width:72px;height:72px;border-radius:50%;background:conic-gradient(#16a34a 89%,#e2e8f0 0);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div style="width:54px;height:54px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;"><span style="font-size:14px;font-weight:800;color:#15803d;line-height:1.1;">134</span><span style="font-size:9.5px;color:#94a3b8;">/150</span></div></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#15803d;"><span class="ico" style="font-size:14px;">check_circle</span>125</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#b45309;"><span class="ico" style="font-size:14px;">build</span>6</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#1d4ed8;"><span class="ico" style="font-size:14px;">wrong_location</span>3</span>
+                </div>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#fef3c7;color:#b45309;font-size:11px;font-weight:600;align-self:flex-start;"><span class="ico" style="font-size:14px;">cloud_upload</span>18 belum tersinkron</span>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:12px 20px 4px;">
+              <button style="width:100%;height:58px;border:none;border-radius:16px;background:#16a34a;color:#fff;font-family:inherit;font-size:15.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 6px 16px rgba(22,163,74,0.3);"><span class="ico" style="font-size:24px;">qr_code_scanner</span>Pindai Aset Berikutnya</button>
+              <button style="width:100%;height:44px;border:none;border-radius:12px;background:transparent;color:#15803d;font-family:inherit;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:4px;"><span class="ico" style="font-size:17px;">keyboard</span>Ketik kode</button>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;display:flex;flex-direction:column;gap:8px;">
+              <div style="font-size:11.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;padding:4px 0 0;">Baru saja dipindai</div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Rak Arsip Besi 4 Tingkat</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;">JKT01-FUR-2023-00219 · 10.01</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">check_circle</span>Ditemukan</span>
+                <span class="ico" style="font-size:16px;color:#d97706;">hourglass_top</span>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Genset Perkins 100 kVA</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;">JKT01-MSN-2022-00007 · 09.58</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#fef3c7;color:#b45309;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">build</span>Rusak</span>
+                <span class="ico" style="font-size:16px;color:#d97706;">hourglass_top</span>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Panel Listrik Schneider</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;">JKT01-MSN-2021-00003 · 09.55</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">check_circle</span>Ditemukan</span>
+                <span class="ico" style="font-size:16px;color:#d97706;">hourglass_top</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:7px;padding:2px 0;">
+                <span class="ico" style="font-size:15px;color:#94a3b8;">info</span>
+                <span style="font-size:11.5px;color:#94a3b8;">Akan diunggah otomatis saat kembali online</span>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:10px 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L4 KONFLIK -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;padding:5px 12px;border-radius:999px;font-weight:500;">Ada konflik di list</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:8;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">10.15</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:700;">Opname Tahunan 2026</div><div style="font-size:11px;color:#64748b;">Cabang Jakarta Selatan · Lantai 1–3</div></div>
+            </div>
+            <div style="flex-shrink:0;margin:2px 20px 0;background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:14px;">
+              <div style="width:72px;height:72px;border-radius:50%;background:conic-gradient(#16a34a 91%,#e2e8f0 0);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div style="width:54px;height:54px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;"><span style="font-size:14px;font-weight:800;color:#15803d;line-height:1.1;">137</span><span style="font-size:9.5px;color:#94a3b8;">/150</span></div></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#15803d;"><span class="ico" style="font-size:14px;">check_circle</span>128</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#b45309;"><span class="ico" style="font-size:14px;">build</span>6</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#1d4ed8;"><span class="ico" style="font-size:14px;">wrong_location</span>3</span>
+                </div>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:600;align-self:flex-start;"><span class="ico" style="font-size:14px;animation:spin 1.2s linear infinite;">sync</span>Menyinkronkan…</span>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:12px 20px 4px;">
+              <button style="width:100%;height:58px;border:none;border-radius:16px;background:#16a34a;color:#fff;font-family:inherit;font-size:15.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 6px 16px rgba(22,163,74,0.3);"><span class="ico" style="font-size:24px;">qr_code_scanner</span>Pindai Aset Berikutnya</button>
+              <button style="width:100%;height:44px;border:none;border-radius:12px;background:transparent;color:#15803d;font-family:inherit;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:4px;"><span class="ico" style="font-size:17px;">keyboard</span>Ketik kode</button>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;display:flex;flex-direction:column;gap:8px;">
+              <div style="font-size:11.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;padding:4px 0 0;">Baru saja dipindai</div>
+              <!-- conflict row -->
+              <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:11px 13px;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;">
+                  <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">AC Daikin Split 2 PK</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;">JKT01-ELK-2024-00031 · 10.12</div></div>
+                  <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#fef3c7;color:#b45309;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">build</span>Rusak</span>
+                  <span class="ico" style="font-size:16px;color:#dc2626;">warning</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;border:1px solid #fecaca;border-radius:10px;padding:7px 11px;">
+                  <span style="font-size:11.5px;color:#991b1b;">Sudah dicatat petugas lain: <strong>Ditemukan</strong></span>
+                  <button style="height:30px;padding:0 13px;border:none;border-radius:8px;background:#dc2626;color:#fff;font-family:inherit;font-size:11.5px;font-weight:700;flex-shrink:0;">Lihat</button>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Monitor Dell U2723</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;">JKT01-ELK-2026-00014 · 10.10</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">check_circle</span>Ditemukan</span>
+                <span class="ico" style="font-size:16px;color:#16a34a;">check_circle</span>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Brankas Chubb Fire</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;">JKT01-SEC-2020-00002 · 10.08</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">check_circle</span>Ditemukan</span>
+                <span class="ico" style="font-size:16px;color:#d97706;">hourglass_top</span>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:10px 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L5 SYNCED -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:5px 12px;border-radius:999px;font-weight:500;">Selesai sinkron — semua tersinkron</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:8;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">10.30</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:700;">Opname Tahunan 2026</div><div style="font-size:11px;color:#64748b;">Cabang Jakarta Selatan · Lantai 1–3</div></div>
+            </div>
+            <div style="flex-shrink:0;margin:2px 20px 0;background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:14px;">
+              <div style="width:72px;height:72px;border-radius:50%;background:conic-gradient(#16a34a 93%,#e2e8f0 0);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div style="width:54px;height:54px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;"><span style="font-size:14px;font-weight:800;color:#15803d;line-height:1.1;">140</span><span style="font-size:9.5px;color:#94a3b8;">/150</span></div></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#15803d;"><span class="ico" style="font-size:14px;">check_circle</span>131</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#b45309;"><span class="ico" style="font-size:14px;">build</span>6</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#1d4ed8;"><span class="ico" style="font-size:14px;">wrong_location</span>3</span>
+                </div>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:11px;font-weight:600;align-self:flex-start;"><span class="ico" style="font-size:14px;">cloud_done</span>Tersinkron</span>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:12px 20px 4px;">
+              <button style="width:100%;height:58px;border:none;border-radius:16px;background:#16a34a;color:#fff;font-family:inherit;font-size:15.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 6px 16px rgba(22,163,74,0.3);"><span class="ico" style="font-size:24px;">qr_code_scanner</span>Pindai Aset Berikutnya</button>
+              <button style="width:100%;height:44px;border:none;border-radius:12px;background:transparent;color:#15803d;font-family:inherit;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:4px;"><span class="ico" style="font-size:17px;">keyboard</span>Ketik kode</button>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;display:flex;flex-direction:column;gap:8px;">
+              <div style="font-size:11.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;padding:4px 0 0;">Baru saja dipindai</div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Rak Arsip Besi 4 Tingkat</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;">JKT01-FUR-2023-00219 · 10.28</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">check_circle</span>Ditemukan</span>
+                <span class="ico" style="font-size:16px;color:#16a34a;">check_circle</span>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Genset Perkins 100 kVA</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;">JKT01-MSN-2022-00007 · 10.26</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#fef3c7;color:#b45309;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">build</span>Rusak</span>
+                <span class="ico" style="font-size:16px;color:#16a34a;">check_circle</span>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Panel Listrik Schneider</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;">JKT01-MSN-2021-00003 · 10.24</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">check_circle</span>Ditemukan</span>
+                <span class="ico" style="font-size:16px;color:#16a34a;">check_circle</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;background:#1e293b;border-radius:12px;padding:11px 15px;margin-top:2px;"><span class="ico" style="font-size:19px;color:#4ade80;">check_circle</span><span style="flex:1;font-size:12.5px;color:#f1f5f9;font-weight:500;">18 hasil opname berhasil diunggah</span></div>
+            </div>
+            <div style="flex-shrink:0;padding:10px 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">Dark mode</div>
+    <div style="display:flex;gap:32px;align-items:flex-start;">
+
+      <!-- D1 NORMAL -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Counting — online normal</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:700;">Opname Tahunan 2026</div><div style="font-size:11px;color:#94a3b8;">Cabang Jakarta Selatan · Lantai 1–3</div></div>
+            </div>
+            <div style="flex-shrink:0;margin:2px 20px 0;background:#1e293b;border:1px solid #334155;border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:14px;">
+              <div style="width:72px;height:72px;border-radius:50%;background:conic-gradient(#22c55e 85%,#334155 0);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div style="width:54px;height:54px;border-radius:50%;background:#1e293b;display:flex;flex-direction:column;align-items:center;justify-content:center;"><span style="font-size:14px;font-weight:800;color:#4ade80;line-height:1.1;">128</span><span style="font-size:9.5px;color:#94a3b8;">/150</span></div></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#4ade80;"><span class="ico" style="font-size:14px;">check_circle</span>120</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#fcd34d;"><span class="ico" style="font-size:14px;">build</span>5</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#93c5fd;"><span class="ico" style="font-size:14px;">wrong_location</span>3</span>
+                </div>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#422006;color:#fcd34d;font-size:11px;font-weight:600;align-self:flex-start;"><span class="ico" style="font-size:14px;">cloud_upload</span>12 belum tersinkron</span>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:12px 20px 4px;">
+              <button style="width:100%;height:58px;border:none;border-radius:16px;background:#22c55e;color:#052e16;font-family:inherit;font-size:15.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:9px;"><span class="ico" style="font-size:24px;">qr_code_scanner</span>Pindai Aset Berikutnya</button>
+              <button style="width:100%;height:44px;border:none;border-radius:12px;background:transparent;color:#4ade80;font-family:inherit;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:4px;"><span class="ico" style="font-size:17px;">keyboard</span>Ketik kode</button>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;display:flex;flex-direction:column;gap:8px;">
+              <div style="font-size:11.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;padding:4px 0 0;">Baru saja dipindai</div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Monitor Dell U2723</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;">JKT01-ELK-2026-00014 · 09.40</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#14532d;color:#86efac;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">check_circle</span>Ditemukan</span>
+                <span class="ico" style="font-size:16px;color:#f59e0b;">hourglass_top</span>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Kursi Ergonomis Fantoni</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;">JKT01-FUR-2025-00112 · 09.38</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#422006;color:#fcd34d;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">build</span>Rusak</span>
+                <span class="ico" style="font-size:16px;color:#f59e0b;">hourglass_top</span>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Printer HP LaserJet M404</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;">JKT01-ELK-2025-00087 · 09.36</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#1e3a5f;color:#93c5fd;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">wrong_location</span>Salah lokasi</span>
+                <span class="ico" style="font-size:16px;color:#4ade80;">check_circle</span>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">UPS APC Smart 1500VA</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;">JKT01-ELK-2024-00042 · 09.35</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#14532d;color:#86efac;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">check_circle</span>Ditemukan</span>
+                <span class="ico" style="font-size:16px;color:#4ade80;">check_circle</span>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:10px 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D2 SHEET -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:5px 12px;border-radius:999px;font-weight:500;">Bottom sheet hasil scan</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:700;">Opname Tahunan 2026</div><div style="font-size:11px;color:#94a3b8;">Cabang Jakarta Selatan · Lantai 1–3</div></div>
+            </div>
+            <div style="flex-shrink:0;margin:2px 20px 0;background:#1e293b;border:1px solid #334155;border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:14px;">
+              <div style="width:72px;height:72px;border-radius:50%;background:conic-gradient(#22c55e 85%,#334155 0);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div style="width:54px;height:54px;border-radius:50%;background:#1e293b;display:flex;flex-direction:column;align-items:center;justify-content:center;"><span style="font-size:14px;font-weight:800;color:#4ade80;line-height:1.1;">128</span><span style="font-size:9.5px;color:#94a3b8;">/150</span></div></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#4ade80;"><span class="ico" style="font-size:14px;">check_circle</span>120</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#fcd34d;"><span class="ico" style="font-size:14px;">build</span>5</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#93c5fd;"><span class="ico" style="font-size:14px;">wrong_location</span>3</span>
+                </div>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#422006;color:#fcd34d;font-size:11px;font-weight:600;align-self:flex-start;"><span class="ico" style="font-size:14px;">cloud_upload</span>12 belum tersinkron</span>
+              </div>
+            </div>
+            <div style="position:absolute;inset:0;background:rgba(2,6,23,0.55);z-index:9;"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;z-index:10;background:#1e293b;border-top:1px solid #334155;border-radius:28px 28px 44px 44px;padding:8px 20px 14px;box-shadow:0 -10px 40px rgba(2,6,23,0.6);">
+              <div style="width:36px;height:4px;border-radius:999px;background:#475569;margin:6px auto 14px;"></div>
+              <div style="display:flex;gap:12px;align-items:center;margin-bottom:14px;">
+                <div style="width:50px;height:50px;border-radius:12px;background:repeating-linear-gradient(45deg,#0f172a,#0f172a 6px,#334155 6px,#334155 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:24px;color:#64748b;">laptop_mac</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:15px;font-weight:700;">Laptop Dell Latitude 5440</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;">JKT01-ELK-2026-00001 · R. Operasional</div>
+                </div>
+                <span class="ico" style="font-size:22px;color:#4ade80;">check_circle</span>
+              </div>
+              <div style="font-size:12px;font-weight:700;color:#94a3b8;margin-bottom:8px;">Hasil:</div>
+              <div style="display:flex;background:#1e293b;border:1px solid #475569;border-radius:14px;overflow:hidden;margin-bottom:12px;">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:11px 4px;background:#22c55e;color:#052e16;"><span class="ico" style="font-size:20px;">check_circle</span><span style="font-size:11px;font-weight:700;">Ditemukan</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:11px 4px;color:#94a3b8;border-left:1px solid #334155;"><span class="ico" style="font-size:20px;">build</span><span style="font-size:11px;font-weight:600;">Rusak</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:11px 4px;color:#94a3b8;border-left:1px solid #334155;"><span class="ico" style="font-size:20px;">wrong_location</span><span style="font-size:11px;font-weight:600;">Salah Lokasi</span></div>
+              </div>
+              <div style="height:44px;border:1.5px solid #475569;border-radius:12px;background:#0f172a;display:flex;align-items:center;padding:0 13px;font-size:13px;color:#64748b;margin-bottom:12px;">Catatan (opsional)</div>
+              <button style="width:100%;height:54px;border:none;border-radius:14px;background:#22c55e;color:#052e16;font-family:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;"><span class="ico" style="font-size:21px;">save</span>Simpan &amp; Lanjut</button>
+              <div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:14px auto 0;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D3 OFFLINE -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b45309;background:#fef3c7;border:1px solid #fde68a;padding:5px 12px;border-radius:999px;font-weight:500;">Offline — antrean bertambah</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">10.02</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;color:#64748b;">signal_cellular_off</span><span class="ico" style="font-size:16px;color:#64748b;">wifi_off</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:700;">Opname Tahunan 2026</div><div style="font-size:11px;color:#94a3b8;">Cabang Jakarta Selatan · Basement</div></div>
+            </div>
+            <div style="margin:0 20px;display:flex;align-items:center;gap:9px;background:#422006;border:1px solid #78350f;border-radius:12px;padding:9px 13px;flex-shrink:0;"><span class="ico" style="font-size:18px;color:#fcd34d;">cloud_off</span><span style="font-size:12px;font-weight:600;color:#fde68a;">Offline — scan tersimpan di perangkat</span></div>
+            <div style="flex-shrink:0;margin:10px 20px 0;background:#1e293b;border:1px solid #334155;border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:14px;">
+              <div style="width:72px;height:72px;border-radius:50%;background:conic-gradient(#22c55e 89%,#334155 0);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div style="width:54px;height:54px;border-radius:50%;background:#1e293b;display:flex;flex-direction:column;align-items:center;justify-content:center;"><span style="font-size:14px;font-weight:800;color:#4ade80;line-height:1.1;">134</span><span style="font-size:9.5px;color:#94a3b8;">/150</span></div></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#4ade80;"><span class="ico" style="font-size:14px;">check_circle</span>125</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#fcd34d;"><span class="ico" style="font-size:14px;">build</span>6</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#93c5fd;"><span class="ico" style="font-size:14px;">wrong_location</span>3</span>
+                </div>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#422006;color:#fcd34d;font-size:11px;font-weight:600;align-self:flex-start;"><span class="ico" style="font-size:14px;">cloud_upload</span>18 belum tersinkron</span>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:12px 20px 4px;">
+              <button style="width:100%;height:58px;border:none;border-radius:16px;background:#22c55e;color:#052e16;font-family:inherit;font-size:15.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:9px;"><span class="ico" style="font-size:24px;">qr_code_scanner</span>Pindai Aset Berikutnya</button>
+              <button style="width:100%;height:44px;border:none;border-radius:12px;background:transparent;color:#4ade80;font-family:inherit;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:4px;"><span class="ico" style="font-size:17px;">keyboard</span>Ketik kode</button>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;display:flex;flex-direction:column;gap:8px;">
+              <div style="font-size:11.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;padding:4px 0 0;">Baru saja dipindai</div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Rak Arsip Besi 4 Tingkat</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;">JKT01-FUR-2023-00219 · 10.01</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#14532d;color:#86efac;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">check_circle</span>Ditemukan</span>
+                <span class="ico" style="font-size:16px;color:#f59e0b;">hourglass_top</span>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Genset Perkins 100 kVA</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;">JKT01-MSN-2022-00007 · 09.58</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#422006;color:#fcd34d;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">build</span>Rusak</span>
+                <span class="ico" style="font-size:16px;color:#f59e0b;">hourglass_top</span>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Panel Listrik Schneider</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;">JKT01-MSN-2021-00003 · 09.55</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#14532d;color:#86efac;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">check_circle</span>Ditemukan</span>
+                <span class="ico" style="font-size:16px;color:#f59e0b;">hourglass_top</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:7px;padding:2px 0;">
+                <span class="ico" style="font-size:15px;color:#64748b;">info</span>
+                <span style="font-size:11.5px;color:#64748b;">Akan diunggah otomatis saat kembali online</span>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:10px 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D4 KONFLIK -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;padding:5px 12px;border-radius:999px;font-weight:500;">Ada konflik di list</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">10.15</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:700;">Opname Tahunan 2026</div><div style="font-size:11px;color:#94a3b8;">Cabang Jakarta Selatan · Lantai 1–3</div></div>
+            </div>
+            <div style="flex-shrink:0;margin:2px 20px 0;background:#1e293b;border:1px solid #334155;border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:14px;">
+              <div style="width:72px;height:72px;border-radius:50%;background:conic-gradient(#22c55e 91%,#334155 0);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div style="width:54px;height:54px;border-radius:50%;background:#1e293b;display:flex;flex-direction:column;align-items:center;justify-content:center;"><span style="font-size:14px;font-weight:800;color:#4ade80;line-height:1.1;">137</span><span style="font-size:9.5px;color:#94a3b8;">/150</span></div></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#4ade80;"><span class="ico" style="font-size:14px;">check_circle</span>128</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#fcd34d;"><span class="ico" style="font-size:14px;">build</span>6</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#93c5fd;"><span class="ico" style="font-size:14px;">wrong_location</span>3</span>
+                </div>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#1e3a5f;color:#93c5fd;font-size:11px;font-weight:600;align-self:flex-start;"><span class="ico" style="font-size:14px;animation:spin 1.2s linear infinite;">sync</span>Menyinkronkan…</span>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:12px 20px 4px;">
+              <button style="width:100%;height:58px;border:none;border-radius:16px;background:#22c55e;color:#052e16;font-family:inherit;font-size:15.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:9px;"><span class="ico" style="font-size:24px;">qr_code_scanner</span>Pindai Aset Berikutnya</button>
+              <button style="width:100%;height:44px;border:none;border-radius:12px;background:transparent;color:#4ade80;font-family:inherit;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:4px;"><span class="ico" style="font-size:17px;">keyboard</span>Ketik kode</button>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;display:flex;flex-direction:column;gap:8px;">
+              <div style="font-size:11.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;padding:4px 0 0;">Baru saja dipindai</div>
+              <div style="background:#2a1215;border:1px solid #7f1d1d;border-radius:14px;padding:11px 13px;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;">
+                  <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">AC Daikin Split 2 PK</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;">JKT01-ELK-2024-00031 · 10.12</div></div>
+                  <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#422006;color:#fcd34d;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">build</span>Rusak</span>
+                  <span class="ico" style="font-size:16px;color:#f87171;">warning</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:#1e293b;border:1px solid #7f1d1d;border-radius:10px;padding:7px 11px;">
+                  <span style="font-size:11.5px;color:#fca5a5;">Sudah dicatat petugas lain: <strong>Ditemukan</strong></span>
+                  <button style="height:30px;padding:0 13px;border:none;border-radius:8px;background:#ef4444;color:#fff;font-family:inherit;font-size:11.5px;font-weight:700;flex-shrink:0;">Lihat</button>
+                </div>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Monitor Dell U2723</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;">JKT01-ELK-2026-00014 · 10.10</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#14532d;color:#86efac;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">check_circle</span>Ditemukan</span>
+                <span class="ico" style="font-size:16px;color:#4ade80;">check_circle</span>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Brankas Chubb Fire</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;">JKT01-SEC-2020-00002 · 10.08</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#14532d;color:#86efac;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">check_circle</span>Ditemukan</span>
+                <span class="ico" style="font-size:16px;color:#f59e0b;">hourglass_top</span>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:10px 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D5 SYNCED -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:5px 12px;border-radius:999px;font-weight:500;">Selesai sinkron — semua tersinkron</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">10.30</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:700;">Opname Tahunan 2026</div><div style="font-size:11px;color:#94a3b8;">Cabang Jakarta Selatan · Lantai 1–3</div></div>
+            </div>
+            <div style="flex-shrink:0;margin:2px 20px 0;background:#1e293b;border:1px solid #334155;border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:14px;">
+              <div style="width:72px;height:72px;border-radius:50%;background:conic-gradient(#22c55e 93%,#334155 0);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div style="width:54px;height:54px;border-radius:50%;background:#1e293b;display:flex;flex-direction:column;align-items:center;justify-content:center;"><span style="font-size:14px;font-weight:800;color:#4ade80;line-height:1.1;">140</span><span style="font-size:9.5px;color:#94a3b8;">/150</span></div></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#4ade80;"><span class="ico" style="font-size:14px;">check_circle</span>131</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#fcd34d;"><span class="ico" style="font-size:14px;">build</span>6</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#93c5fd;"><span class="ico" style="font-size:14px;">wrong_location</span>3</span>
+                </div>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#14532d;color:#86efac;font-size:11px;font-weight:600;align-self:flex-start;"><span class="ico" style="font-size:14px;">cloud_done</span>Tersinkron</span>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:12px 20px 4px;">
+              <button style="width:100%;height:58px;border:none;border-radius:16px;background:#22c55e;color:#052e16;font-family:inherit;font-size:15.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:9px;"><span class="ico" style="font-size:24px;">qr_code_scanner</span>Pindai Aset Berikutnya</button>
+              <button style="width:100%;height:44px;border:none;border-radius:12px;background:transparent;color:#4ade80;font-family:inherit;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:4px;"><span class="ico" style="font-size:17px;">keyboard</span>Ketik kode</button>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;display:flex;flex-direction:column;gap:8px;">
+              <div style="font-size:11.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;padding:4px 0 0;">Baru saja dipindai</div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Rak Arsip Besi 4 Tingkat</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;">JKT01-FUR-2023-00219 · 10.28</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#14532d;color:#86efac;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">check_circle</span>Ditemukan</span>
+                <span class="ico" style="font-size:16px;color:#4ade80;">check_circle</span>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Genset Perkins 100 kVA</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;">JKT01-MSN-2022-00007 · 10.26</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#422006;color:#fcd34d;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">build</span>Rusak</span>
+                <span class="ico" style="font-size:16px;color:#4ade80;">check_circle</span>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Panel Listrik Schneider</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;">JKT01-MSN-2021-00003 · 10.24</div></div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#14532d;color:#86efac;font-size:10.5px;font-weight:600;"><span class="ico" style="font-size:12px;">check_circle</span>Ditemukan</span>
+                <span class="ico" style="font-size:16px;color:#4ade80;">check_circle</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;background:#f1f5f9;border-radius:12px;padding:11px 15px;margin-top:2px;"><span class="ico" style="font-size:19px;color:#16a34a;">check_circle</span><span style="flex:1;font-size:12.5px;color:#0f172a;font-weight:500;">18 hasil opname berhasil diunggah</span></div>
+            </div>
+            <div style="flex-shrink:0;padding:10px 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

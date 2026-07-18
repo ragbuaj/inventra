@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  .ico { font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap; direction: ltr; -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; user-select: none; }
+</style>
+</helmet>
+<div style="font-family:'Inter',sans-serif;background:#eef2f6;padding:48px 40px 80px;min-height:100vh;color:#0f172a;">
+  <div style="margin:0 auto;max-width:1800px;">
+    <div style="margin-bottom:36px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#16a34a;font-weight:500;margin-bottom:6px;">INVENTRA MOBILE · LAYAR 02</div>
+      <h1 style="font-size:32px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;">Beranda</h1>
+      <p style="font-size:14px;color:#64748b;margin:0;">Ringkasan tugas lapangan hari ini · bottom nav aktif di Beranda · 4 state × light &amp; dark.</p>
+    </div>
+
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">Light mode</div>
+    <div style="display:flex;gap:32px;align-items:flex-start;margin-bottom:48px;">
+
+      <!-- ============ L1 MANAGER ============ -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Data penuh — Manager aset</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:5;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 20px 8px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;background:#dcfce7;border:1.5px solid #bbf7d0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#15803d;">AP</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:17px;font-weight:700;">Halo, Andi</div><div style="font-size:11.5px;color:#64748b;">Asset Manager · Cabang Jakarta Selatan</div></div>
+              <div style="position:relative;width:42px;height:42px;border-radius:999px;background:#fff;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;color:#334155;">notifications</span><span style="position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 4px;background:#dc2626;color:#fff;border-radius:999px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #f8fafc;">3</span></div>
+            </div>
+            <div style="flex:1;padding:8px 20px 0;display:flex;flex-direction:column;gap:14px;overflow:hidden;">
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:18px;box-shadow:0 1px 3px rgba(15,23,42,0.05);">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><span style="font-size:13px;font-weight:700;">Sesi Opname Aktif</span><span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#fef3c7;color:#b45309;font-size:11px;font-weight:600;"><span class="ico" style="font-size:14px;">cloud_upload</span>12 belum tersinkron</span></div>
+                <div style="font-size:15.5px;font-weight:700;margin-bottom:2px;">Opname Semester II — Lantai 3</div>
+                <div style="font-size:12px;color:#64748b;margin-bottom:14px;">Cabang Jakarta Selatan · 14–20 Jul 2026</div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;"><span style="color:#64748b;">128 dari 150 aset</span><span style="font-weight:700;color:#15803d;">85%</span></div>
+                <div style="height:8px;border-radius:999px;background:#e2e8f0;overflow:hidden;margin-bottom:16px;"><div style="width:85%;height:100%;background:#16a34a;border-radius:999px;"></div></div>
+                <button style="width:100%;height:48px;border:none;border-radius:13px;background:#16a34a;color:#fff;font-family:inherit;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 12px rgba(22,163,74,0.25);"><span class="ico" style="font-size:20px;">play_arrow</span>Lanjutkan</button>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:18px;box-shadow:0 1px 3px rgba(15,23,42,0.05);">
+                <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+                  <span style="font-size:38px;font-weight:800;letter-spacing:-0.02em;color:#0f172a;line-height:1;">12</span>
+                  <div><div style="font-size:13px;font-weight:700;">Approval Menunggu</div><div style="font-size:11.5px;color:#64748b;">4 di antaranya &gt; 3 hari</div></div>
+                </div>
+                <div style="display:flex;flex-direction:column;">
+                  <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #f1f5f9;"><span style="width:8px;height:8px;border-radius:999px;background:#d97706;flex-shrink:0;"></span><div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Peminjaman · Proyektor Epson EB-X500</div><div style="font-size:11px;color:#64748b;">Dewi Lestari · 2 jam lalu</div></div></div>
+                  <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #f1f5f9;"><span style="width:8px;height:8px;border-radius:999px;background:#d97706;flex-shrink:0;"></span><div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Pelepasan · 3 unit PC Desktop Lenovo</div><div style="font-size:11px;color:#64748b;">Rudi Hartono · kemarin</div></div></div>
+                </div>
+                <button style="width:100%;height:46px;border:1.5px solid #16a34a;border-radius:13px;background:transparent;color:#15803d;font-family:inherit;font-size:13.5px;font-weight:700;margin-top:8px;">Buka Inbox</button>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#dcfce7;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#15803d;">qr_code_scanner</span></div><span style="font-size:11px;font-weight:600;color:#334155;">Pindai Aset</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#dbeafe;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#1d4ed8;">fact_check</span></div><span style="font-size:11px;font-weight:600;color:#334155;">Sesi Opname</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#fef3c7;display:flex;align-items:center;justify-content:center;position:relative;"><span class="ico" style="font-size:26px;color:#b45309;">approval</span><span style="position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;background:#dc2626;color:#fff;border-radius:999px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #f8fafc;">12</span></div><span style="font-size:11px;font-weight:600;color:#334155;">Approval</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#475569;">notifications</span></div><span style="font-size:11px;font-weight:600;color:#334155;">Notifikasi</span></div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;background:#ffffff;border-top:1px solid #e2e8f0;padding:10px 8px 6px;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;border-radius:999px;background:#dcfce7;"><span class="ico" style="font-size:22px;color:#15803d;">home</span></div><span style="font-size:10.5px;font-weight:700;color:#15803d;">Beranda</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#64748b;">fact_check</span></div><span style="font-size:10.5px;font-weight:500;color:#64748b;">Opname</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;"><div style="width:56px;height:56px;border-radius:19px;background:#16a34a;display:flex;align-items:center;justify-content:center;margin-top:-32px;box-shadow:0 8px 18px rgba(22,163,74,0.45);border:4px solid #f8fafc;"><span class="ico" style="font-size:29px;color:#fff;">qr_code_scanner</span></div><span style="font-size:10.5px;font-weight:700;color:#16a34a;">Pindai</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#64748b;">approval</span></div><span style="font-size:10.5px;font-weight:500;color:#64748b;">Approval</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="position:relative;display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#64748b;">notifications</span><span style="position:absolute;top:-2px;right:12px;min-width:15px;height:15px;padding:0 4px;background:#dc2626;color:#fff;border-radius:999px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff;">3</span></div><span style="font-size:10.5px;font-weight:500;color:#64748b;">Notif</span></div>
+              </div>
+              <div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:8px auto 4px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ L2 KEPALA UNIT ============ -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Varian Kepala Unit — approval teratas</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:5;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 20px 8px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;background:#dcfce7;border:1.5px solid #bbf7d0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#15803d;">SR</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:17px;font-weight:700;">Halo, Siti</div><div style="font-size:11.5px;color:#64748b;">Kepala Unit · Cabang Jakarta Selatan</div></div>
+              <div style="position:relative;width:42px;height:42px;border-radius:999px;background:#fff;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;color:#334155;">notifications</span><span style="position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 4px;background:#dc2626;color:#fff;border-radius:999px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #f8fafc;">8</span></div>
+            </div>
+            <div style="flex:1;padding:8px 20px 0;display:flex;flex-direction:column;gap:14px;overflow:hidden;">
+              <div style="background:linear-gradient(135deg,#16a34a,#15803d);border-radius:20px;padding:18px;box-shadow:0 10px 26px rgba(22,163,74,0.32);">
+                <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+                  <span style="font-size:44px;font-weight:800;letter-spacing:-0.02em;color:#fff;line-height:1;">17</span>
+                  <div><div style="font-size:13.5px;font-weight:700;color:#fff;">Approval Menunggu</div><div style="font-size:11.5px;color:#bbf7d0;">6 di antaranya &gt; 3 hari</div></div>
+                </div>
+                <div style="display:flex;flex-direction:column;">
+                  <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid rgba(255,255,255,0.18);"><span style="width:8px;height:8px;border-radius:999px;background:#fde68a;flex-shrink:0;"></span><div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Peminjaman · Proyektor Epson EB-X500</div><div style="font-size:11px;color:#bbf7d0;">Dewi Lestari · 2 jam lalu</div></div></div>
+                  <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid rgba(255,255,255,0.18);"><span style="width:8px;height:8px;border-radius:999px;background:#fde68a;flex-shrink:0;"></span><div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Mutasi · 12 unit Kursi Kerja ke Lt. 5</div><div style="font-size:11px;color:#bbf7d0;">Rudi Hartono · kemarin</div></div></div>
+                </div>
+                <button style="width:100%;height:48px;border:none;border-radius:13px;background:#fff;color:#15803d;font-family:inherit;font-size:14px;font-weight:700;margin-top:8px;">Buka Inbox</button>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:18px;box-shadow:0 1px 3px rgba(15,23,42,0.05);">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><span style="font-size:13px;font-weight:700;">Sesi Opname Aktif</span><span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:11px;font-weight:600;"><span class="ico" style="font-size:14px;">cloud_done</span>Tersinkron</span></div>
+                <div style="font-size:15px;font-weight:700;margin-bottom:2px;">Opname Semester II — Lantai 3</div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin:10px 0 6px;"><span style="color:#64748b;">128 dari 150 aset</span><span style="font-weight:700;color:#15803d;">85%</span></div>
+                <div style="height:8px;border-radius:999px;background:#e2e8f0;overflow:hidden;margin-bottom:14px;"><div style="width:85%;height:100%;background:#16a34a;border-radius:999px;"></div></div>
+                <button style="width:100%;height:46px;border:1.5px solid #16a34a;border-radius:13px;background:transparent;color:#15803d;font-family:inherit;font-size:13.5px;font-weight:700;">Lanjutkan</button>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#dcfce7;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#15803d;">qr_code_scanner</span></div><span style="font-size:11px;font-weight:600;color:#334155;">Pindai Aset</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#dbeafe;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#1d4ed8;">fact_check</span></div><span style="font-size:11px;font-weight:600;color:#334155;">Sesi Opname</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#fef3c7;display:flex;align-items:center;justify-content:center;position:relative;"><span class="ico" style="font-size:26px;color:#b45309;">approval</span><span style="position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;background:#dc2626;color:#fff;border-radius:999px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #f8fafc;">17</span></div><span style="font-size:11px;font-weight:600;color:#334155;">Approval</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#475569;">notifications</span></div><span style="font-size:11px;font-weight:600;color:#334155;">Notifikasi</span></div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;background:#ffffff;border-top:1px solid #e2e8f0;padding:10px 8px 6px;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;border-radius:999px;background:#dcfce7;"><span class="ico" style="font-size:22px;color:#15803d;">home</span></div><span style="font-size:10.5px;font-weight:700;color:#15803d;">Beranda</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#64748b;">fact_check</span></div><span style="font-size:10.5px;font-weight:500;color:#64748b;">Opname</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;"><div style="width:56px;height:56px;border-radius:19px;background:#16a34a;display:flex;align-items:center;justify-content:center;margin-top:-32px;box-shadow:0 8px 18px rgba(22,163,74,0.45);border:4px solid #f8fafc;"><span class="ico" style="font-size:29px;color:#fff;">qr_code_scanner</span></div><span style="font-size:10.5px;font-weight:700;color:#16a34a;">Pindai</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="position:relative;display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#64748b;">approval</span><span style="position:absolute;top:-2px;right:10px;min-width:15px;height:15px;padding:0 4px;background:#dc2626;color:#fff;border-radius:999px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff;">17</span></div><span style="font-size:10.5px;font-weight:500;color:#64748b;">Approval</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="position:relative;display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#64748b;">notifications</span><span style="position:absolute;top:-2px;right:12px;min-width:15px;height:15px;padding:0 4px;background:#dc2626;color:#fff;border-radius:999px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff;">8</span></div><span style="font-size:10.5px;font-weight:500;color:#64748b;">Notif</span></div>
+              </div>
+              <div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:8px auto 4px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ L3 OFFLINE ============ -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b45309;background:#fef3c7;border:1px solid #fde68a;padding:5px 12px;border-radius:999px;font-weight:500;">Offline — data terakhir</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:5;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;color:#94a3b8;">signal_cellular_off</span><span class="ico" style="font-size:16px;color:#94a3b8;">wifi_off</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 20px 8px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;background:#dcfce7;border:1.5px solid #bbf7d0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#15803d;">AP</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:17px;font-weight:700;">Halo, Andi</div><div style="font-size:11.5px;color:#64748b;">Asset Manager · Cabang Jakarta Selatan</div></div>
+              <div style="position:relative;width:42px;height:42px;border-radius:999px;background:#fff;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;color:#334155;">notifications</span><span style="position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 4px;background:#dc2626;color:#fff;border-radius:999px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #f8fafc;">3</span></div>
+            </div>
+            <div style="margin:0 20px;display:flex;align-items:center;gap:9px;background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:9px 13px;flex-shrink:0;"><span class="ico" style="font-size:18px;color:#b45309;">cloud_off</span><span style="font-size:12px;font-weight:600;color:#92400e;">Offline — data terakhir ditampilkan</span><span style="margin-left:auto;font-size:11px;color:#b45309;font-weight:600;">09.12</span></div>
+            <div style="flex:1;padding:12px 20px 0;display:flex;flex-direction:column;gap:14px;overflow:hidden;">
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:18px;box-shadow:0 1px 3px rgba(15,23,42,0.05);">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><span style="font-size:13px;font-weight:700;">Sesi Opname Aktif</span><span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#fef3c7;color:#b45309;font-size:11px;font-weight:600;"><span class="ico" style="font-size:14px;">cloud_upload</span>12 belum tersinkron</span></div>
+                <div style="font-size:15.5px;font-weight:700;margin-bottom:2px;">Opname Semester II — Lantai 3</div>
+                <div style="font-size:12px;color:#64748b;margin-bottom:14px;">Scan tetap tersimpan di perangkat</div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;"><span style="color:#64748b;">128 dari 150 aset</span><span style="font-weight:700;color:#15803d;">85%</span></div>
+                <div style="height:8px;border-radius:999px;background:#e2e8f0;overflow:hidden;margin-bottom:16px;"><div style="width:85%;height:100%;background:#16a34a;border-radius:999px;"></div></div>
+                <button style="width:100%;height:48px;border:none;border-radius:13px;background:#16a34a;color:#fff;font-family:inherit;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 12px rgba(22,163,74,0.25);"><span class="ico" style="font-size:20px;">play_arrow</span>Lanjutkan</button>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:18px;box-shadow:0 1px 3px rgba(15,23,42,0.05);">
+                <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;">
+                  <span style="font-size:38px;font-weight:800;letter-spacing:-0.02em;color:#94a3b8;line-height:1;">12</span>
+                  <div><div style="font-size:13px;font-weight:700;">Approval Menunggu</div><div style="font-size:11.5px;color:#64748b;">Per 09.12 — perlu koneksi untuk memutus</div></div>
+                </div>
+                <button style="width:100%;height:46px;border:1.5px solid #cbd5e1;border-radius:13px;background:transparent;color:#94a3b8;font-family:inherit;font-size:13.5px;font-weight:700;margin-top:6px;">Buka Inbox</button>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#dcfce7;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#15803d;">qr_code_scanner</span></div><span style="font-size:11px;font-weight:600;color:#334155;">Pindai Aset</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#dbeafe;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#1d4ed8;">fact_check</span></div><span style="font-size:11px;font-weight:600;color:#334155;">Sesi Opname</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#94a3b8;">approval</span></div><span style="font-size:11px;font-weight:600;color:#94a3b8;">Approval</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#475569;">notifications</span></div><span style="font-size:11px;font-weight:600;color:#334155;">Notifikasi</span></div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;background:#ffffff;border-top:1px solid #e2e8f0;padding:10px 8px 6px;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;border-radius:999px;background:#dcfce7;"><span class="ico" style="font-size:22px;color:#15803d;">home</span></div><span style="font-size:10.5px;font-weight:700;color:#15803d;">Beranda</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#64748b;">fact_check</span></div><span style="font-size:10.5px;font-weight:500;color:#64748b;">Opname</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;"><div style="width:56px;height:56px;border-radius:19px;background:#16a34a;display:flex;align-items:center;justify-content:center;margin-top:-32px;box-shadow:0 8px 18px rgba(22,163,74,0.45);border:4px solid #f8fafc;"><span class="ico" style="font-size:29px;color:#fff;">qr_code_scanner</span></div><span style="font-size:10.5px;font-weight:700;color:#16a34a;">Pindai</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#64748b;">approval</span></div><span style="font-size:10.5px;font-weight:500;color:#64748b;">Approval</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="position:relative;display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#64748b;">notifications</span><span style="position:absolute;top:-2px;right:12px;min-width:15px;height:15px;padding:0 4px;background:#dc2626;color:#fff;border-radius:999px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff;">3</span></div><span style="font-size:10.5px;font-weight:500;color:#64748b;">Notif</span></div>
+              </div>
+              <div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:8px auto 4px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ L4 LOADING ============ -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:5px 12px;border-radius:999px;font-weight:500;">Loading — skeleton kartu</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:5;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 20px 8px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;background:#dcfce7;border:1.5px solid #bbf7d0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#15803d;">AP</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:17px;font-weight:700;">Halo, Andi</div><div style="font-size:11.5px;color:#64748b;">Asset Manager · Cabang Jakarta Selatan</div></div>
+              <div style="width:42px;height:42px;border-radius:999px;background:#fff;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;color:#334155;">notifications</span></div>
+            </div>
+            <div style="flex:1;padding:8px 20px 0;display:flex;flex-direction:column;gap:14px;overflow:hidden;">
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:18px;">
+                <div style="height:13px;width:45%;border-radius:7px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:14px;"></div>
+                <div style="height:17px;width:70%;border-radius:8px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:10px;"></div>
+                <div style="height:11px;width:52%;border-radius:6px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:18px;"></div>
+                <div style="height:8px;width:100%;border-radius:999px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:18px;"></div>
+                <div style="height:48px;width:100%;border-radius:13px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:18px;">
+                <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+                  <div style="width:52px;height:40px;border-radius:10px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+                  <div style="flex:1;"><div style="height:13px;width:55%;border-radius:7px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:10px;width:38%;border-radius:6px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+                </div>
+                <div style="height:12px;width:85%;border-radius:6px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:10px;"></div>
+                <div style="height:12px;width:72%;border-radius:6px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:18px;"></div>
+                <div style="height:46px;width:100%;border-radius:13px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div><div style="height:9px;width:44px;border-radius:5px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div><div style="height:9px;width:44px;border-radius:5px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div><div style="height:9px;width:44px;border-radius:5px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div><div style="height:9px;width:44px;border-radius:5px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;background:#ffffff;border-top:1px solid #e2e8f0;padding:10px 8px 6px;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;border-radius:999px;background:#dcfce7;"><span class="ico" style="font-size:22px;color:#15803d;">home</span></div><span style="font-size:10.5px;font-weight:700;color:#15803d;">Beranda</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#64748b;">fact_check</span></div><span style="font-size:10.5px;font-weight:500;color:#64748b;">Opname</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;"><div style="width:56px;height:56px;border-radius:19px;background:#16a34a;display:flex;align-items:center;justify-content:center;margin-top:-32px;box-shadow:0 8px 18px rgba(22,163,74,0.45);border:4px solid #f8fafc;"><span class="ico" style="font-size:29px;color:#fff;">qr_code_scanner</span></div><span style="font-size:10.5px;font-weight:700;color:#16a34a;">Pindai</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#64748b;">approval</span></div><span style="font-size:10.5px;font-weight:500;color:#64748b;">Approval</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#64748b;">notifications</span></div><span style="font-size:10.5px;font-weight:500;color:#64748b;">Notif</span></div>
+              </div>
+              <div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:8px auto 4px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">Dark mode</div>
+    <div style="display:flex;gap:32px;align-items:flex-start;">
+
+      <!-- ============ D1 MANAGER ============ -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Data penuh — Manager aset</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:5;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 20px 8px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;background:#14532d;border:1.5px solid #166534;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#86efac;">AP</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:17px;font-weight:700;">Halo, Andi</div><div style="font-size:11.5px;color:#94a3b8;">Asset Manager · Cabang Jakarta Selatan</div></div>
+              <div style="position:relative;width:42px;height:42px;border-radius:999px;background:#1e293b;border:1px solid #334155;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;color:#cbd5e1;">notifications</span><span style="position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 4px;background:#f87171;color:#450a0a;border-radius:999px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #0f172a;">3</span></div>
+            </div>
+            <div style="flex:1;padding:8px 20px 0;display:flex;flex-direction:column;gap:14px;overflow:hidden;">
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:20px;padding:18px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><span style="font-size:13px;font-weight:700;">Sesi Opname Aktif</span><span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#422006;color:#fcd34d;font-size:11px;font-weight:600;"><span class="ico" style="font-size:14px;">cloud_upload</span>12 belum tersinkron</span></div>
+                <div style="font-size:15.5px;font-weight:700;margin-bottom:2px;">Opname Semester II — Lantai 3</div>
+                <div style="font-size:12px;color:#94a3b8;margin-bottom:14px;">Cabang Jakarta Selatan · 14–20 Jul 2026</div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;"><span style="color:#94a3b8;">128 dari 150 aset</span><span style="font-weight:700;color:#4ade80;">85%</span></div>
+                <div style="height:8px;border-radius:999px;background:#334155;overflow:hidden;margin-bottom:16px;"><div style="width:85%;height:100%;background:#22c55e;border-radius:999px;"></div></div>
+                <button style="width:100%;height:48px;border:none;border-radius:13px;background:#22c55e;color:#052e16;font-family:inherit;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;"><span class="ico" style="font-size:20px;">play_arrow</span>Lanjutkan</button>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:20px;padding:18px;">
+                <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+                  <span style="font-size:38px;font-weight:800;letter-spacing:-0.02em;color:#f1f5f9;line-height:1;">12</span>
+                  <div><div style="font-size:13px;font-weight:700;">Approval Menunggu</div><div style="font-size:11.5px;color:#94a3b8;">4 di antaranya &gt; 3 hari</div></div>
+                </div>
+                <div style="display:flex;flex-direction:column;">
+                  <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #334155;"><span style="width:8px;height:8px;border-radius:999px;background:#f59e0b;flex-shrink:0;"></span><div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Peminjaman · Proyektor Epson EB-X500</div><div style="font-size:11px;color:#94a3b8;">Dewi Lestari · 2 jam lalu</div></div></div>
+                  <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #334155;"><span style="width:8px;height:8px;border-radius:999px;background:#f59e0b;flex-shrink:0;"></span><div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Pelepasan · 3 unit PC Desktop Lenovo</div><div style="font-size:11px;color:#94a3b8;">Rudi Hartono · kemarin</div></div></div>
+                </div>
+                <button style="width:100%;height:46px;border:1.5px solid #22c55e;border-radius:13px;background:transparent;color:#4ade80;font-family:inherit;font-size:13.5px;font-weight:700;margin-top:8px;">Buka Inbox</button>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#14532d;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#86efac;">qr_code_scanner</span></div><span style="font-size:11px;font-weight:600;color:#cbd5e1;">Pindai Aset</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#1e3a5f;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#93c5fd;">fact_check</span></div><span style="font-size:11px;font-weight:600;color:#cbd5e1;">Sesi Opname</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#422006;display:flex;align-items:center;justify-content:center;position:relative;"><span class="ico" style="font-size:26px;color:#fcd34d;">approval</span><span style="position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;background:#f87171;color:#450a0a;border-radius:999px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #0f172a;">12</span></div><span style="font-size:11px;font-weight:600;color:#cbd5e1;">Approval</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#334155;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#cbd5e1;">notifications</span></div><span style="font-size:11px;font-weight:600;color:#cbd5e1;">Notifikasi</span></div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;background:#1e293b;border-top:1px solid #334155;padding:10px 8px 6px;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;border-radius:999px;background:rgba(34,197,94,0.18);"><span class="ico" style="font-size:22px;color:#4ade80;">home</span></div><span style="font-size:10.5px;font-weight:700;color:#4ade80;">Beranda</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#94a3b8;">fact_check</span></div><span style="font-size:10.5px;font-weight:500;color:#94a3b8;">Opname</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;"><div style="width:56px;height:56px;border-radius:19px;background:#22c55e;display:flex;align-items:center;justify-content:center;margin-top:-32px;box-shadow:0 8px 18px rgba(34,197,94,0.4);border:4px solid #1e293b;"><span class="ico" style="font-size:29px;color:#052e16;">qr_code_scanner</span></div><span style="font-size:10.5px;font-weight:700;color:#22c55e;">Pindai</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#94a3b8;">approval</span></div><span style="font-size:10.5px;font-weight:500;color:#94a3b8;">Approval</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="position:relative;display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#94a3b8;">notifications</span><span style="position:absolute;top:-2px;right:12px;min-width:15px;height:15px;padding:0 4px;background:#f87171;color:#450a0a;border-radius:999px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #1e293b;">3</span></div><span style="font-size:10.5px;font-weight:500;color:#94a3b8;">Notif</span></div>
+              </div>
+              <div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:8px auto 4px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ D2 KEPALA UNIT ============ -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Varian Kepala Unit — approval teratas</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:5;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 20px 8px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;background:#14532d;border:1.5px solid #166534;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#86efac;">SR</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:17px;font-weight:700;">Halo, Siti</div><div style="font-size:11.5px;color:#94a3b8;">Kepala Unit · Cabang Jakarta Selatan</div></div>
+              <div style="position:relative;width:42px;height:42px;border-radius:999px;background:#1e293b;border:1px solid #334155;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;color:#cbd5e1;">notifications</span><span style="position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 4px;background:#f87171;color:#450a0a;border-radius:999px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #0f172a;">8</span></div>
+            </div>
+            <div style="flex:1;padding:8px 20px 0;display:flex;flex-direction:column;gap:14px;overflow:hidden;">
+              <div style="background:linear-gradient(135deg,#166534,#14532d);border:1px solid #16a34a;border-radius:20px;padding:18px;">
+                <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+                  <span style="font-size:44px;font-weight:800;letter-spacing:-0.02em;color:#fff;line-height:1;">17</span>
+                  <div><div style="font-size:13.5px;font-weight:700;color:#fff;">Approval Menunggu</div><div style="font-size:11.5px;color:#86efac;">6 di antaranya &gt; 3 hari</div></div>
+                </div>
+                <div style="display:flex;flex-direction:column;">
+                  <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid rgba(134,239,172,0.2);"><span style="width:8px;height:8px;border-radius:999px;background:#fcd34d;flex-shrink:0;"></span><div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Peminjaman · Proyektor Epson EB-X500</div><div style="font-size:11px;color:#86efac;">Dewi Lestari · 2 jam lalu</div></div></div>
+                  <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid rgba(134,239,172,0.2);"><span style="width:8px;height:8px;border-radius:999px;background:#fcd34d;flex-shrink:0;"></span><div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Mutasi · 12 unit Kursi Kerja ke Lt. 5</div><div style="font-size:11px;color:#86efac;">Rudi Hartono · kemarin</div></div></div>
+                </div>
+                <button style="width:100%;height:48px;border:none;border-radius:13px;background:#22c55e;color:#052e16;font-family:inherit;font-size:14px;font-weight:700;margin-top:8px;">Buka Inbox</button>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:20px;padding:18px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><span style="font-size:13px;font-weight:700;">Sesi Opname Aktif</span><span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#14532d;color:#86efac;font-size:11px;font-weight:600;"><span class="ico" style="font-size:14px;">cloud_done</span>Tersinkron</span></div>
+                <div style="font-size:15px;font-weight:700;margin-bottom:2px;">Opname Semester II — Lantai 3</div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin:10px 0 6px;"><span style="color:#94a3b8;">128 dari 150 aset</span><span style="font-weight:700;color:#4ade80;">85%</span></div>
+                <div style="height:8px;border-radius:999px;background:#334155;overflow:hidden;margin-bottom:14px;"><div style="width:85%;height:100%;background:#22c55e;border-radius:999px;"></div></div>
+                <button style="width:100%;height:46px;border:1.5px solid #22c55e;border-radius:13px;background:transparent;color:#4ade80;font-family:inherit;font-size:13.5px;font-weight:700;">Lanjutkan</button>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#14532d;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#86efac;">qr_code_scanner</span></div><span style="font-size:11px;font-weight:600;color:#cbd5e1;">Pindai Aset</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#1e3a5f;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#93c5fd;">fact_check</span></div><span style="font-size:11px;font-weight:600;color:#cbd5e1;">Sesi Opname</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#422006;display:flex;align-items:center;justify-content:center;position:relative;"><span class="ico" style="font-size:26px;color:#fcd34d;">approval</span><span style="position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;background:#f87171;color:#450a0a;border-radius:999px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #0f172a;">17</span></div><span style="font-size:11px;font-weight:600;color:#cbd5e1;">Approval</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#334155;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#cbd5e1;">notifications</span></div><span style="font-size:11px;font-weight:600;color:#cbd5e1;">Notifikasi</span></div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;background:#1e293b;border-top:1px solid #334155;padding:10px 8px 6px;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;border-radius:999px;background:rgba(34,197,94,0.18);"><span class="ico" style="font-size:22px;color:#4ade80;">home</span></div><span style="font-size:10.5px;font-weight:700;color:#4ade80;">Beranda</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#94a3b8;">fact_check</span></div><span style="font-size:10.5px;font-weight:500;color:#94a3b8;">Opname</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;"><div style="width:56px;height:56px;border-radius:19px;background:#22c55e;display:flex;align-items:center;justify-content:center;margin-top:-32px;box-shadow:0 8px 18px rgba(34,197,94,0.4);border:4px solid #1e293b;"><span class="ico" style="font-size:29px;color:#052e16;">qr_code_scanner</span></div><span style="font-size:10.5px;font-weight:700;color:#22c55e;">Pindai</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="position:relative;display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#94a3b8;">approval</span><span style="position:absolute;top:-2px;right:10px;min-width:15px;height:15px;padding:0 4px;background:#f87171;color:#450a0a;border-radius:999px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #1e293b;">17</span></div><span style="font-size:10.5px;font-weight:500;color:#94a3b8;">Approval</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="position:relative;display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#94a3b8;">notifications</span><span style="position:absolute;top:-2px;right:12px;min-width:15px;height:15px;padding:0 4px;background:#f87171;color:#450a0a;border-radius:999px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #1e293b;">8</span></div><span style="font-size:10.5px;font-weight:500;color:#94a3b8;">Notif</span></div>
+              </div>
+              <div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:8px auto 4px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ D3 OFFLINE ============ -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b45309;background:#fef3c7;border:1px solid #fde68a;padding:5px 12px;border-radius:999px;font-weight:500;">Offline — data terakhir</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:5;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;color:#64748b;">signal_cellular_off</span><span class="ico" style="font-size:16px;color:#64748b;">wifi_off</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 20px 8px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;background:#14532d;border:1.5px solid #166534;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#86efac;">AP</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:17px;font-weight:700;">Halo, Andi</div><div style="font-size:11.5px;color:#94a3b8;">Asset Manager · Cabang Jakarta Selatan</div></div>
+              <div style="position:relative;width:42px;height:42px;border-radius:999px;background:#1e293b;border:1px solid #334155;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;color:#cbd5e1;">notifications</span><span style="position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 4px;background:#f87171;color:#450a0a;border-radius:999px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #0f172a;">3</span></div>
+            </div>
+            <div style="margin:0 20px;display:flex;align-items:center;gap:9px;background:#422006;border:1px solid #78350f;border-radius:12px;padding:9px 13px;flex-shrink:0;"><span class="ico" style="font-size:18px;color:#fcd34d;">cloud_off</span><span style="font-size:12px;font-weight:600;color:#fde68a;">Offline — data terakhir ditampilkan</span><span style="margin-left:auto;font-size:11px;color:#fcd34d;font-weight:600;">09.12</span></div>
+            <div style="flex:1;padding:12px 20px 0;display:flex;flex-direction:column;gap:14px;overflow:hidden;">
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:20px;padding:18px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><span style="font-size:13px;font-weight:700;">Sesi Opname Aktif</span><span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#422006;color:#fcd34d;font-size:11px;font-weight:600;"><span class="ico" style="font-size:14px;">cloud_upload</span>12 belum tersinkron</span></div>
+                <div style="font-size:15.5px;font-weight:700;margin-bottom:2px;">Opname Semester II — Lantai 3</div>
+                <div style="font-size:12px;color:#94a3b8;margin-bottom:14px;">Scan tetap tersimpan di perangkat</div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;"><span style="color:#94a3b8;">128 dari 150 aset</span><span style="font-weight:700;color:#4ade80;">85%</span></div>
+                <div style="height:8px;border-radius:999px;background:#334155;overflow:hidden;margin-bottom:16px;"><div style="width:85%;height:100%;background:#22c55e;border-radius:999px;"></div></div>
+                <button style="width:100%;height:48px;border:none;border-radius:13px;background:#22c55e;color:#052e16;font-family:inherit;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;"><span class="ico" style="font-size:20px;">play_arrow</span>Lanjutkan</button>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:20px;padding:18px;">
+                <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;">
+                  <span style="font-size:38px;font-weight:800;letter-spacing:-0.02em;color:#64748b;line-height:1;">12</span>
+                  <div><div style="font-size:13px;font-weight:700;">Approval Menunggu</div><div style="font-size:11.5px;color:#94a3b8;">Per 09.12 — perlu koneksi untuk memutus</div></div>
+                </div>
+                <button style="width:100%;height:46px;border:1.5px solid #475569;border-radius:13px;background:transparent;color:#64748b;font-family:inherit;font-size:13.5px;font-weight:700;margin-top:6px;">Buka Inbox</button>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#14532d;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#86efac;">qr_code_scanner</span></div><span style="font-size:11px;font-weight:600;color:#cbd5e1;">Pindai Aset</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#1e3a5f;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#93c5fd;">fact_check</span></div><span style="font-size:11px;font-weight:600;color:#cbd5e1;">Sesi Opname</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#334155;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#64748b;">approval</span></div><span style="font-size:11px;font-weight:600;color:#64748b;">Approval</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:#334155;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#cbd5e1;">notifications</span></div><span style="font-size:11px;font-weight:600;color:#cbd5e1;">Notifikasi</span></div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;background:#1e293b;border-top:1px solid #334155;padding:10px 8px 6px;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;border-radius:999px;background:rgba(34,197,94,0.18);"><span class="ico" style="font-size:22px;color:#4ade80;">home</span></div><span style="font-size:10.5px;font-weight:700;color:#4ade80;">Beranda</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#94a3b8;">fact_check</span></div><span style="font-size:10.5px;font-weight:500;color:#94a3b8;">Opname</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;"><div style="width:56px;height:56px;border-radius:19px;background:#22c55e;display:flex;align-items:center;justify-content:center;margin-top:-32px;box-shadow:0 8px 18px rgba(34,197,94,0.4);border:4px solid #1e293b;"><span class="ico" style="font-size:29px;color:#052e16;">qr_code_scanner</span></div><span style="font-size:10.5px;font-weight:700;color:#22c55e;">Pindai</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#94a3b8;">approval</span></div><span style="font-size:10.5px;font-weight:500;color:#94a3b8;">Approval</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="position:relative;display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#94a3b8;">notifications</span><span style="position:absolute;top:-2px;right:12px;min-width:15px;height:15px;padding:0 4px;background:#f87171;color:#450a0a;border-radius:999px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #1e293b;">3</span></div><span style="font-size:10.5px;font-weight:500;color:#94a3b8;">Notif</span></div>
+              </div>
+              <div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:8px auto 4px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ D4 LOADING ============ -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:5px 12px;border-radius:999px;font-weight:500;">Loading — skeleton kartu</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:5;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 20px 8px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;background:#14532d;border:1.5px solid #166534;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#86efac;">AP</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:17px;font-weight:700;">Halo, Andi</div><div style="font-size:11.5px;color:#94a3b8;">Asset Manager · Cabang Jakarta Selatan</div></div>
+              <div style="width:42px;height:42px;border-radius:999px;background:#1e293b;border:1px solid #334155;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;color:#cbd5e1;">notifications</span></div>
+            </div>
+            <div style="flex:1;padding:8px 20px 0;display:flex;flex-direction:column;gap:14px;overflow:hidden;">
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:20px;padding:18px;">
+                <div style="height:13px;width:45%;border-radius:7px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:14px;"></div>
+                <div style="height:17px;width:70%;border-radius:8px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:10px;"></div>
+                <div style="height:11px;width:52%;border-radius:6px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:18px;"></div>
+                <div style="height:8px;width:100%;border-radius:999px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:18px;"></div>
+                <div style="height:48px;width:100%;border-radius:13px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:20px;padding:18px;">
+                <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+                  <div style="width:52px;height:40px;border-radius:10px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+                  <div style="flex:1;"><div style="height:13px;width:55%;border-radius:7px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:10px;width:38%;border-radius:6px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+                </div>
+                <div style="height:12px;width:85%;border-radius:6px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:10px;"></div>
+                <div style="height:12px;width:72%;border-radius:6px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:18px;"></div>
+                <div style="height:46px;width:100%;border-radius:13px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div><div style="height:9px;width:44px;border-radius:5px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div><div style="height:9px;width:44px;border-radius:5px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div><div style="height:9px;width:44px;border-radius:5px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:54px;height:54px;border-radius:17px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div><div style="height:9px;width:44px;border-radius:5px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;background:#1e293b;border-top:1px solid #334155;padding:10px 8px 6px;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;border-radius:999px;background:rgba(34,197,94,0.18);"><span class="ico" style="font-size:22px;color:#4ade80;">home</span></div><span style="font-size:10.5px;font-weight:700;color:#4ade80;">Beranda</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#94a3b8;">fact_check</span></div><span style="font-size:10.5px;font-weight:500;color:#94a3b8;">Opname</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;"><div style="width:56px;height:56px;border-radius:19px;background:#22c55e;display:flex;align-items:center;justify-content:center;margin-top:-32px;box-shadow:0 8px 18px rgba(34,197,94,0.4);border:4px solid #1e293b;"><span class="ico" style="font-size:29px;color:#052e16;">qr_code_scanner</span></div><span style="font-size:10.5px;font-weight:700;color:#22c55e;">Pindai</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#94a3b8;">approval</span></div><span style="font-size:10.5px;font-weight:500;color:#94a3b8;">Approval</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="display:flex;align-items:center;justify-content:center;width:54px;height:29px;"><span class="ico" style="font-size:22px;color:#94a3b8;">notifications</span></div><span style="font-size:10.5px;font-weight:500;color:#94a3b8;">Notif</span></div>
+              </div>
+              <div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:8px auto 4px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

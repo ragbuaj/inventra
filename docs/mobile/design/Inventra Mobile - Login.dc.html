@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ico { font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap; direction: ltr; -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; user-select: none; }
+</style>
+</helmet>
+<div style="font-family:'Inter',sans-serif;background:#eef2f6;padding:48px 40px 80px;min-height:100vh;color:#0f172a;">
+  <div style="margin:0 auto;max-width:1400px;">
+    <div style="margin-bottom:36px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#16a34a;font-weight:500;margin-bottom:6px;">INVENTRA MOBILE · LAYAR 01</div>
+      <h1 style="font-size:32px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;">Login</h1>
+      <p style="font-size:14px;color:#64748b;margin:0;">Masuk dengan akun Inventra yang sama dengan web · layar penuh tanpa bottom nav · 3 state × light &amp; dark.</p>
+    </div>
+
+    <!-- ================= LIGHT ROW ================= -->
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">Light mode</div>
+    <div style="display:flex;gap:32px;align-items:flex-start;margin-bottom:48px;">
+
+      <!-- LIGHT / DEFAULT -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Default — form kosong</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:radial-gradient(120% 52% at 50% -6%, #bbf7d0 0%, rgba(187,247,208,0) 72%), #f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:5;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;margin-top:56px;">
+              <div style="width:74px;height:74px;border-radius:22px;background:#16a34a;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 28px rgba(22,163,74,0.35);margin-bottom:18px;"><span class="ico" style="font-size:40px;color:#fff;">inventory_2</span></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:30px;font-weight:800;letter-spacing:-0.02em;">Inventra</span><span style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#15803d;background:#dcfce7;padding:4px 8px;border-radius:999px;">MOBILE</span></div>
+              <div style="font-size:13.5px;color:#64748b;">Pendamping lapangan manajemen aset</div>
+            </div>
+            <div style="margin:36px 20px 0;background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:24px 22px;box-shadow:0 12px 32px rgba(15,23,42,0.08);">
+              <div style="font-size:18px;font-weight:700;margin-bottom:2px;">Masuk</div>
+              <div style="font-size:12.5px;color:#64748b;margin-bottom:20px;">Gunakan akun Inventra Anda</div>
+              <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Email</label>
+              <div style="height:52px;border:1.5px solid #cbd5e1;border-radius:14px;background:#fff;display:flex;align-items:center;gap:10px;padding:0 16px;margin-bottom:16px;"><span class="ico" style="font-size:20px;color:#94a3b8;">mail</span><span style="font-size:14px;color:#94a3b8;">nama@bank.co.id</span></div>
+              <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Kata sandi</label>
+              <div style="height:52px;border:1.5px solid #cbd5e1;border-radius:14px;background:#fff;display:flex;align-items:center;gap:10px;padding:0 16px;margin-bottom:22px;"><span class="ico" style="font-size:20px;color:#94a3b8;">lock</span><span style="flex:1;font-size:14px;color:#94a3b8;">Masukkan kata sandi</span><span class="ico" style="font-size:21px;color:#64748b;">visibility_off</span></div>
+              <button style="width:100%;height:52px;border:none;border-radius:14px;background:#16a34a;color:#fff;font-family:inherit;font-size:15px;font-weight:700;box-shadow:0 4px 14px rgba(22,163,74,0.3);">Masuk</button>
+            </div>
+            <div style="margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:12px;padding-bottom:26px;">
+              <div style="display:flex;background:#fff;border:1px solid #e2e8f0;border-radius:999px;padding:3px;">
+                <span style="padding:5px 14px;border-radius:999px;background:#16a34a;color:#fff;font-size:11.5px;font-weight:700;">ID</span>
+                <span style="padding:5px 14px;border-radius:999px;color:#64748b;font-size:11.5px;font-weight:600;">EN</span>
+              </div>
+              <span style="font-size:11px;color:#94a3b8;">Inventra Mobile v1.4.2 · Build 208</span>
+              <div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIGHT / ERROR -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;padding:5px 12px;border-radius:999px;font-weight:500;">Error — kredensial salah</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:radial-gradient(120% 52% at 50% -6%, #bbf7d0 0%, rgba(187,247,208,0) 72%), #f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:5;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;margin-top:56px;">
+              <div style="width:74px;height:74px;border-radius:22px;background:#16a34a;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 28px rgba(22,163,74,0.35);margin-bottom:18px;"><span class="ico" style="font-size:40px;color:#fff;">inventory_2</span></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:30px;font-weight:800;letter-spacing:-0.02em;">Inventra</span><span style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#15803d;background:#dcfce7;padding:4px 8px;border-radius:999px;">MOBILE</span></div>
+              <div style="font-size:13.5px;color:#64748b;">Pendamping lapangan manajemen aset</div>
+            </div>
+            <div style="margin:36px 20px 0;background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:24px 22px;box-shadow:0 12px 32px rgba(15,23,42,0.08);">
+              <div style="font-size:18px;font-weight:700;margin-bottom:2px;">Masuk</div>
+              <div style="font-size:12.5px;color:#64748b;margin-bottom:16px;">Gunakan akun Inventra Anda</div>
+              <div style="display:flex;align-items:center;gap:9px;background:#fee2e2;border:1px solid #fecaca;border-radius:12px;padding:11px 13px;margin-bottom:16px;"><span class="ico" style="font-size:19px;color:#dc2626;">error</span><span style="font-size:12.5px;font-weight:600;color:#b91c1c;">Email atau kata sandi salah. Coba lagi.</span></div>
+              <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Email</label>
+              <div style="height:52px;border:1.5px solid #dc2626;border-radius:14px;background:#fff;display:flex;align-items:center;gap:10px;padding:0 16px;margin-bottom:16px;"><span class="ico" style="font-size:20px;color:#dc2626;">mail</span><span style="font-size:14px;color:#0f172a;">budi.santoso@bank.co.id</span></div>
+              <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Kata sandi</label>
+              <div style="height:52px;border:1.5px solid #dc2626;border-radius:14px;background:#fff;display:flex;align-items:center;gap:10px;padding:0 16px;margin-bottom:22px;"><span class="ico" style="font-size:20px;color:#dc2626;">lock</span><span style="flex:1;font-size:16px;color:#0f172a;letter-spacing:2px;">••••••••</span><span class="ico" style="font-size:21px;color:#64748b;">visibility_off</span></div>
+              <button style="width:100%;height:52px;border:none;border-radius:14px;background:#16a34a;color:#fff;font-family:inherit;font-size:15px;font-weight:700;box-shadow:0 4px 14px rgba(22,163,74,0.3);">Masuk</button>
+            </div>
+            <div style="margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:12px;padding-bottom:26px;">
+              <div style="display:flex;background:#fff;border:1px solid #e2e8f0;border-radius:999px;padding:3px;">
+                <span style="padding:5px 14px;border-radius:999px;background:#16a34a;color:#fff;font-size:11.5px;font-weight:700;">ID</span>
+                <span style="padding:5px 14px;border-radius:999px;color:#64748b;font-size:11.5px;font-weight:600;">EN</span>
+              </div>
+              <span style="font-size:11px;color:#94a3b8;">Inventra Mobile v1.4.2 · Build 208</span>
+              <div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIGHT / LOADING -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:5px 12px;border-radius:999px;font-weight:500;">Loading — memproses masuk</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:radial-gradient(120% 52% at 50% -6%, #bbf7d0 0%, rgba(187,247,208,0) 72%), #f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:5;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;margin-top:56px;">
+              <div style="width:74px;height:74px;border-radius:22px;background:#16a34a;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 28px rgba(22,163,74,0.35);margin-bottom:18px;"><span class="ico" style="font-size:40px;color:#fff;">inventory_2</span></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:30px;font-weight:800;letter-spacing:-0.02em;">Inventra</span><span style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#15803d;background:#dcfce7;padding:4px 8px;border-radius:999px;">MOBILE</span></div>
+              <div style="font-size:13.5px;color:#64748b;">Pendamping lapangan manajemen aset</div>
+            </div>
+            <div style="margin:36px 20px 0;background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:24px 22px;box-shadow:0 12px 32px rgba(15,23,42,0.08);">
+              <div style="font-size:18px;font-weight:700;margin-bottom:2px;">Masuk</div>
+              <div style="font-size:12.5px;color:#64748b;margin-bottom:20px;">Gunakan akun Inventra Anda</div>
+              <label style="font-size:12px;font-weight:600;color:#94a3b8;display:block;margin-bottom:6px;">Email</label>
+              <div style="height:52px;border:1.5px solid #e2e8f0;border-radius:14px;background:#f8fafc;display:flex;align-items:center;gap:10px;padding:0 16px;margin-bottom:16px;"><span class="ico" style="font-size:20px;color:#cbd5e1;">mail</span><span style="font-size:14px;color:#64748b;">budi.santoso@bank.co.id</span></div>
+              <label style="font-size:12px;font-weight:600;color:#94a3b8;display:block;margin-bottom:6px;">Kata sandi</label>
+              <div style="height:52px;border:1.5px solid #e2e8f0;border-radius:14px;background:#f8fafc;display:flex;align-items:center;gap:10px;padding:0 16px;margin-bottom:22px;"><span class="ico" style="font-size:20px;color:#cbd5e1;">lock</span><span style="flex:1;font-size:16px;color:#64748b;letter-spacing:2px;">••••••••</span><span class="ico" style="font-size:21px;color:#cbd5e1;">visibility_off</span></div>
+              <button style="width:100%;height:52px;border:none;border-radius:14px;background:#16a34a;color:#fff;font-family:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;opacity:0.92;"><span style="width:19px;height:19px;border:2.5px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;"></span>Memproses…</button>
+            </div>
+            <div style="margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:12px;padding-bottom:26px;">
+              <div style="display:flex;background:#fff;border:1px solid #e2e8f0;border-radius:999px;padding:3px;">
+                <span style="padding:5px 14px;border-radius:999px;background:#16a34a;color:#fff;font-size:11.5px;font-weight:700;">ID</span>
+                <span style="padding:5px 14px;border-radius:999px;color:#64748b;font-size:11.5px;font-weight:600;">EN</span>
+              </div>
+              <span style="font-size:11px;color:#94a3b8;">Inventra Mobile v1.4.2 · Build 208</span>
+              <div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= DARK ROW ================= -->
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">Dark mode</div>
+    <div style="display:flex;gap:32px;align-items:flex-start;">
+
+      <!-- DARK / DEFAULT -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Default — form kosong</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:radial-gradient(120% 52% at 50% -6%, rgba(34,197,94,0.18) 0%, rgba(34,197,94,0) 72%), #0f172a;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:5;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;color:#f1f5f9;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;margin-top:56px;">
+              <div style="width:74px;height:74px;border-radius:22px;background:#22c55e;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 28px rgba(34,197,94,0.3);margin-bottom:18px;"><span class="ico" style="font-size:40px;color:#052e16;">inventory_2</span></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:30px;font-weight:800;letter-spacing:-0.02em;color:#f1f5f9;">Inventra</span><span style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#86efac;background:#14532d;padding:4px 8px;border-radius:999px;">MOBILE</span></div>
+              <div style="font-size:13.5px;color:#94a3b8;">Pendamping lapangan manajemen aset</div>
+            </div>
+            <div style="margin:36px 20px 0;background:#1e293b;border:1px solid #334155;border-radius:24px;padding:24px 22px;">
+              <div style="font-size:18px;font-weight:700;margin-bottom:2px;color:#f1f5f9;">Masuk</div>
+              <div style="font-size:12.5px;color:#94a3b8;margin-bottom:20px;">Gunakan akun Inventra Anda</div>
+              <label style="font-size:12px;font-weight:600;color:#cbd5e1;display:block;margin-bottom:6px;">Email</label>
+              <div style="height:52px;border:1.5px solid #475569;border-radius:14px;background:#0f172a;display:flex;align-items:center;gap:10px;padding:0 16px;margin-bottom:16px;"><span class="ico" style="font-size:20px;color:#64748b;">mail</span><span style="font-size:14px;color:#64748b;">nama@bank.co.id</span></div>
+              <label style="font-size:12px;font-weight:600;color:#cbd5e1;display:block;margin-bottom:6px;">Kata sandi</label>
+              <div style="height:52px;border:1.5px solid #475569;border-radius:14px;background:#0f172a;display:flex;align-items:center;gap:10px;padding:0 16px;margin-bottom:22px;"><span class="ico" style="font-size:20px;color:#64748b;">lock</span><span style="flex:1;font-size:14px;color:#64748b;">Masukkan kata sandi</span><span class="ico" style="font-size:21px;color:#94a3b8;">visibility_off</span></div>
+              <button style="width:100%;height:52px;border:none;border-radius:14px;background:#22c55e;color:#052e16;font-family:inherit;font-size:15px;font-weight:700;">Masuk</button>
+            </div>
+            <div style="margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:12px;padding-bottom:26px;">
+              <div style="display:flex;background:#1e293b;border:1px solid #334155;border-radius:999px;padding:3px;">
+                <span style="padding:5px 14px;border-radius:999px;background:#22c55e;color:#052e16;font-size:11.5px;font-weight:700;">ID</span>
+                <span style="padding:5px 14px;border-radius:999px;color:#94a3b8;font-size:11.5px;font-weight:600;">EN</span>
+              </div>
+              <span style="font-size:11px;color:#64748b;">Inventra Mobile v1.4.2 · Build 208</span>
+              <div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DARK / ERROR -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;padding:5px 12px;border-radius:999px;font-weight:500;">Error — kredensial salah</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:radial-gradient(120% 52% at 50% -6%, rgba(34,197,94,0.18) 0%, rgba(34,197,94,0) 72%), #0f172a;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:5;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;color:#f1f5f9;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;margin-top:56px;">
+              <div style="width:74px;height:74px;border-radius:22px;background:#22c55e;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 28px rgba(34,197,94,0.3);margin-bottom:18px;"><span class="ico" style="font-size:40px;color:#052e16;">inventory_2</span></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:30px;font-weight:800;letter-spacing:-0.02em;color:#f1f5f9;">Inventra</span><span style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#86efac;background:#14532d;padding:4px 8px;border-radius:999px;">MOBILE</span></div>
+              <div style="font-size:13.5px;color:#94a3b8;">Pendamping lapangan manajemen aset</div>
+            </div>
+            <div style="margin:36px 20px 0;background:#1e293b;border:1px solid #334155;border-radius:24px;padding:24px 22px;">
+              <div style="font-size:18px;font-weight:700;margin-bottom:2px;color:#f1f5f9;">Masuk</div>
+              <div style="font-size:12.5px;color:#94a3b8;margin-bottom:16px;">Gunakan akun Inventra Anda</div>
+              <div style="display:flex;align-items:center;gap:9px;background:#450a0a;border:1px solid #7f1d1d;border-radius:12px;padding:11px 13px;margin-bottom:16px;"><span class="ico" style="font-size:19px;color:#f87171;">error</span><span style="font-size:12.5px;font-weight:600;color:#fca5a5;">Email atau kata sandi salah. Coba lagi.</span></div>
+              <label style="font-size:12px;font-weight:600;color:#cbd5e1;display:block;margin-bottom:6px;">Email</label>
+              <div style="height:52px;border:1.5px solid #ef4444;border-radius:14px;background:#0f172a;display:flex;align-items:center;gap:10px;padding:0 16px;margin-bottom:16px;"><span class="ico" style="font-size:20px;color:#f87171;">mail</span><span style="font-size:14px;color:#f1f5f9;">budi.santoso@bank.co.id</span></div>
+              <label style="font-size:12px;font-weight:600;color:#cbd5e1;display:block;margin-bottom:6px;">Kata sandi</label>
+              <div style="height:52px;border:1.5px solid #ef4444;border-radius:14px;background:#0f172a;display:flex;align-items:center;gap:10px;padding:0 16px;margin-bottom:22px;"><span class="ico" style="font-size:20px;color:#f87171;">lock</span><span style="flex:1;font-size:16px;color:#f1f5f9;letter-spacing:2px;">••••••••</span><span class="ico" style="font-size:21px;color:#94a3b8;">visibility_off</span></div>
+              <button style="width:100%;height:52px;border:none;border-radius:14px;background:#22c55e;color:#052e16;font-family:inherit;font-size:15px;font-weight:700;">Masuk</button>
+            </div>
+            <div style="margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:12px;padding-bottom:26px;">
+              <div style="display:flex;background:#1e293b;border:1px solid #334155;border-radius:999px;padding:3px;">
+                <span style="padding:5px 14px;border-radius:999px;background:#22c55e;color:#052e16;font-size:11.5px;font-weight:700;">ID</span>
+                <span style="padding:5px 14px;border-radius:999px;color:#94a3b8;font-size:11.5px;font-weight:600;">EN</span>
+              </div>
+              <span style="font-size:11px;color:#64748b;">Inventra Mobile v1.4.2 · Build 208</span>
+              <div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DARK / LOADING -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:5px 12px;border-radius:999px;font-weight:500;">Loading — memproses masuk</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:radial-gradient(120% 52% at 50% -6%, rgba(34,197,94,0.18) 0%, rgba(34,197,94,0) 72%), #0f172a;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:5;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;color:#f1f5f9;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;margin-top:56px;">
+              <div style="width:74px;height:74px;border-radius:22px;background:#22c55e;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 28px rgba(34,197,94,0.3);margin-bottom:18px;"><span class="ico" style="font-size:40px;color:#052e16;">inventory_2</span></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:30px;font-weight:800;letter-spacing:-0.02em;color:#f1f5f9;">Inventra</span><span style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#86efac;background:#14532d;padding:4px 8px;border-radius:999px;">MOBILE</span></div>
+              <div style="font-size:13.5px;color:#94a3b8;">Pendamping lapangan manajemen aset</div>
+            </div>
+            <div style="margin:36px 20px 0;background:#1e293b;border:1px solid #334155;border-radius:24px;padding:24px 22px;">
+              <div style="font-size:18px;font-weight:700;margin-bottom:2px;color:#f1f5f9;">Masuk</div>
+              <div style="font-size:12.5px;color:#94a3b8;margin-bottom:20px;">Gunakan akun Inventra Anda</div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:6px;">Email</label>
+              <div style="height:52px;border:1.5px solid #334155;border-radius:14px;background:#172033;display:flex;align-items:center;gap:10px;padding:0 16px;margin-bottom:16px;"><span class="ico" style="font-size:20px;color:#475569;">mail</span><span style="font-size:14px;color:#94a3b8;">budi.santoso@bank.co.id</span></div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:6px;">Kata sandi</label>
+              <div style="height:52px;border:1.5px solid #334155;border-radius:14px;background:#172033;display:flex;align-items:center;gap:10px;padding:0 16px;margin-bottom:22px;"><span class="ico" style="font-size:20px;color:#475569;">lock</span><span style="flex:1;font-size:16px;color:#94a3b8;letter-spacing:2px;">••••••••</span><span class="ico" style="font-size:21px;color:#475569;">visibility_off</span></div>
+              <button style="width:100%;height:52px;border:none;border-radius:14px;background:#22c55e;color:#052e16;font-family:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;opacity:0.92;"><span style="width:19px;height:19px;border:2.5px solid rgba(5,46,22,0.35);border-top-color:#052e16;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;"></span>Memproses…</button>
+            </div>
+            <div style="margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:12px;padding-bottom:26px;">
+              <div style="display:flex;background:#1e293b;border:1px solid #334155;border-radius:999px;padding:3px;">
+                <span style="padding:5px 14px;border-radius:999px;background:#22c55e;color:#052e16;font-size:11.5px;font-weight:700;">ID</span>
+                <span style="padding:5px 14px;border-radius:999px;color:#94a3b8;font-size:11.5px;font-weight:600;">EN</span>
+              </div>
+              <span style="font-size:11px;color:#64748b;">Inventra Mobile v1.4.2 · Build 208</span>
+              <div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
