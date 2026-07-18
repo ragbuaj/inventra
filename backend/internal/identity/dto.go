@@ -18,14 +18,36 @@ type tokenResponse struct {
 	AccessToken string `json:"access_token"`
 	TokenType   string `json:"token_type"`
 	ExpiresIn   int64  `json:"expires_in"` // access token lifetime, seconds
+	// RefreshToken is populated ONLY for mobile clients (aud=mobile), which
+	// have no cookie jar and store it in the platform Keystore/Keychain.
+	// For web clients it must stay empty — the refresh token travels
+	// exclusively as an httpOnly cookie (ADR-0017 guard rail).
+	RefreshToken string `json:"refresh_token,omitempty"`
 }
 
+// newTokenResponse renders the web-client token body: never a refresh token.
 func newTokenResponse(p auth.TokenPair) tokenResponse {
 	return tokenResponse{
 		AccessToken: p.AccessToken,
 		TokenType:   "Bearer",
 		ExpiresIn:   int64(time.Until(p.AccessExpiresAt).Seconds()),
 	}
+}
+
+// newMobileTokenResponse renders the mobile-client token body: the refresh
+// token rides in the body (no Set-Cookie) so the app can keep it in secure
+// storage (ADR-0017 keputusan 3).
+func newMobileTokenResponse(p auth.TokenPair) tokenResponse {
+	resp := newTokenResponse(p)
+	resp.RefreshToken = p.RefreshToken
+	return resp
+}
+
+// refreshRequest carries the refresh token in the body for clients without the
+// httpOnly cookie (mobile). It is only consulted when the cookie is absent; a
+// web client's cookie always wins. Also accepted by logout.
+type refreshRequest struct {
+	RefreshToken string `json:"refresh_token"`
 }
 
 type userResponse struct {

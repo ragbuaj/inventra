@@ -88,9 +88,10 @@ func NewService(q userStore, tm *auth.TokenManager, store *auth.TokenStore, mail
 	return &Service{q: q, tm: tm, store: store, mail: mailer, locator: locator, resetTTL: resetTTL, frontendURL: frontendURL, storage: objStore, avatarMaxBytes: avatarMaxBytes}
 }
 
-// Login verifies credentials and issues an access + refresh token pair, opening
-// a new device session tagged with the caller's user-agent and IP.
-func (s *Service) Login(ctx context.Context, email, password, userAgent, ip string) (auth.TokenPair, sqlc.IdentityUser, error) {
+// Login verifies credentials and issues an access + refresh token pair stamped
+// with the client audience, opening a new device session tagged with the
+// caller's user-agent and IP.
+func (s *Service) Login(ctx context.Context, email, password, userAgent, ip, audience string) (auth.TokenPair, sqlc.IdentityUser, error) {
 	user, err := s.q.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -105,7 +106,7 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent, ip stri
 		return auth.TokenPair{}, sqlc.IdentityUser{}, ErrUserInactive
 	}
 
-	pair, err := s.startSession(ctx, user, userAgent, ip)
+	pair, err := s.startSession(ctx, user, userAgent, ip, audience)
 	if err != nil {
 		return auth.TokenPair{}, sqlc.IdentityUser{}, err
 	}
@@ -113,7 +114,8 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent, ip stri
 }
 
 // LoginWithGoogle links a verified Google identity to an EXISTING user (link-only)
-// and issues the same token pair as local login. It never creates a user.
+// and issues the same token pair as local login. It never creates a user. The
+// flow is browser-only (redirect + consent screen), so the audience is always web.
 func (s *Service) LoginWithGoogle(ctx context.Context, email, googleSub, userAgent, ip string) (auth.TokenPair, sqlc.IdentityUser, error) {
 	user, err := s.q.GetUserByEmail(ctx, email)
 	if err != nil {
@@ -135,7 +137,7 @@ func (s *Service) LoginWithGoogle(ctx context.Context, email, googleSub, userAge
 			return auth.TokenPair{}, sqlc.IdentityUser{}, err
 		}
 	}
-	pair, err := s.startSession(ctx, user, userAgent, ip)
+	pair, err := s.startSession(ctx, user, userAgent, ip, auth.AudienceWeb)
 	if err != nil {
 		return auth.TokenPair{}, sqlc.IdentityUser{}, err
 	}
@@ -143,9 +145,10 @@ func (s *Service) LoginWithGoogle(ctx context.Context, email, googleSub, userAge
 }
 
 // Refresh validates a refresh token, rotates it, and issues a new token pair on
-// the SAME session id (so the device session survives rotation), updating the
-// session's last-seen. A legacy token with no sid is promoted into a managed
-// session so pre-Spec-B logins become visible/revocable after their first refresh.
+// the SAME session id (so the device session survives rotation) and the SAME
+// audience, updating the session's last-seen. A legacy token with no sid is
+// promoted into a managed session so pre-Spec-B logins become visible/revocable
+// after their first refresh.
 func (s *Service) Refresh(ctx context.Context, refreshToken, userAgent, ip string) (auth.TokenPair, error) {
 	claims, err := s.tm.Parse(refreshToken)
 	if err != nil || claims.Type != auth.TokenRefresh {
@@ -157,6 +160,20 @@ func (s *Service) Refresh(ctx context.Context, refreshToken, userAgent, ip strin
 	}
 	if !valid {
 		return auth.TokenPair{}, ErrInvalidToken
+	}
+	// Session-alive check, parallel to RequireAuth (ADR-0017 M-3
+	// defense-in-depth): a refresh token whose device session was revoked must
+	// not rotate even if its JTI is somehow still whitelisted — the two Redis
+	// structures could drift. Legacy tokens without a sid skip this and are
+	// promoted into a managed session below.
+	if claims.SID != "" {
+		alive, err := s.store.SessionAlive(ctx, claims.SID)
+		if err != nil {
+			return auth.TokenPair{}, err
+		}
+		if !alive {
+			return auth.TokenPair{}, ErrInvalidToken
+		}
 	}
 
 	userID, err := uuid.Parse(claims.Subject)
@@ -181,12 +198,14 @@ func (s *Service) Refresh(ctx context.Context, refreshToken, userAgent, ip strin
 	if err := s.store.DeleteRefresh(ctx, claims.ID); err != nil {
 		return auth.TokenPair{}, err
 	}
-	// Legacy (pre-session) token: mint a fresh managed session.
+	// Legacy (pre-session) token: mint a fresh managed session, inheriting the
+	// token's audience (no-aud legacy tokens resolve to web).
 	if claims.SID == "" {
-		return s.startSession(ctx, user, userAgent, ip)
+		return s.startSession(ctx, user, userAgent, ip, claims.ClientAudience())
 	}
-	// Normal rotation: reuse the sid so the session record is preserved.
-	pair, err := s.tm.Issue(user.ID.String(), user.RoleID.String(), claims.SID)
+	// Normal rotation: reuse the sid so the session record is preserved, and
+	// propagate the audience — a client cannot switch identity on refresh.
+	pair, err := s.tm.Issue(user.ID.String(), user.RoleID.String(), claims.SID, claims.ClientAudience())
 	if err != nil {
 		return auth.TokenPair{}, err
 	}
@@ -464,10 +483,10 @@ func mapDBError(err error) error {
 // startSession issues a token pair for a NEW login session and records its
 // device metadata: browser/OS (derived on read from the user-agent), IP, and a
 // best-effort GeoIP location. The session's stable sid is minted here and
-// embedded in both tokens.
-func (s *Service) startSession(ctx context.Context, user sqlc.IdentityUser, userAgent, ip string) (auth.TokenPair, error) {
+// embedded in both tokens, along with the client audience.
+func (s *Service) startSession(ctx context.Context, user sqlc.IdentityUser, userAgent, ip, audience string) (auth.TokenPair, error) {
 	sid := uuid.NewString()
-	pair, err := s.tm.Issue(user.ID.String(), user.RoleID.String(), sid)
+	pair, err := s.tm.Issue(user.ID.String(), user.RoleID.String(), sid, audience)
 	if err != nil {
 		return auth.TokenPair{}, err
 	}

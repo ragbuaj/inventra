@@ -315,9 +315,16 @@ func NewRouter(d Deps) (*gin.Engine, Workers) {
 		workers.Consumer = notification.NewConsumer(queries, d.Redis, approvalSvc, scopeSvc, "", d.Cfg.NotificationRelayPoll, d.Cfg.NotificationClaimMinIdle)
 		workers.Sweeper = notification.NewSweeper(queries, d.Pool, d.Cfg.NotificationRetentionDays, d.Cfg.NotificationSweepPoll)
 
+		// ADR-0017 keputusan 4: the explicit web-only deny list for aud=mobile.
+		// authzadmin and importer are admin/risky surfaces a compromised mobile
+		// device must not reach; RequireAudience(web) equals "deny aud=mobile"
+		// today and fails closed for any future audience. Changes to this list
+		// go through PR review, never ad-hoc.
+		webOnly := middleware.RequireAudience(auth.AudienceWeb)
+
 		authzAdminSvc := authzadmin.NewService(queries, d.Pool, permSvc, scopeSvc, fieldSvc)
 		authzAdminHandler := authzadmin.NewHandler(authzAdminSvc, auditSvc)
-		authzadmin.RegisterRoutes(api, authzAdminHandler, requireAuth,
+		authzadmin.RegisterRoutes(api, authzAdminHandler, requireAuth, webOnly,
 			middleware.RequirePermission(permSvc, "role.manage"),
 			middleware.RequirePermission(permSvc, "scope.manage"),
 			middleware.RequirePermission(permSvc, "fieldperm.manage"),
@@ -336,7 +343,7 @@ func NewRouter(d Deps) (*gin.Engine, Workers) {
 		importerSvc.RegisterTarget(reference.NewImporter(refSvc, "models"))
 		importerSvc.RegisterTarget(reference.NewImporter(refSvc, "units"))
 		importerHandler := importer.NewHandler(importerSvc, permSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)
-		importer.RegisterRoutes(api, importerHandler, requireAuth)
+		importer.RegisterRoutes(api, importerHandler, requireAuth, webOnly)
 		workers.Import = importer.NewWorker(importerSvc, d.Pool, d.Redis, approvalSvc, scopeSvc, d.Cfg.ImportWorkerPoll)
 	}
 

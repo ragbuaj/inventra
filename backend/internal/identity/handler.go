@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ragbuaj/inventra/internal/audit"
+	"github.com/ragbuaj/inventra/internal/auth"
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/middleware"
 	"github.com/ragbuaj/inventra/internal/oauth"
@@ -82,6 +83,41 @@ func (h *Handler) scope(c *gin.Context) {
 	c.JSON(http.StatusOK, sc)
 }
 
+// clientAudience maps the X-Client-Type request header to a token audience.
+// Only the exact value "mobile" selects the mobile audience; anything else —
+// including absence — is web. The header is NOT authorization: claiming mobile
+// narrows access (web-only route groups deny aud=mobile), so lying never
+// widens anything (ADR-0017 keputusan 2).
+func clientAudience(c *gin.Context) string {
+	if strings.TrimSpace(c.GetHeader("X-Client-Type")) == "mobile" {
+		return auth.AudienceMobile
+	}
+	return auth.AudienceWeb
+}
+
+// writeTokenPair renders a token pair per client audience (ADR-0017 keputusan
+// 3): web gets the refresh token as an httpOnly cookie and NEVER in the body;
+// mobile gets it in the body and never as a cookie.
+func (h *Handler) writeTokenPair(c *gin.Context, pair auth.TokenPair) {
+	if pair.Audience == auth.AudienceMobile {
+		c.JSON(http.StatusOK, newMobileTokenResponse(pair))
+		return
+	}
+	setRefreshCookie(c, pair.RefreshToken, h.refreshTTL, h.secureCookie)
+	c.JSON(http.StatusOK, newTokenResponse(pair))
+}
+
+// bodyRefreshToken reads a refresh token from the JSON body ({"refresh_token":
+// "..."}) for clients without the cookie. Returns "" when there is no usable
+// body (web logins never send one).
+func bodyRefreshToken(c *gin.Context) string {
+	var req refreshRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		return ""
+	}
+	return req.RefreshToken
+}
+
 func (h *Handler) login(c *gin.Context) {
 	var req loginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -93,18 +129,22 @@ func (h *Handler) login(c *gin.Context) {
 		middleware.WriteRateLimited(c, res)
 		return
 	}
-	pair, _, err := h.svc.Login(c.Request.Context(), req.Email, req.Password, c.Request.UserAgent(), c.ClientIP())
+	pair, _, err := h.svc.Login(c.Request.Context(), req.Email, req.Password, c.Request.UserAgent(), c.ClientIP(), clientAudience(c))
 	if err != nil {
 		h.authError(c, err)
 		return
 	}
-	setRefreshCookie(c, pair.RefreshToken, h.refreshTTL, h.secureCookie)
-	c.JSON(http.StatusOK, newTokenResponse(pair))
+	h.writeTokenPair(c, pair)
 }
 
 func (h *Handler) refresh(c *gin.Context) {
+	// The cookie always wins (web); the body is the fallback transport for
+	// clients that have no cookie jar (mobile, ADR-0017).
 	rt, err := c.Cookie(refreshCookieName)
 	if err != nil || rt == "" {
+		rt = bodyRefreshToken(c)
+	}
+	if rt == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing refresh token"})
 		return
 	}
@@ -113,12 +153,14 @@ func (h *Handler) refresh(c *gin.Context) {
 		h.authError(c, err)
 		return
 	}
-	setRefreshCookie(c, pair.RefreshToken, h.refreshTTL, h.secureCookie)
-	c.JSON(http.StatusOK, newTokenResponse(pair))
+	h.writeTokenPair(c, pair)
 }
 
 func (h *Handler) logout(c *gin.Context) {
 	rt, _ := c.Cookie(refreshCookieName)
+	if rt == "" {
+		rt = bodyRefreshToken(c)
+	}
 	jti, _ := c.Get(middleware.CtxAccessJTI)
 	exp, _ := c.Get(middleware.CtxAccessExp)
 	userID := c.GetString(middleware.CtxUserID)
@@ -127,7 +169,11 @@ func (h *Handler) logout(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "logout failed"})
 		return
 	}
-	clearRefreshCookie(c, h.secureCookie)
+	// Mobile sessions never had a cookie; clearing one would add a spurious
+	// Set-Cookie. Web behavior is unchanged (always cleared).
+	if c.GetString(middleware.CtxAudience) != auth.AudienceMobile {
+		clearRefreshCookie(c, h.secureCookie)
+	}
 	c.JSON(http.StatusOK, gin.H{"status": "logged_out"})
 }
 

@@ -38,7 +38,7 @@ func TestLogin_CreatesDeviceSession(t *testing.T) {
 	svc, _ := newIntegrationService(t, fs, &fakeMailer{})
 
 	pair, _, err := svc.Login(context.Background(), "u@x.com", "oldpassword",
-		"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/120.0 Safari/537.36", "8.8.8.8")
+		"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/120.0 Safari/537.36", "8.8.8.8", auth.AudienceWeb)
 	if err != nil {
 		t.Fatalf("Login: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestRefresh_KeepsSameSessionAndBumpsLastSeen(t *testing.T) {
 	fs := &fakeStore{byEmail: map[string]sqlc.IdentityUser{"u@x.com": u}, byID: map[uuid.UUID]sqlc.IdentityUser{u.ID: u}}
 	svc, _ := newIntegrationService(t, fs, &fakeMailer{})
 
-	pair, _, err := svc.Login(context.Background(), "u@x.com", "oldpassword", "Chrome", "8.8.8.8")
+	pair, _, err := svc.Login(context.Background(), "u@x.com", "oldpassword", "Chrome", "8.8.8.8", auth.AudienceWeb)
 	if err != nil {
 		t.Fatalf("Login: %v", err)
 	}
@@ -101,8 +101,8 @@ func TestRevokeSession_KillsItAndForeignSidIsNotFound(t *testing.T) {
 	svc, store := newIntegrationService(t, fs, &fakeMailer{})
 
 	// Two sessions for the same user (two logins).
-	p1, _, _ := svc.Login(context.Background(), "u@x.com", "oldpassword", "Chrome", "8.8.8.8")
-	p2, _, _ := svc.Login(context.Background(), "u@x.com", "oldpassword", "Safari", "9.9.9.9")
+	p1, _, _ := svc.Login(context.Background(), "u@x.com", "oldpassword", "Chrome", "8.8.8.8", auth.AudienceWeb)
+	p2, _, _ := svc.Login(context.Background(), "u@x.com", "oldpassword", "Safari", "9.9.9.9", auth.AudienceWeb)
 
 	// A sid the caller does not own → 404, and it must NOT delete anything.
 	if err := svc.RevokeSession(context.Background(), u.ID, "someone-elses-sid"); err != ErrNotFound {
@@ -130,9 +130,9 @@ func TestRevokeOtherSessions_KeepsOnlyCurrent(t *testing.T) {
 	fs := &fakeStore{byEmail: map[string]sqlc.IdentityUser{"u@x.com": u}, byID: map[uuid.UUID]sqlc.IdentityUser{u.ID: u}}
 	svc, _ := newIntegrationService(t, fs, &fakeMailer{})
 
-	_, _, _ = svc.Login(context.Background(), "u@x.com", "oldpassword", "Chrome", "1.1.1.1")
-	_, _, _ = svc.Login(context.Background(), "u@x.com", "oldpassword", "Safari", "2.2.2.2")
-	current, _, _ := svc.Login(context.Background(), "u@x.com", "oldpassword", "Edge", "3.3.3.3")
+	_, _, _ = svc.Login(context.Background(), "u@x.com", "oldpassword", "Chrome", "1.1.1.1", auth.AudienceWeb)
+	_, _, _ = svc.Login(context.Background(), "u@x.com", "oldpassword", "Safari", "2.2.2.2", auth.AudienceWeb)
+	current, _, _ := svc.Login(context.Background(), "u@x.com", "oldpassword", "Edge", "3.3.3.3", auth.AudienceWeb)
 
 	revoked, err := svc.RevokeOtherSessions(context.Background(), u.ID, current.SID)
 	if err != nil {
@@ -152,8 +152,8 @@ func TestChangePassword_ClearsAllSessions(t *testing.T) {
 	fs := &fakeStore{byEmail: map[string]sqlc.IdentityUser{"u@x.com": u}, byID: map[uuid.UUID]sqlc.IdentityUser{u.ID: u}}
 	svc, _ := newIntegrationService(t, fs, &fakeMailer{})
 
-	cur, _, _ := svc.Login(context.Background(), "u@x.com", "oldpassword", "Chrome", "1.1.1.1")
-	_, _, _ = svc.Login(context.Background(), "u@x.com", "oldpassword", "Safari", "2.2.2.2")
+	cur, _, _ := svc.Login(context.Background(), "u@x.com", "oldpassword", "Chrome", "1.1.1.1", auth.AudienceWeb)
+	_, _, _ = svc.Login(context.Background(), "u@x.com", "oldpassword", "Safari", "2.2.2.2", auth.AudienceWeb)
 
 	if _, err := svc.ChangePassword(context.Background(), u.ID, "oldpassword", "brandnewpassword"); err != nil {
 		t.Fatalf("ChangePassword: %v", err)

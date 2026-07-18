@@ -33,7 +33,7 @@ func testManager() *TokenManager {
 
 func TestIssueAndParse(t *testing.T) {
 	tm := testManager()
-	pair, err := tm.Issue("user-123", "role-abc", "sess-xyz")
+	pair, err := tm.Issue("user-123", "role-abc", "sess-xyz", AudienceWeb)
 	if err != nil {
 		t.Fatalf("issue: %v", err)
 	}
