@@ -44,8 +44,13 @@ terowongan SSH yang sudah terenkripsi.
 ## 3. Tiap kali mau dipakai: buka tunnel
 
 ```bash
-ssh -N -L 55432:127.0.0.1:5432 deploy@<IP-VPS>
+ssh -N -L 55432:127.0.0.1:5432 <user-ssh>@<IP-VPS>
 ```
+
+Catatan: `<user-ssh>` adalah user login VPS yang sebenarnya, belum tentu
+`deploy` (nama itu hanya default di `ops/ansible/group_vars/all/vars.yml` dan
+baru terpakai bila playbook Ansible dijalankan). Kalau lupa, `ssh root@<IP-VPS>`
+biasanya membalas dengan nama user yang benar.
 
 Biarkan jendela itu terbuka selama sesi. Uji:
 
