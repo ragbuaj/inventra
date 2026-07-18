@@ -64,7 +64,7 @@ const USERS: UserView[] = [
     office_id: 'o1',
     employee_id: 'e1',
     status: 'active',
-    avatar_url: null,
+    has_avatar: false,
     google_linked: false,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z'
@@ -77,7 +77,7 @@ const USERS: UserView[] = [
     office_id: 'o2',
     employee_id: 'e2',
     status: 'suspended',
-    avatar_url: null,
+    has_avatar: false,
     google_linked: true,
     created_at: '2026-01-02T00:00:00Z',
     updated_at: '2026-01-02T00:00:00Z'

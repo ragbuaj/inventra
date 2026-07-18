@@ -38,11 +38,13 @@ type Handler struct {
 	frontendURL  string
 	audit        *audit.Service
 	forgotPerMin int
+	// avatarMaxBytes caps the multipart body of an avatar upload.
+	avatarMaxBytes int64
 }
 
 // NewHandler builds the identity Handler.
-func NewHandler(svc *Service, perms *authz.PermissionService, scopes *authz.ScopeService, limiter ratelimit.Allower, loginPerMin int, secureCookie bool, refreshTTL time.Duration, googleOAuth googleAuth, frontendURL string, auditSvc *audit.Service, forgotPerMin int) *Handler {
-	return &Handler{svc: svc, perms: perms, scopes: scopes, limiter: limiter, loginPerMin: loginPerMin, secureCookie: secureCookie, refreshTTL: refreshTTL, googleOAuth: googleOAuth, frontendURL: frontendURL, audit: auditSvc, forgotPerMin: forgotPerMin}
+func NewHandler(svc *Service, perms *authz.PermissionService, scopes *authz.ScopeService, limiter ratelimit.Allower, loginPerMin int, secureCookie bool, refreshTTL time.Duration, googleOAuth googleAuth, frontendURL string, auditSvc *audit.Service, forgotPerMin int, avatarMaxBytes int64) *Handler {
+	return &Handler{svc: svc, perms: perms, scopes: scopes, limiter: limiter, loginPerMin: loginPerMin, secureCookie: secureCookie, refreshTTL: refreshTTL, googleOAuth: googleOAuth, frontendURL: frontendURL, audit: auditSvc, forgotPerMin: forgotPerMin, avatarMaxBytes: avatarMaxBytes}
 }
 
 // permissions returns the caller's effective RBAC permission keys.

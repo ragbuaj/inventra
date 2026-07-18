@@ -1307,7 +1307,45 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     pertanyaan terbuka QM3 (pola macOS) + QM4 (waktu aktivasi). Rujukan silang: baris IOS.md di
 >     README mobile, penunjuk di PRD non-goal iOS, baris `ios/` di tree ARCHITECTURE, aturan
 >     "jaga iOS-ready" di CONVENTIONS. Belum ada kode.
-> 81. **Next session — start here: Mobile M0 prep** — generate mockup mobile dari prompt kit
+> 81. ~~**Profil: detail pegawai di kartu Data Diri + tombol Ubah pindah ke kartu + upload foto profil**~~
+>     ✅ **DONE (2026-07-18, branch `feat/account-personal-data-card`).** Tiga permintaan user.
+>     **(a) Detail pegawai.** `GetUserProfile` sebelumnya hanya men-join `e.name` + `e.phone`; sekarang
+>     ikut mengambil `e.code`, `e.status`, dan nama departemen/jabatan lewat join baru ke
+>     `masterdata.departments` + `masterdata.positions`. `ProfileView` bertambah `employee_code`,
+>     `employee_status`, `department_name`, `position_name`. Di UI, blok "Detail Pegawai" (read-only,
+>     bersumber dari master data) ada **di dalam** kartu Data Diri; baris "Pegawai Tertaut" dikeluarkan
+>     dari kartu Informasi Akun sehingga kartu itu murni berisi metadata akun (Peran, Kantor, Metode
+>     Login, Tanggal Bergabung). Akun tanpa tautan pegawai menampilkan catatan, bukan grid kosong.
+>     **(b) Tombol Ubah.** Dipindah dari blok footer di luar kartu ke header kartu Data Diri (Ubah →
+>     Simpan/Batal), karena editing hanya menyentuh isi kartu itu. `saveProfil` sekarang mengadopsi
+>     respons server agar tampilan read-only ikut segar.
+>     **(c) Upload foto profil.** Sebelumnya tombol Unggah/Hapus **inert** — tanpa `@click`, tanpa
+>     backend, dan `users.avatar_url` tidak pernah ditulis kode mana pun. Migrasi `000036` mengganti nama
+>     kolom itu jadi `avatar_key` (isinya object key MinIO, bukan URL — selaras dengan
+>     `employees.avatar_key`). Endpoint baru `GET/POST/DELETE /auth/avatar`: upload divalidasi JPG/PNG
+>     (`AVATAR_MAX_BYTES`, default 2 MB), di-decode sebagai cek isi sebenarnya, dipotong persegi tengah
+>     dan di-encode ulang ke JPEG 512x512 via `imaging` — yang sekaligus **membuang metadata EXIF
+>     (termasuk GPS)**. Object key diturunkan dari user id saja (`users/<id>/avatar.jpg`), tidak pernah
+>     dari nama file, jadi nama file bermusuhan tidak bisa traversal maupun tabrakan; karena key stabil,
+>     unggah ulang menimpa objek lama alih-alih menumpuk orphan. Tulis DB gagal → objek di-rollback.
+>     Key **tidak pernah** diserialisasi: API mengekspos `has_avatar` (boolean) menggantikan `avatar_url`
+>     di ProfileView, `/auth/me`, dan daftar user. Endpoint GET ter-autentikasi, jadi frontend
+>     mengambilnya sebagai blob + `createObjectURL` (object URL di-revoke saat diganti/unmount agar tidak
+>     bocor). Gagal ambil foto degradasi ke inisial, tidak memblokir halaman.
+>     **Deviasi mockup (disetujui):** struktur kartu Data Diri berubah dari `docs/design/Profil
+>     Akun.dc.html` karena diminta user secara eksplisit. Deviasi kedua, **disetujui user (2026-07-18)**:
+>     tombol **Hapus** foto disembunyikan saat belum ada foto (mockup menampilkannya selalu), supaya
+>     kontrol itu tidak pernah jadi no-op diam-diam.
+>     **Belum dikerjakan (sengaja):** avatar belum muncul di `UserMenu` (sidebar/topbar) — mockup
+>     `UserMenu` memang menampilkan inisial, jadi dibiarkan sesuai desain.
+>     Verifikasi: `go build`/`vet`/`test ./...` hijau; Spectral 0 error; frontend `lint`/`typecheck`/
+>     `build` hijau; `pnpm test` 122 file / **1666** tes lulus (+36 tes baru: 15 backend avatar, 21
+>     frontend). Diverifikasi end-to-end di stack nyata (Postgres + MinIO + backend + Nuxt): PNG 900x300
+>     jadi JPEG 512x512 tanpa EXIF, PDF/file rusak ditolak 415, 3 MB ditolak 413, DELETE idempoten dan
+>     objek MinIO ikut terhapus, plus cek visual light dan dark mode. Catatan: `pnpm test` keluar dengan exit 1 karena satu `EnvironmentTeardownError` di
+>     `assets-index.spec.ts` — **sudah ada sebelum perubahan ini**, dikonfirmasi dengan menjalankan suite
+>     penuh di `main` bersih (juga exit 1, error yang sama). Perlu dibereskan terpisah.
+> 82. **Next session — start here: Mobile M0 prep** — generate mockup mobile dari prompt kit
 >     `docs/mobile/DESIGN_BRIEF.md` (13 artifact, hasil ke `docs/mobile/design/`) lalu spec + plan
 >     fase M0 (scaffold Flutter `mobile/`, tema + i18n, navigasi shell, login/refresh/logout
 >     cookie-jar, CI analyze/test/APK; scaffold menyertakan folder `ios/` per aturan IOS.md).

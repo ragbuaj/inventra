@@ -1339,7 +1339,7 @@ type IdentityUser struct {
 	Email             string             `json:"email"`
 	PasswordHash      *string            `json:"password_hash"`
 	GoogleID          *string            `json:"google_id"`
-	AvatarUrl         *string            `json:"avatar_url"`
+	AvatarKey         *string            `json:"avatar_key"`
 	RoleID            uuid.UUID          `json:"role_id"`
 	Status            SharedUserStatus   `json:"status"`
 	CreatedAt         pgtype.Timestamptz `json:"created_at"`

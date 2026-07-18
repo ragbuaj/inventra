@@ -32,8 +32,12 @@ const PROFILE_RESPONSE = {
   office_name: 'Cabang Jakarta Selatan',
   employee_id: 'e1',
   employee_name: 'Andi Saputra',
+  employee_code: 'PEG-0012',
+  employee_status: 'active',
+  department_name: 'Divisi Umum',
+  position_name: 'Staf Aset',
   status: 'active',
-  avatar_url: null,
+  has_avatar: false,
   google_linked: false,
   joined_at: '2024-03-12T00:00:00Z'
 }
@@ -103,6 +107,26 @@ describe('useAccount', () => {
       expect(p.pegawai).toBe('Andi Saputra')
     })
 
+    it('maps the employee master-data detail fields', async () => {
+      requestMock.mockResolvedValueOnce(PROFILE_RESPONSE)
+      const p = await useAccount().getProfile()
+      expect(p.kodePegawai).toBe('PEG-0012')
+      expect(p.departemen).toBe('Divisi Umum')
+      expect(p.jabatan).toBe('Staf Aset')
+      expect(p.statusPegawai).toBe('active')
+    })
+
+    it('maps null employee detail fields to empty strings', async () => {
+      requestMock.mockResolvedValueOnce({
+        ...PROFILE_RESPONSE, employee_code: null, employee_status: null, department_name: null, position_name: null
+      })
+      const p = await useAccount().getProfile()
+      expect(p.kodePegawai).toBe('')
+      expect(p.departemen).toBe('')
+      expect(p.jabatan).toBe('')
+      expect(p.statusPegawai).toBe('')
+    })
+
     it('propagates a backend error', async () => {
       requestMock.mockRejectedValueOnce(Object.assign(new Error('not found'), { statusCode: 404 }))
       await expect(useAccount().getProfile()).rejects.toThrow('not found')
@@ -126,6 +150,65 @@ describe('useAccount', () => {
     it('propagates a backend validation error', async () => {
       requestMock.mockRejectedValueOnce(Object.assign(new Error('invalid input'), { statusCode: 422 }))
       await expect(useAccount().updateProfile({ nama: 'X', telepon: '' })).rejects.toThrow('invalid input')
+    })
+  })
+
+  describe('avatar', () => {
+    const png = (size = 512) => new File([new Uint8Array(size)], 'me.png', { type: 'image/png' })
+
+    it('POSTs /auth/avatar with the file wrapped in FormData', async () => {
+      requestMock.mockResolvedValueOnce({ ...PROFILE_RESPONSE, has_avatar: true })
+      const p = await useAccount().uploadAvatar(png())
+      const [path, opts] = requestMock.mock.calls[0] as [string, { method: string, body: FormData }]
+      expect(path).toBe('/auth/avatar')
+      expect(opts.method).toBe('POST')
+      expect(opts.body).toBeInstanceOf(FormData)
+      expect(opts.body.get('file')).toBeInstanceOf(File)
+      expect(p.hasAvatar).toBe(true)
+    })
+
+    it.each([
+      ['application/pdf', 'doc.pdf'],
+      ['image/webp', 'me.webp'],
+      ['image/gif', 'me.gif'],
+      ['', 'unknown']
+    ])('rejects %s before calling the API', async (type, name) => {
+      await expect(useAccount().uploadAvatar(new File(['x'], name, { type }))).rejects.toThrow('account.errAvatarType')
+      expect(requestMock).not.toHaveBeenCalled()
+    })
+
+    it('rejects a file larger than 2 MB before calling the API', async () => {
+      await expect(useAccount().uploadAvatar(png(2 * 1024 * 1024 + 1))).rejects.toThrow('account.errAvatarSize')
+      expect(requestMock).not.toHaveBeenCalled()
+    })
+
+    it('accepts a JPEG at exactly the 2 MB limit', async () => {
+      requestMock.mockResolvedValueOnce({ ...PROFILE_RESPONSE, has_avatar: true })
+      const file = new File([new Uint8Array(2 * 1024 * 1024)], 'me.jpg', { type: 'image/jpeg' })
+      await expect(useAccount().uploadAvatar(file)).resolves.toBeTruthy()
+    })
+
+    it('propagates a backend rejection (415)', async () => {
+      requestMock.mockRejectedValueOnce(Object.assign(new Error('unsupported'), { statusCode: 415 }))
+      await expect(useAccount().uploadAvatar(png())).rejects.toThrow('unsupported')
+    })
+
+    it('DELETEs /auth/avatar and maps the cleared profile', async () => {
+      requestMock.mockResolvedValueOnce({ ...PROFILE_RESPONSE, has_avatar: false })
+      const p = await useAccount().removeAvatar()
+      expect(requestMock).toHaveBeenCalledWith('/auth/avatar', { method: 'DELETE' })
+      expect(p.hasAvatar).toBe(false)
+    })
+
+    it('maps has_avatar onto hasAvatar', async () => {
+      requestMock.mockResolvedValueOnce({ ...PROFILE_RESPONSE, has_avatar: true })
+      expect((await useAccount().getProfile()).hasAvatar).toBe(true)
+    })
+
+    it('treats a missing has_avatar as false rather than truthy', async () => {
+      const { has_avatar: _omitted, ...withoutFlag } = PROFILE_RESPONSE
+      requestMock.mockResolvedValueOnce(withoutFlag)
+      expect((await useAccount().getProfile()).hasAvatar).toBe(false)
     })
   })
 

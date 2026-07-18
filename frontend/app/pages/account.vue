@@ -20,6 +20,72 @@ const fTelepon = ref('')
 const nameErr = ref(false)
 const isGoogle = computed(() => profile.value?.loginMethod === 'google')
 
+// Employee master-data status badge tone. Unknown/empty falls through to the
+// neutral tone; the template renders a dash instead of a badge in that case.
+const EMPLOYEE_STATUS_COLORS = {
+  active: 'success',
+  inactive: 'neutral',
+  suspended: 'warning'
+} as const
+const employeeStatusColor = computed(
+  () => EMPLOYEE_STATUS_COLORS[profile.value?.statusPegawai as keyof typeof EMPLOYEE_STATUS_COLORS] ?? 'neutral'
+)
+
+// Avatar — the image is fetched as a blob (the endpoint is authenticated), so
+// the object URL must be revoked whenever it is replaced or the page unmounts,
+// otherwise each upload leaks the previous blob.
+const avatarUrl = ref<string | null>(null)
+const avatarBusy = ref(false)
+const avatarInput = ref<HTMLInputElement | null>(null)
+
+function setAvatarUrl(next: string | null) {
+  if (avatarUrl.value) URL.revokeObjectURL(avatarUrl.value)
+  avatarUrl.value = next
+}
+onBeforeUnmount(() => setAvatarUrl(null))
+
+async function refreshAvatar() {
+  setAvatarUrl(profile.value?.hasAvatar ? await account.getAvatarObjectURL() : null)
+}
+
+function openAvatarPicker() {
+  avatarInput.value?.click()
+}
+
+async function onAvatarSelected(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  // Reset immediately so re-picking the same file still fires a change event.
+  input.value = ''
+  if (!file) return
+  avatarBusy.value = true
+  try {
+    profile.value = await account.uploadAvatar(file)
+    await refreshAvatar()
+    toast.add({ title: t('account.toastAvatarTitle'), description: t('account.toastAvatarMsg'), color: 'success' })
+  } catch (err) {
+    // Client-side validation throws a translatable key; the API path surfaces a
+    // server message (413/415) via extractApiError.
+    const msg = err instanceof Error && err.message.startsWith('account.') ? t(err.message) : extractApiError(err)
+    toast.add({ title: t('common.error'), description: msg, color: 'error' })
+  } finally {
+    avatarBusy.value = false
+  }
+}
+
+async function removeAvatar() {
+  avatarBusy.value = true
+  try {
+    profile.value = await account.removeAvatar()
+    setAvatarUrl(null)
+    toast.add({ title: t('account.toastAvatarRemovedTitle'), color: 'success' })
+  } catch (err) {
+    toast.add({ title: t('common.error'), description: extractApiError(err), color: 'error' })
+  } finally {
+    avatarBusy.value = false
+  }
+}
+
 // Profil tab — view/edit toggle (defaults read-only; Edit snapshots current
 // values so Batal can revert without a re-fetch).
 const editing = ref(false)
@@ -64,6 +130,9 @@ onMounted(async () => {
   fNama.value = p.nama
   fTelepon.value = p.telepon
   loading.value = false
+  // Supplementary, like the session list: a failed avatar fetch degrades to
+  // initials and must never block the page.
+  await refreshAvatar()
   sessions.value = await account.listSessions().catch(() => [])
 })
 
@@ -87,7 +156,9 @@ async function saveProfil() {
   if (nameErr.value) return
   savingProfile.value = true
   try {
-    await account.updateProfile({ nama: fNama.value, telepon: fTelepon.value })
+    // Adopt the server's response so the read-only detail below the form (and
+    // the header name) reflects what was actually persisted.
+    profile.value = await account.updateProfile({ nama: fNama.value, telepon: fTelepon.value })
     editing.value = false
     toast.add({ title: t('account.toastProfileTitle'), description: t('account.toastProfileMsg'), color: 'success' })
   } catch {
@@ -254,13 +325,27 @@ const joinDateLabel = computed(() => {
         <!-- PROFILE HEADER -->
         <div class="flex items-center gap-[18px] flex-wrap mb-[22px]">
           <div class="relative flex-none">
-            <div class="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/60 text-inverted flex items-center justify-center text-[28px] font-bold shadow-sm">
+            <img
+              v-if="avatarUrl"
+              :src="avatarUrl"
+              :alt="profile?.nama ?? ''"
+              class="w-20 h-20 rounded-full object-cover shadow-sm"
+              data-testid="header-avatar-image"
+            >
+            <div
+              v-else
+              class="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/60 text-inverted flex items-center justify-center text-[28px] font-bold shadow-sm"
+              data-testid="header-avatar-initials"
+            >
               {{ initials }}
             </div>
             <button
               type="button"
               :title="t('account.changePhoto')"
-              class="absolute right-[-2px] bottom-[-2px] w-7 h-7 rounded-full bg-default border border-[var(--ui-border-strong)] text-muted flex items-center justify-center cursor-pointer shadow-sm hover:text-primary hover:border-primary"
+              :disabled="avatarBusy"
+              data-testid="header-change-photo"
+              class="absolute right-[-2px] bottom-[-2px] w-7 h-7 rounded-full bg-default border border-[var(--ui-border-strong)] text-muted flex items-center justify-center cursor-pointer shadow-sm hover:text-primary hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="openAvatarPicker"
             >
               <UIcon
                 name="i-lucide-camera"
@@ -347,23 +432,54 @@ const joinDateLabel = computed(() => {
               {{ t('account.secPhoto') }}
             </div>
             <div class="flex items-center gap-4 flex-wrap">
-              <div class="w-[60px] h-[60px] rounded-full bg-gradient-to-br from-primary to-primary/60 text-inverted flex items-center justify-center text-[22px] font-bold flex-none">
+              <img
+                v-if="avatarUrl"
+                :src="avatarUrl"
+                :alt="profile?.nama ?? ''"
+                class="w-[60px] h-[60px] rounded-full object-cover flex-none"
+                data-testid="avatar-image"
+              >
+              <div
+                v-else
+                class="w-[60px] h-[60px] rounded-full bg-gradient-to-br from-primary to-primary/60 text-inverted flex items-center justify-center text-[22px] font-bold flex-none"
+                data-testid="avatar-initials"
+              >
                 {{ initials }}
               </div>
+              <!-- The real file input stays visually hidden; both the buttons
+                   here and the header camera icon trigger it. -->
+              <input
+                ref="avatarInput"
+                type="file"
+                accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+                class="hidden"
+                data-testid="avatar-input"
+                @change="onAvatarSelected"
+              >
               <div class="flex gap-[9px] flex-wrap">
                 <button
                   type="button"
-                  class="inline-flex items-center gap-[6px] px-[13px] py-2 text-[13px] font-medium text-default bg-default border border-[var(--ui-border-strong)] rounded-[9px] cursor-pointer hover:bg-muted"
+                  :disabled="avatarBusy"
+                  data-testid="avatar-upload"
+                  class="inline-flex items-center gap-[6px] px-[13px] py-2 text-[13px] font-medium text-default bg-default border border-[var(--ui-border-strong)] rounded-[9px] cursor-pointer hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                  @click="openAvatarPicker"
                 >
                   <UIcon
-                    name="i-lucide-upload"
-                    class="size-[14px]"
+                    :name="avatarBusy ? 'i-lucide-loader-circle' : 'i-lucide-upload'"
+                    :class="['size-[14px]', avatarBusy && 'animate-spin']"
                   />
                   {{ t('account.upload') }}
                 </button>
+                <!-- Deliberate, user-approved deviation from the mockup (which
+                     always shows it): hidden until there is a photo to remove,
+                     so the control is never a silent no-op. -->
                 <button
+                  v-if="profile?.hasAvatar"
                   type="button"
-                  class="inline-flex items-center gap-[6px] px-[13px] py-2 text-[13px] font-medium text-error bg-default border border-[var(--ui-border-strong)] rounded-[9px] cursor-pointer hover:bg-error/10 hover:border-transparent"
+                  :disabled="avatarBusy"
+                  data-testid="avatar-remove"
+                  class="inline-flex items-center gap-[6px] px-[13px] py-2 text-[13px] font-medium text-error bg-default border border-[var(--ui-border-strong)] rounded-[9px] cursor-pointer hover:bg-error/10 hover:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                  @click="removeAvatar"
                 >
                   <UIcon
                     name="i-lucide-trash-2"
@@ -376,24 +492,84 @@ const joinDateLabel = computed(() => {
             </div>
           </div>
 
-          <!-- Data Diri form -->
+          <!-- Data Diri form. The edit controls live in this card's header
+               because editing only ever touches the fields inside it. -->
           <div class="bg-default border border-default rounded-[14px] shadow-sm p-[18px_20px]">
-            <div class="text-[13px] font-semibold mb-4">
-              {{ t('account.secPersonal') }}
+            <div class="flex items-start justify-between gap-4 mb-4">
+              <!-- min-w-0 lets the hint wrap inside its own column instead of
+                   pushing the edit controls onto a line of their own. -->
+              <div class="min-w-0">
+                <div class="text-[13px] font-semibold">
+                  {{ t('account.secPersonal') }}
+                </div>
+                <div class="text-[12px] text-dimmed mt-[3px]">
+                  {{ t('account.secPersonalHint') }}
+                </div>
+              </div>
+              <div class="flex gap-[10px] flex-none">
+                <template v-if="!editing">
+                  <UButton
+                    color="primary"
+                    variant="outline"
+                    icon="i-lucide-pencil"
+                    size="sm"
+                    data-testid="profile-edit"
+                    @click="startEdit"
+                  >
+                    {{ t('account.edit') }}
+                  </UButton>
+                </template>
+                <template v-else>
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="sm"
+                    data-testid="profile-cancel"
+                    @click="cancelEdit"
+                  >
+                    {{ t('account.cancel') }}
+                  </UButton>
+                  <UButton
+                    color="primary"
+                    icon="i-lucide-save"
+                    size="sm"
+                    :loading="savingProfile"
+                    data-testid="profile-save"
+                    @click="saveProfil"
+                  >
+                    {{ t('account.save') }}
+                  </UButton>
+                </template>
+              </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- One unified grid: the two self-editable fields sit alongside the
+                 employee master-data fields, which are read-only in every state
+                 (they are maintained on the Master Data Pegawai screen). Outside
+                 edit mode nothing renders as an input — plain label/value rows,
+                 matching the Informasi Akun card below. -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-7 gap-y-[14px]">
               <!-- Full Name -->
               <div>
-                <label class="block text-[13px] font-medium mb-[6px]">
-                  {{ t('account.lName') }} <span class="text-error">*</span>
-                </label>
+                <div class="text-[12px] text-muted mb-[3px]">
+                  {{ t('account.lName') }} <span
+                    v-if="editing"
+                    class="text-error"
+                  >*</span>
+                </div>
                 <UInput
+                  v-if="editing"
                   v-model="fNama"
-                  :disabled="!editing"
                   :class="nameErr ? 'ring-1 ring-error [&_input]:border-error' : ''"
                   data-testid="profile-nama"
                   size="md"
                 />
+                <div
+                  v-else
+                  class="text-[14px] font-medium"
+                  data-testid="profile-nama"
+                >
+                  {{ profile?.nama || '—' }}
+                </div>
                 <div
                   v-if="nameErr"
                   class="mt-[6px] text-[12px] text-error"
@@ -403,17 +579,25 @@ const joinDateLabel = computed(() => {
               </div>
               <!-- Phone -->
               <div>
-                <label class="block text-[13px] font-medium mb-[6px]">
+                <div class="text-[12px] text-muted mb-[3px]">
                   {{ t('account.lPhone') }}
-                </label>
+                </div>
                 <UInput
+                  v-if="editing"
                   v-model="fTelepon"
                   type="tel"
                   placeholder="08xx-xxxx-xxxx"
-                  :disabled="!editing || !profile?.hasEmployee"
+                  :disabled="!profile?.hasEmployee"
                   data-testid="profile-telepon"
                   size="md"
                 />
+                <div
+                  v-else
+                  class="text-[14px] font-medium"
+                  data-testid="profile-telepon"
+                >
+                  {{ profile?.telepon || '—' }}
+                </div>
                 <div
                   v-if="!profile?.hasEmployee"
                   class="mt-[6px] text-[12px] text-dimmed"
@@ -422,23 +606,112 @@ const joinDateLabel = computed(() => {
                   {{ t('account.phoneManagedNote') }}
                 </div>
               </div>
-              <!-- Email (full width) -->
-              <div class="col-span-2">
-                <label class="block text-[13px] font-medium mb-[6px]">
+
+              <!-- Employee master-data fields — read-only in every state. -->
+              <template v-if="profile?.hasEmployee">
+                <div data-testid="profile-employee-detail">
+                  <div class="text-[12px] text-muted mb-[3px]">
+                    {{ t('account.iEmployee') }}
+                  </div>
+                  <div
+                    class="text-[14px] font-medium"
+                    data-testid="profile-employee-name"
+                  >
+                    {{ profile?.pegawai || '—' }}
+                  </div>
+                </div>
+                <div>
+                  <div class="text-[12px] text-muted mb-[3px]">
+                    {{ t('account.iEmployeeCode') }}
+                  </div>
+                  <div
+                    class="text-[14px] font-medium"
+                    data-testid="profile-employee-code"
+                  >
+                    {{ profile?.kodePegawai || '—' }}
+                  </div>
+                </div>
+                <div>
+                  <div class="text-[12px] text-muted mb-[3px]">
+                    {{ t('account.iDepartment') }}
+                  </div>
+                  <div
+                    class="text-[14px] font-medium"
+                    data-testid="profile-department"
+                  >
+                    {{ profile?.departemen || '—' }}
+                  </div>
+                </div>
+                <div>
+                  <div class="text-[12px] text-muted mb-[3px]">
+                    {{ t('account.iPosition') }}
+                  </div>
+                  <div
+                    class="text-[14px] font-medium"
+                    data-testid="profile-position"
+                  >
+                    {{ profile?.jabatan || '—' }}
+                  </div>
+                </div>
+                <div>
+                  <div class="text-[12px] text-muted mb-[3px]">
+                    {{ t('account.iEmployeeStatus') }}
+                  </div>
+                  <UBadge
+                    v-if="profile?.statusPegawai"
+                    :color="employeeStatusColor"
+                    variant="subtle"
+                    size="sm"
+                    data-testid="profile-employee-status"
+                  >
+                    {{ t(`account.status_${profile.statusPegawai}`) }}
+                  </UBadge>
+                  <div
+                    v-else
+                    class="text-[14px] font-medium"
+                    data-testid="profile-employee-status"
+                  >
+                    —
+                  </div>
+                </div>
+              </template>
+              <div
+                v-else
+                class="col-span-full text-[13px] text-dimmed"
+                data-testid="profile-no-employee"
+              >
+                {{ t('account.noEmployeeLinked') }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Info Akun (read-only) -->
+          <div class="bg-default border border-default rounded-[14px] shadow-sm p-[18px_20px]">
+            <div class="text-[13px] font-semibold mb-1">
+              {{ t('account.secAccount') }}
+            </div>
+            <div class="text-[12px] text-dimmed mb-[14px]">
+              {{ t('account.secAccountHint') }}
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-7 gap-y-[14px]">
+              <!-- Email lives here, not under Data Diri: it identifies the login
+                   account rather than the person. Changing it is a verified flow
+                   of its own, hence the dedicated button instead of the card's
+                   edit mode. -->
+              <div class="sm:col-span-2">
+                <div class="text-[12px] text-muted mb-[3px]">
                   {{ t('account.lEmail') }}
-                </label>
-                <div class="flex items-center gap-[10px]">
-                  <UInput
-                    :model-value="profile?.email ?? ''"
-                    disabled
-                    class="flex-1 opacity-60 cursor-not-allowed"
-                    size="md"
-                  />
+                </div>
+                <div class="flex items-center gap-[10px] flex-wrap">
+                  <span
+                    class="text-[14px] font-medium"
+                    data-testid="profile-email"
+                  >{{ profile?.email }}</span>
                   <UButton
                     v-if="!isGoogle"
                     color="neutral"
                     variant="outline"
-                    size="md"
+                    size="xs"
                     data-testid="profile-change-email"
                     @click="openEmailModal"
                   >
@@ -456,18 +729,6 @@ const joinDateLabel = computed(() => {
                   {{ t('account.emailLockNote') }}
                 </div>
               </div>
-            </div>
-          </div>
-
-          <!-- Info Akun (read-only) -->
-          <div class="bg-default border border-default rounded-[14px] shadow-sm p-[18px_20px]">
-            <div class="text-[13px] font-semibold mb-1">
-              {{ t('account.secAccount') }}
-            </div>
-            <div class="text-[12px] text-dimmed mb-[14px]">
-              {{ t('account.secAccountHint') }}
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-7 gap-y-[14px]">
               <div>
                 <div class="text-[12px] text-muted mb-[3px]">
                   {{ t('account.iRole') }}
@@ -482,14 +743,6 @@ const joinDateLabel = computed(() => {
                 </div>
                 <div class="text-[14px] font-medium">
                   {{ profile?.kantor || '—' }}
-                </div>
-              </div>
-              <div>
-                <div class="text-[12px] text-muted mb-[3px]">
-                  {{ t('account.iEmployee') }}
-                </div>
-                <div class="text-[14px] font-medium">
-                  {{ profile?.pegawai || '—' }}
                 </div>
               </div>
               <div>
@@ -513,43 +766,6 @@ const joinDateLabel = computed(() => {
                 </div>
               </div>
             </div>
-          </div>
-
-          <!-- Edit / Save / Cancel controls -->
-          <div class="flex justify-end gap-[10px]">
-            <template v-if="!editing">
-              <UButton
-                color="primary"
-                variant="outline"
-                icon="i-lucide-pencil"
-                size="md"
-                data-testid="profile-edit"
-                @click="startEdit"
-              >
-                {{ t('account.edit') }}
-              </UButton>
-            </template>
-            <template v-else>
-              <UButton
-                color="neutral"
-                variant="ghost"
-                size="md"
-                data-testid="profile-cancel"
-                @click="cancelEdit"
-              >
-                {{ t('account.cancel') }}
-              </UButton>
-              <UButton
-                color="primary"
-                icon="i-lucide-save"
-                size="md"
-                :loading="savingProfile"
-                data-testid="profile-save"
-                @click="saveProfil"
-              >
-                {{ t('account.save') }}
-              </UButton>
-            </template>
           </div>
 
           <!-- "Ubah Email" modal -->

@@ -38,6 +38,9 @@ type Config struct {
 	MinIOBucket        string
 	MinIOUseSSL        bool
 	AttachmentMaxBytes int64
+	// AvatarMaxBytes caps profile-photo uploads. Lower than attachments because
+	// the profile screen advertises a 2 MB limit.
+	AvatarMaxBytes int64
 
 	// Auth.
 	JWTSecret     string
@@ -145,6 +148,7 @@ func Load() *Config {
 		MinIOBucket:        getEnv("MINIO_BUCKET", "inventra"),
 		MinIOUseSSL:        getEnvBool("MINIO_USE_SSL", false),
 		AttachmentMaxBytes: int64(getEnvInt("ATTACHMENT_MAX_BYTES", 5*1024*1024)),
+		AvatarMaxBytes:     int64(getEnvInt("AVATAR_MAX_BYTES", 2*1024*1024)),
 
 		JWTSecret:     getEnv("JWT_SECRET", "change-me-in-production"),
 		JWTAccessTTL:  getEnvDuration("JWT_ACCESS_TTL", 15*time.Minute),

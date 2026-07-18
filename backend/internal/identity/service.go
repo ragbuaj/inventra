@@ -14,6 +14,7 @@ import (
 	"github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/auth"
 	"github.com/ragbuaj/inventra/internal/geoip"
+	"github.com/ragbuaj/inventra/internal/storage"
 )
 
 // Service-level errors.
@@ -27,6 +28,10 @@ var (
 	ErrEmailInUse         = errors.New("email is already in use")
 	ErrSameEmail          = errors.New("new email must differ from the current email")
 	ErrInvalidInput       = errors.New("invalid input")
+	ErrUnsupportedType    = errors.New("unsupported image type")
+	ErrTooLarge           = errors.New("image is too large")
+	ErrNoAvatar           = errors.New("no avatar set")
+	ErrAvatarUnavailable  = errors.New("avatar storage is not configured")
 	ErrNotFound           = errors.New("not found")
 	ErrNoPasswordLogin    = errors.New("account has no password login (Google-only)")
 )
@@ -42,6 +47,12 @@ type userStore interface {
 	UpdateUserName(ctx context.Context, arg sqlc.UpdateUserNameParams) (sqlc.IdentityUser, error)
 	UpdateUserEmail(ctx context.Context, arg sqlc.UpdateUserEmailParams) (sqlc.IdentityUser, error)
 	UpdateEmployeePhone(ctx context.Context, arg sqlc.UpdateEmployeePhoneParams) error
+	UpdateUserAvatarKey(ctx context.Context, arg sqlc.UpdateUserAvatarKeyParams) error
+}
+
+// sqlcUpdateAvatarParams builds the avatar-key update params; key == nil clears it.
+func sqlcUpdateAvatarParams(userID uuid.UUID, key *string) sqlc.UpdateUserAvatarKeyParams {
+	return sqlc.UpdateUserAvatarKeyParams{ID: userID, AvatarKey: key}
 }
 
 // mailSender is the account-security mail surface (satisfied by *email.Mailer).
@@ -55,22 +66,26 @@ type mailSender interface {
 // Service handles login, token refresh/rotation, logout, current-user lookup,
 // password reset/change, and device-session management.
 type Service struct {
-	q           userStore
-	tm          *auth.TokenManager
-	store       *auth.TokenStore
-	mail        mailSender
-	locator     geoip.Locator
-	resetTTL    time.Duration
-	frontendURL string
+	q              userStore
+	tm             *auth.TokenManager
+	store          *auth.TokenStore
+	mail           mailSender
+	locator        geoip.Locator
+	resetTTL       time.Duration
+	frontendURL    string
+	storage        storage.Storage
+	avatarMaxBytes int64
 }
 
 // NewService builds the identity Service. locator may be nil (a no-op locator is
 // substituted), so callers without GeoIP configured still function.
-func NewService(q userStore, tm *auth.TokenManager, store *auth.TokenStore, mailer mailSender, locator geoip.Locator, resetTTL time.Duration, frontendURL string) *Service {
+// objStore may be nil (deployments without MinIO); avatar endpoints then fail
+// with ErrAvatarUnavailable rather than panicking.
+func NewService(q userStore, tm *auth.TokenManager, store *auth.TokenStore, mailer mailSender, locator geoip.Locator, resetTTL time.Duration, frontendURL string, objStore storage.Storage, avatarMaxBytes int64) *Service {
 	if locator == nil {
 		locator = geoip.New("", nil)
 	}
-	return &Service{q: q, tm: tm, store: store, mail: mailer, locator: locator, resetTTL: resetTTL, frontendURL: frontendURL}
+	return &Service{q: q, tm: tm, store: store, mail: mailer, locator: locator, resetTTL: resetTTL, frontendURL: frontendURL, storage: objStore, avatarMaxBytes: avatarMaxBytes}
 }
 
 // Login verifies credentials and issues an access + refresh token pair, opening

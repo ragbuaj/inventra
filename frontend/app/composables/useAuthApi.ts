@@ -10,7 +10,7 @@ interface MeResponse {
   office_id: string | null
   employee_id: string | null
   status: string
-  avatar_url: string | null
+  has_avatar: boolean
   google_linked: boolean
   created_at: string | null
   updated_at: string | null

@@ -54,7 +54,7 @@ func (q *Queries) CreateRole(ctx context.Context, arg CreateRoleParams) (Identit
 const createUser = `-- name: CreateUser :one
 INSERT INTO identity.users (name, email, password_hash, role_id, office_id, employee_id)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, employee_id, office_id, name, email, password_hash, google_id, avatar_url, role_id, status, created_at, updated_at, deleted_at, password_changed_at
+RETURNING id, employee_id, office_id, name, email, password_hash, google_id, avatar_key, role_id, status, created_at, updated_at, deleted_at, password_changed_at
 `
 
 type CreateUserParams struct {
@@ -84,7 +84,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Identit
 		&i.Email,
 		&i.PasswordHash,
 		&i.GoogleID,
-		&i.AvatarUrl,
+		&i.AvatarKey,
 		&i.RoleID,
 		&i.Status,
 		&i.CreatedAt,
@@ -150,7 +150,7 @@ func (q *Queries) GetRoleByCode(ctx context.Context, code string) (IdentityRole,
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, employee_id, office_id, name, email, password_hash, google_id, avatar_url, role_id, status, created_at, updated_at, deleted_at, password_changed_at FROM identity.users
+SELECT id, employee_id, office_id, name, email, password_hash, google_id, avatar_key, role_id, status, created_at, updated_at, deleted_at, password_changed_at FROM identity.users
 WHERE email = $1 AND deleted_at IS NULL
 `
 
@@ -165,7 +165,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (IdentityUse
 		&i.Email,
 		&i.PasswordHash,
 		&i.GoogleID,
-		&i.AvatarUrl,
+		&i.AvatarKey,
 		&i.RoleID,
 		&i.Status,
 		&i.CreatedAt,
@@ -177,7 +177,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (IdentityUse
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, employee_id, office_id, name, email, password_hash, google_id, avatar_url, role_id, status, created_at, updated_at, deleted_at, password_changed_at FROM identity.users
+SELECT id, employee_id, office_id, name, email, password_hash, google_id, avatar_key, role_id, status, created_at, updated_at, deleted_at, password_changed_at FROM identity.users
 WHERE id = $1 AND deleted_at IS NULL
 `
 
@@ -192,7 +192,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (IdentityUser, 
 		&i.Email,
 		&i.PasswordHash,
 		&i.GoogleID,
-		&i.AvatarUrl,
+		&i.AvatarKey,
 		&i.RoleID,
 		&i.Status,
 		&i.CreatedAt,
@@ -205,33 +205,43 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (IdentityUser, 
 
 const getUserProfile = `-- name: GetUserProfile :one
 SELECT u.id, u.name, u.email, u.role_id, u.office_id, u.employee_id, u.status,
-       u.avatar_url, u.google_id, u.created_at,
+       u.avatar_key, u.google_id, u.created_at,
        e.phone AS employee_phone,
        r.name  AS role_name,
        o.name  AS office_name,
-       e.name  AS employee_name
+       e.name  AS employee_name,
+       e.code  AS employee_code,
+       e.status AS employee_status,
+       d.name  AS department_name,
+       p.name  AS position_name
 FROM identity.users u
-LEFT JOIN masterdata.employees e ON e.id = u.employee_id AND e.deleted_at IS NULL
-LEFT JOIN identity.roles       r ON r.id = u.role_id     AND r.deleted_at IS NULL
-LEFT JOIN masterdata.offices   o ON o.id = u.office_id   AND o.deleted_at IS NULL
+LEFT JOIN masterdata.employees   e ON e.id = u.employee_id     AND e.deleted_at IS NULL
+LEFT JOIN identity.roles         r ON r.id = u.role_id         AND r.deleted_at IS NULL
+LEFT JOIN masterdata.offices     o ON o.id = u.office_id       AND o.deleted_at IS NULL
+LEFT JOIN masterdata.departments d ON d.id = e.department_id   AND d.deleted_at IS NULL
+LEFT JOIN masterdata.positions   p ON p.id = e.position_id     AND p.deleted_at IS NULL
 WHERE u.id = $1 AND u.deleted_at IS NULL
 `
 
 type GetUserProfileRow struct {
-	ID            uuid.UUID          `json:"id"`
-	Name          string             `json:"name"`
-	Email         string             `json:"email"`
-	RoleID        uuid.UUID          `json:"role_id"`
-	OfficeID      *uuid.UUID         `json:"office_id"`
-	EmployeeID    *uuid.UUID         `json:"employee_id"`
-	Status        SharedUserStatus   `json:"status"`
-	AvatarUrl     *string            `json:"avatar_url"`
-	GoogleID      *string            `json:"google_id"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	EmployeePhone *string            `json:"employee_phone"`
-	RoleName      *string            `json:"role_name"`
-	OfficeName    *string            `json:"office_name"`
-	EmployeeName  *string            `json:"employee_name"`
+	ID             uuid.UUID          `json:"id"`
+	Name           string             `json:"name"`
+	Email          string             `json:"email"`
+	RoleID         uuid.UUID          `json:"role_id"`
+	OfficeID       *uuid.UUID         `json:"office_id"`
+	EmployeeID     *uuid.UUID         `json:"employee_id"`
+	Status         SharedUserStatus   `json:"status"`
+	AvatarKey      *string            `json:"avatar_key"`
+	GoogleID       *string            `json:"google_id"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	EmployeePhone  *string            `json:"employee_phone"`
+	RoleName       *string            `json:"role_name"`
+	OfficeName     *string            `json:"office_name"`
+	EmployeeName   *string            `json:"employee_name"`
+	EmployeeCode   *string            `json:"employee_code"`
+	EmployeeStatus *SharedUserStatus  `json:"employee_status"`
+	DepartmentName *string            `json:"department_name"`
+	PositionName   *string            `json:"position_name"`
 }
 
 func (q *Queries) GetUserProfile(ctx context.Context, id uuid.UUID) (GetUserProfileRow, error) {
@@ -245,13 +255,17 @@ func (q *Queries) GetUserProfile(ctx context.Context, id uuid.UUID) (GetUserProf
 		&i.OfficeID,
 		&i.EmployeeID,
 		&i.Status,
-		&i.AvatarUrl,
+		&i.AvatarKey,
 		&i.GoogleID,
 		&i.CreatedAt,
 		&i.EmployeePhone,
 		&i.RoleName,
 		&i.OfficeName,
 		&i.EmployeeName,
+		&i.EmployeeCode,
+		&i.EmployeeStatus,
+		&i.DepartmentName,
+		&i.PositionName,
 	)
 	return i, err
 }
@@ -541,9 +555,23 @@ func (q *Queries) UpdateRole(ctx context.Context, arg UpdateRoleParams) (Identit
 	return i, err
 }
 
+const updateUserAvatarKey = `-- name: UpdateUserAvatarKey :exec
+UPDATE identity.users SET avatar_key = $2 WHERE id = $1 AND deleted_at IS NULL
+`
+
+type UpdateUserAvatarKeyParams struct {
+	ID        uuid.UUID `json:"id"`
+	AvatarKey *string   `json:"avatar_key"`
+}
+
+func (q *Queries) UpdateUserAvatarKey(ctx context.Context, arg UpdateUserAvatarKeyParams) error {
+	_, err := q.db.Exec(ctx, updateUserAvatarKey, arg.ID, arg.AvatarKey)
+	return err
+}
+
 const updateUserEmail = `-- name: UpdateUserEmail :one
 UPDATE identity.users SET email = $2 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, employee_id, office_id, name, email, password_hash, google_id, avatar_url, role_id, status, created_at, updated_at, deleted_at, password_changed_at
+RETURNING id, employee_id, office_id, name, email, password_hash, google_id, avatar_key, role_id, status, created_at, updated_at, deleted_at, password_changed_at
 `
 
 type UpdateUserEmailParams struct {
@@ -562,7 +590,7 @@ func (q *Queries) UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams
 		&i.Email,
 		&i.PasswordHash,
 		&i.GoogleID,
-		&i.AvatarUrl,
+		&i.AvatarKey,
 		&i.RoleID,
 		&i.Status,
 		&i.CreatedAt,
@@ -575,7 +603,7 @@ func (q *Queries) UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams
 
 const updateUserName = `-- name: UpdateUserName :one
 UPDATE identity.users SET name = $2 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, employee_id, office_id, name, email, password_hash, google_id, avatar_url, role_id, status, created_at, updated_at, deleted_at, password_changed_at
+RETURNING id, employee_id, office_id, name, email, password_hash, google_id, avatar_key, role_id, status, created_at, updated_at, deleted_at, password_changed_at
 `
 
 type UpdateUserNameParams struct {
@@ -594,7 +622,7 @@ func (q *Queries) UpdateUserName(ctx context.Context, arg UpdateUserNameParams) 
 		&i.Email,
 		&i.PasswordHash,
 		&i.GoogleID,
-		&i.AvatarUrl,
+		&i.AvatarKey,
 		&i.RoleID,
 		&i.Status,
 		&i.CreatedAt,
