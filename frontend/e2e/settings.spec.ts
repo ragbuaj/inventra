@@ -352,11 +352,11 @@ test.describe('Data Scope screen — real backend', () => {
       // Pick a different level deterministically: 'own' if currently 'global', else 'global'
       const targetLevel = currentLevel === 'own' ? 'global' : 'own'
 
-      // Popover option buttons contain the level key AND its description; the description
-      // text also appears in the legend as plain text, but only the popover renders it
-      // inside a BUTTON, so scoping by role=button + description targets the option.
-      const levelOption = page.getByRole('button').filter({ hasText: LEVEL_DESC[targetLevel] }).first()
-      await levelOption.click()
+      // Popover options carry explicit testids (ScopeCell.vue) — description-based
+      // locators are unsafe here because role-list buttons contain role DESCRIPTIONS
+      // that can echo a level description (e.g. Staf: "Pengguna aset; hanya data
+      // miliknya" ≈ LEVEL_DESC.own, and hasText matches case-insensitively).
+      await page.getByTestId(`scope-level-option-${targetLevel}`).click()
 
       // Dirty indicator should appear
       await expect(page.getByText('Perubahan belum disimpan').first()).toBeVisible({ timeout: 5_000 })
@@ -383,8 +383,7 @@ test.describe('Data Scope screen — real backend', () => {
       // this doesn't run or throws, this nested describe's afterEach above is the
       // authoritative, failure-safe restore via the API).
       await defaultPillAfter.click()
-      const revertOption = page.getByRole('button').filter({ hasText: LEVEL_DESC[currentLevel] }).first()
-      await revertOption.click()
+      await page.getByTestId(`scope-level-option-${currentLevel}`).click()
       const saveBtnCleanup = page.getByTestId('scope-save')
       if (await saveBtnCleanup.isEnabled()) {
         await saveBtnCleanup.click()
@@ -576,14 +575,12 @@ test.describe('Field Permission screen — real backend', () => {
   })
 
   test('switching entity to users shows users fields (e.g. email)', async ({ page }) => {
-    // The entity selector is a Nuxt UI USelect (custom listbox, NOT a native <select>):
-    // a trigger button showing the current entity label ("Aset") plus a popover of options
-    // with role="option". Open it by clicking the trigger (located by its current value text),
-    // then pick the "User" option.
-    await page.getByText('Aset', { exact: true }).first().click()
-    await page.getByRole('option', { name: 'User' })
-      .or(page.getByText('User', { exact: true }))
-      .first().click()
+    // The entity selector is a Nuxt UI USelect (custom listbox, NOT a native <select>).
+    // Open it via its explicit testid, then pick the "User" option by role=option —
+    // a bare text locator is unsafe: the sidebar has an exact-text "User" link
+    // (/settings/users) that would navigate away.
+    await page.getByTestId('fieldperm-entity-select').click()
+    await page.getByRole('option', { name: 'User', exact: true }).click()
     // The "users" entity has field "email" in FIELD_CATALOG; its i18n label is "Email".
     await expect(page.getByTestId('fieldperm-row-email')).toBeVisible({ timeout: 8_000 })
     await expect(page.getByTestId('fieldperm-row-email').getByText('Email')).toBeVisible()

@@ -74,6 +74,7 @@ function follow() {
           type="button"
           class="flex items-start gap-[9px] w-full px-2.5 py-2 rounded-lg text-left cursor-pointer hover:bg-muted transition-colors"
           :class="isInheriting ? 'bg-muted' : ''"
+          data-testid="scope-level-follow"
           @click="follow"
         >
           <UIcon
@@ -97,6 +98,7 @@ function follow() {
           type="button"
           class="flex items-start gap-[9px] w-full px-2.5 py-2 rounded-lg text-left cursor-pointer hover:bg-muted transition-colors"
           :class="selected === lvl ? 'bg-primary/10' : ''"
+          :data-testid="`scope-level-option-${lvl}`"
           @click="pick(lvl)"
         >
           <span

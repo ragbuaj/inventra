@@ -290,6 +290,7 @@ onMounted(() => load())
                 v-model="entityKey"
                 :items="entityOptions"
                 class="min-w-[160px]"
+                data-testid="fieldperm-entity-select"
                 @update:model-value="onEntityChange"
               />
             </div>
