@@ -1241,7 +1241,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > 75. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-18): mobile companion app —
 >     dokumentasi perencanaan dulu, lihat item 76.**
 > 76. ~~**Mobile companion app — dokumen perencanaan & keputusan**~~ ✅ **DONE (2026-07-18, branch
->     `feat/mobile-docs`).** Pemilik produk membuka scope mobile (PRD v1.1 semula mengecualikannya):
+>     `feat/mobile-docs`, PR #100).** Pemilik produk membuka scope mobile (PRD v1.1 semula mengecualikannya):
 >     bentuk **field companion** (scan aset via kamera, approval on-the-go, push notification, stock
 >     opname offline-first), teknologi **Flutter** (Android dulu, folder `mobile/` di monorepo),
 >     **offline-first** untuk opname. Dokumen yang landed: roadmap
