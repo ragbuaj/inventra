@@ -29,7 +29,9 @@ mobile/
       shell.dart              # scaffold bottom-nav 5 slot (tombol Scan tengah)
     core/
       api/                    # Dio client, interceptor auth/refresh, error mapper
-      auth/                   # session state, refresh token di secure storage (ADR-0017)
+      auth/                   # session state, refresh token di secure storage (ADR-0017);
+                              #   data/ = repository + DTO /auth/* (di core, bukan features,
+                              #   karena dipakai lintas fitur oleh controller/interceptor)
       db/                     # inisialisasi drift database (dipakai fitur opname)
       i18n/                   # l10n.yaml output, helper locale
       utils/                  # formatter (tanggal, Rp), logger
@@ -37,8 +39,7 @@ mobile/
                               #   StatusChip, EmptyState, AppSkeleton, ConfirmDialog
     features/
       login/
-        data/                 # repository + DTO (freezed) untuk /auth/*
-        presentation/         # LoginScreen + controller Riverpod
+        presentation/         # LoginScreen + controller Riverpod (data auth di core/auth/data)
       home/
       scan/                   # kamera (mobile_scanner) + input manual + hasil
       asset_detail/           # GET /assets/by-tag/:tag, masking field-permission
