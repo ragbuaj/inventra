@@ -4,7 +4,8 @@
 #   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 #
 # Beda dengan docker-compose.yml (dev/CI):
-#   - Postgres/Redis/MinIO TIDAK diekspos ke host (hanya jaringan internal).
+#   - Redis/MinIO TIDAK diekspos sama sekali; Postgres hanya ke loopback VPS
+#     (127.0.0.1:5432) untuk akses admin via SSH tunnel — tidak ke internet.
 #   - Rahasia dibaca dari .env.prod, bukan hardcoded.
 #   - Caddy mengurus HTTPS otomatis; hanya port 80/443 yang terbuka.
 services:
@@ -16,6 +17,11 @@ services:
       POSTGRES_USER: inventra
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: inventra
+    # Terikat ke loopback VPS saja — TIDAK terbuka ke internet. Gunanya agar
+    # admin bisa membuka SSH tunnel untuk akses baca (mis. MCP postgres
+    # read-only). Lihat ops/db/README.md.
+    ports:
+      - "127.0.0.1:5432:5432"
     volumes:
       - inventra-postgres:/var/lib/postgresql/data
     healthcheck:

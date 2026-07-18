@@ -21,8 +21,11 @@ Internet ──443/80──▶ Caddy ──┬─ /            ─▶ frontend (
                                                      └─▶ minio    :9000
 ```
 
-- Hanya **port 80 & 443** yang terbuka ke internet. DB/Redis/MinIO hanya bisa
-  diakses antar-container.
+- Hanya **port 80 & 443** yang terbuka ke internet. Redis/MinIO hanya bisa
+  diakses antar-container; Postgres juga terikat ke **loopback VPS**
+  (`127.0.0.1:5432`) supaya admin bisa membacanya lewat **SSH tunnel** —
+  tetap tertutup dari internet. Lihat [ops/db/README.md](../ops/db/README.md)
+  untuk role read-only `inventra_ro` dan setup MCP postgres.
 - Caddy mengurus sertifikat TLS Let's Encrypt secara otomatis (butuh domain).
 - Catatan RAM: **build image Nuxt butuh ~4 GB heap**. Di VPS 4 GB, build tanpa
   swap bisa gagal (OOM/"killed"). Langkah 3 menambahkan swap — jangan dilewati.
