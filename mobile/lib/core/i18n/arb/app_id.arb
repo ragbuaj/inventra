@@ -1,0 +1,19 @@
+{
+  "@@locale": "id",
+  "appTitle": "Inventra Mobile",
+  "@appTitle": {
+    "description": "Nama aplikasi, dipakai sebagai judul app"
+  },
+  "commonComingSoon": "Segera hadir",
+  "@commonComingSoon": {
+    "description": "Placeholder untuk fitur yang belum dibangun"
+  },
+  "commonRetry": "Coba lagi",
+  "@commonRetry": {
+    "description": "Label tombol coba ulang setelah error"
+  },
+  "commonCancel": "Batal",
+  "@commonCancel": {
+    "description": "Label tombol batal umum"
+  }
+}
