@@ -29,7 +29,7 @@ mobile/
       shell.dart              # scaffold bottom-nav 5 slot (tombol Scan tengah)
     core/
       api/                    # Dio client, interceptor auth/refresh, error mapper
-      auth/                   # session state, secure storage, cookie jar
+      auth/                   # session state, refresh token di secure storage (ADR-0017)
       db/                     # inisialisasi drift database (dipakai fitur opname)
       i18n/                   # l10n.yaml output, helper locale
       utils/                  # formatter (tanggal, Rp), logger
@@ -93,13 +93,14 @@ Setiap fitur memakai dua sub-lapisan saja:
 
 ## 4. Jaringan dan kontrak API
 
-- **Dio** tunggal dari `core/api`, dengan tiga interceptor berurutan:
-  1. **Cookie jar persisten** (`dio_cookie_manager` + `cookie_jar`) — memegang refresh cookie
-     httpOnly; inilah mekanisme refresh v1 tanpa perubahan backend (ADR-0015).
-  2. **Auth**: menempelkan `Authorization: Bearer <access>` dari memori; saat 401, melakukan
-     refresh **single-flight** (request lain menunggu satu refresh yang sama) lalu mengulang
-     request; bila refresh gagal, sesi dinyatakan mati dan router mengarahkan ke login.
-  3. **Error mapper**: mengubah error Dio/HTTP menjadi `AppFailure` yang seragam.
+- **Dio** tunggal dari `core/api`, dengan dua interceptor berurutan:
+  1. **Auth**: menempelkan `Authorization: Bearer <access>` dari memori dan header
+     `X-Client-Type: mobile` sebagai identitas klien
+     ([ADR-0017](adr/0017-mobile-client-identity.md)); saat 401, melakukan refresh
+     **single-flight** (request lain menunggu satu refresh yang sama) dengan mengirim refresh
+     token dari secure storage di body `POST /auth/refresh`, lalu mengulang request; bila
+     refresh gagal, sesi dinyatakan mati dan router mengarahkan ke login.
+  2. **Error mapper**: mengubah error Dio/HTTP menjadi `AppFailure` yang seragam.
 - **`AppFailure`** adalah sealed class kecil: `network` (offline/timeout), `unauthorized`,
   `forbidden`, `notFound`, `validation(message)`, `conflict`, `server`, `unknown`. Widget
   menampilkan pesan i18n per jenis — tidak pernah menampilkan string error mentah backend.
@@ -131,12 +132,13 @@ Satu-satunya bagian stateful. Semua berada di `features/stock_opname/data/`:
 
 ## 6. Autentikasi dan sesi
 
-- Access token hanya di memori; refresh cookie di cookie jar persisten yang file-nya disimpan
-  terenkripsi via `flutter_secure_storage` (kunci enkripsi) — token tidak pernah menyentuh
-  SharedPreferences.
-- Cold start: baca cookie jar, panggil `/auth/refresh`; sukses berarti sesi hidup (skip login),
-  gagal berarti ke login. Logout memanggil `/auth/logout` lalu membersihkan jar + memori +
-  deregistrasi token FCM.
+- Access token hanya di memori; refresh token disimpan di `flutter_secure_storage`
+  (Keystore/Keychain) sesuai [ADR-0017](adr/0017-mobile-client-identity.md) — klien mobile tidak
+  memakai cookie sama sekali, dan token tidak pernah menyentuh SharedPreferences.
+- Cold start: baca refresh token dari secure storage, kirim di body `POST /auth/refresh`
+  (dengan header `X-Client-Type: mobile`); sukses berarti sesi hidup (skip login) dan refresh
+  token baru disimpan kembali, gagal berarti ke login. Logout mengirim refresh token di body
+  `/auth/logout` lalu membersihkan secure storage + memori + deregistrasi token FCM.
 - Pencabutan sesi dari server (device sessions) terlihat sebagai 401 yang gagal refresh —
   ditangani jalur yang sama, tanpa kode khusus.
 
