@@ -83,8 +83,11 @@ const breadcrumbParent = computed(() => routeLabel.value.parent)
 
     <!-- Right cluster -->
     <div class="flex items-center gap-2 flex-none">
-      <LangSwitcher />
-      <ThemeToggle />
+      <!-- Desktop-only: on mobile these live inside the UserMenu popover -->
+      <div class="hidden lg:flex items-center gap-2">
+        <LangSwitcher />
+        <ThemeToggle />
+      </div>
       <NotificationBell />
       <UserMenu />
     </div>

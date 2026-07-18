@@ -24,6 +24,7 @@
     "@pinia/nuxt": "1.0.0",
     "@unovis/ts": "^1.6.7",
     "@unovis/vue": "^1.6.7",
+    "barcode-detector": "3.2.1",
     "leaflet": "^1.9.4",
     "nuxt": "^4.4.8",
     "pinia": "^4.0.2",

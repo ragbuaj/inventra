@@ -31,7 +31,7 @@ const pct = computed(() => (props.total > 0 ? Math.round((props.found / props.to
     :id="`opname-session-row-${session.id}`"
     type="button"
     data-testid="opname-session-row"
-    class="flex items-center gap-4 w-full px-[18px] py-4 bg-default border border-default rounded-[13px] shadow-sm text-left transition-colors hover:border-primary"
+    class="flex flex-wrap sm:flex-nowrap items-center gap-x-4 gap-y-3 w-full px-[18px] py-4 bg-default border border-default rounded-[13px] shadow-sm text-left transition-colors hover:border-primary"
     @click="$emit('open')"
   >
     <span class="size-11 rounded-[11px] bg-info/15 text-info flex items-center justify-center flex-none">
@@ -72,7 +72,11 @@ const pct = computed(() => (props.total > 0 ? Math.round((props.found / props.to
         </span>
       </div>
     </div>
-    <div class="w-[180px] flex-none">
+    <UIcon
+      name="i-lucide-chevron-right"
+      class="size-[18px] text-dimmed flex-none sm:order-last"
+    />
+    <div class="w-full sm:w-[180px] flex-none">
       <div class="flex justify-between text-xs font-medium mb-1.5">
         <span class="text-muted">{{ t('stockOpname.progress', { a: found, b: total }) }}</span>
         <span class="font-semibold">{{ pct }}%</span>
@@ -85,9 +89,5 @@ const pct = computed(() => (props.total > 0 ? Math.round((props.found / props.to
         />
       </div>
     </div>
-    <UIcon
-      name="i-lucide-chevron-right"
-      class="size-[18px] text-dimmed flex-none"
-    />
   </button>
 </template>

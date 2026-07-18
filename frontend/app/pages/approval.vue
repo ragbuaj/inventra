@@ -43,6 +43,9 @@ const detail = ref<ApprovalRequestDetail | null>(null)
 const detailLoading = ref(false)
 const note = ref('')
 const deciding = ref(false)
+// Mobile drill-down (below lg): false = inbox list full-width, true = detail
+// full-width with a back button. On lg+ both panes are always visible.
+const showDetailMobile = ref(false)
 
 // FK name lookups for the Data section (same inline pattern as master/employees).
 // Office resolves on demand via useResolveCache — no more eager
@@ -140,6 +143,7 @@ async function resolveAssetName(id: string) {
 
 async function selectRequest(id: string) {
   selectedId.value = id
+  showDetailMobile.value = true
   note.value = ''
   detailLoading.value = true
   try {
@@ -159,6 +163,7 @@ watch([filter, typeFilter], async () => {
   selectedId.value = null
   detail.value = null
   note.value = ''
+  showDetailMobile.value = false
   await loadTab()
 })
 
@@ -323,7 +328,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex flex-col h-[calc(100vh-9.5rem)] min-h-[560px] -m-1">
+  <div class="flex flex-col -m-1 lg:h-[calc(100vh-9.5rem)] lg:min-h-[560px]">
     <!-- Header -->
     <div class="flex items-center gap-2.5 mb-3 px-1">
       <h1 class="text-lg font-semibold tracking-tight">
@@ -341,8 +346,11 @@ onMounted(async () => {
 
     <!-- Two-pane -->
     <div class="flex-1 flex min-h-0 border border-default rounded-[14px] overflow-hidden bg-default shadow-sm">
-      <!-- LEFT: inbox -->
-      <div class="w-[340px] flex-none border-e border-default flex flex-col min-h-0">
+      <!-- LEFT: inbox (mobile: hidden while the detail is open) -->
+      <div
+        class="w-full lg:w-[340px] flex-none lg:border-e border-default flex-col min-h-0"
+        :class="showDetailMobile ? 'hidden lg:flex' : 'flex'"
+      >
         <div class="flex-none p-3.5 border-b border-default">
           <div class="flex gap-0.5 p-0.5 bg-muted rounded-lg mb-2.5">
             <button
@@ -457,10 +465,25 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- RIGHT: detail -->
-      <div class="flex-1 flex flex-col min-w-0 bg-muted/30">
+      <!-- RIGHT: detail (mobile: only visible after selecting an item) -->
+      <div
+        class="flex-1 flex-col min-w-0 bg-muted/30"
+        :class="showDetailMobile ? 'flex' : 'hidden lg:flex'"
+      >
+        <!-- mobile back bar -->
+        <div class="lg:hidden flex-none border-b border-default bg-default px-3 py-2">
+          <UButton
+            icon="i-lucide-arrow-left"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            :label="t('common.back')"
+            data-testid="approval-back"
+            @click="() => { showDetailMobile = false }"
+          />
+        </div>
         <template v-if="detailLoading">
-          <div class="flex-1 overflow-y-auto p-6">
+          <div class="flex-1 overflow-y-auto p-4 sm:p-6">
             <div class="max-w-[680px] space-y-4">
               <USkeleton class="h-8 w-2/3 rounded-lg" />
               <USkeleton class="h-20 w-full rounded-xl" />
@@ -469,7 +492,7 @@ onMounted(async () => {
           </div>
         </template>
         <template v-else-if="view">
-          <div class="flex-1 overflow-y-auto p-6">
+          <div class="flex-1 overflow-y-auto p-4 sm:p-6">
             <div class="max-w-[680px]">
               <!-- header -->
               <div class="flex items-center gap-2 flex-wrap mb-2.5">
@@ -545,7 +568,7 @@ onMounted(async () => {
                 class="bg-default border border-default rounded-xl shadow-sm overflow-hidden mb-[18px]"
               >
                 <template v-if="view.isDiff">
-                  <div class="grid grid-cols-[140px_1fr_22px_1fr] items-center px-4 py-2.5 bg-muted text-[11px] font-semibold uppercase text-dimmed">
+                  <div class="hidden sm:grid grid-cols-[140px_1fr_22px_1fr] items-center px-4 py-2.5 bg-muted text-[11px] font-semibold uppercase text-dimmed">
                     <span>{{ t('approval.thField') }}</span>
                     <span>{{ t('approval.thBefore') }}</span>
                     <span />
@@ -554,13 +577,13 @@ onMounted(async () => {
                   <div
                     v-for="(f, i) in view.dataRows"
                     :key="i"
-                    class="grid grid-cols-[140px_1fr_22px_1fr] items-center px-4 py-2.5 border-t border-default text-[13.5px]"
+                    class="grid grid-cols-1 gap-y-1 sm:grid-cols-[140px_1fr_22px_1fr] sm:gap-y-0 items-center px-4 py-2.5 border-t first:border-t-0 sm:first:border-t border-default text-[13.5px]"
                   >
                     <span class="text-muted">{{ f.label }}</span>
                     <span class="text-dimmed line-through">{{ 'before' in f ? f.before : '' }}</span>
                     <UIcon
                       name="i-lucide-arrow-right"
-                      class="size-3.5 text-dimmed"
+                      class="size-3.5 text-dimmed hidden sm:block"
                     />
                     <span class="font-semibold">{{ 'after' in f ? f.after : '' }}</span>
                   </div>
@@ -653,7 +676,7 @@ onMounted(async () => {
           <!-- footer action -->
           <div
             v-if="view.pending"
-            class="flex-none border-t border-default bg-default p-4 px-7"
+            class="flex-none border-t border-default bg-default p-4 lg:px-7"
           >
             <div class="max-w-[680px]">
               <div
@@ -678,10 +701,10 @@ onMounted(async () => {
                   />
                   {{ t('approval.sensitiveWarn') }}
                 </div>
-                <div class="flex gap-3 items-end">
+                <div class="flex flex-wrap gap-3 items-end">
                   <UFormField
                     :label="t('approval.noteLabel')"
-                    class="flex-1"
+                    class="w-full sm:w-auto sm:flex-1"
                   >
                     <UInput
                       v-model="note"
@@ -695,6 +718,7 @@ onMounted(async () => {
                     color="error"
                     :label="t('approval.reject')"
                     :loading="deciding"
+                    class="flex-1 justify-center sm:flex-none"
                     data-testid="approval-reject"
                     @click="decide('reject')"
                   />
@@ -702,6 +726,7 @@ onMounted(async () => {
                     icon="i-lucide-check"
                     :label="t('approval.approve')"
                     :loading="deciding"
+                    class="flex-1 justify-center sm:flex-none"
                     data-testid="approval-approve"
                     @click="decide('approve')"
                   />
@@ -711,7 +736,7 @@ onMounted(async () => {
           </div>
           <div
             v-else
-            class="flex-none border-t border-default bg-default p-4 px-7"
+            class="flex-none border-t border-default bg-default p-4 lg:px-7"
           >
             <div
               class="max-w-[680px] flex items-center gap-2.5 px-3.5 py-3 rounded-[11px] border"

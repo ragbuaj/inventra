@@ -60,6 +60,8 @@ function hasAny(permission?: string | string[]): boolean {
 }
 
 function isVisible(item: NavItem): boolean {
+  // Desktop-only items (e.g. bulk CSV import) disappear below the lg breakpoint.
+  if (item.desktopOnly && !isDesktop.value) return false
   // A parent group is visible only when at least one of its children is; this
   // auto-hides an entire group whose items the caller cannot reach.
   if (item.children) return item.children.some(isVisible)

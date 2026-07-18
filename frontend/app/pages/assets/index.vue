@@ -162,6 +162,30 @@ function comingSoon() {
   toast.add({ title: t('assets.comingSoon'), color: 'neutral', icon: 'i-lucide-info' })
 }
 
+// Barcode/QR scan → lookup by tag → navigate to the asset detail page. On a
+// 404 the modal stays open (with its own toast) so the user can rescan or
+// retype; the api client's generic toast is suppressed to avoid doubling up.
+const scanOpen = ref(false)
+const scanLoading = ref(false)
+async function onScanDetected(tag: string) {
+  if (scanLoading.value) return
+  scanLoading.value = true
+  try {
+    const a = await assetsApi.getByTag(tag, { suppressErrorToast: true })
+    scanOpen.value = false
+    openDetail(a.asset_tag)
+  } catch (err) {
+    const status = (err as { statusCode?: number } | undefined)?.statusCode
+    if (status === 404) {
+      toast.add({ title: t('assets.scanModal.notFound', { tag }), color: 'error', icon: 'i-lucide-search-x' })
+    } else {
+      toast.add({ title: t('common.loadError'), color: 'error', icon: 'i-lucide-circle-alert' })
+    }
+  } finally {
+    scanLoading.value = false
+  }
+}
+
 // Per-row actions (kebab dropdown via RowActionsMenu, and the table's
 // right-click context menu below) — both built from this same list via
 // buildActionGroups so their grouping/dividers stay in sync (see Task 6).
@@ -282,7 +306,8 @@ onUnmounted(() => {
           color="neutral"
           variant="outline"
           :label="t('assets.scan')"
-          @click="comingSoon"
+          data-testid="assets-scan-btn"
+          @click="() => { scanOpen = true }"
         />
         <UButton
           icon="i-lucide-upload"
@@ -643,5 +668,11 @@ onUnmounted(() => {
         @update:offset="pageOffset = $event"
       />
     </div>
+
+    <AssetScanModal
+      v-model:open="scanOpen"
+      :submitting="scanLoading"
+      @detected="onScanDetected"
+    />
   </div>
 </template>

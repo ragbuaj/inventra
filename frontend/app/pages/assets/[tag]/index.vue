@@ -15,7 +15,6 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', '
 
 const { t } = useI18n()
 const route = useRoute()
-const toast = useToast()
 const localePath = useLocalePath()
 const can = useCan()
 
@@ -255,15 +254,52 @@ const tabs = [
   { key: 'depr', label: () => t('assets.detail.tabs.depreciation') }
 ] as const
 
-const moreItems = computed(() => [
-  [
-    { label: t('assets.detail.requestMaintenance'), icon: 'i-lucide-wrench', onSelect: comingSoon },
-    { label: t('assets.detail.requestValuationException'), icon: 'i-lucide-badge-dollar-sign', onSelect: comingSoon }
+// Both dropdown actions submit maker-checker requests (POST /maintenance/reports
+// and POST /requests), so each is gated behind request.create like the borrow
+// button. The valuation-exception item is disabled once the asset is already
+// excluded (the modal double-guards this).
+const moreItems = computed(() => {
+  if (!can('request.create')) return []
+  return [
+    [
+      { label: t('assets.detail.requestMaintenance'), icon: 'i-lucide-wrench', onSelect: () => { maintOpen.value = true } },
+      { label: t('assets.detail.requestValuationException'), icon: 'i-lucide-badge-dollar-sign', disabled: asset.value?.excluded_from_valuation === true, onSelect: () => { valexOpen.value = true } }
+    ]
   ]
-])
+})
 
-function comingSoon() {
-  toast.add({ title: t('assets.comingSoon'), color: 'neutral', icon: 'i-lucide-info' })
+// ---------------------------------------------------------------------------
+// Check-out / Ajukan Maintenance / Pengecualian Valuasi modals
+// ---------------------------------------------------------------------------
+const checkoutOpen = ref(false)
+const maintOpen = ref(false)
+const valexOpen = ref(false)
+
+const valexAsset = computed(() => {
+  const a = asset.value
+  if (!a) return null
+  return {
+    id: a.id,
+    name: a.name,
+    asset_tag: a.asset_tag,
+    office_id: a.office_id,
+    excluded_from_valuation: a.excluded_from_valuation
+  }
+})
+
+function onCheckoutSubmitted() {
+  checkoutOpen.value = false
+  // Check-out changes the asset's status (available -> assigned): reload the
+  // whole detail so the badge, buttons, and tabs reflect the new state.
+  load()
+}
+
+function onMaintSubmitted() {
+  maintOpen.value = false
+}
+
+function onValexSubmitted() {
+  valexOpen.value = false
 }
 
 // ---------------------------------------------------------------------------
@@ -485,13 +521,20 @@ onUnmounted(() => {
             :label="t('common.edit')"
             :to="localePath(`/assets/${asset.asset_tag}/edit`)"
           />
-          <UButton
-            icon="i-lucide-clipboard-check"
-            color="neutral"
-            variant="outline"
-            :label="t('assets.detail.checkout')"
-            @click="comingSoon"
-          />
+          <span
+            v-if="can('assignment.manage')"
+            :title="asset.status !== 'available' ? t('assets.detail.checkoutModal.disabledTip') : undefined"
+          >
+            <UButton
+              icon="i-lucide-clipboard-check"
+              color="neutral"
+              variant="outline"
+              :label="t('assets.detail.checkout')"
+              :disabled="asset.status !== 'available'"
+              data-testid="checkout-open"
+              @click="() => { checkoutOpen = true }"
+            />
+          </span>
           <UButton
             icon="i-lucide-printer"
             color="neutral"
@@ -500,6 +543,7 @@ onUnmounted(() => {
             :to="localePath(`/assets/label?tags=${asset.asset_tag}`)"
           />
           <UDropdownMenu
+            v-if="moreItems.length > 0"
             :items="moreItems"
             :content="{ align: 'end' }"
           >
@@ -900,6 +944,24 @@ onUnmounted(() => {
       v-model:open="borrowOpen"
       :asset="borrowAsset"
       @submitted="onBorrowSubmitted"
+    />
+
+    <AssetCheckoutModal
+      v-model:open="checkoutOpen"
+      :asset="borrowAsset"
+      @submitted="onCheckoutSubmitted"
+    />
+
+    <AssetRequestMaintenanceModal
+      v-model:open="maintOpen"
+      :asset="borrowAsset"
+      @submitted="onMaintSubmitted"
+    />
+
+    <AssetValuationExceptionModal
+      v-model:open="valexOpen"
+      :asset="valexAsset"
+      @submitted="onValexSubmitted"
     />
   </div>
 </template>

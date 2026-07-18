@@ -228,6 +228,8 @@ export interface NavItem {
   permission?: string | string[]
   badgeCount?: number
   disabled?: boolean
+  /** Hide this item below the lg breakpoint (e.g. CSV import needs a desktop). */
+  desktopOnly?: boolean
   children?: NavItem[]
 }
 

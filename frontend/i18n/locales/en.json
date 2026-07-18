@@ -57,11 +57,44 @@
       "intangible": "Intangible"
     },
     "masked": "Hidden (permission)",
+    "scanModal": {
+      "title": "Scan Asset Barcode",
+      "instruction": "Point the camera at the barcode or QR code on the asset label.",
+      "cameraError": "Camera is not available on this device. Enter the asset tag manually below.",
+      "cameraDenied": "Camera permission was denied. Allow camera access in your browser, or enter the asset tag manually.",
+      "manualLabel": "Enter the asset tag manually",
+      "manualPlaceholder": "e.g. JKT01-ELK-2026-00042",
+      "submit": "Find",
+      "rescan": "Scan again",
+      "notFound": "No asset found with tag \"{tag}\"."
+    },
     "detail": {
       "checkout": "Check-out",
       "printLabel": "Print Label",
       "requestMaintenance": "Request Maintenance",
       "requestValuationException": "Request Valuation Exception",
+      "checkoutModal": {
+        "title": "Asset Check-out",
+        "subtitle": "Hand this asset over directly to an employee.",
+        "disabledTip": "Only available assets can be checked out",
+        "recipientErr": "A recipient employee is required.",
+        "dateErr": "The borrow date is required."
+      },
+      "maintModal": {
+        "title": "Request Maintenance",
+        "subtitle": "Report damage on this asset for Manager review.",
+        "problemErr": "A problem category is required."
+      },
+      "valexModal": {
+        "title": "Request Valuation Exception",
+        "subtitle": "Request that this asset be excluded from valuation.",
+        "reason": "Reason",
+        "reasonPlaceholder": "e.g. Value is immaterial…",
+        "reasonErr": "A reason is required.",
+        "alreadyExcluded": "This asset is already excluded from valuation.",
+        "info": "The request will be sent to the approval queue (maker-checker) before it takes effect.",
+        "success": "Valuation exception request sent — awaiting approval."
+      },
       "keyInfo": "Key Information",
       "gallery": "Asset Photo",
       "noPhotos": "No asset photos yet.",
@@ -1296,10 +1329,13 @@
     },
     "dataScope": {
       "title": "Data Scope",
-      "subtitle": "Set the data scope level per role. The Default column applies to all modules; module columns can override the default when needed.",
+      "subtitle": "Pick a role, then set its data scope levels. The default applies to all modules; each module can override the default when needed.",
       "save": "Save",
       "unsavedChanges": "Unsaved changes",
       "savedToast": "Data scope saved",
+      "roleSearchPlaceholder": "Search roles…",
+      "modulesTitle": "Per-module Overrides",
+      "defaultDesc": "Applies to all modules without an override.",
       "legendTitle": "Data scope levels",
       "roleColumn": "Role",
       "defaultColumn": "Default",
@@ -1333,6 +1369,7 @@
       "savedToast": "Field rules saved",
       "entityLabel": "Entity",
       "searchPlaceholder": "Search field…",
+      "roleSearchPlaceholder": "Search roles…",
       "viewLabel": "View (L)",
       "editLabel": "Edit (E)",
       "fieldColumn": "Field",
@@ -1540,6 +1577,7 @@
   "nav": {
     "profile": "My Profile",
     "accountSettings": "Account Settings",
+    "language": "Language",
     "signOut": "Sign Out",
     "scopeGlobal": "Entire network",
     "scopeOffice": "My office",
@@ -1596,6 +1634,7 @@
     "active": "Active",
     "inactive": "Inactive",
     "retry": "Retry",
+    "back": "Back",
     "loadError": "Failed to load data.",
     "yes": "Yes",
     "no": "No",

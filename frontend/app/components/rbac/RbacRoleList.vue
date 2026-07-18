@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import type { RoleView } from '~/composables/api/useRbac'
 
-defineProps<{
+withDefaults(defineProps<{
   roles: RoleView[]
   selectedId: string
-}>()
+  /** Mobile drill-down: hide the list below lg while the permission pane is open. */
+  mobileHidden?: boolean
+}>(), { mobileHidden: false })
 
 defineEmits<{ select: [id: string], add: [] }>()
 
@@ -12,7 +14,10 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <div class="w-[280px] flex-none border-e border-default bg-default flex flex-col overflow-hidden">
+  <div
+    class="w-full lg:w-[280px] flex-none lg:border-e border-default bg-default flex-col overflow-hidden"
+    :class="mobileHidden ? 'hidden lg:flex' : 'flex'"
+  >
     <div class="flex-none px-4 pt-4 pb-3">
       <div class="font-bold text-[15px] mb-0.5">
         {{ t('settings.rbac.rolesTitle') }}

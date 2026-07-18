@@ -258,24 +258,30 @@ test.describe('Data Scope screen — real backend', () => {
   test.beforeEach(async ({ page }) => {
     await login(page)
     await page.goto('/settings/data-scope')
-    // Wait until the grid is populated (at least one role row visible)
-    await expect(page.getByText('Superadmin').first()).toBeVisible({ timeout: 10_000 })
+    // Wait until the role list is populated (master-detail UI)
+    await expect(
+      page.locator('[data-testid^="scope-role-item-"]').filter({ hasText: 'Superadmin' }).first()
+    ).toBeVisible({ timeout: 10_000 })
   })
 
-  test('grid renders with real module columns and seeded role rows', async ({ page }) => {
-    // Seeded roles appear as sticky-column role names
-    await expect(page.getByText('Superadmin').first()).toBeVisible()
-    await expect(page.getByText('Manager').first()).toBeVisible()
-
-    // Real backend scope_modules (catalog): at least one of offices/employees/assets/requests/audit
-    // i18n resolves these: "Kantor", "Pegawai", "Aset", "Pengajuan", "Audit"
-    const tableHeader = page.locator('table thead')
-    await expect(tableHeader).toBeVisible()
-    // "Default" column header (i18n: settings.dataScope.defaultColumn)
-    await expect(tableHeader.getByText('Default').first()).toBeVisible()
-    // At least one module column header from the real catalog — auto-waiting assertion
+  test('role list and per-role editor render with real module rows', async ({ page }) => {
+    // Seeded roles appear in the role list pane
     await expect(
-      page.locator('table thead th').filter({ hasText: /Kantor|Pegawai|Aset|Pengajuan|Audit/ }).first()
+      page.locator('[data-testid^="scope-role-item-"]').filter({ hasText: 'Superadmin' }).first()
+    ).toBeVisible()
+    await expect(
+      page.locator('[data-testid^="scope-role-item-"]').filter({ hasText: 'Manager' }).first()
+    ).toBeVisible()
+
+    // Select Superadmin so the editor deterministically shows its scope
+    await page.locator('[data-testid^="scope-role-item-"]').filter({ hasText: 'Superadmin' }).first().click()
+
+    // The Default card renders (i18n: settings.dataScope.defaultColumn) with its cell
+    await expect(page.getByTestId('scope-default-cell')).toBeVisible()
+    // At least one module row from the real catalog (offices/employees/assets/requests/audit)
+    await expect(page.locator('[data-testid^="scope-module-row-"]').first()).toBeVisible()
+    await expect(
+      page.locator('[data-testid^="scope-module-row-"]').filter({ hasText: /Kantor|Pegawai|Aset|Pengajuan|Audit/ }).first()
     ).toBeVisible()
   })
 
@@ -293,7 +299,7 @@ test.describe('Data Scope screen — real backend', () => {
 
   test('Save button is disabled with no changes (clean state)', async ({ page }) => {
     // On first load no changes have been made → Save is disabled
-    const saveBtn = page.getByRole('button', { name: /Simpan/ })
+    const saveBtn = page.getByTestId('scope-save')
     await expect(saveBtn).toBeDisabled()
     // Dirty indicator must NOT be visible
     await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible()
@@ -328,23 +334,16 @@ test.describe('Data Scope screen — real backend', () => {
     })
 
     test('changing a role default scope marks dirty and enables Save, persists across reload', async ({ page }) => {
-      // Use the Superadmin row — click its Default cell pill to open the popover.
-      // The pill button in the Default column renders the level key as its visible text
+      // Select the Superadmin role in the list, then edit its Default cell.
+      const superadminItem = page.locator('[data-testid^="scope-role-item-"]').filter({ hasText: 'Superadmin' }).first()
+      await superadminItem.click()
+
+      // The Default card's pill renders the level key as its visible text
       // (ScopeCell.vue: <span class="font-mono ...">{{ effective }}</span> inside <button>).
-      const table = page.locator('table tbody')
-      await expect(table).toBeVisible()
-
-      // Find the row containing "Superadmin" and locate its Default cell pill button
-      const superadminRow = table.locator('tr').filter({ hasText: 'Superadmin' }).first()
-      await expect(superadminRow).toBeVisible()
-
-      // Default cell is the second td (index 1 — first td is the sticky role-name cell)
-      const defaultCell = superadminRow.locator('td').nth(1)
-      const defaultPill = defaultCell.locator('button[type="button"]').first()
+      const defaultPill = page.getByTestId('scope-default-cell').locator('button[type="button"]').first()
       await expect(defaultPill).toBeVisible()
 
       // Read the current level from the pill's visible text (e.g. "global" / "own")
-      // The pill button's accessible text is the level key rendered in the font-mono span
       const currentLevel = (await defaultPill.textContent())?.trim().match(/global|office_subtree|office|own/)?.[0] ?? 'global'
 
       // Open the popover
@@ -353,39 +352,39 @@ test.describe('Data Scope screen — real backend', () => {
       // Pick a different level deterministically: 'own' if currently 'global', else 'global'
       const targetLevel = currentLevel === 'own' ? 'global' : 'own'
 
-      // Popover option buttons contain the level key AND its description; the description
-      // text is unique to the open popover (table pills render only the bare key), so
-      // scoping by description targets the popover option, never a table pill button.
-      const levelOption = page.getByRole('button').filter({ hasText: LEVEL_DESC[targetLevel] }).first()
-      await levelOption.click()
+      // Popover options carry explicit testids (ScopeCell.vue) — description-based
+      // locators are unsafe here because role-list buttons contain role DESCRIPTIONS
+      // that can echo a level description (e.g. Staf: "Pengguna aset; hanya data
+      // miliknya" ≈ LEVEL_DESC.own, and hasText matches case-insensitively).
+      await page.getByTestId(`scope-level-option-${targetLevel}`).click()
 
       // Dirty indicator should appear
       await expect(page.getByText('Perubahan belum disimpan').first()).toBeVisible({ timeout: 5_000 })
 
       // Save button must now be enabled
-      const saveBtn = page.getByRole('button', { name: /Simpan/ })
+      const saveBtn = page.getByTestId('scope-save')
       await expect(saveBtn).toBeEnabled()
       await saveBtn.click()
 
       // Dirty indicator disappears after a successful save
       await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible({ timeout: 8_000 })
 
-      // Reload and verify the change persisted
+      // Reload and verify the change persisted — re-select Superadmin first (the
+      // editor auto-selects the alphabetically-first role after reload).
       await page.reload()
-      await expect(page.getByText('Superadmin').first()).toBeVisible({ timeout: 10_000 })
+      const superadminItemAfter = page.locator('[data-testid^="scope-role-item-"]').filter({ hasText: 'Superadmin' }).first()
+      await expect(superadminItemAfter).toBeVisible({ timeout: 10_000 })
+      await superadminItemAfter.click()
 
-      // After reload, assert the Default cell shows the target level as its visible text
-      const superadminRowAfter = page.locator('table tbody tr').filter({ hasText: 'Superadmin' }).first()
-      const defaultPillAfter = superadminRowAfter.locator('td').nth(1).locator('button[type="button"]').first()
+      const defaultPillAfter = page.getByTestId('scope-default-cell').locator('button[type="button"]').first()
       await expect(defaultPillAfter).toContainText(targetLevel, { timeout: 8_000 })
 
       // Fast-path cleanup: revert to original level via the UI (best-effort — if
       // this doesn't run or throws, this nested describe's afterEach above is the
       // authoritative, failure-safe restore via the API).
       await defaultPillAfter.click()
-      const revertOption = page.getByRole('button').filter({ hasText: LEVEL_DESC[currentLevel] }).first()
-      await revertOption.click()
-      const saveBtnCleanup = page.getByRole('button', { name: /Simpan/ })
+      await page.getByTestId(`scope-level-option-${currentLevel}`).click()
+      const saveBtnCleanup = page.getByTestId('scope-save')
       if (await saveBtnCleanup.isEnabled()) {
         await saveBtnCleanup.click()
         await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible({ timeout: 8_000 })
@@ -395,13 +394,12 @@ test.describe('Data Scope screen — real backend', () => {
 
   test('retry button reloads data after a simulated failure', async ({ page }) => {
     // The error state shows a retry button labeled "Coba lagi".
-    // We cannot easily force a network error in e2e, so we verify the
-    // retry button exists in the DOM and is accessible (it's conditionally rendered
-    // only when loadFailed is true — verifying the structure is correct via JS).
-    // On a successful load the retry button must NOT be visible.
+    // We cannot easily force a network error in e2e, so we verify that on a
+    // successful load the retry button is NOT visible and the editor is.
     await expect(page.getByRole('button', { name: 'Coba lagi' })).not.toBeVisible()
-    // The loaded grid is visible
-    await expect(page.locator('table')).toBeVisible()
+    // The loaded role list + editor are visible
+    await expect(page.locator('[data-testid^="scope-role-item-"]').first()).toBeVisible()
+    await expect(page.getByTestId('scope-save')).toBeVisible()
   })
 })
 
@@ -418,28 +416,33 @@ test.describe('Field Permission screen — real backend', () => {
   test.beforeEach(async ({ page }) => {
     await login(page)
     await page.goto('/settings/field-permission')
-    // Wait for the grid to load (role column headers populated from /authz/roles)
-    await expect(page.getByText('Superadmin').first()).toBeVisible({ timeout: 10_000 })
+    // Wait for the role list to load (master-detail UI, populated from /authz/roles)
+    await expect(
+      page.locator('[data-testid^="fieldperm-role-item-"]').filter({ hasText: 'Superadmin' }).first()
+    ).toBeVisible({ timeout: 10_000 })
   })
 
-  test('grid renders with seeded role columns and real field rows (e.g. purchase_cost)', async ({ page }) => {
-    // Seeded roles should appear as column headers
-    await expect(page.getByText('Superadmin').first()).toBeVisible()
-    await expect(page.getByText('Manager').first()).toBeVisible()
+  test('role list renders and the editor shows real field rows (e.g. purchase_cost)', async ({ page }) => {
+    // Seeded roles should appear in the role list pane
+    await expect(
+      page.locator('[data-testid^="fieldperm-role-item-"]').filter({ hasText: 'Superadmin' }).first()
+    ).toBeVisible()
+    await expect(
+      page.locator('[data-testid^="fieldperm-role-item-"]').filter({ hasText: 'Manager' }).first()
+    ).toBeVisible()
 
-    // Real catalog field key for the "assets" entity — this field is in fieldCatalog.ts
-    // and appears as the mono-font field code in the sticky left column
-    const purchaseCostRow = page.locator('tr', { hasText: 'purchase_cost' }).first()
-    await expect(purchaseCostRow).toBeVisible({ timeout: 8_000 })
+    // Real catalog field key for the "assets" entity — this field is in fieldCatalog.ts;
+    // the editor auto-selects the first role, so its rows render immediately
+    await expect(page.getByTestId('fieldperm-row-purchase_cost')).toBeVisible({ timeout: 8_000 })
 
     // The "assets" entity should be selected by default (first entity in FIELD_CATALOG)
     // and the entity select should be visible
     await expect(page.getByText('Aset').first()).toBeVisible()
   })
 
-  test('field column shows mono field key and i18n label below it', async ({ page }) => {
+  test('field row shows mono field key and i18n label below it', async ({ page }) => {
     // Each field row shows the field key in mono font + a localized label beneath it
-    const purchaseCostRow = page.locator('tr', { hasText: 'purchase_cost' }).first()
+    const purchaseCostRow = page.getByTestId('fieldperm-row-purchase_cost')
     await expect(purchaseCostRow).toBeVisible({ timeout: 8_000 })
     // The i18n label for purchase_cost is "Harga beli" (id locale)
     await expect(purchaseCostRow.getByText('Harga beli')).toBeVisible()
@@ -452,23 +455,23 @@ test.describe('Field Permission screen — real backend', () => {
   })
 
   test('Save button is disabled on clean load (no dirty changes)', async ({ page }) => {
-    const saveBtn = page.getByRole('button', { name: /Simpan/ })
+    const saveBtn = page.getByTestId('fieldperm-save')
     await expect(saveBtn).toBeDisabled()
     // Dirty indicator must NOT be visible
     await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible()
   })
 
-  test('retry button is absent on successful load (grid visible)', async ({ page }) => {
+  test('retry button is absent on successful load (editor visible)', async ({ page }) => {
     // On a clean load the load-error state is not shown, so "Coba lagi" is not visible
     await expect(page.getByRole('button', { name: 'Coba lagi' })).not.toBeVisible()
-    await expect(page.locator('table')).toBeVisible()
+    await expect(page.getByTestId('fieldperm-row-purchase_cost')).toBeVisible()
   })
 
   // Scoped to its own nested describe: this is the ONLY test in this file that
   // mutates the SHARED `purchase_cost` field-permission cell of whichever role
-  // renders in the FIRST role column. `/authz/roles` (and this grid, which
-  // trusts that order — see `useFieldPermission.load`) is `ORDER BY name`, so
-  // the first column is NOT reliably Superadmin — e.g. seeded "Kepala
+  // the editor AUTO-SELECTS on load (the first item of `/authz/roles`, which
+  // is `ORDER BY name` — the per-role editor trusts that order), so
+  // the auto-selected role is NOT reliably Superadmin — e.g. seeded "Kepala
   // Kanwil"/"Manager" or any leftover "E2E ..." custom role sorts before
   // "Superadmin". Applying the restore to every sibling test (even read-only
   // ones) would mean every parallel worker in this describe races a PUT
@@ -503,23 +506,21 @@ test.describe('Field Permission screen — real backend', () => {
     })
 
     test('toggle a cell, Save, reload — change persists', async ({ page }) => {
-      // Strategy: locate the purchase_cost row, find the first role column's "L" (view) toggle button,
-      // toggle it, save, reload, and verify the change persisted.
-      // We use robust text/row locators — NO Tailwind class selectors.
+      // Strategy: the editor auto-selects the first role from /authz/roles
+      // (ORDER BY name — NOT reliably Superadmin, see this nested describe's
+      // comment). Toggle purchase_cost's "L" (view) for that role, save,
+      // reload, and verify the change persisted.
 
-      // 1. Find the purchase_cost row in the matrix tbody
-      const purchaseCostRow = page.locator('tr', { hasText: 'purchase_cost' }).first()
+      // 1. Find the purchase_cost row in the auto-selected role's editor
+      const purchaseCostRow = page.getByTestId('fieldperm-row-purchase_cost')
       await expect(purchaseCostRow).toBeVisible({ timeout: 8_000 })
 
-      // 2. Within that row, find the "L" (view) toggle buttons.
-      //    FieldPermToggle renders two <button> elements containing the letter "L" (view) and "E" (edit).
-      //    We grab all L buttons in the row — first one corresponds to the first role column. NOTE: the
-      //    role columns come straight from /authz/roles (ORDER BY name), so "first column" is whichever
-      //    role sorts first alphabetically — NOT reliably Superadmin (see this nested describe's comment).
+      // 2. Within that row, find the "L" (view) toggle button.
+      //    FieldPermToggle renders two <button> elements containing the letter "L" (view) and "E" (edit);
+      //    the per-role editor shows exactly one pair per row.
       const lBtns = purchaseCostRow.locator('button', { hasText: 'L' })
       await expect(lBtns).not.toHaveCount(0)
 
-      // Read the aria/visual state before toggling: check if the first L is "on" (view=true).
       // We cannot reliably read the semantic state, so we just note that we toggled it once.
       const firstLBtn = lBtns.first()
       await firstLBtn.click()
@@ -528,7 +529,7 @@ test.describe('Field Permission screen — real backend', () => {
       await expect(page.getByText('Perubahan belum disimpan').first()).toBeVisible({ timeout: 5_000 })
 
       // 4. Save must be enabled; click it
-      const saveBtn = page.getByRole('button', { name: /Simpan/ })
+      const saveBtn = page.getByTestId('fieldperm-save')
       await expect(saveBtn).toBeEnabled()
       await saveBtn.click()
 
@@ -539,16 +540,19 @@ test.describe('Field Permission screen — real backend', () => {
       //    After toggling and saving, the purchase_cost field now has an EXPLICIT restriction —
       //    meaning the "Default" badge (i18n defaultTag = "Default") must NO LONGER appear in that row.
       await page.reload()
-      await expect(page.getByText('Superadmin').first()).toBeVisible({ timeout: 10_000 })
+      // After reload the editor auto-selects the same first role again
+      await expect(
+        page.locator('[data-testid^="fieldperm-role-item-"]').filter({ hasText: 'Superadmin' }).first()
+      ).toBeVisible({ timeout: 10_000 })
       // purchase_cost must still be visible (row exists in the catalog)
-      const purchaseCostRowAfterReload = page.locator('tr', { hasText: 'purchase_cost' }).first()
+      const purchaseCostRowAfterReload = page.getByTestId('fieldperm-row-purchase_cost')
       await expect(purchaseCostRowAfterReload).toBeVisible({ timeout: 8_000 })
       // KEY PERSISTENCE ASSERTION: the field now has an explicit restriction, so the
       // "Default" badge must be absent — proving the toggled value round-tripped through the backend.
       await expect(purchaseCostRowAfterReload.getByText('Default')).toHaveCount(0)
       // No dirty state on fresh load
       await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible()
-      const saveBtnAfter = page.getByRole('button', { name: /Simpan/ })
+      const saveBtnAfter = page.getByTestId('fieldperm-save')
       await expect(saveBtnAfter).toBeDisabled()
 
       // 7. Fast-path cleanup: toggle the same cell back via the UI (best-effort — this
@@ -558,11 +562,11 @@ test.describe('Field Permission screen — real backend', () => {
       //    Playwright's click auto-waits for actionability; we also wait for Save to be enabled
       //    before clicking it, avoiding the non-waiting isEnabled() snapshot anti-pattern.
       try {
-        const purchaseCostRowCleanup = page.locator('tr', { hasText: 'purchase_cost' }).first()
+        const purchaseCostRowCleanup = page.getByTestId('fieldperm-row-purchase_cost')
         await expect(purchaseCostRowCleanup).toBeVisible({ timeout: 8_000 })
         const lBtnsCleanup = purchaseCostRowCleanup.locator('button', { hasText: 'L' })
         await lBtnsCleanup.first().click()
-        const saveBtnCleanup = page.getByRole('button', { name: /Simpan/ })
+        const saveBtnCleanup = page.getByTestId('fieldperm-save')
         await expect(saveBtnCleanup).toBeEnabled()
         await saveBtnCleanup.click()
         await expect(page.getByText('Perubahan belum disimpan')).not.toBeVisible({ timeout: 8_000 })
@@ -571,16 +575,16 @@ test.describe('Field Permission screen — real backend', () => {
   })
 
   test('switching entity to users shows users fields (e.g. email)', async ({ page }) => {
-    // The entity selector is a Nuxt UI USelect (custom listbox, NOT a native <select>):
-    // a trigger button showing the current entity label ("Aset") plus a popover of options
-    // with role="option". Open it by clicking the trigger (located by its current value text),
-    // then pick the "User" option.
-    await page.getByText('Aset', { exact: true }).first().click()
-    await page.getByRole('option', { name: 'User' })
-      .or(page.getByText('User', { exact: true }))
-      .first().click()
+    // The entity selector is a Nuxt UI USelect (custom listbox, NOT a native <select>).
+    // Open it via its explicit testid, then pick the "User" option by role=option —
+    // a bare text locator is unsafe: the sidebar has an exact-text "User" link
+    // (/settings/users) that would navigate away.
+    await page.getByTestId('fieldperm-entity-select').click()
+    await page.getByRole('option', { name: 'User', exact: true }).click()
     // The "users" entity has field "email" in FIELD_CATALOG; its i18n label is "Email".
-    await expect(page.locator('tr', { hasText: 'email' }).first()).toBeVisible({ timeout: 8_000 })
-    await expect(page.locator('tr', { hasText: 'email' }).first().getByText('Email')).toBeVisible()
+    // exact:true keeps this off the mono field-key div ("email") in the same row —
+    // a bare getByText('Email') matches both case-insensitively (strict-mode violation).
+    await expect(page.getByTestId('fieldperm-row-email')).toBeVisible({ timeout: 8_000 })
+    await expect(page.getByTestId('fieldperm-row-email').getByText('Email', { exact: true })).toBeVisible()
   })
 })

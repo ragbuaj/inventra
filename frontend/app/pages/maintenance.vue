@@ -499,8 +499,15 @@ onMounted(async () => {
           class="size-[18px]"
         />
         <span class="text-sm font-semibold">{{ t('maintenance.attention.title') }}</span>
+        <UBadge
+          color="error"
+          variant="subtle"
+          class="rounded-full"
+        >
+          {{ attentionItems.length }}
+        </UBadge>
       </div>
-      <div class="flex flex-col gap-2">
+      <div class="flex flex-col gap-2 max-h-[360px] overflow-y-auto pr-1">
         <div
           v-for="item in attentionItems"
           :key="item.id"

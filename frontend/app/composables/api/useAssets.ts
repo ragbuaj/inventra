@@ -30,8 +30,11 @@ export function useAssets() {
     return request<Asset>(`/assets/${id}`)
   }
 
-  async function getByTag(tag: string): Promise<Asset> {
-    return request<Asset>(`/assets/by-tag/${encodeURIComponent(tag)}`)
+  async function getByTag(tag: string, opts?: { suppressErrorToast?: boolean }): Promise<Asset> {
+    const path = `/assets/by-tag/${encodeURIComponent(tag)}`
+    // Forward opts only when given so existing callers keep the exact
+    // single-argument request(path) call shape.
+    return opts ? request<Asset>(path, opts) : request<Asset>(path)
   }
 
   async function update(id: string, input: AssetUpdateInput): Promise<Asset> {

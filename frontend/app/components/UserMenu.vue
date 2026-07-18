@@ -1,9 +1,16 @@
 <script setup lang="ts">
 const auth = useAuthStore()
 const { logout } = useAuthApi()
-const { t } = useI18n()
+const { t, locale, setLocale } = useI18n()
+const colorMode = useColorMode()
 
 const open = ref(false)
+
+const isDark = computed(() => colorMode.value === 'dark')
+
+function toggleTheme() {
+  colorMode.preference = isDark.value ? 'light' : 'dark'
+}
 
 const userName = computed(() => auth.user?.name ?? '')
 const userEmail = computed(() => auth.user?.email ?? '')
@@ -72,6 +79,53 @@ function handleLogout() {
 
         <!-- Menu items -->
         <div class="p-[6px]">
+          <!-- Mobile-only: language + theme (they live on the topbar from lg up) -->
+          <div class="lg:hidden">
+            <div class="flex items-center justify-between gap-[10px] w-full px-[10px] py-[6px]">
+              <span class="flex items-center gap-[10px] text-[14px] text-default">
+                <UIcon
+                  name="i-lucide-languages"
+                  class="size-4 flex-none"
+                />
+                {{ t('nav.language') }}
+              </span>
+              <div class="flex gap-0.5 p-[3px] bg-muted rounded-[9px]">
+                <button
+                  :class="[
+                    'px-[9px] py-[4px] text-[12px] font-semibold rounded-[6px] border-0 cursor-pointer transition-colors',
+                    locale === 'id'
+                      ? 'bg-default text-default shadow-sm'
+                      : 'bg-transparent text-muted hover:text-default'
+                  ]"
+                  @click="setLocale('id')"
+                >
+                  ID
+                </button>
+                <button
+                  :class="[
+                    'px-[9px] py-[4px] text-[12px] font-semibold rounded-[6px] border-0 cursor-pointer transition-colors',
+                    locale === 'en'
+                      ? 'bg-default text-default shadow-sm'
+                      : 'bg-transparent text-muted hover:text-default'
+                  ]"
+                  @click="setLocale('en')"
+                >
+                  EN
+                </button>
+              </div>
+            </div>
+            <button
+              class="flex items-center gap-[10px] w-full px-[10px] py-[9px] text-[14px] text-default bg-transparent border-0 rounded-[8px] cursor-pointer text-left hover:bg-muted transition-colors"
+              @click="toggleTheme"
+            >
+              <UIcon
+                :name="isDark ? 'i-lucide-sun' : 'i-lucide-moon'"
+                class="size-4 flex-none"
+              />
+              {{ isDark ? t('theme.switchToLight') : t('theme.switchToDark') }}
+            </button>
+            <div class="h-px bg-[var(--ui-border)] my-[5px] mx-1" />
+          </div>
           <button
             class="flex items-center gap-[10px] w-full px-[10px] py-[9px] text-[14px] text-default bg-transparent border-0 rounded-[8px] cursor-pointer text-left hover:bg-muted transition-colors"
             @click="open = false; navigateTo('/account')"
