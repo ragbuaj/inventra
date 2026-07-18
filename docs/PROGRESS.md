@@ -1238,11 +1238,27 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     dokumen tampak lengkap padahal compose-nya bocor). Diverifikasi via `docker compose config`. Catatan
 >     operasional: domain `SMTP_FROM` harus sudah diverifikasi di dashboard Resend — tanpa itu Resend
 >     menolak 403 dan hanya mengizinkan pengirim `onboarding@resend.dev` ke email pemilik akun.
-> 75. **Next session — pick the next real step.** Carried candidates: **room/floor import targets**;
->     **Analytics/OLAP** read layer; **`/auth/me` `role_name`**; **admin reset-password audit action**
->     (migration); **pre-existing e2e failures** (`account` change-password modal, `maintenance`
->     date-boundary). **GeoIP DB provisioning** (ops). Notification follow-ups (SSE, retention archival,
->     maker-route gap). Confirm priority before starting.
+> 75. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-18): mobile companion app —
+>     dokumentasi perencanaan dulu, lihat item 76.**
+> 76. ~~**Mobile companion app — dokumen perencanaan & keputusan**~~ ✅ **DONE (2026-07-18, branch
+>     `feat/mobile-docs`).** Pemilik produk membuka scope mobile (PRD v1.1 semula mengecualikannya):
+>     bentuk **field companion** (scan aset via kamera, approval on-the-go, push notification, stock
+>     opname offline-first), teknologi **Flutter** (Android dulu, folder `mobile/` di monorepo),
+>     **offline-first** untuk opname. Dokumen yang landed: roadmap
+>     `docs/superpowers/plans/2026-07-18-mobile-app-roadmap.md` (fase M0-M6, kesenjangan backend: push
+>     FCM, batch sync opname, refresh via cookie jar tanpa perubahan backend); **ADR-0015** (Flutter;
+>     alternatif Capacitor/PWA/React Native/Kotlin ditolak); **ADR-0016** (offline sync: batch idempoten
+>     `client_scan_id`, konflik first-write-wins per aset per sesi + dilaporkan per-item); **PRD v1.2**
+>     (non-goal mobile dicabut, FR baru bagian 3.11, baris stack + tahap 11 roadmap, changelog); bagian
+>     *Mobile companion* di bagian Remaining; vault Obsidian (keputusan produk, indeks ADR, Status & Roadmap,
+>     catatan sesi). **Belum ada kode** — pengembangan mulai dari fase M0 setelah dokumen di-merge.
+> 77. **Next session — start here: Mobile M0 prep** — buat set mockup mobile (`docs/design/mobile/`,
+>     perluas `docs/DESIGN_BRIEF.md`) lalu spec + plan fase M0 (scaffold Flutter `mobile/`, tema + i18n,
+>     navigasi shell, login/refresh/logout cookie-jar, CI analyze/test/APK). Kandidat lain yang dibawa:
+>     **room/floor import targets**; **Analytics/OLAP** read layer; **`/auth/me` `role_name`**; **admin
+>     reset-password audit action** (migration); **pre-existing e2e failures** (`account` change-password
+>     modal, `maintenance` date-boundary); **GeoIP DB provisioning** (ops); notification follow-ups (SSE,
+>     retention archival, maker-route gap). Confirm priority before starting.
 
 ## ✅ Done
 
@@ -1659,6 +1675,22 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 - [ ] **E2E coverage** — Playwright specs for Dashboard, Assets, Settings, RBAC, Operasional clusters
       (currently only `login` + `master-offices`)
 - [ ] Live light/dark visual pass for auth-gated screens (pending a stable backend to log in)
+
+### Mobile companion (PRD v1.2 — planned; docs landed 2026-07-18, no code yet)
+
+> Scope dibuka pemilik produk 2026-07-18 (dulu non-goal v1.1). Bentuk: **field companion** Flutter
+> (Android dulu, folder `mobile/`). Rencana penuh: `docs/superpowers/plans/2026-07-18-mobile-app-roadmap.md`;
+> keputusan: ADR-0015 (Flutter) + ADR-0016 (offline sync opname). Konvensi design-fidelity berlaku —
+> mockup mobile (`docs/design/mobile/`) dibuat **sebelum** layar dibangun; tiap fase dapat spec + plan.
+
+- [ ] **Mockup mobile** — perluas `docs/DESIGN_BRIEF.md` dengan prompt kit mobile; hasil di `docs/design/mobile/` (12 layar v1: login, home, scan, detail aset, sesi opname, counting, variance, inbox approval, detail approval, notifikasi, profil/sesi, pengaturan)
+- [ ] **M0 Fondasi** — scaffold Flutter `mobile/`, tema token Inventra + i18n id/en, navigasi shell, auth login/refresh/logout (cookie jar), secure storage, CI job (analyze/test/build APK)
+- [ ] **M1 Scan aset** — kamera QR/barcode (`mobile_scanner`) + fallback input manual, `GET /assets/by-tag/:tag`, detail read-only dengan field-permission masking
+- [ ] **M2 Approval on-the-go** — inbox `/requests`, detail, approve/reject + catatan (SoD/threshold server-side)
+- [ ] **M3 Push notification** — backend: tabel `device_tokens` + endpoint register + dispatcher FCM sebagai consumer tambahan pipeline ADR-0014 (env FCM wajib masuk `docker-compose.prod.yml`); mobile: layar notifikasi + deep-link
+- [ ] **M4 Opname online** — sesi, counting scan kamera, variance (endpoint existing)
+- [ ] **M5 Opname offline-first** — drift snapshot + antrean lokal; backend: endpoint batch idempoten `client_scan_id` + first-write-wins + laporan konflik (ADR-0016); indikator status sync
+- [ ] **M6 Rilis internal** — icon/splash/signing, Firebase App Distribution (Play internal track menyusul), Crashlytics/Sentry, runbook rilis di vault
 
 ### Quality
 - [x] Backend testing stack (ADR-0001): testify + testcontainers-go; `internal/testsupport` (Postgres/Redis containers, migration apply, `Reset`, seed helpers) + `backend-integration` CI job (`-tags=integration`, runs every PR; default `go test ./...` stays unit-only via the build tag).

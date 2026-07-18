@@ -72,7 +72,9 @@ dalam satu sistem dengan **pemisahan fungsi (SoD)**, **persetujuan berjenjang**,
   nomor PO/kontrak pada aset.
 - **Model revaluasi penuh** (PSAK 16 revaluation model + surplus revaluasi). Sistem memakai **model
   biaya (cost model)** + **penurunan nilai/impairment dasar** (PSAK 48); revaluasi penuh ditunda.
-- Aplikasi mobile native (web responsif sudah cukup; pemindaian barcode lewat web).
+- ~~Aplikasi mobile native (web responsif sudah cukup; pemindaian barcode lewat web).~~
+  **Dicabut di v1.2 (2026-07-18):** **aplikasi mobile companion** (Flutter) masuk lingkup sebagai
+  pendamping lapangan — lihat bagian 3.11 dan ADR-0015/0016. Web tetap aplikasi utama administrasi.
 - Manajemen aset keuangan/investasi (wealth/investment management) — di luar lingkup.
 
 > **Aset takberwujud (intangible/software, PSAK 19):** **field-nya disiapkan** sejak awal
@@ -322,6 +324,33 @@ Berbeda dari *assignment* (check-out ke pegawai), **mutasi** adalah **perpindaha
 - **FR-10.2** Entitas `asset_documents` menautkan dokumen ke aset & ke transaksi terkait (jenis, nomor, tanggal, pihak, berkas).
 - **FR-10.3** Dokumen mengikuti hak akses & scope aset terkait; perubahan tercatat di audit trail.
 
+### 3.11 Aplikasi Mobile Companion (v1.2)
+
+Aplikasi pendamping lapangan (**field companion**) berbasis **Flutter** (ADR-0015) — bukan paritas
+penuh dengan web. Web tetap aplikasi utama untuk administrasi; mobile melayani petugas lapangan dan
+pejabat pemutus. Fase implementasi dirinci di `docs/superpowers/plans/2026-07-18-mobile-app-roadmap.md`.
+
+- **FR-11.1** Login dengan akun yang sama (email + password); sesi tercatat sebagai **device
+  session**; token disimpan di secure storage; refresh memakai mekanisme cookie httpOnly yang ada
+  (cookie jar di klien — tanpa perubahan backend).
+- **FR-11.2** **Scan kamera** barcode/QR label aset untuk membuka **detail aset** (read-only);
+  hak akses per-field dan data scope berlaku sama dengan web.
+- **FR-11.3** **Approval on-the-go**: inbox pengajuan, detail, approve/reject dengan catatan;
+  maker-checker, SoD, dan `approval_thresholds` (bagian 2.4) ditegakkan server — tidak ada logika
+  otorisasi di klien.
+- **FR-11.4** **Notifikasi push (FCM)** untuk jenis notifikasi yang ada (approval_pending,
+  approval_decided, maintenance_due, asset_returned) + feed in-app; deep-link ke layar terkait.
+  Dispatcher push menjadi consumer tambahan pada pipeline notifikasi (ADR-0014).
+- **FR-11.5** **Stock opname mobile offline-first** (bagian 3.9): snapshot sesi diunduh ke device,
+  scan tercatat lokal saat tanpa sinyal, sinkron via endpoint **batch idempoten**; konflik
+  antar-device diselesaikan **first-write-wins per aset per sesi** dan dilaporkan eksplisit
+  (ADR-0016).
+- **FR-11.6** i18n id/en dan tema terang/gelap konsisten dengan web; mockup
+  `docs/design/mobile/` adalah sumber kebenaran visual (dibuat sebelum layar dibangun).
+- **Non-scope mobile v1**: CRUD master data, laporan/dashboard penuh, administrasi user/RBAC,
+  import massal, dan pembuatan pengajuan modul non-opname (tetap dibuat di web; mobile hanya
+  memutus approval-nya).
+
 ---
 
 ## 4. User Stories (contoh utama)
@@ -449,6 +478,7 @@ import       → import massal CSV/XLSX (aset & master data): template, validasi
 | Frontend | Nuxt 4 (Vue 3 + Vite) · Nuxt UI · Pinia · VeeValidate + Zod |
 | i18n | @nuxtjs/i18n (ID/EN) |
 | DevOps | Docker Compose · GitHub Actions |
+| Mobile (v1.2) | Flutter (Dart 3) · Riverpod · Dio · drift (SQLite offline) · mobile_scanner — companion lapangan, folder `mobile/` (ADR-0015) |
 
 **Redis (cache & state):** dipakai untuk —
 - **Caching**: master data & referensi (provinsi/kota/kategori/dll), **konfigurasi otorisasi** (`field_permissions`, `data_scope_policies`, `approval_thresholds`), **subtree kantor** (daftar `descendant_ids` per kantor — mahal dihitung), dan agregat dashboard/laporan. Cache **di-invalidasi** saat data sumber berubah.
@@ -461,6 +491,10 @@ import       → import massal CSV/XLSX (aset & master data): template, validasi
 > Catatan: Redis bersifat pelengkap, bukan sumber kebenaran. Kehilangan Redis tidak menyebabkan kehilangan data (PostgreSQL tetap otoritatif); sistem tetap berjalan dengan degradasi performa.
 
 **Frontend (Nuxt):** layout `admin` (Superadmin/Kepala/Manager) & `app` (Staf), route middleware untuk RBAC + scoping, halaman: dashboard, aset (list/detail/form), penugasan, **mutasi**, **stock opname**, maintenance, pengajuan/approval, laporan, master data, user, profil.
+
+**Mobile (Flutter, v1.2):** aplikasi companion lapangan di folder `mobile/` — konsumen `/api/v1`
+yang sama (endpoint tambahan hanya push-token FCM dan batch sync opname); halaman: login, scan,
+detail aset, stock opname (offline-first), approval, notifikasi, profil/sesi (bagian 3.11).
 
 ---
 
@@ -501,6 +535,7 @@ import       → import massal CSV/XLSX (aset & master data): template, validasi
 8. **Maintenance** — jadwal, catatan, laporan kerusakan.
 9. **Depreciation & Reporting** — perhitungan **dua basis** (komersial + fiskal) + amortisasi + impairment, read model, disposal/laba-rugi, pengecualian valuasi, dashboard, ekspor PDF/Excel + **output siap-jurnal**.
 10. **Polish** — i18n, otorisasi config UI (field-permission + data scope + thresholds), barcode/label cetak & scan, CI.
+11. **Mobile companion (v1.2)** — aplikasi Flutter pendamping lapangan, fase M0 (fondasi) sampai M6 (rilis internal): scan aset, approval on-the-go, push FCM, stock opname offline-first. Rincian: `docs/superpowers/plans/2026-07-18-mobile-app-roadmap.md`.
 
 Tiap tahap fitur akan punya spec + plan implementasi tersendiri.
 
@@ -612,6 +647,10 @@ IAI/DSAK Sosialisasi PMK 72/2023 · peraturan.bpk.go.id/Details/257823.
 
 ## Changelog
 
+- **v1.2 (2026-07-18)** — **Scope mobile dibuka**: non-goal v1.1 "aplikasi mobile native" dicabut;
+  masuk **aplikasi mobile companion** berbasis Flutter (field companion: scan aset, approval
+  on-the-go, push FCM, stock opname offline-first) — bagian 3.11 baru, tahap 11 roadmap,
+  ADR-0015/0016. Web tetap aplikasi utama administrasi; semua otorisasi tetap ditegakkan server.
 - **v1.1 (2026-06-26)** — Reframe ke **Fixed Asset Management bank** (konteks BTN). Tambah: pemisahan
   fungsi (SoD) & limit otorisasi berjenjang per nilai (`approval_thresholds`); **mutasi aset**;
   **stock opname**; **BAST/dokumen**; **penyusutan dua basis** (komersial PSAK + fiskal pajak),
