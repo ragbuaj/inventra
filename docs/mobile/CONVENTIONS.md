@@ -43,6 +43,8 @@ mengatur *bagaimana menulisnya*. Berlaku untuk semua kontribusi ke `mobile/` sej
   konvensi "extract reusable components" di frontend web).
 - String UI selalu lewat ARB id + en — tidak ada teks hardcode (aturan yang sama dengan web).
 - Warna/spacing selalu dari tema — tidak ada `Color(0xFF...)` literal di widget.
+- **Jaga iOS-ready** walau rilisnya Android: tanpa API Android-only di kode bersama, `SafeArea`
+  sejak awal, jangan matikan back-swipe — aturan lengkap di [IOS.md](IOS.md) bagian 2.
 
 ## 4. Kode generated
 

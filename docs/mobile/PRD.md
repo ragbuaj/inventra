@@ -50,7 +50,9 @@ Web sudah mobile-responsive, tetapi tiga kebutuhan lapangan tidak terlayani baik
   dari web; mobile hanya **memutus** approval-nya.
 - Mode offline untuk fitur selain stock opname (approval/scan/notifikasi butuh koneksi).
 - Login Google (menyusul; v1 email + password).
-- iOS build (disiapkan strukturnya, rilis Android dulu).
+- iOS build (disiapkan strukturnya, rilis Android dulu) — rencana kesiapan dan checklist
+  aktivasinya lengkap di [IOS.md](IOS.md); aturan "iOS-ready sejak M0" di sana mengikat kode
+  sejak scaffold.
 
 ## 2. Pengguna
 
