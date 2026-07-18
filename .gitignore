@@ -39,6 +39,9 @@ Thumbs.db
 # Playwright MCP screenshot/output scratch
 .playwright-mcp/
 
+# Konfigurasi MCP lokal (menunjuk ke DB produksi lewat SSH tunnel) — lokal saja
+.mcp.json
+
 # Claude Code local config (hooks, settings, plugins, project instructions) — personal, not shared
 .claude/
 CLAUDE.md
