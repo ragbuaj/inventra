@@ -14,7 +14,10 @@ export default defineVitestConfig({
     setupFiles: ['./test/setup/flush-focus-timers.ts'],
     environment: 'node',
     environmentOptions: {},
-    hookTimeout: 60000
+    // Each `@vitest-environment nuxt` spec boots its own Nuxt app in the setup
+    // hook. Past ~120 such files the parallel cold-start contention pushes some
+    // of them over 60s, failing an arbitrary unrelated spec. Give the hook room.
+    hookTimeout: 120000
   },
   resolve: {
     alias: {

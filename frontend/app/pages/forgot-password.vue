@@ -37,25 +37,35 @@ async function resend() {
 </script>
 
 <template>
-  <div class="w-full max-w-sm mx-auto">
-    <h1 class="text-xl font-semibold mb-1">
+  <div class="w-full max-w-[392px]">
+    <h1 class="text-2xl font-bold tracking-tight">
       {{ t('auth.forgotTitle') }}
     </h1>
-    <p class="text-muted text-sm mb-6">
+    <p class="mt-1 mb-6 text-muted">
       {{ t('auth.forgotSubtitle') }}
     </p>
 
     <template v-if="sent">
       <UAlert
+        icon="i-lucide-mail-check"
         color="success"
-        variant="soft"
-        :title="t('auth.forgotSent')"
+        variant="subtle"
+        :description="t('auth.forgotSent')"
         data-testid="forgot-sent"
+      />
+      <UAlert
+        v-if="errorKey"
+        icon="i-lucide-circle-x"
+        color="error"
+        variant="subtle"
+        :description="t(errorKey)"
+        class="mt-3"
       />
       <UButton
         data-testid="forgot-resend"
         variant="soft"
         block
+        size="lg"
         class="mt-3"
         :disabled="!cooldown.canResend.value || loading"
         :loading="loading"
@@ -63,42 +73,44 @@ async function resend() {
       >
         {{ cooldown.canResend.value ? t('auth.forgotResend') : t('auth.forgotResendWait', { s: cooldown.remaining.value }) }}
       </UButton>
-      <p
-        v-if="errorKey"
-        class="text-error text-sm mt-2"
-      >
-        {{ t(errorKey) }}
-      </p>
     </template>
 
     <UForm
       v-else
       :state="{ email }"
+      class="space-y-4"
       @submit="submit"
     >
+      <UAlert
+        v-if="errorKey"
+        icon="i-lucide-circle-x"
+        color="error"
+        variant="subtle"
+        :description="t(errorKey)"
+      />
+
       <UFormField
         :label="t('auth.email')"
         name="email"
+        required
       >
         <UInput
           v-model="email"
           type="email"
+          icon="i-lucide-mail"
+          size="lg"
+          class="w-full"
+          :placeholder="t('auth.emailPlaceholder')"
           required
           autocomplete="email"
-          class="w-full"
           data-testid="forgot-email"
         />
       </UFormField>
-      <p
-        v-if="errorKey"
-        class="text-error text-sm mt-2"
-      >
-        {{ t(errorKey) }}
-      </p>
+
       <UButton
         type="submit"
         block
-        class="mt-4"
+        size="lg"
         :loading="loading"
         data-testid="forgot-submit"
       >
@@ -109,7 +121,7 @@ async function resend() {
     <div class="mt-6 text-center">
       <NuxtLink
         :to="localePath('/login')"
-        class="text-primary text-sm"
+        class="text-primary text-sm hover:underline"
       >
         {{ t('auth.backToLogin') }}
       </NuxtLink>
