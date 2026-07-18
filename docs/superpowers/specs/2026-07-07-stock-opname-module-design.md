@@ -3,7 +3,7 @@
 **Date:** 2026-07-07
 **Status:** Approved (brainstorm)
 **Scope:** Full-stack — backend module `internal/stockopname` + frontend screen `/stock-opname` + Berita Acara export.
-**PRD:** §3.9 (FR-9.1–FR-9.6); role matrix "Kelola stock opname".
+**PRD:** bagian 3.9 (FR-9.1–FR-9.6); role matrix "Kelola stock opname".
 **Mockup:** `docs/design/Stock Opname.dc.html`.
 **Pattern references:** `internal/transfer`, `internal/disposal` (ADR-0008 four-file split), `internal/depreciation` (engine + report export).
 
@@ -60,13 +60,13 @@ Data-scope module string: **`stock_opname`** (falls back to the role's `*` defau
 
 Four-file split (ADR-0008) + a focused `report.go`:
 
-- **`service.go`** — holds `*sqlc.Queries` (+ deps: approval submit service, depreciation book-value calculator). The Berita Acara is exported on-the-fly (no MinIO storage — see §9). Business logic:
+- **`service.go`** — holds `*sqlc.Queries` (+ deps: approval submit service, depreciation book-value calculator). The Berita Acara is exported on-the-fly (no MinIO storage — see bagian 9). Business logic:
   - `CreateSession(input)` → insert session (`open`) + **snapshot**: select every non-deleted asset in the caller's office scope (respecting `expected`), bulk-insert `stock_opname_items` with `result='pending'`. Empty scope → session with zero items is allowed.
   - `StartCounting`, `Reconcile`, `Close` — state-machine transitions with explicit illegal-transition sentinel errors. `Close` stamps `closed_by/at` and makes the session immutable.
   - `SetItemResult(sessionID, itemID, result, note)` — only when `counting`; stamps `counted_by/at`.
   - `Scan(sessionID, assetTag)` — resolve tag → asset within scope; return the matching item; if the asset is in scope but not in the snapshot, insert an `expected=false` item (handles "misplaced-in"/FR-9.3).
   - `Kpis(sessionID)` / variance computation (`not_found`/`damaged`/`misplaced`, plus expected-but-pending).
-  - `GenerateFollowup(sessionID, itemID, params)` — build + submit the appropriate approval request, set `followup_request_id`. Mapping in §5.
+  - `GenerateFollowup(sessionID, itemID, params)` — build + submit the appropriate approval request, set `followup_request_id`. Mapping in bagian 5.
   - `ReportData(sessionID)` — assemble Berita Acara payload (summary + variance list + signatory from `started_by`/`closed_by`).
   - `mapDBError` (23505 → conflict, 23503 → invalid ref, no-rows → not found).
 - **`dto.go`** — request structs with `binding` tags; `sessionToMap`/`itemToMap` response serialization.

@@ -33,7 +33,7 @@ deviation lists and the three scope decisions). The `.dc.html` mockups are the v
 - `app/mock/floors.ts` (new) + `app/composables/api/useFloors.ts` (new) — floors + rooms fixtures keyed by office, CRUD (`listByOffice`, `create`, `remove`; rooms nested), node-safe mock module.
 - `app/mock/reference.ts` — add `active` to seeded + fallback rows; keep counts derivable via `referenceStores[key].all().length`.
 - `app/mock/notifications.ts` (new) + `app/composables/api/useNotifications.ts` (new) — sample notifications (icon/text/time/read) + unread count; `list()`, `markAllRead()`.
-- `app/utils/nav.ts` (new) — the full Superadmin nav model: groups `operasional`/`administrasi`, items with `{ labelKey, icon, to?, permission?, badgeCount?, disabled?, children? }`. Built routes get `to`; unbuilt ones get `disabled: true` (no `to`). Reproduce the mockup's exact items/grouping (see audit §App Shell + the mockup).
+- `app/utils/nav.ts` (new) — the full Superadmin nav model: groups `operasional`/`administrasi`, items with `{ labelKey, icon, to?, permission?, badgeCount?, disabled?, children? }`. Built routes get `to`; unbuilt ones get `disabled: true` (no `to`). Reproduce the mockup's exact items/grouping (see audit bagian App Shell + the mockup).
 - `app/components/DataToolbar.vue` — add `showReset?: boolean` (default true); render Reset only when true.
 - `app/components/FormModal.vue` + `FormSlideover.vue` — add optional `subtitle?: string` prop rendered under the title.
 - `app/components/PageHeader.vue` — title `text-2xl font-bold tracking-tight`, `mb-[22px]`.
@@ -48,7 +48,7 @@ deviation lists and the three scope decisions). The `.dc.html` mockups are the v
 ### Task 2 — AppSidebar 1:1 rebuild
 
 **Files:** `app/components/AppSidebar.vue`; `i18n/locales/{id,en}.json` (as needed). Uses the Task-1 nav model.
-**Build to match `docs/design/App Shell.dc.html` sidebar (audit §App Shell, sidebar):** sections
+**Build to match `docs/design/App Shell.dc.html` sidebar (audit bagian App Shell, sidebar):** sections
 *Operasional* / *Administrasi*; collapsible parent groups (Aset, Master Data, Pengaturan) with
 indented children + rotating chevron; disabled "coming soon" items (no nav, muted, not clickable);
 optional count badges; widths 264/76; active 3px left accent + `primary-soft` bg; hover `bg-muted`;
@@ -61,7 +61,7 @@ user strip (avatar initials + name + scope, hidden when collapsed).
 ### Task 3 — AppTopbar 1:1 rebuild (+ layout padding)
 
 **Files:** `app/components/AppTopbar.vue`, `app/components/AppBreadcrumb.vue` (mount it), `GlobalSearch.vue`, `LangSwitcher.vue`, `NotificationBell.vue`, `ThemeToggle.vue`, `UserMenu.vue`, `app/layouts/default.vue`; i18n as needed. Uses Task-1 `useNotifications`.
-**Build to match the mockup topbar (audit §App Shell, topbar):** breadcrumb + page-title two-line
+**Build to match the mockup topbar (audit bagian App Shell, topbar):** breadcrumb + page-title two-line
 block (wire `AppBreadcrumb`); centered search `max-w-[420px]` with `⌘K` pill; inline ID/EN segmented
 `LangSwitcher`; `NotificationBell` opens the ~330px popover (header + Mark read + rows + View all) with
 unread badge; outlined 36px theme/bell/toggle buttons; `UserMenu` pill trigger + panel with role/scope
@@ -73,7 +73,7 @@ main padding `px-8 py-7`, page canvas lighter (`--ui-bg`).
 
 ### Task 4 — Kantor page 1:1 rebuild
 
-**Files:** `app/pages/master/offices.vue`; `i18n/locales/{id,en}.json`; uses Task-1 `useFloors`, Office `active`, TreeView extensions. **Build to match `docs/design/Master Data Kantor.dc.html` (audit §Kantor):**
+**Files:** `app/pages/master/offices.vue`; `i18n/locales/{id,en}.json`; uses Task-1 `useFloors`, Office `active`, TreeView extensions. **Build to match `docs/design/Master Data Kantor.dc.html` (audit bagian Kantor):**
 full split-panel (340px tree | flex-1 detail, no PageHeader/DataToolbar framing, no card wrappers,
 independent scroll); tree panel header ("Hierarki Kantor" + inline "Tambah Kantor" + in-panel search);
 tree nodes with colored type badge + inactive dot + selected accent; detail header (type chip + status
@@ -86,7 +86,7 @@ with 2-col rows (Induk+Jenis, Kode+Provinsi) and a subtitle.
 
 ### Task 5 — Pegawai page 1:1 rebuild
 
-**Files:** `app/pages/master/employees.vue`; `i18n/locales/{id,en}.json`; uses `useReference` (departments/positions for the dept/jabatan selects), `useOffices` (Kantor select+filter), DataToolbar `showReset`, FormSlideover `subtitle`. **Build to match `docs/design/Master Data Pegawai.dc.html` (audit §Pegawai):**
+**Files:** `app/pages/master/employees.vue`; `i18n/locales/{id,en}.json`; uses `useReference` (departments/positions for the dept/jabatan selects), `useOffices` (Kantor select+filter), DataToolbar `showReset`, FormSlideover `subtitle`. **Build to match `docs/design/Master Data Pegawai.dc.html` (audit bagian Pegawai):**
 columns NIP / Nama (avatar initials) / Departemen / Jabatan (pill) / Kantor / Email-Telepon / Status /
 Aksi; filter bar as a `bg-base` card with search + 4 dropdowns (Kantor, Departemen, Jabatan, Status),
 Reset only when a filter is active; form as `FormSlideover` (480px) with 2-col rows (NIP+Status toggle,
@@ -97,7 +97,7 @@ Dept+Jabatan selects, Email+Telepon), Kantor select + scope note, NIP mono, subt
 
 ### Task 6 — Referensi page 1:1 rebuild
 
-**Files:** `app/pages/master/reference.vue`; `i18n/locales/{id,en}.json`; uses `useReference` (+`active`), `referenceResources`. **Build to match `docs/design/Master Data Referensi.dc.html` (audit §Referensi):**
+**Files:** `app/pages/master/reference.vue`; `i18n/locales/{id,en}.json`; uses `useReference` (+`active`), `referenceResources`. **Build to match `docs/design/Master Data Referensi.dc.html` (audit bagian Referensi):**
 218px secondary entity-nav panel (title/subtitle + entity buttons with per-entity count badges +
 active accent) replacing the toolbar `USelect`; main column = page header + search-only (no Reset) +
 table + pagination; **status toggle** cell (Aktif/Nonaktif, success-tinted active); form adds an

@@ -10,9 +10,9 @@
 
 ## Global Constraints
 
-- **Self-hosted, tanpa akun/dependensi eksternal** — WAF sepenuhnya di dalam stack (verbatim dari spec §2.2).
-- **Rollout bertahap wajib:** DetectionOnly → tuning exclusions → Blocking (spec §4).
-- **Jangan putuskan alur aplikasi:** login, CRUD aset, **upload lampiran ke MinIO**, payload JSON harus tetap lolos (spec §4, §7).
+- **Self-hosted, tanpa akun/dependensi eksternal** — WAF sepenuhnya di dalam stack (verbatim dari spec bagian 2.2).
+- **Rollout bertahap wajib:** DetectionOnly → tuning exclusions → Blocking (spec bagian 4).
+- **Jangan putuskan alur aplikasi:** login, CRUD aset, **upload lampiran ke MinIO**, payload JSON harus tetap lolos (spec bagian 4, bagian 7).
 - **Directive Caddy:** `order coraza_waf first` wajib ada di global options (syntax modul).
 - **Endpoint app tetap:** Caddy hanya merutekan `/api/*` & `/health` ke backend, sisanya ke frontend (jangan ubah routing).
 - **Build custom Caddy ringan** (Go build Caddy, bukan Nuxt) — aman di 4 GB; `build:` lokal di compose (integrasi CI/GHCR = follow-up setelah CD PR #52 merge).

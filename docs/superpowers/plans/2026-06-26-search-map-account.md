@@ -1855,8 +1855,8 @@ Expected: all PASS. The e2e job (`pnpm test:e2e`) needs the backend stack + seed
 
 ## Self-review notes (coverage map)
 
-- **Global Search** spec §1 → Tasks A1–A5 (types/i18n, aggregator, palette state+recent, component+keyboard+states, trigger+mount+e2e). ✓
-- **Office Map** spec §2 → Tasks B1–B5 (leaflet dep, dataset/meta/tokens/i18n, composable+url, Leaflet client component, page+nav+tests). ✓ Leaflet deviation honored; categories follow mockup (Pusat/Wilayah/Cabang/Outlet). ✓
-- **Account Profile** spec §3 → Tasks C1–C5 (strength util, types/composable/i18n, profil tab+menu wiring, keamanan tab, preferensi tab+e2e). ✓ Theme via `useColorMode`, language via `useI18n`, identity from `auth.user`, everything else mock. ✓
+- **Global Search** spec bagian 1 → Tasks A1–A5 (types/i18n, aggregator, palette state+recent, component+keyboard+states, trigger+mount+e2e). ✓
+- **Office Map** spec bagian 2 → Tasks B1–B5 (leaflet dep, dataset/meta/tokens/i18n, composable+url, Leaflet client component, page+nav+tests). ✓ Leaflet deviation honored; categories follow mockup (Pusat/Wilayah/Cabang/Outlet). ✓
+- **Account Profile** spec bagian 3 → Tasks C1–C5 (strength util, types/composable/i18n, profil tab+menu wiring, keamanan tab, preferensi tab+e2e). ✓ Theme via `useColorMode`, language via `useI18n`, identity from `auth.user`, everything else mock. ✓
 - Type consistency: `SearchGroup/SearchItem` (A1) used by A2/A4; `useCommandPalette` shape (A3) used by A4/A5; `MapOffice/jenisMeta/JENIS_ORDER` (B2) used by B3/B4/B5; `useOfficeMap.list` (B3) used by B5; `passwordStrength` (C1) used by C3/C4; `AccountProfile/AccountSession/NotifPrefs` + `useAccount` methods (C2) used by C3/C4/C5. ✓
 - No placeholders: every code/test step carries real code; component templates reference exact mockup line ranges with explicit token/handler mappings (the mockup is the markup source of truth — not duplicated to stay DRY). ✓

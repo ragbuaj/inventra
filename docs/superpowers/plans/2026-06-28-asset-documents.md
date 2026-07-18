@@ -976,13 +976,13 @@ git commit -m "docs(asset): openapi + progress for asset documents"
 ## Self-Review
 
 **Spec coverage:**
-- §3 file placement → Tasks 2–4 (document_dto.go / document.go / document_handler.go + routes.go). ✓
-- §4 endpoints (7) → Task 4 routes + handlers. ✓
-- §5 validation (doc_type oneof, date parse, related_request FK, file MIME/size, nosniff/CSP/disposition, NULL→404) → Tasks 2 (DTO), 3 (service validateFile/Open), 4 (download headers). ✓
-- §6 audit/rollback/sentinels → Task 3 (rollback, sentinels) + Task 4 (audit.Record). ✓
-- §7 queries (6) → Task 1. ✓
-- §8 tests (unit + integration list) → Tasks 2, 3 (unit), 5 (integration; all 10 cases mapped). ✓
-- §9 OpenAPI + PROGRESS + verification → Task 6. ✓
+- bagian 3 file placement → Tasks 2–4 (document_dto.go / document.go / document_handler.go + routes.go). ✓
+- bagian 4 endpoints (7) → Task 4 routes + handlers. ✓
+- bagian 5 validation (doc_type oneof, date parse, related_request FK, file MIME/size, nosniff/CSP/disposition, NULL→404) → Tasks 2 (DTO), 3 (service validateFile/Open), 4 (download headers). ✓
+- bagian 6 audit/rollback/sentinels → Task 3 (rollback, sentinels) + Task 4 (audit.Record). ✓
+- bagian 7 queries (6) → Task 1. ✓
+- bagian 8 tests (unit + integration list) → Tasks 2, 3 (unit), 5 (integration; all 10 cases mapped). ✓
+- bagian 9 OpenAPI + PROGRESS + verification → Task 6. ✓
 
 **Placeholder scan:** No "TBD"/"implement later". Task 5 uses a checklist comment but Step 2 explicitly requires replacing it with executable `t.Run` tests — flagged, not a hidden placeholder.
 

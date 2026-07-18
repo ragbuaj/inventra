@@ -1303,16 +1303,16 @@ git commit -m "docs(transfer): OpenAPI paths + PROGRESS for mutasi module"
 ## Self-Review
 
 **Spec coverage:**
-- §3 lifecycle (submit→approve→ship→receive; no row on reject/cancel) → Tasks 4 (Submit), 5 (executor creates row), 6 (ship/receive). ✓
-- §4 module four-file split → Tasks 4 (service/dto), 5 (executor), 6 (handler/routes). ✓
-- §5 endpoints + permission/scope table → Task 6 (handlers) + Task 7 (RequirePermission wiring) + Task 1 (perms/scope seed). ✓
-- §6 submit validation (scope, available, no open transfer, to≠from, room belongs) → Task 4 Submit (room-belongs is enforced by FK at executor/`SetAssetOffice`; explicit room-office check is optional — noted). ✓
-- §7 executor (payload snapshot, defense-in-depth, create approved row) → Task 5. ✓
-- §8 receive + BAST (asset move tx, asset_documents + MinIO, file optional) → Task 6 (`receive`+`recordBAST`), Task 8 Step 6. ✓
-- §9 authz (transfer.manage/view, scope module "transfers", read+write) → Tasks 1, 6, 7. ✓
-- §10 value basis (purchase_cost + seeded band) → Task 1 (band), Task 4 (amount). ✓
-- §11 DB/infra (seed migration, queries, SetAssetOffice, catalog, OpenAPI, wiring) → Tasks 1,2,3,7,9. ✓
-- §12 testing (happy path, reject, guards, scope, state machine, history, BAST) → Task 8. ✓
+- bagian 3 lifecycle (submit→approve→ship→receive; no row on reject/cancel) → Tasks 4 (Submit), 5 (executor creates row), 6 (ship/receive). ✓
+- bagian 4 module four-file split → Tasks 4 (service/dto), 5 (executor), 6 (handler/routes). ✓
+- bagian 5 endpoints + permission/scope table → Task 6 (handlers) + Task 7 (RequirePermission wiring) + Task 1 (perms/scope seed). ✓
+- bagian 6 submit validation (scope, available, no open transfer, to≠from, room belongs) → Task 4 Submit (room-belongs is enforced by FK at executor/`SetAssetOffice`; explicit room-office check is optional — noted). ✓
+- bagian 7 executor (payload snapshot, defense-in-depth, create approved row) → Task 5. ✓
+- bagian 8 receive + BAST (asset move tx, asset_documents + MinIO, file optional) → Task 6 (`receive`+`recordBAST`), Task 8 Step 6. ✓
+- bagian 9 authz (transfer.manage/view, scope module "transfers", read+write) → Tasks 1, 6, 7. ✓
+- bagian 10 value basis (purchase_cost + seeded band) → Task 1 (band), Task 4 (amount). ✓
+- bagian 11 DB/infra (seed migration, queries, SetAssetOffice, catalog, OpenAPI, wiring) → Tasks 1,2,3,7,9. ✓
+- bagian 12 testing (happy path, reject, guards, scope, state machine, history, BAST) → Task 8. ✓
 
 **Placeholder scan:** Each code step shows complete code. Notes that say "confirm the exact sqlc field name / audit signature / context accessor" point to a named canonical file to copy from (`approval/handler.go`, `masterdata/office/handler.go`, generated `db/sqlc`) — these are verification steps against real code, not deferred logic. No "TODO/TBD/add validation".
 

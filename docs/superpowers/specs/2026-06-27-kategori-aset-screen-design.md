@@ -5,7 +5,7 @@
 | **Tanggal** | 2026-06-27 |
 | **Fase** | Master data (frontend) — melengkapi satu master entity tanpa layar |
 | **Mockup** | `docs/design/Kategori Aset.dc.html` (sumber kebenaran visual, dibangun 1:1) |
-| **Prompt desain** | `docs/DESIGN_BRIEF.md` §5.24 |
+| **Prompt desain** | `docs/DESIGN_BRIEF.md` bagian 5.24 |
 | **Status** | Disetujui — siap menulis implementation plan |
 
 ## 1. Tujuan & ruang lingkup
@@ -85,7 +85,7 @@ export interface Category {
 `useCategories` mengekspos `list(query): Paginated<Category>`, `get(id)`, `create(input)`,
 `update(id, input)`, `remove(id)` — selaras `useEmployees` (mock store + `fakeLatency`).
 
-Seed `mock/categories.ts` mengikuti contoh §5.24 (Perangkat IT→Komputer & Laptop sebagai induk→anak,
+Seed `mock/categories.ts` mengikuti contoh bagian 5.24 (Perangkat IT→Komputer & Laptop sebagai induk→anak,
 Kendaraan, Bangunan Kantor, Mesin ATM, Mebel, Software/Lisensi takberwujud, satu entri nonaktif).
 
 ## 5. Tata letak layar (1:1 mockup)
@@ -111,7 +111,7 @@ Kendaraan, Bangunan Kantor, Mesin ATM, Mebel, Software/Lisensi takberwujud, satu
 3. **Pajak / Fiskal (PMK 72/2023)** — Golongan/Kelompok Harta (`USelect` 6 opsi), Masa Manfaat Fiskal (bln).
 4. **Akuntansi** — Akun GL (COA, mono), Batas Kapitalisasi (Rp, diformat ribuan `id-ID`).
 
-### Perilaku kondisional (wajib, dari §5.24)
+### Perilaku kondisional (wajib, dari bagian 5.24)
 - **Kelas = Takberwujud** → judul section 2 jadi **"Amortisasi"** + ref **PSAK 19** (bukan
   "Penyusutan"/PSAK 16); opsi golongan **Bangunan** disembunyikan dari select fiskal.
 - **Golongan = Bangunan (permanen/non-permanen)** → Metode dipaksa **Garis Lurus** + field **disabled**

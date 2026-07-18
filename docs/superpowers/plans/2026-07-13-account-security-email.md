@@ -1768,7 +1768,7 @@ git commit -m "docs(progress): account security via email (Spec A) complete; Spe
 
 ## Self-Review Notes (author checklist — completed)
 
-- **Spec coverage:** email infra (T2/T11) · forgot-password (T4/T5/T8/T12) · change-password + notify (T4/T5/T10) · session invalidation via epoch (T1/T4) · anti-enumeration + rate-limit (T5) · audit (T5) · OpenAPI (T6) · frontend pages + wiring (T7–T10) · tests unit/integration/e2e (throughout) · Mailpit dev+CI (T11). All spec §sections map to a task.
+- **Spec coverage:** email infra (T2/T11) · forgot-password (T4/T5/T8/T12) · change-password + notify (T4/T5/T10) · session invalidation via epoch (T1/T4) · anti-enumeration + rate-limit (T5) · audit (T5) · OpenAPI (T6) · frontend pages + wiring (T7–T10) · tests unit/integration/e2e (throughout) · Mailpit dev+CI (T11). All spec bagian sections map to a task.
 - **Password policy min 8** enforced at DTO (T5) and service (T4) and frontend (T7/T9).
 - **Type consistency:** `mailSender` interface (T4) matches `email.Mailer` methods (T2); `UpdateUserPasswordParams{ID, PasswordHash}` used identically in T1/T4; `NewService` 6-arg signature used in T4 tests and T5 wiring; `NewHandler` extended args (`auditSvc`, `forgotPerMin`) consistent T5 handler↔routes↔router; reset link path `/reset-password?token=` matches the frontend page route (T9) and e2e regex (T12).
 - **Audit:** uses `ActionUpdate` + `{"event":...}` — no enum migration (Global Constraints honored).

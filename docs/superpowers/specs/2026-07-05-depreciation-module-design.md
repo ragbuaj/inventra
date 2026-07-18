@@ -1,8 +1,8 @@
 # Modul Depresiasi Dual-Basis (PSAK 16 + PMK 72/2023) — Design
 
 **Tanggal:** 2026-07-05 · **Status:** Disetujui user (brainstorming session)
-**Referensi:** PRD §3.5 (FR-5.1–5.8) + Lampiran A.1 (parameter PMK 72/2023 terverifikasi) ·
-DATABASE.md §4.4/§7/DB-Q7 · mockup `docs/design/Depresiasi.dc.html` · DESIGN_BRIEF §6.4 ·
+**Referensi:** PRD bagian 3.5 (FR-5.1–5.8) + Lampiran A.1 (parameter PMK 72/2023 terverifikasi) ·
+DATABASE.md bagian 4.4/bagian 7/DB-Q7 · mockup `docs/design/Depresiasi.dc.html` · DESIGN_BRIEF bagian 6.4 ·
 ADR-0010 (background job — staged adoption) · pola modul PR #48/#49
 
 ## Tujuan
@@ -72,7 +72,7 @@ CREATE INDEX idx_depr_basis_period ON depreciation.depreciation_entries (basis, 
 Seed (idempotent, pola 000017): `app_settings` key `depreciation.accumulated_gl_account`
 (placeholder `1.2.9.001`, description jelas) — akun kredit rekap jurnal. Seed RBAC: permission
 **`depreciation.view`** ("Lihat depresiasi") + **`depreciation.manage`** ("Jalankan & tutup
-periode depresiasi, catat impairment") — keduanya Superadmin-only sesuai PRD §2.1; data-scope
+periode depresiasi, catat impairment") — keduanya Superadmin-only sesuai PRD bagian 2.1; data-scope
 module string `"depreciation"` (default per-role berlaku). Down migration membalik semuanya
 (kolom/tabel/type; permission rows ikut pola down seed yang ada).
 
@@ -255,9 +255,9 @@ berubah); (e) subtitle kartu Jenjang Persetujuan disposal berubah "berdasar nila
 
 1. Gates penuh hijau (backend build/vet/test + full integration; Spectral; frontend
    lint/typecheck/test/build; full e2e workers=1).
-2. Side-by-side mockup light+dark 1:1 kecuali deviasi §6.
+2. Side-by-side mockup light+dark 1:1 kecuali deviasi bagian 6.
 3. PROGRESS.md: item Dual-basis depreciation + Journal-ready export dicentang; follow-up disposal
    basis-switch DITUTUP; batasan (revisi masa manfaat UI, saldo awal migrasi, Rp-1 kategori)
-   tercatat; item Scheduler diperbarui merujuk ADR-0010 tahap 2/3; deviasi §6; pointer next
+   tercatat; item Scheduler diperbarui merujuk ADR-0010 tahap 2/3; deviasi bagian 6; pointer next
    session di-refresh.
 4. ADR-0010 committed; OpenAPI sinkron; tidak ada dead query/i18n yatim baru.

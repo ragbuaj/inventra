@@ -18,7 +18,7 @@
 - Keep `backend/api/openapi.yaml` in sync (hand-written, Spectral-linted).
 - List endpoints return `{data, total, limit, offset}` with `limit` clamped 1–100.
 - Frontend: all HTTP goes through `useApiClient().request` (never `$fetch` a hardcoded URL); catch blocks stay empty (errors toasted centrally). Every user-facing string in `i18n/locales/{id,en}.json` (default locale `id`). Theme via semantic tokens/`U*` color props. ESLint: **no trailing commas**, 1tbs. `USelect` items need `value-key="value"` and cannot use empty-string values — use a `NONE = '__none__'` sentinel translated to `null`/`undefined` at the API boundary.
-- Build exactly what `docs/design/Stock Opname.dc.html` shows (1:1, light + dark). Only the approved deviations in the spec (§7) are allowed; any new deviation needs user approval first, then gets recorded in the spec + PROGRESS.md.
+- Build exactly what `docs/design/Stock Opname.dc.html` shows (1:1, light + dark). Only the approved deviations in the spec (bagian 7) are allowed; any new deviation needs user approval first, then gets recorded in the spec + PROGRESS.md.
 - No `Co-Authored-By`/AI attribution in commits.
 - Verification gates (must be green before "done"): `go build ./...`, `go vet ./...`, `go test ./...`, `go test -tags=integration ./...`, Spectral lint, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and the e2e spec.
 
@@ -60,7 +60,7 @@ ALTER TABLE stockopname.stock_opname_items
 CREATE INDEX idx_opnitem_followup ON stockopname.stock_opname_items (followup_request_id);
 
 -- Permissions: stockopname.manage (create/count/reconcile/close/follow-up) + stockopname.view (read).
--- Operational roles get both; Staf gets neither (PRD §2.1 "Kelola stock opname").
+-- Operational roles get both; Staf gets neither (PRD bagian 2.1 "Kelola stock opname").
 INSERT INTO identity.role_permissions (role_id, permission_key)
 SELECT r.id, p.key
 FROM identity.roles r
@@ -1107,6 +1107,6 @@ git commit -m "docs(progress): stock opname module complete"
 
 ## Self-review notes (coverage against the spec)
 
-- Spec §3 migration → Task 1. §4 module files → Tasks 3–7 (`service`/`dto`/`handler`/`routes`) + Task 6 (`report.go`). §5 endpoints → Tasks 7–8 (all 11 paths). §5 follow-up mapping → Task 5 (not_found→disposal, misplaced→transfer, damaged deferred/disabled). §6 frontend → Tasks 9–11. §7 deviations → recorded in Task 13. §8 testing → Tasks 3–6 (backend integration/unit), 9–11 (frontend unit/component), 12 (e2e). §9 out-of-scope (maintenance follow-up, MinIO storage, camera scan) honored (damaged disabled; report on-the-fly; manual code entry).
+- Spec bagian 3 migration → Task 1. bagian 4 module files → Tasks 3–7 (`service`/`dto`/`handler`/`routes`) + Task 6 (`report.go`). bagian 5 endpoints → Tasks 7–8 (all 11 paths). bagian 5 follow-up mapping → Task 5 (not_found→disposal, misplaced→transfer, damaged deferred/disabled). bagian 6 frontend → Tasks 9–11. bagian 7 deviations → recorded in Task 13. bagian 8 testing → Tasks 3–6 (backend integration/unit), 9–11 (frontend unit/component), 12 (e2e). bagian 9 out-of-scope (maintenance follow-up, MinIO storage, camera scan) honored (damaged disabled; report on-the-fly; manual code entry).
 - Scope enforced read+write: `common.InScope` in service single-row ops; `AllScope`/`OfficeIds` in list/get queries; every route gated by `RequirePermission`.
 - No new `request_type` enum / executor (reuses `disposal.Submit`/`transfer.Submit`) — consistent across Tasks 5 and 7.

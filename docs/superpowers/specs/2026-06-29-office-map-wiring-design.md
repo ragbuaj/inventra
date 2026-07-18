@@ -7,7 +7,7 @@
 | **Backend baru** | `GET /api/v1/offices/map` (authMW + data-scope `offices`); kolom `latitude`/`longitude` di `masterdata.offices` |
 | **Status** | Disetujui — siap implementasi |
 
-> Sub-proyek **pertama** dari batch "wiring menu master" (lihat §7 roadmap). Satu-satunya layar master yang belum punya backend, sehingga sub-proyek ini menyentuh backend **dan** frontend.
+> Sub-proyek **pertama** dari batch "wiring menu master" (lihat bagian 7 roadmap). Satu-satunya layar master yang belum punya backend, sehingga sub-proyek ini menyentuh backend **dan** frontend.
 
 ## 1. Konteks & lingkup
 
@@ -38,7 +38,7 @@ ALTER TABLE masterdata.offices
   DROP COLUMN latitude,
   DROP COLUMN longitude;
 ```
-Nullable; tanpa trigger/index baru. `numeric` → override sqlc ke Go `string` (konvensi money/numeric) bila belum global; bila override hanya per-kolom money, gunakan tipe sqlc default untuk `numeric` (`pgtype.Numeric`) dan serialisasi sebagai string di DTO — **implementasi plan menentukan**, yang penting **DTO JSON mengembalikan/menerima `number`** (lihat §2.2). Setelah migrasi: `sqlc generate`.
+Nullable; tanpa trigger/index baru. `numeric` → override sqlc ke Go `string` (konvensi money/numeric) bila belum global; bila override hanya per-kolom money, gunakan tipe sqlc default untuk `numeric` (`pgtype.Numeric`) dan serialisasi sebagai string di DTO — **implementasi plan menentukan**, yang penting **DTO JSON mengembalikan/menerima `number`** (lihat bagian 2.2). Setelah migrasi: `sqlc generate`.
 
 ### 2.2 DTO office (create/update/response)
 - `office/dto.go` create + update request: tambah field opsional `latitude *float64` + `longitude *float64` dengan validasi `binding:"omitempty,min=-90,max=90"` (lat) dan `min=-180,max=180` (lng). (Gunakan `*float64` agar "tidak dikirim" ≠ "0".)

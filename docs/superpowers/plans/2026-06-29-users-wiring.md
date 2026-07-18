@@ -592,11 +592,11 @@ git commit -m "test(users): e2e against real backend + progress; drop orphaned m
 ## Self-Review
 
 **Spec coverage:**
-- §2 composable rewrite (list/create/update/remove/lookups, English+UUID, omit empties) → Task 1. ✓
-- §3 page (server-side search+pagination, drop filters, FK→name resolution, create/edit forms, employee-by-office, status via update, drop reset-password/login, load error) → Task 2. ✓
-- §4 types/i18n (UserView in composable not `~/types`; loadError/retry/conflict) → Task 1 (types) + Task 2 (i18n). ✓
-- §5 tests (unit/component/e2e) → Tasks 1, 3, 4. ✓
-- §6 done (delete mock, mockup, PROGRESS + TODO, gate) → Task 4. ✓
+- bagian 2 composable rewrite (list/create/update/remove/lookups, English+UUID, omit empties) → Task 1. ✓
+- bagian 3 page (server-side search+pagination, drop filters, FK→name resolution, create/edit forms, employee-by-office, status via update, drop reset-password/login, load error) → Task 2. ✓
+- bagian 4 types/i18n (UserView in composable not `~/types`; loadError/retry/conflict) → Task 1 (types) + Task 2 (i18n). ✓
+- bagian 5 tests (unit/component/e2e) → Tasks 1, 3, 4. ✓
+- bagian 6 done (delete mock, mockup, PROGRESS + TODO, gate) → Task 4. ✓
 
 **Placeholder scan:** Tasks 3 & 4 give explicit assertion lists / steps (read the established wired-screen test/e2e patterns first; the USelect/`vm` technique + robust-locator rules are spelled out from the prior screens' CI lessons). Concrete checklists, not "TODO"s.
 

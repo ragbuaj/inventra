@@ -2,7 +2,7 @@
 #
 # Infra only (run the Go API + Nuxt on the host):
 #   docker compose -f docker-compose.dev.yml up -d
-#     → PostgreSQL · Redis · MinIO (the three backing services from PRD §7)
+#     → PostgreSQL · Redis · MinIO (the three backing services from PRD section 7)
 #
 # Full stack in Docker WITH live reload (Docker Compose `watch`):
 #   docker compose -f docker-compose.dev.yml --profile app watch

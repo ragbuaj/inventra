@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Feature** | Asset disposal — PRD v1.1 §3.6/§5 |
+| **Feature** | Asset disposal — PRD v1.1 bagian 3.6/bagian 5 |
 | **Date** | 2026-07-02 |
 | **Scope** | **Backend-only** (no frontend mockup exists yet) |
 | **Status** | Approved — ready for implementation plan |
@@ -56,7 +56,7 @@ executor on final approval, so rejected/cancelled disposals never create a row (
 | **BAST** (optional) | `POST /disposals/:id/document` | `disposal.manage` | Creates `asset.asset_documents` (`doc_type=bast_disposal`, `related_disposal_id`, `related_request_id`) + optional MinIO file; updates `disposals.bast_no` if provided. Best-effort file. |
 | **Read** | `GET /disposals`, `/disposals/:id`, `/assets/:id/disposal` | `disposal.view` | Scope-filtered. |
 
-`asset.status → disposed` is enforced via the asset package's transition matrix (see §7).
+`asset.status → disposed` is enforced via the asset package's transition matrix (see bagian 7).
 
 ## 5. Module `internal/disposal/` (four-file split)
 

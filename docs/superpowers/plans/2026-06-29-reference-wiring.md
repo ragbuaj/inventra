@@ -943,18 +943,18 @@ git commit -m "test(reference): e2e + drop mock; wire Master Data Referensi end-
 ## Self-Review
 
 **Spec coverage:**
-- §2.1 engine `typeEnum` (Enum/EnumType, placeholder cast, selectExpr text-cast, coerce validation) → Task 1. ✓
-- §2.2 office-types `tier` column → Task 1. ✓
-- §2.3 openapi + engine tests (valid/invalid/null) → Task 1 (pure coerce unit + integration round-trip). ✓
-- §3.1 `useReference` HTTP rewrite → Task 2. ✓
-- §3.2 descriptor enrichment (type/fk/select/hasActive; cities/models/vendors/office-types) → Task 3. ✓
-- §3.3 page (is_active rename, FK/select form rendering, FK name resolution, hasActive gating, required validation) → Task 4. ✓
-- §3.4 `ReferenceRow` rename → Task 3. ✓
-- §3.5 i18n (province/brand/contact_name/address/tier + requiredField/fkEmpty) → Task 3 + Task 4. ✓
-- §3.6 delete mock → Task 6. ✓
-- §4 tests (engine, unit, component, e2e) → Tasks 1/2/5/6. ✓
-- §5 done (delete mock+barrel, mockup, PROGRESS, gate) → Task 6. ✓
-- §6 risks (NULL::enum cast, invalid→400, empty FK picker, ReferenceRow cross-key) → handled in Tasks 1/3/4.
+- bagian 2.1 engine `typeEnum` (Enum/EnumType, placeholder cast, selectExpr text-cast, coerce validation) → Task 1. ✓
+- bagian 2.2 office-types `tier` column → Task 1. ✓
+- bagian 2.3 openapi + engine tests (valid/invalid/null) → Task 1 (pure coerce unit + integration round-trip). ✓
+- bagian 3.1 `useReference` HTTP rewrite → Task 2. ✓
+- bagian 3.2 descriptor enrichment (type/fk/select/hasActive; cities/models/vendors/office-types) → Task 3. ✓
+- bagian 3.3 page (is_active rename, FK/select form rendering, FK name resolution, hasActive gating, required validation) → Task 4. ✓
+- bagian 3.4 `ReferenceRow` rename → Task 3. ✓
+- bagian 3.5 i18n (province/brand/contact_name/address/tier + requiredField/fkEmpty) → Task 3 + Task 4. ✓
+- bagian 3.6 delete mock → Task 6. ✓
+- bagian 4 tests (engine, unit, component, e2e) → Tasks 1/2/5/6. ✓
+- bagian 5 done (delete mock+barrel, mockup, PROGRESS, gate) → Task 6. ✓
+- bagian 6 risks (NULL::enum cast, invalid→400, empty FK picker, ReferenceRow cross-key) → handled in Tasks 1/3/4.
 
 **Placeholder scan:** Tasks 5 & 6 give explicit assertion lists + "read X first" pointers (harness, helpers, mockup) with concrete scenarios; no "TODO"/"add validation"/"similar to". OpenAPI step (Task 1 Step 8) names the exact YAML to add and tells the implementer to report the structure found (the only spot that can't be fully pre-specified without the file open).
 

@@ -181,7 +181,7 @@ g.POST("/labels",      authMW, requireView, h.generateLabels)
 ## REVISION (2026-06-28) — BTN label template (user-supplied layout)
 
 The user supplied a concrete BTN asset-label layout. This supersedes the simple "barcode + tag"
-label of §4. Confirmed decisions: logo provided as a file (embed; QR-center overlay + header) with
+label of bagian 4. Confirmed decisions: logo provided as a file (embed; QR-center overlay + header) with
 graceful fallback if absent; bank name + disclaimer in `app_settings`; the label's "asset code" is the
 stored `asset_tag` verbatim (tag format unchanged); **two templates** — `btn` (default) and `generic`.
 
@@ -221,5 +221,5 @@ stored `asset_tag` verbatim (tag format unchanged); **two templates** — `btn` 
 - `btn` template ignores `mode` (always QR) and renders the fixed BTN field layout.
 
 ### Revised authorization / errors
-Unchanged from §Authorization. Missing `app_settings` value → default constant (not an error). Missing
+Unchanged from bagian Authorization. Missing `app_settings` value → default constant (not an error). Missing
 logo file → plain QR (not an error). All else as before.

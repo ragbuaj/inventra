@@ -552,15 +552,15 @@ git commit -m "test(categories): e2e + drop mock; wire Kategori Aset end-to-end"
 ## Self-Review
 
 **Spec coverage:**
-- §2.1 `ListCategoryTree` query → Task 1. ✓
-- §2.2 service/handler/route `GET /categories/tree` (flat `{data}`, `/tree` before `/:id`) + openapi + tests (>100 no-cap, soft-delete exclusion, parent passthrough) → Task 1. ✓
-- §3.1 `useCategories` HTTP rewrite + `tree()` → Task 2. ✓
-- §3.2 page → `tree()` + load-error/retry → Task 3. ✓
-- §3.3 utils → `constants/categoryMeta` + repoint `CategoryFormSlideover` → Task 3 (+ Task 4 confirms the form test). ✓
-- §3.4 `Category.updated_at?` + i18n `non_susut` → Task 3. ✓
-- §4 tests (backend tree, unit, component, e2e) → Tasks 1/2/4/5. ✓
-- §5 done (delete mock, mockup, PROGRESS, full-gate exit-0) → Task 5. ✓
-- §6 risks (route order, #40 consumer-stub, numeric string, non_susut) → handled in Tasks 1/3/4 + Global Constraints.
+- bagian 2.1 `ListCategoryTree` query → Task 1. ✓
+- bagian 2.2 service/handler/route `GET /categories/tree` (flat `{data}`, `/tree` before `/:id`) + openapi + tests (>100 no-cap, soft-delete exclusion, parent passthrough) → Task 1. ✓
+- bagian 3.1 `useCategories` HTTP rewrite + `tree()` → Task 2. ✓
+- bagian 3.2 page → `tree()` + load-error/retry → Task 3. ✓
+- bagian 3.3 utils → `constants/categoryMeta` + repoint `CategoryFormSlideover` → Task 3 (+ Task 4 confirms the form test). ✓
+- bagian 3.4 `Category.updated_at?` + i18n `non_susut` → Task 3. ✓
+- bagian 4 tests (backend tree, unit, component, e2e) → Tasks 1/2/4/5. ✓
+- bagian 5 done (delete mock, mockup, PROGRESS, full-gate exit-0) → Task 5. ✓
+- bagian 6 risks (route order, #40 consumer-stub, numeric string, non_susut) → handled in Tasks 1/3/4 + Global Constraints.
 
 **Placeholder scan:** Tasks 4 & 5 give explicit assertion lists + "read X first" pointers (settings-users harness, helpers, master-reference e2e, mockup) with concrete scenarios; the OpenAPI step names the exact addition + says reuse the existing schema `$ref`. No "TODO"/"add validation"/"similar to".
 

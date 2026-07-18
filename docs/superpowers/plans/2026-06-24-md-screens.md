@@ -1837,4 +1837,4 @@ Expected: all green. (E2E runs separately and needs the backend stack + seeded a
 - i18n id/en for every string → Tasks 3, 5, 7. ✓
 - Permission gating (route + buttons) → `definePageMeta` + `<Can>` in each page. ✓
 - Tests: unit (mock stores/pure fns), runtime (`mountSuspended` per screen), e2e (offices) → Tasks 1–8. ✓
-- Floors/rooms management → intentionally out of scope this phase (spec §Out of scope).
+- Floors/rooms management → intentionally out of scope this phase (spec bagian Out of scope).

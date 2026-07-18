@@ -1265,7 +1265,7 @@ git commit -m "docs(import): mark import follow-ups done in PROGRESS"
 
 ## Self-Review Notes
 
-- **Spec coverage:** §3 employee dept/position → Task 1; §4 brand/unit → Task 2, model → Task 3, registration+frontend+i18n → Task 4; §5 MinIO error reports → Task 5; §6 e2e → Task 6; §7 testing folded into each task; §8 gate → Task 7; §9 docs → Task 7. Room/floor explicitly deferred (not planned).
+- **Spec coverage:** bagian 3 employee dept/position → Task 1; bagian 4 brand/unit → Task 2, model → Task 3, registration+frontend+i18n → Task 4; bagian 5 MinIO error reports → Task 5; bagian 6 e2e → Task 6; bagian 7 testing folded into each task; bagian 8 gate → Task 7; bagian 9 docs → Task 7. Room/floor explicitly deferred (not planned).
 - **Type consistency:** `employeeLookups.{departments,positions}`, stamps `_department_id`/`_position_id`/`_brand_id`, error keys `departemen`/`jabatan`/`merek`/`dupNama`, `modelPairKey`, `storeErrorReport`, `SetJobErrorReportKey` used consistently across tasks.
 - **Open verification points flagged inline** (never left as silent placeholders): generated sqlc param field names for `GetModelByBrandAndName` (Task 3 Step 5) and `SetJobErrorReportKey`/table qualifier (Task 5 Steps 1–2); confirm against `db/sqlc` after `sqlc generate`.
 ```

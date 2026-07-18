@@ -1495,7 +1495,7 @@ Open the running app `/maintenance` next to `docs/design/Maintenance.dc.html` (l
 
 - [ ] **Step 5: Update PROGRESS.md**
 
-- Tick Maintenance in §Remaining "Backend — Feature modules" with a summary line (module, endpoints, executor, attention queue, opname damaged followup, screen, e2e).
+- Tick Maintenance in bagian Remaining "Backend — Feature modules" with a summary line (module, endpoints, executor, attention queue, opname damaged followup, screen, e2e).
 - Record the approved deviations (Tambah Jadwal UI, row-click edit slideover, Perlu Tindak Lanjut section, vendor_id select / performed_by unexposed, client-side banner, in-page reminder only) and honest limitations.
 - Note the closed follow-up: `RequestType` union now includes `assignment` + `maintenance`.
 - Refresh the "▶ Next session — start here" block: remaining candidates now (f) global search backend + drop last mock/* and (g) Reporting & Dashboard.
@@ -1513,8 +1513,8 @@ gh pr create --title "feat(maintenance): Maintenance module (jadwal, catatan, la
 
 ## Self-Review Notes (already applied)
 
-- Spec §1.3 "duplicate pending" guard → `CountPendingMaintRequests` (Task 2) + `ErrDuplicatePending` (Task 3) + integration test 8.
-- Spec §1.6 idempotency → double guard on both link columns (Task 5) + integration test 11.
+- Spec bagian 1.3 "duplicate pending" guard → `CountPendingMaintRequests` (Task 2) + `ErrDuplicatePending` (Task 3) + integration test 8.
+- Spec bagian 1.6 idempotency → double guard on both link columns (Task 5) + integration test 11.
 - Spec decision #3 (no auto-create) → no assignment changes anywhere; attention queue is Task 2 (query) + Task 4 (endpoint) + Task 11 (UI).
 - `completed_date` defaulting lives in the service (before insert/update), keeping `applyStatusEffects` read-only w.r.t. the record row.
-- Frontend picker for the Staf report uses active assignments (own scope) — consistent with spec §2.1 and the peminjaman precedent.
+- Frontend picker for the Staf report uses active assignments (own scope) — consistent with spec bagian 2.1 and the peminjaman precedent.

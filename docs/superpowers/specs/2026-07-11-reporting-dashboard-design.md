@@ -1,9 +1,9 @@
 # Modul Reporting & Dashboard — Design
 
 **Tanggal:** 2026-07-11 · **Status:** Disetujui user (brainstorming session)
-**Referensi:** PRD §3.5 (FR-5.5–5.7), FR-2.10/FR-7.6 (pengecualian valuasi), FR-3.5 (overdue),
-matriks peran §2.2 ("Lihat laporan & dashboard" semua role; "Ekspor laporan" tanpa Staf) ·
-mockup `docs/design/Dashboard.dc.html` + `docs/design/Laporan.dc.html` · PROGRESS.md §Analytics
+**Referensi:** PRD bagian 3.5 (FR-5.5–5.7), FR-2.10/FR-7.6 (pengecualian valuasi), FR-3.5 (overdue),
+matriks peran bagian 2.2 ("Lihat laporan & dashboard" semua role; "Ekspor laporan" tanpa Staf) ·
+mockup `docs/design/Dashboard.dc.html` + `docs/design/Laporan.dc.html` · PROGRESS.md bagian Analytics
 (agregasi OLTP dulu; star-schema/CQRS level 2 ditunda) · pola `internal/depreciation/export.go` +
 `internal/stockopname/report.go` · ADR-0008 (split modul)
 
@@ -33,7 +33,7 @@ route `/reports` yang masih memakai permission placeholder.
    komposisi + daftar jatuh tempo) sesuai scope & filter aktif.
 5. **Panel approval dashboard = aksi nyata inline.** Sumber `GET /requests/inbox` (top 5); ✓
    approve langsung, ✕ membuka modal catatan penolakan; memakai endpoint decide yang sudah ada.
-6. **Arsitektur A — agregasi OLTP langsung + cache tipis** (lihat §Arsitektur): laporan & semua
+6. **Arsitektur A — agregasi OLTP langsung + cache tipis** (lihat bagian Arsitektur): laporan & semua
    ekspor **selalu fresh** (tanpa cache); hanya `GET /dashboard/summary` yang di-cache Redis TTL
    90 detik. Kontrak API stabil agar backing store bisa naik ke MV/star-schema kelak tanpa
    mengubah frontend.

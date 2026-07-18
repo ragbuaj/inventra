@@ -682,15 +682,15 @@ git commit -m "test(employees): e2e + progress; wire Pegawai end-to-end"
 ## Self-Review
 
 **Spec coverage:**
-- §2 backend `phone` (migration 000019 + DTO/service/query + openapi + integration test) → Task 1. ✓
-- §3.1 `Employee`/`EmployeeInput` English rewrite → Task 2. ✓
-- §3.2 `useEmployees` HTTP rewrite → Task 2. ✓
-- §3.3 page rewrite (FK UUID pickers, 3 name-resolution maps, inline `/offices`, phone, status toggle + suspended render, filters by UUID, load-error) → Task 3. ✓
-- §3.4 i18n (`status.suspended`, `loadError`, `required`) → Task 3. ✓
-- §3.5 mock kept (useGlobalSearch) → Task 5 Step 1. ✓
-- §4 tests (backend phone+scope, unit, component, e2e) → Tasks 1/2/4/5. ✓
-- §5 done (mock kept, mockup, PROGRESS, full-gate exit-0) → Task 5. ✓
-- §6 risks (Employee cross-screen → none, verified; useOffices inline; #40 consumer-stub; picker-empty) → handled in Tasks 2/3/4 + constraints.
+- bagian 2 backend `phone` (migration 000019 + DTO/service/query + openapi + integration test) → Task 1. ✓
+- bagian 3.1 `Employee`/`EmployeeInput` English rewrite → Task 2. ✓
+- bagian 3.2 `useEmployees` HTTP rewrite → Task 2. ✓
+- bagian 3.3 page rewrite (FK UUID pickers, 3 name-resolution maps, inline `/offices`, phone, status toggle + suspended render, filters by UUID, load-error) → Task 3. ✓
+- bagian 3.4 i18n (`status.suspended`, `loadError`, `required`) → Task 3. ✓
+- bagian 3.5 mock kept (useGlobalSearch) → Task 5 Step 1. ✓
+- bagian 4 tests (backend phone+scope, unit, component, e2e) → Tasks 1/2/4/5. ✓
+- bagian 5 done (mock kept, mockup, PROGRESS, full-gate exit-0) → Task 5. ✓
+- bagian 6 risks (Employee cross-screen → none, verified; useOffices inline; #40 consumer-stub; picker-empty) → handled in Tasks 2/3/4 + constraints.
 
 **Placeholder scan:** Tasks 4 & 5 give explicit assertion lists + "read X first" pointers (settings-users harness, master-reference e2e, helpers, mockup) and the e2e robustness rules verbatim. The OpenAPI step names the exact addition. No "TODO"/"add validation"/"similar to".
 

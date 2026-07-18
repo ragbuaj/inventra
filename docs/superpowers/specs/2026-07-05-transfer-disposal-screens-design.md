@@ -2,7 +2,7 @@
 
 **Tanggal:** 2026-07-05 · **Status:** Disetujui user (brainstorming session)
 **Referensi:** mockup `docs/design/Mutasi Aset.dc.html` + `docs/design/Penghapusan Aset.dc.html` ·
-DESIGN_BRIEF §6.1 & §6.3 · backend `internal/transfer` + `internal/disposal` (PR #44/#45) ·
+DESIGN_BRIEF bagian 6.1 & bagian 6.3 · backend `internal/transfer` + `internal/disposal` (PR #44/#45) ·
 pola wiring approval (PR #48)
 
 ## Tujuan
@@ -99,7 +99,7 @@ enrichment), `TransferSubmitRequest` (+2 field), path `reject-receive`, `Disposa
 - **Legend alur** (selalu tampil): Diajukan → Disetujui → Dalam Pengiriman → Diterima
   (pill + panah, persis mockup; label dilokalkan per keputusan #8).
 - **Tab 1 — Ajukan Mutasi** (kartu form max-w 640):
-  - `AssetSearchPicker` (komponen bersama, lihat §6): search `GET /assets?search=&status=available&limit=20`,
+  - `AssetSearchPicker` (komponen bersama, lihat bagian 6): search `GET /assets?search=&status=available&limit=20`,
     dropdown nama + `tag · kantor` (butuh nama kantor — resolve via lookup offices), hint mockup.
   - Kantor Asal: read-only dashed box = kantor aset terpilih (office_name dari row aset via lookup).
   - Kantor Tujuan: select semua kantor scope-visible ≠ kantor asal (`GET /offices?limit=100`).

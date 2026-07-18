@@ -573,11 +573,11 @@ git commit -m "test(audit): e2e against real backend + progress; drop orphaned m
 ## Self-Review
 
 **Spec coverage:**
-- §2 composable rewrite (`list(params)` server-side, `AuditRow` mapping, `changes`→diff) → Task 2. ✓
-- §3 entity catalog + i18n (entity labels, search reword, loadError/retry) → Task 1. ✓
-- §4 page (gate `audit.view`, server-side reactive filters+pagination, dropped actor/role/summary/office, entity i18n, diff viewer, loadError) → Task 3. ✓
-- §5 tests (unit/component/e2e) → Tasks 2, 4, 5. ✓
-- §6 done (delete mock, mockup, PROGRESS + follow-up TODO, gate) → Task 5. ✓
+- bagian 2 composable rewrite (`list(params)` server-side, `AuditRow` mapping, `changes`→diff) → Task 2. ✓
+- bagian 3 entity catalog + i18n (entity labels, search reword, loadError/retry) → Task 1. ✓
+- bagian 4 page (gate `audit.view`, server-side reactive filters+pagination, dropped actor/role/summary/office, entity i18n, diff viewer, loadError) → Task 3. ✓
+- bagian 5 tests (unit/component/e2e) → Tasks 2, 4, 5. ✓
+- bagian 6 done (delete mock, mockup, PROGRESS + follow-up TODO, gate) → Task 5. ✓
 
 **Placeholder scan:** Tasks 4 & 5 give explicit assertion lists / steps (read the existing stub pattern first; the USelect e2e interaction follows the established Data Scope fix). Concrete checklists, not "TODO"s.
 

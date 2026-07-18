@@ -1523,14 +1523,14 @@ git commit -m "docs(authz): openapi + progress for authorization admin"
 ## Self-Review
 
 **Spec coverage:**
-- §2 placement + 2 Invalidate methods → Task 1 (methods) + Tasks 2–5 (authzadmin package). ✓
-- §3 canonical catalog + `GET /authz/catalog` → Task 2 (catalog) + Task 5 (handler/route). ✓
-- §4 seed drift fix → Task 6. ✓
-- §5 endpoints (12) → Task 5 routes + handlers. ✓
-- §6 rules: replace-set tx + invalidation, is_system protection, code-unique 409, in-use 409, validation, audit (officeID nil) → Task 4 (service) + Task 5 (handler audit). ✓
-- §7 sqlc queries (11) → Task 3. ✓
-- §8 tests: unit (catalog, validators, dto) Tasks 2/4/5; integration (CRUD, protection, replace-set + immediate cache invalidation, unknown key, forbidden, audit) Task 7; invalidation methods Task 1; seed Task 6. ✓
-- §9 OpenAPI + PROGRESS + verification → Task 8. ✓
+- bagian 2 placement + 2 Invalidate methods → Task 1 (methods) + Tasks 2–5 (authzadmin package). ✓
+- bagian 3 canonical catalog + `GET /authz/catalog` → Task 2 (catalog) + Task 5 (handler/route). ✓
+- bagian 4 seed drift fix → Task 6. ✓
+- bagian 5 endpoints (12) → Task 5 routes + handlers. ✓
+- bagian 6 rules: replace-set tx + invalidation, is_system protection, code-unique 409, in-use 409, validation, audit (officeID nil) → Task 4 (service) + Task 5 (handler audit). ✓
+- bagian 7 sqlc queries (11) → Task 3. ✓
+- bagian 8 tests: unit (catalog, validators, dto) Tasks 2/4/5; integration (CRUD, protection, replace-set + immediate cache invalidation, unknown key, forbidden, audit) Task 7; invalidation methods Task 1; seed Task 6. ✓
+- bagian 9 OpenAPI + PROGRESS + verification → Task 8. ✓
 
 **Placeholder scan:** Tasks 6 & 7 use guided comment blocks but each Step explicitly requires replacing them with executable tests and names the exact assertions — flagged, not hidden. The `testsupport.NewFreshMigratedPostgres` name is called out as "verify/adapt", not assumed.
 

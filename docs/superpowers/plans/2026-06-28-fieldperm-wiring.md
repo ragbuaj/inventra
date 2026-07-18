@@ -627,12 +627,12 @@ git commit -m "test(fieldperm): e2e against real backend + progress (with enforc
 ## Self-Review
 
 **Spec coverage:**
-- §2 catalog (real entities/fields, entity-agnostic) → Task 1 + Task 2 (`getEntities`). ✓
-- §3 composable rewrite (load/getEntities/getRules/saveRules) → Task 2. ✓
-- §4 pivot + cross-entity-preserving save (only restrictions; only changed roles) → Task 2 pure helpers (`deriveEntityRules`/`buildRoleRows`/`entityRowsEqual`) + `saveRules`. ✓
-- §5 page + FieldPermToggle (unchanged) + constants/i18n (default-allow cell fix, id roles, labels) → Task 1 (i18n) + Task 3 (page). ✓
-- §6 tests (unit/component/e2e) → Tasks 2, 4, 5. ✓
-- §7 done (delete mock, mockup, PROGRESS + enforcement TODO, gate) → Task 5. ✓
+- bagian 2 catalog (real entities/fields, entity-agnostic) → Task 1 + Task 2 (`getEntities`). ✓
+- bagian 3 composable rewrite (load/getEntities/getRules/saveRules) → Task 2. ✓
+- bagian 4 pivot + cross-entity-preserving save (only restrictions; only changed roles) → Task 2 pure helpers (`deriveEntityRules`/`buildRoleRows`/`entityRowsEqual`) + `saveRules`. ✓
+- bagian 5 page + FieldPermToggle (unchanged) + constants/i18n (default-allow cell fix, id roles, labels) → Task 1 (i18n) + Task 3 (page). ✓
+- bagian 6 tests (unit/component/e2e) → Tasks 2, 4, 5. ✓
+- bagian 7 done (delete mock, mockup, PROGRESS + enforcement TODO, gate) → Task 5. ✓
 
 **Placeholder scan:** Tasks 4 & 5 give explicit assertion lists / steps (read the existing stub pattern first, since the FieldPermToggle interaction + stub helper match the Data Scope test). Concrete checklists, not "TODO"s.
 

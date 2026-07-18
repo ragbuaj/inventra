@@ -1510,14 +1510,14 @@ git commit -m "fix(masterdata): Kategori Aset visual parity with mockup (light/d
 
 ## Self-Review
 
-**Spec coverage** (spec §-by-§):
-- §3 berkas: types/mock/composable (Task 1), i18n/nav (Task 2), CategoryFormSlideover (Task 3), page (Task 4) — covered. Note: spec §3 listed a separate `CategoryTable.vue`; this plan instead reuses the shared `ResourceTable` inline (matching `employees.vue`), which satisfies the "pages tipis" intent with less duplication. **This is a deliberate refinement of the spec** — only `CategoryFormSlideover` is extracted.
-- §4 kontrak data: Task 1 types + `CategoryInput` — covered.
-- §5 tata letak: Task 4 page (header/filter/table/empty/pagination) — covered.
-- §6 form 4 section + perilaku kondisional + validasi: Task 3 — covered (intangible relabel, building lock, name/code required, snake_case payload).
-- §7 i18n: Task 2 (id+en, no hardcoded) — covered.
-- §8 nav: Task 2 — covered.
-- §9 testing: unit (Task 1), nav (Task 2), runtime form (Task 3), runtime page (Task 4), e2e (Task 5), parity (Task 6) — covered.
+**Spec coverage** (spec bagian -by-bagian ):
+- bagian 3 berkas: types/mock/composable (Task 1), i18n/nav (Task 2), CategoryFormSlideover (Task 3), page (Task 4) — covered. Note: spec bagian 3 listed a separate `CategoryTable.vue`; this plan instead reuses the shared `ResourceTable` inline (matching `employees.vue`), which satisfies the "pages tipis" intent with less duplication. **This is a deliberate refinement of the spec** — only `CategoryFormSlideover` is extracted.
+- bagian 4 kontrak data: Task 1 types + `CategoryInput` — covered.
+- bagian 5 tata letak: Task 4 page (header/filter/table/empty/pagination) — covered.
+- bagian 6 form 4 section + perilaku kondisional + validasi: Task 3 — covered (intangible relabel, building lock, name/code required, snake_case payload).
+- bagian 7 i18n: Task 2 (id+en, no hardcoded) — covered.
+- bagian 8 nav: Task 2 — covered.
+- bagian 9 testing: unit (Task 1), nav (Task 2), runtime form (Task 3), runtime page (Task 4), e2e (Task 5), parity (Task 6) — covered.
 
 **Placeholder scan:** no TBD/TODO; every code step shows full code; commands have expected output. Clean.
 

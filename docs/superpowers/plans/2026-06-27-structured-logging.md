@@ -761,7 +761,7 @@ Rewrite `backend/cmd/api/main.go` to build the logger, set it as default, replac
 ```go
 // Command api is the entry point for the Inventra backend service.
 //
-// Inventra follows a modular monolith with clean architecture (see docs/PRD.md §7).
+// Inventra follows a modular monolith with clean architecture (see docs/PRD.md bagian 7).
 // This entry point wires configuration, infrastructure (PostgreSQL, Redis), and the
 // HTTP server; feature modules are registered through the router as they are implemented.
 package main
@@ -950,8 +950,8 @@ git commit -m "feat(logging): propagate X-Request-ID from useApiClient"
 ## Self-Review
 
 **1. Spec coverage:**
-- §3 berkas — logging package (T1), config (T1), `.env.example` (T1), requestlog middleware (T2), recovery (T3), main/router wiring (T4), useApiClient (T5). All covered.
-- §4 logging package (New/format/level/redaction/context) — T1. §5 middleware (RequestID/RequestLogger/Recovery, skip health, level-by-status, user/role attrs) — T2 + T3. §6 wiring (SetDefault, stdlib→slog) — T4. §7 config knobs — T1. §8 frontend X-Request-ID (+ preserve caller id) — T5. §9 testing — each task's tests + gates. §10 risks acknowledged (redaction safety net; no request fail; audit follow-up deferred; uuid via existing dep). Covered.
+- bagian 3 berkas — logging package (T1), config (T1), `.env.example` (T1), requestlog middleware (T2), recovery (T3), main/router wiring (T4), useApiClient (T5). All covered.
+- bagian 4 logging package (New/format/level/redaction/context) — T1. bagian 5 middleware (RequestID/RequestLogger/Recovery, skip health, level-by-status, user/role attrs) — T2 + T3. bagian 6 wiring (SetDefault, stdlib→slog) — T4. bagian 7 config knobs — T1. bagian 8 frontend X-Request-ID (+ preserve caller id) — T5. bagian 9 testing — each task's tests + gates. bagian 10 risks acknowledged (redaction safety net; no request fail; audit follow-up deferred; uuid via existing dep). Covered.
 
 **2. Placeholder scan:** No TBD/TODO; every code step has full code; commands have expected output. The two "if X doesn't work, switch to Y" notes (nil-deps panic in T4 Step 2; `$fetch` stub in T5 Step 2) are explicit fallbacks with concrete alternatives, not vague placeholders.
 

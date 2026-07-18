@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tanggal** | 2026-06-27 |
-| **ADR** | [0009](../../adr/0009-third-party-signin.md) (Accepted) — **link-only men-supersede** auto-create FR-1.4 (lihat §2) |
+| **ADR** | [0009](../../adr/0009-third-party-signin.md) (Accepted) — **link-only men-supersede** auto-create FR-1.4 (lihat bagian 2) |
 | **Konteks** | Subsistem C terakhir: C1 (httpOnly refresh, **merged**) → **C2 = Google OAuth (ini)**. Handoff token memakai cookie httpOnly C1. |
 | **Terkait** | auth JWT/Redis, rate limiting (ADR-0004), logging (ADR-0002), CORS |
 | **Status** | Disetujui — siap menulis implementation plan |
@@ -18,7 +18,7 @@ sesi kedua; refresh token diserahkan lewat **cookie httpOnly C1**.
 (link-only) + query `LinkGoogleID`, endpoint `GET /auth/google` + `GET /auth/google/callback`, wiring + rate-limit,
 OpenAPI, tombol Google + penanganan landing di frontend, env + deps, test.
 
-**Di luar ruang lingkup:** auto-provisioning user baru (ditolak — lihat §2); provider non-Google (disiapkan
+**Di luar ruang lingkup:** auto-provisioning user baru (ditolak — lihat bagian 2); provider non-Google (disiapkan
 secara config, tidak diimplementasikan); UI manajemen "unlink Google"; SAML.
 
 ## 2. Keputusan desain (disepakati)
