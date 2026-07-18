@@ -249,7 +249,7 @@ defineExpose({ form, isIntangible, isBuilding, onSubmit })
               </span>
             </template>
           </UFormField>
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <UFormField :label="t('masterdata.categories.fields.life')">
               <NumberInput
                 v-model="form.default_useful_life_months"
@@ -314,7 +314,7 @@ defineExpose({ form, isIntangible, isBuilding, onSubmit })
           <span class="w-6 h-6 rounded-md bg-primary/10 text-primary flex items-center justify-center font-bold text-[11px]">4</span>
           <span class="font-semibold text-sm">{{ t('masterdata.categories.section.accounting') }}</span>
         </div>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <UFormField
             :label="t('masterdata.categories.fields.gl')"
             :hint="t('masterdata.categories.hint.gl')"

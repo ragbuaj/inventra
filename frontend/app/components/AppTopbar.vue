@@ -34,11 +34,24 @@ const breadcrumbParent = computed(() => routeLabel.value.parent)
 
 <template>
   <header
-    class="relative z-30 flex items-center gap-[14px] h-[61px] flex-none px-5 bg-default border-b border-default"
+    class="relative z-30 flex items-center gap-[14px] h-[61px] flex-none px-3 sm:px-5 bg-default border-b border-default"
   >
-    <!-- Sidebar toggle -->
+    <!-- Mobile: hamburger opens the off-canvas drawer -->
     <button
-      class="flex items-center justify-center w-9 h-9 flex-none rounded-[9px] border border-default bg-transparent text-muted cursor-pointer hover:bg-muted hover:text-default transition-colors"
+      class="flex lg:hidden items-center justify-center w-9 h-9 flex-none rounded-[9px] border border-default bg-transparent text-muted cursor-pointer hover:bg-muted hover:text-default transition-colors"
+      :aria-label="$t('nav.openMenu')"
+      :title="$t('nav.openMenu')"
+      @click="ui.toggleMobileNav()"
+    >
+      <UIcon
+        name="i-lucide-menu"
+        class="size-[18px]"
+      />
+    </button>
+    <!-- Desktop: collapse/expand the in-flow rail -->
+    <button
+      class="hidden lg:flex items-center justify-center w-9 h-9 flex-none rounded-[9px] border border-default bg-transparent text-muted cursor-pointer hover:bg-muted hover:text-default transition-colors"
+      :aria-label="$t('nav.toggleSidebar')"
       :title="$t('nav.toggleSidebar')"
       @click="ui.toggleSidebar()"
     >
@@ -65,7 +78,7 @@ const breadcrumbParent = computed(() => routeLabel.value.parent)
       </span>
     </div>
 
-    <!-- Centered search -->
+    <!-- Centered search (component hides itself below md; reachable via Ctrl+K) -->
     <GlobalSearch />
 
     <!-- Right cluster -->

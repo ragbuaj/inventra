@@ -381,7 +381,7 @@ const joinDateLabel = computed(() => {
             <div class="text-[13px] font-semibold mb-4">
               {{ t('account.secPersonal') }}
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Full Name -->
               <div>
                 <label class="block text-[13px] font-medium mb-[6px]">
@@ -467,7 +467,7 @@ const joinDateLabel = computed(() => {
             <div class="text-[12px] text-dimmed mb-[14px]">
               {{ t('account.secAccountHint') }}
             </div>
-            <div class="grid grid-cols-2 gap-x-7 gap-y-[14px]">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-7 gap-y-[14px]">
               <div>
                 <div class="text-[12px] text-muted mb-[3px]">
                   {{ t('account.iRole') }}

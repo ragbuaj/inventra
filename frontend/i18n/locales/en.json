@@ -1572,6 +1572,8 @@
     "auditTrail": "Audit Trail",
     "comingSoon": "Coming soon",
     "toggleSidebar": "Toggle sidebar",
+    "openMenu": "Open navigation menu",
+    "primary": "Primary navigation",
     "group": {
       "operasional": "Operational",
       "administrasi": "Administration",

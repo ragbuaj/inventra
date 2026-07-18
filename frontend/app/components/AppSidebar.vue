@@ -8,6 +8,15 @@ const auth = useAuthStore()
 const inboxStore = useInboxStore()
 const { t } = useI18n()
 const localePath = useLocalePath()
+const route = useRoute()
+
+// The rail-collapse flag only applies from lg upward; on mobile the drawer is
+// always fully expanded so its labels stay readable.
+const isDesktop = useIsDesktop()
+const collapsed = computed(() => isDesktop.value && ui.sidebarCollapsed)
+
+// Close the mobile drawer once navigation settles on a new route.
+watch(() => route.fullPath, () => ui.closeMobileNav())
 
 // Single per-permission nav model: every role sees exactly the items its
 // permissions unlock (see isVisible). No more binary superadmin/staff split.
@@ -35,8 +44,8 @@ function toggleGroup(labelKey: string) {
 // children (they only render when expanded), so open the sidebar first and
 // force this group open instead of silently toggling nothing.
 function onParentClick(labelKey: string) {
-  if (ui.sidebarCollapsed) {
-    ui.sidebarCollapsed = false
+  if (collapsed.value) {
+    ui.$patch({ sidebarCollapsed: false })
     expandedGroups.value[labelKey] = true
     return
   }
@@ -84,16 +93,34 @@ const userInitials = computed(() => {
 const userName = computed(() => auth.user?.name ?? '')
 const userScope = computed(() => auth.user?.role_name ?? '')
 
-// Lock the rail to an exact px width. A bare `width` is treated as a flex-basis
-// the flex row can override (leaving the rail content-wide); pinning min/max as
-// well makes the collapse deterministic. Transitions smoothly via `transition-all`.
-const sidebarWidth = computed(() => ui.sidebarCollapsed ? '76px' : '264px')
+// Escape closes the mobile drawer (matches the scrim/click-away affordance).
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && ui.mobileNavOpen) ui.closeMobileNav()
+}
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
+  <!-- Mobile drawer scrim; click-away closes. Desktop never renders it. -->
+  <div
+    v-if="ui.mobileNavOpen"
+    class="fixed inset-0 z-40 bg-black/40 lg:hidden"
+    aria-hidden="true"
+    @click="ui.closeMobileNav()"
+  />
   <aside
-    class="flex flex-col border-e border-default bg-default transition-colors duration-200 overflow-hidden shrink-0"
-    :style="{ width: sidebarWidth, minWidth: sidebarWidth, maxWidth: sidebarWidth }"
+    :aria-label="t('nav.primary')"
+    :inert="!isDesktop && !ui.mobileNavOpen"
+    :class="[
+      'flex flex-col border-e border-default bg-default overflow-hidden',
+      // Mobile (<lg): off-canvas fixed drawer, always full width, slides in/out.
+      'fixed inset-y-0 start-0 z-50 w-[264px] max-w-[85vw] shadow-xl transition-transform duration-200',
+      ui.mobileNavOpen ? 'translate-x-0' : '-translate-x-full',
+      // Desktop (lg+): in-flow collapsible rail, no slide/shadow.
+      'lg:static lg:z-auto lg:translate-x-0 lg:shadow-none lg:shrink-0 lg:transition-[width,background-color,border-color] lg:duration-200',
+      collapsed ? 'lg:w-[76px]' : 'lg:w-[264px]'
+    ]"
   >
     <!-- Logo row -->
     <div class="flex items-center gap-[11px] h-[61px] px-[18px] border-b border-default flex-none">
@@ -116,7 +143,7 @@ const sidebarWidth = computed(() => ui.sidebarCollapsed ? '76px' : '264px')
         </svg>
       </div>
       <span
-        v-if="!ui.sidebarCollapsed"
+        v-if="!collapsed"
         data-wordmark
         class="font-bold text-[18px] tracking-tight whitespace-nowrap"
       >{{ $t('app.name') }}</span>
@@ -131,7 +158,7 @@ const sidebarWidth = computed(() => ui.sidebarCollapsed ? '76px' : '264px')
       >
         <!-- Section label (expanded) or divider (collapsed) -->
         <div
-          v-if="!ui.sidebarCollapsed"
+          v-if="!collapsed"
           class="px-3 pt-[14px] pb-[6px] text-[10px] font-semibold uppercase tracking-[.14em] text-dimmed font-mono whitespace-nowrap"
         >
           {{ $t(group.labelKey) }}
@@ -150,9 +177,9 @@ const sidebarWidth = computed(() => ui.sidebarCollapsed ? '76px' : '264px')
             <template v-if="item.children">
               <button
                 type="button"
-                :title="ui.sidebarCollapsed ? t(item.labelKey) : undefined"
+                :title="collapsed ? t(item.labelKey) : undefined"
                 class="relative flex w-full mb-[2px] rounded-[9px] text-sm font-normal text-default hover:bg-muted transition-colors cursor-pointer border-0"
-                :class="ui.sidebarCollapsed ? 'flex-col items-center justify-center gap-[3px] px-1 py-[8px]' : 'items-center gap-[11px] px-3 py-[9px]'"
+                :class="collapsed ? 'flex-col items-center justify-center gap-[3px] px-1 py-[8px]' : 'items-center gap-[11px] px-3 py-[9px]'"
                 :style="{ boxShadow: 'inset 3px 0 0 transparent' }"
                 @click="onParentClick(item.labelKey)"
               >
@@ -162,10 +189,10 @@ const sidebarWidth = computed(() => ui.sidebarCollapsed ? '76px' : '264px')
                   class="size-[19px] shrink-0"
                 />
                 <span
-                  v-if="ui.sidebarCollapsed"
+                  v-if="collapsed"
                   class="w-full text-[10px] leading-tight text-center truncate"
                 >{{ $t(item.labelKey) }}</span>
-                <template v-if="!ui.sidebarCollapsed">
+                <template v-if="!collapsed">
                   <span class="flex-1 overflow-hidden text-ellipsis text-left">{{ $t(item.labelKey) }}</span>
                   <!-- Chevron -->
                   <span
@@ -191,7 +218,7 @@ const sidebarWidth = computed(() => ui.sidebarCollapsed ? '76px' : '264px')
 
               <!-- Children (expanded only) -->
               <div
-                v-if="!ui.sidebarCollapsed && isGroupExpanded(item.labelKey)"
+                v-if="!collapsed && isGroupExpanded(item.labelKey)"
                 class="ms-[23px] ps-[24px] border-s border-default flex flex-col gap-[1px] mb-[4px] mt-[2px]"
               >
                 <template
@@ -229,9 +256,9 @@ const sidebarWidth = computed(() => ui.sidebarCollapsed ? '76px' : '264px')
                 v-if="!item.disabled && item.to"
                 :to="localePath(item.to)"
                 :aria-label="t(item.labelKey)"
-                :title="ui.sidebarCollapsed ? t(item.labelKey) : undefined"
+                :title="collapsed ? t(item.labelKey) : undefined"
                 class="relative flex w-full mb-[2px] rounded-[9px] text-sm text-default hover:bg-muted transition-colors"
-                :class="ui.sidebarCollapsed ? 'flex-col items-center justify-center gap-[3px] px-1 py-[8px]' : 'items-center gap-[11px] px-3 py-[9px]'"
+                :class="collapsed ? 'flex-col items-center justify-center gap-[3px] px-1 py-[8px]' : 'items-center gap-[11px] px-3 py-[9px]'"
                 active-class="text-primary font-medium bg-primary/10 shadow-[inset_3px_0_0_var(--ui-primary)]"
                 :style="{ boxShadow: 'inset 3px 0 0 transparent' }"
               >
@@ -241,7 +268,7 @@ const sidebarWidth = computed(() => ui.sidebarCollapsed ? '76px' : '264px')
                   class="size-[19px] shrink-0"
                 />
                 <span
-                  v-if="!ui.sidebarCollapsed"
+                  v-if="!collapsed"
                   class="flex-1 overflow-hidden text-ellipsis"
                 >{{ $t(item.labelKey) }}</span>
                 <span
@@ -250,12 +277,12 @@ const sidebarWidth = computed(() => ui.sidebarCollapsed ? '76px' : '264px')
                 >{{ $t(item.labelKey) }}</span>
                 <!-- Badge expanded -->
                 <span
-                  v-if="!ui.sidebarCollapsed && badgeFor(item)"
+                  v-if="!collapsed && badgeFor(item)"
                   class="flex-none min-w-[20px] h-[20px] px-[6px] inline-flex items-center justify-center text-[11px] font-bold text-inverted bg-error rounded-full"
                 >{{ badgeFor(item) }}</span>
                 <!-- Badge collapsed -->
                 <span
-                  v-if="ui.sidebarCollapsed && badgeFor(item)"
+                  v-if="collapsed && badgeFor(item)"
                   class="absolute top-[6px] right-[10px] min-w-[16px] h-[16px] px-[4px] inline-flex items-center justify-center text-[9px] font-bold text-inverted bg-error rounded-full"
                 >{{ badgeFor(item) }}</span>
               </NuxtLink>
@@ -264,11 +291,11 @@ const sidebarWidth = computed(() => ui.sidebarCollapsed ? '76px' : '264px')
               <span
                 v-else
                 :aria-label="t(item.labelKey)"
-                :title="ui.sidebarCollapsed ? t(item.labelKey) : t('nav.comingSoon')"
+                :title="collapsed ? t(item.labelKey) : t('nav.comingSoon')"
                 tabindex="-1"
                 aria-disabled="true"
                 class="relative flex w-full mb-[2px] rounded-[9px] text-sm text-dimmed cursor-not-allowed select-none"
-                :class="ui.sidebarCollapsed ? 'flex-col items-center justify-center gap-[3px] px-1 py-[8px]' : 'items-center gap-[11px] px-3 py-[9px]'"
+                :class="collapsed ? 'flex-col items-center justify-center gap-[3px] px-1 py-[8px]' : 'items-center gap-[11px] px-3 py-[9px]'"
               >
                 <UIcon
                   v-if="item.icon"
@@ -276,7 +303,7 @@ const sidebarWidth = computed(() => ui.sidebarCollapsed ? '76px' : '264px')
                   class="size-[19px] shrink-0"
                 />
                 <span
-                  v-if="!ui.sidebarCollapsed"
+                  v-if="!collapsed"
                   class="flex-1 overflow-hidden text-ellipsis"
                 >{{ $t(item.labelKey) }}</span>
                 <span
@@ -285,12 +312,12 @@ const sidebarWidth = computed(() => ui.sidebarCollapsed ? '76px' : '264px')
                 >{{ $t(item.labelKey) }}</span>
                 <!-- Badge expanded -->
                 <span
-                  v-if="!ui.sidebarCollapsed && badgeFor(item)"
+                  v-if="!collapsed && badgeFor(item)"
                   class="flex-none min-w-[20px] h-[20px] px-[6px] inline-flex items-center justify-center text-[11px] font-bold text-inverted bg-error rounded-full"
                 >{{ badgeFor(item) }}</span>
                 <!-- Badge collapsed -->
                 <span
-                  v-if="ui.sidebarCollapsed && badgeFor(item)"
+                  v-if="collapsed && badgeFor(item)"
                   class="absolute top-[6px] right-[10px] min-w-[16px] h-[16px] px-[4px] inline-flex items-center justify-center text-[9px] font-bold text-inverted bg-error rounded-full"
                 >{{ badgeFor(item) }}</span>
               </span>
@@ -304,14 +331,14 @@ const sidebarWidth = computed(() => ui.sidebarCollapsed ? '76px' : '264px')
     <div class="flex-none px-3 py-3 border-t border-default">
       <div
         class="flex items-center gap-[10px] px-2 py-[7px] rounded-[10px]"
-        :class="{ 'justify-center': ui.sidebarCollapsed }"
+        :class="{ 'justify-center': collapsed }"
       >
         <!-- Avatar with initials -->
         <div class="w-[34px] h-[34px] rounded-full bg-primary/10 text-primary flex items-center justify-center text-[13px] font-bold flex-none shrink-0">
           {{ userInitials }}
         </div>
         <div
-          v-if="!ui.sidebarCollapsed"
+          v-if="!collapsed"
           class="flex-1 min-w-0"
         >
           <div class="text-[13px] font-semibold whitespace-nowrap overflow-hidden text-ellipsis">

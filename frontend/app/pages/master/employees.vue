@@ -427,7 +427,7 @@ onUnmounted(() => {
     >
       <div class="space-y-4">
         <!-- Row 1: NIP + Status toggle -->
-        <div class="grid grid-cols-2 gap-[14px]">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">
           <UFormField :label="t('masterdata.employees.fields.nip')">
             <UInput
               v-model="form.code"
@@ -458,7 +458,7 @@ onUnmounted(() => {
         </UFormField>
 
         <!-- Row 3: Departemen + Jabatan -->
-        <div class="grid grid-cols-2 gap-[14px]">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">
           <UFormField :label="t('masterdata.employees.fields.departemen')">
             <AsyncSearchPicker
               :model-value="form.department_id || null"
@@ -505,7 +505,7 @@ onUnmounted(() => {
         </UFormField>
 
         <!-- Row 5: Email + Telepon -->
-        <div class="grid grid-cols-2 gap-[14px]">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">
           <UFormField :label="t('masterdata.employees.fields.email')">
             <UInput
               v-model="form.email"

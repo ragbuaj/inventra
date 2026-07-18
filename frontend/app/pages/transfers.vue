@@ -620,7 +620,7 @@ onBeforeUnmount(() => {
           />
         </UFormField>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <UFormField :label="t('transfer.form.fromOffice')">
             <div class="flex items-center gap-2 px-3 py-2.5 text-[13.5px] font-medium text-muted bg-muted border border-dashed border-strong rounded-[10px]">
               <UIcon
@@ -675,7 +675,7 @@ onBeforeUnmount(() => {
           <span class="text-[12.5px] font-medium text-success">{{ t('transfer.inSubtreeNote') }}</span>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <UFormField :label="t('transfer.form.toRoom')">
             <USelect
               v-model="toRoomId"

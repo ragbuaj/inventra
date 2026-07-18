@@ -27,6 +27,7 @@ describe('AppSidebar', () => {
   beforeEach(() => {
     useAuthStore().clear()
     useUiStore().sidebarCollapsed = false
+    useUiStore().mobileNavOpen = false
   })
 
   it('renders the Operasional section label', async () => {
@@ -132,26 +133,47 @@ describe('AppSidebar', () => {
     expect(wrapper.html()).toContain('AI')
   })
 
-  it('pins the rail to 264px when expanded', async () => {
+  it('sizes the desktop rail to 264px when expanded', async () => {
     setupSuperadmin()
     useUiStore().sidebarCollapsed = false
     const wrapper = await mountSuspended(AppSidebar)
     const aside = wrapper.find('aside')
-    // Width is locked via inline min/max/width (a bare width is treated as a
-    // flex-basis the flex row can override) — see AppSidebar's sidebarWidth.
-    const style = aside.attributes('style') ?? ''
-    expect(style).toContain('width: 264px')
-    expect(style).toContain('max-width: 264px')
+    // The rail width is now driven by responsive classes (the mobile drawer is a
+    // fixed off-canvas panel); at lg the expanded rail is 264px wide.
+    expect(aside.classes()).toContain('lg:w-[264px]')
+    expect(aside.classes()).not.toContain('lg:w-[76px]')
   })
 
-  it('pins the rail to 76px when collapsed', async () => {
+  it('sizes the desktop rail to 76px when collapsed', async () => {
     setupSuperadmin()
     useUiStore().sidebarCollapsed = true
     const wrapper = await mountSuspended(AppSidebar)
     const aside = wrapper.find('aside')
-    const style = aside.attributes('style') ?? ''
-    expect(style).toContain('width: 76px')
-    expect(style).toContain('max-width: 76px')
+    expect(aside.classes()).toContain('lg:w-[76px]')
+    expect(aside.classes()).not.toContain('lg:w-[264px]')
+  })
+
+  it('renders as an off-canvas drawer: hidden by default, slid in when mobileNavOpen', async () => {
+    setupSuperadmin()
+    const ui = useUiStore()
+    ui.mobileNavOpen = false
+    const wrapper = await mountSuspended(AppSidebar)
+    const aside = wrapper.find('aside')
+    // Base (mobile) layout: fixed panel translated off-screen while closed.
+    expect(aside.classes()).toContain('fixed')
+    expect(aside.classes()).toContain('-translate-x-full')
+    // No scrim while closed.
+    expect(wrapper.find('.bg-black\\/40').exists()).toBe(false)
+
+    ui.mobileNavOpen = true
+    await wrapper.vm.$nextTick()
+    expect(aside.classes()).toContain('translate-x-0')
+    expect(aside.classes()).not.toContain('-translate-x-full')
+    // Scrim appears and closes the drawer on click.
+    const scrim = wrapper.find('.bg-black\\/40')
+    expect(scrim.exists()).toBe(true)
+    await scrim.trigger('click')
+    expect(ui.mobileNavOpen).toBe(false)
   })
 
   it('shows a label under the icon for a leaf item when collapsed', async () => {

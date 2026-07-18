@@ -1572,6 +1572,8 @@
     "auditTrail": "Audit Trail",
     "comingSoon": "Segera hadir",
     "toggleSidebar": "Tampilkan/sembunyikan menu",
+    "openMenu": "Buka menu navigasi",
+    "primary": "Navigasi utama",
     "group": {
       "operasional": "Operasional",
       "administrasi": "Administrasi",
