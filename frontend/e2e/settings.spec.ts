@@ -582,7 +582,9 @@ test.describe('Field Permission screen — real backend', () => {
     await page.getByTestId('fieldperm-entity-select').click()
     await page.getByRole('option', { name: 'User', exact: true }).click()
     // The "users" entity has field "email" in FIELD_CATALOG; its i18n label is "Email".
+    // exact:true keeps this off the mono field-key div ("email") in the same row —
+    // a bare getByText('Email') matches both case-insensitively (strict-mode violation).
     await expect(page.getByTestId('fieldperm-row-email')).toBeVisible({ timeout: 8_000 })
-    await expect(page.getByTestId('fieldperm-row-email').getByText('Email')).toBeVisible()
+    await expect(page.getByTestId('fieldperm-row-email').getByText('Email', { exact: true })).toBeVisible()
   })
 })
