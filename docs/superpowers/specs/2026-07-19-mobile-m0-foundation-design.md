@@ -1,6 +1,13 @@
-# Spec — Mobile M0: fondasi Flutter + auth per-klien (ADR-0017)
+# Spec — Mobile v1: fondasi Flutter + auth per-klien (ADR-0017) + 12 layar 1:1
 
 Tanggal: 2026-07-19. Status: disetujui, siap implementasi. Branch `feat/mobile-m0`.
+
+Revisi 2026-07-19 (keputusan pemilik produk): scope diperluas dari M0 menjadi **seluruh 12
+layar mockup dibangun 1:1 dan fungsional dengan API nyata** dalam satu PR (setara
+M0+M1+M2+M4). Batasnya: hanya endpoint yang sudah ada — push FCM (M3) dan offline sync opname
+(M5) tetap fase backend tersendiri. Konsekuensi yang disetujui: layar Opname Counting
+menampilkan elemen offline/sync sesuai mockup namun berperilaku **online-only** (saat offline,
+scan dinonaktifkan dengan pesan jelas); deviasi perilaku ini dicatat di PROGRESS.md.
 
 ## Konteks & masalah
 
@@ -80,13 +87,27 @@ feature-first persis `ARCHITECTURE.md` bagian 1. Dependensi M0 saja: `flutter_ri
   `/login`; shell bottom-nav 5 slot sesuai mockup Beranda/Component Library: Beranda (`home`),
   Opname (`fact_check`), tombol Pindai tengah menonjol (FAB kotak primary, menjorok atas,
   border surface), Approval (`approval`), Notif (`notifications`).
-- **Layar M0**: **Login dibangun 1:1 dengan mockup** (`Inventra Mobile - Login.dc.html`) —
-  logo + wordmark + badge MOBILE, card form (email + kata sandi + toggle visibility), tiga
-  state (normal/error banner inline/loading spinner di tombol), switch bahasa ID/EN, teks
-  versi. Empat tab lain berisi placeholder `EmptyState` ("segera hadir") — **bukan**
-  implementasi mockup layarnya; fidelity 1:1 ditagih saat fase layar itu dibangun. Logout
-  sementara lewat aksi di app bar Beranda placeholder (dipindah ke layar Profil pada fasenya) —
-  dicatat sebagai penanda sementara, bukan deviasi mockup.
+- **Layar v1 — seluruh 12 mockup dibangun 1:1 dan fungsional** (revisi scope). Per layar:
+  - **Login** (`/auth/login` per-klien): logo + wordmark + badge MOBILE, card form, tiga state
+    (normal/error banner inline/loading), switch bahasa ID/EN, teks versi.
+  - **Beranda**: ringkasan tugas (sesi opname aktif, approval menunggu, notifikasi terbaru)
+    dari endpoint list yang ada; quick actions; header profil.
+  - **Scan** (`mobile_scanner`): kamera full screen + input tag manual (fallback wajib —
+    paritas web), hasil mengarah ke Detail Aset.
+  - **Detail Aset** (`GET /assets/by-tag/:tag`): read-only; field yang tidak dikirim backend
+    (field permission) dirender "—" dengan penanda dibatasi — klien tidak menebak.
+  - **Inbox Approval** + **Detail Approval** (`/requests`): daftar + filter status, detail,
+    approve/reject dengan catatan; guard SoD/permission sepenuhnya dari respons API.
+  - **Daftar Sesi Opname**, **Opname Counting**, **Variance Opname** (endpoint stock opname
+    online yang ada): scan bar + progress + daftar item; elemen offline/sync dirender sesuai
+    mockup dengan perilaku online-only (deviasi M5 tercatat).
+  - **Notifikasi**: feed + unread count (endpoint in-app yang ada); tanpa push (M3).
+  - **Profil & Sesi Device**: data diri, daftar sesi login per device + revoke, logout.
+  - **Pengaturan**: bahasa (id/en) + tema (light/dark/system), persist lokal.
+  - Komponen bersama dari Component Library (StatusChip, EmptyState, SyncPill, OfflineBanner,
+    AppSkeleton, ConfirmDialog, dsb.) dibangun sekali di `core/widgets/`.
+  - Tiap layar ditutup **perbandingan 1:1 light + dark terhadap mockup-nya** (konvensi
+    design-fidelity), dilaporkan di PR.
 
 ## Pengujian
 
