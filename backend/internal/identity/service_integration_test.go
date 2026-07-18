@@ -13,6 +13,7 @@ import (
 	"github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/auth"
 	"github.com/ragbuaj/inventra/internal/config"
+	"github.com/ragbuaj/inventra/internal/storage"
 	"github.com/ragbuaj/inventra/internal/testsupport"
 )
 
@@ -26,7 +27,7 @@ func newIntegrationService(t *testing.T, fs *fakeStore, fm *fakeMailer) (*Servic
 	cfg := &config.Config{JWTSecret: "test-secret", JWTAccessTTL: 15 * time.Minute, JWTRefreshTTL: time.Hour}
 	tm := auth.NewTokenManager(cfg)
 	store := auth.NewTokenStore(testsupport.NewRedis(t))
-	return NewService(fs, tm, store, fm, nil, 30*time.Minute, "https://app"), store
+	return NewService(fs, tm, store, fm, nil, 30*time.Minute, "https://app", storage.NewFake(), 2*1024*1024), store
 }
 
 // --- Device sessions (Spec B) ---
