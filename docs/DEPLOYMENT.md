@@ -140,8 +140,10 @@ Isi minimal:
 | `MINIO_ROOT_USER`     | mis. `inventra-minio`                                      |
 | `MINIO_ROOT_PASSWORD` | `openssl rand -hex 24`                                     |
 | `GOOGLE_CLIENT_*`     | isi hanya jika memakai login Google; kosongkan bila tidak  |
+| `MAIL_ENABLED`        | `true` agar email benar-benar dikirim; `false` = log-only  |
 | `EMAIL_PROVIDER`      | `resend` (disarankan produksi) atau `smtp`; kosong = `smtp`|
 | `RESEND_API_KEY`      | API key Resend (bila `EMAIL_PROVIDER=resend`) — rahasia    |
+| `SMTP_FROM`           | alamat pengirim pada domain yang sudah diverifikasi Resend |
 
 Bangkitkan rahasia cepat:
 
