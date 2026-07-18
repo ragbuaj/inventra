@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { passwordStrength } from '~/utils/passwordStrength'
-
 definePageMeta({ layout: 'auth' })
 const { t } = useI18n()
 const localePath = useLocalePath()
@@ -10,9 +8,9 @@ const auth = useAuthStore()
 const token = computed(() => (route.query.token as string) || '')
 const newPass = ref('')
 const confirmPass = ref('')
+const showPassword = ref(false)
 const loading = ref(false)
 const errorKey = ref('')
-const strength = computed(() => passwordStrength(newPass.value))
 
 async function submit() {
   errorKey.value = ''
@@ -42,63 +40,94 @@ async function submit() {
 </script>
 
 <template>
-  <div class="w-full max-w-sm mx-auto">
-    <h1 class="text-xl font-semibold mb-6">
+  <div class="w-full max-w-[392px]">
+    <h1 class="text-2xl font-bold tracking-tight">
       {{ t('auth.resetTitle') }}
     </h1>
+    <p class="mt-1 mb-6 text-muted">
+      {{ t('auth.resetSubtitle') }}
+    </p>
 
     <UAlert
       v-if="!token"
+      icon="i-lucide-circle-x"
       color="error"
-      variant="soft"
-      :title="t('auth.resetInvalid')"
+      variant="subtle"
+      :description="t('auth.resetInvalid')"
       data-testid="reset-notoken"
     />
 
     <UForm
       v-else
       :state="{ newPass, confirmPass }"
+      class="space-y-4"
       @submit="submit"
     >
+      <UAlert
+        v-if="errorKey"
+        icon="i-lucide-circle-x"
+        color="error"
+        variant="subtle"
+        :description="t(errorKey)"
+        data-testid="reset-error"
+      />
+
       <UFormField
         :label="t('auth.newPassword')"
         name="newPass"
+        required
       >
         <UInput
           v-model="newPass"
-          type="password"
+          :type="showPassword ? 'text' : 'password'"
+          icon="i-lucide-lock"
+          size="lg"
+          class="w-full"
+          :placeholder="t('auth.newPasswordPlaceholder')"
           required
           autocomplete="new-password"
           data-testid="reset-new"
+        >
+          <template #trailing>
+            <UButton
+              type="button"
+              color="neutral"
+              variant="link"
+              size="sm"
+              :icon="showPassword ? 'i-lucide-eye-off' : 'i-lucide-eye'"
+              :aria-label="t('auth.togglePassword')"
+              @click="() => { showPassword = !showPassword }"
+            />
+          </template>
+        </UInput>
+        <PasswordStrengthMeter
+          :password="newPass"
+          class="mt-2"
         />
       </UFormField>
+
       <UFormField
         :label="t('auth.confirmPassword')"
         name="confirmPass"
-        class="mt-3"
+        required
       >
         <UInput
           v-model="confirmPass"
-          type="password"
+          :type="showPassword ? 'text' : 'password'"
+          icon="i-lucide-lock"
+          size="lg"
+          class="w-full"
+          :placeholder="t('auth.confirmPasswordPlaceholder')"
           required
           autocomplete="new-password"
           data-testid="reset-confirm"
         />
       </UFormField>
-      <p class="text-muted text-xs mt-2">
-        {{ strength.labelKey ? t(strength.labelKey) : '' }}
-      </p>
-      <p
-        v-if="errorKey"
-        class="text-error text-sm mt-2"
-        data-testid="reset-error"
-      >
-        {{ t(errorKey) }}
-      </p>
+
       <UButton
         type="submit"
         block
-        class="mt-4"
+        size="lg"
         :loading="loading"
         data-testid="reset-submit"
       >
@@ -109,7 +138,7 @@ async function submit() {
     <div class="mt-6 text-center">
       <NuxtLink
         :to="localePath('/login')"
-        class="text-primary text-sm"
+        class="text-primary text-sm hover:underline"
       >
         {{ t('auth.backToLogin') }}
       </NuxtLink>

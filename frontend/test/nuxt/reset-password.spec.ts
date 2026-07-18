@@ -94,6 +94,40 @@ describe('reset-password page', () => {
     expect(wrapper.find('[data-testid="reset-error"]').exists()).toBe(true)
   })
 
+  it('shows the strength meter only once a new password is typed', async () => {
+    const wrapper = await mountSuspended(ResetPassword)
+    expect(wrapper.find('[data-testid="password-strength"]').exists()).toBe(false)
+    await wrapper.find('[data-testid="reset-new"]').setValue('abcdefG1!')
+    expect(wrapper.find('[data-testid="password-strength"]').exists()).toBe(true)
+    // This spec stubs useRoute, so i18n resolves to 'en' here (same reason the
+    // localePath assertion below is locale-prefixed).
+    expect(wrapper.find('[data-testid="password-strength-label"]').text()).toBe('Very Strong')
+  })
+
+  it('toggles both password fields between hidden and visible', async () => {
+    const wrapper = await mountSuspended(ResetPassword)
+    const newInput = wrapper.find('[data-testid="reset-new"]')
+    const confirmInput = wrapper.find('[data-testid="reset-confirm"]')
+    expect(newInput.attributes('type')).toBe('password')
+    expect(confirmInput.attributes('type')).toBe('password')
+
+    await wrapper.find('button[aria-label]').trigger('click')
+    expect(wrapper.find('[data-testid="reset-new"]').attributes('type')).toBe('text')
+    expect(wrapper.find('[data-testid="reset-confirm"]').attributes('type')).toBe('text')
+
+    await wrapper.find('button[aria-label]').trigger('click')
+    expect(wrapper.find('[data-testid="reset-new"]').attributes('type')).toBe('password')
+  })
+
+  it('does not submit the form when the visibility toggle is clicked', async () => {
+    const wrapper = await mountSuspended(ResetPassword)
+    await wrapper.find('[data-testid="reset-new"]').setValue('brandnewpass')
+    await wrapper.find('[data-testid="reset-confirm"]').setValue('brandnewpass')
+    await wrapper.find('button[aria-label]').trigger('click')
+    await new Promise(r => setTimeout(r, 0))
+    expect(resetPassword).not.toHaveBeenCalled()
+  })
+
   it('renders the no-token error panel and no form when ?token is absent', async () => {
     routeQuery.token = undefined
     const wrapper = await mountSuspended(ResetPassword)
