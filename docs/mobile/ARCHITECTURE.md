@@ -50,7 +50,8 @@ mobile/
       account/                # profil, sesi device, pengaturan
   test/                       # unit + widget test (struktur mencerminkan lib/)
   integration_test/           # alur end-to-end melawan backend compose
-  android/                    # proyek platform (iOS menyusul)
+  android/                    # proyek platform Android (target rilis saat ini)
+  ios/                        # dibuat & di-commit sejak scaffold; rilis menyusul — lihat IOS.md
 ```
 
 Aturan ketergantungan: `features/*` boleh memakai `core/*` dan `app/*`; **antar-fitur tidak saling

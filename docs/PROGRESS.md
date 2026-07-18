@@ -1282,7 +1282,9 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     (secret via dart-define, larangan log token/PII); **README.md** — indeks peta dokumen mobile +
 >     dokumen menyusul yang disarankan (SETUP.md di M0, TESTING.md evaluasi M1, RELEASE.md di M6,
 >     katalog error API level repo). PRD mobile diberi penunjuk ke ketiganya. Belum ada kode.
-> 79. **Next session — start here: Mobile M0 prep** — generate mockup mobile dari prompt kit
+> 79. ~~**Next session — start here: Mobile M0 prep**~~ ✅ **Disela (2026-07-18): dokumentasi
+>     kesiapan iOS — lihat item 80; M0 prep pindah ke item 81.** Rincian lama: generate mockup
+>     mobile dari prompt kit
 >     `docs/mobile/DESIGN_BRIEF.md` (13 artifact, hasil ke `docs/mobile/design/`) lalu spec + plan
 >     fase M0 (scaffold Flutter `mobile/`, tema + i18n, navigasi shell, login/refresh/logout
 >     cookie-jar, CI analyze/test/APK). Kandidat lain yang dibawa: room/floor import targets;
@@ -1291,6 +1293,29 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     date-boundary); GeoIP DB provisioning (ops); notification follow-ups (SSE, retention archival,
 >     maker-route gap); sapuan simbol section di komentar kode backend (task chip terpisah).
 >     Confirm priority before starting.
+> 80. ~~**Mobile companion — dokumentasi kesiapan iOS**~~ ✅ **DONE (2026-07-18, branch
+>     `feat/mobile-ios-docs`).** Keputusan produk: **fokus rilis tetap Android** (ADR-0015 tidak
+>     berubah), tetapi kesiapan iOS didokumentasikan lengkap di **`docs/mobile/IOS.md`**: aturan
+>     "iOS-ready sejak M0" yang mengikat kode sejak scaffold (folder `ios/` di-commit, tanpa API
+>     Android-only di kode bersama, SafeArea sejak awal, back-swipe tidak dimatikan, izin
+>     platform-aware, dart-define netral); tabel kompatibilitas library sisi iOS (semua pilihan
+>     ADR-0015 sudah lintas platform — Keychain, AVFoundation, sqlite3 FFI, APNs via FCM);
+>     checklist prasyarat aktivasi (macOS/Xcode, Apple Developer 99 USD/tahun, bundle id, APNs
+>     key, GoogleService-Info.plist); setup push APNs (desain backend tidak berubah); Info.plist;
+>     CI macOS (build ipa hanya di tag/mingguan — menit x10); distribusi **TestFlight** (jalur
+>     utama; ad-hoc UDID & enterprise ditolak); checklist QA aktivasi; estimasi aktivasi 1-2 sesi;
+>     pertanyaan terbuka QM3 (pola macOS) + QM4 (waktu aktivasi). Rujukan silang: baris IOS.md di
+>     README mobile, penunjuk di PRD non-goal iOS, baris `ios/` di tree ARCHITECTURE, aturan
+>     "jaga iOS-ready" di CONVENTIONS. Belum ada kode.
+> 81. **Next session — start here: Mobile M0 prep** — generate mockup mobile dari prompt kit
+>     `docs/mobile/DESIGN_BRIEF.md` (13 artifact, hasil ke `docs/mobile/design/`) lalu spec + plan
+>     fase M0 (scaffold Flutter `mobile/`, tema + i18n, navigasi shell, login/refresh/logout
+>     cookie-jar, CI analyze/test/APK; scaffold menyertakan folder `ios/` per aturan IOS.md).
+>     Kandidat lain yang dibawa: room/floor import targets; Analytics/OLAP read layer; `/auth/me`
+>     `role_name`; admin reset-password audit action (migration); pre-existing e2e failures
+>     (`account` change-password modal, `maintenance` date-boundary); GeoIP DB provisioning (ops);
+>     notification follow-ups (SSE, retention archival, maker-route gap); sapuan simbol section di
+>     komentar kode backend (task chip terpisah). Confirm priority before starting.
 
 ## ✅ Done
 
@@ -1726,6 +1751,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 - [ ] **M4 Opname online** — sesi, counting scan kamera, variance (endpoint existing)
 - [ ] **M5 Opname offline-first** — drift snapshot + antrean lokal; backend: endpoint batch idempoten `client_scan_id` + first-write-wins + laporan konflik (ADR-0016); indikator status sync
 - [ ] **M6 Rilis internal** — icon/splash/signing, Firebase App Distribution (Play internal track menyusul), Crashlytics/Sentry, runbook rilis di vault
+- [ ] **(Pasca-M6, opsional) Aktivasi iOS** — prasyarat, setup APNs/TestFlight, dan checklist QA lengkap di `docs/mobile/IOS.md`; menunggu keputusan produk (QM4) + akses macOS/Apple Developer (QM3)
 
 ### Quality
 - [x] Backend testing stack (ADR-0001): testify + testcontainers-go; `internal/testsupport` (Postgres/Redis containers, migration apply, `Reset`, seed helpers) + `backend-integration` CI job (`-tags=integration`, runs every PR; default `go test ./...` stays unit-only via the build tag).
