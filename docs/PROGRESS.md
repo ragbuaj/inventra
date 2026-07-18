@@ -1224,7 +1224,21 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     - **Deviation note (catat-deviasi):** the `docs/design` mockups are desktop-only (no mobile
 >       comps); the mobile drawer + responsive grids are a **user-requested** capability, and desktop
 >       (`lg+`) remains a 1:1 match to the mockups.
-> 74. **Next session — pick the next real step.** Carried candidates: **room/floor import targets**;
+> 74. ~~**Fix: env email tidak diteruskan ke backend produksi**~~ ✅ **DONE (2026-07-18, branch
+>     `fix/prod-email-env`).** Email transaksional (reset password, notifikasi ganti password/email) tidak
+>     pernah terkirim di produksi meski `.env.prod` sudah diisi kredensial Resend. Sebabnya
+>     `docker-compose.prod.yml` mendaftarkan env backend satu per satu dan **tidak memuat** `MAIL_ENABLED`,
+>     `EMAIL_PROVIDER`, `RESEND_API_KEY`, `SMTP_FROM`, `SMTP_FROM_NAME` — Compose hanya meneruskan variabel
+>     yang disebut eksplisit, jadi backend memakai default `MAIL_ENABLED=false` dan jatuh ke `LogSender`,
+>     yang mengembalikan `nil` (sukses semu) sambil hanya mencatat ke log. Dikonfirmasi di VPS:
+>     `docker exec inventra-backend env | grep -E "MAIL_|EMAIL_|RESEND_"` kosong total. Perbaikan: kelima
+>     variabel ditambahkan ke service `backend` (default `MAIL_ENABLED=true`, `EMAIL_PROVIDER=resend`),
+>     blok email ditambahkan ke `.env.prod.example`, dan tabel env di `docs/DEPLOYMENT.md` dilengkapi
+>     `MAIL_ENABLED` + `SMTP_FROM` (sebelumnya hanya menyebut `EMAIL_PROVIDER`/`RESEND_API_KEY`, sehingga
+>     dokumen tampak lengkap padahal compose-nya bocor). Diverifikasi via `docker compose config`. Catatan
+>     operasional: domain `SMTP_FROM` harus sudah diverifikasi di dashboard Resend — tanpa itu Resend
+>     menolak 403 dan hanya mengizinkan pengirim `onboarding@resend.dev` ke email pemilik akun.
+> 75. **Next session — pick the next real step.** Carried candidates: **room/floor import targets**;
 >     **Analytics/OLAP** read layer; **`/auth/me` `role_name`**; **admin reset-password audit action**
 >     (migration); **pre-existing e2e failures** (`account` change-password modal, `maintenance`
 >     date-boundary). **GeoIP DB provisioning** (ops). Notification follow-ups (SSE, retention archival,

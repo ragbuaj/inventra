@@ -118,6 +118,15 @@ services:
       TRUSTED_PROXIES: 172.28.0.0/16
       RATELIMIT_ENABLED: "true"
       LOG_FORMAT: json
+      # Email transaksional (reset password, notifikasi ganti password/email).
+      # Compose hanya meneruskan variabel yang disebut di sini — tanpa baris ini
+      # backend memakai default MAIL_ENABLED=false dan email hanya dicatat ke log.
+      # SMTP_FROM wajib memakai domain yang sudah diverifikasi di Resend.
+      MAIL_ENABLED: "${MAIL_ENABLED:-true}"
+      EMAIL_PROVIDER: "${EMAIL_PROVIDER:-resend}"
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Inventra}
 
   frontend:
     image: ghcr.io/ragbuaj/inventra-frontend:latest
