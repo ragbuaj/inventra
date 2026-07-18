@@ -11,7 +11,7 @@ const emit = defineEmits<{ 'update:search': [string], 'reset': [] }>()
       :model-value="props.search"
       icon="i-lucide-search"
       :placeholder="$t('common.search')"
-      class="w-64"
+      class="w-full sm:w-64"
       @update:model-value="emit('update:search', String($event))"
     />
     <slot name="filters" />

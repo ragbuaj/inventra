@@ -3,8 +3,8 @@ defineProps<{ title: string, subtitle?: string }>()
 </script>
 
 <template>
-  <div class="flex items-center justify-between gap-4 mb-[22px]">
-    <div>
+  <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 mb-[22px]">
+    <div class="min-w-0">
       <h1 class="text-2xl font-bold tracking-tight">
         {{ title }}
       </h1>

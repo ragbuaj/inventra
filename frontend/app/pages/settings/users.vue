@@ -509,7 +509,7 @@ onMounted(() => load())
           </UFormField>
         </template>
 
-        <div class="grid grid-cols-2 gap-[14px]">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">
           <UFormField
             :label="t('settings.users.fields.peran')"
             required

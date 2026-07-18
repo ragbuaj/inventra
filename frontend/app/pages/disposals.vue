@@ -581,7 +581,7 @@ onMounted(() => {
               {{ t('disposal.submitted.status') }}
             </UBadge>
           </div>
-          <div class="px-[18px] py-4 grid grid-cols-3 gap-3.5">
+          <div class="px-[18px] py-4 grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <div>
               <div class="text-xs text-muted">
                 {{ t('disposal.submitted.method') }}
@@ -728,7 +728,7 @@ onMounted(() => {
               <div class="text-[11px] font-semibold uppercase tracking-wider text-muted mb-2.5">
                 {{ t('disposal.valuation.title') }}
               </div>
-              <div class="grid grid-cols-2 gap-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <div class="text-[11.5px] text-muted">
                     {{ t('disposal.valuation.acquisition') }}
@@ -824,7 +824,7 @@ onMounted(() => {
               {{ t('disposal.form.detailSection') }}
             </div>
             <div class="flex flex-col gap-3.5">
-              <div class="grid grid-cols-2 gap-3.5">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <UFormField
                   :label="t('disposal.form.method')"
                   required
@@ -849,7 +849,7 @@ onMounted(() => {
                   </template>
                 </UFormField>
               </div>
-              <div class="grid grid-cols-2 gap-3.5">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <UFormField
                   :label="t('disposal.form.date')"
                   required

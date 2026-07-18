@@ -256,7 +256,7 @@ defineExpose({ form, canSave, onSubmit, statusItems })
         />
       </UFormField>
 
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <UFormField :label="t('maintenance.note.type')">
           <USelect
             v-model="form.type"

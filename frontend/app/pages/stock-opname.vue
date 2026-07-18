@@ -597,7 +597,7 @@ onMounted(() => {
         class="flex flex-col gap-4"
       >
         <USkeleton class="h-10 w-1/2 rounded-lg" />
-        <div class="grid grid-cols-4 gap-3.5">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
           <USkeleton
             v-for="n in 4"
             :key="n"
@@ -705,7 +705,7 @@ onMounted(() => {
         </div>
 
         <!-- KPI tiles -->
-        <div class="grid grid-cols-4 gap-3.5 mb-4">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-4">
           <div
             data-testid="opname-kpi-total"
             class="bg-default border border-default rounded-[13px] shadow-sm p-4"

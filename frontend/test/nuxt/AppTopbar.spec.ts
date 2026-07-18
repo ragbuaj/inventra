@@ -31,6 +31,7 @@ describe('AppTopbar', () => {
   beforeEach(() => {
     useAuthStore().clear()
     useUiStore().sidebarCollapsed = false
+    useUiStore().mobileNavOpen = false
     // The bell reads the store, so seed it here rather than a mock fixture.
     const notifs = useNotificationsStore()
     notifs.items = []
@@ -69,15 +70,32 @@ describe('AppTopbar', () => {
     expect(toggleBtn.exists()).toBe(true)
   })
 
-  it('clicking the sidebar toggle flips sidebarCollapsed', async () => {
+  it('clicking the desktop sidebar toggle flips sidebarCollapsed', async () => {
     setupSuperadmin()
     const wrapper = await mountSuspended(AppTopbar)
     const uiStore = useUiStore()
     const before = uiStore.sidebarCollapsed
-    const buttons = wrapper.findAll('button')
-    const toggleBtn2 = buttons[0]!
-    await toggleBtn2.trigger('click')
+    // The desktop rail toggle carries the panel-left icon (a separate mobile
+    // hamburger, with the menu icon, now precedes it in the DOM).
+    const toggleBtn = wrapper.findAll('button').find(b => b.html().includes('i-lucide:panel-left'))
+    expect(toggleBtn).toBeDefined()
+    await toggleBtn!.trigger('click')
     expect(uiStore.sidebarCollapsed).toBe(!before)
+  })
+
+  it('the mobile hamburger opens the off-canvas drawer without touching the rail', async () => {
+    setupSuperadmin()
+    const wrapper = await mountSuspended(AppTopbar)
+    const uiStore = useUiStore()
+    uiStore.mobileNavOpen = false
+    uiStore.sidebarCollapsed = false
+    // The hamburger carries the menu icon.
+    const hamburger = wrapper.findAll('button').find(b => b.html().includes('i-lucide:menu'))
+    expect(hamburger).toBeDefined()
+    await hamburger!.trigger('click')
+    // Opens the drawer; the desktop rail-collapse flag is left untouched.
+    expect(uiStore.mobileNavOpen).toBe(true)
+    expect(uiStore.sidebarCollapsed).toBe(false)
   })
 
   it('renders the search trigger button with ⌘K indicator', async () => {

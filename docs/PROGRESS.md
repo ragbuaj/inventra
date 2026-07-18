@@ -1176,7 +1176,8 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     regression test locking it. 11 new runtime tests (stock-opname + reports), full suite green
 >     (1609 passed; the one `assets-index` teardown unhandled-rejection is a pre-existing @nuxt/test-utils
 >     flake, unrelated); `pnpm typecheck`/`lint` clean.
-> 72. **Next session — pick the next real step.** Carried candidates: **room/floor import targets**;
+> 72. ~~**Next session — pick the next real step.**~~ ✅ **Picked (2026-07-18): mobile-responsive across all
+>     menus — see item 73.** Carried candidates: **room/floor import targets**;
 >     **Analytics/OLAP** read layer; **`/auth/me` `role_name`** (shell badge consistency); **admin
 >     reset-password: audit as a dedicated `shared.audit_action` value** instead of `update` (needs a
 >     migration); **pre-existing e2e failures** (`account` change-password modal, `maintenance`
@@ -1187,6 +1188,47 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     confirm Data Scope opens while RBAC is hidden) — the seeded-superadmin CI e2e can't log in as demo
 >     roles, so this needs an API-created user; the per-role guarantee is already covered by unit/runtime/
 >     integration tests.
+> 73. ~~**Mobile-responsive across all menus**~~ ✅ **DONE (2026-07-18, branch `feat/mobile-responsive`).**
+>     The app shell was desktop-only (the `flex` layout in `layouts/default.vue` had no breakpoint, and
+>     `AppSidebar` pinned its width in px with no drawer), so every screen broke below `lg`. Fix, in four
+>     phases, preserving the desktop look 1:1 (all changes only add behavior below `lg`/`sm`):
+>     - **Shell (biggest lever):** `stores/ui.ts` gains `mobileNavOpen` + `open/close/toggleMobileNav`.
+>       `AppSidebar` becomes an **off-canvas drawer below `lg`** (`fixed` panel, `-translate-x-full`
+>       hidden → `translate-x-0` open, backdrop scrim, `inert` while closed, Escape/scrim/route-change +
+>       nav-click auto-close) and stays the **in-flow collapsible rail at `lg+`** (width via responsive
+>       classes `lg:w-[76px]`/`lg:w-[264px]` — the old inline min/max px style is gone). A new
+>       `useMediaQuery`/`useIsDesktop` composable drives the "drawer is always fully expanded on mobile"
+>       logic (defaults to desktop when `matchMedia` is absent, so the jsdom test runtime still exercises
+>       rail-collapse). `AppTopbar` gets a **hamburger (`<lg`, opens the drawer)** distinct from the
+>       desktop panel-left rail toggle; the inline global search is hidden below `md` (still reachable via
+>       `Ctrl+K`). Content padding is now responsive (`px-4 py-5 sm:px-6 lg:px-8`).
+>     - **Pagination (one lever, every list):** `TablePagination` wrapper stacks vertically below `sm`
+>       (`flex-col … sm:flex-row sm:justify-between`) so the range text + page buttons never crowd on a
+>       narrow screen. Tables themselves **keep horizontal scroll** (user's explicit choice — the wide
+>       `<table>` stays inside its `overflow-x-auto` wrapper; the page body never overflows).
+>     - **Fixed-grid sweep:** stat grids `grid-cols-4`/`grid-cols-3` → `grid-cols-2 lg:grid-cols-4` /
+>       `grid-cols-1 sm:grid-cols-3` (stock-opname, disposals, reports); the repeated `grid grid-cols-2`
+>       form-field pairs inside modals/slideovers → `grid-cols-1 sm:grid-cols-2` (offices, employees,
+>       users, transfers, assignment, disposals, account, category/record/peminjaman modals);
+>       `PageHeader` wraps its actions; `DataToolbar` search is `w-full sm:w-64`. Left as-is (already fine
+>       at 320px): the assets filter bar, the account theme picker (3 small buttons), and the import
+>       result 2-card row.
+>     - **Tests + live verification:** new `test/unit/ui-store.spec.ts` (drawer/rail action independence)
+>       + updated `AppSidebar`/`AppTopbar` runtime specs (drawer classes, scrim, hamburger vs rail toggle,
+>       width classes) — 53 targeted tests green; full suite **1617 passed** (the lone `assets-index`
+>       teardown unhandled-rejection is the same pre-existing @nuxt/test-utils flake noted in item 71 —
+>       reproduced on a clean tree). `lint`/`typecheck`/`build` clean. **Live sweep** (dev stack + seeded
+>       admin, browser preview): all **25 menu routes at 375px show zero body overflow**; the drawer
+>       opens with the full expanded nav + scrim and auto-closes on navigation; at 1280px the sidebar is
+>       the in-flow 264px rail with the hamburger hidden and search/panel-left visible — desktop unchanged.
+>     - **Deviation note (catat-deviasi):** the `docs/design` mockups are desktop-only (no mobile
+>       comps); the mobile drawer + responsive grids are a **user-requested** capability, and desktop
+>       (`lg+`) remains a 1:1 match to the mockups.
+> 74. **Next session — pick the next real step.** Carried candidates: **room/floor import targets**;
+>     **Analytics/OLAP** read layer; **`/auth/me` `role_name`**; **admin reset-password audit action**
+>     (migration); **pre-existing e2e failures** (`account` change-password modal, `maintenance`
+>     date-boundary). **GeoIP DB provisioning** (ops). Notification follow-ups (SSE, retention archival,
+>     maker-route gap). Confirm priority before starting.
 
 ## ✅ Done
 

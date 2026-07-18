@@ -586,7 +586,7 @@ onMounted(() => {
 
         <!-- Info card -->
         <div class="bg-default border border-default rounded-[13px] shadow-xs p-[18px_20px] mb-[22px]">
-          <div class="grid grid-cols-2 gap-x-7 gap-y-3.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-7 gap-y-3.5">
             <div>
               <div class="text-[12px] text-muted mb-[3px]">
                 {{ t('masterdata.offices.fields.tipe') }}
@@ -827,7 +827,7 @@ onMounted(() => {
     >
       <div class="space-y-4">
         <!-- Row 1: Induk + Jenis -->
-        <div class="grid grid-cols-2 gap-3.5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <UFormField :label="t('masterdata.offices.induk')">
             <USelect
               v-model="formParentId"
@@ -860,7 +860,7 @@ onMounted(() => {
           />
         </UFormField>
         <!-- Row 2: Kode + Provinsi -->
-        <div class="grid grid-cols-2 gap-3.5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <UFormField
             :label="t('masterdata.offices.fields.kode')"
             required
@@ -900,7 +900,7 @@ onMounted(() => {
         </UFormField>
         <!-- Coordinates -->
         <div>
-          <div class="grid grid-cols-2 gap-3.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <UFormField :label="t('masterdata.offices.fields.latitude')">
               <NumberInput
                 v-model="formLat"

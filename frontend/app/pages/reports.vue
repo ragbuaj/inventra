@@ -435,7 +435,7 @@ defineExpose({ apply, doExport, doExportGl, doOpnameBa, resetFilters, selectRepo
     </div>
 
     <!-- Report type cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
       <button
         v-for="c in reportCards"
         :key="c.key"
