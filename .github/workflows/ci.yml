@@ -68,7 +68,9 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter analyze
-      - run: flutter test
+      # Golden test dilewati: rendering font lintas-platform membuat golden
+      # platform-dependent; verifikasi golden adalah gate lokal (Windows).
+      - run: flutter test --exclude-tags golden
       # Runner ubuntu-latest sudah menyertakan Android SDK.
       - run: flutter build apk --debug
 

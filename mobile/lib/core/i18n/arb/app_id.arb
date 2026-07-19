@@ -8,6 +8,10 @@
   "@commonComingSoon": {
     "description": "Placeholder untuk fitur yang belum dibangun"
   },
+  "commonComingSoonBody": "Layar ini sedang dibangun dan akan tersedia pada pembaruan berikutnya.",
+  "@commonComingSoonBody": {
+    "description": "Subjudul placeholder rute yang layarnya belum dibangun"
+  },
   "commonRetry": "Coba lagi",
   "@commonRetry": {
     "description": "Label tombol coba ulang setelah error"
@@ -15,5 +19,190 @@
   "commonCancel": "Batal",
   "@commonCancel": {
     "description": "Label tombol batal umum"
+  },
+  "commonOfflineBanner": "Offline — scan tersimpan di perangkat",
+  "@commonOfflineBanner": {
+    "description": "Teks default banner offline slim"
+  },
+  "commonSyncSynced": "Tersinkron",
+  "@commonSyncSynced": {
+    "description": "Label SyncPill saat seluruh antrean tersinkron"
+  },
+  "commonSyncPending": "{count} belum tersinkron",
+  "@commonSyncPending": {
+    "description": "Label SyncPill saat masih ada antrean lokal",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "commonSyncSyncing": "Menyinkronkan…",
+  "@commonSyncSyncing": {
+    "description": "Label SyncPill saat sinkronisasi berjalan"
+  },
+  "commonSyncFailed": "Gagal — coba lagi",
+  "@commonSyncFailed": {
+    "description": "Label SyncPill saat sinkronisasi gagal"
+  },
+  "commonSyncOffline": "Offline",
+  "@commonSyncOffline": {
+    "description": "Label SyncPill saat perangkat offline"
+  },
+  "shellTabHome": "Beranda",
+  "@shellTabHome": {
+    "description": "Label tab bottom-nav beranda"
+  },
+  "shellTabOpname": "Opname",
+  "@shellTabOpname": {
+    "description": "Label tab bottom-nav stock opname"
+  },
+  "shellTabScan": "Pindai",
+  "@shellTabScan": {
+    "description": "Label tombol pindai tengah bottom-nav"
+  },
+  "shellTabApproval": "Approval",
+  "@shellTabApproval": {
+    "description": "Label tab bottom-nav approval inbox"
+  },
+  "shellTabNotifications": "Notif",
+  "@shellTabNotifications": {
+    "description": "Label tab bottom-nav notifikasi"
+  },
+  "notificationsTitle": "Notifikasi",
+  "@notificationsTitle": {
+    "description": "Judul layar feed notifikasi"
+  },
+  "assetDetailTitle": "Detail Aset",
+  "@assetDetailTitle": {
+    "description": "Judul layar detail aset"
+  },
+  "approvalDetailTitle": "Detail Approval",
+  "@approvalDetailTitle": {
+    "description": "Judul layar detail approval"
+  },
+  "opnameDetailTitle": "Detail Opname",
+  "@opnameDetailTitle": {
+    "description": "Judul layar counting sesi opname"
+  },
+  "opnameVarianceTitle": "Variance Opname",
+  "@opnameVarianceTitle": {
+    "description": "Judul layar variance sesi opname"
+  },
+  "accountTitle": "Profil",
+  "@accountTitle": {
+    "description": "Judul layar profil dan sesi device"
+  },
+  "settingsTitle": "Pengaturan",
+  "@settingsTitle": {
+    "description": "Judul layar pengaturan"
+  },
+  "homeTitle": "Beranda",
+  "@homeTitle": {
+    "description": "Judul app bar tab beranda"
+  },
+  "homeLogoutTooltip": "Keluar",
+  "@homeLogoutTooltip": {
+    "description": "Tooltip aksi logout sementara di app bar beranda"
+  },
+  "homeLogoutConfirmTitle": "Keluar dari akun?",
+  "@homeLogoutConfirmTitle": {
+    "description": "Judul dialog konfirmasi logout"
+  },
+  "homeLogoutConfirmMessage": "Sesi Anda di perangkat ini akan diakhiri.",
+  "@homeLogoutConfirmMessage": {
+    "description": "Isi dialog konfirmasi logout"
+  },
+  "homeLogoutConfirmAction": "Keluar",
+  "@homeLogoutConfirmAction": {
+    "description": "Label aksi utama dialog konfirmasi logout"
+  },
+  "loginBrandName": "Inventra",
+  "@loginBrandName": {
+    "description": "Wordmark produk pada layar login (tidak diterjemahkan)"
+  },
+  "loginBrandBadge": "MOBILE",
+  "@loginBrandBadge": {
+    "description": "Badge pill di samping wordmark login"
+  },
+  "loginTagline": "Pendamping lapangan manajemen aset",
+  "@loginTagline": {
+    "description": "Tagline di bawah wordmark login"
+  },
+  "loginCardTitle": "Masuk",
+  "@loginCardTitle": {
+    "description": "Judul card form login"
+  },
+  "loginCardSubtitle": "Gunakan akun Inventra Anda",
+  "@loginCardSubtitle": {
+    "description": "Subjudul card form login"
+  },
+  "loginEmailLabel": "Email",
+  "@loginEmailLabel": {
+    "description": "Label field email login"
+  },
+  "loginEmailHint": "nama@bank.co.id",
+  "@loginEmailHint": {
+    "description": "Placeholder field email login"
+  },
+  "loginPasswordLabel": "Kata sandi",
+  "@loginPasswordLabel": {
+    "description": "Label field kata sandi login"
+  },
+  "loginPasswordHint": "Masukkan kata sandi",
+  "@loginPasswordHint": {
+    "description": "Placeholder field kata sandi login"
+  },
+  "loginShowPassword": "Tampilkan kata sandi",
+  "@loginShowPassword": {
+    "description": "Tooltip toggle visibilitas kata sandi (sembunyi -> tampil)"
+  },
+  "loginHidePassword": "Sembunyikan kata sandi",
+  "@loginHidePassword": {
+    "description": "Tooltip toggle visibilitas kata sandi (tampil -> sembunyi)"
+  },
+  "loginSubmitButton": "Masuk",
+  "@loginSubmitButton": {
+    "description": "Label tombol submit login"
+  },
+  "loginSubmitLoading": "Memproses…",
+  "@loginSubmitLoading": {
+    "description": "Label tombol submit login saat memproses"
+  },
+  "loginErrorInvalidCredentials": "Email atau kata sandi salah. Coba lagi.",
+  "@loginErrorInvalidCredentials": {
+    "description": "Pesan banner error login untuk kredensial salah"
+  },
+  "loginErrorNetwork": "Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.",
+  "@loginErrorNetwork": {
+    "description": "Pesan banner error login saat offline/gangguan jaringan"
+  },
+  "loginErrorRateLimited": "Terlalu banyak percobaan. Coba lagi beberapa saat lagi.",
+  "@loginErrorRateLimited": {
+    "description": "Pesan banner error login saat kena rate limit"
+  },
+  "loginErrorGeneric": "Terjadi kesalahan. Coba lagi.",
+  "@loginErrorGeneric": {
+    "description": "Pesan banner error login untuk kegagalan lain"
+  },
+  "loginLanguageIndonesian": "ID",
+  "@loginLanguageIndonesian": {
+    "description": "Label segmen bahasa Indonesia pada pill switch bahasa"
+  },
+  "loginLanguageEnglish": "EN",
+  "@loginLanguageEnglish": {
+    "description": "Label segmen bahasa Inggris pada pill switch bahasa"
+  },
+  "loginVersion": "Inventra Mobile v{version} · Build {build}",
+  "@loginVersion": {
+    "description": "Teks versi aplikasi di footer login",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "build": {
+        "type": "String"
+      }
+    }
   }
 }

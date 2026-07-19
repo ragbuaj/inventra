@@ -1,13 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventra_mobile/app/theme.dart';
+import 'package:inventra_mobile/core/auth/auth_controller.dart';
 import 'package:inventra_mobile/main.dart';
 
+import '../helpers/fake_auth_controller.dart';
+import '../helpers/test_app.dart';
+
 void main() {
+  // InventraApp membutuhkan ProviderScope; authController dipalsukan supaya
+  // tes tidak menyentuh secure storage (platform channel).
+  Widget buildApp() {
+    return ProviderScope(
+      overrides: [authControllerProvider.overrideWith(FakeAuthController.new)],
+      child: const InventraApp(),
+    );
+  }
+
   testWidgets('merender MaterialApp dengan tema Inventra light + dark', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const InventraApp());
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
 
     final MaterialApp app = tester.widget<MaterialApp>(
       find.byType(MaterialApp),
@@ -35,10 +50,11 @@ void main() {
     tester.platformDispatcher.localesTestValue = const <Locale>[Locale('fr')];
     addTearDown(tester.platformDispatcher.clearLocalesTestValue);
 
-    await tester.pumpWidget(const InventraApp());
+    await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Segera hadir'), findsOneWidget);
+    // Belum login: mendarat di layar login berbahasa Indonesia.
+    expect(find.text(l10nId.loginCardSubtitle), findsOneWidget);
   });
 
   testWidgets('locale en didukung sebagai fallback bahasa kedua', (
@@ -47,10 +63,10 @@ void main() {
     tester.platformDispatcher.localesTestValue = const <Locale>[Locale('en')];
     addTearDown(tester.platformDispatcher.clearLocalesTestValue);
 
-    await tester.pumpWidget(const InventraApp());
+    await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Coming soon'), findsOneWidget);
+    expect(find.text(l10nEn.loginCardSubtitle), findsOneWidget);
   });
 
   test('chip status aset memetakan keluarga semantik yang benar', () {
