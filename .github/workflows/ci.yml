@@ -6,7 +6,51 @@ on:
   pull_request:
 
 jobs:
+  # Deteksi bagian repo mana yang berubah supaya job per-aplikasi hanya jalan
+  # bila relevan. Filter hanya berlaku untuk pull request — push ke main selalu
+  # menjalankan semua job (lihat kondisi `if` tiap job), sehingga pemicu
+  # workflow Deploy (workflow_run atas "CI") tidak berubah perilakunya.
+  # Job yang dilewati berstatus "skipped", yang dihitung lolos oleh required
+  # status checks pada branch protection.
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      mobile: ${{ steps.filter.outputs.mobile }}
+      apidocs: ${{ steps.filter.outputs.apidocs }}
+      e2e: ${{ steps.filter.outputs.e2e }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # Perubahan pada workflow ini sendiri menjalankan semua job.
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci.yml'
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/ci.yml'
+            mobile:
+              - 'mobile/**'
+              - '.github/workflows/ci.yml'
+            apidocs:
+              - 'backend/api/**'
+              - '.spectral.yaml'
+              - '.github/workflows/ci.yml'
+            e2e:
+              - 'backend/**'
+              - 'frontend/**'
+              - 'docker-compose.yml'
+              - '.github/workflows/ci.yml'
+
   backend:
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -22,6 +66,8 @@ jobs:
       - run: go test ./...
 
   backend-integration:
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -35,6 +81,8 @@ jobs:
       - run: go test -tags=integration ./...
 
   frontend:
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -56,6 +104,8 @@ jobs:
       - run: pnpm build
 
   mobile:
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.mobile == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -75,6 +125,8 @@ jobs:
       - run: flutter build apk --debug
 
   api-docs:
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.apidocs == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -94,6 +146,8 @@ jobs:
   # End-to-end: bring up the real backend stack, seed an admin, then run the
   # Playwright login flow against a freshly built frontend.
   e2e:
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

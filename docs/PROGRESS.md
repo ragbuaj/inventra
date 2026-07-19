@@ -1394,6 +1394,9 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 - [x] Project scaffold (Go/Gin backend, Nuxt 4 frontend)
 - [x] `docker compose up` full stack (Postgres + Redis + MinIO + migrate + backend + frontend)
 - [x] GitHub Actions CI (backend build/vet/test · frontend lint/typecheck/build · Spectral)
+- [x] CI per aplikasi via path filter (`dorny/paths-filter`): job hanya jalan di PR yang
+      menyentuh path terkait (backend/frontend/mobile/api-docs/e2e); push ke main tetap
+      full run sehingga pemicu Deploy tidak berubah; job skipped lolos required checks — PR #111
 - [x] PRD + DATABASE design docs
 - [x] Production Docker Compose stack + VPS deployment guide (`docker-compose.prod.yml`,
       `docs/DEPLOYMENT.md`) — PR #51
