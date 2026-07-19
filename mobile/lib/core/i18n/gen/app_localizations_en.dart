@@ -12,13 +12,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'Inventra Mobile';
 
   @override
-  String get commonComingSoon => 'Coming soon';
-
-  @override
-  String get commonComingSoonBody =>
-      'This screen is under construction and will arrive in an upcoming update.';
-
-  @override
   String get commonRetry => 'Retry';
 
   @override
@@ -216,23 +209,151 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountTitle => 'Profile';
 
   @override
-  String get settingsTitle => 'Settings';
+  String get accountSettingsButton => 'Settings';
 
   @override
-  String get homeTitle => 'Home';
+  String get accountEditOnWeb => 'Profile editing is done from the web app';
 
   @override
-  String get homeLogoutTooltip => 'Sign out';
+  String get accountSessionsTitle => 'Device Sessions';
 
   @override
-  String get homeLogoutConfirmTitle => 'Sign out of your account?';
+  String get accountSessionCurrentBadge => 'This device';
 
   @override
-  String get homeLogoutConfirmMessage =>
+  String get accountSessionActiveNow => 'active now';
+
+  @override
+  String get accountSessionRevoke => 'Revoke';
+
+  @override
+  String get accountSessionRevokeConfirmTitle => 'Revoke this session?';
+
+  @override
+  String accountSessionRevokeConfirmBody(String name) {
+    return '$name will be signed out and must sign in again.';
+  }
+
+  @override
+  String get accountSessionRevokeConfirmAction => 'Yes, Revoke';
+
+  @override
+  String accountSessionRevokedSnack(String name) {
+    return 'Session $name revoked';
+  }
+
+  @override
+  String get accountSessionRevokeFailed =>
+      'Failed to revoke the session. Try again.';
+
+  @override
+  String get accountRevokeOthers => 'Sign out of all other devices';
+
+  @override
+  String get accountRevokeOthersConfirmTitle =>
+      'Sign out of all other devices?';
+
+  @override
+  String accountRevokeOthersConfirmBody(int count) {
+    return '$count other sessions will be revoked. This device stays signed in.';
+  }
+
+  @override
+  String get accountRevokeOthersConfirmAction => 'Yes, Sign Out';
+
+  @override
+  String get accountRevokeOthersFailed =>
+      'Failed to revoke other sessions. Try again.';
+
+  @override
+  String get accountSessionsEmpty => 'No active sessions recorded yet.';
+
+  @override
+  String get accountSessionsErrorBody => 'Failed to load device sessions.';
+
+  @override
+  String get accountLogout => 'Sign out';
+
+  @override
+  String get accountLogoutConfirmTitle => 'Sign out of your account?';
+
+  @override
+  String get accountLogoutConfirmBody =>
       'Your session on this device will be ended.';
 
   @override
-  String get homeLogoutConfirmAction => 'Sign out';
+  String get accountLogoutConfirmAction => 'Yes, Sign Out';
+
+  @override
+  String get accountTimeJustNow => 'just now';
+
+  @override
+  String accountTimeMinutesAgo(int count) {
+    return '$count min ago';
+  }
+
+  @override
+  String accountTimeHoursAgo(int count) {
+    return '$count hr ago';
+  }
+
+  @override
+  String get accountTimeYesterday => 'yesterday';
+
+  @override
+  String accountTimeDaysAgo(int count) {
+    return '$count days ago';
+  }
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsSectionAppearance => 'Appearance';
+
+  @override
+  String get settingsTheme => 'Theme';
+
+  @override
+  String get settingsThemeLight => 'Light';
+
+  @override
+  String get settingsThemeDark => 'Dark';
+
+  @override
+  String get settingsThemeSystem => 'Follow System';
+
+  @override
+  String get settingsThemeSheetTitle => 'Choose theme';
+
+  @override
+  String get settingsThemeApply => 'Apply';
+
+  @override
+  String get settingsLanguage => 'Language';
+
+  @override
+  String get settingsLanguageSheetTitle => 'Choose language';
+
+  @override
+  String get settingsLanguageIndonesian => 'Indonesia';
+
+  @override
+  String get settingsLanguageEnglish => 'English';
+
+  @override
+  String get settingsSectionAbout => 'About';
+
+  @override
+  String get settingsAppName => 'Inventra Mobile';
+
+  @override
+  String settingsVersion(String version, String build) {
+    return 'Version $version (build $build)';
+  }
+
+  @override
+  String get homeTitle => 'Home';
 
   @override
   String get loginBrandName => 'Inventra';

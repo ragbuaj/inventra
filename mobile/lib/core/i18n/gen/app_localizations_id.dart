@@ -12,13 +12,6 @@ class AppLocalizationsId extends AppLocalizations {
   String get appTitle => 'Inventra Mobile';
 
   @override
-  String get commonComingSoon => 'Segera hadir';
-
-  @override
-  String get commonComingSoonBody =>
-      'Layar ini sedang dibangun dan akan tersedia pada pembaruan berikutnya.';
-
-  @override
   String get commonRetry => 'Coba lagi';
 
   @override
@@ -216,23 +209,151 @@ class AppLocalizationsId extends AppLocalizations {
   String get accountTitle => 'Profil';
 
   @override
-  String get settingsTitle => 'Pengaturan';
+  String get accountSettingsButton => 'Pengaturan';
 
   @override
-  String get homeTitle => 'Beranda';
+  String get accountEditOnWeb =>
+      'Penyuntingan profil dilakukan dari aplikasi web';
 
   @override
-  String get homeLogoutTooltip => 'Keluar';
+  String get accountSessionsTitle => 'Sesi Perangkat';
 
   @override
-  String get homeLogoutConfirmTitle => 'Keluar dari akun?';
+  String get accountSessionCurrentBadge => 'Perangkat ini';
 
   @override
-  String get homeLogoutConfirmMessage =>
+  String get accountSessionActiveNow => 'aktif sekarang';
+
+  @override
+  String get accountSessionRevoke => 'Cabut';
+
+  @override
+  String get accountSessionRevokeConfirmTitle => 'Cabut sesi ini?';
+
+  @override
+  String accountSessionRevokeConfirmBody(String name) {
+    return '$name akan keluar dan harus masuk kembali.';
+  }
+
+  @override
+  String get accountSessionRevokeConfirmAction => 'Ya, Cabut';
+
+  @override
+  String accountSessionRevokedSnack(String name) {
+    return 'Sesi $name dicabut';
+  }
+
+  @override
+  String get accountSessionRevokeFailed => 'Gagal mencabut sesi. Coba lagi.';
+
+  @override
+  String get accountRevokeOthers => 'Keluar dari semua perangkat lain';
+
+  @override
+  String get accountRevokeOthersConfirmTitle =>
+      'Keluar dari semua perangkat lain?';
+
+  @override
+  String accountRevokeOthersConfirmBody(int count) {
+    return '$count sesi lain akan dicabut. Perangkat ini tetap masuk.';
+  }
+
+  @override
+  String get accountRevokeOthersConfirmAction => 'Ya, Keluar';
+
+  @override
+  String get accountRevokeOthersFailed =>
+      'Gagal mencabut sesi lain. Coba lagi.';
+
+  @override
+  String get accountSessionsEmpty => 'Belum ada sesi aktif yang tercatat.';
+
+  @override
+  String get accountSessionsErrorBody => 'Gagal memuat sesi perangkat.';
+
+  @override
+  String get accountLogout => 'Keluar';
+
+  @override
+  String get accountLogoutConfirmTitle => 'Keluar dari akun?';
+
+  @override
+  String get accountLogoutConfirmBody =>
       'Sesi Anda di perangkat ini akan diakhiri.';
 
   @override
-  String get homeLogoutConfirmAction => 'Keluar';
+  String get accountLogoutConfirmAction => 'Ya, Keluar';
+
+  @override
+  String get accountTimeJustNow => 'baru saja';
+
+  @override
+  String accountTimeMinutesAgo(int count) {
+    return '$count mnt lalu';
+  }
+
+  @override
+  String accountTimeHoursAgo(int count) {
+    return '$count jam lalu';
+  }
+
+  @override
+  String get accountTimeYesterday => 'kemarin';
+
+  @override
+  String accountTimeDaysAgo(int count) {
+    return '$count hari lalu';
+  }
+
+  @override
+  String get settingsTitle => 'Pengaturan';
+
+  @override
+  String get settingsSectionAppearance => 'Tampilan';
+
+  @override
+  String get settingsTheme => 'Tema';
+
+  @override
+  String get settingsThemeLight => 'Terang';
+
+  @override
+  String get settingsThemeDark => 'Gelap';
+
+  @override
+  String get settingsThemeSystem => 'Ikuti Sistem';
+
+  @override
+  String get settingsThemeSheetTitle => 'Pilih tema';
+
+  @override
+  String get settingsThemeApply => 'Terapkan';
+
+  @override
+  String get settingsLanguage => 'Bahasa';
+
+  @override
+  String get settingsLanguageSheetTitle => 'Pilih bahasa';
+
+  @override
+  String get settingsLanguageIndonesian => 'Indonesia';
+
+  @override
+  String get settingsLanguageEnglish => 'English';
+
+  @override
+  String get settingsSectionAbout => 'Tentang';
+
+  @override
+  String get settingsAppName => 'Inventra Mobile';
+
+  @override
+  String settingsVersion(String version, String build) {
+    return 'Versi $version (build $build)';
+  }
+
+  @override
+  String get homeTitle => 'Beranda';
 
   @override
   String get loginBrandName => 'Inventra';

@@ -9,6 +9,7 @@ import 'package:inventra_mobile/core/camera/scan_camera.dart';
 import 'package:inventra_mobile/core/connectivity/connectivity_provider.dart';
 import 'package:inventra_mobile/core/masterdata/reference_lookup_repository.dart';
 import 'package:inventra_mobile/core/utils/clock.dart';
+import 'package:inventra_mobile/features/account/data/account_repository.dart';
 import 'package:inventra_mobile/features/approval/data/approval_repository.dart';
 import 'package:inventra_mobile/features/approval/data/request_dto.dart';
 import 'package:inventra_mobile/features/approval/data/request_list_dto.dart';
@@ -19,6 +20,7 @@ import 'package:inventra_mobile/features/stock_opname/data/stock_opname_session_
 import 'package:inventra_mobile/features/stock_opname/data/stock_opname_session_list_dto.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../../../helpers/fake_account_repository.dart';
 import '../../../helpers/fake_auth_controller.dart';
 import '../../../helpers/fake_notifications_repository.dart';
 import '../../../helpers/fake_reference_lookup.dart';
@@ -131,6 +133,9 @@ void main() {
         notificationsRepositoryProvider.overrideWithValue(
           FakeNotificationsRepository(),
         ),
+        // Rute /account kini layar Profil nyata (Task 12) — tes navigasi
+        // avatar tidak boleh menyentuh HTTP daftar sesi.
+        accountRepositoryProvider.overrideWithValue(FakeAccountRepository()),
         referenceLookupRepositoryProvider.overrideWithValue(
           FakeReferenceLookup(<String, String>{
             'office:office-1': 'Cabang Jakarta Selatan',

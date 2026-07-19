@@ -104,18 +104,6 @@ abstract class AppLocalizations {
   /// **'Inventra Mobile'**
   String get appTitle;
 
-  /// Placeholder untuk fitur yang belum dibangun
-  ///
-  /// In id, this message translates to:
-  /// **'Segera hadir'**
-  String get commonComingSoon;
-
-  /// Subjudul placeholder rute yang layarnya belum dibangun
-  ///
-  /// In id, this message translates to:
-  /// **'Layar ini sedang dibangun dan akan tersedia pada pembaruan berikutnya.'**
-  String get commonComingSoonBody;
-
   /// Label tombol coba ulang setelah error
   ///
   /// In id, this message translates to:
@@ -494,41 +482,263 @@ abstract class AppLocalizations {
   /// **'Profil'**
   String get accountTitle;
 
+  /// Label entri Pengaturan di app bar layar Profil
+  ///
+  /// In id, this message translates to:
+  /// **'Pengaturan'**
+  String get accountSettingsButton;
+
+  /// Catatan kartu identitas: data diri diubah lewat web
+  ///
+  /// In id, this message translates to:
+  /// **'Penyuntingan profil dilakukan dari aplikasi web'**
+  String get accountEditOnWeb;
+
+  /// Judul kartu daftar sesi device aktif
+  ///
+  /// In id, this message translates to:
+  /// **'Sesi Perangkat'**
+  String get accountSessionsTitle;
+
+  /// Badge penanda sesi yang sedang dipakai
+  ///
+  /// In id, this message translates to:
+  /// **'Perangkat ini'**
+  String get accountSessionCurrentBadge;
+
+  /// Label waktu sesi ini (menggantikan last_seen relatif)
+  ///
+  /// In id, this message translates to:
+  /// **'aktif sekarang'**
+  String get accountSessionActiveNow;
+
+  /// Label tombol cabut satu sesi lain
+  ///
+  /// In id, this message translates to:
+  /// **'Cabut'**
+  String get accountSessionRevoke;
+
+  /// Judul dialog konfirmasi cabut satu sesi
+  ///
+  /// In id, this message translates to:
+  /// **'Cabut sesi ini?'**
+  String get accountSessionRevokeConfirmTitle;
+
+  /// Isi dialog konfirmasi cabut satu sesi
+  ///
+  /// In id, this message translates to:
+  /// **'{name} akan keluar dan harus masuk kembali.'**
+  String accountSessionRevokeConfirmBody(String name);
+
+  /// Label aksi utama dialog cabut satu sesi
+  ///
+  /// In id, this message translates to:
+  /// **'Ya, Cabut'**
+  String get accountSessionRevokeConfirmAction;
+
+  /// Snackbar setelah satu sesi berhasil dicabut
+  ///
+  /// In id, this message translates to:
+  /// **'Sesi {name} dicabut'**
+  String accountSessionRevokedSnack(String name);
+
+  /// Snackbar saat server menolak pencabutan satu sesi
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal mencabut sesi. Coba lagi.'**
+  String get accountSessionRevokeFailed;
+
+  /// Label tombol cabut semua sesi lain sekaligus
+  ///
+  /// In id, this message translates to:
+  /// **'Keluar dari semua perangkat lain'**
+  String get accountRevokeOthers;
+
+  /// Judul dialog konfirmasi cabut semua sesi lain
+  ///
+  /// In id, this message translates to:
+  /// **'Keluar dari semua perangkat lain?'**
+  String get accountRevokeOthersConfirmTitle;
+
+  /// Isi dialog konfirmasi cabut semua sesi lain
+  ///
+  /// In id, this message translates to:
+  /// **'{count} sesi lain akan dicabut. Perangkat ini tetap masuk.'**
+  String accountRevokeOthersConfirmBody(int count);
+
+  /// Label aksi utama dialog cabut semua sesi lain
+  ///
+  /// In id, this message translates to:
+  /// **'Ya, Keluar'**
+  String get accountRevokeOthersConfirmAction;
+
+  /// Snackbar saat server menolak cabut semua sesi lain
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal mencabut sesi lain. Coba lagi.'**
+  String get accountRevokeOthersFailed;
+
+  /// Isi kartu sesi saat daftar dari server kosong
+  ///
+  /// In id, this message translates to:
+  /// **'Belum ada sesi aktif yang tercatat.'**
+  String get accountSessionsEmpty;
+
+  /// Pesan error kartu sesi (dengan tombol coba lagi)
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat sesi perangkat.'**
+  String get accountSessionsErrorBody;
+
+  /// Label tombol logout layar Profil
+  ///
+  /// In id, this message translates to:
+  /// **'Keluar'**
+  String get accountLogout;
+
+  /// Judul dialog konfirmasi logout
+  ///
+  /// In id, this message translates to:
+  /// **'Keluar dari akun?'**
+  String get accountLogoutConfirmTitle;
+
+  /// Isi dialog konfirmasi logout
+  ///
+  /// In id, this message translates to:
+  /// **'Sesi Anda di perangkat ini akan diakhiri.'**
+  String get accountLogoutConfirmBody;
+
+  /// Label aksi utama dialog konfirmasi logout
+  ///
+  /// In id, this message translates to:
+  /// **'Ya, Keluar'**
+  String get accountLogoutConfirmAction;
+
+  /// last_seen sesi < 1 menit lalu
+  ///
+  /// In id, this message translates to:
+  /// **'baru saja'**
+  String get accountTimeJustNow;
+
+  /// last_seen sesi dalam menit
+  ///
+  /// In id, this message translates to:
+  /// **'{count} mnt lalu'**
+  String accountTimeMinutesAgo(int count);
+
+  /// last_seen sesi dalam jam
+  ///
+  /// In id, this message translates to:
+  /// **'{count} jam lalu'**
+  String accountTimeHoursAgo(int count);
+
+  /// last_seen sesi 24-48 jam lalu
+  ///
+  /// In id, this message translates to:
+  /// **'kemarin'**
+  String get accountTimeYesterday;
+
+  /// last_seen sesi dalam hari (< 7 hari)
+  ///
+  /// In id, this message translates to:
+  /// **'{count} hari lalu'**
+  String accountTimeDaysAgo(int count);
+
   /// Judul layar pengaturan
   ///
   /// In id, this message translates to:
   /// **'Pengaturan'**
   String get settingsTitle;
 
+  /// Judul kartu seksi tampilan (tema + bahasa)
+  ///
+  /// In id, this message translates to:
+  /// **'Tampilan'**
+  String get settingsSectionAppearance;
+
+  /// Judul baris pengaturan tema
+  ///
+  /// In id, this message translates to:
+  /// **'Tema'**
+  String get settingsTheme;
+
+  /// Opsi tema terang
+  ///
+  /// In id, this message translates to:
+  /// **'Terang'**
+  String get settingsThemeLight;
+
+  /// Opsi tema gelap
+  ///
+  /// In id, this message translates to:
+  /// **'Gelap'**
+  String get settingsThemeDark;
+
+  /// Opsi tema mengikuti sistem
+  ///
+  /// In id, this message translates to:
+  /// **'Ikuti Sistem'**
+  String get settingsThemeSystem;
+
+  /// Judul bottom sheet pemilih tema
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih tema'**
+  String get settingsThemeSheetTitle;
+
+  /// Label tombol terapkan pada sheet pemilih tema
+  ///
+  /// In id, this message translates to:
+  /// **'Terapkan'**
+  String get settingsThemeApply;
+
+  /// Judul baris pengaturan bahasa
+  ///
+  /// In id, this message translates to:
+  /// **'Bahasa'**
+  String get settingsLanguage;
+
+  /// Judul bottom sheet pemilih bahasa
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih bahasa'**
+  String get settingsLanguageSheetTitle;
+
+  /// Nama bahasa Indonesia (ditulis dalam bahasanya sendiri)
+  ///
+  /// In id, this message translates to:
+  /// **'Indonesia'**
+  String get settingsLanguageIndonesian;
+
+  /// Nama bahasa Inggris (ditulis dalam bahasanya sendiri)
+  ///
+  /// In id, this message translates to:
+  /// **'English'**
+  String get settingsLanguageEnglish;
+
+  /// Judul kartu seksi tentang aplikasi
+  ///
+  /// In id, this message translates to:
+  /// **'Tentang'**
+  String get settingsSectionAbout;
+
+  /// Nama aplikasi pada baris tentang (tidak diterjemahkan)
+  ///
+  /// In id, this message translates to:
+  /// **'Inventra Mobile'**
+  String get settingsAppName;
+
+  /// Label versi aplikasi pada kartu tentang
+  ///
+  /// In id, this message translates to:
+  /// **'Versi {version} (build {build})'**
+  String settingsVersion(String version, String build);
+
   /// Judul app bar tab beranda
   ///
   /// In id, this message translates to:
   /// **'Beranda'**
   String get homeTitle;
-
-  /// Tooltip aksi logout sementara di app bar beranda
-  ///
-  /// In id, this message translates to:
-  /// **'Keluar'**
-  String get homeLogoutTooltip;
-
-  /// Judul dialog konfirmasi logout
-  ///
-  /// In id, this message translates to:
-  /// **'Keluar dari akun?'**
-  String get homeLogoutConfirmTitle;
-
-  /// Isi dialog konfirmasi logout
-  ///
-  /// In id, this message translates to:
-  /// **'Sesi Anda di perangkat ini akan diakhiri.'**
-  String get homeLogoutConfirmMessage;
-
-  /// Label aksi utama dialog konfirmasi logout
-  ///
-  /// In id, this message translates to:
-  /// **'Keluar'**
-  String get homeLogoutConfirmAction;
 
   /// Wordmark produk pada layar login (tidak diterjemahkan)
   ///

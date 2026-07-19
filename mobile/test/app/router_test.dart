@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -5,12 +6,14 @@ import 'package:inventra_mobile/app/router.dart';
 import 'package:inventra_mobile/core/auth/auth_controller.dart';
 import 'package:inventra_mobile/core/auth/auth_session.dart';
 import 'package:inventra_mobile/core/masterdata/reference_lookup_repository.dart';
+import 'package:inventra_mobile/features/account/data/account_repository.dart';
 import 'package:inventra_mobile/features/asset_detail/data/asset_detail_repository.dart';
 import 'package:inventra_mobile/features/asset_detail/data/asset_dto.dart';
 import 'package:inventra_mobile/features/login/presentation/login_screen.dart';
 import 'package:inventra_mobile/features/stock_opname/data/stock_opname_repository.dart';
 import 'package:inventra_mobile/features/stock_opname/data/stock_opname_session_dto.dart';
 
+import '../helpers/fake_account_repository.dart';
 import '../helpers/fake_auth_controller.dart';
 import '../helpers/fake_reference_lookup.dart';
 import '../helpers/fake_stock_opname_repository.dart';
@@ -41,6 +44,9 @@ void main() {
         referenceLookupRepositoryProvider.overrideWithValue(
           FakeReferenceLookup(),
         ),
+        // Rute /account kini layar Profil nyata (Task 12) — jalur HTTP daftar
+        // sesinya diputus dengan repository palsu.
+        accountRepositoryProvider.overrideWithValue(FakeAccountRepository()),
         // Rute /stock-opname/* kini layar nyata (Task 10) — jalur HTTP-nya
         // diputus dengan repository palsu berisi satu sesi.
         stockOpnameRepositoryProvider.overrideWithValue(
@@ -122,9 +128,9 @@ void main() {
       expect(find.text(l10nId.assetDetailTitle), findsNothing);
     });
 
-    // Logout sementara menumpang di placeholder /account sejak Beranda
-    // menjadi layar ringkasan 1:1 (Task 11); pindah permanen di Task 12.
-    testWidgets('logout dari placeholder profil kembali ke /login', (
+    // Logout permanen di layar Profil (Task 12) — tombol Keluar berdialog
+    // konfirmasi; guard router memindahkan ke /login begitu sesi berakhir.
+    testWidgets('logout dari layar Profil kembali ke /login', (
       WidgetTester tester,
     ) async {
       final FakeAuthController fake = FakeAuthController(
@@ -137,11 +143,11 @@ void main() {
       container.read(appRouterProvider).go('/account');
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip(l10nId.homeLogoutTooltip));
+      await tester.tap(find.byKey(const ValueKey<String>('profile-logout')));
       await tester.pumpAndSettle();
-      expect(find.text(l10nId.homeLogoutConfirmTitle), findsOneWidget);
+      expect(find.text(l10nId.accountLogoutConfirmTitle), findsOneWidget);
 
-      await tester.tap(find.text(l10nId.homeLogoutConfirmAction));
+      await tester.tap(find.text(l10nId.accountLogoutConfirmAction));
       await tester.pumpAndSettle();
 
       expect(fake.logoutCalls, 1);
@@ -161,7 +167,7 @@ void main() {
       container.read(appRouterProvider).go('/account');
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip(l10nId.homeLogoutTooltip));
+      await tester.tap(find.byKey(const ValueKey<String>('profile-logout')));
       await tester.pumpAndSettle();
       await tester.tap(find.text(l10nId.commonCancel));
       await tester.pumpAndSettle();

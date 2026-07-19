@@ -189,6 +189,23 @@ abstract final class InventraScanColors {
   static const Color foregroundMuted = Color(0xD9FFFFFF);
 }
 
+/// Warna thumbnail pemilih tema layar Pengaturan (mockup "Pemilih tema"):
+/// tiap tile menggambarkan tema Terang/Gelap apa adanya dan TIDAK mengikuti
+/// tema aktif, sehingga nilainya konstan di sini (pola [InventraScanColors]).
+abstract final class InventraThemePreviewColors {
+  static const Color lightBackground = Color(0xFFF8FAFC);
+  static const Color lightSurface = Color(0xFFFFFFFF);
+  static const Color lightBorder = Color(0xFFE2E8F0);
+  static const Color lightAccent = Color(0xFFDCFCE7);
+  static const Color lightBlock = Color(0xFFE2E8F0);
+
+  static const Color darkBackground = Color(0xFF0F172A);
+  static const Color darkSurface = Color(0xFF1E293B);
+  static const Color darkBorder = Color(0xFF334155);
+  static const Color darkAccent = Color(0xFF14532D);
+  static const Color darkBlock = Color(0xFF334155);
+}
+
 /// Satu triplet warna chip status: titik indikator, latar, dan teks.
 @immutable
 class StatusColorSet {

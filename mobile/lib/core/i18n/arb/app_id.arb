@@ -4,14 +4,6 @@
   "@appTitle": {
     "description": "Nama aplikasi, dipakai sebagai judul app"
   },
-  "commonComingSoon": "Segera hadir",
-  "@commonComingSoon": {
-    "description": "Placeholder untuk fitur yang belum dibangun"
-  },
-  "commonComingSoonBody": "Layar ini sedang dibangun dan akan tersedia pada pembaruan berikutnya.",
-  "@commonComingSoonBody": {
-    "description": "Subjudul placeholder rute yang layarnya belum dibangun"
-  },
   "commonRetry": "Coba lagi",
   "@commonRetry": {
     "description": "Label tombol coba ulang setelah error"
@@ -274,29 +266,215 @@
   "@accountTitle": {
     "description": "Judul layar profil dan sesi device"
   },
+  "accountSettingsButton": "Pengaturan",
+  "@accountSettingsButton": {
+    "description": "Label entri Pengaturan di app bar layar Profil"
+  },
+  "accountEditOnWeb": "Penyuntingan profil dilakukan dari aplikasi web",
+  "@accountEditOnWeb": {
+    "description": "Catatan kartu identitas: data diri diubah lewat web"
+  },
+  "accountSessionsTitle": "Sesi Perangkat",
+  "@accountSessionsTitle": {
+    "description": "Judul kartu daftar sesi device aktif"
+  },
+  "accountSessionCurrentBadge": "Perangkat ini",
+  "@accountSessionCurrentBadge": {
+    "description": "Badge penanda sesi yang sedang dipakai"
+  },
+  "accountSessionActiveNow": "aktif sekarang",
+  "@accountSessionActiveNow": {
+    "description": "Label waktu sesi ini (menggantikan last_seen relatif)"
+  },
+  "accountSessionRevoke": "Cabut",
+  "@accountSessionRevoke": {
+    "description": "Label tombol cabut satu sesi lain"
+  },
+  "accountSessionRevokeConfirmTitle": "Cabut sesi ini?",
+  "@accountSessionRevokeConfirmTitle": {
+    "description": "Judul dialog konfirmasi cabut satu sesi"
+  },
+  "accountSessionRevokeConfirmBody": "{name} akan keluar dan harus masuk kembali.",
+  "@accountSessionRevokeConfirmBody": {
+    "description": "Isi dialog konfirmasi cabut satu sesi",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "accountSessionRevokeConfirmAction": "Ya, Cabut",
+  "@accountSessionRevokeConfirmAction": {
+    "description": "Label aksi utama dialog cabut satu sesi"
+  },
+  "accountSessionRevokedSnack": "Sesi {name} dicabut",
+  "@accountSessionRevokedSnack": {
+    "description": "Snackbar setelah satu sesi berhasil dicabut",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "accountSessionRevokeFailed": "Gagal mencabut sesi. Coba lagi.",
+  "@accountSessionRevokeFailed": {
+    "description": "Snackbar saat server menolak pencabutan satu sesi"
+  },
+  "accountRevokeOthers": "Keluar dari semua perangkat lain",
+  "@accountRevokeOthers": {
+    "description": "Label tombol cabut semua sesi lain sekaligus"
+  },
+  "accountRevokeOthersConfirmTitle": "Keluar dari semua perangkat lain?",
+  "@accountRevokeOthersConfirmTitle": {
+    "description": "Judul dialog konfirmasi cabut semua sesi lain"
+  },
+  "accountRevokeOthersConfirmBody": "{count} sesi lain akan dicabut. Perangkat ini tetap masuk.",
+  "@accountRevokeOthersConfirmBody": {
+    "description": "Isi dialog konfirmasi cabut semua sesi lain",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountRevokeOthersConfirmAction": "Ya, Keluar",
+  "@accountRevokeOthersConfirmAction": {
+    "description": "Label aksi utama dialog cabut semua sesi lain"
+  },
+  "accountRevokeOthersFailed": "Gagal mencabut sesi lain. Coba lagi.",
+  "@accountRevokeOthersFailed": {
+    "description": "Snackbar saat server menolak cabut semua sesi lain"
+  },
+  "accountSessionsEmpty": "Belum ada sesi aktif yang tercatat.",
+  "@accountSessionsEmpty": {
+    "description": "Isi kartu sesi saat daftar dari server kosong"
+  },
+  "accountSessionsErrorBody": "Gagal memuat sesi perangkat.",
+  "@accountSessionsErrorBody": {
+    "description": "Pesan error kartu sesi (dengan tombol coba lagi)"
+  },
+  "accountLogout": "Keluar",
+  "@accountLogout": {
+    "description": "Label tombol logout layar Profil"
+  },
+  "accountLogoutConfirmTitle": "Keluar dari akun?",
+  "@accountLogoutConfirmTitle": {
+    "description": "Judul dialog konfirmasi logout"
+  },
+  "accountLogoutConfirmBody": "Sesi Anda di perangkat ini akan diakhiri.",
+  "@accountLogoutConfirmBody": {
+    "description": "Isi dialog konfirmasi logout"
+  },
+  "accountLogoutConfirmAction": "Ya, Keluar",
+  "@accountLogoutConfirmAction": {
+    "description": "Label aksi utama dialog konfirmasi logout"
+  },
+  "accountTimeJustNow": "baru saja",
+  "@accountTimeJustNow": {
+    "description": "last_seen sesi < 1 menit lalu"
+  },
+  "accountTimeMinutesAgo": "{count} mnt lalu",
+  "@accountTimeMinutesAgo": {
+    "description": "last_seen sesi dalam menit",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountTimeHoursAgo": "{count} jam lalu",
+  "@accountTimeHoursAgo": {
+    "description": "last_seen sesi dalam jam",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountTimeYesterday": "kemarin",
+  "@accountTimeYesterday": {
+    "description": "last_seen sesi 24-48 jam lalu"
+  },
+  "accountTimeDaysAgo": "{count} hari lalu",
+  "@accountTimeDaysAgo": {
+    "description": "last_seen sesi dalam hari (< 7 hari)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "settingsTitle": "Pengaturan",
   "@settingsTitle": {
     "description": "Judul layar pengaturan"
   },
+  "settingsSectionAppearance": "Tampilan",
+  "@settingsSectionAppearance": {
+    "description": "Judul kartu seksi tampilan (tema + bahasa)"
+  },
+  "settingsTheme": "Tema",
+  "@settingsTheme": {
+    "description": "Judul baris pengaturan tema"
+  },
+  "settingsThemeLight": "Terang",
+  "@settingsThemeLight": {
+    "description": "Opsi tema terang"
+  },
+  "settingsThemeDark": "Gelap",
+  "@settingsThemeDark": {
+    "description": "Opsi tema gelap"
+  },
+  "settingsThemeSystem": "Ikuti Sistem",
+  "@settingsThemeSystem": {
+    "description": "Opsi tema mengikuti sistem"
+  },
+  "settingsThemeSheetTitle": "Pilih tema",
+  "@settingsThemeSheetTitle": {
+    "description": "Judul bottom sheet pemilih tema"
+  },
+  "settingsThemeApply": "Terapkan",
+  "@settingsThemeApply": {
+    "description": "Label tombol terapkan pada sheet pemilih tema"
+  },
+  "settingsLanguage": "Bahasa",
+  "@settingsLanguage": {
+    "description": "Judul baris pengaturan bahasa"
+  },
+  "settingsLanguageSheetTitle": "Pilih bahasa",
+  "@settingsLanguageSheetTitle": {
+    "description": "Judul bottom sheet pemilih bahasa"
+  },
+  "settingsLanguageIndonesian": "Indonesia",
+  "@settingsLanguageIndonesian": {
+    "description": "Nama bahasa Indonesia (ditulis dalam bahasanya sendiri)"
+  },
+  "settingsLanguageEnglish": "English",
+  "@settingsLanguageEnglish": {
+    "description": "Nama bahasa Inggris (ditulis dalam bahasanya sendiri)"
+  },
+  "settingsSectionAbout": "Tentang",
+  "@settingsSectionAbout": {
+    "description": "Judul kartu seksi tentang aplikasi"
+  },
+  "settingsAppName": "Inventra Mobile",
+  "@settingsAppName": {
+    "description": "Nama aplikasi pada baris tentang (tidak diterjemahkan)"
+  },
+  "settingsVersion": "Versi {version} (build {build})",
+  "@settingsVersion": {
+    "description": "Label versi aplikasi pada kartu tentang",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "build": {
+        "type": "String"
+      }
+    }
+  },
   "homeTitle": "Beranda",
   "@homeTitle": {
     "description": "Judul app bar tab beranda"
-  },
-  "homeLogoutTooltip": "Keluar",
-  "@homeLogoutTooltip": {
-    "description": "Tooltip aksi logout sementara di app bar beranda"
-  },
-  "homeLogoutConfirmTitle": "Keluar dari akun?",
-  "@homeLogoutConfirmTitle": {
-    "description": "Judul dialog konfirmasi logout"
-  },
-  "homeLogoutConfirmMessage": "Sesi Anda di perangkat ini akan diakhiri.",
-  "@homeLogoutConfirmMessage": {
-    "description": "Isi dialog konfirmasi logout"
-  },
-  "homeLogoutConfirmAction": "Keluar",
-  "@homeLogoutConfirmAction": {
-    "description": "Label aksi utama dialog konfirmasi logout"
   },
   "loginBrandName": "Inventra",
   "@loginBrandName": {
