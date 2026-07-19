@@ -77,6 +77,187 @@
   "@assetDetailTitle": {
     "description": "Judul layar detail aset"
   },
+  "scanTitle": "Pindai Label Aset",
+  "@scanTitle": {
+    "description": "Judul overlay layar scan"
+  },
+  "scanHint": "Arahkan ke barcode / QR pada label aset",
+  "@scanHint": {
+    "description": "Pill petunjuk di bawah bingkai target scan"
+  },
+  "scanManualButton": "Ketik kode manual",
+  "@scanManualButton": {
+    "description": "Label tombol pembuka bottom sheet input tag manual"
+  },
+  "scanCloseTooltip": "Tutup pemindai",
+  "@scanCloseTooltip": {
+    "description": "Tooltip tombol tutup di layar scan"
+  },
+  "scanTorchOnTooltip": "Nyalakan senter",
+  "@scanTorchOnTooltip": {
+    "description": "Tooltip toggle torch saat senter mati"
+  },
+  "scanTorchOffTooltip": "Matikan senter",
+  "@scanTorchOffTooltip": {
+    "description": "Tooltip toggle torch saat senter menyala"
+  },
+  "scanCameraUnavailableTitle": "Kamera tidak tersedia",
+  "@scanCameraUnavailableTitle": {
+    "description": "Judul state kamera gagal (izin ditolak/emulator)"
+  },
+  "scanCameraUnavailableBody": "Izinkan akses kamera di pengaturan perangkat, atau gunakan input kode manual.",
+  "@scanCameraUnavailableBody": {
+    "description": "Subjudul state kamera gagal, mengarahkan ke jalur manual"
+  },
+  "scanManualSheetTitle": "Ketik kode manual",
+  "@scanManualSheetTitle": {
+    "description": "Judul bottom sheet input tag manual"
+  },
+  "scanManualFieldLabel": "Kode aset",
+  "@scanManualFieldLabel": {
+    "description": "Label field kode aset pada sheet input manual"
+  },
+  "scanManualFieldHint": "JKT01-ELK-2026-00001",
+  "@scanManualFieldHint": {
+    "description": "Placeholder field kode aset (contoh tag valid)"
+  },
+  "scanManualFieldHelper": "Format: KANTOR-KATEGORI-TAHUN-NOMOR",
+  "@scanManualFieldHelper": {
+    "description": "Teks bantuan format tag di bawah field kode aset"
+  },
+  "scanManualSubmit": "Cari",
+  "@scanManualSubmit": {
+    "description": "Label tombol submit pencarian tag manual"
+  },
+  "assetDetailPhotoPlaceholder": "Belum ada foto",
+  "@assetDetailPhotoPlaceholder": {
+    "description": "Keterangan placeholder saat aset tidak punya foto"
+  },
+  "assetDetailSectionPlacement": "Penempatan",
+  "@assetDetailSectionPlacement": {
+    "description": "Judul seksi penempatan (kantor/ruangan/pemegang)"
+  },
+  "assetDetailSectionInfo": "Informasi",
+  "@assetDetailSectionInfo": {
+    "description": "Judul seksi informasi umum aset"
+  },
+  "assetDetailSectionValue": "Nilai",
+  "@assetDetailSectionValue": {
+    "description": "Judul seksi nilai finansial aset"
+  },
+  "assetDetailFieldOffice": "Kantor",
+  "@assetDetailFieldOffice": {
+    "description": "Label baris kantor pemilik aset"
+  },
+  "assetDetailFieldRoom": "Lantai / Ruangan",
+  "@assetDetailFieldRoom": {
+    "description": "Label baris ruangan penempatan aset"
+  },
+  "assetDetailFieldHolder": "Pemegang saat ini",
+  "@assetDetailFieldHolder": {
+    "description": "Label baris pegawai pemegang aset"
+  },
+  "assetDetailFieldCategory": "Kategori",
+  "@assetDetailFieldCategory": {
+    "description": "Label baris kategori aset"
+  },
+  "assetDetailFieldBrandModel": "Brand / Model",
+  "@assetDetailFieldBrandModel": {
+    "description": "Label baris brand dan model aset"
+  },
+  "assetDetailFieldSerial": "No. seri",
+  "@assetDetailFieldSerial": {
+    "description": "Label baris nomor seri aset"
+  },
+  "assetDetailFieldPurchaseDate": "Tanggal beli",
+  "@assetDetailFieldPurchaseDate": {
+    "description": "Label baris tanggal pembelian aset"
+  },
+  "assetDetailFieldVendor": "Vendor",
+  "@assetDetailFieldVendor": {
+    "description": "Label baris vendor pengadaan aset"
+  },
+  "assetDetailFieldPurchaseCost": "Harga beli",
+  "@assetDetailFieldPurchaseCost": {
+    "description": "Label baris harga beli aset"
+  },
+  "assetDetailFieldBookValue": "Nilai buku",
+  "@assetDetailFieldBookValue": {
+    "description": "Label baris nilai buku aset"
+  },
+  "assetDetailRestrictedBadge": "Dibatasi untuk peran Anda",
+  "@assetDetailRestrictedBadge": {
+    "description": "Badge pada seksi yang sebagian fieldnya dimask field permission"
+  },
+  "assetDetailRestrictedTooltip": "Field ini dibatasi untuk peran Anda",
+  "@assetDetailRestrictedTooltip": {
+    "description": "Tooltip ikon gembok pada nilai yang dimask field permission"
+  },
+  "assetDetailStatusAvailable": "Tersedia",
+  "@assetDetailStatusAvailable": {
+    "description": "Label chip status aset available"
+  },
+  "assetDetailStatusAssigned": "Dipinjam",
+  "@assetDetailStatusAssigned": {
+    "description": "Label chip status aset assigned"
+  },
+  "assetDetailStatusUnderMaintenance": "Maintenance",
+  "@assetDetailStatusUnderMaintenance": {
+    "description": "Label chip status aset under_maintenance"
+  },
+  "assetDetailStatusInTransfer": "Dalam Mutasi",
+  "@assetDetailStatusInTransfer": {
+    "description": "Label chip status aset in_transfer"
+  },
+  "assetDetailStatusRetired": "Purna Pakai",
+  "@assetDetailStatusRetired": {
+    "description": "Label chip status aset retired"
+  },
+  "assetDetailStatusDisposed": "Dilepas",
+  "@assetDetailStatusDisposed": {
+    "description": "Label chip status aset disposed"
+  },
+  "assetDetailStatusLost": "Hilang",
+  "@assetDetailStatusLost": {
+    "description": "Label chip status aset lost"
+  },
+  "assetDetailErrorTitle": "Gagal memuat detail aset",
+  "@assetDetailErrorTitle": {
+    "description": "Judul empty state error umum detail aset"
+  },
+  "assetDetailErrorNetworkBody": "Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.",
+  "@assetDetailErrorNetworkBody": {
+    "description": "Subjudul error detail aset saat offline/gangguan jaringan"
+  },
+  "assetDetailErrorGenericBody": "Terjadi kesalahan. Coba lagi.",
+  "@assetDetailErrorGenericBody": {
+    "description": "Subjudul error detail aset untuk kegagalan lain"
+  },
+  "assetDetailForbiddenTitle": "Akses dibatasi",
+  "@assetDetailForbiddenTitle": {
+    "description": "Judul empty state 403 detail aset"
+  },
+  "assetDetailForbiddenBody": "Peran Anda tidak memiliki izin melihat aset.",
+  "@assetDetailForbiddenBody": {
+    "description": "Subjudul empty state 403 detail aset"
+  },
+  "assetDetailNotFoundTitle": "Kode tidak dikenal",
+  "@assetDetailNotFoundTitle": {
+    "description": "Judul empty state 404 detail aset"
+  },
+  "assetDetailNotFoundBody": "Kode {tag} tidak terdaftar, atau aset ini di luar wewenang Anda.",
+  "@assetDetailNotFoundBody": {
+    "description": "Subjudul empty state 404 detail aset dengan tag yang dicari",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "assetDetailScanAgain": "Pindai Lagi",
+  "@assetDetailScanAgain": {
+    "description": "Label aksi kembali memindai dari empty state 404"
+  },
   "approvalDetailTitle": "Detail Approval",
   "@approvalDetailTitle": {
     "description": "Judul layar detail approval"

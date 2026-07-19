@@ -5,9 +5,11 @@ import 'package:inventra_mobile/app/theme.dart';
 import 'package:inventra_mobile/core/auth/auth_controller.dart';
 import 'package:inventra_mobile/core/auth/auth_session.dart';
 import 'package:inventra_mobile/features/notifications/presentation/unread_count_provider.dart';
+import 'package:inventra_mobile/features/scan/presentation/scan_camera.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../helpers/fake_auth_controller.dart';
+import '../helpers/fake_scan_camera.dart';
 import '../helpers/test_app.dart';
 
 void main() {
@@ -19,6 +21,9 @@ void main() {
               FakeAuthController(initialSession: const Authenticated(fakeUser)),
         ),
         unreadNotificationCountProvider.overrideWithValue(unreadCount),
+        // Branch scan membangun layar kamera nyata sejak Task 8 — tes shell
+        // menggantinya dengan stub tanpa plugin.
+        scanCameraFactoryProvider.overrideWithValue(FakeScanCamera.new),
       ],
     );
   }
@@ -97,7 +102,7 @@ void main() {
     expect(opnameLabel.style?.fontWeight, FontWeight.w700);
   });
 
-  testWidgets('tombol Pindai tengah membuka tab scan', (
+  testWidgets('tombol Pindai tengah membuka layar scan full screen tanpa bar', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(RouterTestApp(container: createContainer()));
@@ -106,9 +111,10 @@ void main() {
     await tester.tap(find.byIcon(Symbols.qr_code_scanner_rounded));
     await tester.pumpAndSettle();
 
-    // App bar placeholder scan memakai judul yang sama dengan label tombol.
-    expect(find.text(l10nId.shellTabScan), findsNWidgets(2));
-    expect(find.text(l10nId.commonComingSoon), findsOneWidget);
+    // Layar scan tampil; bar bawah + FAB disembunyikan (mockup full screen).
+    expect(find.text(l10nId.scanTitle), findsOneWidget);
+    expect(navLabel(l10nId.shellTabHome), findsNothing);
+    expect(find.byIcon(Symbols.qr_code_scanner_rounded), findsNothing);
   });
 
   testWidgets('tombol Pindai bergaya FAB: primary, radius 19, border cutout', (

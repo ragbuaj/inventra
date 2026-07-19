@@ -66,6 +66,144 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assetDetailTitle => 'Asset Detail';
 
   @override
+  String get scanTitle => 'Scan Asset Label';
+
+  @override
+  String get scanHint => 'Point at the barcode / QR on the asset label';
+
+  @override
+  String get scanManualButton => 'Type code manually';
+
+  @override
+  String get scanCloseTooltip => 'Close scanner';
+
+  @override
+  String get scanTorchOnTooltip => 'Turn on flashlight';
+
+  @override
+  String get scanTorchOffTooltip => 'Turn off flashlight';
+
+  @override
+  String get scanCameraUnavailableTitle => 'Camera unavailable';
+
+  @override
+  String get scanCameraUnavailableBody =>
+      'Allow camera access in your device settings, or use manual code entry.';
+
+  @override
+  String get scanManualSheetTitle => 'Type code manually';
+
+  @override
+  String get scanManualFieldLabel => 'Asset code';
+
+  @override
+  String get scanManualFieldHint => 'JKT01-ELK-2026-00001';
+
+  @override
+  String get scanManualFieldHelper => 'Format: OFFICE-CATEGORY-YEAR-NUMBER';
+
+  @override
+  String get scanManualSubmit => 'Search';
+
+  @override
+  String get assetDetailPhotoPlaceholder => 'No photo yet';
+
+  @override
+  String get assetDetailSectionPlacement => 'Placement';
+
+  @override
+  String get assetDetailSectionInfo => 'Information';
+
+  @override
+  String get assetDetailSectionValue => 'Value';
+
+  @override
+  String get assetDetailFieldOffice => 'Office';
+
+  @override
+  String get assetDetailFieldRoom => 'Floor / Room';
+
+  @override
+  String get assetDetailFieldHolder => 'Current holder';
+
+  @override
+  String get assetDetailFieldCategory => 'Category';
+
+  @override
+  String get assetDetailFieldBrandModel => 'Brand / Model';
+
+  @override
+  String get assetDetailFieldSerial => 'Serial no.';
+
+  @override
+  String get assetDetailFieldPurchaseDate => 'Purchase date';
+
+  @override
+  String get assetDetailFieldVendor => 'Vendor';
+
+  @override
+  String get assetDetailFieldPurchaseCost => 'Purchase cost';
+
+  @override
+  String get assetDetailFieldBookValue => 'Book value';
+
+  @override
+  String get assetDetailRestrictedBadge => 'Restricted for your role';
+
+  @override
+  String get assetDetailRestrictedTooltip =>
+      'This field is restricted for your role';
+
+  @override
+  String get assetDetailStatusAvailable => 'Available';
+
+  @override
+  String get assetDetailStatusAssigned => 'Assigned';
+
+  @override
+  String get assetDetailStatusUnderMaintenance => 'Under Maintenance';
+
+  @override
+  String get assetDetailStatusInTransfer => 'In Transfer';
+
+  @override
+  String get assetDetailStatusRetired => 'Retired';
+
+  @override
+  String get assetDetailStatusDisposed => 'Disposed';
+
+  @override
+  String get assetDetailStatusLost => 'Lost';
+
+  @override
+  String get assetDetailErrorTitle => 'Failed to load asset detail';
+
+  @override
+  String get assetDetailErrorNetworkBody =>
+      'No connection. Check your network and try again.';
+
+  @override
+  String get assetDetailErrorGenericBody => 'Something went wrong. Try again.';
+
+  @override
+  String get assetDetailForbiddenTitle => 'Access restricted';
+
+  @override
+  String get assetDetailForbiddenBody =>
+      'Your role does not have permission to view assets.';
+
+  @override
+  String get assetDetailNotFoundTitle => 'Unknown code';
+
+  @override
+  String assetDetailNotFoundBody(String tag) {
+    return 'Code $tag is not registered, or this asset is outside your authority.';
+  }
+
+  @override
+  String get assetDetailScanAgain => 'Scan Again';
+
+  @override
   String get approvalDetailTitle => 'Approval Detail';
 
   @override

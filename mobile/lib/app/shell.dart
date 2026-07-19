@@ -22,6 +22,9 @@ class AppShell extends ConsumerWidget {
     // mockup; ini juga warna border cutout tombol Pindai.
     final Color barColor = theme.cardTheme.color ?? scheme.surface;
     final int unreadCount = ref.watch(unreadNotificationCountProvider);
+    // Branch scan (index 2) tampil full screen tanpa bar/FAB sesuai mockup
+    // "Inventra Mobile - Scan"; keluar lewat tombol tutup di layarnya.
+    final bool fullScreenScan = navigationShell.currentIndex == 2;
 
     return Scaffold(
       body: navigationShell,
@@ -29,62 +32,68 @@ class AppShell extends ConsumerWidget {
       // bisa di-tap penuh (widget yang hanya digeser secara visual kehilangan
       // hit-test di luar bounds slot-nya).
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: _ScanFab(
-        label: l10n.shellTabScan,
-        barColor: barColor,
-        onPressed: () => navigationShell.goBranch(
-          2,
-          initialLocation: navigationShell.currentIndex == 2,
-        ),
-      ),
-      bottomNavigationBar: Material(
-        color: barColor,
-        child: SafeArea(
-          top: false,
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: scheme.outlineVariant)),
+      floatingActionButton: fullScreenScan
+          ? null
+          : _ScanFab(
+              label: l10n.shellTabScan,
+              barColor: barColor,
+              onPressed: () => navigationShell.goBranch(
+                2,
+                initialLocation: navigationShell.currentIndex == 2,
+              ),
             ),
-            padding: const EdgeInsets.fromLTRB(8, 10, 8, 6),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: <Widget>[
-                _NavTab(
-                  shell: navigationShell,
-                  index: 0,
-                  icon: Symbols.home_rounded,
-                  label: l10n.shellTabHome,
+      bottomNavigationBar: fullScreenScan
+          ? null
+          : Material(
+              color: barColor,
+              child: SafeArea(
+                top: false,
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: scheme.outlineVariant),
+                    ),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(8, 10, 8, 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: <Widget>[
+                      _NavTab(
+                        shell: navigationShell,
+                        index: 0,
+                        icon: Symbols.home_rounded,
+                        label: l10n.shellTabHome,
+                      ),
+                      _NavTab(
+                        shell: navigationShell,
+                        index: 1,
+                        icon: Symbols.fact_check_rounded,
+                        label: l10n.shellTabOpname,
+                      ),
+                      _ScanSlot(
+                        shell: navigationShell,
+                        index: 2,
+                        label: l10n.shellTabScan,
+                      ),
+                      _NavTab(
+                        shell: navigationShell,
+                        index: 3,
+                        icon: Symbols.approval_rounded,
+                        label: l10n.shellTabApproval,
+                      ),
+                      _NavTab(
+                        shell: navigationShell,
+                        index: 4,
+                        icon: Symbols.notifications_rounded,
+                        label: l10n.shellTabNotifications,
+                        badgeCount: unreadCount,
+                        badgeBorderColor: barColor,
+                      ),
+                    ],
+                  ),
                 ),
-                _NavTab(
-                  shell: navigationShell,
-                  index: 1,
-                  icon: Symbols.fact_check_rounded,
-                  label: l10n.shellTabOpname,
-                ),
-                _ScanSlot(
-                  shell: navigationShell,
-                  index: 2,
-                  label: l10n.shellTabScan,
-                ),
-                _NavTab(
-                  shell: navigationShell,
-                  index: 3,
-                  icon: Symbols.approval_rounded,
-                  label: l10n.shellTabApproval,
-                ),
-                _NavTab(
-                  shell: navigationShell,
-                  index: 4,
-                  icon: Symbols.notifications_rounded,
-                  label: l10n.shellTabNotifications,
-                  badgeCount: unreadCount,
-                  badgeBorderColor: barColor,
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ),
     );
   }
 }

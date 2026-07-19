@@ -206,6 +206,270 @@ abstract class AppLocalizations {
   /// **'Detail Aset'**
   String get assetDetailTitle;
 
+  /// Judul overlay layar scan
+  ///
+  /// In id, this message translates to:
+  /// **'Pindai Label Aset'**
+  String get scanTitle;
+
+  /// Pill petunjuk di bawah bingkai target scan
+  ///
+  /// In id, this message translates to:
+  /// **'Arahkan ke barcode / QR pada label aset'**
+  String get scanHint;
+
+  /// Label tombol pembuka bottom sheet input tag manual
+  ///
+  /// In id, this message translates to:
+  /// **'Ketik kode manual'**
+  String get scanManualButton;
+
+  /// Tooltip tombol tutup di layar scan
+  ///
+  /// In id, this message translates to:
+  /// **'Tutup pemindai'**
+  String get scanCloseTooltip;
+
+  /// Tooltip toggle torch saat senter mati
+  ///
+  /// In id, this message translates to:
+  /// **'Nyalakan senter'**
+  String get scanTorchOnTooltip;
+
+  /// Tooltip toggle torch saat senter menyala
+  ///
+  /// In id, this message translates to:
+  /// **'Matikan senter'**
+  String get scanTorchOffTooltip;
+
+  /// Judul state kamera gagal (izin ditolak/emulator)
+  ///
+  /// In id, this message translates to:
+  /// **'Kamera tidak tersedia'**
+  String get scanCameraUnavailableTitle;
+
+  /// Subjudul state kamera gagal, mengarahkan ke jalur manual
+  ///
+  /// In id, this message translates to:
+  /// **'Izinkan akses kamera di pengaturan perangkat, atau gunakan input kode manual.'**
+  String get scanCameraUnavailableBody;
+
+  /// Judul bottom sheet input tag manual
+  ///
+  /// In id, this message translates to:
+  /// **'Ketik kode manual'**
+  String get scanManualSheetTitle;
+
+  /// Label field kode aset pada sheet input manual
+  ///
+  /// In id, this message translates to:
+  /// **'Kode aset'**
+  String get scanManualFieldLabel;
+
+  /// Placeholder field kode aset (contoh tag valid)
+  ///
+  /// In id, this message translates to:
+  /// **'JKT01-ELK-2026-00001'**
+  String get scanManualFieldHint;
+
+  /// Teks bantuan format tag di bawah field kode aset
+  ///
+  /// In id, this message translates to:
+  /// **'Format: KANTOR-KATEGORI-TAHUN-NOMOR'**
+  String get scanManualFieldHelper;
+
+  /// Label tombol submit pencarian tag manual
+  ///
+  /// In id, this message translates to:
+  /// **'Cari'**
+  String get scanManualSubmit;
+
+  /// Keterangan placeholder saat aset tidak punya foto
+  ///
+  /// In id, this message translates to:
+  /// **'Belum ada foto'**
+  String get assetDetailPhotoPlaceholder;
+
+  /// Judul seksi penempatan (kantor/ruangan/pemegang)
+  ///
+  /// In id, this message translates to:
+  /// **'Penempatan'**
+  String get assetDetailSectionPlacement;
+
+  /// Judul seksi informasi umum aset
+  ///
+  /// In id, this message translates to:
+  /// **'Informasi'**
+  String get assetDetailSectionInfo;
+
+  /// Judul seksi nilai finansial aset
+  ///
+  /// In id, this message translates to:
+  /// **'Nilai'**
+  String get assetDetailSectionValue;
+
+  /// Label baris kantor pemilik aset
+  ///
+  /// In id, this message translates to:
+  /// **'Kantor'**
+  String get assetDetailFieldOffice;
+
+  /// Label baris ruangan penempatan aset
+  ///
+  /// In id, this message translates to:
+  /// **'Lantai / Ruangan'**
+  String get assetDetailFieldRoom;
+
+  /// Label baris pegawai pemegang aset
+  ///
+  /// In id, this message translates to:
+  /// **'Pemegang saat ini'**
+  String get assetDetailFieldHolder;
+
+  /// Label baris kategori aset
+  ///
+  /// In id, this message translates to:
+  /// **'Kategori'**
+  String get assetDetailFieldCategory;
+
+  /// Label baris brand dan model aset
+  ///
+  /// In id, this message translates to:
+  /// **'Brand / Model'**
+  String get assetDetailFieldBrandModel;
+
+  /// Label baris nomor seri aset
+  ///
+  /// In id, this message translates to:
+  /// **'No. seri'**
+  String get assetDetailFieldSerial;
+
+  /// Label baris tanggal pembelian aset
+  ///
+  /// In id, this message translates to:
+  /// **'Tanggal beli'**
+  String get assetDetailFieldPurchaseDate;
+
+  /// Label baris vendor pengadaan aset
+  ///
+  /// In id, this message translates to:
+  /// **'Vendor'**
+  String get assetDetailFieldVendor;
+
+  /// Label baris harga beli aset
+  ///
+  /// In id, this message translates to:
+  /// **'Harga beli'**
+  String get assetDetailFieldPurchaseCost;
+
+  /// Label baris nilai buku aset
+  ///
+  /// In id, this message translates to:
+  /// **'Nilai buku'**
+  String get assetDetailFieldBookValue;
+
+  /// Badge pada seksi yang sebagian fieldnya dimask field permission
+  ///
+  /// In id, this message translates to:
+  /// **'Dibatasi untuk peran Anda'**
+  String get assetDetailRestrictedBadge;
+
+  /// Tooltip ikon gembok pada nilai yang dimask field permission
+  ///
+  /// In id, this message translates to:
+  /// **'Field ini dibatasi untuk peran Anda'**
+  String get assetDetailRestrictedTooltip;
+
+  /// Label chip status aset available
+  ///
+  /// In id, this message translates to:
+  /// **'Tersedia'**
+  String get assetDetailStatusAvailable;
+
+  /// Label chip status aset assigned
+  ///
+  /// In id, this message translates to:
+  /// **'Dipinjam'**
+  String get assetDetailStatusAssigned;
+
+  /// Label chip status aset under_maintenance
+  ///
+  /// In id, this message translates to:
+  /// **'Maintenance'**
+  String get assetDetailStatusUnderMaintenance;
+
+  /// Label chip status aset in_transfer
+  ///
+  /// In id, this message translates to:
+  /// **'Dalam Mutasi'**
+  String get assetDetailStatusInTransfer;
+
+  /// Label chip status aset retired
+  ///
+  /// In id, this message translates to:
+  /// **'Purna Pakai'**
+  String get assetDetailStatusRetired;
+
+  /// Label chip status aset disposed
+  ///
+  /// In id, this message translates to:
+  /// **'Dilepas'**
+  String get assetDetailStatusDisposed;
+
+  /// Label chip status aset lost
+  ///
+  /// In id, this message translates to:
+  /// **'Hilang'**
+  String get assetDetailStatusLost;
+
+  /// Judul empty state error umum detail aset
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat detail aset'**
+  String get assetDetailErrorTitle;
+
+  /// Subjudul error detail aset saat offline/gangguan jaringan
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.'**
+  String get assetDetailErrorNetworkBody;
+
+  /// Subjudul error detail aset untuk kegagalan lain
+  ///
+  /// In id, this message translates to:
+  /// **'Terjadi kesalahan. Coba lagi.'**
+  String get assetDetailErrorGenericBody;
+
+  /// Judul empty state 403 detail aset
+  ///
+  /// In id, this message translates to:
+  /// **'Akses dibatasi'**
+  String get assetDetailForbiddenTitle;
+
+  /// Subjudul empty state 403 detail aset
+  ///
+  /// In id, this message translates to:
+  /// **'Peran Anda tidak memiliki izin melihat aset.'**
+  String get assetDetailForbiddenBody;
+
+  /// Judul empty state 404 detail aset
+  ///
+  /// In id, this message translates to:
+  /// **'Kode tidak dikenal'**
+  String get assetDetailNotFoundTitle;
+
+  /// Subjudul empty state 404 detail aset dengan tag yang dicari
+  ///
+  /// In id, this message translates to:
+  /// **'Kode {tag} tidak terdaftar, atau aset ini di luar wewenang Anda.'**
+  String assetDetailNotFoundBody(String tag);
+
+  /// Label aksi kembali memindai dari empty state 404
+  ///
+  /// In id, this message translates to:
+  /// **'Pindai Lagi'**
+  String get assetDetailScanAgain;
+
   /// Judul layar detail approval
   ///
   /// In id, this message translates to:

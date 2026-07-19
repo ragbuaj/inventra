@@ -4,17 +4,41 @@ import 'package:go_router/go_router.dart';
 import 'package:inventra_mobile/app/router.dart';
 import 'package:inventra_mobile/core/auth/auth_controller.dart';
 import 'package:inventra_mobile/core/auth/auth_session.dart';
+import 'package:inventra_mobile/core/masterdata/reference_lookup_repository.dart';
+import 'package:inventra_mobile/features/asset_detail/data/asset_detail_repository.dart';
+import 'package:inventra_mobile/features/asset_detail/data/asset_dto.dart';
 import 'package:inventra_mobile/features/login/presentation/login_screen.dart';
 
 import '../helpers/fake_auth_controller.dart';
+import '../helpers/fake_reference_lookup.dart';
 import '../helpers/test_app.dart';
+
+/// Stub repository detail aset: rute `/assets/:tag` kini layar nyata (Task 8)
+/// sehingga tes router harus memutus jalur HTTP-nya.
+class _StubAssetDetailRepository implements AssetDetailRepository {
+  @override
+  Future<AssetDetailData> getByTag(String tag) async => AssetDetailData(
+    asset: AssetDto(assetTag: tag, name: 'Aset Uji', status: 'available'),
+    maskedFields: const <String>{},
+  );
+}
 
 void main() {
   late ProviderContainer container;
 
   ProviderContainer createContainer(FakeAuthController fake) {
     return ProviderContainer.test(
-      overrides: [authControllerProvider.overrideWith(() => fake)],
+      overrides: [
+        authControllerProvider.overrideWith(() => fake),
+        assetDetailRepositoryProvider.overrideWithValue(
+          _StubAssetDetailRepository(),
+        ),
+        // Lookup nama referensi diputus dari HTTP nyata (non-fatal, hasil
+        // null berarti sel em-dash — cukup untuk asersi rute).
+        referenceLookupRepositoryProvider.overrideWithValue(
+          FakeReferenceLookup(),
+        ),
+      ],
     );
   }
 
@@ -131,7 +155,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(l10nId.assetDetailTitle), findsOneWidget);
-      expect(find.text(l10nId.commonComingSoon), findsOneWidget);
+      expect(find.text('Aset Uji'), findsOneWidget);
+      expect(find.text('JKT01-ELK-2026-00001'), findsOneWidget);
       expect(find.text(l10nId.shellTabScan), findsNothing);
     });
 

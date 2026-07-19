@@ -66,6 +66,144 @@ class AppLocalizationsId extends AppLocalizations {
   String get assetDetailTitle => 'Detail Aset';
 
   @override
+  String get scanTitle => 'Pindai Label Aset';
+
+  @override
+  String get scanHint => 'Arahkan ke barcode / QR pada label aset';
+
+  @override
+  String get scanManualButton => 'Ketik kode manual';
+
+  @override
+  String get scanCloseTooltip => 'Tutup pemindai';
+
+  @override
+  String get scanTorchOnTooltip => 'Nyalakan senter';
+
+  @override
+  String get scanTorchOffTooltip => 'Matikan senter';
+
+  @override
+  String get scanCameraUnavailableTitle => 'Kamera tidak tersedia';
+
+  @override
+  String get scanCameraUnavailableBody =>
+      'Izinkan akses kamera di pengaturan perangkat, atau gunakan input kode manual.';
+
+  @override
+  String get scanManualSheetTitle => 'Ketik kode manual';
+
+  @override
+  String get scanManualFieldLabel => 'Kode aset';
+
+  @override
+  String get scanManualFieldHint => 'JKT01-ELK-2026-00001';
+
+  @override
+  String get scanManualFieldHelper => 'Format: KANTOR-KATEGORI-TAHUN-NOMOR';
+
+  @override
+  String get scanManualSubmit => 'Cari';
+
+  @override
+  String get assetDetailPhotoPlaceholder => 'Belum ada foto';
+
+  @override
+  String get assetDetailSectionPlacement => 'Penempatan';
+
+  @override
+  String get assetDetailSectionInfo => 'Informasi';
+
+  @override
+  String get assetDetailSectionValue => 'Nilai';
+
+  @override
+  String get assetDetailFieldOffice => 'Kantor';
+
+  @override
+  String get assetDetailFieldRoom => 'Lantai / Ruangan';
+
+  @override
+  String get assetDetailFieldHolder => 'Pemegang saat ini';
+
+  @override
+  String get assetDetailFieldCategory => 'Kategori';
+
+  @override
+  String get assetDetailFieldBrandModel => 'Brand / Model';
+
+  @override
+  String get assetDetailFieldSerial => 'No. seri';
+
+  @override
+  String get assetDetailFieldPurchaseDate => 'Tanggal beli';
+
+  @override
+  String get assetDetailFieldVendor => 'Vendor';
+
+  @override
+  String get assetDetailFieldPurchaseCost => 'Harga beli';
+
+  @override
+  String get assetDetailFieldBookValue => 'Nilai buku';
+
+  @override
+  String get assetDetailRestrictedBadge => 'Dibatasi untuk peran Anda';
+
+  @override
+  String get assetDetailRestrictedTooltip =>
+      'Field ini dibatasi untuk peran Anda';
+
+  @override
+  String get assetDetailStatusAvailable => 'Tersedia';
+
+  @override
+  String get assetDetailStatusAssigned => 'Dipinjam';
+
+  @override
+  String get assetDetailStatusUnderMaintenance => 'Maintenance';
+
+  @override
+  String get assetDetailStatusInTransfer => 'Dalam Mutasi';
+
+  @override
+  String get assetDetailStatusRetired => 'Purna Pakai';
+
+  @override
+  String get assetDetailStatusDisposed => 'Dilepas';
+
+  @override
+  String get assetDetailStatusLost => 'Hilang';
+
+  @override
+  String get assetDetailErrorTitle => 'Gagal memuat detail aset';
+
+  @override
+  String get assetDetailErrorNetworkBody =>
+      'Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.';
+
+  @override
+  String get assetDetailErrorGenericBody => 'Terjadi kesalahan. Coba lagi.';
+
+  @override
+  String get assetDetailForbiddenTitle => 'Akses dibatasi';
+
+  @override
+  String get assetDetailForbiddenBody =>
+      'Peran Anda tidak memiliki izin melihat aset.';
+
+  @override
+  String get assetDetailNotFoundTitle => 'Kode tidak dikenal';
+
+  @override
+  String assetDetailNotFoundBody(String tag) {
+    return 'Kode $tag tidak terdaftar, atau aset ini di luar wewenang Anda.';
+  }
+
+  @override
+  String get assetDetailScanAgain => 'Pindai Lagi';
+
+  @override
   String get approvalDetailTitle => 'Detail Approval';
 
   @override

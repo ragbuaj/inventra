@@ -163,6 +163,32 @@ abstract final class InventraDimens {
   static const double titleLetterSpacingEm = -0.02;
 }
 
+/// Warna layar Scan dari mockup "Inventra Mobile - Scan": viewfinder gelap di
+/// KEDUA tema (permukaan kamera tidak mengikuti light/dark), sehingga nilainya
+/// konstan di sini, bukan dari [ColorScheme].
+abstract final class InventraScanColors {
+  /// Latar viewfinder saat kamera belum/tidak menampilkan frame.
+  static const Color viewfinderBackground = Color(0xFF090C11);
+
+  /// Latar pill kontrol (tutup/torch) dan pill petunjuk: slate-900 ~55%.
+  static const Color controlBackground = Color(0x8C0F172A);
+
+  /// Latar pill tombol "Ketik kode manual": slate-900 ~60%.
+  static const Color manualButtonBackground = Color(0x990F172A);
+
+  /// Border tipis pill tombol manual: putih 16%.
+  static const Color manualButtonBorder = Color(0x29FFFFFF);
+
+  /// Sudut bingkai target + garis scan: green-400 (sama di kedua tema).
+  static const Color frameAccent = Color(0xFF4ADE80);
+
+  /// Teks/ikon di atas viewfinder.
+  static const Color foreground = Color(0xFFFFFFFF);
+
+  /// Teks petunjuk di atas viewfinder: putih 85%.
+  static const Color foregroundMuted = Color(0xD9FFFFFF);
+}
+
 /// Satu triplet warna chip status: titik indikator, latar, dan teks.
 @immutable
 class StatusColorSet {

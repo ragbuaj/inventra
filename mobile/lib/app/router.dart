@@ -7,8 +7,10 @@ import '../core/auth/auth_controller.dart';
 import '../core/auth/auth_session.dart';
 import '../core/i18n/gen/app_localizations.dart';
 import '../core/widgets/empty_state.dart';
+import '../features/asset_detail/presentation/asset_detail_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/login/presentation/login_screen.dart';
+import '../features/scan/presentation/scan_screen.dart';
 import 'shell.dart';
 
 /// Router aplikasi: guard auth + seluruh tabel rute v1 (plan M0 Task 7).
@@ -116,10 +118,7 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
                 path: '/scan',
                 name: 'scan',
                 builder: (BuildContext context, GoRouterState state) =>
-                    _ComingSoonScreen(
-                      title: (AppLocalizations l10n) => l10n.shellTabScan,
-                      icon: Symbols.qr_code_scanner_rounded,
-                    ),
+                    const ScanScreen(),
               ),
             ],
           ),
@@ -168,10 +167,7 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
         path: '/assets/:tag',
         name: 'asset-detail',
         builder: (BuildContext context, GoRouterState state) =>
-            _ComingSoonScreen(
-              title: (AppLocalizations l10n) => l10n.assetDetailTitle,
-              icon: Symbols.inventory_2_rounded,
-            ),
+            AssetDetailScreen(tag: state.pathParameters['tag']!),
       ),
       GoRoute(
         path: '/account',
