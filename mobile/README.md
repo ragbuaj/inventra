@@ -2,17 +2,26 @@
 
 Aplikasi mobile companion Inventra (Flutter). Dokumen acuan:
 
+- **Cara menjalankan (lengkap): `docs/mobile/SETUP.md`** — prasyarat, codegen, backend, build APK
 - Arsitektur dan struktur folder: `docs/mobile/ARCHITECTURE.md`
 - Konvensi kode: `docs/mobile/CONVENTIONS.md`
 - Kebutuhan produk: `docs/mobile/PRD.md`
 
-Perintah dasar (dari folder `mobile/`):
+## Prasyarat singkat
+
+- Flutter SDK stable (Dart `^3.12.2`, lihat `environment.sdk` di `pubspec.yaml`).
+- Android SDK hanya untuk `flutter run` ke device/emulator atau `flutter build apk` — `analyze`
+  dan `test` tidak membutuhkannya.
+- Backend Inventra berjalan (`docker compose -f docker-compose.dev.yml up -d` dari root repo).
+
+## Perintah dasar (dari folder `mobile/`)
 
 ```
 flutter pub get
+dart run build_runner build --delete-conflicting-outputs   # regen freezed/*.g bila DTO berubah
 flutter analyze   # wajib nol issue
-flutter test
-flutter run
+flutter test      # tambahkan --exclude-tags golden untuk meniru CI
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080   # emulator Android -> backend host
 ```
 
 ## Base URL backend (`API_BASE_URL`)

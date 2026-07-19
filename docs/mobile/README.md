@@ -23,9 +23,9 @@ bagian *Mobile companion*.
 
 ## Dokumen yang disarankan menyusul (dibuat saat fasenya tiba)
 
-- **SETUP.md** — onboarding developer: versi Flutter SDK (di-pin), emulator/perangkat,
-  menjalankan backend compose + seeded admin, perintah harian. Dibuat di **M0** bersama scaffold
-  (nilainya baru nyata setelah proyek Flutter ada).
+- **SETUP.md** — ✅ **DONE** ([SETUP.md](SETUP.md)) — onboarding developer: prasyarat + pasang
+  Flutter, codegen, perintah harian, menjalankan terhadap backend compose (`API_BASE_URL`), build
+  APK, masalah umum.
 - **TESTING.md** — rincian strategi tes per lapisan bila peta di ARCHITECTURE bagian 10 mulai
   terasa kurang; sebelum itu, bagian tersebut cukup. Evaluasi di **M1**.
 - **RELEASE.md** — signing, versioning (semver + build number), jalur Firebase App Distribution,
