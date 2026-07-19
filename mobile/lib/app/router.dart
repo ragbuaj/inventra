@@ -13,6 +13,9 @@ import '../features/asset_detail/presentation/asset_detail_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/login/presentation/login_screen.dart';
 import '../features/scan/presentation/scan_screen.dart';
+import '../features/stock_opname/presentation/opname_counting_screen.dart';
+import '../features/stock_opname/presentation/opname_session_list_screen.dart';
+import '../features/stock_opname/presentation/opname_variance_screen.dart';
 import 'shell.dart';
 
 /// Router aplikasi: guard auth + seluruh tabel rute v1 (plan M0 Task 7).
@@ -81,20 +84,15 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
                 path: '/stock-opname',
                 name: 'stock-opname',
                 builder: (BuildContext context, GoRouterState state) =>
-                    _ComingSoonScreen(
-                      title: (AppLocalizations l10n) => l10n.shellTabOpname,
-                      icon: Symbols.fact_check_rounded,
-                    ),
+                    const OpnameSessionListScreen(),
                 routes: <RouteBase>[
                   GoRoute(
                     path: ':id',
                     name: 'stock-opname-detail',
                     parentNavigatorKey: rootNavigatorKey,
                     builder: (BuildContext context, GoRouterState state) =>
-                        _ComingSoonScreen(
-                          title: (AppLocalizations l10n) =>
-                              l10n.opnameDetailTitle,
-                          icon: Symbols.fact_check_rounded,
+                        OpnameCountingScreen(
+                          sessionId: state.pathParameters['id']!,
                         ),
                     routes: <RouteBase>[
                       GoRoute(
@@ -102,10 +100,8 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
                         name: 'stock-opname-variance',
                         parentNavigatorKey: rootNavigatorKey,
                         builder: (BuildContext context, GoRouterState state) =>
-                            _ComingSoonScreen(
-                              title: (AppLocalizations l10n) =>
-                                  l10n.opnameVarianceTitle,
-                              icon: Symbols.fact_check_rounded,
+                            OpnameVarianceScreen(
+                              sessionId: state.pathParameters['id']!,
                             ),
                       ),
                     ],

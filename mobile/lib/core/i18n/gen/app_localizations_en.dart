@@ -644,4 +644,188 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get approvalDetailForbiddenBody =>
       'Your role does not have permission to view this request.';
+
+  @override
+  String get opnameSessionsTitle => 'Stock Opname';
+
+  @override
+  String get opnameSessionsFilterRunning => 'Running';
+
+  @override
+  String get opnameSessionsFilterClosed => 'Completed';
+
+  @override
+  String get opnameSessionsFilterAll => 'All';
+
+  @override
+  String opnameSessionsProgress(int counted, int total) {
+    return '$counted of $total matched';
+  }
+
+  @override
+  String get opnameSessionsContinue => 'Continue Counting';
+
+  @override
+  String get opnameSessionsReportOnWeb => 'Official report on the web';
+
+  @override
+  String get opnameSessionsFootnote =>
+      'Sessions are created and completed from the web app';
+
+  @override
+  String get opnameSessionsEmptyTitle => 'No active opname sessions';
+
+  @override
+  String get opnameSessionsEmptyBody =>
+      'New sessions are created by an admin from the web app. You will be notified when assigned.';
+
+  @override
+  String get opnameSessionsEmptyFilteredTitle => 'No sessions';
+
+  @override
+  String get opnameSessionsEmptyFilteredBody =>
+      'No opname sessions with this status in your scope yet.';
+
+  @override
+  String get opnameSessionsErrorTitle => 'Failed to load opname sessions';
+
+  @override
+  String get opnameErrorNetworkBody =>
+      'No connection. Check your network and try again.';
+
+  @override
+  String get opnameErrorGenericBody => 'Something went wrong. Try again.';
+
+  @override
+  String get opnameForbiddenTitle => 'Access restricted';
+
+  @override
+  String get opnameForbiddenBody =>
+      'Your role does not have permission to view stock opname.';
+
+  @override
+  String get opnameStatusOpen => 'Scheduled';
+
+  @override
+  String get opnameStatusCounting => 'In progress';
+
+  @override
+  String get opnameStatusReconciling => 'Reconciling';
+
+  @override
+  String get opnameStatusClosed => 'Completed';
+
+  @override
+  String get opnameOfflineBanner =>
+      'Offline — scanning is disabled. Offline mode arrives in a later phase.';
+
+  @override
+  String get opnameCountingScanButton => 'Scan Next Asset';
+
+  @override
+  String get opnameCountingManualButton => 'Type a code';
+
+  @override
+  String get opnameCountingRecentHeader => 'Just scanned';
+
+  @override
+  String get opnameCountingRecentEmpty => 'No assets scanned yet.';
+
+  @override
+  String opnameCountingRingTotal(int total) {
+    return '/$total';
+  }
+
+  @override
+  String get opnameCountingVarianceTooltip => 'View variance';
+
+  @override
+  String get opnameDetailErrorTitle => 'Failed to load the opname session';
+
+  @override
+  String get opnameDetailNotFoundTitle => 'Session not found';
+
+  @override
+  String get opnameDetailNotFoundBody =>
+      'The session does not exist or is outside your scope.';
+
+  @override
+  String get opnameResultFound => 'Found';
+
+  @override
+  String get opnameResultNotFound => 'Not Found';
+
+  @override
+  String get opnameResultDamaged => 'Damaged';
+
+  @override
+  String get opnameResultMisplaced => 'Misplaced';
+
+  @override
+  String get opnameResultPending => 'Not counted';
+
+  @override
+  String get opnameOutOfSnapshot => 'Unexpected Find';
+
+  @override
+  String get opnameSheetResultLabel => 'Result:';
+
+  @override
+  String get opnameSheetNoteHint => 'Note (optional)';
+
+  @override
+  String get opnameSheetSave => 'Save & Continue';
+
+  @override
+  String get opnameSheetOutOfSnapshotInfo =>
+      'This asset is outside the session snapshot — recorded as an unexpected find.';
+
+  @override
+  String get opnameResultSavedSnack => 'Result saved';
+
+  @override
+  String opnameScanErrorNotFound(String tag) {
+    return 'Code $tag is not recognized or outside the session scope.';
+  }
+
+  @override
+  String get opnameScanErrorNotCounting =>
+      'The session is not in the counting stage — scanning is not allowed.';
+
+  @override
+  String get opnameVarianceTabItems => 'Items';
+
+  @override
+  String get opnameVarianceTabVariance => 'Variance';
+
+  @override
+  String opnameVarianceLastLocation(String location) {
+    return 'last: $location';
+  }
+
+  @override
+  String opnameVarianceNote(String note) {
+    return 'Note: \"$note\"';
+  }
+
+  @override
+  String get opnameVarianceFollowupNone => 'No follow-up yet';
+
+  @override
+  String get opnameVarianceFollowupRequested => 'Submitted: awaiting approval';
+
+  @override
+  String get opnameVarianceFollowupRecord => 'Maintenance ticket created';
+
+  @override
+  String get opnameVarianceEmptyTitle => 'No variance';
+
+  @override
+  String opnameVarianceEmptyBody(int total) {
+    return 'All $total assets matched the records. The session is ready to be completed from the web app.';
+  }
+
+  @override
+  String get opnameVarianceFootnote =>
+      'Session completion & the official report happen on the web app';
 }

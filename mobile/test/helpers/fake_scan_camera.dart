@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:inventra_mobile/features/scan/presentation/scan_camera.dart';
+import 'package:inventra_mobile/core/camera/scan_camera.dart';
 
 /// [ScanCamera] stub deterministik untuk widget/golden test — kamera nyata
 /// (plugin mobile_scanner) tidak pernah disentuh tes (plan M0 Task 8).

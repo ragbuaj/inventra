@@ -6,7 +6,7 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/i18n/gen/app_localizations.dart';
-import 'scan_camera.dart';
+import '../../../core/camera/scan_camera.dart';
 
 /// Layar Scan 1:1 mockup "Inventra Mobile - Scan": kamera full screen dengan
 /// viewfinder gelap di kedua tema, bingkai target, toggle torch, tombol tutup,

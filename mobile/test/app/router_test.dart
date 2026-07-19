@@ -8,9 +8,12 @@ import 'package:inventra_mobile/core/masterdata/reference_lookup_repository.dart
 import 'package:inventra_mobile/features/asset_detail/data/asset_detail_repository.dart';
 import 'package:inventra_mobile/features/asset_detail/data/asset_dto.dart';
 import 'package:inventra_mobile/features/login/presentation/login_screen.dart';
+import 'package:inventra_mobile/features/stock_opname/data/stock_opname_repository.dart';
+import 'package:inventra_mobile/features/stock_opname/data/stock_opname_session_dto.dart';
 
 import '../helpers/fake_auth_controller.dart';
 import '../helpers/fake_reference_lookup.dart';
+import '../helpers/fake_stock_opname_repository.dart';
 import '../helpers/test_app.dart';
 
 /// Stub repository detail aset: rute `/assets/:tag` kini layar nyata (Task 8)
@@ -37,6 +40,26 @@ void main() {
         // null berarti sel em-dash — cukup untuk asersi rute).
         referenceLookupRepositoryProvider.overrideWithValue(
           FakeReferenceLookup(),
+        ),
+        // Rute /stock-opname/* kini layar nyata (Task 10) — jalur HTTP-nya
+        // diputus dengan repository palsu berisi satu sesi.
+        stockOpnameRepositoryProvider.overrideWithValue(
+          FakeStockOpnameRepository(
+            sessionsData: <StockOpnameSessionDto>[
+              const StockOpnameSessionDto(
+                id: 'op-1',
+                officeId: 'office-1',
+                name: 'Opname Uji 2026',
+                status: 'counting',
+                startedById: 'user-1',
+                officeName: 'Cabang Jakarta Selatan',
+                total: 10,
+                found: 4,
+                pending: 6,
+                variance: 0,
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -172,12 +195,14 @@ void main() {
       final GoRouter router = container.read(appRouterProvider);
       router.go('/stock-opname/op-1');
       await tester.pumpAndSettle();
-      expect(find.text(l10nId.opnameDetailTitle), findsOneWidget);
+      expect(find.text('Opname Uji 2026'), findsOneWidget);
+      expect(find.text(l10nId.opnameCountingScanButton), findsOneWidget);
       expect(find.text(l10nId.shellTabScan), findsNothing);
 
       router.go('/stock-opname/op-1/variance');
       await tester.pumpAndSettle();
-      expect(find.text(l10nId.opnameVarianceTitle), findsOneWidget);
+      expect(find.text(l10nId.opnameVarianceTabVariance), findsOneWidget);
+      expect(find.text(l10nId.opnameVarianceEmptyTitle), findsOneWidget);
       expect(find.text(l10nId.shellTabScan), findsNothing);
     });
 

@@ -12,7 +12,7 @@ import 'package:inventra_mobile/features/approval/data/approval_repository.dart'
 import 'package:inventra_mobile/features/approval/data/request_dto.dart';
 import 'package:inventra_mobile/features/approval/data/request_list_dto.dart';
 import 'package:inventra_mobile/features/approval/presentation/approval_inbox_screen.dart';
-import 'package:inventra_mobile/features/scan/presentation/scan_camera.dart';
+import 'package:inventra_mobile/core/camera/scan_camera.dart';
 import 'package:mocktail/mocktail.dart';
 
 import '../../../helpers/fake_auth_controller.dart';

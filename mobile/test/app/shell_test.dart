@@ -4,13 +4,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:inventra_mobile/app/theme.dart';
 import 'package:inventra_mobile/core/auth/auth_controller.dart';
 import 'package:inventra_mobile/core/auth/auth_session.dart';
+import 'package:inventra_mobile/core/camera/scan_camera.dart';
 import 'package:inventra_mobile/features/approval/presentation/inbox_count_provider.dart';
 import 'package:inventra_mobile/features/notifications/presentation/unread_count_provider.dart';
-import 'package:inventra_mobile/features/scan/presentation/scan_camera.dart';
+import 'package:inventra_mobile/features/stock_opname/data/stock_opname_repository.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../helpers/fake_auth_controller.dart';
 import '../helpers/fake_scan_camera.dart';
+import '../helpers/fake_stock_opname_repository.dart';
 import '../helpers/test_app.dart';
 
 void main() {
@@ -33,6 +35,11 @@ void main() {
         // Branch scan membangun layar kamera nyata sejak Task 8 — tes shell
         // menggantinya dengan stub tanpa plugin.
         scanCameraFactoryProvider.overrideWithValue(FakeScanCamera.new),
+        // Branch opname membangun daftar sesi nyata sejak Task 10 — jalur
+        // HTTP diputus dengan repository palsu (kosong = empty state).
+        stockOpnameRepositoryProvider.overrideWithValue(
+          FakeStockOpnameRepository(),
+        ),
       ],
     );
   }
@@ -101,9 +108,10 @@ void main() {
     await tester.tap(navLabel(l10nId.shellTabOpname));
     await tester.pumpAndSettle();
 
-    // App bar placeholder Opname + label tab = dua teks.
-    expect(find.text(l10nId.shellTabOpname), findsNWidgets(2));
-    expect(find.text(l10nId.commonComingSoon), findsOneWidget);
+    // Layar daftar sesi opname (Task 10): app bar "Stock Opname" + empty
+    // state repository palsu yang kosong.
+    expect(find.text(l10nId.opnameSessionsTitle), findsOneWidget);
+    expect(find.text(l10nId.opnameSessionsEmptyTitle), findsOneWidget);
 
     final Text opnameLabel = tester.widget<Text>(
       navLabel(l10nId.shellTabOpname),

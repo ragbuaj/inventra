@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventra_mobile/app/theme.dart';
 import 'package:inventra_mobile/core/i18n/gen/app_localizations.dart';
-import 'package:inventra_mobile/features/scan/presentation/scan_camera.dart';
+import 'package:inventra_mobile/core/camera/scan_camera.dart';
 import 'package:inventra_mobile/features/scan/presentation/scan_screen.dart';
 
 import '../../../helpers/fake_scan_camera.dart';

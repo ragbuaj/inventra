@@ -851,5 +851,254 @@
   "approvalDetailForbiddenBody": "Peran Anda tidak memiliki izin melihat pengajuan ini.",
   "@approvalDetailForbiddenBody": {
     "description": "Subjudul empty state 403 detail approval"
+  },
+  "opnameSessionsTitle": "Stock Opname",
+  "@opnameSessionsTitle": {
+    "description": "Judul layar daftar sesi opname"
+  },
+  "opnameSessionsFilterRunning": "Berjalan",
+  "@opnameSessionsFilterRunning": {
+    "description": "Label chip filter sesi yang belum selesai (open/counting/reconciling)"
+  },
+  "opnameSessionsFilterClosed": "Selesai",
+  "@opnameSessionsFilterClosed": {
+    "description": "Label chip filter sesi berstatus closed"
+  },
+  "opnameSessionsFilterAll": "Semua",
+  "@opnameSessionsFilterAll": {
+    "description": "Label chip filter tanpa saringan status"
+  },
+  "opnameSessionsProgress": "{counted} dari {total} tercocokkan",
+  "@opnameSessionsProgress": {
+    "description": "Baris progress kartu sesi: jumlah item terhitung dari total",
+    "placeholders": {
+      "counted": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "opnameSessionsContinue": "Lanjutkan Menghitung",
+  "@opnameSessionsContinue": {
+    "description": "Label tombol CTA kartu sesi yang belum selesai"
+  },
+  "opnameSessionsReportOnWeb": "Berita Acara di web",
+  "@opnameSessionsReportOnWeb": {
+    "description": "Chip info kartu sesi selesai: Berita Acara diakses dari web"
+  },
+  "opnameSessionsFootnote": "Sesi dibuat dan diselesaikan dari aplikasi web",
+  "@opnameSessionsFootnote": {
+    "description": "Catatan kaki daftar sesi opname"
+  },
+  "opnameSessionsEmptyTitle": "Tidak ada sesi opname aktif",
+  "@opnameSessionsEmptyTitle": {
+    "description": "Judul empty state filter Berjalan"
+  },
+  "opnameSessionsEmptyBody": "Sesi baru dibuat oleh admin dari aplikasi web. Anda akan diberi tahu bila ditugaskan.",
+  "@opnameSessionsEmptyBody": {
+    "description": "Subjudul empty state filter Berjalan"
+  },
+  "opnameSessionsEmptyFilteredTitle": "Tidak ada sesi",
+  "@opnameSessionsEmptyFilteredTitle": {
+    "description": "Judul empty state filter Selesai/Semua"
+  },
+  "opnameSessionsEmptyFilteredBody": "Belum ada sesi opname dengan status ini di lingkup Anda.",
+  "@opnameSessionsEmptyFilteredBody": {
+    "description": "Subjudul empty state filter Selesai/Semua"
+  },
+  "opnameSessionsErrorTitle": "Gagal memuat sesi opname",
+  "@opnameSessionsErrorTitle": {
+    "description": "Judul empty state error daftar sesi opname"
+  },
+  "opnameErrorNetworkBody": "Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.",
+  "@opnameErrorNetworkBody": {
+    "description": "Subjudul error opname saat offline/gangguan jaringan"
+  },
+  "opnameErrorGenericBody": "Terjadi kesalahan. Coba lagi.",
+  "@opnameErrorGenericBody": {
+    "description": "Subjudul error opname untuk kegagalan lain"
+  },
+  "opnameForbiddenTitle": "Akses dibatasi",
+  "@opnameForbiddenTitle": {
+    "description": "Judul empty state 403 modul opname"
+  },
+  "opnameForbiddenBody": "Peran Anda tidak memiliki izin melihat stock opname.",
+  "@opnameForbiddenBody": {
+    "description": "Subjudul empty state 403 modul opname"
+  },
+  "opnameStatusOpen": "Terjadwal",
+  "@opnameStatusOpen": {
+    "description": "Label chip status sesi open"
+  },
+  "opnameStatusCounting": "Berjalan",
+  "@opnameStatusCounting": {
+    "description": "Label chip status sesi counting"
+  },
+  "opnameStatusReconciling": "Rekonsiliasi",
+  "@opnameStatusReconciling": {
+    "description": "Label chip status sesi reconciling"
+  },
+  "opnameStatusClosed": "Selesai",
+  "@opnameStatusClosed": {
+    "description": "Label chip status sesi closed"
+  },
+  "opnameOfflineBanner": "Offline — pemindaian dinonaktifkan. Mode offline hadir di fase berikutnya.",
+  "@opnameOfflineBanner": {
+    "description": "Banner offline layar opname (fase M0 online-only; drift/antrean menyusul M5)"
+  },
+  "opnameCountingScanButton": "Pindai Aset Berikutnya",
+  "@opnameCountingScanButton": {
+    "description": "Label tombol utama scan pada layar counting"
+  },
+  "opnameCountingManualButton": "Ketik kode",
+  "@opnameCountingManualButton": {
+    "description": "Label tombol pembuka sheet input tag manual pada counting"
+  },
+  "opnameCountingRecentHeader": "Baru saja dipindai",
+  "@opnameCountingRecentHeader": {
+    "description": "Judul seksi daftar item yang baru dihitung"
+  },
+  "opnameCountingRecentEmpty": "Belum ada aset yang dipindai.",
+  "@opnameCountingRecentEmpty": {
+    "description": "Teks saat belum ada item terhitung pada sesi"
+  },
+  "opnameCountingRingTotal": "/{total}",
+  "@opnameCountingRingTotal": {
+    "description": "Pembagi total pada ring progress counting",
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "opnameCountingVarianceTooltip": "Lihat variance",
+  "@opnameCountingVarianceTooltip": {
+    "description": "Tooltip aksi app bar counting menuju layar variance"
+  },
+  "opnameDetailErrorTitle": "Gagal memuat sesi opname",
+  "@opnameDetailErrorTitle": {
+    "description": "Judul empty state error detail sesi (counting/variance)"
+  },
+  "opnameDetailNotFoundTitle": "Sesi tidak ditemukan",
+  "@opnameDetailNotFoundTitle": {
+    "description": "Judul empty state 404 detail sesi opname"
+  },
+  "opnameDetailNotFoundBody": "Sesi tidak ada atau di luar lingkup Anda.",
+  "@opnameDetailNotFoundBody": {
+    "description": "Subjudul empty state 404 detail sesi opname"
+  },
+  "opnameResultFound": "Ditemukan",
+  "@opnameResultFound": {
+    "description": "Label hasil item found"
+  },
+  "opnameResultNotFound": "Tidak Ditemukan",
+  "@opnameResultNotFound": {
+    "description": "Label hasil item not_found"
+  },
+  "opnameResultDamaged": "Rusak",
+  "@opnameResultDamaged": {
+    "description": "Label hasil item damaged"
+  },
+  "opnameResultMisplaced": "Salah Lokasi",
+  "@opnameResultMisplaced": {
+    "description": "Label hasil item misplaced"
+  },
+  "opnameResultPending": "Belum dihitung",
+  "@opnameResultPending": {
+    "description": "Label hasil item pending (belum dihitung)"
+  },
+  "opnameOutOfSnapshot": "Di Luar Catatan",
+  "@opnameOutOfSnapshot": {
+    "description": "Label temuan di luar snapshot sesi (expected=false)"
+  },
+  "opnameSheetResultLabel": "Hasil:",
+  "@opnameSheetResultLabel": {
+    "description": "Label pemilih hasil pada sheet hasil scan"
+  },
+  "opnameSheetNoteHint": "Catatan (opsional)",
+  "@opnameSheetNoteHint": {
+    "description": "Placeholder field catatan pada sheet hasil scan"
+  },
+  "opnameSheetSave": "Simpan & Lanjut",
+  "@opnameSheetSave": {
+    "description": "Label tombol simpan hasil pada sheet hasil scan"
+  },
+  "opnameSheetOutOfSnapshotInfo": "Aset ini di luar snapshot sesi — dicatat sebagai temuan di luar catatan.",
+  "@opnameSheetOutOfSnapshotInfo": {
+    "description": "Info pada sheet hasil scan untuk temuan expected=false"
+  },
+  "opnameResultSavedSnack": "Hasil tersimpan",
+  "@opnameResultSavedSnack": {
+    "description": "SnackBar sukses setelah hasil item disimpan"
+  },
+  "opnameScanErrorNotFound": "Kode {tag} tidak dikenal atau di luar lingkup sesi.",
+  "@opnameScanErrorNotFound": {
+    "description": "Pesan 404 saat tag hasil scan tidak dikenal server",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "opnameScanErrorNotCounting": "Sesi tidak dalam tahap menghitung — pemindaian tidak diizinkan.",
+  "@opnameScanErrorNotCounting": {
+    "description": "Pesan 409 saat scan pada sesi yang bukan tahap counting"
+  },
+  "opnameVarianceTabItems": "Item",
+  "@opnameVarianceTabItems": {
+    "description": "Segmen kiri toggle layar variance (kembali ke counting)"
+  },
+  "opnameVarianceTabVariance": "Variance",
+  "@opnameVarianceTabVariance": {
+    "description": "Segmen kanan toggle layar variance (aktif)"
+  },
+  "opnameVarianceLastLocation": "terakhir: {location}",
+  "@opnameVarianceLastLocation": {
+    "description": "Lokasi terakhir tercatat pada kartu item variance",
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "opnameVarianceNote": "Catatan: \"{note}\"",
+  "@opnameVarianceNote": {
+    "description": "Kutipan catatan petugas pada kartu item variance",
+    "placeholders": {
+      "note": {
+        "type": "String"
+      }
+    }
+  },
+  "opnameVarianceFollowupNone": "Belum ditindaklanjuti",
+  "@opnameVarianceFollowupNone": {
+    "description": "Status tindak lanjut kosong pada kartu item variance"
+  },
+  "opnameVarianceFollowupRequested": "Diajukan: menunggu approval",
+  "@opnameVarianceFollowupRequested": {
+    "description": "Status tindak lanjut berupa pengajuan approval"
+  },
+  "opnameVarianceFollowupRecord": "Tiket maintenance dibuat",
+  "@opnameVarianceFollowupRecord": {
+    "description": "Status tindak lanjut berupa record maintenance (damaged)"
+  },
+  "opnameVarianceEmptyTitle": "Tidak ada selisih",
+  "@opnameVarianceEmptyTitle": {
+    "description": "Judul empty state variance saat semua tercocokkan"
+  },
+  "opnameVarianceEmptyBody": "Semua {total} aset tercocokkan dengan catatan. Sesi siap diselesaikan dari aplikasi web.",
+  "@opnameVarianceEmptyBody": {
+    "description": "Subjudul empty state variance",
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "opnameVarianceFootnote": "Penyelesaian sesi & Berita Acara dilakukan dari aplikasi web",
+  "@opnameVarianceFootnote": {
+    "description": "Catatan kaki layar variance"
   }
 }

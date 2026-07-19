@@ -643,4 +643,188 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get approvalDetailForbiddenBody =>
       'Peran Anda tidak memiliki izin melihat pengajuan ini.';
+
+  @override
+  String get opnameSessionsTitle => 'Stock Opname';
+
+  @override
+  String get opnameSessionsFilterRunning => 'Berjalan';
+
+  @override
+  String get opnameSessionsFilterClosed => 'Selesai';
+
+  @override
+  String get opnameSessionsFilterAll => 'Semua';
+
+  @override
+  String opnameSessionsProgress(int counted, int total) {
+    return '$counted dari $total tercocokkan';
+  }
+
+  @override
+  String get opnameSessionsContinue => 'Lanjutkan Menghitung';
+
+  @override
+  String get opnameSessionsReportOnWeb => 'Berita Acara di web';
+
+  @override
+  String get opnameSessionsFootnote =>
+      'Sesi dibuat dan diselesaikan dari aplikasi web';
+
+  @override
+  String get opnameSessionsEmptyTitle => 'Tidak ada sesi opname aktif';
+
+  @override
+  String get opnameSessionsEmptyBody =>
+      'Sesi baru dibuat oleh admin dari aplikasi web. Anda akan diberi tahu bila ditugaskan.';
+
+  @override
+  String get opnameSessionsEmptyFilteredTitle => 'Tidak ada sesi';
+
+  @override
+  String get opnameSessionsEmptyFilteredBody =>
+      'Belum ada sesi opname dengan status ini di lingkup Anda.';
+
+  @override
+  String get opnameSessionsErrorTitle => 'Gagal memuat sesi opname';
+
+  @override
+  String get opnameErrorNetworkBody =>
+      'Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.';
+
+  @override
+  String get opnameErrorGenericBody => 'Terjadi kesalahan. Coba lagi.';
+
+  @override
+  String get opnameForbiddenTitle => 'Akses dibatasi';
+
+  @override
+  String get opnameForbiddenBody =>
+      'Peran Anda tidak memiliki izin melihat stock opname.';
+
+  @override
+  String get opnameStatusOpen => 'Terjadwal';
+
+  @override
+  String get opnameStatusCounting => 'Berjalan';
+
+  @override
+  String get opnameStatusReconciling => 'Rekonsiliasi';
+
+  @override
+  String get opnameStatusClosed => 'Selesai';
+
+  @override
+  String get opnameOfflineBanner =>
+      'Offline — pemindaian dinonaktifkan. Mode offline hadir di fase berikutnya.';
+
+  @override
+  String get opnameCountingScanButton => 'Pindai Aset Berikutnya';
+
+  @override
+  String get opnameCountingManualButton => 'Ketik kode';
+
+  @override
+  String get opnameCountingRecentHeader => 'Baru saja dipindai';
+
+  @override
+  String get opnameCountingRecentEmpty => 'Belum ada aset yang dipindai.';
+
+  @override
+  String opnameCountingRingTotal(int total) {
+    return '/$total';
+  }
+
+  @override
+  String get opnameCountingVarianceTooltip => 'Lihat variance';
+
+  @override
+  String get opnameDetailErrorTitle => 'Gagal memuat sesi opname';
+
+  @override
+  String get opnameDetailNotFoundTitle => 'Sesi tidak ditemukan';
+
+  @override
+  String get opnameDetailNotFoundBody =>
+      'Sesi tidak ada atau di luar lingkup Anda.';
+
+  @override
+  String get opnameResultFound => 'Ditemukan';
+
+  @override
+  String get opnameResultNotFound => 'Tidak Ditemukan';
+
+  @override
+  String get opnameResultDamaged => 'Rusak';
+
+  @override
+  String get opnameResultMisplaced => 'Salah Lokasi';
+
+  @override
+  String get opnameResultPending => 'Belum dihitung';
+
+  @override
+  String get opnameOutOfSnapshot => 'Di Luar Catatan';
+
+  @override
+  String get opnameSheetResultLabel => 'Hasil:';
+
+  @override
+  String get opnameSheetNoteHint => 'Catatan (opsional)';
+
+  @override
+  String get opnameSheetSave => 'Simpan & Lanjut';
+
+  @override
+  String get opnameSheetOutOfSnapshotInfo =>
+      'Aset ini di luar snapshot sesi — dicatat sebagai temuan di luar catatan.';
+
+  @override
+  String get opnameResultSavedSnack => 'Hasil tersimpan';
+
+  @override
+  String opnameScanErrorNotFound(String tag) {
+    return 'Kode $tag tidak dikenal atau di luar lingkup sesi.';
+  }
+
+  @override
+  String get opnameScanErrorNotCounting =>
+      'Sesi tidak dalam tahap menghitung — pemindaian tidak diizinkan.';
+
+  @override
+  String get opnameVarianceTabItems => 'Item';
+
+  @override
+  String get opnameVarianceTabVariance => 'Variance';
+
+  @override
+  String opnameVarianceLastLocation(String location) {
+    return 'terakhir: $location';
+  }
+
+  @override
+  String opnameVarianceNote(String note) {
+    return 'Catatan: \"$note\"';
+  }
+
+  @override
+  String get opnameVarianceFollowupNone => 'Belum ditindaklanjuti';
+
+  @override
+  String get opnameVarianceFollowupRequested => 'Diajukan: menunggu approval';
+
+  @override
+  String get opnameVarianceFollowupRecord => 'Tiket maintenance dibuat';
+
+  @override
+  String get opnameVarianceEmptyTitle => 'Tidak ada selisih';
+
+  @override
+  String opnameVarianceEmptyBody(int total) {
+    return 'Semua $total aset tercocokkan dengan catatan. Sesi siap diselesaikan dari aplikasi web.';
+  }
+
+  @override
+  String get opnameVarianceFootnote =>
+      'Penyelesaian sesi & Berita Acara dilakukan dari aplikasi web';
 }

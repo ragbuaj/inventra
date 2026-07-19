@@ -1279,6 +1279,330 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Peran Anda tidak memiliki izin melihat pengajuan ini.'**
   String get approvalDetailForbiddenBody;
+
+  /// Judul layar daftar sesi opname
+  ///
+  /// In id, this message translates to:
+  /// **'Stock Opname'**
+  String get opnameSessionsTitle;
+
+  /// Label chip filter sesi yang belum selesai (open/counting/reconciling)
+  ///
+  /// In id, this message translates to:
+  /// **'Berjalan'**
+  String get opnameSessionsFilterRunning;
+
+  /// Label chip filter sesi berstatus closed
+  ///
+  /// In id, this message translates to:
+  /// **'Selesai'**
+  String get opnameSessionsFilterClosed;
+
+  /// Label chip filter tanpa saringan status
+  ///
+  /// In id, this message translates to:
+  /// **'Semua'**
+  String get opnameSessionsFilterAll;
+
+  /// Baris progress kartu sesi: jumlah item terhitung dari total
+  ///
+  /// In id, this message translates to:
+  /// **'{counted} dari {total} tercocokkan'**
+  String opnameSessionsProgress(int counted, int total);
+
+  /// Label tombol CTA kartu sesi yang belum selesai
+  ///
+  /// In id, this message translates to:
+  /// **'Lanjutkan Menghitung'**
+  String get opnameSessionsContinue;
+
+  /// Chip info kartu sesi selesai: Berita Acara diakses dari web
+  ///
+  /// In id, this message translates to:
+  /// **'Berita Acara di web'**
+  String get opnameSessionsReportOnWeb;
+
+  /// Catatan kaki daftar sesi opname
+  ///
+  /// In id, this message translates to:
+  /// **'Sesi dibuat dan diselesaikan dari aplikasi web'**
+  String get opnameSessionsFootnote;
+
+  /// Judul empty state filter Berjalan
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada sesi opname aktif'**
+  String get opnameSessionsEmptyTitle;
+
+  /// Subjudul empty state filter Berjalan
+  ///
+  /// In id, this message translates to:
+  /// **'Sesi baru dibuat oleh admin dari aplikasi web. Anda akan diberi tahu bila ditugaskan.'**
+  String get opnameSessionsEmptyBody;
+
+  /// Judul empty state filter Selesai/Semua
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada sesi'**
+  String get opnameSessionsEmptyFilteredTitle;
+
+  /// Subjudul empty state filter Selesai/Semua
+  ///
+  /// In id, this message translates to:
+  /// **'Belum ada sesi opname dengan status ini di lingkup Anda.'**
+  String get opnameSessionsEmptyFilteredBody;
+
+  /// Judul empty state error daftar sesi opname
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat sesi opname'**
+  String get opnameSessionsErrorTitle;
+
+  /// Subjudul error opname saat offline/gangguan jaringan
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.'**
+  String get opnameErrorNetworkBody;
+
+  /// Subjudul error opname untuk kegagalan lain
+  ///
+  /// In id, this message translates to:
+  /// **'Terjadi kesalahan. Coba lagi.'**
+  String get opnameErrorGenericBody;
+
+  /// Judul empty state 403 modul opname
+  ///
+  /// In id, this message translates to:
+  /// **'Akses dibatasi'**
+  String get opnameForbiddenTitle;
+
+  /// Subjudul empty state 403 modul opname
+  ///
+  /// In id, this message translates to:
+  /// **'Peran Anda tidak memiliki izin melihat stock opname.'**
+  String get opnameForbiddenBody;
+
+  /// Label chip status sesi open
+  ///
+  /// In id, this message translates to:
+  /// **'Terjadwal'**
+  String get opnameStatusOpen;
+
+  /// Label chip status sesi counting
+  ///
+  /// In id, this message translates to:
+  /// **'Berjalan'**
+  String get opnameStatusCounting;
+
+  /// Label chip status sesi reconciling
+  ///
+  /// In id, this message translates to:
+  /// **'Rekonsiliasi'**
+  String get opnameStatusReconciling;
+
+  /// Label chip status sesi closed
+  ///
+  /// In id, this message translates to:
+  /// **'Selesai'**
+  String get opnameStatusClosed;
+
+  /// Banner offline layar opname (fase M0 online-only; drift/antrean menyusul M5)
+  ///
+  /// In id, this message translates to:
+  /// **'Offline — pemindaian dinonaktifkan. Mode offline hadir di fase berikutnya.'**
+  String get opnameOfflineBanner;
+
+  /// Label tombol utama scan pada layar counting
+  ///
+  /// In id, this message translates to:
+  /// **'Pindai Aset Berikutnya'**
+  String get opnameCountingScanButton;
+
+  /// Label tombol pembuka sheet input tag manual pada counting
+  ///
+  /// In id, this message translates to:
+  /// **'Ketik kode'**
+  String get opnameCountingManualButton;
+
+  /// Judul seksi daftar item yang baru dihitung
+  ///
+  /// In id, this message translates to:
+  /// **'Baru saja dipindai'**
+  String get opnameCountingRecentHeader;
+
+  /// Teks saat belum ada item terhitung pada sesi
+  ///
+  /// In id, this message translates to:
+  /// **'Belum ada aset yang dipindai.'**
+  String get opnameCountingRecentEmpty;
+
+  /// Pembagi total pada ring progress counting
+  ///
+  /// In id, this message translates to:
+  /// **'/{total}'**
+  String opnameCountingRingTotal(int total);
+
+  /// Tooltip aksi app bar counting menuju layar variance
+  ///
+  /// In id, this message translates to:
+  /// **'Lihat variance'**
+  String get opnameCountingVarianceTooltip;
+
+  /// Judul empty state error detail sesi (counting/variance)
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat sesi opname'**
+  String get opnameDetailErrorTitle;
+
+  /// Judul empty state 404 detail sesi opname
+  ///
+  /// In id, this message translates to:
+  /// **'Sesi tidak ditemukan'**
+  String get opnameDetailNotFoundTitle;
+
+  /// Subjudul empty state 404 detail sesi opname
+  ///
+  /// In id, this message translates to:
+  /// **'Sesi tidak ada atau di luar lingkup Anda.'**
+  String get opnameDetailNotFoundBody;
+
+  /// Label hasil item found
+  ///
+  /// In id, this message translates to:
+  /// **'Ditemukan'**
+  String get opnameResultFound;
+
+  /// Label hasil item not_found
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak Ditemukan'**
+  String get opnameResultNotFound;
+
+  /// Label hasil item damaged
+  ///
+  /// In id, this message translates to:
+  /// **'Rusak'**
+  String get opnameResultDamaged;
+
+  /// Label hasil item misplaced
+  ///
+  /// In id, this message translates to:
+  /// **'Salah Lokasi'**
+  String get opnameResultMisplaced;
+
+  /// Label hasil item pending (belum dihitung)
+  ///
+  /// In id, this message translates to:
+  /// **'Belum dihitung'**
+  String get opnameResultPending;
+
+  /// Label temuan di luar snapshot sesi (expected=false)
+  ///
+  /// In id, this message translates to:
+  /// **'Di Luar Catatan'**
+  String get opnameOutOfSnapshot;
+
+  /// Label pemilih hasil pada sheet hasil scan
+  ///
+  /// In id, this message translates to:
+  /// **'Hasil:'**
+  String get opnameSheetResultLabel;
+
+  /// Placeholder field catatan pada sheet hasil scan
+  ///
+  /// In id, this message translates to:
+  /// **'Catatan (opsional)'**
+  String get opnameSheetNoteHint;
+
+  /// Label tombol simpan hasil pada sheet hasil scan
+  ///
+  /// In id, this message translates to:
+  /// **'Simpan & Lanjut'**
+  String get opnameSheetSave;
+
+  /// Info pada sheet hasil scan untuk temuan expected=false
+  ///
+  /// In id, this message translates to:
+  /// **'Aset ini di luar snapshot sesi — dicatat sebagai temuan di luar catatan.'**
+  String get opnameSheetOutOfSnapshotInfo;
+
+  /// SnackBar sukses setelah hasil item disimpan
+  ///
+  /// In id, this message translates to:
+  /// **'Hasil tersimpan'**
+  String get opnameResultSavedSnack;
+
+  /// Pesan 404 saat tag hasil scan tidak dikenal server
+  ///
+  /// In id, this message translates to:
+  /// **'Kode {tag} tidak dikenal atau di luar lingkup sesi.'**
+  String opnameScanErrorNotFound(String tag);
+
+  /// Pesan 409 saat scan pada sesi yang bukan tahap counting
+  ///
+  /// In id, this message translates to:
+  /// **'Sesi tidak dalam tahap menghitung — pemindaian tidak diizinkan.'**
+  String get opnameScanErrorNotCounting;
+
+  /// Segmen kiri toggle layar variance (kembali ke counting)
+  ///
+  /// In id, this message translates to:
+  /// **'Item'**
+  String get opnameVarianceTabItems;
+
+  /// Segmen kanan toggle layar variance (aktif)
+  ///
+  /// In id, this message translates to:
+  /// **'Variance'**
+  String get opnameVarianceTabVariance;
+
+  /// Lokasi terakhir tercatat pada kartu item variance
+  ///
+  /// In id, this message translates to:
+  /// **'terakhir: {location}'**
+  String opnameVarianceLastLocation(String location);
+
+  /// Kutipan catatan petugas pada kartu item variance
+  ///
+  /// In id, this message translates to:
+  /// **'Catatan: \"{note}\"'**
+  String opnameVarianceNote(String note);
+
+  /// Status tindak lanjut kosong pada kartu item variance
+  ///
+  /// In id, this message translates to:
+  /// **'Belum ditindaklanjuti'**
+  String get opnameVarianceFollowupNone;
+
+  /// Status tindak lanjut berupa pengajuan approval
+  ///
+  /// In id, this message translates to:
+  /// **'Diajukan: menunggu approval'**
+  String get opnameVarianceFollowupRequested;
+
+  /// Status tindak lanjut berupa record maintenance (damaged)
+  ///
+  /// In id, this message translates to:
+  /// **'Tiket maintenance dibuat'**
+  String get opnameVarianceFollowupRecord;
+
+  /// Judul empty state variance saat semua tercocokkan
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada selisih'**
+  String get opnameVarianceEmptyTitle;
+
+  /// Subjudul empty state variance
+  ///
+  /// In id, this message translates to:
+  /// **'Semua {total} aset tercocokkan dengan catatan. Sesi siap diselesaikan dari aplikasi web.'**
+  String opnameVarianceEmptyBody(int total);
+
+  /// Catatan kaki layar variance
+  ///
+  /// In id, this message translates to:
+  /// **'Penyelesaian sesi & Berita Acara dilakukan dari aplikasi web'**
+  String get opnameVarianceFootnote;
 }
 
 class _AppLocalizationsDelegate
