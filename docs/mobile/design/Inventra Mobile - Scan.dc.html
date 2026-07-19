@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  @keyframes scanmove { 0% { top: 10%; } 50% { top: 85%; } 100% { top: 10%; } }
+  .ico { font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap; direction: ltr; -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; user-select: none; }
+</style>
+</helmet>
+<div style="font-family:'Inter',sans-serif;background:#eef2f6;padding:48px 40px 80px;min-height:100vh;color:#0f172a;">
+  <div style="margin:0 auto;max-width:1800px;">
+    <div style="margin-bottom:36px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#16a34a;font-weight:500;margin-bottom:6px;">INVENTRA MOBILE · LAYAR 03</div>
+      <h1 style="font-size:32px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;">Pindai Label Aset</h1>
+      <p style="font-size:14px;color:#64748b;margin:0;">Full-screen dari tombol Scan tengah · viewfinder gelap di kedua tema, sheet mengikuti tema · 4 state × light &amp; dark.</p>
+    </div>
+
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">Light mode</div>
+    <div style="display:flex;gap:32px;align-items:flex-start;margin-bottom:48px;">
+
+      <!-- L1 VIEWFINDER -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Viewfinder siap</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.25);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;background:#090c11;">
+            <div style="position:absolute;inset:-24px;filter:blur(7px);transform:scale(1.1);background:radial-gradient(60% 30% at 50% 0%,rgba(255,186,92,0.14),transparent 70%),repeating-linear-gradient(90deg,rgba(94,74,48,0.42) 0 54px,rgba(44,52,64,0.3) 54px 118px,rgba(74,58,38,0.36) 118px 172px,rgba(36,44,56,0.28) 172px 224px),repeating-linear-gradient(0deg,rgba(12,15,20,0.92) 0 88px,rgba(150,110,64,0.52) 88px 100px,rgba(24,29,38,0.72) 100px 186px,rgba(140,104,60,0.46) 186px 198px),linear-gradient(180deg,#11151c,#090c11);"></div>
+            <div style="position:absolute;inset:0;background:radial-gradient(90% 70% at 50% 45%,transparent 42%,rgba(2,6,23,0.62) 100%);"></div>
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="position:relative;z-index:4;height:100%;display:flex;flex-direction:column;color:#fff;">
+              <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;">
+                <span style="font-size:14px;font-weight:600;">09.41</span>
+                <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 0;">
+                <div style="width:44px;height:44px;border-radius:999px;background:rgba(15,23,42,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;">close</span></div>
+                <span style="font-size:15px;font-weight:700;">Pindai Label Aset</span>
+                <div style="width:44px;height:44px;border-radius:999px;background:rgba(15,23,42,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;">flashlight_on</span></div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;">
+                <div style="position:relative;width:252px;height:252px;">
+                  <div style="position:absolute;top:0;left:0;width:52px;height:52px;border-top:4px solid #4ade80;border-left:4px solid #4ade80;border-top-left-radius:26px;"></div>
+                  <div style="position:absolute;top:0;right:0;width:52px;height:52px;border-top:4px solid #4ade80;border-right:4px solid #4ade80;border-top-right-radius:26px;"></div>
+                  <div style="position:absolute;bottom:0;left:0;width:52px;height:52px;border-bottom:4px solid #4ade80;border-left:4px solid #4ade80;border-bottom-left-radius:26px;"></div>
+                  <div style="position:absolute;bottom:0;right:0;width:52px;height:52px;border-bottom:4px solid #4ade80;border-right:4px solid #4ade80;border-bottom-right-radius:26px;"></div>
+                  <div style="position:absolute;left:16px;right:16px;height:3px;border-radius:999px;background:linear-gradient(90deg,transparent,#4ade80 30%,#4ade80 70%,transparent);box-shadow:0 0 14px rgba(74,222,128,0.9);animation:scanmove 2.6s ease-in-out infinite;top:50%;"></div>
+                </div>
+                <span style="font-size:13px;color:rgba(255,255,255,0.85);background:rgba(15,23,42,0.5);backdrop-filter:blur(6px);padding:8px 16px;border-radius:999px;">Arahkan ke barcode / QR pada label aset</span>
+              </div>
+              <div style="display:flex;justify-content:center;padding-bottom:44px;">
+                <div style="display:flex;align-items:center;gap:9px;height:50px;padding:0 22px;border-radius:999px;background:rgba(15,23,42,0.6);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.16);"><span class="ico" style="font-size:20px;">keyboard</span><span style="font-size:14px;font-weight:600;">Ketik kode manual</span></div>
+              </div>
+            </div>
+            <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:130px;height:5px;border-radius:999px;background:#fff;opacity:0.55;z-index:6;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L2 SUKSES -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:5px 12px;border-radius:999px;font-weight:500;">Hasil sukses — aset ditemukan</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.25);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;background:#090c11;">
+            <div style="position:absolute;inset:-24px;filter:blur(7px);transform:scale(1.1);background:radial-gradient(60% 30% at 50% 0%,rgba(255,186,92,0.14),transparent 70%),repeating-linear-gradient(90deg,rgba(94,74,48,0.42) 0 54px,rgba(44,52,64,0.3) 54px 118px,rgba(74,58,38,0.36) 118px 172px,rgba(36,44,56,0.28) 172px 224px),repeating-linear-gradient(0deg,rgba(12,15,20,0.92) 0 88px,rgba(150,110,64,0.52) 88px 100px,rgba(24,29,38,0.72) 100px 186px,rgba(140,104,60,0.46) 186px 198px),linear-gradient(180deg,#11151c,#090c11);"></div>
+            <div style="position:absolute;inset:0;background:rgba(2,6,23,0.4);"></div>
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="position:relative;z-index:4;height:100%;display:flex;flex-direction:column;color:#fff;">
+              <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;">
+                <span style="font-size:14px;font-weight:600;">09.41</span>
+                <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 0;">
+                <div style="width:44px;height:44px;border-radius:999px;background:rgba(15,23,42,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;">close</span></div>
+                <span style="font-size:15px;font-weight:700;">Pindai Label Aset</span>
+                <div style="width:44px;height:44px;border-radius:999px;background:rgba(15,23,42,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;">flashlight_on</span></div>
+              </div>
+              <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+                <div style="position:relative;width:252px;height:252px;margin-top:-90px;">
+                  <div style="position:absolute;top:0;left:0;width:52px;height:52px;border-top:4px solid #22c55e;border-left:4px solid #22c55e;border-top-left-radius:26px;"></div>
+                  <div style="position:absolute;top:0;right:0;width:52px;height:52px;border-top:4px solid #22c55e;border-right:4px solid #22c55e;border-top-right-radius:26px;"></div>
+                  <div style="position:absolute;bottom:0;left:0;width:52px;height:52px;border-bottom:4px solid #22c55e;border-left:4px solid #22c55e;border-bottom-left-radius:26px;"></div>
+                  <div style="position:absolute;bottom:0;right:0;width:52px;height:52px;border-bottom:4px solid #22c55e;border-right:4px solid #22c55e;border-bottom-right-radius:26px;"></div>
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;"><div style="width:64px;height:64px;border-radius:999px;background:rgba(34,197,94,0.92);display:flex;align-items:center;justify-content:center;box-shadow:0 0 34px rgba(34,197,94,0.6);"><span class="ico" style="font-size:36px;color:#fff;">check</span></div></div>
+                </div>
+              </div>
+            </div>
+            <div style="position:absolute;left:0;right:0;bottom:0;z-index:6;background:#ffffff;border-radius:28px 28px 44px 44px;padding:8px 20px 14px;box-shadow:0 -10px 40px rgba(2,6,23,0.4);color:#0f172a;">
+              <div style="width:36px;height:4px;border-radius:999px;background:#cbd5e1;margin:6px auto 14px;"></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;"><span class="ico" style="font-size:21px;color:#16a34a;">check_circle</span><span style="font-size:16px;font-weight:700;">Aset ditemukan</span></div>
+              <div style="display:flex;gap:13px;align-items:center;margin-bottom:14px;">
+                <div style="width:58px;height:58px;border-radius:13px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 6px,#e2e8f0 6px,#e2e8f0 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:27px;color:#94a3b8;">desktop_windows</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:15.5px;font-weight:700;margin-bottom:2px;">Monitor Dell UltraSharp U2723</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#64748b;margin-bottom:7px;">JKT01-ELK-2026-00001</div>
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:11.5px;font-weight:600;"><span style="width:7px;height:7px;border-radius:999px;background:#16a34a;"></span>Tersedia</span><span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:#64748b;"><span class="ico" style="font-size:14px;">location_on</span>Lantai 3 · R. Server 301</span></div>
+                </div>
+              </div>
+              <button style="width:100%;height:52px;border:none;border-radius:14px;background:#16a34a;color:#fff;font-family:inherit;font-size:15px;font-weight:700;box-shadow:0 4px 14px rgba(22,163,74,0.3);">Lihat Detail</button>
+              <div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:16px auto 0;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L3 ERROR -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;padding:5px 12px;border-radius:999px;font-weight:500;">Error — kode tidak dikenal</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.25);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;background:#090c11;">
+            <div style="position:absolute;inset:-24px;filter:blur(7px);transform:scale(1.1);background:radial-gradient(60% 30% at 50% 0%,rgba(255,186,92,0.14),transparent 70%),repeating-linear-gradient(90deg,rgba(94,74,48,0.42) 0 54px,rgba(44,52,64,0.3) 54px 118px,rgba(74,58,38,0.36) 118px 172px,rgba(36,44,56,0.28) 172px 224px),repeating-linear-gradient(0deg,rgba(12,15,20,0.92) 0 88px,rgba(150,110,64,0.52) 88px 100px,rgba(24,29,38,0.72) 100px 186px,rgba(140,104,60,0.46) 186px 198px),linear-gradient(180deg,#11151c,#090c11);"></div>
+            <div style="position:absolute;inset:0;background:rgba(2,6,23,0.4);"></div>
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="position:relative;z-index:4;height:100%;display:flex;flex-direction:column;color:#fff;">
+              <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;">
+                <span style="font-size:14px;font-weight:600;">09.41</span>
+                <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 0;">
+                <div style="width:44px;height:44px;border-radius:999px;background:rgba(15,23,42,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;">close</span></div>
+                <span style="font-size:15px;font-weight:700;">Pindai Label Aset</span>
+                <div style="width:44px;height:44px;border-radius:999px;background:rgba(15,23,42,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;">flashlight_on</span></div>
+              </div>
+              <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+                <div style="position:relative;width:252px;height:252px;margin-top:-120px;">
+                  <div style="position:absolute;top:0;left:0;width:52px;height:52px;border-top:4px solid #f87171;border-left:4px solid #f87171;border-top-left-radius:26px;"></div>
+                  <div style="position:absolute;top:0;right:0;width:52px;height:52px;border-top:4px solid #f87171;border-right:4px solid #f87171;border-top-right-radius:26px;"></div>
+                  <div style="position:absolute;bottom:0;left:0;width:52px;height:52px;border-bottom:4px solid #f87171;border-left:4px solid #f87171;border-bottom-left-radius:26px;"></div>
+                  <div style="position:absolute;bottom:0;right:0;width:52px;height:52px;border-bottom:4px solid #f87171;border-right:4px solid #f87171;border-bottom-right-radius:26px;"></div>
+                </div>
+              </div>
+            </div>
+            <div style="position:absolute;left:0;right:0;bottom:0;z-index:6;background:#ffffff;border-radius:28px 28px 44px 44px;padding:8px 20px 14px;box-shadow:0 -10px 40px rgba(2,6,23,0.4);color:#0f172a;">
+              <div style="width:36px;height:4px;border-radius:999px;background:#cbd5e1;margin:6px auto 14px;"></div>
+              <div style="display:flex;gap:13px;align-items:flex-start;margin-bottom:16px;">
+                <div style="width:48px;height:48px;border-radius:999px;background:#fee2e2;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:26px;color:#dc2626;">question_mark</span></div>
+                <div style="flex:1;">
+                  <div style="font-size:16px;font-weight:700;margin-bottom:4px;">Kode tidak dikenal</div>
+                  <div style="font-size:13px;color:#64748b;line-height:1.5;">Kode <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#334155;">INV-XX-90412</span> tidak terdaftar, atau aset ini di luar wewenang Anda.</div>
+                </div>
+              </div>
+              <button style="width:100%;height:52px;border:none;border-radius:14px;background:#16a34a;color:#fff;font-family:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;box-shadow:0 4px 14px rgba(22,163,74,0.3);"><span class="ico" style="font-size:20px;">qr_code_scanner</span>Pindai Lagi</button>
+              <button style="width:100%;height:50px;border:1.5px solid #cbd5e1;border-radius:14px;background:transparent;color:#334155;font-family:inherit;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;"><span class="ico" style="font-size:20px;">keyboard</span>Ketik Manual</button>
+              <div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:16px auto 0;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L4 MANUAL -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Input manual — bottom sheet</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.25);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;background:#090c11;">
+            <div style="position:absolute;inset:-24px;filter:blur(7px);transform:scale(1.1);background:radial-gradient(60% 30% at 50% 0%,rgba(255,186,92,0.14),transparent 70%),repeating-linear-gradient(90deg,rgba(94,74,48,0.42) 0 54px,rgba(44,52,64,0.3) 54px 118px,rgba(74,58,38,0.36) 118px 172px,rgba(36,44,56,0.28) 172px 224px),repeating-linear-gradient(0deg,rgba(12,15,20,0.92) 0 88px,rgba(150,110,64,0.52) 88px 100px,rgba(24,29,38,0.72) 100px 186px,rgba(140,104,60,0.46) 186px 198px),linear-gradient(180deg,#11151c,#090c11);"></div>
+            <div style="position:absolute;inset:0;background:rgba(2,6,23,0.45);"></div>
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="position:relative;z-index:4;color:#fff;">
+              <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;">
+                <span style="font-size:14px;font-weight:600;">09.41</span>
+                <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 0;">
+                <div style="width:44px;height:44px;border-radius:999px;background:rgba(15,23,42,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;">close</span></div>
+                <span style="font-size:15px;font-weight:700;">Pindai Label Aset</span>
+                <div style="width:44px;height:44px;border-radius:999px;background:rgba(15,23,42,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;">flashlight_on</span></div>
+              </div>
+            </div>
+            <div style="position:absolute;left:0;right:0;bottom:0;z-index:6;display:flex;flex-direction:column;">
+              <div style="background:#ffffff;border-radius:28px 28px 0 0;padding:8px 20px 18px;color:#0f172a;">
+                <div style="width:36px;height:4px;border-radius:999px;background:#cbd5e1;margin:6px auto 14px;"></div>
+                <div style="font-size:16px;font-weight:700;margin-bottom:14px;">Ketik kode manual</div>
+                <label style="font-size:12px;font-weight:600;color:#16a34a;display:block;margin-bottom:6px;">Kode aset</label>
+                <div style="height:52px;border:2px solid #16a34a;border-radius:14px;background:#fff;display:flex;align-items:center;gap:10px;padding:0 16px;box-shadow:0 0 0 4px rgba(22,163,74,0.1);margin-bottom:7px;"><span class="ico" style="font-size:20px;color:#16a34a;">tag</span><span style="font-family:'JetBrains Mono',monospace;font-size:15px;color:#0f172a;">JKT01-ELK-2026-000</span><span style="width:2px;height:22px;background:#16a34a;"></span></div>
+                <div style="font-size:11px;color:#94a3b8;margin-bottom:14px;">Format: KANTOR-KATEGORI-TAHUN-NOMOR</div>
+                <button style="width:100%;height:52px;border:none;border-radius:14px;background:#16a34a;color:#fff;font-family:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(22,163,74,0.3);"><span class="ico" style="font-size:20px;">search</span>Cari</button>
+              </div>
+              <div style="background:#cfd4dc;padding:8px 6px 6px;">
+                <div style="display:flex;gap:5px;justify-content:center;margin-bottom:7px;"><span style="flex:1;max-width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">1</span><span style="flex:1;max-width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">2</span><span style="flex:1;max-width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">3</span><span style="flex:1;max-width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">4</span><span style="flex:1;max-width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">5</span><span style="flex:1;max-width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">6</span><span style="flex:1;max-width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">7</span><span style="flex:1;max-width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">8</span><span style="flex:1;max-width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">9</span><span style="flex:1;max-width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">0</span></div>
+                <div style="display:flex;gap:5px;justify-content:center;margin-bottom:7px;"><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">Q</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">W</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">E</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">R</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">T</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">Y</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">U</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">I</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">O</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">P</span></div>
+                <div style="display:flex;gap:5px;justify-content:center;margin-bottom:7px;"><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">A</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">S</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">D</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">F</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">G</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">H</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">J</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">K</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">L</span></div>
+                <div style="display:flex;gap:5px;justify-content:center;margin-bottom:7px;"><span style="width:44px;height:40px;background:#aeb4bf;border-radius:7px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:18px;color:#0f172a;">shift</span></span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">Z</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">X</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">C</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">V</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">B</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">N</span><span style="width:32px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">M</span><span style="width:44px;height:40px;background:#aeb4bf;border-radius:7px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:18px;color:#0f172a;">backspace</span></span></div>
+                <div style="display:flex;gap:5px;justify-content:center;"><span style="width:64px;height:40px;background:#aeb4bf;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#0f172a;">?123</span><span style="flex:1;max-width:190px;height:40px;background:#fff;border-radius:7px;box-shadow:0 1px 0 rgba(15,23,42,0.25);"></span><span style="width:74px;height:40px;background:#16a34a;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;color:#fff;">Cari</span></div>
+                <div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.7;margin:10px auto 2px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">Dark mode</div>
+    <div style="display:flex;gap:32px;align-items:flex-start;">
+
+      <!-- D1 VIEWFINDER -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Viewfinder siap</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;background:#090c11;">
+            <div style="position:absolute;inset:-24px;filter:blur(7px);transform:scale(1.1);background:radial-gradient(60% 30% at 50% 0%,rgba(255,186,92,0.14),transparent 70%),repeating-linear-gradient(90deg,rgba(94,74,48,0.42) 0 54px,rgba(44,52,64,0.3) 54px 118px,rgba(74,58,38,0.36) 118px 172px,rgba(36,44,56,0.28) 172px 224px),repeating-linear-gradient(0deg,rgba(12,15,20,0.92) 0 88px,rgba(150,110,64,0.52) 88px 100px,rgba(24,29,38,0.72) 100px 186px,rgba(140,104,60,0.46) 186px 198px),linear-gradient(180deg,#11151c,#090c11);"></div>
+            <div style="position:absolute;inset:0;background:radial-gradient(90% 70% at 50% 45%,transparent 42%,rgba(2,6,23,0.62) 100%);"></div>
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="position:relative;z-index:4;height:100%;display:flex;flex-direction:column;color:#fff;">
+              <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;">
+                <span style="font-size:14px;font-weight:600;">09.41</span>
+                <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 0;">
+                <div style="width:44px;height:44px;border-radius:999px;background:rgba(15,23,42,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;">close</span></div>
+                <span style="font-size:15px;font-weight:700;">Pindai Label Aset</span>
+                <div style="width:44px;height:44px;border-radius:999px;background:rgba(255,255,255,0.92);display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;color:#0f172a;">flashlight_on</span></div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;">
+                <div style="position:relative;width:252px;height:252px;">
+                  <div style="position:absolute;top:0;left:0;width:52px;height:52px;border-top:4px solid #4ade80;border-left:4px solid #4ade80;border-top-left-radius:26px;"></div>
+                  <div style="position:absolute;top:0;right:0;width:52px;height:52px;border-top:4px solid #4ade80;border-right:4px solid #4ade80;border-top-right-radius:26px;"></div>
+                  <div style="position:absolute;bottom:0;left:0;width:52px;height:52px;border-bottom:4px solid #4ade80;border-left:4px solid #4ade80;border-bottom-left-radius:26px;"></div>
+                  <div style="position:absolute;bottom:0;right:0;width:52px;height:52px;border-bottom:4px solid #4ade80;border-right:4px solid #4ade80;border-bottom-right-radius:26px;"></div>
+                  <div style="position:absolute;left:16px;right:16px;height:3px;border-radius:999px;background:linear-gradient(90deg,transparent,#4ade80 30%,#4ade80 70%,transparent);box-shadow:0 0 14px rgba(74,222,128,0.9);animation:scanmove 2.6s ease-in-out infinite;top:50%;"></div>
+                </div>
+                <span style="font-size:13px;color:rgba(255,255,255,0.85);background:rgba(15,23,42,0.5);backdrop-filter:blur(6px);padding:8px 16px;border-radius:999px;">Arahkan ke barcode / QR pada label aset</span>
+              </div>
+              <div style="display:flex;justify-content:center;padding-bottom:44px;">
+                <div style="display:flex;align-items:center;gap:9px;height:50px;padding:0 22px;border-radius:999px;background:rgba(15,23,42,0.6);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.16);"><span class="ico" style="font-size:20px;">keyboard</span><span style="font-size:14px;font-weight:600;">Ketik kode manual</span></div>
+              </div>
+            </div>
+            <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:130px;height:5px;border-radius:999px;background:#fff;opacity:0.55;z-index:6;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D2 SUKSES -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:5px 12px;border-radius:999px;font-weight:500;">Hasil sukses — aset ditemukan</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;background:#090c11;">
+            <div style="position:absolute;inset:-24px;filter:blur(7px);transform:scale(1.1);background:radial-gradient(60% 30% at 50% 0%,rgba(255,186,92,0.14),transparent 70%),repeating-linear-gradient(90deg,rgba(94,74,48,0.42) 0 54px,rgba(44,52,64,0.3) 54px 118px,rgba(74,58,38,0.36) 118px 172px,rgba(36,44,56,0.28) 172px 224px),repeating-linear-gradient(0deg,rgba(12,15,20,0.92) 0 88px,rgba(150,110,64,0.52) 88px 100px,rgba(24,29,38,0.72) 100px 186px,rgba(140,104,60,0.46) 186px 198px),linear-gradient(180deg,#11151c,#090c11);"></div>
+            <div style="position:absolute;inset:0;background:rgba(2,6,23,0.4);"></div>
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="position:relative;z-index:4;height:100%;display:flex;flex-direction:column;color:#fff;">
+              <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;">
+                <span style="font-size:14px;font-weight:600;">09.41</span>
+                <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 0;">
+                <div style="width:44px;height:44px;border-radius:999px;background:rgba(15,23,42,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;">close</span></div>
+                <span style="font-size:15px;font-weight:700;">Pindai Label Aset</span>
+                <div style="width:44px;height:44px;border-radius:999px;background:rgba(15,23,42,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;">flashlight_on</span></div>
+              </div>
+              <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+                <div style="position:relative;width:252px;height:252px;margin-top:-90px;">
+                  <div style="position:absolute;top:0;left:0;width:52px;height:52px;border-top:4px solid #22c55e;border-left:4px solid #22c55e;border-top-left-radius:26px;"></div>
+                  <div style="position:absolute;top:0;right:0;width:52px;height:52px;border-top:4px solid #22c55e;border-right:4px solid #22c55e;border-top-right-radius:26px;"></div>
+                  <div style="position:absolute;bottom:0;left:0;width:52px;height:52px;border-bottom:4px solid #22c55e;border-left:4px solid #22c55e;border-bottom-left-radius:26px;"></div>
+                  <div style="position:absolute;bottom:0;right:0;width:52px;height:52px;border-bottom:4px solid #22c55e;border-right:4px solid #22c55e;border-bottom-right-radius:26px;"></div>
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;"><div style="width:64px;height:64px;border-radius:999px;background:rgba(34,197,94,0.92);display:flex;align-items:center;justify-content:center;box-shadow:0 0 34px rgba(34,197,94,0.6);"><span class="ico" style="font-size:36px;color:#fff;">check</span></div></div>
+                </div>
+              </div>
+            </div>
+            <div style="position:absolute;left:0;right:0;bottom:0;z-index:6;background:#1e293b;border-top:1px solid #334155;border-radius:28px 28px 44px 44px;padding:8px 20px 14px;box-shadow:0 -10px 40px rgba(2,6,23,0.6);color:#f1f5f9;">
+              <div style="width:36px;height:4px;border-radius:999px;background:#475569;margin:6px auto 14px;"></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;"><span class="ico" style="font-size:21px;color:#4ade80;">check_circle</span><span style="font-size:16px;font-weight:700;">Aset ditemukan</span></div>
+              <div style="display:flex;gap:13px;align-items:center;margin-bottom:14px;">
+                <div style="width:58px;height:58px;border-radius:13px;background:repeating-linear-gradient(45deg,#0f172a,#0f172a 6px,#334155 6px,#334155 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:27px;color:#64748b;">desktop_windows</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:15.5px;font-weight:700;margin-bottom:2px;">Monitor Dell UltraSharp U2723</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#94a3b8;margin-bottom:7px;">JKT01-ELK-2026-00001</div>
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;background:#14532d;color:#86efac;font-size:11.5px;font-weight:600;"><span style="width:7px;height:7px;border-radius:999px;background:#22c55e;"></span>Tersedia</span><span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:#94a3b8;"><span class="ico" style="font-size:14px;">location_on</span>Lantai 3 · R. Server 301</span></div>
+                </div>
+              </div>
+              <button style="width:100%;height:52px;border:none;border-radius:14px;background:#22c55e;color:#052e16;font-family:inherit;font-size:15px;font-weight:700;">Lihat Detail</button>
+              <div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:16px auto 0;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D3 ERROR -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;padding:5px 12px;border-radius:999px;font-weight:500;">Error — kode tidak dikenal</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;background:#090c11;">
+            <div style="position:absolute;inset:-24px;filter:blur(7px);transform:scale(1.1);background:radial-gradient(60% 30% at 50% 0%,rgba(255,186,92,0.14),transparent 70%),repeating-linear-gradient(90deg,rgba(94,74,48,0.42) 0 54px,rgba(44,52,64,0.3) 54px 118px,rgba(74,58,38,0.36) 118px 172px,rgba(36,44,56,0.28) 172px 224px),repeating-linear-gradient(0deg,rgba(12,15,20,0.92) 0 88px,rgba(150,110,64,0.52) 88px 100px,rgba(24,29,38,0.72) 100px 186px,rgba(140,104,60,0.46) 186px 198px),linear-gradient(180deg,#11151c,#090c11);"></div>
+            <div style="position:absolute;inset:0;background:rgba(2,6,23,0.4);"></div>
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="position:relative;z-index:4;height:100%;display:flex;flex-direction:column;color:#fff;">
+              <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;">
+                <span style="font-size:14px;font-weight:600;">09.41</span>
+                <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 0;">
+                <div style="width:44px;height:44px;border-radius:999px;background:rgba(15,23,42,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;">close</span></div>
+                <span style="font-size:15px;font-weight:700;">Pindai Label Aset</span>
+                <div style="width:44px;height:44px;border-radius:999px;background:rgba(15,23,42,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;">flashlight_on</span></div>
+              </div>
+              <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+                <div style="position:relative;width:252px;height:252px;margin-top:-120px;">
+                  <div style="position:absolute;top:0;left:0;width:52px;height:52px;border-top:4px solid #f87171;border-left:4px solid #f87171;border-top-left-radius:26px;"></div>
+                  <div style="position:absolute;top:0;right:0;width:52px;height:52px;border-top:4px solid #f87171;border-right:4px solid #f87171;border-top-right-radius:26px;"></div>
+                  <div style="position:absolute;bottom:0;left:0;width:52px;height:52px;border-bottom:4px solid #f87171;border-left:4px solid #f87171;border-bottom-left-radius:26px;"></div>
+                  <div style="position:absolute;bottom:0;right:0;width:52px;height:52px;border-bottom:4px solid #f87171;border-right:4px solid #f87171;border-bottom-right-radius:26px;"></div>
+                </div>
+              </div>
+            </div>
+            <div style="position:absolute;left:0;right:0;bottom:0;z-index:6;background:#1e293b;border-top:1px solid #334155;border-radius:28px 28px 44px 44px;padding:8px 20px 14px;box-shadow:0 -10px 40px rgba(2,6,23,0.6);color:#f1f5f9;">
+              <div style="width:36px;height:4px;border-radius:999px;background:#475569;margin:6px auto 14px;"></div>
+              <div style="display:flex;gap:13px;align-items:flex-start;margin-bottom:16px;">
+                <div style="width:48px;height:48px;border-radius:999px;background:#450a0a;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:26px;color:#f87171;">question_mark</span></div>
+                <div style="flex:1;">
+                  <div style="font-size:16px;font-weight:700;margin-bottom:4px;">Kode tidak dikenal</div>
+                  <div style="font-size:13px;color:#94a3b8;line-height:1.5;">Kode <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#cbd5e1;">INV-XX-90412</span> tidak terdaftar, atau aset ini di luar wewenang Anda.</div>
+                </div>
+              </div>
+              <button style="width:100%;height:52px;border:none;border-radius:14px;background:#22c55e;color:#052e16;font-family:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;"><span class="ico" style="font-size:20px;">qr_code_scanner</span>Pindai Lagi</button>
+              <button style="width:100%;height:50px;border:1.5px solid #475569;border-radius:14px;background:transparent;color:#cbd5e1;font-family:inherit;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;"><span class="ico" style="font-size:20px;">keyboard</span>Ketik Manual</button>
+              <div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:16px auto 0;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D4 MANUAL -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Input manual — bottom sheet</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;background:#090c11;">
+            <div style="position:absolute;inset:-24px;filter:blur(7px);transform:scale(1.1);background:radial-gradient(60% 30% at 50% 0%,rgba(255,186,92,0.14),transparent 70%),repeating-linear-gradient(90deg,rgba(94,74,48,0.42) 0 54px,rgba(44,52,64,0.3) 54px 118px,rgba(74,58,38,0.36) 118px 172px,rgba(36,44,56,0.28) 172px 224px),repeating-linear-gradient(0deg,rgba(12,15,20,0.92) 0 88px,rgba(150,110,64,0.52) 88px 100px,rgba(24,29,38,0.72) 100px 186px,rgba(140,104,60,0.46) 186px 198px),linear-gradient(180deg,#11151c,#090c11);"></div>
+            <div style="position:absolute;inset:0;background:rgba(2,6,23,0.45);"></div>
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="position:relative;z-index:4;color:#fff;">
+              <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;">
+                <span style="font-size:14px;font-weight:600;">09.41</span>
+                <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 0;">
+                <div style="width:44px;height:44px;border-radius:999px;background:rgba(15,23,42,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;">close</span></div>
+                <span style="font-size:15px;font-weight:700;">Pindai Label Aset</span>
+                <div style="width:44px;height:44px;border-radius:999px;background:rgba(15,23,42,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:22px;">flashlight_on</span></div>
+              </div>
+            </div>
+            <div style="position:absolute;left:0;right:0;bottom:0;z-index:6;display:flex;flex-direction:column;">
+              <div style="background:#1e293b;border-top:1px solid #334155;border-radius:28px 28px 0 0;padding:8px 20px 18px;color:#f1f5f9;">
+                <div style="width:36px;height:4px;border-radius:999px;background:#475569;margin:6px auto 14px;"></div>
+                <div style="font-size:16px;font-weight:700;margin-bottom:14px;">Ketik kode manual</div>
+                <label style="font-size:12px;font-weight:600;color:#4ade80;display:block;margin-bottom:6px;">Kode aset</label>
+                <div style="height:52px;border:2px solid #22c55e;border-radius:14px;background:#0f172a;display:flex;align-items:center;gap:10px;padding:0 16px;box-shadow:0 0 0 4px rgba(34,197,94,0.15);margin-bottom:7px;"><span class="ico" style="font-size:20px;color:#4ade80;">tag</span><span style="font-family:'JetBrains Mono',monospace;font-size:15px;color:#f1f5f9;">JKT01-ELK-2026-000</span><span style="width:2px;height:22px;background:#22c55e;"></span></div>
+                <div style="font-size:11px;color:#64748b;margin-bottom:14px;">Format: KANTOR-KATEGORI-TAHUN-NOMOR</div>
+                <button style="width:100%;height:52px;border:none;border-radius:14px;background:#22c55e;color:#052e16;font-family:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;"><span class="ico" style="font-size:20px;">search</span>Cari</button>
+              </div>
+              <div style="background:#161b22;padding:8px 6px 6px;">
+                <div style="display:flex;gap:5px;justify-content:center;margin-bottom:7px;"><span style="flex:1;max-width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">1</span><span style="flex:1;max-width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">2</span><span style="flex:1;max-width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">3</span><span style="flex:1;max-width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">4</span><span style="flex:1;max-width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">5</span><span style="flex:1;max-width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">6</span><span style="flex:1;max-width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">7</span><span style="flex:1;max-width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">8</span><span style="flex:1;max-width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">9</span><span style="flex:1;max-width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">0</span></div>
+                <div style="display:flex;gap:5px;justify-content:center;margin-bottom:7px;"><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">Q</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">W</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">E</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">R</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">T</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">Y</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">U</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">I</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">O</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">P</span></div>
+                <div style="display:flex;gap:5px;justify-content:center;margin-bottom:7px;"><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">A</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">S</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">D</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">F</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">G</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">H</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">J</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">K</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">L</span></div>
+                <div style="display:flex;gap:5px;justify-content:center;margin-bottom:7px;"><span style="width:44px;height:40px;background:#3a424e;border-radius:7px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:18px;color:#e5e7eb;">shift</span></span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">Z</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">X</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">C</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">V</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">B</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">N</span><span style="width:32px;height:40px;background:#2c333d;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#e5e7eb;">M</span><span style="width:44px;height:40px;background:#3a424e;border-radius:7px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:18px;color:#e5e7eb;">backspace</span></span></div>
+                <div style="display:flex;gap:5px;justify-content:center;"><span style="width:64px;height:40px;background:#3a424e;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#e5e7eb;">?123</span><span style="flex:1;max-width:190px;height:40px;background:#2c333d;border-radius:7px;"></span><span style="width:74px;height:40px;background:#22c55e;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;color:#052e16;">Cari</span></div>
+                <div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:10px auto 2px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

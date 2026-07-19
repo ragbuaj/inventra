@@ -237,8 +237,28 @@ paths:
       tags: [Auth]
       operationId: authLogin
       summary: Login with email and password
-      description: Verifies credentials and issues an access token; sets the refresh token as an `inventra_refresh` HttpOnly cookie.
+      description: >
+        Verifies credentials and issues an access token. The refresh-token
+        transport is per client (ADR-0017): web clients (default) receive it as
+        an `inventra_refresh` HttpOnly cookie and never in the body; mobile
+        clients (`X-Client-Type: mobile`) receive it as `refresh_token` in the
+        body and no cookie is set. The chosen client identity is stamped into
+        the tokens' `aud` claim and cannot be switched without logging in again.
       security: []
+      parameters:
+        - in: header
+          name: X-Client-Type
+          required: false
+          schema:
+            type: string
+            enum: [web, mobile]
+            default: web
+          description: >
+            Client identity for the token audience. Exactly `mobile` issues
+            mobile-audience tokens (refresh token in the response body, no
+            cookie, and admin-only route groups respond 403); any other value
+            or absence means `web`. This is not an authorization mechanism —
+            claiming `mobile` only narrows access.
       requestBody:
         required: true
         content:
@@ -251,7 +271,7 @@ paths:
           headers:
             Set-Cookie:
               schema: { type: string }
-              description: Sets the `inventra_refresh` HttpOnly cookie.
+              description: Web clients only — sets the `inventra_refresh` HttpOnly cookie. Absent for mobile clients.
           content:
             application/json:
               schema:
@@ -279,16 +299,26 @@ paths:
       operationId: authRefresh
       summary: Rotate refresh token for a new token pair
       description: >
-        Rotates the session using the `inventra_refresh` HttpOnly cookie set at
-        login. No request body. Responds 401 if the cookie is missing or invalid.
+        Rotates the session. Web clients use the `inventra_refresh` HttpOnly
+        cookie set at login (no request body); mobile clients — which have no
+        cookie — send `refresh_token` in the body instead. The cookie wins when
+        both are present. The new pair keeps the session id and the client
+        audience of the old one. Responds 401 if no valid refresh token is
+        presented either way.
       security: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
       responses:
         "200":
           description: New token pair issued; the old refresh token is invalidated
           headers:
             Set-Cookie:
               schema: { type: string }
-              description: Sets the `inventra_refresh` HttpOnly cookie.
+              description: Web clients only — rotates the `inventra_refresh` HttpOnly cookie. Absent for mobile clients (the rotated token is in the body).
           content:
             application/json:
               schema:
@@ -344,17 +374,27 @@ paths:
     post:
       tags: [Auth]
       operationId: authLogout
-      summary: Revoke the current access token and the refresh cookie
-      description: Denylists the current access token until expiry and clears the `inventra_refresh` HttpOnly cookie. No request body.
+      summary: Revoke the current access token and refresh token
+      description: >
+        Denylists the current access token until expiry and revokes the refresh
+        token. Web clients carry it in the `inventra_refresh` HttpOnly cookie
+        (cleared in the response, no request body); mobile clients send
+        `refresh_token` in the body instead and no cookie is touched.
       security:
         - bearerJWT: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
       responses:
         "200":
           description: Logged out
           headers:
             Set-Cookie:
               schema: { type: string }
-              description: Clears the `inventra_refresh` HttpOnly cookie.
+              description: Web clients only — clears the `inventra_refresh` HttpOnly cookie.
           content:
             application/json:
               schema:
@@ -5153,6 +5193,22 @@ components:
           type: integer
           description: Access-token lifetime in seconds
           examples: [900]
+        refresh_token:
+          type: string
+          description: >
+            Mobile clients only (`X-Client-Type: mobile` at login): the rotated
+            refresh token, to be kept in platform secure storage. Never present
+            for web clients — their refresh token travels exclusively as the
+            `inventra_refresh` HttpOnly cookie (ADR-0017).
+
+    RefreshRequest:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+          description: >
+            Refresh token for clients without the `inventra_refresh` cookie
+            (mobile). Ignored when the cookie is present.
 
     User:
       type: object

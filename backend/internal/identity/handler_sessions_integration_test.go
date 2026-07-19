@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ragbuaj/inventra/db/sqlc"
+	"github.com/ragbuaj/inventra/internal/auth"
 	"github.com/ragbuaj/inventra/internal/middleware"
 )
 
@@ -33,11 +34,11 @@ func seedTwoSessions(t *testing.T) (*Handler, uuid.UUID, string, string) {
 	u := activeUserEmail(t, "u@x.com")
 	fs := &fakeStore{byEmail: map[string]sqlc.IdentityUser{"u@x.com": u}, byID: map[uuid.UUID]sqlc.IdentityUser{u.ID: u}}
 	svc, _ := newIntegrationService(t, fs, &fakeMailer{})
-	p1, _, err := svc.Login(context.Background(), "u@x.com", "oldpassword", "Chrome", "1.1.1.1")
+	p1, _, err := svc.Login(context.Background(), "u@x.com", "oldpassword", "Chrome", "1.1.1.1", auth.AudienceWeb)
 	if err != nil {
 		t.Fatalf("login 1: %v", err)
 	}
-	p2, _, err := svc.Login(context.Background(), "u@x.com", "oldpassword", "Safari", "2.2.2.2")
+	p2, _, err := svc.Login(context.Background(), "u@x.com", "oldpassword", "Safari", "2.2.2.2", auth.AudienceWeb)
 	if err != nil {
 		t.Fatalf("login 2: %v", err)
 	}

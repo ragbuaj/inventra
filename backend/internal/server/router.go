@@ -290,10 +290,20 @@ func NewRouter(d Deps) (*gin.Engine, Workers) {
 			middleware.RequirePermission(permSvc, "asset.view"),
 		)
 
+		// ADR-0017 keputusan 4: the explicit web-only deny list for aud=mobile.
+		// authzadmin, importer, and report EXPORT are admin/risky surfaces a
+		// compromised mobile device must not reach; RequireAudience(web) equals
+		// "deny aud=mobile" today and fails closed for any future audience.
+		// Changes to this list go through PR review, never ad-hoc.
+		webOnly := middleware.RequireAudience(auth.AudienceWeb)
+
 		reportSvc := report.NewService(queries, d.Redis)
 		reportHandler := report.NewHandler(reportSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc})
+		// webOnly gates only the two export routes; the JSON report reads stay
+		// shared (mobile may view reports, not export them) — ADR-0017 tabel.
 		report.RegisterRoutes(api, reportHandler,
 			requireAuth,
+			webOnly,
 			middleware.RequirePermission(permSvc, "report.view"),
 			middleware.RequirePermission(permSvc, "report.export"),
 		)
@@ -317,7 +327,7 @@ func NewRouter(d Deps) (*gin.Engine, Workers) {
 
 		authzAdminSvc := authzadmin.NewService(queries, d.Pool, permSvc, scopeSvc, fieldSvc)
 		authzAdminHandler := authzadmin.NewHandler(authzAdminSvc, auditSvc)
-		authzadmin.RegisterRoutes(api, authzAdminHandler, requireAuth,
+		authzadmin.RegisterRoutes(api, authzAdminHandler, requireAuth, webOnly,
 			middleware.RequirePermission(permSvc, "role.manage"),
 			middleware.RequirePermission(permSvc, "scope.manage"),
 			middleware.RequirePermission(permSvc, "fieldperm.manage"),
@@ -336,7 +346,7 @@ func NewRouter(d Deps) (*gin.Engine, Workers) {
 		importerSvc.RegisterTarget(reference.NewImporter(refSvc, "models"))
 		importerSvc.RegisterTarget(reference.NewImporter(refSvc, "units"))
 		importerHandler := importer.NewHandler(importerSvc, permSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc}, auditSvc)
-		importer.RegisterRoutes(api, importerHandler, requireAuth)
+		importer.RegisterRoutes(api, importerHandler, requireAuth, webOnly)
 		workers.Import = importer.NewWorker(importerSvc, d.Pool, d.Redis, approvalSvc, scopeSvc, d.Cfg.ImportWorkerPoll)
 	}
 

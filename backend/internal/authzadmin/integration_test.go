@@ -18,6 +18,7 @@ import (
 
 	"github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/audit"
+	"github.com/ragbuaj/inventra/internal/auth"
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/authzadmin"
 	"github.com/ragbuaj/inventra/internal/middleware"
@@ -79,10 +80,13 @@ func newTestHarness(t *testing.T) *testHarness {
 		 VALUES ('Test Admin', 'admin@authzadmin.test', $1, 'active') RETURNING id`,
 		adminRoleID).Scan(&adminUserID))
 
-	// Stub auth MW: inject admin identity, bypassing real JWT.
+	// Stub auth MW: inject admin identity, bypassing real JWT. Sets the audience
+	// too — RequireAuth always does, and RequireAudience now fails closed on an
+	// empty audience (ADR-0017 hardening), so the stub must simulate a web session.
 	adminAuth := func(c *gin.Context) {
 		c.Set(middleware.CtxUserID, adminUserID.String())
 		c.Set(middleware.CtxRoleID, adminRoleID.String())
+		c.Set(middleware.CtxAudience, auth.AudienceWeb)
 		c.Next()
 	}
 
@@ -91,6 +95,7 @@ func newTestHarness(t *testing.T) *testHarness {
 	v1 := router.Group("/api/v1")
 	authzadmin.RegisterRoutes(v1, handler,
 		adminAuth,
+		middleware.RequireAudience(auth.AudienceWeb),
 		middleware.RequirePermission(permSvc, "role.manage"),
 		middleware.RequirePermission(permSvc, "scope.manage"),
 		middleware.RequirePermission(permSvc, "fieldperm.manage"),
@@ -156,6 +161,7 @@ func (h *testHarness) callAs(userID, roleID uuid.UUID, method, path string, body
 	stubAuth := func(c *gin.Context) {
 		c.Set(middleware.CtxUserID, userID.String())
 		c.Set(middleware.CtxRoleID, roleID.String())
+		c.Set(middleware.CtxAudience, auth.AudienceWeb)
 		c.Next()
 	}
 	gin.SetMode(gin.TestMode)
@@ -163,6 +169,51 @@ func (h *testHarness) callAs(userID, roleID uuid.UUID, method, path string, body
 	v1 := r.Group("/api/v1")
 	authzadmin.RegisterRoutes(v1, h.handler,
 		stubAuth,
+		middleware.RequireAudience(auth.AudienceWeb),
+		middleware.RequirePermission(h.permSvc, "role.manage"),
+		middleware.RequirePermission(h.permSvc, "scope.manage"),
+		middleware.RequirePermission(h.permSvc, "fieldperm.manage"),
+		middleware.RequireAnyPermission(h.permSvc, "role.manage", "scope.manage", "fieldperm.manage"),
+		middleware.RequireAnyPermission(h.permSvc, "role.manage", "scope.manage", "fieldperm.manage", "user.manage"),
+	)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	return w
+}
+
+// callAsMobile performs a request as the default admin but with a MOBILE
+// client audience stamped by the auth stub (as RequireAuth does for an
+// aud=mobile token). The entire /authz group is on ADR-0017's aud=mobile deny
+// list, so even the fully-privileged admin must get 403.
+func (h *testHarness) callAsMobile(method, path string, body any) *httptest.ResponseRecorder {
+	var b []byte
+	if body != nil {
+		var err error
+		b, err = json.Marshal(body)
+		if err != nil {
+			panic(err)
+		}
+	}
+	req, err := http.NewRequest(method, path, bytes.NewBuffer(b))
+	if err != nil {
+		panic(err)
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	mobileAuth := func(c *gin.Context) {
+		c.Set(middleware.CtxUserID, h.adminUserID.String())
+		c.Set(middleware.CtxRoleID, h.adminRoleID.String())
+		c.Set(middleware.CtxAudience, auth.AudienceMobile)
+		c.Next()
+	}
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	v1 := r.Group("/api/v1")
+	authzadmin.RegisterRoutes(v1, h.handler,
+		mobileAuth,
+		middleware.RequireAudience(auth.AudienceWeb),
 		middleware.RequirePermission(h.permSvc, "role.manage"),
 		middleware.RequirePermission(h.permSvc, "scope.manage"),
 		middleware.RequirePermission(h.permSvc, "fieldperm.manage"),
@@ -749,6 +800,29 @@ func TestAuthzAdmin_Delegation_UserManage(t *testing.T) {
 		w := h.callAs(userUserID, userRoleID, http.MethodGet, "/api/v1/authz/catalog", nil)
 		assert.Equal(t, http.StatusForbidden, w.Code,
 			"user.manage must not reach the authz-admin catalog")
+	})
+}
+
+// ADR-0017 keputusan 4: /authz is on the aud=mobile deny list. Even the
+// fully-privileged admin is 403'd when the token audience is mobile — the
+// audience limits blast radius before permissions are ever consulted.
+func TestAuthzAdmin_MobileAudienceDenied(t *testing.T) {
+	h := newTestHarness(t)
+
+	t.Run("read denied", func(t *testing.T) {
+		w := h.callAsMobile(http.MethodGet, "/api/v1/authz/roles", nil)
+		assert.Equal(t, http.StatusForbidden, w.Code,
+			"a mobile-audience admin must not read authz-admin routes")
+	})
+	t.Run("mutation denied", func(t *testing.T) {
+		w := h.callAsMobile(http.MethodPost, "/api/v1/authz/roles", map[string]any{"code": "x", "name": "X"})
+		assert.Equal(t, http.StatusForbidden, w.Code,
+			"a mobile-audience admin must not mutate authz-admin routes")
+	})
+	// The same admin over the web path still works (regression guard).
+	t.Run("web path unaffected", func(t *testing.T) {
+		w := h.call(http.MethodGet, "/api/v1/authz/roles", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
 	})
 }
 

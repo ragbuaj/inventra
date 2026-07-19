@@ -1,0 +1,1516 @@
+{
+  "@@locale": "id",
+  "appTitle": "Inventra Mobile",
+  "@appTitle": {
+    "description": "Nama aplikasi, dipakai sebagai judul app"
+  },
+  "commonRetry": "Coba lagi",
+  "@commonRetry": {
+    "description": "Label tombol coba ulang setelah error"
+  },
+  "commonCancel": "Batal",
+  "@commonCancel": {
+    "description": "Label tombol batal umum"
+  },
+  "commonOfflineBanner": "Offline — scan tersimpan di perangkat",
+  "@commonOfflineBanner": {
+    "description": "Teks default banner offline slim"
+  },
+  "commonSyncSynced": "Tersinkron",
+  "@commonSyncSynced": {
+    "description": "Label SyncPill saat seluruh antrean tersinkron"
+  },
+  "commonSyncPending": "{count} belum tersinkron",
+  "@commonSyncPending": {
+    "description": "Label SyncPill saat masih ada antrean lokal",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "commonSyncSyncing": "Menyinkronkan…",
+  "@commonSyncSyncing": {
+    "description": "Label SyncPill saat sinkronisasi berjalan"
+  },
+  "commonSyncFailed": "Gagal — coba lagi",
+  "@commonSyncFailed": {
+    "description": "Label SyncPill saat sinkronisasi gagal"
+  },
+  "commonSyncOffline": "Offline",
+  "@commonSyncOffline": {
+    "description": "Label SyncPill saat perangkat offline"
+  },
+  "shellTabHome": "Beranda",
+  "@shellTabHome": {
+    "description": "Label tab bottom-nav beranda"
+  },
+  "shellTabOpname": "Opname",
+  "@shellTabOpname": {
+    "description": "Label tab bottom-nav stock opname"
+  },
+  "shellTabScan": "Pindai",
+  "@shellTabScan": {
+    "description": "Label tombol pindai tengah bottom-nav"
+  },
+  "shellTabApproval": "Approval",
+  "@shellTabApproval": {
+    "description": "Label tab bottom-nav approval inbox"
+  },
+  "shellTabNotifications": "Notif",
+  "@shellTabNotifications": {
+    "description": "Label tab bottom-nav notifikasi"
+  },
+  "notificationsTitle": "Notifikasi",
+  "@notificationsTitle": {
+    "description": "Judul layar feed notifikasi"
+  },
+  "assetDetailTitle": "Detail Aset",
+  "@assetDetailTitle": {
+    "description": "Judul layar detail aset"
+  },
+  "scanTitle": "Pindai Label Aset",
+  "@scanTitle": {
+    "description": "Judul overlay layar scan"
+  },
+  "scanHint": "Arahkan ke barcode / QR pada label aset",
+  "@scanHint": {
+    "description": "Pill petunjuk di bawah bingkai target scan"
+  },
+  "scanManualButton": "Ketik kode manual",
+  "@scanManualButton": {
+    "description": "Label tombol pembuka bottom sheet input tag manual"
+  },
+  "scanCloseTooltip": "Tutup pemindai",
+  "@scanCloseTooltip": {
+    "description": "Tooltip tombol tutup di layar scan"
+  },
+  "scanTorchOnTooltip": "Nyalakan senter",
+  "@scanTorchOnTooltip": {
+    "description": "Tooltip toggle torch saat senter mati"
+  },
+  "scanTorchOffTooltip": "Matikan senter",
+  "@scanTorchOffTooltip": {
+    "description": "Tooltip toggle torch saat senter menyala"
+  },
+  "scanCameraUnavailableTitle": "Kamera tidak tersedia",
+  "@scanCameraUnavailableTitle": {
+    "description": "Judul state kamera gagal (izin ditolak/emulator)"
+  },
+  "scanCameraUnavailableBody": "Izinkan akses kamera di pengaturan perangkat, atau gunakan input kode manual.",
+  "@scanCameraUnavailableBody": {
+    "description": "Subjudul state kamera gagal, mengarahkan ke jalur manual"
+  },
+  "scanManualSheetTitle": "Ketik kode manual",
+  "@scanManualSheetTitle": {
+    "description": "Judul bottom sheet input tag manual"
+  },
+  "scanManualFieldLabel": "Kode aset",
+  "@scanManualFieldLabel": {
+    "description": "Label field kode aset pada sheet input manual"
+  },
+  "scanManualFieldHint": "JKT01-ELK-2026-00001",
+  "@scanManualFieldHint": {
+    "description": "Placeholder field kode aset (contoh tag valid)"
+  },
+  "scanManualFieldHelper": "Format: KANTOR-KATEGORI-TAHUN-NOMOR",
+  "@scanManualFieldHelper": {
+    "description": "Teks bantuan format tag di bawah field kode aset"
+  },
+  "scanManualSubmit": "Cari",
+  "@scanManualSubmit": {
+    "description": "Label tombol submit pencarian tag manual"
+  },
+  "assetDetailPhotoPlaceholder": "Belum ada foto",
+  "@assetDetailPhotoPlaceholder": {
+    "description": "Keterangan placeholder saat aset tidak punya foto"
+  },
+  "assetDetailSectionPlacement": "Penempatan",
+  "@assetDetailSectionPlacement": {
+    "description": "Judul seksi penempatan (kantor/ruangan/pemegang)"
+  },
+  "assetDetailSectionInfo": "Informasi",
+  "@assetDetailSectionInfo": {
+    "description": "Judul seksi informasi umum aset"
+  },
+  "assetDetailSectionValue": "Nilai",
+  "@assetDetailSectionValue": {
+    "description": "Judul seksi nilai finansial aset"
+  },
+  "assetDetailFieldOffice": "Kantor",
+  "@assetDetailFieldOffice": {
+    "description": "Label baris kantor pemilik aset"
+  },
+  "assetDetailFieldRoom": "Lantai / Ruangan",
+  "@assetDetailFieldRoom": {
+    "description": "Label baris ruangan penempatan aset"
+  },
+  "assetDetailFieldHolder": "Pemegang saat ini",
+  "@assetDetailFieldHolder": {
+    "description": "Label baris pegawai pemegang aset"
+  },
+  "assetDetailFieldCategory": "Kategori",
+  "@assetDetailFieldCategory": {
+    "description": "Label baris kategori aset"
+  },
+  "assetDetailFieldBrandModel": "Brand / Model",
+  "@assetDetailFieldBrandModel": {
+    "description": "Label baris brand dan model aset"
+  },
+  "assetDetailFieldSerial": "No. seri",
+  "@assetDetailFieldSerial": {
+    "description": "Label baris nomor seri aset"
+  },
+  "assetDetailFieldPurchaseDate": "Tanggal beli",
+  "@assetDetailFieldPurchaseDate": {
+    "description": "Label baris tanggal pembelian aset"
+  },
+  "assetDetailFieldVendor": "Vendor",
+  "@assetDetailFieldVendor": {
+    "description": "Label baris vendor pengadaan aset"
+  },
+  "assetDetailFieldPurchaseCost": "Harga beli",
+  "@assetDetailFieldPurchaseCost": {
+    "description": "Label baris harga beli aset"
+  },
+  "assetDetailFieldBookValue": "Nilai buku",
+  "@assetDetailFieldBookValue": {
+    "description": "Label baris nilai buku aset"
+  },
+  "assetDetailRestrictedBadge": "Dibatasi untuk peran Anda",
+  "@assetDetailRestrictedBadge": {
+    "description": "Badge pada seksi yang sebagian fieldnya dimask field permission"
+  },
+  "assetDetailRestrictedTooltip": "Field ini dibatasi untuk peran Anda",
+  "@assetDetailRestrictedTooltip": {
+    "description": "Tooltip ikon gembok pada nilai yang dimask field permission"
+  },
+  "assetDetailStatusAvailable": "Tersedia",
+  "@assetDetailStatusAvailable": {
+    "description": "Label chip status aset available"
+  },
+  "assetDetailStatusAssigned": "Dipinjam",
+  "@assetDetailStatusAssigned": {
+    "description": "Label chip status aset assigned"
+  },
+  "assetDetailStatusUnderMaintenance": "Maintenance",
+  "@assetDetailStatusUnderMaintenance": {
+    "description": "Label chip status aset under_maintenance"
+  },
+  "assetDetailStatusInTransfer": "Dalam Mutasi",
+  "@assetDetailStatusInTransfer": {
+    "description": "Label chip status aset in_transfer"
+  },
+  "assetDetailStatusRetired": "Purna Pakai",
+  "@assetDetailStatusRetired": {
+    "description": "Label chip status aset retired"
+  },
+  "assetDetailStatusDisposed": "Dilepas",
+  "@assetDetailStatusDisposed": {
+    "description": "Label chip status aset disposed"
+  },
+  "assetDetailStatusLost": "Hilang",
+  "@assetDetailStatusLost": {
+    "description": "Label chip status aset lost"
+  },
+  "assetDetailErrorTitle": "Gagal memuat detail aset",
+  "@assetDetailErrorTitle": {
+    "description": "Judul empty state error umum detail aset"
+  },
+  "assetDetailErrorNetworkBody": "Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.",
+  "@assetDetailErrorNetworkBody": {
+    "description": "Subjudul error detail aset saat offline/gangguan jaringan"
+  },
+  "assetDetailErrorGenericBody": "Terjadi kesalahan. Coba lagi.",
+  "@assetDetailErrorGenericBody": {
+    "description": "Subjudul error detail aset untuk kegagalan lain"
+  },
+  "assetDetailForbiddenTitle": "Akses dibatasi",
+  "@assetDetailForbiddenTitle": {
+    "description": "Judul empty state 403 detail aset"
+  },
+  "assetDetailForbiddenBody": "Peran Anda tidak memiliki izin melihat aset.",
+  "@assetDetailForbiddenBody": {
+    "description": "Subjudul empty state 403 detail aset"
+  },
+  "assetDetailNotFoundTitle": "Kode tidak dikenal",
+  "@assetDetailNotFoundTitle": {
+    "description": "Judul empty state 404 detail aset"
+  },
+  "assetDetailNotFoundBody": "Kode {tag} tidak terdaftar, atau aset ini di luar wewenang Anda.",
+  "@assetDetailNotFoundBody": {
+    "description": "Subjudul empty state 404 detail aset dengan tag yang dicari",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "assetDetailScanAgain": "Pindai Lagi",
+  "@assetDetailScanAgain": {
+    "description": "Label aksi kembali memindai dari empty state 404"
+  },
+  "approvalDetailTitle": "Detail Approval",
+  "@approvalDetailTitle": {
+    "description": "Judul layar detail approval"
+  },
+  "opnameDetailTitle": "Detail Opname",
+  "@opnameDetailTitle": {
+    "description": "Judul layar counting sesi opname"
+  },
+  "opnameVarianceTitle": "Variance Opname",
+  "@opnameVarianceTitle": {
+    "description": "Judul layar variance sesi opname"
+  },
+  "accountTitle": "Profil",
+  "@accountTitle": {
+    "description": "Judul layar profil dan sesi device"
+  },
+  "accountSettingsButton": "Pengaturan",
+  "@accountSettingsButton": {
+    "description": "Label entri Pengaturan di app bar layar Profil"
+  },
+  "accountEditOnWeb": "Penyuntingan profil dilakukan dari aplikasi web",
+  "@accountEditOnWeb": {
+    "description": "Catatan kartu identitas: data diri diubah lewat web"
+  },
+  "accountSessionsTitle": "Sesi Perangkat",
+  "@accountSessionsTitle": {
+    "description": "Judul kartu daftar sesi device aktif"
+  },
+  "accountSessionCurrentBadge": "Perangkat ini",
+  "@accountSessionCurrentBadge": {
+    "description": "Badge penanda sesi yang sedang dipakai"
+  },
+  "accountSessionActiveNow": "aktif sekarang",
+  "@accountSessionActiveNow": {
+    "description": "Label waktu sesi ini (menggantikan last_seen relatif)"
+  },
+  "accountSessionRevoke": "Cabut",
+  "@accountSessionRevoke": {
+    "description": "Label tombol cabut satu sesi lain"
+  },
+  "accountSessionRevokeConfirmTitle": "Cabut sesi ini?",
+  "@accountSessionRevokeConfirmTitle": {
+    "description": "Judul dialog konfirmasi cabut satu sesi"
+  },
+  "accountSessionRevokeConfirmBody": "{name} akan keluar dan harus masuk kembali.",
+  "@accountSessionRevokeConfirmBody": {
+    "description": "Isi dialog konfirmasi cabut satu sesi",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "accountSessionRevokeConfirmAction": "Ya, Cabut",
+  "@accountSessionRevokeConfirmAction": {
+    "description": "Label aksi utama dialog cabut satu sesi"
+  },
+  "accountSessionRevokedSnack": "Sesi {name} dicabut",
+  "@accountSessionRevokedSnack": {
+    "description": "Snackbar setelah satu sesi berhasil dicabut",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "accountSessionRevokeFailed": "Gagal mencabut sesi. Coba lagi.",
+  "@accountSessionRevokeFailed": {
+    "description": "Snackbar saat server menolak pencabutan satu sesi"
+  },
+  "accountRevokeOthers": "Keluar dari semua perangkat lain",
+  "@accountRevokeOthers": {
+    "description": "Label tombol cabut semua sesi lain sekaligus"
+  },
+  "accountRevokeOthersConfirmTitle": "Keluar dari semua perangkat lain?",
+  "@accountRevokeOthersConfirmTitle": {
+    "description": "Judul dialog konfirmasi cabut semua sesi lain"
+  },
+  "accountRevokeOthersConfirmBody": "{count} sesi lain akan dicabut. Perangkat ini tetap masuk.",
+  "@accountRevokeOthersConfirmBody": {
+    "description": "Isi dialog konfirmasi cabut semua sesi lain",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountRevokeOthersConfirmAction": "Ya, Keluar",
+  "@accountRevokeOthersConfirmAction": {
+    "description": "Label aksi utama dialog cabut semua sesi lain"
+  },
+  "accountRevokeOthersFailed": "Gagal mencabut sesi lain. Coba lagi.",
+  "@accountRevokeOthersFailed": {
+    "description": "Snackbar saat server menolak cabut semua sesi lain"
+  },
+  "accountSessionsEmpty": "Belum ada sesi aktif yang tercatat.",
+  "@accountSessionsEmpty": {
+    "description": "Isi kartu sesi saat daftar dari server kosong"
+  },
+  "accountSessionsErrorBody": "Gagal memuat sesi perangkat.",
+  "@accountSessionsErrorBody": {
+    "description": "Pesan error kartu sesi (dengan tombol coba lagi)"
+  },
+  "accountLogout": "Keluar",
+  "@accountLogout": {
+    "description": "Label tombol logout layar Profil"
+  },
+  "accountLogoutConfirmTitle": "Keluar dari akun?",
+  "@accountLogoutConfirmTitle": {
+    "description": "Judul dialog konfirmasi logout"
+  },
+  "accountLogoutConfirmBody": "Sesi Anda di perangkat ini akan diakhiri.",
+  "@accountLogoutConfirmBody": {
+    "description": "Isi dialog konfirmasi logout"
+  },
+  "accountLogoutConfirmAction": "Ya, Keluar",
+  "@accountLogoutConfirmAction": {
+    "description": "Label aksi utama dialog konfirmasi logout"
+  },
+  "accountTimeJustNow": "baru saja",
+  "@accountTimeJustNow": {
+    "description": "last_seen sesi < 1 menit lalu"
+  },
+  "accountTimeMinutesAgo": "{count} mnt lalu",
+  "@accountTimeMinutesAgo": {
+    "description": "last_seen sesi dalam menit",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountTimeHoursAgo": "{count} jam lalu",
+  "@accountTimeHoursAgo": {
+    "description": "last_seen sesi dalam jam",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountTimeYesterday": "kemarin",
+  "@accountTimeYesterday": {
+    "description": "last_seen sesi 24-48 jam lalu"
+  },
+  "accountTimeDaysAgo": "{count} hari lalu",
+  "@accountTimeDaysAgo": {
+    "description": "last_seen sesi dalam hari (< 7 hari)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsTitle": "Pengaturan",
+  "@settingsTitle": {
+    "description": "Judul layar pengaturan"
+  },
+  "settingsSectionAppearance": "Tampilan",
+  "@settingsSectionAppearance": {
+    "description": "Judul kartu seksi tampilan (tema + bahasa)"
+  },
+  "settingsTheme": "Tema",
+  "@settingsTheme": {
+    "description": "Judul baris pengaturan tema"
+  },
+  "settingsThemeLight": "Terang",
+  "@settingsThemeLight": {
+    "description": "Opsi tema terang"
+  },
+  "settingsThemeDark": "Gelap",
+  "@settingsThemeDark": {
+    "description": "Opsi tema gelap"
+  },
+  "settingsThemeSystem": "Ikuti Sistem",
+  "@settingsThemeSystem": {
+    "description": "Opsi tema mengikuti sistem"
+  },
+  "settingsThemeSheetTitle": "Pilih tema",
+  "@settingsThemeSheetTitle": {
+    "description": "Judul bottom sheet pemilih tema"
+  },
+  "settingsThemeApply": "Terapkan",
+  "@settingsThemeApply": {
+    "description": "Label tombol terapkan pada sheet pemilih tema"
+  },
+  "settingsLanguage": "Bahasa",
+  "@settingsLanguage": {
+    "description": "Judul baris pengaturan bahasa"
+  },
+  "settingsLanguageSheetTitle": "Pilih bahasa",
+  "@settingsLanguageSheetTitle": {
+    "description": "Judul bottom sheet pemilih bahasa"
+  },
+  "settingsLanguageIndonesian": "Indonesia",
+  "@settingsLanguageIndonesian": {
+    "description": "Nama bahasa Indonesia (ditulis dalam bahasanya sendiri)"
+  },
+  "settingsLanguageEnglish": "English",
+  "@settingsLanguageEnglish": {
+    "description": "Nama bahasa Inggris (ditulis dalam bahasanya sendiri)"
+  },
+  "settingsSectionAbout": "Tentang",
+  "@settingsSectionAbout": {
+    "description": "Judul kartu seksi tentang aplikasi"
+  },
+  "settingsAppName": "Inventra Mobile",
+  "@settingsAppName": {
+    "description": "Nama aplikasi pada baris tentang (tidak diterjemahkan)"
+  },
+  "settingsVersion": "Versi {version} (build {build})",
+  "@settingsVersion": {
+    "description": "Label versi aplikasi pada kartu tentang",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "build": {
+        "type": "String"
+      }
+    }
+  },
+  "homeTitle": "Beranda",
+  "@homeTitle": {
+    "description": "Judul app bar tab beranda"
+  },
+  "loginBrandName": "Inventra",
+  "@loginBrandName": {
+    "description": "Wordmark produk pada layar login (tidak diterjemahkan)"
+  },
+  "loginBrandBadge": "MOBILE",
+  "@loginBrandBadge": {
+    "description": "Badge pill di samping wordmark login"
+  },
+  "loginTagline": "Pendamping lapangan manajemen aset",
+  "@loginTagline": {
+    "description": "Tagline di bawah wordmark login"
+  },
+  "loginCardTitle": "Masuk",
+  "@loginCardTitle": {
+    "description": "Judul card form login"
+  },
+  "loginCardSubtitle": "Gunakan akun Inventra Anda",
+  "@loginCardSubtitle": {
+    "description": "Subjudul card form login"
+  },
+  "loginEmailLabel": "Email",
+  "@loginEmailLabel": {
+    "description": "Label field email login"
+  },
+  "loginEmailHint": "nama@bank.co.id",
+  "@loginEmailHint": {
+    "description": "Placeholder field email login"
+  },
+  "loginPasswordLabel": "Kata sandi",
+  "@loginPasswordLabel": {
+    "description": "Label field kata sandi login"
+  },
+  "loginPasswordHint": "Masukkan kata sandi",
+  "@loginPasswordHint": {
+    "description": "Placeholder field kata sandi login"
+  },
+  "loginShowPassword": "Tampilkan kata sandi",
+  "@loginShowPassword": {
+    "description": "Tooltip toggle visibilitas kata sandi (sembunyi -> tampil)"
+  },
+  "loginHidePassword": "Sembunyikan kata sandi",
+  "@loginHidePassword": {
+    "description": "Tooltip toggle visibilitas kata sandi (tampil -> sembunyi)"
+  },
+  "loginSubmitButton": "Masuk",
+  "@loginSubmitButton": {
+    "description": "Label tombol submit login"
+  },
+  "loginSubmitLoading": "Memproses…",
+  "@loginSubmitLoading": {
+    "description": "Label tombol submit login saat memproses"
+  },
+  "loginErrorInvalidCredentials": "Email atau kata sandi salah. Coba lagi.",
+  "@loginErrorInvalidCredentials": {
+    "description": "Pesan banner error login untuk kredensial salah"
+  },
+  "loginErrorNetwork": "Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.",
+  "@loginErrorNetwork": {
+    "description": "Pesan banner error login saat offline/gangguan jaringan"
+  },
+  "loginErrorRateLimited": "Terlalu banyak percobaan. Coba lagi beberapa saat lagi.",
+  "@loginErrorRateLimited": {
+    "description": "Pesan banner error login saat kena rate limit"
+  },
+  "loginErrorGeneric": "Terjadi kesalahan. Coba lagi.",
+  "@loginErrorGeneric": {
+    "description": "Pesan banner error login untuk kegagalan lain"
+  },
+  "loginLanguageIndonesian": "ID",
+  "@loginLanguageIndonesian": {
+    "description": "Label segmen bahasa Indonesia pada pill switch bahasa"
+  },
+  "loginLanguageEnglish": "EN",
+  "@loginLanguageEnglish": {
+    "description": "Label segmen bahasa Inggris pada pill switch bahasa"
+  },
+  "loginVersion": "Inventra Mobile v{version} · Build {build}",
+  "@loginVersion": {
+    "description": "Teks versi aplikasi di footer login",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "build": {
+        "type": "String"
+      }
+    }
+  },
+  "approvalInboxTitle": "Approval",
+  "@approvalInboxTitle": {
+    "description": "Judul layar inbox approval"
+  },
+  "approvalInboxFilterPending": "Menunggu",
+  "@approvalInboxFilterPending": {
+    "description": "Label chip filter status pending"
+  },
+  "approvalInboxFilterApproved": "Disetujui",
+  "@approvalInboxFilterApproved": {
+    "description": "Label chip filter status approved"
+  },
+  "approvalInboxFilterRejected": "Ditolak",
+  "@approvalInboxFilterRejected": {
+    "description": "Label chip filter status rejected"
+  },
+  "approvalInboxFilterAll": "Semua",
+  "@approvalInboxFilterAll": {
+    "description": "Label chip filter tanpa status (semua pengajuan)"
+  },
+  "approvalInboxPullToRefresh": "Tarik untuk menyegarkan",
+  "@approvalInboxPullToRefresh": {
+    "description": "Petunjuk pull-to-refresh di atas daftar inbox"
+  },
+  "approvalInboxEmptyPendingTitle": "Tidak ada pengajuan menunggu",
+  "@approvalInboxEmptyPendingTitle": {
+    "description": "Judul empty state filter Menunggu"
+  },
+  "approvalInboxEmptyPendingBody": "Semua pengajuan dalam lingkup Anda sudah diputus. Kerja bagus!",
+  "@approvalInboxEmptyPendingBody": {
+    "description": "Subjudul empty state filter Menunggu"
+  },
+  "approvalInboxEmptyPendingAction": "Lihat riwayat",
+  "@approvalInboxEmptyPendingAction": {
+    "description": "Aksi empty state Menunggu: pindah ke filter Semua"
+  },
+  "approvalInboxEmptyFilteredTitle": "Tidak ada pengajuan",
+  "@approvalInboxEmptyFilteredTitle": {
+    "description": "Judul empty state filter selain Menunggu"
+  },
+  "approvalInboxEmptyFilteredBody": "Belum ada pengajuan dengan status ini di lingkup Anda.",
+  "@approvalInboxEmptyFilteredBody": {
+    "description": "Subjudul empty state filter selain Menunggu"
+  },
+  "approvalInboxErrorTitle": "Gagal memuat pengajuan",
+  "@approvalInboxErrorTitle": {
+    "description": "Judul empty state error inbox approval"
+  },
+  "approvalInboxErrorNetworkBody": "Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.",
+  "@approvalInboxErrorNetworkBody": {
+    "description": "Subjudul error inbox saat offline/gangguan jaringan"
+  },
+  "approvalInboxErrorGenericBody": "Terjadi kesalahan. Coba lagi.",
+  "@approvalInboxErrorGenericBody": {
+    "description": "Subjudul error inbox untuk kegagalan lain"
+  },
+  "approvalInboxForbiddenTitle": "Akses dibatasi",
+  "@approvalInboxForbiddenTitle": {
+    "description": "Judul empty state 403 inbox approval"
+  },
+  "approvalInboxForbiddenBody": "Peran Anda tidak memiliki izin melihat pengajuan.",
+  "@approvalInboxForbiddenBody": {
+    "description": "Subjudul empty state 403 inbox approval"
+  },
+  "approvalInboxLoadMoreFailed": "Gagal memuat halaman berikutnya",
+  "@approvalInboxLoadMoreFailed": {
+    "description": "Teks baris kaki daftar saat muat halaman berikutnya gagal"
+  },
+  "approvalCardSensitive": "sensitif",
+  "@approvalCardSensitive": {
+    "description": "Penanda jenis pengajuan sensitif pada kartu dan header detail"
+  },
+  "approvalTypeAssetCreate": "Registrasi Aset",
+  "@approvalTypeAssetCreate": {
+    "description": "Label jenis pengajuan asset_create"
+  },
+  "approvalTypeAssetDisposal": "Penghapusan",
+  "@approvalTypeAssetDisposal": {
+    "description": "Label jenis pengajuan asset_disposal"
+  },
+  "approvalTypeAssetTransfer": "Mutasi",
+  "@approvalTypeAssetTransfer": {
+    "description": "Label jenis pengajuan asset_transfer"
+  },
+  "approvalTypeAssignment": "Peminjaman",
+  "@approvalTypeAssignment": {
+    "description": "Label jenis pengajuan assignment"
+  },
+  "approvalTypeMaintenance": "Perbaikan",
+  "@approvalTypeMaintenance": {
+    "description": "Label jenis pengajuan maintenance"
+  },
+  "approvalTypeValuationExclusion": "Pengecualian Valuasi",
+  "@approvalTypeValuationExclusion": {
+    "description": "Label jenis pengajuan valuation_exclusion"
+  },
+  "approvalStatusPending": "Menunggu",
+  "@approvalStatusPending": {
+    "description": "Label chip status pengajuan pending"
+  },
+  "approvalStatusApproved": "Disetujui",
+  "@approvalStatusApproved": {
+    "description": "Label chip status pengajuan approved"
+  },
+  "approvalStatusRejected": "Ditolak",
+  "@approvalStatusRejected": {
+    "description": "Label chip status pengajuan rejected"
+  },
+  "approvalStatusCancelled": "Dibatalkan",
+  "@approvalStatusCancelled": {
+    "description": "Label chip status pengajuan cancelled"
+  },
+  "approvalTimeJustNow": "baru saja",
+  "@approvalTimeJustNow": {
+    "description": "Waktu relatif di bawah satu menit"
+  },
+  "approvalTimeMinutesAgo": "{count} mnt lalu",
+  "@approvalTimeMinutesAgo": {
+    "description": "Waktu relatif dalam menit",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "approvalTimeHoursAgo": "{count} jam lalu",
+  "@approvalTimeHoursAgo": {
+    "description": "Waktu relatif dalam jam",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "approvalTimeYesterday": "kemarin",
+  "@approvalTimeYesterday": {
+    "description": "Waktu relatif 24-48 jam lalu"
+  },
+  "approvalTimeDaysAgo": "{count} hari lalu",
+  "@approvalTimeDaysAgo": {
+    "description": "Waktu relatif dalam hari (di bawah seminggu)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "approvalDetailSensitiveBanner": "Tindakan sensitif — periksa saksama sebelum memutus",
+  "@approvalDetailSensitiveBanner": {
+    "description": "Banner peringatan jenis pengajuan sensitif di detail"
+  },
+  "approvalDetailSectionData": "Data yang diajukan",
+  "@approvalDetailSectionData": {
+    "description": "Judul card data payload pengajuan"
+  },
+  "approvalDetailSectionSteps": "Jenjang persetujuan",
+  "@approvalDetailSectionSteps": {
+    "description": "Judul card timeline jenjang persetujuan"
+  },
+  "approvalDetailFieldAsset": "Aset",
+  "@approvalDetailFieldAsset": {
+    "description": "Label baris aset target pengajuan"
+  },
+  "approvalDetailFieldAmount": "Nilai pengajuan",
+  "@approvalDetailFieldAmount": {
+    "description": "Label baris amount pengajuan"
+  },
+  "approvalDetailFieldReason": "Alasan",
+  "@approvalDetailFieldReason": {
+    "description": "Label baris alasan pengajuan"
+  },
+  "approvalDetailFieldName": "Nama aset",
+  "@approvalDetailFieldName": {
+    "description": "Label baris nama aset payload registrasi"
+  },
+  "approvalDetailFieldCategory": "Kategori",
+  "@approvalDetailFieldCategory": {
+    "description": "Label baris kategori payload registrasi"
+  },
+  "approvalDetailFieldOffice": "Kantor",
+  "@approvalDetailFieldOffice": {
+    "description": "Label baris kantor payload registrasi"
+  },
+  "approvalDetailFieldRoom": "Ruangan",
+  "@approvalDetailFieldRoom": {
+    "description": "Label baris ruangan payload"
+  },
+  "approvalDetailFieldOfficeChange": "Kantor penempatan",
+  "@approvalDetailFieldOfficeChange": {
+    "description": "Label baris perubahan kantor pada payload mutasi"
+  },
+  "approvalDetailFieldAssetClass": "Kelas aset",
+  "@approvalDetailFieldAssetClass": {
+    "description": "Label baris kelas aset payload registrasi"
+  },
+  "approvalDetailAssetClassTangible": "Berwujud",
+  "@approvalDetailAssetClassTangible": {
+    "description": "Nilai kelas aset tangible"
+  },
+  "approvalDetailAssetClassIntangible": "Tak berwujud",
+  "@approvalDetailAssetClassIntangible": {
+    "description": "Nilai kelas aset intangible"
+  },
+  "approvalDetailFieldPurchaseCost": "Harga beli",
+  "@approvalDetailFieldPurchaseCost": {
+    "description": "Label baris harga beli payload registrasi"
+  },
+  "approvalDetailFieldPurchaseDate": "Tanggal beli",
+  "@approvalDetailFieldPurchaseDate": {
+    "description": "Label baris tanggal beli payload registrasi"
+  },
+  "approvalDetailFieldSerial": "No. seri",
+  "@approvalDetailFieldSerial": {
+    "description": "Label baris nomor seri payload registrasi"
+  },
+  "approvalDetailFieldBrandModel": "Brand / Model",
+  "@approvalDetailFieldBrandModel": {
+    "description": "Label baris brand dan model payload registrasi"
+  },
+  "approvalDetailFieldVendor": "Vendor",
+  "@approvalDetailFieldVendor": {
+    "description": "Label baris vendor payload registrasi"
+  },
+  "approvalDetailFieldPoNumber": "No. PO",
+  "@approvalDetailFieldPoNumber": {
+    "description": "Label baris nomor PO payload registrasi"
+  },
+  "approvalDetailFieldFundingSource": "Sumber dana",
+  "@approvalDetailFieldFundingSource": {
+    "description": "Label baris sumber dana payload registrasi"
+  },
+  "approvalDetailFieldWarrantyExpiry": "Akhir garansi",
+  "@approvalDetailFieldWarrantyExpiry": {
+    "description": "Label baris akhir garansi payload registrasi"
+  },
+  "approvalDetailFieldNotes": "Catatan",
+  "@approvalDetailFieldNotes": {
+    "description": "Label baris catatan payload registrasi"
+  },
+  "approvalDetailFieldMethod": "Metode pelepasan",
+  "@approvalDetailFieldMethod": {
+    "description": "Label baris metode payload penghapusan"
+  },
+  "approvalDetailMethodSale": "Penjualan",
+  "@approvalDetailMethodSale": {
+    "description": "Nilai metode pelepasan sale"
+  },
+  "approvalDetailMethodAuction": "Lelang",
+  "@approvalDetailMethodAuction": {
+    "description": "Nilai metode pelepasan auction"
+  },
+  "approvalDetailMethodDonation": "Hibah",
+  "@approvalDetailMethodDonation": {
+    "description": "Nilai metode pelepasan donation"
+  },
+  "approvalDetailMethodWriteOff": "Penghapusbukuan",
+  "@approvalDetailMethodWriteOff": {
+    "description": "Nilai metode pelepasan write_off"
+  },
+  "approvalDetailFieldDisposalDate": "Tanggal pelepasan",
+  "@approvalDetailFieldDisposalDate": {
+    "description": "Label baris tanggal pelepasan payload penghapusan"
+  },
+  "approvalDetailFieldProceeds": "Nilai jual",
+  "@approvalDetailFieldProceeds": {
+    "description": "Label baris nilai jual payload penghapusan"
+  },
+  "approvalDetailFieldBookValue": "Nilai buku",
+  "@approvalDetailFieldBookValue": {
+    "description": "Label baris nilai buku payload penghapusan"
+  },
+  "approvalDetailFieldBastNo": "No. BAST",
+  "@approvalDetailFieldBastNo": {
+    "description": "Label baris nomor BAST payload penghapusan"
+  },
+  "approvalDetailFieldConditionSent": "Kondisi saat kirim",
+  "@approvalDetailFieldConditionSent": {
+    "description": "Label baris kondisi kirim payload mutasi"
+  },
+  "approvalDetailFieldTransferDate": "Tanggal mutasi",
+  "@approvalDetailFieldTransferDate": {
+    "description": "Label baris tanggal mutasi payload mutasi"
+  },
+  "approvalDetailRestrictedData": "Dibatasi untuk peran Anda",
+  "@approvalDetailRestrictedData": {
+    "description": "Penanda payload/amount yang dimask field permission"
+  },
+  "approvalDetailStepMaker": "Maker",
+  "@approvalDetailStepMaker": {
+    "description": "Label peran maker pada timeline jenjang"
+  },
+  "approvalDetailStepSubmitted": "Mengajukan · {date}",
+  "@approvalDetailStepSubmitted": {
+    "description": "Status baris maker pada timeline",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "approvalDetailStepApproved": "Disetujui · {date}",
+  "@approvalDetailStepApproved": {
+    "description": "Status tahap yang sudah disetujui",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "approvalDetailStepRejected": "Ditolak · {date}",
+  "@approvalDetailStepRejected": {
+    "description": "Status tahap yang ditolak",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "approvalDetailStepWaiting": "Menunggu keputusan",
+  "@approvalDetailStepWaiting": {
+    "description": "Status tahap aktif yang menunggu keputusan"
+  },
+  "approvalDetailStepUpcoming": "Berikutnya",
+  "@approvalDetailStepUpcoming": {
+    "description": "Status tahap yang belum aktif"
+  },
+  "approvalDetailLevelOffice": "Approver kantor",
+  "@approvalDetailLevelOffice": {
+    "description": "Label required_level office"
+  },
+  "approvalDetailLevelOfficeSubtree": "Approver kantor & jajaran",
+  "@approvalDetailLevelOfficeSubtree": {
+    "description": "Label required_level office_subtree"
+  },
+  "approvalDetailLevelWilayah": "Approver kanwil",
+  "@approvalDetailLevelWilayah": {
+    "description": "Label required_level wilayah"
+  },
+  "approvalDetailLevelPusat": "Approver pusat",
+  "@approvalDetailLevelPusat": {
+    "description": "Label required_level pusat"
+  },
+  "approvalDetailNoteHint": "Tambahkan catatan (opsional)",
+  "@approvalDetailNoteHint": {
+    "description": "Placeholder field catatan keputusan"
+  },
+  "approvalDetailApprove": "Setujui",
+  "@approvalDetailApprove": {
+    "description": "Label tombol setujui"
+  },
+  "approvalDetailReject": "Tolak",
+  "@approvalDetailReject": {
+    "description": "Label tombol tolak"
+  },
+  "approvalDetailApproveConfirmTitle": "Setujui pengajuan ini?",
+  "@approvalDetailApproveConfirmTitle": {
+    "description": "Judul dialog konfirmasi setujui"
+  },
+  "approvalDetailApproveConfirmBody": "{title} dari {maker} akan disetujui dan lanjut ke tahap berikutnya.",
+  "@approvalDetailApproveConfirmBody": {
+    "description": "Isi dialog konfirmasi setujui",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "maker": {
+        "type": "String"
+      }
+    }
+  },
+  "approvalDetailApproveConfirmAction": "Ya, Setujui",
+  "@approvalDetailApproveConfirmAction": {
+    "description": "Label aksi utama dialog konfirmasi setujui"
+  },
+  "approvalDetailRejectConfirmTitle": "Tolak pengajuan ini?",
+  "@approvalDetailRejectConfirmTitle": {
+    "description": "Judul dialog konfirmasi tolak"
+  },
+  "approvalDetailRejectConfirmBody": "{title} dari {maker} akan ditolak dan dikembalikan ke maker.",
+  "@approvalDetailRejectConfirmBody": {
+    "description": "Isi dialog konfirmasi tolak",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "maker": {
+        "type": "String"
+      }
+    }
+  },
+  "approvalDetailRejectConfirmAction": "Ya, Tolak",
+  "@approvalDetailRejectConfirmAction": {
+    "description": "Label aksi utama dialog konfirmasi tolak"
+  },
+  "approvalDetailYourNote": "Catatan Anda",
+  "@approvalDetailYourNote": {
+    "description": "Label kutipan catatan pada dialog konfirmasi tolak"
+  },
+  "approvalDetailApprovedSnack": "Pengajuan disetujui",
+  "@approvalDetailApprovedSnack": {
+    "description": "SnackBar sukses setelah menyetujui"
+  },
+  "approvalDetailRejectedSnack": "Pengajuan ditolak",
+  "@approvalDetailRejectedSnack": {
+    "description": "SnackBar sukses setelah menolak"
+  },
+  "approvalDetailDecidedApproved": "Pengajuan telah disetujui",
+  "@approvalDetailDecidedApproved": {
+    "description": "Banner kaki detail untuk pengajuan approved"
+  },
+  "approvalDetailDecidedByYouApproved": "Anda telah menyetujui pengajuan ini",
+  "@approvalDetailDecidedByYouApproved": {
+    "description": "Banner kaki detail bila pemutus akhirnya pengguna sendiri"
+  },
+  "approvalDetailDecidedRejected": "Pengajuan telah ditolak",
+  "@approvalDetailDecidedRejected": {
+    "description": "Banner kaki detail untuk pengajuan rejected"
+  },
+  "approvalDetailDecidedByYouRejected": "Anda telah menolak pengajuan ini",
+  "@approvalDetailDecidedByYouRejected": {
+    "description": "Banner kaki detail bila penolaknya pengguna sendiri"
+  },
+  "approvalDetailDecidedCancelled": "Pengajuan dibatalkan oleh maker",
+  "@approvalDetailDecidedCancelled": {
+    "description": "Banner kaki detail untuk pengajuan cancelled"
+  },
+  "approvalDetailSodOwnRequest": "Ini pengajuan Anda — keputusan menunggu approver lain (maker tidak boleh memutus pengajuannya sendiri).",
+  "@approvalDetailSodOwnRequest": {
+    "description": "Banner SoD pengganti aksi saat pengguna adalah maker"
+  },
+  "approvalDetailErrorSod": "Anda tidak berwenang memutus pengajuan ini — maker atau approver sebelumnya tidak boleh memutus pengajuannya sendiri.",
+  "@approvalDetailErrorSod": {
+    "description": "Pesan 403 SoD saat approve/reject ditolak server"
+  },
+  "approvalDetailErrorConflict": "Pengajuan sudah berubah status di tempat lain. Memuat ulang…",
+  "@approvalDetailErrorConflict": {
+    "description": "Pesan 409 saat pengajuan sudah diputus/berubah"
+  },
+  "approvalDetailErrorNetwork": "Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.",
+  "@approvalDetailErrorNetwork": {
+    "description": "Pesan gagal approve/reject saat offline"
+  },
+  "approvalDetailErrorGeneric": "Terjadi kesalahan. Coba lagi.",
+  "@approvalDetailErrorGeneric": {
+    "description": "Pesan gagal approve/reject untuk kegagalan lain"
+  },
+  "approvalDetailErrorTitle": "Gagal memuat pengajuan",
+  "@approvalDetailErrorTitle": {
+    "description": "Judul empty state error detail approval"
+  },
+  "approvalDetailNotFoundTitle": "Pengajuan tidak ditemukan",
+  "@approvalDetailNotFoundTitle": {
+    "description": "Judul empty state 404 detail approval"
+  },
+  "approvalDetailNotFoundBody": "Pengajuan tidak ada atau di luar lingkup Anda.",
+  "@approvalDetailNotFoundBody": {
+    "description": "Subjudul empty state 404 detail approval"
+  },
+  "approvalDetailForbiddenTitle": "Akses dibatasi",
+  "@approvalDetailForbiddenTitle": {
+    "description": "Judul empty state 403 detail approval"
+  },
+  "approvalDetailForbiddenBody": "Peran Anda tidak memiliki izin melihat pengajuan ini.",
+  "@approvalDetailForbiddenBody": {
+    "description": "Subjudul empty state 403 detail approval"
+  },
+  "opnameSessionsTitle": "Stock Opname",
+  "@opnameSessionsTitle": {
+    "description": "Judul layar daftar sesi opname"
+  },
+  "opnameSessionsFilterRunning": "Berjalan",
+  "@opnameSessionsFilterRunning": {
+    "description": "Label chip filter sesi yang belum selesai (open/counting/reconciling)"
+  },
+  "opnameSessionsFilterClosed": "Selesai",
+  "@opnameSessionsFilterClosed": {
+    "description": "Label chip filter sesi berstatus closed"
+  },
+  "opnameSessionsFilterAll": "Semua",
+  "@opnameSessionsFilterAll": {
+    "description": "Label chip filter tanpa saringan status"
+  },
+  "opnameSessionsProgress": "{counted} dari {total} tercocokkan",
+  "@opnameSessionsProgress": {
+    "description": "Baris progress kartu sesi: jumlah item terhitung dari total",
+    "placeholders": {
+      "counted": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "opnameSessionsContinue": "Lanjutkan Menghitung",
+  "@opnameSessionsContinue": {
+    "description": "Label tombol CTA kartu sesi yang belum selesai"
+  },
+  "opnameSessionsReportOnWeb": "Berita Acara di web",
+  "@opnameSessionsReportOnWeb": {
+    "description": "Chip info kartu sesi selesai: Berita Acara diakses dari web"
+  },
+  "opnameSessionsFootnote": "Sesi dibuat dan diselesaikan dari aplikasi web",
+  "@opnameSessionsFootnote": {
+    "description": "Catatan kaki daftar sesi opname"
+  },
+  "opnameSessionsEmptyTitle": "Tidak ada sesi opname aktif",
+  "@opnameSessionsEmptyTitle": {
+    "description": "Judul empty state filter Berjalan"
+  },
+  "opnameSessionsEmptyBody": "Sesi baru dibuat oleh admin dari aplikasi web. Anda akan diberi tahu bila ditugaskan.",
+  "@opnameSessionsEmptyBody": {
+    "description": "Subjudul empty state filter Berjalan"
+  },
+  "opnameSessionsEmptyFilteredTitle": "Tidak ada sesi",
+  "@opnameSessionsEmptyFilteredTitle": {
+    "description": "Judul empty state filter Selesai/Semua"
+  },
+  "opnameSessionsEmptyFilteredBody": "Belum ada sesi opname dengan status ini di lingkup Anda.",
+  "@opnameSessionsEmptyFilteredBody": {
+    "description": "Subjudul empty state filter Selesai/Semua"
+  },
+  "opnameSessionsErrorTitle": "Gagal memuat sesi opname",
+  "@opnameSessionsErrorTitle": {
+    "description": "Judul empty state error daftar sesi opname"
+  },
+  "opnameErrorNetworkBody": "Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.",
+  "@opnameErrorNetworkBody": {
+    "description": "Subjudul error opname saat offline/gangguan jaringan"
+  },
+  "opnameErrorGenericBody": "Terjadi kesalahan. Coba lagi.",
+  "@opnameErrorGenericBody": {
+    "description": "Subjudul error opname untuk kegagalan lain"
+  },
+  "opnameForbiddenTitle": "Akses dibatasi",
+  "@opnameForbiddenTitle": {
+    "description": "Judul empty state 403 modul opname"
+  },
+  "opnameForbiddenBody": "Peran Anda tidak memiliki izin melihat stock opname.",
+  "@opnameForbiddenBody": {
+    "description": "Subjudul empty state 403 modul opname"
+  },
+  "opnameStatusOpen": "Terjadwal",
+  "@opnameStatusOpen": {
+    "description": "Label chip status sesi open"
+  },
+  "opnameStatusCounting": "Berjalan",
+  "@opnameStatusCounting": {
+    "description": "Label chip status sesi counting"
+  },
+  "opnameStatusReconciling": "Rekonsiliasi",
+  "@opnameStatusReconciling": {
+    "description": "Label chip status sesi reconciling"
+  },
+  "opnameStatusClosed": "Selesai",
+  "@opnameStatusClosed": {
+    "description": "Label chip status sesi closed"
+  },
+  "opnameOfflineBanner": "Offline — pemindaian dinonaktifkan. Mode offline hadir di fase berikutnya.",
+  "@opnameOfflineBanner": {
+    "description": "Banner offline layar opname (fase M0 online-only; drift/antrean menyusul M5)"
+  },
+  "opnameCountingScanButton": "Pindai Aset Berikutnya",
+  "@opnameCountingScanButton": {
+    "description": "Label tombol utama scan pada layar counting"
+  },
+  "opnameCountingManualButton": "Ketik kode",
+  "@opnameCountingManualButton": {
+    "description": "Label tombol pembuka sheet input tag manual pada counting"
+  },
+  "opnameCountingRecentHeader": "Baru saja dipindai",
+  "@opnameCountingRecentHeader": {
+    "description": "Judul seksi daftar item yang baru dihitung"
+  },
+  "opnameCountingRecentEmpty": "Belum ada aset yang dipindai.",
+  "@opnameCountingRecentEmpty": {
+    "description": "Teks saat belum ada item terhitung pada sesi"
+  },
+  "opnameCountingRingTotal": "/{total}",
+  "@opnameCountingRingTotal": {
+    "description": "Pembagi total pada ring progress counting",
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "opnameCountingVarianceTooltip": "Lihat variance",
+  "@opnameCountingVarianceTooltip": {
+    "description": "Tooltip aksi app bar counting menuju layar variance"
+  },
+  "opnameDetailErrorTitle": "Gagal memuat sesi opname",
+  "@opnameDetailErrorTitle": {
+    "description": "Judul empty state error detail sesi (counting/variance)"
+  },
+  "opnameDetailNotFoundTitle": "Sesi tidak ditemukan",
+  "@opnameDetailNotFoundTitle": {
+    "description": "Judul empty state 404 detail sesi opname"
+  },
+  "opnameDetailNotFoundBody": "Sesi tidak ada atau di luar lingkup Anda.",
+  "@opnameDetailNotFoundBody": {
+    "description": "Subjudul empty state 404 detail sesi opname"
+  },
+  "opnameResultFound": "Ditemukan",
+  "@opnameResultFound": {
+    "description": "Label hasil item found"
+  },
+  "opnameResultNotFound": "Tidak Ditemukan",
+  "@opnameResultNotFound": {
+    "description": "Label hasil item not_found"
+  },
+  "opnameResultDamaged": "Rusak",
+  "@opnameResultDamaged": {
+    "description": "Label hasil item damaged"
+  },
+  "opnameResultMisplaced": "Salah Lokasi",
+  "@opnameResultMisplaced": {
+    "description": "Label hasil item misplaced"
+  },
+  "opnameResultPending": "Belum dihitung",
+  "@opnameResultPending": {
+    "description": "Label hasil item pending (belum dihitung)"
+  },
+  "opnameOutOfSnapshot": "Di Luar Catatan",
+  "@opnameOutOfSnapshot": {
+    "description": "Label temuan di luar snapshot sesi (expected=false)"
+  },
+  "opnameSheetResultLabel": "Hasil:",
+  "@opnameSheetResultLabel": {
+    "description": "Label pemilih hasil pada sheet hasil scan"
+  },
+  "opnameSheetNoteHint": "Catatan (opsional)",
+  "@opnameSheetNoteHint": {
+    "description": "Placeholder field catatan pada sheet hasil scan"
+  },
+  "opnameSheetSave": "Simpan & Lanjut",
+  "@opnameSheetSave": {
+    "description": "Label tombol simpan hasil pada sheet hasil scan"
+  },
+  "opnameSheetOutOfSnapshotInfo": "Aset ini di luar snapshot sesi — dicatat sebagai temuan di luar catatan.",
+  "@opnameSheetOutOfSnapshotInfo": {
+    "description": "Info pada sheet hasil scan untuk temuan expected=false"
+  },
+  "opnameResultSavedSnack": "Hasil tersimpan",
+  "@opnameResultSavedSnack": {
+    "description": "SnackBar sukses setelah hasil item disimpan"
+  },
+  "opnameScanErrorNotFound": "Kode {tag} tidak dikenal atau di luar lingkup sesi.",
+  "@opnameScanErrorNotFound": {
+    "description": "Pesan 404 saat tag hasil scan tidak dikenal server",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "opnameScanErrorNotCounting": "Sesi tidak dalam tahap menghitung — pemindaian tidak diizinkan.",
+  "@opnameScanErrorNotCounting": {
+    "description": "Pesan 409 saat scan pada sesi yang bukan tahap counting"
+  },
+  "opnameVarianceTabItems": "Item",
+  "@opnameVarianceTabItems": {
+    "description": "Segmen kiri toggle layar variance (kembali ke counting)"
+  },
+  "opnameVarianceTabVariance": "Variance",
+  "@opnameVarianceTabVariance": {
+    "description": "Segmen kanan toggle layar variance (aktif)"
+  },
+  "opnameVarianceLastLocation": "terakhir: {location}",
+  "@opnameVarianceLastLocation": {
+    "description": "Lokasi terakhir tercatat pada kartu item variance",
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "opnameVarianceNote": "Catatan: \"{note}\"",
+  "@opnameVarianceNote": {
+    "description": "Kutipan catatan petugas pada kartu item variance",
+    "placeholders": {
+      "note": {
+        "type": "String"
+      }
+    }
+  },
+  "opnameVarianceFollowupNone": "Belum ditindaklanjuti",
+  "@opnameVarianceFollowupNone": {
+    "description": "Status tindak lanjut kosong pada kartu item variance"
+  },
+  "opnameVarianceFollowupRequested": "Diajukan: menunggu approval",
+  "@opnameVarianceFollowupRequested": {
+    "description": "Status tindak lanjut berupa pengajuan approval"
+  },
+  "opnameVarianceFollowupRecord": "Tiket maintenance dibuat",
+  "@opnameVarianceFollowupRecord": {
+    "description": "Status tindak lanjut berupa record maintenance (damaged)"
+  },
+  "opnameVarianceEmptyTitle": "Tidak ada selisih",
+  "@opnameVarianceEmptyTitle": {
+    "description": "Judul empty state variance saat semua tercocokkan"
+  },
+  "opnameVarianceEmptyBody": "Semua {total} aset tercocokkan dengan catatan. Sesi siap diselesaikan dari aplikasi web.",
+  "@opnameVarianceEmptyBody": {
+    "description": "Subjudul empty state variance",
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "opnameVarianceFootnote": "Penyelesaian sesi & Berita Acara dilakukan dari aplikasi web",
+  "@opnameVarianceFootnote": {
+    "description": "Catatan kaki layar variance"
+  },
+  "homeGreeting": "Halo, {name}",
+  "@homeGreeting": {
+    "description": "Sapaan header Beranda dengan nama panggilan pengguna",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "homeAccountTooltip": "Profil",
+  "@homeAccountTooltip": {
+    "description": "Label semantik avatar header Beranda (menuju profil)"
+  },
+  "homeNotificationsTooltip": "Notifikasi",
+  "@homeNotificationsTooltip": {
+    "description": "Label semantik tombol lonceng header Beranda"
+  },
+  "homeOfflineBanner": "Offline — data terakhir ditampilkan",
+  "@homeOfflineBanner": {
+    "description": "Banner offline Beranda (mockup state offline)"
+  },
+  "homeOpnameCardTitle": "Sesi Opname Aktif",
+  "@homeOpnameCardTitle": {
+    "description": "Judul kartu ringkasan sesi opname aktif"
+  },
+  "homeOpnameEmptyBody": "Tidak ada sesi opname yang sedang berjalan.",
+  "@homeOpnameEmptyBody": {
+    "description": "Isi kartu opname saat tidak ada sesi berjalan"
+  },
+  "homeOpnameOpenList": "Buka Opname",
+  "@homeOpnameOpenList": {
+    "description": "Label aksi kartu opname kosong menuju tab Opname"
+  },
+  "homeOpnameErrorBody": "Gagal memuat sesi opname.",
+  "@homeOpnameErrorBody": {
+    "description": "Isi kartu opname saat sumber datanya gagal"
+  },
+  "homeOpnameProgress": "{counted} dari {total} aset",
+  "@homeOpnameProgress": {
+    "description": "Baris progress kartu opname Beranda (mockup: aset)",
+    "placeholders": {
+      "counted": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "homeOpnameContinue": "Lanjutkan",
+  "@homeOpnameContinue": {
+    "description": "Label CTA kartu opname Beranda (mockup)"
+  },
+  "homeApprovalCardTitle": "Approval Menunggu",
+  "@homeApprovalCardTitle": {
+    "description": "Judul kartu ringkasan approval menunggu"
+  },
+  "homeApprovalStale": "{count} di antaranya > 3 hari",
+  "@homeApprovalStale": {
+    "description": "Subjudul kartu approval: jumlah pengajuan menunggu lebih dari 3 hari",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeApprovalEmptyBody": "Tidak ada pengajuan menunggu keputusan.",
+  "@homeApprovalEmptyBody": {
+    "description": "Subjudul kartu approval saat tidak ada pengajuan pending"
+  },
+  "homeApprovalErrorBody": "Gagal memuat pengajuan.",
+  "@homeApprovalErrorBody": {
+    "description": "Isi kartu approval saat sumber datanya gagal"
+  },
+  "homeApprovalOpenInbox": "Buka Inbox",
+  "@homeApprovalOpenInbox": {
+    "description": "Label aksi kartu approval menuju tab inbox"
+  },
+  "homeQuickScan": "Pindai Aset",
+  "@homeQuickScan": {
+    "description": "Label quick action pindai aset"
+  },
+  "homeQuickOpname": "Sesi Opname",
+  "@homeQuickOpname": {
+    "description": "Label quick action tab opname"
+  },
+  "homeQuickApproval": "Approval",
+  "@homeQuickApproval": {
+    "description": "Label quick action tab approval"
+  },
+  "homeQuickNotifications": "Notifikasi",
+  "@homeQuickNotifications": {
+    "description": "Label quick action tab notifikasi"
+  },
+  "notificationsMarkAllRead": "Tandai semua dibaca",
+  "@notificationsMarkAllRead": {
+    "description": "Aksi header feed: tandai seluruh notifikasi dibaca"
+  },
+  "notificationsMarkAllFailed": "Gagal menandai semua dibaca. Coba lagi.",
+  "@notificationsMarkAllFailed": {
+    "description": "Snackbar saat POST /notifications/read-all gagal"
+  },
+  "notificationsSectionToday": "Hari ini",
+  "@notificationsSectionToday": {
+    "description": "Header seksi feed untuk notifikasi hari ini"
+  },
+  "notificationsSectionYesterday": "Kemarin",
+  "@notificationsSectionYesterday": {
+    "description": "Header seksi feed untuk notifikasi kemarin"
+  },
+  "notificationsEmptyTitle": "Belum ada notifikasi",
+  "@notificationsEmptyTitle": {
+    "description": "Judul empty state feed notifikasi"
+  },
+  "notificationsEmptyBody": "Pemberitahuan approval, maintenance, dan sinkronisasi akan muncul di sini.",
+  "@notificationsEmptyBody": {
+    "description": "Subjudul empty state feed notifikasi"
+  },
+  "notificationsErrorTitle": "Gagal memuat notifikasi",
+  "@notificationsErrorTitle": {
+    "description": "Judul state error feed notifikasi"
+  },
+  "notificationsErrorNetworkBody": "Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.",
+  "@notificationsErrorNetworkBody": {
+    "description": "Subjudul error feed saat offline/gangguan jaringan"
+  },
+  "notificationsErrorGenericBody": "Terjadi kesalahan. Coba lagi.",
+  "@notificationsErrorGenericBody": {
+    "description": "Subjudul error feed untuk kegagalan lain"
+  },
+  "notificationsLoadMoreFailed": "Gagal memuat lebih banyak.",
+  "@notificationsLoadMoreFailed": {
+    "description": "Baris kaki feed saat halaman berikutnya gagal dimuat"
+  },
+  "notificationsTimeJustNow": "baru saja",
+  "@notificationsTimeJustNow": {
+    "description": "Label waktu kartu notifikasi di bawah satu menit"
+  },
+  "notificationsTimeMinutesAgo": "{count} menit lalu",
+  "@notificationsTimeMinutesAgo": {
+    "description": "Label waktu kartu notifikasi dalam menit (hari ini)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationsTimeHoursAgo": "{count} jam lalu",
+  "@notificationsTimeHoursAgo": {
+    "description": "Label waktu kartu notifikasi dalam jam (hari ini)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationsTimeYesterdayAt": "Kemarin, {time}",
+  "@notificationsTimeYesterdayAt": {
+    "description": "Label waktu kartu notifikasi kemarin dengan jam",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsTimeAt": "{date}, {time}",
+  "@notificationsTimeAt": {
+    "description": "Label waktu kartu notifikasi lebih dari dua hari: tanggal pendek + jam",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsApprovalPendingTitle": "Pengajuan menunggu persetujuan Anda",
+  "@notificationsApprovalPendingTitle": {
+    "description": "Judul notifikasi type approval_pending (dirender klien, ADR-0014)"
+  },
+  "notificationsApprovalPendingBody": "{type} · Langkah {step}",
+  "@notificationsApprovalPendingBody": {
+    "description": "Isi notifikasi approval_pending dari params request_type + step",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "step": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsApprovalApprovedTitle": "Pengajuan Anda disetujui",
+  "@notificationsApprovalApprovedTitle": {
+    "description": "Judul notifikasi approval_decided berstatus approved"
+  },
+  "notificationsApprovalRejectedTitle": "Pengajuan Anda ditolak",
+  "@notificationsApprovalRejectedTitle": {
+    "description": "Judul notifikasi approval_decided berstatus rejected"
+  },
+  "notificationsApprovalDecidedTitle": "Pengajuan Anda telah diputus",
+  "@notificationsApprovalDecidedTitle": {
+    "description": "Judul fallback approval_decided untuk status di luar approved/rejected"
+  },
+  "notificationsMaintenanceDueTitle": "Maintenance jatuh tempo",
+  "@notificationsMaintenanceDueTitle": {
+    "description": "Judul notifikasi type maintenance_due"
+  },
+  "notificationsMaintenanceDueBody": "{asset} — jatuh tempo {date}",
+  "@notificationsMaintenanceDueBody": {
+    "description": "Isi notifikasi maintenance_due dari params aset + due_date",
+    "placeholders": {
+      "asset": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsMaintenanceDueDateOnly": "Jatuh tempo {date}",
+  "@notificationsMaintenanceDueDateOnly": {
+    "description": "Isi maintenance_due saat params aset absen, hanya due_date",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsAssetReturnedTitle": "Aset dikembalikan",
+  "@notificationsAssetReturnedTitle": {
+    "description": "Judul notifikasi type asset_returned"
+  }
+}

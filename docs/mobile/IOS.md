@@ -50,7 +50,7 @@ di sisi iOS:
 | Library | Backend iOS-nya |
 |---|---|
 | Riverpod, go_router, freezed, json_serializable, intl | Dart murni — tidak ada kode platform |
-| Dio + cookie jar | HTTP Dart; jar persisten = berkas dalam sandbox app |
+| Dio | HTTP Dart murni; refresh token via body (ADR-0017), tanpa kode platform |
 | drift | SQLite via `sqlite3_flutter_libs` (FFI) — bundel SQLite sendiri, tidak bergantung versi OS |
 | mobile_scanner | AVFoundation + Vision (kamera dan dekode native iOS) |
 | flutter_secure_storage | **Keychain** (setel accessibility `first_unlock` agar token terbaca saat app bangun di background) |

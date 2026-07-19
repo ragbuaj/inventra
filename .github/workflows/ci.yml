@@ -55,6 +55,25 @@ jobs:
       - run: pnpm test
       - run: pnpm build
 
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      # Golden test dilewati: rendering font lintas-platform membuat golden
+      # platform-dependent; verifikasi golden adalah gate lokal (Windows).
+      - run: flutter test --exclude-tags golden
+      # Runner ubuntu-latest sudah menyertakan Android SDK.
+      - run: flutter build apk --debug
+
   api-docs:
     runs-on: ubuntu-latest
     steps:

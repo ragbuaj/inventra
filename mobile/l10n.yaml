@@ -1,0 +1,6 @@
+arb-dir: lib/core/i18n/arb
+template-arb-file: app_id.arb
+output-dir: lib/core/i18n/gen
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false

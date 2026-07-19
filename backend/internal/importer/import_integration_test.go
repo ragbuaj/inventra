@@ -39,6 +39,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/approval"
 	"github.com/ragbuaj/inventra/internal/asset"
 	"github.com/ragbuaj/inventra/internal/audit"
+	"github.com/ragbuaj/inventra/internal/auth"
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/importer"
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
@@ -127,18 +128,45 @@ func stubAuth(userID, roleID uuid.UUID) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Set(middleware.CtxUserID, userID.String())
 		c.Set(middleware.CtxRoleID, roleID.String())
+		// RequireAuth always sets the audience; RequireAudience now fails closed
+		// on an empty one (ADR-0017 hardening), so the stub must set it to web.
+		c.Set(middleware.CtxAudience, auth.AudienceWeb)
 		c.Next()
 	}
 }
 
 // newRouter builds a fresh Gin engine with the import routes mounted behind
-// stubAuth for (userID, roleID).
+// stubAuth for (userID, roleID), plus the production web-only audience gate
+// (the importer is on ADR-0017's aud=mobile deny list).
 func newRouter(h *harness, userID, roleID uuid.UUID) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	v1 := r.Group("/api/v1")
-	importer.RegisterRoutes(v1, h.handler, stubAuth(userID, roleID))
+	importer.RegisterRoutes(v1, h.handler, stubAuth(userID, roleID), middleware.RequireAudience(auth.AudienceWeb))
 	return r
+}
+
+// ADR-0017 keputusan 4: /imports denies aud=mobile outright — even a caller
+// whose role could import gets 403 before any handler logic runs.
+func TestImports_MobileAudienceDenied(t *testing.T) {
+	h := newHarness(t)
+	userID, roleID := uuid.New(), uuid.New()
+
+	mobileAuth := func(c *gin.Context) {
+		c.Set(middleware.CtxUserID, userID.String())
+		c.Set(middleware.CtxRoleID, roleID.String())
+		c.Set(middleware.CtxAudience, auth.AudienceMobile)
+		c.Next()
+	}
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	v1 := r.Group("/api/v1")
+	importer.RegisterRoutes(v1, h.handler, mobileAuth, middleware.RequireAudience(auth.AudienceWeb))
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/v1/imports", nil))
+	require.Equal(t, http.StatusForbidden, w.Code,
+		"a mobile-audience caller must be denied on /imports: %s", w.Body.String())
 }
 
 // ─── seed helpers ───────────────────────────────────────────────────────────

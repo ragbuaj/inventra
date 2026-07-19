@@ -95,8 +95,9 @@ case, empty/error/loading, input tidak valid, dan variasi permission harus tertu
 
 - Tidak ada secret/API key di repo maupun di kode — konfigurasi build via `--dart-define` /
   berkas lokal yang di-gitignore.
-- Token hanya di memori + cookie jar terenkripsi (ARCHITECTURE bagian 6); dilarang menulis
-  token/kredensial/PII ke log, crash report, atau SharedPreferences.
+- Access token hanya di memori; refresh token di `flutter_secure_storage` (ADR-0017,
+  ARCHITECTURE bagian 6); dilarang menulis token/kredensial/PII ke log, crash report, atau
+  SharedPreferences.
 - Data lokal opname dihapus sesuai lifecycle (FR-M5.8); tidak menyimpan data server lain di
   device.
 - Build release memakai `--obfuscate --split-debug-info` (ADR-0015).

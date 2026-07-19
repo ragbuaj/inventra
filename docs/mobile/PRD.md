@@ -71,8 +71,10 @@ Menu dan data yang tampil mengikuti permission + data scope pengguna, sama seper
 ### 3.1 Autentikasi & sesi (FR-M1)
 
 - **FR-M1.1** Login email + password memakai akun yang sama dengan web; Google menyusul.
-- **FR-M1.2** Access token disimpan di secure storage; refresh memakai mekanisme cookie httpOnly
-  yang ada via cookie jar persisten — tanpa perubahan backend (ADR-0015).
+- **FR-M1.2** Access token hanya di memori; refresh token diterima di body respons (klien
+  mengirim `X-Client-Type: mobile`, klaim `aud` membedakan klien) dan disimpan di
+  `flutter_secure_storage` — jalur per-klien ADR-0017 (men-supersede rencana cookie jar
+  ADR-0015).
 - **FR-M1.3** Sesi login tercatat sebagai **device session** (terlihat & dapat dicabut dari web
   maupun mobile); pencabutan sesi berlaku seketika (perilaku `RequireAuth` yang ada).
 - **FR-M1.4** Logout menghapus token lokal dan mencabut sesi di server.
@@ -165,8 +167,9 @@ Mengacu aturan domain PRD web bagian 3.9; strategi sync di ADR-0016.
 
 Detail dan alternatif di ADR-0015/0016; ringkasnya:
 
-- Flutter (Dart 3), folder `mobile/` di monorepo; Riverpod, Dio (+ cookie jar), freezed +
-  json_serializable, drift, mobile_scanner, flutter_secure_storage, intl/ARB.
+- Flutter (Dart 3), folder `mobile/` di monorepo; Riverpod, Dio (auth bearer + refresh
+  per-klien ADR-0017), freezed + json_serializable, drift, mobile_scanner,
+  flutter_secure_storage, intl/ARB.
 - Konsumen `/api/v1` yang sama dengan web. **Endpoint baru yang dibutuhkan hanya dua kelompok**:
   device-token push (fase M3) dan batch sync opname (fase M5) — keduanya mengikuti urutan standar
   modul backend (migration, sqlc, handler 4-file, authz eksplisit, OpenAPI).

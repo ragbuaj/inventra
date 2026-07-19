@@ -1,0 +1,6 @@
+# Deklarasi tag test (docs/mobile/CONVENTIONS.md bagian 6).
+# golden: goldens digenerate dan diverifikasi lokal (Windows); CI melewatinya
+# via `flutter test --exclude-tags golden` karena rendering font lintas
+# platform membuat hasil golden platform-dependent.
+tags:
+  golden:

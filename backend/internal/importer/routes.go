@@ -8,8 +8,11 @@ import "github.com/gin-gonic/gin"
 // office/reference:*), which is only known once the handler resolves it (from
 // the query/form field, or from the loaded job), so every handler performs
 // its own per-target permission check (see Handler.checkTargetPermission).
-func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW gin.HandlerFunc) {
-	g := rg.Group("/imports", authMW)
+//
+// webOnly is the client-audience gate: the importer is on ADR-0017's
+// aud=mobile deny list; it must run after authMW.
+func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW, webOnly gin.HandlerFunc) {
+	g := rg.Group("/imports", authMW, webOnly)
 	g.GET("/template", h.template)
 	g.POST("", h.create)
 	g.GET("", h.list)

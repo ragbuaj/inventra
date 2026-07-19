@@ -56,11 +56,13 @@ sqlc generate, handler + RegisterRoutes, authz eksplisit per endpoint, wiring Ne
    endpoint register/unregister token, dispatcher FCM dari event notifikasi yang sudah ada,
    env kredensial FCM (daftarkan di docker-compose.prod.yml — pelajaran kasus env Resend).
 2. **Refresh token untuk mobile** — saat ini refresh hanya via cookie httpOnly dan respons token
-   sengaja tidak menyertakan `refresh_token`. Opsi A (default v1): klien Flutter memakai cookie
-   jar (`dio_cookie_manager` + `cookie_jar` persisten) sehingga backend tidak berubah. Opsi B
-   (bila A terbukti rapuh di production): jalur refresh khusus mobile yang mengembalikan
-   `refresh_token` di body dengan penanda klien eksplisit, disimpan di secure storage. Mulai
-   dari A; keputusan pindah ke B dicatat sebagai ADR.
+   sengaja tidak menyertakan `refresh_token`. Diputuskan lewat
+   [ADR-0017](../../mobile/adr/0017-mobile-client-identity.md): klien mobile mengirim penanda
+   `X-Client-Type: mobile` saat login; server men-stamp klaim `aud` (`web`/`mobile`) ke access
+   dan refresh token, dan untuk `aud=mobile` refresh token dikembalikan di body response
+   (tanpa cookie), disimpan klien di `flutter_secure_storage` (Keystore/Keychain); endpoint
+   refresh menerima token dari body. Jalur web tidak berubah. (Rencana awal "Opsi A" cookie jar
+   `dio_cookie_manager` digantikan keputusan ini sebelum implementasi M1.)
 3. **Sync opname offline** — endpoint batch idempoten, misal
    `POST /stock-opname/sessions/:id/scans/batch`: setiap item membawa `client_scan_id` (UUID dari
    device) untuk dedup, `scanned_at` timestamp lokal; respons melaporkan per-item sukses/konflik.
@@ -110,7 +112,7 @@ Setiap fase mendapat spec + implementation plan sendiri (konvensi `docs/superpow
 
 | Fase | Isi | Prasyarat | Estimasi |
 |---|---|---|---|
-| M0 Fondasi | Scaffold `mobile/`, tema + i18n, navigasi shell, login/refresh/logout (cookie jar), secure storage, CI job Flutter (analyze, test, build APK), amendemen PRD + ADR Flutter | Mockup Login + shell | 2-3 sesi |
+| M0 Fondasi | Scaffold `mobile/`, tema + i18n, navigasi shell, login/refresh/logout (jalur refresh per-klien ADR-0017: `X-Client-Type: mobile`, refresh token di body), secure storage, CI job Flutter (analyze, test, build APK), amendemen PRD + ADR Flutter | Mockup Login + shell | 2-3 sesi |
 | M1 Scan aset | Kamera scan, `GET /assets/by-tag/:tag`, Detail Aset read-only dengan field-permission masking | M0, mockup Scan + Detail | 1-2 sesi |
 | M2 Approval | Inbox `/requests`, detail, approve/reject, guard SoD dan permission via API | M0, mockup Approval | 1-2 sesi |
 | M3 Push notification | Backend FCM (tabel device_tokens, register, dispatcher) + layar Notifikasi mobile + deep-link ke approval/opname | M0; backend gap no. 1 | 2 sesi |
@@ -138,7 +140,7 @@ Rilis internal pertama yang bermakna: M0 + M1 + M2 (scan + approval), menyusul o
 | Risiko | Mitigasi |
 |---|---|
 | Konflik sync opname multi-device | Idempotensi `client_scan_id`, first-write-wins, konflik dilaporkan eksplisit ke device; integration test skenario dua device |
-| Cookie-jar refresh rapuh di beberapa OEM Android | Fallback terencana ke Opsi B (refresh body + secure storage), dicatat sebagai ADR sejak awal |
+| Penyimpanan refresh token rapuh di beberapa OEM Android | Refresh token disimpan di `flutter_secure_storage` (Keystore/Keychain) sesuai ADR-0017; access token hanya di memori |
 | Stack baru (Flutter/Dart) di samping Go + Vue | Mulai dari M0 kecil; source-driven (dokumentasi resmi Flutter/Riverpod/drift); golden test menjaga regresi UI |
 | Scope creep menuju paritas web | Bagian non-scope v1 eksplisit; penambahan modul mobile baru wajib keputusan produk tercatat |
 | Kamera murah gagal baca label pudar | Fallback input tag manual di semua titik scan (pola yang sudah ada di web) |

@@ -19,6 +19,9 @@ const (
 	CtxAccessJTI = "access_jti"
 	CtxAccessExp = "access_exp"
 	CtxSessionID = "session_id"
+	// CtxAudience is the token's client audience ("web"/"mobile"); tokens
+	// minted before audiences existed resolve to "web" (ADR-0017).
+	CtxAudience = "audience"
 )
 
 // RequireAuth validates the Bearer access token, rejects revoked tokens, and
@@ -56,6 +59,7 @@ func RequireAuth(tm *auth.TokenManager, store *auth.TokenStore) gin.HandlerFunc 
 		c.Set(CtxRoleID, claims.RoleID)
 		c.Set(CtxAccessJTI, claims.ID)
 		c.Set(CtxSessionID, claims.SID)
+		c.Set(CtxAudience, claims.ClientAudience())
 		if claims.ExpiresAt != nil {
 			c.Set(CtxAccessExp, claims.ExpiresAt.Time)
 		} else {
