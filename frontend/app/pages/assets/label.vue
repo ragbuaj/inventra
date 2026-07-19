@@ -3,17 +3,24 @@ import type { Asset } from '~/types'
 
 definePageMeta({ middleware: 'can', permission: 'asset.view' })
 
-type BarcodeType = 'code128' | 'qr'
-
 const MAX_SELECTED = 500
 const PICKER_LIMIT = 50
 const DEBOUNCE_MS = 300
 
-const SIZES: Record<string, { w: number, h: number, qr: number, bar: number }> = {
-  '50x30': { w: 196, h: 116, qr: 60, bar: 30 },
-  '70x40': { w: 248, h: 146, qr: 74, bar: 36 },
-  '100x50': { w: 320, h: 168, qr: 88, bar: 42 }
+// Preview boxes at 5 px/mm, mirroring the backend size presets
+// (backend/internal/asset/barcode.go sizePresets).
+const SIZES: Record<string, { w: number, h: number }> = {
+  '60x24': { w: 300, h: 120 },
+  '50x30': { w: 250, h: 150 },
+  '70x40': { w: 350, h: 200 },
+  '100x50': { w: 500, h: 250 }
 }
+
+// Mirrors the backend app_settings defaults (label.company_name /
+// label.disclaimer) for the on-screen preview only — the printed PDF always
+// uses the server-side values.
+const LABEL_COMPANY = 'PT Bank Tabungan Negara (Persero) Tbk'
+const LABEL_DISCLAIMER = 'Tidak Untuk Diperjualbelikan & Apabila Dipindah posisi untuk disampaikan ke Pengelola Gedung'
 
 // A4 sheet-fit constants — mirror the backend's `sheetFits` check
 // (backend/internal/asset/barcode.go:104-107): cols*labelW + (cols-1)*gutter +
@@ -33,29 +40,20 @@ const { t } = useI18n()
 const route = useRoute()
 const toast = useToast()
 const assetsApi = useAssets()
-const office = useOfficePicker()
 const { requestBlob } = useApiClient()
 
-const size = ref('70x40')
+const size = ref('60x24')
 const cols = ref(3)
-const mode = ref<'barcode' | 'qr' | 'both'>('both')
-const fields = reactive({ nama: true, kode: true, kantor: true })
 const downloading = ref(false)
 
 const sizeOptions = [
+  { value: '60x24', label: '60 × 24 mm' },
   { value: '50x30', label: '50 × 30 mm' },
   { value: '70x40', label: '70 × 40 mm' },
   { value: '100x50', label: '100 × 50 mm' }
 ]
-const modeOptions = computed(() => [
-  { value: 'barcode', label: t('assets.label.modeBarcode') },
-  { value: 'qr', label: t('assets.label.modeQr') },
-  { value: 'both', label: t('assets.label.modeBoth') }
-])
 
-const sz = computed(() => SIZES[size.value] ?? SIZES['70x40']!)
-const showQr = computed(() => mode.value === 'qr' || mode.value === 'both')
-const showBarcode = computed(() => mode.value === 'barcode' || mode.value === 'both')
+const sz = computed(() => SIZES[size.value] ?? SIZES['60x24']!)
 
 // Label width in mm, parsed from the "WxH" size key (e.g. '70x40' → 70).
 const sizeWidthMM = computed(() => Number(size.value.split('x')[0]))
@@ -158,57 +156,50 @@ function toggleAll() {
   }
 }
 
-// --- Office names for the printed label's "kantor" field (like the Katalog
-// page) — resolved on demand via useResolveCache, no more eager
-// `{ limit: 100 }` list (a selected batch's office ids can outnumber 100). ---
-const officeCache = useResolveCache(office.resolveFn)
-function officeName(id: string): string {
-  return officeCache.get(id)
+// --- Label field resolvers: the BTN label prints the office CODE (bold row)
+// and the category NAME — resolved on demand via useResolveCache, no eager
+// `{ limit: 100 }` list (a selected batch's ids can outnumber 100). ---
+const officesApi = useOffices()
+const officeCodeCache = useResolveCache(async (id) => {
+  try {
+    const o = await officesApi.get(id)
+    return { id: o.id, label: o.code }
+  } catch {
+    return null
+  }
+})
+const categoryCache = useResolveCache(useCategoryPicker().resolveFn)
+
+function purchaseYear(a: Asset): string {
+  return (a.purchase_date ?? '').slice(0, 4)
 }
 
-// --- Barcode/QR previews: lazy-fetched per (asset id, type), cached so mode
-// toggles or re-renders never refetch an image already retrieved. ---
+// --- QR previews (the BTN label always prints a QR): lazy-fetched per asset,
+// cached so re-renders never refetch an image already retrieved. ---
 const barcodeUrls = ref(new Map<string, string>())
 const barcodeInFlight = new Set<string>()
 
-function barcodeKey(id: string, type: BarcodeType): string {
-  return `${id}:${type}`
-}
 function qrSrcFor(id: string): string | undefined {
-  return barcodeUrls.value.get(barcodeKey(id, 'qr'))
-}
-function barcodeSrcFor(id: string): string | undefined {
-  return barcodeUrls.value.get(barcodeKey(id, 'code128'))
+  return barcodeUrls.value.get(id)
 }
 
-async function ensureBarcode(id: string, type: BarcodeType) {
-  const key = barcodeKey(id, type)
-  if (barcodeInFlight.has(key)) return
-  barcodeInFlight.add(key)
+async function ensureQr(id: string) {
+  if (barcodeInFlight.has(id)) return
+  barcodeInFlight.add(id)
   try {
-    const blob = await requestBlob(`/assets/${id}/barcode?type=${type}`)
+    const blob = await requestBlob(`/assets/${id}/barcode?type=qr`)
     const url = URL.createObjectURL(blob)
     const next = new Map(barcodeUrls.value)
-    next.set(key, url)
+    next.set(id, url)
     barcodeUrls.value = next
   } catch {
-    // Allow a retry later (e.g. after switching modes back and forth).
-    barcodeInFlight.delete(key)
+    // Allow a retry later (e.g. after re-selecting the asset).
+    barcodeInFlight.delete(id)
   }
 }
 
-const neededTypes = computed<BarcodeType[]>(() => {
-  if (mode.value === 'barcode') return ['code128']
-  if (mode.value === 'qr') return ['qr']
-  return ['code128', 'qr']
-})
-
-watch([selectedLabels, neededTypes], () => {
-  for (const asset of selectedLabels.value) {
-    for (const type of neededTypes.value) {
-      ensureBarcode(asset.id, type)
-    }
-  }
+watch(selectedLabels, () => {
+  for (const asset of selectedLabels.value) ensureQr(asset.id)
 }, { immediate: true })
 
 // --- Initial selection from ?tags=... (e.g. navigated from the catalog). ---
@@ -244,9 +235,7 @@ async function downloadLabels() {
         template: 'btn',
         layout: useRoll ? 'roll' : 'sheet',
         size: size.value,
-        ...(useRoll ? {} : { columns: cols.value }),
-        mode: mode.value,
-        fields: { name: fields.nama, office: fields.kantor }
+        ...(useRoll ? {} : { columns: cols.value })
       }
     })
     const url = URL.createObjectURL(blob)
@@ -405,40 +394,9 @@ onUnmounted(() => {
               {{ t('assets.label.maxColsHint', { n: maxCols }) }}
             </div>
           </div>
-          <div>
-            <div class="text-xs text-muted mb-1.5">
-              {{ t('assets.label.show') }}
-            </div>
-            <div class="flex gap-0.5 p-0.5 bg-muted rounded-lg">
-              <UButton
-                v-for="m in modeOptions"
-                :key="m.value"
-                :color="mode === m.value ? 'primary' : 'neutral'"
-                :variant="mode === m.value ? 'soft' : 'ghost'"
-                size="sm"
-                class="flex-1 justify-center"
-                @click="() => { mode = m.value as 'barcode' | 'qr' | 'both' }"
-              >
-                {{ m.label }}
-              </UButton>
-            </div>
-          </div>
-          <div>
-            <div class="text-xs text-muted mb-1.5">
-              {{ t('assets.label.fields') }}
-            </div>
-            <div class="space-y-1.5">
-              <label class="flex items-center gap-2 text-[12.5px] cursor-pointer">
-                <UCheckbox v-model="fields.nama" /> {{ t('assets.label.fieldNama') }}
-              </label>
-              <label class="flex items-center gap-2 text-[12.5px] cursor-pointer">
-                <UCheckbox v-model="fields.kode" /> {{ t('assets.label.fieldKode') }}
-              </label>
-              <label class="flex items-center gap-2 text-[12.5px] cursor-pointer">
-                <UCheckbox v-model="fields.kantor" /> {{ t('assets.label.fieldKantor') }}
-              </label>
-            </div>
-          </div>
+          <p class="text-[11px] text-dimmed">
+            {{ t('assets.label.btnTemplateHint') }}
+          </p>
         </div>
       </div>
 
@@ -506,13 +464,13 @@ onUnmounted(() => {
               :key="lbl.id"
               :tag="lbl.asset_tag"
               :nama="lbl.name"
-              :kantor="officeName(lbl.office_id)"
+              :kategori="categoryCache.get(lbl.category_id)"
+              :kantor="officeCodeCache.get(lbl.office_id)"
+              :tahun="purchaseYear(lbl)"
+              :company="LABEL_COMPANY"
+              :disclaimer="LABEL_DISCLAIMER"
               :size="sz"
-              :show-qr="showQr"
-              :show-barcode="showBarcode"
-              :fields="fields"
               :qr-src="qrSrcFor(lbl.id)"
-              :barcode-src="barcodeSrcFor(lbl.id)"
             />
           </div>
         </div>

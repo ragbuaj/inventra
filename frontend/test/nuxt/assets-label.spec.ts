@@ -6,9 +6,9 @@ import { useAuthStore } from '~/stores/auth'
 
 // ---------------------------------------------------------------------------
 // Stub API client — all calls to useApiClient().request/requestBlob are
-// intercepted here. useAssets and useOffices both go through useApiClient, so
-// one dispatcher covers everything the page needs (same stubbing style as
-// assets-detail.spec.ts / assets-catalog.spec.ts).
+// intercepted here. useAssets, useOffices and useCategories all go through
+// useApiClient, so one dispatcher covers everything the page needs (same
+// stubbing style as assets-detail.spec.ts / assets-catalog.spec.ts).
 // ---------------------------------------------------------------------------
 
 type RequestHandler = (path: string, opts?: Record<string, unknown>) => unknown
@@ -51,8 +51,12 @@ import LabelPage from '~/pages/assets/label.vue'
 // ---------------------------------------------------------------------------
 
 const OFFICES = [
-  { id: 'o1', name: 'Kantor Pusat' },
-  { id: 'o2', name: 'Kantor Cabang' }
+  { id: 'o1', name: 'Kantor Pusat', code: 'KP01' },
+  { id: 'o2', name: 'Kantor Cabang', code: 'KC02' }
+]
+const CATEGORIES = [
+  { id: 'c1', name: 'Elektronik', code: 'ELK' },
+  { id: 'c2', name: 'Furnitur', code: 'FUR' }
 ]
 
 // GET /offices/:id (resolve-cache) must be matched before the plain list route.
@@ -62,8 +66,14 @@ function officesHandler(path: string): unknown {
   return { data: OFFICES, total: OFFICES.length, limit: 100, offset: 0 }
 }
 
-const ASSET_A = { id: 'a1', asset_tag: 'JKT01-ELK-2026-00001', name: 'Laptop Dell Latitude 5440', category_id: 'c1', office_id: 'o1', status: 'available', asset_class: 'tangible' }
-const ASSET_B = { id: 'a2', asset_tag: 'JKT01-ELK-2026-00002', name: 'Proyektor Epson EB-X51', category_id: 'c1', office_id: 'o2', status: 'available', asset_class: 'tangible' }
+function categoriesHandler(path: string): unknown {
+  const m = /^\/categories\/([^/?]+)$/.exec(path)
+  if (m) return CATEGORIES.find(c => c.id === m[1]) ?? null
+  return { data: CATEGORIES, total: CATEGORIES.length, limit: 100, offset: 0 }
+}
+
+const ASSET_A = { id: 'a1', asset_tag: 'JKT01-ELK-2026-00001', name: 'Laptop Dell Latitude 5440', category_id: 'c1', office_id: 'o1', status: 'available', asset_class: 'tangible', purchase_date: '2026-01-15' }
+const ASSET_B = { id: 'a2', asset_tag: 'JKT01-ELK-2026-00002', name: 'Proyektor Epson EB-X51', category_id: 'c1', office_id: 'o2', status: 'available', asset_class: 'tangible', purchase_date: '2025-11-03' }
 const ASSET_C = { id: 'a3', asset_tag: 'JKT01-FUR-2025-00011', name: 'Meja Kerja Ergonomis', category_id: 'c2', office_id: 'o1', status: 'available', asset_class: 'tangible' }
 const PICKER_ASSETS = [ASSET_A, ASSET_B, ASSET_C]
 
@@ -84,6 +94,7 @@ function defaultRequestHandler(assets: typeof PICKER_ASSETS = PICKER_ASSETS): Re
       return { data: rows, total: rows.length, limit: 50, offset: 0 }
     }
     if (path.startsWith('/offices')) return officesHandler(path)
+    if (path.startsWith('/categories')) return categoriesHandler(path)
     throw new Error(`Unhandled request: ${path}`)
   }
 }
@@ -136,9 +147,19 @@ describe('Asset Label/Barcode page — base rendering', () => {
     expect(text).toContain('Label & Barcode')
     expect(text).toContain('Pilih Aset')
     expect(text).toContain('Tata Letak')
-    expect(text).toContain('Keduanya')
+    expect(text).toContain('format standar bank')
     expect(text).toContain('Laptop Dell Latitude 5440')
     expect(text).toContain('Belum ada aset dipilih')
+    // The BTN template is fixed — the old mode/field controls must be gone.
+    expect(text).not.toContain('Tampilkan')
+    expect(text).not.toContain('Field dicetak')
+  })
+
+  it('defaults to the 60x24 BTN size preset with 3 columns available', async () => {
+    const wrapper = await mountAndWait()
+    expect((wrapper.vm as unknown as { size: string }).size).toBe('60x24')
+    expect((wrapper.vm as unknown as { cols: number }).cols).toBe(3)
+    expect(wrapper.text()).toContain('Maks. 3 kolom')
   })
 
   it('shows a loading skeleton while the picker fetch is pending, then the list', async () => {
@@ -195,15 +216,45 @@ describe('Asset Label/Barcode page — base rendering', () => {
     expect(text).toContain('1 label')
     expect(wrapper.html()).toContain('JKT01-ELK-2026-00001')
   })
+})
 
-  it('resolves office_id to office name on the printed label via the resolve cache — not the raw id', async () => {
+// ---------------------------------------------------------------------------
+// BTN label preview content
+// ---------------------------------------------------------------------------
+
+describe('Asset Label/Barcode page — BTN label preview content', () => {
+  it('renders the fixed BTN fields: company, tag, office code, TP year, category, name, disclaimer', async () => {
     const wrapper = await mountAndWait('/assets/label?tags=JKT01-ELK-2026-00001')
-    // The resolve-cache's resolveFn(id) call is async (GET /offices/:id) — one
-    // more flush+tick beyond mountAndWait's own settles it.
+    // The resolve-caches' resolveFn(id) calls are async (GET /offices/:id,
+    // GET /categories/:id) — one more flush+tick beyond mountAndWait settles them.
     await flushPromises()
     await wrapper.vm.$nextTick()
-    expect(wrapper.text()).toContain('Kantor Pusat')
+
+    const text = wrapper.text()
+    expect(text).toContain('PT Bank Tabungan Negara (Persero) Tbk')
+    expect(text).toContain('JKT01-ELK-2026-00001')
+    expect(text).toContain('TP: 2026')
+    expect(text).toContain('Elektronik')
+    expect(text).toContain('Laptop Dell Latitude 5440')
+    expect(text).toContain('Tidak Untuk Diperjualbelikan')
+  })
+
+  it('resolves office_id to the office CODE (what the printed label shows) — not the name or raw id', async () => {
+    const wrapper = await mountAndWait('/assets/label?tags=JKT01-ELK-2026-00001')
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('KP01')
     expect(wrapper.text()).not.toContain('o1')
+  })
+
+  it('renders an empty TP year when the asset has no purchase_date', async () => {
+    const wrapper = await mountAndWait('/assets/label?tags=JKT01-FUR-2025-00011')
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+    const text = wrapper.text()
+    expect(text).toContain('Meja Kerja Ergonomis')
+    expect(text).toContain('TP:')
+    expect(text).not.toContain('TP: 20')
   })
 })
 
@@ -272,6 +323,7 @@ describe('Asset Label/Barcode page — debounced picker search', () => {
         return found
       }
       if (path.startsWith('/offices')) return officesHandler(path)
+      if (path.startsWith('/categories')) return categoriesHandler(path)
       throw new Error(`Unhandled request: ${path}`)
     })
 
@@ -314,11 +366,11 @@ describe('Asset Label/Barcode page — debounced picker search', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Barcode/QR previews
+// QR previews
 // ---------------------------------------------------------------------------
 
-describe('Asset Label/Barcode page — barcode/QR previews', () => {
-  it('selecting an asset renders a barcode/QR preview <img> from the stubbed blob URL', async () => {
+describe('Asset Label/Barcode page — QR previews', () => {
+  it('selecting an asset renders a QR preview <img> from the stubbed blob URL', async () => {
     const wrapper = await mountAndWait()
     const boxes = checkboxes(wrapper)
     await boxes[1]!.trigger('click') // index 0 = select-all; index 1 = first asset row
@@ -331,47 +383,35 @@ describe('Asset Label/Barcode page — barcode/QR previews', () => {
     expect(imgs.some(img => img.attributes('src') === 'blob:mock-url')).toBe(true)
   })
 
-  it('caches barcode/QR images per asset+type — a later re-render does not refetch', async () => {
+  it('fetches only type=qr — the BTN label never prints a Code128 barcode', async () => {
     const wrapper = await mountAndWait()
     const boxes = checkboxes(wrapper)
     await boxes[1]!.trigger('click')
     await flushPromises()
 
-    const barcodeCalls = () => blobCalls.filter(c => c.path.includes('/a1/barcode?type='))
-    expect(barcodeCalls().length).toBe(2) // default mode is 'both' → code128 + qr
-
-    // Force additional reactivity/re-renders (toggling an unrelated field checkbox).
-    const fieldBoxes = checkboxes(wrapper)
-    await fieldBoxes[fieldBoxes.length - 1]!.trigger('click')
-    await wrapper.vm.$nextTick()
-    await flushPromises()
-
-    expect(barcodeCalls().length).toBe(2)
+    const barcodeCalls = blobCalls.filter(c => c.path.includes('/a1/barcode?type='))
+    expect(barcodeCalls.length).toBe(1)
+    expect(barcodeCalls[0]!.path).toBe('/assets/a1/barcode?type=qr')
   })
 
-  it('switching mode from barcode to qr fetches the other type without refetching the first', async () => {
+  it('caches QR images per asset — a later re-render does not refetch', async () => {
     const wrapper = await mountAndWait()
-    const barcodeModeBtn = wrapper.findAll('button').find(b => b.text().trim() === 'Barcode')
-    await barcodeModeBtn!.trigger('click')
-    await wrapper.vm.$nextTick()
-
     const boxes = checkboxes(wrapper)
     await boxes[1]!.trigger('click')
     await flushPromises()
 
-    const callsOfType = (type: string) => blobCalls.filter(c => c.path === '/assets/a1/barcode?type=' + type).length
-    expect(callsOfType('code128')).toBe(1)
-    expect(callsOfType('qr')).toBe(0)
+    const qrCalls = () => blobCalls.filter(c => c.path === '/assets/a1/barcode?type=qr')
+    expect(qrCalls().length).toBe(1)
 
-    const qrModeBtn = wrapper.findAll('button').find(b => b.text().trim() === 'QR')
-    await qrModeBtn!.trigger('click')
+    // Force additional reactivity/re-renders (switching the size preset).
+    ;(wrapper.vm as unknown as { size: string }).size = '70x40'
+    await wrapper.vm.$nextTick()
     await flushPromises()
 
-    expect(callsOfType('qr')).toBe(1)
-    expect(callsOfType('code128')).toBe(1)
+    expect(qrCalls().length).toBe(1)
   })
 
-  it('revokes all barcode object URLs on unmount', async () => {
+  it('revokes all QR object URLs on unmount', async () => {
     const wrapper = await mountAndWait()
     const boxes = checkboxes(wrapper)
     await boxes[1]!.trigger('click')
@@ -387,7 +427,7 @@ describe('Asset Label/Barcode page — barcode/QR previews', () => {
 // ---------------------------------------------------------------------------
 
 describe('Asset Label/Barcode page — Cetak / Unduh PDF', () => {
-  it('Cetak posts the exact body from the current controls and triggers a labels.pdf download', async () => {
+  it('Cetak posts the exact BTN body from the current controls and triggers a labels.pdf download', async () => {
     const wrapper = await mountAndWait()
     const boxes = checkboxes(wrapper)
     await boxes[1]!.trigger('click') // a1
@@ -410,18 +450,15 @@ describe('Asset Label/Barcode page — Cetak / Unduh PDF', () => {
 
       const labelCall = blobCalls.find(c => c.path === '/assets/labels')
       expect(labelCall).toBeDefined()
+      // The BTN template's layout is fixed server-side — no mode/fields keys.
       expect(labelCall!.opts).toEqual({
         method: 'POST',
         body: {
           asset_ids: ['a1', 'a2'],
           template: 'btn',
           layout: 'sheet',
-          size: '70x40',
-          // Default columns preset is 3, but 70mm labels only fit 2 across an
-          // A4 page (backend sheetFits check) — the UI clamps it on mount.
-          columns: 2,
-          mode: 'both',
-          fields: { name: true, office: true }
+          size: '60x24',
+          columns: 3
         }
       })
       expect(captured?.download).toBe('labels.pdf')
@@ -465,9 +502,7 @@ describe('Asset Label/Barcode page — Cetak / Unduh PDF', () => {
         asset_ids: ['a1', 'a2'],
         template: 'btn',
         layout: 'roll',
-        size: '100x50',
-        mode: 'both',
-        fields: { name: true, office: true }
+        size: '100x50'
       }
     })
   })
@@ -509,12 +544,17 @@ describe('Asset Label/Barcode page — Cetak / Unduh PDF', () => {
 // ---------------------------------------------------------------------------
 
 describe('Asset Label/Barcode page — A4 sheet-fit clamp (regression)', () => {
-  const SIZE_MM: Record<string, number> = { '50x30': 50, '70x40': 70, '100x50': 100 }
+  const SIZE_MM: Record<string, number> = { '60x24': 60, '50x30': 50, '70x40': 70, '100x50': 100 }
   const ALL_SIZES = Object.keys(SIZE_MM)
   const COL_OPTIONS = [2, 3, 4]
 
-  it('clamps the default 70x40 column count from 3 to 2 on mount and shows the max-columns hint', async () => {
+  it('keeps 3 columns for the default 60x24 size (fits) and clamps to 2 when switching to 70x40', async () => {
     const wrapper = await mountAndWait()
+    expect((wrapper.vm as unknown as { cols: number }).cols).toBe(3)
+    expect(wrapper.text()).toContain('Maks. 3 kolom')
+
+    ;(wrapper.vm as unknown as { size: string }).size = '70x40'
+    await wrapper.vm.$nextTick()
     expect((wrapper.vm as unknown as { cols: number }).cols).toBe(2)
     expect(wrapper.text()).toContain('Maks. 2 kolom')
   })
@@ -593,9 +633,6 @@ describe('Asset Label/Barcode page — 500-asset selection cap', () => {
     // through setupState, same access pattern already used elsewhere in this
     // suite for internal methods like `load`).
     const wrapper = await mountAndWait()
-    const barcodeModeBtn = wrapper.findAll('button').find(b => b.text().trim() === 'Barcode')
-    await barcodeModeBtn!.trigger('click')
-    await wrapper.vm.$nextTick()
 
     const many = Array.from({ length: 501 }, (_, i) => ({
       id: `bulk-${i}`,
