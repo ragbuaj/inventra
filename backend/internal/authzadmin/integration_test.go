@@ -80,10 +80,13 @@ func newTestHarness(t *testing.T) *testHarness {
 		 VALUES ('Test Admin', 'admin@authzadmin.test', $1, 'active') RETURNING id`,
 		adminRoleID).Scan(&adminUserID))
 
-	// Stub auth MW: inject admin identity, bypassing real JWT.
+	// Stub auth MW: inject admin identity, bypassing real JWT. Sets the audience
+	// too — RequireAuth always does, and RequireAudience now fails closed on an
+	// empty audience (ADR-0017 hardening), so the stub must simulate a web session.
 	adminAuth := func(c *gin.Context) {
 		c.Set(middleware.CtxUserID, adminUserID.String())
 		c.Set(middleware.CtxRoleID, adminRoleID.String())
+		c.Set(middleware.CtxAudience, auth.AudienceWeb)
 		c.Next()
 	}
 
@@ -158,6 +161,7 @@ func (h *testHarness) callAs(userID, roleID uuid.UUID, method, path string, body
 	stubAuth := func(c *gin.Context) {
 		c.Set(middleware.CtxUserID, userID.String())
 		c.Set(middleware.CtxRoleID, roleID.String())
+		c.Set(middleware.CtxAudience, auth.AudienceWeb)
 		c.Next()
 	}
 	gin.SetMode(gin.TestMode)

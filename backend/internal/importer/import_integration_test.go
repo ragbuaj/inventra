@@ -128,6 +128,9 @@ func stubAuth(userID, roleID uuid.UUID) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Set(middleware.CtxUserID, userID.String())
 		c.Set(middleware.CtxRoleID, roleID.String())
+		// RequireAuth always sets the audience; RequireAudience now fails closed
+		// on an empty one (ADR-0017 hardening), so the stub must set it to web.
+		c.Set(middleware.CtxAudience, auth.AudienceWeb)
 		c.Next()
 	}
 }
