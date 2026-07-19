@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"image/color"
 	"image/png"
 	"os"
 
@@ -66,7 +67,9 @@ func resolveLabelDims(size string, wMM, hMM, mediaWMM float64) (labelW, labelH, 
 	if hMM > 0 {
 		labelH = hMM
 	}
-	mediaW = 64
+	// Default media = label size, so the roll PDF page is exactly the label
+	// (60x24 by default). Wider roll stock can still be set via media_w_mm.
+	mediaW = labelW
 	if mediaWMM > 0 {
 		mediaW = mediaWMM
 	}
@@ -76,7 +79,57 @@ func resolveLabelDims(size string, wMM, hMM, mediaWMM float64) (labelW, labelH, 
 	return labelW, labelH, mediaW, nil
 }
 
-// composeQRWithLogo returns a PNG QR of tag with logoPNG centered (~22% of size). nil logo → plain QR.
+// prepLogo downscales oversized logo art and crops transparent/near-white
+// borders so the visible mark fills its box when placed on a label. Any
+// decode failure returns the input unchanged (callers already tolerate
+// arbitrary bytes).
+func prepLogo(logoPNG []byte) []byte {
+	if len(logoPNG) == 0 {
+		return logoPNG
+	}
+	img, err := png.Decode(bytes.NewReader(logoPNG))
+	if err != nil {
+		return logoPNG
+	}
+	if b := img.Bounds(); b.Dx() > 512 || b.Dy() > 512 {
+		img = imaging.Fit(img, 512, 512, imaging.Lanczos)
+	}
+	b := img.Bounds()
+	minX, minY, maxX, maxY := b.Max.X, b.Max.Y, b.Min.X-1, b.Min.Y-1
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			r, g, bl, a := img.At(x, y).RGBA()
+			if a < 0x2000 || (r > 0xF000 && g > 0xF000 && bl > 0xF000) {
+				continue // transparent or near-white background
+			}
+			if x < minX {
+				minX = x
+			}
+			if x > maxX {
+				maxX = x
+			}
+			if y < minY {
+				minY = y
+			}
+			if y > maxY {
+				maxY = y
+			}
+		}
+	}
+	if maxX < minX || maxY < minY {
+		return logoPNG // fully blank — keep original
+	}
+	pad := (maxX - minX + 1) / 20
+	crop := imaging.Crop(img, image.Rect(minX-pad, minY-pad, maxX+1+pad, maxY+1+pad))
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, crop); err != nil {
+		return logoPNG
+	}
+	return buf.Bytes()
+}
+
+// composeQRWithLogo returns a PNG QR of tag with logoPNG centered (fit within
+// ~26% of the QR side, aspect preserved). nil logo → plain QR.
 func composeQRWithLogo(tag string, logoPNG []byte) ([]byte, error) {
 	qrImg, err := bc.EncodeQRHighEC(tag)
 	if err != nil {
@@ -86,11 +139,17 @@ func composeQRWithLogo(tag string, logoPNG []byte) ([]byte, error) {
 		logo, derr := png.Decode(bytes.NewReader(logoPNG))
 		if derr == nil {
 			b := qrImg.Bounds()
-			side := b.Dx() * 22 / 100
-			logoR := imaging.Resize(logo, side, side, imaging.Lanczos)
-			canvas := imaging.Clone(qrImg)
-			off := image.Pt((b.Dx()-side)/2, (b.Dy()-side)/2)
-			qrImg = imaging.Overlay(canvas, logoR, off, 1.0)
+			side := b.Dx() * 32 / 100
+			logoR := imaging.Fit(logo, side, side, imaging.Lanczos)
+			lb := logoR.Bounds()
+			// White quiet-zone box behind the logo so QR modules don't
+			// bleed into the mark (high error correction absorbs the loss).
+			mrg := side * 14 / 100
+			box := imaging.New(lb.Dx()+2*mrg, lb.Dy()+2*mrg, color.White)
+			canvas := imaging.Overlay(imaging.Clone(qrImg), box,
+				image.Pt((b.Dx()-box.Bounds().Dx())/2, (b.Dy()-box.Bounds().Dy())/2), 1.0)
+			qrImg = imaging.Overlay(canvas, logoR,
+				image.Pt((b.Dx()-lb.Dx())/2, (b.Dy()-lb.Dy())/2), 1.0)
 		}
 	}
 	var buf bytes.Buffer
@@ -118,12 +177,43 @@ func renderLabelPDF(items []labelItem, opts labelOpts) ([]byte, error) {
 		pdf = fpdf.NewCustom(&fpdf.InitType{UnitStr: "mm", Size: fpdf.SizeType{Wd: opts.MediaW, Ht: opts.LabelH}})
 		pdfutil.RegisterFonts(pdf)
 	}
+	// Pages are managed manually; the default page break (bottom margin 20 mm)
+	// would fire on every cell of a 24 mm-tall label page and scatter the label
+	// across many pages. The default 1 mm cell margin would also shift every
+	// "left-aligned" cell off the 1 mm label margin.
+	pdf.SetAutoPageBreak(false, 0)
+	pdf.SetMargins(0, 0, 0)
+	pdf.SetCellMargin(0)
 	pdf.SetFont(pdfutil.FontFamily, "", 6)
 
+	opts.LogoPNG = prepLogo(opts.LogoPNG)
+	const hdrLogoName = "hdr-logo"
+	var hdrLogo *fpdf.ImageInfoType
+	if len(opts.LogoPNG) > 0 && opts.Template == "btn" {
+		hdrLogo = pdf.RegisterImageOptionsReader(hdrLogoName, fpdf.ImageOptions{ImageType: "PNG"}, bytes.NewReader(opts.LogoPNG))
+	}
+
+	// setFontFit sets family/style at size, shrinking (min 3 pt) until s fits w.
+	setFontFit := func(style string, size, w float64, s string) {
+		pdf.SetFont(pdfutil.FontFamily, style, size)
+		for size > 3 && pdf.GetStringWidth(s) > w {
+			size -= 0.25
+			pdf.SetFontSize(size)
+		}
+	}
+
 	drawBTN := func(x, y float64, it labelItem) error {
-		pad := 1.0
+		const mrg = 1.0        // 1 mm margin between the paper edge and the outer border
+		const pad = mrg + 1.0  // content sits 1 mm inside the border
 		qrSide := opts.LabelH - 2*pad
-		// QR (left)
+		divX := x + pad + qrSide + 0.8 // vertical divider between QR and the summary column
+		// Outer border (rounded corners) + QR/summary divider, drawn with the
+		// same stroke so they read as one frame.
+		pdf.SetLineWidth(0.3)
+		pdf.RoundedRect(x+mrg, y+mrg, opts.LabelW-2*mrg, opts.LabelH-2*mrg, 1.2, "1234", "D")
+		pdf.Line(divX, y+mrg, divX, y+opts.LabelH-mrg)
+		pdf.SetLineWidth(0.2)
+		// QR (left), filling the label height inside the border padding
 		qrPNG, err := composeQRWithLogo(it.Tag, opts.LogoPNG)
 		if err != nil {
 			return err
@@ -132,36 +222,62 @@ func renderLabelPDF(items []labelItem, opts labelOpts) ([]byte, error) {
 		pdf.RegisterImageOptionsReader(name, fpdf.ImageOptions{ImageType: "PNG"}, bytes.NewReader(qrPNG))
 		pdf.ImageOptions(name, x+pad, y+pad, qrSide, qrSide, false, fpdf.ImageOptions{ImageType: "PNG"}, 0, "")
 		// right column
-		rx := x + pad + qrSide + 1.5
-		rw := opts.LabelW - (rx - x) - pad
+		rx := divX + 1.0
+		rw := x + opts.LabelW - pad - rx
 		ry := y + pad
-		pdf.SetFont(pdfutil.FontFamily, "B", 5)
-		pdf.SetXY(rx, ry)
-		pdf.CellFormat(rw, 2.4, trunc(opts.CompanyName, 40), "", 0, "L", false, 0, "")
-		ry += 2.6
-		pdf.SetFont(pdfutil.FontFamily, "", 5)
+		// header: small logo + company name (bold)
+		tx := rx
+		if hdrLogo != nil && hdrLogo.Height() > 0 {
+			logoH := 2.4
+			logoW := hdrLogo.Width() / hdrLogo.Height() * logoH
+			pdf.ImageOptions(hdrLogoName, rx, ry, logoW, logoH, false, fpdf.ImageOptions{ImageType: "PNG"}, 0, "")
+			tx = rx + logoW + 0.7
+		}
+		setFontFit("B", 5, rx+rw-tx, opts.CompanyName)
+		pdf.SetXY(tx, ry)
+		pdf.CellFormat(rx+rw-tx, 2.4, opts.CompanyName, "", 0, "L", false, 0, "")
+		ry += 2.8
+		// asset tag
+		setFontFit("", 5.2, rw, it.Tag)
 		pdf.SetXY(rx, ry)
 		pdf.CellFormat(rw, 2.4, it.Tag, "", 0, "L", false, 0, "")
-		ry += 2.4
+		ry += 2.6
 		pdf.Line(rx, ry, rx+rw, ry)
-		ry += 0.6
-		pdf.SetFont(pdfutil.FontFamily, "B", 6)
+		ry += 0.4
+		// office code (left, bold) + tahun perolehan (right, bold)
+		setFontFit("B", 6.5, rw/2, it.OfficeCode)
 		pdf.SetXY(rx, ry)
 		pdf.CellFormat(rw/2, 2.8, it.OfficeCode, "", 0, "L", false, 0, "")
+		setFontFit("B", 6.5, rw/2, "TP: "+it.Year)
 		pdf.SetXY(rx+rw/2, ry)
 		pdf.CellFormat(rw/2, 2.8, "TP: "+it.Year, "", 0, "R", false, 0, "")
-		ry += 2.9
-		pdf.SetFont(pdfutil.FontFamily, "", 5)
+		ry += 3.0
+		// category, then asset name
+		setFontFit("", 5.2, rw, it.CategoryName)
 		pdf.SetXY(rx, ry)
-		pdf.CellFormat(rw, 2.4, trunc(it.CategoryName, 38), "", 0, "L", false, 0, "")
-		ry += 2.4
-		pdf.SetXY(rx, ry)
-		pdf.CellFormat(rw, 2.4, trunc(it.Name, 38), "", 0, "L", false, 0, "")
+		pdf.CellFormat(rw, 2.4, it.CategoryName, "", 0, "L", false, 0, "")
 		ry += 2.6
-		pdf.SetTextColor(200, 0, 0)
-		pdf.SetFont(pdfutil.FontFamily, "", 3.5)
+		setFontFit("", 5.2, rw, it.Name)
 		pdf.SetXY(rx, ry)
-		pdf.MultiCell(rw, 1.8, opts.Disclaimer, "", "L", false)
+		pdf.CellFormat(rw, 2.4, it.Name, "", 0, "L", false, 0, "")
+		ry += 2.6
+		// disclaimer: red, bold, centered, anchored to the bottom border (0.5 mm
+		// clearance) so the remaining slack becomes a gap after the asset name.
+		pdf.SetTextColor(200, 0, 0)
+		pdf.SetFont(pdfutil.FontFamily, "B", 3.8)
+		lineH := 1.85
+		bottom := y + opts.LabelH - mrg - 0.5
+		lines := pdf.SplitText(opts.Disclaimer, rw)
+		maxLines := max(int((bottom-ry)/lineH), 0)
+		if len(lines) > maxLines {
+			lines = lines[:maxLines]
+		}
+		ry = max(ry, bottom-float64(len(lines))*lineH)
+		for _, ln := range lines {
+			pdf.SetXY(rx, ry)
+			pdf.CellFormat(rw, lineH, ln, "", 0, "C", false, 0, "")
+			ry += lineH
+		}
 		pdf.SetTextColor(0, 0, 0)
 		return nil
 	}
