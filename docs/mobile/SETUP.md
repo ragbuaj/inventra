@@ -117,3 +117,10 @@ di `AndroidManifest.xml` (`CAMERA`) dan `ios/Runner/Info.plist` (`NSCameraUsageD
 - **Golden test gagal padahal UI tak berubah** — golden platform-dependent; regenerasi lokal dengan
   `flutter test --update-goldens --tags golden`, jangan commit golden dari platform berbeda.
 - **`build_runner` konflik output** — jalankan dengan `--delete-conflicting-outputs`.
+- **Build APK gagal `Could not close incremental caches` / `Daemon compilation failed`** — terjadi
+  bila pub cache (default `C:\Users\<user>\AppData\Local\Pub\Cache`) berbeda drive dengan folder
+  proyek (mis. `D:`); kompiler inkremental Kotlin gagal merelatifkan path lintas-drive di Windows.
+  Sudah dimitigasi dengan `kotlin.incremental=false` di `mobile/android/gradle.properties` — jangan
+  dihapus selama pub cache dan proyek beda drive.
+- **Error basi `Plugin directory does not exist` padahal folder pub cache ada** — daemon Gradle lama
+  menahan hasil evaluasi sebelumnya; matikan proses `java` (daemon Gradle/Kotlin) lalu build ulang.
