@@ -161,3 +161,9 @@ Urutan di service selalu: resolve field permission dulu, baru proyeksikan ke vie
 - Certificate pinning ditunda pasca-M6 (pin leaf Let's Encrypt yang dirotasi Caddy tiap 90 hari
   berisiko mematikan app); yang masuk fase rilis: HSTS di Caddy dan `usesCleartextTraffic=false`
   di manifest Android.
+- Sunset fallback "token tanpa `aud` = web": fallback ini (di `ClientAudience()`) hanya
+  diperlukan selama satu jendela `JWT_REFRESH_TTL` setelah deploy pertama — setelah itu tidak ada
+  token sah tanpa `aud` yang bisa beredar (semua token baru distempel). Setelah jendela itu lewat,
+  `Parse` sebaiknya menolak token tanpa `aud` (atau minimal me-log + metric setiap kali fallback
+  terpakai untuk memantau menuju nol) agar permisivitas tidak jadi permanen. Ini pekerjaan
+  pasca-rollout, bukan bagian M0.

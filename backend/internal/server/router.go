@@ -290,10 +290,20 @@ func NewRouter(d Deps) (*gin.Engine, Workers) {
 			middleware.RequirePermission(permSvc, "asset.view"),
 		)
 
+		// ADR-0017 keputusan 4: the explicit web-only deny list for aud=mobile.
+		// authzadmin, importer, and report EXPORT are admin/risky surfaces a
+		// compromised mobile device must not reach; RequireAudience(web) equals
+		// "deny aud=mobile" today and fails closed for any future audience.
+		// Changes to this list go through PR review, never ad-hoc.
+		webOnly := middleware.RequireAudience(auth.AudienceWeb)
+
 		reportSvc := report.NewService(queries, d.Redis)
 		reportHandler := report.NewHandler(reportSvc, common.ScopedDeps{Q: queries, Scope: scopeSvc})
+		// webOnly gates only the two export routes; the JSON report reads stay
+		// shared (mobile may view reports, not export them) — ADR-0017 tabel.
 		report.RegisterRoutes(api, reportHandler,
 			requireAuth,
+			webOnly,
 			middleware.RequirePermission(permSvc, "report.view"),
 			middleware.RequirePermission(permSvc, "report.export"),
 		)
@@ -314,13 +324,6 @@ func NewRouter(d Deps) (*gin.Engine, Workers) {
 		workers.Relay = notification.NewRelay(queries, d.Pool, d.Redis, d.Cfg.NotificationStreamMaxLen, d.Cfg.NotificationRelayPoll)
 		workers.Consumer = notification.NewConsumer(queries, d.Redis, approvalSvc, scopeSvc, "", d.Cfg.NotificationRelayPoll, d.Cfg.NotificationClaimMinIdle)
 		workers.Sweeper = notification.NewSweeper(queries, d.Pool, d.Cfg.NotificationRetentionDays, d.Cfg.NotificationSweepPoll)
-
-		// ADR-0017 keputusan 4: the explicit web-only deny list for aud=mobile.
-		// authzadmin and importer are admin/risky surfaces a compromised mobile
-		// device must not reach; RequireAudience(web) equals "deny aud=mobile"
-		// today and fails closed for any future audience. Changes to this list
-		// go through PR review, never ad-hoc.
-		webOnly := middleware.RequireAudience(auth.AudienceWeb)
 
 		authzAdminSvc := authzadmin.NewService(queries, d.Pool, permSvc, scopeSvc, fieldSvc)
 		authzAdminHandler := authzadmin.NewHandler(authzAdminSvc, auditSvc)

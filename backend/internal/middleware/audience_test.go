@@ -33,9 +33,10 @@ func TestRequireAudience_WebOnly(t *testing.T) {
 	if code := runRequireAudience(auth.AudienceMobile, auth.AudienceWeb); code != http.StatusForbidden {
 		t.Fatalf("mobile on web-only: want 403, got %d", code)
 	}
-	// Absent audience (legacy token / pre-audience session) counts as web.
-	if code := runRequireAudience("", auth.AudienceWeb); code != http.StatusOK {
-		t.Fatalf("absent audience on web-only: want 200 (treated as web), got %d", code)
+	// Absent audience is a wiring bug (RequireAudience without RequireAuth), not
+	// a legacy session — fail closed with 401 rather than defaulting to web.
+	if code := runRequireAudience("", auth.AudienceWeb); code != http.StatusUnauthorized {
+		t.Fatalf("absent audience on web-only: want 401 (fail closed), got %d", code)
 	}
 }
 
@@ -46,9 +47,10 @@ func TestRequireAudience_MobileOnly(t *testing.T) {
 	if code := runRequireAudience(auth.AudienceWeb, auth.AudienceMobile); code != http.StatusForbidden {
 		t.Fatalf("web on mobile-only: want 403, got %d", code)
 	}
-	// Absent audience is web, so a mobile-only route denies it.
-	if code := runRequireAudience("", auth.AudienceMobile); code != http.StatusForbidden {
-		t.Fatalf("absent audience on mobile-only: want 403, got %d", code)
+	// Absent audience fails closed on a mobile-only route too: 401, not 403 —
+	// the empty context means RequireAuth never ran, which is a 401 condition.
+	if code := runRequireAudience("", auth.AudienceMobile); code != http.StatusUnauthorized {
+		t.Fatalf("absent audience on mobile-only: want 401 (fail closed), got %d", code)
 	}
 }
 

@@ -104,7 +104,8 @@ func (rh *reportHTTP) engine() *gin.Engine {
 	}
 	r := gin.New()
 	v1 := r.Group("/api/v1")
-	report.RegisterRoutes(v1, rh.handler, stubAuth,
+	passthrough := func(c *gin.Context) {} // webOnly is exercised in the server audience tests
+	report.RegisterRoutes(v1, rh.handler, stubAuth, passthrough,
 		middleware.RequirePermission(rh.permSvc, "report.view"),
 		middleware.RequirePermission(rh.permSvc, "report.export"),
 	)

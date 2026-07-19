@@ -147,6 +147,22 @@ func TestRouter_MobileAuthFlowAndAudienceDeny(t *testing.T) {
 	require.Equal(t, http.StatusForbidden, w.Code, "authz must deny aud=mobile: %s", w.Body.String())
 	w = itRequest(t, r, http.MethodGet, "/api/v1/imports", "", bearer(mobile.AccessToken))
 	require.Equal(t, http.StatusForbidden, w.Code, "imports must deny aud=mobile: %s", w.Body.String())
+	// Report EXPORT is web-only too (ADR-0017 keputusan 4). webOnly runs before
+	// the permission check, so aud=mobile is stopped at the AUDIENCE gate — the
+	// body carries allowed_audience, not required_permission. (Distinguishing
+	// the gate matters: the seed account also lacks report perms, so a bare 403
+	// would not prove the audience wall is what fired.)
+	w = itRequest(t, r, http.MethodGet, "/api/v1/reports/assets/export", "", bearer(mobile.AccessToken))
+	require.Equal(t, http.StatusForbidden, w.Code, "report export must deny aud=mobile: %s", w.Body.String())
+	require.Contains(t, w.Body.String(), "allowed_audience", "export deny must come from the audience gate")
+	w = itRequest(t, r, http.MethodGet, "/api/v1/dashboard/export", "", bearer(mobile.AccessToken))
+	require.Equal(t, http.StatusForbidden, w.Code, "dashboard export must deny aud=mobile: %s", w.Body.String())
+	require.Contains(t, w.Body.String(), "allowed_audience", "dashboard export deny must come from the audience gate")
+	// The JSON report READ stays shared — NOT audience-gated. It 403s here only
+	// on the permission check (seed lacks report.view, which web would hit too),
+	// so the body is a permission denial, never an audience one.
+	w = itRequest(t, r, http.MethodGet, "/api/v1/reports/assets", "", bearer(mobile.AccessToken))
+	require.NotContains(t, w.Body.String(), "allowed_audience", "report read must not be audience-gated for mobile: %s", w.Body.String())
 
 	// 3. Refresh from the body: rotated, still cookieless, audience preserved
 	// (the rotated access token is still denied on /authz).
@@ -195,11 +211,59 @@ func TestRouter_WebAuthFlowRegression(t *testing.T) {
 		map[string]string{"Authorization": "Bearer " + web.AccessToken})
 	require.Equal(t, http.StatusOK, w.Code, "web admin must still reach /authz: %s", w.Body.String())
 
+	// Web passes the export audience gate: any denial here is the permission
+	// check (seed lacks report.export), never the audience wall — the body must
+	// not carry allowed_audience, proving webOnly opened for aud=web.
+	w = itRequest(t, r, http.MethodGet, "/api/v1/reports/assets/export", "",
+		map[string]string{"Authorization": "Bearer " + web.AccessToken})
+	require.NotContains(t, w.Body.String(), "allowed_audience", "web must pass the export audience gate: %s", w.Body.String())
+
 	// Refresh via the cookie still works and still answers with a cookie.
 	cookie := setCookie[:strings.IndexByte(setCookie, ';')]
 	w = itRequest(t, r, http.MethodPost, "/api/v1/auth/refresh", "",
 		map[string]string{"Cookie": cookie})
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
 	require.Contains(t, w.Header().Get("Set-Cookie"), "inventra_refresh=", "web refresh must rotate the cookie")
+	require.NotContains(t, w.Body.String(), "refresh_token")
+}
+
+// TestRouter_RefreshTransportInvariants pins the ADR-0017 rule that the refresh
+// TRANSPORT follows the token's audience, not the request shape: a web refresh
+// token cannot be "laundered" into a body-transport response, and an
+// X-Client-Type header on /auth/refresh cannot flip a web token to mobile.
+func TestRouter_RefreshTransportInvariants(t *testing.T) {
+	r := newIntegrationRouter(t)
+	loginBody := `{"email":"` + itEmail + `","password":"` + itPassword + `"}`
+
+	// Grab a genuine web refresh token out of the login cookie.
+	w := itRequest(t, r, http.MethodPost, "/api/v1/auth/login", loginBody, nil)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	setCookie := w.Header().Get("Set-Cookie")
+	cookiePair := setCookie[:strings.IndexByte(setCookie, ';')] // inventra_refresh=<value>
+	webRefresh := cookiePair[strings.IndexByte(cookiePair, '=')+1:]
+
+	// (a) The web token sent in the BODY (no cookie) must still answer with a
+	// cookie and a body clean of refresh_token — it is not laundered to mobile
+	// transport just because it arrived where a mobile client would send it.
+	w = itRequest(t, r, http.MethodPost, "/api/v1/auth/refresh",
+		`{"refresh_token":"`+webRefresh+`"}`, nil)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	require.Contains(t, w.Header().Get("Set-Cookie"), "inventra_refresh=",
+		"a web token stays cookie-transport even via body")
+	require.NotContains(t, w.Body.String(), "refresh_token",
+		"a web token must never yield a body refresh_token")
+
+	// (b) An X-Client-Type: mobile header on refresh must not flip the audience:
+	// the rotated token still answers with a cookie (web transport), proving the
+	// header did not turn a web session into a mobile one.
+	setCookie = w.Header().Get("Set-Cookie")
+	rotatedPair := setCookie[:strings.IndexByte(setCookie, ';')]
+	rotatedWebRefresh := rotatedPair[strings.IndexByte(rotatedPair, '=')+1:]
+	w = itRequest(t, r, http.MethodPost, "/api/v1/auth/refresh",
+		`{"refresh_token":"`+rotatedWebRefresh+`"}`,
+		map[string]string{"X-Client-Type": "mobile"})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	require.Contains(t, w.Header().Get("Set-Cookie"), "inventra_refresh=",
+		"the X-Client-Type header must not flip a web token to mobile transport")
 	require.NotContains(t, w.Body.String(), "refresh_token")
 }
