@@ -1603,6 +1603,264 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Penyelesaian sesi & Berita Acara dilakukan dari aplikasi web'**
   String get opnameVarianceFootnote;
+
+  /// Sapaan header Beranda dengan nama panggilan pengguna
+  ///
+  /// In id, this message translates to:
+  /// **'Halo, {name}'**
+  String homeGreeting(String name);
+
+  /// Label semantik avatar header Beranda (menuju profil)
+  ///
+  /// In id, this message translates to:
+  /// **'Profil'**
+  String get homeAccountTooltip;
+
+  /// Label semantik tombol lonceng header Beranda
+  ///
+  /// In id, this message translates to:
+  /// **'Notifikasi'**
+  String get homeNotificationsTooltip;
+
+  /// Banner offline Beranda (mockup state offline)
+  ///
+  /// In id, this message translates to:
+  /// **'Offline — data terakhir ditampilkan'**
+  String get homeOfflineBanner;
+
+  /// Judul kartu ringkasan sesi opname aktif
+  ///
+  /// In id, this message translates to:
+  /// **'Sesi Opname Aktif'**
+  String get homeOpnameCardTitle;
+
+  /// Isi kartu opname saat tidak ada sesi berjalan
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada sesi opname yang sedang berjalan.'**
+  String get homeOpnameEmptyBody;
+
+  /// Label aksi kartu opname kosong menuju tab Opname
+  ///
+  /// In id, this message translates to:
+  /// **'Buka Opname'**
+  String get homeOpnameOpenList;
+
+  /// Isi kartu opname saat sumber datanya gagal
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat sesi opname.'**
+  String get homeOpnameErrorBody;
+
+  /// Baris progress kartu opname Beranda (mockup: aset)
+  ///
+  /// In id, this message translates to:
+  /// **'{counted} dari {total} aset'**
+  String homeOpnameProgress(int counted, int total);
+
+  /// Label CTA kartu opname Beranda (mockup)
+  ///
+  /// In id, this message translates to:
+  /// **'Lanjutkan'**
+  String get homeOpnameContinue;
+
+  /// Judul kartu ringkasan approval menunggu
+  ///
+  /// In id, this message translates to:
+  /// **'Approval Menunggu'**
+  String get homeApprovalCardTitle;
+
+  /// Subjudul kartu approval: jumlah pengajuan menunggu lebih dari 3 hari
+  ///
+  /// In id, this message translates to:
+  /// **'{count} di antaranya > 3 hari'**
+  String homeApprovalStale(int count);
+
+  /// Subjudul kartu approval saat tidak ada pengajuan pending
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada pengajuan menunggu keputusan.'**
+  String get homeApprovalEmptyBody;
+
+  /// Isi kartu approval saat sumber datanya gagal
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat pengajuan.'**
+  String get homeApprovalErrorBody;
+
+  /// Label aksi kartu approval menuju tab inbox
+  ///
+  /// In id, this message translates to:
+  /// **'Buka Inbox'**
+  String get homeApprovalOpenInbox;
+
+  /// Label quick action pindai aset
+  ///
+  /// In id, this message translates to:
+  /// **'Pindai Aset'**
+  String get homeQuickScan;
+
+  /// Label quick action tab opname
+  ///
+  /// In id, this message translates to:
+  /// **'Sesi Opname'**
+  String get homeQuickOpname;
+
+  /// Label quick action tab approval
+  ///
+  /// In id, this message translates to:
+  /// **'Approval'**
+  String get homeQuickApproval;
+
+  /// Label quick action tab notifikasi
+  ///
+  /// In id, this message translates to:
+  /// **'Notifikasi'**
+  String get homeQuickNotifications;
+
+  /// Aksi header feed: tandai seluruh notifikasi dibaca
+  ///
+  /// In id, this message translates to:
+  /// **'Tandai semua dibaca'**
+  String get notificationsMarkAllRead;
+
+  /// Snackbar saat POST /notifications/read-all gagal
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal menandai semua dibaca. Coba lagi.'**
+  String get notificationsMarkAllFailed;
+
+  /// Header seksi feed untuk notifikasi hari ini
+  ///
+  /// In id, this message translates to:
+  /// **'Hari ini'**
+  String get notificationsSectionToday;
+
+  /// Header seksi feed untuk notifikasi kemarin
+  ///
+  /// In id, this message translates to:
+  /// **'Kemarin'**
+  String get notificationsSectionYesterday;
+
+  /// Judul empty state feed notifikasi
+  ///
+  /// In id, this message translates to:
+  /// **'Belum ada notifikasi'**
+  String get notificationsEmptyTitle;
+
+  /// Subjudul empty state feed notifikasi
+  ///
+  /// In id, this message translates to:
+  /// **'Pemberitahuan approval, maintenance, dan sinkronisasi akan muncul di sini.'**
+  String get notificationsEmptyBody;
+
+  /// Judul state error feed notifikasi
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat notifikasi'**
+  String get notificationsErrorTitle;
+
+  /// Subjudul error feed saat offline/gangguan jaringan
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.'**
+  String get notificationsErrorNetworkBody;
+
+  /// Subjudul error feed untuk kegagalan lain
+  ///
+  /// In id, this message translates to:
+  /// **'Terjadi kesalahan. Coba lagi.'**
+  String get notificationsErrorGenericBody;
+
+  /// Baris kaki feed saat halaman berikutnya gagal dimuat
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat lebih banyak.'**
+  String get notificationsLoadMoreFailed;
+
+  /// Label waktu kartu notifikasi di bawah satu menit
+  ///
+  /// In id, this message translates to:
+  /// **'baru saja'**
+  String get notificationsTimeJustNow;
+
+  /// Label waktu kartu notifikasi dalam menit (hari ini)
+  ///
+  /// In id, this message translates to:
+  /// **'{count} menit lalu'**
+  String notificationsTimeMinutesAgo(int count);
+
+  /// Label waktu kartu notifikasi dalam jam (hari ini)
+  ///
+  /// In id, this message translates to:
+  /// **'{count} jam lalu'**
+  String notificationsTimeHoursAgo(int count);
+
+  /// Label waktu kartu notifikasi kemarin dengan jam
+  ///
+  /// In id, this message translates to:
+  /// **'Kemarin, {time}'**
+  String notificationsTimeYesterdayAt(String time);
+
+  /// Label waktu kartu notifikasi lebih dari dua hari: tanggal pendek + jam
+  ///
+  /// In id, this message translates to:
+  /// **'{date}, {time}'**
+  String notificationsTimeAt(String date, String time);
+
+  /// Judul notifikasi type approval_pending (dirender klien, ADR-0014)
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan menunggu persetujuan Anda'**
+  String get notificationsApprovalPendingTitle;
+
+  /// Isi notifikasi approval_pending dari params request_type + step
+  ///
+  /// In id, this message translates to:
+  /// **'{type} · Langkah {step}'**
+  String notificationsApprovalPendingBody(String type, String step);
+
+  /// Judul notifikasi approval_decided berstatus approved
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan Anda disetujui'**
+  String get notificationsApprovalApprovedTitle;
+
+  /// Judul notifikasi approval_decided berstatus rejected
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan Anda ditolak'**
+  String get notificationsApprovalRejectedTitle;
+
+  /// Judul fallback approval_decided untuk status di luar approved/rejected
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan Anda telah diputus'**
+  String get notificationsApprovalDecidedTitle;
+
+  /// Judul notifikasi type maintenance_due
+  ///
+  /// In id, this message translates to:
+  /// **'Maintenance jatuh tempo'**
+  String get notificationsMaintenanceDueTitle;
+
+  /// Isi notifikasi maintenance_due dari params aset + due_date
+  ///
+  /// In id, this message translates to:
+  /// **'{asset} — jatuh tempo {date}'**
+  String notificationsMaintenanceDueBody(String asset, String date);
+
+  /// Isi maintenance_due saat params aset absen, hanya due_date
+  ///
+  /// In id, this message translates to:
+  /// **'Jatuh tempo {date}'**
+  String notificationsMaintenanceDueDateOnly(String date);
+
+  /// Judul notifikasi type asset_returned
+  ///
+  /// In id, this message translates to:
+  /// **'Aset dikembalikan'**
+  String get notificationsAssetReturnedTitle;
 }
 
 class _AppLocalizationsDelegate

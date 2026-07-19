@@ -828,4 +828,160 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get opnameVarianceFootnote =>
       'Session completion & the official report happen on the web app';
+
+  @override
+  String homeGreeting(String name) {
+    return 'Hello, $name';
+  }
+
+  @override
+  String get homeAccountTooltip => 'Profile';
+
+  @override
+  String get homeNotificationsTooltip => 'Notifications';
+
+  @override
+  String get homeOfflineBanner => 'Offline — showing last data';
+
+  @override
+  String get homeOpnameCardTitle => 'Active Stock Opname';
+
+  @override
+  String get homeOpnameEmptyBody =>
+      'No stock opname session is currently running.';
+
+  @override
+  String get homeOpnameOpenList => 'Open Stock Opname';
+
+  @override
+  String get homeOpnameErrorBody => 'Failed to load stock opname sessions.';
+
+  @override
+  String homeOpnameProgress(int counted, int total) {
+    return '$counted of $total assets';
+  }
+
+  @override
+  String get homeOpnameContinue => 'Continue';
+
+  @override
+  String get homeApprovalCardTitle => 'Pending Approvals';
+
+  @override
+  String homeApprovalStale(int count) {
+    return '$count of them > 3 days';
+  }
+
+  @override
+  String get homeApprovalEmptyBody => 'No requests awaiting a decision.';
+
+  @override
+  String get homeApprovalErrorBody => 'Failed to load requests.';
+
+  @override
+  String get homeApprovalOpenInbox => 'Open Inbox';
+
+  @override
+  String get homeQuickScan => 'Scan Asset';
+
+  @override
+  String get homeQuickOpname => 'Stock Opname';
+
+  @override
+  String get homeQuickApproval => 'Approval';
+
+  @override
+  String get homeQuickNotifications => 'Notifications';
+
+  @override
+  String get notificationsMarkAllRead => 'Mark all as read';
+
+  @override
+  String get notificationsMarkAllFailed =>
+      'Failed to mark all as read. Try again.';
+
+  @override
+  String get notificationsSectionToday => 'Today';
+
+  @override
+  String get notificationsSectionYesterday => 'Yesterday';
+
+  @override
+  String get notificationsEmptyTitle => 'No notifications yet';
+
+  @override
+  String get notificationsEmptyBody =>
+      'Approval, maintenance, and sync updates will appear here.';
+
+  @override
+  String get notificationsErrorTitle => 'Failed to load notifications';
+
+  @override
+  String get notificationsErrorNetworkBody =>
+      'No connection. Check your network and try again.';
+
+  @override
+  String get notificationsErrorGenericBody =>
+      'Something went wrong. Try again.';
+
+  @override
+  String get notificationsLoadMoreFailed => 'Failed to load more.';
+
+  @override
+  String get notificationsTimeJustNow => 'just now';
+
+  @override
+  String notificationsTimeMinutesAgo(int count) {
+    return '$count min ago';
+  }
+
+  @override
+  String notificationsTimeHoursAgo(int count) {
+    return '$count hours ago';
+  }
+
+  @override
+  String notificationsTimeYesterdayAt(String time) {
+    return 'Yesterday, $time';
+  }
+
+  @override
+  String notificationsTimeAt(String date, String time) {
+    return '$date, $time';
+  }
+
+  @override
+  String get notificationsApprovalPendingTitle =>
+      'A request awaits your approval';
+
+  @override
+  String notificationsApprovalPendingBody(String type, String step) {
+    return '$type · Step $step';
+  }
+
+  @override
+  String get notificationsApprovalApprovedTitle => 'Your request was approved';
+
+  @override
+  String get notificationsApprovalRejectedTitle => 'Your request was rejected';
+
+  @override
+  String get notificationsApprovalDecidedTitle =>
+      'Your request has been decided';
+
+  @override
+  String get notificationsMaintenanceDueTitle => 'Maintenance due';
+
+  @override
+  String notificationsMaintenanceDueBody(String asset, String date) {
+    return '$asset — due $date';
+  }
+
+  @override
+  String notificationsMaintenanceDueDateOnly(String date) {
+    return 'Due $date';
+  }
+
+  @override
+  String get notificationsAssetReturnedTitle => 'Asset returned';
 }

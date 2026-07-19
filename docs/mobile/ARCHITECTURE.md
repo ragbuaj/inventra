@@ -57,6 +57,10 @@ mobile/
 
 Aturan ketergantungan: `features/*` boleh memakai `core/*` dan `app/*`; **antar-fitur tidak saling
 impor** — kebutuhan bersama dinaikkan ke `core/`. `core/` tidak pernah mengimpor `features/`.
+Pengecualian sadar satu-arah: `features/home/` adalah AGREGATOR ringkasan (Beranda) dan boleh
+mengimpor provider/presentasi fitur lain (approval, stock_opname, notifications) supaya datanya
+di-reuse tanpa duplikasi; arah sebaliknya tetap terlarang — tidak ada fitur yang mengimpor
+`features/home/`.
 
 Setiap fitur memakai dua sub-lapisan saja:
 

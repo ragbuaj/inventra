@@ -827,4 +827,159 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get opnameVarianceFootnote =>
       'Penyelesaian sesi & Berita Acara dilakukan dari aplikasi web';
+
+  @override
+  String homeGreeting(String name) {
+    return 'Halo, $name';
+  }
+
+  @override
+  String get homeAccountTooltip => 'Profil';
+
+  @override
+  String get homeNotificationsTooltip => 'Notifikasi';
+
+  @override
+  String get homeOfflineBanner => 'Offline — data terakhir ditampilkan';
+
+  @override
+  String get homeOpnameCardTitle => 'Sesi Opname Aktif';
+
+  @override
+  String get homeOpnameEmptyBody =>
+      'Tidak ada sesi opname yang sedang berjalan.';
+
+  @override
+  String get homeOpnameOpenList => 'Buka Opname';
+
+  @override
+  String get homeOpnameErrorBody => 'Gagal memuat sesi opname.';
+
+  @override
+  String homeOpnameProgress(int counted, int total) {
+    return '$counted dari $total aset';
+  }
+
+  @override
+  String get homeOpnameContinue => 'Lanjutkan';
+
+  @override
+  String get homeApprovalCardTitle => 'Approval Menunggu';
+
+  @override
+  String homeApprovalStale(int count) {
+    return '$count di antaranya > 3 hari';
+  }
+
+  @override
+  String get homeApprovalEmptyBody => 'Tidak ada pengajuan menunggu keputusan.';
+
+  @override
+  String get homeApprovalErrorBody => 'Gagal memuat pengajuan.';
+
+  @override
+  String get homeApprovalOpenInbox => 'Buka Inbox';
+
+  @override
+  String get homeQuickScan => 'Pindai Aset';
+
+  @override
+  String get homeQuickOpname => 'Sesi Opname';
+
+  @override
+  String get homeQuickApproval => 'Approval';
+
+  @override
+  String get homeQuickNotifications => 'Notifikasi';
+
+  @override
+  String get notificationsMarkAllRead => 'Tandai semua dibaca';
+
+  @override
+  String get notificationsMarkAllFailed =>
+      'Gagal menandai semua dibaca. Coba lagi.';
+
+  @override
+  String get notificationsSectionToday => 'Hari ini';
+
+  @override
+  String get notificationsSectionYesterday => 'Kemarin';
+
+  @override
+  String get notificationsEmptyTitle => 'Belum ada notifikasi';
+
+  @override
+  String get notificationsEmptyBody =>
+      'Pemberitahuan approval, maintenance, dan sinkronisasi akan muncul di sini.';
+
+  @override
+  String get notificationsErrorTitle => 'Gagal memuat notifikasi';
+
+  @override
+  String get notificationsErrorNetworkBody =>
+      'Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.';
+
+  @override
+  String get notificationsErrorGenericBody => 'Terjadi kesalahan. Coba lagi.';
+
+  @override
+  String get notificationsLoadMoreFailed => 'Gagal memuat lebih banyak.';
+
+  @override
+  String get notificationsTimeJustNow => 'baru saja';
+
+  @override
+  String notificationsTimeMinutesAgo(int count) {
+    return '$count menit lalu';
+  }
+
+  @override
+  String notificationsTimeHoursAgo(int count) {
+    return '$count jam lalu';
+  }
+
+  @override
+  String notificationsTimeYesterdayAt(String time) {
+    return 'Kemarin, $time';
+  }
+
+  @override
+  String notificationsTimeAt(String date, String time) {
+    return '$date, $time';
+  }
+
+  @override
+  String get notificationsApprovalPendingTitle =>
+      'Pengajuan menunggu persetujuan Anda';
+
+  @override
+  String notificationsApprovalPendingBody(String type, String step) {
+    return '$type · Langkah $step';
+  }
+
+  @override
+  String get notificationsApprovalApprovedTitle => 'Pengajuan Anda disetujui';
+
+  @override
+  String get notificationsApprovalRejectedTitle => 'Pengajuan Anda ditolak';
+
+  @override
+  String get notificationsApprovalDecidedTitle =>
+      'Pengajuan Anda telah diputus';
+
+  @override
+  String get notificationsMaintenanceDueTitle => 'Maintenance jatuh tempo';
+
+  @override
+  String notificationsMaintenanceDueBody(String asset, String date) {
+    return '$asset — jatuh tempo $date';
+  }
+
+  @override
+  String notificationsMaintenanceDueDateOnly(String date) {
+    return 'Jatuh tempo $date';
+  }
+
+  @override
+  String get notificationsAssetReturnedTitle => 'Aset dikembalikan';
 }

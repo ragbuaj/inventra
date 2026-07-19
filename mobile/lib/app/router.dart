@@ -6,12 +6,14 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../core/auth/auth_controller.dart';
 import '../core/auth/auth_session.dart';
 import '../core/i18n/gen/app_localizations.dart';
+import '../core/widgets/confirm_dialog.dart';
 import '../core/widgets/empty_state.dart';
 import '../features/approval/presentation/approval_detail_screen.dart';
 import '../features/approval/presentation/approval_inbox_screen.dart';
 import '../features/asset_detail/presentation/asset_detail_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/login/presentation/login_screen.dart';
+import '../features/notifications/presentation/notifications_screen.dart';
 import '../features/scan/presentation/scan_screen.dart';
 import '../features/stock_opname/presentation/opname_counting_screen.dart';
 import '../features/stock_opname/presentation/opname_session_list_screen.dart';
@@ -147,10 +149,7 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
                 path: '/notifications',
                 name: 'notifications',
                 builder: (BuildContext context, GoRouterState state) =>
-                    _ComingSoonScreen(
-                      title: (AppLocalizations l10n) => l10n.notificationsTitle,
-                      icon: Symbols.notifications_rounded,
-                    ),
+                    const NotificationsScreen(),
               ),
             ],
           ),
@@ -166,10 +165,7 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
         path: '/account',
         name: 'account',
         builder: (BuildContext context, GoRouterState state) =>
-            _ComingSoonScreen(
-              title: (AppLocalizations l10n) => l10n.accountTitle,
-              icon: Symbols.person_rounded,
-            ),
+            const _AccountPlaceholderScreen(),
       ),
       GoRoute(
         path: '/settings',
@@ -189,6 +185,52 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
 /// Jembatan Riverpod -> [Listenable] untuk `refreshListenable` go_router.
 class _RouterRefreshNotifier extends ChangeNotifier {
   void notify() => notifyListeners();
+}
+
+/// Placeholder Profil (Task 12 plan M0) + aksi logout SEMENTARA di app bar:
+/// sejak Beranda menjadi layar ringkasan 1:1 (Task 11) tanpa aksi logout di
+/// mockup-nya, akses logout menumpang di sini (avatar Beranda menuju rute
+/// ini) sampai layar Profil menggantikannya di Task 12.
+class _AccountPlaceholderScreen extends ConsumerWidget {
+  const _AccountPlaceholderScreen();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.accountTitle),
+        actions: <Widget>[
+          IconButton(
+            tooltip: l10n.homeLogoutTooltip,
+            icon: const Icon(Symbols.logout_rounded),
+            onPressed: () async {
+              final bool confirmed = await ConfirmDialog.show(
+                context,
+                title: l10n.homeLogoutConfirmTitle,
+                message: l10n.homeLogoutConfirmMessage,
+                confirmLabel: l10n.homeLogoutConfirmAction,
+                icon: Symbols.logout_rounded,
+                destructive: true,
+              );
+              if (confirmed) {
+                // Guard router memindahkan ke /login begitu sesi berakhir.
+                await ref.read(authControllerProvider.notifier).logout();
+              }
+            },
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: EmptyState(
+          icon: Symbols.person_rounded,
+          title: l10n.commonComingSoon,
+          subtitle: l10n.commonComingSoonBody,
+        ),
+      ),
+    );
+  }
 }
 
 /// Placeholder rute yang layarnya menyusul di Task 8-12 plan M0.

@@ -1100,5 +1100,239 @@
   "opnameVarianceFootnote": "Penyelesaian sesi & Berita Acara dilakukan dari aplikasi web",
   "@opnameVarianceFootnote": {
     "description": "Catatan kaki layar variance"
+  },
+  "homeGreeting": "Halo, {name}",
+  "@homeGreeting": {
+    "description": "Sapaan header Beranda dengan nama panggilan pengguna",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "homeAccountTooltip": "Profil",
+  "@homeAccountTooltip": {
+    "description": "Label semantik avatar header Beranda (menuju profil)"
+  },
+  "homeNotificationsTooltip": "Notifikasi",
+  "@homeNotificationsTooltip": {
+    "description": "Label semantik tombol lonceng header Beranda"
+  },
+  "homeOfflineBanner": "Offline — data terakhir ditampilkan",
+  "@homeOfflineBanner": {
+    "description": "Banner offline Beranda (mockup state offline)"
+  },
+  "homeOpnameCardTitle": "Sesi Opname Aktif",
+  "@homeOpnameCardTitle": {
+    "description": "Judul kartu ringkasan sesi opname aktif"
+  },
+  "homeOpnameEmptyBody": "Tidak ada sesi opname yang sedang berjalan.",
+  "@homeOpnameEmptyBody": {
+    "description": "Isi kartu opname saat tidak ada sesi berjalan"
+  },
+  "homeOpnameOpenList": "Buka Opname",
+  "@homeOpnameOpenList": {
+    "description": "Label aksi kartu opname kosong menuju tab Opname"
+  },
+  "homeOpnameErrorBody": "Gagal memuat sesi opname.",
+  "@homeOpnameErrorBody": {
+    "description": "Isi kartu opname saat sumber datanya gagal"
+  },
+  "homeOpnameProgress": "{counted} dari {total} aset",
+  "@homeOpnameProgress": {
+    "description": "Baris progress kartu opname Beranda (mockup: aset)",
+    "placeholders": {
+      "counted": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "homeOpnameContinue": "Lanjutkan",
+  "@homeOpnameContinue": {
+    "description": "Label CTA kartu opname Beranda (mockup)"
+  },
+  "homeApprovalCardTitle": "Approval Menunggu",
+  "@homeApprovalCardTitle": {
+    "description": "Judul kartu ringkasan approval menunggu"
+  },
+  "homeApprovalStale": "{count} di antaranya > 3 hari",
+  "@homeApprovalStale": {
+    "description": "Subjudul kartu approval: jumlah pengajuan menunggu lebih dari 3 hari",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeApprovalEmptyBody": "Tidak ada pengajuan menunggu keputusan.",
+  "@homeApprovalEmptyBody": {
+    "description": "Subjudul kartu approval saat tidak ada pengajuan pending"
+  },
+  "homeApprovalErrorBody": "Gagal memuat pengajuan.",
+  "@homeApprovalErrorBody": {
+    "description": "Isi kartu approval saat sumber datanya gagal"
+  },
+  "homeApprovalOpenInbox": "Buka Inbox",
+  "@homeApprovalOpenInbox": {
+    "description": "Label aksi kartu approval menuju tab inbox"
+  },
+  "homeQuickScan": "Pindai Aset",
+  "@homeQuickScan": {
+    "description": "Label quick action pindai aset"
+  },
+  "homeQuickOpname": "Sesi Opname",
+  "@homeQuickOpname": {
+    "description": "Label quick action tab opname"
+  },
+  "homeQuickApproval": "Approval",
+  "@homeQuickApproval": {
+    "description": "Label quick action tab approval"
+  },
+  "homeQuickNotifications": "Notifikasi",
+  "@homeQuickNotifications": {
+    "description": "Label quick action tab notifikasi"
+  },
+  "notificationsMarkAllRead": "Tandai semua dibaca",
+  "@notificationsMarkAllRead": {
+    "description": "Aksi header feed: tandai seluruh notifikasi dibaca"
+  },
+  "notificationsMarkAllFailed": "Gagal menandai semua dibaca. Coba lagi.",
+  "@notificationsMarkAllFailed": {
+    "description": "Snackbar saat POST /notifications/read-all gagal"
+  },
+  "notificationsSectionToday": "Hari ini",
+  "@notificationsSectionToday": {
+    "description": "Header seksi feed untuk notifikasi hari ini"
+  },
+  "notificationsSectionYesterday": "Kemarin",
+  "@notificationsSectionYesterday": {
+    "description": "Header seksi feed untuk notifikasi kemarin"
+  },
+  "notificationsEmptyTitle": "Belum ada notifikasi",
+  "@notificationsEmptyTitle": {
+    "description": "Judul empty state feed notifikasi"
+  },
+  "notificationsEmptyBody": "Pemberitahuan approval, maintenance, dan sinkronisasi akan muncul di sini.",
+  "@notificationsEmptyBody": {
+    "description": "Subjudul empty state feed notifikasi"
+  },
+  "notificationsErrorTitle": "Gagal memuat notifikasi",
+  "@notificationsErrorTitle": {
+    "description": "Judul state error feed notifikasi"
+  },
+  "notificationsErrorNetworkBody": "Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.",
+  "@notificationsErrorNetworkBody": {
+    "description": "Subjudul error feed saat offline/gangguan jaringan"
+  },
+  "notificationsErrorGenericBody": "Terjadi kesalahan. Coba lagi.",
+  "@notificationsErrorGenericBody": {
+    "description": "Subjudul error feed untuk kegagalan lain"
+  },
+  "notificationsLoadMoreFailed": "Gagal memuat lebih banyak.",
+  "@notificationsLoadMoreFailed": {
+    "description": "Baris kaki feed saat halaman berikutnya gagal dimuat"
+  },
+  "notificationsTimeJustNow": "baru saja",
+  "@notificationsTimeJustNow": {
+    "description": "Label waktu kartu notifikasi di bawah satu menit"
+  },
+  "notificationsTimeMinutesAgo": "{count} menit lalu",
+  "@notificationsTimeMinutesAgo": {
+    "description": "Label waktu kartu notifikasi dalam menit (hari ini)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationsTimeHoursAgo": "{count} jam lalu",
+  "@notificationsTimeHoursAgo": {
+    "description": "Label waktu kartu notifikasi dalam jam (hari ini)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationsTimeYesterdayAt": "Kemarin, {time}",
+  "@notificationsTimeYesterdayAt": {
+    "description": "Label waktu kartu notifikasi kemarin dengan jam",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsTimeAt": "{date}, {time}",
+  "@notificationsTimeAt": {
+    "description": "Label waktu kartu notifikasi lebih dari dua hari: tanggal pendek + jam",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsApprovalPendingTitle": "Pengajuan menunggu persetujuan Anda",
+  "@notificationsApprovalPendingTitle": {
+    "description": "Judul notifikasi type approval_pending (dirender klien, ADR-0014)"
+  },
+  "notificationsApprovalPendingBody": "{type} · Langkah {step}",
+  "@notificationsApprovalPendingBody": {
+    "description": "Isi notifikasi approval_pending dari params request_type + step",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "step": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsApprovalApprovedTitle": "Pengajuan Anda disetujui",
+  "@notificationsApprovalApprovedTitle": {
+    "description": "Judul notifikasi approval_decided berstatus approved"
+  },
+  "notificationsApprovalRejectedTitle": "Pengajuan Anda ditolak",
+  "@notificationsApprovalRejectedTitle": {
+    "description": "Judul notifikasi approval_decided berstatus rejected"
+  },
+  "notificationsApprovalDecidedTitle": "Pengajuan Anda telah diputus",
+  "@notificationsApprovalDecidedTitle": {
+    "description": "Judul fallback approval_decided untuk status di luar approved/rejected"
+  },
+  "notificationsMaintenanceDueTitle": "Maintenance jatuh tempo",
+  "@notificationsMaintenanceDueTitle": {
+    "description": "Judul notifikasi type maintenance_due"
+  },
+  "notificationsMaintenanceDueBody": "{asset} — jatuh tempo {date}",
+  "@notificationsMaintenanceDueBody": {
+    "description": "Isi notifikasi maintenance_due dari params aset + due_date",
+    "placeholders": {
+      "asset": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsMaintenanceDueDateOnly": "Jatuh tempo {date}",
+  "@notificationsMaintenanceDueDateOnly": {
+    "description": "Isi maintenance_due saat params aset absen, hanya due_date",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsAssetReturnedTitle": "Aset dikembalikan",
+  "@notificationsAssetReturnedTitle": {
+    "description": "Judul notifikasi type asset_returned"
   }
 }

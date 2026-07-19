@@ -8,6 +8,7 @@ import '../../../core/api/app_failure.dart';
 import '../../../core/auth/auth_controller.dart';
 import '../../../core/auth/auth_session.dart';
 import '../../../core/i18n/gen/app_localizations.dart';
+import '../../../core/i18n/request_type_label.dart';
 import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/empty_state.dart';

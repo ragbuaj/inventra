@@ -5,6 +5,26 @@ import '../../app/theme.dart';
 /// Keluarga semantik chip status — dipetakan ke [InventraStatusColors].
 enum StatusChipVariant { success, info, warning, danger, neutral }
 
+/// Triplet warna [InventraStatusColors] milik satu varian — untuk elemen di
+/// luar [StatusChip] (tile ikon jenis, titik penanda, dsb.) yang memakai
+/// keluarga warna yang sama. Dipakai lintas fitur (approval, notifications,
+/// home) sehingga tinggal di core bersama [StatusChipVariant].
+StatusColorSet statusColorSetOf(
+  BuildContext context,
+  StatusChipVariant variant,
+) {
+  final InventraStatusColors colors = Theme.of(
+    context,
+  ).extension<InventraStatusColors>()!;
+  return switch (variant) {
+    StatusChipVariant.success => colors.success,
+    StatusChipVariant.info => colors.info,
+    StatusChipVariant.warning => colors.warning,
+    StatusChipVariant.danger => colors.danger,
+    StatusChipVariant.neutral => colors.neutral,
+  };
+}
+
 /// Chip status Component Library: titik indikator + label dalam pill.
 ///
 /// Warna selalu dari [InventraStatusColors] (ThemeExtension) sehingga otomatis
@@ -18,16 +38,7 @@ class StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final InventraStatusColors colors = Theme.of(
-      context,
-    ).extension<InventraStatusColors>()!;
-    final StatusColorSet set = switch (variant) {
-      StatusChipVariant.success => colors.success,
-      StatusChipVariant.info => colors.info,
-      StatusChipVariant.warning => colors.warning,
-      StatusChipVariant.danger => colors.danger,
-      StatusChipVariant.neutral => colors.neutral,
-    };
+    final StatusColorSet set = statusColorSetOf(context, variant);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 4),

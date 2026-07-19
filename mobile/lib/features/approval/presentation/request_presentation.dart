@@ -8,41 +8,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
-import '../../../app/theme.dart';
 import '../../../core/i18n/gen/app_localizations.dart';
+// Label jenis pengajuan dan statusColorSetOf naik ke core sejak Task 11 —
+// dipakai juga fitur notifications (core/i18n/request_type_label.dart dan
+// core/widgets/status_chip.dart).
+import '../../../core/i18n/request_type_label.dart';
 import '../../../core/widgets/status_chip.dart';
-
-/// Triplet warna [InventraStatusColors] milik satu varian — untuk elemen di
-/// luar [StatusChip] (tile ikon jenis, penanda sensitif) yang memakai
-/// keluarga warna yang sama.
-StatusColorSet statusColorSetOf(
-  BuildContext context,
-  StatusChipVariant variant,
-) {
-  final InventraStatusColors colors = Theme.of(
-    context,
-  ).extension<InventraStatusColors>()!;
-  return switch (variant) {
-    StatusChipVariant.success => colors.success,
-    StatusChipVariant.info => colors.info,
-    StatusChipVariant.warning => colors.warning,
-    StatusChipVariant.danger => colors.danger,
-    StatusChipVariant.neutral => colors.neutral,
-  };
-}
-
-/// Label i18n jenis pengajuan (enum `type` openapi).
-String requestTypeLabel(AppLocalizations l10n, String type) {
-  return switch (type) {
-    'asset_create' => l10n.approvalTypeAssetCreate,
-    'asset_disposal' => l10n.approvalTypeAssetDisposal,
-    'asset_transfer' => l10n.approvalTypeAssetTransfer,
-    'assignment' => l10n.approvalTypeAssignment,
-    'maintenance' => l10n.approvalTypeMaintenance,
-    'valuation_exclusion' => l10n.approvalTypeValuationExclusion,
-    _ => type,
-  };
-}
 
 /// Ikon jenis pengajuan (mockup Inbox Approval).
 IconData requestTypeIcon(String type) {

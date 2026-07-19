@@ -87,8 +87,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(LoginScreen), findsNothing);
-      // App bar beranda + label tab.
-      expect(find.text(l10nId.homeTitle), findsNWidgets(2));
+      // Header sapaan beranda (Task 11) + label tab.
+      expect(find.text(l10nId.homeGreeting('Budi')), findsOneWidget);
       expect(find.text(l10nId.shellTabScan), findsOneWidget);
     });
 
@@ -105,7 +105,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(LoginScreen), findsNothing);
-      expect(find.text(l10nId.homeTitle), findsNWidgets(2));
+      expect(find.text(l10nId.homeGreeting('Budi')), findsOneWidget);
     });
 
     testWidgets('belum login mengakses rute dalam dibelokkan ke /login', (
@@ -122,7 +122,9 @@ void main() {
       expect(find.text(l10nId.assetDetailTitle), findsNothing);
     });
 
-    testWidgets('logout dari beranda kembali ke /login', (
+    // Logout sementara menumpang di placeholder /account sejak Beranda
+    // menjadi layar ringkasan 1:1 (Task 11); pindah permanen di Task 12.
+    testWidgets('logout dari placeholder profil kembali ke /login', (
       WidgetTester tester,
     ) async {
       final FakeAuthController fake = FakeAuthController(
@@ -130,6 +132,9 @@ void main() {
       );
       container = createContainer(fake);
       await tester.pumpWidget(RouterTestApp(container: container));
+      await tester.pumpAndSettle();
+
+      container.read(appRouterProvider).go('/account');
       await tester.pumpAndSettle();
 
       await tester.tap(find.byTooltip(l10nId.homeLogoutTooltip));
@@ -153,6 +158,9 @@ void main() {
       await tester.pumpWidget(RouterTestApp(container: container));
       await tester.pumpAndSettle();
 
+      container.read(appRouterProvider).go('/account');
+      await tester.pumpAndSettle();
+
       await tester.tap(find.byTooltip(l10nId.homeLogoutTooltip));
       await tester.pumpAndSettle();
       await tester.tap(find.text(l10nId.commonCancel));
@@ -160,7 +168,7 @@ void main() {
 
       expect(fake.logoutCalls, 0);
       expect(find.byType(LoginScreen), findsNothing);
-      expect(find.text(l10nId.homeTitle), findsNWidgets(2));
+      expect(find.text(l10nId.accountTitle), findsOneWidget);
     });
   });
 

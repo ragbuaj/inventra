@@ -266,6 +266,9 @@ class _ScanFab extends StatelessWidget {
       button: true,
       label: label,
       child: Container(
+        // Key untuk tes: ikon scan juga ada di quick action Beranda sehingga
+        // finder byIcon saja tidak lagi unik.
+        key: const ValueKey<String>('shell-scan-fab'),
         width: 56,
         height: 56,
         decoration: BoxDecoration(

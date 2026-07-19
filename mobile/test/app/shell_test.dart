@@ -62,11 +62,14 @@ void main() {
     expect(navLabel(l10nId.shellTabApproval), findsOneWidget);
     expect(navLabel(l10nId.shellTabNotifications), findsOneWidget);
 
+    // Sejak Beranda 1:1 (Task 11), ikon tab juga muncul di quick actions
+    // Beranda (fact_check/approval/qr_code_scanner) dan lonceng header
+    // (notifications) — hitungan mencakup keduanya.
     expect(find.byIcon(Symbols.home_rounded), findsWidgets);
-    expect(find.byIcon(Symbols.fact_check_rounded), findsOneWidget);
-    expect(find.byIcon(Symbols.qr_code_scanner_rounded), findsOneWidget);
-    expect(find.byIcon(Symbols.approval_rounded), findsOneWidget);
-    expect(find.byIcon(Symbols.notifications_rounded), findsOneWidget);
+    expect(find.byIcon(Symbols.fact_check_rounded), findsNWidgets(2));
+    expect(find.byIcon(Symbols.qr_code_scanner_rounded), findsNWidgets(2));
+    expect(find.byIcon(Symbols.approval_rounded), findsNWidgets(2));
+    expect(find.byIcon(Symbols.notifications_rounded), findsNWidgets(3));
   });
 
   testWidgets('tab aktif memakai pill primary-container, non-aktif tidak', (
@@ -125,7 +128,7 @@ void main() {
     await tester.pumpWidget(RouterTestApp(container: createContainer()));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Symbols.qr_code_scanner_rounded));
+    await tester.tap(find.byKey(const ValueKey<String>('shell-scan-fab')));
     await tester.pumpAndSettle();
 
     // Layar scan tampil; bar bawah + FAB disembunyikan (mockup full screen).
@@ -141,13 +144,11 @@ void main() {
     await tester.pumpAndSettle();
 
     final ColorScheme scheme = InventraTheme.light.colorScheme;
+    final Finder fabFinder = find.byKey(
+      const ValueKey<String>('shell-scan-fab'),
+    );
     final Material fabMaterial = tester.widget<Material>(
-      find
-          .ancestor(
-            of: find.byIcon(Symbols.qr_code_scanner_rounded),
-            matching: find.byType(Material),
-          )
-          .first,
+      find.descendant(of: fabFinder, matching: find.byType(Material)).first,
     );
     expect(fabMaterial.color, scheme.primary);
     final RoundedRectangleBorder shape =
@@ -157,14 +158,7 @@ void main() {
     expect(shape.side.width, 4);
     expect(shape.side.color, InventraTheme.light.cardTheme.color);
 
-    final Container fabShadowBox = tester.widget<Container>(
-      find
-          .ancestor(
-            of: find.byIcon(Symbols.qr_code_scanner_rounded),
-            matching: find.byType(Container),
-          )
-          .first,
-    );
+    final Container fabShadowBox = tester.widget<Container>(fabFinder);
     final BoxDecoration decoration = fabShadowBox.decoration! as BoxDecoration;
     expect(decoration.boxShadow, isNotEmpty);
   });
@@ -178,7 +172,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('3'), findsOneWidget);
+      // Badge tab shell + badge lonceng header Beranda (Task 11).
+      expect(find.text('3'), findsNWidgets(2));
     });
 
     testWidgets('disembunyikan saat count 0', (WidgetTester tester) async {
@@ -196,7 +191,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('99+'), findsOneWidget);
+      // Badge tab shell + badge lonceng header Beranda (Task 11).
+      expect(find.text('99+'), findsNWidgets(2));
     });
   });
 
@@ -209,7 +205,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('17'), findsOneWidget);
+      // Badge tab shell + badge quick action Approval Beranda (Task 11).
+      expect(find.text('17'), findsNWidgets(2));
     });
 
     testWidgets('disembunyikan saat count 0 (termasuk peran tanpa izin)', (

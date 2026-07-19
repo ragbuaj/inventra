@@ -1,10 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Jumlah notifikasi belum dibaca untuk badge bottom-nav.
+import '../data/notifications_repository.dart';
+
+/// Jumlah notifikasi belum dibaca (`GET /notifications/unread-count`) —
+/// sumber badge tab Notif di shell dan lonceng header Beranda.
 ///
-/// Placeholder Task 7: selalu 0 sampai feed notifikasi dibangun (Task 11 plan
-/// M0) dan provider ini disambungkan ke datanya. Shell hanya membaca angka —
-/// kontraknya tidak berubah saat sumber nyata masuk.
+/// Auto-retry dimatikan: nilai diperbarui lewat invalidate setelah tandai
+/// dibaca / tandai semua / refresh feed.
+final FutureProvider<int> notificationsUnreadCountProvider =
+    FutureProvider<int>(
+      (Ref ref) => ref.watch(notificationsRepositoryProvider).unreadCount(),
+      retry: (int retryCount, Object error) => null,
+    );
+
+/// Nilai badge siap pakai untuk shell/beranda: 0 selama loading ATAU saat
+/// gagal (offline dsb.) — badge tidak boleh menggagalkan shell (panggilan
+/// suplementer selalu non-fatal). Kontrak provider ini tidak berubah sejak
+/// placeholder Task 7 — shell hanya membaca angka.
 final Provider<int> unreadNotificationCountProvider = Provider<int>(
-  (Ref ref) => 0,
+  (Ref ref) => ref.watch(notificationsUnreadCountProvider).value ?? 0,
 );
