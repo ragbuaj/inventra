@@ -30,7 +30,7 @@ func TestResolveLabelDims_Defaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if w != 60 || h != 24 || media != 64 {
+	if w != 60 || h != 24 || media != 60 {
 		t.Fatalf("got %v %v %v", w, h, media)
 	}
 }

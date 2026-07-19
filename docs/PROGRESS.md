@@ -1345,7 +1345,40 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     objek MinIO ikut terhapus, plus cek visual light dan dark mode. Catatan: `pnpm test` keluar dengan exit 1 karena satu `EnvironmentTeardownError` di
 >     `assets-index.spec.ts` — **sudah ada sebelum perubahan ini**, dikonfirmasi dengan menjalankan suite
 >     penuh di `main` bersih (juga exit 1, error yang sama). Perlu dibereskan terpisah.
-> 82. **Next session — start here: Mobile M0 prep** — generate mockup mobile dari prompt kit
+> 82. ~~**Perbaikan layout label QR BTN 60x24 + penyelarasan halaman Label frontend**~~ ✅ **DONE
+>     (2026-07-20, branch `fix/label-btn-layout`).** Permintaan user berawal dari hasil cetak label yang
+>     tidak sesuai mockup BTN.
+>     **(a) Backend PDF (`internal/asset/barcode.go`).** Akar masalah: auto page break bawaan fpdf
+>     (margin bawah default 20 mm) memecah halaman label setinggi 24 mm menjadi ~8 halaman — tiap sel
+>     teks terlempar ke halaman baru; kini `SetAutoPageBreak(false)` + margin halaman dan cell margin
+>     dinolkan (cell margin 1 mm bawaan diam-diam menggeser semua teks). Layout template `btn` ditata
+>     ulang sesuai mockup: margin 1 mm kertas-ke-border, border luar rounded (garis 0.3 mm), garis
+>     pemisah vertikal antara QR dan kolom ringkasan (menyambung ke border), logo kecil + nama
+>     perusahaan bold di header, kode kantor + `TP: <tahun>` bold, disclaimer merah bold rata tengah
+>     dijangkar ke border bawah (sisa ruang jadi jarak dari nama aset), font menyusut otomatis agar muat
+>     lebar kolom (`setFontFit`), baris disclaimer dipotong agar tak pernah keluar border. `prepLogo`
+>     baru: file logo 4500x4500 dengan whitespace besar di-downscale dan di-trim (bbox non-putih);
+>     overlay QR memakai `imaging.Fit` (aspek terjaga — sebelumnya dipaksa persegi hingga gepeng) di
+>     atas alas putih quiet-zone, ukuran 32 persen sisi QR (EC High; area tertutup kira-kira 17 persen,
+>     aman). Default lebar media kini = lebar label sehingga halaman roll persis 60x24 mm (`media_w_mm`
+>     tetap bisa override); `TP` bersumber dari `purchase_date` (query `GetAssetLabelByID/ByTag`).
+>     **(b) Frontend halaman Label (`/assets/label`).** Keputusan user: fokus template BTN. Preset
+>     `60x24` ditambahkan dan jadi default (sebelumnya tidak ada; default lama 70x40); kontrol
+>     "Tampilkan" (barcode/qr/keduanya) dan "Field dicetak" **dihapus** karena template btn
+>     mengabaikannya di server — body cetak kini hanya `asset_ids`/`template`/`layout`/`size`/`columns`;
+>     preview di layar diganti replika label BTN (`AssetLabel.vue` ditulis ulang, skala 5 px/mm) dengan
+>     kode kantor + nama kategori di-resolve on-demand (`useResolveCache`), tahun dari `purchase_date`,
+>     dan logo hasil trim di `public/logo-btn.png` (header + overlay tengah QR); fetch preview kini
+>     hanya `type=qr`. i18n id/en dirapikan (key mode/field dihapus, hint format bank ditambahkan).
+>     `assets-label.spec.ts` ditulis ulang — 23 tes: default 60x24, konten preview BTN (perusahaan/kode
+>     kantor bukan nama/TP/kategori/disclaimer), TP kosong tanpa `purchase_date`, QR-only fetch + cache,
+>     body cetak sheet/roll, clamp A4 semua kombinasi ukuran kali kolom, batas 500 aset.
+>     Verifikasi: backend `go build`/`vet`/`test` hijau; frontend `lint`/`typecheck`/`build` hijau;
+>     full vitest 122 file / 1680 tes lulus (dua run paralel sempat flake beban mesin — file gagal
+>     berbeda tiap run dan lulus saat diulang; run bersih terakhir 0 gagal); verifikasi visual di stack
+>     dev berjalan (QR + logo ter-load, kotak label 300x120 px). E2E label existing (`assets.spec.ts`)
+>     tetap kompatibel — heading, "1 dipilih", tombol Cetak, dan endpoint tidak berubah.
+> 83. **Next session — start here: Mobile M0 prep** — generate mockup mobile dari prompt kit
 >     `docs/mobile/DESIGN_BRIEF.md` (13 artifact, hasil ke `docs/mobile/design/`) lalu spec + plan
 >     fase M0 (scaffold Flutter `mobile/`, tema + i18n, navigasi shell, login/refresh/logout
 >     cookie-jar, CI analyze/test/APK; scaffold menyertakan folder `ios/` per aturan IOS.md).
