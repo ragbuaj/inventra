@@ -41,4 +41,38 @@ void main() {
       'refresh_token': 'rt-1',
     });
   });
+
+  test('toString tidak memuat access/refresh token mentah', () {
+    const TokenResponseDto dto = TokenResponseDto(
+      accessToken: 'super-secret-access',
+      tokenType: 'Bearer',
+      expiresIn: 900,
+      refreshToken: 'super-secret-refresh',
+    );
+
+    final String rendered = dto.toString();
+    expect(rendered, isNot(contains('super-secret-access')));
+    expect(rendered, isNot(contains('super-secret-refresh')));
+    // Field non-sensitif tetap terlihat untuk diagnosis.
+    expect(rendered, contains('Bearer'));
+    expect(rendered, contains('900'));
+    expect(rendered, contains('[redacted]'));
+  });
+
+  test('toString membedakan refresh token null dari terisi', () {
+    const TokenResponseDto withToken = TokenResponseDto(
+      accessToken: 'a',
+      tokenType: 'Bearer',
+      expiresIn: 900,
+      refreshToken: 'rt-1',
+    );
+    const TokenResponseDto withoutToken = TokenResponseDto(
+      accessToken: 'a',
+      tokenType: 'Bearer',
+      expiresIn: 900,
+    );
+
+    expect(withToken.toString(), contains('refreshToken: [redacted]'));
+    expect(withoutToken.toString(), contains('refreshToken: null'));
+  });
 }

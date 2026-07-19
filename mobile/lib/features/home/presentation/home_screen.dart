@@ -22,7 +22,6 @@ import '../../approval/presentation/request_presentation.dart';
 import '../../notifications/presentation/unread_count_provider.dart';
 import '../../stock_opname/data/stock_opname_session_dto.dart';
 import '../../stock_opname/presentation/opname_presentation.dart';
-import '../../stock_opname/presentation/opname_sessions_provider.dart';
 import 'home_providers.dart';
 
 /// Beranda 1:1 mockup "Inventra Mobile - Beranda": header sapaan (avatar
@@ -37,7 +36,7 @@ class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   Future<void> _refresh(WidgetRef ref) async {
-    ref.invalidate(opnameSessionsProvider);
+    ref.invalidate(homeActiveOpnameSessionProvider);
     ref.invalidate(approvalInboxProvider(ApprovalStatusFilter.pending));
     ref.invalidate(approvalInboxCountProvider);
     ref.invalidate(notificationsUnreadCountProvider);
@@ -385,7 +384,7 @@ class _OpnameCard extends ConsumerWidget {
             const SizedBox(height: 8),
             _CardError(
               message: l10n.homeOpnameErrorBody,
-              onRetry: () => ref.invalidate(opnameSessionsProvider),
+              onRetry: () => ref.invalidate(homeActiveOpnameSessionProvider),
             ),
           ],
         ),

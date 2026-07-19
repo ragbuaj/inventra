@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/app_failure.dart';
+import '../masterdata/reference_lookup_repository.dart';
 import 'auth_session.dart';
 import 'data/auth_repository.dart';
 import 'data/token_response_dto.dart';
@@ -96,6 +97,7 @@ class AuthController extends AsyncNotifier<AuthSession> {
       // pembersihan sesi lokal.
     } finally {
       await session.clear();
+      ref.read(referenceLookupRepositoryProvider).clear();
       state = const AsyncData<AuthSession>(Unauthenticated());
     }
   }
@@ -105,6 +107,7 @@ class AuthController extends AsyncNotifier<AuthSession> {
   /// endpoint. Kegagalan jaringan tidak pernah sampai ke sini.
   void _handleSessionExpired() {
     unawaited(ref.read(sessionManagerProvider).clear());
+    ref.read(referenceLookupRepositoryProvider).clear();
     state = const AsyncData<AuthSession>(Unauthenticated());
   }
 }

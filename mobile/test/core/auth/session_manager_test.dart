@@ -85,6 +85,23 @@ void main() {
     });
   }
 
+  test('refresh gagal error non-AppFailure (mis. parse null): networkFailed '
+      'dan refresh token DIPERTAHANKAN', () async {
+    final InMemoryTokenStorage storage = InMemoryTokenStorage('rt-1');
+    final SessionManager session = SessionManager(
+      tokenStorage: storage,
+      // Error tak terduga di luar AppFailure (mis. NoSuchMethodError saat
+      // membaca field respons null) tidak boleh lolos sebagai error mentah.
+      refreshExecutor: (String refreshToken) async =>
+          throw StateError('unexpected'),
+    );
+
+    expect(await session.refresh(), RefreshOutcome.networkFailed);
+    expect(session.accessToken, isNull);
+    expect(storage.refreshToken, 'rt-1');
+    expect(storage.clearCount, 0);
+  });
+
   test(
     'single-flight: refresh bersamaan memakai satu executor yang sama',
     () async {

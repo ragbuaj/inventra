@@ -1,27 +1,46 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/api/app_failure.dart';
 import '../../../core/auth/auth_controller.dart';
 import '../../../core/auth/auth_session.dart';
 import '../../../core/masterdata/reference_lookup_repository.dart';
+import '../../stock_opname/data/stock_opname_repository.dart';
 import '../../stock_opname/data/stock_opname_session_dto.dart';
 import '../../stock_opname/presentation/opname_sessions_provider.dart';
 
 /// Sesi opname berjalan yang ditampilkan kartu "Sesi Opname Aktif" Beranda:
-/// sesi non-closed pertama dari daftar (reuse [opnameSessionsProvider] —
-/// termasuk KPI progress dari fetch detailnya). null berarti tidak ada sesi
-/// berjalan; error diteruskan supaya kartu merender cabang errornya sendiri
-/// (kartu lain tidak terpengaruh — semua panggilan ringkasan independen).
+/// sesi non-closed PERTAMA. Beranda hanya butuh satu sesi, jadi detail
+/// (KPI progress) di-fetch HANYA untuk sesi itu — bukan seluruh daftar —
+/// supaya tidak memicu N+1 request per sesi dan rawan 429 (rate limiter
+/// per-user ADR-0017). null berarti tidak ada sesi berjalan.
+///
+/// Detail satu sesi non-fatal: bila `session(id)` gagal, kartu memakai data
+/// daftar tanpa KPI (baris progress dilewati) alih-alih menggagalkan kartu.
+/// Kegagalan mengambil DAFTAR tetap diteruskan sebagai error kartu (kartu lain
+/// tidak terpengaruh — semua panggilan ringkasan independen).
 final FutureProvider<StockOpnameSessionDto?> homeActiveOpnameSessionProvider =
     FutureProvider.autoDispose<StockOpnameSessionDto?>((Ref ref) async {
-      final List<StockOpnameSessionDto> sessions = await ref.watch(
-        opnameSessionsProvider.future,
+      final StockOpnameRepository repository = ref.watch(
+        stockOpnameRepositoryProvider,
       );
+      final List<StockOpnameSessionDto> sessions = (await repository.sessions(
+        limit: opnameSessionsFetchLimit,
+      )).data;
+      StockOpnameSessionDto? running;
       for (final StockOpnameSessionDto session in sessions) {
         if (session.status != 'closed') {
-          return session;
+          running = session;
+          break;
         }
       }
-      return null;
+      if (running == null) {
+        return null;
+      }
+      try {
+        return await repository.session(running.id);
+      } on AppFailure {
+        return running;
+      }
     }, retry: (int retryCount, Object error) => null);
 
 /// Nama kantor pengguna untuk subjudul header Beranda, di-resolve non-fatal

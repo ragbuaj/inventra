@@ -67,6 +67,11 @@ class SessionManager {
       // Konservatif untuk aplikasi lapangan: jaringan, 5xx, rate limit, dan
       // kegagalan lain dianggap sementara — token dipertahankan, dicoba lagi.
       return RefreshOutcome.networkFailed;
+    } catch (_) {
+      // Error tak terduga di luar AppFailure (mis. parse response.data null)
+      // tidak boleh lolos single-flight sebagai error mentah. Diperlakukan
+      // sama konservatifnya: sesi dipertahankan, dicoba lagi nanti.
+      return RefreshOutcome.networkFailed;
     }
   }
 

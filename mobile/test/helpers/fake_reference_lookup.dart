@@ -9,6 +9,10 @@ class FakeReferenceLookup implements ReferenceLookupRepository {
 
   final Map<String, String> names;
   int callCount = 0;
+  int clearCount = 0;
+
+  @override
+  void clear() => clearCount += 1;
 
   Future<String?> _get(String kind, String id) async {
     callCount += 1;

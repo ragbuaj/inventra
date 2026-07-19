@@ -8,8 +8,10 @@ import 'package:inventra_mobile/core/auth/token_storage.dart';
 import 'package:inventra_mobile/core/auth/data/auth_repository.dart';
 import 'package:inventra_mobile/core/auth/data/token_response_dto.dart';
 import 'package:inventra_mobile/core/auth/data/user_dto.dart';
+import 'package:inventra_mobile/core/masterdata/reference_lookup_repository.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../../helpers/fake_reference_lookup.dart';
 import '../../helpers/fakes.dart';
 
 class _MockAuthRepository extends Mock implements AuthRepository {}
@@ -33,14 +35,17 @@ const TokenResponseDto _tokens = TokenResponseDto(
 void main() {
   late _MockAuthRepository repository;
   late InMemoryTokenStorage storage;
+  late FakeReferenceLookup referenceLookup;
 
   ProviderContainer makeContainer({String? storedRefreshToken}) {
     repository = _MockAuthRepository();
     storage = InMemoryTokenStorage(storedRefreshToken);
+    referenceLookup = FakeReferenceLookup();
     return ProviderContainer.test(
       overrides: [
         tokenStorageProvider.overrideWithValue(storage),
         authRepositoryProvider.overrideWithValue(repository),
+        referenceLookupRepositoryProvider.overrideWithValue(referenceLookup),
       ],
     );
   }
@@ -250,6 +255,9 @@ void main() {
         );
         expect(storage.refreshToken, isNull);
         expect(container.read(sessionManagerProvider).accessToken, isNull);
+        // Cache nama master data dikosongkan supaya tidak bocor ke user
+        // berikutnya yang login di perangkat yang sama.
+        expect(referenceLookup.clearCount, 1);
       },
     );
 
@@ -311,6 +319,8 @@ void main() {
         );
         expect(storage.refreshToken, isNull);
         expect(container.read(sessionManagerProvider).accessToken, isNull);
+        // Sesi mati juga mengosongkan cache nama master data.
+        expect(referenceLookup.clearCount, 1);
       },
     );
   });

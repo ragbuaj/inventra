@@ -16,8 +16,19 @@ AppFailure mapDioException(DioException err) {
     DioExceptionType.connectionError => const NetworkFailure(),
     DioExceptionType.badResponse => _mapStatusCode(err),
     _ when err.error is SocketException => const NetworkFailure(),
-    _ => UnknownFailure(err.error ?? err),
+    _ => UnknownFailure(err.error ?? _safeCause(err)),
   };
+}
+
+/// Ringkasan aman [DioException] untuk crash reporter — HANYA metadata request
+/// (type, status, method, path). SENGAJA tidak memuat `requestOptions.data`
+/// maupun `headers`: body `/auth/refresh` & `/auth/logout` membawa refresh
+/// token, dan header membawa access token — keduanya tak boleh bocor ke log.
+String _safeCause(DioException err) {
+  final RequestOptions options = err.requestOptions;
+  return 'DioException(type: ${err.type}, '
+      'status: ${err.response?.statusCode}, '
+      'method: ${options.method}, path: ${options.path})';
 }
 
 AppFailure _mapStatusCode(DioException err) {
@@ -29,7 +40,7 @@ AppFailure _mapStatusCode(DioException err) {
     409 => const ConflictFailure(),
     429 => const RateLimitedFailure(),
     final int status when status >= 500 => const ServerFailure(),
-    _ => UnknownFailure(err),
+    _ => UnknownFailure(_safeCause(err)),
   };
 }
 

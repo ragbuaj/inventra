@@ -35,10 +35,6 @@ bool operator ==(Object other) {
 @override
 int get hashCode => Object.hash(runtimeType,accessToken,tokenType,expiresIn,refreshToken);
 
-@override
-String toString() {
-  return 'TokenResponseDto(accessToken: $accessToken, tokenType: $tokenType, expiresIn: $expiresIn, refreshToken: $refreshToken)';
-}
 
 
 }
@@ -211,8 +207,8 @@ return $default(_that.accessToken,_that.tokenType,_that.expiresIn,_that.refreshT
 /// @nodoc
 @JsonSerializable()
 
-class _TokenResponseDto implements TokenResponseDto {
-  const _TokenResponseDto({@JsonKey(name: 'access_token') required this.accessToken, @JsonKey(name: 'token_type') required this.tokenType, @JsonKey(name: 'expires_in') required this.expiresIn, @JsonKey(name: 'refresh_token') this.refreshToken});
+class _TokenResponseDto extends TokenResponseDto {
+  const _TokenResponseDto({@JsonKey(name: 'access_token') required this.accessToken, @JsonKey(name: 'token_type') required this.tokenType, @JsonKey(name: 'expires_in') required this.expiresIn, @JsonKey(name: 'refresh_token') this.refreshToken}): super._();
   factory _TokenResponseDto.fromJson(Map<String, dynamic> json) => _$TokenResponseDtoFromJson(json);
 
 @override@JsonKey(name: 'access_token') final  String accessToken;
@@ -240,10 +236,6 @@ bool operator ==(Object other) {
 @override
 int get hashCode => Object.hash(runtimeType,accessToken,tokenType,expiresIn,refreshToken);
 
-@override
-String toString() {
-  return 'TokenResponseDto(accessToken: $accessToken, tokenType: $tokenType, expiresIn: $expiresIn, refreshToken: $refreshToken)';
-}
 
 
 }

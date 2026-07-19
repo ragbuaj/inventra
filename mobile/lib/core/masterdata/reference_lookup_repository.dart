@@ -116,6 +116,11 @@ class ReferenceLookupRepository {
     }
   }
 
+  /// Mengosongkan seluruh cache nama in-memory. Dipanggil saat sesi berakhir
+  /// (logout atau sesi mati) supaya nama master data user lama tidak bocor ke
+  /// user berikutnya yang login di perangkat yang sama.
+  void clear() => _cache.clear();
+
   String? _freshCached(String key) {
     final _CachedName? entry = _cache[key];
     if (entry == null) {

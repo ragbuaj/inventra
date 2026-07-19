@@ -105,6 +105,55 @@ void main() {
     test('status tak terpetakan menjadi UnknownFailure', () {
       expect(mapDioException(badResponse(418)), isA<UnknownFailure>());
     });
+
+    test('cause UnknownFailure tidak membawa refresh token / body request', () {
+      // DioException /auth/refresh dengan refresh token di body — persis yang
+      // dulu bocor karena menyimpan DioException mentah sebagai cause.
+      final RequestOptions authOptions = RequestOptions(
+        path: '/auth/refresh',
+        method: 'POST',
+        data: <String, dynamic>{'refresh_token': 'super-secret-refresh-token'},
+        headers: <String, dynamic>{
+          'Authorization': 'Bearer super-secret-access-token',
+        },
+      );
+      final DioException err = DioException(
+        requestOptions: authOptions,
+        type: DioExceptionType.badResponse,
+        response: Response<dynamic>(
+          requestOptions: authOptions,
+          statusCode: 418,
+        ),
+      );
+
+      final AppFailure failure = mapDioException(err);
+      expect(failure, isA<UnknownFailure>());
+      final String cause = '${(failure as UnknownFailure).cause}';
+      expect(cause, isNot(contains('super-secret-refresh-token')));
+      expect(cause, isNot(contains('super-secret-access-token')));
+      // Metadata aman tetap tersedia untuk diagnosis.
+      expect(cause, contains('/auth/refresh'));
+      expect(cause, contains('418'));
+    });
+
+    test('cause UnknownFailure jenis non-response juga aman', () {
+      final RequestOptions authOptions = RequestOptions(
+        path: '/auth/logout',
+        method: 'POST',
+        data: <String, dynamic>{'refresh_token': 'secret-logout-token'},
+      );
+      // Tipe cancel tanpa err.error -> fallback ke ringkasan aman (bukan
+      // DioException mentah yang membawa body).
+      final DioException err = DioException(
+        requestOptions: authOptions,
+        type: DioExceptionType.cancel,
+      );
+
+      final AppFailure failure = mapDioException(err);
+      final String cause = '${(failure as UnknownFailure).cause}';
+      expect(cause, isNot(contains('secret-logout-token')));
+      expect(cause, contains('/auth/logout'));
+    });
   });
 
   group('toAppFailure', () {
