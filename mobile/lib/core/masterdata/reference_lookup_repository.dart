@@ -41,6 +41,29 @@ class ReferenceLookupRepository {
 
   Future<String?> vendorName(String id) => _nameById('vendors', id);
 
+  /// Label aset "Nama · TAG": `GET /assets/{id}` (butuh `asset.view`; gagal
+  /// berarti null, konsisten aturan non-fatal kelas ini). Tag dilewati bila
+  /// tidak dikirim backend.
+  Future<String?> assetLabel(String id) async {
+    final String cacheKey = 'asset-label/$id';
+    final String? cached = _freshCached(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+    final Map<String, dynamic>? asset = await _getJson('assets', id);
+    final Object? name = asset?['name'];
+    if (name is! String || name.isEmpty) {
+      return null;
+    }
+    String label = name;
+    final Object? tag = asset?['asset_tag'];
+    if (tag is String && tag.isNotEmpty) {
+      label = '$name · $tag';
+    }
+    _cache[cacheKey] = _CachedName(label, _now().add(cacheTtl));
+    return label;
+  }
+
   /// Label ruangan "Lantai · Ruang": `GET /rooms/{id}` lalu
   /// `GET /floors/{floor_id}`. Lantai gagal di-resolve berarti nama ruangan
   /// saja — kegagalan parsial tidak membatalkan bagian yang berhasil.

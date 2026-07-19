@@ -385,5 +385,471 @@
         "type": "String"
       }
     }
+  },
+  "approvalInboxTitle": "Approval",
+  "@approvalInboxTitle": {
+    "description": "Judul layar inbox approval"
+  },
+  "approvalInboxFilterPending": "Menunggu",
+  "@approvalInboxFilterPending": {
+    "description": "Label chip filter status pending"
+  },
+  "approvalInboxFilterApproved": "Disetujui",
+  "@approvalInboxFilterApproved": {
+    "description": "Label chip filter status approved"
+  },
+  "approvalInboxFilterRejected": "Ditolak",
+  "@approvalInboxFilterRejected": {
+    "description": "Label chip filter status rejected"
+  },
+  "approvalInboxFilterAll": "Semua",
+  "@approvalInboxFilterAll": {
+    "description": "Label chip filter tanpa status (semua pengajuan)"
+  },
+  "approvalInboxPullToRefresh": "Tarik untuk menyegarkan",
+  "@approvalInboxPullToRefresh": {
+    "description": "Petunjuk pull-to-refresh di atas daftar inbox"
+  },
+  "approvalInboxEmptyPendingTitle": "Tidak ada pengajuan menunggu",
+  "@approvalInboxEmptyPendingTitle": {
+    "description": "Judul empty state filter Menunggu"
+  },
+  "approvalInboxEmptyPendingBody": "Semua pengajuan dalam lingkup Anda sudah diputus. Kerja bagus!",
+  "@approvalInboxEmptyPendingBody": {
+    "description": "Subjudul empty state filter Menunggu"
+  },
+  "approvalInboxEmptyPendingAction": "Lihat riwayat",
+  "@approvalInboxEmptyPendingAction": {
+    "description": "Aksi empty state Menunggu: pindah ke filter Semua"
+  },
+  "approvalInboxEmptyFilteredTitle": "Tidak ada pengajuan",
+  "@approvalInboxEmptyFilteredTitle": {
+    "description": "Judul empty state filter selain Menunggu"
+  },
+  "approvalInboxEmptyFilteredBody": "Belum ada pengajuan dengan status ini di lingkup Anda.",
+  "@approvalInboxEmptyFilteredBody": {
+    "description": "Subjudul empty state filter selain Menunggu"
+  },
+  "approvalInboxErrorTitle": "Gagal memuat pengajuan",
+  "@approvalInboxErrorTitle": {
+    "description": "Judul empty state error inbox approval"
+  },
+  "approvalInboxErrorNetworkBody": "Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.",
+  "@approvalInboxErrorNetworkBody": {
+    "description": "Subjudul error inbox saat offline/gangguan jaringan"
+  },
+  "approvalInboxErrorGenericBody": "Terjadi kesalahan. Coba lagi.",
+  "@approvalInboxErrorGenericBody": {
+    "description": "Subjudul error inbox untuk kegagalan lain"
+  },
+  "approvalInboxForbiddenTitle": "Akses dibatasi",
+  "@approvalInboxForbiddenTitle": {
+    "description": "Judul empty state 403 inbox approval"
+  },
+  "approvalInboxForbiddenBody": "Peran Anda tidak memiliki izin melihat pengajuan.",
+  "@approvalInboxForbiddenBody": {
+    "description": "Subjudul empty state 403 inbox approval"
+  },
+  "approvalInboxLoadMoreFailed": "Gagal memuat halaman berikutnya",
+  "@approvalInboxLoadMoreFailed": {
+    "description": "Teks baris kaki daftar saat muat halaman berikutnya gagal"
+  },
+  "approvalCardSensitive": "sensitif",
+  "@approvalCardSensitive": {
+    "description": "Penanda jenis pengajuan sensitif pada kartu dan header detail"
+  },
+  "approvalTypeAssetCreate": "Registrasi Aset",
+  "@approvalTypeAssetCreate": {
+    "description": "Label jenis pengajuan asset_create"
+  },
+  "approvalTypeAssetDisposal": "Penghapusan",
+  "@approvalTypeAssetDisposal": {
+    "description": "Label jenis pengajuan asset_disposal"
+  },
+  "approvalTypeAssetTransfer": "Mutasi",
+  "@approvalTypeAssetTransfer": {
+    "description": "Label jenis pengajuan asset_transfer"
+  },
+  "approvalTypeAssignment": "Peminjaman",
+  "@approvalTypeAssignment": {
+    "description": "Label jenis pengajuan assignment"
+  },
+  "approvalTypeMaintenance": "Perbaikan",
+  "@approvalTypeMaintenance": {
+    "description": "Label jenis pengajuan maintenance"
+  },
+  "approvalTypeValuationExclusion": "Pengecualian Valuasi",
+  "@approvalTypeValuationExclusion": {
+    "description": "Label jenis pengajuan valuation_exclusion"
+  },
+  "approvalStatusPending": "Menunggu",
+  "@approvalStatusPending": {
+    "description": "Label chip status pengajuan pending"
+  },
+  "approvalStatusApproved": "Disetujui",
+  "@approvalStatusApproved": {
+    "description": "Label chip status pengajuan approved"
+  },
+  "approvalStatusRejected": "Ditolak",
+  "@approvalStatusRejected": {
+    "description": "Label chip status pengajuan rejected"
+  },
+  "approvalStatusCancelled": "Dibatalkan",
+  "@approvalStatusCancelled": {
+    "description": "Label chip status pengajuan cancelled"
+  },
+  "approvalTimeJustNow": "baru saja",
+  "@approvalTimeJustNow": {
+    "description": "Waktu relatif di bawah satu menit"
+  },
+  "approvalTimeMinutesAgo": "{count} mnt lalu",
+  "@approvalTimeMinutesAgo": {
+    "description": "Waktu relatif dalam menit",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "approvalTimeHoursAgo": "{count} jam lalu",
+  "@approvalTimeHoursAgo": {
+    "description": "Waktu relatif dalam jam",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "approvalTimeYesterday": "kemarin",
+  "@approvalTimeYesterday": {
+    "description": "Waktu relatif 24-48 jam lalu"
+  },
+  "approvalTimeDaysAgo": "{count} hari lalu",
+  "@approvalTimeDaysAgo": {
+    "description": "Waktu relatif dalam hari (di bawah seminggu)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "approvalDetailSensitiveBanner": "Tindakan sensitif — periksa saksama sebelum memutus",
+  "@approvalDetailSensitiveBanner": {
+    "description": "Banner peringatan jenis pengajuan sensitif di detail"
+  },
+  "approvalDetailSectionData": "Data yang diajukan",
+  "@approvalDetailSectionData": {
+    "description": "Judul card data payload pengajuan"
+  },
+  "approvalDetailSectionSteps": "Jenjang persetujuan",
+  "@approvalDetailSectionSteps": {
+    "description": "Judul card timeline jenjang persetujuan"
+  },
+  "approvalDetailFieldAsset": "Aset",
+  "@approvalDetailFieldAsset": {
+    "description": "Label baris aset target pengajuan"
+  },
+  "approvalDetailFieldAmount": "Nilai pengajuan",
+  "@approvalDetailFieldAmount": {
+    "description": "Label baris amount pengajuan"
+  },
+  "approvalDetailFieldReason": "Alasan",
+  "@approvalDetailFieldReason": {
+    "description": "Label baris alasan pengajuan"
+  },
+  "approvalDetailFieldName": "Nama aset",
+  "@approvalDetailFieldName": {
+    "description": "Label baris nama aset payload registrasi"
+  },
+  "approvalDetailFieldCategory": "Kategori",
+  "@approvalDetailFieldCategory": {
+    "description": "Label baris kategori payload registrasi"
+  },
+  "approvalDetailFieldOffice": "Kantor",
+  "@approvalDetailFieldOffice": {
+    "description": "Label baris kantor payload registrasi"
+  },
+  "approvalDetailFieldRoom": "Ruangan",
+  "@approvalDetailFieldRoom": {
+    "description": "Label baris ruangan payload"
+  },
+  "approvalDetailFieldOfficeChange": "Kantor penempatan",
+  "@approvalDetailFieldOfficeChange": {
+    "description": "Label baris perubahan kantor pada payload mutasi"
+  },
+  "approvalDetailFieldAssetClass": "Kelas aset",
+  "@approvalDetailFieldAssetClass": {
+    "description": "Label baris kelas aset payload registrasi"
+  },
+  "approvalDetailAssetClassTangible": "Berwujud",
+  "@approvalDetailAssetClassTangible": {
+    "description": "Nilai kelas aset tangible"
+  },
+  "approvalDetailAssetClassIntangible": "Tak berwujud",
+  "@approvalDetailAssetClassIntangible": {
+    "description": "Nilai kelas aset intangible"
+  },
+  "approvalDetailFieldPurchaseCost": "Harga beli",
+  "@approvalDetailFieldPurchaseCost": {
+    "description": "Label baris harga beli payload registrasi"
+  },
+  "approvalDetailFieldPurchaseDate": "Tanggal beli",
+  "@approvalDetailFieldPurchaseDate": {
+    "description": "Label baris tanggal beli payload registrasi"
+  },
+  "approvalDetailFieldSerial": "No. seri",
+  "@approvalDetailFieldSerial": {
+    "description": "Label baris nomor seri payload registrasi"
+  },
+  "approvalDetailFieldBrandModel": "Brand / Model",
+  "@approvalDetailFieldBrandModel": {
+    "description": "Label baris brand dan model payload registrasi"
+  },
+  "approvalDetailFieldVendor": "Vendor",
+  "@approvalDetailFieldVendor": {
+    "description": "Label baris vendor payload registrasi"
+  },
+  "approvalDetailFieldPoNumber": "No. PO",
+  "@approvalDetailFieldPoNumber": {
+    "description": "Label baris nomor PO payload registrasi"
+  },
+  "approvalDetailFieldFundingSource": "Sumber dana",
+  "@approvalDetailFieldFundingSource": {
+    "description": "Label baris sumber dana payload registrasi"
+  },
+  "approvalDetailFieldWarrantyExpiry": "Akhir garansi",
+  "@approvalDetailFieldWarrantyExpiry": {
+    "description": "Label baris akhir garansi payload registrasi"
+  },
+  "approvalDetailFieldNotes": "Catatan",
+  "@approvalDetailFieldNotes": {
+    "description": "Label baris catatan payload registrasi"
+  },
+  "approvalDetailFieldMethod": "Metode pelepasan",
+  "@approvalDetailFieldMethod": {
+    "description": "Label baris metode payload penghapusan"
+  },
+  "approvalDetailMethodSale": "Penjualan",
+  "@approvalDetailMethodSale": {
+    "description": "Nilai metode pelepasan sale"
+  },
+  "approvalDetailMethodAuction": "Lelang",
+  "@approvalDetailMethodAuction": {
+    "description": "Nilai metode pelepasan auction"
+  },
+  "approvalDetailMethodDonation": "Hibah",
+  "@approvalDetailMethodDonation": {
+    "description": "Nilai metode pelepasan donation"
+  },
+  "approvalDetailMethodWriteOff": "Penghapusbukuan",
+  "@approvalDetailMethodWriteOff": {
+    "description": "Nilai metode pelepasan write_off"
+  },
+  "approvalDetailFieldDisposalDate": "Tanggal pelepasan",
+  "@approvalDetailFieldDisposalDate": {
+    "description": "Label baris tanggal pelepasan payload penghapusan"
+  },
+  "approvalDetailFieldProceeds": "Nilai jual",
+  "@approvalDetailFieldProceeds": {
+    "description": "Label baris nilai jual payload penghapusan"
+  },
+  "approvalDetailFieldBookValue": "Nilai buku",
+  "@approvalDetailFieldBookValue": {
+    "description": "Label baris nilai buku payload penghapusan"
+  },
+  "approvalDetailFieldBastNo": "No. BAST",
+  "@approvalDetailFieldBastNo": {
+    "description": "Label baris nomor BAST payload penghapusan"
+  },
+  "approvalDetailFieldConditionSent": "Kondisi saat kirim",
+  "@approvalDetailFieldConditionSent": {
+    "description": "Label baris kondisi kirim payload mutasi"
+  },
+  "approvalDetailFieldTransferDate": "Tanggal mutasi",
+  "@approvalDetailFieldTransferDate": {
+    "description": "Label baris tanggal mutasi payload mutasi"
+  },
+  "approvalDetailRestrictedData": "Dibatasi untuk peran Anda",
+  "@approvalDetailRestrictedData": {
+    "description": "Penanda payload/amount yang dimask field permission"
+  },
+  "approvalDetailStepMaker": "Maker",
+  "@approvalDetailStepMaker": {
+    "description": "Label peran maker pada timeline jenjang"
+  },
+  "approvalDetailStepSubmitted": "Mengajukan · {date}",
+  "@approvalDetailStepSubmitted": {
+    "description": "Status baris maker pada timeline",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "approvalDetailStepApproved": "Disetujui · {date}",
+  "@approvalDetailStepApproved": {
+    "description": "Status tahap yang sudah disetujui",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "approvalDetailStepRejected": "Ditolak · {date}",
+  "@approvalDetailStepRejected": {
+    "description": "Status tahap yang ditolak",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "approvalDetailStepWaiting": "Menunggu keputusan",
+  "@approvalDetailStepWaiting": {
+    "description": "Status tahap aktif yang menunggu keputusan"
+  },
+  "approvalDetailStepUpcoming": "Berikutnya",
+  "@approvalDetailStepUpcoming": {
+    "description": "Status tahap yang belum aktif"
+  },
+  "approvalDetailLevelOffice": "Approver kantor",
+  "@approvalDetailLevelOffice": {
+    "description": "Label required_level office"
+  },
+  "approvalDetailLevelOfficeSubtree": "Approver kantor & jajaran",
+  "@approvalDetailLevelOfficeSubtree": {
+    "description": "Label required_level office_subtree"
+  },
+  "approvalDetailLevelWilayah": "Approver kanwil",
+  "@approvalDetailLevelWilayah": {
+    "description": "Label required_level wilayah"
+  },
+  "approvalDetailLevelPusat": "Approver pusat",
+  "@approvalDetailLevelPusat": {
+    "description": "Label required_level pusat"
+  },
+  "approvalDetailNoteHint": "Tambahkan catatan (opsional)",
+  "@approvalDetailNoteHint": {
+    "description": "Placeholder field catatan keputusan"
+  },
+  "approvalDetailApprove": "Setujui",
+  "@approvalDetailApprove": {
+    "description": "Label tombol setujui"
+  },
+  "approvalDetailReject": "Tolak",
+  "@approvalDetailReject": {
+    "description": "Label tombol tolak"
+  },
+  "approvalDetailApproveConfirmTitle": "Setujui pengajuan ini?",
+  "@approvalDetailApproveConfirmTitle": {
+    "description": "Judul dialog konfirmasi setujui"
+  },
+  "approvalDetailApproveConfirmBody": "{title} dari {maker} akan disetujui dan lanjut ke tahap berikutnya.",
+  "@approvalDetailApproveConfirmBody": {
+    "description": "Isi dialog konfirmasi setujui",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "maker": {
+        "type": "String"
+      }
+    }
+  },
+  "approvalDetailApproveConfirmAction": "Ya, Setujui",
+  "@approvalDetailApproveConfirmAction": {
+    "description": "Label aksi utama dialog konfirmasi setujui"
+  },
+  "approvalDetailRejectConfirmTitle": "Tolak pengajuan ini?",
+  "@approvalDetailRejectConfirmTitle": {
+    "description": "Judul dialog konfirmasi tolak"
+  },
+  "approvalDetailRejectConfirmBody": "{title} dari {maker} akan ditolak dan dikembalikan ke maker.",
+  "@approvalDetailRejectConfirmBody": {
+    "description": "Isi dialog konfirmasi tolak",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "maker": {
+        "type": "String"
+      }
+    }
+  },
+  "approvalDetailRejectConfirmAction": "Ya, Tolak",
+  "@approvalDetailRejectConfirmAction": {
+    "description": "Label aksi utama dialog konfirmasi tolak"
+  },
+  "approvalDetailYourNote": "Catatan Anda",
+  "@approvalDetailYourNote": {
+    "description": "Label kutipan catatan pada dialog konfirmasi tolak"
+  },
+  "approvalDetailApprovedSnack": "Pengajuan disetujui",
+  "@approvalDetailApprovedSnack": {
+    "description": "SnackBar sukses setelah menyetujui"
+  },
+  "approvalDetailRejectedSnack": "Pengajuan ditolak",
+  "@approvalDetailRejectedSnack": {
+    "description": "SnackBar sukses setelah menolak"
+  },
+  "approvalDetailDecidedApproved": "Pengajuan telah disetujui",
+  "@approvalDetailDecidedApproved": {
+    "description": "Banner kaki detail untuk pengajuan approved"
+  },
+  "approvalDetailDecidedByYouApproved": "Anda telah menyetujui pengajuan ini",
+  "@approvalDetailDecidedByYouApproved": {
+    "description": "Banner kaki detail bila pemutus akhirnya pengguna sendiri"
+  },
+  "approvalDetailDecidedRejected": "Pengajuan telah ditolak",
+  "@approvalDetailDecidedRejected": {
+    "description": "Banner kaki detail untuk pengajuan rejected"
+  },
+  "approvalDetailDecidedByYouRejected": "Anda telah menolak pengajuan ini",
+  "@approvalDetailDecidedByYouRejected": {
+    "description": "Banner kaki detail bila penolaknya pengguna sendiri"
+  },
+  "approvalDetailDecidedCancelled": "Pengajuan dibatalkan oleh maker",
+  "@approvalDetailDecidedCancelled": {
+    "description": "Banner kaki detail untuk pengajuan cancelled"
+  },
+  "approvalDetailSodOwnRequest": "Ini pengajuan Anda — keputusan menunggu approver lain (maker tidak boleh memutus pengajuannya sendiri).",
+  "@approvalDetailSodOwnRequest": {
+    "description": "Banner SoD pengganti aksi saat pengguna adalah maker"
+  },
+  "approvalDetailErrorSod": "Anda tidak berwenang memutus pengajuan ini — maker atau approver sebelumnya tidak boleh memutus pengajuannya sendiri.",
+  "@approvalDetailErrorSod": {
+    "description": "Pesan 403 SoD saat approve/reject ditolak server"
+  },
+  "approvalDetailErrorConflict": "Pengajuan sudah berubah status di tempat lain. Memuat ulang…",
+  "@approvalDetailErrorConflict": {
+    "description": "Pesan 409 saat pengajuan sudah diputus/berubah"
+  },
+  "approvalDetailErrorNetwork": "Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.",
+  "@approvalDetailErrorNetwork": {
+    "description": "Pesan gagal approve/reject saat offline"
+  },
+  "approvalDetailErrorGeneric": "Terjadi kesalahan. Coba lagi.",
+  "@approvalDetailErrorGeneric": {
+    "description": "Pesan gagal approve/reject untuk kegagalan lain"
+  },
+  "approvalDetailErrorTitle": "Gagal memuat pengajuan",
+  "@approvalDetailErrorTitle": {
+    "description": "Judul empty state error detail approval"
+  },
+  "approvalDetailNotFoundTitle": "Pengajuan tidak ditemukan",
+  "@approvalDetailNotFoundTitle": {
+    "description": "Judul empty state 404 detail approval"
+  },
+  "approvalDetailNotFoundBody": "Pengajuan tidak ada atau di luar lingkup Anda.",
+  "@approvalDetailNotFoundBody": {
+    "description": "Subjudul empty state 404 detail approval"
+  },
+  "approvalDetailForbiddenTitle": "Akses dibatasi",
+  "@approvalDetailForbiddenTitle": {
+    "description": "Judul empty state 403 detail approval"
+  },
+  "approvalDetailForbiddenBody": "Peran Anda tidak memiliki izin melihat pengajuan ini.",
+  "@approvalDetailForbiddenBody": {
+    "description": "Subjudul empty state 403 detail approval"
   }
 }

@@ -176,4 +176,49 @@ void main() {
       verify(() => dio.get<Map<String, dynamic>>('/floors/fl-1')).called(1);
     });
   });
+
+  group('assetLabel', () {
+    test('gabungan "Nama · TAG" dari /assets/{id}', () async {
+      stubGet('/assets/a-1', <String, dynamic>{
+        'id': 'a-1',
+        'name': 'Laptop Dell Latitude 5440',
+        'asset_tag': 'JKT01-ELK-2026-00001',
+      });
+
+      expect(
+        await repository.assetLabel('a-1'),
+        'Laptop Dell Latitude 5440 · JKT01-ELK-2026-00001',
+      );
+    });
+
+    test('asset_tag absen (dimask): nama saja', () async {
+      stubGet('/assets/a-1', <String, dynamic>{
+        'id': 'a-1',
+        'name': 'Laptop Dell Latitude 5440',
+      });
+
+      expect(await repository.assetLabel('a-1'), 'Laptop Dell Latitude 5440');
+    });
+
+    test('gagal (403 asset.view / offline): null non-fatal', () async {
+      when(() => dio.get<Map<String, dynamic>>('/assets/a-1')).thenThrow(
+        DioException(requestOptions: RequestOptions(path: '/assets/a-1')),
+      );
+
+      expect(await repository.assetLabel('a-1'), isNull);
+    });
+
+    test('label aset di-cache: kunjungan kedua tanpa fetch', () async {
+      stubGet('/assets/a-1', <String, dynamic>{
+        'id': 'a-1',
+        'name': 'Laptop',
+        'asset_tag': 'TAG-1',
+      });
+
+      await repository.assetLabel('a-1');
+      await repository.assetLabel('a-1');
+
+      verify(() => dio.get<Map<String, dynamic>>('/assets/a-1')).called(1);
+    });
+  });
 }

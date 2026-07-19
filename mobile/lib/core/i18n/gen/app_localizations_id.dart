@@ -298,4 +298,349 @@ class AppLocalizationsId extends AppLocalizations {
   String loginVersion(String version, String build) {
     return 'Inventra Mobile v$version · Build $build';
   }
+
+  @override
+  String get approvalInboxTitle => 'Approval';
+
+  @override
+  String get approvalInboxFilterPending => 'Menunggu';
+
+  @override
+  String get approvalInboxFilterApproved => 'Disetujui';
+
+  @override
+  String get approvalInboxFilterRejected => 'Ditolak';
+
+  @override
+  String get approvalInboxFilterAll => 'Semua';
+
+  @override
+  String get approvalInboxPullToRefresh => 'Tarik untuk menyegarkan';
+
+  @override
+  String get approvalInboxEmptyPendingTitle => 'Tidak ada pengajuan menunggu';
+
+  @override
+  String get approvalInboxEmptyPendingBody =>
+      'Semua pengajuan dalam lingkup Anda sudah diputus. Kerja bagus!';
+
+  @override
+  String get approvalInboxEmptyPendingAction => 'Lihat riwayat';
+
+  @override
+  String get approvalInboxEmptyFilteredTitle => 'Tidak ada pengajuan';
+
+  @override
+  String get approvalInboxEmptyFilteredBody =>
+      'Belum ada pengajuan dengan status ini di lingkup Anda.';
+
+  @override
+  String get approvalInboxErrorTitle => 'Gagal memuat pengajuan';
+
+  @override
+  String get approvalInboxErrorNetworkBody =>
+      'Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.';
+
+  @override
+  String get approvalInboxErrorGenericBody => 'Terjadi kesalahan. Coba lagi.';
+
+  @override
+  String get approvalInboxForbiddenTitle => 'Akses dibatasi';
+
+  @override
+  String get approvalInboxForbiddenBody =>
+      'Peran Anda tidak memiliki izin melihat pengajuan.';
+
+  @override
+  String get approvalInboxLoadMoreFailed => 'Gagal memuat halaman berikutnya';
+
+  @override
+  String get approvalCardSensitive => 'sensitif';
+
+  @override
+  String get approvalTypeAssetCreate => 'Registrasi Aset';
+
+  @override
+  String get approvalTypeAssetDisposal => 'Penghapusan';
+
+  @override
+  String get approvalTypeAssetTransfer => 'Mutasi';
+
+  @override
+  String get approvalTypeAssignment => 'Peminjaman';
+
+  @override
+  String get approvalTypeMaintenance => 'Perbaikan';
+
+  @override
+  String get approvalTypeValuationExclusion => 'Pengecualian Valuasi';
+
+  @override
+  String get approvalStatusPending => 'Menunggu';
+
+  @override
+  String get approvalStatusApproved => 'Disetujui';
+
+  @override
+  String get approvalStatusRejected => 'Ditolak';
+
+  @override
+  String get approvalStatusCancelled => 'Dibatalkan';
+
+  @override
+  String get approvalTimeJustNow => 'baru saja';
+
+  @override
+  String approvalTimeMinutesAgo(int count) {
+    return '$count mnt lalu';
+  }
+
+  @override
+  String approvalTimeHoursAgo(int count) {
+    return '$count jam lalu';
+  }
+
+  @override
+  String get approvalTimeYesterday => 'kemarin';
+
+  @override
+  String approvalTimeDaysAgo(int count) {
+    return '$count hari lalu';
+  }
+
+  @override
+  String get approvalDetailSensitiveBanner =>
+      'Tindakan sensitif — periksa saksama sebelum memutus';
+
+  @override
+  String get approvalDetailSectionData => 'Data yang diajukan';
+
+  @override
+  String get approvalDetailSectionSteps => 'Jenjang persetujuan';
+
+  @override
+  String get approvalDetailFieldAsset => 'Aset';
+
+  @override
+  String get approvalDetailFieldAmount => 'Nilai pengajuan';
+
+  @override
+  String get approvalDetailFieldReason => 'Alasan';
+
+  @override
+  String get approvalDetailFieldName => 'Nama aset';
+
+  @override
+  String get approvalDetailFieldCategory => 'Kategori';
+
+  @override
+  String get approvalDetailFieldOffice => 'Kantor';
+
+  @override
+  String get approvalDetailFieldRoom => 'Ruangan';
+
+  @override
+  String get approvalDetailFieldOfficeChange => 'Kantor penempatan';
+
+  @override
+  String get approvalDetailFieldAssetClass => 'Kelas aset';
+
+  @override
+  String get approvalDetailAssetClassTangible => 'Berwujud';
+
+  @override
+  String get approvalDetailAssetClassIntangible => 'Tak berwujud';
+
+  @override
+  String get approvalDetailFieldPurchaseCost => 'Harga beli';
+
+  @override
+  String get approvalDetailFieldPurchaseDate => 'Tanggal beli';
+
+  @override
+  String get approvalDetailFieldSerial => 'No. seri';
+
+  @override
+  String get approvalDetailFieldBrandModel => 'Brand / Model';
+
+  @override
+  String get approvalDetailFieldVendor => 'Vendor';
+
+  @override
+  String get approvalDetailFieldPoNumber => 'No. PO';
+
+  @override
+  String get approvalDetailFieldFundingSource => 'Sumber dana';
+
+  @override
+  String get approvalDetailFieldWarrantyExpiry => 'Akhir garansi';
+
+  @override
+  String get approvalDetailFieldNotes => 'Catatan';
+
+  @override
+  String get approvalDetailFieldMethod => 'Metode pelepasan';
+
+  @override
+  String get approvalDetailMethodSale => 'Penjualan';
+
+  @override
+  String get approvalDetailMethodAuction => 'Lelang';
+
+  @override
+  String get approvalDetailMethodDonation => 'Hibah';
+
+  @override
+  String get approvalDetailMethodWriteOff => 'Penghapusbukuan';
+
+  @override
+  String get approvalDetailFieldDisposalDate => 'Tanggal pelepasan';
+
+  @override
+  String get approvalDetailFieldProceeds => 'Nilai jual';
+
+  @override
+  String get approvalDetailFieldBookValue => 'Nilai buku';
+
+  @override
+  String get approvalDetailFieldBastNo => 'No. BAST';
+
+  @override
+  String get approvalDetailFieldConditionSent => 'Kondisi saat kirim';
+
+  @override
+  String get approvalDetailFieldTransferDate => 'Tanggal mutasi';
+
+  @override
+  String get approvalDetailRestrictedData => 'Dibatasi untuk peran Anda';
+
+  @override
+  String get approvalDetailStepMaker => 'Maker';
+
+  @override
+  String approvalDetailStepSubmitted(String date) {
+    return 'Mengajukan · $date';
+  }
+
+  @override
+  String approvalDetailStepApproved(String date) {
+    return 'Disetujui · $date';
+  }
+
+  @override
+  String approvalDetailStepRejected(String date) {
+    return 'Ditolak · $date';
+  }
+
+  @override
+  String get approvalDetailStepWaiting => 'Menunggu keputusan';
+
+  @override
+  String get approvalDetailStepUpcoming => 'Berikutnya';
+
+  @override
+  String get approvalDetailLevelOffice => 'Approver kantor';
+
+  @override
+  String get approvalDetailLevelOfficeSubtree => 'Approver kantor & jajaran';
+
+  @override
+  String get approvalDetailLevelWilayah => 'Approver kanwil';
+
+  @override
+  String get approvalDetailLevelPusat => 'Approver pusat';
+
+  @override
+  String get approvalDetailNoteHint => 'Tambahkan catatan (opsional)';
+
+  @override
+  String get approvalDetailApprove => 'Setujui';
+
+  @override
+  String get approvalDetailReject => 'Tolak';
+
+  @override
+  String get approvalDetailApproveConfirmTitle => 'Setujui pengajuan ini?';
+
+  @override
+  String approvalDetailApproveConfirmBody(String title, String maker) {
+    return '$title dari $maker akan disetujui dan lanjut ke tahap berikutnya.';
+  }
+
+  @override
+  String get approvalDetailApproveConfirmAction => 'Ya, Setujui';
+
+  @override
+  String get approvalDetailRejectConfirmTitle => 'Tolak pengajuan ini?';
+
+  @override
+  String approvalDetailRejectConfirmBody(String title, String maker) {
+    return '$title dari $maker akan ditolak dan dikembalikan ke maker.';
+  }
+
+  @override
+  String get approvalDetailRejectConfirmAction => 'Ya, Tolak';
+
+  @override
+  String get approvalDetailYourNote => 'Catatan Anda';
+
+  @override
+  String get approvalDetailApprovedSnack => 'Pengajuan disetujui';
+
+  @override
+  String get approvalDetailRejectedSnack => 'Pengajuan ditolak';
+
+  @override
+  String get approvalDetailDecidedApproved => 'Pengajuan telah disetujui';
+
+  @override
+  String get approvalDetailDecidedByYouApproved =>
+      'Anda telah menyetujui pengajuan ini';
+
+  @override
+  String get approvalDetailDecidedRejected => 'Pengajuan telah ditolak';
+
+  @override
+  String get approvalDetailDecidedByYouRejected =>
+      'Anda telah menolak pengajuan ini';
+
+  @override
+  String get approvalDetailDecidedCancelled =>
+      'Pengajuan dibatalkan oleh maker';
+
+  @override
+  String get approvalDetailSodOwnRequest =>
+      'Ini pengajuan Anda — keputusan menunggu approver lain (maker tidak boleh memutus pengajuannya sendiri).';
+
+  @override
+  String get approvalDetailErrorSod =>
+      'Anda tidak berwenang memutus pengajuan ini — maker atau approver sebelumnya tidak boleh memutus pengajuannya sendiri.';
+
+  @override
+  String get approvalDetailErrorConflict =>
+      'Pengajuan sudah berubah status di tempat lain. Memuat ulang…';
+
+  @override
+  String get approvalDetailErrorNetwork =>
+      'Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.';
+
+  @override
+  String get approvalDetailErrorGeneric => 'Terjadi kesalahan. Coba lagi.';
+
+  @override
+  String get approvalDetailErrorTitle => 'Gagal memuat pengajuan';
+
+  @override
+  String get approvalDetailNotFoundTitle => 'Pengajuan tidak ditemukan';
+
+  @override
+  String get approvalDetailNotFoundBody =>
+      'Pengajuan tidak ada atau di luar lingkup Anda.';
+
+  @override
+  String get approvalDetailForbiddenTitle => 'Akses dibatasi';
+
+  @override
+  String get approvalDetailForbiddenBody =>
+      'Peran Anda tidak memiliki izin melihat pengajuan ini.';
 }

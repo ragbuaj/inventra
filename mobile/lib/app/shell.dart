@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../core/i18n/gen/app_localizations.dart';
+import '../features/approval/presentation/inbox_count_provider.dart';
 import '../features/notifications/presentation/unread_count_provider.dart';
 
 /// Shell bottom-nav 5 slot 1:1 mockup Beranda: Beranda / Opname / Pindai
@@ -22,6 +23,9 @@ class AppShell extends ConsumerWidget {
     // mockup; ini juga warna border cutout tombol Pindai.
     final Color barColor = theme.cardTheme.color ?? scheme.surface;
     final int unreadCount = ref.watch(unreadNotificationCountProvider);
+    // Badge tab Approval = jumlah pengajuan menunggu keputusan pengguna
+    // (mockup Inbox Approval); 0 (tersembunyi) saat gagal/tanpa izin.
+    final int approvalCount = ref.watch(approvalPendingBadgeProvider);
     // Branch scan (index 2) tampil full screen tanpa bar/FAB sesuai mockup
     // "Inventra Mobile - Scan"; keluar lewat tombol tutup di layarnya.
     final bool fullScreenScan = navigationShell.currentIndex == 2;
@@ -80,6 +84,8 @@ class AppShell extends ConsumerWidget {
                         index: 3,
                         icon: Symbols.approval_rounded,
                         label: l10n.shellTabApproval,
+                        badgeCount: approvalCount,
+                        badgeBorderColor: barColor,
                       ),
                       _NavTab(
                         shell: navigationShell,

@@ -35,4 +35,7 @@ class FakeReferenceLookup implements ReferenceLookupRepository {
 
   @override
   Future<String?> roomLabel(String id) => _get('room', id);
+
+  @override
+  Future<String?> assetLabel(String id) => _get('asset', id);
 }

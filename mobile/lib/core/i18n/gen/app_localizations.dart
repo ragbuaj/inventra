@@ -649,6 +649,636 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Inventra Mobile v{version} · Build {build}'**
   String loginVersion(String version, String build);
+
+  /// Judul layar inbox approval
+  ///
+  /// In id, this message translates to:
+  /// **'Approval'**
+  String get approvalInboxTitle;
+
+  /// Label chip filter status pending
+  ///
+  /// In id, this message translates to:
+  /// **'Menunggu'**
+  String get approvalInboxFilterPending;
+
+  /// Label chip filter status approved
+  ///
+  /// In id, this message translates to:
+  /// **'Disetujui'**
+  String get approvalInboxFilterApproved;
+
+  /// Label chip filter status rejected
+  ///
+  /// In id, this message translates to:
+  /// **'Ditolak'**
+  String get approvalInboxFilterRejected;
+
+  /// Label chip filter tanpa status (semua pengajuan)
+  ///
+  /// In id, this message translates to:
+  /// **'Semua'**
+  String get approvalInboxFilterAll;
+
+  /// Petunjuk pull-to-refresh di atas daftar inbox
+  ///
+  /// In id, this message translates to:
+  /// **'Tarik untuk menyegarkan'**
+  String get approvalInboxPullToRefresh;
+
+  /// Judul empty state filter Menunggu
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada pengajuan menunggu'**
+  String get approvalInboxEmptyPendingTitle;
+
+  /// Subjudul empty state filter Menunggu
+  ///
+  /// In id, this message translates to:
+  /// **'Semua pengajuan dalam lingkup Anda sudah diputus. Kerja bagus!'**
+  String get approvalInboxEmptyPendingBody;
+
+  /// Aksi empty state Menunggu: pindah ke filter Semua
+  ///
+  /// In id, this message translates to:
+  /// **'Lihat riwayat'**
+  String get approvalInboxEmptyPendingAction;
+
+  /// Judul empty state filter selain Menunggu
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada pengajuan'**
+  String get approvalInboxEmptyFilteredTitle;
+
+  /// Subjudul empty state filter selain Menunggu
+  ///
+  /// In id, this message translates to:
+  /// **'Belum ada pengajuan dengan status ini di lingkup Anda.'**
+  String get approvalInboxEmptyFilteredBody;
+
+  /// Judul empty state error inbox approval
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat pengajuan'**
+  String get approvalInboxErrorTitle;
+
+  /// Subjudul error inbox saat offline/gangguan jaringan
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.'**
+  String get approvalInboxErrorNetworkBody;
+
+  /// Subjudul error inbox untuk kegagalan lain
+  ///
+  /// In id, this message translates to:
+  /// **'Terjadi kesalahan. Coba lagi.'**
+  String get approvalInboxErrorGenericBody;
+
+  /// Judul empty state 403 inbox approval
+  ///
+  /// In id, this message translates to:
+  /// **'Akses dibatasi'**
+  String get approvalInboxForbiddenTitle;
+
+  /// Subjudul empty state 403 inbox approval
+  ///
+  /// In id, this message translates to:
+  /// **'Peran Anda tidak memiliki izin melihat pengajuan.'**
+  String get approvalInboxForbiddenBody;
+
+  /// Teks baris kaki daftar saat muat halaman berikutnya gagal
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat halaman berikutnya'**
+  String get approvalInboxLoadMoreFailed;
+
+  /// Penanda jenis pengajuan sensitif pada kartu dan header detail
+  ///
+  /// In id, this message translates to:
+  /// **'sensitif'**
+  String get approvalCardSensitive;
+
+  /// Label jenis pengajuan asset_create
+  ///
+  /// In id, this message translates to:
+  /// **'Registrasi Aset'**
+  String get approvalTypeAssetCreate;
+
+  /// Label jenis pengajuan asset_disposal
+  ///
+  /// In id, this message translates to:
+  /// **'Penghapusan'**
+  String get approvalTypeAssetDisposal;
+
+  /// Label jenis pengajuan asset_transfer
+  ///
+  /// In id, this message translates to:
+  /// **'Mutasi'**
+  String get approvalTypeAssetTransfer;
+
+  /// Label jenis pengajuan assignment
+  ///
+  /// In id, this message translates to:
+  /// **'Peminjaman'**
+  String get approvalTypeAssignment;
+
+  /// Label jenis pengajuan maintenance
+  ///
+  /// In id, this message translates to:
+  /// **'Perbaikan'**
+  String get approvalTypeMaintenance;
+
+  /// Label jenis pengajuan valuation_exclusion
+  ///
+  /// In id, this message translates to:
+  /// **'Pengecualian Valuasi'**
+  String get approvalTypeValuationExclusion;
+
+  /// Label chip status pengajuan pending
+  ///
+  /// In id, this message translates to:
+  /// **'Menunggu'**
+  String get approvalStatusPending;
+
+  /// Label chip status pengajuan approved
+  ///
+  /// In id, this message translates to:
+  /// **'Disetujui'**
+  String get approvalStatusApproved;
+
+  /// Label chip status pengajuan rejected
+  ///
+  /// In id, this message translates to:
+  /// **'Ditolak'**
+  String get approvalStatusRejected;
+
+  /// Label chip status pengajuan cancelled
+  ///
+  /// In id, this message translates to:
+  /// **'Dibatalkan'**
+  String get approvalStatusCancelled;
+
+  /// Waktu relatif di bawah satu menit
+  ///
+  /// In id, this message translates to:
+  /// **'baru saja'**
+  String get approvalTimeJustNow;
+
+  /// Waktu relatif dalam menit
+  ///
+  /// In id, this message translates to:
+  /// **'{count} mnt lalu'**
+  String approvalTimeMinutesAgo(int count);
+
+  /// Waktu relatif dalam jam
+  ///
+  /// In id, this message translates to:
+  /// **'{count} jam lalu'**
+  String approvalTimeHoursAgo(int count);
+
+  /// Waktu relatif 24-48 jam lalu
+  ///
+  /// In id, this message translates to:
+  /// **'kemarin'**
+  String get approvalTimeYesterday;
+
+  /// Waktu relatif dalam hari (di bawah seminggu)
+  ///
+  /// In id, this message translates to:
+  /// **'{count} hari lalu'**
+  String approvalTimeDaysAgo(int count);
+
+  /// Banner peringatan jenis pengajuan sensitif di detail
+  ///
+  /// In id, this message translates to:
+  /// **'Tindakan sensitif — periksa saksama sebelum memutus'**
+  String get approvalDetailSensitiveBanner;
+
+  /// Judul card data payload pengajuan
+  ///
+  /// In id, this message translates to:
+  /// **'Data yang diajukan'**
+  String get approvalDetailSectionData;
+
+  /// Judul card timeline jenjang persetujuan
+  ///
+  /// In id, this message translates to:
+  /// **'Jenjang persetujuan'**
+  String get approvalDetailSectionSteps;
+
+  /// Label baris aset target pengajuan
+  ///
+  /// In id, this message translates to:
+  /// **'Aset'**
+  String get approvalDetailFieldAsset;
+
+  /// Label baris amount pengajuan
+  ///
+  /// In id, this message translates to:
+  /// **'Nilai pengajuan'**
+  String get approvalDetailFieldAmount;
+
+  /// Label baris alasan pengajuan
+  ///
+  /// In id, this message translates to:
+  /// **'Alasan'**
+  String get approvalDetailFieldReason;
+
+  /// Label baris nama aset payload registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Nama aset'**
+  String get approvalDetailFieldName;
+
+  /// Label baris kategori payload registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Kategori'**
+  String get approvalDetailFieldCategory;
+
+  /// Label baris kantor payload registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Kantor'**
+  String get approvalDetailFieldOffice;
+
+  /// Label baris ruangan payload
+  ///
+  /// In id, this message translates to:
+  /// **'Ruangan'**
+  String get approvalDetailFieldRoom;
+
+  /// Label baris perubahan kantor pada payload mutasi
+  ///
+  /// In id, this message translates to:
+  /// **'Kantor penempatan'**
+  String get approvalDetailFieldOfficeChange;
+
+  /// Label baris kelas aset payload registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Kelas aset'**
+  String get approvalDetailFieldAssetClass;
+
+  /// Nilai kelas aset tangible
+  ///
+  /// In id, this message translates to:
+  /// **'Berwujud'**
+  String get approvalDetailAssetClassTangible;
+
+  /// Nilai kelas aset intangible
+  ///
+  /// In id, this message translates to:
+  /// **'Tak berwujud'**
+  String get approvalDetailAssetClassIntangible;
+
+  /// Label baris harga beli payload registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Harga beli'**
+  String get approvalDetailFieldPurchaseCost;
+
+  /// Label baris tanggal beli payload registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Tanggal beli'**
+  String get approvalDetailFieldPurchaseDate;
+
+  /// Label baris nomor seri payload registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'No. seri'**
+  String get approvalDetailFieldSerial;
+
+  /// Label baris brand dan model payload registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Brand / Model'**
+  String get approvalDetailFieldBrandModel;
+
+  /// Label baris vendor payload registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Vendor'**
+  String get approvalDetailFieldVendor;
+
+  /// Label baris nomor PO payload registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'No. PO'**
+  String get approvalDetailFieldPoNumber;
+
+  /// Label baris sumber dana payload registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Sumber dana'**
+  String get approvalDetailFieldFundingSource;
+
+  /// Label baris akhir garansi payload registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Akhir garansi'**
+  String get approvalDetailFieldWarrantyExpiry;
+
+  /// Label baris catatan payload registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Catatan'**
+  String get approvalDetailFieldNotes;
+
+  /// Label baris metode payload penghapusan
+  ///
+  /// In id, this message translates to:
+  /// **'Metode pelepasan'**
+  String get approvalDetailFieldMethod;
+
+  /// Nilai metode pelepasan sale
+  ///
+  /// In id, this message translates to:
+  /// **'Penjualan'**
+  String get approvalDetailMethodSale;
+
+  /// Nilai metode pelepasan auction
+  ///
+  /// In id, this message translates to:
+  /// **'Lelang'**
+  String get approvalDetailMethodAuction;
+
+  /// Nilai metode pelepasan donation
+  ///
+  /// In id, this message translates to:
+  /// **'Hibah'**
+  String get approvalDetailMethodDonation;
+
+  /// Nilai metode pelepasan write_off
+  ///
+  /// In id, this message translates to:
+  /// **'Penghapusbukuan'**
+  String get approvalDetailMethodWriteOff;
+
+  /// Label baris tanggal pelepasan payload penghapusan
+  ///
+  /// In id, this message translates to:
+  /// **'Tanggal pelepasan'**
+  String get approvalDetailFieldDisposalDate;
+
+  /// Label baris nilai jual payload penghapusan
+  ///
+  /// In id, this message translates to:
+  /// **'Nilai jual'**
+  String get approvalDetailFieldProceeds;
+
+  /// Label baris nilai buku payload penghapusan
+  ///
+  /// In id, this message translates to:
+  /// **'Nilai buku'**
+  String get approvalDetailFieldBookValue;
+
+  /// Label baris nomor BAST payload penghapusan
+  ///
+  /// In id, this message translates to:
+  /// **'No. BAST'**
+  String get approvalDetailFieldBastNo;
+
+  /// Label baris kondisi kirim payload mutasi
+  ///
+  /// In id, this message translates to:
+  /// **'Kondisi saat kirim'**
+  String get approvalDetailFieldConditionSent;
+
+  /// Label baris tanggal mutasi payload mutasi
+  ///
+  /// In id, this message translates to:
+  /// **'Tanggal mutasi'**
+  String get approvalDetailFieldTransferDate;
+
+  /// Penanda payload/amount yang dimask field permission
+  ///
+  /// In id, this message translates to:
+  /// **'Dibatasi untuk peran Anda'**
+  String get approvalDetailRestrictedData;
+
+  /// Label peran maker pada timeline jenjang
+  ///
+  /// In id, this message translates to:
+  /// **'Maker'**
+  String get approvalDetailStepMaker;
+
+  /// Status baris maker pada timeline
+  ///
+  /// In id, this message translates to:
+  /// **'Mengajukan · {date}'**
+  String approvalDetailStepSubmitted(String date);
+
+  /// Status tahap yang sudah disetujui
+  ///
+  /// In id, this message translates to:
+  /// **'Disetujui · {date}'**
+  String approvalDetailStepApproved(String date);
+
+  /// Status tahap yang ditolak
+  ///
+  /// In id, this message translates to:
+  /// **'Ditolak · {date}'**
+  String approvalDetailStepRejected(String date);
+
+  /// Status tahap aktif yang menunggu keputusan
+  ///
+  /// In id, this message translates to:
+  /// **'Menunggu keputusan'**
+  String get approvalDetailStepWaiting;
+
+  /// Status tahap yang belum aktif
+  ///
+  /// In id, this message translates to:
+  /// **'Berikutnya'**
+  String get approvalDetailStepUpcoming;
+
+  /// Label required_level office
+  ///
+  /// In id, this message translates to:
+  /// **'Approver kantor'**
+  String get approvalDetailLevelOffice;
+
+  /// Label required_level office_subtree
+  ///
+  /// In id, this message translates to:
+  /// **'Approver kantor & jajaran'**
+  String get approvalDetailLevelOfficeSubtree;
+
+  /// Label required_level wilayah
+  ///
+  /// In id, this message translates to:
+  /// **'Approver kanwil'**
+  String get approvalDetailLevelWilayah;
+
+  /// Label required_level pusat
+  ///
+  /// In id, this message translates to:
+  /// **'Approver pusat'**
+  String get approvalDetailLevelPusat;
+
+  /// Placeholder field catatan keputusan
+  ///
+  /// In id, this message translates to:
+  /// **'Tambahkan catatan (opsional)'**
+  String get approvalDetailNoteHint;
+
+  /// Label tombol setujui
+  ///
+  /// In id, this message translates to:
+  /// **'Setujui'**
+  String get approvalDetailApprove;
+
+  /// Label tombol tolak
+  ///
+  /// In id, this message translates to:
+  /// **'Tolak'**
+  String get approvalDetailReject;
+
+  /// Judul dialog konfirmasi setujui
+  ///
+  /// In id, this message translates to:
+  /// **'Setujui pengajuan ini?'**
+  String get approvalDetailApproveConfirmTitle;
+
+  /// Isi dialog konfirmasi setujui
+  ///
+  /// In id, this message translates to:
+  /// **'{title} dari {maker} akan disetujui dan lanjut ke tahap berikutnya.'**
+  String approvalDetailApproveConfirmBody(String title, String maker);
+
+  /// Label aksi utama dialog konfirmasi setujui
+  ///
+  /// In id, this message translates to:
+  /// **'Ya, Setujui'**
+  String get approvalDetailApproveConfirmAction;
+
+  /// Judul dialog konfirmasi tolak
+  ///
+  /// In id, this message translates to:
+  /// **'Tolak pengajuan ini?'**
+  String get approvalDetailRejectConfirmTitle;
+
+  /// Isi dialog konfirmasi tolak
+  ///
+  /// In id, this message translates to:
+  /// **'{title} dari {maker} akan ditolak dan dikembalikan ke maker.'**
+  String approvalDetailRejectConfirmBody(String title, String maker);
+
+  /// Label aksi utama dialog konfirmasi tolak
+  ///
+  /// In id, this message translates to:
+  /// **'Ya, Tolak'**
+  String get approvalDetailRejectConfirmAction;
+
+  /// Label kutipan catatan pada dialog konfirmasi tolak
+  ///
+  /// In id, this message translates to:
+  /// **'Catatan Anda'**
+  String get approvalDetailYourNote;
+
+  /// SnackBar sukses setelah menyetujui
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan disetujui'**
+  String get approvalDetailApprovedSnack;
+
+  /// SnackBar sukses setelah menolak
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan ditolak'**
+  String get approvalDetailRejectedSnack;
+
+  /// Banner kaki detail untuk pengajuan approved
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan telah disetujui'**
+  String get approvalDetailDecidedApproved;
+
+  /// Banner kaki detail bila pemutus akhirnya pengguna sendiri
+  ///
+  /// In id, this message translates to:
+  /// **'Anda telah menyetujui pengajuan ini'**
+  String get approvalDetailDecidedByYouApproved;
+
+  /// Banner kaki detail untuk pengajuan rejected
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan telah ditolak'**
+  String get approvalDetailDecidedRejected;
+
+  /// Banner kaki detail bila penolaknya pengguna sendiri
+  ///
+  /// In id, this message translates to:
+  /// **'Anda telah menolak pengajuan ini'**
+  String get approvalDetailDecidedByYouRejected;
+
+  /// Banner kaki detail untuk pengajuan cancelled
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan dibatalkan oleh maker'**
+  String get approvalDetailDecidedCancelled;
+
+  /// Banner SoD pengganti aksi saat pengguna adalah maker
+  ///
+  /// In id, this message translates to:
+  /// **'Ini pengajuan Anda — keputusan menunggu approver lain (maker tidak boleh memutus pengajuannya sendiri).'**
+  String get approvalDetailSodOwnRequest;
+
+  /// Pesan 403 SoD saat approve/reject ditolak server
+  ///
+  /// In id, this message translates to:
+  /// **'Anda tidak berwenang memutus pengajuan ini — maker atau approver sebelumnya tidak boleh memutus pengajuannya sendiri.'**
+  String get approvalDetailErrorSod;
+
+  /// Pesan 409 saat pengajuan sudah diputus/berubah
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan sudah berubah status di tempat lain. Memuat ulang…'**
+  String get approvalDetailErrorConflict;
+
+  /// Pesan gagal approve/reject saat offline
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada koneksi. Periksa jaringan Anda lalu coba lagi.'**
+  String get approvalDetailErrorNetwork;
+
+  /// Pesan gagal approve/reject untuk kegagalan lain
+  ///
+  /// In id, this message translates to:
+  /// **'Terjadi kesalahan. Coba lagi.'**
+  String get approvalDetailErrorGeneric;
+
+  /// Judul empty state error detail approval
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat pengajuan'**
+  String get approvalDetailErrorTitle;
+
+  /// Judul empty state 404 detail approval
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan tidak ditemukan'**
+  String get approvalDetailNotFoundTitle;
+
+  /// Subjudul empty state 404 detail approval
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan tidak ada atau di luar lingkup Anda.'**
+  String get approvalDetailNotFoundBody;
+
+  /// Judul empty state 403 detail approval
+  ///
+  /// In id, this message translates to:
+  /// **'Akses dibatasi'**
+  String get approvalDetailForbiddenTitle;
+
+  /// Subjudul empty state 403 detail approval
+  ///
+  /// In id, this message translates to:
+  /// **'Peran Anda tidak memiliki izin melihat pengajuan ini.'**
+  String get approvalDetailForbiddenBody;
 }
 
 class _AppLocalizationsDelegate

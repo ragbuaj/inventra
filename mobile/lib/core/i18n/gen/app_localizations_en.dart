@@ -298,4 +298,350 @@ class AppLocalizationsEn extends AppLocalizations {
   String loginVersion(String version, String build) {
     return 'Inventra Mobile v$version · Build $build';
   }
+
+  @override
+  String get approvalInboxTitle => 'Approvals';
+
+  @override
+  String get approvalInboxFilterPending => 'Pending';
+
+  @override
+  String get approvalInboxFilterApproved => 'Approved';
+
+  @override
+  String get approvalInboxFilterRejected => 'Rejected';
+
+  @override
+  String get approvalInboxFilterAll => 'All';
+
+  @override
+  String get approvalInboxPullToRefresh => 'Pull to refresh';
+
+  @override
+  String get approvalInboxEmptyPendingTitle => 'No pending requests';
+
+  @override
+  String get approvalInboxEmptyPendingBody =>
+      'Every request in your scope has been decided. Nice work!';
+
+  @override
+  String get approvalInboxEmptyPendingAction => 'View history';
+
+  @override
+  String get approvalInboxEmptyFilteredTitle => 'No requests';
+
+  @override
+  String get approvalInboxEmptyFilteredBody =>
+      'There are no requests with this status in your scope yet.';
+
+  @override
+  String get approvalInboxErrorTitle => 'Failed to load requests';
+
+  @override
+  String get approvalInboxErrorNetworkBody =>
+      'No connection. Check your network and try again.';
+
+  @override
+  String get approvalInboxErrorGenericBody =>
+      'Something went wrong. Try again.';
+
+  @override
+  String get approvalInboxForbiddenTitle => 'Access restricted';
+
+  @override
+  String get approvalInboxForbiddenBody =>
+      'Your role does not have permission to view requests.';
+
+  @override
+  String get approvalInboxLoadMoreFailed => 'Failed to load the next page';
+
+  @override
+  String get approvalCardSensitive => 'sensitive';
+
+  @override
+  String get approvalTypeAssetCreate => 'Asset Registration';
+
+  @override
+  String get approvalTypeAssetDisposal => 'Disposal';
+
+  @override
+  String get approvalTypeAssetTransfer => 'Transfer';
+
+  @override
+  String get approvalTypeAssignment => 'Assignment';
+
+  @override
+  String get approvalTypeMaintenance => 'Maintenance';
+
+  @override
+  String get approvalTypeValuationExclusion => 'Valuation Exclusion';
+
+  @override
+  String get approvalStatusPending => 'Pending';
+
+  @override
+  String get approvalStatusApproved => 'Approved';
+
+  @override
+  String get approvalStatusRejected => 'Rejected';
+
+  @override
+  String get approvalStatusCancelled => 'Cancelled';
+
+  @override
+  String get approvalTimeJustNow => 'just now';
+
+  @override
+  String approvalTimeMinutesAgo(int count) {
+    return '$count min ago';
+  }
+
+  @override
+  String approvalTimeHoursAgo(int count) {
+    return '$count hr ago';
+  }
+
+  @override
+  String get approvalTimeYesterday => 'yesterday';
+
+  @override
+  String approvalTimeDaysAgo(int count) {
+    return '$count days ago';
+  }
+
+  @override
+  String get approvalDetailSensitiveBanner =>
+      'Sensitive action — review carefully before deciding';
+
+  @override
+  String get approvalDetailSectionData => 'Submitted data';
+
+  @override
+  String get approvalDetailSectionSteps => 'Approval chain';
+
+  @override
+  String get approvalDetailFieldAsset => 'Asset';
+
+  @override
+  String get approvalDetailFieldAmount => 'Request amount';
+
+  @override
+  String get approvalDetailFieldReason => 'Reason';
+
+  @override
+  String get approvalDetailFieldName => 'Asset name';
+
+  @override
+  String get approvalDetailFieldCategory => 'Category';
+
+  @override
+  String get approvalDetailFieldOffice => 'Office';
+
+  @override
+  String get approvalDetailFieldRoom => 'Room';
+
+  @override
+  String get approvalDetailFieldOfficeChange => 'Placement office';
+
+  @override
+  String get approvalDetailFieldAssetClass => 'Asset class';
+
+  @override
+  String get approvalDetailAssetClassTangible => 'Tangible';
+
+  @override
+  String get approvalDetailAssetClassIntangible => 'Intangible';
+
+  @override
+  String get approvalDetailFieldPurchaseCost => 'Purchase cost';
+
+  @override
+  String get approvalDetailFieldPurchaseDate => 'Purchase date';
+
+  @override
+  String get approvalDetailFieldSerial => 'Serial no.';
+
+  @override
+  String get approvalDetailFieldBrandModel => 'Brand / Model';
+
+  @override
+  String get approvalDetailFieldVendor => 'Vendor';
+
+  @override
+  String get approvalDetailFieldPoNumber => 'PO no.';
+
+  @override
+  String get approvalDetailFieldFundingSource => 'Funding source';
+
+  @override
+  String get approvalDetailFieldWarrantyExpiry => 'Warranty expiry';
+
+  @override
+  String get approvalDetailFieldNotes => 'Notes';
+
+  @override
+  String get approvalDetailFieldMethod => 'Disposal method';
+
+  @override
+  String get approvalDetailMethodSale => 'Sale';
+
+  @override
+  String get approvalDetailMethodAuction => 'Auction';
+
+  @override
+  String get approvalDetailMethodDonation => 'Donation';
+
+  @override
+  String get approvalDetailMethodWriteOff => 'Write-off';
+
+  @override
+  String get approvalDetailFieldDisposalDate => 'Disposal date';
+
+  @override
+  String get approvalDetailFieldProceeds => 'Proceeds';
+
+  @override
+  String get approvalDetailFieldBookValue => 'Book value';
+
+  @override
+  String get approvalDetailFieldBastNo => 'BAST no.';
+
+  @override
+  String get approvalDetailFieldConditionSent => 'Condition when sent';
+
+  @override
+  String get approvalDetailFieldTransferDate => 'Transfer date';
+
+  @override
+  String get approvalDetailRestrictedData => 'Restricted for your role';
+
+  @override
+  String get approvalDetailStepMaker => 'Maker';
+
+  @override
+  String approvalDetailStepSubmitted(String date) {
+    return 'Submitted · $date';
+  }
+
+  @override
+  String approvalDetailStepApproved(String date) {
+    return 'Approved · $date';
+  }
+
+  @override
+  String approvalDetailStepRejected(String date) {
+    return 'Rejected · $date';
+  }
+
+  @override
+  String get approvalDetailStepWaiting => 'Awaiting decision';
+
+  @override
+  String get approvalDetailStepUpcoming => 'Up next';
+
+  @override
+  String get approvalDetailLevelOffice => 'Office approver';
+
+  @override
+  String get approvalDetailLevelOfficeSubtree => 'Office & subtree approver';
+
+  @override
+  String get approvalDetailLevelWilayah => 'Regional approver';
+
+  @override
+  String get approvalDetailLevelPusat => 'Head-office approver';
+
+  @override
+  String get approvalDetailNoteHint => 'Add a note (optional)';
+
+  @override
+  String get approvalDetailApprove => 'Approve';
+
+  @override
+  String get approvalDetailReject => 'Reject';
+
+  @override
+  String get approvalDetailApproveConfirmTitle => 'Approve this request?';
+
+  @override
+  String approvalDetailApproveConfirmBody(String title, String maker) {
+    return '$title from $maker will be approved and move to the next step.';
+  }
+
+  @override
+  String get approvalDetailApproveConfirmAction => 'Yes, Approve';
+
+  @override
+  String get approvalDetailRejectConfirmTitle => 'Reject this request?';
+
+  @override
+  String approvalDetailRejectConfirmBody(String title, String maker) {
+    return '$title from $maker will be rejected and returned to the maker.';
+  }
+
+  @override
+  String get approvalDetailRejectConfirmAction => 'Yes, Reject';
+
+  @override
+  String get approvalDetailYourNote => 'Your note';
+
+  @override
+  String get approvalDetailApprovedSnack => 'Request approved';
+
+  @override
+  String get approvalDetailRejectedSnack => 'Request rejected';
+
+  @override
+  String get approvalDetailDecidedApproved => 'This request has been approved';
+
+  @override
+  String get approvalDetailDecidedByYouApproved =>
+      'You have approved this request';
+
+  @override
+  String get approvalDetailDecidedRejected => 'This request has been rejected';
+
+  @override
+  String get approvalDetailDecidedByYouRejected =>
+      'You have rejected this request';
+
+  @override
+  String get approvalDetailDecidedCancelled =>
+      'This request was cancelled by the maker';
+
+  @override
+  String get approvalDetailSodOwnRequest =>
+      'This is your own request — the decision awaits another approver (makers may not decide their own requests).';
+
+  @override
+  String get approvalDetailErrorSod =>
+      'You are not allowed to decide this request — makers and prior approvers may not decide their own requests.';
+
+  @override
+  String get approvalDetailErrorConflict =>
+      'This request has already changed status elsewhere. Reloading…';
+
+  @override
+  String get approvalDetailErrorNetwork =>
+      'No connection. Check your network and try again.';
+
+  @override
+  String get approvalDetailErrorGeneric => 'Something went wrong. Try again.';
+
+  @override
+  String get approvalDetailErrorTitle => 'Failed to load the request';
+
+  @override
+  String get approvalDetailNotFoundTitle => 'Request not found';
+
+  @override
+  String get approvalDetailNotFoundBody =>
+      'The request does not exist or is outside your scope.';
+
+  @override
+  String get approvalDetailForbiddenTitle => 'Access restricted';
+
+  @override
+  String get approvalDetailForbiddenBody =>
+      'Your role does not have permission to view this request.';
 }

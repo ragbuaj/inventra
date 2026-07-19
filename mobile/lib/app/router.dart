@@ -7,6 +7,8 @@ import '../core/auth/auth_controller.dart';
 import '../core/auth/auth_session.dart';
 import '../core/i18n/gen/app_localizations.dart';
 import '../core/widgets/empty_state.dart';
+import '../features/approval/presentation/approval_detail_screen.dart';
+import '../features/approval/presentation/approval_inbox_screen.dart';
 import '../features/asset_detail/presentation/asset_detail_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/login/presentation/login_screen.dart';
@@ -128,20 +130,15 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
                 path: '/approval',
                 name: 'approval',
                 builder: (BuildContext context, GoRouterState state) =>
-                    _ComingSoonScreen(
-                      title: (AppLocalizations l10n) => l10n.shellTabApproval,
-                      icon: Symbols.approval_rounded,
-                    ),
+                    const ApprovalInboxScreen(),
                 routes: <RouteBase>[
                   GoRoute(
                     path: ':id',
                     name: 'approval-detail',
                     parentNavigatorKey: rootNavigatorKey,
                     builder: (BuildContext context, GoRouterState state) =>
-                        _ComingSoonScreen(
-                          title: (AppLocalizations l10n) =>
-                              l10n.approvalDetailTitle,
-                          icon: Symbols.approval_rounded,
+                        ApprovalDetailScreen(
+                          requestId: state.pathParameters['id']!,
                         ),
                   ),
                 ],

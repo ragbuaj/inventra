@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:inventra_mobile/app/theme.dart';
 import 'package:inventra_mobile/core/auth/auth_controller.dart';
 import 'package:inventra_mobile/core/auth/auth_session.dart';
+import 'package:inventra_mobile/features/approval/presentation/inbox_count_provider.dart';
 import 'package:inventra_mobile/features/notifications/presentation/unread_count_provider.dart';
 import 'package:inventra_mobile/features/scan/presentation/scan_camera.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -13,7 +14,10 @@ import '../helpers/fake_scan_camera.dart';
 import '../helpers/test_app.dart';
 
 void main() {
-  ProviderContainer createContainer({int unreadCount = 0}) {
+  ProviderContainer createContainer({
+    int unreadCount = 0,
+    int approvalCount = 0,
+  }) {
     return ProviderContainer.test(
       overrides: [
         authControllerProvider.overrideWith(
@@ -21,6 +25,11 @@ void main() {
               FakeAuthController(initialSession: const Authenticated(fakeUser)),
         ),
         unreadNotificationCountProvider.overrideWithValue(unreadCount),
+        // Sumber badge tab Approval (Task 9) di-stub supaya tes shell tidak
+        // menyentuh jaringan.
+        approvalInboxCountProvider.overrideWith(
+          (Ref ref) async => approvalCount,
+        ),
         // Branch scan membangun layar kamera nyata sejak Task 8 — tes shell
         // menggantinya dengan stub tanpa plugin.
         scanCameraFactoryProvider.overrideWithValue(FakeScanCamera.new),
@@ -180,6 +189,28 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('99+'), findsOneWidget);
+    });
+  });
+
+  group('badge approval (GET /requests/inbox/count)', () {
+    testWidgets('tampil dengan angka saat count > 0', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        RouterTestApp(container: createContainer(approvalCount: 17)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('17'), findsOneWidget);
+    });
+
+    testWidgets('disembunyikan saat count 0 (termasuk peran tanpa izin)', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(RouterTestApp(container: createContainer()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('0'), findsNothing);
     });
   });
 }
