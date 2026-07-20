@@ -41,6 +41,7 @@ Codegen : dart run build_runner build --delete-conflicting-outputs
 | Katalog aset (FR-M7.1) | `GET /assets` (list, filter, paginasi) | data-scoped | search + filter kategori/status/kantor; field sensitif tunduk field permission |
 | Peminjaman Staf (FR-M7.2) | `POST /assignments/borrow` | `request.create` | membuat pengajuan `assignment` (maker-checker) |
 | Check-out Manager (FR-M7.2) | `POST /assignments` | `assignment.manage` | penugasan langsung; aset jadi `assigned` |
+| Check-in Manager (FR-M7.2) | `POST /assignments/:id/checkin` | `assignment.manage` | pengembalian; aset `assigned` jadi `available` (atau `under_maintenance`); butuh id assignment aktif |
 | Picker pegawai check-out | `GET /assignments/available` / picker pegawai | `request.create`/scope | custodian dipilih dalam scope (bukan office_id mentah) |
 | Lapor kerusakan (FR-M7.3) | `POST /maintenance/reports` | `request.create` | membuat pengajuan `maintenance` |
 | Registrasi aset (FR-M7.4) | `POST /requests` (type `asset_create`) | `request.create` | payload = `AssetCreatePayload` (lihat 4.5); `amount` wajib == `payload.purchase_cost`; hanya type asset_create/asset_disposal/valuation_exclusion diterima endpoint ini |
@@ -67,20 +68,25 @@ Kerusakan dari Detail Aset (bottom sheet). Registrasi = form multi-langkah.
   reset filter), loading skeleton. Aset di luar scope tidak muncul (server).
 
 ### 4.2 Detail Aset — bar aksi FR-M7 (edit 5.4)
-- Di luar sesi opname, bar sticky bawah menampilkan aksi **sesuai permission + status aset**:
+- Di luar sesi opname, bar sticky bawah menampilkan aksi **sesuai permission x status aset**:
   - `Tersedia` + `request.create`: **Pinjam** (buka sheet Ajukan Peminjaman).
   - `Tersedia` + `assignment.manage`: **Check-out** (buka sheet Check-out langsung).
+  - `Dipinjam` (`assigned`) + `assignment.manage`: **Check-in** (buka sheet Check-in).
   - `request.create`: **Lapor Kerusakan** (buka sheet).
   - Tanpa izin aksi: tanpa bar (murni read-only — perilaku lama tetap).
 - Aksi ditentukan dari `/auth/permissions` (composable izin yang ada) + status aset; jangan
   hardcode peran.
 
-### 4.3 Peminjaman / Check-out (5.14)
+### 4.3 Peminjaman / Check-out / Check-in (5.14)
 - **Staf — Ajukan Peminjaman** (`POST /assignments/borrow`): tanggal pinjam, jatuh tempo opsional
   (UCalendar/date picker), catatan/alasan; sukses lalu SnackBar "Pengajuan peminjaman dikirim".
 - **Manager — Check-out** (`POST /assignments`): pilih pegawai/custodian (autocomplete dengan empty
   state "Tidak ada data"), tanggal pinjam, jatuh tempo opsional, catatan kondisi keluar; sukses lalu
   aset jadi `Dipinjam`, SnackBar sukses, Detail di-refresh.
+- **Manager — Check-in** (`POST /assignments/:id/checkin`): untuk aset `Dipinjam`; tampilkan pemegang
+  saat ini, kondisi masuk (Baik / Perlu Servis), catatan opsional; sukses lalu aset kembali
+  `Tersedia` (atau `under_maintenance`), Detail di-refresh. Klien perlu **id assignment aktif** aset
+  (dari detail aset atau `GET /assets/:id/assignments`) — lihat QM7-4.
 - Validasi inline (custodian wajib untuk check-out). Error server dipetakan ke pesan jelas.
 
 ### 4.4 Lapor Kerusakan (5.15)
@@ -128,15 +134,16 @@ valid, variasi permission):
 - **Unit** (`flutter test`): mapping DTO tiap endpoint; validator input numerik harga registrasi
   (tolak huruf, non-negatif, desimal polos); penyetelan `amount == purchase_cost`; logika
   visibilitas bar aksi (matriks permission x status aset).
-- **Widget** (`flutter test`): Katalog (empty/filter/loading), sheet Peminjaman & Check-out
-  (validasi custodian, dua alur), Lapor Kerusakan (deskripsi wajib), Form Registrasi (blok per
-  langkah, field wajib, tolak keystroke non-numerik pada harga), Pengajuan Saya (filter,
-  Batalkan hanya untuk pending milik sendiri), Aset Saya (penanda terlambat, empty).
-- **Golden** light + dark untuk tiap layar baru + varian bar aksi Detail Aset.
+- **Widget** (`flutter test`): Katalog (empty/filter/loading), sheet Peminjaman/Check-out/Check-in
+  (validasi custodian, tiga alur, kondisi masuk pada check-in), Lapor Kerusakan (deskripsi wajib),
+  Form Registrasi (blok per langkah, field wajib, tolak keystroke non-numerik pada harga), Pengajuan
+  Saya (filter, Batalkan hanya untuk pending milik sendiri), Aset Saya (penanda terlambat, empty).
+- **Golden** light + dark untuk tiap layar baru + tiga varian bar aksi Detail Aset (Tersedia-Staf,
+  Tersedia-Manager, Dipinjam-Manager).
 - **Integration** (`integration_test/` vs docker-compose backend + seed): alur Staf ajukan
   peminjaman lalu tampil di Pengajuan Saya lalu Batalkan; Manager check-out lalu aset jadi Dipinjam
-  lalu muncul di Aset Saya (pegawai target); registrasi lalu pengajuan asset_create tampil. Data
-  unik per run; rate-limit off lokal (pelajaran e2e).
+  lalu muncul di Aset Saya (pegawai target) lalu **Check-in lalu aset kembali Tersedia**; registrasi
+  lalu pengajuan asset_create tampil. Data unik per run; rate-limit off lokal (pelajaran e2e).
 
 ## 7. Boundaries
 
@@ -152,8 +159,8 @@ valid, variasi permission):
 
 - [ ] Katalog: cari + filter + paginasi jalan; empty/loading benar; field sensitif tidak bocor.
 - [ ] Detail Aset: bar aksi muncul sesuai matriks permission x status; read-only murni bila tak berizin.
-- [ ] Peminjaman (Staf ajukan) & Check-out (Manager) sukses via endpoint masing-masing; validasi
-      custodian; aset berubah status pada check-out.
+- [ ] Peminjaman (Staf ajukan), Check-out & Check-in (Manager) sukses via endpoint masing-masing;
+      validasi custodian; aset berubah status pada check-out (Dipinjam) dan check-in (Tersedia).
 - [ ] Lapor kerusakan & Registrasi membuat pengajuan yang benar; registrasi menolak input harga tak
       valid dan menyetel `amount == purchase_cost`.
 - [ ] Pengajuan Saya menampilkan pengajuan sendiri + filter; Batalkan hanya untuk pending milik
@@ -172,3 +179,8 @@ valid, variasi permission):
   (menambahkannya = keputusan produk + backend baru).
 - **QM7-3 (resolved)** — Beranda (5.2) diupdate: aksi cepat menambah Katalog, Aset Saya, Pengajuan
   Saya (prompt edit DESIGN_BRIEF 5.2). Bottom nav tetap 5 slot.
+- **QM7-4 (open)** — Check-in butuh **id assignment aktif** aset. Konfirmasi apakah respons detail
+  aset (`GET /assets/by-tag/:tag` / `GET /assets/:id`) sudah memuat id penugasan aktif; bila tidak,
+  ambil via `GET /assets/:id/assignments` (butuh `assignment.view`, yang Manager punya). Verifikasi
+  sebelum membangun sheet Check-in. Check-in ditambahkan ke scope M7 atas keputusan pemilik produk
+  2026-07-21.

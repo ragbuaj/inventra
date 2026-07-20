@@ -1389,9 +1389,10 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     komentar kode backend (task chip terpisah). Confirm priority before starting.
 > 84. **Keputusan scope (planning, 2026-07-21, branch `feat/mobile-scope-expansion`)** — Pemilik
 >     produk memperluas scope mobile v1 dengan **enam kemampuan baru (FR-M7)**: (a) **katalog aset**
->     browse read-only (bukan hanya scan-to-detail); (b) **peminjaman dari detail aset** — dua alur
->     per permission: Manager check-out langsung (PRD web FR-3.1) + Staf ajukan peminjaman via
->     maker-checker (FR-3.3); (c) **lapor kerusakan/maintenance** dari detail aset (pengajuan ringan);
+>     browse read-only (bukan hanya scan-to-detail); (b) **peminjaman/check-out/check-in dari detail
+>     aset** per permission x status: Manager check-out langsung (aset available, FR-3.1) + check-in
+>     (aset assigned, FR-3.2) + Staf ajukan peminjaman via maker-checker (FR-3.3); (c) **lapor
+>     kerusakan/maintenance** dari detail aset (pengajuan ringan);
 >     (d) **registrasi aset** form penuh; (e) **Pengajuan saya** — lensa maker atas pengajuan yang
 >     dibuat sendiri (`/requests?requested_by=diri`, filter status) + batal pengajuan `pending`
 >     sendiri, terpisah dari inbox checker FR-M3.1; (f) **Aset saya** — aset yang dipegang pengguna

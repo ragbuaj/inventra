@@ -114,7 +114,7 @@ sebagai `docs/mobile/design/<Nama Layar>.dc.html`.
 
 **Aksi aset (fase M7) — baru**
 13. Katalog Aset — bagian 5.13
-14. Peminjaman / Check-out (bottom sheet dari Detail Aset) — bagian 5.14
+14. Peminjaman / Check-out / Check-in (bottom sheet dari Detail Aset) — bagian 5.14
 15. Lapor Kerusakan (bottom sheet dari Detail Aset) — bagian 5.15
 16. Form Registrasi Aset — bagian 5.16
 17. Pengajuan Saya — bagian 5.17
@@ -127,9 +127,10 @@ sebagai `docs/mobile/design/<Nama Layar>.dc.html`.
 > **Navigasi layar baru:** bottom nav tetap **5 slot** (Beranda, Opname, [Scan], Approval,
 > Notifikasi) — tidak berubah. Katalog Aset, Aset Saya, dan Pengajuan Saya adalah **destinasi
 > sekunder** (AppBar + tombol kembali) yang dijangkau dari **aksi cepat/menu di Beranda**; Aset
-> Saya dan Pengajuan Saya juga dapat dijangkau dari area Profil. Peminjaman, Lapor Kerusakan, dan
-> Registrasi dipicu dari **Detail Aset** (bottom sheet/form). Keamanan Akun dari Profil; Lupa
-> Password dari Login.
+> Saya dan Pengajuan Saya juga dapat dijangkau dari area Profil. Peminjaman/Check-out/Check-in dan
+> Lapor Kerusakan dipicu dari **Detail Aset** (bottom sheet). Registrasi dari **Beranda/Katalog**
+> (aset baru, bukan dari detail aset yang sudah ada). Keamanan Akun dari Profil; Lupa Password dari
+> Login.
 
 ---
 
@@ -280,16 +281,19 @@ Elemen yang harus ada:
 - Bila dibuka dari sesi opname aktif: bar aksi sticky bawah "Tandai hasil:" dengan
   SegmentedButton (Ditemukan / Rusak / Salah Lokasi) — tunjukkan sebagai frame
   terpisah.
-- **Bar aksi FR-M7 (per permission)**: di luar sesi opname, bar sticky bawah berisi
-  tombol aksi yang MUNCUL SESUAI IZIN pengguna dan status aset:
-  - Aset `Tersedia` + pengguna berizin: **"Pinjam"** (Staf, membuka sheet ajukan
-    peminjaman 5.14) atau **"Check-out"** (Manager, langsung tugaskan, sheet 5.14).
-  - Selalu (bila berizin lapor): **"Lapor Kerusakan"** (membuka sheet 5.15).
-  - Tombol overflow (tiga titik) untuk aksi lain. Bila pengguna tanpa izin aksi apa
-    pun: tanpa bar aksi (murni read-only, seperti sebelumnya).
-States: 6 frame — detail penuh read-only, varian field dibatasi, varian dalam-sesi-opname
-(bar tandai hasil), **varian bar aksi FR-M7 untuk Staf (Pinjam + Lapor Kerusakan)**,
-**varian bar aksi untuk Manager (Check-out + Lapor Kerusakan)**, loading (skeleton).
+- **Bar aksi FR-M7 (per permission x STATUS aset)**: di luar sesi opname, bar sticky
+  bawah menampilkan aksi yang MUNCUL SESUAI IZIN pengguna DAN status aset:
+  - Aset `Tersedia`: **"Pinjam"** (Staf berizin `request.create`, membuka sheet ajukan
+    peminjaman 5.14) atau **"Check-out"** (Manager berizin `assignment.manage`, sheet 5.14).
+  - Aset `Dipinjam`: **"Check-in"** (Manager berizin `assignment.manage`, membuka sheet
+    check-in 5.14 — catat kondisi masuk lalu aset kembali `Tersedia`).
+  - Selalu (bila berizin `request.create`): **"Lapor Kerusakan"** (membuka sheet 5.15).
+  - Bila pengguna tanpa izin aksi apa pun: tanpa bar aksi (murni read-only, seperti
+    sebelumnya). Tanpa tombol overflow kosong — tampilkan hanya tombol yang berlaku.
+States: 7 frame — detail penuh read-only, varian field dibatasi, varian dalam-sesi-opname
+(bar tandai hasil), **varian aset Tersedia untuk Staf (Pinjam + Lapor Kerusakan)**,
+**varian aset Tersedia untuk Manager (Check-out + Lapor Kerusakan)**, **varian aset
+Dipinjam untuk Manager (Check-in + Lapor Kerusakan)**, loading (skeleton).
 Tampilkan versi light dan dark.
 
 Pakai data contoh: "Laptop Dell Latitude 5440", JKT01-ELK-2026-00001, Tersedia,
@@ -553,28 +557,33 @@ Tampilkan versi light dan dark.
 Pakai data contoh realistis berbahasa Indonesia. Patuhi master brief mobile.
 ```
 
-### 5.14 Peminjaman / Check-out (bottom sheet dari Detail Aset)
+### 5.14 Peminjaman / Check-out / Check-in (bottom sheet dari Detail Aset)
 
 ```
-Sekarang desain layar: Peminjaman / Check-out (bottom sheet).
+Sekarang desain layar: Peminjaman / Check-out / Check-in (bottom sheet).
 
-Tujuan layar: Dari Detail Aset `Tersedia`, meminjam aset — DUA alur sesuai peran.
-Pengguna utama: Staf (ajukan peminjaman) dan Manager (check-out langsung).
-Navigasi: bottom sheet menutupi bagian bawah di atas Detail Aset (kamera/detail tetap
-terlihat di belakang); handle tarik di atas, judul, tombol tutup.
+Tujuan layar: Aksi penugasan aset dari Detail Aset — TIGA alur sesuai peran & status aset.
+Pengguna utama: Staf (ajukan peminjaman) dan Manager (check-out & check-in langsung).
+Navigasi: bottom sheet menutupi bagian bawah di atas Detail Aset (detail tetap terlihat di
+belakang); handle tarik di atas, judul, tombol tutup.
 Elemen yang harus ada:
-- Ringkasan aset di atas sheet (foto kecil, nama, kode, badge Tersedia).
-- Varian STAF — "Ajukan Peminjaman": tanggal pinjam (default hari ini), jatuh tempo
-  (opsional, date picker kalender), catatan/alasan (TextField), tombol full-width
-  "Ajukan". Keterangan kecil "Menunggu persetujuan" — ini pengajuan via approval.
-- Varian MANAGER — "Check-out": pemilih pegawai/custodian (autocomplete dengan empty
-  state "Tidak ada data" bila kosong), tanggal pinjam, jatuh tempo opsional, catatan
-  kondisi keluar, tombol full-width "Check-out". Keterangan "Aset langsung menjadi
+- Ringkasan aset di atas sheet (foto kecil, nama, kode, badge status).
+- Varian STAF — "Ajukan Peminjaman" (aset Tersedia): tanggal pinjam (default hari ini),
+  jatuh tempo (opsional, date picker kalender), catatan/alasan (TextField), tombol
+  full-width "Ajukan". Keterangan kecil "Menunggu persetujuan" — ini pengajuan via approval.
+- Varian MANAGER — "Check-out" (aset Tersedia): pemilih pegawai/custodian (autocomplete
+  dengan empty state "Tidak ada data" bila kosong), tanggal pinjam, jatuh tempo opsional,
+  catatan kondisi keluar, tombol full-width "Check-out". Keterangan "Aset langsung menjadi
   Dipinjam".
+- Varian MANAGER — "Check-in" (aset Dipinjam): tampilkan pemegang saat ini (nama pegawai +
+  sejak tanggal), field kondisi masuk (chips: Baik / Perlu Servis), catatan opsional, tombol
+  full-width "Check-in". Keterangan "Aset kembali Tersedia (atau Maintenance bila perlu
+  servis)".
 - Validasi inline (mis. custodian wajib untuk check-out).
-States: 5 frame — sheet Ajukan Peminjaman (Staf), sukses ajukan (SnackBar "Pengajuan
-peminjaman dikirim" + status), sheet Check-out (Manager) dengan autocomplete pegawai
-terbuka, sukses check-out (SnackBar + badge aset jadi Dipinjam), varian error validasi.
+States: 6 frame — sheet Ajukan Peminjaman (Staf), sukses ajukan (SnackBar "Pengajuan
+peminjaman dikirim"), sheet Check-out (Manager) dengan autocomplete pegawai terbuka, sheet
+Check-in (Manager) dengan kondisi masuk, sukses (SnackBar + badge aset berubah status),
+varian error validasi.
 Tampilkan versi light dan dark.
 
 Pakai data contoh realistis berbahasa Indonesia. Patuhi master brief mobile.

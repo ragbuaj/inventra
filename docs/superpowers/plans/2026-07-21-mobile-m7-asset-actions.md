@@ -25,6 +25,8 @@ dulu (DESIGN_BRIEF 5.13-5.18 + edit 5.2/5.4), lalu bangun 1:1, lalu bandingkan s
 - [ ] Mockup di-generate dari DESIGN_BRIEF (5.13-5.18 baru; 5.2 & 5.4 edit) ke `docs/mobile/design/`.
 - [ ] Konfirmasi `GET /assets` mendukung param filter (kategori/status/kantor) + search + paginasi
       yang dibutuhkan Katalog; bila kurang, itu jadi temuan (spec asumsi cukup).
+- [ ] QM7-4: konfirmasi sumber **id assignment aktif** untuk Check-in (detail aset vs
+      `GET /assets/:id/assignments`).
 
 ### Checkpoint: Phase 0
 - [ ] Mockup keenam layar baru + dua edit tersedia; review 1:1 sebagai acuan.
@@ -74,22 +76,23 @@ paginasi server, tap lalu Detail Aset.
 #### Task M7-4: Bar aksi Detail Aset (visibilitas per permission x status)
 **Description:** Tambah bar aksi sticky di Detail Aset (edit layar M1) yang memunculkan tombol sesuai izin + status.
 **Acceptance:**
-- [ ] Matriks: `Tersedia`+`request.create` lalu "Pinjam"; `Tersedia`+`assignment.manage` lalu "Check-out"; `request.create` lalu "Lapor Kerusakan"; tanpa izin lalu tanpa bar.
+- [ ] Matriks: `Tersedia`+`request.create` lalu "Pinjam"; `Tersedia`+`assignment.manage` lalu "Check-out"; `Dipinjam`+`assignment.manage` lalu "Check-in"; `request.create` lalu "Lapor Kerusakan"; tanpa izin lalu tanpa bar.
 - [ ] Tidak mengubah perilaku in-opname (bar tandai hasil) yang ada.
-**Verification:** unit test matriks visibilitas + widget test + golden varian Staf/Manager; 1:1 mockup 5.4.
+**Verification:** unit test matriks visibilitas (permission x status) + widget test + golden tiga varian (Tersedia-Staf, Tersedia-Manager, Dipinjam-Manager); 1:1 mockup 5.4.
 **Dependencies:** Phase 0.
 **Files:** `mobile/lib/features/asset_detail/` (edit) + test.
 **Scope:** S/M.
 
-#### Task M7-5: Sheet Peminjaman & Check-out
-**Description:** Dua alur dari bar aksi: Staf ajukan (`POST /assignments/borrow`), Manager check-out (`POST /assignments`) dengan picker pegawai.
+#### Task M7-5: Sheet Peminjaman / Check-out / Check-in
+**Description:** Tiga alur dari bar aksi: Staf ajukan (`POST /assignments/borrow`), Manager check-out (`POST /assignments`) dengan picker pegawai, Manager check-in (`POST /assignments/:id/checkin`).
 **Acceptance:**
 - [ ] Sheet Ajukan Peminjaman: tanggal pinjam + jatuh tempo opsional (calendar) + catatan lalu sukses SnackBar.
 - [ ] Sheet Check-out: picker pegawai (autocomplete + empty "Tidak ada data") + tanggal + kondisi; validasi custodian wajib; sukses lalu aset jadi Dipinjam, Detail refresh.
+- [ ] Sheet Check-in (aset Dipinjam): pemegang saat ini + kondisi masuk (Baik/Perlu Servis) + catatan; sukses lalu aset Tersedia (atau under_maintenance), Detail refresh. Resolusi **id assignment aktif** (QM7-4) sebelum submit.
 - [ ] Error server dipetakan ke pesan inline jelas.
-**Verification:** widget test (dua alur, validasi custodian, error) + golden; integration (Staf ajukan lalu tampil di Pengajuan Saya; Manager check-out lalu Aset Saya pegawai target).
-**Dependencies:** M7-4.
-**Files:** `mobile/lib/features/asset_detail/borrow/` + test.
+**Verification:** widget test (tiga alur, validasi custodian, kondisi masuk, error) + golden; integration (Staf ajukan lalu Pengajuan Saya; Manager check-out lalu Aset Saya pegawai target lalu Check-in lalu aset Tersedia).
+**Dependencies:** M7-4; QM7-4 diverifikasi.
+**Files:** `mobile/lib/features/asset_detail/assignment/` + test.
 **Scope:** M.
 
 #### Task M7-6: Sheet Lapor Kerusakan
@@ -142,5 +145,6 @@ paginasi server, tap lalu Detail Aset.
 
 ## Open questions
 
-Tidak ada yang memblokir (QM7-1/2/3 sudah resolved di spec). Sisakan verifikasi param `GET /assets`
-di Phase 0.
+- QM7-1/2/3 resolved di spec. **QM7-4** (belum): sumber **id assignment aktif** untuk Check-in —
+  verifikasi apakah detail aset sudah memuatnya atau perlu `GET /assets/:id/assignments`; selesaikan
+  di Phase 0 sebelum Task M7-5 (sheet Check-in). Sisakan juga verifikasi param `GET /assets` di Phase 0.

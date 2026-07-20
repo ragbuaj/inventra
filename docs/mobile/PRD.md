@@ -167,29 +167,32 @@ Mengacu aturan domain PRD web bagian 3.9; strategi sync di ADR-0016.
 
 ### 3.7 Katalog & aksi aset di lapangan (FR-M7)
 
-Ditambahkan via keputusan produk 2026-07-21 (memperluas field companion). Empat kemampuan ini
-ringan dan ter-anchor ke aset fisik / alur scan; **mutasi dan disposal tetap di web** (lihat
-bagian 1.3). Semua aksi tunduk permission + data scope + field permission yang ditegakkan server;
-pengajuan tetap lewat maker-checker/SoD/`approval_thresholds` — mobile tidak menduplikasi logika
-kelayakan.
+Ditambahkan via keputusan produk 2026-07-21 (memperluas field companion). Kemampuan ini ringan dan
+ter-anchor ke aset fisik / alur scan; **mutasi dan disposal tetap di web** (lihat bagian 1.3). Semua
+aksi tunduk permission + data scope + field permission yang ditegakkan server; pengajuan tetap lewat
+maker-checker/SoD/`approval_thresholds` — mobile tidak menduplikasi logika kelayakan.
 
 - **FR-M7.1** **Katalog aset** — daftar aset dalam scope pengguna dengan pencarian dan filter
   dasar (kategori, status, kantor), **read-only**, memakai pagination server yang ada. Melengkapi
   scan-to-detail untuk kasus "apa yang seharusnya ada di sini" tanpa memindai satu per satu. Field
   tersembunyi mengikuti field permission (tampil "—").
-- **FR-M7.2** **Peminjaman dari detail aset** — dari detail hasil scan/katalog, dua alur sesuai
-  permission (PRD web bagian 3.3): **Manager** melakukan **check-out langsung** (tugaskan ke
-  pegawai + tanggal pinjam + jatuh tempo opsional + catatan kondisi; aset jadi `assigned`);
-  **Staf/peran lain** **mengajukan peminjaman** (pengajuan `assignment` via maker-checker; approve
-  memicu check-out). Aksi hanya muncul untuk aset `available` dan bagi pengguna yang berizin.
+- **FR-M7.2** **Peminjaman / check-out / check-in dari detail aset** — dari detail hasil
+  scan/katalog, aksi sesuai permission x status aset (PRD web bagian 3.3): aset `available` —
+  **Manager** melakukan **check-out langsung** (tugaskan ke pegawai + tanggal pinjam + jatuh tempo
+  opsional + catatan kondisi; aset jadi `assigned`), atau **Staf/peran lain** **mengajukan
+  peminjaman** (pengajuan `assignment` via maker-checker; approve memicu check-out); aset `assigned`
+  — **Manager** melakukan **check-in** (catat kondisi masuk; aset kembali `available` atau
+  `under_maintenance`). Aksi hanya muncul bagi pengguna berizin dan status aset yang sesuai.
 - **FR-M7.3** **Lapor kerusakan / maintenance** — dari detail aset, ajukan **laporan
   kerusakan/maintenance** (pengajuan `maintenance`, PRD web bagian 3.4) dengan deskripsi dan
   (opsional) foto. Bukan manajemen maintenance penuh (jadwal/vendor/biaya tetap di web).
 - **FR-M7.4** **Registrasi aset** — ajukan **pendaftaran aset baru** (pengajuan `asset_create`)
-  dengan **form penuh** (kategori, identitas, lokasi/kantor, valuasi, basis penyusutan
-  komersial + fiskal, cek ambang kapitalisasi). Karena entri field finansial rawan salah di layar
-  kecil, **validasi input klien wajib ketat** (numerik-only, non-negatif sesuai field, kalkulasi
-  ambang kapitalisasi ditampilkan sebelum submit); kelayakan akhir tetap divalidasi server.
+  dengan **form penuh** mengikuti payload web (`AssetCreatePayload`): kategori, identitas, kelas
+  aset, lokasi/kantor, harga perolehan + tanggal, brand/model/unit/vendor/PO/sumber dana/garansi,
+  catatan. `amount` pengajuan wajib sama dengan `purchase_cost`. Karena entri harga rawan salah di
+  layar kecil, **validasi input klien wajib ketat** (numerik-only, non-negatif). **Tidak ada cek
+  ambang kapitalisasi** — form web tidak punya dan server selalu mengkapitalisasi aset baru; ambang
+  kapitalisasi fitur v1.1 belum diimplementasi. Kelayakan akhir tetap divalidasi server.
 - **FR-M7.5** **Pengajuan saya** — daftar semua pengajuan yang **dibuat pengguna sendiri**
   (`GET /requests?requested_by=<diri>`, filter status menunggu/disetujui/ditolak) beserta
   statusnya. Ini **lensa maker**, terpisah dari inbox checker FR-M3.1 yang berorientasi keputusan
