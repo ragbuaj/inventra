@@ -1402,8 +1402,13 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     mobile v1.1** (`docs/mobile/PRD.md` — non-goal bagian 1.3 direvisi, FR-M2.2 jadi actionable,
 >     FR-M7 baru, changelog), **roadmap** (fase M7 katalog + aksi aset, prasyarat M1; daftar layar +
 >     non-scope disesuaikan), **keputusan produk vault** (`Keputusan/Produk/Mobile v1 Tambah Katalog
->     Registrasi Maintenance Peminjaman.md` + indeks). **Belum ada kode** — implementasi (mockup FR-M7
->     lalu spec + plan fase M7) menyusul sesuai prioritas.
+>     Registrasi Maintenance Peminjaman.md` + indeks). **Spec + plan + prompt mockup sudah ditulis**
+>     (2026-07-21): `docs/superpowers/specs/2026-07-21-mobile-m7-asset-actions.md`,
+>     `.../plans/2026-07-21-mobile-m7-asset-actions.md`, prompt mockup DESIGN_BRIEF 5.13-5.18 + edit
+>     5.2/5.4. Verifikasi kode menyingkap dua koreksi: registrasi memakai payload `AssetCreatePayload`
+>     dengan `amount==purchase_cost`, dan **cek ambang kapitalisasi DIBUANG** (web tak punya, executor
+>     hardcode Capitalized=true, fitur v1.1 belum ada). **Belum ada kode** — berikutnya: generate
+>     mockup lalu implementasi fase M7 (8 irisan).
 > 85. **Keputusan scope kedua (planning, 2026-07-21, branch `feat/mobile-scope-expansion`)** —
 >     Perluasan **profil + keamanan akun** mobile (FR-M6/FR-M1.5), keputusan sejawat item 84:
 >     (a) **profil lengkap** (metadata akun + detail pegawai read-only, `/auth/profile`+`/auth/me`);
@@ -1417,7 +1422,11 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     sesi (token-epoch) lalu klien logout ke Login. Dokumen: **PRD mobile v1.1** (FR-M6.1-M6.6 +
 >     FR-M1.5), **roadmap** (fase M8 profil & keamanan, prasyarat M0; daftar layar), **keputusan
 >     produk vault** (`Keputusan/Produk/Mobile v1 Profil Lengkap dan Keamanan Akun.md` + indeks).
->     **Belum ada kode** — implementasi (mockup lalu spec + plan fase M8) menyusul sesuai prioritas.
+>     **Spec + plan + prompt mockup sudah ditulis** (2026-07-21):
+>     `docs/superpowers/specs/2026-07-21-mobile-m8-profile-security.md`,
+>     `.../plans/2026-07-21-mobile-m8-profile-security.md`, prompt mockup DESIGN_BRIEF 5.19-5.20 +
+>     edit 5.1/5.11. Verifikasi kode: `PUT /auth/profile` = {name, phone}. **Belum ada kode** —
+>     berikutnya: generate mockup lalu implementasi fase M8 (6 irisan).
 
 ## ✅ Done
 
