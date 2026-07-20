@@ -1387,6 +1387,37 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     (`account` change-password modal, `maintenance` date-boundary); GeoIP DB provisioning (ops);
 >     notification follow-ups (SSE, retention archival, maker-route gap); sapuan simbol section di
 >     komentar kode backend (task chip terpisah). Confirm priority before starting.
+> 84. **Keputusan scope (planning, 2026-07-21, branch `feat/mobile-scope-expansion`)** — Pemilik
+>     produk memperluas scope mobile v1 dengan **enam kemampuan baru (FR-M7)**: (a) **katalog aset**
+>     browse read-only (bukan hanya scan-to-detail); (b) **peminjaman dari detail aset** — dua alur
+>     per permission: Manager check-out langsung (PRD web FR-3.1) + Staf ajukan peminjaman via
+>     maker-checker (FR-3.3); (c) **lapor kerusakan/maintenance** dari detail aset (pengajuan ringan);
+>     (d) **registrasi aset** form penuh; (e) **Pengajuan saya** — lensa maker atas pengajuan yang
+>     dibuat sendiri (`/requests?requested_by=diri`, filter status) + batal pengajuan `pending`
+>     sendiri, terpisah dari inbox checker FR-M3.1; (f) **Aset saya** — aset yang dipegang pengguna
+>     (`/assignments/mine`). **Mutasi + penghapusan/disposal tetap di web** (form berat,
+>     keputusan meja). Alasan: keenamnya ringan/self-scoped dan ter-anchor ke alur scan/aksi yang mobile sudah punya
+>     (Detail Aset ada sejak M1), beda kelas dari mutasi/disposal. Endpoint sudah ada (dipakai web) —
+>     tak ada backend baru; pengajuan tetap lewat maker-checker/SoD server. Dokumen diperbarui: **PRD
+>     mobile v1.1** (`docs/mobile/PRD.md` — non-goal bagian 1.3 direvisi, FR-M2.2 jadi actionable,
+>     FR-M7 baru, changelog), **roadmap** (fase M7 katalog + aksi aset, prasyarat M1; daftar layar +
+>     non-scope disesuaikan), **keputusan produk vault** (`Keputusan/Produk/Mobile v1 Tambah Katalog
+>     Registrasi Maintenance Peminjaman.md` + indeks). **Belum ada kode** — implementasi (mockup FR-M7
+>     lalu spec + plan fase M7) menyusul sesuai prioritas.
+> 85. **Keputusan scope kedua (planning, 2026-07-21, branch `feat/mobile-scope-expansion`)** —
+>     Perluasan **profil + keamanan akun** mobile (FR-M6/FR-M1.5), keputusan sejawat item 84:
+>     (a) **profil lengkap** (metadata akun + detail pegawai read-only, `/auth/profile`+`/auth/me`);
+>     (b) **ubah data diri + avatar** (`PUT /auth/profile`, `GET/POST/DELETE /auth/avatar`);
+>     (c) **keamanan akun** ganti password/email **berbasis link email** (`/auth/password/change-request`,
+>     `/auth/email/change-request` lalu konfirmasi via link) — mengikuti keputusan web "Keamanan Akun
+>     via Email" + "Ganti Password Berbasis Link"; (d) **lupa password** dari login
+>     (`/auth/password/forgot`, anti-enumerasi). **"Aset saya" ditetapkan sebagai menu tersendiri.**
+>     Semua endpoint sudah ada & tidak di-deny untuk `aud=mobile` — **nol backend baru**; penetapan
+>     password/email diselesaikan di halaman web (tanpa deep-link v1); ganti password mencabut semua
+>     sesi (token-epoch) lalu klien logout ke Login. Dokumen: **PRD mobile v1.1** (FR-M6.1-M6.6 +
+>     FR-M1.5), **roadmap** (fase M8 profil & keamanan, prasyarat M0; daftar layar), **keputusan
+>     produk vault** (`Keputusan/Produk/Mobile v1 Profil Lengkap dan Keamanan Akun.md` + indeks).
+>     **Belum ada kode** — implementasi (mockup lalu spec + plan fase M8) menyusul sesuai prioritas.
 
 ## ✅ Done
 

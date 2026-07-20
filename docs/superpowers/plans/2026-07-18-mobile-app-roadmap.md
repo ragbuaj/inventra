@@ -29,11 +29,22 @@ catatan keputusan produk di vault Obsidian (`Keputusan/Produk/`).
 |---|---|
 | Petugas opname / GA cabang | Scan QR aset dengan kamera, catat hasil opname (termasuk offline), lihat variance |
 | Pejabat pemutus (checker) | Inbox pengajuan, lihat detail, approve/reject on-the-go (maker-checker + SoD tetap berlaku) |
-| Semua pengguna | Login, lookup detail aset via scan, notifikasi push + in-app, profil dan sesi device |
+| Semua pengguna | Login, lookup detail aset via scan/katalog, ajukan peminjaman/lapor kerusakan/registrasi aset per permission (FR-M7), notifikasi push + in-app, profil dan sesi device |
 
 Non-scope v1 (tetap di web): CRUD master data, RBAC/data scope/field permission admin, laporan dan
-dashboard penuh, penyusutan, import massal, manajemen user, penugasan, maintenance, mutasi, disposal
-(pengajuan modul-modul itu tetap dibuat dari web; mobile hanya memutus approval-nya).
+dashboard penuh, penyusutan, import massal, manajemen user, **mutasi, disposal** (pengajuan kedua
+modul ini tetap dibuat dari web; mobile hanya memutus approval-nya).
+
+Diperluas 2026-07-21 (keputusan produk, PRD mobile v1.1 FR-M7): **katalog aset browse read-only,
+peminjaman/check-out dari detail, lapor kerusakan/maintenance, registrasi aset (form penuh), plus
+self-scoped read "Pengajuan saya" (lensa maker) dan "Aset saya" (yang dipegang pengguna) masuk
+mobile** — semuanya ringan/ter-anchor ke alur scan dan memakai endpoint web yang ada. Mutasi dan
+disposal tetap di web.
+
+Diperluas juga 2026-07-21 (keputusan produk kedua, PRD mobile v1.1 FR-M6/M1.5): **profil lengkap +
+ubah data diri + avatar, keamanan akun (ganti password/email berbasis link), dan lupa password di
+login** masuk mobile — semua endpoint sudah ada (nol backend baru); penetapan password/email
+diselesaikan di web (tanpa deep-link v1). Lihat fase M8.
 
 ## 3. Kesiapan backend saat ini
 
@@ -98,11 +109,15 @@ mockup mobile harus dibuat dulu**. Prompt kit lengkapnya sudah tersedia di
 `docs/mobile/DESIGN_BRIEF.md` (master brief + component library + 12 prompt per-layar, siap
 di-generate di Claude design); hasilnya disimpan di `docs/mobile/design/`. Daftar layar v1:
 
-Login; Home (ringkasan tugas: opname aktif, approval menunggu, notifikasi); Scan (kamera full
-screen + input manual); Detail Aset (read-only, hormati field permission); Daftar Sesi Opname;
-Opname Counting (scan bar, progress, daftar item, indikator offline/antrean sync); Variance;
-Approval Inbox; Approval Detail (approve/reject + catatan); Notifikasi; Profil & Sesi Device;
-Pengaturan (bahasa, tema).
+Login (+ Lupa Password, FR-M1.5); Home (ringkasan tugas: opname aktif, approval menunggu,
+notifikasi); Scan (kamera full screen + input manual); Katalog Aset (daftar + cari/filter,
+read-only, FR-M7.1); Detail Aset (hormati field permission; aksi peminjaman/check-out, lapor
+kerusakan, registrasi per permission, FR-M7); Form Registrasi Aset (form penuh, FR-M7.4); Pengajuan
+Saya (lensa maker + batal pending, FR-M7.5); Aset Saya (menu tersendiri, FR-M7.6); Daftar Sesi
+Opname; Opname Counting (scan bar, progress, daftar item, indikator offline/antrean sync); Variance;
+Approval Inbox; Approval Detail (approve/reject + catatan); Notifikasi; Profil (lengkap + ubah data
+diri + avatar, FR-M6.1/6.2); Keamanan Akun (ganti password/email berbasis link, FR-M6.3); Sesi
+Device (FR-M6.4); Pengaturan (bahasa, tema, FR-M6.5).
 
 ## 6. Fase implementasi
 
@@ -119,9 +134,13 @@ Setiap fase mendapat spec + implementation plan sendiri (konvensi `docs/superpow
 | M4 Opname online | Sesi opname, counting dengan scan kamera, variance — semua online via endpoint yang ada | M1 | 2 sesi |
 | M5 Opname offline | Drift snapshot + antrean lokal, endpoint batch sync idempoten di backend, resolusi konflik first-write-wins, indikator status sync | M4; backend gap no. 3 | 3-4 sesi |
 | M6 Rilis | Icon/splash, signing, distribusi internal (Firebase App Distribution atau APK internal; Play Store internal track menyusul), Crashlytics/Sentry, runbook rilis di vault | M1-M5 sesuai target rilis | 1-2 sesi |
+| M7 Katalog & aksi aset | Katalog aset browse read-only (cari/filter, pagination server); aksi di Detail Aset per permission: peminjaman/check-out, lapor kerusakan/maintenance, registrasi aset (form penuh); **Pengajuan saya** (lensa maker atas `/requests?requested_by=diri` + batal `pending` sendiri) dan **Aset saya** (`/assignments/mine`, menu tersendiri) — semua via endpoint web yang ada, pengajuan lewat maker-checker/SoD server (FR-M7) | M1 (scan + Detail Aset) | 2-3 sesi |
+| M8 Profil & keamanan akun | Profil lengkap (metadata + detail pegawai read-only) + ubah data diri + avatar (`/auth/profile`, `/auth/avatar`); Keamanan Akun ganti password/email berbasis link email; Lupa Password di Login (`/auth/password/forgot`); Sesi Device (list/revoke, sudah dirender v1) — semua endpoint sudah ada, nol backend baru; penetapan password/email diselesaikan di web (tanpa deep-link v1); ganti password cabut semua sesi lalu logout (FR-M1.5, FR-M6) | M0 (auth) | 1-2 sesi |
 
-M1, M2, M3 saling independen setelah M0 — bisa diparalelkan atau diurutkan sesuai prioritas.
-Rilis internal pertama yang bermakna: M0 + M1 + M2 (scan + approval), menyusul opname.
+M1, M2, M3 saling independen setelah M0 — bisa diparalelkan atau diurutkan sesuai prioritas. M7
+bergantung pada M1 (memakai layar Detail Aset); M8 hanya bergantung M0 (jalur auth/profil). Rilis
+internal pertama yang bermakna: M0 + M1 + M2 (scan + approval), menyusul opname; M7 dan M8 menyusul
+sesuai prioritas.
 
 ## 7. Testing dan CI
 
