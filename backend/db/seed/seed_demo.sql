@@ -1,24 +1,31 @@
 -- =============================================================================
--- Inventra — DEMO SEED (data master + aset + user login)  •  DEV ONLY
+-- Inventra — DEMO SEED (data master + aset + user + data transaksional)  •  DEV ONLY
 -- =============================================================================
 -- Skala "bank BTN": 1 Kantor Pusat + 6 Kantor Wilayah + kantor cabang/KCP/Kas di
--- banyak kota nyata (±42 kantor). SETIAP kantor punya ≥20 user login dan ≥1.500
--- aset tetap (±63.000 aset total) dengan penyusutan komersial terisi, plus ±1.000
--- pegawai bernama Indonesia realistis.
+-- banyak kota nyata (±42 kantor). SETIAP kantor punya 20 user login yang mencakup
+-- role sesuai tier (Lampiran A ALUR_PENGGUNA.md), ±300 aset tetap/kantor (~13rb
+-- total) dengan penyusutan komersial terisi, plus ±1.000 pegawai bernama Indonesia
+-- realistis DAN UNIK secara global (tidak ada nama pegawai/user yang sama di dua
+-- kantor), plus data transaksional (assignment, maintenance, transfer, disposal,
+-- approval history + inbox pending, periode penyusutan, notifikasi, audit).
 --
 -- Jalankan SETELAH semua migrasi `up`:
 --   psql "postgres://inventra:secret@localhost:5433/inventra_dev?sslmode=disable" \
 --        -f backend/db/seed/seed_demo.sql
 --
--- Idempoten: menghapus data demo/transaksional lama lalu mengisi ulang. User
--- bootstrap (admin dgn employee_id & office_id NULL, mis. admin@inventra.local
--- dari `createadmin`) TIDAK disentuh.
+-- WAJIB setelah seed: FLUSH cache Redis authz (scope/permission/subtree di-cache
+-- Redis by role_id; seed SQL langsung tidak menginvalidasinya, sehingga app bisa
+-- menyajikan scope basi — mis. superadmin jatuh ke 'own' dan tak melihat data):
+--   docker exec inventra-redis redis-cli FLUSHALL
+--
+-- Idempoten: menghapus SEMUA data (master + transaksional + user + role custom)
+-- KECUALI user superadmin kanonik `admin@inventra.local`, lalu mengisi ulang.
 --
 -- Login demo: semua user password = "Inventra123!"  (domain @demo.inventra.local)
---   superadmin@demo.inventra.local     (Superadmin, di Kantor Pusat)
+--   pejabat.pusat@demo.inventra.local  (Pejabat Kantor Pusat, tier pusat)
 --   kanwil.<kode>@demo.inventra.local  (Kepala Kanwil, per Wilayah)
 --   kepala.<kode>@demo.inventra.local  (Kepala Unit, per Cabang/KCP/Kas)
---   sisanya (manager & staf) beremail <nama>.<kode><n>@demo.inventra.local
+--   sisanya (manager & staf) beremail <nama>.<seq>@demo.inventra.local
 -- =============================================================================
 
 BEGIN;
@@ -27,13 +34,20 @@ SET LOCAL synchronous_commit = off;          -- percepat insert massal (dev).
 CREATE EXTENSION IF NOT EXISTS pgcrypto;      -- crypt()/gen_salt('bf') → bcrypt (kompatibel Go).
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 0) RESET — bersihkan data lama (urut anak→induk sesuai FK) agar re-runnable.
---    CATATAN (DEV): mengosongkan SELURUH data transaksional karena me-referensi
---    assets/employees/offices yang diisi ulang. User bootstrap (employee_id &
---    office_id NULL) tidak dihapus.
+-- 0) RESET — bersihkan SEMUA data (urut anak→induk sesuai FK) agar re-runnable.
+--    Menyisakan HANYA user superadmin kanonik `admin@inventra.local` (dan role
+--    sistem bawaan). User lain (termasuk superadmin bootstrap sisa e2e) + seluruh
+--    role custom (non-system) + config-nya dihapus.
 -- ─────────────────────────────────────────────────────────────────────────────
+DELETE FROM notification.notifications;
+DELETE FROM notification.outbox;
 DELETE FROM import.import_rows;
 DELETE FROM import.import_jobs;
+-- Stock-opname items dihapus DULU: followup_request_id -> approval.requests dan
+-- followup_record_id -> maintenance_records (diisi saat tindak lanjut opname, mis.
+-- oleh e2e), jadi harus dibersihkan sebelum tabel-tabel yang direferensikannya.
+DELETE FROM stockopname.stock_opname_items;
+DELETE FROM stockopname.stock_opname_sessions;
 DELETE FROM approval.request_approvals;
 DELETE FROM asset.asset_attachments;
 DELETE FROM asset.asset_documents;
@@ -44,13 +58,59 @@ DELETE FROM maintenance.maintenance_records;
 DELETE FROM maintenance.maintenance_schedules;
 DELETE FROM depreciation.depreciation_entries;
 DELETE FROM depreciation.depreciation_periods;
-DELETE FROM stockopname.stock_opname_items;
-DELETE FROM stockopname.stock_opname_sessions;
 DELETE FROM approval.requests;
 DELETE FROM audit.audit_logs;
 DELETE FROM asset.asset_tag_counters;
 DELETE FROM asset.assets;
-DELETE FROM identity.users WHERE employee_id IS NOT NULL OR office_id IS NOT NULL;
+
+-- Semua user KECUALI superadmin kanonik.
+DELETE FROM identity.users WHERE email <> 'admin@inventra.local';
+
+-- Role custom (non-system) + konfigurasinya (sampah e2e: e2e_*, dll).
+DELETE FROM identity.field_permissions   WHERE role_id IN (SELECT id FROM identity.roles WHERE is_system = false);
+DELETE FROM identity.data_scope_policies  WHERE role_id IN (SELECT id FROM identity.roles WHERE is_system = false);
+DELETE FROM identity.role_permissions     WHERE role_id IN (SELECT id FROM identity.roles WHERE is_system = false);
+DELETE FROM identity.roles                WHERE is_system = false;
+
+-- NORMALISASI authz role SISTEM. E2e sering menyisakan baris data_scope_policies
+-- yang SOFT-DELETED / duplikat / berubah level (mis. superadmin '*' jadi 'own'),
+-- sehingga Resolve jatuh ke default 'own' dan superadmin tak melihat kantor/aset
+-- apa pun. Karena tak ada satu baris pun yang jelas "kanonik" dari data yang
+-- terpolusi, kita BANGUN ULANG scope role sistem persis seperti kondisi migrasi.
+-- field_permissions: buang polusi e2e; baris kanonik (masking kolom finansial)
+-- DIBANGUN ULANG setelah semua role final (lihat bagian 0b) — mirror migrasi 000016.
+DELETE FROM identity.field_permissions;
+-- role_permissions: buang baris soft-deleted + duplikat aktif (set izin tetap utuh).
+DELETE FROM identity.role_permissions WHERE deleted_at IS NOT NULL;
+DELETE FROM identity.role_permissions a USING identity.role_permissions b
+  WHERE a.role_id = b.role_id AND a.permission_key = b.permission_key AND a.id > b.id;
+-- data_scope_policies: hapus SEMUA (deleted/aktif) baris role sistem, bangun ulang.
+DELETE FROM identity.data_scope_policies WHERE role_id IN (SELECT id FROM identity.roles WHERE is_system = true);
+-- (a) default '*' per role sistem.
+INSERT INTO identity.data_scope_policies (role_id, module, scope_level)
+SELECT r.id, '*', v.lvl::shared.scope_level
+FROM identity.roles r
+JOIN (VALUES
+  ('superadmin','global'), ('kepala_kanwil','office_subtree'), ('kepala_unit','office_subtree'),
+  ('manager','office_subtree'), ('staf','own')
+) AS v(code, lvl) ON v.code = r.code;
+-- (b) override per-modul untuk 9 modul berscope (mirror seed migrasi 000021-000029).
+INSERT INTO identity.data_scope_policies (role_id, module, scope_level)
+SELECT r.id, m.module,
+  (CASE r.code
+     WHEN 'superadmin' THEN 'global'
+     WHEN 'staf'       THEN (CASE WHEN m.module IN ('report','requests') THEN 'own' ELSE 'office' END)
+     WHEN 'manager'    THEN (CASE WHEN m.module = 'report' THEN 'office' ELSE 'office_subtree' END)
+     ELSE 'office_subtree'  -- kepala_kanwil, kepala_unit
+   END)::shared.scope_level
+FROM identity.roles r
+CROSS JOIN (VALUES
+  ('assets'), ('assignments'), ('depreciation'), ('disposals'), ('maintenance'),
+  ('report'), ('requests'), ('stockopname'), ('transfers')
+) AS m(module)
+WHERE r.is_system = true;
+
+-- Master data.
 DELETE FROM masterdata.employees;
 DELETE FROM masterdata.rooms;
 DELETE FROM masterdata.floors;
@@ -60,11 +120,52 @@ DELETE FROM masterdata.brands;
 DELETE FROM masterdata.categories;
 DELETE FROM masterdata.units;
 DELETE FROM masterdata.vendors;
+DELETE FROM masterdata.maintenance_categories;
+DELETE FROM masterdata.problem_categories;
 DELETE FROM masterdata.positions;
 DELETE FROM masterdata.departments;
 DELETE FROM masterdata.office_types;
 DELETE FROM masterdata.cities;
 DELETE FROM masterdata.provinces;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 0b) ROLE CUSTOM `pejabat_pusat` — approver tier `pusat` (WAJIB, Lampiran A.2/A.3).
+--     Role bisnis berkantor di Kantor Pusat: request.decide + scope office_subtree
+--     (subtree-nya mencakup Pusat sendiri → memenuhi tier pusat & wilayah). Juga
+--     delegasi depreciation.manage ke role bisnis (catatan Lampiran A.2).
+-- ─────────────────────────────────────────────────────────────────────────────
+INSERT INTO identity.roles (code, name, description, is_system) VALUES
+  ('pejabat_pusat', 'Pejabat Kantor Pusat',
+   'Pejabat bisnis Kantor Pusat; approver tier pusat + delegasi penyusutan', false);
+
+INSERT INTO identity.role_permissions (role_id, permission_key)
+SELECT r.id, p.key
+FROM identity.roles r
+CROSS JOIN (VALUES
+  ('request.create'), ('request.decide'), ('asset.view'),
+  ('report.view'), ('report.export'), ('audit.view'),
+  ('valuation.exclude.approve'), ('depreciation.view'), ('depreciation.manage')
+) AS p(key)
+WHERE r.code = 'pejabat_pusat';
+
+INSERT INTO identity.data_scope_policies (role_id, module, scope_level)
+SELECT r.id, '*', 'office_subtree'::shared.scope_level
+FROM identity.roles r WHERE r.code = 'pejabat_pusat';
+
+-- Field permissions kanonik: kolom finansial aset (purchase_cost/book_value/
+-- accumulated_depreciation) = SATU tier konsisten (mirror migrasi 000016 + 000037).
+-- View hanya untuk Superadmin + Manager + Pejabat Kantor Pusat; Kepala Unit/Kanwil
+-- dan Staf ter-mask penuh. Dijalankan di sini agar SEMUA role (termasuk
+-- `pejabat_pusat` yang baru) dapat baris eksplisit — bukan default-allow yang
+-- membocorkan nilai finansial.
+INSERT INTO identity.field_permissions (entity, field, role_id, can_view, can_edit)
+SELECT 'assets', f.field, r.id,
+       (r.name IN ('Superadmin', 'Manager', 'Pejabat Kantor Pusat')),
+       false
+FROM identity.roles r
+CROSS JOIN (VALUES ('purchase_cost'), ('book_value'), ('accumulated_depreciation')) AS f(field)
+WHERE r.deleted_at IS NULL
+ON CONFLICT DO NOTHING;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 1) GEOGRAFI — provinsi & kota (dengan koordinat untuk peta kantor).
@@ -128,6 +229,13 @@ INSERT INTO masterdata.positions (name) VALUES
   ('Kepala Kantor Wilayah'), ('Kepala Cabang'), ('Manajer Operasional'),
   ('Asset Management Officer'), ('Staf Umum & Logistik'), ('Staf Teknologi Informasi'),
   ('Teller'), ('Customer Service'), ('Analis Kredit'), ('Petugas Keamanan');
+
+INSERT INTO masterdata.maintenance_categories (name) VALUES
+  ('Servis Rutin'), ('Perbaikan Kerusakan'), ('Kalibrasi & Tera'), ('Penggantian Sparepart');
+
+INSERT INTO masterdata.problem_categories (name) VALUES
+  ('Tidak Menyala / Mati Total'), ('Layar / Tampilan Rusak'), ('Overheat / Panas Berlebih'),
+  ('Kerusakan Fisik'), ('Error Perangkat Lunak'), ('Masalah Konektivitas Jaringan');
 
 INSERT INTO masterdata.vendors (name, contact_name, phone, email, address) VALUES
   ('PT Astra Graphia Information Technology','Rina Wijaya','02150881234','sales@ag-it.co.id','Jl. Kramat Raya No.43, Jakarta Pusat'),
@@ -300,31 +408,37 @@ CROSS JOIN (VALUES
 WHERE f.deleted_at IS NULL;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 6) PEGAWAI — 24 per kantor (≥20 utk penuhi kuota user), nama Indonesia realistis.
+-- 6) PEGAWAI — 24 per kantor, nama Indonesia realistis & UNIK secara global.
+--    Nama dipilih dari indeks global deterministik (seq), bukan hash acak, sehingga
+--    tidak ada nama pegawai yang sama di dua kantor. Pool 64×32 = 2048 kombinasi >
+--    jumlah pegawai (±1.008) → keunikan by construction (dijaga assert di bagian 10).
 -- ─────────────────────────────────────────────────────────────────────────────
 INSERT INTO masterdata.employees (code, name, email, department_id, position_id, office_id, status, phone)
 SELECT
   'BTN-' || lpad(x.seq::text, 5, '0'),
   x.fname || ' ' || x.lname,
-  lower(x.fname) || '.' || lower(x.lname) || x.seq || '@btn.co.id',
-  x.dep_ids[(abs(hashtext(x.sd || 'dp')) % array_length(x.dep_ids, 1)) + 1],
-  x.pos_ids[(abs(hashtext(x.sd || 'ps')) % array_length(x.pos_ids, 1)) + 1],
+  lower(x.fname) || '.' || lower(x.lname) || '.' || x.seq || '@btn.co.id',
+  x.dep_ids[((x.seq - 1) % array_length(x.dep_ids, 1)) + 1],
+  x.pos_ids[((x.seq - 1) % array_length(x.pos_ids, 1)) + 1],
   x.office_id, 'active'::shared.user_status,
-  '08' || lpad((abs(hashtext(x.sd || 'ph')) % 1000000000)::text, 10, '0')
+  '08' || lpad((100000000 + x.seq)::text, 10, '0')
 FROM (
   SELECT
     o.id AS office_id,
     row_number() OVER (ORDER BY o.code, k) AS seq,
-    o.code || '-' || k AS sd,
     (ARRAY['Budi','Siti','Agus','Dewi','Andi','Rina','Joko','Sri','Bambang','Ani',
            'Hendra','Wati','Rudi','Yuni','Eko','Nur','Fajar','Indah','Doni','Ratna',
            'Aditya','Putri','Rizky','Maya','Arif','Wahyu','Fitri','Dedi','Iwan','Novi',
-           'Gunawan','Ayu','Hadi','Teguh','Kartika','Slamet','Melati','Reza','Lina','Bayu'
-     ])[(abs(hashtext(o.code || '-' || k || 'fn')) % 40) + 1] AS fname,
+           'Gunawan','Ayu','Hadi','Teguh','Kartika','Slamet','Melati','Reza','Lina','Bayu',
+           'Cahyo','Dian','Erik','Farah','Galih','Hana','Ivan','Jihan','Krisna','Laras',
+           'Mega','Nanda','Oka','Prita','Rangga','Sasha','Taufik','Ulfa','Vino','Wulan',
+           'Yoga','Zaki','Aisyah','Bagas'
+     ])[(( (row_number() OVER (ORDER BY o.code, k)) - 1) % 64) + 1] AS fname,
     (ARRAY['Santoso','Wijaya','Nugroho','Pratama','Kusuma','Hidayat','Saputra','Lestari','Wibowo','Suryadi',
            'Halim','Permana','Utomo','Setiawan','Maulana','Firmansyah','Anggraini','Purnama','Ramadhan','Susanto',
-           'Handoko','Prasetyo','Wardana','Simanjuntak','Siregar','Nasution','Ginting','Kurniawan','Rahayu','Hartono'
-     ])[(abs(hashtext(o.code || '-' || k || 'ln')) % 30) + 1] AS lname,
+           'Handoko','Prasetyo','Wardana','Simanjuntak','Siregar','Nasution','Ginting','Kurniawan','Rahayu','Hartono',
+           'Wibisono','Mahendra'
+     ])[(( ((row_number() OVER (ORDER BY o.code, k)) - 1) / 64) % 32) + 1] AS lname,
     (SELECT array_agg(id ORDER BY code) FROM masterdata.departments) AS dep_ids,
     (SELECT array_agg(id ORDER BY name) FROM masterdata.positions)   AS pos_ids
   FROM masterdata.offices o
@@ -333,12 +447,16 @@ FROM (
 ) x;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 7) USER LOGIN — 20 per kantor; RBAC dari role bawaan; tertaut pegawai & kantor.
---    Password semua: "Inventra123!".
+-- 7) USER LOGIN — 20 per kantor; role mencakup Lampiran A per tier kantor.
+--    Password semua "Inventra123!". Email unik (nama pegawai sudah unik global).
+--    - Kantor Pusat : rn 1-2 → pejabat_pusat; rn 3-6 → manager; sisanya staf.
+--                     (superadmin TIDAK ditautkan ke pegawai — akun sistem terpisah)
+--    - Kantor Wilayah: rn 1 → kepala_kanwil; rn 2-5 → manager; sisanya staf.
+--    - Cabang/KCP/Kas: rn 1 → kepala_unit; rn 2-5 → manager; sisanya staf.
 -- ─────────────────────────────────────────────────────────────────────────────
 WITH pw AS (SELECT crypt('Inventra123!', gen_salt('bf')) AS hash),
 er AS (
-  SELECT e.id AS emp_id, e.name, e.office_id, o.code AS ocode, ot.name AS otype,
+  SELECT e.id AS emp_id, e.name, e.email AS emp_email, e.office_id, o.code AS ocode, ot.tier AS otier,
          row_number() OVER (PARTITION BY e.office_id ORDER BY e.code) AS rn
   FROM masterdata.employees e
   JOIN masterdata.offices o ON o.id = e.office_id
@@ -348,17 +466,20 @@ er AS (
 u AS (
   SELECT emp_id, name, office_id, ocode, rn,
     CASE
-      WHEN otype = 'Kantor Pusat'   AND rn <= 2 THEN 'superadmin'
-      WHEN otype = 'Kantor Wilayah' AND rn = 1  THEN 'kepala_kanwil'
-      WHEN otype NOT IN ('Kantor Pusat','Kantor Wilayah') AND rn = 1 THEN 'kepala_unit'
-      WHEN rn <= 5 THEN 'manager'
+      WHEN otier = 'pusat'   AND rn <= 2 THEN 'pejabat_pusat'
+      WHEN otier = 'pusat'   AND rn <= 6 THEN 'manager'
+      WHEN otier = 'wilayah' AND rn = 1  THEN 'kepala_kanwil'
+      WHEN otier = 'wilayah' AND rn <= 5 THEN 'manager'
+      WHEN otier = 'office'  AND rn = 1  THEN 'kepala_unit'
+      WHEN otier = 'office'  AND rn <= 5 THEN 'manager'
       ELSE 'staf'
     END AS role_code,
     CASE
-      WHEN otype = 'Kantor Pusat'   AND rn = 1 THEN 'superadmin@demo.inventra.local'
-      WHEN otype = 'Kantor Wilayah' AND rn = 1 THEN 'kanwil.' || lower(ocode) || '@demo.inventra.local'
-      WHEN otype NOT IN ('Kantor Pusat','Kantor Wilayah') AND rn = 1 THEN 'kepala.' || lower(ocode) || '@demo.inventra.local'
-      ELSE lower(split_part(name, ' ', 1)) || '.' || lower(split_part(name, ' ', 2)) || '.' || lower(ocode) || rn || '@demo.inventra.local'
+      WHEN otier = 'pusat'   AND rn = 1 THEN 'pejabat.pusat@demo.inventra.local'
+      WHEN otier = 'pusat'   AND rn = 2 THEN 'pejabat.pusat2@demo.inventra.local'
+      WHEN otier = 'wilayah' AND rn = 1 THEN 'kanwil.' || lower(ocode) || '@demo.inventra.local'
+      WHEN otier = 'office'  AND rn = 1 THEN 'kepala.' || lower(ocode) || '@demo.inventra.local'
+      ELSE split_part(emp_email, '@', 1) || '@demo.inventra.local'
     END AS email
   FROM er WHERE rn <= 20
 )
@@ -370,7 +491,7 @@ CROSS JOIN pw
 ON CONFLICT DO NOTHING;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 8) ASET — 1.500 aset perlengkapan per kantor + tanah & gedung per kantor.
+-- 8) ASET — ~300 aset perlengkapan per kantor + tanah & gedung per kantor.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- 8a) Template produk (kategori, nama, brand, model, rentang harga rupiah).
@@ -413,7 +534,7 @@ INSERT INTO _tpl (cat_code, item_name, brand_name, model_name, cost_min, cost_ma
   ('SWL','Aplikasi Modul Core Banking',NULL,NULL,100000000,500000000);
 
 -- 8b) Rakit semua baris aset ke temp table. Pemilihan ruangan/pegawai/vendor
---     pakai array-index (O(1)) agar sanggup skala puluhan ribu baris.
+--     pakai array-index (O(1)) agar sanggup skala ribuan baris.
 CREATE TEMP TABLE _bulk ON COMMIT DROP AS
 WITH
 ntpl AS (SELECT count(*)::int AS c FROM _tpl),
@@ -427,14 +548,14 @@ emps_agg AS (
   FROM masterdata.employees WHERE deleted_at IS NULL GROUP BY office_id
 ),
 vend AS (SELECT array_agg(id) AS vids FROM masterdata.vendors WHERE deleted_at IS NULL),
--- Perlengkapan: 1.500 per kantor.
+-- Perlengkapan: 300 per kantor.
 eq AS (
   SELECT
     o.id AS office_id, o.code AS office_code, o.code || '-' || n AS seed, n,
     t.cat_code, t.item_name, t.brand_name, t.model_name, t.cost_min, t.cost_max,
     ra.rids, ea.eids, vd.vids
   FROM masterdata.offices o
-  CROSS JOIN generate_series(1, 1500) AS n
+  CROSS JOIN generate_series(1, 300) AS n
   CROSS JOIN ntpl
   CROSS JOIN vend vd
   JOIN _tpl t ON t.tid = (abs(hashtext(o.code || '-' || n)) % ntpl.c) + 1
@@ -587,7 +708,7 @@ SELECT
   b.asset_class, true, b.method, b.life, b.salvage_value,
   b.fiscal_group, b.fiscal_life, b.accumulated, (b.cost - b.accumulated),
   b.bast_no, b.holder_id,
-  (SELECT id FROM identity.users WHERE email = 'superadmin@demo.inventra.local'),
+  (SELECT id FROM identity.users WHERE email = 'admin@inventra.local'),
   NULL
 FROM _bulk b;
 
@@ -597,10 +718,208 @@ SELECT office_id, category_id, yr, count(*)
 FROM _bulk GROUP BY office_id, category_id, yr;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 9) Ringkasan.
+-- 9) DATA TRANSAKSIONAL — konsisten dengan status aset yang sudah di-assign.
+--    Bounded & realistis agar setiap layar (penugasan/maintenance/mutasi/hapus/
+--    approval/notifikasi/audit) terisi tanpa membengkakkan waktu seed.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- 9.0) Aktor per kantor: approver (kepala diprioritaskan), maker (decider lain,
+--      != approver → memenuhi SoD), staf, dan kantor saudara (untuk mutasi).
+CREATE TEMP TABLE _actor ON COMMIT DROP AS
+WITH deciders AS (
+  SELECT u.office_id, u.id AS user_id,
+         row_number() OVER (PARTITION BY u.office_id
+            ORDER BY (r.code IN ('kepala_unit','kepala_kanwil','pejabat_pusat')) DESC, u.email) AS rk
+  FROM identity.users u JOIN identity.roles r ON r.id = u.role_id
+  WHERE u.office_id IS NOT NULL AND u.deleted_at IS NULL
+    AND r.code IN ('manager','kepala_unit','kepala_kanwil','pejabat_pusat')
+),
+stafs AS (
+  SELECT u.office_id, u.id AS user_id,
+         row_number() OVER (PARTITION BY u.office_id ORDER BY u.email) AS rk
+  FROM identity.users u JOIN identity.roles r ON r.id = u.role_id
+  WHERE u.office_id IS NOT NULL AND u.deleted_at IS NULL AND r.code = 'staf'
+)
+SELECT o.id AS office_id, o.parent_id,
+  (SELECT user_id FROM deciders d WHERE d.office_id = o.id AND d.rk = 1) AS approver_id,
+  (SELECT user_id FROM deciders d WHERE d.office_id = o.id AND d.rk = 2) AS maker_id,
+  (SELECT user_id FROM stafs   s WHERE s.office_id = o.id AND s.rk = 1) AS staf_id,
+  COALESCE(
+    (SELECT s2.id FROM masterdata.offices s2
+       WHERE s2.deleted_at IS NULL AND s2.parent_id = o.parent_id AND s2.id <> o.id
+       ORDER BY s2.code LIMIT 1),
+    (SELECT s3.id FROM masterdata.offices s3
+       WHERE s3.deleted_at IS NULL AND s3.id <> o.id ORDER BY s3.code LIMIT 1)
+  ) AS sibling_id
+FROM masterdata.offices o WHERE o.deleted_at IS NULL;
+
+-- 9a) PENUGASAN — satu assignment aktif untuk tiap aset berstatus 'assigned'.
+INSERT INTO assignment.assignments
+  (asset_id, employee_id, assigned_by_id, checkout_date, due_date, condition_out, status, notes)
+SELECT a.id, a.current_holder_employee_id, COALESCE(ac.maker_id, ac.approver_id),
+  (now() - ((abs(hashtext(a.id::text || 'co')) % 180) * interval '1 day')),
+  (current_date + ((abs(hashtext(a.id::text || 'du')) % 120) * interval '1 day'))::date,
+  'baik', 'active', 'Penugasan aset dinas kepada pegawai'
+FROM asset.assets a JOIN _actor ac ON ac.office_id = a.office_id
+WHERE a.status = 'assigned' AND a.current_holder_employee_id IS NOT NULL AND a.deleted_at IS NULL;
+
+-- 9b) MAINTENANCE — record 'in_progress' untuk tiap aset 'under_maintenance',
+--     plus sejumlah jadwal preventif untuk aset ATM/kendaraan/elektronik.
+INSERT INTO maintenance.maintenance_records
+  (asset_id, maintenance_category_id, type, status, scheduled_date, cost, description, reported_by_id)
+SELECT a.id,
+  (SELECT id FROM masterdata.maintenance_categories WHERE name = 'Perbaikan Kerusakan'),
+  'corrective', 'in_progress',
+  (current_date - ((abs(hashtext(a.id::text || 'ms')) % 45) * interval '1 day'))::date,
+  ((abs(hashtext(a.id::text || 'mc')) % 5000000) + 250000)::numeric(18,2),
+  'Perbaikan/servis aset sedang berjalan', COALESCE(ac.maker_id, ac.approver_id)
+FROM asset.assets a JOIN _actor ac ON ac.office_id = a.office_id
+WHERE a.status = 'under_maintenance' AND a.deleted_at IS NULL;
+
+INSERT INTO maintenance.maintenance_schedules
+  (asset_id, maintenance_category_id, interval_months, last_done_date, next_due_date, is_active)
+SELECT s.id,
+  (SELECT id FROM masterdata.maintenance_categories WHERE name = 'Servis Rutin'),
+  6, (current_date - interval '3 month')::date,
+  (current_date + ((abs(hashtext(s.id::text || 'nd')) % 120) - 30) * interval '1 day')::date, true
+FROM (
+  SELECT a.id, row_number() OVER (PARTITION BY a.office_id ORDER BY a.asset_tag) AS rn
+  FROM asset.assets a JOIN masterdata.categories c ON c.id = a.category_id
+  WHERE a.deleted_at IS NULL AND a.status = 'available' AND c.code IN ('ATM','KR4','ELK')
+) s
+WHERE s.rn <= 5;
+
+-- 9c) MUTASI — transfer 'in_transit' untuk tiap aset 'in_transfer' ke kantor saudara.
+INSERT INTO transfer.asset_transfers
+  (asset_id, from_office_id, to_office_id, status, reason, requested_by_id, approved_by_id,
+   shipped_date, condition_sent, transfer_date, notes)
+SELECT a.id, a.office_id, ac.sibling_id, 'in_transit', 'Relokasi aset antar-kantor',
+  ac.maker_id, ac.approver_id,
+  (current_date - ((abs(hashtext(a.id::text || 'sh')) % 20) * interval '1 day'))::date,
+  'baik',
+  (current_date - ((abs(hashtext(a.id::text || 'td')) % 30) * interval '1 day'))::date,
+  'Aset dalam pengiriman menuju kantor tujuan'
+FROM asset.assets a JOIN _actor ac ON ac.office_id = a.office_id
+WHERE a.status = 'in_transfer' AND ac.sibling_id IS NOT NULL
+  AND ac.maker_id IS NOT NULL AND a.deleted_at IS NULL;
+
+-- 9d) PENGHAPUSAN — satu disposal untuk tiap aset 'disposed' (gain/loss dihitung).
+INSERT INTO disposal.disposals
+  (asset_id, method, disposal_date, proceeds, book_value_at_disposal, gain_loss, bast_no,
+   approved_by_id, created_by_id)
+SELECT a.id,
+  (ARRAY['sale','auction','donation','write_off']::shared.disposal_method[])[(abs(hashtext(a.id::text || 'dm')) % 4) + 1],
+  (current_date - ((abs(hashtext(a.id::text || 'dd')) % 120) * interval '1 day'))::date,
+  round(COALESCE(a.book_value, 0) * ((abs(hashtext(a.id::text || 'pr')) % 120) / 100.0), 2) AS proceeds,
+  a.book_value,
+  round(COALESCE(a.book_value, 0) * ((abs(hashtext(a.id::text || 'pr')) % 120) / 100.0), 2) - COALESCE(a.book_value, 0),
+  'BAST/DSP/' || to_char(current_date, 'YYYY') || '/' || lpad(((abs(hashtext(a.id::text || 'db')) % 9999) + 1)::text, 4, '0'),
+  ac.approver_id, ac.maker_id
+FROM asset.assets a JOIN _actor ac ON ac.office_id = a.office_id
+WHERE a.status = 'disposed' AND a.deleted_at IS NULL;
+
+-- 9e) APPROVAL — riwayat (approved/rejected) + antrean pending (inbox approver).
+--     Semua asset_create single-step office (amount band terendah 0-10jt) agar
+--     rantai valid & sederhana. Payload LENGKAP (termasuk category_id) sehingga
+--     pending yang muncul di inbox BENAR-BENAR bisa di-approve (executor jalan),
+--     bukan landmine yang error saat dieksekusi.
+WITH specs(rstatus, amt, tag) AS (
+  VALUES
+    ('approved', 5000000, 'h1'),
+    ('approved', 7500000, 'h2'),
+    ('rejected', 4200000, 'h3'),
+    ('pending',  6300000, 'p1')
+),
+ins AS (
+  INSERT INTO approval.requests
+    (type, office_id, amount, current_step, payload, reason, status,
+     requested_by_id, decided_by_id, decision_note, decided_at)
+  SELECT 'asset_create'::shared.request_type, ac.office_id, s.amt::numeric(18,2), 1,
+    jsonb_build_object(
+      'name', 'Contoh pengadaan ' || s.tag,
+      'category_id', (SELECT id FROM masterdata.categories WHERE code = 'SWL' AND deleted_at IS NULL)::text,
+      'purchase_cost', s.amt::text, 'asset_class', 'intangible', 'office_id', ac.office_id::text),
+    'Data contoh asset_create (' || s.rstatus || ')',
+    s.rstatus::shared.request_status,
+    ac.maker_id,
+    CASE WHEN s.rstatus IN ('approved','rejected') THEN ac.approver_id ELSE NULL END,
+    CASE WHEN s.rstatus = 'approved' THEN 'Disetujui — sesuai kebutuhan operasional'
+         WHEN s.rstatus = 'rejected' THEN 'Ditolak — anggaran belum tersedia'
+         ELSE NULL END,
+    CASE WHEN s.rstatus IN ('approved','rejected') THEN now() - interval '2 day' ELSE NULL END
+  FROM _actor ac CROSS JOIN specs s
+  WHERE ac.maker_id IS NOT NULL AND ac.approver_id IS NOT NULL
+  RETURNING id, status, office_id
+)
+INSERT INTO approval.request_approvals
+  (request_id, step_order, required_level, approver_id, decision, note, decided_at)
+SELECT i.id, 1, 'office',
+  CASE WHEN i.status IN ('approved','rejected')
+       THEN (SELECT approver_id FROM _actor a WHERE a.office_id = i.office_id) ELSE NULL END,
+  CASE WHEN i.status = 'approved' THEN 'approved'::shared.request_status
+       WHEN i.status = 'rejected' THEN 'rejected'::shared.request_status
+       ELSE 'pending'::shared.request_status END,
+  CASE WHEN i.status = 'approved' THEN 'Disetujui — sesuai kebutuhan operasional'
+       WHEN i.status = 'rejected' THEN 'Ditolak — anggaran belum tersedia' ELSE NULL END,
+  CASE WHEN i.status IN ('approved','rejected') THEN now() - interval '2 day' ELSE NULL END
+FROM ins i;
+
+-- 9f) PENYUSUTAN — periode bulan lalu 'closed' + bulan berjalan 'open'.
+INSERT INTO depreciation.depreciation_periods
+  (period, status, computed_at, computed_by, closed_at, closed_by, asset_count, total_amount)
+SELECT date_trunc('month', current_date - interval '1 month')::date, 'closed',
+  now() - interval '20 day', pp.id, now() - interval '18 day', pp.id,
+  (SELECT count(*) FROM asset.assets WHERE deleted_at IS NULL AND depreciation_method IS NOT NULL
+     AND status NOT IN ('disposed','retired')), 0
+FROM (SELECT id FROM identity.users WHERE email = 'pejabat.pusat@demo.inventra.local') pp;
+
+INSERT INTO depreciation.depreciation_periods (period, status, asset_count, total_amount)
+VALUES (date_trunc('month', current_date)::date, 'open', 0, 0);
+
+-- 9g) NOTIFIKASI — pending → approver (approval_pending); decided → maker (approval_decided).
+INSERT INTO notification.notifications (user_id, type, params, entity_type, entity_id, dedup_key)
+SELECT ac.approver_id, 'approval_pending',
+  jsonb_build_object('request_type', rq.type::text, 'office_id', ac.office_id::text),
+  'requests', rq.id, 'seed-' || rq.id::text || '-pending'
+FROM approval.requests rq JOIN _actor ac ON ac.office_id = rq.office_id
+WHERE rq.status = 'pending' AND rq.deleted_at IS NULL AND ac.approver_id IS NOT NULL;
+
+INSERT INTO notification.notifications (user_id, type, params, entity_type, entity_id, dedup_key)
+SELECT rq.requested_by_id, 'approval_decided',
+  jsonb_build_object('request_type', rq.type::text, 'decision', rq.status::text),
+  'requests', rq.id, 'seed-' || rq.id::text || '-decided'
+FROM approval.requests rq
+WHERE rq.status IN ('approved','rejected') AND rq.deleted_at IS NULL AND rq.requested_by_id IS NOT NULL;
+
+-- 9h) AUDIT — jejak 'create' kantor oleh admin (agar layar audit terisi).
+INSERT INTO audit.audit_logs (actor_id, entity_type, entity_id, action, changes, ip, created_at)
+SELECT (SELECT id FROM identity.users WHERE email = 'admin@inventra.local'),
+  'offices', o.id, 'create',
+  jsonb_build_object('name', jsonb_build_object('before', NULL, 'after', o.name)),
+  '127.0.0.1', o.created_at
+FROM masterdata.offices o WHERE o.deleted_at IS NULL;
+
+-- Gate keunikan DALAM transaksi: gagalkan & ROLLBACK (bukan sekadar peringatan
+-- pasca-commit) bila pool nama sempat terlalu kecil sehingga nama pegawai duplikat.
+DO $$
+DECLARE d int;
+BEGIN
+  SELECT count(*) INTO d FROM (
+    SELECT name FROM masterdata.employees WHERE deleted_at IS NULL GROUP BY name HAVING count(*) > 1
+  ) z;
+  IF d > 0 THEN
+    RAISE EXCEPTION 'Seed dibatalkan: % nama pegawai duplikat lintas kantor (perbesar pool nama)', d;
+  END IF;
+END $$;
+
+COMMIT;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 9) RINGKASAN + ASSERT keunikan identitas.
 -- ─────────────────────────────────────────────────────────────────────────────
 DO $$
 DECLARE n_off int; n_emp int; n_usr int; n_ast int; min_u int; min_a int;
+        dup_emp int; dup_usr int; n_super int;
 BEGIN
   SELECT count(*) INTO n_off FROM masterdata.offices  WHERE deleted_at IS NULL;
   SELECT count(*) INTO n_emp FROM masterdata.employees WHERE deleted_at IS NULL;
@@ -608,8 +927,28 @@ BEGIN
   SELECT count(*) INTO n_ast FROM asset.assets         WHERE deleted_at IS NULL;
   SELECT min(c) INTO min_u FROM (SELECT count(*) c FROM identity.users WHERE office_id IS NOT NULL GROUP BY office_id) z;
   SELECT min(c) INTO min_a FROM (SELECT count(*) c FROM asset.assets   WHERE deleted_at IS NULL GROUP BY office_id) z;
-  RAISE NOTICE 'Seed selesai — kantor=%, pegawai=%, user demo=%, aset=% (min user/kantor=%, min aset/kantor=%)',
-    n_off, n_emp, n_usr, n_ast, min_u, min_a;
-END $$;
+  SELECT count(*) INTO dup_emp FROM (SELECT name FROM masterdata.employees WHERE deleted_at IS NULL GROUP BY name HAVING count(*) > 1) z;
+  SELECT count(*) INTO dup_usr FROM (SELECT name FROM identity.users WHERE office_id IS NOT NULL GROUP BY name HAVING count(*) > 1) z;
+  SELECT count(*) INTO n_super FROM identity.users u JOIN identity.roles r ON r.id = u.role_id
+    WHERE r.code = 'superadmin' AND u.deleted_at IS NULL;
 
-COMMIT;
+  IF dup_emp > 0 THEN
+    RAISE EXCEPTION 'Seed gagal: ada % nama pegawai duplikat lintas kantor (pool nama terlalu kecil)', dup_emp;
+  END IF;
+
+  RAISE NOTICE 'Seed inti selesai — kantor=%, pegawai=%, user demo=%, aset=% (min user/kantor=%, min aset/kantor=%)',
+    n_off, n_emp, n_usr, n_ast, min_u, min_a;
+  RAISE NOTICE 'Keunikan — nama pegawai duplikat=%, nama user duplikat=%; total user superadmin=% (harus 1: admin@inventra.local)',
+    dup_emp, dup_usr, n_super;
+  RAISE NOTICE 'Transaksional — assignment=%, maintenance rec=%, jadwal=%, transfer=%, disposal=%, request=% (pending=%), notifikasi=%, periode depr=%, audit=%',
+    (SELECT count(*) FROM assignment.assignments),
+    (SELECT count(*) FROM maintenance.maintenance_records),
+    (SELECT count(*) FROM maintenance.maintenance_schedules),
+    (SELECT count(*) FROM transfer.asset_transfers),
+    (SELECT count(*) FROM disposal.disposals),
+    (SELECT count(*) FROM approval.requests),
+    (SELECT count(*) FROM approval.requests WHERE status = 'pending'),
+    (SELECT count(*) FROM notification.notifications),
+    (SELECT count(*) FROM depreciation.depreciation_periods),
+    (SELECT count(*) FROM audit.audit_logs);
+END $$;

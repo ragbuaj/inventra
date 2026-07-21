@@ -19,8 +19,22 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure'
   },
+  // Two projects split by file so CI can run them against DIFFERENT DB states:
+  // `chromium` (existing specs) runs against a clean migrated DB (each spec builds
+  // its own fixtures), while `lampiran` (the Lampiran A maker-checker suite) runs
+  // against the demo seed (kantor/role per tier + aset). CI runs them in two phases
+  // with the seed applied in between; locally `playwright test` runs both.
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } }
+    {
+      name: 'chromium',
+      testIgnore: /lampiran-a-.*\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] }
+    },
+    {
+      name: 'lampiran',
+      testMatch: /lampiran-a-.*\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] }
+    }
   ],
   webServer: manageServer
     ? {

@@ -205,9 +205,33 @@ jobs:
 
       # Default apiBase (http://localhost:8080/api/v1) already targets the
       # compose API; backend CORS allows http://localhost:3000.
-      - name: Run e2e
+      #
+      # Two phases against DIFFERENT DB states (see playwright.config.ts projects):
+      #   1. `chromium` — existing specs against a CLEAN migrated DB (each builds its
+      #      own fixtures; they assume a near-empty baseline).
+      #   2. Seed the demo org (kantor/role per tier + aset) + FLUSH Redis authz cache
+      #      (scope/permission by role_id — SQL langsung tak meng-invalidasinya).
+      #   3. `lampiran` — the Lampiran A maker-checker suite against the seeded org.
+      # Build once up front — the playwright webServer runs `nuxt preview` which
+      # serves `.output` (the `test:e2e` script's `nuxt build` step is not used here
+      # because we invoke playwright twice with different --project filters).
+      - name: Build frontend (for preview)
         working-directory: frontend
-        run: pnpm test:e2e
+        run: pnpm build
+
+      - name: Run e2e — existing specs (clean DB)
+        working-directory: frontend
+        run: pnpm exec playwright test --project=chromium
+
+      - name: Seed demo data (Lampiran A org + assets) + flush authz cache
+        run: |
+          docker compose exec -T -e PGPASSWORD=secret postgres \
+            psql -U inventra -d inventra_dev -v ON_ERROR_STOP=1 < backend/db/seed/seed_demo.sql
+          docker compose exec -T redis redis-cli FLUSHALL
+
+      - name: Run e2e — Lampiran A (seeded DB)
+        working-directory: frontend
+        run: pnpm exec playwright test --project=lampiran
 
       - name: Tear down stack
         if: always()

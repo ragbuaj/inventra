@@ -1565,6 +1565,45 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     NetworkFailure kedua form. Suite mobile 553; backend +normalizeImage & forgot-contract tests (build/
 >     vet/test hijau). Berikutnya: buka PR
 >     merge ke `main`; fase mobile lanjutan (M3/M5) menyusul.
+> 87. **Seed dev realistis + non-duplikat + suite e2e Lampiran A (API-driven, ketat)**
+>     (branch `feat/seed-lampiran-a-e2e`). **Seed** (`backend/db/seed/seed_demo.sql`) ditulis ulang:
+>     reset menyeluruh menyisakan HANYA superadmin kanonik `admin@inventra.local` (buang superadmin
+>     bootstrap sisa e2e + role custom `e2e_*`); **normalisasi authz role sistem** deterministik
+>     (e2e menyisakan baris `data_scope_policies` soft-deleted/duplikat -> superadmin jatuh ke 'own',
+>     tak melihat data — dibangun ulang persis kondisi migrasi); **identitas pegawai/user UNIK global**
+>     (indeks deterministik pool 64x32, bukan hash acak — 0 nama duplikat lintas kantor, assert di
+>     seed); **coverage role per tier** (tiap cabang: kepala_unit+manager+staf; tiap wilayah:
+>     kepala_kanwil; pusat: role custom baru **`pejabat_pusat`** = approver tier `pusat` +
+>     delegasi `depreciation.manage`); ~300 aset/kantor (~13rb) + **lapisan transaksional** konsisten
+>     status aset (assignment/maintenance/transfer/disposal + approval history & inbox pending +
+>     periode depresiasi + notifikasi + audit). **WAJIB setelah seed: `redis-cli FLUSHALL`** (cache
+>     authz Redis by role_id — seed SQL langsung tak menginvalidasinya). **E2E** (`frontend/e2e/
+>     lampiran-a-*.spec.ts` + `lampiran-helpers.ts`): 9 file, 46 tes, **API-driven multi-user** (tiap
+>     aktor konteks API sendiri), assert **status code persis** (403/422/409/400) untuk seluruh jalur
+>     boleh/tidak-boleh Skenario 1-7 + A.7 opname — rantai berjenjang office->wilayah->pusat dengan
+>     approver berbeda per tier (pertama di repo). Cast di-resolve dari API by (kantor, role), bukan
+>     email hardcoded. Semua hijau; `pnpm lint`/`typecheck` bersih.
+>     **Code review (agent code-reviewer) dijalankan; temuan penting diperbaiki:** (1) seed sempat
+>     `DELETE` semua `field_permissions` -> membocorkan `purchase_cost`/`book_value`/
+>     `accumulated_depreciation` ke Staf/Kepala; kini dibangun ulang kanonik (mirror migrasi 000016) —
+>     diverifikasi Staf tak lihat kolom finansial. (2) Reset seed tak re-runnable setelah e2e opname
+>     (FK `stock_opname_items.followup_record_id` -> `maintenance_records`); urutan DELETE diperbaiki.
+>     (3) Pending `asset_create` seed dilengkapi `category_id` agar BENAR-BENAR bisa di-approve (bukan
+>     landmine); pending `assignment` tak-executable dibuang. (4) Assertion longgar dipersempit ke kode
+>     persis (maintenance dup 409, import confirm-failed 409 + cancel-non-owner 403, opname out-of-scope
+>     403); uji tolak tier pusat kini pakai aktor ber-scope wilayah; gate keunikan nama dipindah ke
+>     DALAM transaksi. **Review ulang (pasca-merge `main` bump-deps #113): APPROVE** — ke-7 perbaikan
+>     dikonfirmasi benar; ditambah `lampiran-a-field-masking.spec.ts` (guard regresi otomatis: Staf
+>     tak lihat `purchase_cost`/`book_value`/`accumulated_depreciation`, Manager lihat 2 pertama saja,
+>     Superadmin lihat semua) + assertion positif self-borrow tertaut pegawai Staf (mine dari JWT).
+>     **Kebijakan field-permission finansial dirapikan (migrasi `000037`):** dulu Manager lihat
+>     `purchase_cost`+`book_value` tapi `accumulated_depreciation` masked — padahal accumulated =
+>     purchase_cost - book_value - impairment (bisa diturunkan), jadi maskingnya bocor & tak konsisten.
+>     Kini ketiga kolom = SATU tier: view untuk Superadmin + Manager + Pejabat Kantor Pusat, masked
+>     untuk Kepala Unit/Kanwil + Staf (migrasi 000037 up/down teruji; seed & guard e2e diselaraskan;
+>     46 tes hijau). **Temuan sisa (dicatat, bukan bug e2e):** alur transfer app tak pernah menyetel
+>     status aset `in_transfer` (aset tetap `available` selama transit; guard dobel-mutasi lewat baris
+>     transfer terbuka).
 
 ## ✅ Done
 
