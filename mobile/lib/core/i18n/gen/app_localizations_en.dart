@@ -410,6 +410,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginErrorGeneric => 'Something went wrong. Try again.';
 
   @override
+  String get forgotLink => 'Forgot password?';
+
+  @override
+  String get forgotTitle => 'Forgot Password';
+
+  @override
+  String get forgotIntro =>
+      'Enter your account email. We will send a reset link if the email is registered.';
+
+  @override
+  String get forgotEmailLabel => 'Email';
+
+  @override
+  String get forgotSubmit => 'Send Reset Link';
+
+  @override
+  String get forgotEmailRequired => 'Enter your email.';
+
+  @override
+  String get forgotSentTitle => 'Check your inbox';
+
+  @override
+  String get forgotSentBody =>
+      'If the email is registered, we have sent a reset link. Open it to set a new password.';
+
+  @override
+  String get forgotBackToLogin => 'Back to Login';
+
+  @override
+  String get forgotError => 'Failed to send. Try again.';
+
+  @override
   String get loginLanguageIndonesian => 'ID';
 
   @override

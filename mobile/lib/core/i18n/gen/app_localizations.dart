@@ -842,6 +842,66 @@ abstract class AppLocalizations {
   /// **'Terjadi kesalahan. Coba lagi.'**
   String get loginErrorGeneric;
 
+  /// Tautan di layar login menuju alur Lupa Password
+  ///
+  /// In id, this message translates to:
+  /// **'Lupa password?'**
+  String get forgotLink;
+
+  /// Judul AppBar layar Lupa Password
+  ///
+  /// In id, this message translates to:
+  /// **'Lupa Password'**
+  String get forgotTitle;
+
+  /// Teks pengantar di layar Lupa Password
+  ///
+  /// In id, this message translates to:
+  /// **'Masukkan email akun Anda. Kami akan mengirim tautan untuk menyetel ulang password bila email terdaftar.'**
+  String get forgotIntro;
+
+  /// Label field email di layar Lupa Password
+  ///
+  /// In id, this message translates to:
+  /// **'Email'**
+  String get forgotEmailLabel;
+
+  /// Tombol kirim di layar Lupa Password
+  ///
+  /// In id, this message translates to:
+  /// **'Kirim Tautan Reset'**
+  String get forgotSubmit;
+
+  /// Pesan validasi saat email kosong di layar Lupa Password
+  ///
+  /// In id, this message translates to:
+  /// **'Masukkan email Anda.'**
+  String get forgotEmailRequired;
+
+  /// Judul konfirmasi anti-enumerasi setelah kirim di layar Lupa Password
+  ///
+  /// In id, this message translates to:
+  /// **'Cek kotak masuk Anda'**
+  String get forgotSentTitle;
+
+  /// Isi konfirmasi anti-enumerasi (pesan sama untuk email terdaftar maupun tidak)
+  ///
+  /// In id, this message translates to:
+  /// **'Jika email terdaftar, kami telah mengirim tautan reset. Buka tautan itu untuk menyetel password baru.'**
+  String get forgotSentBody;
+
+  /// Tombol kembali ke layar login dari konfirmasi Lupa Password
+  ///
+  /// In id, this message translates to:
+  /// **'Kembali ke Login'**
+  String get forgotBackToLogin;
+
+  /// Pesan error kegagalan jaringan di layar Lupa Password
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal mengirim. Coba lagi.'**
+  String get forgotError;
+
   /// Label segmen bahasa Indonesia pada pill switch bahasa
   ///
   /// In id, this message translates to:

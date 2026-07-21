@@ -1531,7 +1531,19 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     password lama + peringatan cabut-sesi) & ganti email, masing-masing state "Cek email Anda"
 >     setelah sukses. **Password salah -> 400 ValidationFailure inline (bukan 401 -> tak auto-logout)**;
 >     email dipakai -> 409 inline. Golden Profil regen. Nol backend baru. Tes: 4 repo + 5 widget; suite
->     mobile 521. Berikutnya M8: **M8-5 (Lupa Password dari Login)** lalu M8-6 (verifikasi logout).
+>     mobile 521. **Task M8-5 (Lupa Password) LANDED**: `AuthRepository.forgotPassword`
+>     (`POST /auth/password/forgot` {email}, anti-enumerasi — server SELALU 200); `ForgotPasswordScreen`
+>     (rute publik `/forgot-password`, dikecualikan guard auth) input email lalu state konfirmasi
+>     "Cek kotak masuk Anda" dengan pesan IDENTIK apa pun status akun (penetapan password baru via link
+>     email di web); tautan "Lupa password?" ditambah di layar Login. Golden Login regen. Nol backend
+>     baru. Tes: +2 repo (body email di-trim, offline) + 4 widget (validasi kosong, sukses, anti-enumerasi
+>     pesan identik, gagal jaringan inline). **Task M8-6 (verifikasi logout pasca-ganti-password)
+>     TERVERIFIKASI tanpa kode baru**: `test/core/api/auth_interceptor_test.dart` sudah menegaskan
+>     `sessionExpiredCalls == 1` saat refresh 401 definitif (skenario sesi dicabut setelah ganti
+>     password = logout bersih ke Login). Suite mobile 527. **Fase M8 SELESAI** (M8-1..M8-6).
+>     **Perluasan scope mobile v1 (M7 + M8) TUNTAS di branch `feat/mobile-scope-expansion`.**
+>     Berikutnya: review berlapis (code-reviewer + security-auditor + test-engineer) lalu buka PR
+>     merge ke `main`; fase mobile lanjutan (M3/M5) menyusul.
 
 ## ✅ Done
 

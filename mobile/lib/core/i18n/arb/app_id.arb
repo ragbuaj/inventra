@@ -544,6 +544,46 @@
   "@loginErrorGeneric": {
     "description": "Pesan banner error login untuk kegagalan lain"
   },
+  "forgotLink": "Lupa password?",
+  "@forgotLink": {
+    "description": "Tautan di layar login menuju alur Lupa Password"
+  },
+  "forgotTitle": "Lupa Password",
+  "@forgotTitle": {
+    "description": "Judul AppBar layar Lupa Password"
+  },
+  "forgotIntro": "Masukkan email akun Anda. Kami akan mengirim tautan untuk menyetel ulang password bila email terdaftar.",
+  "@forgotIntro": {
+    "description": "Teks pengantar di layar Lupa Password"
+  },
+  "forgotEmailLabel": "Email",
+  "@forgotEmailLabel": {
+    "description": "Label field email di layar Lupa Password"
+  },
+  "forgotSubmit": "Kirim Tautan Reset",
+  "@forgotSubmit": {
+    "description": "Tombol kirim di layar Lupa Password"
+  },
+  "forgotEmailRequired": "Masukkan email Anda.",
+  "@forgotEmailRequired": {
+    "description": "Pesan validasi saat email kosong di layar Lupa Password"
+  },
+  "forgotSentTitle": "Cek kotak masuk Anda",
+  "@forgotSentTitle": {
+    "description": "Judul konfirmasi anti-enumerasi setelah kirim di layar Lupa Password"
+  },
+  "forgotSentBody": "Jika email terdaftar, kami telah mengirim tautan reset. Buka tautan itu untuk menyetel password baru.",
+  "@forgotSentBody": {
+    "description": "Isi konfirmasi anti-enumerasi (pesan sama untuk email terdaftar maupun tidak)"
+  },
+  "forgotBackToLogin": "Kembali ke Login",
+  "@forgotBackToLogin": {
+    "description": "Tombol kembali ke layar login dari konfirmasi Lupa Password"
+  },
+  "forgotError": "Gagal mengirim. Coba lagi.",
+  "@forgotError": {
+    "description": "Pesan error kegagalan jaringan di layar Lupa Password"
+  },
   "loginLanguageIndonesian": "ID",
   "@loginLanguageIndonesian": {
     "description": "Label segmen bahasa Indonesia pada pill switch bahasa"

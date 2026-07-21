@@ -13,6 +13,7 @@ import '../features/asset_detail/presentation/asset_detail_screen.dart';
 import '../features/asset_register/presentation/asset_register_screen.dart';
 import '../features/catalog/presentation/catalog_screen.dart';
 import '../features/home/presentation/home_screen.dart';
+import '../features/login/presentation/forgot_password_screen.dart';
 import '../features/login/presentation/login_screen.dart';
 import '../features/my_assets/presentation/my_assets_screen.dart';
 import '../features/my_requests/presentation/my_requests_screen.dart';
@@ -51,10 +52,12 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
       final bool loggedIn =
           ref.read(authControllerProvider).value is Authenticated;
       final bool onLogin = state.matchedLocation == '/login';
+      // Lupa Password (FR-M1.5) diakses saat BELUM login — dikecualikan guard.
+      final bool onForgot = state.matchedLocation == '/forgot-password';
       if (!loggedIn) {
-        return onLogin ? null : '/login';
+        return (onLogin || onForgot) ? null : '/login';
       }
-      return onLogin ? '/' : null;
+      return (onLogin || onForgot) ? '/' : null;
     },
     routes: <RouteBase>[
       GoRoute(
@@ -62,6 +65,12 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
         name: 'login',
         builder: (BuildContext context, GoRouterState state) =>
             const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        name: 'forgot-password',
+        builder: (BuildContext context, GoRouterState state) =>
+            const ForgotPasswordScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder:

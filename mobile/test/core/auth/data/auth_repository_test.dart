@@ -228,4 +228,46 @@ void main() {
       expect(() => repository.me(), throwsA(isA<UnauthorizedFailure>()));
     });
   });
+
+  group('forgotPassword', () {
+    test('POST /auth/password/forgot dengan body email (di-trim)', () async {
+      when(
+        () => dio.post<Map<String, dynamic>>(
+          '/auth/password/forgot',
+          data: any(named: 'data'),
+        ),
+      ).thenAnswer(
+        (_) async =>
+            _jsonResponse('/auth/password/forgot', <String, dynamic>{}),
+      );
+
+      await repository.forgotPassword('  ragil@inventra.local  ');
+
+      final Map<String, dynamic> body =
+          verify(
+                () => dio.post<Map<String, dynamic>>(
+                  '/auth/password/forgot',
+                  data: captureAny(named: 'data'),
+                ),
+              ).captured.single
+              as Map<String, dynamic>;
+      expect(body, <String, String>{'email': 'ragil@inventra.local'});
+    });
+
+    test('offline: melempar NetworkFailure', () async {
+      when(
+        () => dio.post<Map<String, dynamic>>(
+          '/auth/password/forgot',
+          data: any(named: 'data'),
+        ),
+      ).thenThrow(
+        _mappedError('/auth/password/forgot', const NetworkFailure()),
+      );
+
+      expect(
+        () => repository.forgotPassword('a@b.c'),
+        throwsA(isA<NetworkFailure>()),
+      );
+    });
+  });
 }

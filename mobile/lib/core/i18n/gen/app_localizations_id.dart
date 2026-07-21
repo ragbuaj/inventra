@@ -410,6 +410,38 @@ class AppLocalizationsId extends AppLocalizations {
   String get loginErrorGeneric => 'Terjadi kesalahan. Coba lagi.';
 
   @override
+  String get forgotLink => 'Lupa password?';
+
+  @override
+  String get forgotTitle => 'Lupa Password';
+
+  @override
+  String get forgotIntro =>
+      'Masukkan email akun Anda. Kami akan mengirim tautan untuk menyetel ulang password bila email terdaftar.';
+
+  @override
+  String get forgotEmailLabel => 'Email';
+
+  @override
+  String get forgotSubmit => 'Kirim Tautan Reset';
+
+  @override
+  String get forgotEmailRequired => 'Masukkan email Anda.';
+
+  @override
+  String get forgotSentTitle => 'Cek kotak masuk Anda';
+
+  @override
+  String get forgotSentBody =>
+      'Jika email terdaftar, kami telah mengirim tautan reset. Buka tautan itu untuk menyetel password baru.';
+
+  @override
+  String get forgotBackToLogin => 'Kembali ke Login';
+
+  @override
+  String get forgotError => 'Gagal mengirim. Coba lagi.';
+
+  @override
   String get loginLanguageIndonesian => 'ID';
 
   @override

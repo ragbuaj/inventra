@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../app/locale_controller.dart';
@@ -103,6 +104,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             _obscurePassword = !_obscurePassword;
                           }),
                           onSubmit: _submit,
+                        ),
+                        const SizedBox(height: 4),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            key: const ValueKey<String>('login-forgot-link'),
+                            onPressed: () => context.push('/forgot-password'),
+                            child: Text(l10n.forgotLink),
+                          ),
                         ),
                         const Spacer(),
                         const SizedBox(height: 24),
