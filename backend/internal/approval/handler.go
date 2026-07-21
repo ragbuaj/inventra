@@ -271,8 +271,10 @@ func (h *Handler) get(c *gin.Context) {
 		common.WriteError(c, err)
 		return
 	}
-	callerID, _ := uuid.Parse(c.GetString(middleware.CtxUserID))
-	isMaker := r.RequestedByID == callerID
+	callerID, parseErr := uuid.Parse(c.GetString(middleware.CtxUserID))
+	// A failed/empty parse must never grant maker status: it would let a nil
+	// callerID match a (hypothetical) nil RequestedByID and skip scope.
+	isMaker := parseErr == nil && callerID != uuid.Nil && r.RequestedByID == callerID
 	if !isMaker && (r.OfficeID == nil || !common.InScope(all, ids, *r.OfficeID)) {
 		common.WriteError(c, common.ErrForbidden)
 		return

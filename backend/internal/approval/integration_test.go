@@ -1184,7 +1184,7 @@ func TestApproval_GetRequest_ScopeEnforced(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	callGetReq := func(reqID, userID, roleID uuid.UUID) int {
+	callGetReq := func(reqID, userID, roleID uuid.UUID) (int, map[string]any) {
 		stubAuth := func(c *gin.Context) {
 			c.Set(middleware.CtxUserID, userID.String())
 			c.Set(middleware.CtxRoleID, roleID.String())
@@ -1196,11 +1196,17 @@ func TestApproval_GetRequest_ScopeEnforced(t *testing.T) {
 		w := httptest.NewRecorder()
 		httpReq, _ := http.NewRequest(http.MethodGet, "/api/v1/requests/"+reqID.String(), nil)
 		r.ServeHTTP(w, httpReq)
-		return w.Code
+		var body map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
+		return w.Code, body
 	}
 
-	assert.Equal(t, http.StatusOK, callGetReq(outsiderOwnReq.ID, outsideUserID, outsideRoleID),
+	makerCode, makerBody := callGetReq(outsiderOwnReq.ID, outsideUserID, outsideRoleID)
+	assert.Equal(t, http.StatusOK, makerCode,
 		"a maker must be able to view their own request regardless of office scope")
+	// The bypass must return the maker's actual request, not an empty/masked shell.
+	assert.Equal(t, outsiderOwnReq.ID.String(), makerBody["id"],
+		"the maker's own request body must be returned through the scope bypass")
 }
 
 // strPtr returns a pointer to the given string.
