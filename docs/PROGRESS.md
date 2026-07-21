@@ -1551,12 +1551,19 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     ID gagal kini = non-maker (defense-in-depth) + integration test assert body maker; **(D)** sheet
 >     check-in bedakan gagal-muat vs tak-ada-penugasan (dulu error jaringan di-mask). Tes +14 (error
 >     submit ke-4 sheet, no-active vs load-error, toggle maintenance, FilterOptionsRepository + guard
->     autoDispose, titik ribuan). Suite mobile 541. **Deferral tercatat (follow-up, disepakati scope
->     "Fix A-D + tes High"):** backfill tes Medium (catalog param-name HTTP, my_requests loadmore/cancel
->     error, asset_register intangible+amount konkret, account_security NetworkFailure); UX Minor (sheet
->     bedakan Network/Forbidden/Conflict, email salah-format vs "password salah"); verifikasi backend
->     (validasi MIME/ukuran + re-encode foto lapor kerusakan sejajar avatar; kontrak `/auth/password/forgot`
->     selalu-200). Berikutnya: buka PR
+>     autoDispose, titik ribuan). Suite mobile 541. **SELURUH FOLLOW-UP REVIEW DITUTUP** (permintaan
+>     pemilik "kerjakan semua followup"): **(1) UX Minor** — helper `actionFailureMessage`
+>     (NetworkFailure/Forbidden/Conflict -> pesan spesifik `commonError*`, sisanya fallback aksi) dipakai
+>     di 4 sheet aksi + registrasi; validasi format email klien di ganti-email (email salah-format dulu
+>     tampil "password lama salah"). **(2) Backend foto** — `asset.UploadAttachment` dapat flag
+>     `Normalize`: foto (mobile field) di-downscale ke maks 2048px + re-encode JPEG q85 (strip EXIF/GPS,
+>     hemat storage, kualitas terjaga); diaktifkan di `POST /maintenance/reports` (dua lapis dgn cap
+>     1600px klien). PDF/attachment web lain tak berubah. **(3) Kontrak** — tes handler unit menegaskan
+>     `/auth/password/forgot` selalu 200 identik untuk email dikenal vs tak-dikenal (anti-enumerasi),
+>     malformed tetap 400. **(4) Backfill tes Medium** — catalog nama param HTTP, my_requests
+>     loadMore(sukses/gagal/no-op)+cancel-error, asset_register intangible+harga konkret, account_security
+>     NetworkFailure kedua form. Suite mobile 553; backend +normalizeImage & forgot-contract tests (build/
+>     vet/test hijau). Berikutnya: buka PR
 >     merge ke `main`; fase mobile lanjutan (M3/M5) menyusul.
 
 ## ✅ Done
