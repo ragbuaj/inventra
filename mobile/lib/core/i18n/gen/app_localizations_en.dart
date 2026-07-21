@@ -15,6 +15,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonRetry => 'Retry';
 
   @override
+  String get commonErrorNetwork => 'No connection. Check your network.';
+
+  @override
+  String get commonErrorForbidden => 'You are not authorized to do this.';
+
+  @override
+  String get commonErrorConflict => 'Things changed. Reload and try again.';
+
+  @override
   String get commonCancel => 'Cancel';
 
   @override
@@ -1658,4 +1667,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get securityNewEmailRequired => 'Enter the new email.';
+
+  @override
+  String get securityInvalidEmail => 'Invalid email format.';
 }

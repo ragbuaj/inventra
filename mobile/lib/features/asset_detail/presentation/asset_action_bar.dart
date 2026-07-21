@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../../core/api/failure_message.dart';
 import '../../../core/authz/permissions_provider.dart';
 import '../../../core/i18n/gen/app_localizations.dart';
 import '../data/asset_action_repository.dart';
@@ -198,13 +199,13 @@ class _ReportDamageSheetState extends ConsumerState<_ReportDamageSheet> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.reportSuccess)));
-    } on Object {
+    } on Object catch (e) {
       if (!mounted) {
         return;
       }
       setState(() {
         _submitting = false;
-        _error = l10n.reportError;
+        _error = actionFailureMessage(e, l10n, fallback: l10n.reportError);
       });
     }
   }
@@ -452,13 +453,13 @@ class _BorrowSheetState extends ConsumerState<_BorrowSheet> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.borrowSuccess)));
-    } on Object {
+    } on Object catch (e) {
       if (!mounted) {
         return;
       }
       setState(() {
         _submitting = false;
-        _error = l10n.borrowError;
+        _error = actionFailureMessage(e, l10n, fallback: l10n.borrowError);
       });
     }
   }
@@ -632,13 +633,13 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.checkoutSuccess)));
-    } on Object {
+    } on Object catch (e) {
       if (!mounted) {
         return;
       }
       setState(() {
         _submitting = false;
-        _error = l10n.checkoutError;
+        _error = actionFailureMessage(e, l10n, fallback: l10n.checkoutError);
       });
     }
   }
@@ -901,13 +902,13 @@ class _CheckinSheetState extends ConsumerState<_CheckinSheet> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.checkinSuccess)));
-    } on Object {
+    } on Object catch (e) {
       if (!mounted) {
         return;
       }
       setState(() {
         _submitting = false;
-        _error = l10n.checkinError;
+        _error = actionFailureMessage(e, l10n, fallback: l10n.checkinError);
       });
     }
   }

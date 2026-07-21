@@ -15,6 +15,17 @@ class AppLocalizationsId extends AppLocalizations {
   String get commonRetry => 'Coba lagi';
 
   @override
+  String get commonErrorNetwork => 'Tidak ada koneksi. Periksa jaringan Anda.';
+
+  @override
+  String get commonErrorForbidden =>
+      'Anda tidak berwenang melakukan tindakan ini.';
+
+  @override
+  String get commonErrorConflict =>
+      'Kondisi berubah. Muat ulang lalu coba lagi.';
+
+  @override
   String get commonCancel => 'Batal';
 
   @override
@@ -1657,4 +1668,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get securityNewEmailRequired => 'Isi email baru.';
+
+  @override
+  String get securityInvalidEmail => 'Format email tidak valid.';
 }

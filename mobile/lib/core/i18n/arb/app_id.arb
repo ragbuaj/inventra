@@ -8,6 +8,18 @@
   "@commonRetry": {
     "description": "Label tombol coba ulang setelah error"
   },
+  "commonErrorNetwork": "Tidak ada koneksi. Periksa jaringan Anda.",
+  "@commonErrorNetwork": {
+    "description": "Pesan error kegagalan jaringan yang dipakai bersama"
+  },
+  "commonErrorForbidden": "Anda tidak berwenang melakukan tindakan ini.",
+  "@commonErrorForbidden": {
+    "description": "Pesan error saat aksi ditolak izin/segregation of duties"
+  },
+  "commonErrorConflict": "Kondisi berubah. Muat ulang lalu coba lagi.",
+  "@commonErrorConflict": {
+    "description": "Pesan error saat aksi bentrok dengan kondisi terkini (409)"
+  },
   "commonCancel": "Batal",
   "@commonCancel": {
     "description": "Label tombol batal umum"
@@ -2023,5 +2035,7 @@
   "securityCurrentPasswordRequired": "Isi password saat ini.",
   "@securityCurrentPasswordRequired": { "description": "Validasi password lama wajib" },
   "securityNewEmailRequired": "Isi email baru.",
-  "@securityNewEmailRequired": { "description": "Validasi email baru wajib" }
+  "@securityNewEmailRequired": { "description": "Validasi email baru wajib" },
+  "securityInvalidEmail": "Format email tidak valid.",
+  "@securityInvalidEmail": { "description": "Validasi format email baru salah pada ganti email" }
 }

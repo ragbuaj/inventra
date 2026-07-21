@@ -7,6 +7,9 @@ import '../../../core/i18n/gen/app_localizations.dart';
 import '../data/account_security_repository.dart';
 import 'account_providers.dart';
 
+/// Validasi format email ringan sisi-klien (bukan pengganti validasi server).
+final RegExp _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
 /// Keamanan Akun (FR-M6.3): ganti password & email berbasis link email. Klien
 /// hanya memulai; penetapan/konfirmasi di halaman web.
 class AccountSecurityScreen extends ConsumerWidget {
@@ -322,8 +325,15 @@ class _EmailChangeSheetState extends ConsumerState<_EmailChangeSheet> {
 
   Future<void> _submit() async {
     final AppLocalizations l10n = AppLocalizations.of(context);
-    if (_email.text.trim().isEmpty) {
+    final String email = _email.text.trim();
+    if (email.isEmpty) {
       setState(() => _error = l10n.securityNewEmailRequired);
+      return;
+    }
+    // Validasi format di klien: tanpa ini, email salah-format ditolak backend
+    // sebagai 400 -> dipetakan ke "password lama salah" yang menyesatkan.
+    if (!_emailPattern.hasMatch(email)) {
+      setState(() => _error = l10n.securityInvalidEmail);
       return;
     }
     if (_current.text.isEmpty) {

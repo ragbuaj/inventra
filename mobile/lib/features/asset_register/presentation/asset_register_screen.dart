@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/api/failure_message.dart';
 import '../../../core/i18n/gen/app_localizations.dart';
 import '../../catalog/data/filter_options_repository.dart';
 import '../data/asset_register_repository.dart';
@@ -117,13 +118,13 @@ class _AssetRegisterScreenState extends ConsumerState<AssetRegisterScreen> {
       ).showSnackBar(SnackBar(content: Text(l10n.registerSuccess)));
       // Arahkan ke Pengajuan Saya (lensa maker).
       context.go('/my-requests');
-    } on Object {
+    } on Object catch (e) {
       if (!mounted) {
         return;
       }
       setState(() {
         _submitting = false;
-        _error = l10n.registerError;
+        _error = actionFailureMessage(e, l10n, fallback: l10n.registerError);
       });
     }
   }

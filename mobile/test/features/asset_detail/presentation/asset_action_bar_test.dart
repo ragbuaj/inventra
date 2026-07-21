@@ -315,9 +315,31 @@ void main() {
     await tester.tap(find.text(l10nId.borrowSubmit));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10nId.borrowError), findsOneWidget);
+    // NetworkFailure dipetakan ke pesan koneksi spesifik (bukan generik).
+    expect(find.text(l10nId.commonErrorNetwork), findsOneWidget);
     expect(find.text(l10nId.borrowSheetTitle), findsOneWidget);
     expect(find.text(l10nId.borrowSuccess), findsNothing);
+  });
+
+  testWidgets('Pinjam gagal (ServerFailure): fallback ke pesan generik', (
+    WidgetTester tester,
+  ) async {
+    when(
+      () => repository.borrow(
+        assetId: any(named: 'assetId'),
+        dueDate: any(named: 'dueDate'),
+        notes: any(named: 'notes'),
+      ),
+    ).thenThrow(const ServerFailure());
+
+    await pumpBar(tester, permissions: <String>{'request.create'});
+    await tester.tap(find.text(l10nId.assetActionBorrow));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10nId.borrowSubmit));
+    await tester.pumpAndSettle();
+
+    // Kegagalan tak-terpetakan jatuh ke pesan aksi spesifik (borrowError).
+    expect(find.text(l10nId.borrowError), findsOneWidget);
   });
 
   testWidgets('Check-out gagal: pesan error inline, sheet tetap terbuka', (
@@ -344,7 +366,8 @@ void main() {
     await tester.tap(find.text(l10nId.checkoutSubmit).last);
     await tester.pumpAndSettle();
 
-    expect(find.text(l10nId.checkoutError), findsOneWidget);
+    // ConflictFailure (aset sudah dipegang) -> pesan konflik spesifik.
+    expect(find.text(l10nId.commonErrorConflict), findsOneWidget);
     expect(find.text(l10nId.checkoutSuccess), findsNothing);
   });
 
@@ -373,7 +396,7 @@ void main() {
     await tester.tap(find.text(l10nId.checkinSubmit).last);
     await tester.pumpAndSettle();
 
-    expect(find.text(l10nId.checkinError), findsOneWidget);
+    expect(find.text(l10nId.commonErrorNetwork), findsOneWidget);
     expect(find.text(l10nId.checkinSuccess), findsNothing);
   });
 
@@ -401,7 +424,7 @@ void main() {
     await tester.tap(find.text(l10nId.reportSubmit));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10nId.reportError), findsOneWidget);
+    expect(find.text(l10nId.commonErrorNetwork), findsOneWidget);
     expect(find.text(l10nId.reportSuccess), findsNothing);
   });
 

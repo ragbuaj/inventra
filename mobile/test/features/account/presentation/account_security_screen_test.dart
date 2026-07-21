@@ -90,6 +90,28 @@ void main() {
       expect(find.text(l10nId.securityWrongPassword), findsOneWidget);
       expect(find.text(l10nId.securityCheckEmailTitle), findsNothing);
     });
+
+    testWidgets('gagal jaringan: pesan error generik inline (bukan cek email)', (
+      WidgetTester tester,
+    ) async {
+      when(
+        () => repository.requestPasswordChange(any()),
+      ).thenThrow(const NetworkFailure());
+
+      await pump(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('security-change-password')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'rahasia123');
+      await tester.tap(
+        find.byKey(const ValueKey<String>('security-password-submit')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10nId.securityError), findsOneWidget);
+      expect(find.text(l10nId.securityCheckEmailTitle), findsNothing);
+    });
   });
 
   group('ganti email', () {
@@ -147,6 +169,57 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(l10nId.securityEmailInUse), findsOneWidget);
+    });
+
+    testWidgets('email salah format: validasi klien, tak panggil repository', (
+      WidgetTester tester,
+    ) async {
+      await pump(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('security-change-email')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(0), 'bukan-email');
+      await tester.enterText(find.byType(TextField).at(1), 'rahasia123');
+      await tester.tap(
+        find.byKey(const ValueKey<String>('security-email-submit')),
+      );
+      await tester.pumpAndSettle();
+
+      // Pesan format email (bukan "password lama salah" yang menyesatkan).
+      expect(find.text(l10nId.securityInvalidEmail), findsOneWidget);
+      verifyNever(
+        () => repository.requestEmailChange(
+          newEmail: any(named: 'newEmail'),
+          currentPassword: any(named: 'currentPassword'),
+        ),
+      );
+    });
+
+    testWidgets('gagal jaringan: pesan error generik inline', (
+      WidgetTester tester,
+    ) async {
+      when(
+        () => repository.requestEmailChange(
+          newEmail: any(named: 'newEmail'),
+          currentPassword: any(named: 'currentPassword'),
+        ),
+      ).thenThrow(const NetworkFailure());
+
+      await pump(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('security-change-email')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(0), 'baru@x.local');
+      await tester.enterText(find.byType(TextField).at(1), 'rahasia123');
+      await tester.tap(
+        find.byKey(const ValueKey<String>('security-email-submit')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10nId.securityError), findsOneWidget);
+      expect(find.text(l10nId.securityCheckEmailTitle), findsNothing);
     });
   });
 }

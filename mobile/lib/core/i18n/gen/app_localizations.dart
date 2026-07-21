@@ -110,6 +110,24 @@ abstract class AppLocalizations {
   /// **'Coba lagi'**
   String get commonRetry;
 
+  /// Pesan error kegagalan jaringan yang dipakai bersama
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada koneksi. Periksa jaringan Anda.'**
+  String get commonErrorNetwork;
+
+  /// Pesan error saat aksi ditolak izin/segregation of duties
+  ///
+  /// In id, this message translates to:
+  /// **'Anda tidak berwenang melakukan tindakan ini.'**
+  String get commonErrorForbidden;
+
+  /// Pesan error saat aksi bentrok dengan kondisi terkini (409)
+  ///
+  /// In id, this message translates to:
+  /// **'Kondisi berubah. Muat ulang lalu coba lagi.'**
+  String get commonErrorConflict;
+
   /// Label tombol batal umum
   ///
   /// In id, this message translates to:
@@ -3139,6 +3157,12 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Isi email baru.'**
   String get securityNewEmailRequired;
+
+  /// Validasi format email baru salah pada ganti email
+  ///
+  /// In id, this message translates to:
+  /// **'Format email tidak valid.'**
+  String get securityInvalidEmail;
 }
 
 class _AppLocalizationsDelegate

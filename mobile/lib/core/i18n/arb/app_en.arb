@@ -2,6 +2,9 @@
   "@@locale": "en",
   "appTitle": "Inventra Mobile",
   "commonRetry": "Retry",
+  "commonErrorNetwork": "No connection. Check your network.",
+  "commonErrorForbidden": "You are not authorized to do this.",
+  "commonErrorConflict": "Things changed. Reload and try again.",
   "commonCancel": "Cancel",
   "commonOfflineBanner": "Offline — scans saved on this device",
   "commonSyncSynced": "Synced",
@@ -506,5 +509,6 @@
   "securityEmailInUse": "Email already in use.",
   "securityError": "Failed. Try again.",
   "securityCurrentPasswordRequired": "Enter your current password.",
-  "securityNewEmailRequired": "Enter the new email."
+  "securityNewEmailRequired": "Enter the new email.",
+  "securityInvalidEmail": "Invalid email format."
 }
