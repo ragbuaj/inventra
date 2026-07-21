@@ -1174,4 +1174,48 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get catalogPickerOfficeTitle => 'Pilih Kantor';
+
+  @override
+  String get myAssetsTitle => 'Aset Saya';
+
+  @override
+  String myAssetsCount(int count) {
+    return '$count aset dipegang';
+  }
+
+  @override
+  String myAssetsHeldSince(String date) {
+    return 'Dipinjam sejak $date';
+  }
+
+  @override
+  String myAssetsDue(String date) {
+    return 'Jatuh tempo $date';
+  }
+
+  @override
+  String get myAssetsOverdue => 'Terlambat';
+
+  @override
+  String get myAssetsEmptyTitle => 'Belum memegang aset';
+
+  @override
+  String get myAssetsEmptyBody =>
+      'Aset yang ditugaskan ke Anda akan tampil di sini.';
+
+  @override
+  String get myAssetsErrorTitle => 'Gagal memuat aset Anda';
+
+  @override
+  String get myAssetsErrorNetworkBody => 'Periksa koneksi Anda lalu coba lagi.';
+
+  @override
+  String get myAssetsErrorGenericBody => 'Terjadi kesalahan. Coba lagi.';
+
+  @override
+  String get myAssetsForbiddenTitle => 'Tanpa akses';
+
+  @override
+  String get myAssetsForbiddenBody =>
+      'Anda tidak memiliki izin melihat aset yang dipegang.';
 }

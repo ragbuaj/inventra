@@ -351,5 +351,17 @@
   "catalogFilterOptionsError": "Failed to load options",
   "catalogPickerStatusTitle": "Select Status",
   "catalogPickerCategoryTitle": "Select Category",
-  "catalogPickerOfficeTitle": "Select Office"
+  "catalogPickerOfficeTitle": "Select Office",
+  "myAssetsTitle": "My Assets",
+  "myAssetsCount": "{count} assets held",
+  "myAssetsHeldSince": "Held since {date}",
+  "myAssetsDue": "Due {date}",
+  "myAssetsOverdue": "Overdue",
+  "myAssetsEmptyTitle": "No assets held",
+  "myAssetsEmptyBody": "Assets assigned to you will appear here.",
+  "myAssetsErrorTitle": "Couldn't load your assets",
+  "myAssetsErrorNetworkBody": "Check your connection and try again.",
+  "myAssetsErrorGenericBody": "Something went wrong. Try again.",
+  "myAssetsForbiddenTitle": "No access",
+  "myAssetsForbiddenBody": "You don't have permission to view held assets."
 }

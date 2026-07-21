@@ -1436,8 +1436,13 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     pull-to-refresh; kartu aset (nama/kode/chip status/kantor via reference lookup non-fatal);
 >     empty/loading/error/403 state; navigasi ke Detail Aset; rute `/catalog`. Nol backend baru.
 >     Tes: 6 unit repository + 10 widget + 4 widget filter + golden light/dark; `flutter analyze`
->     bersih; suite mobile 432 lulus. Berikutnya M7: Task M7-2 (Aset Saya). Titik masuk Beranda
->     (M7-8) menyusul.
+>     bersih. **Task M7-2 (Aset Saya) LANDED** (`mobile/lib/features/my_assets/`): `GET
+>     /assignments/mine?status=active` (flat `{data:[...]}`, enum status active/returned), menu
+>     tersendiri (rute `/my-assets`), kartu aset dipegang (nama/kode/chip Dipinjam/dipinjam sejak/
+>     jatuh tempo) dengan penanda **Terlambat** (due_date < hari ini via clockProvider);
+>     empty/loading/error/403 state; tap ke Detail Aset. Nol backend baru. Tes: 4 unit repository +
+>     6 widget + golden light/dark; suite mobile 444 lulus. Berikutnya M7: Task M7-3 (Pengajuan
+>     Saya). Titik masuk Beranda (M7-8) menyusul.
 
 ## ✅ Done
 

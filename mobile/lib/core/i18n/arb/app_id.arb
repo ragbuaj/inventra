@@ -1604,5 +1604,62 @@
   "catalogPickerOfficeTitle": "Pilih Kantor",
   "@catalogPickerOfficeTitle": {
     "description": "Judul sheet picker kantor"
+  },
+  "myAssetsTitle": "Aset Saya",
+  "@myAssetsTitle": {
+    "description": "Judul layar Aset Saya (AppBar)"
+  },
+  "myAssetsCount": "{count} aset dipegang",
+  "@myAssetsCount": {
+    "description": "Jumlah aset yang sedang dipegang pengguna",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "myAssetsHeldSince": "Dipinjam sejak {date}",
+  "@myAssetsHeldSince": {
+    "description": "Tanggal aset mulai dipegang",
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "myAssetsDue": "Jatuh tempo {date}",
+  "@myAssetsDue": {
+    "description": "Tanggal jatuh tempo pengembalian aset",
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "myAssetsOverdue": "Terlambat",
+  "@myAssetsOverdue": {
+    "description": "Penanda aset melewati jatuh tempo"
+  },
+  "myAssetsEmptyTitle": "Belum memegang aset",
+  "@myAssetsEmptyTitle": {
+    "description": "Judul empty state Aset Saya"
+  },
+  "myAssetsEmptyBody": "Aset yang ditugaskan ke Anda akan tampil di sini.",
+  "@myAssetsEmptyBody": {
+    "description": "Body empty state Aset Saya"
+  },
+  "myAssetsErrorTitle": "Gagal memuat aset Anda",
+  "@myAssetsErrorTitle": {
+    "description": "Judul error state Aset Saya"
+  },
+  "myAssetsErrorNetworkBody": "Periksa koneksi Anda lalu coba lagi.",
+  "@myAssetsErrorNetworkBody": {
+    "description": "Body error Aset Saya saat offline"
+  },
+  "myAssetsErrorGenericBody": "Terjadi kesalahan. Coba lagi.",
+  "@myAssetsErrorGenericBody": {
+    "description": "Body error Aset Saya generik"
+  },
+  "myAssetsForbiddenTitle": "Tanpa akses",
+  "@myAssetsForbiddenTitle": {
+    "description": "Judul Aset Saya saat 403"
+  },
+  "myAssetsForbiddenBody": "Anda tidak memiliki izin melihat aset yang dipegang.",
+  "@myAssetsForbiddenBody": {
+    "description": "Body Aset Saya saat 403"
   }
 }

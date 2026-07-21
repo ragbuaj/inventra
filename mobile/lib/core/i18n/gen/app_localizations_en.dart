@@ -1176,4 +1176,47 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get catalogPickerOfficeTitle => 'Select Office';
+
+  @override
+  String get myAssetsTitle => 'My Assets';
+
+  @override
+  String myAssetsCount(int count) {
+    return '$count assets held';
+  }
+
+  @override
+  String myAssetsHeldSince(String date) {
+    return 'Held since $date';
+  }
+
+  @override
+  String myAssetsDue(String date) {
+    return 'Due $date';
+  }
+
+  @override
+  String get myAssetsOverdue => 'Overdue';
+
+  @override
+  String get myAssetsEmptyTitle => 'No assets held';
+
+  @override
+  String get myAssetsEmptyBody => 'Assets assigned to you will appear here.';
+
+  @override
+  String get myAssetsErrorTitle => 'Couldn\'t load your assets';
+
+  @override
+  String get myAssetsErrorNetworkBody => 'Check your connection and try again.';
+
+  @override
+  String get myAssetsErrorGenericBody => 'Something went wrong. Try again.';
+
+  @override
+  String get myAssetsForbiddenTitle => 'No access';
+
+  @override
+  String get myAssetsForbiddenBody =>
+      'You don\'t have permission to view held assets.';
 }

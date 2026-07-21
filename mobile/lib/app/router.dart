@@ -12,6 +12,7 @@ import '../features/asset_detail/presentation/asset_detail_screen.dart';
 import '../features/catalog/presentation/catalog_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/login/presentation/login_screen.dart';
+import '../features/my_assets/presentation/my_assets_screen.dart';
 import '../features/notifications/presentation/notifications_screen.dart';
 import '../features/scan/presentation/scan_screen.dart';
 import '../features/stock_opname/presentation/opname_counting_screen.dart';
@@ -157,6 +158,12 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
         name: 'catalog',
         builder: (BuildContext context, GoRouterState state) =>
             const CatalogScreen(),
+      ),
+      GoRoute(
+        path: '/my-assets',
+        name: 'my-assets',
+        builder: (BuildContext context, GoRouterState state) =>
+            const MyAssetsScreen(),
       ),
       GoRoute(
         path: '/assets/:tag',

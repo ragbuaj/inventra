@@ -2209,6 +2209,78 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Pilih Kantor'**
   String get catalogPickerOfficeTitle;
+
+  /// Judul layar Aset Saya (AppBar)
+  ///
+  /// In id, this message translates to:
+  /// **'Aset Saya'**
+  String get myAssetsTitle;
+
+  /// Jumlah aset yang sedang dipegang pengguna
+  ///
+  /// In id, this message translates to:
+  /// **'{count} aset dipegang'**
+  String myAssetsCount(int count);
+
+  /// Tanggal aset mulai dipegang
+  ///
+  /// In id, this message translates to:
+  /// **'Dipinjam sejak {date}'**
+  String myAssetsHeldSince(String date);
+
+  /// Tanggal jatuh tempo pengembalian aset
+  ///
+  /// In id, this message translates to:
+  /// **'Jatuh tempo {date}'**
+  String myAssetsDue(String date);
+
+  /// Penanda aset melewati jatuh tempo
+  ///
+  /// In id, this message translates to:
+  /// **'Terlambat'**
+  String get myAssetsOverdue;
+
+  /// Judul empty state Aset Saya
+  ///
+  /// In id, this message translates to:
+  /// **'Belum memegang aset'**
+  String get myAssetsEmptyTitle;
+
+  /// Body empty state Aset Saya
+  ///
+  /// In id, this message translates to:
+  /// **'Aset yang ditugaskan ke Anda akan tampil di sini.'**
+  String get myAssetsEmptyBody;
+
+  /// Judul error state Aset Saya
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat aset Anda'**
+  String get myAssetsErrorTitle;
+
+  /// Body error Aset Saya saat offline
+  ///
+  /// In id, this message translates to:
+  /// **'Periksa koneksi Anda lalu coba lagi.'**
+  String get myAssetsErrorNetworkBody;
+
+  /// Body error Aset Saya generik
+  ///
+  /// In id, this message translates to:
+  /// **'Terjadi kesalahan. Coba lagi.'**
+  String get myAssetsErrorGenericBody;
+
+  /// Judul Aset Saya saat 403
+  ///
+  /// In id, this message translates to:
+  /// **'Tanpa akses'**
+  String get myAssetsForbiddenTitle;
+
+  /// Body Aset Saya saat 403
+  ///
+  /// In id, this message translates to:
+  /// **'Anda tidak memiliki izin melihat aset yang dipegang.'**
+  String get myAssetsForbiddenBody;
 }
 
 class _AppLocalizationsDelegate
