@@ -2,6 +2,7 @@ package identity
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/middleware"
+	"github.com/ragbuaj/inventra/internal/ratelimit"
 )
 
 // withCaller returns gin middleware that stamps CtxUserID, simulating what
@@ -309,6 +311,60 @@ func TestRequestPasswordChange_Unauthorized_NoCaller(t *testing.T) {
 	w := doJSON(t, r, http.MethodPost, "/password/change-request", passwordChangeRequestRequest{CurrentPassword: "x"})
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("want 401, got %d", w.Code)
+	}
+}
+
+// --- forgotPassword (public route): anti-enumeration HTTP contract ---------
+
+// passLimiter always allows, so these tests exercise the handler body rather
+// than the rate-limit guard. (Named distinctly from the integration build's
+// allowLimiter to avoid a redeclaration when both files compile together.)
+type passLimiter struct{}
+
+func (passLimiter) Allow(_ context.Context, _ string, _ int, _ bool) ratelimit.Result {
+	return ratelimit.Result{Allowed: true}
+}
+
+// A known and an unknown address MUST yield an identical 200 response so the
+// endpoint never reveals whether an account exists. The mobile Lupa Password
+// screen relies on this: it shows the same confirmation for any input.
+func TestForgotPassword_Always200_IdenticalBody(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	u := activeUserEmail(t, "known@x.com")
+	fs := &fakeStore{
+		byEmail: map[string]sqlc.IdentityUser{"known@x.com": u},
+		byID:    map[uuid.UUID]sqlc.IdentityUser{u.ID: u},
+	}
+	h := &Handler{svc: newTestService(t, fs, &fakeMailer{}), limiter: passLimiter{}, forgotPerMin: 100}
+	r := gin.New()
+	r.POST("/password/forgot", h.forgotPassword)
+
+	known := doJSON(t, r, http.MethodPost, "/password/forgot", forgotPasswordRequest{Email: "known@x.com"})
+	unknown := doJSON(t, r, http.MethodPost, "/password/forgot", forgotPasswordRequest{Email: "ghost@x.com"})
+
+	if known.Code != http.StatusOK {
+		t.Fatalf("known email: want 200, got %d: %s", known.Code, known.Body.String())
+	}
+	if unknown.Code != http.StatusOK {
+		t.Fatalf("unknown email: want 200, got %d: %s", unknown.Code, unknown.Body.String())
+	}
+	if known.Body.String() != unknown.Body.String() {
+		t.Fatalf("body must be identical (anti-enumeration): known=%q unknown=%q",
+			known.Body.String(), unknown.Body.String())
+	}
+}
+
+// A malformed address is a client format error (400), which is NOT enumeration
+// — it says nothing about account existence.
+func TestForgotPassword_InvalidEmail_400(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := &Handler{limiter: passLimiter{}, forgotPerMin: 100}
+	r := gin.New()
+	r.POST("/password/forgot", h.forgotPassword)
+
+	w := doJSON(t, r, http.MethodPost, "/password/forgot", map[string]any{"email": "not-an-email"})
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("want 400 for malformed email, got %d", w.Code)
 	}
 }
 
