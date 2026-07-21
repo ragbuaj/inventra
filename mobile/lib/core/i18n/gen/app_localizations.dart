@@ -2635,6 +2635,144 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Gagal mengirim. Coba lagi.'**
   String get reportError;
+
+  /// Judul layar registrasi aset
+  ///
+  /// In id, this message translates to:
+  /// **'Registrasi Aset'**
+  String get registerTitle;
+
+  /// Langkah 1 registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Identitas'**
+  String get registerStepIdentity;
+
+  /// Langkah 2 registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Penempatan'**
+  String get registerStepPlacement;
+
+  /// Langkah 3 registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Tinjau'**
+  String get registerStepReview;
+
+  /// Field nama aset
+  ///
+  /// In id, this message translates to:
+  /// **'Nama aset'**
+  String get registerName;
+
+  /// Picker kategori aset
+  ///
+  /// In id, this message translates to:
+  /// **'Kategori'**
+  String get registerCategory;
+
+  /// Pilihan kelas aset
+  ///
+  /// In id, this message translates to:
+  /// **'Kelas aset'**
+  String get registerAssetClass;
+
+  /// Kelas aset tangible
+  ///
+  /// In id, this message translates to:
+  /// **'Berwujud'**
+  String get registerClassTangible;
+
+  /// Kelas aset intangible
+  ///
+  /// In id, this message translates to:
+  /// **'Tak berwujud'**
+  String get registerClassIntangible;
+
+  /// Field nomor seri
+  ///
+  /// In id, this message translates to:
+  /// **'Nomor seri (opsional)'**
+  String get registerSerial;
+
+  /// Picker kantor registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Kantor'**
+  String get registerOffice;
+
+  /// Field harga perolehan
+  ///
+  /// In id, this message translates to:
+  /// **'Harga perolehan (opsional)'**
+  String get registerPurchaseCost;
+
+  /// Field tanggal perolehan
+  ///
+  /// In id, this message translates to:
+  /// **'Tanggal perolehan (opsional)'**
+  String get registerPurchaseDate;
+
+  /// Field catatan registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Catatan (opsional)'**
+  String get registerNotes;
+
+  /// Keterangan tinjau registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Diproses sebagai pengajuan registrasi lewat approval; nilai pengajuan = harga perolehan.'**
+  String get registerReviewNote;
+
+  /// Tombol lanjut langkah
+  ///
+  /// In id, this message translates to:
+  /// **'Lanjut'**
+  String get registerNext;
+
+  /// Tombol kembali langkah
+  ///
+  /// In id, this message translates to:
+  /// **'Kembali'**
+  String get registerBack;
+
+  /// Tombol kirim registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Kirim Pengajuan'**
+  String get registerSubmit;
+
+  /// Validasi nama wajib
+  ///
+  /// In id, this message translates to:
+  /// **'Nama aset wajib diisi.'**
+  String get registerNameRequired;
+
+  /// Validasi kategori wajib
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih kategori dulu.'**
+  String get registerCategoryRequired;
+
+  /// Validasi kantor wajib
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih kantor dulu.'**
+  String get registerOfficeRequired;
+
+  /// SnackBar sukses registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan registrasi dikirim'**
+  String get registerSuccess;
+
+  /// Pesan gagal registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal mengirim. Coba lagi.'**
+  String get registerError;
 }
 
 class _AppLocalizationsDelegate

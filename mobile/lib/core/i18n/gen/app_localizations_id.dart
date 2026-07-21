@@ -1400,4 +1400,74 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get reportError => 'Gagal mengirim. Coba lagi.';
+
+  @override
+  String get registerTitle => 'Registrasi Aset';
+
+  @override
+  String get registerStepIdentity => 'Identitas';
+
+  @override
+  String get registerStepPlacement => 'Penempatan';
+
+  @override
+  String get registerStepReview => 'Tinjau';
+
+  @override
+  String get registerName => 'Nama aset';
+
+  @override
+  String get registerCategory => 'Kategori';
+
+  @override
+  String get registerAssetClass => 'Kelas aset';
+
+  @override
+  String get registerClassTangible => 'Berwujud';
+
+  @override
+  String get registerClassIntangible => 'Tak berwujud';
+
+  @override
+  String get registerSerial => 'Nomor seri (opsional)';
+
+  @override
+  String get registerOffice => 'Kantor';
+
+  @override
+  String get registerPurchaseCost => 'Harga perolehan (opsional)';
+
+  @override
+  String get registerPurchaseDate => 'Tanggal perolehan (opsional)';
+
+  @override
+  String get registerNotes => 'Catatan (opsional)';
+
+  @override
+  String get registerReviewNote =>
+      'Diproses sebagai pengajuan registrasi lewat approval; nilai pengajuan = harga perolehan.';
+
+  @override
+  String get registerNext => 'Lanjut';
+
+  @override
+  String get registerBack => 'Kembali';
+
+  @override
+  String get registerSubmit => 'Kirim Pengajuan';
+
+  @override
+  String get registerNameRequired => 'Nama aset wajib diisi.';
+
+  @override
+  String get registerCategoryRequired => 'Pilih kategori dulu.';
+
+  @override
+  String get registerOfficeRequired => 'Pilih kantor dulu.';
+
+  @override
+  String get registerSuccess => 'Pengajuan registrasi dikirim';
+
+  @override
+  String get registerError => 'Gagal mengirim. Coba lagi.';
 }

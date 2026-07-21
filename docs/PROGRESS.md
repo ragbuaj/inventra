@@ -1482,7 +1482,17 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     butuh dependensi image_picker — perlu konfirmasi). Bar tombol jadi teks-only + ellipsis (bisa 2
 >     tombol, mis. Pinjam+Lapor Kerusakan); golden Detail Aset diregenerasi (2 tombol). Nol backend
 >     baru. Tes: +2 repo + 2 widget; suite mobile 493 lulus. **Cluster M7-4/5/6 (Detail Aset) SELESAI.**
->     Berikutnya M7: **M7-7 (Registrasi Aset** — form stepper penuh) lalu M7-8 (titik masuk Beranda).
+>     **Task M7-7 (Registrasi Aset) LANDED** (`mobile/lib/features/asset_register/`): form Stepper 3
+>     langkah (Identitas: nama+kategori+kelas aset tangible/intangible+seri; Penempatan: kantor+harga
+>     numerik-only+tanggal+catatan; Tinjau lalu kirim) -> `POST /requests` type `asset_create` dengan
+>     `AssetCreatePayload` + **`amount == purchase_cost`** ('0' bila kosong). Reuse picker
+>     kategori/kantor katalog; harga numerik-only via inputFormatters; sukses -> ke Pengajuan Saya.
+>     **Tanpa cek ambang kapitalisasi** (sesuai temuan). Field referensi opsional
+>     (brand/model/unit/vendor/ruangan) ditunda; golden layar registrasi belum dibuat. Rute
+>     `/register-asset` (entry Katalog/Beranda = M7-8). Nol backend baru. Tes: 3 repo (payload +
+>     amount==cost + tanpa harga) + 3 widget (alur lengkap, validasi nama, numerik-only); suite mobile
+>     499 lulus. Berikutnya M7: **M7-8 (titik masuk Beranda** + entry Registrasi/Katalog/Aset
+>     Saya/Pengajuan Saya) — penutup fase M7.
 
 ## ✅ Done
 

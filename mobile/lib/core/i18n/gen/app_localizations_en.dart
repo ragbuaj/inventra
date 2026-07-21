@@ -1400,4 +1400,74 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportError => 'Couldn\'t send. Try again.';
+
+  @override
+  String get registerTitle => 'Register Asset';
+
+  @override
+  String get registerStepIdentity => 'Identity';
+
+  @override
+  String get registerStepPlacement => 'Placement';
+
+  @override
+  String get registerStepReview => 'Review';
+
+  @override
+  String get registerName => 'Asset name';
+
+  @override
+  String get registerCategory => 'Category';
+
+  @override
+  String get registerAssetClass => 'Asset class';
+
+  @override
+  String get registerClassTangible => 'Tangible';
+
+  @override
+  String get registerClassIntangible => 'Intangible';
+
+  @override
+  String get registerSerial => 'Serial number (optional)';
+
+  @override
+  String get registerOffice => 'Office';
+
+  @override
+  String get registerPurchaseCost => 'Purchase cost (optional)';
+
+  @override
+  String get registerPurchaseDate => 'Purchase date (optional)';
+
+  @override
+  String get registerNotes => 'Notes (optional)';
+
+  @override
+  String get registerReviewNote =>
+      'Processed as a registration request via approval; request amount = purchase cost.';
+
+  @override
+  String get registerNext => 'Next';
+
+  @override
+  String get registerBack => 'Back';
+
+  @override
+  String get registerSubmit => 'Submit Request';
+
+  @override
+  String get registerNameRequired => 'Asset name is required.';
+
+  @override
+  String get registerCategoryRequired => 'Pick a category first.';
+
+  @override
+  String get registerOfficeRequired => 'Pick an office first.';
+
+  @override
+  String get registerSuccess => 'Registration request submitted';
+
+  @override
+  String get registerError => 'Couldn\'t send. Try again.';
 }
