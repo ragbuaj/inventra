@@ -54,9 +54,11 @@ test('peminjaman Staf: approver berbeda approve -> aset assigned; checkin -> ava
   expect(await assetStatus(admin, asset.id)).toBe('assigned')
 
   // Check-in oleh Manager -> assignment returned, aset available.
-  const list = (await (await admin.api.get(`assets/${asset.id}/assignments`)).json()).data as Array<{ id: string, status: string }>
+  const list = (await (await admin.api.get(`assets/${asset.id}/assignments`)).json()).data as Array<{ id: string, status: string, employee_id: string }>
   const active = list.find(a => a.status === 'active')
   expect(active).toBeTruthy()
+  // Executor menautkan aset ke pegawai MILIK Staf (diresolusi dari JWT, bukan input).
+  expect(active!.employee_id).toBe(stafEmployeeId)
   expect((await maker.api.post(`assignments/${active!.id}/checkin`, { data: { condition_in: 'baik' } })).status()).toBe(200)
   expect(await assetStatus(admin, asset.id)).toBe('available')
 })

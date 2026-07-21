@@ -1578,7 +1578,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     status aset (assignment/maintenance/transfer/disposal + approval history & inbox pending +
 >     periode depresiasi + notifikasi + audit). **WAJIB setelah seed: `redis-cli FLUSHALL`** (cache
 >     authz Redis by role_id — seed SQL langsung tak menginvalidasinya). **E2E** (`frontend/e2e/
->     lampiran-a-*.spec.ts` + `lampiran-helpers.ts`): 8 file, 42 tes, **API-driven multi-user** (tiap
+>     lampiran-a-*.spec.ts` + `lampiran-helpers.ts`): 9 file, 45 tes, **API-driven multi-user** (tiap
 >     aktor konteks API sendiri), assert **status code persis** (403/422/409/400) untuk seluruh jalur
 >     boleh/tidak-boleh Skenario 1-7 + A.7 opname — rantai berjenjang office->wilayah->pusat dengan
 >     approver berbeda per tier (pertama di repo). Cast di-resolve dari API by (kantor, role), bukan
@@ -1592,7 +1592,11 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     landmine); pending `assignment` tak-executable dibuang. (4) Assertion longgar dipersempit ke kode
 >     persis (maintenance dup 409, import confirm-failed 409 + cancel-non-owner 403, opname out-of-scope
 >     403); uji tolak tier pusat kini pakai aktor ber-scope wilayah; gate keunikan nama dipindah ke
->     DALAM transaksi. **Temuan sisa (dicatat, bukan bug e2e):** alur transfer app tak pernah menyetel
+>     DALAM transaksi. **Review ulang (pasca-merge `main` bump-deps #113): APPROVE** — ke-7 perbaikan
+>     dikonfirmasi benar; ditambah `lampiran-a-field-masking.spec.ts` (guard regresi otomatis: Staf
+>     tak lihat `purchase_cost`/`book_value`/`accumulated_depreciation`, Manager lihat 2 pertama saja,
+>     Superadmin lihat semua) + assertion positif self-borrow tertaut pegawai Staf (mine dari JWT).
+>     **Temuan sisa (dicatat, bukan bug e2e):** alur transfer app tak pernah menyetel
 >     status aset `in_transfer` (aset tetap `available` selama transit; guard dobel-mutasi lewat baris
 >     transfer terbuka).
 
