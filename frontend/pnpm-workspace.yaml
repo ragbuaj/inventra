@@ -17,6 +17,12 @@ minimumReleaseAgeExclude:
 
 # Force patched versions of transitive (build/dev-time) deps flagged by Dependabot.
 overrides:
+  # Dedupe Vue to a single copy. The nuxt 4.5 bump pulls vue 3.5.40 for the app
+  # runtime while @nuxt/test-utils' peer still resolved vue 3.5.35 — two Vue
+  # instances break mountSuspended (component instance is null, "reading 'ce'"
+  # in the Vitest component tests). Pin one version so runtime and test-utils
+  # share it. Bump this in lockstep with the nuxt/vue version going forward.
+  vue: 3.5.40
   shell-quote: '>=1.8.4'
   vite: '>=7.3.5'
   esbuild: '>=0.28.1'
