@@ -1147,4 +1147,31 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get catalogForbiddenBody =>
       'Anda tidak memiliki izin melihat katalog aset.';
+
+  @override
+  String get catalogFilterCategory => 'Kategori';
+
+  @override
+  String get catalogFilterStatus => 'Status';
+
+  @override
+  String get catalogFilterOffice => 'Kantor';
+
+  @override
+  String get catalogFilterAll => 'Semua';
+
+  @override
+  String get catalogFilterNoOptions => 'Tidak ada data';
+
+  @override
+  String get catalogFilterOptionsError => 'Gagal memuat pilihan';
+
+  @override
+  String get catalogPickerStatusTitle => 'Pilih Status';
+
+  @override
+  String get catalogPickerCategoryTitle => 'Pilih Kategori';
+
+  @override
+  String get catalogPickerOfficeTitle => 'Pilih Kantor';
 }

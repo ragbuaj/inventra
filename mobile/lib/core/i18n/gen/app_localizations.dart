@@ -2155,6 +2155,60 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Anda tidak memiliki izin melihat katalog aset.'**
   String get catalogForbiddenBody;
+
+  /// Label chip filter kategori katalog
+  ///
+  /// In id, this message translates to:
+  /// **'Kategori'**
+  String get catalogFilterCategory;
+
+  /// Label chip filter status aset katalog
+  ///
+  /// In id, this message translates to:
+  /// **'Status'**
+  String get catalogFilterStatus;
+
+  /// Label chip filter kantor katalog
+  ///
+  /// In id, this message translates to:
+  /// **'Kantor'**
+  String get catalogFilterOffice;
+
+  /// Opsi filter yang berarti tanpa penyaringan
+  ///
+  /// In id, this message translates to:
+  /// **'Semua'**
+  String get catalogFilterAll;
+
+  /// Empty state picker filter saat tak ada opsi
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada data'**
+  String get catalogFilterNoOptions;
+
+  /// Pesan gagal memuat opsi picker filter
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat pilihan'**
+  String get catalogFilterOptionsError;
+
+  /// Judul sheet picker status
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih Status'**
+  String get catalogPickerStatusTitle;
+
+  /// Judul sheet picker kategori
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih Kategori'**
+  String get catalogPickerCategoryTitle;
+
+  /// Judul sheet picker kantor
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih Kantor'**
+  String get catalogPickerOfficeTitle;
 }
 
 class _AppLocalizationsDelegate

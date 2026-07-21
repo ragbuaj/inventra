@@ -8,6 +8,7 @@ import 'package:inventra_mobile/core/widgets/status_chip.dart';
 import 'package:inventra_mobile/features/asset_detail/data/asset_dto.dart';
 import 'package:inventra_mobile/features/catalog/data/asset_list_dto.dart';
 import 'package:inventra_mobile/features/catalog/data/catalog_repository.dart';
+import 'package:inventra_mobile/features/catalog/data/filter_options_repository.dart';
 import 'package:inventra_mobile/features/catalog/presentation/catalog_screen.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -48,7 +49,10 @@ void main() {
     repository = _MockCatalogRepository();
   });
 
-  ProviderContainer createContainer() {
+  ProviderContainer createContainer({
+    List<FilterOption>? categories,
+    List<FilterOption>? offices,
+  }) {
     return ProviderContainer.test(
       overrides: [
         catalogRepositoryProvider.overrideWithValue(repository),
@@ -57,28 +61,53 @@ void main() {
             'office:off-1': 'Cabang Jakarta Selatan',
           }),
         ),
+        catalogCategoryOptionsProvider.overrideWith(
+          (ref) async =>
+              categories ??
+              <FilterOption>[const FilterOption('cat-1', 'Elektronik')],
+        ),
+        catalogOfficeOptionsProvider.overrideWith(
+          (ref) async =>
+              offices ??
+              <FilterOption>[
+                const FilterOption('off-1', 'Cabang Jakarta Selatan'),
+              ],
+        ),
       ],
     );
   }
 
-  /// Stub satu halaman untuk (search, offset) tertentu.
-  void stubList(AssetListDto page, {String? search, int offset = 0}) {
+  /// Stub satu halaman untuk kombinasi (search + filter + offset) tertentu.
+  void stubList(
+    AssetListDto page, {
+    String? search,
+    String? categoryId,
+    String? status,
+    String? officeId,
+    int offset = 0,
+  }) {
     when(
       () => repository.list(
         search: search,
+        categoryId: categoryId,
+        status: status,
+        officeId: officeId,
         offset: offset,
         limit: any(named: 'limit'),
       ),
     ).thenAnswer((_) async => page);
   }
 
-  Future<void> pumpCatalog(WidgetTester tester) async {
+  Future<void> pumpCatalog(
+    WidgetTester tester, {
+    ProviderContainer? container,
+  }) async {
     tester.view.physicalSize = const Size(500, 1600);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       buildScreenHarness(
-        container: createContainer(),
+        container: container ?? createContainer(),
         child: const CatalogScreen(),
       ),
     );
@@ -283,6 +312,108 @@ void main() {
       await tester.fling(find.byType(ListView), const Offset(0, -2400), 3000);
       await tester.pumpAndSettle();
       expect(find.text('Aset lanjutan 4'), findsOneWidget);
+    });
+  });
+
+  group('filter', () {
+    testWidgets('status: pilih Dipinjam memuat status=assigned', (
+      WidgetTester tester,
+    ) async {
+      stubList(_page(<AssetDto>[_asset(id: 'a1', name: 'Aset tersedia')]));
+      stubList(
+        _page(<AssetDto>[
+          _asset(id: 'a2', name: 'Aset dipinjam', status: 'assigned'),
+        ]),
+        status: 'assigned',
+      );
+      await pumpCatalog(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(l10nId.catalogFilterStatus));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10nId.assetDetailStatusAssigned));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Aset dipinjam'), findsOneWidget);
+      expect(find.text('Aset tersedia'), findsNothing);
+      verify(
+        () => repository.list(
+          search: null,
+          categoryId: null,
+          status: 'assigned',
+          officeId: null,
+          offset: 0,
+          limit: any(named: 'limit'),
+        ),
+      ).called(1);
+    });
+
+    testWidgets('kategori: pilih opsi memuat category_id', (
+      WidgetTester tester,
+    ) async {
+      stubList(_page(<AssetDto>[_asset(id: 'a1', name: 'Semua kategori')]));
+      stubList(
+        _page(<AssetDto>[_asset(id: 'a2', name: 'Aset elektronik')]),
+        categoryId: 'cat-1',
+      );
+      await pumpCatalog(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(l10nId.catalogFilterCategory));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Elektronik'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Aset elektronik'), findsOneWidget);
+      verify(
+        () => repository.list(
+          search: null,
+          categoryId: 'cat-1',
+          status: null,
+          officeId: null,
+          offset: 0,
+          limit: any(named: 'limit'),
+        ),
+      ).called(1);
+    });
+
+    testWidgets('picker kategori tanpa opsi: tampil "Tidak ada data"', (
+      WidgetTester tester,
+    ) async {
+      stubList(_page(<AssetDto>[_asset(id: 'a1')]));
+      await pumpCatalog(
+        tester,
+        container: createContainer(categories: <FilterOption>[]),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(l10nId.catalogFilterCategory));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10nId.catalogFilterNoOptions), findsOneWidget);
+    });
+
+    testWidgets('Reset dari empty menghapus filter status', (
+      WidgetTester tester,
+    ) async {
+      stubList(_page(<AssetDto>[_asset(id: 'a1', name: 'Aset awal')]));
+      stubList(_page(<AssetDto>[]), status: 'assigned');
+      await pumpCatalog(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(l10nId.catalogFilterStatus));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10nId.assetDetailStatusAssigned));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10nId.catalogEmptySearchTitle), findsOneWidget);
+
+      await tester.tap(find.text(l10nId.catalogResetFilter));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Aset awal'), findsOneWidget);
+      // Chip status kembali ke label default.
+      expect(find.text(l10nId.catalogFilterStatus), findsOneWidget);
     });
   });
 }

@@ -1428,6 +1428,16 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     `.../plans/2026-07-21-mobile-m8-profile-security.md`, prompt mockup DESIGN_BRIEF 5.19-5.20 +
 >     edit 5.1/5.11. Verifikasi kode: `PUT /auth/profile` = {name, phone}. **Belum ada kode** —
 >     berikutnya: generate mockup lalu implementasi fase M8 (6 irisan).
+> 86. **Mobile M7 — mockup 12 layar di-generate + Task M7-1 (Katalog Aset) LANDED**
+>     (branch `feat/mobile-scope-expansion`). Mockup FR-M7/M8 lengkap di `docs/mobile/design/`
+>     (commit 6fab887). **Task M7-1 Katalog Aset** (`mobile/lib/features/catalog/`): `GET /assets`
+>     dengan pencarian (debounce) + filter Kategori/Status/Kantor (picker bottom sheet; Kategori/Kantor
+>     via `GET /categories`/`GET /offices`, "Tidak ada data" empty state) + paginasi infinite-scroll +
+>     pull-to-refresh; kartu aset (nama/kode/chip status/kantor via reference lookup non-fatal);
+>     empty/loading/error/403 state; navigasi ke Detail Aset; rute `/catalog`. Nol backend baru.
+>     Tes: 6 unit repository + 10 widget + 4 widget filter + golden light/dark; `flutter analyze`
+>     bersih; suite mobile 432 lulus. Berikutnya M7: Task M7-2 (Aset Saya). Titik masuk Beranda
+>     (M7-8) menyusul.
 
 ## ✅ Done
 

@@ -14,10 +14,15 @@ class CatalogRepository {
 
   final Dio _dio;
 
-  /// Satu halaman katalog. [search] yang null/kosong tidak dikirim (semua aset
-  /// dalam scope). Melempar AppFailure lewat toAppFailure() saat DioException.
+  /// Satu halaman katalog. Filter null/kosong tidak dikirim (semua aset dalam
+  /// scope). Nama param mengikuti handler `GET /assets` (`search`, `category_id`,
+  /// `office_id`, `status`). Melempar AppFailure lewat toAppFailure() saat
+  /// DioException.
   Future<AssetListDto> list({
     String? search,
+    String? categoryId,
+    String? status,
+    String? officeId,
     int offset = 0,
     int limit = 20,
   }) async {
@@ -28,6 +33,9 @@ class CatalogRepository {
             '/assets',
             queryParameters: <String, dynamic>{
               if (term != null && term.isNotEmpty) 'search': term,
+              'category_id': ?categoryId,
+              'office_id': ?officeId,
+              'status': ?status,
               'limit': limit,
               'offset': offset,
             },

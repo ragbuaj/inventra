@@ -1568,5 +1568,41 @@
   "catalogForbiddenBody": "Anda tidak memiliki izin melihat katalog aset.",
   "@catalogForbiddenBody": {
     "description": "Body state katalog saat 403"
+  },
+  "catalogFilterCategory": "Kategori",
+  "@catalogFilterCategory": {
+    "description": "Label chip filter kategori katalog"
+  },
+  "catalogFilterStatus": "Status",
+  "@catalogFilterStatus": {
+    "description": "Label chip filter status aset katalog"
+  },
+  "catalogFilterOffice": "Kantor",
+  "@catalogFilterOffice": {
+    "description": "Label chip filter kantor katalog"
+  },
+  "catalogFilterAll": "Semua",
+  "@catalogFilterAll": {
+    "description": "Opsi filter yang berarti tanpa penyaringan"
+  },
+  "catalogFilterNoOptions": "Tidak ada data",
+  "@catalogFilterNoOptions": {
+    "description": "Empty state picker filter saat tak ada opsi"
+  },
+  "catalogFilterOptionsError": "Gagal memuat pilihan",
+  "@catalogFilterOptionsError": {
+    "description": "Pesan gagal memuat opsi picker filter"
+  },
+  "catalogPickerStatusTitle": "Pilih Status",
+  "@catalogPickerStatusTitle": {
+    "description": "Judul sheet picker status"
+  },
+  "catalogPickerCategoryTitle": "Pilih Kategori",
+  "@catalogPickerCategoryTitle": {
+    "description": "Judul sheet picker kategori"
+  },
+  "catalogPickerOfficeTitle": "Pilih Kantor",
+  "@catalogPickerOfficeTitle": {
+    "description": "Judul sheet picker kantor"
   }
 }

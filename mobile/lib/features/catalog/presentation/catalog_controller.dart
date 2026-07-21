@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../asset_detail/data/asset_dto.dart';
 import '../data/asset_list_dto.dart';
 import '../data/catalog_repository.dart';
+import 'catalog_query.dart';
 
 /// State satu kueri katalog: aset termuat + status muat-berikutnya untuk
 /// infinite scroll (limit/offset kontrak `GET /assets`). Sejajar pola
@@ -42,28 +43,32 @@ class CatalogState {
   }
 }
 
-/// Daftar aset katalog per istilah pencarian. Argumen family adalah `search`
-/// yang sudah di-trim (null/kosong berarti seluruh aset dalam scope). autoDispose:
-/// state dibuang saat layar tutup; refresh lewat `ref.refresh(...(term).future)`.
+/// Daftar aset katalog per [CatalogQuery] (pencarian + filter). autoDispose:
+/// state dibuang saat layar tutup; refresh lewat `ref.refresh(...(query).future)`.
 /// Auto-retry Riverpod dimatikan — pengguna punya tombol "Coba lagi".
 final catalogProvider = AsyncNotifierProvider.autoDispose
-    .family<CatalogController, CatalogState, String?>(
+    .family<CatalogController, CatalogState, CatalogQuery>(
       CatalogController.new,
       retry: (int retryCount, Object error) => null,
     );
 
 class CatalogController extends AsyncNotifier<CatalogState> {
-  CatalogController(this.search);
+  CatalogController(this.query);
 
-  final String? search;
+  final CatalogQuery query;
 
   static const int pageSize = 20;
 
   @override
   Future<CatalogState> build() async {
-    final AssetListDto page = await ref
-        .watch(catalogRepositoryProvider)
-        .list(search: search, offset: 0, limit: pageSize);
+    final AssetListDto page = await ref.watch(catalogRepositoryProvider).list(
+      search: query.search,
+      categoryId: query.categoryId,
+      status: query.status,
+      officeId: query.officeId,
+      offset: 0,
+      limit: pageSize,
+    );
     return CatalogState(items: page.data, total: page.total);
   }
 
@@ -79,9 +84,14 @@ class CatalogController extends AsyncNotifier<CatalogState> {
       current.copyWith(isLoadingMore: true, loadMoreFailed: false),
     );
     try {
-      final AssetListDto page = await ref
-          .read(catalogRepositoryProvider)
-          .list(search: search, offset: current.items.length, limit: pageSize);
+      final AssetListDto page = await ref.read(catalogRepositoryProvider).list(
+        search: query.search,
+        categoryId: query.categoryId,
+        status: query.status,
+        officeId: query.officeId,
+        offset: current.items.length,
+        limit: pageSize,
+      );
       state = AsyncData<CatalogState>(
         current.copyWith(
           items: List<AssetDto>.unmodifiable(<AssetDto>[

@@ -1149,4 +1149,31 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get catalogForbiddenBody =>
       'You don\'t have permission to view the asset catalog.';
+
+  @override
+  String get catalogFilterCategory => 'Category';
+
+  @override
+  String get catalogFilterStatus => 'Status';
+
+  @override
+  String get catalogFilterOffice => 'Office';
+
+  @override
+  String get catalogFilterAll => 'All';
+
+  @override
+  String get catalogFilterNoOptions => 'No data';
+
+  @override
+  String get catalogFilterOptionsError => 'Failed to load options';
+
+  @override
+  String get catalogPickerStatusTitle => 'Select Status';
+
+  @override
+  String get catalogPickerCategoryTitle => 'Select Category';
+
+  @override
+  String get catalogPickerOfficeTitle => 'Select Office';
 }

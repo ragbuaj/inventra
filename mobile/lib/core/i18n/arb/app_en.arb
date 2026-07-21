@@ -342,5 +342,14 @@
   "catalogErrorNetworkBody": "Check your connection and try again.",
   "catalogErrorGenericBody": "Something went wrong. Try again.",
   "catalogForbiddenTitle": "No access",
-  "catalogForbiddenBody": "You don't have permission to view the asset catalog."
+  "catalogForbiddenBody": "You don't have permission to view the asset catalog.",
+  "catalogFilterCategory": "Category",
+  "catalogFilterStatus": "Status",
+  "catalogFilterOffice": "Office",
+  "catalogFilterAll": "All",
+  "catalogFilterNoOptions": "No data",
+  "catalogFilterOptionsError": "Failed to load options",
+  "catalogPickerStatusTitle": "Select Status",
+  "catalogPickerCategoryTitle": "Select Category",
+  "catalogPickerOfficeTitle": "Select Office"
 }
