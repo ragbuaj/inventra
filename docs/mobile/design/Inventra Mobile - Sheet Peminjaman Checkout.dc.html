@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .ico { font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap; direction: ltr; -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; user-select: none; }
+</style>
+</helmet>
+<div style="font-family:'Inter',sans-serif;background:#eef2f6;padding:48px 40px 80px;min-height:100vh;color:#0f172a;">
+  <div style="margin:0 auto;max-width:2300px;">
+    <div style="margin-bottom:36px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#16a34a;font-weight:500;margin-bottom:6px;">INVENTRA MOBILE · LAYAR 5.14 — SHEET PEMINJAMAN / CHECK-OUT / CHECK-IN</div>
+      <h1 style="font-size:32px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;">Peminjaman / Check-out / Check-in</h1>
+      <p style="font-size:14px;color:#64748b;margin:0;">Bottom sheet di atas Detail Aset — Staf mengajukan via approval, Manager check-out &amp; check-in langsung · 6 state × light &amp; dark.</p>
+    </div>
+
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">Light mode</div>
+    <div style="display:flex;gap:32px;align-items:flex-start;margin-bottom:48px;flex-wrap:wrap;">
+
+      <!-- L1 STAF SHEET -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Staf — Ajukan Peminjaman</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:12;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Detail Aset</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;">
+              <div style="height:150px;border-radius:18px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 8px,#e2e8f0 8px,#e2e8f0 16px);border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:48px;color:#94a3b8;">laptop_windows</span></div>
+              <div style="font-size:18px;font-weight:800;margin-top:12px;">Laptop Dell Latitude 5440</div>
+            </div>
+            <div style="position:absolute;inset:0;background:rgba(15,23,42,0.45);z-index:9;"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;z-index:10;background:#ffffff;border-radius:28px 28px 44px 44px;padding:8px 20px 14px;box-shadow:0 -10px 40px rgba(15,23,42,0.3);">
+              <div style="width:36px;height:4px;border-radius:999px;background:#cbd5e1;margin:6px auto 12px;"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <span style="font-size:17px;font-weight:800;">Ajukan Peminjaman</span>
+                <div style="width:36px;height:36px;border-radius:999px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:20px;color:#475569;">close</span></div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;margin-bottom:14px;">
+                <div style="width:44px;height:44px;border-radius:11px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 5px,#e2e8f0 5px,#e2e8f0 10px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:22px;color:#94a3b8;">laptop_windows</span></div>
+                <div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:700;">Laptop Dell Latitude 5440</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;">JKT01-ELK-2026-00001</div></div>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:11px;font-weight:600;flex-shrink:0;"><span style="width:6px;height:6px;border-radius:999px;background:#16a34a;"></span>Tersedia</span>
+              </div>
+              <div style="display:flex;gap:10px;margin-bottom:12px;">
+                <div style="flex:1;"><label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Tanggal pinjam</label><div style="height:48px;border:1.5px solid #cbd5e1;border-radius:13px;background:#fff;display:flex;align-items:center;gap:8px;padding:0 13px;font-size:13px;font-weight:600;"><span class="ico" style="font-size:18px;color:#64748b;">calendar_today</span>Hari ini, 21 Jul</div></div>
+                <div style="flex:1;"><label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Jatuh tempo <span style="color:#94a3b8;font-weight:500;">(ops.)</span></label><div style="height:48px;border:1.5px solid #cbd5e1;border-radius:13px;background:#fff;display:flex;align-items:center;gap:8px;padding:0 13px;font-size:13px;color:#94a3b8;"><span class="ico" style="font-size:18px;color:#94a3b8;">event</span>Pilih tanggal</div></div>
+              </div>
+              <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Catatan / alasan</label>
+              <div style="min-height:64px;border:1.5px solid #cbd5e1;border-radius:13px;background:#fff;padding:12px 13px;font-size:13px;color:#94a3b8;margin-bottom:14px;">Mis. untuk presentasi nasabah di KCP Kebayoran</div>
+              <button style="width:100%;height:52px;border:none;border-radius:14px;background:#16a34a;color:#fff;font-family:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 12px rgba(22,163,74,0.28);"><span class="ico" style="font-size:20px;">send</span>Ajukan</button>
+              <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;"><span class="ico" style="font-size:15px;color:#94a3b8;">schedule</span><span style="font-size:11.5px;color:#94a3b8;">Menunggu persetujuan — diproses lewat jenjang approval</span></div>
+              <div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:12px auto 0;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L2 STAF SUCCESS -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:5px 12px;border-radius:999px;font-weight:500;">Sukses ajukan — SnackBar</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:12;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.42</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Detail Aset</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;display:flex;flex-direction:column;gap:12px;">
+              <div style="height:160px;border-radius:18px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 8px,#e2e8f0 8px,#e2e8f0 16px);border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:50px;color:#94a3b8;">laptop_windows</span></div>
+              <div>
+                <div style="font-size:19px;font-weight:800;margin-bottom:5px;">Laptop Dell Latitude 5440</div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#64748b;"><span class="ico" style="font-size:16px;">barcode</span>JKT01-ELK-2026-00001</span>
+                  <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:11.5px;font-weight:600;"><span style="width:7px;height:7px;border-radius:999px;background:#16a34a;"></span>Tersedia</span>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:12px 14px;">
+                <span class="ico" style="font-size:20px;color:#b45309;">schedule</span>
+                <div style="flex:1;"><div style="font-size:12.5px;font-weight:700;color:#92400e;">Pengajuan peminjaman menunggu</div><div style="font-size:11px;color:#b45309;">Jenjang 1 dari 2 · Kepala Unit · lihat di Pengajuan Saya</div></div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:0 20px;">
+              <div style="display:flex;align-items:center;gap:10px;background:#1e293b;border-radius:13px;padding:13px 16px;margin-bottom:12px;box-shadow:0 8px 24px rgba(15,23,42,0.25);"><span class="ico" style="font-size:20px;color:#4ade80;">check_circle</span><span style="flex:1;font-size:13px;color:#f1f5f9;font-weight:500;">Pengajuan peminjaman dikirim</span><span style="font-size:13px;color:#4ade80;font-weight:700;">Lihat</span></div>
+            </div>
+            <div style="flex-shrink:0;padding:0 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L3 MANAGER AUTOCOMPLETE -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:5px 12px;border-radius:999px;font-weight:500;">Manager — Check-out, autocomplete terbuka</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:12;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Detail Aset</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;">
+              <div style="height:120px;border-radius:18px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 8px,#e2e8f0 8px,#e2e8f0 16px);border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:44px;color:#94a3b8;">laptop_windows</span></div>
+            </div>
+            <div style="position:absolute;inset:0;background:rgba(15,23,42,0.45);z-index:9;"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;z-index:10;background:#ffffff;border-radius:28px 28px 44px 44px;padding:8px 20px 14px;box-shadow:0 -10px 40px rgba(15,23,42,0.3);">
+              <div style="width:36px;height:4px;border-radius:999px;background:#cbd5e1;margin:6px auto 12px;"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <span style="font-size:17px;font-weight:800;">Check-out Aset</span>
+                <div style="width:36px;height:36px;border-radius:999px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:20px;color:#475569;">close</span></div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;margin-bottom:14px;">
+                <div style="width:44px;height:44px;border-radius:11px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 5px,#e2e8f0 5px,#e2e8f0 10px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:22px;color:#94a3b8;">laptop_windows</span></div>
+                <div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:700;">Laptop Dell Latitude 5440</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;">JKT01-ELK-2026-00001</div></div>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:11px;font-weight:600;flex-shrink:0;"><span style="width:6px;height:6px;border-radius:999px;background:#16a34a;"></span>Tersedia</span>
+              </div>
+              <label style="font-size:12px;font-weight:600;color:#16a34a;display:block;margin-bottom:6px;">Pemegang (custodian)</label>
+              <div style="height:48px;border:2px solid #16a34a;border-radius:13px;background:#fff;display:flex;align-items:center;gap:9px;padding:0 13px;font-size:13.5px;box-shadow:0 0 0 4px rgba(22,163,74,0.1);"><span class="ico" style="font-size:19px;color:#16a34a;">person_search</span>dew<span style="width:1px;height:18px;background:#16a34a;"></span></div>
+              <div style="border:1px solid #e2e8f0;border-radius:13px;background:#fff;margin-top:6px;margin-bottom:12px;box-shadow:0 8px 24px rgba(15,23,42,0.1);overflow:hidden;">
+                <div style="display:flex;align-items:center;gap:11px;padding:11px 13px;background:#f0fdf4;">
+                  <div style="width:34px;height:34px;border-radius:999px;background:#dcfce7;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:#15803d;flex-shrink:0;">DL</div>
+                  <div style="flex:1;"><div style="font-size:13px;font-weight:700;">Dewi Lestari</div><div style="font-size:11px;color:#64748b;">Teller · Cabang Jakarta Selatan</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:11px;padding:11px 13px;border-top:1px solid #f1f5f9;">
+                  <div style="width:34px;height:34px;border-radius:999px;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:#1d4ed8;flex-shrink:0;">DA</div>
+                  <div style="flex:1;"><div style="font-size:13px;font-weight:700;">Dewa Arjuna</div><div style="font-size:11px;color:#64748b;">CS · Cabang Jakarta Selatan</div></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;margin-bottom:14px;">
+                <div style="flex:1;"><label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Tanggal pinjam</label><div style="height:48px;border:1.5px solid #cbd5e1;border-radius:13px;background:#fff;display:flex;align-items:center;gap:8px;padding:0 13px;font-size:13px;font-weight:600;"><span class="ico" style="font-size:18px;color:#64748b;">calendar_today</span>Hari ini, 21 Jul</div></div>
+                <div style="flex:1;"><label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Jatuh tempo <span style="color:#94a3b8;font-weight:500;">(ops.)</span></label><div style="height:48px;border:1.5px solid #cbd5e1;border-radius:13px;background:#fff;display:flex;align-items:center;gap:8px;padding:0 13px;font-size:13px;color:#94a3b8;"><span class="ico" style="font-size:18px;color:#94a3b8;">event</span>Pilih tanggal</div></div>
+              </div>
+              <button style="width:100%;height:52px;border:none;border-radius:14px;background:#16a34a;color:#fff;font-family:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 12px rgba(22,163,74,0.28);"><span class="ico" style="font-size:20px;">how_to_reg</span>Check-out</button>
+              <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;"><span class="ico" style="font-size:15px;color:#94a3b8;">bolt</span><span style="font-size:11.5px;color:#94a3b8;">Aset langsung menjadi Dipinjam — tanpa approval</span></div>
+              <div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:12px auto 0;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L3b MANAGER CHECK-IN -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:5px 12px;border-radius:999px;font-weight:500;">Manager — Check-in, kondisi masuk</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:12;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Detail Aset</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;">
+              <div style="height:120px;border-radius:18px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 8px,#e2e8f0 8px,#e2e8f0 16px);border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:44px;color:#94a3b8;">laptop_windows</span></div>
+            </div>
+            <div style="position:absolute;inset:0;background:rgba(15,23,42,0.45);z-index:9;"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;z-index:10;background:#ffffff;border-radius:28px 28px 44px 44px;padding:8px 20px 14px;box-shadow:0 -10px 40px rgba(15,23,42,0.3);">
+              <div style="width:36px;height:4px;border-radius:999px;background:#cbd5e1;margin:6px auto 12px;"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <span style="font-size:17px;font-weight:800;">Check-in Aset</span>
+                <div style="width:36px;height:36px;border-radius:999px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:20px;color:#475569;">close</span></div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;margin-bottom:12px;">
+                <div style="width:44px;height:44px;border-radius:11px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 5px,#e2e8f0 5px,#e2e8f0 10px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:22px;color:#94a3b8;">laptop_windows</span></div>
+                <div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:700;">Laptop Dell Latitude 5440</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;">JKT01-ELK-2026-00001</div></div>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:600;flex-shrink:0;"><span style="width:6px;height:6px;border-radius:999px;background:#2563eb;"></span>Dipinjam</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:11px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:13px;padding:10px 12px;margin-bottom:14px;">
+                <div style="width:36px;height:36px;border-radius:999px;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#1d4ed8;flex-shrink:0;">DL</div>
+                <div style="flex:1;"><div style="font-size:13px;font-weight:700;color:#1e40af;">Dewi Lestari</div><div style="font-size:11px;color:#1d4ed8;">Pemegang sejak 21 Jul 2026 · jatuh tempo 21 Agu</div></div>
+              </div>
+              <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:7px;">Kondisi masuk</label>
+              <div style="display:flex;gap:8px;margin-bottom:12px;">
+                <span style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:999px;background:#16a34a;color:#fff;font-size:12.5px;font-weight:700;"><span class="ico" style="font-size:16px;">check_circle</span>Baik</span>
+                <span style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:999px;background:#fff;border:1.5px solid #fde68a;color:#b45309;font-size:12.5px;font-weight:600;"><span class="ico" style="font-size:16px;">build</span>Perlu Servis</span>
+              </div>
+              <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Catatan <span style="color:#94a3b8;font-weight:500;">(ops.)</span></label>
+              <div style="min-height:52px;border:1.5px solid #cbd5e1;border-radius:13px;background:#fff;padding:12px 13px;font-size:13px;color:#94a3b8;margin-bottom:14px;">Mis. lecet ringan di sudut kiri</div>
+              <button style="width:100%;height:52px;border:none;border-radius:14px;background:#16a34a;color:#fff;font-family:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 12px rgba(22,163,74,0.28);"><span class="ico" style="font-size:20px;">assignment_return</span>Check-in</button>
+              <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;"><span class="ico" style="font-size:15px;color:#94a3b8;">bolt</span><span style="font-size:11.5px;color:#94a3b8;">Aset kembali Tersedia (atau Maintenance bila perlu servis)</span></div>
+              <div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:12px auto 0;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L4 CHECKOUT SUCCESS -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:5px 12px;border-radius:999px;font-weight:500;">Sukses check-out — badge Dipinjam</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:12;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.43</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Detail Aset</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;display:flex;flex-direction:column;gap:12px;">
+              <div style="height:160px;border-radius:18px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 8px,#e2e8f0 8px,#e2e8f0 16px);border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:50px;color:#94a3b8;">laptop_windows</span></div>
+              <div>
+                <div style="font-size:19px;font-weight:800;margin-bottom:5px;">Laptop Dell Latitude 5440</div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#64748b;"><span class="ico" style="font-size:16px;">barcode</span>JKT01-ELK-2026-00001</span>
+                  <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-size:11.5px;font-weight:600;"><span style="width:7px;height:7px;border-radius:999px;background:#2563eb;"></span>Dipinjam</span>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px 16px;">
+                <div style="font-size:11.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Penempatan</div>
+                <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
+                  <div style="display:flex;justify-content:space-between;"><span style="color:#64748b;">Pemegang</span><span style="font-weight:700;color:#1d4ed8;">Dewi Lestari</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span style="color:#64748b;">Sejak</span><span style="font-weight:600;">21 Jul 2026</span></div>
+                </div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:0 20px;">
+              <div style="display:flex;align-items:center;gap:10px;background:#1e293b;border-radius:13px;padding:13px 16px;margin-bottom:12px;box-shadow:0 8px 24px rgba(15,23,42,0.25);"><span class="ico" style="font-size:20px;color:#4ade80;">check_circle</span><span style="flex:1;font-size:13px;color:#f1f5f9;font-weight:500;">Check-out berhasil — dipegang Dewi Lestari</span></div>
+            </div>
+            <div style="flex-shrink:0;padding:0 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L5 VALIDATION ERROR -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;padding:5px 12px;border-radius:999px;font-weight:500;">Error validasi — custodian wajib</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:12;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Detail Aset</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;">
+              <div style="height:120px;border-radius:18px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 8px,#e2e8f0 8px,#e2e8f0 16px);border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:44px;color:#94a3b8;">laptop_windows</span></div>
+            </div>
+            <div style="position:absolute;inset:0;background:rgba(15,23,42,0.45);z-index:9;"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;z-index:10;background:#ffffff;border-radius:28px 28px 44px 44px;padding:8px 20px 14px;box-shadow:0 -10px 40px rgba(15,23,42,0.3);">
+              <div style="width:36px;height:4px;border-radius:999px;background:#cbd5e1;margin:6px auto 12px;"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <span style="font-size:17px;font-weight:800;">Check-out Aset</span>
+                <div style="width:36px;height:36px;border-radius:999px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:20px;color:#475569;">close</span></div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;margin-bottom:14px;">
+                <div style="width:44px;height:44px;border-radius:11px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 5px,#e2e8f0 5px,#e2e8f0 10px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:22px;color:#94a3b8;">laptop_windows</span></div>
+                <div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:700;">Laptop Dell Latitude 5440</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;">JKT01-ELK-2026-00001</div></div>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:11px;font-weight:600;flex-shrink:0;"><span style="width:6px;height:6px;border-radius:999px;background:#16a34a;"></span>Tersedia</span>
+              </div>
+              <label style="font-size:12px;font-weight:600;color:#dc2626;display:block;margin-bottom:6px;">Pemegang (custodian)</label>
+              <div style="height:48px;border:2px solid #dc2626;border-radius:13px;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:9px;padding:0 13px;font-size:13.5px;color:#94a3b8;"><span style="display:flex;align-items:center;gap:9px;"><span class="ico" style="font-size:19px;color:#dc2626;">person_search</span>Cari nama pegawai…</span><span class="ico" style="font-size:19px;color:#dc2626;">error</span></div>
+              <span style="font-size:11px;color:#dc2626;display:flex;align-items:center;gap:4px;margin-top:5px;margin-bottom:10px;"><span class="ico" style="font-size:14px;">info</span>Pemegang wajib dipilih untuk check-out</span>
+              <div style="display:flex;gap:10px;margin-bottom:14px;">
+                <div style="flex:1;"><label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Tanggal pinjam</label><div style="height:48px;border:1.5px solid #cbd5e1;border-radius:13px;background:#fff;display:flex;align-items:center;gap:8px;padding:0 13px;font-size:13px;font-weight:600;"><span class="ico" style="font-size:18px;color:#64748b;">calendar_today</span>Hari ini, 21 Jul</div></div>
+                <div style="flex:1;"><label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Jatuh tempo <span style="color:#94a3b8;font-weight:500;">(ops.)</span></label><div style="height:48px;border:1.5px solid #cbd5e1;border-radius:13px;background:#fff;display:flex;align-items:center;gap:8px;padding:0 13px;font-size:13px;font-weight:600;"><span class="ico" style="font-size:18px;color:#64748b;">event</span>21 Agu 2026</div></div>
+              </div>
+              <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Catatan kondisi keluar</label>
+              <div style="min-height:52px;border:1.5px solid #cbd5e1;border-radius:13px;background:#fff;padding:12px 13px;font-size:13px;color:#0f172a;margin-bottom:14px;">Kondisi baik, charger lengkap</div>
+              <button style="width:100%;height:52px;border:none;border-radius:14px;background:#16a34a;color:#fff;font-family:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;"><span class="ico" style="font-size:20px;">how_to_reg</span>Check-out</button>
+              <div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:14px auto 0;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">Dark mode</div>
+    <div style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap;">
+
+      <!-- D1 STAF SHEET -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Staf — Ajukan Peminjaman</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:12;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Detail Aset</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;">
+              <div style="height:150px;border-radius:18px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 8px,#334155 8px,#334155 16px);border:1px solid #334155;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:48px;color:#64748b;">laptop_windows</span></div>
+              <div style="font-size:18px;font-weight:800;margin-top:12px;">Laptop Dell Latitude 5440</div>
+            </div>
+            <div style="position:absolute;inset:0;background:rgba(2,6,23,0.6);z-index:9;"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;z-index:10;background:#1e293b;border-top:1px solid #334155;border-radius:28px 28px 44px 44px;padding:8px 20px 14px;box-shadow:0 -10px 40px rgba(2,6,23,0.6);">
+              <div style="width:36px;height:4px;border-radius:999px;background:#475569;margin:6px auto 12px;"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <span style="font-size:17px;font-weight:800;">Ajukan Peminjaman</span>
+                <div style="width:36px;height:36px;border-radius:999px;background:#334155;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:20px;color:#cbd5e1;">close</span></div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:center;background:#0f172a;border:1px solid #334155;border-radius:14px;padding:10px 12px;margin-bottom:14px;">
+                <div style="width:44px;height:44px;border-radius:11px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 5px,#334155 5px,#334155 10px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:22px;color:#64748b;">laptop_windows</span></div>
+                <div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:700;">Laptop Dell Latitude 5440</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;">JKT01-ELK-2026-00001</div></div>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#14532d;color:#86efac;font-size:11px;font-weight:600;flex-shrink:0;"><span style="width:6px;height:6px;border-radius:999px;background:#22c55e;"></span>Tersedia</span>
+              </div>
+              <div style="display:flex;gap:10px;margin-bottom:12px;">
+                <div style="flex:1;"><label style="font-size:12px;font-weight:600;color:#cbd5e1;display:block;margin-bottom:6px;">Tanggal pinjam</label><div style="height:48px;border:1.5px solid #475569;border-radius:13px;background:#0f172a;display:flex;align-items:center;gap:8px;padding:0 13px;font-size:13px;font-weight:600;"><span class="ico" style="font-size:18px;color:#94a3b8;">calendar_today</span>Hari ini, 21 Jul</div></div>
+                <div style="flex:1;"><label style="font-size:12px;font-weight:600;color:#cbd5e1;display:block;margin-bottom:6px;">Jatuh tempo <span style="color:#64748b;font-weight:500;">(ops.)</span></label><div style="height:48px;border:1.5px solid #475569;border-radius:13px;background:#0f172a;display:flex;align-items:center;gap:8px;padding:0 13px;font-size:13px;color:#64748b;"><span class="ico" style="font-size:18px;color:#64748b;">event</span>Pilih tanggal</div></div>
+              </div>
+              <label style="font-size:12px;font-weight:600;color:#cbd5e1;display:block;margin-bottom:6px;">Catatan / alasan</label>
+              <div style="min-height:64px;border:1.5px solid #475569;border-radius:13px;background:#0f172a;padding:12px 13px;font-size:13px;color:#64748b;margin-bottom:14px;">Mis. untuk presentasi nasabah di KCP Kebayoran</div>
+              <button style="width:100%;height:52px;border:none;border-radius:14px;background:#22c55e;color:#052e16;font-family:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;"><span class="ico" style="font-size:20px;">send</span>Ajukan</button>
+              <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;"><span class="ico" style="font-size:15px;color:#64748b;">schedule</span><span style="font-size:11.5px;color:#64748b;">Menunggu persetujuan — diproses lewat jenjang approval</span></div>
+              <div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:12px auto 0;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D2 STAF SUCCESS -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:5px 12px;border-radius:999px;font-weight:500;">Sukses ajukan — SnackBar</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:12;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.42</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Detail Aset</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;display:flex;flex-direction:column;gap:12px;">
+              <div style="height:160px;border-radius:18px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 8px,#334155 8px,#334155 16px);border:1px solid #334155;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:50px;color:#64748b;">laptop_windows</span></div>
+              <div>
+                <div style="font-size:19px;font-weight:800;margin-bottom:5px;">Laptop Dell Latitude 5440</div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#94a3b8;"><span class="ico" style="font-size:16px;">barcode</span>JKT01-ELK-2026-00001</span>
+                  <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:999px;background:#14532d;color:#86efac;font-size:11.5px;font-weight:600;"><span style="width:7px;height:7px;border-radius:999px;background:#22c55e;"></span>Tersedia</span>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;background:#422006;border:1px solid #78350f;border-radius:14px;padding:12px 14px;">
+                <span class="ico" style="font-size:20px;color:#fcd34d;">schedule</span>
+                <div style="flex:1;"><div style="font-size:12.5px;font-weight:700;color:#fde68a;">Pengajuan peminjaman menunggu</div><div style="font-size:11px;color:#fcd34d;">Jenjang 1 dari 2 · Kepala Unit · lihat di Pengajuan Saya</div></div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:0 20px;">
+              <div style="display:flex;align-items:center;gap:10px;background:#f1f5f9;border-radius:13px;padding:13px 16px;margin-bottom:12px;box-shadow:0 8px 24px rgba(2,6,23,0.4);"><span class="ico" style="font-size:20px;color:#16a34a;">check_circle</span><span style="flex:1;font-size:13px;color:#0f172a;font-weight:500;">Pengajuan peminjaman dikirim</span><span style="font-size:13px;color:#15803d;font-weight:700;">Lihat</span></div>
+            </div>
+            <div style="flex-shrink:0;padding:0 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D3 MANAGER AUTOCOMPLETE -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:5px 12px;border-radius:999px;font-weight:500;">Manager — Check-out, autocomplete terbuka</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:12;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Detail Aset</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;">
+              <div style="height:120px;border-radius:18px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 8px,#334155 8px,#334155 16px);border:1px solid #334155;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:44px;color:#64748b;">laptop_windows</span></div>
+            </div>
+            <div style="position:absolute;inset:0;background:rgba(2,6,23,0.6);z-index:9;"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;z-index:10;background:#1e293b;border-top:1px solid #334155;border-radius:28px 28px 44px 44px;padding:8px 20px 14px;box-shadow:0 -10px 40px rgba(2,6,23,0.6);">
+              <div style="width:36px;height:4px;border-radius:999px;background:#475569;margin:6px auto 12px;"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <span style="font-size:17px;font-weight:800;">Check-out Aset</span>
+                <div style="width:36px;height:36px;border-radius:999px;background:#334155;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:20px;color:#cbd5e1;">close</span></div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:center;background:#0f172a;border:1px solid #334155;border-radius:14px;padding:10px 12px;margin-bottom:14px;">
+                <div style="width:44px;height:44px;border-radius:11px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 5px,#334155 5px,#334155 10px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:22px;color:#64748b;">laptop_windows</span></div>
+                <div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:700;">Laptop Dell Latitude 5440</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;">JKT01-ELK-2026-00001</div></div>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#14532d;color:#86efac;font-size:11px;font-weight:600;flex-shrink:0;"><span style="width:6px;height:6px;border-radius:999px;background:#22c55e;"></span>Tersedia</span>
+              </div>
+              <label style="font-size:12px;font-weight:600;color:#4ade80;display:block;margin-bottom:6px;">Pemegang (custodian)</label>
+              <div style="height:48px;border:2px solid #22c55e;border-radius:13px;background:#0f172a;display:flex;align-items:center;gap:9px;padding:0 13px;font-size:13.5px;box-shadow:0 0 0 4px rgba(34,197,94,0.15);"><span class="ico" style="font-size:19px;color:#4ade80;">person_search</span>dew<span style="width:1px;height:18px;background:#22c55e;"></span></div>
+              <div style="border:1px solid #334155;border-radius:13px;background:#0f172a;margin-top:6px;margin-bottom:12px;box-shadow:0 8px 24px rgba(2,6,23,0.5);overflow:hidden;">
+                <div style="display:flex;align-items:center;gap:11px;padding:11px 13px;background:rgba(34,197,94,0.12);">
+                  <div style="width:34px;height:34px;border-radius:999px;background:#14532d;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:#86efac;flex-shrink:0;">DL</div>
+                  <div style="flex:1;"><div style="font-size:13px;font-weight:700;">Dewi Lestari</div><div style="font-size:11px;color:#94a3b8;">Teller · Cabang Jakarta Selatan</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:11px;padding:11px 13px;border-top:1px solid #334155;">
+                  <div style="width:34px;height:34px;border-radius:999px;background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:#93c5fd;flex-shrink:0;">DA</div>
+                  <div style="flex:1;"><div style="font-size:13px;font-weight:700;">Dewa Arjuna</div><div style="font-size:11px;color:#94a3b8;">CS · Cabang Jakarta Selatan</div></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;margin-bottom:14px;">
+                <div style="flex:1;"><label style="font-size:12px;font-weight:600;color:#cbd5e1;display:block;margin-bottom:6px;">Tanggal pinjam</label><div style="height:48px;border:1.5px solid #475569;border-radius:13px;background:#0f172a;display:flex;align-items:center;gap:8px;padding:0 13px;font-size:13px;font-weight:600;"><span class="ico" style="font-size:18px;color:#94a3b8;">calendar_today</span>Hari ini, 21 Jul</div></div>
+                <div style="flex:1;"><label style="font-size:12px;font-weight:600;color:#cbd5e1;display:block;margin-bottom:6px;">Jatuh tempo <span style="color:#64748b;font-weight:500;">(ops.)</span></label><div style="height:48px;border:1.5px solid #475569;border-radius:13px;background:#0f172a;display:flex;align-items:center;gap:8px;padding:0 13px;font-size:13px;color:#64748b;"><span class="ico" style="font-size:18px;color:#64748b;">event</span>Pilih tanggal</div></div>
+              </div>
+              <button style="width:100%;height:52px;border:none;border-radius:14px;background:#22c55e;color:#052e16;font-family:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;"><span class="ico" style="font-size:20px;">how_to_reg</span>Check-out</button>
+              <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;"><span class="ico" style="font-size:15px;color:#64748b;">bolt</span><span style="font-size:11.5px;color:#64748b;">Aset langsung menjadi Dipinjam — tanpa approval</span></div>
+              <div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:12px auto 0;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D3b MANAGER CHECK-IN -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:5px 12px;border-radius:999px;font-weight:500;">Manager — Check-in, kondisi masuk</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:12;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Detail Aset</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;">
+              <div style="height:120px;border-radius:18px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 8px,#334155 8px,#334155 16px);border:1px solid #334155;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:44px;color:#64748b;">laptop_windows</span></div>
+            </div>
+            <div style="position:absolute;inset:0;background:rgba(2,6,23,0.6);z-index:9;"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;z-index:10;background:#1e293b;border-top:1px solid #334155;border-radius:28px 28px 44px 44px;padding:8px 20px 14px;box-shadow:0 -10px 40px rgba(2,6,23,0.6);">
+              <div style="width:36px;height:4px;border-radius:999px;background:#475569;margin:6px auto 12px;"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <span style="font-size:17px;font-weight:800;">Check-in Aset</span>
+                <div style="width:36px;height:36px;border-radius:999px;background:#334155;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:20px;color:#cbd5e1;">close</span></div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:center;background:#0f172a;border:1px solid #334155;border-radius:14px;padding:10px 12px;margin-bottom:12px;">
+                <div style="width:44px;height:44px;border-radius:11px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 5px,#334155 5px,#334155 10px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:22px;color:#64748b;">laptop_windows</span></div>
+                <div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:700;">Laptop Dell Latitude 5440</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;">JKT01-ELK-2026-00001</div></div>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#1e3a5f;color:#93c5fd;font-size:11px;font-weight:600;flex-shrink:0;"><span style="width:6px;height:6px;border-radius:999px;background:#60a5fa;"></span>Dipinjam</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:11px;background:#172554;border:1px solid #1e40af;border-radius:13px;padding:10px 12px;margin-bottom:14px;">
+                <div style="width:36px;height:36px;border-radius:999px;background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#93c5fd;flex-shrink:0;">DL</div>
+                <div style="flex:1;"><div style="font-size:13px;font-weight:700;color:#bfdbfe;">Dewi Lestari</div><div style="font-size:11px;color:#93c5fd;">Pemegang sejak 21 Jul 2026 · jatuh tempo 21 Agu</div></div>
+              </div>
+              <label style="font-size:12px;font-weight:600;color:#cbd5e1;display:block;margin-bottom:7px;">Kondisi masuk</label>
+              <div style="display:flex;gap:8px;margin-bottom:12px;">
+                <span style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:999px;background:#22c55e;color:#052e16;font-size:12.5px;font-weight:700;"><span class="ico" style="font-size:16px;">check_circle</span>Baik</span>
+                <span style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:999px;background:#1e293b;border:1.5px solid #78350f;color:#fcd34d;font-size:12.5px;font-weight:600;"><span class="ico" style="font-size:16px;">build</span>Perlu Servis</span>
+              </div>
+              <label style="font-size:12px;font-weight:600;color:#cbd5e1;display:block;margin-bottom:6px;">Catatan <span style="color:#64748b;font-weight:500;">(ops.)</span></label>
+              <div style="min-height:52px;border:1.5px solid #475569;border-radius:13px;background:#0f172a;padding:12px 13px;font-size:13px;color:#64748b;margin-bottom:14px;">Mis. lecet ringan di sudut kiri</div>
+              <button style="width:100%;height:52px;border:none;border-radius:14px;background:#22c55e;color:#052e16;font-family:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;"><span class="ico" style="font-size:20px;">assignment_return</span>Check-in</button>
+              <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;"><span class="ico" style="font-size:15px;color:#64748b;">bolt</span><span style="font-size:11.5px;color:#64748b;">Aset kembali Tersedia (atau Maintenance bila perlu servis)</span></div>
+              <div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:12px auto 0;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D4 CHECKOUT SUCCESS -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:5px 12px;border-radius:999px;font-weight:500;">Sukses check-out — badge Dipinjam</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:12;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.43</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Detail Aset</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;display:flex;flex-direction:column;gap:12px;">
+              <div style="height:160px;border-radius:18px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 8px,#334155 8px,#334155 16px);border:1px solid #334155;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:50px;color:#64748b;">laptop_windows</span></div>
+              <div>
+                <div style="font-size:19px;font-weight:800;margin-bottom:5px;">Laptop Dell Latitude 5440</div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#94a3b8;"><span class="ico" style="font-size:16px;">barcode</span>JKT01-ELK-2026-00001</span>
+                  <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:999px;background:#1e3a5f;color:#93c5fd;font-size:11.5px;font-weight:600;"><span style="width:7px;height:7px;border-radius:999px;background:#60a5fa;"></span>Dipinjam</span>
+                </div>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:14px 16px;">
+                <div style="font-size:11.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Penempatan</div>
+                <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
+                  <div style="display:flex;justify-content:space-between;"><span style="color:#94a3b8;">Pemegang</span><span style="font-weight:700;color:#93c5fd;">Dewi Lestari</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span style="color:#94a3b8;">Sejak</span><span style="font-weight:600;">21 Jul 2026</span></div>
+                </div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:0 20px;">
+              <div style="display:flex;align-items:center;gap:10px;background:#f1f5f9;border-radius:13px;padding:13px 16px;margin-bottom:12px;box-shadow:0 8px 24px rgba(2,6,23,0.4);"><span class="ico" style="font-size:20px;color:#16a34a;">check_circle</span><span style="flex:1;font-size:13px;color:#0f172a;font-weight:500;">Check-out berhasil — dipegang Dewi Lestari</span></div>
+            </div>
+            <div style="flex-shrink:0;padding:0 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D5 VALIDATION ERROR -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;padding:5px 12px;border-radius:999px;font-weight:500;">Error validasi — custodian wajib</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:12;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Detail Aset</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;">
+              <div style="height:120px;border-radius:18px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 8px,#334155 8px,#334155 16px);border:1px solid #334155;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:44px;color:#64748b;">laptop_windows</span></div>
+            </div>
+            <div style="position:absolute;inset:0;background:rgba(2,6,23,0.6);z-index:9;"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;z-index:10;background:#1e293b;border-top:1px solid #334155;border-radius:28px 28px 44px 44px;padding:8px 20px 14px;box-shadow:0 -10px 40px rgba(2,6,23,0.6);">
+              <div style="width:36px;height:4px;border-radius:999px;background:#475569;margin:6px auto 12px;"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <span style="font-size:17px;font-weight:800;">Check-out Aset</span>
+                <div style="width:36px;height:36px;border-radius:999px;background:#334155;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:20px;color:#cbd5e1;">close</span></div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:center;background:#0f172a;border:1px solid #334155;border-radius:14px;padding:10px 12px;margin-bottom:14px;">
+                <div style="width:44px;height:44px;border-radius:11px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 5px,#334155 5px,#334155 10px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:22px;color:#64748b;">laptop_windows</span></div>
+                <div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:700;">Laptop Dell Latitude 5440</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;">JKT01-ELK-2026-00001</div></div>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#14532d;color:#86efac;font-size:11px;font-weight:600;flex-shrink:0;"><span style="width:6px;height:6px;border-radius:999px;background:#22c55e;"></span>Tersedia</span>
+              </div>
+              <label style="font-size:12px;font-weight:600;color:#f87171;display:block;margin-bottom:6px;">Pemegang (custodian)</label>
+              <div style="height:48px;border:2px solid #ef4444;border-radius:13px;background:#0f172a;display:flex;align-items:center;justify-content:space-between;gap:9px;padding:0 13px;font-size:13.5px;color:#64748b;"><span style="display:flex;align-items:center;gap:9px;"><span class="ico" style="font-size:19px;color:#f87171;">person_search</span>Cari nama pegawai…</span><span class="ico" style="font-size:19px;color:#f87171;">error</span></div>
+              <span style="font-size:11px;color:#f87171;display:flex;align-items:center;gap:4px;margin-top:5px;margin-bottom:10px;"><span class="ico" style="font-size:14px;">info</span>Pemegang wajib dipilih untuk check-out</span>
+              <div style="display:flex;gap:10px;margin-bottom:14px;">
+                <div style="flex:1;"><label style="font-size:12px;font-weight:600;color:#cbd5e1;display:block;margin-bottom:6px;">Tanggal pinjam</label><div style="height:48px;border:1.5px solid #475569;border-radius:13px;background:#0f172a;display:flex;align-items:center;gap:8px;padding:0 13px;font-size:13px;font-weight:600;"><span class="ico" style="font-size:18px;color:#94a3b8;">calendar_today</span>Hari ini, 21 Jul</div></div>
+                <div style="flex:1;"><label style="font-size:12px;font-weight:600;color:#cbd5e1;display:block;margin-bottom:6px;">Jatuh tempo <span style="color:#64748b;font-weight:500;">(ops.)</span></label><div style="height:48px;border:1.5px solid #475569;border-radius:13px;background:#0f172a;display:flex;align-items:center;gap:8px;padding:0 13px;font-size:13px;font-weight:600;"><span class="ico" style="font-size:18px;color:#94a3b8;">event</span>21 Agu 2026</div></div>
+              </div>
+              <label style="font-size:12px;font-weight:600;color:#cbd5e1;display:block;margin-bottom:6px;">Catatan kondisi keluar</label>
+              <div style="min-height:52px;border:1.5px solid #475569;border-radius:13px;background:#0f172a;padding:12px 13px;font-size:13px;color:#f1f5f9;margin-bottom:14px;">Kondisi baik, charger lengkap</div>
+              <button style="width:100%;height:52px;border:none;border-radius:14px;background:#22c55e;color:#052e16;font-family:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;"><span class="ico" style="font-size:20px;">how_to_reg</span>Check-out</button>
+              <div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:14px auto 0;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

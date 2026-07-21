@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  .ico { font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap; direction: ltr; -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; user-select: none; }
+</style>
+</helmet>
+<div style="font-family:'Inter',sans-serif;background:#eef2f6;padding:48px 40px 80px;min-height:100vh;color:#0f172a;">
+  <div style="margin:0 auto;max-width:1800px;">
+    <div style="margin-bottom:36px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#16a34a;font-weight:500;margin-bottom:6px;">INVENTRA MOBILE · LAYAR 13</div>
+      <h1 style="font-size:32px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;">Katalog Aset</h1>
+      <p style="font-size:14px;color:#64748b;margin:0;">Telusuri aset tanpa memindai — read-only, scope + field permission server · 4 state × light &amp; dark.</p>
+    </div>
+
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">Light mode</div>
+    <div style="display:flex;gap:32px;align-items:flex-start;margin-bottom:48px;">
+
+      <!-- L1 FILLED -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Daftar terisi</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:8;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Katalog Aset</span>
+            </div>
+            <div style="padding:2px 20px 10px;flex-shrink:0;">
+              <div style="height:48px;border-radius:999px;background:#fff;border:1px solid #e2e8f0;display:flex;align-items:center;gap:10px;padding:0 18px;"><span class="ico" style="font-size:20px;color:#64748b;">search</span><span style="font-size:14px;color:#94a3b8;">Cari nama atau kode aset…</span></div>
+            </div>
+            <div style="display:flex;gap:8px;padding:0 20px 12px;flex-shrink:0;">
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;background:#fff;border:1px solid #cbd5e1;color:#475569;font-size:12px;font-weight:600;">Kategori<span class="ico" style="font-size:16px;">arrow_drop_down</span></span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;background:#fff;border:1px solid #cbd5e1;color:#475569;font-size:12px;font-weight:600;">Status<span class="ico" style="font-size:16px;">arrow_drop_down</span></span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;background:#fff;border:1px solid #cbd5e1;color:#475569;font-size:12px;font-weight:600;">Kantor<span class="ico" style="font-size:16px;">arrow_drop_down</span></span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;display:flex;flex-direction:column;gap:10px;">
+              <div style="font-size:11.5px;color:#94a3b8;flex-shrink:0;">1.248 aset dalam lingkup Anda</div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;box-shadow:0 1px 3px rgba(15,23,42,0.05);">
+                <div style="width:52px;height:52px;border-radius:12px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 6px,#e2e8f0 6px,#e2e8f0 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:24px;color:#94a3b8;">laptop_windows</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:700;margin-bottom:1px;">Laptop Dell Latitude 5440</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;margin-bottom:6px;">JKT01-ELK-2026-00001</div>
+                  <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:11px;font-weight:600;"><span style="width:6px;height:6px;border-radius:999px;background:#16a34a;"></span>Tersedia</span><span style="font-size:11px;color:#64748b;">R. Operasional Lt. 2</span></div>
+                </div>
+                <span class="ico" style="font-size:22px;color:#cbd5e1;">chevron_right</span>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;box-shadow:0 1px 3px rgba(15,23,42,0.05);">
+                <div style="width:52px;height:52px;border-radius:12px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 6px,#e2e8f0 6px,#e2e8f0 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:24px;color:#94a3b8;">videocam</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:700;margin-bottom:1px;">Proyektor Epson EB-X500</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;margin-bottom:6px;">JKT01-ELK-2025-00042</div>
+                  <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:600;"><span style="width:6px;height:6px;border-radius:999px;background:#2563eb;"></span>Dipinjam</span><span style="font-size:11px;color:#64748b;">R. Rapat Lt. 3</span></div>
+                </div>
+                <span class="ico" style="font-size:22px;color:#cbd5e1;">chevron_right</span>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;box-shadow:0 1px 3px rgba(15,23,42,0.05);">
+                <div style="width:52px;height:52px;border-radius:12px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 6px,#e2e8f0 6px,#e2e8f0 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:24px;color:#94a3b8;">ac_unit</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:700;margin-bottom:1px;">AC Daikin 2 PK</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;margin-bottom:6px;">JKT01-ELK-2024-00031</div>
+                  <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#fef3c7;color:#b45309;font-size:11px;font-weight:600;"><span style="width:6px;height:6px;border-radius:999px;background:#d97706;"></span>Maintenance</span><span style="font-size:11px;color:#64748b;">R. Server Lt. 3</span></div>
+                </div>
+                <span class="ico" style="font-size:22px;color:#cbd5e1;">chevron_right</span>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;box-shadow:0 1px 3px rgba(15,23,42,0.05);">
+                <div style="width:52px;height:52px;border-radius:12px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 6px,#e2e8f0 6px,#e2e8f0 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:24px;color:#94a3b8;">chair</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:700;margin-bottom:1px;">Kursi Ergonomis Fantoni</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;margin-bottom:6px;">JKT01-FUR-2025-00117</div>
+                  <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:11px;font-weight:600;"><span style="width:6px;height:6px;border-radius:999px;background:#16a34a;"></span>Tersedia</span><span style="font-size:11px;color:#64748b;">R. Kerja Lt. 2</span></div>
+                </div>
+                <span class="ico" style="font-size:22px;color:#cbd5e1;">chevron_right</span>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;box-shadow:0 1px 3px rgba(15,23,42,0.05);">
+                <div style="width:52px;height:52px;border-radius:12px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 6px,#e2e8f0 6px,#e2e8f0 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:24px;color:#94a3b8;">print</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:700;margin-bottom:1px;">Printer HP LaserJet M404</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;margin-bottom:6px;">JKT01-ELK-2025-00087</div>
+                  <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#f1f5f9;color:#475569;font-size:11px;font-weight:600;border:1px solid #e2e8f0;"><span style="width:6px;height:6px;border-radius:999px;background:#64748b;"></span>Dilepas</span><span style="font-size:11px;color:#64748b;">Gudang B1</span></div>
+                </div>
+                <span class="ico" style="font-size:22px;color:#cbd5e1;">chevron_right</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:4px 0;"><span style="width:16px;height:16px;border:2px solid #cbd5e1;border-top-color:#16a34a;border-radius:50%;display:inline-block;"></span><span style="font-size:11.5px;color:#94a3b8;">Memuat lainnya…</span></div>
+            </div>
+            <div style="flex-shrink:0;padding:10px 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L2 SEARCH+FILTER -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:5px 12px;border-radius:999px;font-weight:500;">Pencarian + filter aktif</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:8;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Katalog Aset</span>
+            </div>
+            <div style="padding:2px 20px 10px;flex-shrink:0;">
+              <div style="height:48px;border-radius:999px;background:#fff;border:2px solid #16a34a;display:flex;align-items:center;gap:10px;padding:0 18px;box-shadow:0 0 0 4px rgba(22,163,74,0.1);"><span class="ico" style="font-size:20px;color:#16a34a;">search</span><span style="font-size:14px;color:#0f172a;font-weight:500;">laptop</span><span style="width:1px;height:18px;background:#16a34a;"></span><span class="ico" style="font-size:19px;color:#94a3b8;margin-left:auto;">close</span></div>
+            </div>
+            <div style="display:flex;gap:8px;padding:0 20px 12px;flex-shrink:0;">
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;background:#dcfce7;border:1px solid #16a34a;color:#15803d;font-size:12px;font-weight:700;">Elektronik<span class="ico" style="font-size:15px;">close</span></span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;background:#dcfce7;border:1px solid #16a34a;color:#15803d;font-size:12px;font-weight:700;">Tersedia<span class="ico" style="font-size:15px;">close</span></span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;background:#fff;border:1px solid #cbd5e1;color:#475569;font-size:12px;font-weight:600;">Kantor<span class="ico" style="font-size:16px;">arrow_drop_down</span></span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;display:flex;flex-direction:column;gap:10px;">
+              <div style="font-size:11.5px;color:#94a3b8;flex-shrink:0;">3 hasil untuk "laptop" · Elektronik · Tersedia</div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;box-shadow:0 1px 3px rgba(15,23,42,0.05);">
+                <div style="width:52px;height:52px;border-radius:12px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 6px,#e2e8f0 6px,#e2e8f0 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:24px;color:#94a3b8;">laptop_windows</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:700;margin-bottom:1px;">Laptop Dell Latitude 5440</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;margin-bottom:6px;">JKT01-ELK-2026-00001</div>
+                  <div style="display:flex;align-items:center;gap:7px;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:11px;font-weight:600;"><span style="width:6px;height:6px;border-radius:999px;background:#16a34a;"></span>Tersedia</span><span style="font-size:11px;color:#64748b;">R. Operasional Lt. 2</span></div>
+                </div>
+                <span class="ico" style="font-size:22px;color:#cbd5e1;">chevron_right</span>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;box-shadow:0 1px 3px rgba(15,23,42,0.05);">
+                <div style="width:52px;height:52px;border-radius:12px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 6px,#e2e8f0 6px,#e2e8f0 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:24px;color:#94a3b8;">laptop_windows</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:700;margin-bottom:1px;">Laptop Asus ExpertBook B1</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;margin-bottom:6px;">JKT01-ELK-2026-00014</div>
+                  <div style="display:flex;align-items:center;gap:7px;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:11px;font-weight:600;"><span style="width:6px;height:6px;border-radius:999px;background:#16a34a;"></span>Tersedia</span><span style="font-size:11px;color:#64748b;">R. Layanan Lt. 1</span></div>
+                </div>
+                <span class="ico" style="font-size:22px;color:#cbd5e1;">chevron_right</span>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;box-shadow:0 1px 3px rgba(15,23,42,0.05);">
+                <div style="width:52px;height:52px;border-radius:12px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 6px,#e2e8f0 6px,#e2e8f0 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:24px;color:#94a3b8;">laptop_windows</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:700;margin-bottom:1px;">Laptop Lenovo ThinkPad E14</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#94a3b8;margin-bottom:6px;">JKT01-ELK-2025-00203</div>
+                  <div style="display:flex;align-items:center;gap:7px;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:11px;font-weight:600;"><span style="width:6px;height:6px;border-radius:999px;background:#16a34a;"></span>Tersedia</span><span style="font-size:11px;color:#64748b;">R. Kerja Lt. 2</span></div>
+                </div>
+                <span class="ico" style="font-size:22px;color:#cbd5e1;">chevron_right</span>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:10px 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L3 EMPTY -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Empty — tidak ada yang cocok</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:8;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Katalog Aset</span>
+            </div>
+            <div style="padding:2px 20px 10px;flex-shrink:0;">
+              <div style="height:48px;border-radius:999px;background:#fff;border:1px solid #e2e8f0;display:flex;align-items:center;gap:10px;padding:0 18px;"><span class="ico" style="font-size:20px;color:#64748b;">search</span><span style="font-size:14px;color:#0f172a;font-weight:500;">mesin antrian</span><span class="ico" style="font-size:19px;color:#94a3b8;margin-left:auto;">close</span></div>
+            </div>
+            <div style="display:flex;gap:8px;padding:0 20px 12px;flex-shrink:0;">
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;background:#dcfce7;border:1px solid #16a34a;color:#15803d;font-size:12px;font-weight:700;">Hilang<span class="ico" style="font-size:15px;">close</span></span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;background:#fff;border:1px solid #cbd5e1;color:#475569;font-size:12px;font-weight:600;">Kategori<span class="ico" style="font-size:16px;">arrow_drop_down</span></span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;background:#fff;border:1px solid #cbd5e1;color:#475569;font-size:12px;font-weight:600;">Kantor<span class="ico" style="font-size:16px;">arrow_drop_down</span></span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 40px;text-align:center;">
+              <div style="width:96px;height:96px;border-radius:999px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;margin-bottom:18px;"><span class="ico" style="font-size:46px;color:#94a3b8;">search_off</span></div>
+              <div style="font-size:16px;font-weight:700;margin-bottom:6px;">Tidak ada aset yang cocok</div>
+              <div style="font-size:13px;color:#64748b;line-height:1.5;margin-bottom:18px;">Coba ubah kata kunci atau kurangi filter yang aktif.</div>
+              <button style="height:46px;padding:0 22px;border:1.5px solid #16a34a;border-radius:13px;background:transparent;color:#15803d;font-family:inherit;font-size:13.5px;font-weight:700;display:inline-flex;align-items:center;gap:7px;"><span class="ico" style="font-size:18px;">filter_alt_off</span>Reset filter</button>
+            </div>
+            <div style="flex-shrink:0;padding:10px 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L4 SKELETON -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:5px 12px;border-radius:999px;font-weight:500;">Loading — skeleton</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:8;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Katalog Aset</span>
+            </div>
+            <div style="padding:2px 20px 10px;flex-shrink:0;">
+              <div style="height:48px;border-radius:999px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+            </div>
+            <div style="display:flex;gap:8px;padding:0 20px 12px;flex-shrink:0;">
+              <div style="height:32px;width:92px;border-radius:999px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+              <div style="height:32px;width:78px;border-radius:999px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+              <div style="height:32px;width:80px;border-radius:999px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;display:flex;flex-direction:column;gap:10px;">
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;">
+                <div style="width:52px;height:52px;border-radius:12px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;flex-shrink:0;"></div>
+                <div style="flex:1;"><div style="height:13px;width:64%;border-radius:7px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:10px;width:48%;border-radius:5px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:20px;width:88px;border-radius:999px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;">
+                <div style="width:52px;height:52px;border-radius:12px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;flex-shrink:0;"></div>
+                <div style="flex:1;"><div style="height:13px;width:56%;border-radius:7px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:10px;width:44%;border-radius:5px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:20px;width:80px;border-radius:999px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;">
+                <div style="width:52px;height:52px;border-radius:12px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;flex-shrink:0;"></div>
+                <div style="flex:1;"><div style="height:13px;width:68%;border-radius:7px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:10px;width:50%;border-radius:5px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:20px;width:92px;border-radius:999px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;">
+                <div style="width:52px;height:52px;border-radius:12px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;flex-shrink:0;"></div>
+                <div style="flex:1;"><div style="height:13px;width:60%;border-radius:7px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:10px;width:46%;border-radius:5px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:20px;width:84px;border-radius:999px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;">
+                <div style="width:52px;height:52px;border-radius:12px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;flex-shrink:0;"></div>
+                <div style="flex:1;"><div style="height:13px;width:64%;border-radius:7px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:10px;width:42%;border-radius:5px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:20px;width:88px;border-radius:999px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:10px 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">Dark mode</div>
+    <div style="display:flex;gap:32px;align-items:flex-start;">
+
+      <!-- D1 FILLED -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Daftar terisi</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Katalog Aset</span>
+            </div>
+            <div style="padding:2px 20px 10px;flex-shrink:0;">
+              <div style="height:48px;border-radius:999px;background:#1e293b;border:1px solid #334155;display:flex;align-items:center;gap:10px;padding:0 18px;"><span class="ico" style="font-size:20px;color:#94a3b8;">search</span><span style="font-size:14px;color:#64748b;">Cari nama atau kode aset…</span></div>
+            </div>
+            <div style="display:flex;gap:8px;padding:0 20px 12px;flex-shrink:0;">
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;background:#1e293b;border:1px solid #475569;color:#cbd5e1;font-size:12px;font-weight:600;">Kategori<span class="ico" style="font-size:16px;">arrow_drop_down</span></span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;background:#1e293b;border:1px solid #475569;color:#cbd5e1;font-size:12px;font-weight:600;">Status<span class="ico" style="font-size:16px;">arrow_drop_down</span></span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;background:#1e293b;border:1px solid #475569;color:#cbd5e1;font-size:12px;font-weight:600;">Kantor<span class="ico" style="font-size:16px;">arrow_drop_down</span></span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;display:flex;flex-direction:column;gap:10px;">
+              <div style="font-size:11.5px;color:#64748b;flex-shrink:0;">1.248 aset dalam lingkup Anda</div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;">
+                <div style="width:52px;height:52px;border-radius:12px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 6px,#334155 6px,#334155 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:24px;color:#64748b;">laptop_windows</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:700;margin-bottom:1px;">Laptop Dell Latitude 5440</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;margin-bottom:6px;">JKT01-ELK-2026-00001</div>
+                  <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#14532d;color:#86efac;font-size:11px;font-weight:600;"><span style="width:6px;height:6px;border-radius:999px;background:#22c55e;"></span>Tersedia</span><span style="font-size:11px;color:#94a3b8;">R. Operasional Lt. 2</span></div>
+                </div>
+                <span class="ico" style="font-size:22px;color:#475569;">chevron_right</span>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;">
+                <div style="width:52px;height:52px;border-radius:12px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 6px,#334155 6px,#334155 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:24px;color:#64748b;">videocam</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:700;margin-bottom:1px;">Proyektor Epson EB-X500</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;margin-bottom:6px;">JKT01-ELK-2025-00042</div>
+                  <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#1e3a5f;color:#93c5fd;font-size:11px;font-weight:600;"><span style="width:6px;height:6px;border-radius:999px;background:#60a5fa;"></span>Dipinjam</span><span style="font-size:11px;color:#94a3b8;">R. Rapat Lt. 3</span></div>
+                </div>
+                <span class="ico" style="font-size:22px;color:#475569;">chevron_right</span>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;">
+                <div style="width:52px;height:52px;border-radius:12px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 6px,#334155 6px,#334155 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:24px;color:#64748b;">ac_unit</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:700;margin-bottom:1px;">AC Daikin 2 PK</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;margin-bottom:6px;">JKT01-ELK-2024-00031</div>
+                  <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#422006;color:#fcd34d;font-size:11px;font-weight:600;"><span style="width:6px;height:6px;border-radius:999px;background:#f59e0b;"></span>Maintenance</span><span style="font-size:11px;color:#94a3b8;">R. Server Lt. 3</span></div>
+                </div>
+                <span class="ico" style="font-size:22px;color:#475569;">chevron_right</span>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;">
+                <div style="width:52px;height:52px;border-radius:12px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 6px,#334155 6px,#334155 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:24px;color:#64748b;">chair</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:700;margin-bottom:1px;">Kursi Ergonomis Fantoni</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;margin-bottom:6px;">JKT01-FUR-2025-00117</div>
+                  <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#14532d;color:#86efac;font-size:11px;font-weight:600;"><span style="width:6px;height:6px;border-radius:999px;background:#22c55e;"></span>Tersedia</span><span style="font-size:11px;color:#94a3b8;">R. Kerja Lt. 2</span></div>
+                </div>
+                <span class="ico" style="font-size:22px;color:#475569;">chevron_right</span>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;">
+                <div style="width:52px;height:52px;border-radius:12px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 6px,#334155 6px,#334155 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:24px;color:#64748b;">print</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:700;margin-bottom:1px;">Printer HP LaserJet M404</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;margin-bottom:6px;">JKT01-ELK-2025-00087</div>
+                  <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#334155;color:#cbd5e1;font-size:11px;font-weight:600;"><span style="width:6px;height:6px;border-radius:999px;background:#94a3b8;"></span>Dilepas</span><span style="font-size:11px;color:#94a3b8;">Gudang B1</span></div>
+                </div>
+                <span class="ico" style="font-size:22px;color:#475569;">chevron_right</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:4px 0;"><span style="width:16px;height:16px;border:2px solid #475569;border-top-color:#22c55e;border-radius:50%;display:inline-block;"></span><span style="font-size:11.5px;color:#64748b;">Memuat lainnya…</span></div>
+            </div>
+            <div style="flex-shrink:0;padding:10px 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D2 SEARCH+FILTER -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:5px 12px;border-radius:999px;font-weight:500;">Pencarian + filter aktif</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Katalog Aset</span>
+            </div>
+            <div style="padding:2px 20px 10px;flex-shrink:0;">
+              <div style="height:48px;border-radius:999px;background:#1e293b;border:2px solid #22c55e;display:flex;align-items:center;gap:10px;padding:0 18px;box-shadow:0 0 0 4px rgba(34,197,94,0.15);"><span class="ico" style="font-size:20px;color:#4ade80;">search</span><span style="font-size:14px;color:#f1f5f9;font-weight:500;">laptop</span><span style="width:1px;height:18px;background:#22c55e;"></span><span class="ico" style="font-size:19px;color:#64748b;margin-left:auto;">close</span></div>
+            </div>
+            <div style="display:flex;gap:8px;padding:0 20px 12px;flex-shrink:0;">
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;background:#14532d;border:1px solid #22c55e;color:#86efac;font-size:12px;font-weight:700;">Elektronik<span class="ico" style="font-size:15px;">close</span></span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;background:#14532d;border:1px solid #22c55e;color:#86efac;font-size:12px;font-weight:700;">Tersedia<span class="ico" style="font-size:15px;">close</span></span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;background:#1e293b;border:1px solid #475569;color:#cbd5e1;font-size:12px;font-weight:600;">Kantor<span class="ico" style="font-size:16px;">arrow_drop_down</span></span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;display:flex;flex-direction:column;gap:10px;">
+              <div style="font-size:11.5px;color:#64748b;flex-shrink:0;">3 hasil untuk "laptop" · Elektronik · Tersedia</div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;">
+                <div style="width:52px;height:52px;border-radius:12px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 6px,#334155 6px,#334155 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:24px;color:#64748b;">laptop_windows</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:700;margin-bottom:1px;">Laptop Dell Latitude 5440</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;margin-bottom:6px;">JKT01-ELK-2026-00001</div>
+                  <div style="display:flex;align-items:center;gap:7px;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#14532d;color:#86efac;font-size:11px;font-weight:600;"><span style="width:6px;height:6px;border-radius:999px;background:#22c55e;"></span>Tersedia</span><span style="font-size:11px;color:#94a3b8;">R. Operasional Lt. 2</span></div>
+                </div>
+                <span class="ico" style="font-size:22px;color:#475569;">chevron_right</span>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;">
+                <div style="width:52px;height:52px;border-radius:12px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 6px,#334155 6px,#334155 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:24px;color:#64748b;">laptop_windows</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:700;margin-bottom:1px;">Laptop Asus ExpertBook B1</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;margin-bottom:6px;">JKT01-ELK-2026-00014</div>
+                  <div style="display:flex;align-items:center;gap:7px;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#14532d;color:#86efac;font-size:11px;font-weight:600;"><span style="width:6px;height:6px;border-radius:999px;background:#22c55e;"></span>Tersedia</span><span style="font-size:11px;color:#94a3b8;">R. Layanan Lt. 1</span></div>
+                </div>
+                <span class="ico" style="font-size:22px;color:#475569;">chevron_right</span>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;">
+                <div style="width:52px;height:52px;border-radius:12px;background:repeating-linear-gradient(45deg,#1e293b,#1e293b 6px,#334155 6px,#334155 12px);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:24px;color:#64748b;">laptop_windows</span></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:700;margin-bottom:1px;">Laptop Lenovo ThinkPad E14</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#64748b;margin-bottom:6px;">JKT01-ELK-2025-00203</div>
+                  <div style="display:flex;align-items:center;gap:7px;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#14532d;color:#86efac;font-size:11px;font-weight:600;"><span style="width:6px;height:6px;border-radius:999px;background:#22c55e;"></span>Tersedia</span><span style="font-size:11px;color:#94a3b8;">R. Kerja Lt. 2</span></div>
+                </div>
+                <span class="ico" style="font-size:22px;color:#475569;">chevron_right</span>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:10px 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D3 EMPTY -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Empty — tidak ada yang cocok</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Katalog Aset</span>
+            </div>
+            <div style="padding:2px 20px 10px;flex-shrink:0;">
+              <div style="height:48px;border-radius:999px;background:#1e293b;border:1px solid #334155;display:flex;align-items:center;gap:10px;padding:0 18px;"><span class="ico" style="font-size:20px;color:#94a3b8;">search</span><span style="font-size:14px;color:#f1f5f9;font-weight:500;">mesin antrian</span><span class="ico" style="font-size:19px;color:#64748b;margin-left:auto;">close</span></div>
+            </div>
+            <div style="display:flex;gap:8px;padding:0 20px 12px;flex-shrink:0;">
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;background:#14532d;border:1px solid #22c55e;color:#86efac;font-size:12px;font-weight:700;">Hilang<span class="ico" style="font-size:15px;">close</span></span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;background:#1e293b;border:1px solid #475569;color:#cbd5e1;font-size:12px;font-weight:600;">Kategori<span class="ico" style="font-size:16px;">arrow_drop_down</span></span>
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;background:#1e293b;border:1px solid #475569;color:#cbd5e1;font-size:12px;font-weight:600;">Kantor<span class="ico" style="font-size:16px;">arrow_drop_down</span></span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 40px;text-align:center;">
+              <div style="width:96px;height:96px;border-radius:999px;background:#1e293b;display:flex;align-items:center;justify-content:center;margin-bottom:18px;"><span class="ico" style="font-size:46px;color:#64748b;">search_off</span></div>
+              <div style="font-size:16px;font-weight:700;margin-bottom:6px;">Tidak ada aset yang cocok</div>
+              <div style="font-size:13px;color:#94a3b8;line-height:1.5;margin-bottom:18px;">Coba ubah kata kunci atau kurangi filter yang aktif.</div>
+              <button style="height:46px;padding:0 22px;border:1.5px solid #22c55e;border-radius:13px;background:transparent;color:#4ade80;font-family:inherit;font-size:13.5px;font-weight:700;display:inline-flex;align-items:center;gap:7px;"><span class="ico" style="font-size:18px;">filter_alt_off</span>Reset filter</button>
+            </div>
+            <div style="flex-shrink:0;padding:10px 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D4 SKELETON -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:5px 12px;border-radius:999px;font-weight:500;">Loading — skeleton</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Katalog Aset</span>
+            </div>
+            <div style="padding:2px 20px 10px;flex-shrink:0;">
+              <div style="height:48px;border-radius:999px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+            </div>
+            <div style="display:flex;gap:8px;padding:0 20px 12px;flex-shrink:0;">
+              <div style="height:32px;width:92px;border-radius:999px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+              <div style="height:32px;width:78px;border-radius:999px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+              <div style="height:32px;width:80px;border-radius:999px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 20px;display:flex;flex-direction:column;gap:10px;">
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;">
+                <div style="width:52px;height:52px;border-radius:12px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;flex-shrink:0;"></div>
+                <div style="flex:1;"><div style="height:13px;width:64%;border-radius:7px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:10px;width:48%;border-radius:5px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:20px;width:88px;border-radius:999px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;">
+                <div style="width:52px;height:52px;border-radius:12px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;flex-shrink:0;"></div>
+                <div style="flex:1;"><div style="height:13px;width:56%;border-radius:7px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:10px;width:44%;border-radius:5px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:20px;width:80px;border-radius:999px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;">
+                <div style="width:52px;height:52px;border-radius:12px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;flex-shrink:0;"></div>
+                <div style="flex:1;"><div style="height:13px;width:68%;border-radius:7px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:10px;width:50%;border-radius:5px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:20px;width:92px;border-radius:999px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;">
+                <div style="width:52px;height:52px;border-radius:12px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;flex-shrink:0;"></div>
+                <div style="flex:1;"><div style="height:13px;width:60%;border-radius:7px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:10px;width:46%;border-radius:5px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:20px;width:84px;border-radius:999px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:13px;display:flex;gap:13px;align-items:center;">
+                <div style="width:52px;height:52px;border-radius:12px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;flex-shrink:0;"></div>
+                <div style="flex:1;"><div style="height:13px;width:64%;border-radius:7px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:10px;width:42%;border-radius:5px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:20px;width:88px;border-radius:999px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:10px 0 8px;"><div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

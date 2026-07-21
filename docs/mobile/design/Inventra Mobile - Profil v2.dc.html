@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  .ico { font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap; direction: ltr; -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; user-select: none; }
+</style>
+</helmet>
+<div style="font-family:'Inter',sans-serif;background:#eef2f6;padding:48px 40px 80px;min-height:100vh;color:#0f172a;">
+  <div style="margin:0 auto;max-width:2700px;">
+    <div style="margin-bottom:36px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#16a34a;font-weight:500;margin-bottom:6px;">INVENTRA MOBILE · LAYAR 11 · v2 (FR-M6.1/6.2 — EDIT PROFIL &amp; FOTO)</div>
+      <h1 style="font-size:32px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;">Profil &amp; Sesi Perangkat</h1>
+      <p style="font-size:14px;color:#64748b;margin:0;">Edit data diri, kelola foto profil, keamanan akun, dan sesi perangkat · 6 state × light &amp; dark.</p>
+    </div>
+
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">Light mode</div>
+    <div style="display:flex;gap:32px;align-items:flex-start;margin-bottom:48px;flex-wrap:wrap;">
+
+      <!-- L1 READ MODE -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Mode baca — profil + 3 sesi</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:8;"></div>
+            <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 3px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:48px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Profil</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:2px 18px 0;display:flex;flex-direction:column;gap:5px;">
+              <div style="display:flex;align-items:center;gap:14px;padding:0 2px;">
+                <div style="position:relative;flex-shrink:0;">
+                  <div style="width:64px;height:64px;border-radius:999px;background:#dcfce7;border:2px solid #bbf7d0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#15803d;">AS</div>
+                  <div style="position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;border-radius:999px;background:#16a34a;border:2px solid #f8fafc;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:13px;color:#fff;">photo_camera</span></div>
+                </div>
+                <div><div style="font-size:17px;font-weight:800;">Andi Saputra</div><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:11px;font-weight:700;margin-top:4px;"><span class="ico" style="font-size:13px;">badge</span>Asset Manager</span></div>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:15px;padding:9px 13px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;"><span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Data Diri</span><span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:#15803d;"><span class="ico" style="font-size:15px;">edit</span>Ubah</span></div>
+                <div style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;">
+                  <div style="display:flex;justify-content:space-between;"><span style="color:#64748b;">Nama</span><span style="font-weight:600;">Andi Saputra</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span style="color:#64748b;">Telepon</span><span style="font-weight:600;">0812-3456-7890</span></div>
+                </div>
+                <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin:10px 0 7px;border-top:1px solid #f1f5f9;padding-top:9px;">Detail Pegawai · read-only</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:12px;">
+                  <div><div style="color:#94a3b8;font-size:10.5px;">Kode pegawai</div><div style="font-weight:600;font-family:'JetBrains Mono',monospace;font-size:11.5px;">EMP-0142</div></div>
+                  <div><div style="color:#94a3b8;font-size:10.5px;">Status</div><div style="font-weight:600;color:#15803d;">Aktif</div></div>
+                  <div><div style="color:#94a3b8;font-size:10.5px;">Departemen</div><div style="font-weight:600;">Operasional</div></div>
+                  <div><div style="color:#94a3b8;font-size:10.5px;">Jabatan</div><div style="font-weight:600;">Manager Aset</div></div>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:15px;padding:9px 13px;">
+                <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Informasi Akun</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:12px;">
+                  <div><div style="color:#94a3b8;font-size:10.5px;">Peran</div><div style="font-weight:600;">Asset Manager</div></div>
+                  <div><div style="color:#94a3b8;font-size:10.5px;">Kantor</div><div style="font-weight:600;">Cab. Jakarta Selatan</div></div>
+                  <div><div style="color:#94a3b8;font-size:10.5px;">Metode login</div><div style="font-weight:600;">Email + password</div></div>
+                  <div><div style="color:#94a3b8;font-size:10.5px;">Bergabung</div><div style="font-weight:600;">12 Jan 2024</div></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <div style="flex:1;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:13px;padding:11px 12px;"><span class="ico" style="font-size:18px;color:#475569;">lock</span><span style="flex:1;font-size:12.5px;font-weight:600;">Keamanan Akun</span><span class="ico" style="font-size:17px;color:#cbd5e1;">chevron_right</span></div>
+                <div style="flex:1;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:13px;padding:11px 12px;"><span class="ico" style="font-size:18px;color:#475569;">settings</span><span style="flex:1;font-size:12.5px;font-weight:600;">Pengaturan</span><span class="ico" style="font-size:17px;color:#cbd5e1;">chevron_right</span></div>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:15px;padding:9px 13px;">
+                <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:9px;">Sesi Perangkat</div>
+                <div style="display:flex;align-items:center;gap:10px;padding-bottom:9px;border-bottom:1px solid #f1f5f9;">
+                  <div style="width:34px;height:34px;border-radius:10px;background:#dcfce7;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:17px;color:#15803d;">smartphone</span></div>
+                  <div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;"><span style="font-size:12px;font-weight:700;">Pixel 8 · Inventra App</span><span style="padding:1px 7px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:9.5px;font-weight:700;">Perangkat ini</span></div><div style="font-size:10.5px;color:#94a3b8;">Jakarta · 103.28.xx.xx · aktif sekarang</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f1f5f9;">
+                  <div style="width:34px;height:34px;border-radius:10px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:17px;color:#475569;">laptop_windows</span></div>
+                  <div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;">Windows · Chrome</div><div style="font-size:10.5px;color:#94a3b8;">Jakarta · 103.28.xx.xx · 2 jam lalu</div></div>
+                  <button style="height:30px;padding:0 11px;border:1.5px solid #fecaca;border-radius:8px;background:transparent;color:#dc2626;font-family:inherit;font-size:11px;font-weight:700;flex-shrink:0;">Cabut</button>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding-top:9px;">
+                  <div style="width:34px;height:34px;border-radius:10px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:17px;color:#475569;">smartphone</span></div>
+                  <div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;">Samsung A54 · Inventra App</div><div style="font-size:10.5px;color:#94a3b8;">Depok · 114.10.xx.xx · 3 hari lalu</div></div>
+                  <button style="height:30px;padding:0 11px;border:1.5px solid #fecaca;border-radius:8px;background:transparent;color:#dc2626;font-family:inherit;font-size:11px;font-weight:700;flex-shrink:0;">Cabut</button>
+                </div>
+              </div>
+              <button style="width:100%;height:38px;border:1.5px solid #cbd5e1;border-radius:12px;background:transparent;color:#475569;font-family:inherit;font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;flex-shrink:0;"><span class="ico" style="font-size:17px;">devices_off</span>Keluar dari semua perangkat lain</button>
+            </div>
+            <div style="flex-shrink:0;padding:8px 18px 6px;">
+              <button style="width:100%;height:48px;border:none;border-radius:13px;background:#dc2626;color:#fff;font-family:inherit;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;"><span class="ico" style="font-size:19px;">logout</span>Keluar</button>
+              <div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:10px auto 2px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L2 EDIT MODE -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:5px 12px;border-radius:999px;font-weight:500;">Mode Ubah — Simpan/Batal</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:8;"></div>
+            <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 3px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:48px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Profil</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:2px 18px 0;display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;align-items:center;gap:14px;padding:0 2px;">
+                <div style="position:relative;flex-shrink:0;">
+                  <div style="width:64px;height:64px;border-radius:999px;background:#dcfce7;border:2px solid #bbf7d0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#15803d;">AS</div>
+                  <div style="position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;border-radius:999px;background:#16a34a;border:2px solid #f8fafc;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:13px;color:#fff;">photo_camera</span></div>
+                </div>
+                <div><div style="font-size:17px;font-weight:800;">Andi Saputra</div><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:11px;font-weight:700;margin-top:4px;"><span class="ico" style="font-size:13px;">badge</span>Asset Manager</span></div>
+              </div>
+              <div style="background:#fff;border:1.5px solid #16a34a;border-radius:15px;padding:13px 14px;box-shadow:0 0 0 4px rgba(22,163,74,0.07);">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;"><span style="font-size:11px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:0.05em;">Data Diri — mengubah</span></div>
+                <label style="font-size:11.5px;font-weight:600;color:#475569;display:block;margin-bottom:5px;">Nama</label>
+                <div style="height:46px;border:1.5px solid #cbd5e1;border-radius:12px;background:#fff;display:flex;align-items:center;padding:0 12px;font-size:13px;margin-bottom:10px;">Andi Saputra</div>
+                <label style="font-size:11.5px;font-weight:600;color:#16a34a;display:block;margin-bottom:5px;">Telepon</label>
+                <div style="height:46px;border:2px solid #16a34a;border-radius:12px;background:#fff;display:flex;align-items:center;padding:0 12px;font-size:13px;box-shadow:0 0 0 4px rgba(22,163,74,0.1);margin-bottom:12px;">0812-3456-7891<span style="width:1px;height:17px;background:#16a34a;margin-left:2px;"></span></div>
+                <div style="display:flex;gap:8px;">
+                  <button style="flex:1;height:44px;border:1.5px solid #cbd5e1;border-radius:12px;background:transparent;color:#475569;font-family:inherit;font-size:13px;font-weight:700;">Batal</button>
+                  <button style="flex:1.4;height:44px;border:none;border-radius:12px;background:#16a34a;color:#fff;font-family:inherit;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 12px rgba(22,163,74,0.25);"><span class="ico" style="font-size:17px;">check</span>Simpan</button>
+                </div>
+                <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin:12px 0 7px;border-top:1px solid #f1f5f9;padding-top:10px;">Detail Pegawai · read-only</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:12px;">
+                  <div><div style="color:#94a3b8;font-size:10.5px;">Kode pegawai</div><div style="font-weight:600;font-family:'JetBrains Mono',monospace;font-size:11.5px;">EMP-0142</div></div>
+                  <div><div style="color:#94a3b8;font-size:10.5px;">Status</div><div style="font-weight:600;color:#15803d;">Aktif</div></div>
+                  <div><div style="color:#94a3b8;font-size:10.5px;">Departemen</div><div style="font-weight:600;">Operasional</div></div>
+                  <div><div style="color:#94a3b8;font-size:10.5px;">Jabatan</div><div style="font-weight:600;">Manager Aset</div></div>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:6px;margin-top:9px;"><span class="ico" style="font-size:13px;color:#94a3b8;margin-top:1px;">info</span><span style="font-size:10.5px;color:#94a3b8;line-height:1.45;">Detail pegawai bersumber master data — hanya bisa diubah oleh admin di web.</span></div>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:15px;padding:9px 13px;opacity:0.55;">
+                <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Informasi Akun</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:12px;">
+                  <div><div style="color:#94a3b8;font-size:10.5px;">Peran</div><div style="font-weight:600;">Asset Manager</div></div>
+                  <div><div style="color:#94a3b8;font-size:10.5px;">Kantor</div><div style="font-weight:600;">Cab. Jakarta Selatan</div></div>
+                </div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:8px 0 6px;"><div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L3 PHOTO MENU -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:5px 12px;border-radius:999px;font-weight:500;">Menu foto profil — Ganti / Hapus</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:12;"></div>
+            <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 3px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:48px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Profil</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:2px 18px 0;">
+              <div style="display:flex;align-items:center;gap:14px;padding:4px 2px;">
+                <div style="position:relative;flex-shrink:0;">
+                  <div style="width:64px;height:64px;border-radius:999px;background:repeating-linear-gradient(45deg,#dcfce7,#dcfce7 6px,#bbf7d0 6px,#bbf7d0 12px);border:2px solid #bbf7d0;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#15803d;">person</span></div>
+                  <div style="position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;border-radius:999px;background:#16a34a;border:2px solid #f8fafc;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:13px;color:#fff;">photo_camera</span></div>
+                </div>
+                <div><div style="font-size:17px;font-weight:800;">Andi Saputra</div><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:11px;font-weight:700;margin-top:4px;"><span class="ico" style="font-size:13px;">badge</span>Asset Manager</span></div>
+              </div>
+            </div>
+            <div style="position:absolute;inset:0;background:rgba(15,23,42,0.45);z-index:9;"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;z-index:10;background:#ffffff;border-radius:28px 28px 44px 44px;padding:8px 20px 14px;box-shadow:0 -10px 40px rgba(15,23,42,0.3);">
+              <div style="width:36px;height:4px;border-radius:999px;background:#cbd5e1;margin:6px auto 14px;"></div>
+              <div style="font-size:16px;font-weight:800;margin-bottom:12px;">Foto profil</div>
+              <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:12px;">
+                <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;">
+                  <div style="width:38px;height:38px;border-radius:11px;background:#dcfce7;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:19px;color:#15803d;">photo_camera</span></div>
+                  <div style="flex:1;"><div style="font-size:13.5px;font-weight:700;">Ganti foto</div><div style="font-size:11.5px;color:#64748b;">Ambil dari kamera atau galeri</div></div>
+                  <span class="ico" style="font-size:20px;color:#cbd5e1;">chevron_right</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;background:#fff;border:1.5px solid #fecaca;border-radius:14px;">
+                  <div style="width:38px;height:38px;border-radius:11px;background:#fee2e2;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:19px;color:#dc2626;">delete</span></div>
+                  <div style="flex:1;"><div style="font-size:13.5px;font-weight:700;color:#b91c1c;">Hapus foto</div><div style="font-size:11.5px;color:#94a3b8;">Kembali ke inisial nama</div></div>
+                </div>
+              </div>
+              <button style="width:100%;height:48px;border:1.5px solid #cbd5e1;border-radius:13px;background:transparent;color:#475569;font-family:inherit;font-size:13.5px;font-weight:700;">Batal</button>
+              <div style="font-size:10.5px;color:#94a3b8;text-align:center;margin-top:9px;">"Hapus foto" hanya tampil bila foto sudah ada</div>
+              <div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:12px auto 0;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L4 DIALOG -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;padding:5px 12px;border-radius:999px;font-weight:500;">Dialog — keluar semua perangkat lain</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:12;"></div>
+            <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 3px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:48px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Profil</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:2px 18px 0;">
+              <div style="display:flex;align-items:center;gap:14px;padding:4px 2px;">
+                <div style="width:64px;height:64px;border-radius:999px;background:#dcfce7;border:2px solid #bbf7d0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#15803d;">AS</div>
+                <div><div style="font-size:17px;font-weight:800;">Andi Saputra</div><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:11px;font-weight:700;margin-top:4px;"><span class="ico" style="font-size:13px;">badge</span>Asset Manager</span></div>
+              </div>
+            </div>
+            <div style="position:absolute;inset:0;background:rgba(15,23,42,0.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:0 28px;">
+              <div style="background:#fff;border-radius:22px;padding:24px;width:100%;box-shadow:0 20px 50px rgba(15,23,42,0.3);">
+                <div style="width:50px;height:50px;border-radius:999px;background:#fee2e2;display:flex;align-items:center;justify-content:center;margin-bottom:14px;"><span class="ico" style="font-size:26px;color:#dc2626;">devices_off</span></div>
+                <div style="font-size:17px;font-weight:800;margin-bottom:6px;">Keluar dari semua perangkat lain?</div>
+                <div style="font-size:13px;color:#64748b;line-height:1.55;margin-bottom:18px;">2 sesi lain (Windows · Chrome dan Samsung A54) akan dicabut. Perangkat ini tetap masuk.</div>
+                <div style="display:flex;gap:10px;">
+                  <button style="flex:1;height:48px;border:1.5px solid #cbd5e1;border-radius:13px;background:transparent;color:#475569;font-family:inherit;font-size:14px;font-weight:600;">Batal</button>
+                  <button style="flex:1;height:48px;border:none;border-radius:13px;background:#dc2626;color:#fff;font-family:inherit;font-size:14px;font-weight:700;">Ya, Keluar</button>
+                </div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:8px 0 6px;"><div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L5 AFTER REVOKE -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:5px 12px;border-radius:999px;font-weight:500;">Setelah cabut satu sesi</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:8;"></div>
+            <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 3px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.42</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:48px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Profil</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:2px 18px 0;display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;align-items:center;gap:14px;padding:0 2px;">
+                <div style="position:relative;flex-shrink:0;">
+                  <div style="width:64px;height:64px;border-radius:999px;background:#dcfce7;border:2px solid #bbf7d0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#15803d;">AS</div>
+                  <div style="position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;border-radius:999px;background:#16a34a;border:2px solid #f8fafc;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:13px;color:#fff;">photo_camera</span></div>
+                </div>
+                <div><div style="font-size:17px;font-weight:800;">Andi Saputra</div><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:11px;font-weight:700;margin-top:4px;"><span class="ico" style="font-size:13px;">badge</span>Asset Manager</span></div>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:15px;padding:9px 13px;">
+                <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:9px;">Sesi Perangkat</div>
+                <div style="display:flex;align-items:center;gap:10px;padding-bottom:9px;border-bottom:1px solid #f1f5f9;">
+                  <div style="width:34px;height:34px;border-radius:10px;background:#dcfce7;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:17px;color:#15803d;">smartphone</span></div>
+                  <div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;"><span style="font-size:12px;font-weight:700;">Pixel 8 · Inventra App</span><span style="padding:1px 7px;border-radius:999px;background:#dcfce7;color:#15803d;font-size:9.5px;font-weight:700;">Perangkat ini</span></div><div style="font-size:10.5px;color:#94a3b8;">Jakarta · 103.28.xx.xx · aktif sekarang</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding-top:9px;">
+                  <div style="width:34px;height:34px;border-radius:10px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:17px;color:#475569;">smartphone</span></div>
+                  <div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;">Samsung A54 · Inventra App</div><div style="font-size:10.5px;color:#94a3b8;">Depok · 114.10.xx.xx · 3 hari lalu</div></div>
+                  <button style="height:30px;padding:0 11px;border:1.5px solid #fecaca;border-radius:8px;background:transparent;color:#dc2626;font-family:inherit;font-size:11px;font-weight:700;flex-shrink:0;">Cabut</button>
+                </div>
+              </div>
+              <button style="width:100%;height:38px;border:1.5px solid #cbd5e1;border-radius:12px;background:transparent;color:#475569;font-family:inherit;font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;flex-shrink:0;"><span class="ico" style="font-size:17px;">devices_off</span>Keluar dari semua perangkat lain</button>
+            </div>
+            <div style="flex-shrink:0;padding:0 18px;">
+              <div style="display:flex;align-items:center;gap:10px;background:#1e293b;border-radius:13px;padding:13px 16px;margin-bottom:10px;box-shadow:0 8px 24px rgba(15,23,42,0.25);"><span class="ico" style="font-size:20px;color:#4ade80;">check_circle</span><span style="flex:1;font-size:13px;color:#f1f5f9;font-weight:500;">Sesi Windows · Chrome dicabut</span></div>
+            </div>
+            <div style="flex-shrink:0;padding:0 18px 6px;">
+              <button style="width:100%;height:48px;border:none;border-radius:13px;background:#dc2626;color:#fff;font-family:inherit;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;"><span class="ico" style="font-size:19px;">logout</span>Keluar</button>
+              <div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:10px auto 2px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L6 SKELETON -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:5px 12px;border-radius:999px;font-weight:500;">Loading — skeleton</span>
+        <div style="width:390px;height:844px;background:#0f172a;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#f8fafc;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#0f172a;border-radius:999px;z-index:8;"></div>
+            <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 3px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:48px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#0f172a;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Profil</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:4px 18px 0;display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;align-items:center;gap:14px;">
+                <div style="width:64px;height:64px;border-radius:999px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;flex-shrink:0;"></div>
+                <div style="flex:1;"><div style="height:15px;width:60%;border-radius:8px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:22px;width:110px;border-radius:999px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:15px;padding:13px 14px;display:flex;flex-direction:column;gap:10px;">
+                <div style="height:10px;width:80px;border-radius:5px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+                <div style="display:flex;justify-content:space-between;"><div style="height:11px;width:70px;border-radius:6px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div><div style="height:11px;width:120px;border-radius:6px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+                <div style="display:flex;justify-content:space-between;"><div style="height:11px;width:80px;border-radius:6px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div><div style="height:11px;width:110px;border-radius:6px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+                <div style="height:11px;width:130px;border-radius:6px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:15px;padding:13px 14px;display:flex;flex-direction:column;gap:11px;">
+                <div style="height:10px;width:100px;border-radius:5px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+                <div style="display:flex;gap:10px;align-items:center;"><div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;flex-shrink:0;"></div><div style="flex:1;"><div style="height:11px;width:55%;border-radius:6px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:6px;"></div><div style="height:9px;width:70%;border-radius:5px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div></div>
+                <div style="display:flex;gap:10px;align-items:center;"><div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;flex-shrink:0;"></div><div style="flex:1;"><div style="height:11px;width:48%;border-radius:6px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:6px;"></div><div style="height:9px;width:64%;border-radius:5px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div><div style="height:30px;width:56px;border-radius:8px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+              </div>
+              <div style="height:42px;border-radius:12px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+            </div>
+            <div style="flex-shrink:0;padding:8px 18px 6px;">
+              <div style="height:48px;border-radius:13px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+              <div style="width:130px;height:5px;border-radius:999px;background:#0f172a;opacity:0.85;margin:10px auto 2px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">Dark mode</div>
+    <div style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap;">
+
+      <!-- D1 READ MODE -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:5px 12px;border-radius:999px;font-weight:500;">Mode baca — profil + 3 sesi</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 3px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:48px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Profil</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:2px 18px 0;display:flex;flex-direction:column;gap:5px;">
+              <div style="display:flex;align-items:center;gap:14px;padding:0 2px;">
+                <div style="position:relative;flex-shrink:0;">
+                  <div style="width:64px;height:64px;border-radius:999px;background:#14532d;border:2px solid #166534;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#86efac;">AS</div>
+                  <div style="position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;border-radius:999px;background:#22c55e;border:2px solid #0f172a;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:13px;color:#052e16;">photo_camera</span></div>
+                </div>
+                <div><div style="font-size:17px;font-weight:800;">Andi Saputra</div><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#14532d;color:#86efac;font-size:11px;font-weight:700;margin-top:4px;"><span class="ico" style="font-size:13px;">badge</span>Asset Manager</span></div>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:15px;padding:9px 13px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;"><span style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Data Diri</span><span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:#4ade80;"><span class="ico" style="font-size:15px;">edit</span>Ubah</span></div>
+                <div style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;">
+                  <div style="display:flex;justify-content:space-between;"><span style="color:#94a3b8;">Nama</span><span style="font-weight:600;">Andi Saputra</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span style="color:#94a3b8;">Telepon</span><span style="font-weight:600;">0812-3456-7890</span></div>
+                </div>
+                <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin:10px 0 7px;border-top:1px solid #334155;padding-top:9px;">Detail Pegawai · read-only</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:12px;">
+                  <div><div style="color:#64748b;font-size:10.5px;">Kode pegawai</div><div style="font-weight:600;font-family:'JetBrains Mono',monospace;font-size:11.5px;">EMP-0142</div></div>
+                  <div><div style="color:#64748b;font-size:10.5px;">Status</div><div style="font-weight:600;color:#4ade80;">Aktif</div></div>
+                  <div><div style="color:#64748b;font-size:10.5px;">Departemen</div><div style="font-weight:600;">Operasional</div></div>
+                  <div><div style="color:#64748b;font-size:10.5px;">Jabatan</div><div style="font-weight:600;">Manager Aset</div></div>
+                </div>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:15px;padding:9px 13px;">
+                <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Informasi Akun</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:12px;">
+                  <div><div style="color:#64748b;font-size:10.5px;">Peran</div><div style="font-weight:600;">Asset Manager</div></div>
+                  <div><div style="color:#64748b;font-size:10.5px;">Kantor</div><div style="font-weight:600;">Cab. Jakarta Selatan</div></div>
+                  <div><div style="color:#64748b;font-size:10.5px;">Metode login</div><div style="font-weight:600;">Email + password</div></div>
+                  <div><div style="color:#64748b;font-size:10.5px;">Bergabung</div><div style="font-weight:600;">12 Jan 2024</div></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <div style="flex:1;display:flex;align-items:center;gap:8px;background:#1e293b;border:1px solid #334155;border-radius:13px;padding:11px 12px;"><span class="ico" style="font-size:18px;color:#cbd5e1;">lock</span><span style="flex:1;font-size:12.5px;font-weight:600;">Keamanan Akun</span><span class="ico" style="font-size:17px;color:#475569;">chevron_right</span></div>
+                <div style="flex:1;display:flex;align-items:center;gap:8px;background:#1e293b;border:1px solid #334155;border-radius:13px;padding:11px 12px;"><span class="ico" style="font-size:18px;color:#cbd5e1;">settings</span><span style="flex:1;font-size:12.5px;font-weight:600;">Pengaturan</span><span class="ico" style="font-size:17px;color:#475569;">chevron_right</span></div>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:15px;padding:9px 13px;">
+                <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:9px;">Sesi Perangkat</div>
+                <div style="display:flex;align-items:center;gap:10px;padding-bottom:9px;border-bottom:1px solid #334155;">
+                  <div style="width:34px;height:34px;border-radius:10px;background:#14532d;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:17px;color:#86efac;">smartphone</span></div>
+                  <div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;"><span style="font-size:12px;font-weight:700;">Pixel 8 · Inventra App</span><span style="padding:1px 7px;border-radius:999px;background:#14532d;color:#86efac;font-size:9.5px;font-weight:700;">Perangkat ini</span></div><div style="font-size:10.5px;color:#64748b;">Jakarta · 103.28.xx.xx · aktif sekarang</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #334155;">
+                  <div style="width:34px;height:34px;border-radius:10px;background:#334155;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:17px;color:#cbd5e1;">laptop_windows</span></div>
+                  <div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;">Windows · Chrome</div><div style="font-size:10.5px;color:#64748b;">Jakarta · 103.28.xx.xx · 2 jam lalu</div></div>
+                  <button style="height:30px;padding:0 11px;border:1.5px solid #7f1d1d;border-radius:8px;background:transparent;color:#f87171;font-family:inherit;font-size:11px;font-weight:700;flex-shrink:0;">Cabut</button>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding-top:9px;">
+                  <div style="width:34px;height:34px;border-radius:10px;background:#334155;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:17px;color:#cbd5e1;">smartphone</span></div>
+                  <div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;">Samsung A54 · Inventra App</div><div style="font-size:10.5px;color:#64748b;">Depok · 114.10.xx.xx · 3 hari lalu</div></div>
+                  <button style="height:30px;padding:0 11px;border:1.5px solid #7f1d1d;border-radius:8px;background:transparent;color:#f87171;font-family:inherit;font-size:11px;font-weight:700;flex-shrink:0;">Cabut</button>
+                </div>
+              </div>
+              <button style="width:100%;height:38px;border:1.5px solid #475569;border-radius:12px;background:transparent;color:#cbd5e1;font-family:inherit;font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;flex-shrink:0;"><span class="ico" style="font-size:17px;">devices_off</span>Keluar dari semua perangkat lain</button>
+            </div>
+            <div style="flex-shrink:0;padding:8px 18px 6px;">
+              <button style="width:100%;height:48px;border:none;border-radius:13px;background:#ef4444;color:#fff;font-family:inherit;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;"><span class="ico" style="font-size:19px;">logout</span>Keluar</button>
+              <div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:10px auto 2px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D2 EDIT MODE -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:5px 12px;border-radius:999px;font-weight:500;">Mode Ubah — Simpan/Batal</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 3px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:48px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Profil</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:2px 18px 0;display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;align-items:center;gap:14px;padding:0 2px;">
+                <div style="position:relative;flex-shrink:0;">
+                  <div style="width:64px;height:64px;border-radius:999px;background:#14532d;border:2px solid #166534;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#86efac;">AS</div>
+                  <div style="position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;border-radius:999px;background:#22c55e;border:2px solid #0f172a;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:13px;color:#052e16;">photo_camera</span></div>
+                </div>
+                <div><div style="font-size:17px;font-weight:800;">Andi Saputra</div><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#14532d;color:#86efac;font-size:11px;font-weight:700;margin-top:4px;"><span class="ico" style="font-size:13px;">badge</span>Asset Manager</span></div>
+              </div>
+              <div style="background:#1e293b;border:1.5px solid #22c55e;border-radius:15px;padding:13px 14px;box-shadow:0 0 0 4px rgba(34,197,94,0.1);">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;"><span style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:0.05em;">Data Diri — mengubah</span></div>
+                <label style="font-size:11.5px;font-weight:600;color:#cbd5e1;display:block;margin-bottom:5px;">Nama</label>
+                <div style="height:46px;border:1.5px solid #475569;border-radius:12px;background:#0f172a;display:flex;align-items:center;padding:0 12px;font-size:13px;margin-bottom:10px;">Andi Saputra</div>
+                <label style="font-size:11.5px;font-weight:600;color:#4ade80;display:block;margin-bottom:5px;">Telepon</label>
+                <div style="height:46px;border:2px solid #22c55e;border-radius:12px;background:#0f172a;display:flex;align-items:center;padding:0 12px;font-size:13px;box-shadow:0 0 0 4px rgba(34,197,94,0.15);margin-bottom:12px;">0812-3456-7891<span style="width:1px;height:17px;background:#22c55e;margin-left:2px;"></span></div>
+                <div style="display:flex;gap:8px;">
+                  <button style="flex:1;height:44px;border:1.5px solid #475569;border-radius:12px;background:transparent;color:#cbd5e1;font-family:inherit;font-size:13px;font-weight:700;">Batal</button>
+                  <button style="flex:1.4;height:44px;border:none;border-radius:12px;background:#22c55e;color:#052e16;font-family:inherit;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;"><span class="ico" style="font-size:17px;">check</span>Simpan</button>
+                </div>
+                <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin:12px 0 7px;border-top:1px solid #334155;padding-top:10px;">Detail Pegawai · read-only</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:12px;">
+                  <div><div style="color:#64748b;font-size:10.5px;">Kode pegawai</div><div style="font-weight:600;font-family:'JetBrains Mono',monospace;font-size:11.5px;">EMP-0142</div></div>
+                  <div><div style="color:#64748b;font-size:10.5px;">Status</div><div style="font-weight:600;color:#4ade80;">Aktif</div></div>
+                  <div><div style="color:#64748b;font-size:10.5px;">Departemen</div><div style="font-weight:600;">Operasional</div></div>
+                  <div><div style="color:#64748b;font-size:10.5px;">Jabatan</div><div style="font-weight:600;">Manager Aset</div></div>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:6px;margin-top:9px;"><span class="ico" style="font-size:13px;color:#64748b;margin-top:1px;">info</span><span style="font-size:10.5px;color:#64748b;line-height:1.45;">Detail pegawai bersumber master data — hanya bisa diubah oleh admin di web.</span></div>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:15px;padding:9px 13px;opacity:0.55;">
+                <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Informasi Akun</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:12px;">
+                  <div><div style="color:#64748b;font-size:10.5px;">Peran</div><div style="font-weight:600;">Asset Manager</div></div>
+                  <div><div style="color:#64748b;font-size:10.5px;">Kantor</div><div style="font-weight:600;">Cab. Jakarta Selatan</div></div>
+                </div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:8px 0 6px;"><div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D3 PHOTO MENU -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:5px 12px;border-radius:999px;font-weight:500;">Menu foto profil — Ganti / Hapus</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:12;"></div>
+            <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 3px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:48px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Profil</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:2px 18px 0;">
+              <div style="display:flex;align-items:center;gap:14px;padding:4px 2px;">
+                <div style="position:relative;flex-shrink:0;">
+                  <div style="width:64px;height:64px;border-radius:999px;background:repeating-linear-gradient(45deg,#14532d,#14532d 6px,#166534 6px,#166534 12px);border:2px solid #166534;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:26px;color:#86efac;">person</span></div>
+                  <div style="position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;border-radius:999px;background:#22c55e;border:2px solid #0f172a;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:13px;color:#052e16;">photo_camera</span></div>
+                </div>
+                <div><div style="font-size:17px;font-weight:800;">Andi Saputra</div><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#14532d;color:#86efac;font-size:11px;font-weight:700;margin-top:4px;"><span class="ico" style="font-size:13px;">badge</span>Asset Manager</span></div>
+              </div>
+            </div>
+            <div style="position:absolute;inset:0;background:rgba(2,6,23,0.6);z-index:9;"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;z-index:10;background:#1e293b;border-top:1px solid #334155;border-radius:28px 28px 44px 44px;padding:8px 20px 14px;box-shadow:0 -10px 40px rgba(2,6,23,0.6);">
+              <div style="width:36px;height:4px;border-radius:999px;background:#475569;margin:6px auto 14px;"></div>
+              <div style="font-size:16px;font-weight:800;margin-bottom:12px;">Foto profil</div>
+              <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:12px;">
+                <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;background:#0f172a;border:1.5px solid #334155;border-radius:14px;">
+                  <div style="width:38px;height:38px;border-radius:11px;background:#14532d;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:19px;color:#86efac;">photo_camera</span></div>
+                  <div style="flex:1;"><div style="font-size:13.5px;font-weight:700;">Ganti foto</div><div style="font-size:11.5px;color:#94a3b8;">Ambil dari kamera atau galeri</div></div>
+                  <span class="ico" style="font-size:20px;color:#475569;">chevron_right</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;background:#0f172a;border:1.5px solid #7f1d1d;border-radius:14px;">
+                  <div style="width:38px;height:38px;border-radius:11px;background:#450a0a;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:19px;color:#f87171;">delete</span></div>
+                  <div style="flex:1;"><div style="font-size:13.5px;font-weight:700;color:#fca5a5;">Hapus foto</div><div style="font-size:11.5px;color:#64748b;">Kembali ke inisial nama</div></div>
+                </div>
+              </div>
+              <button style="width:100%;height:48px;border:1.5px solid #475569;border-radius:13px;background:transparent;color:#cbd5e1;font-family:inherit;font-size:13.5px;font-weight:700;">Batal</button>
+              <div style="font-size:10.5px;color:#64748b;text-align:center;margin-top:9px;">"Hapus foto" hanya tampil bila foto sudah ada</div>
+              <div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:12px auto 0;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D4 DIALOG -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;padding:5px 12px;border-radius:999px;font-weight:500;">Dialog — keluar semua perangkat lain</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:12;"></div>
+            <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 3px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:48px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Profil</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:2px 18px 0;">
+              <div style="display:flex;align-items:center;gap:14px;padding:4px 2px;">
+                <div style="width:64px;height:64px;border-radius:999px;background:#14532d;border:2px solid #166534;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#86efac;">AS</div>
+                <div><div style="font-size:17px;font-weight:800;">Andi Saputra</div><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#14532d;color:#86efac;font-size:11px;font-weight:700;margin-top:4px;"><span class="ico" style="font-size:13px;">badge</span>Asset Manager</span></div>
+              </div>
+            </div>
+            <div style="position:absolute;inset:0;background:rgba(2,6,23,0.65);z-index:10;display:flex;align-items:center;justify-content:center;padding:0 28px;">
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:22px;padding:24px;width:100%;box-shadow:0 20px 50px rgba(2,6,23,0.6);">
+                <div style="width:50px;height:50px;border-radius:999px;background:#450a0a;display:flex;align-items:center;justify-content:center;margin-bottom:14px;"><span class="ico" style="font-size:26px;color:#f87171;">devices_off</span></div>
+                <div style="font-size:17px;font-weight:800;margin-bottom:6px;">Keluar dari semua perangkat lain?</div>
+                <div style="font-size:13px;color:#94a3b8;line-height:1.55;margin-bottom:18px;">2 sesi lain (Windows · Chrome dan Samsung A54) akan dicabut. Perangkat ini tetap masuk.</div>
+                <div style="display:flex;gap:10px;">
+                  <button style="flex:1;height:48px;border:1.5px solid #475569;border-radius:13px;background:transparent;color:#cbd5e1;font-family:inherit;font-size:14px;font-weight:600;">Batal</button>
+                  <button style="flex:1;height:48px;border:none;border-radius:13px;background:#ef4444;color:#fff;font-family:inherit;font-size:14px;font-weight:700;">Ya, Keluar</button>
+                </div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;padding:8px 0 6px;"><div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:0 auto;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D5 AFTER REVOKE -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:5px 12px;border-radius:999px;font-weight:500;">Setelah cabut satu sesi</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 3px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.42</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:48px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Profil</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:2px 18px 0;display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;align-items:center;gap:14px;padding:0 2px;">
+                <div style="position:relative;flex-shrink:0;">
+                  <div style="width:64px;height:64px;border-radius:999px;background:#14532d;border:2px solid #166534;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#86efac;">AS</div>
+                  <div style="position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;border-radius:999px;background:#22c55e;border:2px solid #0f172a;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:13px;color:#052e16;">photo_camera</span></div>
+                </div>
+                <div><div style="font-size:17px;font-weight:800;">Andi Saputra</div><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#14532d;color:#86efac;font-size:11px;font-weight:700;margin-top:4px;"><span class="ico" style="font-size:13px;">badge</span>Asset Manager</span></div>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:15px;padding:9px 13px;">
+                <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:9px;">Sesi Perangkat</div>
+                <div style="display:flex;align-items:center;gap:10px;padding-bottom:9px;border-bottom:1px solid #334155;">
+                  <div style="width:34px;height:34px;border-radius:10px;background:#14532d;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:17px;color:#86efac;">smartphone</span></div>
+                  <div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;"><span style="font-size:12px;font-weight:700;">Pixel 8 · Inventra App</span><span style="padding:1px 7px;border-radius:999px;background:#14532d;color:#86efac;font-size:9.5px;font-weight:700;">Perangkat ini</span></div><div style="font-size:10.5px;color:#64748b;">Jakarta · 103.28.xx.xx · aktif sekarang</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding-top:9px;">
+                  <div style="width:34px;height:34px;border-radius:10px;background:#334155;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="ico" style="font-size:17px;color:#cbd5e1;">smartphone</span></div>
+                  <div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;">Samsung A54 · Inventra App</div><div style="font-size:10.5px;color:#64748b;">Depok · 114.10.xx.xx · 3 hari lalu</div></div>
+                  <button style="height:30px;padding:0 11px;border:1.5px solid #7f1d1d;border-radius:8px;background:transparent;color:#f87171;font-family:inherit;font-size:11px;font-weight:700;flex-shrink:0;">Cabut</button>
+                </div>
+              </div>
+              <button style="width:100%;height:38px;border:1.5px solid #475569;border-radius:12px;background:transparent;color:#cbd5e1;font-family:inherit;font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;flex-shrink:0;"><span class="ico" style="font-size:17px;">devices_off</span>Keluar dari semua perangkat lain</button>
+            </div>
+            <div style="flex-shrink:0;padding:0 18px;">
+              <div style="display:flex;align-items:center;gap:10px;background:#f1f5f9;border-radius:13px;padding:13px 16px;margin-bottom:10px;box-shadow:0 8px 24px rgba(2,6,23,0.4);"><span class="ico" style="font-size:20px;color:#16a34a;">check_circle</span><span style="flex:1;font-size:13px;color:#0f172a;font-weight:500;">Sesi Windows · Chrome dicabut</span></div>
+            </div>
+            <div style="flex-shrink:0;padding:0 18px 6px;">
+              <button style="width:100%;height:48px;border:none;border-radius:13px;background:#ef4444;color:#fff;font-family:inherit;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;"><span class="ico" style="font-size:19px;">logout</span>Keluar</button>
+              <div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:10px auto 2px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D6 SKELETON -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:5px 12px;border-radius:999px;font-weight:500;">Loading — skeleton</span>
+        <div style="width:390px;height:844px;background:#020617;border-radius:54px;padding:10px;box-shadow:0 24px 60px rgba(2,6,23,0.5);">
+          <div style="width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:#0f172a;color:#f1f5f9;">
+            <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:28px;background:#020617;border-radius:999px;z-index:8;"></div>
+            <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 3px;flex-shrink:0;">
+              <span style="font-size:14px;font-weight:600;">09.41</span>
+              <span style="display:flex;gap:5px;align-items:center;"><span class="ico" style="font-size:16px;">signal_cellular_alt</span><span class="ico" style="font-size:16px;">wifi</span><span class="ico" style="font-size:17px;transform:rotate(90deg);">battery_full</span></span>
+            </div>
+            <div style="height:48px;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;">
+              <div style="width:42px;height:42px;border-radius:999px;display:flex;align-items:center;justify-content:center;"><span class="ico" style="font-size:24px;color:#f1f5f9;">arrow_back</span></div>
+              <span style="font-size:17px;font-weight:600;">Profil</span>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:4px 18px 0;display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;align-items:center;gap:14px;">
+                <div style="width:64px;height:64px;border-radius:999px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;flex-shrink:0;"></div>
+                <div style="flex:1;"><div style="height:15px;width:60%;border-radius:8px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px;"></div><div style="height:22px;width:110px;border-radius:999px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:15px;padding:13px 14px;display:flex;flex-direction:column;gap:10px;">
+                <div style="height:10px;width:80px;border-radius:5px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+                <div style="display:flex;justify-content:space-between;"><div style="height:11px;width:70px;border-radius:6px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div><div style="height:11px;width:120px;border-radius:6px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+                <div style="display:flex;justify-content:space-between;"><div style="height:11px;width:80px;border-radius:6px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div><div style="height:11px;width:110px;border-radius:6px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+                <div style="height:11px;width:130px;border-radius:6px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+              </div>
+              <div style="background:#1e293b;border:1px solid #334155;border-radius:15px;padding:13px 14px;display:flex;flex-direction:column;gap:11px;">
+                <div style="height:10px;width:100px;border-radius:5px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+                <div style="display:flex;gap:10px;align-items:center;"><div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;flex-shrink:0;"></div><div style="flex:1;"><div style="height:11px;width:55%;border-radius:6px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:6px;"></div><div style="height:9px;width:70%;border-radius:5px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div></div>
+                <div style="display:flex;gap:10px;align-items:center;"><div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;flex-shrink:0;"></div><div style="flex:1;"><div style="height:11px;width:48%;border-radius:6px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:6px;"></div><div style="height:9px;width:64%;border-radius:5px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div><div style="height:30px;width:56px;border-radius:8px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div></div>
+              </div>
+              <div style="height:42px;border-radius:12px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+            </div>
+            <div style="flex-shrink:0;padding:8px 18px 6px;">
+              <div style="height:48px;border-radius:13px;background:linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+              <div style="width:130px;height:5px;border-radius:999px;background:#f1f5f9;opacity:0.35;margin:10px auto 2px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
