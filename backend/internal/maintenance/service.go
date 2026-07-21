@@ -561,6 +561,8 @@ func (s *Service) SubmitReport(ctx context.Context, caller approval.Caller, in R
 			ContentType: in.Photo.ContentType,
 			Data:        in.Photo.Data,
 			CreatedBy:   caller.UserID,
+			// Field photos from mobile: compress + strip EXIF to save storage.
+			Normalize: true,
 		})
 		if err != nil {
 			// Asset-service sentinels (ErrUnsupportedType/ErrTooLarge) bubble up

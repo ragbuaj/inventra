@@ -42,6 +42,11 @@ type UploadInput struct {
 	ContentType string
 	Data        []byte
 	CreatedBy   uuid.UUID
+	// Normalize, when true, re-encodes an image upload to a size-bounded JPEG
+	// (compressing storage + stripping EXIF) before it is stored. Used for
+	// mobile field photos (damage reports); leave false to store the original
+	// bytes unchanged (e.g. web attachments that may be lossless scans/PDFs).
+	Normalize bool
 }
 
 // UploadAttachment validates the MIME type and size, stores the object (and a
@@ -60,6 +65,20 @@ func (s *Service) UploadAttachment(ctx context.Context, in UploadInput) (sqlc.As
 	}
 
 	kind := kindFor(in.ContentType)
+
+	// Optionally compress an image upload before storing: downscale to bound
+	// storage and re-encode to JPEG (which strips EXIF/GPS), preserving quality.
+	// Only images are touched; PDFs/other types are stored as-is.
+	if in.Normalize && kind == sqlc.SharedAttachmentKindPhoto {
+		norm, err := normalizeImage(in.Data)
+		if err != nil {
+			// Image MIME declared but data is not decodable.
+			return zero, ErrUnsupportedType
+		}
+		in.Data = norm
+		in.ContentType = "image/jpeg"
+	}
+
 	id := uuid.New()
 	objectKey := fmt.Sprintf("assets/%s/%s.%s", in.AssetID, id, extFor(in.ContentType))
 
