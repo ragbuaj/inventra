@@ -100,9 +100,9 @@ func TestAsset_FieldMasking_ByRole(t *testing.T) {
 	fieldSvc := authz.NewFieldService(q, rdb)
 
 	// Migration 000016 seeds roles: Superadmin, Manager, Kepala Kanwil, Kepala Unit, Staf.
-	// For 'purchase_cost': visible to Superadmin and Manager; hidden from others.
-	// For 'book_value': visible to Superadmin and Manager; hidden from others.
-	// For 'accumulated_depreciation': visible only to Superadmin.
+	// Sejak migrasi 000037 ketiga kolom finansial (purchase_cost, book_value,
+	// accumulated_depreciation) jadi SATU tier: visible untuk Superadmin + Manager,
+	// hidden dari Kepala Unit/Kanwil + Staf.
 
 	superadminRoleID := lookupRole(t, pool, "Superadmin")
 	managerRoleID := lookupRole(t, pool, "Manager")
@@ -130,14 +130,16 @@ func TestAsset_FieldMasking_ByRole(t *testing.T) {
 		assert.Contains(t, rec, "accumulated_depreciation")
 	})
 
-	t.Run("manager sees purchase_cost and book_value but not accumulated_depreciation", func(t *testing.T) {
+	t.Run("manager sees all three financial fields (satu tier, migrasi 000037)", func(t *testing.T) {
+		// Sejak 000037 ketiga kolom finansial jadi satu tier: Manager (seperti
+		// Superadmin) melihat purchase_cost + book_value + accumulated_depreciation.
 		rec := sampleRecord()
 		pol, err := fieldSvc.ForEntity(ctx, managerRoleID, "assets")
 		require.NoError(t, err)
 		authz.FilterView(pol, rec)
 		assert.Contains(t, rec, "purchase_cost")
 		assert.Contains(t, rec, "book_value")
-		assert.NotContains(t, rec, "accumulated_depreciation")
+		assert.Contains(t, rec, "accumulated_depreciation")
 	})
 
 	t.Run("staf sees neither cost nor value fields", func(t *testing.T) {

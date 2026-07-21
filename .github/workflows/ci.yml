@@ -186,6 +186,17 @@ jobs:
           JWT_SECRET: ci-e2e-secret
         run: go run ./cmd/createadmin -email admin@inventra.local -password admin12345
 
+      # The Lampiran A suite (frontend/e2e/lampiran-a-*.spec.ts) runs against the
+      # demo org seeded here (kantor/role per tier + aset). Apply the same seed the
+      # dev workflow uses, then FLUSH the Redis authz cache (scope/permission/subtree
+      # di-cache by role_id) so the running backend picks up the seeded data-scope
+      # instead of stale entries. The seed's reset keeps admin@inventra.local.
+      - name: Seed demo data (Lampiran A org + assets)
+        run: |
+          docker compose exec -T -e PGPASSWORD=secret postgres \
+            psql -U inventra -d inventra_dev -v ON_ERROR_STOP=1 < backend/db/seed/seed_demo.sql
+          docker compose exec -T redis redis-cli FLUSHALL
+
       - uses: pnpm/action-setup@v6
         with:
           version: 11
