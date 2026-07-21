@@ -472,7 +472,9 @@ stateDiagram-v2
 **Izin**: `request.create` (ajukan), `request.decide` (putuskan), `approval.config.manage` (ambang).
 
 > Untuk skenario lengkap "siapa maker dari kantor apa, approver siapa dari kantor apa, apa yang boleh
-> dan tidak boleh" per modul, lihat **Lampiran A** di akhir dokumen.
+> dan tidak boleh" per modul, lihat **Lampiran A** di akhir dokumen. Untuk **cara membuat role baru
+> menjadi approver** (mekanisme kelayakan + langkah konfigurasi RBAC), lihat
+> [PANDUAN_APPROVER.md](PANDUAN_APPROVER.md).
 
 ### Endpoint
 
