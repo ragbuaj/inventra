@@ -50,7 +50,7 @@ across a 4-level office hierarchy (Pusat → Wilayah → Cabang/Unit → Outlet)
 - **Dual-basis depreciation** — commercial (PSAK 16) + fiscal (PMK 72/2023) schedules.
 - **Reporting & dashboard** — 7 report types incl. the disposal gain/loss GL recap, with xlsx/pdf
   export and a Redis-cached dashboard summary.
-- **Auth** — local login with JWT access/refresh (Redis token store + denylist) and Argon2 password
+- **Auth** — local login with JWT access/refresh (Redis token store + denylist) and bcrypt password
   hashing; optional Google sign-in (off by default).
 - **Audit trail** — every mutation recorded with a before→after diff.
 - **Production-ready ops** — HTTPS reverse proxy with a WAF (Caddy + Coraza/OWASP CRS), IaC
@@ -91,7 +91,7 @@ asset-management/
 │   │   └── createadmin/    # One-off superadmin seeder
 │   ├── internal/
 │   │   ├── config/         # Env configuration
-│   │   ├── auth/           # JWT (access/refresh), Argon2, Redis token store
+│   │   ├── auth/           # JWT (access/refresh), bcrypt, Redis token store
 │   │   ├── authz/          # RBAC · data scope · field permission (Redis-cached)
 │   │   ├── identity/       # /auth/* (login/refresh/logout/me/permissions/scope)
 │   │   ├── user/           # User management (CRUD + field filtering)
