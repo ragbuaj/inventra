@@ -2443,6 +2443,138 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Gagal mengajukan. Coba lagi.'**
   String get borrowError;
+
+  /// Label tombol ganti/ubah pilihan
+  ///
+  /// In id, this message translates to:
+  /// **'Ganti'**
+  String get commonChange;
+
+  /// Judul sheet check-out
+  ///
+  /// In id, this message translates to:
+  /// **'Check-out Aset'**
+  String get checkoutSheetTitle;
+
+  /// Label picker pegawai check-out
+  ///
+  /// In id, this message translates to:
+  /// **'Pegawai (custodian)'**
+  String get checkoutEmployeeLabel;
+
+  /// Placeholder cari pegawai
+  ///
+  /// In id, this message translates to:
+  /// **'Cari pegawai'**
+  String get checkoutEmployeeSearchHint;
+
+  /// Validasi custodian wajib
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih pegawai dulu.'**
+  String get checkoutEmployeeRequired;
+
+  /// Label tanggal check-out
+  ///
+  /// In id, this message translates to:
+  /// **'Tanggal pinjam'**
+  String get checkoutDateLabel;
+
+  /// Label kondisi keluar check-out
+  ///
+  /// In id, this message translates to:
+  /// **'Kondisi keluar (opsional)'**
+  String get checkoutConditionLabel;
+
+  /// Keterangan check-out langsung
+  ///
+  /// In id, this message translates to:
+  /// **'Aset langsung menjadi Dipinjam.'**
+  String get checkoutAssignedNote;
+
+  /// Tombol kirim check-out
+  ///
+  /// In id, this message translates to:
+  /// **'Check-out'**
+  String get checkoutSubmit;
+
+  /// SnackBar sukses check-out
+  ///
+  /// In id, this message translates to:
+  /// **'Aset di-check-out'**
+  String get checkoutSuccess;
+
+  /// Pesan gagal check-out
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal check-out. Coba lagi.'**
+  String get checkoutError;
+
+  /// Judul sheet check-in
+  ///
+  /// In id, this message translates to:
+  /// **'Check-in Aset'**
+  String get checkinSheetTitle;
+
+  /// Label pemegang aset saat check-in
+  ///
+  /// In id, this message translates to:
+  /// **'Pemegang saat ini'**
+  String get checkinHolderLabel;
+
+  /// Label kondisi masuk check-in
+  ///
+  /// In id, this message translates to:
+  /// **'Kondisi masuk'**
+  String get checkinConditionLabel;
+
+  /// Chip kondisi baik
+  ///
+  /// In id, this message translates to:
+  /// **'Baik'**
+  String get checkinConditionGood;
+
+  /// Chip kondisi perlu servis
+  ///
+  /// In id, this message translates to:
+  /// **'Perlu Servis'**
+  String get checkinConditionNeedsService;
+
+  /// Label catatan check-in
+  ///
+  /// In id, this message translates to:
+  /// **'Catatan (opsional)'**
+  String get checkinNotesLabel;
+
+  /// Keterangan hasil check-in
+  ///
+  /// In id, this message translates to:
+  /// **'Aset kembali Tersedia (atau Maintenance bila perlu servis).'**
+  String get checkinReturnNote;
+
+  /// Tombol kirim check-in
+  ///
+  /// In id, this message translates to:
+  /// **'Check-in'**
+  String get checkinSubmit;
+
+  /// SnackBar sukses check-in
+  ///
+  /// In id, this message translates to:
+  /// **'Aset di-check-in'**
+  String get checkinSuccess;
+
+  /// Pesan gagal check-in
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal check-in. Coba lagi.'**
+  String get checkinError;
+
+  /// Pesan tak ada penugasan aktif
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada penugasan aktif untuk aset ini.'**
+  String get checkinNoActive;
 }
 
 class _AppLocalizationsDelegate

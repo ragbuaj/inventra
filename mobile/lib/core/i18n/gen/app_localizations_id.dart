@@ -1303,4 +1303,71 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get borrowError => 'Gagal mengajukan. Coba lagi.';
+
+  @override
+  String get commonChange => 'Ganti';
+
+  @override
+  String get checkoutSheetTitle => 'Check-out Aset';
+
+  @override
+  String get checkoutEmployeeLabel => 'Pegawai (custodian)';
+
+  @override
+  String get checkoutEmployeeSearchHint => 'Cari pegawai';
+
+  @override
+  String get checkoutEmployeeRequired => 'Pilih pegawai dulu.';
+
+  @override
+  String get checkoutDateLabel => 'Tanggal pinjam';
+
+  @override
+  String get checkoutConditionLabel => 'Kondisi keluar (opsional)';
+
+  @override
+  String get checkoutAssignedNote => 'Aset langsung menjadi Dipinjam.';
+
+  @override
+  String get checkoutSubmit => 'Check-out';
+
+  @override
+  String get checkoutSuccess => 'Aset di-check-out';
+
+  @override
+  String get checkoutError => 'Gagal check-out. Coba lagi.';
+
+  @override
+  String get checkinSheetTitle => 'Check-in Aset';
+
+  @override
+  String get checkinHolderLabel => 'Pemegang saat ini';
+
+  @override
+  String get checkinConditionLabel => 'Kondisi masuk';
+
+  @override
+  String get checkinConditionGood => 'Baik';
+
+  @override
+  String get checkinConditionNeedsService => 'Perlu Servis';
+
+  @override
+  String get checkinNotesLabel => 'Catatan (opsional)';
+
+  @override
+  String get checkinReturnNote =>
+      'Aset kembali Tersedia (atau Maintenance bila perlu servis).';
+
+  @override
+  String get checkinSubmit => 'Check-in';
+
+  @override
+  String get checkinSuccess => 'Aset di-check-in';
+
+  @override
+  String get checkinError => 'Gagal check-in. Coba lagi.';
+
+  @override
+  String get checkinNoActive => 'Tidak ada penugasan aktif untuk aset ini.';
 }

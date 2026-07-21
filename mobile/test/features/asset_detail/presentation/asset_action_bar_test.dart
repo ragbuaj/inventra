@@ -18,6 +18,13 @@ const AssetDto _available = AssetDto(
   status: 'available',
 );
 
+const AssetDto _assigned = AssetDto(
+  id: 'asset-1',
+  assetTag: 'JKT01-ELK-2026-00001',
+  name: 'Laptop Dell Latitude 5440',
+  status: 'assigned',
+);
+
 void main() {
   late _MockAssetActionRepository repository;
 
@@ -65,17 +72,129 @@ void main() {
     expect(find.text(l10nId.assetActionBorrow), findsNothing);
   });
 
-  testWidgets('Manager aset available: Check-out belum dirender (fase M7-5)', (
+  testWidgets('Manager aset available: tombol Check-out (bukan Pinjam)', (
     WidgetTester tester,
   ) async {
     await pumpBar(
       tester,
       permissions: <String>{'request.create', 'assignment.manage'},
     );
-    // assetActionsFor menghitung checkout+reportDamage, tapi keduanya belum
-    // terpasang -> bar kosong (tidak ada Pinjam).
+    expect(find.text(l10nId.assetActionCheckout), findsOneWidget);
     expect(find.text(l10nId.assetActionBorrow), findsNothing);
-    expect(find.text(l10nId.assetActionCheckout), findsNothing);
+  });
+
+  testWidgets('Manager aset assigned: tombol Check-in', (
+    WidgetTester tester,
+  ) async {
+    await pumpBar(
+      tester,
+      permissions: <String>{'assignment.manage'},
+      asset: _assigned,
+    );
+    expect(find.text(l10nId.assetActionCheckin), findsOneWidget);
+  });
+
+  testWidgets('Check-out: pilih pegawai lalu submit memanggil checkout', (
+    WidgetTester tester,
+  ) async {
+    when(
+      () => repository.searchEmployees(any()),
+    ).thenAnswer((_) async => const <EmployeeOption>[EmployeeOption('emp-1', 'Budi Santoso')]);
+    when(
+      () => repository.checkout(
+        assetId: any(named: 'assetId'),
+        employeeId: any(named: 'employeeId'),
+        checkoutDate: any(named: 'checkoutDate'),
+        dueDate: any(named: 'dueDate'),
+        conditionOut: any(named: 'conditionOut'),
+      ),
+    ).thenAnswer((_) async {});
+
+    await pumpBar(tester, permissions: <String>{'assignment.manage'});
+
+    await tester.tap(find.text(l10nId.assetActionCheckout));
+    await tester.pumpAndSettle();
+    expect(find.text(l10nId.checkoutSheetTitle), findsOneWidget);
+
+    await tester.tap(find.text('Budi Santoso'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10nId.checkoutSubmit).last);
+    await tester.pumpAndSettle();
+
+    verify(
+      () => repository.checkout(
+        assetId: 'asset-1',
+        employeeId: 'emp-1',
+        checkoutDate: any(named: 'checkoutDate'),
+        dueDate: null,
+        conditionOut: any(named: 'conditionOut'),
+      ),
+    ).called(1);
+    expect(find.text(l10nId.checkoutSuccess), findsOneWidget);
+  });
+
+  testWidgets('Check-out tanpa pegawai: validasi menahan submit', (
+    WidgetTester tester,
+  ) async {
+    when(
+      () => repository.searchEmployees(any()),
+    ).thenAnswer((_) async => const <EmployeeOption>[]);
+
+    await pumpBar(tester, permissions: <String>{'assignment.manage'});
+    await tester.tap(find.text(l10nId.assetActionCheckout));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10nId.checkoutSubmit).last);
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10nId.checkoutEmployeeRequired), findsOneWidget);
+    verifyNever(
+      () => repository.checkout(
+        assetId: any(named: 'assetId'),
+        employeeId: any(named: 'employeeId'),
+        checkoutDate: any(named: 'checkoutDate'),
+        dueDate: any(named: 'dueDate'),
+        conditionOut: any(named: 'conditionOut'),
+      ),
+    );
+  });
+
+  testWidgets('Check-in: resolusi penugasan aktif lalu submit', (
+    WidgetTester tester,
+  ) async {
+    when(() => repository.activeAssignment(any())).thenAnswer(
+      (_) async =>
+          const ActiveAssignment(id: 'as-1', holderName: 'Budi Santoso'),
+    );
+    when(
+      () => repository.checkin(
+        assignmentId: any(named: 'assignmentId'),
+        conditionIn: any(named: 'conditionIn'),
+        needsMaintenance: any(named: 'needsMaintenance'),
+      ),
+    ).thenAnswer((_) async {});
+
+    await pumpBar(
+      tester,
+      permissions: <String>{'assignment.manage'},
+      asset: _assigned,
+    );
+
+    await tester.tap(find.text(l10nId.assetActionCheckin));
+    await tester.pumpAndSettle();
+    expect(find.text(l10nId.checkinSheetTitle), findsOneWidget);
+    expect(find.text('Budi Santoso'), findsOneWidget);
+
+    await tester.tap(find.text(l10nId.checkinSubmit).last);
+    await tester.pumpAndSettle();
+
+    verify(
+      () => repository.checkin(
+        assignmentId: 'as-1',
+        conditionIn: any(named: 'conditionIn'),
+        needsMaintenance: false,
+      ),
+    ).called(1);
+    expect(find.text(l10nId.checkinSuccess), findsOneWidget);
   });
 
   testWidgets('Pinjam: sheet lalu Ajukan memanggil borrow + SnackBar sukses', (

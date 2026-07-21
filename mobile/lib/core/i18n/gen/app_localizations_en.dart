@@ -1303,4 +1303,71 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get borrowError => 'Couldn\'t submit. Try again.';
+
+  @override
+  String get commonChange => 'Change';
+
+  @override
+  String get checkoutSheetTitle => 'Check out asset';
+
+  @override
+  String get checkoutEmployeeLabel => 'Employee (custodian)';
+
+  @override
+  String get checkoutEmployeeSearchHint => 'Search employee';
+
+  @override
+  String get checkoutEmployeeRequired => 'Pick an employee first.';
+
+  @override
+  String get checkoutDateLabel => 'Checkout date';
+
+  @override
+  String get checkoutConditionLabel => 'Condition out (optional)';
+
+  @override
+  String get checkoutAssignedNote => 'The asset becomes On loan immediately.';
+
+  @override
+  String get checkoutSubmit => 'Check-out';
+
+  @override
+  String get checkoutSuccess => 'Asset checked out';
+
+  @override
+  String get checkoutError => 'Check-out failed. Try again.';
+
+  @override
+  String get checkinSheetTitle => 'Check in asset';
+
+  @override
+  String get checkinHolderLabel => 'Current holder';
+
+  @override
+  String get checkinConditionLabel => 'Condition in';
+
+  @override
+  String get checkinConditionGood => 'Good';
+
+  @override
+  String get checkinConditionNeedsService => 'Needs service';
+
+  @override
+  String get checkinNotesLabel => 'Notes (optional)';
+
+  @override
+  String get checkinReturnNote =>
+      'The asset returns to Available (or Maintenance if it needs service).';
+
+  @override
+  String get checkinSubmit => 'Check-in';
+
+  @override
+  String get checkinSuccess => 'Asset checked in';
+
+  @override
+  String get checkinError => 'Check-in failed. Try again.';
+
+  @override
+  String get checkinNoActive => 'No active assignment for this asset.';
 }

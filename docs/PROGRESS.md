@@ -1465,8 +1465,18 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     Nol backend baru. Wiring permissionsProvider ke Detail Aset memaksa stub di 3 konsumen tes
 >     (screen/router/golden) — pelajaran "wiring composable breaks consumer tests". Golden Detail
 >     Aset kini menampilkan bar Pinjam. Tes: 8 unit matriks + 3 permissions repo + 3 borrow repo + 4
->     widget bar/sheet; suite mobile 480 lulus. Berikutnya M7: **M7-5 (Check-out + Check-in)** lalu
->     M7-6 (Lapor Kerusakan). Titik masuk Beranda (M7-8) menyusul.
+>     widget bar/sheet; suite mobile 480 lulus. **Task M7-5 (Check-out + Check-in) LANDED**: bar aksi
+>     kini menyalakan Check-out (Manager, aset available) & Check-in (Manager, aset assigned).
+>     `AssetActionRepository` diperluas: `checkout` (`POST /assignments` + picker custodian via
+>     `GET /employees?search=`), `activeAssignment` (`GET /assets/:id/assignments` -> pilih
+>     `status=active` untuk id + pemegang), `checkin` (`POST /assignments/:id/checkin`, kondisi masuk
+>     Baik/Perlu Servis -> needs_maintenance). Sheet Check-out (autocomplete pegawai + tanggal + jatuh
+>     tempo + kondisi) & Check-in (resolusi penugasan aktif + chips kondisi). Nol backend baru. Tes:
+>     +5 repo (checkout/checkin/activeAssignment/searchEmployees) + 4 widget (Manager checkout/checkin
+>     button, alur checkout/validasi, alur checkin); suite mobile 489 lulus. Catatan: golden khusus
+>     sheet Check-out/Check-in belum dibuat (perilaku tercakup widget test). Berikutnya M7: **M7-6
+>     (Lapor Kerusakan** — butuh picker problem-category + multipart foto). Titik masuk Beranda (M7-8)
+>     menyusul.
 
 ## ✅ Done
 
