@@ -1542,7 +1542,21 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     `sessionExpiredCalls == 1` saat refresh 401 definitif (skenario sesi dicabut setelah ganti
 >     password = logout bersih ke Login). Suite mobile 527. **Fase M8 SELESAI** (M8-1..M8-6).
 >     **Perluasan scope mobile v1 (M7 + M8) TUNTAS di branch `feat/mobile-scope-expansion`.**
->     Berikutnya: review berlapis (code-reviewer + security-auditor + test-engineer) lalu buka PR
+>     **Review berlapis (code-reviewer + security-auditor + test-engineer) DIJALANKAN + remediasi
+>     must-fix LANDED.** Verdict: 0 Critical; code-reviewer APPROVE-dgn-catatan, security 0 High/Med
+>     (maker-bypass GET /requests/:id dinyatakan benar & bukan IDOR, anti-enumerasi Lupa Password
+>     konsisten). Diperbaiki: **(A)** harga registrasi jadi `digitsOnly` (titik ribuan dulu bikin
+>     purchase_cost/amount malformed); **(B)** `catalogOffice/CategoryOptionsProvider` jadi `autoDispose`
+>     (cegah daftar kantor basi lintas-user di perangkat sama); **(C, fix(security))** `uuid.Parse` caller
+>     ID gagal kini = non-maker (defense-in-depth) + integration test assert body maker; **(D)** sheet
+>     check-in bedakan gagal-muat vs tak-ada-penugasan (dulu error jaringan di-mask). Tes +14 (error
+>     submit ke-4 sheet, no-active vs load-error, toggle maintenance, FilterOptionsRepository + guard
+>     autoDispose, titik ribuan). Suite mobile 541. **Deferral tercatat (follow-up, disepakati scope
+>     "Fix A-D + tes High"):** backfill tes Medium (catalog param-name HTTP, my_requests loadmore/cancel
+>     error, asset_register intangible+amount konkret, account_security NetworkFailure); UX Minor (sheet
+>     bedakan Network/Forbidden/Conflict, email salah-format vs "password salah"); verifikasi backend
+>     (validasi MIME/ukuran + re-encode foto lapor kerusakan sejajar avatar; kontrak `/auth/password/forgot`
+>     selalu-200). Berikutnya: buka PR
 >     merge ke `main`; fase mobile lanjutan (M3/M5) menyusul.
 
 ## ✅ Done
