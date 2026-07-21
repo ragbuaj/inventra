@@ -775,40 +775,81 @@ class _QuickActions extends ConsumerWidget {
     ).extension<InventraStatusColors>()!;
     final int approvalCount = ref.watch(approvalPendingBadgeProvider);
 
-    return Row(
+    return Column(
       children: <Widget>[
-        Expanded(
-          child: _QuickAction(
-            label: l10n.homeQuickScan,
-            icon: Symbols.qr_code_scanner_rounded,
-            colorSet: colors.success,
-            onTap: () => context.go('/scan'),
-          ),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: _QuickAction(
+                label: l10n.homeQuickScan,
+                icon: Symbols.qr_code_scanner_rounded,
+                colorSet: colors.success,
+                onTap: () => context.go('/scan'),
+              ),
+            ),
+            Expanded(
+              child: _QuickAction(
+                label: l10n.homeQuickOpname,
+                icon: Symbols.fact_check_rounded,
+                colorSet: colors.info,
+                onTap: () => context.go('/stock-opname'),
+              ),
+            ),
+            Expanded(
+              child: _QuickAction(
+                label: l10n.homeQuickApproval,
+                icon: Symbols.approval_rounded,
+                colorSet: colors.warning,
+                badgeCount: approvalCount,
+                onTap: () => context.go('/approval'),
+              ),
+            ),
+            Expanded(
+              child: _QuickAction(
+                label: l10n.homeQuickNotifications,
+                icon: Symbols.notifications_rounded,
+                colorSet: colors.neutral,
+                onTap: () => context.go('/notifications'),
+              ),
+            ),
+          ],
         ),
-        Expanded(
-          child: _QuickAction(
-            label: l10n.homeQuickOpname,
-            icon: Symbols.fact_check_rounded,
-            colorSet: colors.info,
-            onTap: () => context.go('/stock-opname'),
-          ),
-        ),
-        Expanded(
-          child: _QuickAction(
-            label: l10n.homeQuickApproval,
-            icon: Symbols.approval_rounded,
-            colorSet: colors.warning,
-            badgeCount: approvalCount,
-            onTap: () => context.go('/approval'),
-          ),
-        ),
-        Expanded(
-          child: _QuickAction(
-            label: l10n.homeQuickNotifications,
-            icon: Symbols.notifications_rounded,
-            colorSet: colors.neutral,
-            onTap: () => context.go('/notifications'),
-          ),
+        const SizedBox(height: 14),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: _QuickAction(
+                label: l10n.homeQuickCatalog,
+                icon: Symbols.inventory_2_rounded,
+                colorSet: colors.info,
+                onTap: () => context.push('/catalog'),
+              ),
+            ),
+            Expanded(
+              child: _QuickAction(
+                label: l10n.homeQuickMyAssets,
+                icon: Symbols.badge_rounded,
+                colorSet: colors.success,
+                onTap: () => context.push('/my-assets'),
+              ),
+            ),
+            Expanded(
+              child: _QuickAction(
+                label: l10n.homeQuickMyRequests,
+                icon: Symbols.description_rounded,
+                colorSet: colors.neutral,
+                onTap: () => context.push('/my-requests'),
+              ),
+            ),
+            Expanded(
+              child: _QuickAction(
+                label: l10n.homeQuickRegister,
+                icon: Symbols.add_box_rounded,
+                colorSet: colors.warning,
+                onTap: () => context.push('/register-asset'),
+              ),
+            ),
+          ],
         ),
       ],
     );

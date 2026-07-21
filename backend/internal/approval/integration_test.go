@@ -1171,6 +1171,42 @@ func TestApproval_GetRequest_ScopeEnforced(t *testing.T) {
 	// cabangUser is placed in Cabang (same office as request) → 200.
 	assert.Equal(t, http.StatusOK, callGet(cabangUserID, cabangRoleID),
 		"caller scoped to the request's own office must receive 200")
+
+	// A MAKER may view their OWN request even when the request's office lies
+	// OUTSIDE their data scope — parity with the mine=true list bypass. Here
+	// outsideUser (scoped to otherOffice only) submits a request for Cabang.
+	outsiderOwnReq, err := svc.Submit(ctx, approval.SubmitInput{
+		Type:     sqlc.SharedRequestTypeAssetCreate,
+		Amount:   "500000",
+		OfficeID: tr.CabangID,
+		Payload:  []byte(`{"name":"Own","category_id":"` + uuid.New().String() + `","office_id":"` + tr.CabangID.String() + `","asset_class":"intangible"}`),
+		Maker:    outsideUserID,
+	})
+	require.NoError(t, err)
+
+	callGetReq := func(reqID, userID, roleID uuid.UUID) (int, map[string]any) {
+		stubAuth := func(c *gin.Context) {
+			c.Set(middleware.CtxUserID, userID.String())
+			c.Set(middleware.CtxRoleID, roleID.String())
+			c.Next()
+		}
+		r := gin.New()
+		v1 := r.Group("/api/v1")
+		approval.RegisterRoutes(v1, h, stubAuth, permSvc)
+		w := httptest.NewRecorder()
+		httpReq, _ := http.NewRequest(http.MethodGet, "/api/v1/requests/"+reqID.String(), nil)
+		r.ServeHTTP(w, httpReq)
+		var body map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
+		return w.Code, body
+	}
+
+	makerCode, makerBody := callGetReq(outsiderOwnReq.ID, outsideUserID, outsideRoleID)
+	assert.Equal(t, http.StatusOK, makerCode,
+		"a maker must be able to view their own request regardless of office scope")
+	// The bypass must return the maker's actual request, not an empty/masked shell.
+	assert.Equal(t, outsiderOwnReq.ID.String(), makerBody["id"],
+		"the maker's own request body must be returned through the scope bypass")
 }
 
 // strPtr returns a pointer to the given string.

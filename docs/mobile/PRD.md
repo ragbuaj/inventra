@@ -10,7 +10,9 @@ bisnis, otorisasi, regulasi) — dokumen ini hanya mencakup klien mobile. Keputu
 [DESIGN_BRIEF.md](DESIGN_BRIEF.md) (hasil di `docs/mobile/design/`). Indeks semua dokumen mobile:
 [README.md](README.md).
 
-Versi: **v1.0 (2026-07-18)** — scope dibuka via PRD web v1.2 (non-goal v1.1 dicabut).
+Versi: **v1.1 (2026-07-21)** — tambah FR-M7 (katalog, peminjaman, maintenance, registrasi,
+Pengajuan/Aset saya) plus perluasan profil lengkap + keamanan akun (FR-M6) dan lupa password
+(FR-M1.5). v1.0 (2026-07-18) — scope dibuka via PRD web v1.2 (non-goal v1.1 dicabut).
 
 ---
 
@@ -46,9 +48,12 @@ Web sudah mobile-responsive, tetapi tiga kebutuhan lapangan tidak terlayani baik
 
 - CRUD master data, administrasi user/RBAC/data-scope/field-permission, import massal, laporan
   dan dashboard penuh — tetap di web.
-- **Pembuatan** pengajuan modul non-opname (registrasi aset, mutasi, disposal, dsb.) — diajukan
-  dari web; mobile hanya **memutus** approval-nya.
-- Mode offline untuk fitur selain stock opname (approval/scan/notifikasi butuh koneksi).
+- **Mutasi dan penghapusan/disposal**: pembuatan pengajuannya tetap **diajukan dari web** (form
+  berat, keputusan meja); mobile hanya **memutus** approval-nya. Catatan: registrasi aset,
+  peminjaman, dan lapor kerusakan/maintenance **tidak lagi** non-goal — lihat FR-M7 (keputusan
+  produk 2026-07-21).
+- Mode offline untuk fitur selain stock opname (approval/scan/notifikasi/pengajuan aset butuh
+  koneksi).
 - Login Google (menyusul; v1 email + password).
 - iOS build (disiapkan strukturnya, rilis Android dulu) — rencana kesiapan dan checklist
   aktivasinya lengkap di [IOS.md](IOS.md); aturan "iOS-ready sejak M0" di sana mengikat kode
@@ -62,7 +67,7 @@ Peran mengikuti PRD web bagian 2. Pengguna utama mobile:
 |---|---|
 | Petugas opname / GA cabang (Manager) | Unduh snapshot sesi, scan label per ruangan, tandai hasil, pantau antrean sync, lihat variance |
 | Pejabat pemutus (Kepala Unit / Kepala Kanwil) | Terima push, buka inbox, tinjau detail pengajuan, approve/reject dengan catatan |
-| Semua pengguna | Login, scan label untuk lihat detail aset, baca notifikasi, kelola profil dan sesi device |
+| Semua pengguna | Login, scan/telusuri katalog untuk lihat detail aset, ajukan peminjaman/lapor kerusakan/registrasi aset (sesuai izin), baca notifikasi, kelola profil dan sesi device |
 
 Menu dan data yang tampil mengikuti permission + data scope pengguna, sama seperti web.
 
@@ -78,12 +83,18 @@ Menu dan data yang tampil mengikuti permission + data scope pengguna, sama seper
 - **FR-M1.3** Sesi login tercatat sebagai **device session** (terlihat & dapat dicabut dari web
   maupun mobile); pencabutan sesi berlaku seketika (perilaku `RequireAuth` yang ada).
 - **FR-M1.4** Logout menghapus token lokal dan mencabut sesi di server.
+- **FR-M1.5** **Lupa password** dari layar login: input email lalu `POST /auth/password/forgot`
+  (anti-enumerasi, **selalu 200**). Penetapan password baru **diselesaikan lewat link email** yang
+  membuka halaman web `/reset-password?token=` — mobile tidak menyetel password langsung; tidak ada
+  deep-link khusus di v1 (link email membuka web). Nol backend baru (endpoint sudah ada).
 
 ### 3.2 Scan & identifikasi aset (FR-M2)
 
 - **FR-M2.1** Scan barcode/QR label aset via kamera (Code128 + QR dari `asset_tag`); fallback
   **input tag manual** selalu tersedia (label pudar / kamera buruk).
-- **FR-M2.2** Hasil scan membuka **detail aset** (`GET /assets/by-tag/:tag`) — read-only.
+- **FR-M2.2** Hasil scan membuka **detail aset** (`GET /assets/by-tag/:tag`). Detail bersifat
+  read-only untuk data, tetapi **actionable per permission**: aksi peminjaman/check-out, lapor
+  kerusakan, dan (untuk aset baru) registrasi muncul sesuai izin pengguna — lihat FR-M7.
 - **FR-M2.3** Field permission dan data scope berlaku sama dengan web (field tersembunyi tampil
   "—"; aset di luar scope = tidak ditemukan).
 - **FR-M2.4** Tag tak dikenal atau di luar scope menghasilkan pesan jelas, bukan layar kosong.
@@ -135,10 +146,64 @@ Mengacu aturan domain PRD web bagian 3.9; strategi sync di ADR-0016.
 
 ### 3.6 Profil, sesi & preferensi (FR-M6)
 
-- **FR-M6.1** Profil ringkas (nama, peran, kantor) + daftar **sesi device** dengan sesi saat ini
-  ditandai; cabut sesi lain / logout semua.
-- **FR-M6.2** Preferensi: bahasa (id default / en), tema (terang / gelap / ikuti sistem).
-- **FR-M6.3** Seluruh UI ter-i18n; istilah domain konsisten dengan web (opname, mutasi, BAST).
+- **FR-M6.1** **Profil lengkap** (`GET /auth/profile`, `/auth/me`) — paritas kunci dengan profil
+  web: metadata akun (peran, kantor, metode login, tanggal bergabung) dan **detail pegawai tertaut**
+  read-only (kode, status, departemen, jabatan). Akun tanpa tautan pegawai menampilkan catatan,
+  bukan grid kosong.
+- **FR-M6.2** **Ubah data diri** (`PUT /auth/profile`) — field yang boleh diedit pengguna (mis.
+  nama, telepon) dengan validasi input; **foto profil/avatar** unggah/hapus/tampil
+  (`GET/POST/DELETE /auth/avatar`; API mengekspos `has_avatar`, gambar diambil sebagai blob
+  ter-autentikasi). Field sensitif tidak pernah diserialisasi.
+- **FR-M6.3** **Keamanan akun** — **ganti password** dan **ganti email**, **berbasis link email**
+  seperti web: ganti password memverifikasi password lama lalu `POST /auth/password/change-request`
+  (kirim link ke `/reset-password`); ganti email `POST /auth/email/change-request` lalu konfirmasi
+  via link. Penetapan/konfirmasi diselesaikan di halaman web (tanpa deep-link v1). **Ganti password
+  mencabut semua sesi** (token-epoch `password_changed_at`) — termasuk sesi mobile: setelah sukses,
+  klien logout ke Login. Nol backend baru (endpoint sudah ada, tidak di-deny untuk `aud=mobile`).
+- **FR-M6.4** Daftar **sesi device** dengan sesi saat ini ditandai; cabut sesi lain / logout semua
+  (`GET /auth/sessions`, `DELETE /auth/sessions/:id`, `POST /auth/sessions/revoke-others`).
+- **FR-M6.5** Preferensi: bahasa (id default / en), tema (terang / gelap / ikuti sistem).
+- **FR-M6.6** Seluruh UI ter-i18n; istilah domain konsisten dengan web (opname, mutasi, BAST).
+
+### 3.7 Katalog & aksi aset di lapangan (FR-M7)
+
+Ditambahkan via keputusan produk 2026-07-21 (memperluas field companion). Kemampuan ini ringan dan
+ter-anchor ke aset fisik / alur scan; **mutasi dan disposal tetap di web** (lihat bagian 1.3). Semua
+aksi tunduk permission + data scope + field permission yang ditegakkan server; pengajuan tetap lewat
+maker-checker/SoD/`approval_thresholds` — mobile tidak menduplikasi logika kelayakan.
+
+- **FR-M7.1** **Katalog aset** — daftar aset dalam scope pengguna dengan pencarian dan filter
+  dasar (kategori, status, kantor), **read-only**, memakai pagination server yang ada. Melengkapi
+  scan-to-detail untuk kasus "apa yang seharusnya ada di sini" tanpa memindai satu per satu. Field
+  tersembunyi mengikuti field permission (tampil "—").
+- **FR-M7.2** **Peminjaman / check-out / check-in dari detail aset** — dari detail hasil
+  scan/katalog, aksi sesuai permission x status aset (PRD web bagian 3.3): aset `available` —
+  **Manager** melakukan **check-out langsung** (tugaskan ke pegawai + tanggal pinjam + jatuh tempo
+  opsional + catatan kondisi; aset jadi `assigned`), atau **Staf/peran lain** **mengajukan
+  peminjaman** (pengajuan `assignment` via maker-checker; approve memicu check-out); aset `assigned`
+  — **Manager** melakukan **check-in** (catat kondisi masuk; aset kembali `available` atau
+  `under_maintenance`). Aksi hanya muncul bagi pengguna berizin dan status aset yang sesuai.
+- **FR-M7.3** **Lapor kerusakan / maintenance** — dari detail aset, ajukan **laporan
+  kerusakan/maintenance** (pengajuan `maintenance`, PRD web bagian 3.4) dengan deskripsi dan
+  (opsional) foto. Bukan manajemen maintenance penuh (jadwal/vendor/biaya tetap di web).
+- **FR-M7.4** **Registrasi aset** — ajukan **pendaftaran aset baru** (pengajuan `asset_create`)
+  dengan **form penuh** mengikuti payload web (`AssetCreatePayload`): kategori, identitas, kelas
+  aset, lokasi/kantor, harga perolehan + tanggal, brand/model/unit/vendor/PO/sumber dana/garansi,
+  catatan. `amount` pengajuan wajib sama dengan `purchase_cost`. Karena entri harga rawan salah di
+  layar kecil, **validasi input klien wajib ketat** (numerik-only, non-negatif). **Tidak ada cek
+  ambang kapitalisasi** — form web tidak punya dan server selalu mengkapitalisasi aset baru; ambang
+  kapitalisasi fitur v1.1 belum diimplementasi. Kelayakan akhir tetap divalidasi server.
+- **FR-M7.5** **Pengajuan saya** — daftar semua pengajuan yang **dibuat pengguna sendiri**
+  (`GET /requests?requested_by=<diri>`, filter status menunggu/disetujui/ditolak) beserta
+  statusnya. Ini **lensa maker**, terpisah dari inbox checker FR-M3.1 yang berorientasi keputusan
+  (approve/reject). Pengguna dapat **membatalkan** pengajuan miliknya yang masih `pending`
+  (query cancel-own sudah ada). Keputusan approval juga masuk via push (FR-M4).
+- **FR-M7.6** **Aset saya** — **menu/tab tersendiri** (bukan bagian Home/Profil) berisi daftar
+  aset yang sedang **dipegang/ditugaskan ke pengguna** (`GET /assignments/mine`), read-only,
+  menampilkan status pinjam dan jatuh tempo; melengkapi peminjaman FR-M7.2. Endpoint sudah ada
+  (digate `request.create`, lihat keputusan produk "Staf Tanpa Assignment View").
+
+Kedua view (FR-M7.5/M7.6) memakai **endpoint yang sudah ada** — tidak ada backend baru.
 
 ## 4. Alur utama
 
@@ -201,5 +266,13 @@ visual sebelum layar dibangun.
 
 ## Changelog
 
+- **v1.1 (2026-07-21)** — Tambah **FR-M7** (katalog aset browse read-only; peminjaman/check-out
+  dari detail; lapor kerusakan/maintenance; registrasi aset form penuh; **Pengajuan saya** lensa
+  maker + batal pending; **Aset saya** sebagai menu tersendiri). Non-goal bagian 1.3 direvisi:
+  registrasi/peminjaman/maintenance dicabut dari non-goal, **mutasi + disposal tetap** di web.
+  FR-M2.2 detail aset kini actionable per permission. **FR-M6 diperluas** ke profil lengkap +
+  ubah data diri/avatar + keamanan akun (ganti password/email berbasis link); **FR-M1.5** lupa
+  password dari login. Semua memakai endpoint yang sudah ada (nol backend baru). Dasar: keputusan
+  produk 2026-07-21 (dua catatan: FR-M7 aset, dan profil + keamanan akun mobile).
 - **v1.0 (2026-07-18)** — Dokumen awal. Scope dibuka melalui PRD web v1.2 (non-goal "aplikasi
   mobile native" v1.1 dicabut); keputusan bentuk field companion + Flutter + offline-first opname.

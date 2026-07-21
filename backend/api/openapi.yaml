@@ -2221,7 +2221,7 @@ paths:
       tags: [Requests]
       operationId: getRequest
       summary: Get a request by id (with approval steps)
-      description: Returns the request and its full approval step history. Fields `amount`/`payload`/`reason` may be omitted per role field-permissions.
+      description: Returns the request and its full approval step history. Fields `amount`/`payload`/`reason` may be omitted per role field-permissions. Scoped to the caller's offices, EXCEPT the request's own maker, who may always view their own request regardless of office scope (parity with the `mine=true` list bypass).
       security:
         - bearerJWT: []
       responses:

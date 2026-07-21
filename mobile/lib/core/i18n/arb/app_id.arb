@@ -8,6 +8,18 @@
   "@commonRetry": {
     "description": "Label tombol coba ulang setelah error"
   },
+  "commonErrorNetwork": "Tidak ada koneksi. Periksa jaringan Anda.",
+  "@commonErrorNetwork": {
+    "description": "Pesan error kegagalan jaringan yang dipakai bersama"
+  },
+  "commonErrorForbidden": "Anda tidak berwenang melakukan tindakan ini.",
+  "@commonErrorForbidden": {
+    "description": "Pesan error saat aksi ditolak izin/segregation of duties"
+  },
+  "commonErrorConflict": "Kondisi berubah. Muat ulang lalu coba lagi.",
+  "@commonErrorConflict": {
+    "description": "Pesan error saat aksi bentrok dengan kondisi terkini (409)"
+  },
   "commonCancel": "Batal",
   "@commonCancel": {
     "description": "Label tombol batal umum"
@@ -543,6 +555,46 @@
   "loginErrorGeneric": "Terjadi kesalahan. Coba lagi.",
   "@loginErrorGeneric": {
     "description": "Pesan banner error login untuk kegagalan lain"
+  },
+  "forgotLink": "Lupa password?",
+  "@forgotLink": {
+    "description": "Tautan di layar login menuju alur Lupa Password"
+  },
+  "forgotTitle": "Lupa Password",
+  "@forgotTitle": {
+    "description": "Judul AppBar layar Lupa Password"
+  },
+  "forgotIntro": "Masukkan email akun Anda. Kami akan mengirim tautan untuk menyetel ulang password bila email terdaftar.",
+  "@forgotIntro": {
+    "description": "Teks pengantar di layar Lupa Password"
+  },
+  "forgotEmailLabel": "Email",
+  "@forgotEmailLabel": {
+    "description": "Label field email di layar Lupa Password"
+  },
+  "forgotSubmit": "Kirim Tautan Reset",
+  "@forgotSubmit": {
+    "description": "Tombol kirim di layar Lupa Password"
+  },
+  "forgotEmailRequired": "Masukkan email Anda.",
+  "@forgotEmailRequired": {
+    "description": "Pesan validasi saat email kosong di layar Lupa Password"
+  },
+  "forgotSentTitle": "Cek kotak masuk Anda",
+  "@forgotSentTitle": {
+    "description": "Judul konfirmasi anti-enumerasi setelah kirim di layar Lupa Password"
+  },
+  "forgotSentBody": "Jika email terdaftar, kami telah mengirim tautan reset. Buka tautan itu untuk menyetel password baru.",
+  "@forgotSentBody": {
+    "description": "Isi konfirmasi anti-enumerasi (pesan sama untuk email terdaftar maupun tidak)"
+  },
+  "forgotBackToLogin": "Kembali ke Login",
+  "@forgotBackToLogin": {
+    "description": "Tombol kembali ke layar login dari konfirmasi Lupa Password"
+  },
+  "forgotError": "Gagal mengirim. Coba lagi.",
+  "@forgotError": {
+    "description": "Pesan error kegagalan jaringan di layar Lupa Password"
   },
   "loginLanguageIndonesian": "ID",
   "@loginLanguageIndonesian": {
@@ -1373,6 +1425,14 @@
   "@homeQuickNotifications": {
     "description": "Label quick action tab notifikasi"
   },
+  "homeQuickCatalog": "Katalog",
+  "@homeQuickCatalog": { "description": "Label quick action katalog aset" },
+  "homeQuickMyAssets": "Aset Saya",
+  "@homeQuickMyAssets": { "description": "Label quick action aset saya" },
+  "homeQuickMyRequests": "Pengajuan",
+  "@homeQuickMyRequests": { "description": "Label quick action pengajuan saya" },
+  "homeQuickRegister": "Registrasi",
+  "@homeQuickRegister": { "description": "Label quick action registrasi aset" },
   "notificationsMarkAllRead": "Tandai semua dibaca",
   "@notificationsMarkAllRead": {
     "description": "Aksi header feed: tandai seluruh notifikasi dibaca"
@@ -1512,5 +1572,470 @@
   "notificationsAssetReturnedTitle": "Aset dikembalikan",
   "@notificationsAssetReturnedTitle": {
     "description": "Judul notifikasi type asset_returned"
-  }
+  },
+  "catalogTitle": "Katalog Aset",
+  "@catalogTitle": {
+    "description": "Judul layar Katalog Aset (AppBar)"
+  },
+  "catalogSearchHint": "Cari aset",
+  "@catalogSearchHint": {
+    "description": "Placeholder kolom pencarian katalog (nama/kode aset)"
+  },
+  "catalogUnnamedAsset": "Aset tanpa nama",
+  "@catalogUnnamedAsset": {
+    "description": "Label kartu saat nama aset tidak dikirim backend"
+  },
+  "catalogEmptyTitle": "Belum ada aset",
+  "@catalogEmptyTitle": {
+    "description": "Judul empty state katalog saat tak ada aset dalam scope"
+  },
+  "catalogEmptyBody": "Aset dalam wilayah Anda akan tampil di sini.",
+  "@catalogEmptyBody": {
+    "description": "Body empty state katalog tanpa aset"
+  },
+  "catalogEmptySearchTitle": "Tidak ada aset yang cocok",
+  "@catalogEmptySearchTitle": {
+    "description": "Judul empty state saat pencarian tak menemukan aset"
+  },
+  "catalogEmptySearchBody": "Coba kata kunci lain atau atur ulang pencarian.",
+  "@catalogEmptySearchBody": {
+    "description": "Body empty state pencarian katalog tanpa hasil"
+  },
+  "catalogResetFilter": "Atur ulang",
+  "@catalogResetFilter": {
+    "description": "Tombol mengosongkan pencarian/filter katalog"
+  },
+  "catalogLoadMoreFailed": "Gagal memuat lagi.",
+  "@catalogLoadMoreFailed": {
+    "description": "Pesan gagal memuat halaman berikutnya di katalog"
+  },
+  "catalogErrorTitle": "Gagal memuat katalog",
+  "@catalogErrorTitle": {
+    "description": "Judul error state katalog"
+  },
+  "catalogErrorNetworkBody": "Periksa koneksi Anda lalu coba lagi.",
+  "@catalogErrorNetworkBody": {
+    "description": "Body error state katalog saat offline"
+  },
+  "catalogErrorGenericBody": "Terjadi kesalahan. Coba lagi.",
+  "@catalogErrorGenericBody": {
+    "description": "Body error state katalog generik"
+  },
+  "catalogForbiddenTitle": "Tanpa akses",
+  "@catalogForbiddenTitle": {
+    "description": "Judul state katalog saat 403"
+  },
+  "catalogForbiddenBody": "Anda tidak memiliki izin melihat katalog aset.",
+  "@catalogForbiddenBody": {
+    "description": "Body state katalog saat 403"
+  },
+  "catalogFilterCategory": "Kategori",
+  "@catalogFilterCategory": {
+    "description": "Label chip filter kategori katalog"
+  },
+  "catalogFilterStatus": "Status",
+  "@catalogFilterStatus": {
+    "description": "Label chip filter status aset katalog"
+  },
+  "catalogFilterOffice": "Kantor",
+  "@catalogFilterOffice": {
+    "description": "Label chip filter kantor katalog"
+  },
+  "catalogFilterAll": "Semua",
+  "@catalogFilterAll": {
+    "description": "Opsi filter yang berarti tanpa penyaringan"
+  },
+  "catalogFilterNoOptions": "Tidak ada data",
+  "@catalogFilterNoOptions": {
+    "description": "Empty state picker filter saat tak ada opsi"
+  },
+  "catalogFilterOptionsError": "Gagal memuat pilihan",
+  "@catalogFilterOptionsError": {
+    "description": "Pesan gagal memuat opsi picker filter"
+  },
+  "catalogPickerStatusTitle": "Pilih Status",
+  "@catalogPickerStatusTitle": {
+    "description": "Judul sheet picker status"
+  },
+  "catalogPickerCategoryTitle": "Pilih Kategori",
+  "@catalogPickerCategoryTitle": {
+    "description": "Judul sheet picker kategori"
+  },
+  "catalogPickerOfficeTitle": "Pilih Kantor",
+  "@catalogPickerOfficeTitle": {
+    "description": "Judul sheet picker kantor"
+  },
+  "myAssetsTitle": "Aset Saya",
+  "@myAssetsTitle": {
+    "description": "Judul layar Aset Saya (AppBar)"
+  },
+  "myAssetsCount": "{count} aset dipegang",
+  "@myAssetsCount": {
+    "description": "Jumlah aset yang sedang dipegang pengguna",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "myAssetsHeldSince": "Dipinjam sejak {date}",
+  "@myAssetsHeldSince": {
+    "description": "Tanggal aset mulai dipegang",
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "myAssetsDue": "Jatuh tempo {date}",
+  "@myAssetsDue": {
+    "description": "Tanggal jatuh tempo pengembalian aset",
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "myAssetsOverdue": "Terlambat",
+  "@myAssetsOverdue": {
+    "description": "Penanda aset melewati jatuh tempo"
+  },
+  "myAssetsEmptyTitle": "Belum memegang aset",
+  "@myAssetsEmptyTitle": {
+    "description": "Judul empty state Aset Saya"
+  },
+  "myAssetsEmptyBody": "Aset yang ditugaskan ke Anda akan tampil di sini.",
+  "@myAssetsEmptyBody": {
+    "description": "Body empty state Aset Saya"
+  },
+  "myAssetsErrorTitle": "Gagal memuat aset Anda",
+  "@myAssetsErrorTitle": {
+    "description": "Judul error state Aset Saya"
+  },
+  "myAssetsErrorNetworkBody": "Periksa koneksi Anda lalu coba lagi.",
+  "@myAssetsErrorNetworkBody": {
+    "description": "Body error Aset Saya saat offline"
+  },
+  "myAssetsErrorGenericBody": "Terjadi kesalahan. Coba lagi.",
+  "@myAssetsErrorGenericBody": {
+    "description": "Body error Aset Saya generik"
+  },
+  "myAssetsForbiddenTitle": "Tanpa akses",
+  "@myAssetsForbiddenTitle": {
+    "description": "Judul Aset Saya saat 403"
+  },
+  "myAssetsForbiddenBody": "Anda tidak memiliki izin melihat aset yang dipegang.",
+  "@myAssetsForbiddenBody": {
+    "description": "Body Aset Saya saat 403"
+  },
+  "myRequestsTitle": "Pengajuan Saya",
+  "@myRequestsTitle": {
+    "description": "Judul layar Pengajuan Saya (AppBar)"
+  },
+  "myRequestsEmptyTitle": "Belum ada pengajuan",
+  "@myRequestsEmptyTitle": {
+    "description": "Judul empty state Pengajuan Saya"
+  },
+  "myRequestsEmptyBody": "Pengajuan yang Anda buat akan tampil di sini.",
+  "@myRequestsEmptyBody": {
+    "description": "Body empty state Pengajuan Saya"
+  },
+  "myRequestsCancel": "Batalkan",
+  "@myRequestsCancel": {
+    "description": "Tombol membatalkan pengajuan pending sendiri"
+  },
+  "myRequestsCancelConfirmTitle": "Batalkan pengajuan?",
+  "@myRequestsCancelConfirmTitle": {
+    "description": "Judul dialog konfirmasi batal pengajuan"
+  },
+  "myRequestsCancelConfirmBody": "Pengajuan ini akan dibatalkan dan tidak dapat dilanjutkan.",
+  "@myRequestsCancelConfirmBody": {
+    "description": "Body dialog konfirmasi batal pengajuan"
+  },
+  "myRequestsCancelSuccess": "Pengajuan dibatalkan",
+  "@myRequestsCancelSuccess": {
+    "description": "SnackBar sukses membatalkan pengajuan"
+  },
+  "myRequestsCancelError": "Gagal membatalkan. Coba lagi.",
+  "@myRequestsCancelError": {
+    "description": "SnackBar gagal membatalkan pengajuan"
+  },
+  "myRequestsLoadMoreFailed": "Gagal memuat lagi.",
+  "@myRequestsLoadMoreFailed": {
+    "description": "Pesan gagal memuat halaman berikutnya di Pengajuan Saya"
+  },
+  "myRequestsErrorTitle": "Gagal memuat pengajuan",
+  "@myRequestsErrorTitle": {
+    "description": "Judul error state Pengajuan Saya"
+  },
+  "myRequestsErrorNetworkBody": "Periksa koneksi Anda lalu coba lagi.",
+  "@myRequestsErrorNetworkBody": {
+    "description": "Body error Pengajuan Saya saat offline"
+  },
+  "myRequestsErrorGenericBody": "Terjadi kesalahan. Coba lagi.",
+  "@myRequestsErrorGenericBody": {
+    "description": "Body error Pengajuan Saya generik"
+  },
+  "myRequestsForbiddenTitle": "Tanpa akses",
+  "@myRequestsForbiddenTitle": {
+    "description": "Judul Pengajuan Saya saat 403"
+  },
+  "myRequestsForbiddenBody": "Anda tidak memiliki izin melihat pengajuan.",
+  "@myRequestsForbiddenBody": {
+    "description": "Body Pengajuan Saya saat 403"
+  },
+  "assetActionBorrow": "Pinjam",
+  "@assetActionBorrow": {
+    "description": "Tombol aksi ajukan peminjaman di Detail Aset"
+  },
+  "assetActionCheckout": "Check-out",
+  "@assetActionCheckout": {
+    "description": "Tombol aksi check-out langsung (Manager) di Detail Aset"
+  },
+  "assetActionCheckin": "Check-in",
+  "@assetActionCheckin": {
+    "description": "Tombol aksi check-in (Manager) di Detail Aset"
+  },
+  "assetActionReportDamage": "Lapor Kerusakan",
+  "@assetActionReportDamage": {
+    "description": "Tombol aksi lapor kerusakan di Detail Aset"
+  },
+  "borrowSheetTitle": "Ajukan Peminjaman",
+  "@borrowSheetTitle": {
+    "description": "Judul sheet ajukan peminjaman"
+  },
+  "borrowDueDateLabel": "Jatuh tempo (opsional)",
+  "@borrowDueDateLabel": {
+    "description": "Label field jatuh tempo peminjaman"
+  },
+  "borrowPickDate": "Pilih tanggal",
+  "@borrowPickDate": {
+    "description": "Placeholder tombol pemilih tanggal jatuh tempo"
+  },
+  "borrowNotesLabel": "Catatan (opsional)",
+  "@borrowNotesLabel": {
+    "description": "Label field catatan peminjaman"
+  },
+  "borrowNotesHint": "mis. keperluan presentasi",
+  "@borrowNotesHint": {
+    "description": "Placeholder field catatan peminjaman"
+  },
+  "borrowPendingNote": "Pengajuan menunggu persetujuan.",
+  "@borrowPendingNote": {
+    "description": "Keterangan bahwa peminjaman lewat approval"
+  },
+  "borrowSubmit": "Ajukan",
+  "@borrowSubmit": {
+    "description": "Tombol kirim pengajuan peminjaman"
+  },
+  "borrowSuccess": "Pengajuan peminjaman dikirim",
+  "@borrowSuccess": {
+    "description": "SnackBar sukses ajukan peminjaman"
+  },
+  "borrowError": "Gagal mengajukan. Coba lagi.",
+  "@borrowError": {
+    "description": "Pesan gagal ajukan peminjaman"
+  },
+  "commonChange": "Ganti",
+  "@commonChange": {
+    "description": "Label tombol ganti/ubah pilihan"
+  },
+  "checkoutSheetTitle": "Check-out Aset",
+  "@checkoutSheetTitle": { "description": "Judul sheet check-out" },
+  "checkoutEmployeeLabel": "Pegawai (custodian)",
+  "@checkoutEmployeeLabel": { "description": "Label picker pegawai check-out" },
+  "checkoutEmployeeSearchHint": "Cari pegawai",
+  "@checkoutEmployeeSearchHint": { "description": "Placeholder cari pegawai" },
+  "checkoutEmployeeRequired": "Pilih pegawai dulu.",
+  "@checkoutEmployeeRequired": { "description": "Validasi custodian wajib" },
+  "checkoutDateLabel": "Tanggal pinjam",
+  "@checkoutDateLabel": { "description": "Label tanggal check-out" },
+  "checkoutConditionLabel": "Kondisi keluar (opsional)",
+  "@checkoutConditionLabel": { "description": "Label kondisi keluar check-out" },
+  "checkoutAssignedNote": "Aset langsung menjadi Dipinjam.",
+  "@checkoutAssignedNote": { "description": "Keterangan check-out langsung" },
+  "checkoutSubmit": "Check-out",
+  "@checkoutSubmit": { "description": "Tombol kirim check-out" },
+  "checkoutSuccess": "Aset di-check-out",
+  "@checkoutSuccess": { "description": "SnackBar sukses check-out" },
+  "checkoutError": "Gagal check-out. Coba lagi.",
+  "@checkoutError": { "description": "Pesan gagal check-out" },
+  "checkinSheetTitle": "Check-in Aset",
+  "@checkinSheetTitle": { "description": "Judul sheet check-in" },
+  "checkinHolderLabel": "Pemegang saat ini",
+  "@checkinHolderLabel": { "description": "Label pemegang aset saat check-in" },
+  "checkinConditionLabel": "Kondisi masuk",
+  "@checkinConditionLabel": { "description": "Label kondisi masuk check-in" },
+  "checkinConditionGood": "Baik",
+  "@checkinConditionGood": { "description": "Chip kondisi baik" },
+  "checkinConditionNeedsService": "Perlu Servis",
+  "@checkinConditionNeedsService": { "description": "Chip kondisi perlu servis" },
+  "checkinNotesLabel": "Catatan (opsional)",
+  "@checkinNotesLabel": { "description": "Label catatan check-in" },
+  "checkinReturnNote": "Aset kembali Tersedia (atau Maintenance bila perlu servis).",
+  "@checkinReturnNote": { "description": "Keterangan hasil check-in" },
+  "checkinSubmit": "Check-in",
+  "@checkinSubmit": { "description": "Tombol kirim check-in" },
+  "checkinSuccess": "Aset di-check-in",
+  "@checkinSuccess": { "description": "SnackBar sukses check-in" },
+  "checkinError": "Gagal check-in. Coba lagi.",
+  "@checkinError": { "description": "Pesan gagal check-in" },
+  "checkinNoActive": "Tidak ada penugasan aktif untuk aset ini.",
+  "@checkinNoActive": { "description": "Pesan tak ada penugasan aktif" },
+  "checkinLoadError": "Gagal memuat penugasan aktif.",
+  "@checkinLoadError": { "description": "Pesan gagal memuat penugasan aktif saat membuka sheet check-in" },
+  "reportSheetTitle": "Lapor Kerusakan",
+  "@reportSheetTitle": { "description": "Judul sheet lapor kerusakan" },
+  "reportCategoryLabel": "Kategori masalah",
+  "@reportCategoryLabel": { "description": "Label picker kategori masalah" },
+  "reportCategoryHint": "Pilih kategori",
+  "@reportCategoryHint": { "description": "Placeholder dropdown kategori masalah" },
+  "reportCategoryRequired": "Pilih kategori masalah dulu.",
+  "@reportCategoryRequired": { "description": "Validasi kategori masalah wajib" },
+  "reportDescriptionLabel": "Deskripsi (opsional)",
+  "@reportDescriptionLabel": { "description": "Label deskripsi kerusakan" },
+  "reportDescriptionHint": "mis. layar retak, tidak menyala",
+  "@reportDescriptionHint": { "description": "Placeholder deskripsi kerusakan" },
+  "reportPendingNote": "Diproses sebagai pengajuan maintenance.",
+  "@reportPendingNote": { "description": "Keterangan lapor kerusakan lewat approval" },
+  "reportSubmit": "Kirim Laporan",
+  "@reportSubmit": { "description": "Tombol kirim laporan kerusakan" },
+  "reportSuccess": "Laporan kerusakan dikirim",
+  "@reportSuccess": { "description": "SnackBar sukses lapor kerusakan" },
+  "reportError": "Gagal mengirim. Coba lagi.",
+  "@reportError": { "description": "Pesan gagal lapor kerusakan" },
+  "reportAddPhoto": "Tambah foto (opsional)",
+  "@reportAddPhoto": { "description": "Tombol tambah lampiran foto kerusakan" },
+  "registerTitle": "Registrasi Aset",
+  "@registerTitle": { "description": "Judul layar registrasi aset" },
+  "registerStepIdentity": "Identitas",
+  "@registerStepIdentity": { "description": "Langkah 1 registrasi" },
+  "registerStepPlacement": "Penempatan",
+  "@registerStepPlacement": { "description": "Langkah 2 registrasi" },
+  "registerStepReview": "Tinjau",
+  "@registerStepReview": { "description": "Langkah 3 registrasi" },
+  "registerName": "Nama aset",
+  "@registerName": { "description": "Field nama aset" },
+  "registerCategory": "Kategori",
+  "@registerCategory": { "description": "Picker kategori aset" },
+  "registerAssetClass": "Kelas aset",
+  "@registerAssetClass": { "description": "Pilihan kelas aset" },
+  "registerClassTangible": "Berwujud",
+  "@registerClassTangible": { "description": "Kelas aset tangible" },
+  "registerClassIntangible": "Tak berwujud",
+  "@registerClassIntangible": { "description": "Kelas aset intangible" },
+  "registerSerial": "Nomor seri (opsional)",
+  "@registerSerial": { "description": "Field nomor seri" },
+  "registerOffice": "Kantor",
+  "@registerOffice": { "description": "Picker kantor registrasi" },
+  "registerPurchaseCost": "Harga perolehan (opsional)",
+  "@registerPurchaseCost": { "description": "Field harga perolehan" },
+  "registerPurchaseDate": "Tanggal perolehan (opsional)",
+  "@registerPurchaseDate": { "description": "Field tanggal perolehan" },
+  "registerNotes": "Catatan (opsional)",
+  "@registerNotes": { "description": "Field catatan registrasi" },
+  "registerReviewNote": "Diproses sebagai pengajuan registrasi lewat approval; nilai pengajuan = harga perolehan.",
+  "@registerReviewNote": { "description": "Keterangan tinjau registrasi" },
+  "registerNext": "Lanjut",
+  "@registerNext": { "description": "Tombol lanjut langkah" },
+  "registerBack": "Kembali",
+  "@registerBack": { "description": "Tombol kembali langkah" },
+  "registerSubmit": "Kirim Pengajuan",
+  "@registerSubmit": { "description": "Tombol kirim registrasi" },
+  "registerNameRequired": "Nama aset wajib diisi.",
+  "@registerNameRequired": { "description": "Validasi nama wajib" },
+  "registerCategoryRequired": "Pilih kategori dulu.",
+  "@registerCategoryRequired": { "description": "Validasi kategori wajib" },
+  "registerOfficeRequired": "Pilih kantor dulu.",
+  "@registerOfficeRequired": { "description": "Validasi kantor wajib" },
+  "registerSuccess": "Pengajuan registrasi dikirim",
+  "@registerSuccess": { "description": "SnackBar sukses registrasi" },
+  "registerError": "Gagal mengirim. Coba lagi.",
+  "@registerError": { "description": "Pesan gagal registrasi" },
+  "profileEmployeeDetailTitle": "Detail Pegawai",
+  "@profileEmployeeDetailTitle": { "description": "Judul kartu detail pegawai" },
+  "profileEmployeeCode": "Kode pegawai",
+  "@profileEmployeeCode": { "description": "Label kode pegawai" },
+  "profileEmployeeStatus": "Status",
+  "@profileEmployeeStatus": { "description": "Label status pegawai" },
+  "profileDepartment": "Departemen",
+  "@profileDepartment": { "description": "Label departemen" },
+  "profilePosition": "Jabatan",
+  "@profilePosition": { "description": "Label jabatan" },
+  "profileNoEmployee": "Akun ini tidak tertaut ke data pegawai.",
+  "@profileNoEmployee": { "description": "Catatan akun tanpa pegawai" },
+  "profileAccountInfoTitle": "Informasi Akun",
+  "@profileAccountInfoTitle": { "description": "Judul kartu informasi akun" },
+  "profileEmail": "Email",
+  "@profileEmail": { "description": "Label email" },
+  "profilePhone": "Telepon",
+  "@profilePhone": { "description": "Label telepon" },
+  "profileLoginMethod": "Metode login",
+  "@profileLoginMethod": { "description": "Label metode login" },
+  "profileLoginGoogle": "Google",
+  "@profileLoginGoogle": { "description": "Nilai metode login Google" },
+  "profileLoginEmail": "Email & password",
+  "@profileLoginEmail": { "description": "Nilai metode login email" },
+  "profileJoinedAt": "Bergabung",
+  "@profileJoinedAt": { "description": "Label tanggal bergabung" },
+  "profileDetailError": "Gagal memuat detail profil.",
+  "@profileDetailError": { "description": "Pesan gagal memuat detail profil" },
+  "profileDataDiriTitle": "Data Diri",
+  "@profileDataDiriTitle": { "description": "Judul kartu data diri" },
+  "profileEditButton": "Ubah",
+  "@profileEditButton": { "description": "Tombol masuk mode ubah data diri" },
+  "profileSaveButton": "Simpan",
+  "@profileSaveButton": { "description": "Tombol simpan data diri" },
+  "profileNameLabel": "Nama",
+  "@profileNameLabel": { "description": "Label nama pengguna" },
+  "profileNameRequired": "Nama wajib diisi.",
+  "@profileNameRequired": { "description": "Validasi nama wajib" },
+  "profileUpdateSuccess": "Data diri diperbarui",
+  "@profileUpdateSuccess": { "description": "SnackBar sukses ubah data diri" },
+  "profileUpdateError": "Gagal menyimpan. Coba lagi.",
+  "@profileUpdateError": { "description": "Pesan gagal ubah data diri" },
+  "avatarFromGallery": "Pilih dari galeri",
+  "@avatarFromGallery": { "description": "Opsi ambil avatar dari galeri" },
+  "avatarFromCamera": "Ambil foto",
+  "@avatarFromCamera": { "description": "Opsi ambil avatar dari kamera" },
+  "avatarRemove": "Hapus foto",
+  "@avatarRemove": { "description": "Opsi hapus foto profil" },
+  "avatarUpdated": "Foto profil diperbarui",
+  "@avatarUpdated": { "description": "SnackBar sukses unggah avatar" },
+  "avatarRemoved": "Foto profil dihapus",
+  "@avatarRemoved": { "description": "SnackBar sukses hapus avatar" },
+  "avatarError": "Gagal memproses foto. Coba lagi.",
+  "@avatarError": { "description": "Pesan gagal proses avatar" },
+  "securityTitle": "Keamanan Akun",
+  "@securityTitle": { "description": "Judul layar keamanan akun" },
+  "securityEmailLabel": "Email",
+  "@securityEmailLabel": { "description": "Label baris email" },
+  "securityChangeEmail": "Ganti Email",
+  "@securityChangeEmail": { "description": "Tombol/judul ganti email" },
+  "securityPasswordLabel": "Password",
+  "@securityPasswordLabel": { "description": "Label baris password" },
+  "securityChangePassword": "Ganti Password",
+  "@securityChangePassword": { "description": "Tombol/judul ganti password" },
+  "securityCurrentPassword": "Password saat ini",
+  "@securityCurrentPassword": { "description": "Label field password lama" },
+  "securityNewEmail": "Email baru",
+  "@securityNewEmail": { "description": "Label field email baru" },
+  "securityPasswordWarning": "Semua sesi akan keluar setelah password diganti.",
+  "@securityPasswordWarning": { "description": "Peringatan cabut sesi ganti password" },
+  "securitySendResetLink": "Kirim Link Reset",
+  "@securitySendResetLink": { "description": "Tombol kirim link reset password" },
+  "securitySendVerifyLink": "Kirim Link Verifikasi",
+  "@securitySendVerifyLink": { "description": "Tombol kirim link verifikasi email" },
+  "securityCheckEmailTitle": "Cek email Anda",
+  "@securityCheckEmailTitle": { "description": "Judul konfirmasi cek email" },
+  "securityCheckEmailBody": "Kami mengirim link ke email Anda untuk menyelesaikan perubahan. Buka link itu di halaman web.",
+  "@securityCheckEmailBody": { "description": "Body konfirmasi cek email" },
+  "securityDone": "Selesai",
+  "@securityDone": { "description": "Tombol tutup konfirmasi" },
+  "securityWrongPassword": "Password salah.",
+  "@securityWrongPassword": { "description": "Error password lama salah" },
+  "securityEmailInUse": "Email sudah digunakan.",
+  "@securityEmailInUse": { "description": "Error email sudah dipakai" },
+  "securityError": "Gagal. Coba lagi.",
+  "@securityError": { "description": "Error generik keamanan akun" },
+  "securityCurrentPasswordRequired": "Isi password saat ini.",
+  "@securityCurrentPasswordRequired": { "description": "Validasi password lama wajib" },
+  "securityNewEmailRequired": "Isi email baru.",
+  "@securityNewEmailRequired": { "description": "Validasi email baru wajib" },
+  "securityInvalidEmail": "Format email tidak valid.",
+  "@securityInvalidEmail": { "description": "Validasi format email baru salah pada ganti email" }
 }

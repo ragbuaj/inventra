@@ -69,6 +69,20 @@ class AuthRepository {
       throw err.toAppFailure();
     }
   }
+
+  /// `POST /auth/password/forgot` (publik, anti-enumerasi: server SELALU 200
+  /// untuk email berformat valid — akun tak dikenal/non-aktif/Google-only
+  /// di-no-op diam-diam). Klien menampilkan pesan sama apa pun hasilnya.
+  Future<void> forgotPassword(String email) async {
+    try {
+      await _dio.post<Map<String, dynamic>>(
+        '/auth/password/forgot',
+        data: <String, dynamic>{'email': email.trim()},
+      );
+    } on DioException catch (err) {
+      throw err.toAppFailure();
+    }
+  }
 }
 
 final Provider<AuthRepository> authRepositoryProvider =

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'package:inventra_mobile/core/masterdata/reference_lookup_repository.dart
 import 'package:inventra_mobile/core/utils/clock.dart';
 import 'package:inventra_mobile/core/widgets/app_skeleton.dart';
 import 'package:inventra_mobile/features/account/data/account_repository.dart';
+import 'package:inventra_mobile/features/account/data/profile_dto.dart';
 import 'package:inventra_mobile/features/account/data/session_dto.dart';
 import 'package:inventra_mobile/features/account/presentation/profile_screen.dart';
 
@@ -111,7 +113,7 @@ void main() {
     FakeAccountRepository repository, {
     bool settle = true,
   }) async {
-    tester.view.physicalSize = const Size(500, 1200);
+    tester.view.physicalSize = const Size(500, 2000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
     final ProviderContainer container = createContainer(repository);
@@ -124,6 +126,143 @@ void main() {
     return container;
   }
 
+  group('detail profil (GET /auth/profile)', () {
+    testWidgets('kartu Detail Pegawai + Informasi Akun terisi', (
+      WidgetTester tester,
+    ) async {
+      await pumpProfile(
+        tester,
+        FakeAccountRepository(sessions: _threeSessions()),
+      );
+
+      expect(find.text(l10nId.profileEmployeeDetailTitle), findsOneWidget);
+      expect(find.text('EMP-001'), findsOneWidget);
+      expect(find.text('Umum & GA'), findsOneWidget);
+      expect(find.text('Staf Aset'), findsOneWidget);
+      expect(find.text(l10nId.profileAccountInfoTitle), findsOneWidget);
+      expect(find.text('andi@inventra.local'), findsOneWidget);
+      expect(find.text(l10nId.profileLoginEmail), findsOneWidget);
+    });
+
+    testWidgets('akun tanpa pegawai: catatan, bukan grid kosong', (
+      WidgetTester tester,
+    ) async {
+      await pumpProfile(
+        tester,
+        FakeAccountRepository(
+          sessions: _threeSessions(),
+          profile: const ProfileDto(
+            id: 'u2',
+            name: 'Admin',
+            email: 'admin@inventra.local',
+          ),
+        ),
+      );
+
+      expect(find.text(l10nId.profileNoEmployee), findsOneWidget);
+    });
+  });
+
+  group('ubah data diri (PUT /auth/profile)', () {
+    testWidgets('Ubah -> Simpan memanggil updateProfile + nilai baru', (
+      WidgetTester tester,
+    ) async {
+      final FakeAccountRepository repo = FakeAccountRepository(
+        sessions: _threeSessions(),
+      );
+      await pumpProfile(tester, repo);
+
+      await tester.tap(find.byKey(const ValueKey<String>('profile-edit')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'Budi Hartono');
+      await tester.tap(find.byKey(const ValueKey<String>('profile-save')));
+      await tester.pumpAndSettle();
+
+      expect(repo.updateCalls, hasLength(1));
+      expect(repo.updateCalls.first.$1, 'Budi Hartono');
+      expect(find.text(l10nId.profileUpdateSuccess), findsOneWidget);
+      expect(find.text('Budi Hartono'), findsWidgets);
+    });
+
+    testWidgets('nama kosong: validasi menahan simpan', (
+      WidgetTester tester,
+    ) async {
+      final FakeAccountRepository repo = FakeAccountRepository(
+        sessions: _threeSessions(),
+      );
+      await pumpProfile(tester, repo);
+
+      await tester.tap(find.byKey(const ValueKey<String>('profile-edit')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, '   ');
+      await tester.tap(find.byKey(const ValueKey<String>('profile-save')));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10nId.profileNameRequired), findsOneWidget);
+      expect(repo.updateCalls, isEmpty);
+    });
+
+    testWidgets('Batal: kembali ke mode baca tanpa update', (
+      WidgetTester tester,
+    ) async {
+      final FakeAccountRepository repo = FakeAccountRepository(
+        sessions: _threeSessions(),
+      );
+      await pumpProfile(tester, repo);
+
+      await tester.tap(find.byKey(const ValueKey<String>('profile-edit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10nId.commonCancel));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey<String>('profile-edit')), findsOneWidget);
+      expect(repo.updateCalls, isEmpty);
+    });
+  });
+
+  group('avatar (POST/DELETE /auth/avatar)', () {
+    final Uint8List png = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    );
+
+    testWidgets('foto ada: badge -> Hapus memanggil deleteAvatar', (
+      WidgetTester tester,
+    ) async {
+      final FakeAccountRepository repo = FakeAccountRepository(
+        sessions: _threeSessions(),
+        avatarBytes: png,
+      );
+      await pumpProfile(tester, repo);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('profile-avatar-edit')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey<String>('avatar-remove')));
+      await tester.pumpAndSettle();
+
+      expect(repo.deleteAvatarCalls, 1);
+      expect(find.text(l10nId.avatarRemoved), findsOneWidget);
+    });
+
+    testWidgets('tanpa foto: opsi Hapus tidak muncul', (
+      WidgetTester tester,
+    ) async {
+      await pumpProfile(
+        tester,
+        FakeAccountRepository(sessions: _threeSessions()),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('profile-avatar-edit')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey<String>('avatar-remove')), findsNothing);
+      expect(find.text(l10nId.avatarFromGallery), findsOneWidget);
+    });
+  });
+
   group('kartu identitas', () {
     testWidgets('nama, email, inisial avatar, dan kantor (lookup)', (
       WidgetTester tester,
@@ -133,7 +272,8 @@ void main() {
         FakeAccountRepository(sessions: _threeSessions()),
       );
 
-      expect(find.text('Andi Saputra'), findsOneWidget);
+      // Nama tampil di header identitas dan kartu Data Diri (read view).
+      expect(find.text('Andi Saputra'), findsWidgets);
       expect(find.text('andi.saputra@bank.co.id'), findsOneWidget);
       expect(find.text('AS'), findsOneWidget);
       expect(find.text('Cabang Jakarta Selatan'), findsOneWidget);

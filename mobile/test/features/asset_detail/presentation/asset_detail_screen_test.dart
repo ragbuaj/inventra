@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventra_mobile/core/api/app_failure.dart';
+import 'package:inventra_mobile/core/authz/permissions_provider.dart';
 import 'package:inventra_mobile/core/masterdata/reference_lookup_repository.dart';
 import 'package:inventra_mobile/core/widgets/app_skeleton.dart';
 import 'package:inventra_mobile/core/widgets/status_chip.dart';
@@ -96,6 +97,10 @@ void main() {
       overrides: [
         assetDetailRepositoryProvider.overrideWithValue(repository),
         referenceLookupRepositoryProvider.overrideWithValue(lookup),
+        // Detail Aset kini merender AssetActionBar (FR-M7) yang membaca
+        // permissionsProvider; stub Set kosong -> tanpa aksi (read-only), tidak
+        // memukul HTTP nyata.
+        permissionsProvider.overrideWith((ref) async => const <String>{}),
       ],
     );
     await tester.pumpWidget(

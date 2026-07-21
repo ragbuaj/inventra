@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventra_mobile/app/theme.dart';
+import 'package:inventra_mobile/core/authz/permissions_provider.dart';
 import 'package:inventra_mobile/core/i18n/gen/app_localizations.dart';
 import 'package:inventra_mobile/features/asset_detail/data/asset_detail_repository.dart';
 import 'package:inventra_mobile/features/asset_detail/data/asset_dto.dart';
@@ -72,6 +73,11 @@ void main() {
         referenceLookupRepositoryProvider.overrideWithValue(
           FakeReferenceLookup(_goldenNames),
         ),
+        // FR-M7: bar aksi Detail Aset. request.create -> tombol Pinjam bila aset
+        // available (deterministik; tanpa HTTP nyata).
+        permissionsProvider.overrideWith((ref) async => const <String>{
+          'request.create',
+        }),
       ],
       child: MaterialApp(
         theme: theme,

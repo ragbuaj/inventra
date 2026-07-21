@@ -15,6 +15,17 @@ class AppLocalizationsId extends AppLocalizations {
   String get commonRetry => 'Coba lagi';
 
   @override
+  String get commonErrorNetwork => 'Tidak ada koneksi. Periksa jaringan Anda.';
+
+  @override
+  String get commonErrorForbidden =>
+      'Anda tidak berwenang melakukan tindakan ini.';
+
+  @override
+  String get commonErrorConflict =>
+      'Kondisi berubah. Muat ulang lalu coba lagi.';
+
+  @override
   String get commonCancel => 'Batal';
 
   @override
@@ -408,6 +419,38 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get loginErrorGeneric => 'Terjadi kesalahan. Coba lagi.';
+
+  @override
+  String get forgotLink => 'Lupa password?';
+
+  @override
+  String get forgotTitle => 'Lupa Password';
+
+  @override
+  String get forgotIntro =>
+      'Masukkan email akun Anda. Kami akan mengirim tautan untuk menyetel ulang password bila email terdaftar.';
+
+  @override
+  String get forgotEmailLabel => 'Email';
+
+  @override
+  String get forgotSubmit => 'Kirim Tautan Reset';
+
+  @override
+  String get forgotEmailRequired => 'Masukkan email Anda.';
+
+  @override
+  String get forgotSentTitle => 'Cek kotak masuk Anda';
+
+  @override
+  String get forgotSentBody =>
+      'Jika email terdaftar, kami telah mengirim tautan reset. Buka tautan itu untuk menyetel password baru.';
+
+  @override
+  String get forgotBackToLogin => 'Kembali ke Login';
+
+  @override
+  String get forgotError => 'Gagal mengirim. Coba lagi.';
 
   @override
   String get loginLanguageIndonesian => 'ID';
@@ -1014,6 +1057,18 @@ class AppLocalizationsId extends AppLocalizations {
   String get homeQuickNotifications => 'Notifikasi';
 
   @override
+  String get homeQuickCatalog => 'Katalog';
+
+  @override
+  String get homeQuickMyAssets => 'Aset Saya';
+
+  @override
+  String get homeQuickMyRequests => 'Pengajuan';
+
+  @override
+  String get homeQuickRegister => 'Registrasi';
+
+  @override
   String get notificationsMarkAllRead => 'Tandai semua dibaca';
 
   @override
@@ -1103,4 +1158,517 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get notificationsAssetReturnedTitle => 'Aset dikembalikan';
+
+  @override
+  String get catalogTitle => 'Katalog Aset';
+
+  @override
+  String get catalogSearchHint => 'Cari aset';
+
+  @override
+  String get catalogUnnamedAsset => 'Aset tanpa nama';
+
+  @override
+  String get catalogEmptyTitle => 'Belum ada aset';
+
+  @override
+  String get catalogEmptyBody => 'Aset dalam wilayah Anda akan tampil di sini.';
+
+  @override
+  String get catalogEmptySearchTitle => 'Tidak ada aset yang cocok';
+
+  @override
+  String get catalogEmptySearchBody =>
+      'Coba kata kunci lain atau atur ulang pencarian.';
+
+  @override
+  String get catalogResetFilter => 'Atur ulang';
+
+  @override
+  String get catalogLoadMoreFailed => 'Gagal memuat lagi.';
+
+  @override
+  String get catalogErrorTitle => 'Gagal memuat katalog';
+
+  @override
+  String get catalogErrorNetworkBody => 'Periksa koneksi Anda lalu coba lagi.';
+
+  @override
+  String get catalogErrorGenericBody => 'Terjadi kesalahan. Coba lagi.';
+
+  @override
+  String get catalogForbiddenTitle => 'Tanpa akses';
+
+  @override
+  String get catalogForbiddenBody =>
+      'Anda tidak memiliki izin melihat katalog aset.';
+
+  @override
+  String get catalogFilterCategory => 'Kategori';
+
+  @override
+  String get catalogFilterStatus => 'Status';
+
+  @override
+  String get catalogFilterOffice => 'Kantor';
+
+  @override
+  String get catalogFilterAll => 'Semua';
+
+  @override
+  String get catalogFilterNoOptions => 'Tidak ada data';
+
+  @override
+  String get catalogFilterOptionsError => 'Gagal memuat pilihan';
+
+  @override
+  String get catalogPickerStatusTitle => 'Pilih Status';
+
+  @override
+  String get catalogPickerCategoryTitle => 'Pilih Kategori';
+
+  @override
+  String get catalogPickerOfficeTitle => 'Pilih Kantor';
+
+  @override
+  String get myAssetsTitle => 'Aset Saya';
+
+  @override
+  String myAssetsCount(int count) {
+    return '$count aset dipegang';
+  }
+
+  @override
+  String myAssetsHeldSince(String date) {
+    return 'Dipinjam sejak $date';
+  }
+
+  @override
+  String myAssetsDue(String date) {
+    return 'Jatuh tempo $date';
+  }
+
+  @override
+  String get myAssetsOverdue => 'Terlambat';
+
+  @override
+  String get myAssetsEmptyTitle => 'Belum memegang aset';
+
+  @override
+  String get myAssetsEmptyBody =>
+      'Aset yang ditugaskan ke Anda akan tampil di sini.';
+
+  @override
+  String get myAssetsErrorTitle => 'Gagal memuat aset Anda';
+
+  @override
+  String get myAssetsErrorNetworkBody => 'Periksa koneksi Anda lalu coba lagi.';
+
+  @override
+  String get myAssetsErrorGenericBody => 'Terjadi kesalahan. Coba lagi.';
+
+  @override
+  String get myAssetsForbiddenTitle => 'Tanpa akses';
+
+  @override
+  String get myAssetsForbiddenBody =>
+      'Anda tidak memiliki izin melihat aset yang dipegang.';
+
+  @override
+  String get myRequestsTitle => 'Pengajuan Saya';
+
+  @override
+  String get myRequestsEmptyTitle => 'Belum ada pengajuan';
+
+  @override
+  String get myRequestsEmptyBody =>
+      'Pengajuan yang Anda buat akan tampil di sini.';
+
+  @override
+  String get myRequestsCancel => 'Batalkan';
+
+  @override
+  String get myRequestsCancelConfirmTitle => 'Batalkan pengajuan?';
+
+  @override
+  String get myRequestsCancelConfirmBody =>
+      'Pengajuan ini akan dibatalkan dan tidak dapat dilanjutkan.';
+
+  @override
+  String get myRequestsCancelSuccess => 'Pengajuan dibatalkan';
+
+  @override
+  String get myRequestsCancelError => 'Gagal membatalkan. Coba lagi.';
+
+  @override
+  String get myRequestsLoadMoreFailed => 'Gagal memuat lagi.';
+
+  @override
+  String get myRequestsErrorTitle => 'Gagal memuat pengajuan';
+
+  @override
+  String get myRequestsErrorNetworkBody =>
+      'Periksa koneksi Anda lalu coba lagi.';
+
+  @override
+  String get myRequestsErrorGenericBody => 'Terjadi kesalahan. Coba lagi.';
+
+  @override
+  String get myRequestsForbiddenTitle => 'Tanpa akses';
+
+  @override
+  String get myRequestsForbiddenBody =>
+      'Anda tidak memiliki izin melihat pengajuan.';
+
+  @override
+  String get assetActionBorrow => 'Pinjam';
+
+  @override
+  String get assetActionCheckout => 'Check-out';
+
+  @override
+  String get assetActionCheckin => 'Check-in';
+
+  @override
+  String get assetActionReportDamage => 'Lapor Kerusakan';
+
+  @override
+  String get borrowSheetTitle => 'Ajukan Peminjaman';
+
+  @override
+  String get borrowDueDateLabel => 'Jatuh tempo (opsional)';
+
+  @override
+  String get borrowPickDate => 'Pilih tanggal';
+
+  @override
+  String get borrowNotesLabel => 'Catatan (opsional)';
+
+  @override
+  String get borrowNotesHint => 'mis. keperluan presentasi';
+
+  @override
+  String get borrowPendingNote => 'Pengajuan menunggu persetujuan.';
+
+  @override
+  String get borrowSubmit => 'Ajukan';
+
+  @override
+  String get borrowSuccess => 'Pengajuan peminjaman dikirim';
+
+  @override
+  String get borrowError => 'Gagal mengajukan. Coba lagi.';
+
+  @override
+  String get commonChange => 'Ganti';
+
+  @override
+  String get checkoutSheetTitle => 'Check-out Aset';
+
+  @override
+  String get checkoutEmployeeLabel => 'Pegawai (custodian)';
+
+  @override
+  String get checkoutEmployeeSearchHint => 'Cari pegawai';
+
+  @override
+  String get checkoutEmployeeRequired => 'Pilih pegawai dulu.';
+
+  @override
+  String get checkoutDateLabel => 'Tanggal pinjam';
+
+  @override
+  String get checkoutConditionLabel => 'Kondisi keluar (opsional)';
+
+  @override
+  String get checkoutAssignedNote => 'Aset langsung menjadi Dipinjam.';
+
+  @override
+  String get checkoutSubmit => 'Check-out';
+
+  @override
+  String get checkoutSuccess => 'Aset di-check-out';
+
+  @override
+  String get checkoutError => 'Gagal check-out. Coba lagi.';
+
+  @override
+  String get checkinSheetTitle => 'Check-in Aset';
+
+  @override
+  String get checkinHolderLabel => 'Pemegang saat ini';
+
+  @override
+  String get checkinConditionLabel => 'Kondisi masuk';
+
+  @override
+  String get checkinConditionGood => 'Baik';
+
+  @override
+  String get checkinConditionNeedsService => 'Perlu Servis';
+
+  @override
+  String get checkinNotesLabel => 'Catatan (opsional)';
+
+  @override
+  String get checkinReturnNote =>
+      'Aset kembali Tersedia (atau Maintenance bila perlu servis).';
+
+  @override
+  String get checkinSubmit => 'Check-in';
+
+  @override
+  String get checkinSuccess => 'Aset di-check-in';
+
+  @override
+  String get checkinError => 'Gagal check-in. Coba lagi.';
+
+  @override
+  String get checkinNoActive => 'Tidak ada penugasan aktif untuk aset ini.';
+
+  @override
+  String get checkinLoadError => 'Gagal memuat penugasan aktif.';
+
+  @override
+  String get reportSheetTitle => 'Lapor Kerusakan';
+
+  @override
+  String get reportCategoryLabel => 'Kategori masalah';
+
+  @override
+  String get reportCategoryHint => 'Pilih kategori';
+
+  @override
+  String get reportCategoryRequired => 'Pilih kategori masalah dulu.';
+
+  @override
+  String get reportDescriptionLabel => 'Deskripsi (opsional)';
+
+  @override
+  String get reportDescriptionHint => 'mis. layar retak, tidak menyala';
+
+  @override
+  String get reportPendingNote => 'Diproses sebagai pengajuan maintenance.';
+
+  @override
+  String get reportSubmit => 'Kirim Laporan';
+
+  @override
+  String get reportSuccess => 'Laporan kerusakan dikirim';
+
+  @override
+  String get reportError => 'Gagal mengirim. Coba lagi.';
+
+  @override
+  String get reportAddPhoto => 'Tambah foto (opsional)';
+
+  @override
+  String get registerTitle => 'Registrasi Aset';
+
+  @override
+  String get registerStepIdentity => 'Identitas';
+
+  @override
+  String get registerStepPlacement => 'Penempatan';
+
+  @override
+  String get registerStepReview => 'Tinjau';
+
+  @override
+  String get registerName => 'Nama aset';
+
+  @override
+  String get registerCategory => 'Kategori';
+
+  @override
+  String get registerAssetClass => 'Kelas aset';
+
+  @override
+  String get registerClassTangible => 'Berwujud';
+
+  @override
+  String get registerClassIntangible => 'Tak berwujud';
+
+  @override
+  String get registerSerial => 'Nomor seri (opsional)';
+
+  @override
+  String get registerOffice => 'Kantor';
+
+  @override
+  String get registerPurchaseCost => 'Harga perolehan (opsional)';
+
+  @override
+  String get registerPurchaseDate => 'Tanggal perolehan (opsional)';
+
+  @override
+  String get registerNotes => 'Catatan (opsional)';
+
+  @override
+  String get registerReviewNote =>
+      'Diproses sebagai pengajuan registrasi lewat approval; nilai pengajuan = harga perolehan.';
+
+  @override
+  String get registerNext => 'Lanjut';
+
+  @override
+  String get registerBack => 'Kembali';
+
+  @override
+  String get registerSubmit => 'Kirim Pengajuan';
+
+  @override
+  String get registerNameRequired => 'Nama aset wajib diisi.';
+
+  @override
+  String get registerCategoryRequired => 'Pilih kategori dulu.';
+
+  @override
+  String get registerOfficeRequired => 'Pilih kantor dulu.';
+
+  @override
+  String get registerSuccess => 'Pengajuan registrasi dikirim';
+
+  @override
+  String get registerError => 'Gagal mengirim. Coba lagi.';
+
+  @override
+  String get profileEmployeeDetailTitle => 'Detail Pegawai';
+
+  @override
+  String get profileEmployeeCode => 'Kode pegawai';
+
+  @override
+  String get profileEmployeeStatus => 'Status';
+
+  @override
+  String get profileDepartment => 'Departemen';
+
+  @override
+  String get profilePosition => 'Jabatan';
+
+  @override
+  String get profileNoEmployee => 'Akun ini tidak tertaut ke data pegawai.';
+
+  @override
+  String get profileAccountInfoTitle => 'Informasi Akun';
+
+  @override
+  String get profileEmail => 'Email';
+
+  @override
+  String get profilePhone => 'Telepon';
+
+  @override
+  String get profileLoginMethod => 'Metode login';
+
+  @override
+  String get profileLoginGoogle => 'Google';
+
+  @override
+  String get profileLoginEmail => 'Email & password';
+
+  @override
+  String get profileJoinedAt => 'Bergabung';
+
+  @override
+  String get profileDetailError => 'Gagal memuat detail profil.';
+
+  @override
+  String get profileDataDiriTitle => 'Data Diri';
+
+  @override
+  String get profileEditButton => 'Ubah';
+
+  @override
+  String get profileSaveButton => 'Simpan';
+
+  @override
+  String get profileNameLabel => 'Nama';
+
+  @override
+  String get profileNameRequired => 'Nama wajib diisi.';
+
+  @override
+  String get profileUpdateSuccess => 'Data diri diperbarui';
+
+  @override
+  String get profileUpdateError => 'Gagal menyimpan. Coba lagi.';
+
+  @override
+  String get avatarFromGallery => 'Pilih dari galeri';
+
+  @override
+  String get avatarFromCamera => 'Ambil foto';
+
+  @override
+  String get avatarRemove => 'Hapus foto';
+
+  @override
+  String get avatarUpdated => 'Foto profil diperbarui';
+
+  @override
+  String get avatarRemoved => 'Foto profil dihapus';
+
+  @override
+  String get avatarError => 'Gagal memproses foto. Coba lagi.';
+
+  @override
+  String get securityTitle => 'Keamanan Akun';
+
+  @override
+  String get securityEmailLabel => 'Email';
+
+  @override
+  String get securityChangeEmail => 'Ganti Email';
+
+  @override
+  String get securityPasswordLabel => 'Password';
+
+  @override
+  String get securityChangePassword => 'Ganti Password';
+
+  @override
+  String get securityCurrentPassword => 'Password saat ini';
+
+  @override
+  String get securityNewEmail => 'Email baru';
+
+  @override
+  String get securityPasswordWarning =>
+      'Semua sesi akan keluar setelah password diganti.';
+
+  @override
+  String get securitySendResetLink => 'Kirim Link Reset';
+
+  @override
+  String get securitySendVerifyLink => 'Kirim Link Verifikasi';
+
+  @override
+  String get securityCheckEmailTitle => 'Cek email Anda';
+
+  @override
+  String get securityCheckEmailBody =>
+      'Kami mengirim link ke email Anda untuk menyelesaikan perubahan. Buka link itu di halaman web.';
+
+  @override
+  String get securityDone => 'Selesai';
+
+  @override
+  String get securityWrongPassword => 'Password salah.';
+
+  @override
+  String get securityEmailInUse => 'Email sudah digunakan.';
+
+  @override
+  String get securityError => 'Gagal. Coba lagi.';
+
+  @override
+  String get securityCurrentPasswordRequired => 'Isi password saat ini.';
+
+  @override
+  String get securityNewEmailRequired => 'Isi email baru.';
+
+  @override
+  String get securityInvalidEmail => 'Format email tidak valid.';
 }

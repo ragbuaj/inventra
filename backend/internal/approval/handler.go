@@ -262,13 +262,20 @@ func (h *Handler) get(c *gin.Context) {
 		return
 	}
 	r := row.ApprovalRequest
-	// Enforce data scope: the caller may only view requests within their office scope.
+	// Enforce data scope: the caller may only view requests within their office
+	// scope. Exception: a maker may ALWAYS view their own request regardless of
+	// scope — parity with the mine=true list bypass, since the request is the
+	// caller's own data. Field-permission masking (filterMap below) still applies.
 	all, ids, err := h.scoped.CallerOfficeScope(c, "requests")
 	if err != nil {
 		common.WriteError(c, err)
 		return
 	}
-	if r.OfficeID == nil || !common.InScope(all, ids, *r.OfficeID) {
+	callerID, parseErr := uuid.Parse(c.GetString(middleware.CtxUserID))
+	// A failed/empty parse must never grant maker status: it would let a nil
+	// callerID match a (hypothetical) nil RequestedByID and skip scope.
+	isMaker := parseErr == nil && callerID != uuid.Nil && r.RequestedByID == callerID
+	if !isMaker && (r.OfficeID == nil || !common.InScope(all, ids, *r.OfficeID)) {
 		common.WriteError(c, common.ErrForbidden)
 		return
 	}

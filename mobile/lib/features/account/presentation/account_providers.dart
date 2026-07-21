@@ -7,6 +7,7 @@ import '../../../core/auth/auth_controller.dart';
 import '../../../core/auth/auth_session.dart';
 import '../../../core/masterdata/reference_lookup_repository.dart';
 import '../data/account_repository.dart';
+import '../data/profile_dto.dart';
 import '../data/session_dto.dart';
 
 /// Daftar sesi device layar Profil. autoDispose: dibuang saat layar ditutup;
@@ -64,15 +65,24 @@ class AccountSessionsController extends AsyncNotifier<List<SessionDto>> {
   }
 }
 
+/// Profil lengkap pemanggil (`GET /auth/profile`) untuk kartu Data Diri +
+/// Detail Pegawai + Informasi Akun. autoDispose; auto-retry dimatikan.
+final accountProfileProvider = FutureProvider.autoDispose<ProfileDto>(
+  (Ref ref) => ref.watch(accountRepositoryProvider).getProfile(),
+  retry: (int retryCount, Object error) => null,
+);
+
 /// Bytes foto profil untuk kartu identitas — non-fatal: pengguna tanpa avatar
 /// (`has_avatar` false atau 404) dan segala kegagalan lain menghasilkan null,
 /// layar jatuh ke inisial nama tanpa pernah memblokir halaman.
 final FutureProvider<Uint8List?> accountAvatarProvider =
     FutureProvider.autoDispose<Uint8List?>((Ref ref) async {
       final AuthSession? session = ref.watch(authControllerProvider).value;
-      if (session is! Authenticated || !session.user.hasAvatar) {
+      if (session is! Authenticated) {
         return null;
       }
+      // Tidak digate `has_avatar` sesi (bisa basi pasca-unggah/hapus): panggil
+      // GET /auth/avatar langsung — 404/kegagalan lain -> null (jatuh ke inisial).
       try {
         return await ref.watch(accountRepositoryProvider).avatar();
       } on AppFailure {

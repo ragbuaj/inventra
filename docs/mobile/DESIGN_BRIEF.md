@@ -82,17 +82,19 @@ Konfirmasi kamu paham brief ini, lalu tunggu saya menyebut layar pertama.
 
 ## 2. Daftar layar untuk di-generate (minta satu per satu)
 
-Checklist v1 — 12 layar + 1 component library. Simpan hasil tiap layar sebagai
-`docs/mobile/design/<Nama Layar>.dc.html`.
+Checklist v1 — 12 layar + 1 component library (fase M0-M6, sudah di-generate), plus
+**8 layar baru + 3 edit** untuk perluasan scope 2026-07-21 (fase M7 aksi aset, fase M8
+profil & keamanan — lihat PRD mobile v1.1 FR-M7/FR-M6/FR-M1.5). Simpan hasil tiap layar
+sebagai `docs/mobile/design/<Nama Layar>.dc.html`.
 
 **Fondasi (fase M0)**
 0. Component Library Mobile (bagian 4 — jalankan pertama)
-1. Login — bagian 5.1
-2. Beranda (Home) — bagian 5.2
+1. Login — bagian 5.1 (**edit**: tambah tautan "Lupa password?")
+2. Beranda (Home) — bagian 5.2 (**edit**: aksi cepat ke Katalog, Aset Saya, Pengajuan Saya)
 
 **Scan & aset (fase M1)**
 3. Scan (kamera) — bagian 5.3
-4. Detail Aset — bagian 5.4
+4. Detail Aset — bagian 5.4 (**edit**: bar aksi FR-M7 per permission)
 
 **Approval (fase M2)**
 5. Inbox Approval — bagian 5.5
@@ -107,8 +109,28 @@ Checklist v1 — 12 layar + 1 component library. Simpan hasil tiap layar sebagai
 10. Variance & Tindak Lanjut — bagian 5.10
 
 **Akun (fase M0/M6)**
-11. Profil & Sesi Perangkat — bagian 5.11
+11. Profil & Sesi Perangkat — bagian 5.11 (**edit**: profil lengkap + ubah data diri + avatar)
 12. Pengaturan — bagian 5.12
+
+**Aksi aset (fase M7) — baru**
+13. Katalog Aset — bagian 5.13
+14. Peminjaman / Check-out / Check-in (bottom sheet dari Detail Aset) — bagian 5.14
+15. Lapor Kerusakan (bottom sheet dari Detail Aset) — bagian 5.15
+16. Form Registrasi Aset — bagian 5.16
+17. Pengajuan Saya — bagian 5.17
+18. Aset Saya — bagian 5.18
+
+**Profil & keamanan (fase M8) — baru**
+19. Keamanan Akun — bagian 5.19
+20. Lupa Password — bagian 5.20
+
+> **Navigasi layar baru:** bottom nav tetap **5 slot** (Beranda, Opname, [Scan], Approval,
+> Notifikasi) — tidak berubah. Katalog Aset, Aset Saya, dan Pengajuan Saya adalah **destinasi
+> sekunder** (AppBar + tombol kembali) yang dijangkau dari **aksi cepat/menu di Beranda**; Aset
+> Saya dan Pengajuan Saya juga dapat dijangkau dari area Profil. Peminjaman/Check-out/Check-in dan
+> Lapor Kerusakan dipicu dari **Detail Aset** (bottom sheet). Registrasi dari **Beranda/Katalog**
+> (aset baru, bukan dari detail aset yang sudah ada). Keamanan Akun dari Profil; Lupa Password dari
+> Login.
 
 ---
 
@@ -174,11 +196,13 @@ Elemen yang harus ada:
   manajemen aset" — latar gradasi hijau halus (light) / slate gelap (dark).
 - Card form: input Email, input Password (toggle lihat/sembunyikan), tombol
   full-width "Masuk".
+- Tautan teks "Lupa password?" di bawah tombol Masuk (rata kanan) — membuka layar
+  Lupa Password (bagian 5.20).
 - Pesan error inline di atas form (mis. "Email atau password salah").
 - Catatan kecil "Login Google menyusul" TIDAK perlu — cukup email+password saja.
 - Footer kecil: versi aplikasi + switch bahasa (id/en).
-States: 3 frame — form kosong (default), error kredensial, tombol Masuk loading.
-Tampilkan versi light dan dark.
+States: 3 frame — form kosong (default) dengan tautan "Lupa password?", error kredensial,
+tombol Masuk loading. Tampilkan versi light dan dark.
 
 Patuhi master brief mobile.
 ```
@@ -199,7 +223,9 @@ Elemen yang harus ada:
   sync, tombol "Lanjutkan".
 - Kartu "Approval Menunggu": angka besar + 2 baris pratinjau pengajuan teratas +
   tombol "Buka Inbox" (varian Kepala Unit: kartu ini di posisi teratas).
-- Baris aksi cepat (ikon + label): Pindai Aset, Sesi Opname, Approval, Notifikasi.
+- Baris aksi cepat (ikon + label): Pindai Aset, Katalog Aset, Sesi Opname, Approval,
+  Aset Saya, Pengajuan Saya, Notifikasi — grid ikon (mis. 2 baris) agar destinasi baru
+  FR-M7 terjangkau dari Beranda. (Katalog, Aset Saya, Pengajuan Saya = layar baru.)
 - Bila offline: banner amber slim di bawah AppBar "Offline — data terakhir
   ditampilkan".
 States: 3 frame — data penuh (Manager), varian Kepala Unit, dan varian offline;
@@ -255,8 +281,19 @@ Elemen yang harus ada:
 - Bila dibuka dari sesi opname aktif: bar aksi sticky bawah "Tandai hasil:" dengan
   SegmentedButton (Ditemukan / Rusak / Salah Lokasi) — tunjukkan sebagai frame
   terpisah.
-States: 4 frame — detail penuh, varian field dibatasi, varian dalam-sesi-opname
-(bar aksi bawah), loading (skeleton).
+- **Bar aksi FR-M7 (per permission x STATUS aset)**: di luar sesi opname, bar sticky
+  bawah menampilkan aksi yang MUNCUL SESUAI IZIN pengguna DAN status aset:
+  - Aset `Tersedia`: **"Pinjam"** (Staf berizin `request.create`, membuka sheet ajukan
+    peminjaman 5.14) atau **"Check-out"** (Manager berizin `assignment.manage`, sheet 5.14).
+  - Aset `Dipinjam`: **"Check-in"** (Manager berizin `assignment.manage`, membuka sheet
+    check-in 5.14 — catat kondisi masuk lalu aset kembali `Tersedia`).
+  - Selalu (bila berizin `request.create`): **"Lapor Kerusakan"** (membuka sheet 5.15).
+  - Bila pengguna tanpa izin aksi apa pun: tanpa bar aksi (murni read-only, seperti
+    sebelumnya). Tanpa tombol overflow kosong — tampilkan hanya tombol yang berlaku.
+States: 7 frame — detail penuh read-only, varian field dibatasi, varian dalam-sesi-opname
+(bar tandai hasil), **varian aset Tersedia untuk Staf (Pinjam + Lapor Kerusakan)**,
+**varian aset Tersedia untuk Manager (Check-out + Lapor Kerusakan)**, **varian aset
+Dipinjam untuk Manager (Check-in + Lapor Kerusakan)**, loading (skeleton).
 Tampilkan versi light dan dark.
 
 Pakai data contoh: "Laptop Dell Latitude 5440", JKT01-ELK-2026-00001, Tersedia,
@@ -434,21 +471,30 @@ Pakai data contoh realistis berbahasa Indonesia. Patuhi master brief mobile.
 ```
 Sekarang desain layar: Profil & Sesi Perangkat.
 
-Tujuan layar: Melihat identitas akun dan mengelola sesi login perangkat.
+Tujuan layar: Melihat & menyunting identitas akun, kelola foto profil, dan kelola sesi
+login perangkat. (Diperluas FR-M6.1/6.2 — sebelumnya read-only.)
 Pengguna utama: semua peran.
-Navigasi: dibuka dari avatar di Beranda; AppBar dengan tombol kembali.
+Navigasi: dibuka dari avatar di Beranda; AppBar dengan tombol kembali. Tombol "Ubah" di
+header kartu Data Diri berpindah ke mode Simpan/Batal saat menyunting.
 Elemen yang harus ada:
-- Header profil: avatar besar, nama "Andi Saputra", badge peran "Asset Manager",
-  email, kantor "Cabang Jakarta Selatan". (Read-only — penyuntingan profil di web.)
+- Header profil: **avatar besar dengan tombol kamera kecil** (unggah/ganti; long-press
+  atau menu untuk Hapus foto — tombol Hapus hanya muncul bila sudah ada foto), nama,
+  badge peran "Asset Manager".
+- Kartu "Data Diri": field yang BOLEH diedit (mis. nama, telepon) — read-only saat
+  default, jadi TextField saat mode Ubah; di dalamnya blok "Detail Pegawai" **read-only**
+  (kode pegawai, status, departemen, jabatan — bersumber master data). Akun tanpa tautan
+  pegawai menampilkan catatan singkat, bukan grid kosong.
+- Kartu "Informasi Akun" (read-only): peran, kantor, metode login, tanggal bergabung.
+- Baris tautan "Keamanan Akun" (ke bagian 5.19: ganti password/email) dan "Pengaturan".
 - Seksi "Sesi Perangkat": list sesi — tiap baris ikon perangkat (ponsel/laptop),
   nama perangkat + browser/app, lokasi ± IP, waktu aktif terakhir; sesi SAAT INI
   ditandai badge hijau "Perangkat ini". Baris lain punya aksi "Cabut".
 - Tombol "Keluar dari semua perangkat lain" (outlined) + tombol "Keluar" (merah,
   full-width, paling bawah). Keduanya dengan dialog konfirmasi.
-- Tautan kecil ke Pengaturan.
-States: 4 frame — profil + 3 sesi (1 mobile ini, 1 Chrome Windows, 1 mobile lain),
-dialog konfirmasi "Keluar dari semua perangkat lain", setelah cabut satu sesi
-(SnackBar sukses + list menyusut), loading skeleton.
+States: 6 frame — profil lengkap (mode baca) + 3 sesi (1 mobile ini, 1 Chrome Windows,
+1 mobile lain); **mode Ubah Data Diri (field jadi TextField + Simpan/Batal)**; **menu
+foto profil (Ganti / Hapus)**; dialog konfirmasi "Keluar dari semua perangkat lain";
+setelah cabut satu sesi (SnackBar sukses + list menyusut); loading skeleton.
 Tampilkan versi light dan dark.
 
 Patuhi master brief mobile.
@@ -474,6 +520,220 @@ Elemen yang harus ada:
 - Grup "Tentang": versi aplikasi, tautan bantuan/runbook internal.
 States: 3 frame — pengaturan default (tema ikuti sistem), varian izin notifikasi OS
 dimatikan (baris peringatan), dan pemilih tema terbuka.
+Tampilkan versi light dan dark.
+
+Patuhi master brief mobile.
+```
+
+---
+
+## Perluasan scope 2026-07-21 — prompt layar baru (fase M7 & M8)
+
+Layar berikut menambah scope mobile v1 sesuai PRD mobile v1.1 (FR-M7 aksi aset; FR-M6/M1.5
+profil & keamanan). Semua memakai endpoint backend yang sudah ada (nol backend baru).
+Generate memakai Master Brief (bagian 1) + Component Library (bagian 4) yang sama.
+
+### 5.13 Katalog Aset
+
+```
+Sekarang desain layar: Katalog Aset.
+
+Tujuan layar: Menelusuri daftar aset dalam lingkup pengguna tanpa harus memindai —
+read-only, melengkapi Scan.
+Pengguna utama: semua peran lapangan (isi mengikuti data scope + field permission server).
+Navigasi: destinasi sekunder (AppBar + tombol kembali), dijangkau dari aksi cepat di
+Beranda. Bottom nav tetap 5 slot dan tidak berubah.
+Elemen yang harus ada:
+- AppBar "Katalog Aset" + search field (cari nama/kode aset).
+- Baris filter chips: Kategori, Status (Tersedia/Dipinjam/Maintenance/Dilepas/Hilang),
+  Kantor — membuka bottom sheet pilihan; chip aktif menampilkan nilai terpilih.
+- List Card aset: foto kecil, nama, kode (JKT01-ELK-2026-00001), badge status, lokasi
+  ringkas; tap membuka Detail Aset. Pull-to-refresh; infinite scroll (pagination server).
+- Field sensitif tidak ditampilkan di kartu katalog.
+States: 4 frame — daftar terisi, hasil pencarian dengan filter aktif (chips terisi),
+empty state ("Tidak ada aset yang cocok" + ikon + tombol "Reset filter"), loading skeleton.
+Tampilkan versi light dan dark.
+
+Pakai data contoh realistis berbahasa Indonesia. Patuhi master brief mobile.
+```
+
+### 5.14 Peminjaman / Check-out / Check-in (bottom sheet dari Detail Aset)
+
+```
+Sekarang desain layar: Peminjaman / Check-out / Check-in (bottom sheet).
+
+Tujuan layar: Aksi penugasan aset dari Detail Aset — TIGA alur sesuai peran & status aset.
+Pengguna utama: Staf (ajukan peminjaman) dan Manager (check-out & check-in langsung).
+Navigasi: bottom sheet menutupi bagian bawah di atas Detail Aset (detail tetap terlihat di
+belakang); handle tarik di atas, judul, tombol tutup.
+Elemen yang harus ada:
+- Ringkasan aset di atas sheet (foto kecil, nama, kode, badge status).
+- Varian STAF — "Ajukan Peminjaman" (aset Tersedia): tanggal pinjam (default hari ini),
+  jatuh tempo (opsional, date picker kalender), catatan/alasan (TextField), tombol
+  full-width "Ajukan". Keterangan kecil "Menunggu persetujuan" — ini pengajuan via approval.
+- Varian MANAGER — "Check-out" (aset Tersedia): pemilih pegawai/custodian (autocomplete
+  dengan empty state "Tidak ada data" bila kosong), tanggal pinjam, jatuh tempo opsional,
+  catatan kondisi keluar, tombol full-width "Check-out". Keterangan "Aset langsung menjadi
+  Dipinjam".
+- Varian MANAGER — "Check-in" (aset Dipinjam): tampilkan pemegang saat ini (nama pegawai +
+  sejak tanggal), field kondisi masuk (chips: Baik / Perlu Servis), catatan opsional, tombol
+  full-width "Check-in". Keterangan "Aset kembali Tersedia (atau Maintenance bila perlu
+  servis)".
+- Validasi inline (mis. custodian wajib untuk check-out).
+States: 6 frame — sheet Ajukan Peminjaman (Staf), sukses ajukan (SnackBar "Pengajuan
+peminjaman dikirim"), sheet Check-out (Manager) dengan autocomplete pegawai terbuka, sheet
+Check-in (Manager) dengan kondisi masuk, sukses (SnackBar + badge aset berubah status),
+varian error validasi.
+Tampilkan versi light dan dark.
+
+Pakai data contoh realistis berbahasa Indonesia. Patuhi master brief mobile.
+```
+
+### 5.15 Lapor Kerusakan (bottom sheet dari Detail Aset)
+
+```
+Sekarang desain layar: Lapor Kerusakan (bottom sheet).
+
+Tujuan layar: Mengajukan laporan kerusakan/maintenance untuk sebuah aset dari lapangan.
+Pengguna utama: semua peran berizin mengajukan.
+Navigasi: bottom sheet dari Detail Aset (bar aksi "Lapor Kerusakan").
+Elemen yang harus ada:
+- Ringkasan aset (foto kecil, nama, kode).
+- Field deskripsi kerusakan (TextField multi-baris, wajib), tingkat/severity opsional
+  (chips: Ringan/Sedang/Berat), lampiran foto opsional (tombol "Tambah foto" + thumbnail
+  grid, dari kamera/galeri).
+- Keterangan kecil "Diproses sebagai pengajuan maintenance lewat approval".
+- Tombol full-width "Kirim Laporan".
+States: 4 frame — form kosong, form terisi dengan 2 foto lampiran, error validasi
+(deskripsi kosong), sukses kirim (SnackBar "Laporan kerusakan dikirim").
+Tampilkan versi light dan dark.
+
+Pakai data contoh realistis berbahasa Indonesia. Patuhi master brief mobile.
+```
+
+### 5.16 Form Registrasi Aset
+
+```
+Sekarang desain layar: Form Registrasi Aset.
+
+Tujuan layar: Mengajukan pendaftaran aset baru dari lapangan — FORM PENUH bergaya
+multi-langkah (stepper) agar muat di layar ponsel; hati-hati pada field finansial.
+Pengguna utama: Manager / peran berizin registrasi.
+Navigasi: destinasi sekunder (AppBar + kembali), dijangkau dari Katalog/Beranda atau
+Detail Aset. Stepper 3 langkah dengan indikator progres di atas.
+Field mengikuti payload registrasi web (asset_create) — TANPA cek ambang kapitalisasi
+(web tidak punya itu; aset baru selalu dikapitalisasi oleh server).
+Elemen yang harus ada:
+- Langkah 1 "Identitas": kategori (autocomplete dengan empty state "Tidak ada data"),
+  nama aset, kelas aset (asset_class), brand/model/unit (opsional), nomor seri (opsional).
+- Langkah 2 "Penempatan & Perolehan": kantor (default kantor pengguna, dibatasi scope),
+  ruangan (opsional), harga perolehan (TextField NUMERIK-ONLY, non-negatif, prefiks Rp,
+  opsional), tanggal perolehan (kalender, opsional), vendor/PO/sumber dana/garansi
+  (opsional), catatan (opsional).
+- Langkah 3 "Tinjau & Kirim": ringkasan semua field read-only + keterangan "Diproses
+  sebagai pengajuan registrasi lewat approval; nilai pengajuan = harga perolehan", tombol
+  "Kirim Pengajuan".
+- Navigasi antar langkah: tombol Kembali/Lanjut; validasi per langkah (kategori & nama
+  wajib; harga bila diisi harus angka valid) sebelum boleh lanjut.
+States: 5 frame — langkah 1, langkah 2 dengan input harga (angka), error validasi numerik
+(mis. huruf ditolak pada harga), langkah 3 tinjau, sukses kirim (SnackBar + arahkan ke
+Pengajuan Saya).
+Tampilkan versi light dan dark.
+
+Pakai data contoh realistis berbahasa Indonesia, rupiah Rp. Patuhi master brief mobile.
+```
+
+### 5.17 Pengajuan Saya
+
+```
+Sekarang desain layar: Pengajuan Saya.
+
+Tujuan layar: Lensa MAKER — semua pengajuan yang DIBUAT pengguna sendiri beserta
+statusnya (beda dari Inbox Approval yang berorientasi keputusan).
+Pengguna utama: semua peran (semua bisa mengajukan).
+Navigasi: destinasi sekunder (AppBar + kembali), dijangkau dari Beranda/Profil.
+Elemen yang harus ada:
+- AppBar "Pengajuan Saya" + filter chips: Menunggu, Disetujui, Ditolak, Semua.
+- List kartu pengajuan (mirip Inbox Approval tetapi TANPA tombol setujui/tolak): ikon +
+  label tipe (Registrasi / Peminjaman / Laporan Kerusakan / Mutasi / Penghapusan), judul
+  ringkas, nilai Rp bila ada, waktu relatif, badge status.
+- Untuk pengajuan berstatus MENUNGGU: tombol kecil "Batalkan" (dengan dialog konfirmasi)
+  — hanya berlaku untuk pengajuan sendiri yang masih pending.
+- Tap kartu membuka detail pengajuan (read-only, timeline jenjang approval; tanpa aksi
+  keputusan).
+States: 5 frame — daftar campuran status, filter "Menunggu" dengan tombol Batalkan,
+dialog konfirmasi Batalkan, empty state ("Belum ada pengajuan"), loading skeleton.
+Tampilkan versi light dan dark.
+
+Pakai data contoh realistis berbahasa Indonesia. Patuhi master brief mobile.
+```
+
+### 5.18 Aset Saya
+
+```
+Sekarang desain layar: Aset Saya.
+
+Tujuan layar: Daftar aset yang sedang DIPEGANG/ditugaskan ke pengguna — menu tersendiri,
+read-only.
+Pengguna utama: semua peran (khususnya Staf pemegang aset).
+Navigasi: destinasi sekunder (AppBar + kembali), menu tersendiri dijangkau dari
+Beranda/Profil.
+Elemen yang harus ada:
+- AppBar "Aset Saya" + hitungan ("5 aset dipegang").
+- List Card aset: foto kecil, nama, kode, badge status (umumnya Dipinjam), tanggal pinjam
+  dan JATUH TEMPO; item yang MELEWATI jatuh tempo diberi penanda merah "Terlambat".
+- Tap membuka Detail Aset. Pull-to-refresh.
+States: 4 frame — daftar terisi (termasuk satu item terlambat), empty state ("Anda belum
+memegang aset apa pun"), loading skeleton, varian offline (banner amber + data terakhir).
+Tampilkan versi light dan dark.
+
+Pakai data contoh realistis berbahasa Indonesia. Patuhi master brief mobile.
+```
+
+### 5.19 Keamanan Akun
+
+```
+Sekarang desain layar: Keamanan Akun.
+
+Tujuan layar: Ganti password dan ganti email — KEDUANYA berbasis link email (mobile
+memulai, penetapan/konfirmasi diselesaikan di halaman web via link).
+Pengguna utama: semua peran.
+Navigasi: destinasi sekunder (AppBar + kembali), dijangkau dari Profil.
+Elemen yang harus ada:
+- Baris "Email" saat ini (read-only) + tombol "Ganti Email".
+- Baris "Password" + tombol "Ganti Password".
+- Sheet "Ganti Password": HANYA field password lama (verifikasi) + tombol "Kirim Link
+  Reset"; keterangan "Kami kirim link ke email Anda untuk menyetel password baru" dan
+  peringatan kecil "Semua sesi akan keluar setelah password diganti".
+- Sheet "Ganti Email": field email baru + tombol "Kirim Link Verifikasi"; keterangan
+  "Buka link di email baru untuk mengonfirmasi".
+- State konfirmasi "Cek email Anda" (ikon amplop + alamat email tertutup sebagian +
+  tombol "Selesai") — muncul setelah link dikirim; TIDAK ada field set-password di mobile.
+States: 5 frame — menu Keamanan Akun, sheet Ganti Password (input password lama), konfirmasi
+"Link reset terkirim — cek email", sheet Ganti Email (input email baru), konfirmasi "Link
+verifikasi terkirim".
+Tampilkan versi light dan dark.
+
+Patuhi master brief mobile.
+```
+
+### 5.20 Lupa Password
+
+```
+Sekarang desain layar: Lupa Password.
+
+Tujuan layar: Memulai reset password dari layar Login (belum masuk); penetapan password
+baru diselesaikan lewat link email di halaman web.
+Pengguna utama: pengguna yang belum login.
+Navigasi: dibuka dari tautan "Lupa password?" di Login; AppBar dengan tombol kembali.
+Elemen yang harus ada:
+- Judul + kalimat penjelas "Masukkan email akun Anda; kami kirim link untuk menyetel
+  password baru".
+- Field Email + tombol full-width "Kirim Link Reset".
+- State konfirmasi ANTI-ENUMERASI: "Jika email terdaftar, kami telah mengirim link reset.
+  Cek kotak masuk Anda." (pesan SAMA baik email ada maupun tidak — jangan bocorkan
+  keberadaan akun), dengan tombol "Kembali ke Login".
+States: 3 frame — form email, tombol loading saat mengirim, konfirmasi anti-enumerasi.
 Tampilkan versi light dan dark.
 
 Patuhi master brief mobile.

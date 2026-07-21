@@ -110,6 +110,24 @@ abstract class AppLocalizations {
   /// **'Coba lagi'**
   String get commonRetry;
 
+  /// Pesan error kegagalan jaringan yang dipakai bersama
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada koneksi. Periksa jaringan Anda.'**
+  String get commonErrorNetwork;
+
+  /// Pesan error saat aksi ditolak izin/segregation of duties
+  ///
+  /// In id, this message translates to:
+  /// **'Anda tidak berwenang melakukan tindakan ini.'**
+  String get commonErrorForbidden;
+
+  /// Pesan error saat aksi bentrok dengan kondisi terkini (409)
+  ///
+  /// In id, this message translates to:
+  /// **'Kondisi berubah. Muat ulang lalu coba lagi.'**
+  String get commonErrorConflict;
+
   /// Label tombol batal umum
   ///
   /// In id, this message translates to:
@@ -841,6 +859,66 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Terjadi kesalahan. Coba lagi.'**
   String get loginErrorGeneric;
+
+  /// Tautan di layar login menuju alur Lupa Password
+  ///
+  /// In id, this message translates to:
+  /// **'Lupa password?'**
+  String get forgotLink;
+
+  /// Judul AppBar layar Lupa Password
+  ///
+  /// In id, this message translates to:
+  /// **'Lupa Password'**
+  String get forgotTitle;
+
+  /// Teks pengantar di layar Lupa Password
+  ///
+  /// In id, this message translates to:
+  /// **'Masukkan email akun Anda. Kami akan mengirim tautan untuk menyetel ulang password bila email terdaftar.'**
+  String get forgotIntro;
+
+  /// Label field email di layar Lupa Password
+  ///
+  /// In id, this message translates to:
+  /// **'Email'**
+  String get forgotEmailLabel;
+
+  /// Tombol kirim di layar Lupa Password
+  ///
+  /// In id, this message translates to:
+  /// **'Kirim Tautan Reset'**
+  String get forgotSubmit;
+
+  /// Pesan validasi saat email kosong di layar Lupa Password
+  ///
+  /// In id, this message translates to:
+  /// **'Masukkan email Anda.'**
+  String get forgotEmailRequired;
+
+  /// Judul konfirmasi anti-enumerasi setelah kirim di layar Lupa Password
+  ///
+  /// In id, this message translates to:
+  /// **'Cek kotak masuk Anda'**
+  String get forgotSentTitle;
+
+  /// Isi konfirmasi anti-enumerasi (pesan sama untuk email terdaftar maupun tidak)
+  ///
+  /// In id, this message translates to:
+  /// **'Jika email terdaftar, kami telah mengirim tautan reset. Buka tautan itu untuk menyetel password baru.'**
+  String get forgotSentBody;
+
+  /// Tombol kembali ke layar login dari konfirmasi Lupa Password
+  ///
+  /// In id, this message translates to:
+  /// **'Kembali ke Login'**
+  String get forgotBackToLogin;
+
+  /// Pesan error kegagalan jaringan di layar Lupa Password
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal mengirim. Coba lagi.'**
+  String get forgotError;
 
   /// Label segmen bahasa Indonesia pada pill switch bahasa
   ///
@@ -1928,6 +2006,30 @@ abstract class AppLocalizations {
   /// **'Notifikasi'**
   String get homeQuickNotifications;
 
+  /// Label quick action katalog aset
+  ///
+  /// In id, this message translates to:
+  /// **'Katalog'**
+  String get homeQuickCatalog;
+
+  /// Label quick action aset saya
+  ///
+  /// In id, this message translates to:
+  /// **'Aset Saya'**
+  String get homeQuickMyAssets;
+
+  /// Label quick action pengajuan saya
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan'**
+  String get homeQuickMyRequests;
+
+  /// Label quick action registrasi aset
+  ///
+  /// In id, this message translates to:
+  /// **'Registrasi'**
+  String get homeQuickRegister;
+
   /// Aksi header feed: tandai seluruh notifikasi dibaca
   ///
   /// In id, this message translates to:
@@ -2071,6 +2173,996 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Aset dikembalikan'**
   String get notificationsAssetReturnedTitle;
+
+  /// Judul layar Katalog Aset (AppBar)
+  ///
+  /// In id, this message translates to:
+  /// **'Katalog Aset'**
+  String get catalogTitle;
+
+  /// Placeholder kolom pencarian katalog (nama/kode aset)
+  ///
+  /// In id, this message translates to:
+  /// **'Cari aset'**
+  String get catalogSearchHint;
+
+  /// Label kartu saat nama aset tidak dikirim backend
+  ///
+  /// In id, this message translates to:
+  /// **'Aset tanpa nama'**
+  String get catalogUnnamedAsset;
+
+  /// Judul empty state katalog saat tak ada aset dalam scope
+  ///
+  /// In id, this message translates to:
+  /// **'Belum ada aset'**
+  String get catalogEmptyTitle;
+
+  /// Body empty state katalog tanpa aset
+  ///
+  /// In id, this message translates to:
+  /// **'Aset dalam wilayah Anda akan tampil di sini.'**
+  String get catalogEmptyBody;
+
+  /// Judul empty state saat pencarian tak menemukan aset
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada aset yang cocok'**
+  String get catalogEmptySearchTitle;
+
+  /// Body empty state pencarian katalog tanpa hasil
+  ///
+  /// In id, this message translates to:
+  /// **'Coba kata kunci lain atau atur ulang pencarian.'**
+  String get catalogEmptySearchBody;
+
+  /// Tombol mengosongkan pencarian/filter katalog
+  ///
+  /// In id, this message translates to:
+  /// **'Atur ulang'**
+  String get catalogResetFilter;
+
+  /// Pesan gagal memuat halaman berikutnya di katalog
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat lagi.'**
+  String get catalogLoadMoreFailed;
+
+  /// Judul error state katalog
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat katalog'**
+  String get catalogErrorTitle;
+
+  /// Body error state katalog saat offline
+  ///
+  /// In id, this message translates to:
+  /// **'Periksa koneksi Anda lalu coba lagi.'**
+  String get catalogErrorNetworkBody;
+
+  /// Body error state katalog generik
+  ///
+  /// In id, this message translates to:
+  /// **'Terjadi kesalahan. Coba lagi.'**
+  String get catalogErrorGenericBody;
+
+  /// Judul state katalog saat 403
+  ///
+  /// In id, this message translates to:
+  /// **'Tanpa akses'**
+  String get catalogForbiddenTitle;
+
+  /// Body state katalog saat 403
+  ///
+  /// In id, this message translates to:
+  /// **'Anda tidak memiliki izin melihat katalog aset.'**
+  String get catalogForbiddenBody;
+
+  /// Label chip filter kategori katalog
+  ///
+  /// In id, this message translates to:
+  /// **'Kategori'**
+  String get catalogFilterCategory;
+
+  /// Label chip filter status aset katalog
+  ///
+  /// In id, this message translates to:
+  /// **'Status'**
+  String get catalogFilterStatus;
+
+  /// Label chip filter kantor katalog
+  ///
+  /// In id, this message translates to:
+  /// **'Kantor'**
+  String get catalogFilterOffice;
+
+  /// Opsi filter yang berarti tanpa penyaringan
+  ///
+  /// In id, this message translates to:
+  /// **'Semua'**
+  String get catalogFilterAll;
+
+  /// Empty state picker filter saat tak ada opsi
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada data'**
+  String get catalogFilterNoOptions;
+
+  /// Pesan gagal memuat opsi picker filter
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat pilihan'**
+  String get catalogFilterOptionsError;
+
+  /// Judul sheet picker status
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih Status'**
+  String get catalogPickerStatusTitle;
+
+  /// Judul sheet picker kategori
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih Kategori'**
+  String get catalogPickerCategoryTitle;
+
+  /// Judul sheet picker kantor
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih Kantor'**
+  String get catalogPickerOfficeTitle;
+
+  /// Judul layar Aset Saya (AppBar)
+  ///
+  /// In id, this message translates to:
+  /// **'Aset Saya'**
+  String get myAssetsTitle;
+
+  /// Jumlah aset yang sedang dipegang pengguna
+  ///
+  /// In id, this message translates to:
+  /// **'{count} aset dipegang'**
+  String myAssetsCount(int count);
+
+  /// Tanggal aset mulai dipegang
+  ///
+  /// In id, this message translates to:
+  /// **'Dipinjam sejak {date}'**
+  String myAssetsHeldSince(String date);
+
+  /// Tanggal jatuh tempo pengembalian aset
+  ///
+  /// In id, this message translates to:
+  /// **'Jatuh tempo {date}'**
+  String myAssetsDue(String date);
+
+  /// Penanda aset melewati jatuh tempo
+  ///
+  /// In id, this message translates to:
+  /// **'Terlambat'**
+  String get myAssetsOverdue;
+
+  /// Judul empty state Aset Saya
+  ///
+  /// In id, this message translates to:
+  /// **'Belum memegang aset'**
+  String get myAssetsEmptyTitle;
+
+  /// Body empty state Aset Saya
+  ///
+  /// In id, this message translates to:
+  /// **'Aset yang ditugaskan ke Anda akan tampil di sini.'**
+  String get myAssetsEmptyBody;
+
+  /// Judul error state Aset Saya
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat aset Anda'**
+  String get myAssetsErrorTitle;
+
+  /// Body error Aset Saya saat offline
+  ///
+  /// In id, this message translates to:
+  /// **'Periksa koneksi Anda lalu coba lagi.'**
+  String get myAssetsErrorNetworkBody;
+
+  /// Body error Aset Saya generik
+  ///
+  /// In id, this message translates to:
+  /// **'Terjadi kesalahan. Coba lagi.'**
+  String get myAssetsErrorGenericBody;
+
+  /// Judul Aset Saya saat 403
+  ///
+  /// In id, this message translates to:
+  /// **'Tanpa akses'**
+  String get myAssetsForbiddenTitle;
+
+  /// Body Aset Saya saat 403
+  ///
+  /// In id, this message translates to:
+  /// **'Anda tidak memiliki izin melihat aset yang dipegang.'**
+  String get myAssetsForbiddenBody;
+
+  /// Judul layar Pengajuan Saya (AppBar)
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan Saya'**
+  String get myRequestsTitle;
+
+  /// Judul empty state Pengajuan Saya
+  ///
+  /// In id, this message translates to:
+  /// **'Belum ada pengajuan'**
+  String get myRequestsEmptyTitle;
+
+  /// Body empty state Pengajuan Saya
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan yang Anda buat akan tampil di sini.'**
+  String get myRequestsEmptyBody;
+
+  /// Tombol membatalkan pengajuan pending sendiri
+  ///
+  /// In id, this message translates to:
+  /// **'Batalkan'**
+  String get myRequestsCancel;
+
+  /// Judul dialog konfirmasi batal pengajuan
+  ///
+  /// In id, this message translates to:
+  /// **'Batalkan pengajuan?'**
+  String get myRequestsCancelConfirmTitle;
+
+  /// Body dialog konfirmasi batal pengajuan
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan ini akan dibatalkan dan tidak dapat dilanjutkan.'**
+  String get myRequestsCancelConfirmBody;
+
+  /// SnackBar sukses membatalkan pengajuan
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan dibatalkan'**
+  String get myRequestsCancelSuccess;
+
+  /// SnackBar gagal membatalkan pengajuan
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal membatalkan. Coba lagi.'**
+  String get myRequestsCancelError;
+
+  /// Pesan gagal memuat halaman berikutnya di Pengajuan Saya
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat lagi.'**
+  String get myRequestsLoadMoreFailed;
+
+  /// Judul error state Pengajuan Saya
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat pengajuan'**
+  String get myRequestsErrorTitle;
+
+  /// Body error Pengajuan Saya saat offline
+  ///
+  /// In id, this message translates to:
+  /// **'Periksa koneksi Anda lalu coba lagi.'**
+  String get myRequestsErrorNetworkBody;
+
+  /// Body error Pengajuan Saya generik
+  ///
+  /// In id, this message translates to:
+  /// **'Terjadi kesalahan. Coba lagi.'**
+  String get myRequestsErrorGenericBody;
+
+  /// Judul Pengajuan Saya saat 403
+  ///
+  /// In id, this message translates to:
+  /// **'Tanpa akses'**
+  String get myRequestsForbiddenTitle;
+
+  /// Body Pengajuan Saya saat 403
+  ///
+  /// In id, this message translates to:
+  /// **'Anda tidak memiliki izin melihat pengajuan.'**
+  String get myRequestsForbiddenBody;
+
+  /// Tombol aksi ajukan peminjaman di Detail Aset
+  ///
+  /// In id, this message translates to:
+  /// **'Pinjam'**
+  String get assetActionBorrow;
+
+  /// Tombol aksi check-out langsung (Manager) di Detail Aset
+  ///
+  /// In id, this message translates to:
+  /// **'Check-out'**
+  String get assetActionCheckout;
+
+  /// Tombol aksi check-in (Manager) di Detail Aset
+  ///
+  /// In id, this message translates to:
+  /// **'Check-in'**
+  String get assetActionCheckin;
+
+  /// Tombol aksi lapor kerusakan di Detail Aset
+  ///
+  /// In id, this message translates to:
+  /// **'Lapor Kerusakan'**
+  String get assetActionReportDamage;
+
+  /// Judul sheet ajukan peminjaman
+  ///
+  /// In id, this message translates to:
+  /// **'Ajukan Peminjaman'**
+  String get borrowSheetTitle;
+
+  /// Label field jatuh tempo peminjaman
+  ///
+  /// In id, this message translates to:
+  /// **'Jatuh tempo (opsional)'**
+  String get borrowDueDateLabel;
+
+  /// Placeholder tombol pemilih tanggal jatuh tempo
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih tanggal'**
+  String get borrowPickDate;
+
+  /// Label field catatan peminjaman
+  ///
+  /// In id, this message translates to:
+  /// **'Catatan (opsional)'**
+  String get borrowNotesLabel;
+
+  /// Placeholder field catatan peminjaman
+  ///
+  /// In id, this message translates to:
+  /// **'mis. keperluan presentasi'**
+  String get borrowNotesHint;
+
+  /// Keterangan bahwa peminjaman lewat approval
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan menunggu persetujuan.'**
+  String get borrowPendingNote;
+
+  /// Tombol kirim pengajuan peminjaman
+  ///
+  /// In id, this message translates to:
+  /// **'Ajukan'**
+  String get borrowSubmit;
+
+  /// SnackBar sukses ajukan peminjaman
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan peminjaman dikirim'**
+  String get borrowSuccess;
+
+  /// Pesan gagal ajukan peminjaman
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal mengajukan. Coba lagi.'**
+  String get borrowError;
+
+  /// Label tombol ganti/ubah pilihan
+  ///
+  /// In id, this message translates to:
+  /// **'Ganti'**
+  String get commonChange;
+
+  /// Judul sheet check-out
+  ///
+  /// In id, this message translates to:
+  /// **'Check-out Aset'**
+  String get checkoutSheetTitle;
+
+  /// Label picker pegawai check-out
+  ///
+  /// In id, this message translates to:
+  /// **'Pegawai (custodian)'**
+  String get checkoutEmployeeLabel;
+
+  /// Placeholder cari pegawai
+  ///
+  /// In id, this message translates to:
+  /// **'Cari pegawai'**
+  String get checkoutEmployeeSearchHint;
+
+  /// Validasi custodian wajib
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih pegawai dulu.'**
+  String get checkoutEmployeeRequired;
+
+  /// Label tanggal check-out
+  ///
+  /// In id, this message translates to:
+  /// **'Tanggal pinjam'**
+  String get checkoutDateLabel;
+
+  /// Label kondisi keluar check-out
+  ///
+  /// In id, this message translates to:
+  /// **'Kondisi keluar (opsional)'**
+  String get checkoutConditionLabel;
+
+  /// Keterangan check-out langsung
+  ///
+  /// In id, this message translates to:
+  /// **'Aset langsung menjadi Dipinjam.'**
+  String get checkoutAssignedNote;
+
+  /// Tombol kirim check-out
+  ///
+  /// In id, this message translates to:
+  /// **'Check-out'**
+  String get checkoutSubmit;
+
+  /// SnackBar sukses check-out
+  ///
+  /// In id, this message translates to:
+  /// **'Aset di-check-out'**
+  String get checkoutSuccess;
+
+  /// Pesan gagal check-out
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal check-out. Coba lagi.'**
+  String get checkoutError;
+
+  /// Judul sheet check-in
+  ///
+  /// In id, this message translates to:
+  /// **'Check-in Aset'**
+  String get checkinSheetTitle;
+
+  /// Label pemegang aset saat check-in
+  ///
+  /// In id, this message translates to:
+  /// **'Pemegang saat ini'**
+  String get checkinHolderLabel;
+
+  /// Label kondisi masuk check-in
+  ///
+  /// In id, this message translates to:
+  /// **'Kondisi masuk'**
+  String get checkinConditionLabel;
+
+  /// Chip kondisi baik
+  ///
+  /// In id, this message translates to:
+  /// **'Baik'**
+  String get checkinConditionGood;
+
+  /// Chip kondisi perlu servis
+  ///
+  /// In id, this message translates to:
+  /// **'Perlu Servis'**
+  String get checkinConditionNeedsService;
+
+  /// Label catatan check-in
+  ///
+  /// In id, this message translates to:
+  /// **'Catatan (opsional)'**
+  String get checkinNotesLabel;
+
+  /// Keterangan hasil check-in
+  ///
+  /// In id, this message translates to:
+  /// **'Aset kembali Tersedia (atau Maintenance bila perlu servis).'**
+  String get checkinReturnNote;
+
+  /// Tombol kirim check-in
+  ///
+  /// In id, this message translates to:
+  /// **'Check-in'**
+  String get checkinSubmit;
+
+  /// SnackBar sukses check-in
+  ///
+  /// In id, this message translates to:
+  /// **'Aset di-check-in'**
+  String get checkinSuccess;
+
+  /// Pesan gagal check-in
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal check-in. Coba lagi.'**
+  String get checkinError;
+
+  /// Pesan tak ada penugasan aktif
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada penugasan aktif untuk aset ini.'**
+  String get checkinNoActive;
+
+  /// Pesan gagal memuat penugasan aktif saat membuka sheet check-in
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat penugasan aktif.'**
+  String get checkinLoadError;
+
+  /// Judul sheet lapor kerusakan
+  ///
+  /// In id, this message translates to:
+  /// **'Lapor Kerusakan'**
+  String get reportSheetTitle;
+
+  /// Label picker kategori masalah
+  ///
+  /// In id, this message translates to:
+  /// **'Kategori masalah'**
+  String get reportCategoryLabel;
+
+  /// Placeholder dropdown kategori masalah
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih kategori'**
+  String get reportCategoryHint;
+
+  /// Validasi kategori masalah wajib
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih kategori masalah dulu.'**
+  String get reportCategoryRequired;
+
+  /// Label deskripsi kerusakan
+  ///
+  /// In id, this message translates to:
+  /// **'Deskripsi (opsional)'**
+  String get reportDescriptionLabel;
+
+  /// Placeholder deskripsi kerusakan
+  ///
+  /// In id, this message translates to:
+  /// **'mis. layar retak, tidak menyala'**
+  String get reportDescriptionHint;
+
+  /// Keterangan lapor kerusakan lewat approval
+  ///
+  /// In id, this message translates to:
+  /// **'Diproses sebagai pengajuan maintenance.'**
+  String get reportPendingNote;
+
+  /// Tombol kirim laporan kerusakan
+  ///
+  /// In id, this message translates to:
+  /// **'Kirim Laporan'**
+  String get reportSubmit;
+
+  /// SnackBar sukses lapor kerusakan
+  ///
+  /// In id, this message translates to:
+  /// **'Laporan kerusakan dikirim'**
+  String get reportSuccess;
+
+  /// Pesan gagal lapor kerusakan
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal mengirim. Coba lagi.'**
+  String get reportError;
+
+  /// Tombol tambah lampiran foto kerusakan
+  ///
+  /// In id, this message translates to:
+  /// **'Tambah foto (opsional)'**
+  String get reportAddPhoto;
+
+  /// Judul layar registrasi aset
+  ///
+  /// In id, this message translates to:
+  /// **'Registrasi Aset'**
+  String get registerTitle;
+
+  /// Langkah 1 registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Identitas'**
+  String get registerStepIdentity;
+
+  /// Langkah 2 registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Penempatan'**
+  String get registerStepPlacement;
+
+  /// Langkah 3 registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Tinjau'**
+  String get registerStepReview;
+
+  /// Field nama aset
+  ///
+  /// In id, this message translates to:
+  /// **'Nama aset'**
+  String get registerName;
+
+  /// Picker kategori aset
+  ///
+  /// In id, this message translates to:
+  /// **'Kategori'**
+  String get registerCategory;
+
+  /// Pilihan kelas aset
+  ///
+  /// In id, this message translates to:
+  /// **'Kelas aset'**
+  String get registerAssetClass;
+
+  /// Kelas aset tangible
+  ///
+  /// In id, this message translates to:
+  /// **'Berwujud'**
+  String get registerClassTangible;
+
+  /// Kelas aset intangible
+  ///
+  /// In id, this message translates to:
+  /// **'Tak berwujud'**
+  String get registerClassIntangible;
+
+  /// Field nomor seri
+  ///
+  /// In id, this message translates to:
+  /// **'Nomor seri (opsional)'**
+  String get registerSerial;
+
+  /// Picker kantor registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Kantor'**
+  String get registerOffice;
+
+  /// Field harga perolehan
+  ///
+  /// In id, this message translates to:
+  /// **'Harga perolehan (opsional)'**
+  String get registerPurchaseCost;
+
+  /// Field tanggal perolehan
+  ///
+  /// In id, this message translates to:
+  /// **'Tanggal perolehan (opsional)'**
+  String get registerPurchaseDate;
+
+  /// Field catatan registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Catatan (opsional)'**
+  String get registerNotes;
+
+  /// Keterangan tinjau registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Diproses sebagai pengajuan registrasi lewat approval; nilai pengajuan = harga perolehan.'**
+  String get registerReviewNote;
+
+  /// Tombol lanjut langkah
+  ///
+  /// In id, this message translates to:
+  /// **'Lanjut'**
+  String get registerNext;
+
+  /// Tombol kembali langkah
+  ///
+  /// In id, this message translates to:
+  /// **'Kembali'**
+  String get registerBack;
+
+  /// Tombol kirim registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Kirim Pengajuan'**
+  String get registerSubmit;
+
+  /// Validasi nama wajib
+  ///
+  /// In id, this message translates to:
+  /// **'Nama aset wajib diisi.'**
+  String get registerNameRequired;
+
+  /// Validasi kategori wajib
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih kategori dulu.'**
+  String get registerCategoryRequired;
+
+  /// Validasi kantor wajib
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih kantor dulu.'**
+  String get registerOfficeRequired;
+
+  /// SnackBar sukses registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan registrasi dikirim'**
+  String get registerSuccess;
+
+  /// Pesan gagal registrasi
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal mengirim. Coba lagi.'**
+  String get registerError;
+
+  /// Judul kartu detail pegawai
+  ///
+  /// In id, this message translates to:
+  /// **'Detail Pegawai'**
+  String get profileEmployeeDetailTitle;
+
+  /// Label kode pegawai
+  ///
+  /// In id, this message translates to:
+  /// **'Kode pegawai'**
+  String get profileEmployeeCode;
+
+  /// Label status pegawai
+  ///
+  /// In id, this message translates to:
+  /// **'Status'**
+  String get profileEmployeeStatus;
+
+  /// Label departemen
+  ///
+  /// In id, this message translates to:
+  /// **'Departemen'**
+  String get profileDepartment;
+
+  /// Label jabatan
+  ///
+  /// In id, this message translates to:
+  /// **'Jabatan'**
+  String get profilePosition;
+
+  /// Catatan akun tanpa pegawai
+  ///
+  /// In id, this message translates to:
+  /// **'Akun ini tidak tertaut ke data pegawai.'**
+  String get profileNoEmployee;
+
+  /// Judul kartu informasi akun
+  ///
+  /// In id, this message translates to:
+  /// **'Informasi Akun'**
+  String get profileAccountInfoTitle;
+
+  /// Label email
+  ///
+  /// In id, this message translates to:
+  /// **'Email'**
+  String get profileEmail;
+
+  /// Label telepon
+  ///
+  /// In id, this message translates to:
+  /// **'Telepon'**
+  String get profilePhone;
+
+  /// Label metode login
+  ///
+  /// In id, this message translates to:
+  /// **'Metode login'**
+  String get profileLoginMethod;
+
+  /// Nilai metode login Google
+  ///
+  /// In id, this message translates to:
+  /// **'Google'**
+  String get profileLoginGoogle;
+
+  /// Nilai metode login email
+  ///
+  /// In id, this message translates to:
+  /// **'Email & password'**
+  String get profileLoginEmail;
+
+  /// Label tanggal bergabung
+  ///
+  /// In id, this message translates to:
+  /// **'Bergabung'**
+  String get profileJoinedAt;
+
+  /// Pesan gagal memuat detail profil
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat detail profil.'**
+  String get profileDetailError;
+
+  /// Judul kartu data diri
+  ///
+  /// In id, this message translates to:
+  /// **'Data Diri'**
+  String get profileDataDiriTitle;
+
+  /// Tombol masuk mode ubah data diri
+  ///
+  /// In id, this message translates to:
+  /// **'Ubah'**
+  String get profileEditButton;
+
+  /// Tombol simpan data diri
+  ///
+  /// In id, this message translates to:
+  /// **'Simpan'**
+  String get profileSaveButton;
+
+  /// Label nama pengguna
+  ///
+  /// In id, this message translates to:
+  /// **'Nama'**
+  String get profileNameLabel;
+
+  /// Validasi nama wajib
+  ///
+  /// In id, this message translates to:
+  /// **'Nama wajib diisi.'**
+  String get profileNameRequired;
+
+  /// SnackBar sukses ubah data diri
+  ///
+  /// In id, this message translates to:
+  /// **'Data diri diperbarui'**
+  String get profileUpdateSuccess;
+
+  /// Pesan gagal ubah data diri
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal menyimpan. Coba lagi.'**
+  String get profileUpdateError;
+
+  /// Opsi ambil avatar dari galeri
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih dari galeri'**
+  String get avatarFromGallery;
+
+  /// Opsi ambil avatar dari kamera
+  ///
+  /// In id, this message translates to:
+  /// **'Ambil foto'**
+  String get avatarFromCamera;
+
+  /// Opsi hapus foto profil
+  ///
+  /// In id, this message translates to:
+  /// **'Hapus foto'**
+  String get avatarRemove;
+
+  /// SnackBar sukses unggah avatar
+  ///
+  /// In id, this message translates to:
+  /// **'Foto profil diperbarui'**
+  String get avatarUpdated;
+
+  /// SnackBar sukses hapus avatar
+  ///
+  /// In id, this message translates to:
+  /// **'Foto profil dihapus'**
+  String get avatarRemoved;
+
+  /// Pesan gagal proses avatar
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memproses foto. Coba lagi.'**
+  String get avatarError;
+
+  /// Judul layar keamanan akun
+  ///
+  /// In id, this message translates to:
+  /// **'Keamanan Akun'**
+  String get securityTitle;
+
+  /// Label baris email
+  ///
+  /// In id, this message translates to:
+  /// **'Email'**
+  String get securityEmailLabel;
+
+  /// Tombol/judul ganti email
+  ///
+  /// In id, this message translates to:
+  /// **'Ganti Email'**
+  String get securityChangeEmail;
+
+  /// Label baris password
+  ///
+  /// In id, this message translates to:
+  /// **'Password'**
+  String get securityPasswordLabel;
+
+  /// Tombol/judul ganti password
+  ///
+  /// In id, this message translates to:
+  /// **'Ganti Password'**
+  String get securityChangePassword;
+
+  /// Label field password lama
+  ///
+  /// In id, this message translates to:
+  /// **'Password saat ini'**
+  String get securityCurrentPassword;
+
+  /// Label field email baru
+  ///
+  /// In id, this message translates to:
+  /// **'Email baru'**
+  String get securityNewEmail;
+
+  /// Peringatan cabut sesi ganti password
+  ///
+  /// In id, this message translates to:
+  /// **'Semua sesi akan keluar setelah password diganti.'**
+  String get securityPasswordWarning;
+
+  /// Tombol kirim link reset password
+  ///
+  /// In id, this message translates to:
+  /// **'Kirim Link Reset'**
+  String get securitySendResetLink;
+
+  /// Tombol kirim link verifikasi email
+  ///
+  /// In id, this message translates to:
+  /// **'Kirim Link Verifikasi'**
+  String get securitySendVerifyLink;
+
+  /// Judul konfirmasi cek email
+  ///
+  /// In id, this message translates to:
+  /// **'Cek email Anda'**
+  String get securityCheckEmailTitle;
+
+  /// Body konfirmasi cek email
+  ///
+  /// In id, this message translates to:
+  /// **'Kami mengirim link ke email Anda untuk menyelesaikan perubahan. Buka link itu di halaman web.'**
+  String get securityCheckEmailBody;
+
+  /// Tombol tutup konfirmasi
+  ///
+  /// In id, this message translates to:
+  /// **'Selesai'**
+  String get securityDone;
+
+  /// Error password lama salah
+  ///
+  /// In id, this message translates to:
+  /// **'Password salah.'**
+  String get securityWrongPassword;
+
+  /// Error email sudah dipakai
+  ///
+  /// In id, this message translates to:
+  /// **'Email sudah digunakan.'**
+  String get securityEmailInUse;
+
+  /// Error generik keamanan akun
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal. Coba lagi.'**
+  String get securityError;
+
+  /// Validasi password lama wajib
+  ///
+  /// In id, this message translates to:
+  /// **'Isi password saat ini.'**
+  String get securityCurrentPasswordRequired;
+
+  /// Validasi email baru wajib
+  ///
+  /// In id, this message translates to:
+  /// **'Isi email baru.'**
+  String get securityNewEmailRequired;
+
+  /// Validasi format email baru salah pada ganti email
+  ///
+  /// In id, this message translates to:
+  /// **'Format email tidak valid.'**
+  String get securityInvalidEmail;
 }
 
 class _AppLocalizationsDelegate

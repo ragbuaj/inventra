@@ -1387,6 +1387,184 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     (`account` change-password modal, `maintenance` date-boundary); GeoIP DB provisioning (ops);
 >     notification follow-ups (SSE, retention archival, maker-route gap); sapuan simbol section di
 >     komentar kode backend (task chip terpisah). Confirm priority before starting.
+> 84. **Keputusan scope (planning, 2026-07-21, branch `feat/mobile-scope-expansion`)** — Pemilik
+>     produk memperluas scope mobile v1 dengan **enam kemampuan baru (FR-M7)**: (a) **katalog aset**
+>     browse read-only (bukan hanya scan-to-detail); (b) **peminjaman/check-out/check-in dari detail
+>     aset** per permission x status: Manager check-out langsung (aset available, FR-3.1) + check-in
+>     (aset assigned, FR-3.2) + Staf ajukan peminjaman via maker-checker (FR-3.3); (c) **lapor
+>     kerusakan/maintenance** dari detail aset (pengajuan ringan);
+>     (d) **registrasi aset** form penuh; (e) **Pengajuan saya** — lensa maker atas pengajuan yang
+>     dibuat sendiri (`/requests?requested_by=diri`, filter status) + batal pengajuan `pending`
+>     sendiri, terpisah dari inbox checker FR-M3.1; (f) **Aset saya** — aset yang dipegang pengguna
+>     (`/assignments/mine`). **Mutasi + penghapusan/disposal tetap di web** (form berat,
+>     keputusan meja). Alasan: keenamnya ringan/self-scoped dan ter-anchor ke alur scan/aksi yang mobile sudah punya
+>     (Detail Aset ada sejak M1), beda kelas dari mutasi/disposal. Endpoint sudah ada (dipakai web) —
+>     tak ada backend baru; pengajuan tetap lewat maker-checker/SoD server. Dokumen diperbarui: **PRD
+>     mobile v1.1** (`docs/mobile/PRD.md` — non-goal bagian 1.3 direvisi, FR-M2.2 jadi actionable,
+>     FR-M7 baru, changelog), **roadmap** (fase M7 katalog + aksi aset, prasyarat M1; daftar layar +
+>     non-scope disesuaikan), **keputusan produk vault** (`Keputusan/Produk/Mobile v1 Tambah Katalog
+>     Registrasi Maintenance Peminjaman.md` + indeks). **Spec + plan + prompt mockup sudah ditulis**
+>     (2026-07-21): `docs/superpowers/specs/2026-07-21-mobile-m7-asset-actions.md`,
+>     `.../plans/2026-07-21-mobile-m7-asset-actions.md`, prompt mockup DESIGN_BRIEF 5.13-5.18 + edit
+>     5.2/5.4. Verifikasi kode menyingkap dua koreksi: registrasi memakai payload `AssetCreatePayload`
+>     dengan `amount==purchase_cost`, dan **cek ambang kapitalisasi DIBUANG** (web tak punya, executor
+>     hardcode Capitalized=true, fitur v1.1 belum ada). **Belum ada kode** — berikutnya: generate
+>     mockup lalu implementasi fase M7 (8 irisan).
+> 85. **Keputusan scope kedua (planning, 2026-07-21, branch `feat/mobile-scope-expansion`)** —
+>     Perluasan **profil + keamanan akun** mobile (FR-M6/FR-M1.5), keputusan sejawat item 84:
+>     (a) **profil lengkap** (metadata akun + detail pegawai read-only, `/auth/profile`+`/auth/me`);
+>     (b) **ubah data diri + avatar** (`PUT /auth/profile`, `GET/POST/DELETE /auth/avatar`);
+>     (c) **keamanan akun** ganti password/email **berbasis link email** (`/auth/password/change-request`,
+>     `/auth/email/change-request` lalu konfirmasi via link) — mengikuti keputusan web "Keamanan Akun
+>     via Email" + "Ganti Password Berbasis Link"; (d) **lupa password** dari login
+>     (`/auth/password/forgot`, anti-enumerasi). **"Aset saya" ditetapkan sebagai menu tersendiri.**
+>     Semua endpoint sudah ada & tidak di-deny untuk `aud=mobile` — **nol backend baru**; penetapan
+>     password/email diselesaikan di halaman web (tanpa deep-link v1); ganti password mencabut semua
+>     sesi (token-epoch) lalu klien logout ke Login. Dokumen: **PRD mobile v1.1** (FR-M6.1-M6.6 +
+>     FR-M1.5), **roadmap** (fase M8 profil & keamanan, prasyarat M0; daftar layar), **keputusan
+>     produk vault** (`Keputusan/Produk/Mobile v1 Profil Lengkap dan Keamanan Akun.md` + indeks).
+>     **Spec + plan + prompt mockup sudah ditulis** (2026-07-21):
+>     `docs/superpowers/specs/2026-07-21-mobile-m8-profile-security.md`,
+>     `.../plans/2026-07-21-mobile-m8-profile-security.md`, prompt mockup DESIGN_BRIEF 5.19-5.20 +
+>     edit 5.1/5.11. Verifikasi kode: `PUT /auth/profile` = {name, phone}. **Belum ada kode** —
+>     berikutnya: generate mockup lalu implementasi fase M8 (6 irisan).
+> 86. **Mobile M7 — mockup 12 layar di-generate + Task M7-1 (Katalog Aset) LANDED**
+>     (branch `feat/mobile-scope-expansion`). Mockup FR-M7/M8 lengkap di `docs/mobile/design/`
+>     (commit 6fab887). **Task M7-1 Katalog Aset** (`mobile/lib/features/catalog/`): `GET /assets`
+>     dengan pencarian (debounce) + filter Kategori/Status/Kantor (picker bottom sheet; Kategori/Kantor
+>     via `GET /categories`/`GET /offices`, "Tidak ada data" empty state) + paginasi infinite-scroll +
+>     pull-to-refresh; kartu aset (nama/kode/chip status/kantor via reference lookup non-fatal);
+>     empty/loading/error/403 state; navigasi ke Detail Aset; rute `/catalog`. Nol backend baru.
+>     Tes: 6 unit repository + 10 widget + 4 widget filter + golden light/dark; `flutter analyze`
+>     bersih. **Task M7-2 (Aset Saya) LANDED** (`mobile/lib/features/my_assets/`): `GET
+>     /assignments/mine?status=active` (flat `{data:[...]}`, enum status active/returned), menu
+>     tersendiri (rute `/my-assets`), kartu aset dipegang (nama/kode/chip Dipinjam/dipinjam sejak/
+>     jatuh tempo) dengan penanda **Terlambat** (due_date < hari ini via clockProvider);
+>     empty/loading/error/403 state; tap ke Detail Aset. Nol backend baru. Tes: 4 unit repository +
+>     6 widget + golden light/dark; suite mobile 444 lulus. **Task M7-3 (Pengajuan Saya) — list +
+>     filter + Batalkan LANDED** (`mobile/lib/features/my_requests/`): lensa maker `GET
+>     /requests?mine=true` (server filter by JWT user, bypass office scope) + filter status +
+>     Batalkan pengajuan `pending` sendiri (`POST /requests/:id/cancel`, ConfirmDialog destruktif,
+>     reload). Reuse RequestDto/RequestListDto/ApprovalStatusFilter + request_presentation. Rute
+>     `/my-requests`. Nol backend baru. Tes: 6 unit repository + 9 widget + golden; suite mobile 461
+>     lulus. **Detail read-only LANDED** (keputusan pemilik produk: opsi bypass-maker). Backend
+>     `fix(security)`: `GET /requests/:id` kini memperbolehkan **maker melihat pengajuannya sendiri
+>     lepas dari office scope** (paritas bypass `mine=true` list; non-maker tetap scope-gated 403);
+>     field-permission masking tetap berlaku. Handler + test integrasi (maker out-of-scope lihat own
+>     lalu 200) + OpenAPI diperbarui. Mobile: rute `/my-requests/:id` reuse ApprovalDetailScreen
+>     (maker-mode read-only, banner SoD, tanpa approve/reject); kartu Pengajuan Saya kini tappable.
+>     Tes mobile +1 nav; suite mobile 462 lulus; backend vet/unit/spectral hijau (integrasi via CI —
+>     testcontainers tak jalan di Windows lokal). **Task M7-4 (Detail Aset bar aksi + Peminjaman)
+>     LANDED**: **infra permissions baru** (`core/authz/permissions_provider.dart` — `GET
+>     /auth/permissions` -> Set, autoDispose anti bocor lintas sesi; sebelumnya mobile tak punya);
+>     `assetActionsFor(perms, status)` (matriks FR-M7.2/3: available+manage->Check-out /
+>     available+create->Pinjam / assigned+manage->Check-in / any+create->Lapor Kerusakan);
+>     `AssetActionBar` sticky di kaki Detail Aset (bottomNavigationBar), render aksi yang SUDAH
+>     terpasang (kini: Peminjaman/Pinjam) via `_implementedActions` (bertambah tiap fase); sheet
+>     **Ajukan Peminjaman** (`POST /assignments/borrow`, jatuh tempo opsional + catatan -> approval).
+>     Nol backend baru. Wiring permissionsProvider ke Detail Aset memaksa stub di 3 konsumen tes
+>     (screen/router/golden) — pelajaran "wiring composable breaks consumer tests". Golden Detail
+>     Aset kini menampilkan bar Pinjam. Tes: 8 unit matriks + 3 permissions repo + 3 borrow repo + 4
+>     widget bar/sheet; suite mobile 480 lulus. **Task M7-5 (Check-out + Check-in) LANDED**: bar aksi
+>     kini menyalakan Check-out (Manager, aset available) & Check-in (Manager, aset assigned).
+>     `AssetActionRepository` diperluas: `checkout` (`POST /assignments` + picker custodian via
+>     `GET /employees?search=`), `activeAssignment` (`GET /assets/:id/assignments` -> pilih
+>     `status=active` untuk id + pemegang), `checkin` (`POST /assignments/:id/checkin`, kondisi masuk
+>     Baik/Perlu Servis -> needs_maintenance). Sheet Check-out (autocomplete pegawai + tanggal + jatuh
+>     tempo + kondisi) & Check-in (resolusi penugasan aktif + chips kondisi). Nol backend baru. Tes:
+>     +5 repo (checkout/checkin/activeAssignment/searchEmployees) + 4 widget (Manager checkout/checkin
+>     button, alur checkout/validasi, alur checkin); suite mobile 489 lulus. Catatan: golden khusus
+>     sheet Check-out/Check-in belum dibuat (perilaku tercakup widget test). **Task M7-6 (Lapor
+>     Kerusakan) LANDED** — bar aksi Detail Aset kini LENGKAP (4 aksi). `AssetActionRepository`:
+>     `problemCategories` (`GET /problem-categories`) + `reportDamage` (`POST /maintenance/reports`
+>     multipart FormData: asset_id + problem_category_id wajib + description opsional). Sheet Lapor
+>     Kerusakan (dropdown kategori masalah wajib + deskripsi). **Foto DITUNDA** (opsional per kontrak;
+>     butuh dependensi image_picker — perlu konfirmasi). Bar tombol jadi teks-only + ellipsis (bisa 2
+>     tombol, mis. Pinjam+Lapor Kerusakan); golden Detail Aset diregenerasi (2 tombol). Nol backend
+>     baru. Tes: +2 repo + 2 widget; suite mobile 493 lulus. **Cluster M7-4/5/6 (Detail Aset) SELESAI.**
+>     **Task M7-7 (Registrasi Aset) LANDED** (`mobile/lib/features/asset_register/`): form Stepper 3
+>     langkah (Identitas: nama+kategori+kelas aset tangible/intangible+seri; Penempatan: kantor+harga
+>     numerik-only+tanggal+catatan; Tinjau lalu kirim) -> `POST /requests` type `asset_create` dengan
+>     `AssetCreatePayload` + **`amount == purchase_cost`** ('0' bila kosong). Reuse picker
+>     kategori/kantor katalog; harga numerik-only via inputFormatters; sukses -> ke Pengajuan Saya.
+>     **Tanpa cek ambang kapitalisasi** (sesuai temuan). Field referensi opsional
+>     (brand/model/unit/vendor/ruangan) ditunda; golden layar registrasi belum dibuat. Rute
+>     `/register-asset` (entry Katalog/Beranda = M7-8). Nol backend baru. Tes: 3 repo (payload +
+>     amount==cost + tanpa harga) + 3 widget (alur lengkap, validasi nama, numerik-only); suite mobile
+>     499 lulus. **Task M7-8 (titik masuk Beranda) LANDED** — `_QuickActions` jadi 2 baris (8 aksi):
+>     4 lama (Scan/Opname/Approval/Notifikasi) + 4 FR-M7 (Katalog `/catalog`, Aset Saya `/my-assets`,
+>     Pengajuan Saya `/my-requests`, Registrasi `/register-asset`). Golden Beranda diregenerasi; tes
+>     label diperluas ke 8. Nol backend baru; suite mobile 499.
+>     **>> FASE M7 (katalog + aksi aset) TUNTAS <<** (M7-1..M7-8). Deferral tercatat (sengaja, perlu
+>     keputusan): (a) **foto** Lapor Kerusakan + **avatar** M8 -> butuh dependensi `image_picker`
+>     (satu keputusan, dua tempat); (b) **golden** sheet check-out/check-in/lapor + layar registrasi;
+>     (c) **field referensi opsional** registrasi (brand/model/unit/vendor/ruangan). Backend
+>     `fix(security)` maker-view GET /requests/:id (M7-3) menunggu verifikasi CI (integrasi tak jalan
+>     di Windows lokal). **Fase M8 dimulai. Task M8-1 (Profil lengkap) LANDED**
+>     (`mobile/lib/features/account/`): `AccountRepository.getProfile` (`GET /auth/profile` ->
+>     `ProfileDto` plain) + `accountProfileProvider`; layar Profil ditambah kartu **Detail Pegawai**
+>     (kode/status/departemen/jabatan, atau catatan bila tak tertaut pegawai) + **Informasi Akun**
+>     (email/telepon/metode login/tanggal bergabung) — additive di atas kartu identitas + sesi yang
+>     ada. `FakeAccountRepository` diberi `getProfile`; golden Profil diregenerasi. Nol backend baru.
+>     Tes: 2 repo (parse, offline) + 2 widget (kartu terisi, akun tanpa pegawai); suite mobile 503.
+>     **Task M8-2 (ubah data diri) LANDED**: `AccountRepository.updateProfile` (`PUT /auth/profile`
+>     {name, phone}); kartu **Data Diri** editable (mode Ubah -> Simpan/Batal; validasi nama wajib;
+>     sukses -> invalidate `accountProfileProvider` + SnackBar). `FakeAccountRepository.updateProfile`
+>     + `ProfileDto.copyWith`; golden Profil regen; viewport tes profil dinaikkan. Catatan: nama di
+>     header identitas (dari sesi auth) baru segar setelah re-login (Data Diri + provider profil
+>     langsung segar). Nol backend baru. Tes: +2 repo (update, offline) + 3 widget (Ubah->Simpan,
+>     validasi nama, Batal); suite mobile 506. **Task M8-3 (avatar) LANDED** (keputusan pemilik
+>     produk: pakai **image_picker** — dependensi baru, juga untuk foto Lapor Kerusakan M7-6):
+>     `AccountRepository.uploadAvatar` (`POST /auth/avatar` multipart field `file`) + `deleteAvatar`
+>     (`DELETE`); `accountAvatarProvider` tak lagi digate `has_avatar` sesi (langsung GET, segar
+>     pasca-unggah/hapus); `_EditableAvatar` (badge kamera -> sheet Galeri/Kamera/Hapus, overlay
+>     busy) menggantikan avatar statis di kartu identitas. Izin CAMERA sudah ada (mobile_scanner).
+>     Golden Profil regen. Nol backend baru. Tes: +3 repo (upload multipart, delete, offline) + 2
+>     widget (Hapus flow, opsi Hapus tersembunyi tanpa foto); suite mobile 511. **Foto Lapor Kerusakan
+>     (M7-6) DI-BACKFILL** dengan image_picker: `reportDamage` menerima `photoBytes` opsional (field
+>     multipart `photo`); sheet Lapor Kerusakan dapat tombol "Tambah foto" (galeri) + thumbnail +
+>     hapus. Tes: +1 repo (FormData photo) + asersi tombol; suite mobile 512. Deferral foto M7-6
+>     TERTUTUP. **Task M8-4 (Keamanan Akun) LANDED**: layar Keamanan Akun (rute `/account-security`,
+>     tautan dari Profil) + `AccountSecurityRepository` (`POST /auth/password/change-request`
+>     {current_password}; `POST /auth/email/change-request` {new_email, current_password}) — keduanya
+>     **berbasis link email** (klien memulai, penetapan di web). Sheet ganti password (verifikasi
+>     password lama + peringatan cabut-sesi) & ganti email, masing-masing state "Cek email Anda"
+>     setelah sukses. **Password salah -> 400 ValidationFailure inline (bukan 401 -> tak auto-logout)**;
+>     email dipakai -> 409 inline. Golden Profil regen. Nol backend baru. Tes: 4 repo + 5 widget; suite
+>     mobile 521. **Task M8-5 (Lupa Password) LANDED**: `AuthRepository.forgotPassword`
+>     (`POST /auth/password/forgot` {email}, anti-enumerasi — server SELALU 200); `ForgotPasswordScreen`
+>     (rute publik `/forgot-password`, dikecualikan guard auth) input email lalu state konfirmasi
+>     "Cek kotak masuk Anda" dengan pesan IDENTIK apa pun status akun (penetapan password baru via link
+>     email di web); tautan "Lupa password?" ditambah di layar Login. Golden Login regen. Nol backend
+>     baru. Tes: +2 repo (body email di-trim, offline) + 4 widget (validasi kosong, sukses, anti-enumerasi
+>     pesan identik, gagal jaringan inline). **Task M8-6 (verifikasi logout pasca-ganti-password)
+>     TERVERIFIKASI tanpa kode baru**: `test/core/api/auth_interceptor_test.dart` sudah menegaskan
+>     `sessionExpiredCalls == 1` saat refresh 401 definitif (skenario sesi dicabut setelah ganti
+>     password = logout bersih ke Login). Suite mobile 527. **Fase M8 SELESAI** (M8-1..M8-6).
+>     **Perluasan scope mobile v1 (M7 + M8) TUNTAS di branch `feat/mobile-scope-expansion`.**
+>     **Review berlapis (code-reviewer + security-auditor + test-engineer) DIJALANKAN + remediasi
+>     must-fix LANDED.** Verdict: 0 Critical; code-reviewer APPROVE-dgn-catatan, security 0 High/Med
+>     (maker-bypass GET /requests/:id dinyatakan benar & bukan IDOR, anti-enumerasi Lupa Password
+>     konsisten). Diperbaiki: **(A)** harga registrasi jadi `digitsOnly` (titik ribuan dulu bikin
+>     purchase_cost/amount malformed); **(B)** `catalogOffice/CategoryOptionsProvider` jadi `autoDispose`
+>     (cegah daftar kantor basi lintas-user di perangkat sama); **(C, fix(security))** `uuid.Parse` caller
+>     ID gagal kini = non-maker (defense-in-depth) + integration test assert body maker; **(D)** sheet
+>     check-in bedakan gagal-muat vs tak-ada-penugasan (dulu error jaringan di-mask). Tes +14 (error
+>     submit ke-4 sheet, no-active vs load-error, toggle maintenance, FilterOptionsRepository + guard
+>     autoDispose, titik ribuan). Suite mobile 541. **SELURUH FOLLOW-UP REVIEW DITUTUP** (permintaan
+>     pemilik "kerjakan semua followup"): **(1) UX Minor** — helper `actionFailureMessage`
+>     (NetworkFailure/Forbidden/Conflict -> pesan spesifik `commonError*`, sisanya fallback aksi) dipakai
+>     di 4 sheet aksi + registrasi; validasi format email klien di ganti-email (email salah-format dulu
+>     tampil "password lama salah"). **(2) Backend foto** — `asset.UploadAttachment` dapat flag
+>     `Normalize`: foto (mobile field) di-downscale ke maks 2048px + re-encode JPEG q85 (strip EXIF/GPS,
+>     hemat storage, kualitas terjaga); diaktifkan di `POST /maintenance/reports` (dua lapis dgn cap
+>     1600px klien). PDF/attachment web lain tak berubah. **(3) Kontrak** — tes handler unit menegaskan
+>     `/auth/password/forgot` selalu 200 identik untuk email dikenal vs tak-dikenal (anti-enumerasi),
+>     malformed tetap 400. **(4) Backfill tes Medium** — catalog nama param HTTP, my_requests
+>     loadMore(sukses/gagal/no-op)+cancel-error, asset_register intangible+harga konkret, account_security
+>     NetworkFailure kedua form. Suite mobile 553; backend +normalizeImage & forgot-contract tests (build/
+>     vet/test hijau). Berikutnya: buka PR
+>     merge ke `main`; fase mobile lanjutan (M3/M5) menyusul.
 
 ## ✅ Done
 

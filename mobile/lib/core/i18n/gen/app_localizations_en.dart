@@ -15,6 +15,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonRetry => 'Retry';
 
   @override
+  String get commonErrorNetwork => 'No connection. Check your network.';
+
+  @override
+  String get commonErrorForbidden => 'You are not authorized to do this.';
+
+  @override
+  String get commonErrorConflict => 'Things changed. Reload and try again.';
+
+  @override
   String get commonCancel => 'Cancel';
 
   @override
@@ -408,6 +417,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loginErrorGeneric => 'Something went wrong. Try again.';
+
+  @override
+  String get forgotLink => 'Forgot password?';
+
+  @override
+  String get forgotTitle => 'Forgot Password';
+
+  @override
+  String get forgotIntro =>
+      'Enter your account email. We will send a reset link if the email is registered.';
+
+  @override
+  String get forgotEmailLabel => 'Email';
+
+  @override
+  String get forgotSubmit => 'Send Reset Link';
+
+  @override
+  String get forgotEmailRequired => 'Enter your email.';
+
+  @override
+  String get forgotSentTitle => 'Check your inbox';
+
+  @override
+  String get forgotSentBody =>
+      'If the email is registered, we have sent a reset link. Open it to set a new password.';
+
+  @override
+  String get forgotBackToLogin => 'Back to Login';
+
+  @override
+  String get forgotError => 'Failed to send. Try again.';
 
   @override
   String get loginLanguageIndonesian => 'ID';
@@ -1015,6 +1056,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeQuickNotifications => 'Notifications';
 
   @override
+  String get homeQuickCatalog => 'Catalog';
+
+  @override
+  String get homeQuickMyAssets => 'My Assets';
+
+  @override
+  String get homeQuickMyRequests => 'Requests';
+
+  @override
+  String get homeQuickRegister => 'Register';
+
+  @override
   String get notificationsMarkAllRead => 'Mark all as read';
 
   @override
@@ -1105,4 +1158,516 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationsAssetReturnedTitle => 'Asset returned';
+
+  @override
+  String get catalogTitle => 'Asset Catalog';
+
+  @override
+  String get catalogSearchHint => 'Search assets';
+
+  @override
+  String get catalogUnnamedAsset => 'Unnamed asset';
+
+  @override
+  String get catalogEmptyTitle => 'No assets yet';
+
+  @override
+  String get catalogEmptyBody => 'Assets within your scope will appear here.';
+
+  @override
+  String get catalogEmptySearchTitle => 'No matching assets';
+
+  @override
+  String get catalogEmptySearchBody =>
+      'Try another keyword or reset the search.';
+
+  @override
+  String get catalogResetFilter => 'Reset';
+
+  @override
+  String get catalogLoadMoreFailed => 'Failed to load more.';
+
+  @override
+  String get catalogErrorTitle => 'Couldn\'t load the catalog';
+
+  @override
+  String get catalogErrorNetworkBody => 'Check your connection and try again.';
+
+  @override
+  String get catalogErrorGenericBody => 'Something went wrong. Try again.';
+
+  @override
+  String get catalogForbiddenTitle => 'No access';
+
+  @override
+  String get catalogForbiddenBody =>
+      'You don\'t have permission to view the asset catalog.';
+
+  @override
+  String get catalogFilterCategory => 'Category';
+
+  @override
+  String get catalogFilterStatus => 'Status';
+
+  @override
+  String get catalogFilterOffice => 'Office';
+
+  @override
+  String get catalogFilterAll => 'All';
+
+  @override
+  String get catalogFilterNoOptions => 'No data';
+
+  @override
+  String get catalogFilterOptionsError => 'Failed to load options';
+
+  @override
+  String get catalogPickerStatusTitle => 'Select Status';
+
+  @override
+  String get catalogPickerCategoryTitle => 'Select Category';
+
+  @override
+  String get catalogPickerOfficeTitle => 'Select Office';
+
+  @override
+  String get myAssetsTitle => 'My Assets';
+
+  @override
+  String myAssetsCount(int count) {
+    return '$count assets held';
+  }
+
+  @override
+  String myAssetsHeldSince(String date) {
+    return 'Held since $date';
+  }
+
+  @override
+  String myAssetsDue(String date) {
+    return 'Due $date';
+  }
+
+  @override
+  String get myAssetsOverdue => 'Overdue';
+
+  @override
+  String get myAssetsEmptyTitle => 'No assets held';
+
+  @override
+  String get myAssetsEmptyBody => 'Assets assigned to you will appear here.';
+
+  @override
+  String get myAssetsErrorTitle => 'Couldn\'t load your assets';
+
+  @override
+  String get myAssetsErrorNetworkBody => 'Check your connection and try again.';
+
+  @override
+  String get myAssetsErrorGenericBody => 'Something went wrong. Try again.';
+
+  @override
+  String get myAssetsForbiddenTitle => 'No access';
+
+  @override
+  String get myAssetsForbiddenBody =>
+      'You don\'t have permission to view held assets.';
+
+  @override
+  String get myRequestsTitle => 'My Requests';
+
+  @override
+  String get myRequestsEmptyTitle => 'No requests yet';
+
+  @override
+  String get myRequestsEmptyBody => 'Requests you submit will appear here.';
+
+  @override
+  String get myRequestsCancel => 'Cancel';
+
+  @override
+  String get myRequestsCancelConfirmTitle => 'Cancel request?';
+
+  @override
+  String get myRequestsCancelConfirmBody =>
+      'This request will be cancelled and cannot be resumed.';
+
+  @override
+  String get myRequestsCancelSuccess => 'Request cancelled';
+
+  @override
+  String get myRequestsCancelError => 'Couldn\'t cancel. Try again.';
+
+  @override
+  String get myRequestsLoadMoreFailed => 'Failed to load more.';
+
+  @override
+  String get myRequestsErrorTitle => 'Couldn\'t load requests';
+
+  @override
+  String get myRequestsErrorNetworkBody =>
+      'Check your connection and try again.';
+
+  @override
+  String get myRequestsErrorGenericBody => 'Something went wrong. Try again.';
+
+  @override
+  String get myRequestsForbiddenTitle => 'No access';
+
+  @override
+  String get myRequestsForbiddenBody =>
+      'You don\'t have permission to view requests.';
+
+  @override
+  String get assetActionBorrow => 'Borrow';
+
+  @override
+  String get assetActionCheckout => 'Check-out';
+
+  @override
+  String get assetActionCheckin => 'Check-in';
+
+  @override
+  String get assetActionReportDamage => 'Report Damage';
+
+  @override
+  String get borrowSheetTitle => 'Request Loan';
+
+  @override
+  String get borrowDueDateLabel => 'Due date (optional)';
+
+  @override
+  String get borrowPickDate => 'Pick a date';
+
+  @override
+  String get borrowNotesLabel => 'Notes (optional)';
+
+  @override
+  String get borrowNotesHint => 'e.g. for a presentation';
+
+  @override
+  String get borrowPendingNote => 'The request awaits approval.';
+
+  @override
+  String get borrowSubmit => 'Submit';
+
+  @override
+  String get borrowSuccess => 'Loan request submitted';
+
+  @override
+  String get borrowError => 'Couldn\'t submit. Try again.';
+
+  @override
+  String get commonChange => 'Change';
+
+  @override
+  String get checkoutSheetTitle => 'Check out asset';
+
+  @override
+  String get checkoutEmployeeLabel => 'Employee (custodian)';
+
+  @override
+  String get checkoutEmployeeSearchHint => 'Search employee';
+
+  @override
+  String get checkoutEmployeeRequired => 'Pick an employee first.';
+
+  @override
+  String get checkoutDateLabel => 'Checkout date';
+
+  @override
+  String get checkoutConditionLabel => 'Condition out (optional)';
+
+  @override
+  String get checkoutAssignedNote => 'The asset becomes On loan immediately.';
+
+  @override
+  String get checkoutSubmit => 'Check-out';
+
+  @override
+  String get checkoutSuccess => 'Asset checked out';
+
+  @override
+  String get checkoutError => 'Check-out failed. Try again.';
+
+  @override
+  String get checkinSheetTitle => 'Check in asset';
+
+  @override
+  String get checkinHolderLabel => 'Current holder';
+
+  @override
+  String get checkinConditionLabel => 'Condition in';
+
+  @override
+  String get checkinConditionGood => 'Good';
+
+  @override
+  String get checkinConditionNeedsService => 'Needs service';
+
+  @override
+  String get checkinNotesLabel => 'Notes (optional)';
+
+  @override
+  String get checkinReturnNote =>
+      'The asset returns to Available (or Maintenance if it needs service).';
+
+  @override
+  String get checkinSubmit => 'Check-in';
+
+  @override
+  String get checkinSuccess => 'Asset checked in';
+
+  @override
+  String get checkinError => 'Check-in failed. Try again.';
+
+  @override
+  String get checkinNoActive => 'No active assignment for this asset.';
+
+  @override
+  String get checkinLoadError => 'Failed to load active assignment.';
+
+  @override
+  String get reportSheetTitle => 'Report Damage';
+
+  @override
+  String get reportCategoryLabel => 'Problem category';
+
+  @override
+  String get reportCategoryHint => 'Pick a category';
+
+  @override
+  String get reportCategoryRequired => 'Pick a problem category first.';
+
+  @override
+  String get reportDescriptionLabel => 'Description (optional)';
+
+  @override
+  String get reportDescriptionHint => 'e.g. cracked screen, won\'t turn on';
+
+  @override
+  String get reportPendingNote => 'Processed as a maintenance request.';
+
+  @override
+  String get reportSubmit => 'Send Report';
+
+  @override
+  String get reportSuccess => 'Damage report submitted';
+
+  @override
+  String get reportError => 'Couldn\'t send. Try again.';
+
+  @override
+  String get reportAddPhoto => 'Add photo (optional)';
+
+  @override
+  String get registerTitle => 'Register Asset';
+
+  @override
+  String get registerStepIdentity => 'Identity';
+
+  @override
+  String get registerStepPlacement => 'Placement';
+
+  @override
+  String get registerStepReview => 'Review';
+
+  @override
+  String get registerName => 'Asset name';
+
+  @override
+  String get registerCategory => 'Category';
+
+  @override
+  String get registerAssetClass => 'Asset class';
+
+  @override
+  String get registerClassTangible => 'Tangible';
+
+  @override
+  String get registerClassIntangible => 'Intangible';
+
+  @override
+  String get registerSerial => 'Serial number (optional)';
+
+  @override
+  String get registerOffice => 'Office';
+
+  @override
+  String get registerPurchaseCost => 'Purchase cost (optional)';
+
+  @override
+  String get registerPurchaseDate => 'Purchase date (optional)';
+
+  @override
+  String get registerNotes => 'Notes (optional)';
+
+  @override
+  String get registerReviewNote =>
+      'Processed as a registration request via approval; request amount = purchase cost.';
+
+  @override
+  String get registerNext => 'Next';
+
+  @override
+  String get registerBack => 'Back';
+
+  @override
+  String get registerSubmit => 'Submit Request';
+
+  @override
+  String get registerNameRequired => 'Asset name is required.';
+
+  @override
+  String get registerCategoryRequired => 'Pick a category first.';
+
+  @override
+  String get registerOfficeRequired => 'Pick an office first.';
+
+  @override
+  String get registerSuccess => 'Registration request submitted';
+
+  @override
+  String get registerError => 'Couldn\'t send. Try again.';
+
+  @override
+  String get profileEmployeeDetailTitle => 'Employee Detail';
+
+  @override
+  String get profileEmployeeCode => 'Employee code';
+
+  @override
+  String get profileEmployeeStatus => 'Status';
+
+  @override
+  String get profileDepartment => 'Department';
+
+  @override
+  String get profilePosition => 'Position';
+
+  @override
+  String get profileNoEmployee =>
+      'This account is not linked to an employee record.';
+
+  @override
+  String get profileAccountInfoTitle => 'Account Info';
+
+  @override
+  String get profileEmail => 'Email';
+
+  @override
+  String get profilePhone => 'Phone';
+
+  @override
+  String get profileLoginMethod => 'Login method';
+
+  @override
+  String get profileLoginGoogle => 'Google';
+
+  @override
+  String get profileLoginEmail => 'Email & password';
+
+  @override
+  String get profileJoinedAt => 'Joined';
+
+  @override
+  String get profileDetailError => 'Couldn\'t load profile details.';
+
+  @override
+  String get profileDataDiriTitle => 'Personal Data';
+
+  @override
+  String get profileEditButton => 'Edit';
+
+  @override
+  String get profileSaveButton => 'Save';
+
+  @override
+  String get profileNameLabel => 'Name';
+
+  @override
+  String get profileNameRequired => 'Name is required.';
+
+  @override
+  String get profileUpdateSuccess => 'Personal data updated';
+
+  @override
+  String get profileUpdateError => 'Couldn\'t save. Try again.';
+
+  @override
+  String get avatarFromGallery => 'Choose from gallery';
+
+  @override
+  String get avatarFromCamera => 'Take a photo';
+
+  @override
+  String get avatarRemove => 'Remove photo';
+
+  @override
+  String get avatarUpdated => 'Profile photo updated';
+
+  @override
+  String get avatarRemoved => 'Profile photo removed';
+
+  @override
+  String get avatarError => 'Couldn\'t process photo. Try again.';
+
+  @override
+  String get securityTitle => 'Account Security';
+
+  @override
+  String get securityEmailLabel => 'Email';
+
+  @override
+  String get securityChangeEmail => 'Change Email';
+
+  @override
+  String get securityPasswordLabel => 'Password';
+
+  @override
+  String get securityChangePassword => 'Change Password';
+
+  @override
+  String get securityCurrentPassword => 'Current password';
+
+  @override
+  String get securityNewEmail => 'New email';
+
+  @override
+  String get securityPasswordWarning =>
+      'All sessions will sign out after the password changes.';
+
+  @override
+  String get securitySendResetLink => 'Send Reset Link';
+
+  @override
+  String get securitySendVerifyLink => 'Send Verification Link';
+
+  @override
+  String get securityCheckEmailTitle => 'Check your email';
+
+  @override
+  String get securityCheckEmailBody =>
+      'We sent a link to your email to finish the change. Open it on the web page.';
+
+  @override
+  String get securityDone => 'Done';
+
+  @override
+  String get securityWrongPassword => 'Wrong password.';
+
+  @override
+  String get securityEmailInUse => 'Email already in use.';
+
+  @override
+  String get securityError => 'Failed. Try again.';
+
+  @override
+  String get securityCurrentPasswordRequired => 'Enter your current password.';
+
+  @override
+  String get securityNewEmailRequired => 'Enter the new email.';
+
+  @override
+  String get securityInvalidEmail => 'Invalid email format.';
 }

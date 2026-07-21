@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../app/theme.dart';
@@ -13,6 +15,8 @@ import '../../../core/i18n/gen/app_localizations.dart';
 import '../../../core/utils/clock.dart';
 import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/confirm_dialog.dart';
+import '../data/account_repository.dart';
+import '../data/profile_dto.dart';
 import '../data/session_dto.dart';
 import 'account_providers.dart';
 import 'session_presentation.dart';
@@ -147,6 +151,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 children: <Widget>[
                   const _IdentityCard(),
                   const SizedBox(height: 14),
+                  const _DataDiriCard(),
+                  const SizedBox(height: 14),
+                  const _ProfileDetailCards(),
+                  const SizedBox(height: 14),
+                  _LinkTile(
+                    icon: Symbols.shield_rounded,
+                    label: l10n.securityTitle,
+                    tileKey: 'profile-security-link',
+                    onTap: () => context.push('/account-security'),
+                  ),
+                  const SizedBox(height: 14),
                   ...sessions.when(
                     data: (List<SessionDto> data) => _sessionsContent(data),
                     loading: () => const <Widget>[_SessionsSkeleton()],
@@ -226,6 +241,635 @@ String profileInitials(String name) {
 /// Deviasi tercatat: badge nama peran mockup ("Asset Manager") tidak dirender
 /// — endpoint roles berada di grup authzadmin yang menolak audience mobile
 /// (alasan yang sama dengan header Beranda).
+/// Baris tautan berkartu (mis. ke Keamanan Akun).
+class _LinkTile extends StatelessWidget {
+  const _LinkTile({
+    required this.icon,
+    required this.label,
+    required this.tileKey,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final String tileKey;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
+
+    return Material(
+      color: theme.cardTheme.color ?? scheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: scheme.outlineVariant),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: ValueKey<String>(tileKey),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Row(
+            children: <Widget>[
+              Icon(icon, size: 20, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Icon(Symbols.chevron_right_rounded, color: scheme.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Avatar 84 editable (FR-M6.2): foto/inisial + badge kamera; tap membuka sheet
+/// Galeri/Kamera/(Hapus bila ada foto) -> `POST`/`DELETE /auth/avatar`.
+class _EditableAvatar extends ConsumerStatefulWidget {
+  const _EditableAvatar({required this.name});
+
+  final String name;
+
+  @override
+  ConsumerState<_EditableAvatar> createState() => _EditableAvatarState();
+}
+
+class _EditableAvatarState extends ConsumerState<_EditableAvatar> {
+  bool _busy = false;
+
+  void _snack(String msg) => ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(SnackBar(content: Text(msg)));
+
+  Future<void> _pick(ImageSource source) async {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    Navigator.of(context).pop();
+    final XFile? file;
+    try {
+      file = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 1024,
+        imageQuality: 85,
+      );
+    } on Object {
+      if (mounted) {
+        _snack(l10n.avatarError);
+      }
+      return;
+    }
+    if (file == null) {
+      return;
+    }
+    final List<int> bytes = await file.readAsBytes();
+    if (!mounted) {
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(accountRepositoryProvider)
+          .uploadAvatar(bytes, filename: file.name);
+      ref.invalidate(accountAvatarProvider);
+      ref.invalidate(accountProfileProvider);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _busy = false);
+      _snack(l10n.avatarUpdated);
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _busy = false);
+      _snack(l10n.avatarError);
+    }
+  }
+
+  Future<void> _delete() async {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    Navigator.of(context).pop();
+    setState(() => _busy = true);
+    try {
+      await ref.read(accountRepositoryProvider).deleteAvatar();
+      ref.invalidate(accountAvatarProvider);
+      ref.invalidate(accountProfileProvider);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _busy = false);
+      _snack(l10n.avatarRemoved);
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _busy = false);
+      _snack(l10n.avatarError);
+    }
+  }
+
+  void _openMenu(bool hasPhoto) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (BuildContext ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            ListTile(
+              leading: const Icon(Symbols.photo_library_rounded),
+              title: Text(l10n.avatarFromGallery),
+              onTap: () => _pick(ImageSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Symbols.photo_camera_rounded),
+              title: Text(l10n.avatarFromCamera),
+              onTap: () => _pick(ImageSource.camera),
+            ),
+            if (hasPhoto)
+              ListTile(
+                key: const ValueKey<String>('avatar-remove'),
+                leading: Icon(Symbols.delete_rounded, color: scheme.error),
+                title: Text(l10n.avatarRemove),
+                onTap: _delete,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final Uint8List? bytes = ref.watch(accountAvatarProvider).value;
+
+    return SizedBox(
+      width: 92,
+      height: 92,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: <Widget>[
+          Positioned(
+            top: 4,
+            left: 4,
+            child: Container(
+              width: 84,
+              height: 84,
+              clipBehavior: Clip.antiAlias,
+              decoration: ShapeDecoration(
+                color: scheme.primaryContainer,
+                shape: const CircleBorder(),
+              ),
+              child: _busy
+                  ? const Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      ),
+                    )
+                  : bytes == null
+                  ? Center(
+                      child: Text(
+                        profileInitials(widget.name),
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: scheme.onPrimaryContainer,
+                        ),
+                      ),
+                    )
+                  : Image.memory(
+                      bytes,
+                      key: const ValueKey<String>('profile-avatar-photo'),
+                      fit: BoxFit.cover,
+                      gaplessPlayback: true,
+                    ),
+            ),
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Material(
+              color: scheme.primary,
+              shape: CircleBorder(
+                side: BorderSide(color: scheme.surface, width: 2),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                key: const ValueKey<String>('profile-avatar-edit'),
+                onTap: _busy ? null : () => _openMenu(bytes != null),
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Icon(
+                    Symbols.photo_camera_rounded,
+                    size: 16,
+                    color: scheme.onPrimary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Kartu Data Diri editable (FR-M6.2): nama + telepon. Mode Ubah -> Simpan/Batal
+/// -> `PUT /auth/profile`; sukses menyegarkan [accountProfileProvider].
+class _DataDiriCard extends ConsumerStatefulWidget {
+  const _DataDiriCard();
+
+  @override
+  ConsumerState<_DataDiriCard> createState() => _DataDiriCardState();
+}
+
+class _DataDiriCardState extends ConsumerState<_DataDiriCard> {
+  final TextEditingController _name = TextEditingController();
+  final TextEditingController _phone = TextEditingController();
+  bool _editing = false;
+  bool _submitting = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    super.dispose();
+  }
+
+  void _startEdit(ProfileDto p) {
+    _name.text = p.name;
+    _phone.text = p.phone ?? '';
+    setState(() {
+      _editing = true;
+      _error = null;
+    });
+  }
+
+  void _cancel() => setState(() {
+    _editing = false;
+    _error = null;
+  });
+
+  Future<void> _save() async {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    if (_name.text.trim().isEmpty) {
+      setState(() => _error = l10n.profileNameRequired);
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(accountRepositoryProvider)
+          .updateProfile(name: _name.text, phone: _phone.text);
+      ref.invalidate(accountProfileProvider);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _editing = false;
+        _submitting = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.profileUpdateSuccess)));
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _submitting = false;
+        _error = l10n.profileUpdateError;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
+    final AsyncValue<ProfileDto> profile = ref.watch(accountProfileProvider);
+    final ProfileDto? loaded = profile.value;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color ?? scheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  l10n.profileDataDiriTitle,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              if (!_editing && loaded != null)
+                TextButton.icon(
+                  key: const ValueKey<String>('profile-edit'),
+                  onPressed: () => _startEdit(loaded),
+                  icon: const Icon(Symbols.edit_rounded, size: 18),
+                  label: Text(l10n.profileEditButton),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          profile.when(
+            loading: () => const AppSkeleton(height: 14, borderRadius: 6),
+            error: (Object e, StackTrace s) => Row(
+              children: <Widget>[
+                Expanded(child: Text(l10n.profileDetailError)),
+                TextButton(
+                  onPressed: () => ref.invalidate(accountProfileProvider),
+                  child: Text(l10n.commonRetry),
+                ),
+              ],
+            ),
+            data: (ProfileDto p) => _editing
+                ? _editForm(l10n, scheme)
+                : _readView(l10n, scheme, p),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _readView(AppLocalizations l10n, ColorScheme scheme, ProfileDto p) {
+    Widget row(String label, String value) => Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return Column(
+      children: <Widget>[
+        row(l10n.profileNameLabel, p.name),
+        row(l10n.profilePhone, p.phone ?? '—'),
+      ],
+    );
+  }
+
+  Widget _editForm(AppLocalizations l10n, ColorScheme scheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        TextField(
+          controller: _name,
+          enabled: !_submitting,
+          decoration: InputDecoration(labelText: l10n.profileNameLabel),
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: _phone,
+          enabled: !_submitting,
+          keyboardType: TextInputType.phone,
+          decoration: InputDecoration(labelText: l10n.profilePhone),
+        ),
+        if (_error != null) ...<Widget>[
+          const SizedBox(height: 8),
+          Text(
+            _error!,
+            style: TextStyle(color: scheme.error, fontSize: 13),
+          ),
+        ],
+        const SizedBox(height: 12),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: OutlinedButton(
+                onPressed: _submitting ? null : _cancel,
+                child: Text(l10n.commonCancel),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: FilledButton(
+                key: const ValueKey<String>('profile-save'),
+                onPressed: _submitting ? null : _save,
+                child: _submitting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      )
+                    : Text(l10n.profileSaveButton),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Kartu Detail Pegawai + Informasi Akun dari `GET /auth/profile` (FR-M6.1).
+class _ProfileDetailCards extends ConsumerWidget {
+  const _ProfileDetailCards();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final String localeName = Localizations.localeOf(context).languageCode;
+    final AsyncValue<ProfileDto> profile = ref.watch(accountProfileProvider);
+
+    return profile.when(
+      loading: () => const _ProfileCard(
+        rows: <(String, String)>[],
+        loading: true,
+      ),
+      error: (Object e, StackTrace s) => _ProfileCard(
+        rows: const <(String, String)>[],
+        onRetry: () => ref.invalidate(accountProfileProvider),
+      ),
+      data: (ProfileDto p) {
+        final String joined = p.joinedAt == null
+            ? '—'
+            : DateFormat('d MMM y', localeName).format(p.joinedAt!);
+        return Column(
+          children: <Widget>[
+            _ProfileCard(
+              title: l10n.profileEmployeeDetailTitle,
+              emptyNote: p.hasEmployee ? null : l10n.profileNoEmployee,
+              rows: <(String, String)>[
+                (l10n.profileEmployeeCode, p.employeeCode ?? '—'),
+                (l10n.profileEmployeeStatus, p.employeeStatus ?? '—'),
+                (l10n.profileDepartment, p.departmentName ?? '—'),
+                (l10n.profilePosition, p.positionName ?? '—'),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _ProfileCard(
+              title: l10n.profileAccountInfoTitle,
+              rows: <(String, String)>[
+                (l10n.profileEmail, p.email),
+                (l10n.profilePhone, p.phone ?? '—'),
+                (
+                  l10n.profileLoginMethod,
+                  p.googleLinked ? l10n.profileLoginGoogle : l10n.profileLoginEmail,
+                ),
+                (l10n.profileJoinedAt, joined),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Kartu berjudul berisi baris label:value; mendukung state loading & error.
+class _ProfileCard extends StatelessWidget {
+  const _ProfileCard({
+    required this.rows,
+    this.title,
+    this.emptyNote,
+    this.loading = false,
+    this.onRetry,
+  });
+
+  final List<(String, String)> rows;
+  final String? title;
+  final String? emptyNote;
+  final bool loading;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
+    final AppLocalizations l10n = AppLocalizations.of(context);
+
+    Widget body;
+    if (loading) {
+      body = const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          children: <Widget>[
+            AppSkeleton(height: 12, borderRadius: 6),
+            SizedBox(height: 10),
+            AppSkeleton(height: 12, borderRadius: 6),
+          ],
+        ),
+      );
+    } else if (onRetry != null) {
+      body = Row(
+        children: <Widget>[
+          Expanded(child: Text(l10n.profileDetailError)),
+          TextButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
+        ],
+      );
+    } else if (emptyNote != null) {
+      body = Text(
+        emptyNote!,
+        style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+      );
+    } else {
+      body = Column(
+        children: <Widget>[
+          for (final (String, String) row in rows)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  SizedBox(
+                    width: 120,
+                    child: Text(
+                      row.$1,
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      row.$2,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color ?? scheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          if (title != null) ...<Widget>[
+            Text(
+              title!,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 12),
+          ],
+          body,
+        ],
+      ),
+    );
+  }
+}
+
 class _IdentityCard extends ConsumerWidget {
   const _IdentityCard();
 
@@ -236,45 +880,13 @@ class _IdentityCard extends ConsumerWidget {
     final AppLocalizations l10n = AppLocalizations.of(context);
     final AuthSession? session = ref.watch(authControllerProvider).value;
     final UserDto? user = session is Authenticated ? session.user : null;
-    final Uint8List? avatarBytes = ref.watch(accountAvatarProvider).value;
     final String? officeName = ref.watch(accountOfficeNameProvider).value;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 10, 0, 2),
       child: Column(
         children: <Widget>[
-          Container(
-            width: 84,
-            height: 84,
-            clipBehavior: Clip.antiAlias,
-            decoration: ShapeDecoration(
-              color: scheme.primaryContainer,
-              shape: CircleBorder(
-                side: BorderSide(
-                  color: scheme.primaryContainer,
-                  width: 2,
-                  strokeAlign: BorderSide.strokeAlignOutside,
-                ),
-              ),
-            ),
-            child: avatarBytes == null
-                ? Center(
-                    child: Text(
-                      profileInitials(user?.name ?? ''),
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        color: scheme.onPrimaryContainer,
-                      ),
-                    ),
-                  )
-                : Image.memory(
-                    avatarBytes,
-                    key: const ValueKey<String>('profile-avatar-photo'),
-                    fit: BoxFit.cover,
-                    gaplessPlayback: true,
-                  ),
-          ),
+          _EditableAvatar(name: user?.name ?? ''),
           const SizedBox(height: 12),
           Text(
             user?.name ?? '',

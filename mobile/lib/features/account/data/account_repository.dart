@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/app_failure.dart';
 import '../../../core/api/dio_provider.dart';
 import '../../../core/api/error_mapper.dart';
+import 'profile_dto.dart';
 import 'session_dto.dart';
 
 /// Repository layar Profil (kontrak backend/api/openapi.yaml):
@@ -21,6 +22,39 @@ class AccountRepository {
   AccountRepository(this._dio);
 
   final Dio _dio;
+
+  /// Profil lengkap pemanggil (`GET /auth/profile`): metadata akun + detail
+  /// pegawai tertaut. Melempar AppFailure via toAppFailure() saat DioException.
+  Future<ProfileDto> getProfile() async {
+    try {
+      final Response<Map<String, dynamic>> response = await _dio
+          .get<Map<String, dynamic>>('/auth/profile');
+      return ProfileDto.fromJson(response.data!);
+    } on DioException catch (err) {
+      throw err.toAppFailure();
+    }
+  }
+
+  /// Menyunting data diri sendiri (`PUT /auth/profile` — hanya `name` wajib +
+  /// `phone` opsional yang boleh diedit). Mengembalikan profil terbaru.
+  Future<ProfileDto> updateProfile({
+    required String name,
+    String? phone,
+  }) async {
+    try {
+      final Response<Map<String, dynamic>> response = await _dio
+          .put<Map<String, dynamic>>(
+            '/auth/profile',
+            data: <String, dynamic>{
+              'name': name.trim(),
+              'phone': phone?.trim() ?? '',
+            },
+          );
+      return ProfileDto.fromJson(response.data!);
+    } on DioException catch (err) {
+      throw err.toAppFailure();
+    }
+  }
 
   /// Seluruh sesi aktif milik pemanggil (`GET /auth/sessions`).
   Future<List<SessionDto>> sessions() async {
@@ -58,6 +92,30 @@ class AccountRepository {
       final Response<Map<String, dynamic>> response = await _dio
           .post<Map<String, dynamic>>('/auth/sessions/revoke-others');
       return ((response.data?['revoked'] as num?) ?? 0).toInt();
+    } on DioException catch (err) {
+      throw err.toAppFailure();
+    }
+  }
+
+  /// Mengunggah foto profil (`POST /auth/avatar`, multipart field `file`, JPG/PNG;
+  /// server memotong persegi + re-encode JPEG, buang EXIF). Mengganti foto lama.
+  Future<void> uploadAvatar(List<int> bytes, {required String filename}) async {
+    try {
+      await _dio.post<Map<String, dynamic>>(
+        '/auth/avatar',
+        data: FormData.fromMap(<String, dynamic>{
+          'file': MultipartFile.fromBytes(bytes, filename: filename),
+        }),
+      );
+    } on DioException catch (err) {
+      throw err.toAppFailure();
+    }
+  }
+
+  /// Menghapus foto profil (`DELETE /auth/avatar`).
+  Future<void> deleteAvatar() async {
+    try {
+      await _dio.delete<Map<String, dynamic>>('/auth/avatar');
     } on DioException catch (err) {
       throw err.toAppFailure();
     }
