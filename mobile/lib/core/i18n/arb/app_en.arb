@@ -377,5 +377,18 @@
   "myRequestsErrorNetworkBody": "Check your connection and try again.",
   "myRequestsErrorGenericBody": "Something went wrong. Try again.",
   "myRequestsForbiddenTitle": "No access",
-  "myRequestsForbiddenBody": "You don't have permission to view requests."
+  "myRequestsForbiddenBody": "You don't have permission to view requests.",
+  "assetActionBorrow": "Borrow",
+  "assetActionCheckout": "Check-out",
+  "assetActionCheckin": "Check-in",
+  "assetActionReportDamage": "Report Damage",
+  "borrowSheetTitle": "Request Loan",
+  "borrowDueDateLabel": "Due date (optional)",
+  "borrowPickDate": "Pick a date",
+  "borrowNotesLabel": "Notes (optional)",
+  "borrowNotesHint": "e.g. for a presentation",
+  "borrowPendingNote": "The request awaits approval.",
+  "borrowSubmit": "Submit",
+  "borrowSuccess": "Loan request submitted",
+  "borrowError": "Couldn't submit. Try again."
 }

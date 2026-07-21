@@ -1454,8 +1454,19 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     lalu 200) + OpenAPI diperbarui. Mobile: rute `/my-requests/:id` reuse ApprovalDetailScreen
 >     (maker-mode read-only, banner SoD, tanpa approve/reject); kartu Pengajuan Saya kini tappable.
 >     Tes mobile +1 nav; suite mobile 462 lulus; backend vet/unit/spectral hijau (integrasi via CI —
->     testcontainers tak jalan di Windows lokal). Berikutnya M7: Task M7-4/5/6 (Detail Aset + sheet
->     aksi). Titik masuk Beranda (M7-8) menyusul.
+>     testcontainers tak jalan di Windows lokal). **Task M7-4 (Detail Aset bar aksi + Peminjaman)
+>     LANDED**: **infra permissions baru** (`core/authz/permissions_provider.dart` — `GET
+>     /auth/permissions` -> Set, autoDispose anti bocor lintas sesi; sebelumnya mobile tak punya);
+>     `assetActionsFor(perms, status)` (matriks FR-M7.2/3: available+manage->Check-out /
+>     available+create->Pinjam / assigned+manage->Check-in / any+create->Lapor Kerusakan);
+>     `AssetActionBar` sticky di kaki Detail Aset (bottomNavigationBar), render aksi yang SUDAH
+>     terpasang (kini: Peminjaman/Pinjam) via `_implementedActions` (bertambah tiap fase); sheet
+>     **Ajukan Peminjaman** (`POST /assignments/borrow`, jatuh tempo opsional + catatan -> approval).
+>     Nol backend baru. Wiring permissionsProvider ke Detail Aset memaksa stub di 3 konsumen tes
+>     (screen/router/golden) — pelajaran "wiring composable breaks consumer tests". Golden Detail
+>     Aset kini menampilkan bar Pinjam. Tes: 8 unit matriks + 3 permissions repo + 3 borrow repo + 4
+>     widget bar/sheet; suite mobile 480 lulus. Berikutnya M7: **M7-5 (Check-out + Check-in)** lalu
+>     M7-6 (Lapor Kerusakan). Titik masuk Beranda (M7-8) menyusul.
 
 ## ✅ Done
 

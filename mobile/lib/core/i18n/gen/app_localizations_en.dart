@@ -1264,4 +1264,43 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get myRequestsForbiddenBody =>
       'You don\'t have permission to view requests.';
+
+  @override
+  String get assetActionBorrow => 'Borrow';
+
+  @override
+  String get assetActionCheckout => 'Check-out';
+
+  @override
+  String get assetActionCheckin => 'Check-in';
+
+  @override
+  String get assetActionReportDamage => 'Report Damage';
+
+  @override
+  String get borrowSheetTitle => 'Request Loan';
+
+  @override
+  String get borrowDueDateLabel => 'Due date (optional)';
+
+  @override
+  String get borrowPickDate => 'Pick a date';
+
+  @override
+  String get borrowNotesLabel => 'Notes (optional)';
+
+  @override
+  String get borrowNotesHint => 'e.g. for a presentation';
+
+  @override
+  String get borrowPendingNote => 'The request awaits approval.';
+
+  @override
+  String get borrowSubmit => 'Submit';
+
+  @override
+  String get borrowSuccess => 'Loan request submitted';
+
+  @override
+  String get borrowError => 'Couldn\'t submit. Try again.';
 }

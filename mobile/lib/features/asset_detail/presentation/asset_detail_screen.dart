@@ -12,6 +12,7 @@ import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../data/asset_detail_repository.dart';
 import '../data/asset_dto.dart';
+import 'asset_action_bar.dart';
 import 'asset_by_tag_provider.dart';
 import 'asset_reference_names_provider.dart';
 
@@ -42,6 +43,10 @@ class AssetDetailScreen extends ConsumerWidget {
         .watch(assetReferenceNamesProvider(tag))
         .value;
 
+    // Bar aksi FR-M7 hanya saat detail termuat (butuh status + id aset); di
+    // luar sesi opname. Read-only murni bila pengguna tak punya aksi.
+    final AssetDto? loaded = state.value?.asset;
+
     return Scaffold(
       appBar: AppBar(title: Text(l10n.assetDetailTitle)),
       body: SafeArea(
@@ -56,6 +61,7 @@ class AssetDetailScreen extends ConsumerWidget {
           ),
         ),
       ),
+      bottomNavigationBar: loaded == null ? null : AssetActionBar(asset: loaded),
     );
   }
 }

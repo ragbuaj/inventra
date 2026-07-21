@@ -2365,6 +2365,84 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Anda tidak memiliki izin melihat pengajuan.'**
   String get myRequestsForbiddenBody;
+
+  /// Tombol aksi ajukan peminjaman di Detail Aset
+  ///
+  /// In id, this message translates to:
+  /// **'Pinjam'**
+  String get assetActionBorrow;
+
+  /// Tombol aksi check-out langsung (Manager) di Detail Aset
+  ///
+  /// In id, this message translates to:
+  /// **'Check-out'**
+  String get assetActionCheckout;
+
+  /// Tombol aksi check-in (Manager) di Detail Aset
+  ///
+  /// In id, this message translates to:
+  /// **'Check-in'**
+  String get assetActionCheckin;
+
+  /// Tombol aksi lapor kerusakan di Detail Aset
+  ///
+  /// In id, this message translates to:
+  /// **'Lapor Kerusakan'**
+  String get assetActionReportDamage;
+
+  /// Judul sheet ajukan peminjaman
+  ///
+  /// In id, this message translates to:
+  /// **'Ajukan Peminjaman'**
+  String get borrowSheetTitle;
+
+  /// Label field jatuh tempo peminjaman
+  ///
+  /// In id, this message translates to:
+  /// **'Jatuh tempo (opsional)'**
+  String get borrowDueDateLabel;
+
+  /// Placeholder tombol pemilih tanggal jatuh tempo
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih tanggal'**
+  String get borrowPickDate;
+
+  /// Label field catatan peminjaman
+  ///
+  /// In id, this message translates to:
+  /// **'Catatan (opsional)'**
+  String get borrowNotesLabel;
+
+  /// Placeholder field catatan peminjaman
+  ///
+  /// In id, this message translates to:
+  /// **'mis. keperluan presentasi'**
+  String get borrowNotesHint;
+
+  /// Keterangan bahwa peminjaman lewat approval
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan menunggu persetujuan.'**
+  String get borrowPendingNote;
+
+  /// Tombol kirim pengajuan peminjaman
+  ///
+  /// In id, this message translates to:
+  /// **'Ajukan'**
+  String get borrowSubmit;
+
+  /// SnackBar sukses ajukan peminjaman
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan peminjaman dikirim'**
+  String get borrowSuccess;
+
+  /// Pesan gagal ajukan peminjaman
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal mengajukan. Coba lagi.'**
+  String get borrowError;
 }
 
 class _AppLocalizationsDelegate

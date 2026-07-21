@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:inventra_mobile/app/router.dart';
 import 'package:inventra_mobile/core/auth/auth_controller.dart';
 import 'package:inventra_mobile/core/auth/auth_session.dart';
+import 'package:inventra_mobile/core/authz/permissions_provider.dart';
 import 'package:inventra_mobile/core/masterdata/reference_lookup_repository.dart';
 import 'package:inventra_mobile/features/account/data/account_repository.dart';
 import 'package:inventra_mobile/features/asset_detail/data/asset_detail_repository.dart';
@@ -39,6 +40,9 @@ void main() {
         assetDetailRepositoryProvider.overrideWithValue(
           _StubAssetDetailRepository(),
         ),
+        // Detail Aset kini merender AssetActionBar (FR-M7) yang membaca
+        // permissionsProvider — putus dari HTTP nyata (Set kosong = tanpa aksi).
+        permissionsProvider.overrideWith((ref) async => const <String>{}),
         // Lookup nama referensi diputus dari HTTP nyata (non-fatal, hasil
         // null berarti sel em-dash — cukup untuk asersi rute).
         referenceLookupRepositoryProvider.overrideWithValue(

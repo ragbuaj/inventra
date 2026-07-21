@@ -1717,5 +1717,57 @@
   "myRequestsForbiddenBody": "Anda tidak memiliki izin melihat pengajuan.",
   "@myRequestsForbiddenBody": {
     "description": "Body Pengajuan Saya saat 403"
+  },
+  "assetActionBorrow": "Pinjam",
+  "@assetActionBorrow": {
+    "description": "Tombol aksi ajukan peminjaman di Detail Aset"
+  },
+  "assetActionCheckout": "Check-out",
+  "@assetActionCheckout": {
+    "description": "Tombol aksi check-out langsung (Manager) di Detail Aset"
+  },
+  "assetActionCheckin": "Check-in",
+  "@assetActionCheckin": {
+    "description": "Tombol aksi check-in (Manager) di Detail Aset"
+  },
+  "assetActionReportDamage": "Lapor Kerusakan",
+  "@assetActionReportDamage": {
+    "description": "Tombol aksi lapor kerusakan di Detail Aset"
+  },
+  "borrowSheetTitle": "Ajukan Peminjaman",
+  "@borrowSheetTitle": {
+    "description": "Judul sheet ajukan peminjaman"
+  },
+  "borrowDueDateLabel": "Jatuh tempo (opsional)",
+  "@borrowDueDateLabel": {
+    "description": "Label field jatuh tempo peminjaman"
+  },
+  "borrowPickDate": "Pilih tanggal",
+  "@borrowPickDate": {
+    "description": "Placeholder tombol pemilih tanggal jatuh tempo"
+  },
+  "borrowNotesLabel": "Catatan (opsional)",
+  "@borrowNotesLabel": {
+    "description": "Label field catatan peminjaman"
+  },
+  "borrowNotesHint": "mis. keperluan presentasi",
+  "@borrowNotesHint": {
+    "description": "Placeholder field catatan peminjaman"
+  },
+  "borrowPendingNote": "Pengajuan menunggu persetujuan.",
+  "@borrowPendingNote": {
+    "description": "Keterangan bahwa peminjaman lewat approval"
+  },
+  "borrowSubmit": "Ajukan",
+  "@borrowSubmit": {
+    "description": "Tombol kirim pengajuan peminjaman"
+  },
+  "borrowSuccess": "Pengajuan peminjaman dikirim",
+  "@borrowSuccess": {
+    "description": "SnackBar sukses ajukan peminjaman"
+  },
+  "borrowError": "Gagal mengajukan. Coba lagi.",
+  "@borrowError": {
+    "description": "Pesan gagal ajukan peminjaman"
   }
 }

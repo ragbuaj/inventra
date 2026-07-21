@@ -1264,4 +1264,43 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get myRequestsForbiddenBody =>
       'Anda tidak memiliki izin melihat pengajuan.';
+
+  @override
+  String get assetActionBorrow => 'Pinjam';
+
+  @override
+  String get assetActionCheckout => 'Check-out';
+
+  @override
+  String get assetActionCheckin => 'Check-in';
+
+  @override
+  String get assetActionReportDamage => 'Lapor Kerusakan';
+
+  @override
+  String get borrowSheetTitle => 'Ajukan Peminjaman';
+
+  @override
+  String get borrowDueDateLabel => 'Jatuh tempo (opsional)';
+
+  @override
+  String get borrowPickDate => 'Pilih tanggal';
+
+  @override
+  String get borrowNotesLabel => 'Catatan (opsional)';
+
+  @override
+  String get borrowNotesHint => 'mis. keperluan presentasi';
+
+  @override
+  String get borrowPendingNote => 'Pengajuan menunggu persetujuan.';
+
+  @override
+  String get borrowSubmit => 'Ajukan';
+
+  @override
+  String get borrowSuccess => 'Pengajuan peminjaman dikirim';
+
+  @override
+  String get borrowError => 'Gagal mengajukan. Coba lagi.';
 }
