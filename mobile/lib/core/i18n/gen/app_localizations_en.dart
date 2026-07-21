@@ -1482,4 +1482,47 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get registerError => 'Couldn\'t send. Try again.';
+
+  @override
+  String get profileEmployeeDetailTitle => 'Employee Detail';
+
+  @override
+  String get profileEmployeeCode => 'Employee code';
+
+  @override
+  String get profileEmployeeStatus => 'Status';
+
+  @override
+  String get profileDepartment => 'Department';
+
+  @override
+  String get profilePosition => 'Position';
+
+  @override
+  String get profileNoEmployee =>
+      'This account is not linked to an employee record.';
+
+  @override
+  String get profileAccountInfoTitle => 'Account Info';
+
+  @override
+  String get profileEmail => 'Email';
+
+  @override
+  String get profilePhone => 'Phone';
+
+  @override
+  String get profileLoginMethod => 'Login method';
+
+  @override
+  String get profileLoginGoogle => 'Google';
+
+  @override
+  String get profileLoginEmail => 'Email & password';
+
+  @override
+  String get profileJoinedAt => 'Joined';
+
+  @override
+  String get profileDetailError => 'Couldn\'t load profile details.';
 }

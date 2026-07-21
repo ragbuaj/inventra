@@ -1482,4 +1482,46 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get registerError => 'Gagal mengirim. Coba lagi.';
+
+  @override
+  String get profileEmployeeDetailTitle => 'Detail Pegawai';
+
+  @override
+  String get profileEmployeeCode => 'Kode pegawai';
+
+  @override
+  String get profileEmployeeStatus => 'Status';
+
+  @override
+  String get profileDepartment => 'Departemen';
+
+  @override
+  String get profilePosition => 'Jabatan';
+
+  @override
+  String get profileNoEmployee => 'Akun ini tidak tertaut ke data pegawai.';
+
+  @override
+  String get profileAccountInfoTitle => 'Informasi Akun';
+
+  @override
+  String get profileEmail => 'Email';
+
+  @override
+  String get profilePhone => 'Telepon';
+
+  @override
+  String get profileLoginMethod => 'Metode login';
+
+  @override
+  String get profileLoginGoogle => 'Google';
+
+  @override
+  String get profileLoginEmail => 'Email & password';
+
+  @override
+  String get profileJoinedAt => 'Bergabung';
+
+  @override
+  String get profileDetailError => 'Gagal memuat detail profil.';
 }

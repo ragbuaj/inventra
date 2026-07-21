@@ -79,6 +79,46 @@ void main() {
     repository = AccountRepository(dio);
   });
 
+  group('getProfile', () {
+    test('GET /auth/profile: ProfileView terparse', () async {
+      when(() => dio.get<Map<String, dynamic>>('/auth/profile')).thenAnswer(
+        (_) async => _jsonResponse('/auth/profile', <String, dynamic>{
+          'id': 'u1',
+          'name': 'Andi Saputra',
+          'email': 'andi@x.local',
+          'phone': '0812',
+          'role_name': 'Asset Manager',
+          'office_name': 'Cabang Jakarta Selatan',
+          'employee_code': 'EMP-1',
+          'employee_status': 'Aktif',
+          'department_name': 'GA',
+          'position_name': 'Staf Aset',
+          'has_avatar': true,
+          'google_linked': false,
+          'joined_at': '2026-01-15T00:00:00Z',
+        }),
+      );
+
+      final profile = await repository.getProfile();
+      expect(profile.name, 'Andi Saputra');
+      expect(profile.employeeCode, 'EMP-1');
+      expect(profile.departmentName, 'GA');
+      expect(profile.hasEmployee, isTrue);
+      expect(profile.hasAvatar, isTrue);
+      expect(profile.googleLinked, isFalse);
+    });
+
+    test('offline: NetworkFailure', () async {
+      when(() => dio.get<Map<String, dynamic>>('/auth/profile')).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/auth/profile'),
+          type: DioExceptionType.connectionError,
+        ),
+      );
+      expect(() => repository.getProfile(), throwsA(isA<NetworkFailure>()));
+    });
+  });
+
   group('sessions', () {
     test('GET /auth/sessions: seluruh field SessionView terparse', () async {
       when(() => dio.get<Map<String, dynamic>>('/auth/sessions')).thenAnswer(

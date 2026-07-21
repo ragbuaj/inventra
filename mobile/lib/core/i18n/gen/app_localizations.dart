@@ -2797,6 +2797,90 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Gagal mengirim. Coba lagi.'**
   String get registerError;
+
+  /// Judul kartu detail pegawai
+  ///
+  /// In id, this message translates to:
+  /// **'Detail Pegawai'**
+  String get profileEmployeeDetailTitle;
+
+  /// Label kode pegawai
+  ///
+  /// In id, this message translates to:
+  /// **'Kode pegawai'**
+  String get profileEmployeeCode;
+
+  /// Label status pegawai
+  ///
+  /// In id, this message translates to:
+  /// **'Status'**
+  String get profileEmployeeStatus;
+
+  /// Label departemen
+  ///
+  /// In id, this message translates to:
+  /// **'Departemen'**
+  String get profileDepartment;
+
+  /// Label jabatan
+  ///
+  /// In id, this message translates to:
+  /// **'Jabatan'**
+  String get profilePosition;
+
+  /// Catatan akun tanpa pegawai
+  ///
+  /// In id, this message translates to:
+  /// **'Akun ini tidak tertaut ke data pegawai.'**
+  String get profileNoEmployee;
+
+  /// Judul kartu informasi akun
+  ///
+  /// In id, this message translates to:
+  /// **'Informasi Akun'**
+  String get profileAccountInfoTitle;
+
+  /// Label email
+  ///
+  /// In id, this message translates to:
+  /// **'Email'**
+  String get profileEmail;
+
+  /// Label telepon
+  ///
+  /// In id, this message translates to:
+  /// **'Telepon'**
+  String get profilePhone;
+
+  /// Label metode login
+  ///
+  /// In id, this message translates to:
+  /// **'Metode login'**
+  String get profileLoginMethod;
+
+  /// Nilai metode login Google
+  ///
+  /// In id, this message translates to:
+  /// **'Google'**
+  String get profileLoginGoogle;
+
+  /// Nilai metode login email
+  ///
+  /// In id, this message translates to:
+  /// **'Email & password'**
+  String get profileLoginEmail;
+
+  /// Label tanggal bergabung
+  ///
+  /// In id, this message translates to:
+  /// **'Bergabung'**
+  String get profileJoinedAt;
+
+  /// Pesan gagal memuat detail profil
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat detail profil.'**
+  String get profileDetailError;
 }
 
 class _AppLocalizationsDelegate

@@ -1500,8 +1500,15 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     (satu keputusan, dua tempat); (b) **golden** sheet check-out/check-in/lapor + layar registrasi;
 >     (c) **field referensi opsional** registrasi (brand/model/unit/vendor/ruangan). Backend
 >     `fix(security)` maker-view GET /requests/:id (M7-3) menunggu verifikasi CI (integrasi tak jalan
->     di Windows lokal). Berikutnya: **fase M8** (profil lengkap + keamanan akun) atau bereskan
->     deferral (mulai keputusan image_picker).
+>     di Windows lokal). **Fase M8 dimulai. Task M8-1 (Profil lengkap) LANDED**
+>     (`mobile/lib/features/account/`): `AccountRepository.getProfile` (`GET /auth/profile` ->
+>     `ProfileDto` plain) + `accountProfileProvider`; layar Profil ditambah kartu **Detail Pegawai**
+>     (kode/status/departemen/jabatan, atau catatan bila tak tertaut pegawai) + **Informasi Akun**
+>     (email/telepon/metode login/tanggal bergabung) — additive di atas kartu identitas + sesi yang
+>     ada. `FakeAccountRepository` diberi `getProfile`; golden Profil diregenerasi. Nol backend baru.
+>     Tes: 2 repo (parse, offline) + 2 widget (kartu terisi, akun tanpa pegawai); suite mobile 503.
+>     Berikutnya M8: **M8-2 (ubah data diri, `PUT /auth/profile`)** lalu M8-3 (avatar, butuh
+>     image_picker), M8-4 (keamanan akun), M8-5 (lupa password), M8-6 (verifikasi logout).
 
 ## ✅ Done
 

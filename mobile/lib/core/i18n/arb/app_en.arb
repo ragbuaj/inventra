@@ -449,5 +449,19 @@
   "registerCategoryRequired": "Pick a category first.",
   "registerOfficeRequired": "Pick an office first.",
   "registerSuccess": "Registration request submitted",
-  "registerError": "Couldn't send. Try again."
+  "registerError": "Couldn't send. Try again.",
+  "profileEmployeeDetailTitle": "Employee Detail",
+  "profileEmployeeCode": "Employee code",
+  "profileEmployeeStatus": "Status",
+  "profileDepartment": "Department",
+  "profilePosition": "Position",
+  "profileNoEmployee": "This account is not linked to an employee record.",
+  "profileAccountInfoTitle": "Account Info",
+  "profileEmail": "Email",
+  "profilePhone": "Phone",
+  "profileLoginMethod": "Login method",
+  "profileLoginGoogle": "Google",
+  "profileLoginEmail": "Email & password",
+  "profileJoinedAt": "Joined",
+  "profileDetailError": "Couldn't load profile details."
 }

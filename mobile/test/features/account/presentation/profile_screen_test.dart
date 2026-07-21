@@ -10,6 +10,7 @@ import 'package:inventra_mobile/core/masterdata/reference_lookup_repository.dart
 import 'package:inventra_mobile/core/utils/clock.dart';
 import 'package:inventra_mobile/core/widgets/app_skeleton.dart';
 import 'package:inventra_mobile/features/account/data/account_repository.dart';
+import 'package:inventra_mobile/features/account/data/profile_dto.dart';
 import 'package:inventra_mobile/features/account/data/session_dto.dart';
 import 'package:inventra_mobile/features/account/presentation/profile_screen.dart';
 
@@ -123,6 +124,43 @@ void main() {
     }
     return container;
   }
+
+  group('detail profil (GET /auth/profile)', () {
+    testWidgets('kartu Detail Pegawai + Informasi Akun terisi', (
+      WidgetTester tester,
+    ) async {
+      await pumpProfile(
+        tester,
+        FakeAccountRepository(sessions: _threeSessions()),
+      );
+
+      expect(find.text(l10nId.profileEmployeeDetailTitle), findsOneWidget);
+      expect(find.text('EMP-001'), findsOneWidget);
+      expect(find.text('Umum & GA'), findsOneWidget);
+      expect(find.text('Staf Aset'), findsOneWidget);
+      expect(find.text(l10nId.profileAccountInfoTitle), findsOneWidget);
+      expect(find.text('andi@inventra.local'), findsOneWidget);
+      expect(find.text(l10nId.profileLoginEmail), findsOneWidget);
+    });
+
+    testWidgets('akun tanpa pegawai: catatan, bukan grid kosong', (
+      WidgetTester tester,
+    ) async {
+      await pumpProfile(
+        tester,
+        FakeAccountRepository(
+          sessions: _threeSessions(),
+          profile: const ProfileDto(
+            id: 'u2',
+            name: 'Admin',
+            email: 'admin@inventra.local',
+          ),
+        ),
+      );
+
+      expect(find.text(l10nId.profileNoEmployee), findsOneWidget);
+    });
+  });
 
   group('kartu identitas', () {
     testWidgets('nama, email, inisial avatar, dan kantor (lookup)', (

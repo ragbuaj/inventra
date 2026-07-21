@@ -2,7 +2,24 @@ import 'dart:typed_data';
 
 import 'package:inventra_mobile/core/api/app_failure.dart';
 import 'package:inventra_mobile/features/account/data/account_repository.dart';
+import 'package:inventra_mobile/features/account/data/profile_dto.dart';
 import 'package:inventra_mobile/features/account/data/session_dto.dart';
+
+/// Profil default untuk tes (akun tertaut pegawai).
+final ProfileDto fakeProfile = ProfileDto(
+  id: 'user-1',
+  name: 'Andi Saputra',
+  email: 'andi@inventra.local',
+  phone: '0812-3456-7890',
+  roleName: 'Asset Manager',
+  officeName: 'Cabang Jakarta Selatan',
+  employeeName: 'Andi Saputra',
+  employeeCode: 'EMP-001',
+  employeeStatus: 'Aktif',
+  departmentName: 'Umum & GA',
+  positionName: 'Staf Aset',
+  joinedAt: DateTime(2026, 1, 15),
+);
 
 /// Sesi "perangkat ini" default untuk tes yang hanya butuh daftar valid.
 final SessionDto fakeCurrentSession = SessionDto(
@@ -27,15 +44,20 @@ class FakeAccountRepository implements AccountRepository {
     this.failSessions = false,
     this.failRevoke = false,
     this.failRevokeOthers = false,
+    this.failProfile = false,
     this.avatarBytes,
+    ProfileDto? profile,
   }) : sessionsData = List<SessionDto>.of(
          sessions ?? <SessionDto>[fakeCurrentSession],
-       );
+       ),
+       profileData = profile ?? fakeProfile;
 
   final List<SessionDto> sessionsData;
+  final ProfileDto profileData;
   bool failSessions;
   bool failRevoke;
   bool failRevokeOthers;
+  bool failProfile;
   Uint8List? avatarBytes;
 
   final List<String> revokeCalls = <String>[];
@@ -69,6 +91,14 @@ class FakeAccountRepository implements AccountRepository {
     final int before = sessionsData.length;
     sessionsData.removeWhere((SessionDto session) => !session.current);
     return before - sessionsData.length;
+  }
+
+  @override
+  Future<ProfileDto> getProfile() async {
+    if (failProfile) {
+      throw const NetworkFailure();
+    }
+    return profileData;
   }
 
   @override

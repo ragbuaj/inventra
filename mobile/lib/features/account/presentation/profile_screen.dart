@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../app/theme.dart';
@@ -13,6 +14,7 @@ import '../../../core/i18n/gen/app_localizations.dart';
 import '../../../core/utils/clock.dart';
 import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/confirm_dialog.dart';
+import '../data/profile_dto.dart';
 import '../data/session_dto.dart';
 import 'account_providers.dart';
 import 'session_presentation.dart';
@@ -147,6 +149,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 children: <Widget>[
                   const _IdentityCard(),
                   const SizedBox(height: 14),
+                  const _ProfileDetailCards(),
+                  const SizedBox(height: 14),
                   ...sessions.when(
                     data: (List<SessionDto> data) => _sessionsContent(data),
                     loading: () => const <Widget>[_SessionsSkeleton()],
@@ -226,6 +230,167 @@ String profileInitials(String name) {
 /// Deviasi tercatat: badge nama peran mockup ("Asset Manager") tidak dirender
 /// — endpoint roles berada di grup authzadmin yang menolak audience mobile
 /// (alasan yang sama dengan header Beranda).
+/// Kartu Detail Pegawai + Informasi Akun dari `GET /auth/profile` (FR-M6.1).
+class _ProfileDetailCards extends ConsumerWidget {
+  const _ProfileDetailCards();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final String localeName = Localizations.localeOf(context).languageCode;
+    final AsyncValue<ProfileDto> profile = ref.watch(accountProfileProvider);
+
+    return profile.when(
+      loading: () => const _ProfileCard(
+        rows: <(String, String)>[],
+        loading: true,
+      ),
+      error: (Object e, StackTrace s) => _ProfileCard(
+        rows: const <(String, String)>[],
+        onRetry: () => ref.invalidate(accountProfileProvider),
+      ),
+      data: (ProfileDto p) {
+        final String joined = p.joinedAt == null
+            ? '—'
+            : DateFormat('d MMM y', localeName).format(p.joinedAt!);
+        return Column(
+          children: <Widget>[
+            _ProfileCard(
+              title: l10n.profileEmployeeDetailTitle,
+              emptyNote: p.hasEmployee ? null : l10n.profileNoEmployee,
+              rows: <(String, String)>[
+                (l10n.profileEmployeeCode, p.employeeCode ?? '—'),
+                (l10n.profileEmployeeStatus, p.employeeStatus ?? '—'),
+                (l10n.profileDepartment, p.departmentName ?? '—'),
+                (l10n.profilePosition, p.positionName ?? '—'),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _ProfileCard(
+              title: l10n.profileAccountInfoTitle,
+              rows: <(String, String)>[
+                (l10n.profileEmail, p.email),
+                (l10n.profilePhone, p.phone ?? '—'),
+                (
+                  l10n.profileLoginMethod,
+                  p.googleLinked ? l10n.profileLoginGoogle : l10n.profileLoginEmail,
+                ),
+                (l10n.profileJoinedAt, joined),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Kartu berjudul berisi baris label:value; mendukung state loading & error.
+class _ProfileCard extends StatelessWidget {
+  const _ProfileCard({
+    required this.rows,
+    this.title,
+    this.emptyNote,
+    this.loading = false,
+    this.onRetry,
+  });
+
+  final List<(String, String)> rows;
+  final String? title;
+  final String? emptyNote;
+  final bool loading;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
+    final AppLocalizations l10n = AppLocalizations.of(context);
+
+    Widget body;
+    if (loading) {
+      body = const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          children: <Widget>[
+            AppSkeleton(height: 12, borderRadius: 6),
+            SizedBox(height: 10),
+            AppSkeleton(height: 12, borderRadius: 6),
+          ],
+        ),
+      );
+    } else if (onRetry != null) {
+      body = Row(
+        children: <Widget>[
+          Expanded(child: Text(l10n.profileDetailError)),
+          TextButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
+        ],
+      );
+    } else if (emptyNote != null) {
+      body = Text(
+        emptyNote!,
+        style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+      );
+    } else {
+      body = Column(
+        children: <Widget>[
+          for (final (String, String) row in rows)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  SizedBox(
+                    width: 120,
+                    child: Text(
+                      row.$1,
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      row.$2,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color ?? scheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          if (title != null) ...<Widget>[
+            Text(
+              title!,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 12),
+          ],
+          body,
+        ],
+      ),
+    );
+  }
+}
+
 class _IdentityCard extends ConsumerWidget {
   const _IdentityCard();
 

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/app_failure.dart';
 import '../../../core/api/dio_provider.dart';
 import '../../../core/api/error_mapper.dart';
+import 'profile_dto.dart';
 import 'session_dto.dart';
 
 /// Repository layar Profil (kontrak backend/api/openapi.yaml):
@@ -21,6 +22,18 @@ class AccountRepository {
   AccountRepository(this._dio);
 
   final Dio _dio;
+
+  /// Profil lengkap pemanggil (`GET /auth/profile`): metadata akun + detail
+  /// pegawai tertaut. Melempar AppFailure via toAppFailure() saat DioException.
+  Future<ProfileDto> getProfile() async {
+    try {
+      final Response<Map<String, dynamic>> response = await _dio
+          .get<Map<String, dynamic>>('/auth/profile');
+      return ProfileDto.fromJson(response.data!);
+    } on DioException catch (err) {
+      throw err.toAppFailure();
+    }
+  }
 
   /// Seluruh sesi aktif milik pemanggil (`GET /auth/sessions`).
   Future<List<SessionDto>> sessions() async {
