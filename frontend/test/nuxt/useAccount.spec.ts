@@ -1,19 +1,23 @@
 // @vitest-environment nuxt
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 
 // ---------------------------------------------------------------------------
 // Mock the underlying HTTP client (same idiom as use-dashboard.spec.ts) so
 // getProfile/updateProfile/requestEmailChange/requestPasswordChange never hit
 // the real backend at :8080. The public confirm-email endpoint goes through
-// raw `$fetch` (same pattern as requestPasswordReset/resetPassword), so that
-// global is stubbed separately below.
+// raw `$fetch` (same pattern as requestPasswordReset/resetPassword). Since
+// Nuxt 4.5 auto-imports `$fetch` (nuxt/nuxt#35581) the composable uses the
+// imported binding, so stubbing globalThis alone no longer intercepts it —
+// mock the auto-import too (and keep the global stub as a belt-and-braces).
 // ---------------------------------------------------------------------------
 const requestMock = vi.fn()
 vi.mock('~/composables/useApiClient', () => ({
   useApiClient: () => ({ request: requestMock, requestBlob: vi.fn(), refreshToken: vi.fn() })
 }))
 
-const fetchMock = vi.fn((_url?: string, _opts?: Record<string, unknown>) => Promise.resolve({} as unknown))
+const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn((_url?: string, _opts?: Record<string, unknown>) => Promise.resolve({} as unknown)) }))
+mockNuxtImport('$fetch', () => fetchMock)
 vi.stubGlobal('$fetch', fetchMock)
 
 // eslint-disable-next-line import/first
