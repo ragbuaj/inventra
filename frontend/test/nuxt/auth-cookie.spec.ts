@@ -5,13 +5,17 @@ import { defineComponent } from 'vue'
 import { useApiClient } from '~/composables/useApiClient'
 import { useAuthApi } from '~/composables/useAuthApi'
 
-const fetchMock = vi.fn((url: string) => {
+// Nuxt 4.5 auto-imports `$fetch` (nuxt/nuxt#35581), so the composables use the
+// imported binding rather than globalThis.$fetch — mock the auto-import (and
+// keep the global stub as a belt-and-braces so both resolution paths hit it).
+const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn((url: string) => {
   const u = String(url)
   if (u.includes('/auth/login') || u.includes('/auth/refresh')) return Promise.resolve({ access_token: 'acc' })
   if (u.includes('/auth/permissions')) return Promise.resolve({ permissions: [] })
   if (u.includes('/auth/logout')) return Promise.resolve({ status: 'logged_out' })
   return Promise.resolve({ id: '1', name: 'A', email: 'a@b.com', role_id: 'r' }) // /auth/me
-})
+}) }))
+mockNuxtImport('$fetch', () => fetchMock)
 vi.stubGlobal('$fetch', fetchMock)
 mockNuxtImport('navigateTo', () => vi.fn())
 
