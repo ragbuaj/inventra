@@ -179,8 +179,9 @@ valid, variasi permission):
   (menambahkannya = keputusan produk + backend baru).
 - **QM7-3 (resolved)** — Beranda (5.2) diupdate: aksi cepat menambah Katalog, Aset Saya, Pengajuan
   Saya (prompt edit DESIGN_BRIEF 5.2). Bottom nav tetap 5 slot.
-- **QM7-4 (open)** — Check-in butuh **id assignment aktif** aset. Konfirmasi apakah respons detail
-  aset (`GET /assets/by-tag/:tag` / `GET /assets/:id`) sudah memuat id penugasan aktif; bila tidak,
-  ambil via `GET /assets/:id/assignments` (butuh `assignment.view`, yang Manager punya). Verifikasi
-  sebelum membangun sheet Check-in. Check-in ditambahkan ke scope M7 atas keputusan pemilik produk
-  2026-07-21.
+- **QM7-4 (resolved)** — Detail aset hanya mengekspos `current_holder_employee_id`, **bukan** id
+  assignment. Sheet Check-in mengambil `GET /assets/:id/assignments` (Manager punya `assignment.view`)
+  lalu memilih penugasan aktif (`checkin_date` null) untuk `POST /assignments/:id/checkin`. Nol backend
+  baru. Check-in ditambahkan ke scope M7 atas keputusan pemilik produk 2026-07-21.
+- **QM7-catalog (resolved)** — `GET /assets` mendukung `search`/`category_id`/`office_filter`/
+  `status`/`asset_class` + paginasi + data-scope; cukup untuk Katalog.

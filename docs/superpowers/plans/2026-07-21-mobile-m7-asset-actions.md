@@ -20,13 +20,14 @@ dulu (DESIGN_BRIEF 5.13-5.18 + edit 5.2/5.4), lalu bangun 1:1, lalu bandingkan s
 - Nol dependensi baru diharapkan (image picker untuk lampiran Lapor Kerusakan: cek apakah sudah ada;
   bila belum, tambah — satu-satunya kandidat dependensi, tanya dulu).
 
-## Prasyarat (Phase 0)
+## Prasyarat (Phase 0) — SELESAI 2026-07-21
 
-- [ ] Mockup di-generate dari DESIGN_BRIEF (5.13-5.18 baru; 5.2 & 5.4 edit) ke `docs/mobile/design/`.
-- [ ] Konfirmasi `GET /assets` mendukung param filter (kategori/status/kantor) + search + paginasi
-      yang dibutuhkan Katalog; bila kurang, itu jadi temuan (spec asumsi cukup).
-- [ ] QM7-4: konfirmasi sumber **id assignment aktif** untuk Check-in (detail aset vs
-      `GET /assets/:id/assignments`).
+- [x] Mockup di-generate ke `docs/mobile/design/` (12 layar baru/edit, commit `6fab887`); verifikasi
+      Check-in + tanpa kapitalisasi lolos.
+- [x] `GET /assets` mendukung `search`/`category_id`/`office_filter`/`status`/`asset_class` + paginasi
+      + data-scope — cukup untuk Katalog.
+- [x] QM7-4: id assignment aktif TIDAK ada di detail aset (hanya `current_holder_employee_id`); sheet
+      Check-in ambil `GET /assets/:id/assignments` lalu pilih `checkin_date` null. Nol backend baru.
 
 ### Checkpoint: Phase 0
 - [ ] Mockup keenam layar baru + dua edit tersedia; review 1:1 sebagai acuan.
