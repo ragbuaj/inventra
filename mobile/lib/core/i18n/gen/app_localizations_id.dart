@@ -1014,6 +1014,18 @@ class AppLocalizationsId extends AppLocalizations {
   String get homeQuickNotifications => 'Notifikasi';
 
   @override
+  String get homeQuickCatalog => 'Katalog';
+
+  @override
+  String get homeQuickMyAssets => 'Aset Saya';
+
+  @override
+  String get homeQuickMyRequests => 'Pengajuan';
+
+  @override
+  String get homeQuickRegister => 'Registrasi';
+
+  @override
   String get notificationsMarkAllRead => 'Tandai semua dibaca';
 
   @override

@@ -1015,6 +1015,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeQuickNotifications => 'Notifications';
 
   @override
+  String get homeQuickCatalog => 'Catalog';
+
+  @override
+  String get homeQuickMyAssets => 'My Assets';
+
+  @override
+  String get homeQuickMyRequests => 'Requests';
+
+  @override
+  String get homeQuickRegister => 'Register';
+
+  @override
   String get notificationsMarkAllRead => 'Mark all as read';
 
   @override

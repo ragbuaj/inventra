@@ -1491,8 +1491,17 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     (brand/model/unit/vendor/ruangan) ditunda; golden layar registrasi belum dibuat. Rute
 >     `/register-asset` (entry Katalog/Beranda = M7-8). Nol backend baru. Tes: 3 repo (payload +
 >     amount==cost + tanpa harga) + 3 widget (alur lengkap, validasi nama, numerik-only); suite mobile
->     499 lulus. Berikutnya M7: **M7-8 (titik masuk Beranda** + entry Registrasi/Katalog/Aset
->     Saya/Pengajuan Saya) — penutup fase M7.
+>     499 lulus. **Task M7-8 (titik masuk Beranda) LANDED** — `_QuickActions` jadi 2 baris (8 aksi):
+>     4 lama (Scan/Opname/Approval/Notifikasi) + 4 FR-M7 (Katalog `/catalog`, Aset Saya `/my-assets`,
+>     Pengajuan Saya `/my-requests`, Registrasi `/register-asset`). Golden Beranda diregenerasi; tes
+>     label diperluas ke 8. Nol backend baru; suite mobile 499.
+>     **>> FASE M7 (katalog + aksi aset) TUNTAS <<** (M7-1..M7-8). Deferral tercatat (sengaja, perlu
+>     keputusan): (a) **foto** Lapor Kerusakan + **avatar** M8 -> butuh dependensi `image_picker`
+>     (satu keputusan, dua tempat); (b) **golden** sheet check-out/check-in/lapor + layar registrasi;
+>     (c) **field referensi opsional** registrasi (brand/model/unit/vendor/ruangan). Backend
+>     `fix(security)` maker-view GET /requests/:id (M7-3) menunggu verifikasi CI (integrasi tak jalan
+>     di Windows lokal). Berikutnya: **fase M8** (profil lengkap + keamanan akun) atau bereskan
+>     deferral (mulai keputusan image_picker).
 
 ## ✅ Done
 

@@ -1928,6 +1928,30 @@ abstract class AppLocalizations {
   /// **'Notifikasi'**
   String get homeQuickNotifications;
 
+  /// Label quick action katalog aset
+  ///
+  /// In id, this message translates to:
+  /// **'Katalog'**
+  String get homeQuickCatalog;
+
+  /// Label quick action aset saya
+  ///
+  /// In id, this message translates to:
+  /// **'Aset Saya'**
+  String get homeQuickMyAssets;
+
+  /// Label quick action pengajuan saya
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan'**
+  String get homeQuickMyRequests;
+
+  /// Label quick action registrasi aset
+  ///
+  /// In id, this message translates to:
+  /// **'Registrasi'**
+  String get homeQuickRegister;
+
   /// Aksi header feed: tandai seluruh notifikasi dibaca
   ///
   /// In id, this message translates to:

@@ -250,7 +250,9 @@ void main() {
       },
     );
 
-    testWidgets('quick actions: empat label tile', (WidgetTester tester) async {
+    testWidgets('quick actions: delapan label tile (4 lama + 4 FR-M7)', (
+      WidgetTester tester,
+    ) async {
       stubPending(_pendingPage(const <RequestDto>[], total: 0));
       await pumpHome(tester);
       await tester.pumpAndSettle();
@@ -259,6 +261,11 @@ void main() {
       expect(find.text(l10nId.homeQuickOpname), findsOneWidget);
       expect(find.text(l10nId.homeQuickApproval), findsOneWidget);
       expect(find.text(l10nId.homeQuickNotifications), findsOneWidget);
+      // FR-M7 (M7-8): destinasi baru.
+      expect(find.text(l10nId.homeQuickCatalog), findsOneWidget);
+      expect(find.text(l10nId.homeQuickMyAssets), findsOneWidget);
+      expect(find.text(l10nId.homeQuickMyRequests), findsOneWidget);
+      expect(find.text(l10nId.homeQuickRegister), findsOneWidget);
     });
 
     testWidgets('offline: banner + pill kartu opname offline', (

@@ -1373,6 +1373,14 @@
   "@homeQuickNotifications": {
     "description": "Label quick action tab notifikasi"
   },
+  "homeQuickCatalog": "Katalog",
+  "@homeQuickCatalog": { "description": "Label quick action katalog aset" },
+  "homeQuickMyAssets": "Aset Saya",
+  "@homeQuickMyAssets": { "description": "Label quick action aset saya" },
+  "homeQuickMyRequests": "Pengajuan",
+  "@homeQuickMyRequests": { "description": "Label quick action pengajuan saya" },
+  "homeQuickRegister": "Registrasi",
+  "@homeQuickRegister": { "description": "Label quick action registrasi aset" },
   "notificationsMarkAllRead": "Tandai semua dibaca",
   "@notificationsMarkAllRead": {
     "description": "Aksi header feed: tandai seluruh notifikasi dibaca"
