@@ -1370,4 +1370,34 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get checkinNoActive => 'Tidak ada penugasan aktif untuk aset ini.';
+
+  @override
+  String get reportSheetTitle => 'Lapor Kerusakan';
+
+  @override
+  String get reportCategoryLabel => 'Kategori masalah';
+
+  @override
+  String get reportCategoryHint => 'Pilih kategori';
+
+  @override
+  String get reportCategoryRequired => 'Pilih kategori masalah dulu.';
+
+  @override
+  String get reportDescriptionLabel => 'Deskripsi (opsional)';
+
+  @override
+  String get reportDescriptionHint => 'mis. layar retak, tidak menyala';
+
+  @override
+  String get reportPendingNote => 'Diproses sebagai pengajuan maintenance.';
+
+  @override
+  String get reportSubmit => 'Kirim Laporan';
+
+  @override
+  String get reportSuccess => 'Laporan kerusakan dikirim';
+
+  @override
+  String get reportError => 'Gagal mengirim. Coba lagi.';
 }

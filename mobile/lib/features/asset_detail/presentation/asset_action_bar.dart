@@ -10,14 +10,14 @@ import '../data/asset_dto.dart';
 import 'asset_by_tag_provider.dart';
 import 'asset_actions.dart';
 
-/// Aksi FR-M7 yang SUDAH terpasang UI-nya. Bertambah per fase: M7-4 Peminjaman;
-/// M7-5 Check-out & Check-in; Lapor Kerusakan (M7-6) menyusul — [assetActionsFor]
-/// sudah menghitung semuanya, tapi hanya yang di sini yang dirender agar tidak
-/// ada tombol tanpa aksi.
+/// Aksi FR-M7 yang SUDAH terpasang UI-nya (kini lengkap: M7-4 Peminjaman, M7-5
+/// Check-out & Check-in, M7-6 Lapor Kerusakan). [assetActionsFor] menghitung
+/// aksi per permission x status; hanya yang ada di sini yang dirender.
 const Set<AssetAction> _implementedActions = <AssetAction>{
   AssetAction.borrow,
   AssetAction.checkout,
   AssetAction.checkin,
+  AssetAction.reportDamage,
 };
 
 /// Bar aksi sticky di kaki Detail Aset (di luar sesi opname). Tombol muncul
@@ -32,9 +32,10 @@ class AssetActionBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final Set<String> permissions =
         ref.watch(permissionsProvider).value ?? const <String>{};
-    final List<AssetAction> actions = assetActionsFor(permissions, asset.status)
-        .where(_implementedActions.contains)
-        .toList();
+    final List<AssetAction> actions = assetActionsFor(
+      permissions,
+      asset.status,
+    ).where(_implementedActions.contains).toList();
     if (actions.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -54,12 +55,15 @@ class AssetActionBar extends ConsumerWidget {
               for (final AssetAction action in actions) ...<Widget>[
                 if (action != actions.first) const SizedBox(width: 10),
                 Expanded(
-                  child: FilledButton.icon(
+                  child: FilledButton(
                     onPressed: () => _onAction(context, ref, action),
-                    icon: Icon(_actionIcon(action), size: 18),
-                    label: Text(_actionLabel(l10n, action)),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(0, 48),
+                    ),
+                    child: Text(
+                      _actionLabel(l10n, action),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),
@@ -95,9 +99,204 @@ class AssetActionBar extends ConsumerWidget {
           builder: (BuildContext context) => _CheckinSheet(asset: asset),
         );
       case AssetAction.reportDamage:
-        // Belum dirender (lihat _implementedActions).
-        break;
+        showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          showDragHandle: true,
+          builder: (BuildContext context) => _ReportDamageSheet(asset: asset),
+        );
     }
+  }
+}
+
+/// Sheet Lapor Kerusakan: kategori masalah (wajib) + deskripsi (opsional) lalu
+/// `POST /maintenance/reports` (multipart). Lampiran foto menyusul (butuh image
+/// picker). Membuat pengajuan `maintenance` via approval.
+class _ReportDamageSheet extends ConsumerStatefulWidget {
+  const _ReportDamageSheet({required this.asset});
+
+  final AssetDto asset;
+
+  @override
+  ConsumerState<_ReportDamageSheet> createState() => _ReportDamageSheetState();
+}
+
+class _ReportDamageSheetState extends ConsumerState<_ReportDamageSheet> {
+  final TextEditingController _description = TextEditingController();
+  late Future<List<ProblemCategory>> _categories;
+  String? _categoryId;
+  bool _submitting = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _categories = ref.read(assetActionRepositoryProvider).problemCategories();
+  }
+
+  @override
+  void dispose() {
+    _description.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    if (_categoryId == null) {
+      setState(() => _error = l10n.reportCategoryRequired);
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(assetActionRepositoryProvider)
+          .reportDamage(
+            assetId: widget.asset.id ?? '',
+            problemCategoryId: _categoryId!,
+            description: _description.text,
+          );
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.reportSuccess)));
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _submitting = false;
+        _error = l10n.reportError;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final ThemeData theme = Theme.of(context);
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        0,
+        20,
+        20 + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            l10n.reportSheetTitle,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            widget.asset.name ?? l10n.catalogUnnamedAsset,
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 16),
+          Text(l10n.reportCategoryLabel, style: theme.textTheme.labelLarge),
+          const SizedBox(height: 6),
+          FutureBuilder<List<ProblemCategory>>(
+            future: _categories,
+            builder:
+                (
+                  BuildContext context,
+                  AsyncSnapshot<List<ProblemCategory>> snapshot,
+                ) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
+                        ),
+                      ),
+                    );
+                  }
+                  final List<ProblemCategory> options =
+                      snapshot.data ?? const <ProblemCategory>[];
+                  if (options.isEmpty) {
+                    return Text(
+                      l10n.catalogFilterNoOptions,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    );
+                  }
+                  return DropdownButtonFormField<String>(
+                    initialValue: _categoryId,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      hintText: l10n.reportCategoryHint,
+                      isDense: true,
+                    ),
+                    items: <DropdownMenuItem<String>>[
+                      for (final ProblemCategory c in options)
+                        DropdownMenuItem<String>(
+                          value: c.id,
+                          child: Text(c.name),
+                        ),
+                    ],
+                    onChanged: _submitting
+                        ? null
+                        : (String? v) => setState(() => _categoryId = v),
+                  );
+                },
+          ),
+          const SizedBox(height: 14),
+          Text(l10n.reportDescriptionLabel, style: theme.textTheme.labelLarge),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _description,
+            enabled: !_submitting,
+            minLines: 2,
+            maxLines: 4,
+            decoration: InputDecoration(hintText: l10n.reportDescriptionHint),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.reportPendingNote,
+            style: TextStyle(
+              fontSize: 12,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          if (_error != null) ...<Widget>[
+            const SizedBox(height: 8),
+            Text(
+              _error!,
+              style: TextStyle(color: theme.colorScheme.error, fontSize: 13),
+            ),
+          ],
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: _submitting ? null : _submit,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+            ),
+            child: _submitting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.5),
+                  )
+                : Text(l10n.reportSubmit),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -107,15 +306,6 @@ String _actionLabel(AppLocalizations l10n, AssetAction action) {
     AssetAction.checkout => l10n.assetActionCheckout,
     AssetAction.checkin => l10n.assetActionCheckin,
     AssetAction.reportDamage => l10n.assetActionReportDamage,
-  };
-}
-
-IconData _actionIcon(AssetAction action) {
-  return switch (action) {
-    AssetAction.borrow => Symbols.handshake_rounded,
-    AssetAction.checkout => Symbols.logout_rounded,
-    AssetAction.checkin => Symbols.login_rounded,
-    AssetAction.reportDamage => Symbols.build_rounded,
   };
 }
 
@@ -266,7 +456,9 @@ class _BorrowSheetState extends ConsumerState<_BorrowSheet> {
           const SizedBox(height: 16),
           FilledButton(
             onPressed: _submitting ? null : _submit,
-            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+            ),
             child: _submitting
                 ? const SizedBox(
                     width: 20,
@@ -465,7 +657,10 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
               ),
             ),
             const SizedBox(height: 12),
-            Text(l10n.checkoutConditionLabel, style: theme.textTheme.labelLarge),
+            Text(
+              l10n.checkoutConditionLabel,
+              style: theme.textTheme.labelLarge,
+            ),
             const SizedBox(height: 6),
             TextField(
               controller: _condition,
@@ -687,10 +882,16 @@ class _CheckinSheetState extends ConsumerState<_CheckinSheet> {
                     style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 12),
-                  Text(l10n.checkinHolderLabel, style: theme.textTheme.labelLarge),
+                  Text(
+                    l10n.checkinHolderLabel,
+                    style: theme.textTheme.labelLarge,
+                  ),
                   Text(active.holderName ?? '—'),
                   const SizedBox(height: 14),
-                  Text(l10n.checkinConditionLabel, style: theme.textTheme.labelLarge),
+                  Text(
+                    l10n.checkinConditionLabel,
+                    style: theme.textTheme.labelLarge,
+                  ),
                   const SizedBox(height: 6),
                   Row(
                     children: <Widget>[
@@ -712,7 +913,10 @@ class _CheckinSheetState extends ConsumerState<_CheckinSheet> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Text(l10n.checkinNotesLabel, style: theme.textTheme.labelLarge),
+                  Text(
+                    l10n.checkinNotesLabel,
+                    style: theme.textTheme.labelLarge,
+                  ),
                   const SizedBox(height: 6),
                   TextField(
                     controller: _condition,

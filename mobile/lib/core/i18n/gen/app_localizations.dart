@@ -2575,6 +2575,66 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Tidak ada penugasan aktif untuk aset ini.'**
   String get checkinNoActive;
+
+  /// Judul sheet lapor kerusakan
+  ///
+  /// In id, this message translates to:
+  /// **'Lapor Kerusakan'**
+  String get reportSheetTitle;
+
+  /// Label picker kategori masalah
+  ///
+  /// In id, this message translates to:
+  /// **'Kategori masalah'**
+  String get reportCategoryLabel;
+
+  /// Placeholder dropdown kategori masalah
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih kategori'**
+  String get reportCategoryHint;
+
+  /// Validasi kategori masalah wajib
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih kategori masalah dulu.'**
+  String get reportCategoryRequired;
+
+  /// Label deskripsi kerusakan
+  ///
+  /// In id, this message translates to:
+  /// **'Deskripsi (opsional)'**
+  String get reportDescriptionLabel;
+
+  /// Placeholder deskripsi kerusakan
+  ///
+  /// In id, this message translates to:
+  /// **'mis. layar retak, tidak menyala'**
+  String get reportDescriptionHint;
+
+  /// Keterangan lapor kerusakan lewat approval
+  ///
+  /// In id, this message translates to:
+  /// **'Diproses sebagai pengajuan maintenance.'**
+  String get reportPendingNote;
+
+  /// Tombol kirim laporan kerusakan
+  ///
+  /// In id, this message translates to:
+  /// **'Kirim Laporan'**
+  String get reportSubmit;
+
+  /// SnackBar sukses lapor kerusakan
+  ///
+  /// In id, this message translates to:
+  /// **'Laporan kerusakan dikirim'**
+  String get reportSuccess;
+
+  /// Pesan gagal lapor kerusakan
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal mengirim. Coba lagi.'**
+  String get reportError;
 }
 
 class _AppLocalizationsDelegate

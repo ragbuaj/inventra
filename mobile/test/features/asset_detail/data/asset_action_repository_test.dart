@@ -192,6 +192,68 @@ void main() {
     });
   });
 
+  test('problemCategories: parse id + name', () async {
+    when(
+      () => dio.get<Map<String, dynamic>>(
+        '/problem-categories',
+        queryParameters: any(named: 'queryParameters'),
+      ),
+    ).thenAnswer(
+      (_) async => Response<Map<String, dynamic>>(
+        requestOptions: RequestOptions(path: '/problem-categories'),
+        statusCode: 200,
+        data: <String, dynamic>{
+          'data': <Map<String, dynamic>>[
+            <String, dynamic>{'id': 'pc-1', 'name': 'Layar Rusak'},
+          ],
+        },
+      ),
+    );
+
+    final result = await repository.problemCategories();
+    expect(result.single.id, 'pc-1');
+    expect(result.single.name, 'Layar Rusak');
+  });
+
+  test('reportDamage: multipart FormData (asset/category/description trim)', () async {
+    when(
+      () => dio.post<Map<String, dynamic>>(
+        '/maintenance/reports',
+        data: any(named: 'data'),
+      ),
+    ).thenAnswer(
+      (_) async => Response<Map<String, dynamic>>(
+        requestOptions: RequestOptions(path: '/maintenance/reports'),
+        statusCode: 201,
+        data: <String, dynamic>{'id': 'req-1'},
+      ),
+    );
+
+    await repository.reportDamage(
+      assetId: 'asset-1',
+      problemCategoryId: 'pc-1',
+      description: '  layar retak  ',
+    );
+
+    final Object? data =
+        verify(
+          () => dio.post<Map<String, dynamic>>(
+            '/maintenance/reports',
+            data: captureAny(named: 'data'),
+          ),
+        ).captured.single;
+    expect(data, isA<FormData>());
+    final Map<String, String> fields = <String, String>{
+      for (final MapEntry<String, String> e in (data as FormData).fields)
+        e.key: e.value,
+    };
+    expect(fields, <String, String>{
+      'asset_id': 'asset-1',
+      'problem_category_id': 'pc-1',
+      'description': 'layar retak',
+    });
+  });
+
   test('searchEmployees: query search/limit + parse', () async {
     when(
       () => dio.get<Map<String, dynamic>>(

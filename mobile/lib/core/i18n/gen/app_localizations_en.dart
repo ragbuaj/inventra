@@ -1370,4 +1370,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get checkinNoActive => 'No active assignment for this asset.';
+
+  @override
+  String get reportSheetTitle => 'Report Damage';
+
+  @override
+  String get reportCategoryLabel => 'Problem category';
+
+  @override
+  String get reportCategoryHint => 'Pick a category';
+
+  @override
+  String get reportCategoryRequired => 'Pick a problem category first.';
+
+  @override
+  String get reportDescriptionLabel => 'Description (optional)';
+
+  @override
+  String get reportDescriptionHint => 'e.g. cracked screen, won\'t turn on';
+
+  @override
+  String get reportPendingNote => 'Processed as a maintenance request.';
+
+  @override
+  String get reportSubmit => 'Send Report';
+
+  @override
+  String get reportSuccess => 'Damage report submitted';
+
+  @override
+  String get reportError => 'Couldn\'t send. Try again.';
 }

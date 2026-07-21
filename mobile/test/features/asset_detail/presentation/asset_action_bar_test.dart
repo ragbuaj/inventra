@@ -197,6 +197,68 @@ void main() {
     expect(find.text(l10nId.checkinSuccess), findsOneWidget);
   });
 
+  testWidgets('Lapor Kerusakan: pilih kategori lalu kirim memanggil report', (
+    WidgetTester tester,
+  ) async {
+    when(() => repository.problemCategories()).thenAnswer(
+      (_) async =>
+          const <ProblemCategory>[ProblemCategory('pc-1', 'Layar Rusak')],
+    );
+    when(
+      () => repository.reportDamage(
+        assetId: any(named: 'assetId'),
+        problemCategoryId: any(named: 'problemCategoryId'),
+        description: any(named: 'description'),
+      ),
+    ).thenAnswer((_) async {});
+
+    await pumpBar(tester, permissions: <String>{'request.create'});
+
+    await tester.tap(find.text(l10nId.assetActionReportDamage));
+    await tester.pumpAndSettle();
+    expect(find.text(l10nId.reportCategoryLabel), findsOneWidget);
+
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Layar Rusak').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10nId.reportSubmit));
+    await tester.pumpAndSettle();
+
+    verify(
+      () => repository.reportDamage(
+        assetId: 'asset-1',
+        problemCategoryId: 'pc-1',
+        description: any(named: 'description'),
+      ),
+    ).called(1);
+    expect(find.text(l10nId.reportSuccess), findsOneWidget);
+  });
+
+  testWidgets('Lapor Kerusakan tanpa kategori: validasi menahan kirim', (
+    WidgetTester tester,
+  ) async {
+    when(
+      () => repository.problemCategories(),
+    ).thenAnswer((_) async => const <ProblemCategory>[ProblemCategory('pc-1', 'Layar Rusak')]);
+
+    await pumpBar(tester, permissions: <String>{'request.create'});
+    await tester.tap(find.text(l10nId.assetActionReportDamage));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10nId.reportSubmit));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10nId.reportCategoryRequired), findsOneWidget);
+    verifyNever(
+      () => repository.reportDamage(
+        assetId: any(named: 'assetId'),
+        problemCategoryId: any(named: 'problemCategoryId'),
+        description: any(named: 'description'),
+      ),
+    );
+  });
+
   testWidgets('Pinjam: sheet lalu Ajukan memanggil borrow + SnackBar sukses', (
     WidgetTester tester,
   ) async {

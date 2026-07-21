@@ -20,6 +20,14 @@ class ActiveAssignment {
   final String? holderName;
 }
 
+/// Kategori masalah untuk Lapor Kerusakan (id + nama).
+class ProblemCategory {
+  const ProblemCategory(this.id, this.name);
+
+  final String id;
+  final String name;
+}
+
 /// Aksi tulis FR-M7 dari Detail Aset. Peminjaman (Staf) via
 /// `POST /assignments/borrow` (pengajuan approval); Check-out & Check-in
 /// (Manager) langsung via `POST /assignments` dan `POST /assignments/:id/checkin`.
@@ -157,6 +165,58 @@ class AssetActionRepository {
           })
           .whereType<EmployeeOption>()
           .toList();
+    } on DioException catch (err) {
+      throw err.toAppFailure();
+    }
+  }
+
+  /// Daftar kategori masalah untuk Lapor Kerusakan (`GET /problem-categories`).
+  Future<List<ProblemCategory>> problemCategories() async {
+    try {
+      final Response<Map<String, dynamic>> response = await _dio
+          .get<Map<String, dynamic>>(
+            '/problem-categories',
+            queryParameters: <String, dynamic>{'limit': 100, 'offset': 0},
+          );
+      final Object? data = response.data?['data'];
+      if (data is! List) {
+        return const <ProblemCategory>[];
+      }
+      return data
+          .whereType<Map<String, dynamic>>()
+          .map((Map<String, dynamic> m) {
+            final Object? id = m['id'];
+            final Object? name = m['name'];
+            if (id is String && name is String && name.isNotEmpty) {
+              return ProblemCategory(id, name);
+            }
+            return null;
+          })
+          .whereType<ProblemCategory>()
+          .toList();
+    } on DioException catch (err) {
+      throw err.toAppFailure();
+    }
+  }
+
+  /// Lapor kerusakan aset (`POST /maintenance/reports`, multipart). Membuat
+  /// pengajuan `maintenance` via approval. [problemCategoryId] wajib. Foto
+  /// (opsional) menyusul (butuh image picker) — belum didukung di sini.
+  Future<void> reportDamage({
+    required String assetId,
+    required String problemCategoryId,
+    String? description,
+  }) async {
+    final String? desc = description?.trim();
+    try {
+      await _dio.post<Map<String, dynamic>>(
+        '/maintenance/reports',
+        data: FormData.fromMap(<String, dynamic>{
+          'asset_id': assetId,
+          'problem_category_id': problemCategoryId,
+          if (desc != null && desc.isNotEmpty) 'description': desc,
+        }),
+      );
     } on DioException catch (err) {
       throw err.toAppFailure();
     }

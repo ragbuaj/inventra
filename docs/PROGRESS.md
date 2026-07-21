@@ -1474,9 +1474,15 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     tempo + kondisi) & Check-in (resolusi penugasan aktif + chips kondisi). Nol backend baru. Tes:
 >     +5 repo (checkout/checkin/activeAssignment/searchEmployees) + 4 widget (Manager checkout/checkin
 >     button, alur checkout/validasi, alur checkin); suite mobile 489 lulus. Catatan: golden khusus
->     sheet Check-out/Check-in belum dibuat (perilaku tercakup widget test). Berikutnya M7: **M7-6
->     (Lapor Kerusakan** — butuh picker problem-category + multipart foto). Titik masuk Beranda (M7-8)
->     menyusul.
+>     sheet Check-out/Check-in belum dibuat (perilaku tercakup widget test). **Task M7-6 (Lapor
+>     Kerusakan) LANDED** — bar aksi Detail Aset kini LENGKAP (4 aksi). `AssetActionRepository`:
+>     `problemCategories` (`GET /problem-categories`) + `reportDamage` (`POST /maintenance/reports`
+>     multipart FormData: asset_id + problem_category_id wajib + description opsional). Sheet Lapor
+>     Kerusakan (dropdown kategori masalah wajib + deskripsi). **Foto DITUNDA** (opsional per kontrak;
+>     butuh dependensi image_picker — perlu konfirmasi). Bar tombol jadi teks-only + ellipsis (bisa 2
+>     tombol, mis. Pinjam+Lapor Kerusakan); golden Detail Aset diregenerasi (2 tombol). Nol backend
+>     baru. Tes: +2 repo + 2 widget; suite mobile 493 lulus. **Cluster M7-4/5/6 (Detail Aset) SELESAI.**
+>     Berikutnya M7: **M7-7 (Registrasi Aset** — form stepper penuh) lalu M7-8 (titik masuk Beranda).
 
 ## ✅ Done
 

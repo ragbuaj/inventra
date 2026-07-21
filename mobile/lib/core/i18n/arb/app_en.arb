@@ -412,5 +412,15 @@
   "checkinSubmit": "Check-in",
   "checkinSuccess": "Asset checked in",
   "checkinError": "Check-in failed. Try again.",
-  "checkinNoActive": "No active assignment for this asset."
+  "checkinNoActive": "No active assignment for this asset.",
+  "reportSheetTitle": "Report Damage",
+  "reportCategoryLabel": "Problem category",
+  "reportCategoryHint": "Pick a category",
+  "reportCategoryRequired": "Pick a problem category first.",
+  "reportDescriptionLabel": "Description (optional)",
+  "reportDescriptionHint": "e.g. cracked screen, won't turn on",
+  "reportPendingNote": "Processed as a maintenance request.",
+  "reportSubmit": "Send Report",
+  "reportSuccess": "Damage report submitted",
+  "reportError": "Couldn't send. Try again."
 }
