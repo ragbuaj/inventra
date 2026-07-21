@@ -1566,4 +1566,60 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get avatarError => 'Gagal memproses foto. Coba lagi.';
+
+  @override
+  String get securityTitle => 'Keamanan Akun';
+
+  @override
+  String get securityEmailLabel => 'Email';
+
+  @override
+  String get securityChangeEmail => 'Ganti Email';
+
+  @override
+  String get securityPasswordLabel => 'Password';
+
+  @override
+  String get securityChangePassword => 'Ganti Password';
+
+  @override
+  String get securityCurrentPassword => 'Password saat ini';
+
+  @override
+  String get securityNewEmail => 'Email baru';
+
+  @override
+  String get securityPasswordWarning =>
+      'Semua sesi akan keluar setelah password diganti.';
+
+  @override
+  String get securitySendResetLink => 'Kirim Link Reset';
+
+  @override
+  String get securitySendVerifyLink => 'Kirim Link Verifikasi';
+
+  @override
+  String get securityCheckEmailTitle => 'Cek email Anda';
+
+  @override
+  String get securityCheckEmailBody =>
+      'Kami mengirim link ke email Anda untuk menyelesaikan perubahan. Buka link itu di halaman web.';
+
+  @override
+  String get securityDone => 'Selesai';
+
+  @override
+  String get securityWrongPassword => 'Password salah.';
+
+  @override
+  String get securityEmailInUse => 'Email sudah digunakan.';
+
+  @override
+  String get securityError => 'Gagal. Coba lagi.';
+
+  @override
+  String get securityCurrentPasswordRequired => 'Isi password saat ini.';
+
+  @override
+  String get securityNewEmailRequired => 'Isi email baru.';
 }

@@ -1567,4 +1567,60 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get avatarError => 'Couldn\'t process photo. Try again.';
+
+  @override
+  String get securityTitle => 'Account Security';
+
+  @override
+  String get securityEmailLabel => 'Email';
+
+  @override
+  String get securityChangeEmail => 'Change Email';
+
+  @override
+  String get securityPasswordLabel => 'Password';
+
+  @override
+  String get securityChangePassword => 'Change Password';
+
+  @override
+  String get securityCurrentPassword => 'Current password';
+
+  @override
+  String get securityNewEmail => 'New email';
+
+  @override
+  String get securityPasswordWarning =>
+      'All sessions will sign out after the password changes.';
+
+  @override
+  String get securitySendResetLink => 'Send Reset Link';
+
+  @override
+  String get securitySendVerifyLink => 'Send Verification Link';
+
+  @override
+  String get securityCheckEmailTitle => 'Check your email';
+
+  @override
+  String get securityCheckEmailBody =>
+      'We sent a link to your email to finish the change. Open it on the web page.';
+
+  @override
+  String get securityDone => 'Done';
+
+  @override
+  String get securityWrongPassword => 'Wrong password.';
+
+  @override
+  String get securityEmailInUse => 'Email already in use.';
+
+  @override
+  String get securityError => 'Failed. Try again.';
+
+  @override
+  String get securityCurrentPasswordRequired => 'Enter your current password.';
+
+  @override
+  String get securityNewEmailRequired => 'Enter the new email.';
 }

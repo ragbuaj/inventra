@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/auth/auth_controller.dart';
 import '../core/auth/auth_session.dart';
+import '../features/account/presentation/account_security_screen.dart';
 import '../features/account/presentation/profile_screen.dart';
 import '../features/account/presentation/settings_screen.dart';
 import '../features/approval/presentation/approval_detail_screen.dart';
@@ -198,6 +199,12 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
         name: 'account',
         builder: (BuildContext context, GoRouterState state) =>
             const ProfileScreen(),
+      ),
+      GoRoute(
+        path: '/account-security',
+        name: 'account-security',
+        builder: (BuildContext context, GoRouterState state) =>
+            const AccountSecurityScreen(),
       ),
       GoRoute(
         path: '/settings',

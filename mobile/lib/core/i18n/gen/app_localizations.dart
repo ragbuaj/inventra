@@ -2965,6 +2965,114 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Gagal memproses foto. Coba lagi.'**
   String get avatarError;
+
+  /// Judul layar keamanan akun
+  ///
+  /// In id, this message translates to:
+  /// **'Keamanan Akun'**
+  String get securityTitle;
+
+  /// Label baris email
+  ///
+  /// In id, this message translates to:
+  /// **'Email'**
+  String get securityEmailLabel;
+
+  /// Tombol/judul ganti email
+  ///
+  /// In id, this message translates to:
+  /// **'Ganti Email'**
+  String get securityChangeEmail;
+
+  /// Label baris password
+  ///
+  /// In id, this message translates to:
+  /// **'Password'**
+  String get securityPasswordLabel;
+
+  /// Tombol/judul ganti password
+  ///
+  /// In id, this message translates to:
+  /// **'Ganti Password'**
+  String get securityChangePassword;
+
+  /// Label field password lama
+  ///
+  /// In id, this message translates to:
+  /// **'Password saat ini'**
+  String get securityCurrentPassword;
+
+  /// Label field email baru
+  ///
+  /// In id, this message translates to:
+  /// **'Email baru'**
+  String get securityNewEmail;
+
+  /// Peringatan cabut sesi ganti password
+  ///
+  /// In id, this message translates to:
+  /// **'Semua sesi akan keluar setelah password diganti.'**
+  String get securityPasswordWarning;
+
+  /// Tombol kirim link reset password
+  ///
+  /// In id, this message translates to:
+  /// **'Kirim Link Reset'**
+  String get securitySendResetLink;
+
+  /// Tombol kirim link verifikasi email
+  ///
+  /// In id, this message translates to:
+  /// **'Kirim Link Verifikasi'**
+  String get securitySendVerifyLink;
+
+  /// Judul konfirmasi cek email
+  ///
+  /// In id, this message translates to:
+  /// **'Cek email Anda'**
+  String get securityCheckEmailTitle;
+
+  /// Body konfirmasi cek email
+  ///
+  /// In id, this message translates to:
+  /// **'Kami mengirim link ke email Anda untuk menyelesaikan perubahan. Buka link itu di halaman web.'**
+  String get securityCheckEmailBody;
+
+  /// Tombol tutup konfirmasi
+  ///
+  /// In id, this message translates to:
+  /// **'Selesai'**
+  String get securityDone;
+
+  /// Error password lama salah
+  ///
+  /// In id, this message translates to:
+  /// **'Password salah.'**
+  String get securityWrongPassword;
+
+  /// Error email sudah dipakai
+  ///
+  /// In id, this message translates to:
+  /// **'Email sudah digunakan.'**
+  String get securityEmailInUse;
+
+  /// Error generik keamanan akun
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal. Coba lagi.'**
+  String get securityError;
+
+  /// Validasi password lama wajib
+  ///
+  /// In id, this message translates to:
+  /// **'Isi password saat ini.'**
+  String get securityCurrentPasswordRequired;
+
+  /// Validasi email baru wajib
+  ///
+  /// In id, this message translates to:
+  /// **'Isi email baru.'**
+  String get securityNewEmailRequired;
 }
 
 class _AppLocalizationsDelegate

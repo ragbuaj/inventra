@@ -155,6 +155,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const SizedBox(height: 14),
                   const _ProfileDetailCards(),
                   const SizedBox(height: 14),
+                  _LinkTile(
+                    icon: Symbols.shield_rounded,
+                    label: l10n.securityTitle,
+                    tileKey: 'profile-security-link',
+                    onTap: () => context.push('/account-security'),
+                  ),
+                  const SizedBox(height: 14),
                   ...sessions.when(
                     data: (List<SessionDto> data) => _sessionsContent(data),
                     loading: () => const <Widget>[_SessionsSkeleton()],
@@ -234,6 +241,59 @@ String profileInitials(String name) {
 /// Deviasi tercatat: badge nama peran mockup ("Asset Manager") tidak dirender
 /// — endpoint roles berada di grup authzadmin yang menolak audience mobile
 /// (alasan yang sama dengan header Beranda).
+/// Baris tautan berkartu (mis. ke Keamanan Akun).
+class _LinkTile extends StatelessWidget {
+  const _LinkTile({
+    required this.icon,
+    required this.label,
+    required this.tileKey,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final String tileKey;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
+
+    return Material(
+      color: theme.cardTheme.color ?? scheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: scheme.outlineVariant),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: ValueKey<String>(tileKey),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Row(
+            children: <Widget>[
+              Icon(icon, size: 20, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Icon(Symbols.chevron_right_rounded, color: scheme.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Avatar 84 editable (FR-M6.2): foto/inisial + badge kamera; tap membuka sheet
 /// Galeri/Kamera/(Hapus bila ada foto) -> `POST`/`DELETE /auth/avatar`.
 class _EditableAvatar extends ConsumerStatefulWidget {

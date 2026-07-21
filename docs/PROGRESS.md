@@ -1524,8 +1524,14 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     (M7-6) DI-BACKFILL** dengan image_picker: `reportDamage` menerima `photoBytes` opsional (field
 >     multipart `photo`); sheet Lapor Kerusakan dapat tombol "Tambah foto" (galeri) + thumbnail +
 >     hapus. Tes: +1 repo (FormData photo) + asersi tombol; suite mobile 512. Deferral foto M7-6
->     TERTUTUP. Berikutnya M8: **M8-4 (keamanan akun** — ganti password/email berbasis link) lalu M8-5
->     (lupa password), M8-6 (verifikasi logout).
+>     TERTUTUP. **Task M8-4 (Keamanan Akun) LANDED**: layar Keamanan Akun (rute `/account-security`,
+>     tautan dari Profil) + `AccountSecurityRepository` (`POST /auth/password/change-request`
+>     {current_password}; `POST /auth/email/change-request` {new_email, current_password}) — keduanya
+>     **berbasis link email** (klien memulai, penetapan di web). Sheet ganti password (verifikasi
+>     password lama + peringatan cabut-sesi) & ganti email, masing-masing state "Cek email Anda"
+>     setelah sukses. **Password salah -> 400 ValidationFailure inline (bukan 401 -> tak auto-logout)**;
+>     email dipakai -> 409 inline. Golden Profil regen. Nol backend baru. Tes: 4 repo + 5 widget; suite
+>     mobile 521. Berikutnya M8: **M8-5 (Lupa Password dari Login)** lalu M8-6 (verifikasi logout).
 
 ## ✅ Done
 
