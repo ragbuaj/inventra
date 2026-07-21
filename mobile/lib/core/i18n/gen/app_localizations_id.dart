@@ -1545,4 +1545,22 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get profileUpdateError => 'Gagal menyimpan. Coba lagi.';
+
+  @override
+  String get avatarFromGallery => 'Pilih dari galeri';
+
+  @override
+  String get avatarFromCamera => 'Ambil foto';
+
+  @override
+  String get avatarRemove => 'Hapus foto';
+
+  @override
+  String get avatarUpdated => 'Foto profil diperbarui';
+
+  @override
+  String get avatarRemoved => 'Foto profil dihapus';
+
+  @override
+  String get avatarError => 'Gagal memproses foto. Coba lagi.';
 }

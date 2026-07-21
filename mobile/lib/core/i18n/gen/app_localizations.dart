@@ -2923,6 +2923,42 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Gagal menyimpan. Coba lagi.'**
   String get profileUpdateError;
+
+  /// Opsi ambil avatar dari galeri
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih dari galeri'**
+  String get avatarFromGallery;
+
+  /// Opsi ambil avatar dari kamera
+  ///
+  /// In id, this message translates to:
+  /// **'Ambil foto'**
+  String get avatarFromCamera;
+
+  /// Opsi hapus foto profil
+  ///
+  /// In id, this message translates to:
+  /// **'Hapus foto'**
+  String get avatarRemove;
+
+  /// SnackBar sukses unggah avatar
+  ///
+  /// In id, this message translates to:
+  /// **'Foto profil diperbarui'**
+  String get avatarUpdated;
+
+  /// SnackBar sukses hapus avatar
+  ///
+  /// In id, this message translates to:
+  /// **'Foto profil dihapus'**
+  String get avatarRemoved;
+
+  /// Pesan gagal proses avatar
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memproses foto. Coba lagi.'**
+  String get avatarError;
 }
 
 class _AppLocalizationsDelegate

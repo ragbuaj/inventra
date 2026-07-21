@@ -1513,8 +1513,16 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     + `ProfileDto.copyWith`; golden Profil regen; viewport tes profil dinaikkan. Catatan: nama di
 >     header identitas (dari sesi auth) baru segar setelah re-login (Data Diri + provider profil
 >     langsung segar). Nol backend baru. Tes: +2 repo (update, offline) + 3 widget (Ubah->Simpan,
->     validasi nama, Batal); suite mobile 506. Berikutnya M8: **M8-3 (avatar** — butuh keputusan
->     `image_picker`) lalu M8-4 (keamanan akun), M8-5 (lupa password), M8-6 (verifikasi logout).
+>     validasi nama, Batal); suite mobile 506. **Task M8-3 (avatar) LANDED** (keputusan pemilik
+>     produk: pakai **image_picker** — dependensi baru, juga untuk foto Lapor Kerusakan M7-6):
+>     `AccountRepository.uploadAvatar` (`POST /auth/avatar` multipart field `file`) + `deleteAvatar`
+>     (`DELETE`); `accountAvatarProvider` tak lagi digate `has_avatar` sesi (langsung GET, segar
+>     pasca-unggah/hapus); `_EditableAvatar` (badge kamera -> sheet Galeri/Kamera/Hapus, overlay
+>     busy) menggantikan avatar statis di kartu identitas. Izin CAMERA sudah ada (mobile_scanner).
+>     Golden Profil regen. Nol backend baru. Tes: +3 repo (upload multipart, delete, offline) + 2
+>     widget (Hapus flow, opsi Hapus tersembunyi tanpa foto); suite mobile 511. **Berikutnya: backfill
+>     foto Lapor Kerusakan (M7-6)** lalu M8-4 (keamanan akun), M8-5 (lupa password), M8-6 (verifikasi
+>     logout).
 
 ## ✅ Done
 

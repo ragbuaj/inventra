@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
@@ -233,6 +234,201 @@ String profileInitials(String name) {
 /// Deviasi tercatat: badge nama peran mockup ("Asset Manager") tidak dirender
 /// — endpoint roles berada di grup authzadmin yang menolak audience mobile
 /// (alasan yang sama dengan header Beranda).
+/// Avatar 84 editable (FR-M6.2): foto/inisial + badge kamera; tap membuka sheet
+/// Galeri/Kamera/(Hapus bila ada foto) -> `POST`/`DELETE /auth/avatar`.
+class _EditableAvatar extends ConsumerStatefulWidget {
+  const _EditableAvatar({required this.name});
+
+  final String name;
+
+  @override
+  ConsumerState<_EditableAvatar> createState() => _EditableAvatarState();
+}
+
+class _EditableAvatarState extends ConsumerState<_EditableAvatar> {
+  bool _busy = false;
+
+  void _snack(String msg) => ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(SnackBar(content: Text(msg)));
+
+  Future<void> _pick(ImageSource source) async {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    Navigator.of(context).pop();
+    final XFile? file;
+    try {
+      file = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 1024,
+        imageQuality: 85,
+      );
+    } on Object {
+      if (mounted) {
+        _snack(l10n.avatarError);
+      }
+      return;
+    }
+    if (file == null) {
+      return;
+    }
+    final List<int> bytes = await file.readAsBytes();
+    if (!mounted) {
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(accountRepositoryProvider)
+          .uploadAvatar(bytes, filename: file.name);
+      ref.invalidate(accountAvatarProvider);
+      ref.invalidate(accountProfileProvider);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _busy = false);
+      _snack(l10n.avatarUpdated);
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _busy = false);
+      _snack(l10n.avatarError);
+    }
+  }
+
+  Future<void> _delete() async {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    Navigator.of(context).pop();
+    setState(() => _busy = true);
+    try {
+      await ref.read(accountRepositoryProvider).deleteAvatar();
+      ref.invalidate(accountAvatarProvider);
+      ref.invalidate(accountProfileProvider);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _busy = false);
+      _snack(l10n.avatarRemoved);
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _busy = false);
+      _snack(l10n.avatarError);
+    }
+  }
+
+  void _openMenu(bool hasPhoto) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (BuildContext ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            ListTile(
+              leading: const Icon(Symbols.photo_library_rounded),
+              title: Text(l10n.avatarFromGallery),
+              onTap: () => _pick(ImageSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Symbols.photo_camera_rounded),
+              title: Text(l10n.avatarFromCamera),
+              onTap: () => _pick(ImageSource.camera),
+            ),
+            if (hasPhoto)
+              ListTile(
+                key: const ValueKey<String>('avatar-remove'),
+                leading: Icon(Symbols.delete_rounded, color: scheme.error),
+                title: Text(l10n.avatarRemove),
+                onTap: _delete,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final Uint8List? bytes = ref.watch(accountAvatarProvider).value;
+
+    return SizedBox(
+      width: 92,
+      height: 92,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: <Widget>[
+          Positioned(
+            top: 4,
+            left: 4,
+            child: Container(
+              width: 84,
+              height: 84,
+              clipBehavior: Clip.antiAlias,
+              decoration: ShapeDecoration(
+                color: scheme.primaryContainer,
+                shape: const CircleBorder(),
+              ),
+              child: _busy
+                  ? const Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      ),
+                    )
+                  : bytes == null
+                  ? Center(
+                      child: Text(
+                        profileInitials(widget.name),
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: scheme.onPrimaryContainer,
+                        ),
+                      ),
+                    )
+                  : Image.memory(
+                      bytes,
+                      key: const ValueKey<String>('profile-avatar-photo'),
+                      fit: BoxFit.cover,
+                      gaplessPlayback: true,
+                    ),
+            ),
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Material(
+              color: scheme.primary,
+              shape: CircleBorder(
+                side: BorderSide(color: scheme.surface, width: 2),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                key: const ValueKey<String>('profile-avatar-edit'),
+                onTap: _busy ? null : () => _openMenu(bytes != null),
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Icon(
+                    Symbols.photo_camera_rounded,
+                    size: 16,
+                    color: scheme.onPrimary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Kartu Data Diri editable (FR-M6.2): nama + telepon. Mode Ubah -> Simpan/Batal
 /// -> `PUT /auth/profile`; sukses menyegarkan [accountProfileProvider].
 class _DataDiriCard extends ConsumerStatefulWidget {
@@ -624,45 +820,13 @@ class _IdentityCard extends ConsumerWidget {
     final AppLocalizations l10n = AppLocalizations.of(context);
     final AuthSession? session = ref.watch(authControllerProvider).value;
     final UserDto? user = session is Authenticated ? session.user : null;
-    final Uint8List? avatarBytes = ref.watch(accountAvatarProvider).value;
     final String? officeName = ref.watch(accountOfficeNameProvider).value;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 10, 0, 2),
       child: Column(
         children: <Widget>[
-          Container(
-            width: 84,
-            height: 84,
-            clipBehavior: Clip.antiAlias,
-            decoration: ShapeDecoration(
-              color: scheme.primaryContainer,
-              shape: CircleBorder(
-                side: BorderSide(
-                  color: scheme.primaryContainer,
-                  width: 2,
-                  strokeAlign: BorderSide.strokeAlignOutside,
-                ),
-              ),
-            ),
-            child: avatarBytes == null
-                ? Center(
-                    child: Text(
-                      profileInitials(user?.name ?? ''),
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        color: scheme.onPrimaryContainer,
-                      ),
-                    ),
-                  )
-                : Image.memory(
-                    avatarBytes,
-                    key: const ValueKey<String>('profile-avatar-photo'),
-                    fit: BoxFit.cover,
-                    gaplessPlayback: true,
-                  ),
-          ),
+          _EditableAvatar(name: user?.name ?? ''),
           const SizedBox(height: 12),
           Text(
             user?.name ?? '',

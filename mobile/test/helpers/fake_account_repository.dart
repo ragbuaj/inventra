@@ -116,6 +116,22 @@ class FakeAccountRepository implements AccountRepository {
     return profileData;
   }
 
+  int uploadAvatarCalls = 0;
+  int deleteAvatarCalls = 0;
+
+  @override
+  Future<void> uploadAvatar(List<int> bytes, {required String filename}) async {
+    uploadAvatarCalls += 1;
+    avatarBytes = Uint8List.fromList(bytes);
+    profileData = profileData.copyWith();
+  }
+
+  @override
+  Future<void> deleteAvatar() async {
+    deleteAvatarCalls += 1;
+    avatarBytes = null;
+  }
+
   @override
   Future<Uint8List?> avatar() async => avatarBytes;
 }

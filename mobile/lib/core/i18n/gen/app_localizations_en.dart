@@ -1546,4 +1546,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileUpdateError => 'Couldn\'t save. Try again.';
+
+  @override
+  String get avatarFromGallery => 'Choose from gallery';
+
+  @override
+  String get avatarFromCamera => 'Take a photo';
+
+  @override
+  String get avatarRemove => 'Remove photo';
+
+  @override
+  String get avatarUpdated => 'Profile photo updated';
+
+  @override
+  String get avatarRemoved => 'Profile photo removed';
+
+  @override
+  String get avatarError => 'Couldn\'t process photo. Try again.';
 }

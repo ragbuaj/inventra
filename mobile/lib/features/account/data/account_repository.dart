@@ -97,6 +97,30 @@ class AccountRepository {
     }
   }
 
+  /// Mengunggah foto profil (`POST /auth/avatar`, multipart field `file`, JPG/PNG;
+  /// server memotong persegi + re-encode JPEG, buang EXIF). Mengganti foto lama.
+  Future<void> uploadAvatar(List<int> bytes, {required String filename}) async {
+    try {
+      await _dio.post<Map<String, dynamic>>(
+        '/auth/avatar',
+        data: FormData.fromMap(<String, dynamic>{
+          'file': MultipartFile.fromBytes(bytes, filename: filename),
+        }),
+      );
+    } on DioException catch (err) {
+      throw err.toAppFailure();
+    }
+  }
+
+  /// Menghapus foto profil (`DELETE /auth/avatar`).
+  Future<void> deleteAvatar() async {
+    try {
+      await _dio.delete<Map<String, dynamic>>('/auth/avatar');
+    } on DioException catch (err) {
+      throw err.toAppFailure();
+    }
+  }
+
   /// Bytes foto profil (`GET /auth/avatar`, image/jpeg). Null saat belum ada
   /// avatar (404) — bukan error; kegagalan lain tetap [AppFailure] (pemanggil
   /// memperlakukannya non-fatal, jatuh ke inisial).

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -216,6 +217,49 @@ void main() {
 
       expect(find.byKey(const ValueKey<String>('profile-edit')), findsOneWidget);
       expect(repo.updateCalls, isEmpty);
+    });
+  });
+
+  group('avatar (POST/DELETE /auth/avatar)', () {
+    final Uint8List png = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    );
+
+    testWidgets('foto ada: badge -> Hapus memanggil deleteAvatar', (
+      WidgetTester tester,
+    ) async {
+      final FakeAccountRepository repo = FakeAccountRepository(
+        sessions: _threeSessions(),
+        avatarBytes: png,
+      );
+      await pumpProfile(tester, repo);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('profile-avatar-edit')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey<String>('avatar-remove')));
+      await tester.pumpAndSettle();
+
+      expect(repo.deleteAvatarCalls, 1);
+      expect(find.text(l10nId.avatarRemoved), findsOneWidget);
+    });
+
+    testWidgets('tanpa foto: opsi Hapus tidak muncul', (
+      WidgetTester tester,
+    ) async {
+      await pumpProfile(
+        tester,
+        FakeAccountRepository(sessions: _threeSessions()),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('profile-avatar-edit')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey<String>('avatar-remove')), findsNothing);
+      expect(find.text(l10nId.avatarFromGallery), findsOneWidget);
     });
   });
 

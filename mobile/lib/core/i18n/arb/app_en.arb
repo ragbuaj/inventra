@@ -470,5 +470,11 @@
   "profileNameLabel": "Name",
   "profileNameRequired": "Name is required.",
   "profileUpdateSuccess": "Personal data updated",
-  "profileUpdateError": "Couldn't save. Try again."
+  "profileUpdateError": "Couldn't save. Try again.",
+  "avatarFromGallery": "Choose from gallery",
+  "avatarFromCamera": "Take a photo",
+  "avatarRemove": "Remove photo",
+  "avatarUpdated": "Profile photo updated",
+  "avatarRemoved": "Profile photo removed",
+  "avatarError": "Couldn't process photo. Try again."
 }

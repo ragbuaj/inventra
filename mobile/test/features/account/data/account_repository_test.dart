@@ -119,6 +119,62 @@ void main() {
     });
   });
 
+  group('avatar', () {
+    test('uploadAvatar: multipart field file', () async {
+      when(
+        () => dio.post<Map<String, dynamic>>(
+          '/auth/avatar',
+          data: any(named: 'data'),
+        ),
+      ).thenAnswer(
+        (_) async => _jsonResponse('/auth/avatar', <String, dynamic>{
+          'has_avatar': true,
+        }),
+      );
+
+      await repository.uploadAvatar(<int>[1, 2, 3], filename: 'foto.jpg');
+
+      final Object? data =
+          verify(
+            () => dio.post<Map<String, dynamic>>(
+              '/auth/avatar',
+              data: captureAny(named: 'data'),
+            ),
+          ).captured.single;
+      expect(data, isA<FormData>());
+      expect((data as FormData).files.single.key, 'file');
+      expect(data.files.single.value.filename, 'foto.jpg');
+    });
+
+    test('deleteAvatar: DELETE /auth/avatar', () async {
+      when(
+        () => dio.delete<Map<String, dynamic>>('/auth/avatar'),
+      ).thenAnswer((_) async => _jsonResponse('/auth/avatar', <String, dynamic>{}));
+
+      await repository.deleteAvatar();
+
+      verify(() => dio.delete<Map<String, dynamic>>('/auth/avatar')).called(1);
+    });
+
+    test('uploadAvatar offline: NetworkFailure', () async {
+      when(
+        () => dio.post<Map<String, dynamic>>(
+          '/auth/avatar',
+          data: any(named: 'data'),
+        ),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/auth/avatar'),
+          type: DioExceptionType.connectionError,
+        ),
+      );
+      expect(
+        () => repository.uploadAvatar(<int>[1], filename: 'a.jpg'),
+        throwsA(isA<NetworkFailure>()),
+      );
+    });
+  });
+
   group('sessions', () {
     test('GET /auth/sessions: seluruh field SessionView terparse', () async {
       when(() => dio.get<Map<String, dynamic>>('/auth/sessions')).thenAnswer(

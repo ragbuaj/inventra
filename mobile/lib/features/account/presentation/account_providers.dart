@@ -78,9 +78,11 @@ final accountProfileProvider = FutureProvider.autoDispose<ProfileDto>(
 final FutureProvider<Uint8List?> accountAvatarProvider =
     FutureProvider.autoDispose<Uint8List?>((Ref ref) async {
       final AuthSession? session = ref.watch(authControllerProvider).value;
-      if (session is! Authenticated || !session.user.hasAvatar) {
+      if (session is! Authenticated) {
         return null;
       }
+      // Tidak digate `has_avatar` sesi (bisa basi pasca-unggah/hapus): panggil
+      // GET /auth/avatar langsung — 404/kegagalan lain -> null (jatuh ke inisial).
       try {
         return await ref.watch(accountRepositoryProvider).avatar();
       } on AppFailure {

@@ -1931,5 +1931,17 @@
   "profileUpdateSuccess": "Data diri diperbarui",
   "@profileUpdateSuccess": { "description": "SnackBar sukses ubah data diri" },
   "profileUpdateError": "Gagal menyimpan. Coba lagi.",
-  "@profileUpdateError": { "description": "Pesan gagal ubah data diri" }
+  "@profileUpdateError": { "description": "Pesan gagal ubah data diri" },
+  "avatarFromGallery": "Pilih dari galeri",
+  "@avatarFromGallery": { "description": "Opsi ambil avatar dari galeri" },
+  "avatarFromCamera": "Ambil foto",
+  "@avatarFromCamera": { "description": "Opsi ambil avatar dari kamera" },
+  "avatarRemove": "Hapus foto",
+  "@avatarRemove": { "description": "Opsi hapus foto profil" },
+  "avatarUpdated": "Foto profil diperbarui",
+  "@avatarUpdated": { "description": "SnackBar sukses unggah avatar" },
+  "avatarRemoved": "Foto profil dihapus",
+  "@avatarRemoved": { "description": "SnackBar sukses hapus avatar" },
+  "avatarError": "Gagal memproses foto. Coba lagi.",
+  "@avatarError": { "description": "Pesan gagal proses avatar" }
 }
