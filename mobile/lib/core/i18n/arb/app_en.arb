@@ -328,5 +328,19 @@
   "notificationsMaintenanceDueTitle": "Maintenance due",
   "notificationsMaintenanceDueBody": "{asset} — due {date}",
   "notificationsMaintenanceDueDateOnly": "Due {date}",
-  "notificationsAssetReturnedTitle": "Asset returned"
+  "notificationsAssetReturnedTitle": "Asset returned",
+  "catalogTitle": "Asset Catalog",
+  "catalogSearchHint": "Search assets",
+  "catalogUnnamedAsset": "Unnamed asset",
+  "catalogEmptyTitle": "No assets yet",
+  "catalogEmptyBody": "Assets within your scope will appear here.",
+  "catalogEmptySearchTitle": "No matching assets",
+  "catalogEmptySearchBody": "Try another keyword or reset the search.",
+  "catalogResetFilter": "Reset",
+  "catalogLoadMoreFailed": "Failed to load more.",
+  "catalogErrorTitle": "Couldn't load the catalog",
+  "catalogErrorNetworkBody": "Check your connection and try again.",
+  "catalogErrorGenericBody": "Something went wrong. Try again.",
+  "catalogForbiddenTitle": "No access",
+  "catalogForbiddenBody": "You don't have permission to view the asset catalog."
 }

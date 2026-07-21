@@ -9,6 +9,7 @@ import '../features/account/presentation/settings_screen.dart';
 import '../features/approval/presentation/approval_detail_screen.dart';
 import '../features/approval/presentation/approval_inbox_screen.dart';
 import '../features/asset_detail/presentation/asset_detail_screen.dart';
+import '../features/catalog/presentation/catalog_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/login/presentation/login_screen.dart';
 import '../features/notifications/presentation/notifications_screen.dart';
@@ -150,6 +151,12 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/catalog',
+        name: 'catalog',
+        builder: (BuildContext context, GoRouterState state) =>
+            const CatalogScreen(),
       ),
       GoRoute(
         path: '/assets/:tag',

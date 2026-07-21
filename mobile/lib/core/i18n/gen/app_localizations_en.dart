@@ -1105,4 +1105,48 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationsAssetReturnedTitle => 'Asset returned';
+
+  @override
+  String get catalogTitle => 'Asset Catalog';
+
+  @override
+  String get catalogSearchHint => 'Search assets';
+
+  @override
+  String get catalogUnnamedAsset => 'Unnamed asset';
+
+  @override
+  String get catalogEmptyTitle => 'No assets yet';
+
+  @override
+  String get catalogEmptyBody => 'Assets within your scope will appear here.';
+
+  @override
+  String get catalogEmptySearchTitle => 'No matching assets';
+
+  @override
+  String get catalogEmptySearchBody =>
+      'Try another keyword or reset the search.';
+
+  @override
+  String get catalogResetFilter => 'Reset';
+
+  @override
+  String get catalogLoadMoreFailed => 'Failed to load more.';
+
+  @override
+  String get catalogErrorTitle => 'Couldn\'t load the catalog';
+
+  @override
+  String get catalogErrorNetworkBody => 'Check your connection and try again.';
+
+  @override
+  String get catalogErrorGenericBody => 'Something went wrong. Try again.';
+
+  @override
+  String get catalogForbiddenTitle => 'No access';
+
+  @override
+  String get catalogForbiddenBody =>
+      'You don\'t have permission to view the asset catalog.';
 }

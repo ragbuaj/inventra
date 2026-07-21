@@ -1103,4 +1103,48 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get notificationsAssetReturnedTitle => 'Aset dikembalikan';
+
+  @override
+  String get catalogTitle => 'Katalog Aset';
+
+  @override
+  String get catalogSearchHint => 'Cari aset';
+
+  @override
+  String get catalogUnnamedAsset => 'Aset tanpa nama';
+
+  @override
+  String get catalogEmptyTitle => 'Belum ada aset';
+
+  @override
+  String get catalogEmptyBody => 'Aset dalam wilayah Anda akan tampil di sini.';
+
+  @override
+  String get catalogEmptySearchTitle => 'Tidak ada aset yang cocok';
+
+  @override
+  String get catalogEmptySearchBody =>
+      'Coba kata kunci lain atau atur ulang pencarian.';
+
+  @override
+  String get catalogResetFilter => 'Atur ulang';
+
+  @override
+  String get catalogLoadMoreFailed => 'Gagal memuat lagi.';
+
+  @override
+  String get catalogErrorTitle => 'Gagal memuat katalog';
+
+  @override
+  String get catalogErrorNetworkBody => 'Periksa koneksi Anda lalu coba lagi.';
+
+  @override
+  String get catalogErrorGenericBody => 'Terjadi kesalahan. Coba lagi.';
+
+  @override
+  String get catalogForbiddenTitle => 'Tanpa akses';
+
+  @override
+  String get catalogForbiddenBody =>
+      'Anda tidak memiliki izin melihat katalog aset.';
 }

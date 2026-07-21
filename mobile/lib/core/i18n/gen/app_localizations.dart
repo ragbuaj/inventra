@@ -2071,6 +2071,90 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Aset dikembalikan'**
   String get notificationsAssetReturnedTitle;
+
+  /// Judul layar Katalog Aset (AppBar)
+  ///
+  /// In id, this message translates to:
+  /// **'Katalog Aset'**
+  String get catalogTitle;
+
+  /// Placeholder kolom pencarian katalog (nama/kode aset)
+  ///
+  /// In id, this message translates to:
+  /// **'Cari aset'**
+  String get catalogSearchHint;
+
+  /// Label kartu saat nama aset tidak dikirim backend
+  ///
+  /// In id, this message translates to:
+  /// **'Aset tanpa nama'**
+  String get catalogUnnamedAsset;
+
+  /// Judul empty state katalog saat tak ada aset dalam scope
+  ///
+  /// In id, this message translates to:
+  /// **'Belum ada aset'**
+  String get catalogEmptyTitle;
+
+  /// Body empty state katalog tanpa aset
+  ///
+  /// In id, this message translates to:
+  /// **'Aset dalam wilayah Anda akan tampil di sini.'**
+  String get catalogEmptyBody;
+
+  /// Judul empty state saat pencarian tak menemukan aset
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada aset yang cocok'**
+  String get catalogEmptySearchTitle;
+
+  /// Body empty state pencarian katalog tanpa hasil
+  ///
+  /// In id, this message translates to:
+  /// **'Coba kata kunci lain atau atur ulang pencarian.'**
+  String get catalogEmptySearchBody;
+
+  /// Tombol mengosongkan pencarian/filter katalog
+  ///
+  /// In id, this message translates to:
+  /// **'Atur ulang'**
+  String get catalogResetFilter;
+
+  /// Pesan gagal memuat halaman berikutnya di katalog
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat lagi.'**
+  String get catalogLoadMoreFailed;
+
+  /// Judul error state katalog
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat katalog'**
+  String get catalogErrorTitle;
+
+  /// Body error state katalog saat offline
+  ///
+  /// In id, this message translates to:
+  /// **'Periksa koneksi Anda lalu coba lagi.'**
+  String get catalogErrorNetworkBody;
+
+  /// Body error state katalog generik
+  ///
+  /// In id, this message translates to:
+  /// **'Terjadi kesalahan. Coba lagi.'**
+  String get catalogErrorGenericBody;
+
+  /// Judul state katalog saat 403
+  ///
+  /// In id, this message translates to:
+  /// **'Tanpa akses'**
+  String get catalogForbiddenTitle;
+
+  /// Body state katalog saat 403
+  ///
+  /// In id, this message translates to:
+  /// **'Anda tidak memiliki izin melihat katalog aset.'**
+  String get catalogForbiddenBody;
 }
 
 class _AppLocalizationsDelegate

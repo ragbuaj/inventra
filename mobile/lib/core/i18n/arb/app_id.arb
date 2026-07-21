@@ -1512,5 +1512,61 @@
   "notificationsAssetReturnedTitle": "Aset dikembalikan",
   "@notificationsAssetReturnedTitle": {
     "description": "Judul notifikasi type asset_returned"
+  },
+  "catalogTitle": "Katalog Aset",
+  "@catalogTitle": {
+    "description": "Judul layar Katalog Aset (AppBar)"
+  },
+  "catalogSearchHint": "Cari aset",
+  "@catalogSearchHint": {
+    "description": "Placeholder kolom pencarian katalog (nama/kode aset)"
+  },
+  "catalogUnnamedAsset": "Aset tanpa nama",
+  "@catalogUnnamedAsset": {
+    "description": "Label kartu saat nama aset tidak dikirim backend"
+  },
+  "catalogEmptyTitle": "Belum ada aset",
+  "@catalogEmptyTitle": {
+    "description": "Judul empty state katalog saat tak ada aset dalam scope"
+  },
+  "catalogEmptyBody": "Aset dalam wilayah Anda akan tampil di sini.",
+  "@catalogEmptyBody": {
+    "description": "Body empty state katalog tanpa aset"
+  },
+  "catalogEmptySearchTitle": "Tidak ada aset yang cocok",
+  "@catalogEmptySearchTitle": {
+    "description": "Judul empty state saat pencarian tak menemukan aset"
+  },
+  "catalogEmptySearchBody": "Coba kata kunci lain atau atur ulang pencarian.",
+  "@catalogEmptySearchBody": {
+    "description": "Body empty state pencarian katalog tanpa hasil"
+  },
+  "catalogResetFilter": "Atur ulang",
+  "@catalogResetFilter": {
+    "description": "Tombol mengosongkan pencarian/filter katalog"
+  },
+  "catalogLoadMoreFailed": "Gagal memuat lagi.",
+  "@catalogLoadMoreFailed": {
+    "description": "Pesan gagal memuat halaman berikutnya di katalog"
+  },
+  "catalogErrorTitle": "Gagal memuat katalog",
+  "@catalogErrorTitle": {
+    "description": "Judul error state katalog"
+  },
+  "catalogErrorNetworkBody": "Periksa koneksi Anda lalu coba lagi.",
+  "@catalogErrorNetworkBody": {
+    "description": "Body error state katalog saat offline"
+  },
+  "catalogErrorGenericBody": "Terjadi kesalahan. Coba lagi.",
+  "@catalogErrorGenericBody": {
+    "description": "Body error state katalog generik"
+  },
+  "catalogForbiddenTitle": "Tanpa akses",
+  "@catalogForbiddenTitle": {
+    "description": "Judul state katalog saat 403"
+  },
+  "catalogForbiddenBody": "Anda tidak memiliki izin melihat katalog aset.",
+  "@catalogForbiddenBody": {
+    "description": "Body state katalog saat 403"
   }
 }
