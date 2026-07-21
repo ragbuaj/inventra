@@ -1447,11 +1447,15 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     Batalkan pengajuan `pending` sendiri (`POST /requests/:id/cancel`, ConfirmDialog destruktif,
 >     reload). Reuse RequestDto/RequestListDto/ApprovalStatusFilter + request_presentation. Rute
 >     `/my-requests`. Nol backend baru. Tes: 6 unit repository + 9 widget + golden; suite mobile 461
->     lulus. **TEMUAN + DEVIASI DITUNDA:** `GET /requests/:id` menegakkan office scope TANPA bypass
->     `mine`, jadi maker ber-scope sempit bisa 403 saat buka detail pengajuannya sendiri dari mobile.
->     Karena itu **navigasi kartu ke detail read-only ditunda** (menunggu keputusan: tambah bypass
->     `mine` di GET detail vs reuse /approval/:id apa adanya vs cancel-only). Berikutnya M7: Task
->     M7-4/5/6 (Detail Aset + sheet aksi). Titik masuk Beranda (M7-8) menyusul.
+>     lulus. **Detail read-only LANDED** (keputusan pemilik produk: opsi bypass-maker). Backend
+>     `fix(security)`: `GET /requests/:id` kini memperbolehkan **maker melihat pengajuannya sendiri
+>     lepas dari office scope** (paritas bypass `mine=true` list; non-maker tetap scope-gated 403);
+>     field-permission masking tetap berlaku. Handler + test integrasi (maker out-of-scope lihat own
+>     lalu 200) + OpenAPI diperbarui. Mobile: rute `/my-requests/:id` reuse ApprovalDetailScreen
+>     (maker-mode read-only, banner SoD, tanpa approve/reject); kartu Pengajuan Saya kini tappable.
+>     Tes mobile +1 nav; suite mobile 462 lulus; backend vet/unit/spectral hijau (integrasi via CI —
+>     testcontainers tak jalan di Windows lokal). Berikutnya M7: Task M7-4/5/6 (Detail Aset + sheet
+>     aksi). Titik masuk Beranda (M7-8) menyusul.
 
 ## ✅ Done
 

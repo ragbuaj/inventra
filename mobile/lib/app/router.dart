@@ -171,6 +171,14 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
         name: 'my-requests',
         builder: (BuildContext context, GoRouterState state) =>
             const MyRequestsScreen(),
+        routes: <RouteBase>[
+          GoRoute(
+            path: ':id',
+            name: 'my-request-detail',
+            builder: (BuildContext context, GoRouterState state) =>
+                ApprovalDetailScreen(requestId: state.pathParameters['id']!),
+          ),
+        ],
       ),
       GoRoute(
         path: '/assets/:tag',

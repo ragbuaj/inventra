@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../app/theme.dart';
@@ -57,16 +58,16 @@ class _MyRequestsScreenState extends ConsumerState<MyRequestsScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.myRequestsCancelSuccess)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.myRequestsCancelSuccess)));
     } on Object {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.myRequestsCancelError)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.myRequestsCancelError)));
     }
   }
 
@@ -133,16 +134,16 @@ class _FilterRow extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
       child: Row(
         children: <Widget>[
-          for (final ApprovalStatusFilter filter in ApprovalStatusFilter.values)
-            ...<Widget>[
-              if (filter != ApprovalStatusFilter.values.first)
-                const SizedBox(width: 8),
-              _FilterChip(
-                label: label(filter),
-                active: filter == selected,
-                onTap: () => onSelect(filter),
-              ),
-            ],
+          for (final ApprovalStatusFilter filter
+              in ApprovalStatusFilter.values) ...<Widget>[
+            if (filter != ApprovalStatusFilter.values.first)
+              const SizedBox(width: 8),
+            _FilterChip(
+              label: label(filter),
+              active: filter == selected,
+              onTap: () => onSelect(filter),
+            ),
+          ],
         ],
       ),
     );
@@ -169,7 +170,9 @@ class _FilterChip extends StatelessWidget {
       button: true,
       selected: active,
       child: Material(
-        color: active ? scheme.primary : theme.cardTheme.color ?? scheme.surface,
+        color: active
+            ? scheme.primary
+            : theme.cardTheme.color ?? scheme.surface,
         shape: StadiumBorder(
           side: active
               ? BorderSide.none
@@ -266,7 +269,8 @@ class _RequestList extends ConsumerWidget {
 
 /// Kartu pengajuan maker: ikon jenis, label jenis, penanda sensitif, waktu
 /// relatif, judul, nominal, chip status, dan (bila pending) tombol Batalkan.
-/// Tanpa navigasi ke detail pada increment ini (lihat catatan scope get detail).
+/// Tap membuka detail read-only pengajuan (maker boleh melihat pengajuannya
+/// sendiri lepas dari office scope — bypass maker di GET /requests/:id).
 class _RequestCard extends ConsumerWidget {
   const _RequestCard({required this.request, this.onCancel});
 
@@ -295,97 +299,100 @@ class _RequestCard extends ConsumerWidget {
         side: BorderSide(color: scheme.outlineVariant),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: typeColors.bg,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    requestTypeIcon(request.type),
-                    size: 17,
-                    color: typeColors.text,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    requestTypeLabel(l10n, request.type),
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
+      child: InkWell(
+        onTap: () => context.push('/my-requests/${request.id}'),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: typeColors.bg,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      requestTypeIcon(request.type),
+                      size: 17,
                       color: typeColors.text,
                     ),
                   ),
-                ),
-                const Spacer(),
-                if (createdAt != null)
-                  Text(
-                    formatRelativeTime(
-                      l10n,
-                      ref.watch(clockProvider)(),
-                      createdAt,
-                      localeName,
-                    ),
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: theme.textTheme.labelSmall?.color,
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              requestTitle(l10n, request.type, request.reason),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 14.5,
-                fontWeight: FontWeight.w700,
-                color: scheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: <Widget>[
-                if (amount != null)
+                  const SizedBox(width: 8),
                   Flexible(
                     child: Text(
-                      formatIdrAmount(amount, localeName),
+                      requestTypeLabel(l10n, request.type),
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 13.5,
+                        fontSize: 11.5,
                         fontWeight: FontWeight.w700,
-                        color: scheme.onSurface,
+                        color: typeColors.text,
                       ),
                     ),
                   ),
-                const Spacer(),
-                StatusChip(label: statusLabel, variant: statusVariant),
-              ],
-            ),
-            if (onCancel != null) ...<Widget>[
-              const Divider(height: 20),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: onCancel,
-                  style: TextButton.styleFrom(foregroundColor: scheme.error),
-                  icon: const Icon(Symbols.cancel_rounded, size: 18),
-                  label: Text(l10n.myRequestsCancel),
+                  const Spacer(),
+                  if (createdAt != null)
+                    Text(
+                      formatRelativeTime(
+                        l10n,
+                        ref.watch(clockProvider)(),
+                        createdAt,
+                        localeName,
+                      ),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: theme.textTheme.labelSmall?.color,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                requestTitle(l10n, request.type, request.reason),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurface,
                 ),
               ),
+              const SizedBox(height: 10),
+              Row(
+                children: <Widget>[
+                  if (amount != null)
+                    Flexible(
+                      child: Text(
+                        formatIdrAmount(amount, localeName),
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.onSurface,
+                        ),
+                      ),
+                    ),
+                  const Spacer(),
+                  StatusChip(label: statusLabel, variant: statusVariant),
+                ],
+              ),
+              if (onCancel != null) ...<Widget>[
+                const Divider(height: 20),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: onCancel,
+                    style: TextButton.styleFrom(foregroundColor: scheme.error),
+                    icon: const Icon(Symbols.cancel_rounded, size: 18),
+                    label: Text(l10n.myRequestsCancel),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
