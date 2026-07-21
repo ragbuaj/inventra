@@ -126,6 +126,63 @@ void main() {
     expect(find.text('MY REQUESTS'), findsOneWidget);
   });
 
+  testWidgets('intangible + harga konkret: nilai persis diteruskan register', (
+    WidgetTester tester,
+  ) async {
+    when(
+      () => repository.register(
+        name: any(named: 'name'),
+        categoryId: any(named: 'categoryId'),
+        officeId: any(named: 'officeId'),
+        assetClass: any(named: 'assetClass'),
+        purchaseCost: any(named: 'purchaseCost'),
+        purchaseDate: any(named: 'purchaseDate'),
+        serialNumber: any(named: 'serialNumber'),
+        notes: any(named: 'notes'),
+      ),
+    ).thenAnswer((_) async {});
+
+    await pump(tester);
+
+    // Langkah 1: nama + kategori + pilih kelas Tak Berwujud (intangible).
+    await tester.enterText(find.byType(TextField).first, 'Lisensi ERP');
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Elektronik').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10nId.registerClassIntangible));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10nId.registerNext));
+    await tester.pumpAndSettle();
+
+    // Langkah 2: kantor + harga perolehan konkret (field pertama).
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cabang Jakarta Selatan').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '2500000');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10nId.registerNext));
+    await tester.pumpAndSettle();
+
+    // Langkah 3: kirim.
+    await tester.tap(find.text(l10nId.registerSubmit));
+    await tester.pumpAndSettle();
+
+    verify(
+      () => repository.register(
+        name: 'Lisensi ERP',
+        categoryId: 'cat-1',
+        officeId: 'off-1',
+        assetClass: 'intangible',
+        purchaseCost: '2500000',
+        purchaseDate: any(named: 'purchaseDate'),
+        serialNumber: any(named: 'serialNumber'),
+        notes: any(named: 'notes'),
+      ),
+    ).called(1);
+  });
+
   testWidgets('langkah 1 tanpa nama: validasi menahan lanjut', (
     WidgetTester tester,
   ) async {

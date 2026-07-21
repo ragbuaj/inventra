@@ -103,6 +103,33 @@ void main() {
       expect(capturedQuery().containsKey('search'), isFalse);
     });
 
+    test('filter dikirim dengan nama param snake_case backend', () async {
+      stubOk();
+
+      await repository.list(
+        categoryId: 'c1',
+        officeId: 'o1',
+        status: 'assigned',
+      );
+
+      final Map<String, dynamic> query = capturedQuery();
+      // Nama key HARUS cocok kontrak GET /assets; salah ketik = filter diabaikan.
+      expect(query['category_id'], 'c1');
+      expect(query['office_id'], 'o1');
+      expect(query['status'], 'assigned');
+    });
+
+    test('filter null tidak dikirim', () async {
+      stubOk();
+
+      await repository.list(categoryId: 'c1');
+
+      final Map<String, dynamic> query = capturedQuery();
+      expect(query['category_id'], 'c1');
+      expect(query.containsKey('office_id'), isFalse);
+      expect(query.containsKey('status'), isFalse);
+    });
+
     test('pagination: offset diteruskan', () async {
       when(
         () => dio.get<Map<String, dynamic>>(

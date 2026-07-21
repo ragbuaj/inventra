@@ -175,6 +175,28 @@ void main() {
     expect(find.text('Pengajuan yang dibatalkan'), findsNothing);
   });
 
+  testWidgets('Batalkan gagal: SnackBar error, item tetap ada', (
+    WidgetTester tester,
+  ) async {
+    stubList(
+      ApprovalStatusFilter.pending,
+      _page(<RequestDto>[_request(reason: 'Pengajuan tetap ada')]),
+    );
+    when(() => repository.cancel('req-1')).thenThrow(const ConflictFailure());
+    await pump(tester);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10nId.myRequestsCancel));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, l10nId.myRequestsCancel));
+    await tester.pumpAndSettle();
+
+    verify(() => repository.cancel('req-1')).called(1);
+    expect(find.text(l10nId.myRequestsCancelError), findsOneWidget);
+    // Daftar tidak berubah (item masih ada).
+    expect(find.text('Pengajuan tetap ada'), findsOneWidget);
+  });
+
   testWidgets('Batalkan: batal dialog tidak memanggil cancel', (
     WidgetTester tester,
   ) async {
