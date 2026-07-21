@@ -1578,7 +1578,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     status aset (assignment/maintenance/transfer/disposal + approval history & inbox pending +
 >     periode depresiasi + notifikasi + audit). **WAJIB setelah seed: `redis-cli FLUSHALL`** (cache
 >     authz Redis by role_id — seed SQL langsung tak menginvalidasinya). **E2E** (`frontend/e2e/
->     lampiran-a-*.spec.ts` + `lampiran-helpers.ts`): 9 file, 45 tes, **API-driven multi-user** (tiap
+>     lampiran-a-*.spec.ts` + `lampiran-helpers.ts`): 9 file, 46 tes, **API-driven multi-user** (tiap
 >     aktor konteks API sendiri), assert **status code persis** (403/422/409/400) untuk seluruh jalur
 >     boleh/tidak-boleh Skenario 1-7 + A.7 opname — rantai berjenjang office->wilayah->pusat dengan
 >     approver berbeda per tier (pertama di repo). Cast di-resolve dari API by (kantor, role), bukan
@@ -1596,7 +1596,12 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     dikonfirmasi benar; ditambah `lampiran-a-field-masking.spec.ts` (guard regresi otomatis: Staf
 >     tak lihat `purchase_cost`/`book_value`/`accumulated_depreciation`, Manager lihat 2 pertama saja,
 >     Superadmin lihat semua) + assertion positif self-borrow tertaut pegawai Staf (mine dari JWT).
->     **Temuan sisa (dicatat, bukan bug e2e):** alur transfer app tak pernah menyetel
+>     **Kebijakan field-permission finansial dirapikan (migrasi `000037`):** dulu Manager lihat
+>     `purchase_cost`+`book_value` tapi `accumulated_depreciation` masked — padahal accumulated =
+>     purchase_cost - book_value - impairment (bisa diturunkan), jadi maskingnya bocor & tak konsisten.
+>     Kini ketiga kolom = SATU tier: view untuk Superadmin + Manager + Pejabat Kantor Pusat, masked
+>     untuk Kepala Unit/Kanwil + Staf (migrasi 000037 up/down teruji; seed & guard e2e diselaraskan;
+>     46 tes hijau). **Temuan sisa (dicatat, bukan bug e2e):** alur transfer app tak pernah menyetel
 >     status aset `in_transfer` (aset tetap `available` selama transit; guard dobel-mutasi lewat baris
 >     transfer terbuka).
 

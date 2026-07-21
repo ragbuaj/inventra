@@ -152,18 +152,15 @@ INSERT INTO identity.data_scope_policies (role_id, module, scope_level)
 SELECT r.id, '*', 'office_subtree'::shared.scope_level
 FROM identity.roles r WHERE r.code = 'pejabat_pusat';
 
--- Field permissions kanonik (mirror migrasi 000016): sembunyikan kolom finansial
--- aset dari role non-privileged. Dijalankan di sini agar SEMUA role (termasuk
--- `pejabat_pusat` yang baru) mendapat baris — bukan default-allow yang membocorkan
--- purchase_cost/book_value/accumulated_depreciation ke Staf/Kepala.
+-- Field permissions kanonik: kolom finansial aset (purchase_cost/book_value/
+-- accumulated_depreciation) = SATU tier konsisten (mirror migrasi 000016 + 000037).
+-- View hanya untuk Superadmin + Manager + Pejabat Kantor Pusat; Kepala Unit/Kanwil
+-- dan Staf ter-mask penuh. Dijalankan di sini agar SEMUA role (termasuk
+-- `pejabat_pusat` yang baru) dapat baris eksplisit — bukan default-allow yang
+-- membocorkan nilai finansial.
 INSERT INTO identity.field_permissions (entity, field, role_id, can_view, can_edit)
 SELECT 'assets', f.field, r.id,
-       (CASE
-          WHEN f.field = 'purchase_cost'            AND r.name IN ('Superadmin', 'Manager') THEN true
-          WHEN f.field = 'book_value'               AND r.name IN ('Superadmin', 'Manager') THEN true
-          WHEN f.field = 'accumulated_depreciation' AND r.name = 'Superadmin'                THEN true
-          ELSE false
-        END),
+       (r.name IN ('Superadmin', 'Manager', 'Pejabat Kantor Pusat')),
        false
 FROM identity.roles r
 CROSS JOIN (VALUES ('purchase_cost'), ('book_value'), ('accumulated_depreciation')) AS f(field)

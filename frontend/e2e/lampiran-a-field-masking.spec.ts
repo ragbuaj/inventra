@@ -4,9 +4,10 @@
 // menghapus/merusak baris itu akan membocorkan harga perolehan/nilai buku/akumulasi
 // penyusutan ke Staf/Kepala TANPA satu pun tes gagal (persis bug review #1).
 //
-// Aturan kanonik (000016):
-//   purchase_cost, book_value        -> hanya Superadmin + Manager yang view
-//   accumulated_depreciation         -> hanya Superadmin yang view
+// Kebijakan kanonik (000016 + 000037, dirapikan jadi SATU tier konsisten):
+//   purchase_cost, book_value, accumulated_depreciation
+//     -> view: Superadmin + Manager + Pejabat Kantor Pusat
+//     -> masked: Kepala Unit, Kepala Kanwil, Staf
 
 import { test, expect } from '@playwright/test'
 import type { Actor, BranchCast } from './lampiran-helpers'
@@ -16,8 +17,10 @@ test.describe.configure({ mode: 'serial' })
 
 let admin: Actor
 let cast: BranchCast
-let manager: Actor // Manager @ branch
-let staf: Actor // Staf @ branch
+let manager: Actor // Manager @ branch (privileged)
+let pejabat: Actor // Pejabat Kantor Pusat (privileged)
+let kepalaUnit: Actor // Kepala Unit @ branch (masked)
+let staf: Actor // Staf @ branch (masked)
 let assetId: string
 
 const FINANCIAL = ['purchase_cost', 'book_value', 'accumulated_depreciation'] as const
@@ -31,24 +34,32 @@ async function assetKeys(as: Actor, id: string): Promise<Set<string>> {
 test.beforeAll(async () => {
   admin = await loginAdmin()
   cast = await resolveBranchCast(admin, 'BDG01')
-  ;[manager, staf] = await Promise.all([loginDemo(cast.makerEmail), loginDemo(cast.stafEmail)])
+  ;[manager, pejabat, kepalaUnit, staf] = await Promise.all([
+    loginDemo(cast.makerEmail), loginDemo(cast.pusatApproverEmail),
+    loginDemo(cast.officeApproverEmail), loginDemo(cast.stafEmail)
+  ])
   assetId = (await pickAvailableAsset(admin, cast.branch.id)).id
 })
 
 test.afterAll(async () => {
-  for (const a of [admin, manager, staf]) await a?.api.dispose()
+  for (const a of [admin, manager, pejabat, kepalaUnit, staf]) await a?.api.dispose()
 })
 
-test('Staf: SEMUA kolom finansial ter-mask (tak muncul di response)', async () => {
-  const keys = await assetKeys(staf, assetId)
-  for (const f of FINANCIAL) expect(keys.has(f), `Staf tidak boleh melihat ${f}`).toBe(false)
+test('Staf & Kepala Unit: SEMUA kolom finansial ter-mask', async () => {
+  for (const [label, actor] of [['Staf', staf], ['Kepala Unit', kepalaUnit]] as const) {
+    const keys = await assetKeys(actor, assetId)
+    for (const f of FINANCIAL) expect(keys.has(f), `${label} tidak boleh melihat ${f}`).toBe(false)
+  }
 })
 
-test('Manager: lihat purchase_cost + book_value, TAPI bukan accumulated_depreciation', async () => {
+test('Manager: lihat KETIGA kolom finansial (tier konsisten)', async () => {
   const keys = await assetKeys(manager, assetId)
-  expect(keys.has('purchase_cost')).toBe(true)
-  expect(keys.has('book_value')).toBe(true)
-  expect(keys.has('accumulated_depreciation'), 'akumulasi penyusutan hanya untuk Superadmin').toBe(false)
+  for (const f of FINANCIAL) expect(keys.has(f), `Manager harus melihat ${f}`).toBe(true)
+})
+
+test('Pejabat Kantor Pusat: lihat KETIGA kolom finansial', async () => {
+  const keys = await assetKeys(pejabat, assetId)
+  for (const f of FINANCIAL) expect(keys.has(f), `Pejabat Pusat harus melihat ${f}`).toBe(true)
 })
 
 test('Superadmin: lihat SEMUA kolom finansial (dengan nilai)', async () => {
