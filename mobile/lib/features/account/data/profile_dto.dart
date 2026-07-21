@@ -37,6 +37,25 @@ class ProfileDto {
   /// True bila akun tertaut ke pegawai (ada detail pegawai untuk dirender).
   bool get hasEmployee => employeeCode != null || employeeName != null;
 
+  ProfileDto copyWith({String? name, String? phone}) {
+    return ProfileDto(
+      id: id,
+      name: name ?? this.name,
+      email: email,
+      phone: phone ?? this.phone,
+      roleName: roleName,
+      officeName: officeName,
+      employeeName: employeeName,
+      employeeCode: employeeCode,
+      employeeStatus: employeeStatus,
+      departmentName: departmentName,
+      positionName: positionName,
+      hasAvatar: hasAvatar,
+      googleLinked: googleLinked,
+      joinedAt: joinedAt,
+    );
+  }
+
   factory ProfileDto.fromJson(Map<String, dynamic> json) {
     String? str(String key) {
       final Object? v = json[key];

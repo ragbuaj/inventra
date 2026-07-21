@@ -1525,4 +1525,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileDetailError => 'Couldn\'t load profile details.';
+
+  @override
+  String get profileDataDiriTitle => 'Personal Data';
+
+  @override
+  String get profileEditButton => 'Edit';
+
+  @override
+  String get profileSaveButton => 'Save';
+
+  @override
+  String get profileNameLabel => 'Name';
+
+  @override
+  String get profileNameRequired => 'Name is required.';
+
+  @override
+  String get profileUpdateSuccess => 'Personal data updated';
+
+  @override
+  String get profileUpdateError => 'Couldn\'t save. Try again.';
 }

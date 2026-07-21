@@ -53,12 +53,14 @@ class FakeAccountRepository implements AccountRepository {
        profileData = profile ?? fakeProfile;
 
   final List<SessionDto> sessionsData;
-  final ProfileDto profileData;
+  ProfileDto profileData;
   bool failSessions;
   bool failRevoke;
   bool failRevokeOthers;
   bool failProfile;
+  bool failUpdate = false;
   Uint8List? avatarBytes;
+  final List<(String, String?)> updateCalls = <(String, String?)>[];
 
   final List<String> revokeCalls = <String>[];
   int revokeOthersCalls = 0;
@@ -98,6 +100,19 @@ class FakeAccountRepository implements AccountRepository {
     if (failProfile) {
       throw const NetworkFailure();
     }
+    return profileData;
+  }
+
+  @override
+  Future<ProfileDto> updateProfile({
+    required String name,
+    String? phone,
+  }) async {
+    updateCalls.add((name, phone));
+    if (failUpdate) {
+      throw const ServerFailure();
+    }
+    profileData = profileData.copyWith(name: name, phone: phone ?? '');
     return profileData;
   }
 

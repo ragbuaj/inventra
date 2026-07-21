@@ -1917,5 +1917,19 @@
   "profileJoinedAt": "Bergabung",
   "@profileJoinedAt": { "description": "Label tanggal bergabung" },
   "profileDetailError": "Gagal memuat detail profil.",
-  "@profileDetailError": { "description": "Pesan gagal memuat detail profil" }
+  "@profileDetailError": { "description": "Pesan gagal memuat detail profil" },
+  "profileDataDiriTitle": "Data Diri",
+  "@profileDataDiriTitle": { "description": "Judul kartu data diri" },
+  "profileEditButton": "Ubah",
+  "@profileEditButton": { "description": "Tombol masuk mode ubah data diri" },
+  "profileSaveButton": "Simpan",
+  "@profileSaveButton": { "description": "Tombol simpan data diri" },
+  "profileNameLabel": "Nama",
+  "@profileNameLabel": { "description": "Label nama pengguna" },
+  "profileNameRequired": "Nama wajib diisi.",
+  "@profileNameRequired": { "description": "Validasi nama wajib" },
+  "profileUpdateSuccess": "Data diri diperbarui",
+  "@profileUpdateSuccess": { "description": "SnackBar sukses ubah data diri" },
+  "profileUpdateError": "Gagal menyimpan. Coba lagi.",
+  "@profileUpdateError": { "description": "Pesan gagal ubah data diri" }
 }

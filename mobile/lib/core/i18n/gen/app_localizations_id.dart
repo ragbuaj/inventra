@@ -1524,4 +1524,25 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get profileDetailError => 'Gagal memuat detail profil.';
+
+  @override
+  String get profileDataDiriTitle => 'Data Diri';
+
+  @override
+  String get profileEditButton => 'Ubah';
+
+  @override
+  String get profileSaveButton => 'Simpan';
+
+  @override
+  String get profileNameLabel => 'Nama';
+
+  @override
+  String get profileNameRequired => 'Nama wajib diisi.';
+
+  @override
+  String get profileUpdateSuccess => 'Data diri diperbarui';
+
+  @override
+  String get profileUpdateError => 'Gagal menyimpan. Coba lagi.';
 }

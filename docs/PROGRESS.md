@@ -1507,8 +1507,14 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     (email/telepon/metode login/tanggal bergabung) — additive di atas kartu identitas + sesi yang
 >     ada. `FakeAccountRepository` diberi `getProfile`; golden Profil diregenerasi. Nol backend baru.
 >     Tes: 2 repo (parse, offline) + 2 widget (kartu terisi, akun tanpa pegawai); suite mobile 503.
->     Berikutnya M8: **M8-2 (ubah data diri, `PUT /auth/profile`)** lalu M8-3 (avatar, butuh
->     image_picker), M8-4 (keamanan akun), M8-5 (lupa password), M8-6 (verifikasi logout).
+>     **Task M8-2 (ubah data diri) LANDED**: `AccountRepository.updateProfile` (`PUT /auth/profile`
+>     {name, phone}); kartu **Data Diri** editable (mode Ubah -> Simpan/Batal; validasi nama wajib;
+>     sukses -> invalidate `accountProfileProvider` + SnackBar). `FakeAccountRepository.updateProfile`
+>     + `ProfileDto.copyWith`; golden Profil regen; viewport tes profil dinaikkan. Catatan: nama di
+>     header identitas (dari sesi auth) baru segar setelah re-login (Data Diri + provider profil
+>     langsung segar). Nol backend baru. Tes: +2 repo (update, offline) + 3 widget (Ubah->Simpan,
+>     validasi nama, Batal); suite mobile 506. Berikutnya M8: **M8-3 (avatar** — butuh keputusan
+>     `image_picker`) lalu M8-4 (keamanan akun), M8-5 (lupa password), M8-6 (verifikasi logout).
 
 ## ✅ Done
 

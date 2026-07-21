@@ -463,5 +463,12 @@
   "profileLoginGoogle": "Google",
   "profileLoginEmail": "Email & password",
   "profileJoinedAt": "Joined",
-  "profileDetailError": "Couldn't load profile details."
+  "profileDetailError": "Couldn't load profile details.",
+  "profileDataDiriTitle": "Personal Data",
+  "profileEditButton": "Edit",
+  "profileSaveButton": "Save",
+  "profileNameLabel": "Name",
+  "profileNameRequired": "Name is required.",
+  "profileUpdateSuccess": "Personal data updated",
+  "profileUpdateError": "Couldn't save. Try again."
 }

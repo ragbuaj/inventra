@@ -2881,6 +2881,48 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Gagal memuat detail profil.'**
   String get profileDetailError;
+
+  /// Judul kartu data diri
+  ///
+  /// In id, this message translates to:
+  /// **'Data Diri'**
+  String get profileDataDiriTitle;
+
+  /// Tombol masuk mode ubah data diri
+  ///
+  /// In id, this message translates to:
+  /// **'Ubah'**
+  String get profileEditButton;
+
+  /// Tombol simpan data diri
+  ///
+  /// In id, this message translates to:
+  /// **'Simpan'**
+  String get profileSaveButton;
+
+  /// Label nama pengguna
+  ///
+  /// In id, this message translates to:
+  /// **'Nama'**
+  String get profileNameLabel;
+
+  /// Validasi nama wajib
+  ///
+  /// In id, this message translates to:
+  /// **'Nama wajib diisi.'**
+  String get profileNameRequired;
+
+  /// SnackBar sukses ubah data diri
+  ///
+  /// In id, this message translates to:
+  /// **'Data diri diperbarui'**
+  String get profileUpdateSuccess;
+
+  /// Pesan gagal ubah data diri
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal menyimpan. Coba lagi.'**
+  String get profileUpdateError;
 }
 
 class _AppLocalizationsDelegate

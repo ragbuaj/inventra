@@ -112,7 +112,7 @@ void main() {
     FakeAccountRepository repository, {
     bool settle = true,
   }) async {
-    tester.view.physicalSize = const Size(500, 1200);
+    tester.view.physicalSize = const Size(500, 2000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
     final ProviderContainer container = createContainer(repository);
@@ -162,6 +162,63 @@ void main() {
     });
   });
 
+  group('ubah data diri (PUT /auth/profile)', () {
+    testWidgets('Ubah -> Simpan memanggil updateProfile + nilai baru', (
+      WidgetTester tester,
+    ) async {
+      final FakeAccountRepository repo = FakeAccountRepository(
+        sessions: _threeSessions(),
+      );
+      await pumpProfile(tester, repo);
+
+      await tester.tap(find.byKey(const ValueKey<String>('profile-edit')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'Budi Hartono');
+      await tester.tap(find.byKey(const ValueKey<String>('profile-save')));
+      await tester.pumpAndSettle();
+
+      expect(repo.updateCalls, hasLength(1));
+      expect(repo.updateCalls.first.$1, 'Budi Hartono');
+      expect(find.text(l10nId.profileUpdateSuccess), findsOneWidget);
+      expect(find.text('Budi Hartono'), findsWidgets);
+    });
+
+    testWidgets('nama kosong: validasi menahan simpan', (
+      WidgetTester tester,
+    ) async {
+      final FakeAccountRepository repo = FakeAccountRepository(
+        sessions: _threeSessions(),
+      );
+      await pumpProfile(tester, repo);
+
+      await tester.tap(find.byKey(const ValueKey<String>('profile-edit')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, '   ');
+      await tester.tap(find.byKey(const ValueKey<String>('profile-save')));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10nId.profileNameRequired), findsOneWidget);
+      expect(repo.updateCalls, isEmpty);
+    });
+
+    testWidgets('Batal: kembali ke mode baca tanpa update', (
+      WidgetTester tester,
+    ) async {
+      final FakeAccountRepository repo = FakeAccountRepository(
+        sessions: _threeSessions(),
+      );
+      await pumpProfile(tester, repo);
+
+      await tester.tap(find.byKey(const ValueKey<String>('profile-edit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10nId.commonCancel));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey<String>('profile-edit')), findsOneWidget);
+      expect(repo.updateCalls, isEmpty);
+    });
+  });
+
   group('kartu identitas', () {
     testWidgets('nama, email, inisial avatar, dan kantor (lookup)', (
       WidgetTester tester,
@@ -171,7 +228,8 @@ void main() {
         FakeAccountRepository(sessions: _threeSessions()),
       );
 
-      expect(find.text('Andi Saputra'), findsOneWidget);
+      // Nama tampil di header identitas dan kartu Data Diri (read view).
+      expect(find.text('Andi Saputra'), findsWidgets);
       expect(find.text('andi.saputra@bank.co.id'), findsOneWidget);
       expect(find.text('AS'), findsOneWidget);
       expect(find.text('Cabang Jakarta Selatan'), findsOneWidget);

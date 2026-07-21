@@ -35,6 +35,27 @@ class AccountRepository {
     }
   }
 
+  /// Menyunting data diri sendiri (`PUT /auth/profile` — hanya `name` wajib +
+  /// `phone` opsional yang boleh diedit). Mengembalikan profil terbaru.
+  Future<ProfileDto> updateProfile({
+    required String name,
+    String? phone,
+  }) async {
+    try {
+      final Response<Map<String, dynamic>> response = await _dio
+          .put<Map<String, dynamic>>(
+            '/auth/profile',
+            data: <String, dynamic>{
+              'name': name.trim(),
+              'phone': phone?.trim() ?? '',
+            },
+          );
+      return ProfileDto.fromJson(response.data!);
+    } on DioException catch (err) {
+      throw err.toAppFailure();
+    }
+  }
+
   /// Seluruh sesi aktif milik pemanggil (`GET /auth/sessions`).
   Future<List<SessionDto>> sessions() async {
     try {
