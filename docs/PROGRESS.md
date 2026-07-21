@@ -1441,8 +1441,17 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     tersendiri (rute `/my-assets`), kartu aset dipegang (nama/kode/chip Dipinjam/dipinjam sejak/
 >     jatuh tempo) dengan penanda **Terlambat** (due_date < hari ini via clockProvider);
 >     empty/loading/error/403 state; tap ke Detail Aset. Nol backend baru. Tes: 4 unit repository +
->     6 widget + golden light/dark; suite mobile 444 lulus. Berikutnya M7: Task M7-3 (Pengajuan
->     Saya). Titik masuk Beranda (M7-8) menyusul.
+>     6 widget + golden light/dark; suite mobile 444 lulus. **Task M7-3 (Pengajuan Saya) — list +
+>     filter + Batalkan LANDED** (`mobile/lib/features/my_requests/`): lensa maker `GET
+>     /requests?mine=true` (server filter by JWT user, bypass office scope) + filter status +
+>     Batalkan pengajuan `pending` sendiri (`POST /requests/:id/cancel`, ConfirmDialog destruktif,
+>     reload). Reuse RequestDto/RequestListDto/ApprovalStatusFilter + request_presentation. Rute
+>     `/my-requests`. Nol backend baru. Tes: 6 unit repository + 9 widget + golden; suite mobile 461
+>     lulus. **TEMUAN + DEVIASI DITUNDA:** `GET /requests/:id` menegakkan office scope TANPA bypass
+>     `mine`, jadi maker ber-scope sempit bisa 403 saat buka detail pengajuannya sendiri dari mobile.
+>     Karena itu **navigasi kartu ke detail read-only ditunda** (menunggu keputusan: tambah bypass
+>     `mine` di GET detail vs reuse /approval/:id apa adanya vs cancel-only). Berikutnya M7: Task
+>     M7-4/5/6 (Detail Aset + sheet aksi). Titik masuk Beranda (M7-8) menyusul.
 
 ## ✅ Done
 

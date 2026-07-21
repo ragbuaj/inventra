@@ -1661,5 +1661,61 @@
   "myAssetsForbiddenBody": "Anda tidak memiliki izin melihat aset yang dipegang.",
   "@myAssetsForbiddenBody": {
     "description": "Body Aset Saya saat 403"
+  },
+  "myRequestsTitle": "Pengajuan Saya",
+  "@myRequestsTitle": {
+    "description": "Judul layar Pengajuan Saya (AppBar)"
+  },
+  "myRequestsEmptyTitle": "Belum ada pengajuan",
+  "@myRequestsEmptyTitle": {
+    "description": "Judul empty state Pengajuan Saya"
+  },
+  "myRequestsEmptyBody": "Pengajuan yang Anda buat akan tampil di sini.",
+  "@myRequestsEmptyBody": {
+    "description": "Body empty state Pengajuan Saya"
+  },
+  "myRequestsCancel": "Batalkan",
+  "@myRequestsCancel": {
+    "description": "Tombol membatalkan pengajuan pending sendiri"
+  },
+  "myRequestsCancelConfirmTitle": "Batalkan pengajuan?",
+  "@myRequestsCancelConfirmTitle": {
+    "description": "Judul dialog konfirmasi batal pengajuan"
+  },
+  "myRequestsCancelConfirmBody": "Pengajuan ini akan dibatalkan dan tidak dapat dilanjutkan.",
+  "@myRequestsCancelConfirmBody": {
+    "description": "Body dialog konfirmasi batal pengajuan"
+  },
+  "myRequestsCancelSuccess": "Pengajuan dibatalkan",
+  "@myRequestsCancelSuccess": {
+    "description": "SnackBar sukses membatalkan pengajuan"
+  },
+  "myRequestsCancelError": "Gagal membatalkan. Coba lagi.",
+  "@myRequestsCancelError": {
+    "description": "SnackBar gagal membatalkan pengajuan"
+  },
+  "myRequestsLoadMoreFailed": "Gagal memuat lagi.",
+  "@myRequestsLoadMoreFailed": {
+    "description": "Pesan gagal memuat halaman berikutnya di Pengajuan Saya"
+  },
+  "myRequestsErrorTitle": "Gagal memuat pengajuan",
+  "@myRequestsErrorTitle": {
+    "description": "Judul error state Pengajuan Saya"
+  },
+  "myRequestsErrorNetworkBody": "Periksa koneksi Anda lalu coba lagi.",
+  "@myRequestsErrorNetworkBody": {
+    "description": "Body error Pengajuan Saya saat offline"
+  },
+  "myRequestsErrorGenericBody": "Terjadi kesalahan. Coba lagi.",
+  "@myRequestsErrorGenericBody": {
+    "description": "Body error Pengajuan Saya generik"
+  },
+  "myRequestsForbiddenTitle": "Tanpa akses",
+  "@myRequestsForbiddenTitle": {
+    "description": "Judul Pengajuan Saya saat 403"
+  },
+  "myRequestsForbiddenBody": "Anda tidak memiliki izin melihat pengajuan.",
+  "@myRequestsForbiddenBody": {
+    "description": "Body Pengajuan Saya saat 403"
   }
 }

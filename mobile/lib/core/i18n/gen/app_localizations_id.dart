@@ -1218,4 +1218,50 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get myAssetsForbiddenBody =>
       'Anda tidak memiliki izin melihat aset yang dipegang.';
+
+  @override
+  String get myRequestsTitle => 'Pengajuan Saya';
+
+  @override
+  String get myRequestsEmptyTitle => 'Belum ada pengajuan';
+
+  @override
+  String get myRequestsEmptyBody =>
+      'Pengajuan yang Anda buat akan tampil di sini.';
+
+  @override
+  String get myRequestsCancel => 'Batalkan';
+
+  @override
+  String get myRequestsCancelConfirmTitle => 'Batalkan pengajuan?';
+
+  @override
+  String get myRequestsCancelConfirmBody =>
+      'Pengajuan ini akan dibatalkan dan tidak dapat dilanjutkan.';
+
+  @override
+  String get myRequestsCancelSuccess => 'Pengajuan dibatalkan';
+
+  @override
+  String get myRequestsCancelError => 'Gagal membatalkan. Coba lagi.';
+
+  @override
+  String get myRequestsLoadMoreFailed => 'Gagal memuat lagi.';
+
+  @override
+  String get myRequestsErrorTitle => 'Gagal memuat pengajuan';
+
+  @override
+  String get myRequestsErrorNetworkBody =>
+      'Periksa koneksi Anda lalu coba lagi.';
+
+  @override
+  String get myRequestsErrorGenericBody => 'Terjadi kesalahan. Coba lagi.';
+
+  @override
+  String get myRequestsForbiddenTitle => 'Tanpa akses';
+
+  @override
+  String get myRequestsForbiddenBody =>
+      'Anda tidak memiliki izin melihat pengajuan.';
 }

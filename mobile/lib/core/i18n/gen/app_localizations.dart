@@ -2281,6 +2281,90 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Anda tidak memiliki izin melihat aset yang dipegang.'**
   String get myAssetsForbiddenBody;
+
+  /// Judul layar Pengajuan Saya (AppBar)
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan Saya'**
+  String get myRequestsTitle;
+
+  /// Judul empty state Pengajuan Saya
+  ///
+  /// In id, this message translates to:
+  /// **'Belum ada pengajuan'**
+  String get myRequestsEmptyTitle;
+
+  /// Body empty state Pengajuan Saya
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan yang Anda buat akan tampil di sini.'**
+  String get myRequestsEmptyBody;
+
+  /// Tombol membatalkan pengajuan pending sendiri
+  ///
+  /// In id, this message translates to:
+  /// **'Batalkan'**
+  String get myRequestsCancel;
+
+  /// Judul dialog konfirmasi batal pengajuan
+  ///
+  /// In id, this message translates to:
+  /// **'Batalkan pengajuan?'**
+  String get myRequestsCancelConfirmTitle;
+
+  /// Body dialog konfirmasi batal pengajuan
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan ini akan dibatalkan dan tidak dapat dilanjutkan.'**
+  String get myRequestsCancelConfirmBody;
+
+  /// SnackBar sukses membatalkan pengajuan
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan dibatalkan'**
+  String get myRequestsCancelSuccess;
+
+  /// SnackBar gagal membatalkan pengajuan
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal membatalkan. Coba lagi.'**
+  String get myRequestsCancelError;
+
+  /// Pesan gagal memuat halaman berikutnya di Pengajuan Saya
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat lagi.'**
+  String get myRequestsLoadMoreFailed;
+
+  /// Judul error state Pengajuan Saya
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat pengajuan'**
+  String get myRequestsErrorTitle;
+
+  /// Body error Pengajuan Saya saat offline
+  ///
+  /// In id, this message translates to:
+  /// **'Periksa koneksi Anda lalu coba lagi.'**
+  String get myRequestsErrorNetworkBody;
+
+  /// Body error Pengajuan Saya generik
+  ///
+  /// In id, this message translates to:
+  /// **'Terjadi kesalahan. Coba lagi.'**
+  String get myRequestsErrorGenericBody;
+
+  /// Judul Pengajuan Saya saat 403
+  ///
+  /// In id, this message translates to:
+  /// **'Tanpa akses'**
+  String get myRequestsForbiddenTitle;
+
+  /// Body Pengajuan Saya saat 403
+  ///
+  /// In id, this message translates to:
+  /// **'Anda tidak memiliki izin melihat pengajuan.'**
+  String get myRequestsForbiddenBody;
 }
 
 class _AppLocalizationsDelegate

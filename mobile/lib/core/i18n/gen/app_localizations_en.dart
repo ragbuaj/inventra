@@ -1219,4 +1219,49 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get myAssetsForbiddenBody =>
       'You don\'t have permission to view held assets.';
+
+  @override
+  String get myRequestsTitle => 'My Requests';
+
+  @override
+  String get myRequestsEmptyTitle => 'No requests yet';
+
+  @override
+  String get myRequestsEmptyBody => 'Requests you submit will appear here.';
+
+  @override
+  String get myRequestsCancel => 'Cancel';
+
+  @override
+  String get myRequestsCancelConfirmTitle => 'Cancel request?';
+
+  @override
+  String get myRequestsCancelConfirmBody =>
+      'This request will be cancelled and cannot be resumed.';
+
+  @override
+  String get myRequestsCancelSuccess => 'Request cancelled';
+
+  @override
+  String get myRequestsCancelError => 'Couldn\'t cancel. Try again.';
+
+  @override
+  String get myRequestsLoadMoreFailed => 'Failed to load more.';
+
+  @override
+  String get myRequestsErrorTitle => 'Couldn\'t load requests';
+
+  @override
+  String get myRequestsErrorNetworkBody =>
+      'Check your connection and try again.';
+
+  @override
+  String get myRequestsErrorGenericBody => 'Something went wrong. Try again.';
+
+  @override
+  String get myRequestsForbiddenTitle => 'No access';
+
+  @override
+  String get myRequestsForbiddenBody =>
+      'You don\'t have permission to view requests.';
 }

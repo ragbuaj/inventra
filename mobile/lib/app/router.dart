@@ -13,6 +13,7 @@ import '../features/catalog/presentation/catalog_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/login/presentation/login_screen.dart';
 import '../features/my_assets/presentation/my_assets_screen.dart';
+import '../features/my_requests/presentation/my_requests_screen.dart';
 import '../features/notifications/presentation/notifications_screen.dart';
 import '../features/scan/presentation/scan_screen.dart';
 import '../features/stock_opname/presentation/opname_counting_screen.dart';
@@ -164,6 +165,12 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
         name: 'my-assets',
         builder: (BuildContext context, GoRouterState state) =>
             const MyAssetsScreen(),
+      ),
+      GoRoute(
+        path: '/my-requests',
+        name: 'my-requests',
+        builder: (BuildContext context, GoRouterState state) =>
+            const MyRequestsScreen(),
       ),
       GoRoute(
         path: '/assets/:tag',

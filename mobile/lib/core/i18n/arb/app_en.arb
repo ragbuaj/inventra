@@ -363,5 +363,19 @@
   "myAssetsErrorNetworkBody": "Check your connection and try again.",
   "myAssetsErrorGenericBody": "Something went wrong. Try again.",
   "myAssetsForbiddenTitle": "No access",
-  "myAssetsForbiddenBody": "You don't have permission to view held assets."
+  "myAssetsForbiddenBody": "You don't have permission to view held assets.",
+  "myRequestsTitle": "My Requests",
+  "myRequestsEmptyTitle": "No requests yet",
+  "myRequestsEmptyBody": "Requests you submit will appear here.",
+  "myRequestsCancel": "Cancel",
+  "myRequestsCancelConfirmTitle": "Cancel request?",
+  "myRequestsCancelConfirmBody": "This request will be cancelled and cannot be resumed.",
+  "myRequestsCancelSuccess": "Request cancelled",
+  "myRequestsCancelError": "Couldn't cancel. Try again.",
+  "myRequestsLoadMoreFailed": "Failed to load more.",
+  "myRequestsErrorTitle": "Couldn't load requests",
+  "myRequestsErrorNetworkBody": "Check your connection and try again.",
+  "myRequestsErrorGenericBody": "Something went wrong. Try again.",
+  "myRequestsForbiddenTitle": "No access",
+  "myRequestsForbiddenBody": "You don't have permission to view requests."
 }
