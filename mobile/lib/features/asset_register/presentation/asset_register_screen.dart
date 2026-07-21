@@ -397,10 +397,12 @@ class _PlacementStep extends StatelessWidget {
         const SizedBox(height: 12),
         TextField(
           controller: cost,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          // Numerik-only: menolak keystroke non-angka (bukan hanya validasi).
+          keyboardType: TextInputType.number,
+          // Digit-only (rupiah bulat, selaras decimalDigits:0 di ringkasan):
+          // menolak keystroke non-angka termasuk titik ribuan yang membuat
+          // purchase_cost/amount malformed lalu ditolak backend.
           inputFormatters: <TextInputFormatter>[
-            FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+            FilteringTextInputFormatter.digitsOnly,
           ],
           decoration: InputDecoration(
             labelText: l10n.registerPurchaseCost,

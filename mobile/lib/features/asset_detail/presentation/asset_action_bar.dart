@@ -934,6 +934,32 @@ class _CheckinSheetState extends ConsumerState<_CheckinSheet> {
                   child: Center(child: CircularProgressIndicator()),
                 );
               }
+              // Bedakan GAGAL memuat (mis. jaringan) dari "tidak ada penugasan
+              // aktif" — keduanya sebelumnya jatuh ke cabang null yang keliru.
+              if (snapshot.hasError) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 28),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        l10n.checkinLoadError,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: theme.colorScheme.error),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: () => setState(() {
+                          _active = ref
+                              .read(assetActionRepositoryProvider)
+                              .activeAssignment(widget.asset.id ?? '');
+                        }),
+                        child: Text(l10n.commonRetry),
+                      ),
+                    ],
+                  ),
+                );
+              }
               final ActiveAssignment? active = snapshot.data;
               if (active == null) {
                 return Padding(

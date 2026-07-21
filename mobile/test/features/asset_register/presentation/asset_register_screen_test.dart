@@ -159,4 +159,26 @@ void main() {
     );
     expect(costField.controller?.text, '15000');
   });
+
+  testWidgets('harga perolehan menolak titik ribuan (digit-only)', (
+    WidgetTester tester,
+  ) async {
+    await pump(tester);
+    await tester.enterText(find.byType(TextField).first, 'Laptop');
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Elektronik').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10nId.registerNext));
+    await tester.pumpAndSettle();
+
+    // "1.000.000" (pemisah ribuan) sebelumnya lolos dan membuat purchase_cost
+    // malformed; kini titik ditolak -> "1000000" (rupiah bulat, parseable).
+    await tester.enterText(find.byType(TextField).first, '1.000.000');
+    await tester.pump();
+    final TextField costField = tester.widget<TextField>(
+      find.byType(TextField).first,
+    );
+    expect(costField.controller?.text, '1000000');
+  });
 }

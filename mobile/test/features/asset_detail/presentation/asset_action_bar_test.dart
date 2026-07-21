@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:inventra_mobile/core/api/app_failure.dart';
 import 'package:inventra_mobile/core/authz/permissions_provider.dart';
 import 'package:inventra_mobile/features/asset_detail/data/asset_action_repository.dart';
 import 'package:inventra_mobile/features/asset_detail/data/asset_dto.dart';
@@ -293,5 +294,199 @@ void main() {
       ),
     ).called(1);
     expect(find.text(l10nId.borrowSuccess), findsOneWidget);
+  });
+
+  // --- Jalur kegagalan submit: error inline + sheet TETAP terbuka (tak pop) ---
+
+  testWidgets('Pinjam gagal: pesan error inline, sheet tetap terbuka', (
+    WidgetTester tester,
+  ) async {
+    when(
+      () => repository.borrow(
+        assetId: any(named: 'assetId'),
+        dueDate: any(named: 'dueDate'),
+        notes: any(named: 'notes'),
+      ),
+    ).thenThrow(const NetworkFailure());
+
+    await pumpBar(tester, permissions: <String>{'request.create'});
+    await tester.tap(find.text(l10nId.assetActionBorrow));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10nId.borrowSubmit));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10nId.borrowError), findsOneWidget);
+    expect(find.text(l10nId.borrowSheetTitle), findsOneWidget);
+    expect(find.text(l10nId.borrowSuccess), findsNothing);
+  });
+
+  testWidgets('Check-out gagal: pesan error inline, sheet tetap terbuka', (
+    WidgetTester tester,
+  ) async {
+    when(
+      () => repository.searchEmployees(any()),
+    ).thenAnswer((_) async => const <EmployeeOption>[EmployeeOption('emp-1', 'Budi Santoso')]);
+    when(
+      () => repository.checkout(
+        assetId: any(named: 'assetId'),
+        employeeId: any(named: 'employeeId'),
+        checkoutDate: any(named: 'checkoutDate'),
+        dueDate: any(named: 'dueDate'),
+        conditionOut: any(named: 'conditionOut'),
+      ),
+    ).thenThrow(const ConflictFailure());
+
+    await pumpBar(tester, permissions: <String>{'assignment.manage'});
+    await tester.tap(find.text(l10nId.assetActionCheckout));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Budi Santoso'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10nId.checkoutSubmit).last);
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10nId.checkoutError), findsOneWidget);
+    expect(find.text(l10nId.checkoutSuccess), findsNothing);
+  });
+
+  testWidgets('Check-in gagal: pesan error inline, sheet tetap terbuka', (
+    WidgetTester tester,
+  ) async {
+    when(() => repository.activeAssignment(any())).thenAnswer(
+      (_) async =>
+          const ActiveAssignment(id: 'as-1', holderName: 'Budi Santoso'),
+    );
+    when(
+      () => repository.checkin(
+        assignmentId: any(named: 'assignmentId'),
+        conditionIn: any(named: 'conditionIn'),
+        needsMaintenance: any(named: 'needsMaintenance'),
+      ),
+    ).thenThrow(const NetworkFailure());
+
+    await pumpBar(
+      tester,
+      permissions: <String>{'assignment.manage'},
+      asset: _assigned,
+    );
+    await tester.tap(find.text(l10nId.assetActionCheckin));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10nId.checkinSubmit).last);
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10nId.checkinError), findsOneWidget);
+    expect(find.text(l10nId.checkinSuccess), findsNothing);
+  });
+
+  testWidgets('Lapor Kerusakan gagal: pesan error inline', (
+    WidgetTester tester,
+  ) async {
+    when(
+      () => repository.problemCategories(),
+    ).thenAnswer((_) async => const <ProblemCategory>[ProblemCategory('pc-1', 'Layar Rusak')]);
+    when(
+      () => repository.reportDamage(
+        assetId: any(named: 'assetId'),
+        problemCategoryId: any(named: 'problemCategoryId'),
+        description: any(named: 'description'),
+      ),
+    ).thenThrow(const NetworkFailure());
+
+    await pumpBar(tester, permissions: <String>{'request.create'});
+    await tester.tap(find.text(l10nId.assetActionReportDamage));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Layar Rusak').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10nId.reportSubmit));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10nId.reportError), findsOneWidget);
+    expect(find.text(l10nId.reportSuccess), findsNothing);
+  });
+
+  // --- Check-in: penugasan aktif null vs error (Fix D) + toggle maintenance ---
+
+  testWidgets('Check-in tanpa penugasan aktif: pesan no-active, tak submit', (
+    WidgetTester tester,
+  ) async {
+    when(() => repository.activeAssignment(any())).thenAnswer((_) async => null);
+
+    await pumpBar(
+      tester,
+      permissions: <String>{'assignment.manage'},
+      asset: _assigned,
+    );
+    await tester.tap(find.text(l10nId.assetActionCheckin));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10nId.checkinNoActive), findsOneWidget);
+    // Catatan: label tombol submit "Check-in" bertabrakan dengan tombol bar
+    // (assetActionCheckin), jadi verifyNever adalah bukti utama tak submit.
+    verifyNever(
+      () => repository.checkin(
+        assignmentId: any(named: 'assignmentId'),
+        conditionIn: any(named: 'conditionIn'),
+        needsMaintenance: any(named: 'needsMaintenance'),
+      ),
+    );
+  });
+
+  testWidgets('Check-in gagal muat penugasan: pesan load-error + Coba lagi', (
+    WidgetTester tester,
+  ) async {
+    // activeAssignment melempar (jaringan) TAK BOLEH di-mask jadi "no active".
+    // Future.error (bukan thenThrow sinkron) agar FutureBuilder yang menangkap.
+    when(() => repository.activeAssignment(any())).thenAnswer(
+      (_) => Future<ActiveAssignment?>.error(const NetworkFailure()),
+    );
+
+    await pumpBar(
+      tester,
+      permissions: <String>{'assignment.manage'},
+      asset: _assigned,
+    );
+    await tester.tap(find.text(l10nId.assetActionCheckin));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10nId.checkinLoadError), findsOneWidget);
+    expect(find.text(l10nId.commonRetry), findsOneWidget);
+    expect(find.text(l10nId.checkinNoActive), findsNothing);
+  });
+
+  testWidgets('Check-in toggle Perlu servis: checkin needsMaintenance true', (
+    WidgetTester tester,
+  ) async {
+    when(() => repository.activeAssignment(any())).thenAnswer(
+      (_) async =>
+          const ActiveAssignment(id: 'as-1', holderName: 'Budi Santoso'),
+    );
+    when(
+      () => repository.checkin(
+        assignmentId: any(named: 'assignmentId'),
+        conditionIn: any(named: 'conditionIn'),
+        needsMaintenance: any(named: 'needsMaintenance'),
+      ),
+    ).thenAnswer((_) async {});
+
+    await pumpBar(
+      tester,
+      permissions: <String>{'assignment.manage'},
+      asset: _assigned,
+    );
+    await tester.tap(find.text(l10nId.assetActionCheckin));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10nId.checkinConditionNeedsService));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10nId.checkinSubmit).last);
+    await tester.pumpAndSettle();
+
+    verify(
+      () => repository.checkin(
+        assignmentId: 'as-1',
+        conditionIn: any(named: 'conditionIn'),
+        needsMaintenance: true,
+      ),
+    ).called(1);
   });
 }

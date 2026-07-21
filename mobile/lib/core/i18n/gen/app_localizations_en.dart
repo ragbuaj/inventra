@@ -1416,6 +1416,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get checkinNoActive => 'No active assignment for this asset.';
 
   @override
+  String get checkinLoadError => 'Failed to load active assignment.';
+
+  @override
   String get reportSheetTitle => 'Report Damage';
 
   @override

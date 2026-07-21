@@ -58,15 +58,18 @@ final Provider<FilterOptionsRepository> filterOptionsRepositoryProvider =
       (Ref ref) => FilterOptionsRepository(ref.watch(dioProvider)),
     );
 
-/// Opsi kategori untuk picker filter (di-cache sesi — daftar kecil, dipakai
-/// ulang tiap membuka sheet).
-final FutureProvider<List<FilterOption>> catalogCategoryOptionsProvider =
-    FutureProvider<List<FilterOption>>(
-      (Ref ref) => ref.watch(filterOptionsRepositoryProvider).categories(),
+/// Opsi kategori untuk picker filter. `autoDispose` agar tak menyimpan cache
+/// lintas-sesi (paritas dengan permissionsProvider) — cegah data user lama
+/// tampil setelah ganti user di perangkat sama tanpa restart.
+final catalogCategoryOptionsProvider =
+    FutureProvider.autoDispose<List<FilterOption>>(
+      (ref) => ref.watch(filterOptionsRepositoryProvider).categories(),
     );
 
-/// Opsi kantor untuk picker filter (dalam data scope pemanggil).
-final FutureProvider<List<FilterOption>> catalogOfficeOptionsProvider =
-    FutureProvider<List<FilterOption>>(
-      (Ref ref) => ref.watch(filterOptionsRepositoryProvider).offices(),
+/// Opsi kantor untuk picker filter (dalam data scope pemanggil). `autoDispose`:
+/// daftar kantor di-scope backend per user, jadi WAJIB tak boleh basi lintas
+/// user pada perangkat bersama.
+final catalogOfficeOptionsProvider =
+    FutureProvider.autoDispose<List<FilterOption>>(
+      (ref) => ref.watch(filterOptionsRepositoryProvider).offices(),
     );

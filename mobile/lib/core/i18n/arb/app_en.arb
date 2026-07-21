@@ -427,6 +427,7 @@
   "checkinSuccess": "Asset checked in",
   "checkinError": "Check-in failed. Try again.",
   "checkinNoActive": "No active assignment for this asset.",
+  "checkinLoadError": "Failed to load active assignment.",
   "reportSheetTitle": "Report Damage",
   "reportCategoryLabel": "Problem category",
   "reportCategoryHint": "Pick a category",

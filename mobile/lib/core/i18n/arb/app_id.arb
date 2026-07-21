@@ -1864,6 +1864,8 @@
   "@checkinError": { "description": "Pesan gagal check-in" },
   "checkinNoActive": "Tidak ada penugasan aktif untuk aset ini.",
   "@checkinNoActive": { "description": "Pesan tak ada penugasan aktif" },
+  "checkinLoadError": "Gagal memuat penugasan aktif.",
+  "@checkinLoadError": { "description": "Pesan gagal memuat penugasan aktif saat membuka sheet check-in" },
   "reportSheetTitle": "Lapor Kerusakan",
   "@reportSheetTitle": { "description": "Judul sheet lapor kerusakan" },
   "reportCategoryLabel": "Kategori masalah",

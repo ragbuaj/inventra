@@ -2660,6 +2660,12 @@ abstract class AppLocalizations {
   /// **'Tidak ada penugasan aktif untuk aset ini.'**
   String get checkinNoActive;
 
+  /// Pesan gagal memuat penugasan aktif saat membuka sheet check-in
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memuat penugasan aktif.'**
+  String get checkinLoadError;
+
   /// Judul sheet lapor kerusakan
   ///
   /// In id, this message translates to:

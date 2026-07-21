@@ -1416,6 +1416,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get checkinNoActive => 'Tidak ada penugasan aktif untuk aset ini.';
 
   @override
+  String get checkinLoadError => 'Gagal memuat penugasan aktif.';
+
+  @override
   String get reportSheetTitle => 'Lapor Kerusakan';
 
   @override
