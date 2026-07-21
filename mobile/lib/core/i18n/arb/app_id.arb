@@ -1844,6 +1844,8 @@
   "@reportSuccess": { "description": "SnackBar sukses lapor kerusakan" },
   "reportError": "Gagal mengirim. Coba lagi.",
   "@reportError": { "description": "Pesan gagal lapor kerusakan" },
+  "reportAddPhoto": "Tambah foto (opsional)",
+  "@reportAddPhoto": { "description": "Tombol tambah lampiran foto kerusakan" },
   "registerTitle": "Registrasi Aset",
   "@registerTitle": { "description": "Judul layar registrasi aset" },
   "registerStepIdentity": "Identitas",

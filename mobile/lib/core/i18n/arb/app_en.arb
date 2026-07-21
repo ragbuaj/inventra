@@ -427,6 +427,7 @@
   "reportSubmit": "Send Report",
   "reportSuccess": "Damage report submitted",
   "reportError": "Couldn't send. Try again.",
+  "reportAddPhoto": "Add photo (optional)",
   "registerTitle": "Register Asset",
   "registerStepIdentity": "Identity",
   "registerStepPlacement": "Placement",

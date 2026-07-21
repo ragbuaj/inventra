@@ -254,6 +254,39 @@ void main() {
     });
   });
 
+  test('reportDamage dengan foto: FormData berisi file photo', () async {
+    when(
+      () => dio.post<Map<String, dynamic>>(
+        '/maintenance/reports',
+        data: any(named: 'data'),
+      ),
+    ).thenAnswer(
+      (_) async => Response<Map<String, dynamic>>(
+        requestOptions: RequestOptions(path: '/maintenance/reports'),
+        statusCode: 201,
+        data: <String, dynamic>{'id': 'req-1'},
+      ),
+    );
+
+    await repository.reportDamage(
+      assetId: 'asset-1',
+      problemCategoryId: 'pc-1',
+      photoBytes: <int>[1, 2, 3],
+      photoFilename: 'rusak.jpg',
+    );
+
+    final Object? data =
+        verify(
+          () => dio.post<Map<String, dynamic>>(
+            '/maintenance/reports',
+            data: captureAny(named: 'data'),
+          ),
+        ).captured.single;
+    final FormData form = data as FormData;
+    expect(form.files.single.key, 'photo');
+    expect(form.files.single.value.filename, 'rusak.jpg');
+  });
+
   test('searchEmployees: query search/limit + parse', () async {
     when(
       () => dio.get<Map<String, dynamic>>(

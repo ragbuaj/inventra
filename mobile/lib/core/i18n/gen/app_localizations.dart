@@ -2660,6 +2660,12 @@ abstract class AppLocalizations {
   /// **'Gagal mengirim. Coba lagi.'**
   String get reportError;
 
+  /// Tombol tambah lampiran foto kerusakan
+  ///
+  /// In id, this message translates to:
+  /// **'Tambah foto (opsional)'**
+  String get reportAddPhoto;
+
   /// Judul layar registrasi aset
   ///
   /// In id, this message translates to:

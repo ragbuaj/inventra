@@ -1520,9 +1520,12 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >     pasca-unggah/hapus); `_EditableAvatar` (badge kamera -> sheet Galeri/Kamera/Hapus, overlay
 >     busy) menggantikan avatar statis di kartu identitas. Izin CAMERA sudah ada (mobile_scanner).
 >     Golden Profil regen. Nol backend baru. Tes: +3 repo (upload multipart, delete, offline) + 2
->     widget (Hapus flow, opsi Hapus tersembunyi tanpa foto); suite mobile 511. **Berikutnya: backfill
->     foto Lapor Kerusakan (M7-6)** lalu M8-4 (keamanan akun), M8-5 (lupa password), M8-6 (verifikasi
->     logout).
+>     widget (Hapus flow, opsi Hapus tersembunyi tanpa foto); suite mobile 511. **Foto Lapor Kerusakan
+>     (M7-6) DI-BACKFILL** dengan image_picker: `reportDamage` menerima `photoBytes` opsional (field
+>     multipart `photo`); sheet Lapor Kerusakan dapat tombol "Tambah foto" (galeri) + thumbnail +
+>     hapus. Tes: +1 repo (FormData photo) + asersi tombol; suite mobile 512. Deferral foto M7-6
+>     TERTUTUP. Berikutnya M8: **M8-4 (keamanan akun** — ganti password/email berbasis link) lalu M8-5
+>     (lupa password), M8-6 (verifikasi logout).
 
 ## ✅ Done
 

@@ -1414,6 +1414,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportError => 'Couldn\'t send. Try again.';
 
   @override
+  String get reportAddPhoto => 'Add photo (optional)';
+
+  @override
   String get registerTitle => 'Register Asset';
 
   @override

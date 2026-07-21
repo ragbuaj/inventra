@@ -217,6 +217,11 @@ void main() {
     await tester.tap(find.text(l10nId.assetActionReportDamage));
     await tester.pumpAndSettle();
     expect(find.text(l10nId.reportCategoryLabel), findsOneWidget);
+    // Tombol tambah foto (opsional, M8 image_picker) tersedia.
+    expect(
+      find.byKey(const ValueKey<String>('report-add-photo')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byType(DropdownButtonFormField<String>));
     await tester.pumpAndSettle();

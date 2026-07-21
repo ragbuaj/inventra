@@ -1,10 +1,13 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
-import '../../../core/i18n/gen/app_localizations.dart';
 import '../../../core/authz/permissions_provider.dart';
+import '../../../core/i18n/gen/app_localizations.dart';
 import '../data/asset_action_repository.dart';
 import '../data/asset_dto.dart';
 import 'asset_by_tag_provider.dart';
@@ -125,8 +128,36 @@ class _ReportDamageSheetState extends ConsumerState<_ReportDamageSheet> {
   final TextEditingController _description = TextEditingController();
   late Future<List<ProblemCategory>> _categories;
   String? _categoryId;
+  Uint8List? _photo;
+  String? _photoName;
   bool _submitting = false;
   String? _error;
+
+  Future<void> _pickPhoto() async {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    try {
+      final XFile? file = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1600,
+        imageQuality: 80,
+      );
+      if (file == null) {
+        return;
+      }
+      final Uint8List bytes = await file.readAsBytes();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _photo = bytes;
+        _photoName = file.name;
+      });
+    } on Object {
+      if (mounted) {
+        setState(() => _error = l10n.avatarError);
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -157,6 +188,8 @@ class _ReportDamageSheetState extends ConsumerState<_ReportDamageSheet> {
             assetId: widget.asset.id ?? '',
             problemCategoryId: _categoryId!,
             description: _description.text,
+            photoBytes: _photo,
+            photoFilename: _photoName,
           );
       if (!mounted) {
         return;
@@ -265,6 +298,51 @@ class _ReportDamageSheetState extends ConsumerState<_ReportDamageSheet> {
             maxLines: 4,
             decoration: InputDecoration(hintText: l10n.reportDescriptionHint),
           ),
+          const SizedBox(height: 12),
+          if (_photo == null)
+            OutlinedButton.icon(
+              key: const ValueKey<String>('report-add-photo'),
+              onPressed: _submitting ? null : _pickPhoto,
+              icon: const Icon(Symbols.add_a_photo_rounded, size: 18),
+              label: Text(l10n.reportAddPhoto),
+              style: OutlinedButton.styleFrom(
+                alignment: Alignment.centerLeft,
+                minimumSize: const Size.fromHeight(48),
+              ),
+            )
+          else
+            Row(
+              children: <Widget>[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.memory(
+                    _photo!,
+                    width: 52,
+                    height: 52,
+                    fit: BoxFit.cover,
+                    gaplessPlayback: true,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _photoName ?? 'foto.jpg',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+                IconButton(
+                  onPressed: _submitting
+                      ? null
+                      : () => setState(() {
+                          _photo = null;
+                          _photoName = null;
+                        }),
+                  icon: const Icon(Symbols.close_rounded),
+                ),
+              ],
+            ),
           const SizedBox(height: 8),
           Text(
             l10n.reportPendingNote,

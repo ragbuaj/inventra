@@ -200,12 +200,14 @@ class AssetActionRepository {
   }
 
   /// Lapor kerusakan aset (`POST /maintenance/reports`, multipart). Membuat
-  /// pengajuan `maintenance` via approval. [problemCategoryId] wajib. Foto
-  /// (opsional) menyusul (butuh image picker) — belum didukung di sini.
+  /// pengajuan `maintenance` via approval. [problemCategoryId] wajib; [photoBytes]
+  /// (field `photo`) opsional.
   Future<void> reportDamage({
     required String assetId,
     required String problemCategoryId,
     String? description,
+    List<int>? photoBytes,
+    String? photoFilename,
   }) async {
     final String? desc = description?.trim();
     try {
@@ -215,6 +217,11 @@ class AssetActionRepository {
           'asset_id': assetId,
           'problem_category_id': problemCategoryId,
           if (desc != null && desc.isNotEmpty) 'description': desc,
+          if (photoBytes != null)
+            'photo': MultipartFile.fromBytes(
+              photoBytes,
+              filename: photoFilename ?? 'photo.jpg',
+            ),
         }),
       );
     } on DioException catch (err) {

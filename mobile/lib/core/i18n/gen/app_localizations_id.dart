@@ -1414,6 +1414,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get reportError => 'Gagal mengirim. Coba lagi.';
 
   @override
+  String get reportAddPhoto => 'Tambah foto (opsional)';
+
+  @override
   String get registerTitle => 'Registrasi Aset';
 
   @override
