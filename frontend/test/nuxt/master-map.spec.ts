@@ -70,6 +70,30 @@ describe('Peta Lokasi page', () => {
     expect(card.classes()).toContain('z-[1100]')
   })
 
+  it('the map area is an isolated stacking context so its z-[1000]/z-[1100] controls stay below the mobile drawer', async () => {
+    request.mockResolvedValueOnce({ data: OFFICES })
+    const wrapper = await mountMap()
+    // The zoom/reset controls + detail card live inside the map area; `isolate`
+    // confines their high z-index so the sidebar drawer (z-50) can still overlay them.
+    ;(wrapper.vm as unknown as { selId: string | null }).selId = 'o1'
+    await wrapper.vm.$nextTick()
+    const isolated = wrapper.find('.isolate')
+    expect(isolated.exists()).toBe(true)
+    // the detail card (z-[1100]) must be a descendant of the isolated map area
+    expect(isolated.find('[data-testid="office-detail-card"]').exists()).toBe(true)
+  })
+
+  it('the "Lihat Kantor" action deep-links to the office detail (query carries the id)', async () => {
+    request.mockResolvedValueOnce({ data: OFFICES })
+    const wrapper = await mountMap()
+    ;(wrapper.vm as unknown as { selId: string | null }).selId = 'o2'
+    await wrapper.vm.$nextTick()
+    const card = wrapper.find('[data-testid="office-detail-card"]')
+    const viewLink = card.findAll('a').find(a => (a.attributes('href') ?? '').includes('/master/offices'))
+    expect(viewLink).toBeTruthy()
+    expect(viewLink!.attributes('href')).toContain('office=o2')
+  })
+
   it('shows the error state + retry on load failure, then recovers', async () => {
     request.mockRejectedValueOnce(new Error('500'))
     const wrapper = await mountMap()

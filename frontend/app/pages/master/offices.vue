@@ -6,6 +6,7 @@ import { tierMeta } from '~/constants/officeMapMeta'
 definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
 
 const { t } = useI18n()
+const route = useRoute()
 const toast = useToast()
 const localePath = useLocalePath()
 const { open: confirm } = useConfirm()
@@ -419,9 +420,14 @@ function backToTree() {
   selectedId.value = undefined
 }
 
-onMounted(() => {
-  refresh()
-  loadFkData()
+onMounted(async () => {
+  await Promise.all([refresh(), loadFkData()])
+  // Deep-link from the location map ("Lihat Kantor"): open the requested office
+  // detail straight away instead of landing on the empty tree placeholder.
+  const target = route.query.office
+  if (typeof target === 'string' && offices.value.some(o => o.id === target)) {
+    await onSelect(target)
+  }
 })
 </script>
 

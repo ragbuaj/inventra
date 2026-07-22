@@ -179,6 +179,19 @@ describe('AppTopbar', () => {
     expect(pillBtn).toBeDefined()
   })
 
+  it('the breadcrumb block grows on mobile so the right cluster (bell + user) sits at the far right', async () => {
+    setupSuperadmin()
+    const wrapper = await mountSuspended(AppTopbar)
+    // The two-line breadcrumb block wraps the page-title span. Below md (where
+    // GlobalSearch is hidden) it must grow (flex-1) to push the bell + user menu
+    // to the far right; on md+ it collapses (md:flex-none) so the search stays centered.
+    const titleSpan = wrapper.find('span.text-\\[16px\\]')
+    expect(titleSpan.exists()).toBe(true)
+    const block = titleSpan.element.parentElement as HTMLElement
+    expect(block.classList.contains('flex-1')).toBe(true)
+    expect(block.classList.contains('md:flex-none')).toBe(true)
+  })
+
   it('the header element has the correct z-index class', async () => {
     setupSuperadmin()
     const wrapper = await mountSuspended(AppTopbar)

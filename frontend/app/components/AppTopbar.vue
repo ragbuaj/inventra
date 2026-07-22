@@ -61,8 +61,10 @@ const breadcrumbParent = computed(() => routeLabel.value.parent)
       />
     </button>
 
-    <!-- Breadcrumb + page title two-line block -->
-    <div class="flex flex-col gap-[1px] min-w-0">
+    <!-- Breadcrumb + page title two-line block. Grows on mobile (where GlobalSearch
+         is hidden) so the right cluster is pushed to the far right; on md+ it stays
+         flex-none and GlobalSearch's flex-1 provides the centered search + spacing. -->
+    <div class="flex flex-col gap-[1px] min-w-0 flex-1 md:flex-none">
       <div class="flex items-center gap-[6px] text-[11.5px] text-muted whitespace-nowrap">
         <span>{{ $t('app.name') }}</span>
         <template v-if="breadcrumbParent">
