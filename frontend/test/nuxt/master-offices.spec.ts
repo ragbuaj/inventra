@@ -179,6 +179,30 @@ describe('Master Data Kantor — tree & detail', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Deep-link from Peta Lokasi ("Lihat Kantor")
+// ---------------------------------------------------------------------------
+
+describe('Master Data Kantor — deep-link from peta lokasi', () => {
+  it('auto-selects the office named in the ?office= query on mount', async () => {
+    const wrapper = await mountSuspended(OfficesPage, { route: '/master/offices?office=o1' })
+    await new Promise(r => setTimeout(r, 400))
+    await wrapper.vm.$nextTick()
+    expect((wrapper.vm as unknown as { selectedId: string | undefined }).selectedId).toBe('o1')
+    const text = wrapper.text()
+    expect(text).toContain('PST') // detail opened straight away
+    expect(text).not.toContain('Pilih kantor untuk melihat detail')
+  })
+
+  it('ignores an unknown ?office= id and stays on the placeholder', async () => {
+    const wrapper = await mountSuspended(OfficesPage, { route: '/master/offices?office=missing' })
+    await new Promise(r => setTimeout(r, 400))
+    await wrapper.vm.$nextTick()
+    expect((wrapper.vm as unknown as { selectedId: string | undefined }).selectedId).toBeUndefined()
+    expect(wrapper.text()).toContain('Pilih kantor untuk melihat detail')
+  })
+})
+
+// ---------------------------------------------------------------------------
 // FK pickers — city filtered by province
 // ---------------------------------------------------------------------------
 

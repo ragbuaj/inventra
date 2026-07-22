@@ -6,6 +6,7 @@ import { googleMapsUrl } from '~/utils/googleMapsUrl'
 definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
 
 const { t } = useI18n()
+const localePath = useLocalePath()
 const { list } = useOfficeMap()
 
 // --- State ---
@@ -267,8 +268,10 @@ function resetView() {
           </div>
         </div>
 
-        <!-- Map area -->
-        <div class="flex-1 relative overflow-hidden bg-info/5">
+        <!-- Map area. `isolate` gives the floating map controls (z-[1000]/z-[1100])
+             their own stacking context so they never render above the mobile
+             sidebar drawer (z-50) when it is open. -->
+        <div class="flex-1 relative overflow-hidden bg-info/5 isolate">
           <!-- Loading shimmer -->
           <div
             v-if="loading"
@@ -421,7 +424,7 @@ function resetView() {
                 <!-- Action buttons -->
                 <div class="flex gap-2 px-4 pb-4 pt-3 border-t border-default">
                   <NuxtLink
-                    to="/master/offices"
+                    :to="localePath({ path: '/master/offices', query: { office: selected.id } })"
                     class="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-2 text-[12.5px] font-semibold text-primary-foreground bg-primary border border-primary rounded-[9px] hover:bg-primary/90 transition-colors"
                   >
                     <UIcon
