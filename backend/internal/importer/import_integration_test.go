@@ -465,9 +465,11 @@ func TestImport_AssetTangibleWithoutLocation_SkippedNotPoisoned(t *testing.T) {
 	approverRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
 	approverID := seedUser(t, h.pool, approverRoleID, nil, "approver.nlc@test.local")
 
+	// Keep the batch total (2 x 2,000,000 = 4,000,000) inside the single-step
+	// approval band so one Decide finalizes the request and runs the executor.
 	csvBytes := buildCSV(t, assetHeader, [][]string{
-		{"", "Aset Berlokasi", "NLC-CAT", "NLC", "2026-01-05", "5000000", "", "Ruang NLC"},
-		{"", "Aset Tanpa Lokasi", "NLC-CAT", "NLC", "2026-01-05", "5000000", "", ""}, // valid, but no room
+		{"", "Aset Berlokasi", "NLC-CAT", "NLC", "2026-01-05", "2000000", "", "Ruang NLC"},
+		{"", "Aset Tanpa Lokasi", "NLC-CAT", "NLC", "2026-01-05", "2000000", "", ""}, // valid, but no room
 	})
 
 	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "nolokasi.csv", "text/csv", csvBytes, makerID)

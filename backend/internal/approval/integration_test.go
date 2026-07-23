@@ -449,6 +449,9 @@ func TestApproval_AssetCreate_Batch(t *testing.T) {
 	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
 
 	officeID := tr.CabangID
+	// Tangible assets need a location; a floor-only placement is valid (Fase 1).
+	floorID := testsupport.SeedFloor(t, pool, officeID, "Lantai Batch")
+	floorIDStr := floorID.String()
 	purchaseCost := "3000000"
 	purchaseDate := "2026-01-10"
 	// A serial number is unique per unit, so even if the payload carries one the
@@ -459,6 +462,7 @@ func TestApproval_AssetCreate_Batch(t *testing.T) {
 		CategoryID:   catID.String(),
 		OfficeID:     officeID.String(),
 		AssetClass:   "tangible",
+		FloorID:      &floorIDStr,
 		PurchaseCost: &purchaseCost,
 		PurchaseDate: &purchaseDate,
 		SerialNumber: &serial,
@@ -492,7 +496,7 @@ func TestApproval_AssetCreate_Batch(t *testing.T) {
 	for _, a := range assets {
 		assert.Equal(t, "Kursi Kantor", a.Name)
 		if assert.NotNil(t, a.PurchaseCost) {
-			assert.Equal(t, purchaseCost, *a.PurchaseCost)
+			assert.Equal(t, purchaseCost+".00", *a.PurchaseCost, "numeric column renders with 2 decimals")
 		}
 		assert.Nil(t, a.SerialNumber, "batch units must not share a serial number")
 		gotTags[a.AssetTag] = true
