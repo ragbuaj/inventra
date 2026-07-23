@@ -1,6 +1,8 @@
 package department
 
 import (
+	"strings"
+
 	"github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
 )
@@ -16,17 +18,28 @@ type Request struct {
 }
 
 // toInput resolves the request into the service CreateInput (UUIDs parsed).
+// Returns ErrBlankName when the name is blank/whitespace (gin's `required` only
+// rejects the empty string, matching the old reference engine's TrimSpace check).
 func (r Request) toInput() (CreateInput, error) {
+	name := strings.TrimSpace(r.Name)
+	if name == "" {
+		return CreateInput{}, ErrBlankName
+	}
 	officeID, err := common.ParseUUIDPtr(r.OfficeID)
 	if err != nil {
 		return CreateInput{}, err
 	}
 	code := r.Code
-	if code != nil && *code == "" {
-		code = nil // an empty code stays NULL so the partial-unique index ignores it
+	if code != nil {
+		trimmed := strings.TrimSpace(*code)
+		if trimmed == "" {
+			code = nil // an empty/blank code stays NULL so the partial-unique index ignores it
+		} else {
+			code = &trimmed
+		}
 	}
 	return CreateInput{
-		Name:     r.Name,
+		Name:     name,
 		Code:     code,
 		OfficeID: officeID,
 		IsActive: common.BoolOr(r.IsActive, true),

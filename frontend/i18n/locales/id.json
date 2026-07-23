@@ -2129,6 +2129,7 @@
         "kantor": "Kantor tidak ditemukan",
         "vendor": "Vendor tidak ditemukan",
         "lokasi": "Lokasi/ruangan tidak ditemukan",
+        "lokasiRequired": "Ruangan wajib diisi untuk aset",
         "tgl": "Tanggal tidak valid",
         "harga": "Harga tidak valid (bukan angka)",
         "dupTag": "asset_tag duplikat",

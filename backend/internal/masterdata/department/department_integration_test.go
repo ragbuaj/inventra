@@ -120,6 +120,19 @@ func TestDepartmentDataScope(t *testing.T) {
 		assert.ErrorIs(t, err, department.ErrOfficeOutOfScope)
 	})
 
+	t.Run("scoped Update cannot globalize its own department (office_id -> NULL)", func(t *testing.T) {
+		testsupport.Reset(t, pool)
+		tree := testsupport.SeedOfficeTree(t, pool)
+		ids := []uuid.UUID{tree.Wilayah, tree.Cabang}
+		d, err := svc.Create(ctx, false, ids, department.CreateInput{Name: "Mine", OfficeID: &tree.Cabang, IsActive: true})
+		require.NoError(t, err)
+
+		// Setting office_id to nil would turn it into a shared global department;
+		// the new-office guard must reject that for a scoped caller.
+		_, _, err = svc.Update(ctx, d.ID, false, ids, department.UpdateInput{CreateInput: department.CreateInput{Name: "Mine", OfficeID: nil, IsActive: true}})
+		assert.ErrorIs(t, err, department.ErrOfficeOutOfScope)
+	})
+
 	t.Run("scoped Get / Delete of another office's department is not found / rejected", func(t *testing.T) {
 		testsupport.Reset(t, pool)
 		tree := testsupport.SeedOfficeTree(t, pool)

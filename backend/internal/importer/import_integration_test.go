@@ -518,6 +518,7 @@ func TestImport_AssetTangibleWithoutLocation_SkippedNotPoisoned(t *testing.T) {
 	require.NoError(t, json.Unmarshal(byName["Aset Tanpa Lokasi"].Errors, &failedErrs))
 	require.Len(t, failedErrs, 1)
 	assert.Equal(t, "lokasi", failedErrs[0].Column)
+	assert.Equal(t, "lokasiRequired", failedErrs[0].ErrorKey, "missing room reports 'required', not 'not found'")
 }
 
 // ─── 2. asset reject ─────────────────────────────────────────────────────────

@@ -2129,6 +2129,7 @@
         "kantor": "Office not found",
         "vendor": "Vendor not found",
         "lokasi": "Location/room not found",
+        "lokasiRequired": "A room is required for the asset",
         "tgl": "Invalid date",
         "harga": "Invalid price (not a number)",
         "dupTag": "Duplicate asset_tag",

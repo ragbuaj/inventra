@@ -22,6 +22,10 @@ import (
 // Mapped to HTTP 403 by the handler.
 var ErrOfficeOutOfScope = errors.New("department office must be within your scope")
 
+// ErrBlankName is returned when a department name is blank/whitespace-only.
+// Mapped to HTTP 400 by the handler (via the toInput error path).
+var ErrBlankName = errors.New("department name is required")
+
 // Service holds the data-access + business rules for departments.
 type Service struct {
 	q *sqlc.Queries

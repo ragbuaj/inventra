@@ -442,7 +442,7 @@ func (a assetImporter) createRows(ctx context.Context, qtx *sqlc.Queries, maker 
 		// poison the shared approval tx. Pre-check and skip such a row as failed —
 		// same pattern as the tag pre-check below.
 		if roomID == nil {
-			if fErr := markFailed(r.ID, colRoom, "lokasi"); fErr != nil {
+			if fErr := markFailed(r.ID, colRoom, "lokasiRequired"); fErr != nil {
 				return created, fErr
 			}
 			continue

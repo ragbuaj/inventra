@@ -1009,7 +1009,7 @@ describe('AssetForm — batch registration', () => {
     expect(requestsCalled).toBe(false)
   })
 
-  it('blocks save when quantity exceeds the max batch size', async () => {
+  it('blocks save when quantity exceeds the max batch size (500)', async () => {
     const wrapper = await mountNew()
     await fillBatchForm(wrapper)
     const vm = wrapper.vm as unknown as FormVm
@@ -1025,6 +1025,7 @@ describe('AssetForm — batch registration', () => {
     await vm.save()
     await wrapper.vm.$nextTick()
     expect(wrapper.text()).toContain('Jumlah harus bilangan bulat')
+    expect(wrapper.text()).toContain('500') // the {max} bound is interpolated into the message
     expect(requestsCalled).toBe(false)
   })
 })
