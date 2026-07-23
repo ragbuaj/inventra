@@ -159,15 +159,19 @@
         "kantor": "Kantor", "lantai": "Lantai", "ruangan": "Ruangan",
         "tglBeli": "Tanggal Beli", "harga": "Harga Beli", "vendor": "Vendor",
         "poNumber": "Nomor PO", "fundingSource": "Sumber Pendanaan", "warranty": "Garansi s/d", "notes": "Catatan",
+        "capacity": "Kapasitas / Spesifikasi", "pic": "PIC (Penanggung Jawab)", "warrantyStart": "Garansi Mulai",
+        "installationDate": "Tanggal Instalasi", "leaseDate": "Tanggal Sewa",
         "metode": "Metode Depresiasi", "masa": "Masa Manfaat", "residu": "Nilai Residu"
       },
-      "placeholders": { "nama": "mis. Laptop Dell Latitude 5440", "select": "Pilih…" },
+      "placeholders": { "nama": "mis. Laptop Dell Latitude 5440", "select": "Pilih…", "capacity": "mis. 2 PK / Core i7 16GB", "pic": "Cari pegawai…" },
+      "floorOrRoomHint": "Boleh berhenti di lantai — ruangan opsional.",
       "errors": {
         "nama": "Nama aset wajib diisi.",
         "kategori": "Kategori wajib dipilih.",
         "kantor": "Kantor wajib dipilih.",
         "tglBeli": "Tanggal beli wajib diisi.",
-        "harga": "Harga beli wajib diisi."
+        "harga": "Harga beli wajib diisi.",
+        "lokasi": "Pilih minimal lantai (ruangan opsional)."
       }
     },
     "import": {

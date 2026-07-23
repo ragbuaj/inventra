@@ -585,6 +585,50 @@ func (ns NullSharedImportStatus) Value() (driver.Value, error) {
 	return string(ns.SharedImportStatus), nil
 }
 
+type SharedLocationChangeSource string
+
+const (
+	SharedLocationChangeSourceRegistration SharedLocationChangeSource = "registration"
+	SharedLocationChangeSourceEdit         SharedLocationChangeSource = "edit"
+	SharedLocationChangeSourceTransfer     SharedLocationChangeSource = "transfer"
+	SharedLocationChangeSourceMigration    SharedLocationChangeSource = "migration"
+)
+
+func (e *SharedLocationChangeSource) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedLocationChangeSource(s)
+	case string:
+		*e = SharedLocationChangeSource(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedLocationChangeSource: %T", src)
+	}
+	return nil
+}
+
+type NullSharedLocationChangeSource struct {
+	SharedLocationChangeSource SharedLocationChangeSource `json:"shared_location_change_source"`
+	Valid                      bool                       `json:"valid"` // Valid is true if SharedLocationChangeSource is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedLocationChangeSource) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedLocationChangeSource, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedLocationChangeSource.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedLocationChangeSource) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedLocationChangeSource), nil
+}
+
 type SharedMaintenanceStatus string
 
 const (
@@ -713,6 +757,92 @@ func (ns NullSharedNotificationType) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.SharedNotificationType), nil
+}
+
+type SharedOfficeKind string
+
+const (
+	SharedOfficeKindKonvensional SharedOfficeKind = "konvensional"
+	SharedOfficeKindSyariah      SharedOfficeKind = "syariah"
+)
+
+func (e *SharedOfficeKind) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedOfficeKind(s)
+	case string:
+		*e = SharedOfficeKind(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedOfficeKind: %T", src)
+	}
+	return nil
+}
+
+type NullSharedOfficeKind struct {
+	SharedOfficeKind SharedOfficeKind `json:"shared_office_kind"`
+	Valid            bool             `json:"valid"` // Valid is true if SharedOfficeKind is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedOfficeKind) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedOfficeKind, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedOfficeKind.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedOfficeKind) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedOfficeKind), nil
+}
+
+type SharedOfficeOwnership string
+
+const (
+	SharedOfficeOwnershipSewa    SharedOfficeOwnership = "sewa"
+	SharedOfficeOwnershipMilik   SharedOfficeOwnership = "milik"
+	SharedOfficeOwnershipHgPakai SharedOfficeOwnership = "hg_pakai"
+	SharedOfficeOwnershipFree    SharedOfficeOwnership = "free"
+)
+
+func (e *SharedOfficeOwnership) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedOfficeOwnership(s)
+	case string:
+		*e = SharedOfficeOwnership(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedOfficeOwnership: %T", src)
+	}
+	return nil
+}
+
+type NullSharedOfficeOwnership struct {
+	SharedOfficeOwnership SharedOfficeOwnership `json:"shared_office_ownership"`
+	Valid                 bool                  `json:"valid"` // Valid is true if SharedOfficeOwnership is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedOfficeOwnership) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedOfficeOwnership, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedOfficeOwnership.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedOfficeOwnership) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedOfficeOwnership), nil
 }
 
 type SharedOpnameItemResult string
@@ -1158,6 +1288,12 @@ type AssetAsset struct {
 	UpdatedAt                pgtype.Timestamptz        `json:"updated_at"`
 	DeletedAt                pgtype.Timestamptz        `json:"deleted_at"`
 	ImpairedBookValue        *string                   `json:"impaired_book_value"`
+	Capacity                 *string                   `json:"capacity"`
+	LeaseDate                pgtype.Date               `json:"lease_date"`
+	InstallationDate         pgtype.Date               `json:"installation_date"`
+	WarrantyStart            pgtype.Date               `json:"warranty_start"`
+	FloorID                  *uuid.UUID                `json:"floor_id"`
+	PicEmployeeID            *uuid.UUID                `json:"pic_employee_id"`
 }
 
 type AssetAssetAttachment struct {

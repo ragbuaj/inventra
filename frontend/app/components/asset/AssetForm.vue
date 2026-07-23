@@ -19,6 +19,7 @@ const brand = useReferencePicker('brands')
 const model = useReferencePicker('models')
 const unit = useReferencePicker('units')
 const vendor = useReferencePicker('vendors')
+const pic = useEmployeePicker()
 const floorsApi = useFloors()
 const referenceApi = useReference()
 const assetsApi = useAssets()
@@ -38,9 +39,10 @@ const rooms = ref<Room[]>([])
 const ready = ref(false)
 
 const form = reactive({
-  nama: '', categoryId: '', brandId: '', modelId: '', serialNumber: '', unitId: '',
-  officeId: '', floorId: '', roomId: '',
-  tglBeli: '', harga: '', vendorId: '', poNumber: '', fundingSource: '', warrantyExpiry: '',
+  nama: '', categoryId: '', brandId: '', modelId: '', serialNumber: '', unitId: '', capacity: '',
+  officeId: '', floorId: '', roomId: '', picEmployeeId: '',
+  tglBeli: '', harga: '', vendorId: '', poNumber: '', fundingSource: '',
+  warrantyStart: '', warrantyExpiry: '', leaseDate: '', installationDate: '',
   notes: ''
 })
 const errors = ref<Record<string, string>>({})
@@ -50,9 +52,12 @@ if (props.mode === 'edit' && props.initial) {
   const a = props.initial
   Object.assign(form, {
     nama: a.name, categoryId: a.category_id, brandId: a.brand_id ?? '', modelId: a.model_id ?? '',
-    serialNumber: a.serial_number ?? '', unitId: a.unit_id ?? '', officeId: a.office_id, roomId: a.room_id ?? '',
+    serialNumber: a.serial_number ?? '', unitId: a.unit_id ?? '', capacity: a.capacity ?? '',
+    officeId: a.office_id, roomId: a.room_id ?? '', picEmployeeId: a.pic_employee_id ?? '',
     tglBeli: a.purchase_date ?? '', vendorId: a.vendor_id ?? '', poNumber: a.po_number ?? '',
-    fundingSource: a.funding_source ?? '', warrantyExpiry: a.warranty_expiry ?? '', notes: a.notes ?? ''
+    fundingSource: a.funding_source ?? '', warrantyStart: a.warranty_start ?? '',
+    warrantyExpiry: a.warranty_expiry ?? '', leaseDate: a.lease_date ?? '',
+    installationDate: a.installation_date ?? '', notes: a.notes ?? ''
   })
 }
 
@@ -259,6 +264,9 @@ function validate(): boolean {
     if (!form.tglBeli) next.tglBeli = t('assets.form.errors.tglBeli')
     const hargaNum = Number(form.harga)
     if (!form.harga.trim() || Number.isNaN(hargaNum) || hargaNum < 0) next.harga = t('assets.form.errors.harga')
+    // Tangible assets must have a location: at least a floor (room optional).
+    const isTangible = (selectedCategory.value?.asset_class ?? 'tangible') === 'tangible'
+    if (isTangible && !form.floorId && !form.roomId) next.lokasi = t('assets.form.errors.lokasi')
   }
   errors.value = next
   return Object.keys(next).length === 0
@@ -278,6 +286,13 @@ function buildUpdateBody(): AssetUpdateInput {
     funding_source: form.fundingSource.trim() || null,
     purchase_date: form.tglBeli || null,
     warranty_expiry: form.warrantyExpiry || null,
+    // Legacy-parity fields (spec 2026-07-23).
+    floor_id: form.floorId || null,
+    pic_employee_id: form.picEmployeeId || null,
+    capacity: form.capacity.trim() || null,
+    lease_date: form.leaseDate || null,
+    installation_date: form.installationDate || null,
+    warranty_start: form.warrantyStart || null,
     notes: form.notes.trim() || null
   }
 }
@@ -322,7 +337,13 @@ function cancel() {
 onMounted(async () => {
   if (props.mode === 'edit' && props.initial) {
     await loadFloorsForOffice(props.initial.office_id)
-    if (props.initial.room_id) await resolveInitialRoom(props.initial.office_id, props.initial.room_id)
+    if (props.initial.room_id) {
+      await resolveInitialRoom(props.initial.office_id, props.initial.room_id)
+    } else if (props.initial.floor_id) {
+      // Floor-only asset (no room): populate the floor directly.
+      form.floorId = props.initial.floor_id
+      await loadRoomsForFloor(props.initial.floor_id)
+    }
     await loadAttachments()
   }
   ready.value = true
@@ -454,6 +475,15 @@ onMounted(async () => {
                 @update:model-value="setField('unitId', $event ?? '')"
               />
             </UFormField>
+            <UFormField :label="t('assets.form.fields.capacity')">
+              <UInput
+                :model-value="form.capacity"
+                :placeholder="t('assets.form.placeholders.capacity')"
+                class="w-full"
+                data-testid="asset-form-capacity"
+                @update:model-value="setField('capacity', String($event))"
+              />
+            </UFormField>
             <template v-if="mode === 'edit'">
               <UFormField :label="t('assets.form.fields.assetClass')">
                 <UInput
@@ -508,7 +538,11 @@ onMounted(async () => {
                 <span class="text-xs text-dimmed mt-1">{{ t('assets.form.readOnlyHint') }}</span>
               </template>
             </UFormField>
-            <UFormField :label="t('assets.form.fields.lantai')">
+            <UFormField
+              :label="t('assets.form.fields.lantai')"
+              :error="errors.lokasi"
+              :hint="t('assets.form.floorOrRoomHint')"
+            >
               <USelect
                 :model-value="form.floorId"
                 :items="floorOptions"
@@ -528,6 +562,20 @@ onMounted(async () => {
                 class="w-full"
                 data-testid="asset-form-ruangan-select"
                 @update:model-value="setField('roomId', String($event))"
+              />
+            </UFormField>
+            <UFormField
+              :label="t('assets.form.fields.pic')"
+              class="sm:col-span-2"
+            >
+              <AsyncSearchPicker
+                :model-value="form.picEmployeeId || null"
+                :search-fn="pic.searchFn"
+                :resolve-fn="pic.resolveFn"
+                :placeholder="t('assets.form.placeholders.pic')"
+                testid="pic"
+                clearable
+                @update:model-value="setField('picEmployeeId', $event ?? '')"
               />
             </UFormField>
           </div>
@@ -599,6 +647,24 @@ onMounted(async () => {
                 :model-value="form.fundingSource"
                 class="w-full"
                 @update:model-value="setField('fundingSource', String($event))"
+              />
+            </UFormField>
+            <UFormField :label="t('assets.form.fields.installationDate')">
+              <DateField
+                :model-value="form.installationDate"
+                @update:model-value="setField('installationDate', String($event))"
+              />
+            </UFormField>
+            <UFormField :label="t('assets.form.fields.leaseDate')">
+              <DateField
+                :model-value="form.leaseDate"
+                @update:model-value="setField('leaseDate', String($event))"
+              />
+            </UFormField>
+            <UFormField :label="t('assets.form.fields.warrantyStart')">
+              <DateField
+                :model-value="form.warrantyStart"
+                @update:model-value="setField('warrantyStart', String($event))"
               />
             </UFormField>
             <UFormField :label="t('assets.form.fields.warranty')">

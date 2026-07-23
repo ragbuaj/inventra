@@ -5733,6 +5733,12 @@ components:
         po_number: { type: [string, "null"] }
         funding_source: { type: [string, "null"] }
         warranty_expiry: { type: [string, "null"], format: date }
+        floor_id: { type: [string, "null"], format: uuid }
+        pic_employee_id: { type: [string, "null"], format: uuid }
+        capacity: { type: [string, "null"] }
+        lease_date: { type: [string, "null"], format: date }
+        installation_date: { type: [string, "null"], format: date }
+        warranty_start: { type: [string, "null"], format: date }
         capitalized: { type: [boolean, "null"] }
         depreciation_method: { type: [string, "null"] }
         useful_life_months: { type: [integer, "null"] }
@@ -5762,6 +5768,12 @@ components:
         funding_source: { type: [string, "null"] }
         purchase_date: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
         warranty_expiry: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
+        floor_id: { type: [string, "null"], format: uuid }
+        pic_employee_id: { type: [string, "null"], format: uuid }
+        capacity: { type: [string, "null"] }
+        lease_date: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
+        installation_date: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
+        warranty_start: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
         notes: { type: [string, "null"] }
 
     AssetList:
@@ -5800,6 +5812,12 @@ components:
         po_number: { type: [string, "null"] }
         funding_source: { type: [string, "null"] }
         warranty_expiry: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
+        floor_id: { type: [string, "null"], format: uuid }
+        pic_employee_id: { type: [string, "null"], format: uuid }
+        capacity: { type: [string, "null"] }
+        lease_date: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
+        installation_date: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
+        warranty_start: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
         notes: { type: [string, "null"] }
 
     SubmitRequest:

@@ -17,6 +17,22 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
+> **AKTIF (2026-07-23): Legacy-parity data model** — penyelarasan model data agar Inventra
+> menggantikan sistem lama (Vue2/Yii2/PG12) sebagai sole asset system anak-perusahaan bank. Spec:
+> `docs/superpowers/specs/2026-07-23-legacy-parity-data-model-design.md` (disetujui user). Branch
+> `feat/legacy-parity-data-model` (worktree). 8 fase (migrasi `000038`–`000045`).
+> - **Fase 1 (kolom aset + constraint lokasi) — kode selesai.** Migrasi `000038` (enum office/lokasi) +
+>   `000039` (kolom `capacity`/`lease_date`/`installation_date`/`warranty_start`/`floor_id`/
+>   `pic_employee_id`, constraint tangible = floor ATAU room); sqlc + DTO + executor + `assetToMap` +
+>   OpenAPI; form Aset (kapasitas, PIC picker, 3 tanggal, lokasi boleh berhenti di lantai) + i18n
+>   id/en + test komponen. **Gate backend hijau** (build/vet/test/spectral). **Gate frontend: lint
+>   hijau; typecheck/vitest/build tertunda ke CI** (blocker environmental Node v24 + vite8/babel8 —
+>   `nuxt prepare` gagal lokal, analog integration-test CI-only). Deviasi mockup disetujui: field baru
+>   (kapasitas/PIC/tanggal instalasi-sewa-garansi mulai) di luar `Form Aset.dc.html` — permintaan user.
+> - **Berikutnya: Fase 2** — penomoran kode aset baru (`000040`): sequence per-kantor via
+>   `MAX(tag_seq)+1` + advisory lock, hapus `asset_tag_counters`, re-tag aset lama, `formatAssetTag`
+>   `{KANTOR}{KATEGORI}{TAHUN}{NNNNN}`. Item terbuka: prefix tag sudah dikonfirmasi (kantor+kategori+tahun).
+>
 > 1. ~~**Bring the dev stack up, reset & migrate**~~ ✅ **DONE (2026-06-27).**
 > 2. ~~**#6 Kategori Aset screen**~~ ✅ **DONE.**
 > 3. ~~**Approval engine + Asset core backend**~~ ✅ **DONE (2026-06-28).**

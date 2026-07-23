@@ -156,6 +156,13 @@ export interface Asset {
   po_number?: string | null
   funding_source?: string | null
   warranty_expiry?: string | null
+  // Legacy-parity fields (spec 2026-07-23).
+  floor_id?: string | null
+  pic_employee_id?: string | null
+  capacity?: string | null
+  lease_date?: string | null
+  installation_date?: string | null
+  warranty_start?: string | null
   capitalized?: boolean
   depreciation_method?: string | null
   useful_life_months?: number | null
@@ -183,6 +190,13 @@ export interface AssetUpdateInput {
   purchase_date?: string | null
   warranty_expiry?: string | null
   notes?: string | null
+  // Legacy-parity fields (spec 2026-07-23).
+  floor_id?: string | null
+  pic_employee_id?: string | null
+  capacity?: string | null
+  lease_date?: string | null
+  installation_date?: string | null
+  warranty_start?: string | null
 }
 
 export interface AssetCreateInput extends AssetUpdateInput {

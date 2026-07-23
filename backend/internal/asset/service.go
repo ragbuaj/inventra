@@ -20,7 +20,7 @@ var (
 	ErrInvalidState = errors.New("invalid status transition")
 	ErrConflict     = errors.New("conflict")
 	ErrInvalidRef   = errors.New("invalid reference")
-	ErrRoomRequired = errors.New("tangible asset requires a room")
+	ErrRoomRequired = errors.New("tangible asset requires a floor or room")
 )
 
 // Service holds the data-access layer for the asset module.
@@ -168,6 +168,7 @@ type UpdateInput struct {
 	BrandID        *uuid.UUID
 	ModelID        *uuid.UUID
 	RoomID         *uuid.UUID
+	FloorID        *uuid.UUID
 	UnitID         *uuid.UUID
 	SerialNumber   *string
 	PurchaseDate   pgtype.Date
@@ -175,8 +176,14 @@ type UpdateInput struct {
 	PONumber       *string
 	FundingSource  *string
 	WarrantyExpiry pgtype.Date
-	Specifications []byte
-	Notes          *string
+	// Legacy-parity fields (spec 2026-07-23).
+	WarrantyStart    pgtype.Date
+	Capacity         *string
+	LeaseDate        pgtype.Date
+	InstallationDate pgtype.Date
+	PICEmployeeID    *uuid.UUID
+	Specifications   []byte
+	Notes            *string
 }
 
 // Update fetches the current asset row (for audit before/after diff), applies
@@ -188,21 +195,27 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, in UpdateInput) (bef
 		return before, before, mapDBError(err)
 	}
 	after, err = s.q.UpdateAsset(ctx, sqlc.UpdateAssetParams{
-		ID:             id,
-		Name:           in.Name,
-		CategoryID:     in.CategoryID,
-		BrandID:        in.BrandID,
-		ModelID:        in.ModelID,
-		RoomID:         in.RoomID,
-		UnitID:         in.UnitID,
-		SerialNumber:   in.SerialNumber,
-		PurchaseDate:   in.PurchaseDate,
-		VendorID:       in.VendorID,
-		PoNumber:       in.PONumber,
-		FundingSource:  in.FundingSource,
-		WarrantyExpiry: in.WarrantyExpiry,
-		Specifications: in.Specifications,
-		Notes:          in.Notes,
+		ID:               id,
+		Name:             in.Name,
+		CategoryID:       in.CategoryID,
+		BrandID:          in.BrandID,
+		ModelID:          in.ModelID,
+		RoomID:           in.RoomID,
+		FloorID:          in.FloorID,
+		UnitID:           in.UnitID,
+		SerialNumber:     in.SerialNumber,
+		PurchaseDate:     in.PurchaseDate,
+		VendorID:         in.VendorID,
+		PoNumber:         in.PONumber,
+		FundingSource:    in.FundingSource,
+		WarrantyExpiry:   in.WarrantyExpiry,
+		WarrantyStart:    in.WarrantyStart,
+		Capacity:         in.Capacity,
+		LeaseDate:        in.LeaseDate,
+		InstallationDate: in.InstallationDate,
+		PicEmployeeID:    in.PICEmployeeID,
+		Specifications:   in.Specifications,
+		Notes:            in.Notes,
 	})
 	return before, after, mapDBError(err)
 }

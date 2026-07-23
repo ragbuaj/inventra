@@ -35,6 +35,13 @@ type AssetCreatePayload struct {
 	FundingSource  *string `json:"funding_source"`
 	WarrantyExpiry *string `json:"warranty_expiry"` // "2006-01-02"
 	Notes          *string `json:"notes"`
+	// Legacy-parity fields (spec 2026-07-23).
+	FloorID          *string `json:"floor_id"`
+	PICEmployeeID    *string `json:"pic_employee_id"`
+	Capacity         *string `json:"capacity"`
+	LeaseDate        *string `json:"lease_date"`        // "2006-01-02"
+	InstallationDate *string `json:"installation_date"` // "2006-01-02"
+	WarrantyStart    *string `json:"warranty_start"`    // "2006-01-02"
 }
 
 // parsePurchaseDate parses an optional "2006-01-02" date string into a pgtype.Date.
@@ -119,27 +126,55 @@ func (e createExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.App
 		return fmt.Errorf("invalid warranty_expiry: %w", derr)
 	}
 
+	// Legacy-parity fields.
+	floorID, err := common.ParseUUIDPtr(p.FloorID)
+	if err != nil {
+		return ErrInvalidRef
+	}
+	picID, err := common.ParseUUIDPtr(p.PICEmployeeID)
+	if err != nil {
+		return ErrInvalidRef
+	}
+	leaseDate, derr := parsePurchaseDate(p.LeaseDate)
+	if derr != nil {
+		return fmt.Errorf("invalid lease_date: %w", derr)
+	}
+	installationDate, derr := parsePurchaseDate(p.InstallationDate)
+	if derr != nil {
+		return fmt.Errorf("invalid installation_date: %w", derr)
+	}
+	warrantyStart, derr := parsePurchaseDate(p.WarrantyStart)
+	if derr != nil {
+		return fmt.Errorf("invalid warranty_start: %w", derr)
+	}
+
 	requesterID := req.RequestedByID
 	_, err = qtx.CreateAsset(ctx, sqlc.CreateAssetParams{
-		AssetTag:       tag,
-		Name:           p.Name,
-		CategoryID:     categoryID,
-		OfficeID:       officeID,
-		RoomID:         roomID,
-		AssetClass:     sqlc.SharedAssetClass(p.AssetClass),
-		Capitalized:    true,
-		CreatedByID:    &requesterID,
-		SerialNumber:   p.SerialNumber,
-		PurchaseCost:   p.PurchaseCost,
-		PurchaseDate:   purchaseDate,
-		BrandID:        brandID,
-		ModelID:        modelID,
-		UnitID:         unitID,
-		VendorID:       vendorID,
-		PoNumber:       p.PONumber,
-		FundingSource:  p.FundingSource,
-		WarrantyExpiry: warrantyExpiry,
-		Notes:          p.Notes,
+		AssetTag:         tag,
+		Name:             p.Name,
+		CategoryID:       categoryID,
+		OfficeID:         officeID,
+		RoomID:           roomID,
+		FloorID:          floorID,
+		AssetClass:       sqlc.SharedAssetClass(p.AssetClass),
+		Capitalized:      true,
+		CreatedByID:      &requesterID,
+		SerialNumber:     p.SerialNumber,
+		PurchaseCost:     p.PurchaseCost,
+		PurchaseDate:     purchaseDate,
+		BrandID:          brandID,
+		ModelID:          modelID,
+		UnitID:           unitID,
+		VendorID:         vendorID,
+		PoNumber:         p.PONumber,
+		FundingSource:    p.FundingSource,
+		WarrantyExpiry:   warrantyExpiry,
+		WarrantyStart:    warrantyStart,
+		Capacity:         p.Capacity,
+		LeaseDate:        leaseDate,
+		InstallationDate: installationDate,
+		PicEmployeeID:    picID,
+		Notes:            p.Notes,
 		// Unset optional fields — leave as zero values (nil / false / empty).
 		Specifications: []byte("{}"),
 	})

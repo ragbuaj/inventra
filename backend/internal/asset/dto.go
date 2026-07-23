@@ -50,6 +50,13 @@ func assetToMap(a sqlc.AssetAsset) map[string]any {
 		"po_number":                 a.PoNumber,
 		"funding_source":            a.FundingSource,
 		"warranty_expiry":           dateStr(a.WarrantyExpiry),
+		// Legacy-parity fields (spec 2026-07-23).
+		"floor_id":          common.UUIDPtrStr(a.FloorID),
+		"pic_employee_id":   common.UUIDPtrStr(a.PicEmployeeID),
+		"capacity":          a.Capacity,
+		"lease_date":        dateStr(a.LeaseDate),
+		"installation_date": dateStr(a.InstallationDate),
+		"warranty_start":    dateStr(a.WarrantyStart),
 		"capitalized":               a.Capitalized,
 		"depreciation_method":       deprMethod,
 		"useful_life_months":        a.UsefulLifeMonths,
@@ -107,6 +114,13 @@ type AssetUpdateRequest struct {
 	PurchaseDate   *string `json:"purchase_date"`
 	WarrantyExpiry *string `json:"warranty_expiry"`
 	Notes          *string `json:"notes"`
+	// Legacy-parity fields (spec 2026-07-23).
+	FloorID          *string `json:"floor_id" binding:"omitempty,uuid"`
+	PICEmployeeID    *string `json:"pic_employee_id" binding:"omitempty,uuid"`
+	Capacity         *string `json:"capacity"`
+	LeaseDate        *string `json:"lease_date"`
+	InstallationDate *string `json:"installation_date"`
+	WarrantyStart    *string `json:"warranty_start"`
 }
 
 // toInput converts the request to an UpdateInput, parsing UUIDs and dates.
@@ -143,20 +157,46 @@ func (r AssetUpdateRequest) toInput() (UpdateInput, error) {
 	if err != nil {
 		return UpdateInput{}, err
 	}
+	floorID, err := common.ParseUUIDPtr(r.FloorID)
+	if err != nil {
+		return UpdateInput{}, err
+	}
+	picID, err := common.ParseUUIDPtr(r.PICEmployeeID)
+	if err != nil {
+		return UpdateInput{}, err
+	}
+	leaseDate, err := parseDate(r.LeaseDate)
+	if err != nil {
+		return UpdateInput{}, err
+	}
+	installationDate, err := parseDate(r.InstallationDate)
+	if err != nil {
+		return UpdateInput{}, err
+	}
+	warrantyStart, err := parseDate(r.WarrantyStart)
+	if err != nil {
+		return UpdateInput{}, err
+	}
 	return UpdateInput{
-		Name:           r.Name,
-		CategoryID:     catID,
-		BrandID:        brandID,
-		ModelID:        modelID,
-		RoomID:         roomID,
-		UnitID:         unitID,
-		VendorID:       vendorID,
-		SerialNumber:   r.SerialNumber,
-		PONumber:       r.PONumber,
-		FundingSource:  r.FundingSource,
-		PurchaseDate:   purchaseDate,
-		WarrantyExpiry: warrantyExpiry,
-		Notes:          r.Notes,
+		Name:             r.Name,
+		CategoryID:       catID,
+		BrandID:          brandID,
+		ModelID:          modelID,
+		RoomID:           roomID,
+		FloorID:          floorID,
+		UnitID:           unitID,
+		VendorID:         vendorID,
+		SerialNumber:     r.SerialNumber,
+		PONumber:         r.PONumber,
+		FundingSource:    r.FundingSource,
+		PurchaseDate:     purchaseDate,
+		WarrantyExpiry:   warrantyExpiry,
+		WarrantyStart:    warrantyStart,
+		Capacity:         r.Capacity,
+		LeaseDate:        leaseDate,
+		InstallationDate: installationDate,
+		PICEmployeeID:    picID,
+		Notes:            r.Notes,
 	}, nil
 }
 

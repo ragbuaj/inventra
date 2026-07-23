@@ -159,15 +159,19 @@
         "kantor": "Office", "lantai": "Floor", "ruangan": "Room",
         "tglBeli": "Buy Date", "harga": "Buy Price", "vendor": "Vendor",
         "poNumber": "PO Number", "fundingSource": "Funding Source", "warranty": "Warranty until", "notes": "Notes",
+        "capacity": "Capacity / Spec", "pic": "PIC (Person in Charge)", "warrantyStart": "Warranty From",
+        "installationDate": "Installation Date", "leaseDate": "Lease Date",
         "metode": "Depreciation Method", "masa": "Useful Life", "residu": "Residual Value"
       },
-      "placeholders": { "nama": "e.g. Dell Latitude 5440 Laptop", "select": "Select…" },
+      "placeholders": { "nama": "e.g. Dell Latitude 5440 Laptop", "select": "Select…", "capacity": "e.g. 2 PK / Core i7 16GB", "pic": "Search employee…" },
+      "floorOrRoomHint": "May stop at floor — room optional.",
       "errors": {
         "nama": "Asset name is required.",
         "kategori": "Category is required.",
         "kantor": "Office is required.",
         "tglBeli": "Buy date is required.",
-        "harga": "Buy price is required."
+        "harga": "Buy price is required.",
+        "lokasi": "Pick at least a floor (room optional)."
       }
     },
     "import": {

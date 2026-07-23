@@ -32,15 +32,18 @@ SELECT * FROM asset.assets WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: CreateAsset :one
 INSERT INTO asset.assets (
-  asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id,
+  asset_tag, name, category_id, brand_id, model_id, room_id, floor_id, office_id, unit_id,
   status, serial_number, purchase_date, purchase_cost, vendor_id, po_number,
-  funding_source, warranty_expiry, specifications, asset_class, capitalized,
+  funding_source, warranty_expiry, warranty_start, capacity, lease_date, installation_date,
+  pic_employee_id, specifications, asset_class, capitalized,
   acquisition_bast_no, created_by_id, notes
 ) VALUES (
   sqlc.arg(asset_tag),sqlc.arg(name),sqlc.arg(category_id),sqlc.arg(brand_id),
-  sqlc.arg(model_id),sqlc.arg(room_id),sqlc.arg(office_id),sqlc.arg(unit_id),
+  sqlc.arg(model_id),sqlc.arg(room_id),sqlc.arg(floor_id),sqlc.arg(office_id),sqlc.arg(unit_id),
   'available',sqlc.arg(serial_number),sqlc.arg(purchase_date),sqlc.arg(purchase_cost),
   sqlc.arg(vendor_id),sqlc.arg(po_number),sqlc.arg(funding_source),sqlc.arg(warranty_expiry),
+  sqlc.arg(warranty_start),sqlc.arg(capacity),sqlc.arg(lease_date),sqlc.arg(installation_date),
+  sqlc.arg(pic_employee_id),
   COALESCE(sqlc.arg(specifications),'{}')::jsonb,sqlc.arg(asset_class),sqlc.arg(capitalized),
   sqlc.arg(acquisition_bast_no),sqlc.arg(created_by_id),sqlc.arg(notes)
 ) RETURNING *;
@@ -48,10 +51,14 @@ INSERT INTO asset.assets (
 -- name: UpdateAsset :one
 UPDATE asset.assets SET
   name = sqlc.arg(name), category_id = sqlc.arg(category_id), brand_id = sqlc.arg(brand_id),
-  model_id = sqlc.arg(model_id), room_id = sqlc.arg(room_id), unit_id = sqlc.arg(unit_id),
+  model_id = sqlc.arg(model_id), room_id = sqlc.arg(room_id), floor_id = sqlc.arg(floor_id),
+  unit_id = sqlc.arg(unit_id),
   serial_number = sqlc.arg(serial_number), purchase_date = sqlc.arg(purchase_date),
   vendor_id = sqlc.arg(vendor_id), po_number = sqlc.arg(po_number),
   funding_source = sqlc.arg(funding_source), warranty_expiry = sqlc.arg(warranty_expiry),
+  warranty_start = sqlc.arg(warranty_start), capacity = sqlc.arg(capacity),
+  lease_date = sqlc.arg(lease_date), installation_date = sqlc.arg(installation_date),
+  pic_employee_id = sqlc.arg(pic_employee_id),
   specifications = COALESCE(sqlc.arg(specifications),'{}')::jsonb, notes = sqlc.arg(notes)
 WHERE id = sqlc.arg(id) AND deleted_at IS NULL RETURNING *;
 
