@@ -210,9 +210,14 @@ const getUserByLogin = `-- name: GetUserByLogin :one
 SELECT id, employee_id, office_id, name, email, password_hash, google_id, avatar_key, role_id, status, created_at, updated_at, deleted_at, password_changed_at, username FROM identity.users
 WHERE (email = $1::citext OR username = $1)
   AND deleted_at IS NULL
+ORDER BY (email = $1::citext) DESC
+LIMIT 1
 `
 
 // Login lookup: match by email (citext, case-insensitive) OR username (NIP).
+// Deterministic: an email match is preferred over a username match (so a username
+// colliding with another user's email can never shadow the email owner), and
+// LIMIT 1 guards against pgx silently taking an arbitrary row on a multi-match.
 func (q *Queries) GetUserByLogin(ctx context.Context, identifier string) (IdentityUser, error) {
 	row := q.db.QueryRow(ctx, getUserByLogin, identifier)
 	var i IdentityUser

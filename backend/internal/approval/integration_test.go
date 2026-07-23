@@ -451,6 +451,9 @@ func TestApproval_AssetCreate_Batch(t *testing.T) {
 	officeID := tr.CabangID
 	purchaseCost := "3000000"
 	purchaseDate := "2026-01-10"
+	// A serial number is unique per unit, so even if the payload carries one the
+	// executor must drop it for a batch (quantity > 1) to avoid N rows sharing it.
+	serial := "SN-SHOULD-BE-DROPPED"
 	payload, err := json.Marshal(asset.AssetCreatePayload{
 		Name:         "Kursi Kantor",
 		CategoryID:   catID.String(),
@@ -458,6 +461,7 @@ func TestApproval_AssetCreate_Batch(t *testing.T) {
 		AssetClass:   "tangible",
 		PurchaseCost: &purchaseCost,
 		PurchaseDate: &purchaseDate,
+		SerialNumber: &serial,
 		Quantity:     3,
 	})
 	require.NoError(t, err)
@@ -490,6 +494,7 @@ func TestApproval_AssetCreate_Batch(t *testing.T) {
 		if assert.NotNil(t, a.PurchaseCost) {
 			assert.Equal(t, purchaseCost, *a.PurchaseCost)
 		}
+		assert.Nil(t, a.SerialNumber, "batch units must not share a serial number")
 		gotTags[a.AssetTag] = true
 	}
 	for seq := 1; seq <= 3; seq++ {

@@ -8,6 +8,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/ragbuaj/inventra/db/sqlc"
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
@@ -30,7 +31,10 @@ func (s *Service) validateDepartmentOffice(ctx context.Context, deptID *uuid.UUI
 	}
 	deptOffice, err := s.q.GetDepartmentOffice(ctx, *deptID)
 	if err != nil {
-		return nil // department not found → the CreateEmployee FK constraint rejects it
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil // department not found → the CreateEmployee FK constraint rejects it
+		}
+		return common.MapDBError(err) // a real DB error must not silently bypass the check
 	}
 	if deptOffice != nil && *deptOffice != officeID {
 		return ErrDepartmentOfficeMismatch

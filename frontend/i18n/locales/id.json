@@ -181,7 +181,7 @@
         "tglBeli": "Tanggal beli wajib diisi.",
         "harga": "Harga beli wajib diisi.",
         "lokasi": "Pilih minimal lantai (ruangan opsional).",
-        "quantity": "Jumlah harus bilangan bulat minimal 1."
+        "quantity": "Jumlah harus bilangan bulat antara 1 dan {max}."
       }
     },
     "import": {

@@ -232,10 +232,11 @@ func seedCategory(t *testing.T, pool *pgxpool.Pool, code string) uuid.UUID {
 
 // seedRoom inserts a floor + room under officeID and returns the room id. The
 // asset importer's createRows always creates tangible assets (see
-// internal/asset/importer.go), and asset.assets has
-// chk_assets_tangible_room CHECK(asset_class = 'intangible' OR room_id IS NOT
-// NULL) — so every asset-import row that is meant to succeed needs a
-// resolvable room in its target office.
+// internal/asset/importer.go), and asset.assets has chk_assets_tangible_location
+// CHECK(asset_class = 'intangible' OR floor_id IS NOT NULL OR room_id IS NOT
+// NULL) — the import template carries only a room (no floor), so every
+// asset-import row that is meant to succeed needs a resolvable room in its
+// target office.
 func seedRoom(t *testing.T, pool *pgxpool.Pool, officeID uuid.UUID, name string) uuid.UUID {
 	t.Helper()
 	floorID := testsupport.SeedFloor(t, pool, officeID, "Lantai "+name)
@@ -435,6 +436,86 @@ func TestImport_AssetFullCycle_ApproveCreatesAssets(t *testing.T) {
 	assert.Equal(t, officeID, createdAsset.OfficeID)
 	assert.Equal(t, sqlc.SharedAssetClassTangible, createdAsset.AssetClass)
 	assert.Equal(t, "5000000.00", *createdAsset.PurchaseCost, "numeric column renders with 2 decimals")
+
+	// Every create path must seed an initial location-history row (registration).
+	hist, err := h.q.ListAssetLocationHistory(ctx, createdAsset.ID)
+	require.NoError(t, err)
+	require.Len(t, hist, 1, "imported asset must have exactly one registration location-history row")
+	assert.Equal(t, sqlc.SharedLocationChangeSourceRegistration, hist[0].Source)
+	require.NotNil(t, hist[0].RoomID)
+	assert.Equal(t, *createdAsset.RoomID, *hist[0].RoomID)
+}
+
+// TestImport_AssetTangibleWithoutLocation_SkippedNotPoisoned drives an import
+// whose valid row carries NO lokasi. It passes validation (lokasi is optional),
+// but at create time a tangible asset with neither floor nor room would violate
+// chk_assets_tangible_location (23514) and poison the shared approval commit.
+// The createRows pre-check must instead skip it as a failed row so the batch
+// completes cleanly and no asset is created.
+func TestImport_AssetTangibleWithoutLocation_SkippedNotPoisoned(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	officeID := seedOfficeSimple(t, h.pool, "NLC")
+	seedCategory(t, h.pool, "NLC-CAT")
+	seedRoom(t, h.pool, officeID, "Ruang NLC")
+
+	makerRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
+	makerID := seedUser(t, h.pool, makerRoleID, nil, "maker.nlc@test.local")
+	approverRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
+	approverID := seedUser(t, h.pool, approverRoleID, nil, "approver.nlc@test.local")
+
+	csvBytes := buildCSV(t, assetHeader, [][]string{
+		{"", "Aset Berlokasi", "NLC-CAT", "NLC", "2026-01-05", "5000000", "", "Ruang NLC"},
+		{"", "Aset Tanpa Lokasi", "NLC-CAT", "NLC", "2026-01-05", "5000000", "", ""}, // valid, but no room
+	})
+
+	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "nolokasi.csv", "text/csv", csvBytes, makerID)
+	require.NoError(t, err)
+
+	// validate: both rows pass (lokasi is optional at validation time).
+	did, err := h.worker.Tick(ctx)
+	require.NoError(t, err)
+	assert.True(t, did)
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusValidated, job.Status)
+	assert.EqualValues(t, 2, job.SuccessRows)
+	assert.EqualValues(t, 0, job.FailedRows)
+
+	// confirm + execute (submits approval).
+	_, err = h.importSvc.ConfirmJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	did, err = h.worker.Tick(ctx)
+	require.NoError(t, err)
+	assert.True(t, did)
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	require.NotNil(t, job.RequestID)
+
+	// approve: the executor creates the located row and skips the location-less
+	// one as failed — the commit must NOT be poisoned by a 23514.
+	caller := approval.Caller{UserID: approverID, RoleID: approverRoleID, AllScope: true}
+	decided, err := h.approvalSvc.Decide(ctx, *job.RequestID, caller, true, nil)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedRequestStatusApproved, decided.Status)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusCompleted, job.Status)
+	assert.EqualValues(t, 1, job.SuccessRows, "only the located row is created")
+	assert.EqualValues(t, 1, job.FailedRows, "the location-less row is skipped as failed")
+
+	// The location-less asset must not exist; the located one must.
+	allRows, err := h.q.ListImportRows(ctx, sqlc.ListImportRowsParams{JobID: job.ID, OnlyErrors: false, Off: 0, Lim: 20})
+	require.NoError(t, err)
+	byName := rowsByName(t, allRows)
+	assert.Nil(t, byName["Aset Tanpa Lokasi"].ResultRef, "no asset created for the location-less row")
+	require.NotNil(t, byName["Aset Berlokasi"].ResultRef)
+	var failedErrs []importer.CellError
+	require.NoError(t, json.Unmarshal(byName["Aset Tanpa Lokasi"].Errors, &failedErrs))
+	require.Len(t, failedErrs, 1)
+	assert.Equal(t, "lokasi", failedErrs[0].Column)
 }
 
 // ─── 2. asset reject ─────────────────────────────────────────────────────────

@@ -1005,7 +1005,26 @@ describe('AssetForm — batch registration', () => {
     })
     await vm.save()
     await wrapper.vm.$nextTick()
-    expect(wrapper.text()).toContain('Jumlah harus bilangan bulat minimal 1')
+    expect(wrapper.text()).toContain('Jumlah harus bilangan bulat')
+    expect(requestsCalled).toBe(false)
+  })
+
+  it('blocks save when quantity exceeds the max batch size', async () => {
+    const wrapper = await mountNew()
+    await fillBatchForm(wrapper)
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.quantity = '9999'
+    let requestsCalled = false
+    setHandler((path, opts) => {
+      if (path === '/requests') {
+        requestsCalled = true
+        return { id: 'r1', status: 'pending' }
+      }
+      return defaultHandler()(path, opts)
+    })
+    await vm.save()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('Jumlah harus bilangan bulat')
     expect(requestsCalled).toBe(false)
   })
 })

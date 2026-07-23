@@ -240,6 +240,9 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email string) (IdentityUser, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (IdentityUser, error)
 	// Login lookup: match by email (citext, case-insensitive) OR username (NIP).
+	// Deterministic: an email match is preferred over a username match (so a username
+	// colliding with another user's email can never shadow the email owner), and
+	// LIMIT 1 guards against pgx silently taking an arbitrary row on a multi-match.
 	GetUserByLogin(ctx context.Context, identifier string) (IdentityUser, error)
 	GetUserProfile(ctx context.Context, id uuid.UUID) (GetUserProfileRow, error)
 	// Asset location + PIC history (spec 2026-07-23 legacy-parity, Fase 3).

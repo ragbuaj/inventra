@@ -95,8 +95,13 @@ watch(() => form.categoryId, (id) => {
 const floorOptions = computed(() => floors.value.map(f => ({ value: f.id, label: f.name })))
 const roomOptions = computed(() => rooms.value.map(r => ({ value: r.id, label: r.name })))
 
-// Batch registration (spec 2026-07-23 section 9): parsed unit count, clamped to
-// a sane floor of 1. Drives the "will create N assets" summary and the amount.
+// Batch registration (spec 2026-07-23 section 9): upper bound mirrors the backend
+// cap (asset.MaxBatchQuantity / approval.maxAssetCreateQuantity = 500) so a large
+// N cannot hold the per-office tag advisory lock for a whole approval commit.
+const MAX_BATCH_QUANTITY = 500
+
+// parsed unit count, clamped to a sane floor of 1. Drives the "will create N
+// assets" summary and the amount.
 const batchQuantity = computed(() => {
   const n = Math.trunc(Number(form.quantity))
   return Number.isFinite(n) && n > 0 ? n : 1
@@ -274,9 +279,9 @@ function validate(): boolean {
     // Tangible assets must have a location: at least a floor (room optional).
     const isTangible = (selectedCategory.value?.asset_class ?? 'tangible') === 'tangible'
     if (isTangible && !form.floorId && !form.roomId) next.lokasi = t('assets.form.errors.lokasi')
-    // Batch quantity must be a whole number >= 1.
+    // Batch quantity must be a whole number in [1, MAX_BATCH_QUANTITY].
     const qtyNum = Number(form.quantity)
-    if (!Number.isInteger(qtyNum) || qtyNum < 1) next.quantity = t('assets.form.errors.quantity')
+    if (!Number.isInteger(qtyNum) || qtyNum < 1 || qtyNum > MAX_BATCH_QUANTITY) next.quantity = t('assets.form.errors.quantity', { max: MAX_BATCH_QUANTITY })
   }
   errors.value = next
   return Object.keys(next).length === 0
@@ -651,6 +656,7 @@ onMounted(async () => {
               <NumberInput
                 :model-value="form.quantity"
                 :min="1"
+                :max="MAX_BATCH_QUANTITY"
                 placeholder="1"
                 class="w-full"
                 data-testid="asset-form-quantity"

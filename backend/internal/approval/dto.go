@@ -11,6 +11,11 @@ import (
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
 )
 
+// maxAssetCreateQuantity caps the batch size of an asset_create request. Must
+// stay in sync with asset.MaxBatchQuantity (a separate literal avoids an import
+// cycle, since internal/asset already imports internal/approval).
+const maxAssetCreateQuantity = 500
+
 // SubmitRequest is the request body for POST /requests.
 type SubmitRequest struct {
 	Type     string          `json:"type" binding:"required,oneof=asset_create asset_disposal valuation_exclusion"`
@@ -66,6 +71,12 @@ func (r SubmitRequest) validateAssetCreateAmount() error {
 	}
 	if qty < 0 {
 		return errors.New("invalid quantity")
+	}
+	// Cap batch size so an approved request cannot loop the executor an unbounded
+	// number of times while holding the per-office tag advisory lock. Must match
+	// asset.MaxBatchQuantity (kept as a separate literal to avoid an import cycle).
+	if qty > maxAssetCreateQuantity {
+		return errors.New("quantity exceeds the maximum batch size")
 	}
 	expected := new(big.Rat).Mul(cost, big.NewRat(int64(qty), 1))
 	if amount.Cmp(expected) != 0 {

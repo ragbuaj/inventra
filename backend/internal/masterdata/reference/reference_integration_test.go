@@ -4,10 +4,12 @@ package reference
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
 
+	"github.com/ragbuaj/inventra/internal/masterdata/common"
 	"github.com/ragbuaj/inventra/internal/testsupport"
 )
 
@@ -124,9 +126,15 @@ func TestBuildingClassificationRoundTrip(t *testing.T) {
 		}
 	})
 
-	t.Run("check constraint rejects max < min", func(t *testing.T) {
-		if _, err := e.write(ctx, bc, nil, map[string]any{"name": "Gedung Salah", "min_floors": float64(5), "max_floors": float64(2)}); err == nil {
+	t.Run("check constraint rejects max < min as a client error (23514 -> ErrCheckViolation)", func(t *testing.T) {
+		_, err := e.write(ctx, bc, nil, map[string]any{"name": "Gedung Salah", "min_floors": float64(5), "max_floors": float64(2)})
+		if err == nil {
 			t.Fatal("expected chk_bldg_floor_range violation")
+		}
+		// Must map to a 4xx client-error sentinel, not a raw 500 — a check
+		// violation is bad input, not an internal error.
+		if !errors.Is(err, common.ErrCheckViolation) {
+			t.Fatalf("expected ErrCheckViolation, got %v", err)
 		}
 	})
 

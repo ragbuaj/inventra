@@ -181,7 +181,7 @@
         "tglBeli": "Buy date is required.",
         "harga": "Buy price is required.",
         "lokasi": "Pick at least a floor (room optional).",
-        "quantity": "Quantity must be a whole number of at least 1."
+        "quantity": "Quantity must be a whole number between 1 and {max}."
       }
     },
     "import": {

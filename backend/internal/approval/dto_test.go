@@ -49,6 +49,8 @@ func TestSubmitRequest_Validate_AssetCreateAmount(t *testing.T) {
 		{"batch fractional cost times quantity", "9000000.75", `{"purchase_cost":"3000000.25","quantity":3}`, false},
 		{"batch zero cost requires zero amount", "0", `{"purchase_cost":"0","quantity":5}`, false},
 		{"batch negative quantity rejected", "0", `{"purchase_cost":"1000","quantity":-2}`, true},
+		{"batch at max quantity accepted", "500000", `{"purchase_cost":"1000","quantity":500}`, false},
+		{"batch above max quantity rejected", "501000", `{"purchase_cost":"1000","quantity":501}`, true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

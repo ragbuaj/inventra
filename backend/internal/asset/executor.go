@@ -16,6 +16,12 @@ import (
 	sqlc "github.com/ragbuaj/inventra/db/sqlc"
 )
 
+// MaxBatchQuantity caps how many identical units one asset_create request may
+// create (spec 2026-07-23 section 9). The approval submit-time cross-check in
+// internal/approval enforces the same ceiling with its own constant — the two
+// MUST stay in sync (approval cannot import asset without an import cycle).
+const MaxBatchQuantity = 500
+
 // AssetCreatePayload is the JSON stored in approval_requests.payload for the
 // asset_create request type.
 type AssetCreatePayload struct {
@@ -164,6 +170,21 @@ func (e createExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.App
 	if quantity <= 0 {
 		quantity = 1
 	}
+	// Defense-in-depth: the submit-time cross-check (approval.validateAssetCreateAmount)
+	// already caps quantity, but the executor re-reads the raw payload, so bound it
+	// here too — a huge N would hold the per-office tag advisory lock for the whole
+	// commit and starve every other asset create in that office.
+	if quantity > MaxBatchQuantity {
+		return ErrInvalidRef
+	}
+
+	// A serial number identifies one physical unit, so it can never be shared
+	// across a batch. The form clears it, but a hand-crafted payload could still
+	// carry one — drop it server-side for quantity > 1.
+	serialNumber := p.SerialNumber
+	if quantity > 1 {
+		serialNumber = nil
+	}
 
 	for i := 0; i < quantity; i++ {
 		tag, tagSeq, terr := e.s.GenerateAssetTag(ctx, qtx, officeID, categoryID, year)
@@ -182,7 +203,7 @@ func (e createExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.App
 			AssetClass:       sqlc.SharedAssetClass(p.AssetClass),
 			Capitalized:      true,
 			CreatedByID:      &requesterID,
-			SerialNumber:     p.SerialNumber,
+			SerialNumber:     serialNumber,
 			PurchaseCost:     p.PurchaseCost,
 			PurchaseDate:     purchaseDate,
 			BrandID:          brandID,

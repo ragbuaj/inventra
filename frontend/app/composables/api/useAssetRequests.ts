@@ -19,7 +19,8 @@ export interface ValuationExclusionInput {
  * Multiplies a non-negative plain-decimal string by a positive integer without
  * floating-point loss, so the submit `amount` exactly matches the backend's
  * big.Rat cross-check (amount == purchase_cost * quantity). Uses BigInt on the
- * scaled integer so "1500000.50" * 3 stays "4500001.50", not 4500001.4999999.
+ * scaled integer so "3000000.25" * 3 stays "9000000.75", not 9000000.749999.
+ * Trailing zeros are stripped, so "1500000.50" * 3 returns "4500001.5".
  */
 export function multiplyDecimalByInt(decimal: string, factor: number): string {
   const [intPart = '0', fracPart = ''] = decimal.trim().split('.')
