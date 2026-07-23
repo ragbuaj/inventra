@@ -43,6 +43,9 @@ func (f *fakeStore) GetUserByEmail(_ context.Context, e string) (sqlc.IdentityUs
 	}
 	return u, nil
 }
+func (f *fakeStore) GetUserByLogin(ctx context.Context, id string) (sqlc.IdentityUser, error) {
+	return f.GetUserByEmail(ctx, id)
+}
 func (f *fakeStore) LinkGoogleID(_ context.Context, _ sqlc.LinkGoogleIDParams) error { return nil }
 func (f *fakeStore) UpdateUserPassword(_ context.Context, a sqlc.UpdateUserPasswordParams) error {
 	if f.updated == nil {

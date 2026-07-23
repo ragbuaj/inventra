@@ -1527,6 +1527,8 @@
     "signInSubtitle": "Welcome back. Please sign in to continue.",
     "email": "Email",
     "emailPlaceholder": "name{'@'}organization.com",
+    "identifier": "NIP or Email",
+    "identifierPlaceholder": "NIP or name{'@'}organization.com",
     "password": "Password",
     "passwordPlaceholder": "Enter your password",
     "togglePassword": "Show / hide password",

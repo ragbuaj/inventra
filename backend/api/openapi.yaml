@@ -5228,8 +5228,8 @@ components:
       properties:
         email:
           type: string
-          format: email
-          examples: ["admin@inventra.local"]
+          description: Login identifier — an email (case-insensitive) OR a username/NIP.
+          examples: ["admin@inventra.local", "198501012010011001"]
         password:
           type: string
           format: password

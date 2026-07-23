@@ -66,7 +66,7 @@ async function login_(api: APIRequestContext, email: string, password: string): 
 /** Signs in through the real backend UI and lands on the dashboard. */
 async function loginAs(page: Page, email: string, password: string): Promise<void> {
   await page.goto('/login')
-  await page.locator('input[type="email"]').fill(email)
+  await page.locator('input[name="email"]').fill(email)
   await page.locator('input[type="password"]').fill(password)
   await page.getByRole('button', { name: 'Masuk', exact: true }).click()
   await expect(page).toHaveURL(/\/$/)
@@ -184,7 +184,7 @@ test.describe('Account security — real backend', () => {
     await expect(page).toHaveURL(/\/login/)
 
     // Confirm the change actually took effect by logging in with the new password.
-    await page.locator('input[type="email"]').fill(ADMIN)
+    await page.locator('input[name="email"]').fill(ADMIN)
     await page.locator('input[type="password"]').fill(PASSWORD_CHANGED)
     await page.getByRole('button', { name: 'Masuk', exact: true }).click()
     await expect(page).toHaveURL(/\/$/)

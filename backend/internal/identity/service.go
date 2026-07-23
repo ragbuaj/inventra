@@ -41,6 +41,7 @@ var (
 type userStore interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (sqlc.IdentityUser, error)
 	GetUserByEmail(ctx context.Context, email string) (sqlc.IdentityUser, error)
+	GetUserByLogin(ctx context.Context, identifier string) (sqlc.IdentityUser, error)
 	LinkGoogleID(ctx context.Context, arg sqlc.LinkGoogleIDParams) error
 	UpdateUserPassword(ctx context.Context, arg sqlc.UpdateUserPasswordParams) error
 	GetUserProfile(ctx context.Context, id uuid.UUID) (sqlc.GetUserProfileRow, error)
@@ -91,8 +92,9 @@ func NewService(q userStore, tm *auth.TokenManager, store *auth.TokenStore, mail
 // Login verifies credentials and issues an access + refresh token pair stamped
 // with the client audience, opening a new device session tagged with the
 // caller's user-agent and IP.
-func (s *Service) Login(ctx context.Context, email, password, userAgent, ip, audience string) (auth.TokenPair, sqlc.IdentityUser, error) {
-	user, err := s.q.GetUserByEmail(ctx, email)
+// The `identifier` may be an email (case-insensitive) or a username/NIP.
+func (s *Service) Login(ctx context.Context, identifier, password, userAgent, ip, audience string) (auth.TokenPair, sqlc.IdentityUser, error) {
+	user, err := s.q.GetUserByLogin(ctx, identifier)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return auth.TokenPair{}, sqlc.IdentityUser{}, ErrInvalidCredentials

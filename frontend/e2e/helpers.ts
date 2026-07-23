@@ -21,7 +21,7 @@ const API_BASE = `${(process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8080/
 /** Sign in through the real backend and land on the dashboard. */
 export async function login(page: Page): Promise<void> {
   await page.goto('/login')
-  await page.locator('input[type="email"]').fill(EMAIL)
+  await page.locator('input[name="email"]').fill(EMAIL)
   await page.locator('input[type="password"]').fill(PASSWORD)
   await page.getByRole('button', { name: 'Masuk', exact: true }).click()
   await expect(page).toHaveURL(/\/$/)

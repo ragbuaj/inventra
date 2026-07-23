@@ -86,10 +86,20 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >   build/vet + Spectral 0-error + **integrasi Docker** (employee pkg + `TestEmployee_DepartmentOffice
 >   ValidationAndParityFields`, reference pkg) hijau; frontend eslint + JSON hijau (typecheck/vitest/
 >   build via CI). Catatan: `testsupport.Reset` menghapus seed executor_divisions — test insert sendiri.
-> - **Berikutnya: Fase 7** — login NIP (`000045`): kolom `identity.users.username` + backfill NIP +
->   handler login menerima email ATAU username + UI login.
+> - **Fase 7 (login NIP-atau-email) — SELESAI.** Migrasi `000045`: kolom `identity.users.username`
+>   (unik partial) + backfill dari NIP (`employees.code`). Query `GetUserByLogin` (email citext ATAU
+>   username); `Login` service pakai itu (jalur lain—forgot/email-change—tetap `GetUserByEmail`);
+>   loginRequest binding `email` direlaksasi jadi `required` (terima NIP), field JSON tetap `email`;
+>   fake store test +`GetUserByLogin`. Frontend: field login jadi **NIP atau Email** (label/placeholder,
+>   `type="text"`, autocomplete username). **PENTING—e2e:** 12 selector `input[type="email"]` (login)
+>   di 9 spec + helpers.ts diganti `input[name="email"]` (name tetap) — field email asli (change-email/
+>   forgot) pakai selector lain. **Gate:** backend build/vet + Spectral 0-error + **integrasi Docker**
+>   (identity pkg penuh + `TestGetUserByLogin_EmailOrUsername`) hijau; frontend eslint + JSON hijau.
+> - **Berikutnya: Fase 8 (TERAKHIR)** — batch registrasi aset: satu request `asset_create` +
+>   `quantity` → N aset (executor buat N baris, tag berurutan via advisory lock); amount = cost*qty;
+>   form Aset field "Jumlah".
 >   **Doc-sweep tersisa** (kumulatif): bersihkan `asset_tag_counters` + dokumentasikan 2 tabel history
->   + 4 master + 9 kolom kantor + kolom pegawai/departemen di DATABASE.md.
+>   + 4 master + 9 kolom kantor + kolom pegawai/departemen + username di DATABASE.md.
 >
 > 1. ~~**Bring the dev stack up, reset & migrate**~~ ✅ **DONE (2026-06-27).**
 > 2. ~~**#6 Kategori Aset screen**~~ ✅ **DONE.**

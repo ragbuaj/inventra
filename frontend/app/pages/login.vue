@@ -82,18 +82,18 @@ onMounted(async () => {
       @submit="onSubmit"
     >
       <UFormField
-        :label="$t('auth.email')"
+        :label="$t('auth.identifier')"
         name="email"
         required
       >
         <UInput
           v-model="state.email"
-          type="email"
-          icon="i-lucide-mail"
+          type="text"
+          icon="i-lucide-user"
           size="lg"
-          :placeholder="$t('auth.emailPlaceholder')"
+          :placeholder="$t('auth.identifierPlaceholder')"
           class="w-full"
-          autocomplete="email"
+          autocomplete="username"
         />
       </UFormField>
 

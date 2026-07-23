@@ -1527,6 +1527,8 @@
     "signInSubtitle": "Selamat datang kembali. Silakan masuk untuk melanjutkan.",
     "email": "Email",
     "emailPlaceholder": "nama{'@'}organisasi.go.id",
+    "identifier": "NIP atau Email",
+    "identifierPlaceholder": "NIP atau nama{'@'}organisasi.go.id",
     "password": "Kata Sandi",
     "passwordPlaceholder": "Masukkan kata sandi",
     "togglePassword": "Lihat / sembunyikan kata sandi",

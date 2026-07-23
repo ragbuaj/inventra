@@ -239,6 +239,8 @@ type Querier interface {
 	GetUnitByName(ctx context.Context, lower string) (MasterdataUnit, error)
 	GetUserByEmail(ctx context.Context, email string) (IdentityUser, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (IdentityUser, error)
+	// Login lookup: match by email (citext, case-insensitive) OR username (NIP).
+	GetUserByLogin(ctx context.Context, identifier string) (IdentityUser, error)
 	GetUserProfile(ctx context.Context, id uuid.UUID) (GetUserProfileRow, error)
 	// Asset location + PIC history (spec 2026-07-23 legacy-parity, Fase 3).
 	InsertAssetLocationHistory(ctx context.Context, arg InsertAssetLocationHistoryParams) error

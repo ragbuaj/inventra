@@ -17,6 +17,12 @@ WHERE id = $1 AND deleted_at IS NULL;
 SELECT * FROM identity.users
 WHERE email = $1 AND deleted_at IS NULL;
 
+-- name: GetUserByLogin :one
+-- Login lookup: match by email (citext, case-insensitive) OR username (NIP).
+SELECT * FROM identity.users
+WHERE (email = sqlc.arg(identifier)::citext OR username = sqlc.arg(identifier))
+  AND deleted_at IS NULL;
+
 -- name: CreateUser :one
 INSERT INTO identity.users (name, email, password_hash, role_id, office_id, employee_id)
 VALUES ($1, $2, $3, $4, $5, $6)

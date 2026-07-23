@@ -1502,6 +1502,7 @@ type IdentityUser struct {
 	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt         pgtype.Timestamptz `json:"deleted_at"`
 	PasswordChangedAt pgtype.Timestamptz `json:"password_changed_at"`
+	Username          *string            `json:"username"`
 }
 
 type ImportImportJob struct {
