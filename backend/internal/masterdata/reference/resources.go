@@ -57,4 +57,24 @@ var referenceResources = []resource{
 		{Name: "name", Type: typeText, Required: true, Search: true},
 		{Name: "is_active", Type: typeBool, Default: true},
 	}},
+	// Legacy-parity Fase 4 masters.
+	{Path: "office-classes", Table: "office_classes", OrderBy: "name", Columns: []column{
+		{Name: "name", Type: typeText, Required: true, Search: true},
+		{Name: "is_active", Type: typeBool, Default: true},
+	}},
+	{Path: "executor-divisions", Table: "executor_divisions", OrderBy: "name", Columns: []column{
+		{Name: "name", Type: typeText, Required: true, Search: true},
+		{Name: "is_active", Type: typeBool, Default: true},
+	}},
+	{Path: "companies", Table: "companies", OrderBy: "name", Columns: []column{
+		{Name: "name", Type: typeText, Required: true, Search: true},
+		{Name: "is_active", Type: typeBool, Default: true},
+	}},
+	// max_floors nullable (NULL = "25+"). min_floors is the default ordering.
+	{Path: "building-classifications", Table: "building_classifications", OrderBy: "min_floors", Columns: []column{
+		{Name: "name", Type: typeText, Required: true, Search: true},
+		{Name: "min_floors", Type: typeInt, Required: true},
+		{Name: "max_floors", Type: typeInt},
+		{Name: "is_active", Type: typeBool, Default: true},
+	}},
 }

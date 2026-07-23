@@ -44,7 +44,9 @@ tags:
       differing only in their writable fields:
       `office-types` (field `tier`: `pusat|wilayah|office|null`), `departments`, `positions`,
       `units`, `maintenance-categories`, `problem-categories`, `brands`, `vendors`, `provinces`,
-      `cities` (field `province_id`), `models` (field `brand_id`).
+      `cities` (field `province_id`), `models` (field `brand_id`),
+      `office-classes`, `executor-divisions`, `companies`,
+      `building-classifications` (integer fields `min_floors` required, `max_floors` nullable = unbounded/"25+").
 
       **Offices & employees** (documented in full) are data-scoped per row.
       **Floors** (`GET /api/v1/floors?office_id=...`) and **rooms**

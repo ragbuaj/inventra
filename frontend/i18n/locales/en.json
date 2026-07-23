@@ -1903,12 +1903,14 @@
       "nonaktif": "Inactive",
       "entitySubtitle": "Manage reference data",
       "requiredField": "{field} is required.",
-      "fields": { "name": "Name", "code": "Code", "symbol": "Symbol", "email": "Email", "phone": "Phone", "province": "Province", "brand": "Brand", "contact_name": "Contact name", "address": "Address", "tier": "Tier" },
+      "fields": { "name": "Name", "code": "Code", "symbol": "Symbol", "email": "Email", "phone": "Phone", "province": "Province", "brand": "Brand", "contact_name": "Contact name", "address": "Address", "tier": "Tier", "min_floors": "Min Floors", "max_floors": "Max Floors" },
       "resources": {
         "office-types": "Office Types", "departments": "Departments", "positions": "Positions",
         "units": "Units", "maintenance-categories": "Maintenance Categories",
         "problem-categories": "Problem Categories", "brands": "Brands", "vendors": "Vendors",
-        "provinces": "Provinces", "cities": "Cities", "models": "Models"
+        "provinces": "Provinces", "cities": "Cities", "models": "Models",
+        "office-classes": "Office Classes", "executor-divisions": "Executor Divisions",
+        "companies": "Companies", "building-classifications": "Building Classifications"
       }
     },
     "floors": {

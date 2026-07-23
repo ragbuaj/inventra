@@ -55,10 +55,19 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >   memaksa floor = lantai room (konsistensi) di create + Update. #3: `LIMIT 200` pada query history.
 >   #5: `formatDateTime` ikut locale (id/en). #4 (respons `{data}`) sengaja dipertahankan (sub-resource
 >   read-only tak berpaginasi; LIMIT jadi pengaman) — bukan memalsukan pagination.
-> - **Berikutnya: Fase 4** — master baru (`000042`): office_classes, executor_divisions, companies
->   (reference engine) + building_classifications (sub-package numerik) + layar Referensi.
+> - **Fase 4 (master baru) — SELESAI.** Migrasi `000042`: `office_classes`, `executor_divisions`
+>   (+seed 5), `companies` (semua datar → generic reference engine deklaratif), dan
+>   `building_classifications` (numerik min/max lantai + check-constraint). Engine diberi tipe kolom
+>   **`typeInt`** (bukan sub-package) sehingga keempatnya deklaratif; route auto-mount. Frontend:
+>   4 resource + tipe field **`number`** (NumberInput) di layar Referensi + i18n id/en. **Gate:**
+>   backend build/vet + Spectral 0-error + unit (`TestCoerceInt`) + **integrasi Docker** (reference
+>   pkg + `TestBuildingClassificationRoundTrip`: int round-trip, max nullable, check-constraint,
+>   required) hijau; frontend eslint + JSON + unit config-test hijau (vitest/build via CI).
+> - **Berikutnya: Fase 5** — kolom kantor (`000043`): 9 kolom (ownership_status, office_class_id,
+>   building_classification_id, floor_count, building_area, office_kind, description, head_employee_id,
+>   contact) + form Kantor + auto-saran klasifikasi dari floor_count.
 >   **Doc-sweep tersisa** (kumulatif): bersihkan `asset_tag_counters` di daftar skema DATABASE.md +
->   dokumentasikan 2 tabel history di DATABASE.md bagian aset.
+>   dokumentasikan 2 tabel history + 4 master baru di DATABASE.md.
 >
 > 1. ~~**Bring the dev stack up, reset & migrate**~~ ✅ **DONE (2026-06-27).**
 > 2. ~~**#6 Kategori Aset screen**~~ ✅ **DONE.**

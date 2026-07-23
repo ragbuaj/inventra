@@ -2,8 +2,9 @@ export type ReferenceKey
   = 'office-types' | 'departments' | 'positions' | 'units'
     | 'maintenance-categories' | 'problem-categories' | 'brands'
     | 'vendors' | 'provinces' | 'cities' | 'models'
+    | 'office-classes' | 'executor-divisions' | 'companies' | 'building-classifications'
 
-export type ReferenceFieldType = 'text' | 'fk' | 'select'
+export type ReferenceFieldType = 'text' | 'fk' | 'select' | 'number'
 
 export interface ReferenceFieldOption {
   value: string
@@ -61,5 +62,14 @@ export const referenceResources: ReferenceDescriptor[] = [
   { key: 'models', labelKey: 'masterdata.reference.resources.models', hasActive: true, fields: [
     { key: 'brand_id', labelKey: 'masterdata.reference.fields.brand', type: 'fk', fkResource: 'brands', required: true },
     nameField
+  ] },
+  // Legacy-parity Fase 4 masters.
+  { key: 'office-classes', labelKey: 'masterdata.reference.resources.office-classes', hasActive: true, fields: [nameField] },
+  { key: 'executor-divisions', labelKey: 'masterdata.reference.resources.executor-divisions', hasActive: true, fields: [nameField] },
+  { key: 'companies', labelKey: 'masterdata.reference.resources.companies', hasActive: true, fields: [nameField] },
+  { key: 'building-classifications', labelKey: 'masterdata.reference.resources.building-classifications', hasActive: true, fields: [
+    nameField,
+    { key: 'min_floors', labelKey: 'masterdata.reference.fields.min_floors', type: 'number', required: true },
+    { key: 'max_floors', labelKey: 'masterdata.reference.fields.max_floors', type: 'number' }
   ] }
 ]

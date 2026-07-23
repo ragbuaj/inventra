@@ -1903,12 +1903,14 @@
       "nonaktif": "Nonaktif",
       "entitySubtitle": "Kelola data referensi",
       "requiredField": "{field} wajib diisi.",
-      "fields": { "name": "Nama", "code": "Kode", "symbol": "Simbol", "email": "Email", "phone": "Telepon", "province": "Provinsi", "brand": "Brand", "contact_name": "Nama Kontak", "address": "Alamat", "tier": "Tingkat" },
+      "fields": { "name": "Nama", "code": "Kode", "symbol": "Simbol", "email": "Email", "phone": "Telepon", "province": "Provinsi", "brand": "Brand", "contact_name": "Nama Kontak", "address": "Alamat", "tier": "Tingkat", "min_floors": "Lantai Min", "max_floors": "Lantai Maks" },
       "resources": {
         "office-types": "Jenis Kantor", "departments": "Departemen", "positions": "Jabatan",
         "units": "Satuan", "maintenance-categories": "Kategori Pemeliharaan",
         "problem-categories": "Kategori Masalah", "brands": "Brand", "vendors": "Vendor",
-        "provinces": "Provinsi", "cities": "Kota", "models": "Model"
+        "provinces": "Provinsi", "cities": "Kota", "models": "Model",
+        "office-classes": "Kelas Kantor", "executor-divisions": "Divisi Pelaksana",
+        "companies": "Perusahaan", "building-classifications": "Klasifikasi Gedung"
       }
     },
     "floors": {

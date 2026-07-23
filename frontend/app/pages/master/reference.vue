@@ -410,6 +410,13 @@ onMounted(async () => {
             class="w-full"
             @update:model-value="form[field.key] = $event"
           />
+          <NumberInput
+            v-else-if="field.type === 'number'"
+            :model-value="form[field.key] as string"
+            :data-testid="`ref-field-${field.key}`"
+            class="w-full"
+            @update:model-value="form[field.key] = $event"
+          />
           <UInput
             v-else
             :model-value="form[field.key] as string"
