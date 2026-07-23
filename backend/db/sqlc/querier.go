@@ -48,6 +48,7 @@ type Querier interface {
 	CountAssignments(ctx context.Context, arg CountAssignmentsParams) (int64, error)
 	CountAuditLogs(ctx context.Context, arg CountAuditLogsParams) (int64, error)
 	CountCategories(ctx context.Context, search string) (int64, error)
+	CountDepartments(ctx context.Context, arg CountDepartmentsParams) (int64, error)
 	CountDisposals(ctx context.Context, arg CountDisposalsParams) (int64, error)
 	CountEmployees(ctx context.Context, arg CountEmployeesParams) (int64, error)
 	CountFloorsByOffice(ctx context.Context, arg CountFloorsByOfficeParams) (int64, error)
@@ -77,6 +78,7 @@ type Querier interface {
 	CreateBrand(ctx context.Context, name string) (MasterdataBrand, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (MasterdataCategory, error)
 	CreateCity(ctx context.Context, arg CreateCityParams) (MasterdataCity, error)
+	CreateDepartment(ctx context.Context, arg CreateDepartmentParams) (MasterdataDepartment, error)
 	// gain_loss is computed here (null-propagating): null when either input is null.
 	CreateDisposal(ctx context.Context, arg CreateDisposalParams) (DisposalDisposal, error)
 	CreateEmployee(ctx context.Context, arg CreateEmployeeParams) (MasterdataEmployee, error)
@@ -174,6 +176,8 @@ type Querier interface {
 	// constrained — uq_cities_code — so this pre-check is required, mirroring
 	// GetProvinceByCode).
 	GetCityByCode(ctx context.Context, code *string) (MasterdataCity, error)
+	// Read visibility includes NULL-office (global) departments.
+	GetDepartment(ctx context.Context, arg GetDepartmentParams) (MasterdataDepartment, error)
 	// Returns a department's office_id (NULL for legacy global departments), used to
 	// validate that an employee's department belongs to the employee's office.
 	GetDepartmentOffice(ctx context.Context, id uuid.UUID) (*uuid.UUID, error)
@@ -294,6 +298,11 @@ type Querier interface {
 	// match here is authoritative, not just an in-file check.
 	ListCityCodes(ctx context.Context) ([]*string, error)
 	ListDataScopePolicies(ctx context.Context, roleID uuid.UUID) ([]IdentityDataScopePolicy, error)
+	// Departments are office-scoped master data (legacy-parity Fase 6 made them
+	// per-office). Reads/writes are filtered by the caller's office data scope; legacy
+	// departments with a NULL office_id are shared reference data visible to everyone
+	// but mutable only by a global-scope caller (enforced in the service layer).
+	ListDepartments(ctx context.Context, arg ListDepartmentsParams) ([]MasterdataDepartment, error)
 	// id/name/code lookup for the employee importer's optional "departemen" column
 	// (matched by name OR code, case-insensitive).
 	ListDepartmentsLookup(ctx context.Context) ([]ListDepartmentsLookupRow, error)
@@ -511,6 +520,7 @@ type Querier interface {
 	SoftDeleteAttachment(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteCategory(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteDataScopePoliciesByRole(ctx context.Context, roleID uuid.UUID) (int64, error)
+	SoftDeleteDepartment(ctx context.Context, arg SoftDeleteDepartmentParams) (int64, error)
 	SoftDeleteEmployee(ctx context.Context, arg SoftDeleteEmployeeParams) (int64, error)
 	SoftDeleteFieldPermissionsByRole(ctx context.Context, roleID uuid.UUID) (int64, error)
 	SoftDeleteFloor(ctx context.Context, arg SoftDeleteFloorParams) (int64, error)
@@ -539,6 +549,9 @@ type Querier interface {
 	UpdateAssetDepreciationSummary(ctx context.Context, arg UpdateAssetDepreciationSummaryParams) error
 	UpdateAssetDocument(ctx context.Context, arg UpdateAssetDocumentParams) (AssetAssetDocument, error)
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (MasterdataCategory, error)
+	// Write scope EXCLUDES NULL-office rows: only a global-scope caller may mutate a
+	// shared/global department (a scoped caller can read but not edit it).
+	UpdateDepartment(ctx context.Context, arg UpdateDepartmentParams) (MasterdataDepartment, error)
 	UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) (MasterdataEmployee, error)
 	UpdateEmployeePhone(ctx context.Context, arg UpdateEmployeePhoneParams) error
 	UpdateFloor(ctx context.Context, arg UpdateFloorParams) (MasterdataFloor, error)

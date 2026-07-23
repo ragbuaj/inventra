@@ -42,13 +42,19 @@ tags:
       The following reference resources share the **same generic CRUD contract**
       as `brands` (`GET/POST /api/v1/{resource}`, `GET/PUT/DELETE /api/v1/{resource}/{id}`),
       differing only in their writable fields:
-      `office-types` (field `tier`: `pusat|wilayah|office|null`), `departments`, `positions`,
+      `office-types` (field `tier`: `pusat|wilayah|office|null`), `positions`,
       `units`, `maintenance-categories`, `problem-categories`, `brands`, `vendors`, `provinces`,
       `cities` (field `province_id`), `models` (field `brand_id`),
       `office-classes`, `executor-divisions`, `companies`,
       `building-classifications` (integer fields `min_floors` required, `max_floors` nullable = unbounded/"25+").
 
-      **Offices & employees** (documented in full) are data-scoped per row.
+      **Offices, employees & departments** (data-scoped per row) keep the same
+      `GET/POST /{resource}` + `GET/PUT/DELETE /{resource}/{id}` shape but writes
+      require `masterdata.office.manage` (not `global.manage`) and every verb is
+      filtered by the caller's office data scope. `departments` carries
+      `name`/`code`/`office_id`/`is_active`; a scoped caller sees departments in
+      their office subtree plus shared `office_id: null` ones, and may only write
+      within their scope (global `null`-office departments need global scope).
       **Floors** (`GET /api/v1/floors?office_id=...`) and **rooms**
       (`GET /api/v1/rooms?floor_id=...`) are nested, office-scoped location
       resources (writes require `masterdata.office.manage`); see the Bruno

@@ -9,14 +9,9 @@ var referenceResources = []resource{
 		{Name: "tier", Type: typeEnum, EnumType: "shared.approver_level", Enum: []string{"pusat", "wilayah", "office"}},
 		{Name: "is_active", Type: typeBool, Default: true},
 	}},
-	{Path: "departments", Table: "departments", OrderBy: "name", Columns: []column{
-		{Name: "name", Type: typeText, Required: true, Search: true},
-		{Name: "code", Type: typeText, Search: true},
-		// Per-office department (Fase 6): nullable in the engine (DB column is nullable;
-		// legacy global departments keep NULL). Enforced non-null in the frontend form.
-		{Name: "office_id", Type: typeUUID},
-		{Name: "is_active", Type: typeBool, Default: true},
-	}},
+	// departments moved off the generic engine to the scoped `department` sub-package
+	// (internal/masterdata/department) so data scope is enforced on read AND write —
+	// it stays mounted at /departments with the same JSON shape (frontend unchanged).
 	{Path: "positions", Table: "positions", OrderBy: "name", Columns: []column{
 		{Name: "name", Type: typeText, Required: true, Search: true},
 		{Name: "is_active", Type: typeBool, Default: true},

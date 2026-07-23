@@ -109,9 +109,19 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > - **Doc-sweep DATABASE.md — SELESAI** (dikerjakan bersama Fase 8): hapus `asset_tag_counters` +
 >   dokumentasikan `tag_seq`, 2 tabel history, 4 master baru, 9 kolom kantor, kolom pegawai/departemen,
 >   `users.username`. Lihat commit doc-sweep.
-> - **Berikutnya:** jalankan code-review 5-sumbu (agent-skills:review) atas seluruh branch, lalu siapkan
->   PR `feat/legacy-parity-data-model`. Migrasi produksi `000038`–`000045` perlu dijalankan saat rilis;
->   `redis-cli FLUSHALL` bila seed/authz berubah ([[seed-flush-redis-authz]]).
+> - **Code-review 5-sumbu (4 agent paralel) — SELESAI + perbaikan diterapkan.** 0 Critical; 9 Important
+>   + suggestion. **Fix batch (#1-8 + suggestion aman):** serial di-drop saat batch >1 + cap
+>   quantity 500 (backend+frontend); `GetUserByLogin` deterministik (ORDER BY email-match, LIMIT 1) +
+>   CHECK `username !~ '@'` + backfill dedup/deleted-filter; import tulis location-history + pra-cek
+>   lokasi (cegah 23514 meracuni tx); down-migrasi 000039 `NOT VALID`; `MapDBError` map 23514→400;
+>   `validateDepartmentOffice` bedakan `pgx.ErrNoRows`. **#9 (departments ter-scope) — SELESAI:**
+>   departments dipromosi dari generic reference engine ke sub-package `internal/masterdata/department`
+>   (data scope pada read+write; path `/departments` shape sama → frontend tak berubah; modul scope
+>   `departments` ditambah ke katalog). Test integrasi scope departemen ditambah. **Follow-up UI:** layar
+>   Referensi masih gated `global.manage` — role office-manager belum punya UI kelola departemen sendiri
+>   (backend sudah mendukung).
+> - **Berikutnya:** siapkan PR `feat/legacy-parity-data-model`. Migrasi produksi `000038`–`000045` perlu
+>   dijalankan saat rilis; `redis-cli FLUSHALL` bila seed/authz berubah ([[seed-flush-redis-authz]]).
 >
 > 1. ~~**Bring the dev stack up, reset & migrate**~~ ✅ **DONE (2026-06-27).**
 > 2. ~~**#6 Kategori Aset screen**~~ ✅ **DONE.**

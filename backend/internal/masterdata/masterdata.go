@@ -12,6 +12,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/audit"
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/masterdata/category"
+	"github.com/ragbuaj/inventra/internal/masterdata/department"
 	"github.com/ragbuaj/inventra/internal/masterdata/employee"
 	"github.com/ragbuaj/inventra/internal/masterdata/floor"
 	"github.com/ragbuaj/inventra/internal/masterdata/office"
@@ -32,4 +33,5 @@ func RegisterRoutes(rg *gin.RouterGroup, q *sqlc.Queries, pool *pgxpool.Pool, pe
 	floor.RegisterRoutes(rg, floor.NewHandler(q, scopeSvc, aud), authMW, officeManage)
 	room.RegisterRoutes(rg, room.NewHandler(q, scopeSvc, aud), authMW, officeManage)
 	employee.RegisterRoutes(rg, employee.NewHandler(q, scopeSvc, aud, fieldSvc), authMW, officeManage)
+	department.RegisterRoutes(rg, department.NewHandler(q, scopeSvc, aud), authMW, officeManage)
 }

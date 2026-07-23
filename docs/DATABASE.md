@@ -331,6 +331,14 @@ Index: partial `UNIQUE(key)`. Ditembolok di Redis (invalidasi saat berubah). See
 > `NOT NULL` menyusul setelah data siap) sehingga departemen menjadi **per-kantor**; `code` unik
 > diubah jadi **per-kantor** (partial `UNIQUE(office_id, code)`). Validasi app: department yang dipilih
 > pada pegawai harus se-kantor (departemen legacy `office_id NULL` dikecualikan).
+>
+> 🆕LP (review-fix): departments **dipindah dari generic reference engine ke sub-package ter-scope**
+> `internal/masterdata/department` (data scope ditegakkan pada read DAN write, konsisten dg
+> office/employee). Tetap di path `/departments` dengan shape JSON sama (frontend tak berubah). Read:
+> subtree kantor caller + departemen global `office_id NULL` (dibagikan). Write: hanya dalam scope;
+> departemen global hanya bisa diubah caller global-scope. Modul scope: `departments`. Follow-up UI:
+> layar Referensi masih gated `masterdata.global.manage`, jadi role office-manager (mis. kepala_kanwil)
+> belum punya UI kelola departemen sendiri walau backend sudah mendukung.
 
 #### `positions`
 | id | uuid PK · name text · is_active bool · ts |
