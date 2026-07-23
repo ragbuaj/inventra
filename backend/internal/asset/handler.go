@@ -194,8 +194,13 @@ func (h *Handler) update(c *gin.Context) {
 		return
 	}
 
-	// Step 5: perform the mutation.
-	before, after, err := h.svc.Update(c.Request.Context(), id, in)
+	// Step 5: perform the mutation. actor is recorded on any location/PIC history.
+	actor, err := uuid.Parse(c.GetString(middleware.CtxUserID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user"})
+		return
+	}
+	before, after, err := h.svc.Update(c.Request.Context(), id, in, actor)
 	if err != nil {
 		svcError(c, err)
 		return
@@ -209,6 +214,68 @@ func (h *Handler) update(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, masked)
+}
+
+// assetIDInScope parses :id, verifies the asset exists and is visible to the
+// caller's data scope, and writes the appropriate error response if not. It
+// returns (id, true) only when the caller may read the asset.
+func (h *Handler) assetIDInScope(c *gin.Context) (uuid.UUID, bool) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return uuid.Nil, false
+	}
+	a, err := h.svc.Get(c.Request.Context(), id)
+	if err != nil {
+		svcError(c, err)
+		return uuid.Nil, false
+	}
+	all, ids, err := h.scoped.CallerOfficeScope(c, scopeModule)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve scope"})
+		return uuid.Nil, false
+	}
+	if !common.InScope(all, ids, a.OfficeID) {
+		common.WriteError(c, common.ErrForbidden)
+		return uuid.Nil, false
+	}
+	return id, true
+}
+
+// listLocationHistory returns an asset's location-change history (scope-gated).
+func (h *Handler) listLocationHistory(c *gin.Context) {
+	id, ok := h.assetIDInScope(c)
+	if !ok {
+		return
+	}
+	rows, err := h.svc.ListLocationHistory(c.Request.Context(), id)
+	if err != nil {
+		svcError(c, err)
+		return
+	}
+	data := make([]map[string]any, 0, len(rows))
+	for _, r := range rows {
+		data = append(data, locationHistoryToMap(r))
+	}
+	c.JSON(http.StatusOK, gin.H{"data": data})
+}
+
+// listPICHistory returns an asset's PIC (person-in-charge) history (scope-gated).
+func (h *Handler) listPICHistory(c *gin.Context) {
+	id, ok := h.assetIDInScope(c)
+	if !ok {
+		return
+	}
+	rows, err := h.svc.ListPICHistory(c.Request.Context(), id)
+	if err != nil {
+		svcError(c, err)
+		return
+	}
+	data := make([]map[string]any, 0, len(rows))
+	for _, r := range rows {
+		data = append(data, picHistoryToMap(r))
+	}
+	c.JSON(http.StatusOK, gin.H{"data": data})
 }
 
 // svcError maps asset service sentinel errors to HTTP status codes.

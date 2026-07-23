@@ -149,7 +149,7 @@ func (e createExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.App
 	}
 
 	requesterID := req.RequestedByID
-	_, err = qtx.CreateAsset(ctx, sqlc.CreateAssetParams{
+	created, err := qtx.CreateAsset(ctx, sqlc.CreateAssetParams{
 		AssetTag:         tag,
 		TagSeq:           &tagSeq,
 		Name:             p.Name,
@@ -179,7 +179,31 @@ func (e createExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.App
 		// Unset optional fields — leave as zero values (nil / false / empty).
 		Specifications: []byte("{}"),
 	})
-	return mapDBError(err)
+	if err != nil {
+		return mapDBError(err)
+	}
+
+	// Record initial location + PIC history (Fase 3 legacy-parity).
+	if err = qtx.InsertAssetLocationHistory(ctx, sqlc.InsertAssetLocationHistoryParams{
+		AssetID:   created.ID,
+		OfficeID:  officeID,
+		FloorID:   floorID,
+		RoomID:    roomID,
+		Source:    sqlc.SharedLocationChangeSourceRegistration,
+		MovedByID: &requesterID,
+	}); err != nil {
+		return mapDBError(err)
+	}
+	if picID != nil {
+		if err = qtx.InsertAssetPICHistory(ctx, sqlc.InsertAssetPICHistoryParams{
+			AssetID:       created.ID,
+			PicEmployeeID: *picID,
+			AssignedByID:  &requesterID,
+		}); err != nil {
+			return mapDBError(err)
+		}
+	}
+	return nil
 }
 
 // --- exclusionExec -------------------------------------------------------

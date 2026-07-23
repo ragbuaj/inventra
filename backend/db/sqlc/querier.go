@@ -39,6 +39,7 @@ type Querier interface {
 	// Same FOR UPDATE SKIP LOCKED claim the import worker uses, so two relays never
 	// publish the same row.
 	ClaimUnpublishedOutbox(ctx context.Context, limit int32) ([]NotificationOutbox, error)
+	CloseActivePIC(ctx context.Context, assetID uuid.UUID) error
 	ConfirmJob(ctx context.Context, id uuid.UUID) (ImportImportJob, error)
 	// Active = scheduled or in_progress. exclude_id lets the caller ignore the row
 	// it is about to transition (release check).
@@ -232,6 +233,9 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email string) (IdentityUser, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (IdentityUser, error)
 	GetUserProfile(ctx context.Context, id uuid.UUID) (GetUserProfileRow, error)
+	// Asset location + PIC history (spec 2026-07-23 legacy-parity, Fase 3).
+	InsertAssetLocationHistory(ctx context.Context, arg InsertAssetLocationHistoryParams) error
+	InsertAssetPICHistory(ctx context.Context, arg InsertAssetPICHistoryParams) error
 	// Audit log: append-only writes + an office-scoped, filterable read model.
 	// all_scope bypasses the office filter (global scope); otherwise only rows whose
 	// office_id is in office_ids are returned. NULL-office (global) rows are visible
@@ -250,6 +254,8 @@ type Querier interface {
 	LinkGoogleID(ctx context.Context, arg LinkGoogleIDParams) error
 	ListAssetDocuments(ctx context.Context, assetID uuid.UUID) ([]AssetAssetDocument, error)
 	ListAssetEntries(ctx context.Context, assetID uuid.UUID) ([]DepreciationDepreciationEntry, error)
+	ListAssetLocationHistory(ctx context.Context, assetID uuid.UUID) ([]ListAssetLocationHistoryRow, error)
+	ListAssetPICHistory(ctx context.Context, assetID uuid.UUID) ([]ListAssetPICHistoryRow, error)
 	// All existing (non-deleted) asset tags, used by the asset importer to detect
 	// collisions with user-supplied asset_tag values during validation. Asset tags
 	// are globally unique, so this set is deliberately unscoped.

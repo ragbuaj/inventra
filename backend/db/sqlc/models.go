@@ -1329,6 +1329,35 @@ type AssetAssetDocument struct {
 	DeletedAt         pgtype.Timestamptz      `json:"deleted_at"`
 }
 
+type AssetAssetLocationHistory struct {
+	ID         uuid.UUID                  `json:"id"`
+	AssetID    uuid.UUID                  `json:"asset_id"`
+	OfficeID   uuid.UUID                  `json:"office_id"`
+	FloorID    *uuid.UUID                 `json:"floor_id"`
+	RoomID     *uuid.UUID                 `json:"room_id"`
+	Source     SharedLocationChangeSource `json:"source"`
+	MovedAt    pgtype.Timestamptz         `json:"moved_at"`
+	MovedByID  *uuid.UUID                 `json:"moved_by_id"`
+	TransferID *uuid.UUID                 `json:"transfer_id"`
+	Note       *string                    `json:"note"`
+	CreatedAt  pgtype.Timestamptz         `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz         `json:"updated_at"`
+	DeletedAt  pgtype.Timestamptz         `json:"deleted_at"`
+}
+
+type AssetAssetPicHistory struct {
+	ID            uuid.UUID          `json:"id"`
+	AssetID       uuid.UUID          `json:"asset_id"`
+	PicEmployeeID uuid.UUID          `json:"pic_employee_id"`
+	AssignedAt    pgtype.Timestamptz `json:"assigned_at"`
+	ReleasedAt    pgtype.Timestamptz `json:"released_at"`
+	AssignedByID  *uuid.UUID         `json:"assigned_by_id"`
+	Note          *string            `json:"note"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt     pgtype.Timestamptz `json:"deleted_at"`
+}
+
 type AssignmentAssignment struct {
 	ID           uuid.UUID              `json:"id"`
 	AssetID      uuid.UUID              `json:"asset_id"`

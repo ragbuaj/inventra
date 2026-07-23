@@ -2,6 +2,7 @@
 import type { Asset, BadgeColor } from '~/types'
 import type { AssetDepreciationEntry, AssetDepreciationResponse } from '~/composables/api/useDepreciation'
 import type { MaintenanceRecord } from '~/composables/api/useMaintenance'
+import type { AssetLocationHistory, AssetPICHistory } from '~/composables/api/useAssets'
 import { classMeta } from '~/constants/assetMeta'
 import { BASIS_META, type DepreciationBasis } from '~/constants/depreciationMeta'
 import { MAINT_STATUS_TONE, MAINT_TYPE_TONE, formatRupiah as formatRupiahMaint } from '~/constants/maintenanceMeta'
@@ -34,7 +35,7 @@ const asset = ref<Asset | null>(null)
 const loading = ref(true)
 const loadError = ref(false)
 const notFound = ref(false)
-const tab = ref<'info' | 'assign' | 'maint' | 'depr'>('info')
+const tab = ref<'info' | 'assign' | 'maint' | 'depr' | 'loc' | 'pic'>('info')
 
 // FK id → name maps, populated by loadLookups() once the asset itself is
 // known. Missing/unresolved ids render as "—" (see `name()` below). Office/
@@ -191,6 +192,76 @@ const maintRows = computed<MaintRow[]>(() => maintRecords.value.map(r => ({
   vendorLabel: r.vendor_name ?? '—'
 })))
 
+// ---------------------------------------------------------------------------
+// Location + PIC history tabs — lazy-loaded on first activation (Fase 3).
+// ---------------------------------------------------------------------------
+const locLoading = ref(false)
+const locError = ref(false)
+const locRows = ref<AssetLocationHistory[]>([])
+let locLoadedForAssetId: string | null = null
+
+async function loadLoc() {
+  const a = asset.value
+  if (!a) return
+  locLoading.value = true
+  locError.value = false
+  try {
+    locRows.value = await assetsApi.locationHistory(a.id)
+    locLoadedForAssetId = a.id
+  } catch {
+    locError.value = true
+    locRows.value = []
+  } finally {
+    locLoading.value = false
+  }
+}
+function ensureLocLoaded() {
+  if (tab.value !== 'loc' || !asset.value) return
+  if (locLoadedForAssetId === asset.value.id) return
+  loadLoc()
+}
+watch(tab, ensureLocLoaded)
+
+const picLoading = ref(false)
+const picError = ref(false)
+const picRows = ref<AssetPICHistory[]>([])
+let picLoadedForAssetId: string | null = null
+
+async function loadPic() {
+  const a = asset.value
+  if (!a) return
+  picLoading.value = true
+  picError.value = false
+  try {
+    picRows.value = await assetsApi.picHistory(a.id)
+    picLoadedForAssetId = a.id
+  } catch {
+    picError.value = true
+    picRows.value = []
+  } finally {
+    picLoading.value = false
+  }
+}
+function ensurePicLoaded() {
+  if (tab.value !== 'pic' || !asset.value) return
+  if (picLoadedForAssetId === asset.value.id) return
+  loadPic()
+}
+watch(tab, ensurePicLoaded)
+
+function formatDateTime(iso?: string | null): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+}
+function locationLabel(r: AssetLocationHistory): string {
+  const parts = [r.office_name, r.floor_name, r.room_name].filter(Boolean)
+  return parts.length ? parts.join(' / ') : '—'
+}
+function picEndLabel(r: AssetPICHistory): string {
+  return r.released_at ? formatDateTime(r.released_at) : t('assets.detail.picActive')
+}
+
 const ringkas = computed(() => {
   const a = asset.value
   if (!a) return []
@@ -251,7 +322,9 @@ const tabs = [
   { key: 'info', label: () => t('assets.detail.tabs.info') },
   { key: 'assign', label: () => t('assets.detail.tabs.assignment') },
   { key: 'maint', label: () => t('assets.detail.tabs.maintenance') },
-  { key: 'depr', label: () => t('assets.detail.tabs.depreciation') }
+  { key: 'depr', label: () => t('assets.detail.tabs.depreciation') },
+  { key: 'loc', label: () => t('assets.detail.tabs.location') },
+  { key: 'pic', label: () => t('assets.detail.tabs.pic') }
 ] as const
 
 // Both dropdown actions submit maker-checker requests (POST /maintenance/reports
@@ -914,6 +987,190 @@ onUnmounted(() => {
                     </td>
                     <td class="px-4 py-3 text-muted">
                       {{ r.vendorLabel }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Location history tab (Fase 3) -->
+          <div
+            v-else-if="tab === 'loc'"
+            class="p-5"
+          >
+            <div
+              v-if="locLoading"
+              class="flex items-center justify-center py-16"
+            >
+              <UIcon
+                name="i-lucide-loader-circle"
+                class="size-6 animate-spin text-muted"
+              />
+            </div>
+            <div
+              v-else-if="locError"
+              data-testid="loc-tab-error"
+              class="flex flex-col items-center gap-3 py-16 text-center"
+            >
+              <UIcon
+                name="i-lucide-circle-alert"
+                class="size-6 text-muted"
+              />
+              <span class="text-sm text-muted">{{ t('common.loadError') }}</span>
+              <UButton
+                color="neutral"
+                variant="subtle"
+                @click="loadLoc"
+              >
+                {{ t('common.retry') }}
+              </UButton>
+            </div>
+            <div
+              v-else-if="locRows.length === 0"
+              data-testid="loc-tab-empty"
+              class="flex flex-col items-center gap-2.5 py-16 text-center"
+            >
+              <UIcon
+                name="i-lucide-map-pin"
+                class="size-6 text-dimmed"
+              />
+              <span class="text-sm text-muted">{{ t('assets.detail.locationEmpty') }}</span>
+            </div>
+            <div
+              v-else
+              class="overflow-x-auto"
+            >
+              <table class="w-full border-collapse text-[13px] whitespace-nowrap">
+                <thead>
+                  <tr class="bg-muted text-muted">
+                    <th class="text-left px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                      {{ t('assets.detail.locCols.date') }}
+                    </th>
+                    <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                      {{ t('assets.detail.locCols.location') }}
+                    </th>
+                    <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                      {{ t('assets.detail.locCols.source') }}
+                    </th>
+                    <th class="text-left px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                      {{ t('assets.detail.locCols.by') }}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="r in locRows"
+                    :key="r.id"
+                    data-testid="loc-tab-row"
+                    class="border-t border-default"
+                  >
+                    <td class="px-4 py-3 text-muted">
+                      {{ formatDateTime(r.moved_at) }}
+                    </td>
+                    <td class="px-3 py-3">
+                      {{ locationLabel(r) }}
+                    </td>
+                    <td class="px-3 py-3">
+                      <UBadge
+                        color="neutral"
+                        variant="subtle"
+                        class="rounded-full"
+                      >
+                        {{ t(`assets.detail.locSource.${r.source}`) }}
+                      </UBadge>
+                    </td>
+                    <td class="px-4 py-3 text-muted">
+                      {{ r.moved_by_name || '—' }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- PIC history tab (Fase 3) -->
+          <div
+            v-else-if="tab === 'pic'"
+            class="p-5"
+          >
+            <div
+              v-if="picLoading"
+              class="flex items-center justify-center py-16"
+            >
+              <UIcon
+                name="i-lucide-loader-circle"
+                class="size-6 animate-spin text-muted"
+              />
+            </div>
+            <div
+              v-else-if="picError"
+              data-testid="pic-tab-error"
+              class="flex flex-col items-center gap-3 py-16 text-center"
+            >
+              <UIcon
+                name="i-lucide-circle-alert"
+                class="size-6 text-muted"
+              />
+              <span class="text-sm text-muted">{{ t('common.loadError') }}</span>
+              <UButton
+                color="neutral"
+                variant="subtle"
+                @click="loadPic"
+              >
+                {{ t('common.retry') }}
+              </UButton>
+            </div>
+            <div
+              v-else-if="picRows.length === 0"
+              data-testid="pic-tab-empty"
+              class="flex flex-col items-center gap-2.5 py-16 text-center"
+            >
+              <UIcon
+                name="i-lucide-user-round"
+                class="size-6 text-dimmed"
+              />
+              <span class="text-sm text-muted">{{ t('assets.detail.picEmpty') }}</span>
+            </div>
+            <div
+              v-else
+              class="overflow-x-auto"
+            >
+              <table class="w-full border-collapse text-[13px] whitespace-nowrap">
+                <thead>
+                  <tr class="bg-muted text-muted">
+                    <th class="text-left px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                      {{ t('assets.detail.picCols.pic') }}
+                    </th>
+                    <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                      {{ t('assets.detail.picCols.from') }}
+                    </th>
+                    <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                      {{ t('assets.detail.picCols.to') }}
+                    </th>
+                    <th class="text-left px-4 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                      {{ t('assets.detail.picCols.by') }}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="r in picRows"
+                    :key="r.id"
+                    data-testid="pic-tab-row"
+                    class="border-t border-default"
+                  >
+                    <td class="px-4 py-3">
+                      {{ r.pic_name }} <span class="text-dimmed">({{ r.pic_code }})</span>
+                    </td>
+                    <td class="px-3 py-3 text-muted">
+                      {{ formatDateTime(r.assigned_at) }}
+                    </td>
+                    <td class="px-3 py-3 text-muted">
+                      {{ picEndLabel(r) }}
+                    </td>
+                    <td class="px-4 py-3 text-muted">
+                      {{ r.assigned_by_name || '—' }}
                     </td>
                   </tr>
                 </tbody>

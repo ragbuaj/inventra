@@ -344,3 +344,76 @@ func TestAsset_ReadScope_OfficeFiltered(t *testing.T) {
 		assert.Equal(t, "Asset C", rows[0].Name)
 	})
 }
+
+// TestAsset_UpdateWritesLocationAndPICHistory verifies svc.Update records a
+// location-history row when floor/room changes and a PIC-history row when the
+// PIC changes (Fase 3 legacy-parity).
+func TestAsset_UpdateWritesLocationAndPICHistory(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	_ = testsupport.NewRedis(t)
+	ctx := context.Background()
+	resetAll(t, pool)
+
+	officeID := seedOfficeWithType(t, pool, "HistType", "HST01")
+	catID := seedCategory(t, pool, "HIS")
+
+	var floorID uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx,
+		`INSERT INTO masterdata.floors (office_id, name) VALUES ($1, 'Lantai 1') RETURNING id`,
+		officeID).Scan(&floorID))
+	var roomID uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx,
+		`INSERT INTO masterdata.rooms (floor_id, name) VALUES ($1, 'Ruang A') RETURNING id`,
+		floorID).Scan(&roomID))
+
+	var empID uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx,
+		`INSERT INTO masterdata.employees (code, name, office_id) VALUES ('E-HIS-1', 'PIC Andi', $1) RETURNING id`,
+		officeID).Scan(&empID))
+	roleID := lookupRole(t, pool, "Superadmin")
+	var actorID uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx,
+		`INSERT INTO identity.users (name, email, role_id) VALUES ('Actor His', 'actor-his@test.local', $1) RETURNING id`,
+		roleID).Scan(&actorID))
+
+	assetID := seedAssetDirect(t, pool, "HST01HIS202600001", "Aset Uji", catID, officeID)
+
+	q := sqlc.New(pool)
+	svc := asset.NewService(q, pool, storage.NewFake(), 0, "")
+
+	baseInput := func() asset.UpdateInput {
+		return asset.UpdateInput{Name: "Aset Uji", CategoryID: catID, Specifications: []byte("{}")}
+	}
+
+	// 1) Change floor+room -> one location-history row (source=edit).
+	in := baseInput()
+	in.FloorID = &floorID
+	in.RoomID = &roomID
+	_, _, err := svc.Update(ctx, assetID, in, actorID)
+	require.NoError(t, err)
+
+	locs, err := svc.ListLocationHistory(ctx, assetID)
+	require.NoError(t, err)
+	require.Len(t, locs, 1)
+	assert.Equal(t, sqlc.SharedLocationChangeSourceEdit, locs[0].Source)
+	require.NotNil(t, locs[0].RoomID)
+	assert.Equal(t, roomID, *locs[0].RoomID)
+
+	// 2) Assign a PIC (location unchanged) -> one active PIC-history row, no new location row.
+	in = baseInput()
+	in.FloorID = &floorID
+	in.RoomID = &roomID
+	in.PICEmployeeID = &empID
+	_, _, err = svc.Update(ctx, assetID, in, actorID)
+	require.NoError(t, err)
+
+	pics, err := svc.ListPICHistory(ctx, assetID)
+	require.NoError(t, err)
+	require.Len(t, pics, 1)
+	assert.Equal(t, empID, pics[0].PicEmployeeID)
+	assert.False(t, pics[0].ReleasedAt.Valid, "new PIC must be active (released_at null)")
+
+	locs, err = svc.ListLocationHistory(ctx, assetID)
+	require.NoError(t, err)
+	assert.Len(t, locs, 1)
+}

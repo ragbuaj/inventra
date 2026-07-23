@@ -38,9 +38,23 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >   hijau + `go vet -tags=integration` compile-check lolos (run integrasi via CI). Frontend tak berubah
 >   (hanya menampilkan string tag). **Sisa doc-sweep:** referensi `asset_tag_counters` di daftar
 >   skema/indeks/migrasi DATABASE.md (baris ~62/725/807) belum dibersihkan — kerjakan di sweep akhir.
-> - **Berikutnya: Fase 3** — tabel history aset (`000041`): `asset_location_history` +
->   `asset_pic_history` + backfill; penulis history di create/edit/transfer/PIC; tab Riwayat
->   Lokasi/PIC/Pemegang di Detail Aset.
+> - **Fase 3 (history aset) — kode selesai.** Migrasi `000041`: tabel `asset_location_history` +
+>   `asset_pic_history` (partial-unique PIC aktif) + backfill lokasi awal & PIC. Penulis history:
+>   create executor (registration + PIC), `Update` (tx + actor; lokasi saat floor/room berubah, PIC
+>   saat berubah — close aktif + buka baru), transfer `Receive` (source=transfer, dari state aktual
+>   pasca-relokasi). Read: `GET /assets/:id/location-history` + `/pic-history` (scope-gated),
+>   serializer + service list, OpenAPI (2 path + 2 skema). Frontend: tab **Riwayat Lokasi** & **Riwayat
+>   PIC** di Detail Aset (lazy-load), composable `useAssets.locationHistory/picHistory`, i18n id/en,
+>   test komponen. **Gate:** backend build/vet/unit + serializer unit test + Spectral 0-error +
+>   `go vet -tags=integration` compile-check (incl. integration test baru Update-history) hijau;
+>   frontend lint + JSON hijau (typecheck/vitest/build CI). **Pemegang** = tab `assign` existing
+>   (masih placeholder — wiring assignment-history di luar scope Fase 3).
+>   **Follow-up dicatat:** transfer `SetAssetOffice` tidak memperbarui `assets.floor_id` (interaksi
+>   kolom Fase 1) — history merekam state aktual, tapi floor_id aset bisa basi pasca-mutasi.
+> - **Berikutnya: Fase 4** — master baru (`000042`): office_classes, executor_divisions, companies
+>   (reference engine) + building_classifications (sub-package numerik) + layar Referensi.
+>   **Doc-sweep tersisa** (kumulatif): bersihkan `asset_tag_counters` di daftar skema DATABASE.md +
+>   dokumentasikan 2 tabel history di DATABASE.md bagian aset.
 >
 > 1. ~~**Bring the dev stack up, reset & migrate**~~ ✅ **DONE (2026-06-27).**
 > 2. ~~**#6 Kategori Aset screen**~~ ✅ **DONE.**

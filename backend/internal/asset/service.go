@@ -201,14 +201,24 @@ type UpdateInput struct {
 }
 
 // Update fetches the current asset row (for audit before/after diff), applies
-// the given field changes, and returns both snapshots. Returns ErrNotFound if
-// the asset does not exist or is soft-deleted.
-func (s *Service) Update(ctx context.Context, id uuid.UUID, in UpdateInput) (before, after sqlc.AssetAsset, err error) {
+// the given field changes inside a transaction, and — when the location
+// (floor/room) or PIC changed — records the matching history rows. `actor` is
+// recorded as who moved/assigned. Returns ErrNotFound if the asset does not
+// exist or is soft-deleted.
+func (s *Service) Update(ctx context.Context, id uuid.UUID, in UpdateInput, actor uuid.UUID) (before, after sqlc.AssetAsset, err error) {
 	before, err = s.q.GetAsset(ctx, id)
 	if err != nil {
 		return before, before, mapDBError(err)
 	}
-	after, err = s.q.UpdateAsset(ctx, sqlc.UpdateAssetParams{
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return before, before, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	qtx := s.q.WithTx(tx)
+
+	after, err = qtx.UpdateAsset(ctx, sqlc.UpdateAssetParams{
 		ID:               id,
 		Name:             in.Name,
 		CategoryID:       in.CategoryID,
@@ -231,5 +241,64 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, in UpdateInput) (bef
 		Specifications:   in.Specifications,
 		Notes:            in.Notes,
 	})
-	return before, after, mapDBError(err)
+	if err != nil {
+		return before, before, mapDBError(err)
+	}
+
+	// Record a location-history row when floor/room changed (office is not
+	// editable via this path, so office_id is stable).
+	if !sameUUIDPtr(before.FloorID, after.FloorID) || !sameUUIDPtr(before.RoomID, after.RoomID) {
+		if err = qtx.InsertAssetLocationHistory(ctx, sqlc.InsertAssetLocationHistoryParams{
+			AssetID:   id,
+			OfficeID:  after.OfficeID,
+			FloorID:   after.FloorID,
+			RoomID:    after.RoomID,
+			Source:    sqlc.SharedLocationChangeSourceEdit,
+			MovedByID: &actor,
+		}); err != nil {
+			return before, before, mapDBError(err)
+		}
+	}
+
+	// Record PIC history when the PIC changed: close the active row, open a new
+	// one when a PIC is set (a cleared PIC just closes the active row).
+	if !sameUUIDPtr(before.PicEmployeeID, after.PicEmployeeID) {
+		if err = qtx.CloseActivePIC(ctx, id); err != nil {
+			return before, before, mapDBError(err)
+		}
+		if after.PicEmployeeID != nil {
+			if err = qtx.InsertAssetPICHistory(ctx, sqlc.InsertAssetPICHistoryParams{
+				AssetID:       id,
+				PicEmployeeID: *after.PicEmployeeID,
+				AssignedByID:  &actor,
+			}); err != nil {
+				return before, before, mapDBError(err)
+			}
+		}
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return before, before, err
+	}
+	return before, after, nil
+}
+
+// sameUUIDPtr reports whether two optional UUIDs are equal (both nil, or same value).
+func sameUUIDPtr(a, b *uuid.UUID) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return *a == *b
+}
+
+// ListLocationHistory returns an asset's location-change history, newest first.
+func (s *Service) ListLocationHistory(ctx context.Context, assetID uuid.UUID) ([]sqlc.ListAssetLocationHistoryRow, error) {
+	rows, err := s.q.ListAssetLocationHistory(ctx, assetID)
+	return rows, mapDBError(err)
+}
+
+// ListPICHistory returns an asset's PIC (person-in-charge) history, newest first.
+func (s *Service) ListPICHistory(ctx context.Context, assetID uuid.UUID) ([]sqlc.ListAssetPICHistoryRow, error) {
+	rows, err := s.q.ListAssetPICHistory(ctx, assetID)
+	return rows, mapDBError(err)
 }

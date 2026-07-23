@@ -10,6 +10,36 @@ export interface AssetListQuery {
   asset_class?: AssetClass
 }
 
+/** One asset location-change record (spec legacy-parity Fase 3). */
+export interface AssetLocationHistory {
+  id: string
+  office_id: string
+  office_name: string
+  floor_id?: string | null
+  floor_name?: string | null
+  room_id?: string | null
+  room_name?: string | null
+  source: 'registration' | 'edit' | 'transfer' | 'migration'
+  moved_at?: string | null
+  moved_by_id?: string | null
+  moved_by_name?: string | null
+  transfer_id?: string | null
+  note?: string | null
+}
+
+/** One asset PIC (person-in-charge) record (spec legacy-parity Fase 3). */
+export interface AssetPICHistory {
+  id: string
+  pic_employee_id: string
+  pic_name: string
+  pic_code: string
+  assigned_at?: string | null
+  released_at?: string | null
+  assigned_by_id?: string | null
+  assigned_by_name?: string | null
+  note?: string | null
+}
+
 /** Assets, wired to /api/v1/assets (server-enforced `assets` data-scope). */
 export function useAssets() {
   const { request } = useApiClient()
@@ -41,5 +71,15 @@ export function useAssets() {
     return request<Asset>(`/assets/${id}`, { method: 'PUT', body: input })
   }
 
-  return { list, get, getByTag, update }
+  async function locationHistory(id: string): Promise<AssetLocationHistory[]> {
+    const res = await request<{ data: AssetLocationHistory[] }>(`/assets/${id}/location-history`)
+    return res.data ?? []
+  }
+
+  async function picHistory(id: string): Promise<AssetPICHistory[]> {
+    const res = await request<{ data: AssetPICHistory[] }>(`/assets/${id}/pic-history`)
+    return res.data ?? []
+  }
+
+  return { list, get, getByTag, update, locationHistory, picHistory }
 }

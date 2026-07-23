@@ -1765,6 +1765,60 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/v1/assets/{id}/location-history:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: Asset id }
+    get:
+      tags: [Assets]
+      operationId: listAssetLocationHistory
+      summary: List an asset's location-change history
+      description: Riwayat perpindahan lokasi (kantor/lantai/ruangan) aset, terbaru dulu. Requires `asset.view` + data scope.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Location history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/AssetLocationHistory" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Asset not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/assets/{id}/pic-history:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: Asset id }
+    get:
+      tags: [Assets]
+      operationId: listAssetPICHistory
+      summary: List an asset's PIC (person-in-charge) history
+      description: Riwayat PIC aset, terbaru dulu. Requires `asset.view` + data scope.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: PIC history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/AssetPICHistory" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Asset not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/v1/assets/{id}/attachments:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: Asset id }
@@ -5819,6 +5873,38 @@ components:
         installation_date: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
         warranty_start: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
         notes: { type: [string, "null"] }
+
+    AssetLocationHistory:
+      type: object
+      description: One asset location-change record (spec legacy-parity Fase 3).
+      properties:
+        id: { type: string, format: uuid }
+        office_id: { type: string, format: uuid }
+        office_name: { type: string }
+        floor_id: { type: [string, "null"], format: uuid }
+        floor_name: { type: [string, "null"] }
+        room_id: { type: [string, "null"], format: uuid }
+        room_name: { type: [string, "null"] }
+        source: { type: string, enum: [registration, edit, transfer, migration] }
+        moved_at: { type: [string, "null"], format: date-time }
+        moved_by_id: { type: [string, "null"], format: uuid }
+        moved_by_name: { type: [string, "null"] }
+        transfer_id: { type: [string, "null"], format: uuid }
+        note: { type: [string, "null"] }
+
+    AssetPICHistory:
+      type: object
+      description: One asset PIC (person-in-charge) record (spec legacy-parity Fase 3).
+      properties:
+        id: { type: string, format: uuid }
+        pic_employee_id: { type: string, format: uuid }
+        pic_name: { type: string }
+        pic_code: { type: string }
+        assigned_at: { type: [string, "null"], format: date-time }
+        released_at: { type: [string, "null"], format: date-time }
+        assigned_by_id: { type: [string, "null"], format: uuid }
+        assigned_by_name: { type: [string, "null"] }
+        note: { type: [string, "null"] }
 
     SubmitRequest:
       type: object

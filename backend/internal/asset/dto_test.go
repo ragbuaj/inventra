@@ -46,3 +46,48 @@ func TestAssetToMap_IncludesSensitiveKeys(t *testing.T) {
 		t.Fatalf("purchase_cost must be present pre-mask")
 	}
 }
+
+func TestLocationHistoryToMap(t *testing.T) {
+	fid, rid, uid := uuid.New(), uuid.New(), uuid.New()
+	fname, rname, uname := "Lantai 3", "Ruang IT", "Admin"
+	m := locationHistoryToMap(sqlc.ListAssetLocationHistoryRow{
+		ID: uuid.New(), OfficeID: uuid.New(), OfficeName: "Cabang",
+		FloorID: &fid, FloorName: &fname, RoomID: &rid, RoomName: &rname,
+		Source: sqlc.SharedLocationChangeSourceEdit, MovedByID: &uid, MovedByName: &uname,
+	})
+	if m["source"] != "edit" {
+		t.Fatalf("source = %v", m["source"])
+	}
+	if m["office_name"] != "Cabang" {
+		t.Fatalf("office_name = %v", m["office_name"])
+	}
+	if got, _ := m["floor_name"].(*string); got == nil || *got != "Lantai 3" {
+		t.Fatalf("floor_name = %v", got)
+	}
+	if got, _ := m["room_name"].(*string); got == nil || *got != "Ruang IT" {
+		t.Fatalf("room_name = %v", got)
+	}
+	// A zero (invalid) timestamptz serializes to a nil *string.
+	if got, _ := m["moved_at"].(*string); got != nil {
+		t.Fatalf("moved_at should be nil for zero ts, got %v", *got)
+	}
+}
+
+func TestPICHistoryToMap(t *testing.T) {
+	uid := uuid.New()
+	uname := "Manager"
+	m := picHistoryToMap(sqlc.ListAssetPICHistoryRow{
+		ID: uuid.New(), PicEmployeeID: uuid.New(), PicName: "Andi", PicCode: "NIP001",
+		AssignedByID: &uid, AssignedByName: &uname,
+	})
+	if m["pic_name"] != "Andi" || m["pic_code"] != "NIP001" {
+		t.Fatalf("pic name/code = %v / %v", m["pic_name"], m["pic_code"])
+	}
+	if got, _ := m["assigned_by_name"].(*string); got == nil || *got != "Manager" {
+		t.Fatalf("assigned_by_name = %v", got)
+	}
+	// Still-active PIC: released_at (zero ts) serializes to nil.
+	if got, _ := m["released_at"].(*string); got != nil {
+		t.Fatalf("released_at should be nil for active PIC")
+	}
+}
