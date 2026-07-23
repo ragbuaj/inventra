@@ -273,9 +273,9 @@ func TestApproval_AssetCreate_ThreeStep(t *testing.T) {
 	assert.Equal(t, int64(1), total)
 	assert.Equal(t, "Laptop 150M", assets[0].Name)
 
-	// Assert the generated asset tag matches the expected format built from the seeded codes.
-	// Office "CBG" (Cabang Alpha), category "ELK", current year, first sequence.
-	expectedTag := fmt.Sprintf("%s-%s-%d-%05d", tr.CabangCode, "ELK", time.Now().Year(), 1)
+	// Assert the generated asset tag matches the new (no-separator) format built from
+	// the seeded codes: {office}{category}{year}{seq5}. Office "CBG", category "ELK".
+	expectedTag := fmt.Sprintf("%s%s%d%05d", tr.CabangCode, "ELK", time.Now().Year(), 1)
 	assert.Equal(t, expectedTag, assets[0].AssetTag)
 }
 
