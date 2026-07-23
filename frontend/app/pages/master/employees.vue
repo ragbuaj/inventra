@@ -50,12 +50,30 @@ const officeCache = useResolveCache(office.resolveFn)
 // (see usePickerSource.ts). deptOptions/positionOptions stay an eager
 // `{limit:100}` id→name list — the filter dropdowns and the table's
 // departemen/jabatan cells (out of scope here, Task 6) still read from them.
-const department = useReferencePicker('departments')
 const position = useReferencePicker('positions')
 const deptOptions = ref<{ value: string, label: string }[]>([])
 const positionOptions = ref<{ value: string, label: string }[]>([])
 const deptMap = computed(() => new Map(deptOptions.value.map(o => [o.value, o.label])))
 const positionMap = computed(() => new Map(positionOptions.value.map(o => [o.value, o.label])))
+
+// Legacy-parity Fase 6: departments are per-office (filter by the chosen office;
+// legacy departments with a null office stay selectable), plus company + executor
+// division masters.
+const deptRows = ref<ReferenceRow[]>([])
+const companyRows = ref<ReferenceRow[]>([])
+const execDivRows = ref<ReferenceRow[]>([])
+const deptItemsForOffice = computed(() => [
+  { value: '', label: t('masterdata.employees.selectPlaceholder') },
+  ...deptRows.value.filter(d => !d.office_id || d.office_id === form.office_id).map(d => ({ value: d.id, label: d.name }))
+])
+const companyItems = computed(() => [{ value: '', label: t('masterdata.employees.selectPlaceholder') }, ...companyRows.value.map(c => ({ value: c.id, label: c.name }))])
+const execDivItems = computed(() => [{ value: '', label: t('masterdata.employees.selectPlaceholder') }, ...execDivRows.value.map(e => ({ value: e.id, label: e.name }))])
+// Clear a chosen department when it no longer belongs to the selected office.
+watch(() => form.office_id, () => {
+  if (form.department_id && !deptRows.value.some(d => d.id === form.department_id && (!d.office_id || d.office_id === form.office_id))) {
+    form.department_id = ''
+  }
+})
 function officeName(id: string | null): string {
   return officeCache.get(id)
 }
@@ -70,7 +88,8 @@ const formOpen = ref(false)
 const saving = ref(false)
 const editingId = ref<string>()
 const form = reactive<EmployeeInput>({
-  code: '', name: '', email: '', phone: '', department_id: '', position_id: '', office_id: '', status: 'active'
+  code: '', name: '', email: '', phone: '', department_id: '', position_id: '', office_id: '', status: 'active',
+  company_id: '', executor_division_id: ''
 })
 
 const columns = [
@@ -141,17 +160,22 @@ async function refresh() {
 }
 
 async function loadFkData() {
-  const [depts, positions] = await Promise.all([
+  const [depts, positions, companies, execDivs] = await Promise.all([
     refApi.list('departments', { limit: 100 }),
-    refApi.list('positions', { limit: 100 })
+    refApi.list('positions', { limit: 100 }),
+    refApi.list('companies', { limit: 100 }),
+    refApi.list('executor-divisions', { limit: 100 })
   ])
+  deptRows.value = depts.data
   deptOptions.value = depts.data.map(d => ({ value: d.id, label: d.name }))
   positionOptions.value = positions.data.map(p => ({ value: p.id, label: p.name }))
+  companyRows.value = companies.data
+  execDivRows.value = execDivs.data
 }
 
 function openCreate() {
   editingId.value = undefined
-  Object.assign(form, { code: '', name: '', email: '', phone: '', department_id: '', position_id: '', office_id: '', status: 'active' })
+  Object.assign(form, { code: '', name: '', email: '', phone: '', department_id: '', position_id: '', office_id: '', status: 'active', company_id: '', executor_division_id: '' })
   formOpen.value = true
 }
 
@@ -160,7 +184,8 @@ function openEdit(row: Employee) {
   Object.assign(form, {
     code: row.code, name: row.name, email: row.email ?? '', phone: row.phone ?? '',
     department_id: row.department_id ?? '', position_id: row.position_id ?? '', office_id: row.office_id,
-    status: row.status === 'suspended' ? 'suspended' : row.status
+    status: row.status === 'suspended' ? 'suspended' : row.status,
+    company_id: row.company_id ?? '', executor_division_id: row.executor_division_id ?? ''
   })
   formOpen.value = true
 }
@@ -175,7 +200,8 @@ async function onSubmit() {
     const input: EmployeeInput = {
       code: form.code, name: form.name, office_id: form.office_id, status: form.status,
       email: form.email || undefined, phone: form.phone || undefined,
-      department_id: form.department_id || undefined, position_id: form.position_id || undefined
+      department_id: form.department_id || undefined, position_id: form.position_id || undefined,
+      company_id: form.company_id || null, executor_division_id: form.executor_division_id || null
     }
     if (editingId.value) await api.update(editingId.value, input)
     else await api.create(input)
@@ -459,15 +485,18 @@ onUnmounted(() => {
 
         <!-- Row 3: Departemen + Jabatan -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">
-          <UFormField :label="t('masterdata.employees.fields.departemen')">
-            <AsyncSearchPicker
-              :model-value="form.department_id || null"
-              :search-fn="department.searchFn"
-              :resolve-fn="department.resolveFn"
-              :placeholder="t('common.searchDepartment')"
-              testid="employee-department"
-              clearable
-              @update:model-value="form.department_id = $event ?? ''"
+          <UFormField
+            :label="t('masterdata.employees.fields.departemen')"
+            :hint="t('masterdata.employees.deptOfficeHint')"
+          >
+            <USelect
+              :model-value="form.department_id ?? ''"
+              :items="deptItemsForOffice"
+              :disabled="!form.office_id"
+              :placeholder="t('masterdata.employees.selectPlaceholder')"
+              class="w-full"
+              data-testid="employee-department"
+              @update:model-value="form.department_id = $event"
             />
           </UFormField>
           <UFormField :label="t('masterdata.employees.fields.jabatan')">
@@ -503,6 +532,30 @@ onUnmounted(() => {
             </span>
           </template>
         </UFormField>
+
+        <!-- Legacy-parity Fase 6: perusahaan + divisi pelaksana -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">
+          <UFormField :label="t('masterdata.employees.fields.company')">
+            <USelect
+              :model-value="form.company_id ?? ''"
+              :items="companyItems"
+              :placeholder="t('masterdata.employees.selectPlaceholder')"
+              class="w-full"
+              data-testid="employee-company"
+              @update:model-value="form.company_id = $event"
+            />
+          </UFormField>
+          <UFormField :label="t('masterdata.employees.fields.executorDivision')">
+            <USelect
+              :model-value="form.executor_division_id ?? ''"
+              :items="execDivItems"
+              :placeholder="t('masterdata.employees.selectPlaceholder')"
+              class="w-full"
+              data-testid="employee-executor-division"
+              @update:model-value="form.executor_division_id = $event"
+            />
+          </UFormField>
+        </div>
 
         <!-- Row 5: Email + Telepon -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">

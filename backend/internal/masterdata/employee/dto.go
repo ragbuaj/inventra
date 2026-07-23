@@ -18,6 +18,9 @@ type Request struct {
 	PositionID   *string `json:"position_id" binding:"omitempty,uuid"`
 	OfficeID     string  `json:"office_id" binding:"required,uuid"`
 	Status       *string `json:"status" binding:"omitempty,oneof=active inactive suspended"`
+	// Legacy-parity Fase 6 fields.
+	CompanyID          *string `json:"company_id" binding:"omitempty,uuid"`
+	ExecutorDivisionID *string `json:"executor_division_id" binding:"omitempty,uuid"`
 }
 
 // toInput resolves the request into a service CreateInput. OfficeID is guaranteed
@@ -31,16 +34,26 @@ func (r Request) toInput() (CreateInput, error) {
 	if err != nil {
 		return CreateInput{}, err
 	}
+	company, err := common.ParseUUIDPtr(r.CompanyID)
+	if err != nil {
+		return CreateInput{}, err
+	}
+	execDiv, err := common.ParseUUIDPtr(r.ExecutorDivisionID)
+	if err != nil {
+		return CreateInput{}, err
+	}
 	return CreateInput{
-		Code:         r.Code,
-		Name:         r.Name,
-		Email:        r.Email,
-		Phone:        r.Phone,
-		AvatarKey:    r.AvatarKey,
-		DepartmentID: dept,
-		PositionID:   pos,
-		OfficeID:     uuid.MustParse(r.OfficeID),
-		Status:       statusOr(r.Status, sqlc.SharedUserStatusActive),
+		Code:               r.Code,
+		Name:               r.Name,
+		Email:              r.Email,
+		Phone:              r.Phone,
+		AvatarKey:          r.AvatarKey,
+		DepartmentID:       dept,
+		PositionID:         pos,
+		OfficeID:           uuid.MustParse(r.OfficeID),
+		Status:             statusOr(r.Status, sqlc.SharedUserStatusActive),
+		CompanyID:          company,
+		ExecutorDivisionID: execDiv,
 	}, nil
 }
 
@@ -63,24 +76,29 @@ type Response struct {
 	PositionID   *string `json:"position_id"`
 	OfficeID     string  `json:"office_id"`
 	Status       string  `json:"status"`
-	CreatedAt    *string `json:"created_at"`
-	UpdatedAt    *string `json:"updated_at"`
+	// Legacy-parity Fase 6 fields.
+	CompanyID          *string `json:"company_id"`
+	ExecutorDivisionID *string `json:"executor_division_id"`
+	CreatedAt          *string `json:"created_at"`
+	UpdatedAt          *string `json:"updated_at"`
 }
 
 func toResponse(e sqlc.MasterdataEmployee) Response {
 	return Response{
-		ID:           e.ID.String(),
-		Code:         e.Code,
-		Name:         e.Name,
-		Email:        e.Email,
-		Phone:        e.Phone,
-		AvatarKey:    e.AvatarKey,
-		DepartmentID: common.UUIDPtrStr(e.DepartmentID),
-		PositionID:   common.UUIDPtrStr(e.PositionID),
-		OfficeID:     e.OfficeID.String(),
-		Status:       string(e.Status),
-		CreatedAt:    common.TsStr(e.CreatedAt),
-		UpdatedAt:    common.TsStr(e.UpdatedAt),
+		ID:                 e.ID.String(),
+		Code:               e.Code,
+		Name:               e.Name,
+		Email:              e.Email,
+		Phone:              e.Phone,
+		AvatarKey:          e.AvatarKey,
+		DepartmentID:       common.UUIDPtrStr(e.DepartmentID),
+		PositionID:         common.UUIDPtrStr(e.PositionID),
+		OfficeID:           e.OfficeID.String(),
+		Status:             string(e.Status),
+		CompanyID:          common.UUIDPtrStr(e.CompanyID),
+		ExecutorDivisionID: common.UUIDPtrStr(e.ExecutorDivisionID),
+		CreatedAt:          common.TsStr(e.CreatedAt),
+		UpdatedAt:          common.TsStr(e.UpdatedAt),
 	}
 }
 
@@ -88,17 +106,19 @@ func toResponse(e sqlc.MasterdataEmployee) Response {
 // (authz.FieldService.FilterEntity strips non-viewable fields in place).
 func employeeToMap(e sqlc.MasterdataEmployee) map[string]any {
 	return map[string]any{
-		"id":            e.ID.String(),
-		"code":          e.Code,
-		"name":          e.Name,
-		"email":         e.Email,
-		"phone":         e.Phone,
-		"avatar_key":    e.AvatarKey,
-		"department_id": common.UUIDPtrStr(e.DepartmentID),
-		"position_id":   common.UUIDPtrStr(e.PositionID),
-		"office_id":     e.OfficeID.String(),
-		"status":        string(e.Status),
-		"created_at":    common.TsStr(e.CreatedAt),
-		"updated_at":    common.TsStr(e.UpdatedAt),
+		"id":                   e.ID.String(),
+		"code":                 e.Code,
+		"name":                 e.Name,
+		"email":                e.Email,
+		"phone":                e.Phone,
+		"avatar_key":           e.AvatarKey,
+		"department_id":        common.UUIDPtrStr(e.DepartmentID),
+		"position_id":          common.UUIDPtrStr(e.PositionID),
+		"office_id":            e.OfficeID.String(),
+		"status":               string(e.Status),
+		"company_id":           common.UUIDPtrStr(e.CompanyID),
+		"executor_division_id": common.UUIDPtrStr(e.ExecutorDivisionID),
+		"created_at":           common.TsStr(e.CreatedAt),
+		"updated_at":           common.TsStr(e.UpdatedAt),
 	}
 }

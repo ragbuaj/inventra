@@ -1638,22 +1638,25 @@ type MasterdataDepartment struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
+	OfficeID  *uuid.UUID         `json:"office_id"`
 }
 
 type MasterdataEmployee struct {
-	ID           uuid.UUID          `json:"id"`
-	Code         string             `json:"code"`
-	Name         string             `json:"name"`
-	Email        *string            `json:"email"`
-	AvatarKey    *string            `json:"avatar_key"`
-	DepartmentID *uuid.UUID         `json:"department_id"`
-	PositionID   *uuid.UUID         `json:"position_id"`
-	OfficeID     uuid.UUID          `json:"office_id"`
-	Status       SharedUserStatus   `json:"status"`
-	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt    pgtype.Timestamptz `json:"deleted_at"`
-	Phone        *string            `json:"phone"`
+	ID                 uuid.UUID          `json:"id"`
+	Code               string             `json:"code"`
+	Name               string             `json:"name"`
+	Email              *string            `json:"email"`
+	AvatarKey          *string            `json:"avatar_key"`
+	DepartmentID       *uuid.UUID         `json:"department_id"`
+	PositionID         *uuid.UUID         `json:"position_id"`
+	OfficeID           uuid.UUID          `json:"office_id"`
+	Status             SharedUserStatus   `json:"status"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt          pgtype.Timestamptz `json:"deleted_at"`
+	Phone              *string            `json:"phone"`
+	CompanyID          *uuid.UUID         `json:"company_id"`
+	ExecutorDivisionID *uuid.UUID         `json:"executor_division_id"`
 }
 
 type MasterdataExecutorDivision struct {

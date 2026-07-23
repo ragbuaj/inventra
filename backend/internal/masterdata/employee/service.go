@@ -16,6 +16,28 @@ import (
 // ErrOfficeOutOfScope is returned when the employee's office is outside the caller's scope.
 var ErrOfficeOutOfScope = errors.New("employee office must be within your scope")
 
+// ErrDepartmentOfficeMismatch is returned when the chosen department belongs to a
+// different office than the employee (per-office departments, Fase 6). Legacy
+// departments with a NULL office_id are exempt.
+var ErrDepartmentOfficeMismatch = errors.New("department must belong to the employee's office")
+
+// validateDepartmentOffice enforces that a per-office department matches the
+// employee's office. A nil department, or a legacy department without an office,
+// passes; a non-existent department is left to the FK constraint at write time.
+func (s *Service) validateDepartmentOffice(ctx context.Context, deptID *uuid.UUID, officeID uuid.UUID) error {
+	if deptID == nil {
+		return nil
+	}
+	deptOffice, err := s.q.GetDepartmentOffice(ctx, *deptID)
+	if err != nil {
+		return nil // department not found → the CreateEmployee FK constraint rejects it
+	}
+	if deptOffice != nil && *deptOffice != officeID {
+		return ErrDepartmentOfficeMismatch
+	}
+	return nil
+}
+
 type Service struct {
 	q *sqlc.Queries
 }
@@ -32,6 +54,9 @@ type CreateInput struct {
 	PositionID   *uuid.UUID
 	OfficeID     uuid.UUID
 	Status       sqlc.SharedUserStatus
+	// Legacy-parity Fase 6 fields.
+	CompanyID          *uuid.UUID
+	ExecutorDivisionID *uuid.UUID
 }
 
 type UpdateInput struct{ CreateInput }
@@ -60,16 +85,21 @@ func (s *Service) Create(ctx context.Context, all bool, ids []uuid.UUID, in Crea
 	if !common.InScope(all, ids, in.OfficeID) {
 		return sqlc.MasterdataEmployee{}, ErrOfficeOutOfScope
 	}
+	if err := s.validateDepartmentOffice(ctx, in.DepartmentID, in.OfficeID); err != nil {
+		return sqlc.MasterdataEmployee{}, err
+	}
 	e, err := s.q.CreateEmployee(ctx, sqlc.CreateEmployeeParams{
-		Code:         in.Code,
-		Name:         in.Name,
-		Email:        in.Email,
-		Phone:        in.Phone,
-		AvatarKey:    in.AvatarKey,
-		DepartmentID: in.DepartmentID,
-		PositionID:   in.PositionID,
-		OfficeID:     in.OfficeID,
-		Status:       in.Status,
+		Code:               in.Code,
+		Name:               in.Name,
+		Email:              in.Email,
+		Phone:              in.Phone,
+		AvatarKey:          in.AvatarKey,
+		DepartmentID:       in.DepartmentID,
+		PositionID:         in.PositionID,
+		OfficeID:           in.OfficeID,
+		Status:             in.Status,
+		CompanyID:          in.CompanyID,
+		ExecutorDivisionID: in.ExecutorDivisionID,
 	})
 	if err != nil {
 		return e, common.MapDBError(err)
@@ -85,19 +115,24 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, all bool, ids []uuid
 	if err != nil {
 		return before, after, common.MapDBError(err)
 	}
+	if err := s.validateDepartmentOffice(ctx, in.DepartmentID, in.OfficeID); err != nil {
+		return cur, after, err
+	}
 	e, err := s.q.UpdateEmployee(ctx, sqlc.UpdateEmployeeParams{
-		Code:         in.Code,
-		Name:         in.Name,
-		Email:        in.Email,
-		Phone:        in.Phone,
-		AvatarKey:    in.AvatarKey,
-		DepartmentID: in.DepartmentID,
-		PositionID:   in.PositionID,
-		OfficeID:     in.OfficeID,
-		Status:       in.Status,
-		ID:           id,
-		AllScope:     all,
-		OfficeIds:    ids,
+		Code:               in.Code,
+		Name:               in.Name,
+		Email:              in.Email,
+		Phone:              in.Phone,
+		AvatarKey:          in.AvatarKey,
+		DepartmentID:       in.DepartmentID,
+		PositionID:         in.PositionID,
+		OfficeID:           in.OfficeID,
+		Status:             in.Status,
+		CompanyID:          in.CompanyID,
+		ExecutorDivisionID: in.ExecutorDivisionID,
+		ID:                 id,
+		AllScope:           all,
+		OfficeIds:          ids,
 	})
 	if err != nil {
 		return cur, e, common.MapDBError(err)

@@ -12,6 +12,9 @@ var referenceResources = []resource{
 	{Path: "departments", Table: "departments", OrderBy: "name", Columns: []column{
 		{Name: "name", Type: typeText, Required: true, Search: true},
 		{Name: "code", Type: typeText, Search: true},
+		// Per-office department (Fase 6): nullable in the engine (DB column is nullable;
+		// legacy global departments keep NULL). Enforced non-null in the frontend form.
+		{Name: "office_id", Type: typeUUID},
 		{Name: "is_active", Type: typeBool, Default: true},
 	}},
 	{Path: "positions", Table: "positions", OrderBy: "name", Columns: []column{

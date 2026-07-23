@@ -174,6 +174,9 @@ type Querier interface {
 	// constrained — uq_cities_code — so this pre-check is required, mirroring
 	// GetProvinceByCode).
 	GetCityByCode(ctx context.Context, code *string) (MasterdataCity, error)
+	// Returns a department's office_id (NULL for legacy global departments), used to
+	// validate that an employee's department belongs to the employee's office.
+	GetDepartmentOffice(ctx context.Context, id uuid.UUID) (*uuid.UUID, error)
 	GetDepreciationPeriod(ctx context.Context, period pgtype.Date) (DepreciationDepreciationPeriod, error)
 	// Guard (office-unscoped): at most one live disposal per asset.
 	GetDisposalByAsset(ctx context.Context, assetID uuid.UUID) (DisposalDisposal, error)

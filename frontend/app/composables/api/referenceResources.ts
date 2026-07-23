@@ -4,7 +4,7 @@ export type ReferenceKey
     | 'vendors' | 'provinces' | 'cities' | 'models'
     | 'office-classes' | 'executor-divisions' | 'companies' | 'building-classifications'
 
-export type ReferenceFieldType = 'text' | 'fk' | 'select' | 'number'
+export type ReferenceFieldType = 'text' | 'fk' | 'select' | 'number' | 'office'
 
 export interface ReferenceFieldOption {
   value: string
@@ -40,7 +40,7 @@ export const referenceResources: ReferenceDescriptor[] = [
       { value: 'office', labelKey: 'map.tier.office' }
     ] }
   ] },
-  { key: 'departments', labelKey: 'masterdata.reference.resources.departments', hasActive: true, fields: [nameField, codeField] },
+  { key: 'departments', labelKey: 'masterdata.reference.resources.departments', hasActive: true, fields: [nameField, codeField, { key: 'office_id', labelKey: 'masterdata.reference.fields.office', type: 'office' }] },
   { key: 'positions', labelKey: 'masterdata.reference.resources.positions', hasActive: true, fields: [nameField] },
   { key: 'units', labelKey: 'masterdata.reference.resources.units', hasActive: true, fields: [nameField, { key: 'symbol', labelKey: 'masterdata.reference.fields.symbol' }] },
   { key: 'maintenance-categories', labelKey: 'masterdata.reference.resources.maintenance-categories', hasActive: true, fields: [nameField] },

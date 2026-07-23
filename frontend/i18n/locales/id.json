@@ -1801,9 +1801,12 @@
         "jabatan": "Jabatan",
         "departemen": "Departemen",
         "office": "Kantor",
-        "status": "Status"
+        "status": "Status",
+        "company": "Perusahaan", "executorDivision": "Divisi Pelaksana"
       },
       "status": { "active": "Aktif", "inactive": "Nonaktif", "suspended": "Ditangguhkan" },
+      "selectPlaceholder": "Pilih…",
+      "deptOfficeHint": "Pilih kantor dulu — departemen mengikuti kantor.",
       "createTitle": "Tambah Pegawai",
       "editTitle": "Ubah Pegawai",
       "deleteConfirm": "Pegawai “{nama}” (NIP {nip}) akan dihapus. Tindakan ini tidak dapat dibatalkan.",
@@ -1911,7 +1914,8 @@
       "nonaktif": "Nonaktif",
       "entitySubtitle": "Kelola data referensi",
       "requiredField": "{field} wajib diisi.",
-      "fields": { "name": "Nama", "code": "Kode", "symbol": "Simbol", "email": "Email", "phone": "Telepon", "province": "Provinsi", "brand": "Brand", "contact_name": "Nama Kontak", "address": "Alamat", "tier": "Tingkat", "min_floors": "Lantai Min", "max_floors": "Lantai Maks" },
+      "fields": { "name": "Nama", "code": "Kode", "symbol": "Simbol", "email": "Email", "phone": "Telepon", "province": "Provinsi", "brand": "Brand", "contact_name": "Nama Kontak", "address": "Alamat", "tier": "Tingkat", "min_floors": "Lantai Min", "max_floors": "Lantai Maks", "office": "Kantor" },
+      "searchOffice": "Cari kantor…",
       "resources": {
         "office-types": "Jenis Kantor", "departments": "Departemen", "positions": "Jabatan",
         "units": "Satuan", "maintenance-categories": "Kategori Pemeliharaan",

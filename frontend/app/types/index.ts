@@ -99,6 +99,9 @@ export interface Employee {
   office_id: string
   status: EmployeeStatus
   avatar_key?: string | null
+  // Legacy-parity Fase 6 fields.
+  company_id: string | null
+  executor_division_id: string | null
   created_at: string | null
   updated_at: string | null
 }

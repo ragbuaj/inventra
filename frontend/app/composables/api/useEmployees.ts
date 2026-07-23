@@ -9,6 +9,9 @@ export interface EmployeeInput {
   position_id?: string
   office_id: string
   status: EmployeeStatus
+  // Legacy-parity Fase 6 fields.
+  company_id?: string | null
+  executor_division_id?: string | null
 }
 
 /** Employees, wired to /api/v1/employees (server-enforced `employees` data-scope). */

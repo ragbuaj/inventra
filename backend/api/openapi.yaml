@@ -5714,6 +5714,8 @@ components:
         position_id: { type: [string, "null"], format: uuid }
         office_id: { type: string, format: uuid }
         status: { type: string, enum: [active, inactive, suspended] }
+        company_id: { type: [string, "null"], format: uuid }
+        executor_division_id: { type: [string, "null"], format: uuid }
         created_at: { type: [string, "null"], format: date-time }
         updated_at: { type: [string, "null"], format: date-time }
 
@@ -5730,6 +5732,8 @@ components:
         position_id: { type: [string, "null"], format: uuid }
         office_id: { type: string, format: uuid }
         status: { type: string, enum: [active, inactive, suspended], default: active }
+        company_id: { type: [string, "null"], format: uuid }
+        executor_division_id: { type: [string, "null"], format: uuid }
 
     EmployeeList:
       type: object

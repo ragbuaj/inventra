@@ -1801,9 +1801,12 @@
         "jabatan": "Position",
         "departemen": "Department",
         "office": "Office",
-        "status": "Status"
+        "status": "Status",
+        "company": "Company", "executorDivision": "Executor Division"
       },
       "status": { "active": "Active", "inactive": "Inactive", "suspended": "Suspended" },
+      "selectPlaceholder": "Select…",
+      "deptOfficeHint": "Pick an office first — departments follow the office.",
       "createTitle": "Add Employee",
       "editTitle": "Edit Employee",
       "deleteConfirm": "Employee “{nama}” (NIP {nip}) will be deleted. This cannot be undone.",
@@ -1911,7 +1914,8 @@
       "nonaktif": "Inactive",
       "entitySubtitle": "Manage reference data",
       "requiredField": "{field} is required.",
-      "fields": { "name": "Name", "code": "Code", "symbol": "Symbol", "email": "Email", "phone": "Phone", "province": "Province", "brand": "Brand", "contact_name": "Contact name", "address": "Address", "tier": "Tier", "min_floors": "Min Floors", "max_floors": "Max Floors" },
+      "fields": { "name": "Name", "code": "Code", "symbol": "Symbol", "email": "Email", "phone": "Phone", "province": "Province", "brand": "Brand", "contact_name": "Contact name", "address": "Address", "tier": "Tier", "min_floors": "Min Floors", "max_floors": "Max Floors", "office": "Office" },
+      "searchOffice": "Search office…",
       "resources": {
         "office-types": "Office Types", "departments": "Departments", "positions": "Positions",
         "units": "Units", "maintenance-categories": "Maintenance Categories",

@@ -11,6 +11,7 @@ const can = useCan()
 const localePath = useLocalePath()
 const { open: confirm } = useConfirm()
 const api = useReference()
+const officePicker = useOfficePicker()
 
 const resourceKey = ref<ReferenceKey>(referenceResources[0]!.key)
 const descriptor = computed<ReferenceDescriptor>(() =>
@@ -400,6 +401,16 @@ onMounted(async () => {
             :resolve-fn="fkPickers[field.fkResource]!.resolveFn"
             :placeholder="fkPlaceholder(field)"
             :testid="`ref-field-${field.key}`"
+            @update:model-value="form[field.key] = $event ?? ''"
+          />
+          <AsyncSearchPicker
+            v-else-if="field.type === 'office'"
+            :model-value="(form[field.key] as string) || null"
+            :search-fn="officePicker.searchFn"
+            :resolve-fn="officePicker.resolveFn"
+            :placeholder="t('masterdata.reference.searchOffice')"
+            :testid="`ref-field-${field.key}`"
+            clearable
             @update:model-value="form[field.key] = $event ?? ''"
           />
           <USelect

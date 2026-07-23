@@ -74,11 +74,22 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >   build/vet + Spectral 0-error + **integrasi Docker** (office pkg + `TestOffice_LegacyParityFields_RoundTrip`)
 >   hijau; frontend eslint + JSON hijau (typecheck/vitest/build via CI). Follow-up: test frontend form
 >   Kantor (mount) belum ditambah.
-> - **Berikutnya: Fase 6** — pegawai + divisi per-kantor (`000044`): kolom `company_id`,
->   `executor_division_id` + `departments.office_id` (per-kantor) + form Pegawai + validasi
->   department-in-office.
+> - **Fase 6 (pegawai + divisi per-kantor) — SELESAI.** Migrasi `000044`: employees +`company_id`
+>   +`executor_division_id`; departments +`office_id` (NULLABLE — wajib di app layer, DB NOT NULL
+>   menyusul) + unik code jadi per-kantor. Backend: CreateEmployee named-args +2; validasi
+>   **department-in-office** (`GetDepartmentOffice`; departemen legacy office-null exempt) → sentinel
+>   `ErrDepartmentOfficeMismatch` (400); DTO/Response/map +2; OpenAPI Employee/EmployeeRequest +2;
+>   departments reference resource +`office_id` (typeUUID nullable). Frontend: form Pegawai +
+>   select Perusahaan/Divisi Pelaksana (dari reference) + **department jadi USelect ter-filter kantor**
+>   (client-side; watcher membersihkan department bila kantor ganti); Referensi departments + field
+>   `office` (tipe field baru 'office' pakai `useOfficePicker`) + i18n id/en. **Gate:** backend
+>   build/vet + Spectral 0-error + **integrasi Docker** (employee pkg + `TestEmployee_DepartmentOffice
+>   ValidationAndParityFields`, reference pkg) hijau; frontend eslint + JSON hijau (typecheck/vitest/
+>   build via CI). Catatan: `testsupport.Reset` menghapus seed executor_divisions — test insert sendiri.
+> - **Berikutnya: Fase 7** — login NIP (`000045`): kolom `identity.users.username` + backfill NIP +
+>   handler login menerima email ATAU username + UI login.
 >   **Doc-sweep tersisa** (kumulatif): bersihkan `asset_tag_counters` + dokumentasikan 2 tabel history
->   + 4 master + 9 kolom kantor di DATABASE.md.
+>   + 4 master + 9 kolom kantor + kolom pegawai/departemen di DATABASE.md.
 >
 > 1. ~~**Bring the dev stack up, reset & migrate**~~ ✅ **DONE (2026-06-27).**
 > 2. ~~**#6 Kategori Aset screen**~~ ✅ **DONE.**

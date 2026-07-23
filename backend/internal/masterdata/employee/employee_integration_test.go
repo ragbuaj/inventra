@@ -257,3 +257,44 @@ func TestEmployee_FieldMasking_HidesEmail(t *testing.T) {
 		assert.Contains(t, body, "name")
 	})
 }
+
+func TestEmployee_DepartmentOfficeValidationAndParityFields(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	svc := employee.NewService(sqlc.New(pool))
+	ctx := context.Background()
+	testsupport.Reset(t, pool)
+	tree := testsupport.SeedOfficeTree(t, pool)
+
+	var deptInPusat uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx,
+		`INSERT INTO masterdata.departments (name, office_id) VALUES ('IT Pusat', $1) RETURNING id`,
+		tree.Pusat).Scan(&deptInPusat))
+	var deptInWilayah uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx,
+		`INSERT INTO masterdata.departments (name, office_id) VALUES ('IT Wilayah', $1) RETURNING id`,
+		tree.Wilayah).Scan(&deptInWilayah))
+	var companyID uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx,
+		`INSERT INTO masterdata.companies (name) VALUES ('PT Bank') RETURNING id`).Scan(&companyID))
+	var execDivID uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx,
+		`INSERT INTO masterdata.executor_divisions (name) VALUES ('Security Test') RETURNING id`).Scan(&execDivID))
+
+	// Department in the SAME office + company + executor division round-trips.
+	e, err := svc.Create(ctx, true, nil, employee.CreateInput{
+		Code: "E-DEP-1", Name: "Andi", OfficeID: tree.Pusat, Status: sqlc.SharedUserStatusActive,
+		DepartmentID: &deptInPusat, CompanyID: &companyID, ExecutorDivisionID: &execDivID,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, e.CompanyID)
+	assert.Equal(t, companyID, *e.CompanyID)
+	require.NotNil(t, e.ExecutorDivisionID)
+	assert.Equal(t, execDivID, *e.ExecutorDivisionID)
+
+	// Department in a DIFFERENT office is rejected.
+	_, err = svc.Create(ctx, true, nil, employee.CreateInput{
+		Code: "E-DEP-2", Name: "Budi", OfficeID: tree.Pusat, Status: sqlc.SharedUserStatusActive,
+		DepartmentID: &deptInWilayah,
+	})
+	require.ErrorIs(t, err, employee.ErrDepartmentOfficeMismatch)
+}
