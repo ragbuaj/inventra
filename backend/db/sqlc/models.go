@@ -1581,6 +1581,17 @@ type MasterdataBrand struct {
 	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
 }
 
+type MasterdataBuildingClassification struct {
+	ID        uuid.UUID          `json:"id"`
+	Name      string             `json:"name"`
+	MinFloors int32              `json:"min_floors"`
+	MaxFloors *int32             `json:"max_floors"`
+	IsActive  bool               `json:"is_active"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
+}
+
 type MasterdataCategory struct {
 	ID                        uuid.UUID                 `json:"id"`
 	Name                      string                    `json:"name"`
@@ -1610,6 +1621,15 @@ type MasterdataCity struct {
 	DeletedAt  pgtype.Timestamptz `json:"deleted_at"`
 }
 
+type MasterdataCompany struct {
+	ID        uuid.UUID          `json:"id"`
+	Name      string             `json:"name"`
+	IsActive  bool               `json:"is_active"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
+}
+
 type MasterdataDepartment struct {
 	ID        uuid.UUID          `json:"id"`
 	Name      string             `json:"name"`
@@ -1634,6 +1654,15 @@ type MasterdataEmployee struct {
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt    pgtype.Timestamptz `json:"deleted_at"`
 	Phone        *string            `json:"phone"`
+}
+
+type MasterdataExecutorDivision struct {
+	ID        uuid.UUID          `json:"id"`
+	Name      string             `json:"name"`
+	IsActive  bool               `json:"is_active"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
 }
 
 type MasterdataFloor struct {
@@ -1666,21 +1695,39 @@ type MasterdataModel struct {
 }
 
 type MasterdataOffice struct {
-	ID             uuid.UUID          `json:"id"`
-	ParentID       *uuid.UUID         `json:"parent_id"`
-	OfficeTypeID   uuid.UUID          `json:"office_type_id"`
-	ProvinceID     *uuid.UUID         `json:"province_id"`
-	CityID         *uuid.UUID         `json:"city_id"`
-	Name           string             `json:"name"`
-	Code           string             `json:"code"`
-	CostCenterCode *string            `json:"cost_center_code"`
-	Address        *string            `json:"address"`
-	IsActive       bool               `json:"is_active"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt      pgtype.Timestamptz `json:"deleted_at"`
-	Latitude       *float64           `json:"latitude"`
-	Longitude      *float64           `json:"longitude"`
+	ID                       uuid.UUID              `json:"id"`
+	ParentID                 *uuid.UUID             `json:"parent_id"`
+	OfficeTypeID             uuid.UUID              `json:"office_type_id"`
+	ProvinceID               *uuid.UUID             `json:"province_id"`
+	CityID                   *uuid.UUID             `json:"city_id"`
+	Name                     string                 `json:"name"`
+	Code                     string                 `json:"code"`
+	CostCenterCode           *string                `json:"cost_center_code"`
+	Address                  *string                `json:"address"`
+	IsActive                 bool                   `json:"is_active"`
+	CreatedAt                pgtype.Timestamptz     `json:"created_at"`
+	UpdatedAt                pgtype.Timestamptz     `json:"updated_at"`
+	DeletedAt                pgtype.Timestamptz     `json:"deleted_at"`
+	Latitude                 *float64               `json:"latitude"`
+	Longitude                *float64               `json:"longitude"`
+	OwnershipStatus          *SharedOfficeOwnership `json:"ownership_status"`
+	OfficeClassID            *uuid.UUID             `json:"office_class_id"`
+	BuildingClassificationID *uuid.UUID             `json:"building_classification_id"`
+	FloorCount               *int32                 `json:"floor_count"`
+	BuildingArea             *string                `json:"building_area"`
+	OfficeKind               SharedOfficeKind       `json:"office_kind"`
+	Description              *string                `json:"description"`
+	HeadEmployeeID           *uuid.UUID             `json:"head_employee_id"`
+	Contact                  *string                `json:"contact"`
+}
+
+type MasterdataOfficeClass struct {
+	ID        uuid.UUID          `json:"id"`
+	Name      string             `json:"name"`
+	IsActive  bool               `json:"is_active"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
 }
 
 type MasterdataOfficeType struct {

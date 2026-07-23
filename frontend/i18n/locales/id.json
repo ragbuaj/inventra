@@ -1743,7 +1743,11 @@
         "alamat": "Alamat",
         "active": "Status",
         "latitude": "Latitude",
-        "longitude": "Longitude"
+        "longitude": "Longitude",
+        "ownershipStatus": "Status Kepemilikan", "officeKind": "Tipe Kantor",
+        "officeClass": "Kelas Kantor", "floorCount": "Jumlah Lantai",
+        "buildingClass": "Klasifikasi Gedung", "buildingArea": "Luas Bangunan (m2)",
+        "headEmployee": "Kepala Kantor", "contact": "Kontak", "description": "Deskripsi"
       },
       "tipe": { "pusat": "Pusat", "kanwil": "Kanwil", "cabang": "Cabang", "unit": "Unit" },
       "noParent": "Tanpa induk (Pusat)",
@@ -1754,7 +1758,11 @@
       "required": "Nama, Kode, dan Jenis Kantor wajib diisi.",
       "loadError": "Gagal memuat kantor.",
       "selectPlaceholder": "Pilih…",
-      "coordHint": "Opsional — untuk menampilkan kantor pada Peta Lokasi."
+      "coordHint": "Opsional — untuk menampilkan kantor pada Peta Lokasi.",
+      "ownership": { "sewa": "Sewa", "milik": "Milik", "hg_pakai": "HG Pakai Bangunan", "free": "Free" },
+      "kind": { "konvensional": "Konvensional", "syariah": "Syariah" },
+      "buildingClassHint": "Tersaran otomatis dari jumlah lantai (bisa diubah).",
+      "searchEmployee": "Cari pegawai…"
     },
     "employees": {
       "title": "Pegawai",

@@ -63,11 +63,22 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >   backend build/vet + Spectral 0-error + unit (`TestCoerceInt`) + **integrasi Docker** (reference
 >   pkg + `TestBuildingClassificationRoundTrip`: int round-trip, max nullable, check-constraint,
 >   required) hijau; frontend eslint + JSON + unit config-test hijau (vitest/build via CI).
-> - **Berikutnya: Fase 5** — kolom kantor (`000043`): 9 kolom (ownership_status, office_class_id,
->   building_classification_id, floor_count, building_area, office_kind, description, head_employee_id,
->   contact) + form Kantor + auto-saran klasifikasi dari floor_count.
->   **Doc-sweep tersisa** (kumulatif): bersihkan `asset_tag_counters` di daftar skema DATABASE.md +
->   dokumentasikan 2 tabel history + 4 master baru di DATABASE.md.
+> - **Fase 5 (kolom kantor) — SELESAI.** Migrasi `000043`: 9 kolom (ownership_status enum,
+>   office_class_id, building_classification_id, floor_count, building_area, office_kind enum
+>   default konvensional, description, head_employee_id, contact). Query CreateOffice dikonversi ke
+>   named-args + 9 kolom; UpdateOffice +9; DTO Request/Response + toInput/toResponse; service default
+>   office_kind=konvensional (robust untuk zero-value CreateInput — memperbaiki test lama). Frontend:
+>   9 field di form Kantor (select ownership/kind, USelect kelas/klasifikasi dari reference, NumberInput
+>   floor_count/building_area, picker kepala kantor, textarea deskripsi) + **auto-saran klasifikasi
+>   gedung dari floor_count** (watcher, hanya mengisi bila kosong) + i18n id/en. **Gate:** backend
+>   build/vet + Spectral 0-error + **integrasi Docker** (office pkg + `TestOffice_LegacyParityFields_RoundTrip`)
+>   hijau; frontend eslint + JSON hijau (typecheck/vitest/build via CI). Follow-up: test frontend form
+>   Kantor (mount) belum ditambah.
+> - **Berikutnya: Fase 6** — pegawai + divisi per-kantor (`000044`): kolom `company_id`,
+>   `executor_division_id` + `departments.office_id` (per-kantor) + form Pegawai + validasi
+>   department-in-office.
+>   **Doc-sweep tersisa** (kumulatif): bersihkan `asset_tag_counters` + dokumentasikan 2 tabel history
+>   + 4 master + 9 kolom kantor di DATABASE.md.
 >
 > 1. ~~**Bring the dev stack up, reset & migrate**~~ ✅ **DONE (2026-06-27).**
 > 2. ~~**#6 Kategori Aset screen**~~ ✅ **DONE.**

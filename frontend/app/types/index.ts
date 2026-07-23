@@ -54,6 +54,16 @@ export interface Office {
   is_active: boolean
   latitude: number | null
   longitude: number | null
+  // Legacy-parity Fase 5 fields.
+  ownership_status: string | null
+  office_class_id: string | null
+  building_classification_id: string | null
+  floor_count: number | null
+  building_area: string | null
+  office_kind: string
+  description: string | null
+  head_employee_id: string | null
+  contact: string | null
   created_at: string | null
   updated_at: string | null
 }

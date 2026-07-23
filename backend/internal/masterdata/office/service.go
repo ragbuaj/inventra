@@ -26,6 +26,16 @@ type Service struct {
 
 func NewService(q *sqlc.Queries) *Service { return &Service{q: q} }
 
+// defaultOfficeKind falls back to konvensional when the kind is unset, so a
+// zero-value CreateInput (or a request that omits office_kind) is valid against
+// the NOT NULL shared.office_kind column (bank uses conventional only).
+func defaultOfficeKind(k sqlc.SharedOfficeKind) sqlc.SharedOfficeKind {
+	if k == "" {
+		return sqlc.SharedOfficeKindKonvensional
+	}
+	return k
+}
+
 // CreateInput is the domain input for creating/updating an office (UUIDs resolved).
 type CreateInput struct {
 	ParentID     *uuid.UUID
@@ -38,6 +48,16 @@ type CreateInput struct {
 	IsActive     bool
 	Latitude     *float64
 	Longitude    *float64
+	// Legacy-parity Fase 5 fields.
+	OwnershipStatus          *sqlc.SharedOfficeOwnership
+	OfficeClassID            *uuid.UUID
+	BuildingClassificationID *uuid.UUID
+	FloorCount               *int32
+	BuildingArea             *string
+	OfficeKind               sqlc.SharedOfficeKind
+	Description              *string
+	HeadEmployeeID           *uuid.UUID
+	Contact                  *string
 }
 
 // UpdateInput mirrors CreateInput for updates.
@@ -81,17 +101,27 @@ func (s *Service) Create(ctx context.Context, all bool, ids []uuid.UUID, in Crea
 	if !all && (in.ParentID == nil || !common.InScope(all, ids, *in.ParentID)) {
 		return sqlc.MasterdataOffice{}, ErrParentOutOfScope
 	}
+	in.OfficeKind = defaultOfficeKind(in.OfficeKind)
 	o, err := s.q.CreateOffice(ctx, sqlc.CreateOfficeParams{
-		ParentID:     in.ParentID,
-		OfficeTypeID: in.OfficeTypeID,
-		ProvinceID:   in.ProvinceID,
-		CityID:       in.CityID,
-		Name:         in.Name,
-		Code:         in.Code,
-		Address:      in.Address,
-		IsActive:     in.IsActive,
-		Latitude:     in.Latitude,
-		Longitude:    in.Longitude,
+		ParentID:                 in.ParentID,
+		OfficeTypeID:             in.OfficeTypeID,
+		ProvinceID:               in.ProvinceID,
+		CityID:                   in.CityID,
+		Name:                     in.Name,
+		Code:                     in.Code,
+		Address:                  in.Address,
+		IsActive:                 in.IsActive,
+		Latitude:                 in.Latitude,
+		Longitude:                in.Longitude,
+		OwnershipStatus:          in.OwnershipStatus,
+		OfficeClassID:            in.OfficeClassID,
+		BuildingClassificationID: in.BuildingClassificationID,
+		FloorCount:               in.FloorCount,
+		BuildingArea:             in.BuildingArea,
+		OfficeKind:               in.OfficeKind,
+		Description:              in.Description,
+		HeadEmployeeID:           in.HeadEmployeeID,
+		Contact:                  in.Contact,
 	})
 	if err != nil {
 		return o, common.MapDBError(err)
@@ -109,20 +139,30 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, all bool, ids []uuid
 	if !all && !common.SamePtr(in.ParentID, cur.ParentID) && (in.ParentID == nil || !common.InScope(all, ids, *in.ParentID)) {
 		return cur, after, ErrReparentOutOfScope
 	}
+	in.OfficeKind = defaultOfficeKind(in.OfficeKind)
 	o, err := s.q.UpdateOffice(ctx, sqlc.UpdateOfficeParams{
-		ParentID:     in.ParentID,
-		OfficeTypeID: in.OfficeTypeID,
-		ProvinceID:   in.ProvinceID,
-		CityID:       in.CityID,
-		Name:         in.Name,
-		Code:         in.Code,
-		Address:      in.Address,
-		IsActive:     in.IsActive,
-		Latitude:     in.Latitude,
-		Longitude:    in.Longitude,
-		ID:           id,
-		AllScope:     all,
-		OfficeIds:    ids,
+		ParentID:                 in.ParentID,
+		OfficeTypeID:             in.OfficeTypeID,
+		ProvinceID:               in.ProvinceID,
+		CityID:                   in.CityID,
+		Name:                     in.Name,
+		Code:                     in.Code,
+		Address:                  in.Address,
+		IsActive:                 in.IsActive,
+		Latitude:                 in.Latitude,
+		Longitude:                in.Longitude,
+		OwnershipStatus:          in.OwnershipStatus,
+		OfficeClassID:            in.OfficeClassID,
+		BuildingClassificationID: in.BuildingClassificationID,
+		FloorCount:               in.FloorCount,
+		BuildingArea:             in.BuildingArea,
+		OfficeKind:               in.OfficeKind,
+		Description:              in.Description,
+		HeadEmployeeID:           in.HeadEmployeeID,
+		Contact:                  in.Contact,
+		ID:                       id,
+		AllScope:                 all,
+		OfficeIds:                ids,
 	})
 	if err != nil {
 		return cur, o, common.MapDBError(err)

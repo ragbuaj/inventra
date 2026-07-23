@@ -1743,7 +1743,11 @@
         "alamat": "Address",
         "active": "Status",
         "latitude": "Latitude",
-        "longitude": "Longitude"
+        "longitude": "Longitude",
+        "ownershipStatus": "Ownership Status", "officeKind": "Office Kind",
+        "officeClass": "Office Class", "floorCount": "Floor Count",
+        "buildingClass": "Building Classification", "buildingArea": "Building Area (m2)",
+        "headEmployee": "Head of Office", "contact": "Contact", "description": "Description"
       },
       "tipe": { "pusat": "Head Office", "kanwil": "Regional", "cabang": "Branch", "unit": "Unit" },
       "noParent": "No parent (Head Office)",
@@ -1754,7 +1758,11 @@
       "required": "Name, Code, and Office Type are required.",
       "loadError": "Failed to load offices.",
       "selectPlaceholder": "Select…",
-      "coordHint": "Optional — used to show the office on the Location Map."
+      "coordHint": "Optional — used to show the office on the Location Map.",
+      "ownership": { "sewa": "Rented", "milik": "Owned", "hg_pakai": "Right-to-Use Building", "free": "Free" },
+      "kind": { "konvensional": "Conventional", "syariah": "Sharia" },
+      "buildingClassHint": "Auto-suggested from the floor count (editable).",
+      "searchEmployee": "Search employee…"
     },
     "employees": {
       "title": "Employees",

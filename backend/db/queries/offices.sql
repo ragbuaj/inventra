@@ -40,8 +40,17 @@ SELECT id, name FROM masterdata.office_types WHERE deleted_at IS NULL;
 
 -- name: CreateOffice :one
 INSERT INTO masterdata.offices (
-  parent_id, office_type_id, province_id, city_id, name, code, address, is_active, latitude, longitude
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+  parent_id, office_type_id, province_id, city_id, name, code, address, is_active, latitude, longitude,
+  ownership_status, office_class_id, building_classification_id, floor_count, building_area,
+  office_kind, description, head_employee_id, contact
+) VALUES (
+  sqlc.narg(parent_id), sqlc.arg(office_type_id), sqlc.narg(province_id), sqlc.narg(city_id),
+  sqlc.arg(name), sqlc.arg(code), sqlc.narg(address), sqlc.arg(is_active),
+  sqlc.narg(latitude), sqlc.narg(longitude),
+  sqlc.narg(ownership_status), sqlc.narg(office_class_id), sqlc.narg(building_classification_id),
+  sqlc.narg(floor_count), sqlc.narg(building_area), sqlc.arg(office_kind),
+  sqlc.narg(description), sqlc.narg(head_employee_id), sqlc.narg(contact)
+)
 RETURNING *;
 
 -- name: UpdateOffice :one
@@ -55,7 +64,16 @@ SET parent_id = sqlc.narg(parent_id),
     address = sqlc.narg(address),
     is_active = sqlc.arg(is_active),
     latitude = sqlc.narg(latitude),
-    longitude = sqlc.narg(longitude)
+    longitude = sqlc.narg(longitude),
+    ownership_status = sqlc.narg(ownership_status),
+    office_class_id = sqlc.narg(office_class_id),
+    building_classification_id = sqlc.narg(building_classification_id),
+    floor_count = sqlc.narg(floor_count),
+    building_area = sqlc.narg(building_area),
+    office_kind = sqlc.arg(office_kind),
+    description = sqlc.narg(description),
+    head_employee_id = sqlc.narg(head_employee_id),
+    contact = sqlc.narg(contact)
 WHERE id = sqlc.arg(id) AND deleted_at IS NULL
   AND (sqlc.arg(all_scope)::bool OR id = ANY(sqlc.arg(office_ids)::uuid[]))
 RETURNING *;

@@ -5636,6 +5636,15 @@ components:
         is_active: { type: boolean }
         latitude: { type: [number, "null"], minimum: -90, maximum: 90 }
         longitude: { type: [number, "null"], minimum: -180, maximum: 180 }
+        ownership_status: { type: [string, "null"], enum: [sewa, milik, hg_pakai, free] }
+        office_class_id: { type: [string, "null"], format: uuid }
+        building_classification_id: { type: [string, "null"], format: uuid }
+        floor_count: { type: [integer, "null"], minimum: 0 }
+        building_area: { type: [string, "null"], description: "Decimal string (m2)" }
+        office_kind: { type: string, enum: [konvensional, syariah] }
+        description: { type: [string, "null"] }
+        head_employee_id: { type: [string, "null"], format: uuid }
+        contact: { type: [string, "null"] }
         created_at: { type: [string, "null"], format: date-time }
         updated_at: { type: [string, "null"], format: date-time }
 
@@ -5653,6 +5662,15 @@ components:
         is_active: { type: boolean, default: true }
         latitude: { type: [number, "null"], minimum: -90, maximum: 90 }
         longitude: { type: [number, "null"], minimum: -180, maximum: 180 }
+        ownership_status: { type: [string, "null"], enum: [sewa, milik, hg_pakai, free] }
+        office_class_id: { type: [string, "null"], format: uuid }
+        building_classification_id: { type: [string, "null"], format: uuid }
+        floor_count: { type: [integer, "null"], minimum: 0 }
+        building_area: { type: [string, "null"], description: "Decimal string (m2)" }
+        office_kind: { type: [string, "null"], enum: [konvensional, syariah], default: konvensional }
+        description: { type: [string, "null"] }
+        head_employee_id: { type: [string, "null"], format: uuid }
+        contact: { type: [string, "null"] }
 
     OfficeMapItem:
       type: object
