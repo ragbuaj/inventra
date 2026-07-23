@@ -216,6 +216,9 @@ export interface AssetCreateInput extends AssetUpdateInput {
   office_id: string
   asset_class: AssetClass
   purchase_cost?: string | null
+  // Batch registration (spec 2026-07-23 section 9): number of identical units to
+  // create. Defaults to 1; each unit gets its own sequential asset tag.
+  quantity?: number
 }
 
 export interface AssetAttachment {

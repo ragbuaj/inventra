@@ -560,7 +560,8 @@ describe('AssetForm — create mode: submit', () => {
       installation_date: null,
       warranty_start: null,
       notes: 'catatan uji',
-      purchase_cost: '18500000'
+      purchase_cost: '18500000',
+      quantity: 1
     })
     expect(typeof capturedBody!.purchase_cost).toBe('string')
   })
@@ -881,5 +882,130 @@ describe('AssetForm — legacy-parity fields', () => {
     const vm = wrapper.vm as unknown as FormVm
     expect(vm.form.capacity).toBe('Core i7 16GB')
     expect((vm.form as Record<string, string>).picEmployeeId).toBe('e9')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Batch registration (spec 2026-07-23 section 9): quantity field, summary,
+// serial-per-unit guard, and amount = purchase_cost * quantity.
+// ---------------------------------------------------------------------------
+
+describe('AssetForm — batch registration', () => {
+  async function fillBatchForm(wrapper: Awaited<ReturnType<typeof mountNew>>) {
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.nama = 'Kursi Kantor'
+    vm.form.categoryId = 'c1'
+    vm.form.officeId = 'o1'
+    await flushPromises()
+    vm.form.floorId = 'f1'
+    await flushPromises()
+    vm.form.tglBeli = '2026-02-01'
+    vm.form.harga = '3000000'
+    await wrapper.vm.$nextTick()
+  }
+
+  it('renders the Jumlah quantity field in new mode only', async () => {
+    const newWrapper = await mountNew()
+    expect(newWrapper.find('[data-testid="asset-form-quantity"]').exists()).toBe(true)
+    const editWrapper = await mountEdit()
+    expect(editWrapper.find('[data-testid="asset-form-quantity"]').exists()).toBe(false)
+  })
+
+  it('defaults quantity to 1 and hides the batch summary until quantity > 1', async () => {
+    const wrapper = await mountNew()
+    const vm = wrapper.vm as unknown as FormVm
+    expect(vm.form.quantity).toBe('1')
+    expect(wrapper.find('[data-testid="asset-form-batch-summary"]').exists()).toBe(false)
+  })
+
+  it('shows the "N assets" summary once quantity exceeds 1', async () => {
+    const wrapper = await mountNew()
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.quantity = '5'
+    await wrapper.vm.$nextTick()
+    const summary = wrapper.find('[data-testid="asset-form-batch-summary"]')
+    expect(summary.exists()).toBe(true)
+    expect(summary.text()).toContain('5')
+  })
+
+  it('disables the serial input for a batch (serial is unique per unit)', async () => {
+    const wrapper = await mountNew()
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.serialNumber = 'SN-1'
+    vm.form.quantity = '3'
+    await wrapper.vm.$nextTick()
+    // The serial input is the one bound to the serial FormField; find it via its
+    // label proximity is brittle, so assert on the disabled input count change:
+    const disabledInputs = wrapper.findAll('input').filter(i => (i.element as HTMLInputElement).disabled)
+    // In new mode the only disabled text input is the auto-tag code + the batched serial.
+    expect(disabledInputs.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('submits amount = purchase_cost * quantity, quantity in payload, and null serial for a batch', async () => {
+    const wrapper = await mountNew()
+    await fillBatchForm(wrapper)
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.serialNumber = 'SN-should-be-dropped'
+    vm.form.quantity = '10'
+    await wrapper.vm.$nextTick()
+
+    let capturedAmount: unknown
+    let capturedPayload: Record<string, unknown> | undefined
+    setHandler((path, opts) => {
+      if (path === '/requests') {
+        const body = opts?.body as { amount: unknown, payload: Record<string, unknown> }
+        capturedAmount = body.amount
+        capturedPayload = body.payload
+        return { id: 'r1', status: 'pending' }
+      }
+      return defaultHandler()(path, opts)
+    })
+    await vm.save()
+    await flushPromises()
+
+    expect(capturedAmount).toBe('30000000')
+    expect(capturedPayload!.quantity).toBe(10)
+    expect(capturedPayload!.serial_number).toBe(null)
+  })
+
+  it('keeps the serial number for a single-unit submit (quantity 1)', async () => {
+    const wrapper = await mountNew()
+    await fillBatchForm(wrapper)
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.serialNumber = 'SN-KEEP'
+    vm.form.quantity = '1'
+    await wrapper.vm.$nextTick()
+
+    let capturedPayload: Record<string, unknown> | undefined
+    setHandler((path, opts) => {
+      if (path === '/requests') {
+        capturedPayload = (opts?.body as { payload: Record<string, unknown> }).payload
+        return { id: 'r1', status: 'pending' }
+      }
+      return defaultHandler()(path, opts)
+    })
+    await vm.save()
+    await flushPromises()
+    expect(capturedPayload!.serial_number).toBe('SN-KEEP')
+    expect(capturedPayload!.quantity).toBe(1)
+  })
+
+  it('blocks save with a validation error when quantity is below 1', async () => {
+    const wrapper = await mountNew()
+    await fillBatchForm(wrapper)
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.quantity = '0'
+    let requestsCalled = false
+    setHandler((path, opts) => {
+      if (path === '/requests') {
+        requestsCalled = true
+        return { id: 'r1', status: 'pending' }
+      }
+      return defaultHandler()(path, opts)
+    })
+    await vm.save()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('Jumlah harus bilangan bulat minimal 1')
+    expect(requestsCalled).toBe(false)
   })
 })

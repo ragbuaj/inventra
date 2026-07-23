@@ -425,6 +425,79 @@ func TestApproval_AssetCreate_FullFieldSet(t *testing.T) {
 	})
 }
 
+// TestApproval_AssetCreate_Batch submits a single asset_create request with
+// quantity=3 (spec 2026-07-23 section 9). On final approve the executor must
+// create exactly 3 asset rows, each with its own sequential tag (seq 1..3) drawn
+// from the per-office counter, and the approval amount is purchase_cost*quantity.
+func TestApproval_AssetCreate_Batch(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	ctx := context.Background()
+	resetAll(t, pool)
+
+	tr := seedTieredOfficeTree(t, pool)
+	catID := seedCategory(t, pool, "ELK")
+
+	officeRoleID := lookupRole(t, pool, "Kepala Unit")
+	maker := seedUser(t, pool, officeRoleID, "makerbatch@test.local")
+	approver1 := seedUser(t, pool, officeRoleID, "approverbatch@test.local")
+
+	q := sqlc.New(pool)
+	scopeSvc := authz.NewScopeService(q, rdb)
+	svc := approval.NewService(q, pool, scopeSvc, rdb)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0, "")
+	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
+
+	officeID := tr.CabangID
+	purchaseCost := "3000000"
+	purchaseDate := "2026-01-10"
+	payload, err := json.Marshal(asset.AssetCreatePayload{
+		Name:         "Kursi Kantor",
+		CategoryID:   catID.String(),
+		OfficeID:     officeID.String(),
+		AssetClass:   "tangible",
+		PurchaseCost: &purchaseCost,
+		PurchaseDate: &purchaseDate,
+		Quantity:     3,
+	})
+	require.NoError(t, err)
+
+	// Amount = purchase_cost * quantity = 9,000,000 (still in the 0-10M single-step band).
+	req, err := svc.Submit(ctx, approval.SubmitInput{
+		Type:     sqlc.SharedRequestTypeAssetCreate,
+		Amount:   "9000000",
+		OfficeID: officeID,
+		Payload:  payload,
+		Maker:    maker,
+	})
+	require.NoError(t, err)
+
+	caller1 := buildCaller(approver1, officeRoleID, false, []uuid.UUID{tr.CabangID})
+	req, err = svc.Decide(ctx, req.ID, caller1, true, nil)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedRequestStatusApproved, req.Status)
+
+	// Exactly 3 asset rows created from the one request.
+	assets, total, err := assetSvc.List(ctx, asset.ListInput{AllScope: true, OfficeIDs: nil, Limit: 10, Offset: 0})
+	require.NoError(t, err)
+	require.Equal(t, int64(3), total)
+
+	// Each unit carries the batch's shared attributes and a sequential tag 1..3.
+	year := time.Now().Year()
+	gotTags := make(map[string]bool, 3)
+	for _, a := range assets {
+		assert.Equal(t, "Kursi Kantor", a.Name)
+		if assert.NotNil(t, a.PurchaseCost) {
+			assert.Equal(t, purchaseCost, *a.PurchaseCost)
+		}
+		gotTags[a.AssetTag] = true
+	}
+	for seq := 1; seq <= 3; seq++ {
+		want := fmt.Sprintf("%s%s%d%05d", tr.CabangCode, "ELK", year, seq)
+		assert.True(t, gotTags[want], "expected a unit with tag %s", want)
+	}
+}
+
 // TestApproval_SoD_MakerCannotApprove verifies that the maker of a request cannot
 // also act as an approver (segregation of duty).
 func TestApproval_SoD_MakerCannotApprove(t *testing.T) {

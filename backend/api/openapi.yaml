@@ -5897,6 +5897,14 @@ components:
         installation_date: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
         warranty_start: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
         notes: { type: [string, "null"] }
+        quantity:
+          type: integer
+          minimum: 1
+          default: 1
+          description: >-
+            Batch registration: number of identical units to create in one
+            request. Absent or 0 means 1. Each unit draws its own sequential
+            asset tag. The submit `amount` must equal `purchase_cost * quantity`.
 
     AssetLocationHistory:
       type: object
@@ -5942,10 +5950,11 @@ components:
           type: string
           description: >-
             Decimal string (IDR). Determines which threshold steps apply.
-            For asset_create it must numerically equal payload.purchase_cost
-            (or 0 when the payload has no purchase_cost); a mismatch is
-            rejected with 400 so the maker cannot understate the amount to
-            route the request through a lower approval band.
+            For asset_create it must numerically equal
+            payload.purchase_cost * payload.quantity (cost 0 when absent,
+            quantity defaults to 1); a mismatch is rejected with 400 so the
+            maker cannot understate the amount to route the request through a
+            lower approval band.
         office_id:
           type: string
           format: uuid

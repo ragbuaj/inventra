@@ -95,11 +95,23 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >   di 9 spec + helpers.ts diganti `input[name="email"]` (name tetap) — field email asli (change-email/
 >   forgot) pakai selector lain. **Gate:** backend build/vet + Spectral 0-error + **integrasi Docker**
 >   (identity pkg penuh + `TestGetUserByLogin_EmailOrUsername`) hijau; frontend eslint + JSON hijau.
-> - **Berikutnya: Fase 8 (TERAKHIR)** — batch registrasi aset: satu request `asset_create` +
->   `quantity` → N aset (executor buat N baris, tag berurutan via advisory lock); amount = cost*qty;
->   form Aset field "Jumlah".
->   **Doc-sweep tersisa** (kumulatif): bersihkan `asset_tag_counters` + dokumentasikan 2 tabel history
->   + 4 master + 9 kolom kantor + kolom pegawai/departemen + username di DATABASE.md.
+> - **Fase 8 (batch registrasi aset) — SELESAI.** Payload `asset_create` +`quantity` (default 1);
+>   `createExec.Execute` kini loop N kali (tiap unit ambil `tag_seq` berurutan via advisory lock kantor
+>   + tulis history lokasi/PIC). `validateAssetCreateAmount` diperluas: amount == `purchase_cost *
+>   quantity` (qty default 1, negatif ditolak). OpenAPI AssetCreatePayload +`quantity` + deskripsi
+>   amount. Frontend: field **"Jumlah"** (NumberInput min 1) + ringkasan "akan dibuat N aset" +
+>   validasi; helper `multiplyDecimalByInt` (BigInt, presisi desimal) menghitung amount = cost*qty;
+>   **serial nonaktif + dikosongkan saat batch >1** (nomor seri unik per unit); i18n id/en. **Gate:**
+>   backend build/vet + unit (approval/asset) + `go vet -tags=integration` compile-check (incl.
+>   `TestApproval_AssetCreate_Batch`: 3 aset, tag seq 1..3) + Spectral 0-error hijau; frontend eslint +
+>   JSON hijau (typecheck/vitest/build via CI — [[frontend-toolchain-node24-broken]]). **Legacy-parity
+>   8 fase kode SELESAI.**
+> - **Doc-sweep DATABASE.md — SELESAI** (dikerjakan bersama Fase 8): hapus `asset_tag_counters` +
+>   dokumentasikan `tag_seq`, 2 tabel history, 4 master baru, 9 kolom kantor, kolom pegawai/departemen,
+>   `users.username`. Lihat commit doc-sweep.
+> - **Berikutnya:** jalankan code-review 5-sumbu (agent-skills:review) atas seluruh branch, lalu siapkan
+>   PR `feat/legacy-parity-data-model`. Migrasi produksi `000038`–`000045` perlu dijalankan saat rilis;
+>   `redis-cli FLUSHALL` bila seed/authz berubah ([[seed-flush-redis-authz]]).
 >
 > 1. ~~**Bring the dev stack up, reset & migrate**~~ ✅ **DONE (2026-06-27).**
 > 2. ~~**#6 Kategori Aset screen**~~ ✅ **DONE.**

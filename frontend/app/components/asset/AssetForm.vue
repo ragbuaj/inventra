@@ -43,7 +43,7 @@ const form = reactive({
   officeId: '', floorId: '', roomId: '', picEmployeeId: '',
   tglBeli: '', harga: '', vendorId: '', poNumber: '', fundingSource: '',
   warrantyStart: '', warrantyExpiry: '', leaseDate: '', installationDate: '',
-  notes: ''
+  notes: '', quantity: '1'
 })
 const errors = ref<Record<string, string>>({})
 const submitError = ref(false)
@@ -94,6 +94,13 @@ watch(() => form.categoryId, (id) => {
 
 const floorOptions = computed(() => floors.value.map(f => ({ value: f.id, label: f.name })))
 const roomOptions = computed(() => rooms.value.map(r => ({ value: r.id, label: r.name })))
+
+// Batch registration (spec 2026-07-23 section 9): parsed unit count, clamped to
+// a sane floor of 1. Drives the "will create N assets" summary and the amount.
+const batchQuantity = computed(() => {
+  const n = Math.trunc(Number(form.quantity))
+  return Number.isFinite(n) && n > 0 ? n : 1
+})
 
 // Edit mode shows kantor as read-only text — resolved on demand via the
 // office picker adapter's resolveFn (no more eager `{ limit: 100 }` list).
@@ -267,6 +274,9 @@ function validate(): boolean {
     // Tangible assets must have a location: at least a floor (room optional).
     const isTangible = (selectedCategory.value?.asset_class ?? 'tangible') === 'tangible'
     if (isTangible && !form.floorId && !form.roomId) next.lokasi = t('assets.form.errors.lokasi')
+    // Batch quantity must be a whole number >= 1.
+    const qtyNum = Number(form.quantity)
+    if (!Number.isInteger(qtyNum) || qtyNum < 1) next.quantity = t('assets.form.errors.quantity')
   }
   errors.value = next
   return Object.keys(next).length === 0
@@ -301,7 +311,11 @@ function buildCreateInput(): AssetCreateInput {
     ...buildUpdateBody(),
     office_id: form.officeId,
     asset_class: selectedCategory.value?.asset_class ?? 'tangible',
-    purchase_cost: form.harga.trim()
+    purchase_cost: form.harga.trim(),
+    // Batch registration: quantity of identical units. A serial number is
+    // unique per physical unit, so a batch (>1) never carries one.
+    quantity: batchQuantity.value,
+    serial_number: batchQuantity.value > 1 ? null : (form.serialNumber.trim() || null)
   }
 }
 
@@ -457,9 +471,13 @@ onMounted(async () => {
                 @update:model-value="setField('modelId', $event ?? '')"
               />
             </UFormField>
-            <UFormField :label="t('assets.form.fields.serial')">
+            <UFormField
+              :label="t('assets.form.fields.serial')"
+              :hint="mode === 'new' && batchQuantity > 1 ? t('assets.form.serialBatchHint') : undefined"
+            >
               <UInput
-                :model-value="form.serialNumber"
+                :model-value="mode === 'new' && batchQuantity > 1 ? '' : form.serialNumber"
+                :disabled="mode === 'new' && batchQuantity > 1"
                 class="w-full"
                 @update:model-value="setField('serialNumber', String($event))"
               />
@@ -622,6 +640,28 @@ onMounted(async () => {
                 #hint
               >
                 <span class="text-xs text-dimmed mt-1">{{ t('assets.form.readOnlyHint') }}</span>
+              </template>
+            </UFormField>
+            <UFormField
+              v-if="mode === 'new'"
+              :label="t('assets.form.fields.quantity')"
+              :error="errors.quantity"
+              :hint="t('assets.form.quantityHint')"
+            >
+              <NumberInput
+                :model-value="form.quantity"
+                :min="1"
+                placeholder="1"
+                class="w-full"
+                data-testid="asset-form-quantity"
+                @update:model-value="setField('quantity', $event)"
+              />
+              <template #help>
+                <span
+                  v-if="batchQuantity > 1"
+                  class="text-xs text-primary mt-1"
+                  data-testid="asset-form-batch-summary"
+                >{{ t('assets.form.batchSummary', { count: batchQuantity }) }}</span>
               </template>
             </UFormField>
             <UFormField :label="t('assets.form.fields.vendor')">

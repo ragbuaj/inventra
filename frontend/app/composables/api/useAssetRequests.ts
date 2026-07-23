@@ -15,18 +15,39 @@ export interface ValuationExclusionInput {
   reason: string
 }
 
+/**
+ * Multiplies a non-negative plain-decimal string by a positive integer without
+ * floating-point loss, so the submit `amount` exactly matches the backend's
+ * big.Rat cross-check (amount == purchase_cost * quantity). Uses BigInt on the
+ * scaled integer so "1500000.50" * 3 stays "4500001.50", not 4500001.4999999.
+ */
+export function multiplyDecimalByInt(decimal: string, factor: number): string {
+  const [intPart = '0', fracPart = ''] = decimal.trim().split('.')
+  const scaled = BigInt(intPart + fracPart) * BigInt(factor)
+  const scale = fracPart.length
+  if (scale === 0) return scaled.toString()
+  const digits = scaled.toString().padStart(scale + 1, '0')
+  const whole = digits.slice(0, -scale)
+  const frac = digits.slice(-scale).replace(/0+$/, '')
+  return frac ? `${whole}.${frac}` : whole
+}
+
 /** Maker-checker asset creation requests, wired to /api/v1/requests. */
 export function useAssetRequests() {
   const { request } = useApiClient()
 
   async function submitCreate(input: AssetCreateInput): Promise<SubmittedRequest> {
+    const quantity = input.quantity && input.quantity > 0 ? input.quantity : 1
+    // Empty/null purchase_cost normalizes to "0" so the amount math never sees a
+    // blank string (BigInt("") throws).
+    const cost = input.purchase_cost?.trim() || '0'
     return request<SubmittedRequest>('/requests', {
       method: 'POST',
       body: {
         type: 'asset_create',
-        amount: input.purchase_cost ?? '0',
+        amount: multiplyDecimalByInt(cost, quantity),
         office_id: input.office_id,
-        payload: input
+        payload: { ...input, quantity }
       }
     })
   }
