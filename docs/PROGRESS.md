@@ -29,9 +29,18 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >   hijau; typecheck/vitest/build tertunda ke CI** (blocker environmental Node v24 + vite8/babel8 —
 >   `nuxt prepare` gagal lokal, analog integration-test CI-only). Deviasi mockup disetujui: field baru
 >   (kapasitas/PIC/tanggal instalasi-sewa-garansi mulai) di luar `Form Aset.dc.html` — permintaan user.
-> - **Berikutnya: Fase 2** — penomoran kode aset baru (`000040`): sequence per-kantor via
->   `MAX(tag_seq)+1` + advisory lock, hapus `asset_tag_counters`, re-tag aset lama, `formatAssetTag`
->   `{KANTOR}{KATEGORI}{TAHUN}{NNNNN}`. Item terbuka: prefix tag sudah dikonfirmasi (kantor+kategori+tahun).
+> - **Fase 2 (penomoran kode aset baru) — kode selesai.** Migrasi `000040`: kolom `assets.tag_seq`
+>   (NULLABLE), backfill + re-tag semua aset ke format `{KANTOR}{KATEGORI}{TAHUN}{NNNNN}` tanpa dash,
+>   hapus `asset_tag_counters`. `formatAssetTag` tanpa pemisah; `GenerateAssetTag`/`NextTagSeq` pakai
+>   `MAX(tag_seq)+1` + `pg_advisory_xact_lock` per-kantor (sequence per-KANTOR, tak reset per tahun,
+>   tak dipakai ulang kecuali hard-delete teratas). Executor + importer + 2 integration test tag
+>   ditulis ulang; DATABASE.md bagian 4.7 + DB-Q5 diperbarui. **Gate:** backend build/vet/unit (31 pkg)
+>   hijau + `go vet -tags=integration` compile-check lolos (run integrasi via CI). Frontend tak berubah
+>   (hanya menampilkan string tag). **Sisa doc-sweep:** referensi `asset_tag_counters` di daftar
+>   skema/indeks/migrasi DATABASE.md (baris ~62/725/807) belum dibersihkan — kerjakan di sweep akhir.
+> - **Berikutnya: Fase 3** — tabel history aset (`000041`): `asset_location_history` +
+>   `asset_pic_history` + backfill; penulis history di create/edit/transfer/PIC; tab Riwayat
+>   Lokasi/PIC/Pemegang di Detail Aset.
 >
 > 1. ~~**Bring the dev stack up, reset & migrate**~~ ✅ **DONE (2026-06-27).**
 > 2. ~~**#6 Kategori Aset screen**~~ ✅ **DONE.**

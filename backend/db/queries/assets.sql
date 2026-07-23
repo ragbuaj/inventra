@@ -32,13 +32,13 @@ SELECT * FROM asset.assets WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: CreateAsset :one
 INSERT INTO asset.assets (
-  asset_tag, name, category_id, brand_id, model_id, room_id, floor_id, office_id, unit_id,
+  asset_tag, tag_seq, name, category_id, brand_id, model_id, room_id, floor_id, office_id, unit_id,
   status, serial_number, purchase_date, purchase_cost, vendor_id, po_number,
   funding_source, warranty_expiry, warranty_start, capacity, lease_date, installation_date,
   pic_employee_id, specifications, asset_class, capitalized,
   acquisition_bast_no, created_by_id, notes
 ) VALUES (
-  sqlc.arg(asset_tag),sqlc.arg(name),sqlc.arg(category_id),sqlc.arg(brand_id),
+  sqlc.arg(asset_tag),sqlc.arg(tag_seq),sqlc.arg(name),sqlc.arg(category_id),sqlc.arg(brand_id),
   sqlc.arg(model_id),sqlc.arg(room_id),sqlc.arg(floor_id),sqlc.arg(office_id),sqlc.arg(unit_id),
   'available',sqlc.arg(serial_number),sqlc.arg(purchase_date),sqlc.arg(purchase_cost),
   sqlc.arg(vendor_id),sqlc.arg(po_number),sqlc.arg(funding_source),sqlc.arg(warranty_expiry),
@@ -69,12 +69,15 @@ UPDATE asset.assets SET status = $2 WHERE id = $1 AND deleted_at IS NULL RETURNI
 UPDATE asset.assets SET excluded_from_valuation = $2, valuation_exclusion_reason = $3
 WHERE id = $1 AND deleted_at IS NULL RETURNING *;
 
--- name: BumpAssetTagCounter :one
-INSERT INTO asset.asset_tag_counters (office_id, category_id, year, last_seq)
-VALUES ($1, $2, $3, 1)
-ON CONFLICT (office_id, category_id, year)
-DO UPDATE SET last_seq = asset.asset_tag_counters.last_seq + 1
-RETURNING last_seq;
+-- name: AcquireOfficeTagLock :exec
+-- Serialize per-office tag-sequence allocation within the caller's transaction
+-- (pg_advisory_xact_lock is released at commit/rollback). $1 = office id (text).
+SELECT pg_advisory_xact_lock(hashtext('asset_tag'), hashtext($1));
+
+-- name: GetMaxTagSeqForOffice :one
+-- Highest tag_seq for an office, INCLUDING soft-deleted rows (they reserve their
+-- number); hard-deleted rows are gone so the top number frees up. NULL -> 0.
+SELECT COALESCE(MAX(tag_seq), 0)::int FROM asset.assets WHERE office_id = $1;
 
 -- name: GetOfficeCode :one
 SELECT code FROM masterdata.offices WHERE id = $1 AND deleted_at IS NULL;

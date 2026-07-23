@@ -34,7 +34,7 @@ func resetAll(t *testing.T, pool *pgxpool.Pool) {
 	_, err := pool.Exec(ctx,
 		`TRUNCATE approval.request_approvals, approval.requests,
 		 transfer.asset_transfers, asset.asset_documents,
-		 asset.asset_tag_counters, asset.assets CASCADE`)
+		 asset.assets CASCADE`)
 	require.NoError(t, err)
 }
 

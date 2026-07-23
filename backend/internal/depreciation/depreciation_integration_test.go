@@ -42,7 +42,7 @@ func resetAll(t *testing.T, pool *pgxpool.Pool) {
 	ctx := context.Background()
 	_, err := pool.Exec(ctx,
 		`TRUNCATE depreciation.depreciation_entries, depreciation.depreciation_periods,
-		 asset.asset_tag_counters, asset.assets CASCADE`)
+		 asset.assets CASCADE`)
 	require.NoError(t, err)
 }
 

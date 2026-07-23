@@ -415,7 +415,8 @@ Index: partial `UNIQUE(code)`, `idx_employees_office_id`, `idx_employees_departm
 | Kolom | Tipe | Null | Default | Keterangan |
 |---|---|---|---|---|
 | id | uuid | no | gen_random_uuid() | **PK** |
-| asset_tag | text | no | | **UNIQUE** (partial) — **kode aset** unik, format `<kode_kantor>-<kode_kategori>-<tahun>-<seq5>` (lihat bagian 4.7) = payload **barcode** Code128 (FR-2.12); slug URL |
+| asset_tag | text | no | | **UNIQUE** (partial) — **kode aset** unik, format `{kode_kantor}{kode_kategori}{tahun}{seq5}` tanpa pemisah (lihat bagian 4.7) = payload **barcode** Code128 (FR-2.12); slug URL |
+| tag_seq | int | yes | | nomor urut per-kantor sumber `seq5` (NULLABLE; lihat bagian 4.7) |
 | name | text | no | | |
 | category_id | uuid | no | | **FK** categories |
 | brand_id | uuid? | yes | | **FK** brands |
@@ -734,36 +735,33 @@ Index: partial `UNIQUE(asset_id)`, `idx_disposal_date`. Saat final: `assets.stat
 
 ### 4.7 Generator `asset_tag` (kode aset)
 
-**Format:** `<kode_kantor>-<kode_kategori>-<tahun_beli>-<seq5>`
+**Format:** `{kode_kantor}{kode_kategori}{tahun_beli}{seq5}` (tanpa pemisah; diubah dari format
+lama ber-`-` di migrasi `000040`)
 - `kode_kantor` = `offices.code` (kantor aset)
 - `kode_kategori` = `categories.code`
-- `tahun_beli` = tahun dari `assets.purchase_date` (4 digit)
-- `seq5` = nomor urut **5 digit** (zero-padded), berjalan **per kantor & kategori**, **direset tiap tahun**
+- `tahun_beli` = tahun dari `assets.purchase_date` (4 digit; fallback tahun pembuatan bila kosong)
+- `seq5` = nomor urut **5 digit** (zero-padded), berjalan **per KANTOR** (bukan per kategori/tahun),
+  **tidak direset per tahun** — kategori & tahun hanya bagian deskriptif string
 
-Contoh: `JKT01-ELK-2026-00001`, `JKT01-ELK-2026-00002`; di kantor lain `JKT02-ELK-2026-00001` (tiap kantor mulai dari `00001`); tahun `2027` mulai `00001` lagi.
+Contoh: `JKT01ELK202600001`, `JKT01KEN202700002` (deret per-kantor berjalan lintas kategori & tahun);
+kantor lain punya deret sendiri.
 
-**Tabel counter** — sumber kebenaran nomor urut (dikecualikan dari soft delete; ini helper sequence):
+**Sumber nomor urut:** kolom `assets.tag_seq` (int, **NULLABLE**) per aset — bukan lagi tabel counter
+terpisah (`asset_tag_counters` **dihapus** di `000040`). Alokasi:
+`next = COALESCE(MAX(tag_seq), 0) + 1` atas semua baris kantor tsb **termasuk yang soft-delete**
+(menahan nomornya) tetapi bukan yang hard-delete — nomor teratas bisa dipakai lagi hanya bila baris
+teratas di-hard-delete. `tag_seq` NULLABLE: jalur create auto/import selalu mengisinya; INSERT langsung
+(seed/test/migrasi data) boleh NULL, dan `COALESCE(MAX,0)` mengabaikan NULL.
 
-| Kolom | Tipe | Null | Keterangan |
-|---|---|---|---|
-| id | uuid | no | **PK** |
-| office_id | uuid | no | **FK** offices |
-| category_id | uuid | no | **FK** categories |
-| year | int | no | tahun |
-| last_seq | int | no | nomor urut terakhir terpakai |
-
-Index: `UNIQUE(office_id, category_id, year)`.
-
-**Generasi atomik** (aman dari race tanpa perlu lock eksternal):
+**Generasi** (di dalam transaksi create; advisory lock per-kantor menggantikan upsert counter):
 ```sql
-INSERT INTO asset_tag_counters (office_id, category_id, year, last_seq)
-VALUES ($office_id, $category_id, $year, 1)
-ON CONFLICT (office_id, category_id, year)
-DO UPDATE SET last_seq = asset_tag_counters.last_seq + 1
-RETURNING last_seq;
--- asset_tag = format('%s-%s-%s-%05d', office_code, category_code, year, last_seq)
+SELECT pg_advisory_xact_lock(hashtext('asset_tag'), hashtext($office_id::text));  -- serialisasi per kantor
+SELECT COALESCE(MAX(tag_seq), 0)::int FROM asset.assets WHERE office_id = $office_id;  -- => maxSeq
+-- tag_seq   = maxSeq + 1
+-- asset_tag = format('%s%s%d%05d', office_code, category_code, year, tag_seq)
 ```
-`UNIQUE(asset_tag)` (partial) berlaku sebagai jaring pengaman. Redis lock **tidak diperlukan** karena upsert+`RETURNING` sudah atomik per baris.
+Lock dipegang sampai transaksi commit/rollback, jadi dua create serempak di kantor sama tak pernah
+mengambil nomor yang sama. `UNIQUE(asset_tag)` (partial) tetap jadi jaring pengaman.
 
 **Catatan:**
 - `purchase_date` **wajib** saat auto-generate (untuk `tahun_beli`); bila aset diinput tanpa tanggal beli, sistem meminta tahun atau memakai tahun berjalan.
@@ -853,7 +851,7 @@ Tiap fase roadmap (PRD bagian 10) menambah migrasi `golang-migrate` di `backend/
 - **~~DB-Q1~~ (final)** — `email` memakai `citext` (case-insensitive; extension `citext`).
 - **~~DB-Q3~~ (final)** — `audit_logs` & `import_jobs` tabel biasa (tanpa partisi); ditinjau ulang saat volume besar.
 - **~~DB-Q4~~ (final)** — `created_by` hanya pada tabel operasional; `updated_by` tidak dipakai (audit via `audit_logs`).
-- **~~DB-Q5~~ (final)** — Sequence `asset_tag` di-key **(kantor, kategori, tahun)** — tiap kantor punya urutan terpisah.
+- **~~DB-Q5~~ (final, direvisi 000040)** — Sequence `asset_tag` kini **per-kantor** (kolom `assets.tag_seq`, `MAX+1` + advisory lock), **tidak** lagi di-key per kategori/tahun dan tidak direset per tahun. Format string tetap memuat kategori & tahun (deskriptif). Tabel `asset_tag_counters` dihapus.
 
 **Keputusan v1.1 (Bank Fixed Asset Management) 🆕:**
 - **Penyusutan dua basis** — `depreciation_entries.basis` (`commercial`/`fiscal`); parameter fiskal dari

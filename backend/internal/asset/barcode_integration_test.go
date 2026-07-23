@@ -53,7 +53,7 @@ func barcodeNewHarness(t *testing.T) *barcodeHarness {
 
 	_, err := pool.Exec(ctx,
 		`TRUNCATE approval.request_approvals, approval.requests,
-		 asset.asset_tag_counters, asset.assets CASCADE`)
+		 asset.assets CASCADE`)
 	require.NoError(t, err)
 
 	q := sqlc.New(pool)
@@ -149,7 +149,7 @@ func TestByTag_OutOfScope(t *testing.T) {
 
 	_, err := pool.Exec(ctx,
 		`TRUNCATE approval.request_approvals, approval.requests,
-		 asset.asset_tag_counters, asset.assets CASCADE`)
+		 asset.assets CASCADE`)
 	require.NoError(t, err)
 
 	q := sqlc.New(pool)
@@ -262,7 +262,7 @@ func TestBarcode_OutOfScope(t *testing.T) {
 
 	_, err := pool.Exec(ctx,
 		`TRUNCATE approval.request_approvals, approval.requests,
-		 asset.asset_tag_counters, asset.assets CASCADE`)
+		 asset.assets CASCADE`)
 	require.NoError(t, err)
 
 	q := sqlc.New(pool)
@@ -457,7 +457,7 @@ func TestLabel_OutOfScopeAsset(t *testing.T) {
 
 	_, err := pool.Exec(ctx,
 		`TRUNCATE approval.request_approvals, approval.requests,
-		 asset.asset_tag_counters, asset.assets CASCADE`)
+		 asset.assets CASCADE`)
 	require.NoError(t, err)
 
 	q := sqlc.New(pool)

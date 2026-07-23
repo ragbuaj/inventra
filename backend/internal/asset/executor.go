@@ -94,7 +94,7 @@ func (e createExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.App
 		year = int32(purchaseDate.Time.Year())
 	}
 
-	tag, err := e.s.GenerateAssetTag(ctx, qtx, officeID, categoryID, year)
+	tag, tagSeq, err := e.s.GenerateAssetTag(ctx, qtx, officeID, categoryID, year)
 	if err != nil {
 		return mapDBError(err)
 	}
@@ -151,6 +151,7 @@ func (e createExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.App
 	requesterID := req.RequestedByID
 	_, err = qtx.CreateAsset(ctx, sqlc.CreateAssetParams{
 		AssetTag:         tag,
+		TagSeq:           &tagSeq,
 		Name:             p.Name,
 		CategoryID:       categoryID,
 		OfficeID:         officeID,

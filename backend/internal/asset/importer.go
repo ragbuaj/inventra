@@ -453,8 +453,17 @@ func (a assetImporter) createRows(ctx context.Context, qtx *sqlc.Queries, maker 
 		}
 
 		tag := trim(r.Data[colTag])
+		var tagSeq int32
 		if tag == "" {
-			tag, err = a.s.GenerateAssetTag(ctx, qtx, officeID, categoryID, year)
+			tag, tagSeq, err = a.s.GenerateAssetTag(ctx, qtx, officeID, categoryID, year)
+			if err != nil {
+				return created, mapDBError(err)
+			}
+		} else {
+			// User-supplied tag: still consume a per-office sequence (tag_seq is NOT NULL).
+			// If the row is later skipped as a duplicate (below), no row is inserted so the
+			// sequence is not actually consumed — MAX(tag_seq) is unchanged for the next row.
+			tagSeq, err = a.s.NextTagSeq(ctx, qtx, officeID)
 			if err != nil {
 				return created, mapDBError(err)
 			}
@@ -486,6 +495,7 @@ func (a assetImporter) createRows(ctx context.Context, qtx *sqlc.Queries, maker 
 		harga := r.Data[colPrice]
 		_, err = qtx.CreateAsset(ctx, sqlc.CreateAssetParams{
 			AssetTag:       tag,
+			TagSeq:         &tagSeq,
 			Name:           r.Data[colName],
 			CategoryID:     categoryID,
 			OfficeID:       officeID,

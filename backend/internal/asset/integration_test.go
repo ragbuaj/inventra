@@ -28,7 +28,7 @@ func resetAll(t *testing.T, pool *pgxpool.Pool) {
 	ctx := context.Background()
 	_, err := pool.Exec(ctx,
 		`TRUNCATE approval.request_approvals, approval.requests,
-		 asset.asset_tag_counters, asset.assets CASCADE`)
+		 asset.assets CASCADE`)
 	require.NoError(t, err)
 }
 
@@ -194,7 +194,13 @@ func TestAsset_TagAtomicity_Sequential(t *testing.T) {
 		tx, err := pool.Begin(ctx)
 		require.NoError(t, err)
 		qtx := q.WithTx(tx)
-		tag, err := svc.GenerateAssetTag(ctx, qtx, officeID, catID, 2026)
+		tag, seq, err := svc.GenerateAssetTag(ctx, qtx, officeID, catID, 2026)
+		require.NoError(t, err)
+		_, err = qtx.CreateAsset(ctx, sqlc.CreateAssetParams{
+			AssetTag: tag, TagSeq: &seq, Name: "Asset", CategoryID: catID,
+			OfficeID: officeID, AssetClass: sqlc.SharedAssetClassIntangible,
+			Capitalized: true, Specifications: []byte("{}"),
+		})
 		require.NoError(t, err)
 		require.NoError(t, tx.Commit(ctx))
 		tags[i] = tag
@@ -208,14 +214,14 @@ func TestAsset_TagAtomicity_Sequential(t *testing.T) {
 	}
 
 	// Sequence must be strictly ascending (suffix 00001 through 00005)
-	assert.Equal(t, "JKT01-ELK-2026-00001", tags[0])
-	assert.Equal(t, "JKT01-ELK-2026-00002", tags[1])
-	assert.Equal(t, "JKT01-ELK-2026-00005", tags[4])
+	assert.Equal(t, "JKT01ELK202600001", tags[0])
+	assert.Equal(t, "JKT01ELK202600002", tags[1])
+	assert.Equal(t, "JKT01ELK202600005", tags[4])
 }
 
-// TestAsset_TagAtomicity_PerYearReset verifies that the tag sequence counter is
-// isolated per year: a tag generated for 2025 does not affect the 2026 counter.
-func TestAsset_TagAtomicity_PerYearReset(t *testing.T) {
+// TestAsset_TagSeq_PerOfficeNotPerYear verifies the sequence is per-OFFICE and does
+// NOT reset per year (the year only appears in the tag string, not the counter).
+func TestAsset_TagSeq_PerOfficeNotPerYear(t *testing.T) {
 	pool := testsupport.NewPostgres(t)
 	_ = testsupport.NewRedis(t)
 	ctx := context.Background()
@@ -231,7 +237,13 @@ func TestAsset_TagAtomicity_PerYearReset(t *testing.T) {
 		tx, err := pool.Begin(ctx)
 		require.NoError(t, err)
 		qtx := q.WithTx(tx)
-		tag, err := svc.GenerateAssetTag(ctx, qtx, officeID, catID, year)
+		tag, seq, err := svc.GenerateAssetTag(ctx, qtx, officeID, catID, year)
+		require.NoError(t, err)
+		_, err = qtx.CreateAsset(ctx, sqlc.CreateAssetParams{
+			AssetTag: tag, TagSeq: &seq, Name: "Asset", CategoryID: catID,
+			OfficeID: officeID, AssetClass: sqlc.SharedAssetClassIntangible,
+			Capitalized: true, Specifications: []byte("{}"),
+		})
 		require.NoError(t, err)
 		require.NoError(t, tx.Commit(ctx))
 		return tag
@@ -242,11 +254,12 @@ func TestAsset_TagAtomicity_PerYearReset(t *testing.T) {
 	tag2026a := genTag(2026)
 	tag2026b := genTag(2026)
 
-	// 2025 sequence is independent of 2026
-	assert.Equal(t, "BDG01-FRN-2025-00001", tag2025a)
-	assert.Equal(t, "BDG01-FRN-2025-00002", tag2025b)
-	assert.Equal(t, "BDG01-FRN-2026-00001", tag2026a)
-	assert.Equal(t, "BDG01-FRN-2026-00002", tag2026b)
+	// Sequence is per-OFFICE and does NOT reset per year: year shows in the string,
+	// but the running number keeps advancing across years.
+	assert.Equal(t, "BDG01FRN202500001", tag2025a)
+	assert.Equal(t, "BDG01FRN202500002", tag2025b)
+	assert.Equal(t, "BDG01FRN202600003", tag2026a)
+	assert.Equal(t, "BDG01FRN202600004", tag2026b)
 }
 
 // TestAsset_ReadScope_OfficeFiltered verifies that List correctly filters assets

@@ -12,6 +12,9 @@ import (
 )
 
 type Querier interface {
+	// Serialize per-office tag-sequence allocation within the caller's transaction
+	// (pg_advisory_xact_lock is released at commit/rollback). $1 = office id (text).
+	AcquireOfficeTagLock(ctx context.Context, hashtext string) error
 	AdvanceRequestStep(ctx context.Context, id uuid.UUID) (ApprovalRequest, error)
 	// Depreciation engine queries. See docs/DATABASE.md §4.4 and spec 2026-07-05.
 	// Transaction-scoped exclusive lock; released automatically at COMMIT/ROLLBACK.
@@ -27,7 +30,6 @@ type Querier interface {
 	// RecordImpairment / regenerateBasis). Both are set to the recoverable amount
 	// here; a later, deeper impairment lowers the floor further (correct).
 	ApplyAssetImpairment(ctx context.Context, arg ApplyAssetImpairmentParams) (AssetAsset, error)
-	BumpAssetTagCounter(ctx context.Context, arg BumpAssetTagCounterParams) (int32, error)
 	CancelJob(ctx context.Context, id uuid.UUID) (ImportImportJob, error)
 	CancelRequest(ctx context.Context, arg CancelRequestParams) (ApprovalRequest, error)
 	CheckinAssignment(ctx context.Context, arg CheckinAssignmentParams) (AssignmentAssignment, error)
@@ -187,6 +189,9 @@ type Querier interface {
 	GetMaintRecordEnriched(ctx context.Context, arg GetMaintRecordEnrichedParams) (GetMaintRecordEnrichedRow, error)
 	GetMaintRecordScoped(ctx context.Context, arg GetMaintRecordScopedParams) (MaintenanceMaintenanceRecord, error)
 	GetMaintScheduleScoped(ctx context.Context, arg GetMaintScheduleScopedParams) (MaintenanceMaintenanceSchedule, error)
+	// Highest tag_seq for an office, INCLUDING soft-deleted rows (they reserve their
+	// number); hard-deleted rows are gone so the top number frees up. NULL -> 0.
+	GetMaxTagSeqForOffice(ctx context.Context, officeID uuid.UUID) (int32, error)
 	GetModelByBrandAndName(ctx context.Context, arg GetModelByBrandAndNameParams) (MasterdataModel, error)
 	GetOffice(ctx context.Context, arg GetOfficeParams) (MasterdataOffice, error)
 	GetOfficeAncestors(ctx context.Context, id uuid.UUID) ([]GetOfficeAncestorsRow, error)

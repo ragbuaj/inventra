@@ -60,7 +60,7 @@ func docNewHarness(t *testing.T, maxBytes int64) *docHarness {
 	// Clean mutable tables; leave migration-seeded roles & scope policies intact.
 	_, err := pool.Exec(ctx,
 		`TRUNCATE approval.request_approvals, approval.requests,
-		 asset.asset_tag_counters, asset.assets CASCADE`)
+		 asset.assets CASCADE`)
 	require.NoError(t, err)
 
 	q := sqlc.New(pool)
@@ -322,7 +322,7 @@ func TestDocument(t *testing.T) {
 
 		_, err := pool.Exec(ctx,
 			`TRUNCATE approval.request_approvals, approval.requests,
-			 asset.asset_tag_counters, asset.assets CASCADE`)
+			 asset.assets CASCADE`)
 		require.NoError(t, err)
 
 		q := sqlc.New(pool)
@@ -395,7 +395,7 @@ func TestDocument(t *testing.T) {
 
 		_, err := pool.Exec(ctx,
 			`TRUNCATE approval.request_approvals, approval.requests,
-			 asset.asset_tag_counters, asset.assets CASCADE`)
+			 asset.assets CASCADE`)
 		require.NoError(t, err)
 
 		q := sqlc.New(pool)

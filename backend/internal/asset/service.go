@@ -58,31 +58,45 @@ func validTransition(from, to sqlc.SharedAssetStatus) bool {
 // Exported for the disposal module's executor, which shares the transition matrix.
 func ValidTransition(from, to sqlc.SharedAssetStatus) bool { return validTransition(from, to) }
 
-// formatAssetTag formats an asset tag as <officeCode>-<categoryCode>-<year>-<seq:%05d>.
-// Example: JKT01-ELK-2026-00001
+// formatAssetTag formats an asset tag as <officeCode><categoryCode><year><seq:%05d>
+// (no separators). Example: JKT01ELK202600001. The 5-digit sequence is per-office.
 func formatAssetTag(officeCode, categoryCode string, year int, seq int64) string {
-	return fmt.Sprintf("%s-%s-%d-%05d", officeCode, categoryCode, year, seq)
+	return fmt.Sprintf("%s%s%d%05d", officeCode, categoryCode, year, seq)
 }
 
-// GenerateAssetTag bumps the per-(office, category, year) counter inside the
-// caller's transaction and returns the formatted asset tag. The caller must
-// pass a tx-bound *sqlc.Queries so the counter bump is atomic with the INSERT.
-func (s *Service) GenerateAssetTag(ctx context.Context, qtx *sqlc.Queries, officeID, categoryID uuid.UUID, year int32) (string, error) {
+// NextTagSeq allocates the next per-office tag sequence as MAX(tag_seq)+1, under a
+// per-office advisory lock held until the caller's transaction commits/rolls back,
+// so two concurrent creations in the same office never pick the same number.
+// Soft-deleted rows keep their number (counted in MAX); a hard-deleted top row
+// frees its number for reuse. The caller must pass a tx-bound *sqlc.Queries.
+func (s *Service) NextTagSeq(ctx context.Context, qtx *sqlc.Queries, officeID uuid.UUID) (int32, error) {
+	if err := qtx.AcquireOfficeTagLock(ctx, officeID.String()); err != nil {
+		return 0, err
+	}
+	maxSeq, err := qtx.GetMaxTagSeqForOffice(ctx, officeID)
+	if err != nil {
+		return 0, err
+	}
+	return maxSeq + 1, nil
+}
+
+// GenerateAssetTag allocates the next per-office sequence and formats the auto
+// asset tag. It returns the sequence too so the caller stores it in
+// assets.tag_seq. The category must have a code (used in the tag string).
+func (s *Service) GenerateAssetTag(ctx context.Context, qtx *sqlc.Queries, officeID, categoryID uuid.UUID, year int32) (string, int32, error) {
 	officeCode, err := qtx.GetOfficeCode(ctx, officeID)
 	if err != nil {
-		return "", ErrInvalidRef
+		return "", 0, ErrInvalidRef
 	}
 	categoryCode, err := qtx.GetCategoryCode(ctx, categoryID)
 	if err != nil || categoryCode == nil {
-		return "", ErrInvalidRef
+		return "", 0, ErrInvalidRef
 	}
-	seq, err := qtx.BumpAssetTagCounter(ctx, sqlc.BumpAssetTagCounterParams{
-		OfficeID: officeID, CategoryID: categoryID, Year: year,
-	})
+	seq, err := s.NextTagSeq(ctx, qtx, officeID)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
-	return formatAssetTag(officeCode, *categoryCode, int(year), int64(seq)), nil
+	return formatAssetTag(officeCode, *categoryCode, int(year), int64(seq)), seq, nil
 }
 
 // mapDBError translates pgx/Postgres errors into package sentinel errors.

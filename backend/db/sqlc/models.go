@@ -1294,6 +1294,7 @@ type AssetAsset struct {
 	WarrantyStart            pgtype.Date               `json:"warranty_start"`
 	FloorID                  *uuid.UUID                `json:"floor_id"`
 	PicEmployeeID            *uuid.UUID                `json:"pic_employee_id"`
+	TagSeq                   *int32                    `json:"tag_seq"`
 }
 
 type AssetAssetAttachment struct {
@@ -1326,16 +1327,6 @@ type AssetAssetDocument struct {
 	CreatedAt         pgtype.Timestamptz      `json:"created_at"`
 	UpdatedAt         pgtype.Timestamptz      `json:"updated_at"`
 	DeletedAt         pgtype.Timestamptz      `json:"deleted_at"`
-}
-
-type AssetAssetTagCounter struct {
-	ID         uuid.UUID          `json:"id"`
-	OfficeID   uuid.UUID          `json:"office_id"`
-	CategoryID uuid.UUID          `json:"category_id"`
-	Year       int32              `json:"year"`
-	LastSeq    int32              `json:"last_seq"`
-	CreatedAt  pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
 }
 
 type AssignmentAssignment struct {
