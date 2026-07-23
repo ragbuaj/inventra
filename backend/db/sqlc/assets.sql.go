@@ -521,6 +521,17 @@ func (q *Queries) GetCategoryCode(ctx context.Context, id uuid.UUID) (*string, e
 	return code, err
 }
 
+const getFloorOffice = `-- name: GetFloorOffice :one
+SELECT office_id FROM masterdata.floors WHERE id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) GetFloorOffice(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, getFloorOffice, id)
+	var office_id uuid.UUID
+	err := row.Scan(&office_id)
+	return office_id, err
+}
+
 const getMaxTagSeqForOffice = `-- name: GetMaxTagSeqForOffice :one
 SELECT COALESCE(MAX(tag_seq), 0)::int FROM asset.assets WHERE office_id = $1
 `
@@ -543,6 +554,27 @@ func (q *Queries) GetOfficeCode(ctx context.Context, id uuid.UUID) (string, erro
 	var code string
 	err := row.Scan(&code)
 	return code, err
+}
+
+const getRoomFloorOffice = `-- name: GetRoomFloorOffice :one
+SELECT r.floor_id, f.office_id
+FROM masterdata.rooms r
+JOIN masterdata.floors f ON f.id = r.floor_id
+WHERE r.id = $1 AND r.deleted_at IS NULL
+`
+
+type GetRoomFloorOfficeRow struct {
+	FloorID  uuid.UUID `json:"floor_id"`
+	OfficeID uuid.UUID `json:"office_id"`
+}
+
+// Resolve a room's floor and the office that floor belongs to (for location
+// consistency validation on asset create/update).
+func (q *Queries) GetRoomFloorOffice(ctx context.Context, id uuid.UUID) (GetRoomFloorOfficeRow, error) {
+	row := q.db.QueryRow(ctx, getRoomFloorOffice, id)
+	var i GetRoomFloorOfficeRow
+	err := row.Scan(&i.FloorID, &i.OfficeID)
+	return i, err
 }
 
 const listAssetDocuments = `-- name: ListAssetDocuments :many
@@ -794,8 +826,11 @@ func (q *Queries) SetAssetDocumentObjectKey(ctx context.Context, arg SetAssetDoc
 
 const setAssetOffice = `-- name: SetAssetOffice :one
 UPDATE asset.assets
-SET office_id = $1, room_id = $2
-WHERE id = $3 AND deleted_at IS NULL
+SET office_id = $1,
+    room_id = $2,
+    floor_id = (SELECT rr.floor_id FROM masterdata.rooms rr
+                WHERE rr.id = $2 AND rr.deleted_at IS NULL)
+WHERE assets.id = $3 AND assets.deleted_at IS NULL
 RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq
 `
 
@@ -806,6 +841,10 @@ type SetAssetOfficeParams struct {
 }
 
 // Relocate an asset to a new office/room (used by the transfer receive step).
+// floor_id is DERIVED from the destination room's floor (NULL when no room) so a
+// relocated asset never keeps the origin office's floor. A tangible asset moved
+// without a destination room hits chk_assets_tangible_location (correct: a physical
+// asset must have a destination location).
 func (q *Queries) SetAssetOffice(ctx context.Context, arg SetAssetOfficeParams) (AssetAsset, error) {
 	row := q.db.QueryRow(ctx, setAssetOffice, arg.OfficeID, arg.RoomID, arg.ID)
 	var i AssetAsset

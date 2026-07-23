@@ -155,7 +155,25 @@ WHERE a.asset_tag = $1 AND a.deleted_at IS NULL;
 
 -- name: SetAssetOffice :one
 -- Relocate an asset to a new office/room (used by the transfer receive step).
+-- floor_id is DERIVED from the destination room's floor (NULL when no room) so a
+-- relocated asset never keeps the origin office's floor. A tangible asset moved
+-- without a destination room hits chk_assets_tangible_location (correct: a physical
+-- asset must have a destination location).
 UPDATE asset.assets
-SET office_id = sqlc.arg(office_id), room_id = sqlc.narg(room_id)
-WHERE id = sqlc.arg(id) AND deleted_at IS NULL
+SET office_id = sqlc.arg(office_id),
+    room_id = sqlc.narg(room_id),
+    floor_id = (SELECT rr.floor_id FROM masterdata.rooms rr
+                WHERE rr.id = sqlc.narg(room_id) AND rr.deleted_at IS NULL)
+WHERE assets.id = sqlc.arg(id) AND assets.deleted_at IS NULL
 RETURNING *;
+
+-- name: GetRoomFloorOffice :one
+-- Resolve a room's floor and the office that floor belongs to (for location
+-- consistency validation on asset create/update).
+SELECT r.floor_id, f.office_id
+FROM masterdata.rooms r
+JOIN masterdata.floors f ON f.id = r.floor_id
+WHERE r.id = $1 AND r.deleted_at IS NULL;
+
+-- name: GetFloorOffice :one
+SELECT office_id FROM masterdata.floors WHERE id = $1 AND deleted_at IS NULL;

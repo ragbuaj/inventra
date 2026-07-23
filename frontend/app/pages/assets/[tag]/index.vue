@@ -14,7 +14,7 @@ definePageMeta({ middleware: 'can', permission: 'asset.view' })
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const localePath = useLocalePath()
 const can = useCan()
@@ -252,7 +252,8 @@ watch(tab, ensurePicLoaded)
 function formatDateTime(iso?: string | null): string {
   if (!iso) return '—'
   const d = new Date(iso)
-  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleString(locale.value === 'en' ? 'en-US' : 'id-ID', { dateStyle: 'medium', timeStyle: 'short' })
 }
 function locationLabel(r: AssetLocationHistory): string {
   const parts = [r.office_name, r.floor_name, r.room_name].filter(Boolean)

@@ -49,8 +49,12 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >   `go vet -tags=integration` compile-check (incl. integration test baru Update-history) hijau;
 >   frontend lint + JSON hijau (typecheck/vitest/build CI). **Pemegang** = tab `assign` existing
 >   (masih placeholder — wiring assignment-history di luar scope Fase 3).
->   **Follow-up dicatat:** transfer `SetAssetOffice` tidak memperbarui `assets.floor_id` (interaksi
->   kolom Fase 1) — history merekam state aktual, tapi floor_id aset bisa basi pasca-mutasi.
+> - **Review fix (code-review 5-sumbu) — SELESAI.** #1 (Important): `SetAssetOffice` kini menurunkan
+>   `floor_id` dari lantai room tujuan (NULL bila tanpa room) — aset tak lagi menyimpan floor kantor
+>   asal pasca-mutasi; assert floor+history transfer ditambah. #2: `resolveLocation` memvalidasi &
+>   memaksa floor = lantai room (konsistensi) di create + Update. #3: `LIMIT 200` pada query history.
+>   #5: `formatDateTime` ikut locale (id/en). #4 (respons `{data}`) sengaja dipertahankan (sub-resource
+>   read-only tak berpaginasi; LIMIT jadi pengaman) — bukan memalsukan pagination.
 > - **Berikutnya: Fase 4** — master baru (`000042`): office_classes, executor_divisions, companies
 >   (reference engine) + building_classifications (sub-package numerik) + layar Referensi.
 >   **Doc-sweep tersisa** (kumulatif): bersihkan `asset_tag_counters` di daftar skema DATABASE.md +

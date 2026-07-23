@@ -148,6 +148,13 @@ func (e createExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.App
 		return fmt.Errorf("invalid warranty_start: %w", derr)
 	}
 
+	// Validate + normalize floor/room against the asset's office (forces floor to
+	// the room's own floor when a room is chosen).
+	floorID, err = e.s.resolveLocation(ctx, qtx, officeID, floorID, roomID)
+	if err != nil {
+		return err
+	}
+
 	requesterID := req.RequestedByID
 	created, err := qtx.CreateAsset(ctx, sqlc.CreateAssetParams{
 		AssetTag:         tag,

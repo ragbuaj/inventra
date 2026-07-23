@@ -211,6 +211,12 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, in UpdateInput, acto
 		return before, before, mapDBError(err)
 	}
 
+	// Enforce floor/room consistency with the asset's office, forcing floor to the
+	// room's own floor when a room is chosen (see resolveLocation).
+	if in.FloorID, err = s.resolveLocation(ctx, s.q, before.OfficeID, in.FloorID, in.RoomID); err != nil {
+		return before, before, err
+	}
+
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return before, before, err
@@ -289,6 +295,37 @@ func sameUUIDPtr(a, b *uuid.UUID) bool {
 		return a == b
 	}
 	return *a == *b
+}
+
+// resolveLocation validates a floor/room pair against officeID and returns the
+// authoritative floor id. When a room is given, the floor is FORCED to the room's
+// own floor (guaranteeing floor/room consistency regardless of the client-supplied
+// floor); a lone floor is checked to belong to officeID. A nil floor+room (e.g. an
+// intangible asset) is always valid. Returns ErrInvalidRef when the room/floor does
+// not exist or does not belong to officeID. The caller passes a tx-bound *sqlc.Queries
+// when running inside a transaction (create executor).
+func (s *Service) resolveLocation(ctx context.Context, q *sqlc.Queries, officeID uuid.UUID, floorID, roomID *uuid.UUID) (*uuid.UUID, error) {
+	if roomID != nil {
+		rf, err := q.GetRoomFloorOffice(ctx, *roomID)
+		if err != nil {
+			return nil, ErrInvalidRef
+		}
+		if rf.OfficeID != officeID {
+			return nil, ErrInvalidRef
+		}
+		f := rf.FloorID
+		return &f, nil
+	}
+	if floorID != nil {
+		fo, err := q.GetFloorOffice(ctx, *floorID)
+		if err != nil {
+			return nil, ErrInvalidRef
+		}
+		if fo != officeID {
+			return nil, ErrInvalidRef
+		}
+	}
+	return floorID, nil
 }
 
 // ListLocationHistory returns an asset's location-change history, newest first.

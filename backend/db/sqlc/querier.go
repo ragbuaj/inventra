@@ -185,6 +185,7 @@ type Querier interface {
 	GetEmployee(ctx context.Context, arg GetEmployeeParams) (MasterdataEmployee, error)
 	GetEmployeeByCode(ctx context.Context, code string) (MasterdataEmployee, error)
 	GetFloor(ctx context.Context, arg GetFloorParams) (MasterdataFloor, error)
+	GetFloorOffice(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
 	GetImportJob(ctx context.Context, id uuid.UUID) (ImportImportJob, error)
 	GetImportJobForUpdate(ctx context.Context, id uuid.UUID) (ImportImportJob, error)
 	GetMaintRecordEnriched(ctx context.Context, arg GetMaintRecordEnrichedParams) (GetMaintRecordEnrichedRow, error)
@@ -221,6 +222,9 @@ type Querier interface {
 	// Identity module queries. Schema-qualified (see DATABASE.md §1.2).
 	GetRoleByCode(ctx context.Context, code string) (IdentityRole, error)
 	GetRoom(ctx context.Context, arg GetRoomParams) (MasterdataRoom, error)
+	// Resolve a room's floor and the office that floor belongs to (for location
+	// consistency validation on asset create/update).
+	GetRoomFloorOffice(ctx context.Context, id uuid.UUID) (GetRoomFloorOfficeRow, error)
 	// Scoped: caller must have the from- or to-office in scope. Plain (unenriched)
 	// row — used internally by Ship/Receive/RejectReceive, which only need the
 	// base columns to validate state + perform the update.
@@ -472,6 +476,10 @@ type Querier interface {
 	SessionKpis(ctx context.Context, sessionID uuid.UUID) (SessionKpisRow, error)
 	SetAssetDocumentObjectKey(ctx context.Context, arg SetAssetDocumentObjectKeyParams) (AssetAssetDocument, error)
 	// Relocate an asset to a new office/room (used by the transfer receive step).
+	// floor_id is DERIVED from the destination room's floor (NULL when no room) so a
+	// relocated asset never keeps the origin office's floor. A tangible asset moved
+	// without a destination room hits chk_assets_tangible_location (correct: a physical
+	// asset must have a destination location).
 	SetAssetOffice(ctx context.Context, arg SetAssetOfficeParams) (AssetAsset, error)
 	SetAssetStatus(ctx context.Context, arg SetAssetStatusParams) (AssetAsset, error)
 	SetAssetValuationExclusion(ctx context.Context, arg SetAssetValuationExclusionParams) (AssetAsset, error)

@@ -91,6 +91,7 @@ LEFT JOIN masterdata.rooms r ON r.id = h.room_id
 LEFT JOIN identity.users u ON u.id = h.moved_by_id
 WHERE h.asset_id = $1 AND h.deleted_at IS NULL
 ORDER BY h.moved_at DESC, h.created_at DESC
+LIMIT 200
 `
 
 type ListAssetLocationHistoryRow struct {
@@ -154,6 +155,7 @@ JOIN masterdata.employees e ON e.id = h.pic_employee_id
 LEFT JOIN identity.users u ON u.id = h.assigned_by_id
 WHERE h.asset_id = $1 AND h.deleted_at IS NULL
 ORDER BY h.assigned_at DESC, h.created_at DESC
+LIMIT 200
 `
 
 type ListAssetPICHistoryRow struct {

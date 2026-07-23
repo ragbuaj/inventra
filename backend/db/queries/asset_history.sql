@@ -18,7 +18,8 @@ LEFT JOIN masterdata.floors f ON f.id = h.floor_id
 LEFT JOIN masterdata.rooms r ON r.id = h.room_id
 LEFT JOIN identity.users u ON u.id = h.moved_by_id
 WHERE h.asset_id = $1 AND h.deleted_at IS NULL
-ORDER BY h.moved_at DESC, h.created_at DESC;
+ORDER BY h.moved_at DESC, h.created_at DESC
+LIMIT 200;
 
 -- name: CloseActivePIC :exec
 UPDATE asset.asset_pic_history SET released_at = now()
@@ -36,4 +37,5 @@ FROM asset.asset_pic_history h
 JOIN masterdata.employees e ON e.id = h.pic_employee_id
 LEFT JOIN identity.users u ON u.id = h.assigned_by_id
 WHERE h.asset_id = $1 AND h.deleted_at IS NULL
-ORDER BY h.assigned_at DESC, h.created_at DESC;
+ORDER BY h.assigned_at DESC, h.created_at DESC
+LIMIT 200;

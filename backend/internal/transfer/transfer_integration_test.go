@@ -283,6 +283,20 @@ func TestTransfer_HappyPath_SubmitApproveShipReceive(t *testing.T) {
 	assert.Equal(t, h.toOffice, movedAsset.OfficeID)
 	require.NotNil(t, movedAsset.RoomID, "asset room_id must be relocated on receive")
 	assert.Equal(t, destRoomID, *movedAsset.RoomID)
+	// floor_id must be DERIVED from the destination room (never keep the origin floor).
+	require.NotNil(t, movedAsset.FloorID, "asset floor_id must be derived from the destination room")
+	assert.Equal(t, destFloor, *movedAsset.FloorID)
+
+	// A location-history row (source=transfer) records the actual post-move state.
+	var locSource string
+	var locFloor *uuid.UUID
+	require.NoError(t, h.pool.QueryRow(ctx,
+		`SELECT source, floor_id FROM asset.asset_location_history
+		 WHERE asset_id = $1 AND source = 'transfer' ORDER BY moved_at DESC LIMIT 1`,
+		assetID).Scan(&locSource, &locFloor))
+	assert.Equal(t, "transfer", locSource)
+	require.NotNil(t, locFloor)
+	assert.Equal(t, destFloor, *locFloor)
 }
 
 // TestTransfer_Reject_NoTransferRow verifies that rejecting the final step
