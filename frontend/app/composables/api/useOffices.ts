@@ -59,6 +59,17 @@ export function useOffices() {
     if (input.address) body.address = input.address
     if (input.latitude != null) body.latitude = input.latitude
     if (input.longitude != null) body.longitude = input.longitude
+    // Legacy-parity Fase 5 fields. Empty optionals are omitted so they stay null;
+    // floor_count uses a null check because 0 is a valid value.
+    if (input.ownership_status) body.ownership_status = input.ownership_status
+    if (input.office_class_id) body.office_class_id = input.office_class_id
+    if (input.building_classification_id) body.building_classification_id = input.building_classification_id
+    if (input.floor_count != null) body.floor_count = input.floor_count
+    if (input.building_area) body.building_area = input.building_area
+    if (input.office_kind) body.office_kind = input.office_kind
+    if (input.description) body.description = input.description
+    if (input.head_employee_id) body.head_employee_id = input.head_employee_id
+    if (input.contact) body.contact = input.contact
     return body
   }
 
