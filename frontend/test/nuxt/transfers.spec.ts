@@ -16,12 +16,20 @@ const OFFICE_TYPES: ReferenceRow[] = [
   { id: 'ot-cabang', name: 'Kantor Cabang', is_active: true, tier: 'office' }
 ]
 
+// Legacy-parity Fase 5 office columns — always present on the API response but
+// irrelevant to these tests, so they are defaulted once and spread into each row.
+const OFFICE_LP = {
+  ownership_status: null, office_class_id: null, building_classification_id: null,
+  floor_count: null, building_area: null, office_kind: 'konvensional',
+  description: null, head_employee_id: null, contact: null
+}
+
 const OFFICES: Office[] = [
-  { id: 'w1', parent_id: null, office_type_id: 'ot-wilayah', province_id: null, city_id: null, name: 'Kanwil III Jakarta', code: 'KW3', address: null, is_active: true, latitude: null, longitude: null, created_at: null, updated_at: null },
-  { id: 'w2', parent_id: null, office_type_id: 'ot-wilayah', province_id: null, city_id: null, name: 'Kanwil IV Bandung', code: 'KW4', address: null, is_active: true, latitude: null, longitude: null, created_at: null, updated_at: null },
-  { id: 'o-mine', parent_id: 'w1', office_type_id: 'ot-cabang', province_id: null, city_id: null, name: 'Kantor Cabang Jakarta Selatan', code: 'JKS', address: null, is_active: true, latitude: null, longitude: null, created_at: null, updated_at: null },
-  { id: 'o-same', parent_id: 'w1', office_type_id: 'ot-cabang', province_id: null, city_id: null, name: 'Kantor Cabang Jakarta Pusat', code: 'JKP', address: null, is_active: true, latitude: null, longitude: null, created_at: null, updated_at: null },
-  { id: 'o-diff', parent_id: 'w2', office_type_id: 'ot-cabang', province_id: null, city_id: null, name: 'Kantor Cabang Bandung', code: 'BDG', address: null, is_active: true, latitude: null, longitude: null, created_at: null, updated_at: null }
+  { id: 'w1', parent_id: null, office_type_id: 'ot-wilayah', province_id: null, city_id: null, name: 'Kanwil III Jakarta', code: 'KW3', address: null, is_active: true, latitude: null, longitude: null, created_at: null, updated_at: null, ...OFFICE_LP },
+  { id: 'w2', parent_id: null, office_type_id: 'ot-wilayah', province_id: null, city_id: null, name: 'Kanwil IV Bandung', code: 'KW4', address: null, is_active: true, latitude: null, longitude: null, created_at: null, updated_at: null, ...OFFICE_LP },
+  { id: 'o-mine', parent_id: 'w1', office_type_id: 'ot-cabang', province_id: null, city_id: null, name: 'Kantor Cabang Jakarta Selatan', code: 'JKS', address: null, is_active: true, latitude: null, longitude: null, created_at: null, updated_at: null, ...OFFICE_LP },
+  { id: 'o-same', parent_id: 'w1', office_type_id: 'ot-cabang', province_id: null, city_id: null, name: 'Kantor Cabang Jakarta Pusat', code: 'JKP', address: null, is_active: true, latitude: null, longitude: null, created_at: null, updated_at: null, ...OFFICE_LP },
+  { id: 'o-diff', parent_id: 'w2', office_type_id: 'ot-cabang', province_id: null, city_id: null, name: 'Kantor Cabang Bandung', code: 'BDG', address: null, is_active: true, latitude: null, longitude: null, created_at: null, updated_at: null, ...OFFICE_LP }
 ]
 
 const ASSET: Asset = {

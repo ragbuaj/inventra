@@ -30,8 +30,15 @@ const CATEGORIES: Category[] = [
   }
 ]
 
+// Legacy-parity Fase 5 office columns — present on the API response but irrelevant here.
+const OFFICE_LP = {
+  ownership_status: null, office_class_id: null, building_classification_id: null,
+  floor_count: null, building_area: null, office_kind: 'konvensional',
+  description: null, head_employee_id: null, contact: null
+}
+
 const OFFICES: Office[] = [
-  { id: 'o1', parent_id: null, office_type_id: 'ot1', province_id: null, city_id: null, name: 'Kantor Cabang Jakarta Selatan', code: 'JKS', address: null, is_active: true, latitude: null, longitude: null, created_at: null, updated_at: null }
+  { id: 'o1', parent_id: null, office_type_id: 'ot1', province_id: null, city_id: null, name: 'Kantor Cabang Jakarta Selatan', code: 'JKS', address: null, is_active: true, latitude: null, longitude: null, created_at: null, updated_at: null, ...OFFICE_LP }
 ]
 
 function scheduleRow(over: Partial<ScheduleRow> = {}): ScheduleRow {

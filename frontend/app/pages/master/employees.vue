@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Employee, RowAction, TableSorting } from '~/types'
+import type { Employee, ReferenceRow, RowAction, TableSorting } from '~/types'
 import type { EmployeeInput } from '~/composables/api/useEmployees'
 
 definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
@@ -272,7 +272,10 @@ watch(offset, () => {
 
 onMounted(() => {
   refresh()
-  loadFkData()
+  // Non-fatal: the FK lists only populate filter/form dropdowns. An unhandled
+  // rejection here would surface as a page-level error and block the whole
+  // screen, so degrade to empty dropdowns instead.
+  loadFkData().catch(() => {})
 })
 
 onUnmounted(() => {

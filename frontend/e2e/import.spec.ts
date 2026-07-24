@@ -328,6 +328,9 @@ test.describe('Bulk Import — real backend (asset + employee e2e)', () => {
     // fresh (CI) DB, best-effort on an accumulated local dev DB.
     await page.goto('/master/employees')
     await expect(page.getByRole('heading', { name: 'Pegawai', exact: true })).toBeVisible({ timeout: 10_000 })
+    // The page loads four FK lists after mount (legacy-parity Fase 6); the filter
+    // bar re-renders as each lands and detaches the search input mid-fill. Settle first.
+    await page.waitForLoadState('networkidle')
     await page.getByPlaceholder('Cari nama atau NIP…', { exact: true }).fill(nameA)
     await expect(page.getByText(nameA, { exact: true })).toBeVisible({ timeout: 10_000 })
   })

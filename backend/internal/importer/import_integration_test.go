@@ -189,6 +189,64 @@ func seedOfficeSimple(t *testing.T, pool *pgxpool.Pool, code string) uuid.UUID {
 	return id
 }
 
+// TestImport_OfficeExecute_CreatesOfficeWithDefaultKind drives an office import
+// end to end (validate → confirm → execute; the office target needs no approval)
+// and asserts the row is actually created. This guards the class of bug where a
+// NOT NULL column added to masterdata.offices (legacy-parity Fase 5's office_kind)
+// is populated by the service but not by the importer's direct CreateOffice call —
+// which fails the enum cast at execute time and was previously only caught by e2e.
+func TestImport_OfficeExecute_CreatesOfficeWithDefaultKind(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+
+	// An office type the import's `tipe` column can resolve by name.
+	var typeID uuid.UUID
+	require.NoError(t, h.pool.QueryRow(ctx,
+		`INSERT INTO masterdata.office_types (name) VALUES ($1) RETURNING id`,
+		"Tipe OFI").Scan(&typeID))
+
+	roleID := seedGlobalMakerRole(t, h.pool, "masterdata.office.manage")
+	makerID := seedUser(t, h.pool, roleID, nil, "maker.ofi@test.local")
+
+	header := []string{"kode", "nama", "tipe", "induk", "aktif"}
+	csvBytes := buildCSV(t, header, [][]string{
+		{"OFI1", "Kantor Import Satu", "Tipe OFI", "", "true"},
+	})
+
+	job, err := h.importSvc.CreateJob(ctx, "office", "csv", "offices.csv", "text/csv", csvBytes, makerID)
+	require.NoError(t, err)
+
+	// validate
+	did, err := h.worker.Tick(ctx)
+	require.NoError(t, err)
+	assert.True(t, did)
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	require.Equal(t, sqlc.SharedImportStatusValidated, job.Status)
+	assert.EqualValues(t, 1, job.SuccessRows)
+
+	// confirm + execute (no approval for the office target)
+	_, err = h.importSvc.ConfirmJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	did, err = h.worker.Tick(ctx)
+	require.NoError(t, err)
+	assert.True(t, did)
+
+	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedImportStatusCompleted, job.Status)
+	assert.EqualValues(t, 1, job.SuccessRows)
+	assert.EqualValues(t, 0, job.FailedRows)
+
+	// The office row exists and carries the NOT NULL office_kind default.
+	var name, kind string
+	require.NoError(t, h.pool.QueryRow(ctx,
+		`SELECT name, office_kind::text FROM masterdata.offices WHERE code = $1 AND deleted_at IS NULL`,
+		"OFI1").Scan(&name, &kind))
+	assert.Equal(t, "Kantor Import Satu", name)
+	assert.Equal(t, "konvensional", kind, "importer must supply the office_kind default")
+}
+
 // seedDepartment inserts a masterdata.departments row and returns its id.
 func seedDepartment(t *testing.T, pool *pgxpool.Pool, name, code string) uuid.UUID {
 	t.Helper()

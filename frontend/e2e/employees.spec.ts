@@ -61,6 +61,12 @@ test.describe('Master Data Pegawai — create form render', () => {
       page.getByRole('heading', { name: 'Pegawai', exact: true })
     ).toBeVisible({ timeout: 10_000 })
 
+    // The page loads four FK lists (departments/positions/companies/executor
+    // divisions — legacy-parity Fase 6) after mount; the filter bar and header
+    // re-render as each lands, which detaches elements mid-click. Wait for those
+    // requests to settle before interacting.
+    await page.waitForLoadState('networkidle')
+
     // Click the Add button to open the slideover.
     await page.getByRole('button', { name: 'Tambah Pegawai', exact: true }).click()
 
@@ -85,11 +91,23 @@ test.describe('Master Data Pegawai — create form render', () => {
       dialog.getByTestId('office-picker-input')
     ).toBeVisible()
 
-    // Department and position pickers (also AsyncSearchPicker).
+    // Department is a USelect filtered by the chosen office (legacy-parity Fase 6:
+    // departments are per-office), no longer an AsyncSearchPicker. It renders
+    // disabled until an office is picked, so assert presence rather than enabled.
     await expect(
-      dialog.getByTestId('employee-department-picker-input')
+      dialog.getByTestId('employee-department')
     ).toBeVisible()
 
+    // Company + executor division (legacy-parity Fase 6) are USelects too.
+    await expect(
+      dialog.getByTestId('employee-company')
+    ).toBeVisible()
+
+    await expect(
+      dialog.getByTestId('employee-executor-division')
+    ).toBeVisible()
+
+    // Position remains an AsyncSearchPicker.
     await expect(
       dialog.getByTestId('employee-position-picker-input')
     ).toBeVisible()
