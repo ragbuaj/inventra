@@ -12,8 +12,6 @@ const localePath = useLocalePath()
 const { open: confirm } = useConfirm()
 const api = useReference()
 const officePicker = useOfficePicker()
-const floorsApi = useFloors()
-const officesApi = useOffices()
 
 const resourceKey = ref<ReferenceKey>(referenceResources[0]!.key)
 const descriptor = computed<ReferenceDescriptor>(() =>
@@ -95,68 +93,18 @@ function tierLabel(value: unknown): string {
   return opt ? t(opt.labelKey) : '—'
 }
 
-// ---------------------------------------------------------------------------
-// Department-only wiring (resources with an office/floor field): a floor picker
-// filtered to the selected office, plus office/floor id->name table resolution.
-// ---------------------------------------------------------------------------
-const hasOfficeField = computed(() => descriptor.value.fields.some(f => f.type === 'office'))
-const hasFloorField = computed(() => descriptor.value.fields.some(f => f.type === 'floor'))
-
-// Floor options for the form, filtered to the currently selected office's floors.
-const NO_FLOOR = '__nofloor__'
-const floorFormOptions = ref<{ label: string, value: string }[]>([])
-async function loadFloorFormOptions(officeId: string) {
-  if (!officeId) {
-    floorFormOptions.value = []
-    return
-  }
-  try {
-    const fs = await floorsApi.listByOffice(officeId)
-    floorFormOptions.value = fs.map(f => ({ label: f.name, value: f.id }))
-  } catch {
-    floorFormOptions.value = []
-  }
-}
-// USelect forbids an empty-string item value; a disabled "no floor" sentinel keeps
-// the dropdown from being a silent empty popover when the office has no floors yet.
-const floorFormItems = computed(() => {
-  if (!form.office_id) return []
-  if (floorFormOptions.value.length === 0) {
-    return [{ label: t('masterdata.reference.noFloor'), value: NO_FLOOR, disabled: true }]
-  }
-  return floorFormOptions.value
-})
-
-// Office field change resets the dependent floor and reloads its options.
-async function onOfficeFieldChange(fieldKey: string, val: string | null) {
-  form[fieldKey] = val ?? ''
-  if (hasFloorField.value) {
-    form.floor_id = ''
-    await loadFloorFormOptions(String(val ?? ''))
-  }
-}
-
-// id -> name maps for the office/floor table columns. Loaded non-fatally: a
-// failure just leaves the cell showing a dash.
-const officeNames = ref<Record<string, string>>({})
-const floorNames = ref<Record<string, string>>({})
-function currentRowOfficeIds(): string[] {
-  return [...new Set(rows.value.map(r => (r as Record<string, unknown>).office_id).filter(Boolean) as string[])]
-}
-async function loadDeptNameMaps() {
-  if (!hasOfficeField.value) return
-  try {
-    const offices = await officesApi.tree()
-    officeNames.value = Object.fromEntries(offices.map(o => [o.id, o.name]))
-  } catch { /* leave office names unresolved */ }
-  if (!hasFloorField.value) return
-  try {
-    const entries = await Promise.all(
-      currentRowOfficeIds().map(async id => (await floorsApi.listByOffice(id)).map(f => [f.id, f.name] as const))
-    )
-    floorNames.value = Object.fromEntries(entries.flat())
-  } catch { /* leave floor names unresolved */ }
-}
+// Department-only field wiring (floor picker filtered per office + office/floor
+// id->name table resolution). Kept out of this generic engine — see the composable.
+const {
+  hasFloorField,
+  floorFormItems,
+  loadFloorFormOptions,
+  onOfficeFieldChange,
+  onFloorFieldChange,
+  officeNames,
+  floorNames,
+  loadDeptNameMaps
+} = useDepartmentFields({ descriptor, form, rows })
 
 async function refresh() {
   loading.value = true
@@ -201,7 +149,7 @@ function resetForm() {
 function openCreate() {
   editingId.value = undefined
   resetForm()
-  floorFormOptions.value = []
+  void loadFloorFormOptions('') // clear any floor options from a prior edit
   formOpen.value = true
 }
 
@@ -496,7 +444,7 @@ onMounted(async () => {
             :placeholder="form.office_id ? t('masterdata.reference.selectFloor') : t('masterdata.reference.selectOfficeFirst')"
             :data-testid="`ref-field-${field.key}`"
             class="w-full"
-            @update:model-value="form[field.key] = ($event === NO_FLOOR ? '' : $event)"
+            @update:model-value="onFloorFieldChange(field.key, $event)"
           />
           <USelect
             v-else-if="field.type === 'select'"
