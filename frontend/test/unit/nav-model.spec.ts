@@ -101,14 +101,14 @@ const EXPECTED_ROUTES: Record<string, string[]> = {
     '/stock-opname', '/transfers', '/disposals', '/depreciation', '/maintenance',
     '/approval', '/reports',
     '/master/offices', '/master/employees', '/master/categories', '/master/map',
-    '/master/reference', '/master/import',
+    '/master/reference',
     '/settings/users', '/settings/rbac', '/settings/data-scope',
     '/settings/field-permission', '/settings/audit'
   ],
   kepala_kanwil: [
     '/', '/notifications', '/assets', '/assets/label', '/peminjaman', '/assignment', '/stock-opname',
     '/transfers', '/disposals', '/maintenance', '/approval', '/reports',
-    '/master/offices', '/master/employees', '/master/map', '/master/import',
+    '/master/offices', '/master/employees', '/master/map',
     '/settings/audit'
   ],
   kepala_unit: [
@@ -140,10 +140,12 @@ describe('appNav — structure', () => {
     expect(appNav[0]!.items).toHaveLength(12)
   })
 
-  it('Administrasi has 2 parents: Master Data (6 children) and Pengaturan (5 children)', () => {
+  it('Administrasi has 2 parents: Master Data (5 children) and Pengaturan (5 children)', () => {
     const master = appNav[1]!.items.find(i => i.labelKey === 'nav.masterData')
     const settings = appNav[1]!.items.find(i => i.labelKey === 'nav.settings')
-    expect(master?.children).toHaveLength(6)
+    // Bulk "Impor Data" is intentionally not a sidebar entry — the import flow is
+    // reached from each master screen's own Import button.
+    expect(master?.children).toHaveLength(5)
     expect(settings?.children).toHaveLength(5)
   })
 
@@ -178,10 +180,8 @@ describe('appNav — key per-item permissions match the spec map', () => {
     expect(byRoute.get('/maintenance')?.permission).toEqual(['maintenance.view', 'request.create'])
   })
 
-  it('Master > Impor is an OR of the three masterdata manage keys', () => {
-    expect(byRoute.get('/master/import')?.permission).toEqual([
-      'masterdata.employee.manage', 'masterdata.office.manage', 'masterdata.global.manage'
-    ])
+  it('Master Data has no bulk-import leaf (import is reached per master screen)', () => {
+    expect(byRoute.get('/master/import')).toBeUndefined()
   })
 
   it('Penugasan (/assignment) is gated by assignment.view, Peminjaman by request.create', () => {

@@ -62,14 +62,14 @@ const EXPECTED_ROUTES: Record<string, string[]> = {
     '/stock-opname', '/transfers', '/disposals', '/depreciation', '/maintenance',
     '/approval', '/reports',
     '/master/offices', '/master/employees', '/master/categories', '/master/map',
-    '/master/reference', '/master/import',
+    '/master/reference',
     '/settings/users', '/settings/rbac', '/settings/data-scope',
     '/settings/field-permission', '/settings/audit'
   ],
   kepala_kanwil: [
     '/', '/notifications', '/assets', '/assets/label', '/peminjaman', '/assignment', '/stock-opname',
     '/transfers', '/disposals', '/maintenance', '/approval', '/reports',
-    '/master/offices', '/master/employees', '/master/map', '/master/import',
+    '/master/offices', '/master/employees', '/master/map',
     '/settings/audit'
   ],
   kepala_unit: [
@@ -129,9 +129,10 @@ describe('AppSidebar — group + label rendering', () => {
     expect(html).toContain('Administrasi')
     expect(html).toContain('Master Data')
     expect(html).toContain('Pengaturan')
-    // The newly surfaced Master > Impor label resolves (no raw key fallback)
-    expect(html).toContain('Impor Data')
-    expect(html).not.toContain('nav.masterImport')
+    // Bulk "Impor Data" is intentionally not a sidebar entry — the import flow is
+    // reached from each master screen's own Import button, so it renders nowhere here.
+    expect(html).not.toContain('Impor Data')
+    expect(html).not.toContain('/master/import')
   })
 
   it('kepala_kanwil sees ops items it owns but not the admin-only settings', async () => {

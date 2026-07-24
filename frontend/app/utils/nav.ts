@@ -134,14 +134,11 @@ export const appNav: NavGroup[] = [
             labelKey: 'nav.reference',
             to: '/master/reference',
             permission: 'masterdata.global.manage'
-          },
-          {
-            labelKey: 'nav.masterImport',
-            to: '/master/import',
-            permission: ['masterdata.employee.manage', 'masterdata.office.manage', 'masterdata.global.manage'],
-            // Bulk CSV import is a desktop workflow; hide the menu on mobile.
-            desktopOnly: true
           }
+          // NOTE: the bulk "Impor Data" entry is intentionally omitted from the
+          // sidebar — the import flow is entered from each master screen's own
+          // Import button (offices, employees, reference), which deep-links to
+          // /master/import?target=... . The page itself stays reachable.
         ]
       },
       {
