@@ -46,6 +46,8 @@ const officeTypeMap = computed(() => new Map(officeTypeRows.value.map(r => [r.id
 const provinceMap = computed(() => new Map(provinceRows.value.map(r => [r.id, r.name])))
 const cityMap = computed(() => new Map(cityRows.value.map(r => [r.id, r.name])))
 const cityById = computed(() => new Map(cityRows.value.map(r => [r.id, r])))
+const officeClassMap = computed(() => new Map(officeClassRows.value.map(r => [r.id, r.name])))
+const buildingClassMap = computed(() => new Map(buildingClassRows.value.map(r => [r.id, r.name])))
 
 function toTier(raw: unknown): OfficeTier {
   return raw === 'pusat' || raw === 'wilayah' ? raw : 'office'
@@ -266,6 +268,52 @@ const parentName = computed(() => {
 const selectedTier = computed<OfficeTier>(() => selected.value ? (officeTypeTier.value.get(selected.value.office_type_id) ?? 'office') : 'office')
 const selectedMeta = computed(() => tierMeta[selectedTier.value])
 const tierColor: Record<OfficeTier, string> = { pusat: 'primary', wilayah: 'info', office: 'warning' }
+
+// Detail-view display values for the Fase 5 legacy-parity fields.
+const DASH = '—'
+const detailOwnership = computed(() => {
+  const v = selected.value?.ownership_status
+  return v ? t(`masterdata.offices.ownership.${v}`) : DASH
+})
+const detailKind = computed(() => {
+  const v = selected.value?.office_kind
+  return v ? t(`masterdata.offices.kind.${v}`) : DASH
+})
+const detailOfficeClass = computed(() => {
+  const id = selected.value?.office_class_id
+  return id ? (officeClassMap.value.get(id) ?? id) : DASH
+})
+const detailBuildingClass = computed(() => {
+  const id = selected.value?.building_classification_id
+  return id ? (buildingClassMap.value.get(id) ?? id) : DASH
+})
+const detailFloorCount = computed(() => {
+  const n = selected.value?.floor_count
+  return n == null ? DASH : String(n)
+})
+const detailBuildingArea = computed(() => {
+  const v = selected.value?.building_area
+  return v ? t('masterdata.offices.areaValue', { n: v }) : DASH
+})
+const detailContact = computed(() => selected.value?.contact || DASH)
+const detailDescription = computed(() => selected.value?.description || DASH)
+const detailCoord = computed(() => {
+  const lat = selected.value?.latitude
+  const lng = selected.value?.longitude
+  return lat != null && lng != null ? `${lat}, ${lng}` : DASH
+})
+
+// Head-of-office name is resolved lazily from its id whenever the selection changes.
+const headEmployeeName = ref<string>()
+watch(() => selected.value?.head_employee_id, async (id) => {
+  if (!id) {
+    headEmployeeName.value = undefined
+    return
+  }
+  const item = await headPicker.resolveFn(id)
+  headEmployeeName.value = item?.label
+}, { immediate: true })
+const detailHead = computed(() => headEmployeeName.value || DASH)
 
 async function refresh() {
   loading.value = true
@@ -733,6 +781,28 @@ onMounted(async () => {
             </div>
             <div>
               <div class="text-[12px] text-muted mb-[3px]">
+                {{ t('masterdata.offices.fields.officeKind') }}
+              </div>
+              <div
+                class="text-[14px] font-medium"
+                data-testid="office-detail-kind"
+              >
+                {{ detailKind }}
+              </div>
+            </div>
+            <div>
+              <div class="text-[12px] text-muted mb-[3px]">
+                {{ t('masterdata.offices.fields.ownershipStatus') }}
+              </div>
+              <div
+                class="text-[14px] font-medium"
+                data-testid="office-detail-ownership"
+              >
+                {{ detailOwnership }}
+              </div>
+            </div>
+            <div>
+              <div class="text-[12px] text-muted mb-[3px]">
                 {{ t('masterdata.offices.fields.provinsi') }}
               </div>
               <div class="text-[14px] font-medium">
@@ -747,12 +817,79 @@ onMounted(async () => {
                 {{ cityName(selected.city_id) }}
               </div>
             </div>
-            <div class="col-span-2">
+            <div>
+              <div class="text-[12px] text-muted mb-[3px]">
+                {{ t('masterdata.offices.fields.officeClass') }}
+              </div>
+              <div class="text-[14px] font-medium">
+                {{ detailOfficeClass }}
+              </div>
+            </div>
+            <div>
+              <div class="text-[12px] text-muted mb-[3px]">
+                {{ t('masterdata.offices.fields.buildingClass') }}
+              </div>
+              <div class="text-[14px] font-medium">
+                {{ detailBuildingClass }}
+              </div>
+            </div>
+            <div>
+              <div class="text-[12px] text-muted mb-[3px]">
+                {{ t('masterdata.offices.fields.floorCount') }}
+              </div>
+              <div class="text-[14px] font-medium">
+                {{ detailFloorCount }}
+              </div>
+            </div>
+            <div>
+              <div class="text-[12px] text-muted mb-[3px]">
+                {{ t('masterdata.offices.fields.buildingArea') }}
+              </div>
+              <div class="text-[14px] font-medium">
+                {{ detailBuildingArea }}
+              </div>
+            </div>
+            <div>
+              <div class="text-[12px] text-muted mb-[3px]">
+                {{ t('masterdata.offices.fields.headEmployee') }}
+              </div>
+              <div
+                class="text-[14px] font-medium"
+                data-testid="office-detail-head"
+              >
+                {{ detailHead }}
+              </div>
+            </div>
+            <div>
+              <div class="text-[12px] text-muted mb-[3px]">
+                {{ t('masterdata.offices.fields.contact') }}
+              </div>
+              <div class="text-[14px] font-medium">
+                {{ detailContact }}
+              </div>
+            </div>
+            <div class="sm:col-span-2">
+              <div class="text-[12px] text-muted mb-[3px]">
+                {{ t('masterdata.offices.coordLabel') }}
+              </div>
+              <div class="text-[14px] font-medium font-mono">
+                {{ detailCoord }}
+              </div>
+            </div>
+            <div class="sm:col-span-2">
               <div class="text-[12px] text-muted mb-[3px]">
                 {{ t('masterdata.offices.fields.alamat') }}
               </div>
               <div class="text-[14px] font-medium">
                 {{ selected.address || '—' }}
+              </div>
+            </div>
+            <div class="sm:col-span-2">
+              <div class="text-[12px] text-muted mb-[3px]">
+                {{ t('masterdata.offices.fields.description') }}
+              </div>
+              <div class="text-[14px] font-medium whitespace-pre-line">
+                {{ detailDescription }}
               </div>
             </div>
           </div>

@@ -119,6 +119,12 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >   build/vet + Spectral 0-error + **integrasi Docker** (office pkg + `TestOffice_LegacyParityFields_RoundTrip`)
 >   hijau; frontend eslint + JSON hijau (typecheck/vitest/build via CI). Follow-up: test frontend form
 >   Kantor (mount) belum ditambah.
+> - **View detail Kantor menampilkan seluruh field — SELESAI.** Info card di `master/offices.vue`
+>   sebelumnya hanya 5 field (tipe, induk, provinsi, kota, alamat); kini menampilkan semua kolom Fase 5:
+>   tipe kantor, status kepemilikan, kelas kantor, klasifikasi gedung, jumlah lantai, luas bangunan,
+>   kepala kantor (resolve nama via picker), kontak, koordinat, alamat, deskripsi. *Deviasi mockup
+>   `Master Data Kantor.dc.html` atas permintaan eksplisit user* (mockup dibuat sebelum kolom Fase 5 ada).
+>   i18n baru: `coordLabel`, `areaValue`. Gate: eslint + JSON hijau (typecheck/vitest/build via CI).
 > - **Fase 6 (pegawai + divisi per-kantor) — SELESAI.** Migrasi `000044`: employees +`company_id`
 >   +`executor_division_id`; departments +`office_id` (NULLABLE — wajib di app layer, DB NOT NULL
 >   menyusul) + unik code jadi per-kantor. Backend: CreateEmployee named-args +2; validasi
