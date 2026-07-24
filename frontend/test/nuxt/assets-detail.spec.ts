@@ -804,8 +804,17 @@ describe('Asset Detail page — Location & PIC history tabs', () => {
 
   function historyHandler(): RequestHandler {
     return (path: string, opts?: Record<string, unknown>) => {
-      if (path.match(/\/assets\/[^/]+\/location-history$/)) return { data: LOC_HISTORY }
-      if (path.match(/\/assets\/[^/]+\/pic-history$/)) return { data: PIC_HISTORY }
+      // Record here too: the history routes return before delegating to
+      // defaultHandler (which is what normally pushes onto requestedPaths), so
+      // without this the lazy-load assertions below never see these paths.
+      if (path.match(/\/assets\/[^/]+\/location-history$/)) {
+        requestedPaths.push(path)
+        return { data: LOC_HISTORY }
+      }
+      if (path.match(/\/assets\/[^/]+\/pic-history$/)) {
+        requestedPaths.push(path)
+        return { data: PIC_HISTORY }
+      }
       return defaultHandler(FULL_ASSET)(path, opts)
     }
   }

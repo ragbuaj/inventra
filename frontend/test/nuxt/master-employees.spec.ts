@@ -117,6 +117,9 @@ function defaultHandler(path: string, opts?: Record<string, unknown>): unknown {
   if (path.startsWith('/offices')) return { data: OFFICES }
   if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
   if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
+  // Legacy-parity Fase 6: the form also loads company + executor-division masters.
+  if (path.startsWith('/companies')) return makeRefResponse([])
+  if (path.startsWith('/executor-divisions')) return makeRefResponse([])
   if (path.startsWith('/employees') && (!opts?.method || opts.method === 'GET')) {
     return makeEmployeesResponse()
   }

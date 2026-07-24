@@ -42,11 +42,15 @@ export function useAssetRequests() {
     // Empty/null purchase_cost normalizes to "0" so the amount math never sees a
     // blank string (BigInt("") throws).
     const cost = input.purchase_cost?.trim() || '0'
+    // A single unit needs no arithmetic — pass the cost through verbatim so the
+    // decimal string the user typed ("18500000.00") reaches the server unchanged
+    // (the multiply helper would normalize away its trailing zeros).
+    const amount = quantity === 1 ? cost : multiplyDecimalByInt(cost, quantity)
     return request<SubmittedRequest>('/requests', {
       method: 'POST',
       body: {
         type: 'asset_create',
-        amount: multiplyDecimalByInt(cost, quantity),
+        amount,
         office_id: input.office_id,
         payload: { ...input, quantity }
       }

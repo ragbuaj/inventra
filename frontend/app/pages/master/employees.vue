@@ -62,18 +62,17 @@ const positionMap = computed(() => new Map(positionOptions.value.map(o => [o.val
 const deptRows = ref<ReferenceRow[]>([])
 const companyRows = ref<ReferenceRow[]>([])
 const execDivRows = ref<ReferenceRow[]>([])
+// USelect forbids an item whose value is the empty string (Reka UI throws
+// "A <SelectItem /> must have a value prop that is not an empty string"), so the
+// "no selection" entry uses a sentinel that the writable models below translate
+// back to '' — the same pattern as the office form.
+const NONE = '__none__'
 const deptItemsForOffice = computed(() => [
-  { value: '', label: t('masterdata.employees.selectPlaceholder') },
+  { value: NONE, label: t('masterdata.employees.selectPlaceholder') },
   ...deptRows.value.filter(d => !d.office_id || d.office_id === form.office_id).map(d => ({ value: d.id, label: d.name }))
 ])
-const companyItems = computed(() => [{ value: '', label: t('masterdata.employees.selectPlaceholder') }, ...companyRows.value.map(c => ({ value: c.id, label: c.name }))])
-const execDivItems = computed(() => [{ value: '', label: t('masterdata.employees.selectPlaceholder') }, ...execDivRows.value.map(e => ({ value: e.id, label: e.name }))])
-// Clear a chosen department when it no longer belongs to the selected office.
-watch(() => form.office_id, () => {
-  if (form.department_id && !deptRows.value.some(d => d.id === form.department_id && (!d.office_id || d.office_id === form.office_id))) {
-    form.department_id = ''
-  }
-})
+const companyItems = computed(() => [{ value: NONE, label: t('masterdata.employees.selectPlaceholder') }, ...companyRows.value.map(c => ({ value: c.id, label: c.name }))])
+const execDivItems = computed(() => [{ value: NONE, label: t('masterdata.employees.selectPlaceholder') }, ...execDivRows.value.map(e => ({ value: e.id, label: e.name }))])
 function officeName(id: string | null): string {
   return officeCache.get(id)
 }
@@ -90,6 +89,27 @@ const editingId = ref<string>()
 const form = reactive<EmployeeInput>({
   code: '', name: '', email: '', phone: '', department_id: '', position_id: '', office_id: '', status: 'active',
   company_id: '', executor_division_id: ''
+})
+
+// Bridge '' (unset) to the NONE sentinel the USelect items use.
+function noneModel(key: 'department_id' | 'company_id' | 'executor_division_id') {
+  return computed({
+    get: () => form[key] || NONE,
+    set: (val: string) => { form[key] = val === NONE ? '' : val }
+  })
+}
+const departmentModel = noneModel('department_id')
+const companyModel = noneModel('company_id')
+const execDivModel = noneModel('executor_division_id')
+
+// Clear a chosen department when it no longer belongs to the selected office.
+// MUST stay below `form`: watch() invokes its getter immediately, so declaring
+// it earlier reads `form` inside its temporal dead zone and throws
+// "Cannot access 'form' before initialization", which blanks the whole page.
+watch(() => form.office_id, () => {
+  if (form.department_id && !deptRows.value.some(d => d.id === form.department_id && (!d.office_id || d.office_id === form.office_id))) {
+    form.department_id = ''
+  }
 })
 
 const columns = [
@@ -493,13 +513,12 @@ onUnmounted(() => {
             :hint="t('masterdata.employees.deptOfficeHint')"
           >
             <USelect
-              :model-value="form.department_id ?? ''"
+              v-model="departmentModel"
               :items="deptItemsForOffice"
               :disabled="!form.office_id"
               :placeholder="t('masterdata.employees.selectPlaceholder')"
               class="w-full"
               data-testid="employee-department"
-              @update:model-value="form.department_id = $event"
             />
           </UFormField>
           <UFormField :label="t('masterdata.employees.fields.jabatan')">
@@ -540,22 +559,20 @@ onUnmounted(() => {
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">
           <UFormField :label="t('masterdata.employees.fields.company')">
             <USelect
-              :model-value="form.company_id ?? ''"
+              v-model="companyModel"
               :items="companyItems"
               :placeholder="t('masterdata.employees.selectPlaceholder')"
               class="w-full"
               data-testid="employee-company"
-              @update:model-value="form.company_id = $event"
             />
           </UFormField>
           <UFormField :label="t('masterdata.employees.fields.executorDivision')">
             <USelect
-              :model-value="form.executor_division_id ?? ''"
+              v-model="execDivModel"
               :items="execDivItems"
               :placeholder="t('masterdata.employees.selectPlaceholder')"
               class="w-full"
               data-testid="employee-executor-division"
-              @update:model-value="form.executor_division_id = $event"
             />
           </UFormField>
         </div>

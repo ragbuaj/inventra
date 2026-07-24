@@ -156,10 +156,16 @@ const formBuildingClassId = computed({
 })
 const headPicker = useEmployeePicker()
 const OWNERSHIP_OPTIONS = ['sewa', 'milik', 'hg_pakai', 'free'] as const
+// USelect forbids an empty-string item value (Reka UI throws), so the "unset"
+// entry uses the NONE sentinel and the model below maps it back to ''.
 const ownershipItems = computed(() => [
-  { value: '', label: t('masterdata.offices.selectPlaceholder') },
+  { value: NONE, label: t('masterdata.offices.selectPlaceholder') },
   ...OWNERSHIP_OPTIONS.map(v => ({ value: v, label: t(`masterdata.offices.ownership.${v}`) }))
 ])
+const ownershipModel = computed({
+  get: () => form.ownership_status || NONE,
+  set: (val: string) => { form.ownership_status = val === NONE ? '' : val }
+})
 const officeKindItems = computed(() => [
   { value: 'konvensional', label: t('masterdata.offices.kind.konvensional') },
   { value: 'syariah', label: t('masterdata.offices.kind.syariah') }
@@ -1047,7 +1053,7 @@ onMounted(async () => {
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <UFormField :label="t('masterdata.offices.fields.ownershipStatus')">
             <USelect
-              v-model="form.ownership_status"
+              v-model="ownershipModel"
               :items="ownershipItems"
               class="w-full"
               data-testid="office-ownership-select"
