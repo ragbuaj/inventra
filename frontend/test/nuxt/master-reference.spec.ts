@@ -116,6 +116,9 @@ function buildDefaultHandler(overrides: Record<string, unknown> = {}): RequestHa
       if (pathBase === '/executor-divisions') return isCountCall ? countResponse(13) : makeEnvelope([])
       if (pathBase === '/companies') return isCountCall ? countResponse(14) : makeEnvelope([])
       if (pathBase === '/building-classifications') return isCountCall ? countResponse(15) : makeEnvelope([])
+      // Departments resolve office/floor id -> name via these (non-fatal) lookups.
+      if (pathBase === '/offices/tree') return makeEnvelope([])
+      if (pathBase === '/floors') return makeEnvelope([])
     }
 
     throw new Error(`Unhandled: ${method} ${path}`)

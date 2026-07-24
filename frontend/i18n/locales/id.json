@@ -1920,8 +1920,11 @@
       "nonaktif": "Nonaktif",
       "entitySubtitle": "Kelola data referensi",
       "requiredField": "{field} wajib diisi.",
-      "fields": { "name": "Nama", "code": "Kode", "symbol": "Simbol", "email": "Email", "phone": "Telepon", "province": "Provinsi", "brand": "Brand", "contact_name": "Nama Kontak", "address": "Alamat", "tier": "Tingkat", "min_floors": "Lantai Min", "max_floors": "Lantai Maks", "office": "Kantor" },
+      "fields": { "name": "Nama", "code": "Kode", "symbol": "Simbol", "email": "Email", "phone": "Telepon", "province": "Provinsi", "brand": "Brand", "contact_name": "Nama Kontak", "address": "Alamat", "tier": "Tingkat", "min_floors": "Lantai Min", "max_floors": "Lantai Maks", "office": "Kantor", "floor": "Lantai" },
       "searchOffice": "Cari kantor…",
+      "selectFloor": "Pilih lantai",
+      "selectOfficeFirst": "Pilih kantor dahulu",
+      "noFloor": "Belum ada lantai di kantor ini",
       "resources": {
         "office-types": "Jenis Kantor", "departments": "Departemen", "positions": "Jabatan",
         "units": "Satuan", "maintenance-categories": "Kategori Pemeliharaan",

@@ -93,12 +93,26 @@ function tierLabel(value: unknown): string {
   return opt ? t(opt.labelKey) : '—'
 }
 
+// Department-only field wiring (floor picker filtered per office + office/floor
+// id->name table resolution). Kept out of this generic engine — see the composable.
+const {
+  hasFloorField,
+  floorFormItems,
+  loadFloorFormOptions,
+  onOfficeFieldChange,
+  onFloorFieldChange,
+  officeNames,
+  floorNames,
+  loadDeptNameMaps
+} = useDepartmentFields({ descriptor, form, rows })
+
 async function refresh() {
   loading.value = true
   try {
     const res = await api.list(resourceKey.value, { search: search.value, limit: limit.value, offset: offset.value })
     rows.value = res.data
     total.value = res.total
+    await loadDeptNameMaps()
   } finally {
     loading.value = false
   }
@@ -135,6 +149,7 @@ function resetForm() {
 function openCreate() {
   editingId.value = undefined
   resetForm()
+  void loadFloorFormOptions('') // clear any floor options from a prior edit
   formOpen.value = true
 }
 
@@ -144,6 +159,8 @@ function openEdit(row: ReferenceRow) {
   for (const f of descriptor.value.fields) form[f.key] = row[f.key] ?? ''
   form.is_active = row.is_active !== false
   formOpen.value = true
+  // Preload the floor options for the row's office so the picker shows its label.
+  if (hasFloorField.value) void loadFloorFormOptions(String(form.office_id ?? ''))
 }
 
 function validate(): boolean {
@@ -349,6 +366,12 @@ onMounted(async () => {
           <template #brand_id-cell="{ row }">
             {{ fkName('brand_id', (row as Record<string, unknown>).brand_id) }}
           </template>
+          <template #office_id-cell="{ row }">
+            {{ officeNames[(row as Record<string, unknown>).office_id as string] ?? '—' }}
+          </template>
+          <template #floor_id-cell="{ row }">
+            {{ floorNames[(row as Record<string, unknown>).floor_id as string] ?? '—' }}
+          </template>
           <template #tier-cell="{ row }">
             {{ tierLabel((row as Record<string, unknown>).tier) }}
           </template>
@@ -411,7 +434,17 @@ onMounted(async () => {
             :placeholder="t('masterdata.reference.searchOffice')"
             :testid="`ref-field-${field.key}`"
             clearable
-            @update:model-value="form[field.key] = $event ?? ''"
+            @update:model-value="onOfficeFieldChange(field.key, $event)"
+          />
+          <USelect
+            v-else-if="field.type === 'floor'"
+            :model-value="form[field.key] as string"
+            :items="floorFormItems"
+            :disabled="!form.office_id"
+            :placeholder="form.office_id ? t('masterdata.reference.selectFloor') : t('masterdata.reference.selectOfficeFirst')"
+            :data-testid="`ref-field-${field.key}`"
+            class="w-full"
+            @update:model-value="onFloorFieldChange(field.key, $event)"
           />
           <USelect
             v-else-if="field.type === 'select'"

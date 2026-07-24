@@ -1641,6 +1641,7 @@ type MasterdataDepartment struct {
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
 	OfficeID  *uuid.UUID         `json:"office_id"`
+	FloorID   *uuid.UUID         `json:"floor_id"`
 }
 
 type MasterdataEmployee struct {

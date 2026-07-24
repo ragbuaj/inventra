@@ -34,9 +34,13 @@ function handleLogout() {
 </script>
 
 <template>
-  <UPopover v-model:open="open">
+  <UPopover
+    v-model:open="open"
+    :content="{ align: 'end', sideOffset: 8, collisionPadding: 8 }"
+  >
     <!-- Pill trigger: avatar initials + chevron, no name text -->
     <button
+      type="button"
       class="flex items-center gap-2 px-1 py-1 pr-2 border border-default rounded-full bg-transparent cursor-pointer hover:bg-muted transition-colors"
     >
       <span class="w-[30px] h-[30px] rounded-full bg-primary text-inverted flex items-center justify-center text-[12px] font-bold flex-none select-none">
@@ -49,7 +53,7 @@ function handleLogout() {
     </button>
 
     <template #content>
-      <div class="w-[264px] overflow-hidden rounded-[13px]">
+      <div class="w-[264px] max-w-[calc(100vw-16px)] overflow-hidden rounded-[13px]">
         <!-- Header: larger avatar + name + email -->
         <div class="flex gap-[11px] items-center px-[15px] py-[15px] border-b border-default">
           <span class="w-[42px] h-[42px] rounded-full bg-primary text-inverted flex items-center justify-center text-[15px] font-bold flex-none select-none">

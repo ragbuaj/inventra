@@ -52,9 +52,13 @@ tags:
       `GET/POST /{resource}` + `GET/PUT/DELETE /{resource}/{id}` shape but writes
       require `masterdata.office.manage` (not `global.manage`) and every verb is
       filtered by the caller's office data scope. `departments` carries
-      `name`/`code`/`office_id`/`is_active`; a scoped caller sees departments in
-      their office subtree plus shared `office_id: null` ones, and may only write
-      within their scope (global `null`-office departments need global scope).
+      `name`/`code`/`office_id`/`floor_id`/`is_active`. `office_id` is **required**
+      on create/update (`400` otherwise — global/`null`-office departments can no
+      longer be created or edited); `floor_id` (optional) must reference a floor of
+      the department's own `office_id` (else `400`). Reads still surface any legacy
+      `office_id: null` rows so existing data stays visible; a scoped caller sees
+      departments in their office subtree plus those, and may only write within
+      their scope.
       **Floors** (`GET /api/v1/floors?office_id=...`) and **rooms**
       (`GET /api/v1/rooms?floor_id=...`) are nested, office-scoped location
       resources (writes require `masterdata.office.manage`); see the Bruno

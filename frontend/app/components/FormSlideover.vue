@@ -16,6 +16,7 @@ const emit = defineEmits<{ submit: [] }>()
     v-model:open="open"
     :title="props.title"
     :description="props.subtitle"
+    :ui="{ content: 'w-full max-w-[640px]' }"
   >
     <template #body>
       <slot />
