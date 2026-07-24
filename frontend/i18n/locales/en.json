@@ -1767,6 +1767,8 @@
       "loadError": "Failed to load offices.",
       "selectPlaceholder": "Select…",
       "coordHint": "Optional — used to show the office on the Location Map.",
+      "coordLabel": "Coordinates (Lat, Lng)",
+      "areaValue": "{n} m2",
       "ownership": { "sewa": "Rented", "milik": "Owned", "hg_pakai": "Right-to-Use Building", "free": "Free" },
       "kind": { "konvensional": "Conventional", "syariah": "Sharia" },
       "buildingClassHint": "Auto-suggested from the floor count (editable).",

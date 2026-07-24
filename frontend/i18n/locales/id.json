@@ -1767,6 +1767,8 @@
       "loadError": "Gagal memuat kantor.",
       "selectPlaceholder": "Pilih…",
       "coordHint": "Opsional — untuk menampilkan kantor pada Peta Lokasi.",
+      "coordLabel": "Koordinat (Lat, Lng)",
+      "areaValue": "{n} m2",
       "ownership": { "sewa": "Sewa", "milik": "Milik", "hg_pakai": "HG Pakai Bangunan", "free": "Free" },
       "kind": { "konvensional": "Konvensional", "syariah": "Syariah" },
       "buildingClassHint": "Tersaran otomatis dari jumlah lantai (bisa diubah).",
