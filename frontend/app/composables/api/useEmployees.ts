@@ -36,6 +36,9 @@ export function useEmployees() {
     if (input.phone) body.phone = input.phone
     if (input.department_id) body.department_id = input.department_id
     if (input.position_id) body.position_id = input.position_id
+    // Legacy-parity Fase 6 fields; empty optionals are omitted so they stay null.
+    if (input.company_id) body.company_id = input.company_id
+    if (input.executor_division_id) body.executor_division_id = input.executor_division_id
     return body
   }
 
