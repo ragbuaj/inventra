@@ -17,6 +17,23 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
+> **UX batch 2 (2026-07-24, branch `feat/request-pages-list-first-ux`) — SELESAI (kode).** Tujuh
+> permintaan user: (1) **urutan input form pegawai** diubah jadi Kantor lalu Departemen lalu Jabatan
+> (`master/employees.vue`) supaya alur dependensi benar (departemen ter-scope ke kantor, sebelumnya
+> Departemen di atas Kantor padahal disabled sampai kantor dipilih). (2-3-5-6) **Pola "list-first"** untuk
+> Peminjaman, Penugasan, Penghapusan, dan Mutasi: index kini menampilkan **riwayat pengajuan**, form
+> pindah ke **ganti-tampilan-penuh** (full-view swap) lewat tombol **"Buat Pengajuan"** di header +
+> tombol **"Kembali"** untuk balik ke riwayat. Sub-view yang bukan "buat pengajuan" **tetap tab**:
+> check-in (penugasan) dan kotak masuk (mutasi). *Deviasi mockup `Peminjaman.dc.html`/`Mutasi Aset.dc.html`/
+> `Penghapusan Aset.dc.html` dsb. atas permintaan eksplisit user (mockup menaruh form lebih dulu / tab
+> ajukan sebagai default).* (4) **Card "Perlu Tindak Lanjut"** di maintenance dikurangi tingginya
+> (`max-h-[360px]` ke `max-h-[200px]`). (7) Semua header baru **responsif** (`flex justify-between
+> flex-wrap`, tombol `flex-none` turun ke bawah judul di layar sempit). i18n id/en: key `createButton`/
+> `back` per namespace. **Gate:** frontend ESLint + `vue-tsc` 0-error; vitest/e2e via CI (Node v24 lokal).
+> Test diperbarui: nuxt `peminjaman`/`assignment`/`disposals`/`transfers` (buka form via tombol dulu; tab
+> `disposal-tab-*`/`transfer-tab-ajukan` diganti tombol create), e2e `assignment`(+peminjaman)/`disposals`/
+> `transfers` (klik `*-create` sebelum isi form; hapus klik `disposal-tab-history`).
+>
 > **UX/bugfix batch (2026-07-24, branch `feat/ui-fixes-dept-lantai`) — SELESAI (kode).** Enam perbaikan
 > permintaan user: (1) **slideover form diperlebar** ke ~640px (`FormSlideover` `ui.content: max-w-[640px]`
 > — mencakup semua form: kantor, kategori, jadwal & catatan maintenance). (2) **Urutan input form kantor**

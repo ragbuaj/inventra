@@ -1,11 +1,16 @@
 // @vitest-environment nuxt
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mountSuspended } from '@nuxt/test-utils/runtime'
+import { mountSuspended, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { flushPromises, enableAutoUnmount } from '@vue/test-utils'
 import type { Asset, Office, ReferenceRow, Paginated } from '~/types'
 import type { Transfer } from '~/composables/api/useTransfers'
 import type { ApprovalRequestRow } from '~/composables/api/useApproval'
 import { useAuthStore } from '~/stores/auth'
+
+// useToast's portal isn't mounted here (no UApp wrapper) — mock and assert on
+// call args. Option A: a successful submit surfaces feedback via a toast.
+const { toastAddMock } = vi.hoisted(() => ({ toastAddMock: vi.fn() }))
+mockNuxtImport('useToast', () => () => ({ add: toastAddMock }))
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -168,6 +173,15 @@ async function mountAndWait() {
   return wrapper
 }
 
+// The page lands on the Riwayat view; the "Ajukan Mutasi" form is a full-view
+// swap reached via the "Buat Pengajuan" button. Form-focused tests open it.
+async function mountFormAndWait() {
+  const wrapper = await mountAndWait()
+  await wrapper.find('[data-testid="transfer-create"]').trigger('click')
+  await wrapper.vm.$nextTick()
+  return wrapper
+}
+
 type Wrapper = Awaited<ReturnType<typeof mountAndWait>>
 
 async function setVmRef(wrapper: Wrapper, key: string, value: unknown) {
@@ -178,6 +192,8 @@ async function setVmRef(wrapper: Wrapper, key: string, value: unknown) {
 }
 
 function clickTab(wrapper: Wrapper, key: 'ajukan' | 'inbox' | 'history') {
+  // "Ajukan Mutasi" is no longer a tab — it opens via the header button.
+  if (key === 'ajukan') return wrapper.find('[data-testid="transfer-create"]').trigger('click')
   return wrapper.find(`[data-testid="transfer-tab-${key}"]`).trigger('click')
 }
 
@@ -243,13 +259,13 @@ describe('pages/transfers — mount', () => {
 
 describe('pages/transfers — destination office is an AsyncSearchPicker', () => {
   it('renders the office picker input (no more eager-options USelect)', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     expect(w.find('[data-testid="transfer-to-office"]').exists()).toBe(false)
     expect(w.find('[data-testid="to-office-picker-input"]').exists()).toBe(true)
   })
 
   it('searching drives useOffices().list with { search, limit: 20 } and excludes the source office', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET) // fromOfficeId = 'o-mine'
     vi.useFakeTimers()
     await w.find('[data-testid="to-office-picker-input"]').setValue('Kantor')
@@ -260,7 +276,7 @@ describe('pages/transfers — destination office is an AsyncSearchPicker', () =>
   })
 
   it('resolves a preselected destination office id to its label', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'toOfficeId', 'o-same')
     const input = w.find('[data-testid="to-office-picker-input"]').element as HTMLInputElement
     expect(input.value).toBe('Kantor Cabang Jakarta Pusat')
@@ -269,7 +285,7 @@ describe('pages/transfers — destination office is an AsyncSearchPicker', () =>
 
 describe('pages/transfers — Ajukan Mutasi form', () => {
   it('disables submit until asset + destination + date are set, then enables it', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     const submit = () => w.find('[data-testid="transfer-submit"]')
     expect(submit().attributes('disabled')).toBeDefined()
 
@@ -284,14 +300,14 @@ describe('pages/transfers — Ajukan Mutasi form', () => {
   })
 
   it('shows nothing when no destination is chosen yet (tri-state null)', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET)
     expect(w.find('[data-testid="transfer-inter-region-alert"]').exists()).toBe(false)
     expect(w.find('[data-testid="transfer-in-subtree-note"]').exists()).toBe(false)
   })
 
   it('shows the inter-region alert when the destination is in a different wilayah', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET)
     await setVmRef(w, 'toOfficeId', 'o-diff')
     expect(w.find('[data-testid="transfer-inter-region-alert"]').exists()).toBe(true)
@@ -299,7 +315,7 @@ describe('pages/transfers — Ajukan Mutasi form', () => {
   })
 
   it('shows the same-region note when the destination shares the wilayah', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET)
     await setVmRef(w, 'toOfficeId', 'o-same')
     expect(w.find('[data-testid="transfer-in-subtree-note"]').exists()).toBe(true)
@@ -307,7 +323,7 @@ describe('pages/transfers — Ajukan Mutasi form', () => {
   })
 
   it('submits with the exact body and resets the form on success', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET)
     await setVmRef(w, 'toOfficeId', 'o-same')
     await w.find('[data-testid="transfer-date"]').setValue('2026-07-10')
@@ -325,13 +341,17 @@ describe('pages/transfers — Ajukan Mutasi form', () => {
     })
     expect((w.vm as unknown as { selectedAsset: unknown }).selectedAsset).toBeNull()
     expect((w.vm as unknown as { toOfficeId: string }).toOfficeId).toBe('')
-    expect(w.text()).toContain('Proyektor Epson EB-X51')
-    expect(w.text()).toContain('berhasil diajukan')
+    // Option A: after a successful submit the page returns to the history view
+    // and surfaces feedback via a success toast (not an in-form banner).
+    expect(toastAddMock).toHaveBeenCalledWith(
+      expect.objectContaining({ title: expect.stringContaining('berhasil diajukan'), color: 'success' })
+    )
+    expect(w.find('[data-testid="transfer-create"]').exists()).toBe(true)
   })
 
   it('keeps submit disabled and shows the no-permission note without transfer.manage', async () => {
     grantSession('o-mine', ['transfer.view'])
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     // Even with a complete form, a view-only caller cannot submit.
     await setVmRef(w, 'selectedAsset', ASSET)
     await setVmRef(w, 'toOfficeId', 'o-same')
@@ -346,25 +366,58 @@ describe('pages/transfers — Ajukan Mutasi form', () => {
   })
 
   it('hides the no-permission note when the caller has transfer.manage', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     expect(w.find('[data-testid="transfer-no-manage"]').exists()).toBe(false)
   })
 
-  it('Reset clears the form and any visible banner', async () => {
-    const w = await mountAndWait()
+  it('Reset clears the filled form fields', async () => {
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET)
     await setVmRef(w, 'toOfficeId', 'o-same')
     await w.find('[data-testid="transfer-date"]').setValue('2026-07-10')
-    await w.find('[data-testid="transfer-submit"]').trigger('click')
-    await flushPromises()
-    expect(w.text()).toContain('berhasil diajukan')
+    expect((w.vm as unknown as { selectedAsset: unknown }).selectedAsset).not.toBeNull()
 
     const reset = w.findAll('button').find(b => b.text().trim() === 'Reset')
     await reset!.trigger('click')
     await w.vm.$nextTick()
 
-    expect(w.text()).not.toContain('berhasil diajukan')
+    expect((w.vm as unknown as { selectedAsset: unknown }).selectedAsset).toBeNull()
+    expect((w.vm as unknown as { toOfficeId: string }).toOfficeId).toBe('')
     expect((w.vm as unknown as { ajMsg: unknown }).ajMsg).toBeNull()
+  })
+})
+
+describe('pages/transfers — list-first navigation (Buat Pengajuan / Kembali)', () => {
+  it('hides the create button while the Ajukan form is open', async () => {
+    const w = await mountAndWait()
+    expect(w.find('[data-testid="transfer-create"]').exists()).toBe(true)
+    await w.find('[data-testid="transfer-create"]').trigger('click')
+    await w.vm.$nextTick()
+    // Header button + tab bar hidden while the form is open; Back takes over.
+    expect(w.find('[data-testid="transfer-create"]').exists()).toBe(false)
+    expect(w.find('[data-testid="transfer-back"]').exists()).toBe(true)
+    expect(w.find('[data-testid="transfer-submit"]').exists()).toBe(true)
+  })
+
+  it('the Back button returns to Riwayat, resets the form, and does not submit', async () => {
+    const w = await mountFormAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET)
+    await setVmRef(w, 'toOfficeId', 'o-same')
+    await w.find('[data-testid="transfer-date"]').setValue('2026-07-10')
+    // Form is now submit-ready — Back must still not submit.
+    expect(w.find('[data-testid="transfer-submit"]').attributes('disabled')).toBeUndefined()
+
+    await w.find('[data-testid="transfer-back"]').trigger('click')
+    await flushPromises()
+
+    expect(transfersSubmitMock).not.toHaveBeenCalled()
+    expect(toastAddMock).not.toHaveBeenCalled()
+    // Back on the Riwayat view: header create button + history rows are shown.
+    expect(w.find('[data-testid="transfer-create"]').exists()).toBe(true)
+    expect(w.findAll('[data-testid="transfer-history-row"]').length).toBeGreaterThan(0)
+    // backFromAjukan() calls resetForm() so a later reopen starts clean.
+    expect((w.vm as unknown as { selectedAsset: unknown }).selectedAsset).toBeNull()
+    expect((w.vm as unknown as { toOfficeId: string }).toOfficeId).toBe('')
   })
 })
 

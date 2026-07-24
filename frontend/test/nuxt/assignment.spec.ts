@@ -1,10 +1,15 @@
 // @vitest-environment nuxt
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mountSuspended } from '@nuxt/test-utils/runtime'
+import { mountSuspended, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { flushPromises, enableAutoUnmount } from '@vue/test-utils'
 import type { Paginated, Employee } from '~/types'
 import type { Assignment, AvailableAsset } from '~/composables/api/useAssignment'
 import { useAuthStore } from '~/stores/auth'
+
+// useToast's portal isn't mounted here (no UApp wrapper) — mock and assert on
+// call args. Option A: a successful check-out surfaces feedback via a toast.
+const { toastAddMock } = vi.hoisted(() => ({ toastAddMock: vi.fn() }))
+mockNuxtImport('useToast', () => () => ({ add: toastAddMock }))
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -127,6 +132,12 @@ function clickTab(wrapper: Wrapper, label: string) {
   return btn!.trigger('click')
 }
 
+// Check-out is a full-view swap reached via the "Buat Penugasan" header button.
+function openCheckout(wrapper: Wrapper) {
+  const btn = wrapper.findAll('button').find(b => b.text().trim() === 'Buat Penugasan')
+  return btn!.trigger('click')
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   employeesListMock.mockResolvedValue(page(EMPLOYEES))
@@ -144,16 +155,20 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 
 describe('Assignment page — mount', () => {
-  it('renders the 3 tabs with Check-out as the default tab', async () => {
+  it('lands on Riwayat with Riwayat + Check-in tabs and a Buat Penugasan button; the button opens the check-out form', async () => {
     const w = await mountAndWait()
     const text = w.text()
     expect(text).toContain('Penugasan Aset')
-    expect(text).toContain('Check-out')
-    expect(text).toContain('Check-in')
     expect(text).toContain('Riwayat')
-    // Default tab content: check-out form fields visible.
-    expect(text).toContain('Pegawai Penerima')
-    expect(text).toContain('Aset (hanya yang tersedia)')
+    expect(text).toContain('Check-in')
+    // Check-out is no longer a tab — it is a header button (full-view swap).
+    expect(text).toContain('Buat Penugasan')
+    // Default view = history, not the check-out form.
+    expect(text).not.toContain('Pegawai Penerima')
+
+    await openCheckout(w)
+    expect(w.text()).toContain('Pegawai Penerima')
+    expect(w.text()).toContain('Aset (hanya yang tersedia)')
   })
 
   it('loads assignment list/available on mount without an eager employees list', async () => {
@@ -177,18 +192,21 @@ describe('Assignment page — mount', () => {
 
     expect(assignmentListMock).toHaveBeenCalledTimes(2)
     expect(w.text()).not.toContain('Gagal memuat data.')
-    expect(w.text()).toContain('Check-out')
+    // After retry the page shows its default (Riwayat) view.
+    expect(w.text()).toContain('Riwayat')
   })
 })
 
 describe('Assignment page — Check-out tab: recipient is an AsyncSearchPicker', () => {
   it('renders the recipient picker input (no more eager-options USelect)', async () => {
     const w = await mountAndWait()
+    await openCheckout(w)
     expect(w.find('[data-testid="employee-picker-input"]').exists()).toBe(true)
   })
 
   it('typing drives useEmployees().list with { search, limit: 20 }', async () => {
     const w = await mountAndWait()
+    await openCheckout(w)
     vi.useFakeTimers()
     await w.find('[data-testid="employee-picker-input"]').setValue('Rina')
     await vi.advanceTimersByTimeAsync(300)
@@ -199,6 +217,7 @@ describe('Assignment page — Check-out tab: recipient is an AsyncSearchPicker',
 
   it('resolves a preselected employee id to its label via useEmployees().get', async () => {
     const w = await mountAndWait()
+    await openCheckout(w)
     await setVmRef(w, 'coEmployeeId', 'e1')
     const input = w.find('[data-testid="employee-picker-input"]').element as HTMLInputElement
     expect(input.value).toBe('Andi Saputra')
@@ -208,6 +227,7 @@ describe('Assignment page — Check-out tab: recipient is an AsyncSearchPicker',
 describe('Assignment page — Check-out tab', () => {
   it('disables submit until asset + employee + date are set, then enables it', async () => {
     const w = await mountAndWait()
+    await openCheckout(w)
     // Locate the submit button precisely via its label text (exact match, not the tab).
     const submitBtn = () => w.findAll('button').filter(b => b.text().trim() === 'Check-out').at(-1)!
     expect(submitBtn().attributes('disabled')).toBeDefined()
@@ -232,6 +252,7 @@ describe('Assignment page — Check-out tab', () => {
 
   it('calls checkout with the chosen asset_id/employee_id on submit', async () => {
     const w = await mountAndWait()
+    await openCheckout(w)
     await setVmRef(w, 'coAssetId', 'as1')
     await setVmRef(w, 'coEmployeeId', 'e2')
     await setVmRef(w, 'coTgl', '2026-07-08')
@@ -247,7 +268,65 @@ describe('Assignment page — Check-out tab', () => {
       condition_out: 'baik',
       notes: null
     })
-    expect(w.text()).toContain('berhasil di-check-out')
+    // Option A: after a successful check-out the page returns to the history
+    // view and surfaces feedback via a success toast (not an in-form banner).
+    expect(toastAddMock).toHaveBeenCalledWith(
+      expect.objectContaining({ title: expect.stringContaining('berhasil di-check-out'), color: 'success' })
+    )
+    expect(w.find('[data-testid="assignment-create"]').exists()).toBe(true)
+    expect(w.text()).not.toContain('Pegawai Penerima')
+  })
+})
+
+describe('Assignment page — list-first navigation (Buat Penugasan / Kembali)', () => {
+  it('hides the Buat Penugasan header button while the check-out form is open', async () => {
+    const w = await mountAndWait()
+    expect(w.find('[data-testid="assignment-create"]').exists()).toBe(true)
+    await openCheckout(w)
+    // Header button is hidden (tab === 'checkout'); the Back button takes over.
+    expect(w.find('[data-testid="assignment-create"]').exists()).toBe(false)
+    expect(w.find('[data-testid="assignment-back"]').exists()).toBe(true)
+  })
+
+  it('the Back button returns to the Riwayat view without checking out', async () => {
+    const w = await mountAndWait()
+    await openCheckout(w)
+    // Fill the form completely — backing out must still not check anything out.
+    await setVmRef(w, 'coAssetId', 'as1')
+    await setVmRef(w, 'coEmployeeId', 'e1')
+    await setVmRef(w, 'coTgl', '2026-07-08')
+
+    await w.find('[data-testid="assignment-back"]').trigger('click')
+    await flushPromises()
+
+    expect(assignmentCheckoutMock).not.toHaveBeenCalled()
+    expect(toastAddMock).not.toHaveBeenCalled()
+    // Header create button (hidden while the form is open) reappears; the
+    // check-out form fields are gone and the history view is shown.
+    expect(w.find('[data-testid="assignment-create"]').exists()).toBe(true)
+    expect(w.text()).not.toContain('Pegawai Penerima')
+    expect(w.text()).toContain('Riwayat')
+  })
+
+  it('reopening the check-out form resets stale fields and clears the in-form message', async () => {
+    const w = await mountAndWait()
+    await openCheckout(w)
+    await setVmRef(w, 'coAssetId', 'as1')
+    await setVmRef(w, 'coCatatan', 'Catatan lama')
+    // coMsg renders as the in-form banner while the check-out view is open.
+    await setVmRef(w, 'coMsg', { text: 'Pesan lama', type: 'error' })
+    expect(w.text()).toContain('Pesan lama')
+
+    await w.find('[data-testid="assignment-back"]').trigger('click')
+    await flushPromises()
+    await openCheckout(w)
+
+    // openCheckout() calls resetCheckout() and clears coMsg.
+    expect((w.vm as unknown as { coAssetId: string }).coAssetId).toBe('')
+    expect((w.vm as unknown as { coCatatan: string }).coCatatan).toBe('')
+    expect(w.text()).not.toContain('Pesan lama')
+    const input = w.find('[data-testid="employee-picker-input"]').element as HTMLInputElement
+    expect(input.value).toBe('')
   })
 })
 

@@ -15,6 +15,7 @@ const CONDITION_TEXT: Record<AssetCondition, string> = {
 
 const { t } = useI18n()
 const can = useCan()
+const toast = useToast()
 const api = useAssignment()
 const employee = useEmployeePicker()
 
@@ -25,7 +26,9 @@ const employee = useEmployeePicker()
 const canCreate = computed(() => can('request.create'))
 const canManage = computed(() => can('assignment.manage'))
 
-const tab = ref<'checkout' | 'checkin' | 'history'>('checkout')
+// The page lands on the assignment history; the check-out form is a full-view
+// swap reached via the "Buat Penugasan" button. Check-in stays a tab.
+const tab = ref<'checkout' | 'checkin' | 'history'>('history')
 const assignments = ref<Assignment[]>([])
 const availableAssets = ref<{ label: string, value: string }[]>([])
 const loading = ref(true)
@@ -50,10 +53,8 @@ const ciMsg = ref<{ text: string, type: 'ok' | 'error' } | null>(null)
 const hq = ref('')
 const hStatus = ref(ALL)
 
-let coTimer: ReturnType<typeof setTimeout> | undefined
 let ciTimer: ReturnType<typeof setTimeout> | undefined
 onBeforeUnmount(() => {
-  if (coTimer) clearTimeout(coTimer)
   if (ciTimer) clearTimeout(ciTimer)
 })
 
@@ -69,11 +70,22 @@ const ciInfo = computed(() => ciSelected.value ? t('assignment.checkin.info', { 
 const coReady = computed(() => !!(coAssetId.value && coEmployeeId.value && coTgl.value))
 const ciReady = computed(() => !!(ciId.value && ciTgl.value))
 
+// Check-out is no longer a tab — it is reached via the header button and
+// rendered as a full-view swap. History is the landing view; Check-in stays.
 const tabs = computed(() => [
-  { key: 'checkout' as const, label: t('assignment.tabs.checkout'), icon: 'i-lucide-circle-check-big' },
-  { key: 'checkin' as const, label: t('assignment.tabs.checkin'), icon: 'i-lucide-square-check-big', badge: activeCount.value },
-  { key: 'history' as const, label: t('assignment.tabs.history'), icon: 'i-lucide-history' }
+  { key: 'history' as const, label: t('assignment.tabs.history'), icon: 'i-lucide-history', badge: 0 },
+  { key: 'checkin' as const, label: t('assignment.tabs.checkin'), icon: 'i-lucide-square-check-big', badge: activeCount.value }
 ])
+
+function openCheckout() {
+  resetCheckout()
+  coMsg.value = null
+  tab.value = 'checkout'
+}
+
+function backFromCheckout() {
+  tab.value = 'history'
+}
 
 const statusFilterItems = computed(() => [
   { value: ALL, label: t('assignment.history.allStatus') },
@@ -140,13 +152,12 @@ async function doCheckout() {
     condition_out: coKondisi.value,
     notes: coCatatan.value.trim() || null
   })
-  coMsg.value = { text: t('assignment.checkout.ok', { name: asset.label, holder: employeeItem.label }), type: 'ok' }
   resetCheckout()
+  // Full-view swap: return to the history list after a successful check-out;
+  // feedback is delivered via a toast (the in-form banner would be hidden here).
+  tab.value = 'history'
+  toast.add({ title: t('assignment.checkout.ok', { name: asset.label, holder: employeeItem.label }), color: 'success' })
   await loadAssignments()
-  if (coTimer) clearTimeout(coTimer)
-  coTimer = setTimeout(() => {
-    coMsg.value = null
-  }, 4000)
 }
 
 async function doCheckin() {
@@ -186,17 +197,31 @@ onMounted(refresh)
 <template>
   <div class="max-w-[960px] mx-auto">
     <!-- Header -->
-    <div class="mb-[18px]">
-      <h1 class="text-[23px] font-bold tracking-tight mb-[5px]">
-        {{ t('assignment.title') }}
-      </h1>
-      <p class="text-sm text-muted">
-        {{ t('assignment.subtitle') }}
-      </p>
+    <div class="flex items-start justify-between gap-3 flex-wrap mb-[18px]">
+      <div>
+        <h1 class="text-[23px] font-bold tracking-tight mb-[5px]">
+          {{ t('assignment.title') }}
+        </h1>
+        <p class="text-sm text-muted">
+          {{ t('assignment.subtitle') }}
+        </p>
+      </div>
+      <UButton
+        v-if="tab !== 'checkout'"
+        icon="i-lucide-plus"
+        class="flex-none"
+        data-testid="assignment-create"
+        @click="openCheckout"
+      >
+        {{ t('assignment.createButton') }}
+      </UButton>
     </div>
 
-    <!-- Tabs -->
-    <div class="flex gap-1 border-b border-default mb-[22px]">
+    <!-- Tabs (hidden while the check-out form is open) -->
+    <div
+      v-if="tab !== 'checkout'"
+      class="flex gap-1 border-b border-default mb-[22px]"
+    >
       <button
         v-for="tb in tabs"
         :key="tb.key"
@@ -241,6 +266,19 @@ onMounted(refresh)
         v-if="tab === 'checkout'"
         class="max-w-[600px]"
       >
+        <div class="mb-[18px]">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            icon="i-lucide-arrow-left"
+            size="sm"
+            data-testid="assignment-back"
+            @click="backFromCheckout"
+          >
+            {{ t('assignment.back') }}
+          </UButton>
+        </div>
+
         <div
           v-if="coMsg"
           class="flex gap-2.5 items-center px-3.5 py-3 mb-[18px] rounded-[11px] border text-[13px] font-medium"

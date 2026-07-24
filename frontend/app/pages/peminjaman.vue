@@ -40,6 +40,9 @@ const assetsApi = useAssets()
 // ---------------------------------------------------------------------------
 // Ajukan Peminjaman (inline form, not a modal, per the mockup)
 // ---------------------------------------------------------------------------
+// View mode: the page lands on the request history ("list"); the submission
+// form is a full-view swap reached via the "Buat Pengajuan" button.
+const mode = ref<'list' | 'form'>('list')
 const availableAssets = ref<AvailableAsset[]>([])
 const assetId = ref('')
 const dueDate = ref('')
@@ -47,6 +50,16 @@ const notes = ref('')
 const assetError = ref(false)
 const notesError = ref(false)
 const submitting = ref(false)
+
+function openForm() {
+  resetForm()
+  mode.value = 'form'
+}
+
+function backToList() {
+  resetForm()
+  mode.value = 'list'
+}
 
 const assetItems = computed(() => availableAssets.value.map(a => ({ value: a.id, label: `${a.name} · ${a.asset_tag}` })))
 
@@ -82,6 +95,7 @@ async function submitBorrow() {
       notes: reason
     })
     resetForm()
+    mode.value = 'list'
     toast.add({ title: t('peminjaman.toast.sent'), description: picked ? t('peminjaman.toast.sentDesc', { name: picked.name }) : undefined, color: 'success' })
     await Promise.all([loadAvailable(), loadRequests()])
   } catch {
@@ -275,25 +289,50 @@ onMounted(async () => {
 <template>
   <div class="max-w-[760px] mx-auto">
     <!-- Header -->
-    <div class="mb-[18px]">
-      <h1 class="text-[23px] font-bold tracking-tight mb-[5px]">
-        {{ t('peminjaman.title') }}
-      </h1>
-      <p class="text-sm text-muted">
-        {{ t('peminjaman.subtitle') }}
-      </p>
+    <div class="flex items-start justify-between gap-3 flex-wrap mb-[18px]">
+      <div>
+        <h1 class="text-[23px] font-bold tracking-tight mb-[5px]">
+          {{ t('peminjaman.title') }}
+        </h1>
+        <p class="text-sm text-muted">
+          {{ t('peminjaman.subtitle') }}
+        </p>
+      </div>
+      <UButton
+        v-if="mode === 'list'"
+        icon="i-lucide-plus"
+        class="flex-none"
+        data-testid="peminjaman-create"
+        @click="openForm"
+      >
+        {{ t('peminjaman.list.createButton') }}
+      </UButton>
     </div>
 
-    <!-- (1) Ajukan Peminjaman -->
-    <div class="bg-default border border-default rounded-[14px] shadow-sm overflow-hidden mb-6">
+    <!-- (1) Ajukan Peminjaman (full-view swap) -->
+    <div
+      v-if="mode === 'form'"
+      class="bg-default border border-default rounded-[14px] shadow-sm overflow-hidden mb-6"
+    >
       <div class="flex items-center gap-2.5 px-5 py-4 border-b border-default">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-arrow-left"
+          size="sm"
+          class="flex-none"
+          data-testid="peminjaman-back"
+          @click="backToList"
+        >
+          {{ t('peminjaman.form.back') }}
+        </UButton>
         <span class="size-[34px] rounded-[9px] bg-primary/10 text-primary flex items-center justify-center flex-none">
           <UIcon
             name="i-lucide-handshake"
             class="size-[17px]"
           />
         </span>
-        <div>
+        <div class="min-w-0">
           <div class="font-semibold text-[15px]">
             {{ t('peminjaman.form.title') }}
           </div>
@@ -362,7 +401,7 @@ onMounted(async () => {
           color="neutral"
           variant="outline"
           data-testid="peminjaman-reset"
-          @click="resetForm"
+          @click="backToList"
         >
           {{ t('peminjaman.form.cancel') }}
         </UButton>
@@ -378,258 +417,260 @@ onMounted(async () => {
     </div>
 
     <!-- (2) Pengajuan Peminjaman Saya -->
-    <div class="flex items-center justify-between gap-3 flex-wrap mb-3.5">
-      <div class="font-semibold text-base">
-        {{ t('peminjaman.list.title') }}
-      </div>
-      <div class="flex gap-0.5 p-0.5 bg-muted rounded-lg">
-        <button
-          v-for="f in filterTabs"
-          :key="f.key"
-          class="px-3 py-1.5 text-xs font-semibold rounded-md transition-colors"
-          :class="filter === f.key ? 'bg-default text-default shadow-sm' : 'text-muted hover:text-default'"
-          :data-testid="`peminjaman-filter-${f.key}`"
-          @click="filter = f.key"
-        >
-          {{ f.label }}
-        </button>
-      </div>
-    </div>
-
-    <div
-      v-if="loading"
-      class="bg-default border border-default rounded-[13px] shadow-sm overflow-hidden"
-    >
-      <USkeleton class="h-[42px] w-full rounded-none" />
-      <div
-        v-for="n in 3"
-        :key="n"
-        class="flex items-center gap-4 px-4 py-3.5 border-t border-default"
-      >
-        <USkeleton class="h-3 w-[150px] rounded" />
-        <USkeleton class="h-3 flex-1 rounded" />
-        <USkeleton class="h-5 w-[90px] rounded-full" />
-      </div>
-    </div>
-
-    <div
-      v-else-if="loadError"
-      class="bg-default border border-default rounded-[14px] shadow-sm py-[50px] px-6 text-center"
-      data-testid="peminjaman-load-error"
-    >
-      <p class="text-sm text-muted mb-3">
-        {{ t('common.loadError') }}
-      </p>
-      <UButton
-        size="sm"
-        color="neutral"
-        variant="outline"
-        icon="i-lucide-rotate-cw"
-        data-testid="peminjaman-retry"
-        @click="loadRequests"
-      >
-        {{ t('common.retry') }}
-      </UButton>
-    </div>
-
-    <div
-      v-else-if="rows.length === 0"
-      class="bg-default border border-default rounded-[14px] shadow-sm py-[54px] px-6 text-center"
-    >
-      <div class="size-[54px] mx-auto mb-3.5 rounded-[14px] bg-muted text-dimmed flex items-center justify-center">
-        <UIcon
-          name="i-lucide-clipboard-check"
-          class="size-[26px]"
-        />
-      </div>
-      <div class="text-base font-semibold mb-1.5">
-        {{ t('peminjaman.list.emptyTitle') }}
-      </div>
-      <div class="text-sm text-muted">
-        {{ t('peminjaman.list.emptySub') }}
-      </div>
-    </div>
-
-    <div
-      v-else
-      class="bg-default border border-default rounded-[13px] shadow-sm overflow-hidden"
-    >
-      <UContextMenu
-        :items="contextItems"
-        :disabled="rows.length === 0"
-      >
-        <div
-          class="overflow-x-auto"
-          @contextmenu="onTableContextMenu"
-        >
-          <table class="w-full border-collapse text-[13.5px]">
-            <thead>
-              <tr class="bg-muted text-muted">
-                <th class="w-[30px] px-2 py-[11px]" />
-                <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
-                  {{ t('peminjaman.list.colAsset') }}
-                </th>
-                <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
-                  {{ t('peminjaman.list.colDiajukan') }}
-                </th>
-                <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
-                  {{ t('peminjaman.list.colTempo') }}
-                </th>
-                <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
-                  {{ t('peminjaman.list.colStatus') }}
-                </th>
-                <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
-                  {{ t('peminjaman.list.colCatatan') }}
-                </th>
-                <th class="text-right px-4 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
-                  {{ t('peminjaman.list.colAksi') }}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <template
-                v-for="row in rows"
-                :key="row.id"
-              >
-                <tr
-                  class="border-t border-default cursor-pointer hover:bg-muted transition-colors"
-                  :class="row.open ? 'bg-muted' : ''"
-                  :data-testid="`peminjaman-row-${row.id}`"
-                  @click="toggleRow(row.id)"
-                  @contextmenu="onRowContextMenu(row)"
-                >
-                  <td class="px-2 py-3">
-                    <UIcon
-                      name="i-lucide-chevron-right"
-                      class="size-[15px] text-dimmed transition-transform"
-                      :class="row.open ? 'rotate-90' : ''"
-                    />
-                  </td>
-                  <td class="px-3 py-3">
-                    <div class="font-medium whitespace-nowrap">
-                      {{ row.assetName ?? row.assetTag ?? '—' }}
-                    </div>
-                    <div class="font-mono text-[11px] text-dimmed">
-                      {{ row.assetName ? row.assetTag : '' }}
-                    </div>
-                  </td>
-                  <td class="px-3 py-3 text-muted whitespace-nowrap">
-                    {{ row.diajukan }}
-                  </td>
-                  <td
-                    class="px-3 py-3 whitespace-nowrap"
-                    :class="row.tempo ? 'text-muted' : 'text-dimmed'"
-                  >
-                    {{ row.tempo ?? '—' }}
-                  </td>
-                  <td class="px-3 py-3">
-                    <UBadge
-                      :color="row.statusTone"
-                      variant="subtle"
-                      class="rounded-full gap-1.5"
-                      :data-testid="`peminjaman-status-${row.id}`"
-                    >
-                      <span
-                        class="size-1.5 rounded-full"
-                        :class="STATUS_DOT[row.statusTone]"
-                      />
-                      {{ t(`peminjaman.status.${row.status}`) }}
-                    </UBadge>
-                  </td>
-                  <td class="px-3 py-3 text-muted max-w-[200px]">
-                    <span class="block truncate">{{ row.catatan ?? '—' }}</span>
-                  </td>
-                  <td
-                    class="px-4 py-3 text-right whitespace-nowrap"
-                    :data-testid="`peminjaman-actions-${row.id}`"
-                    @click.stop
-                  >
-                    <RowActionsMenu :items="rowActions(row)" />
-                  </td>
-                </tr>
-                <tr
-                  v-if="row.open"
-                  class="bg-muted"
-                >
-                  <td
-                    colspan="7"
-                    class="px-5 py-4"
-                    :data-testid="`peminjaman-timeline-${row.id}`"
-                  >
-                    <div class="text-[11px] font-semibold uppercase tracking-wider text-dimmed mb-3">
-                      {{ t('peminjaman.list.timelineTitle') }}
-                    </div>
-                    <div
-                      v-if="timelineLoading.has(row.id)"
-                      class="flex flex-col gap-2"
-                    >
-                      <USkeleton class="h-4 w-2/3 rounded" />
-                      <USkeleton class="h-4 w-1/2 rounded" />
-                    </div>
-                    <div
-                      v-else-if="!submittedEntryFor(row.id) && timelineFor(row.id).length === 0"
-                      class="text-[12.5px] text-dimmed"
-                    >
-                      {{ t('peminjaman.list.timelineEmpty') }}
-                    </div>
-                    <div
-                      v-else
-                      class="flex flex-col gap-3"
-                    >
-                      <div
-                        v-if="submittedEntryFor(row.id)"
-                        class="flex gap-3"
-                        :data-testid="`peminjaman-timeline-submitted-${row.id}`"
-                      >
-                        <span class="size-[22px] rounded-full bg-info text-inverted flex items-center justify-center flex-none">
-                          <UIcon
-                            name="i-lucide-user"
-                            class="size-3"
-                          />
-                        </span>
-                        <div class="min-w-0 flex-1">
-                          <div class="text-[13px] font-semibold">
-                            {{ submittedEntryFor(row.id)?.label }}
-                          </div>
-                          <div class="text-xs text-muted mt-px">
-                            {{ submittedEntryFor(row.id)?.meta }}
-                          </div>
-                        </div>
-                      </div>
-                      <div
-                        v-for="(step, i) in timelineFor(row.id)"
-                        :key="i"
-                        class="flex gap-3"
-                      >
-                        <span class="size-[22px] rounded-full bg-default border border-default flex items-center justify-center flex-none text-[11px] font-semibold">
-                          {{ step.step_order }}
-                        </span>
-                        <div class="min-w-0 flex-1">
-                          <div class="text-[13px] font-semibold">
-                            {{ t(`peminjaman.list.decision.${step.decision}`) }}
-                          </div>
-                          <div class="text-xs text-muted mt-px">
-                            {{ step.approver_name ?? t('peminjaman.list.timelineWaiting') }} · {{ fmtDateTime(step.decided_at) }}
-                          </div>
-                          <div
-                            v-if="step.note"
-                            class="mt-1.5 px-2.5 py-2 rounded-lg bg-default border border-default text-[12.5px] leading-snug text-muted"
-                          >
-                            "{{ step.note }}"
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
+    <template v-if="mode === 'list'">
+      <div class="flex items-center justify-between gap-3 flex-wrap mb-3.5">
+        <div class="font-semibold text-base">
+          {{ t('peminjaman.list.title') }}
         </div>
-      </UContextMenu>
-      <div class="px-4 py-3 border-t border-default text-[13px] text-muted">
-        {{ t('peminjaman.list.total', { n: rows.length }) }}
+        <div class="flex gap-0.5 p-0.5 bg-muted rounded-lg">
+          <button
+            v-for="f in filterTabs"
+            :key="f.key"
+            class="px-3 py-1.5 text-xs font-semibold rounded-md transition-colors"
+            :class="filter === f.key ? 'bg-default text-default shadow-sm' : 'text-muted hover:text-default'"
+            :data-testid="`peminjaman-filter-${f.key}`"
+            @click="filter = f.key"
+          >
+            {{ f.label }}
+          </button>
+        </div>
       </div>
-    </div>
+
+      <div
+        v-if="loading"
+        class="bg-default border border-default rounded-[13px] shadow-sm overflow-hidden"
+      >
+        <USkeleton class="h-[42px] w-full rounded-none" />
+        <div
+          v-for="n in 3"
+          :key="n"
+          class="flex items-center gap-4 px-4 py-3.5 border-t border-default"
+        >
+          <USkeleton class="h-3 w-[150px] rounded" />
+          <USkeleton class="h-3 flex-1 rounded" />
+          <USkeleton class="h-5 w-[90px] rounded-full" />
+        </div>
+      </div>
+
+      <div
+        v-else-if="loadError"
+        class="bg-default border border-default rounded-[14px] shadow-sm py-[50px] px-6 text-center"
+        data-testid="peminjaman-load-error"
+      >
+        <p class="text-sm text-muted mb-3">
+          {{ t('common.loadError') }}
+        </p>
+        <UButton
+          size="sm"
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-rotate-cw"
+          data-testid="peminjaman-retry"
+          @click="loadRequests"
+        >
+          {{ t('common.retry') }}
+        </UButton>
+      </div>
+
+      <div
+        v-else-if="rows.length === 0"
+        class="bg-default border border-default rounded-[14px] shadow-sm py-[54px] px-6 text-center"
+      >
+        <div class="size-[54px] mx-auto mb-3.5 rounded-[14px] bg-muted text-dimmed flex items-center justify-center">
+          <UIcon
+            name="i-lucide-clipboard-check"
+            class="size-[26px]"
+          />
+        </div>
+        <div class="text-base font-semibold mb-1.5">
+          {{ t('peminjaman.list.emptyTitle') }}
+        </div>
+        <div class="text-sm text-muted">
+          {{ t('peminjaman.list.emptySub') }}
+        </div>
+      </div>
+
+      <div
+        v-else
+        class="bg-default border border-default rounded-[13px] shadow-sm overflow-hidden"
+      >
+        <UContextMenu
+          :items="contextItems"
+          :disabled="rows.length === 0"
+        >
+          <div
+            class="overflow-x-auto"
+            @contextmenu="onTableContextMenu"
+          >
+            <table class="w-full border-collapse text-[13.5px]">
+              <thead>
+                <tr class="bg-muted text-muted">
+                  <th class="w-[30px] px-2 py-[11px]" />
+                  <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
+                    {{ t('peminjaman.list.colAsset') }}
+                  </th>
+                  <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
+                    {{ t('peminjaman.list.colDiajukan') }}
+                  </th>
+                  <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
+                    {{ t('peminjaman.list.colTempo') }}
+                  </th>
+                  <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
+                    {{ t('peminjaman.list.colStatus') }}
+                  </th>
+                  <th class="text-left px-3 py-[11px] text-xs font-semibold uppercase tracking-wide">
+                    {{ t('peminjaman.list.colCatatan') }}
+                  </th>
+                  <th class="text-right px-4 py-[11px] text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
+                    {{ t('peminjaman.list.colAksi') }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <template
+                  v-for="row in rows"
+                  :key="row.id"
+                >
+                  <tr
+                    class="border-t border-default cursor-pointer hover:bg-muted transition-colors"
+                    :class="row.open ? 'bg-muted' : ''"
+                    :data-testid="`peminjaman-row-${row.id}`"
+                    @click="toggleRow(row.id)"
+                    @contextmenu="onRowContextMenu(row)"
+                  >
+                    <td class="px-2 py-3">
+                      <UIcon
+                        name="i-lucide-chevron-right"
+                        class="size-[15px] text-dimmed transition-transform"
+                        :class="row.open ? 'rotate-90' : ''"
+                      />
+                    </td>
+                    <td class="px-3 py-3">
+                      <div class="font-medium whitespace-nowrap">
+                        {{ row.assetName ?? row.assetTag ?? '—' }}
+                      </div>
+                      <div class="font-mono text-[11px] text-dimmed">
+                        {{ row.assetName ? row.assetTag : '' }}
+                      </div>
+                    </td>
+                    <td class="px-3 py-3 text-muted whitespace-nowrap">
+                      {{ row.diajukan }}
+                    </td>
+                    <td
+                      class="px-3 py-3 whitespace-nowrap"
+                      :class="row.tempo ? 'text-muted' : 'text-dimmed'"
+                    >
+                      {{ row.tempo ?? '—' }}
+                    </td>
+                    <td class="px-3 py-3">
+                      <UBadge
+                        :color="row.statusTone"
+                        variant="subtle"
+                        class="rounded-full gap-1.5"
+                        :data-testid="`peminjaman-status-${row.id}`"
+                      >
+                        <span
+                          class="size-1.5 rounded-full"
+                          :class="STATUS_DOT[row.statusTone]"
+                        />
+                        {{ t(`peminjaman.status.${row.status}`) }}
+                      </UBadge>
+                    </td>
+                    <td class="px-3 py-3 text-muted max-w-[200px]">
+                      <span class="block truncate">{{ row.catatan ?? '—' }}</span>
+                    </td>
+                    <td
+                      class="px-4 py-3 text-right whitespace-nowrap"
+                      :data-testid="`peminjaman-actions-${row.id}`"
+                      @click.stop
+                    >
+                      <RowActionsMenu :items="rowActions(row)" />
+                    </td>
+                  </tr>
+                  <tr
+                    v-if="row.open"
+                    class="bg-muted"
+                  >
+                    <td
+                      colspan="7"
+                      class="px-5 py-4"
+                      :data-testid="`peminjaman-timeline-${row.id}`"
+                    >
+                      <div class="text-[11px] font-semibold uppercase tracking-wider text-dimmed mb-3">
+                        {{ t('peminjaman.list.timelineTitle') }}
+                      </div>
+                      <div
+                        v-if="timelineLoading.has(row.id)"
+                        class="flex flex-col gap-2"
+                      >
+                        <USkeleton class="h-4 w-2/3 rounded" />
+                        <USkeleton class="h-4 w-1/2 rounded" />
+                      </div>
+                      <div
+                        v-else-if="!submittedEntryFor(row.id) && timelineFor(row.id).length === 0"
+                        class="text-[12.5px] text-dimmed"
+                      >
+                        {{ t('peminjaman.list.timelineEmpty') }}
+                      </div>
+                      <div
+                        v-else
+                        class="flex flex-col gap-3"
+                      >
+                        <div
+                          v-if="submittedEntryFor(row.id)"
+                          class="flex gap-3"
+                          :data-testid="`peminjaman-timeline-submitted-${row.id}`"
+                        >
+                          <span class="size-[22px] rounded-full bg-info text-inverted flex items-center justify-center flex-none">
+                            <UIcon
+                              name="i-lucide-user"
+                              class="size-3"
+                            />
+                          </span>
+                          <div class="min-w-0 flex-1">
+                            <div class="text-[13px] font-semibold">
+                              {{ submittedEntryFor(row.id)?.label }}
+                            </div>
+                            <div class="text-xs text-muted mt-px">
+                              {{ submittedEntryFor(row.id)?.meta }}
+                            </div>
+                          </div>
+                        </div>
+                        <div
+                          v-for="(step, i) in timelineFor(row.id)"
+                          :key="i"
+                          class="flex gap-3"
+                        >
+                          <span class="size-[22px] rounded-full bg-default border border-default flex items-center justify-center flex-none text-[11px] font-semibold">
+                            {{ step.step_order }}
+                          </span>
+                          <div class="min-w-0 flex-1">
+                            <div class="text-[13px] font-semibold">
+                              {{ t(`peminjaman.list.decision.${step.decision}`) }}
+                            </div>
+                            <div class="text-xs text-muted mt-px">
+                              {{ step.approver_name ?? t('peminjaman.list.timelineWaiting') }} · {{ fmtDateTime(step.decided_at) }}
+                            </div>
+                            <div
+                              v-if="step.note"
+                              class="mt-1.5 px-2.5 py-2 rounded-lg bg-default border border-default text-[12.5px] leading-snug text-muted"
+                            >
+                              "{{ step.note }}"
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </UContextMenu>
+        <div class="px-4 py-3 border-t border-default text-[13px] text-muted">
+          {{ t('peminjaman.list.total', { n: rows.length }) }}
+        </div>
+      </div>
+    </template>
   </div>
 </template>
