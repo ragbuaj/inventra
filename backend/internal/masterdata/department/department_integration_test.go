@@ -147,3 +147,75 @@ func TestDepartmentDataScope(t *testing.T) {
 		assert.True(t, errors.Is(err, common.ErrNotFound) || errors.Is(err, department.ErrOfficeOutOfScope))
 	})
 }
+
+// TestDepartmentFloorValidation exercises the "floor must belong to the department
+// office" integrity rule added with the per-office floor column: a floor from the
+// department's own office is accepted and persisted, while a floor from a different
+// office (or a floor referenced without an office) is rejected with
+// ErrFloorOfficeMismatch.
+func TestDepartmentFloorValidation(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	svc := department.NewService(sqlc.New(pool))
+	ctx := context.Background()
+
+	t.Run("floor of the same office is accepted and persisted", func(t *testing.T) {
+		testsupport.Reset(t, pool)
+		tree := testsupport.SeedOfficeTree(t, pool)
+		floor := testsupport.SeedFloor(t, pool, tree.Cabang, "Lantai 1")
+
+		d, err := svc.Create(ctx, true, nil, department.CreateInput{
+			Name: "Ops", OfficeID: &tree.Cabang, FloorID: &floor, IsActive: true,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, d.FloorID)
+		assert.Equal(t, floor, *d.FloorID)
+	})
+
+	t.Run("floor from another office is rejected", func(t *testing.T) {
+		testsupport.Reset(t, pool)
+		tree := testsupport.SeedOfficeTree(t, pool)
+		otherFloor := testsupport.SeedFloor(t, pool, tree.Wilayah2, "Lantai W2")
+
+		_, err := svc.Create(ctx, true, nil, department.CreateInput{
+			Name: "Ops", OfficeID: &tree.Cabang, FloorID: &otherFloor, IsActive: true,
+		})
+		assert.ErrorIs(t, err, department.ErrFloorOfficeMismatch)
+	})
+
+	t.Run("floor referenced without an office is rejected", func(t *testing.T) {
+		testsupport.Reset(t, pool)
+		tree := testsupport.SeedOfficeTree(t, pool)
+		floor := testsupport.SeedFloor(t, pool, tree.Cabang, "Lantai 1")
+
+		_, err := svc.Create(ctx, true, nil, department.CreateInput{
+			Name: "Global", OfficeID: nil, FloorID: &floor, IsActive: true,
+		})
+		assert.ErrorIs(t, err, department.ErrFloorOfficeMismatch)
+	})
+
+	t.Run("nil floor is always valid", func(t *testing.T) {
+		testsupport.Reset(t, pool)
+		tree := testsupport.SeedOfficeTree(t, pool)
+		_, err := svc.Create(ctx, true, nil, department.CreateInput{
+			Name: "NoFloor", OfficeID: &tree.Cabang, IsActive: true,
+		})
+		require.NoError(t, err)
+	})
+
+	t.Run("Update rejects moving to a floor of a different office", func(t *testing.T) {
+		testsupport.Reset(t, pool)
+		tree := testsupport.SeedOfficeTree(t, pool)
+		floor := testsupport.SeedFloor(t, pool, tree.Cabang, "Lantai 1")
+		otherFloor := testsupport.SeedFloor(t, pool, tree.Wilayah2, "Lantai W2")
+
+		d, err := svc.Create(ctx, true, nil, department.CreateInput{
+			Name: "Ops", OfficeID: &tree.Cabang, FloorID: &floor, IsActive: true,
+		})
+		require.NoError(t, err)
+
+		_, _, err = svc.Update(ctx, d.ID, true, nil, department.UpdateInput{CreateInput: department.CreateInput{
+			Name: "Ops", OfficeID: &tree.Cabang, FloorID: &otherFloor, IsActive: true,
+		}})
+		assert.ErrorIs(t, err, department.ErrFloorOfficeMismatch)
+	})
+}

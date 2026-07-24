@@ -30,3 +30,20 @@ describe('referenceResources — legacy-parity Fase 4 masters', () => {
     expect(max.required).toBeFalsy()
   })
 })
+
+describe('referenceResources — departments per-office floor', () => {
+  const dept = referenceResources.find(r => r.key === 'departments')!
+
+  it('has name, code, a required office field and a required floor field', () => {
+    expect(dept).toBeTruthy()
+    expect(dept.fields.map(f => f.key)).toEqual(['name', 'code', 'office_id', 'floor_id'])
+
+    const office = dept.fields.find(f => f.key === 'office_id')!
+    expect(office.type).toBe('office')
+    expect(office.required).toBe(true)
+
+    const floor = dept.fields.find(f => f.key === 'floor_id')!
+    expect(floor.type).toBe('floor')
+    expect(floor.required).toBe(true)
+  })
+})

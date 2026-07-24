@@ -37,6 +37,8 @@ func (h *Handler) svcError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, ErrOfficeOutOfScope):
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+	case errors.Is(err, ErrFloorOfficeMismatch):
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	default:
 		common.WriteError(c, err)
 	}

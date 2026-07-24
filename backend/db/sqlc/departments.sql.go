@@ -38,15 +38,16 @@ func (q *Queries) CountDepartments(ctx context.Context, arg CountDepartmentsPara
 }
 
 const createDepartment = `-- name: CreateDepartment :one
-INSERT INTO masterdata.departments (name, code, office_id, is_active)
-VALUES ($1, $2, $3, $4)
-RETURNING id, name, code, is_active, created_at, updated_at, deleted_at, office_id
+INSERT INTO masterdata.departments (name, code, office_id, floor_id, is_active)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, name, code, is_active, created_at, updated_at, deleted_at, office_id, floor_id
 `
 
 type CreateDepartmentParams struct {
 	Name     string     `json:"name"`
 	Code     *string    `json:"code"`
 	OfficeID *uuid.UUID `json:"office_id"`
+	FloorID  *uuid.UUID `json:"floor_id"`
 	IsActive bool       `json:"is_active"`
 }
 
@@ -55,6 +56,7 @@ func (q *Queries) CreateDepartment(ctx context.Context, arg CreateDepartmentPara
 		arg.Name,
 		arg.Code,
 		arg.OfficeID,
+		arg.FloorID,
 		arg.IsActive,
 	)
 	var i MasterdataDepartment
@@ -67,12 +69,13 @@ func (q *Queries) CreateDepartment(ctx context.Context, arg CreateDepartmentPara
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.OfficeID,
+		&i.FloorID,
 	)
 	return i, err
 }
 
 const getDepartment = `-- name: GetDepartment :one
-SELECT id, name, code, is_active, created_at, updated_at, deleted_at, office_id FROM masterdata.departments
+SELECT id, name, code, is_active, created_at, updated_at, deleted_at, office_id, floor_id FROM masterdata.departments
 WHERE id = $1 AND deleted_at IS NULL
   AND ($2::bool
        OR office_id = ANY($3::uuid[])
@@ -98,13 +101,14 @@ func (q *Queries) GetDepartment(ctx context.Context, arg GetDepartmentParams) (M
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.OfficeID,
+		&i.FloorID,
 	)
 	return i, err
 }
 
 const listDepartments = `-- name: ListDepartments :many
 
-SELECT id, name, code, is_active, created_at, updated_at, deleted_at, office_id FROM masterdata.departments
+SELECT id, name, code, is_active, created_at, updated_at, deleted_at, office_id, floor_id FROM masterdata.departments
 WHERE deleted_at IS NULL
   AND ($1::bool
        OR office_id = ANY($2::uuid[])
@@ -154,6 +158,7 @@ func (q *Queries) ListDepartments(ctx context.Context, arg ListDepartmentsParams
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.OfficeID,
+			&i.FloorID,
 		); err != nil {
 			return nil, err
 		}
@@ -190,16 +195,18 @@ UPDATE masterdata.departments
 SET name = $1,
     code = $2,
     office_id = $3,
-    is_active = $4
-WHERE id = $5 AND deleted_at IS NULL
-  AND ($6::bool OR office_id = ANY($7::uuid[]))
-RETURNING id, name, code, is_active, created_at, updated_at, deleted_at, office_id
+    floor_id = $4,
+    is_active = $5
+WHERE id = $6 AND deleted_at IS NULL
+  AND ($7::bool OR office_id = ANY($8::uuid[]))
+RETURNING id, name, code, is_active, created_at, updated_at, deleted_at, office_id, floor_id
 `
 
 type UpdateDepartmentParams struct {
 	Name      string      `json:"name"`
 	Code      *string     `json:"code"`
 	OfficeID  *uuid.UUID  `json:"office_id"`
+	FloorID   *uuid.UUID  `json:"floor_id"`
 	IsActive  bool        `json:"is_active"`
 	ID        uuid.UUID   `json:"id"`
 	AllScope  bool        `json:"all_scope"`
@@ -213,6 +220,7 @@ func (q *Queries) UpdateDepartment(ctx context.Context, arg UpdateDepartmentPara
 		arg.Name,
 		arg.Code,
 		arg.OfficeID,
+		arg.FloorID,
 		arg.IsActive,
 		arg.ID,
 		arg.AllScope,
@@ -228,6 +236,7 @@ func (q *Queries) UpdateDepartment(ctx context.Context, arg UpdateDepartmentPara
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.OfficeID,
+		&i.FloorID,
 	)
 	return i, err
 }

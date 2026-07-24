@@ -14,6 +14,7 @@ type Request struct {
 	Name     string  `json:"name" binding:"required"`
 	Code     *string `json:"code"`
 	OfficeID *string `json:"office_id"`
+	FloorID  *string `json:"floor_id"`
 	IsActive *bool   `json:"is_active"`
 }
 
@@ -26,6 +27,10 @@ func (r Request) toInput() (CreateInput, error) {
 		return CreateInput{}, ErrBlankName
 	}
 	officeID, err := common.ParseUUIDPtr(r.OfficeID)
+	if err != nil {
+		return CreateInput{}, err
+	}
+	floorID, err := common.ParseUUIDPtr(r.FloorID)
 	if err != nil {
 		return CreateInput{}, err
 	}
@@ -42,6 +47,7 @@ func (r Request) toInput() (CreateInput, error) {
 		Name:     name,
 		Code:     code,
 		OfficeID: officeID,
+		FloorID:  floorID,
 		IsActive: common.BoolOr(r.IsActive, true),
 	}, nil
 }
@@ -54,6 +60,7 @@ func toResponse(d sqlc.MasterdataDepartment) map[string]any {
 		"name":       d.Name,
 		"code":       d.Code,
 		"office_id":  common.UUIDPtrStr(d.OfficeID),
+		"floor_id":   common.UUIDPtrStr(d.FloorID),
 		"is_active":  d.IsActive,
 		"created_at": common.TsStr(d.CreatedAt),
 		"updated_at": common.TsStr(d.UpdatedAt),

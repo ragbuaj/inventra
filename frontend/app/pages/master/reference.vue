@@ -12,6 +12,8 @@ const localePath = useLocalePath()
 const { open: confirm } = useConfirm()
 const api = useReference()
 const officePicker = useOfficePicker()
+const floorsApi = useFloors()
+const officesApi = useOffices()
 
 const resourceKey = ref<ReferenceKey>(referenceResources[0]!.key)
 const descriptor = computed<ReferenceDescriptor>(() =>
@@ -93,12 +95,76 @@ function tierLabel(value: unknown): string {
   return opt ? t(opt.labelKey) : '—'
 }
 
+// ---------------------------------------------------------------------------
+// Department-only wiring (resources with an office/floor field): a floor picker
+// filtered to the selected office, plus office/floor id->name table resolution.
+// ---------------------------------------------------------------------------
+const hasOfficeField = computed(() => descriptor.value.fields.some(f => f.type === 'office'))
+const hasFloorField = computed(() => descriptor.value.fields.some(f => f.type === 'floor'))
+
+// Floor options for the form, filtered to the currently selected office's floors.
+const NO_FLOOR = '__nofloor__'
+const floorFormOptions = ref<{ label: string, value: string }[]>([])
+async function loadFloorFormOptions(officeId: string) {
+  if (!officeId) {
+    floorFormOptions.value = []
+    return
+  }
+  try {
+    const fs = await floorsApi.listByOffice(officeId)
+    floorFormOptions.value = fs.map(f => ({ label: f.name, value: f.id }))
+  } catch {
+    floorFormOptions.value = []
+  }
+}
+// USelect forbids an empty-string item value; a disabled "no floor" sentinel keeps
+// the dropdown from being a silent empty popover when the office has no floors yet.
+const floorFormItems = computed(() => {
+  if (!form.office_id) return []
+  if (floorFormOptions.value.length === 0) {
+    return [{ label: t('masterdata.reference.noFloor'), value: NO_FLOOR, disabled: true }]
+  }
+  return floorFormOptions.value
+})
+
+// Office field change resets the dependent floor and reloads its options.
+async function onOfficeFieldChange(fieldKey: string, val: string | null) {
+  form[fieldKey] = val ?? ''
+  if (hasFloorField.value) {
+    form.floor_id = ''
+    await loadFloorFormOptions(String(val ?? ''))
+  }
+}
+
+// id -> name maps for the office/floor table columns. Loaded non-fatally: a
+// failure just leaves the cell showing a dash.
+const officeNames = ref<Record<string, string>>({})
+const floorNames = ref<Record<string, string>>({})
+function currentRowOfficeIds(): string[] {
+  return [...new Set(rows.value.map(r => (r as Record<string, unknown>).office_id).filter(Boolean) as string[])]
+}
+async function loadDeptNameMaps() {
+  if (!hasOfficeField.value) return
+  try {
+    const offices = await officesApi.tree()
+    officeNames.value = Object.fromEntries(offices.map(o => [o.id, o.name]))
+  } catch { /* leave office names unresolved */ }
+  if (!hasFloorField.value) return
+  try {
+    const entries = await Promise.all(
+      currentRowOfficeIds().map(async id => (await floorsApi.listByOffice(id)).map(f => [f.id, f.name] as const))
+    )
+    floorNames.value = Object.fromEntries(entries.flat())
+  } catch { /* leave floor names unresolved */ }
+}
+
 async function refresh() {
   loading.value = true
   try {
     const res = await api.list(resourceKey.value, { search: search.value, limit: limit.value, offset: offset.value })
     rows.value = res.data
     total.value = res.total
+    await loadDeptNameMaps()
   } finally {
     loading.value = false
   }
@@ -135,6 +201,7 @@ function resetForm() {
 function openCreate() {
   editingId.value = undefined
   resetForm()
+  floorFormOptions.value = []
   formOpen.value = true
 }
 
@@ -144,6 +211,8 @@ function openEdit(row: ReferenceRow) {
   for (const f of descriptor.value.fields) form[f.key] = row[f.key] ?? ''
   form.is_active = row.is_active !== false
   formOpen.value = true
+  // Preload the floor options for the row's office so the picker shows its label.
+  if (hasFloorField.value) void loadFloorFormOptions(String(form.office_id ?? ''))
 }
 
 function validate(): boolean {
@@ -349,6 +418,12 @@ onMounted(async () => {
           <template #brand_id-cell="{ row }">
             {{ fkName('brand_id', (row as Record<string, unknown>).brand_id) }}
           </template>
+          <template #office_id-cell="{ row }">
+            {{ officeNames[(row as Record<string, unknown>).office_id as string] ?? '—' }}
+          </template>
+          <template #floor_id-cell="{ row }">
+            {{ floorNames[(row as Record<string, unknown>).floor_id as string] ?? '—' }}
+          </template>
           <template #tier-cell="{ row }">
             {{ tierLabel((row as Record<string, unknown>).tier) }}
           </template>
@@ -411,7 +486,17 @@ onMounted(async () => {
             :placeholder="t('masterdata.reference.searchOffice')"
             :testid="`ref-field-${field.key}`"
             clearable
-            @update:model-value="form[field.key] = $event ?? ''"
+            @update:model-value="onOfficeFieldChange(field.key, $event)"
+          />
+          <USelect
+            v-else-if="field.type === 'floor'"
+            :model-value="form[field.key] as string"
+            :items="floorFormItems"
+            :disabled="!form.office_id"
+            :placeholder="form.office_id ? t('masterdata.reference.selectFloor') : t('masterdata.reference.selectOfficeFirst')"
+            :data-testid="`ref-field-${field.key}`"
+            class="w-full"
+            @update:model-value="form[field.key] = ($event === NO_FLOOR ? '' : $event)"
           />
           <USelect
             v-else-if="field.type === 'select'"

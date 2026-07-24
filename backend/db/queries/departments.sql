@@ -38,8 +38,8 @@ WHERE id = sqlc.arg(id) AND deleted_at IS NULL
        OR office_id IS NULL);
 
 -- name: CreateDepartment :one
-INSERT INTO masterdata.departments (name, code, office_id, is_active)
-VALUES (sqlc.arg(name), sqlc.narg(code), sqlc.narg(office_id), sqlc.arg(is_active))
+INSERT INTO masterdata.departments (name, code, office_id, floor_id, is_active)
+VALUES (sqlc.arg(name), sqlc.narg(code), sqlc.narg(office_id), sqlc.narg(floor_id), sqlc.arg(is_active))
 RETURNING *;
 
 -- name: UpdateDepartment :one
@@ -49,6 +49,7 @@ UPDATE masterdata.departments
 SET name = sqlc.arg(name),
     code = sqlc.narg(code),
     office_id = sqlc.narg(office_id),
+    floor_id = sqlc.narg(floor_id),
     is_active = sqlc.arg(is_active)
 WHERE id = sqlc.arg(id) AND deleted_at IS NULL
   AND (sqlc.arg(all_scope)::bool OR office_id = ANY(sqlc.arg(office_ids)::uuid[]))
