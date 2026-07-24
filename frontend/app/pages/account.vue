@@ -385,7 +385,7 @@ const joinDateLabel = computed(() => {
         <div class="flex gap-1 border-b border-default mb-[22px]">
           <button
             type="button"
-            class="inline-flex items-center gap-2 px-4 py-3 -mb-px text-[14px] font-medium bg-transparent border-none cursor-pointer transition-colors"
+            class="flex-1 sm:flex-none inline-flex items-center justify-center sm:justify-start gap-2 px-2 sm:px-4 py-3 -mb-px text-[14px] font-medium whitespace-nowrap bg-transparent border-none cursor-pointer transition-colors"
             :class="tab === 'profile' ? 'text-primary border-b-2 border-primary' : 'text-muted hover:text-default'"
             @click="tab = 'profile'"
           >
@@ -397,7 +397,7 @@ const joinDateLabel = computed(() => {
           </button>
           <button
             type="button"
-            class="inline-flex items-center gap-2 px-4 py-3 -mb-px text-[14px] font-medium bg-transparent border-none cursor-pointer transition-colors"
+            class="flex-1 sm:flex-none inline-flex items-center justify-center sm:justify-start gap-2 px-2 sm:px-4 py-3 -mb-px text-[14px] font-medium whitespace-nowrap bg-transparent border-none cursor-pointer transition-colors"
             :class="tab === 'security' ? 'text-primary border-b-2 border-primary' : 'text-muted hover:text-default'"
             @click="tab = 'security'"
           >
@@ -409,7 +409,7 @@ const joinDateLabel = computed(() => {
           </button>
           <button
             type="button"
-            class="inline-flex items-center gap-2 px-4 py-3 -mb-px text-[14px] font-medium bg-transparent border-none cursor-pointer transition-colors"
+            class="flex-1 sm:flex-none inline-flex items-center justify-center sm:justify-start gap-2 px-2 sm:px-4 py-3 -mb-px text-[14px] font-medium whitespace-nowrap bg-transparent border-none cursor-pointer transition-colors"
             :class="tab === 'preferences' ? 'text-primary border-b-2 border-primary' : 'text-muted hover:text-default'"
             @click="tab = 'preferences'"
           >
