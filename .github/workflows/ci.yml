@@ -233,6 +233,12 @@ jobs:
         working-directory: frontend
         run: pnpm exec playwright test --project=lampiran
 
+      # Playwright only sees the HTTP status, so a 500 from the API is opaque in
+      # the test output. Dump the server side before teardown wipes it.
+      - name: Dump backend logs (on failure)
+        if: failure()
+        run: docker compose logs --tail=300 backend
+
       - name: Tear down stack
         if: always()
         run: docker compose down -v
