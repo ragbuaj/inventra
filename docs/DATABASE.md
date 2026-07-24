@@ -464,6 +464,7 @@ Index: partial `UNIQUE(code)`, `idx_employees_office_id`, `idx_employees_departm
 | id | uuid | no | gen_random_uuid() | **PK** |
 | asset_tag | text | no | | **UNIQUE** (partial) — **kode aset** unik, format `{kode_kantor}{kode_kategori}{tahun}{seq5}` tanpa pemisah (lihat bagian 4.7) = payload **barcode** Code128 (FR-2.12); slug URL |
 | tag_seq | int | yes | | nomor urut per-kantor sumber `seq5` (NULLABLE; lihat bagian 4.7) |
+| **tag_office_id** 🆕LP | uuid? | yes | | **FK** offices — kantor **PENERBIT** tag. Diisi saat aset dibuat dan **tidak pernah diubah oleh mutasi**; sumber `MAX(tag_seq)` (lihat bagian 4.7) |
 | name | text | no | | |
 | category_id | uuid | no | | **FK** categories |
 | brand_id | uuid? | yes | | **FK** brands |
@@ -840,15 +841,24 @@ kantor lain punya deret sendiri.
 
 **Sumber nomor urut:** kolom `assets.tag_seq` (int, **NULLABLE**) per aset — bukan lagi tabel counter
 terpisah (`asset_tag_counters` **dihapus** di `000040`). Alokasi:
-`next = COALESCE(MAX(tag_seq), 0) + 1` atas semua baris kantor tsb **termasuk yang soft-delete**
-(menahan nomornya) tetapi bukan yang hard-delete — nomor teratas bisa dipakai lagi hanya bila baris
-teratas di-hard-delete. `tag_seq` NULLABLE: jalur create auto/import selalu mengisinya; INSERT langsung
-(seed/test/migrasi data) boleh NULL, dan `COALESCE(MAX,0)` mengabaikan NULL.
+`next = COALESCE(MAX(tag_seq), 0) + 1` atas semua baris **kantor PENERBIT** (`tag_office_id`) tsb
+**termasuk yang soft-delete** (menahan nomornya) tetapi bukan yang hard-delete — nomor teratas bisa
+dipakai lagi hanya bila baris teratas di-hard-delete. `tag_seq` NULLABLE: jalur create auto/import
+selalu mengisinya; INSERT langsung (seed/test/migrasi data) boleh NULL, dan `COALESCE(MAX,0)`
+mengabaikan NULL.
+
+> ⚠️ **Kunci deret adalah `tag_office_id`, BUKAN `office_id`** (migrasi `000046`). `office_id` berubah
+> saat **mutasi**: aset yang dipindah membawa serta `tag_seq`-nya, sehingga `MAX` kantor asal TURUN dan
+> pembuatan berikutnya akan **menerbitkan ulang** nomor yang sudah tertanam di tag aset yang dimutasi —
+> menghasilkan `asset_tag` duplikat (23505) bila kategori & tahun kebetulan sama, sekaligus melanggar
+> aturan "nomor tak dipakai ulang". `tag_office_id` diisi saat create dan tak pernah diubah mutasi.
+> `COALESCE(tag_office_id, office_id)` menjaga baris pra-`000046`.
 
 **Generasi** (di dalam transaksi create; advisory lock per-kantor menggantikan upsert counter):
 ```sql
 SELECT pg_advisory_xact_lock(hashtext('asset_tag'), hashtext($office_id::text));  -- serialisasi per kantor
-SELECT COALESCE(MAX(tag_seq), 0)::int FROM asset.assets WHERE office_id = $office_id;  -- => maxSeq
+SELECT COALESCE(MAX(tag_seq), 0)::int FROM asset.assets
+WHERE COALESCE(tag_office_id, office_id) = $office_id;  -- => maxSeq (kantor PENERBIT)
 -- tag_seq   = maxSeq + 1
 -- asset_tag = format('%s%s%d%05d', office_code, category_code, year, tag_seq)
 ```
@@ -910,6 +920,7 @@ Tiap fase roadmap (PRD bagian 10) menambah migrasi `golang-migrate` di `backend/
 | **`000034_notification_module`** 🆕 | notif | skema **baru** `notification`: `outbox` (transactional outbox — event bisnis se-transaksi) + `notifications` (feed per-user), enum `shared.notification_type`, 4 index partial (`uq_notif_dedup` menopang consumer at-least-once). Lihat [ADR-0014](adr/0014-notification-delivery.md) ✅ |
 | **`000035_notification_outbox_lookup_index`** 🆕 | notif | `notification.idx_outbox_event_aggregate` partial `(event_type, aggregate_id) WHERE deleted_at IS NULL` — menopang guard idempotensi sisi-outbox sweeper (mencari baris yang SUDAH dipublish; `idx_outbox_unpublished` partial pada `published_at IS NULL` tak bisa melayaninya) ✅ |
 | **`000038`–`000045`** 🆕LP | legacy-parity | penyelarasan model data ke sistem lama (spec 2026-07-23). `000038` enum `office_ownership`/`office_kind`/`location_change_source`; `000039` kolom aset (`floor_id`/`pic_employee_id`/`capacity`/`lease_date`/`installation_date`/`warranty_start`) + longgarkan CHECK lokasi (`chk_assets_tangible_location`); `000040` `assets.tag_seq` + re-tag + **drop `asset_tag_counters`**; `000041` `asset_location_history` + `asset_pic_history`; `000042` master `office_classes`/`executor_divisions`(+seed 5)/`companies`/`building_classifications`; `000043` 9 kolom `offices`; `000044` `employees.{company_id,executor_division_id}` + `departments.office_id` (per-kantor); `000045` `users.username` (login NIP-atau-email) ✅ |
+| **`000046_asset_tag_office`** 🆕LP | legacy-parity | `asset.assets.tag_office_id` (FK offices) + backfill dari `office_id` + index `(tag_office_id, tag_seq)`. Memperbaiki bug nyata: deret nomor tag di-kunci pada `office_id` yang BERUBAH saat mutasi, sehingga nomor bisa terbit ulang dan menghasilkan `asset_tag` duplikat (lihat bagian 4.7) ✅ |
 
 > **Strategi greenfield (PRD v1.1).** Karena belum ada data, perubahan v1.1 untuk tabel/enum yang
 > **sudah ada** di-bake **in-place ke migrasi awal** (bukan migrasi `ALTER` terpisah):

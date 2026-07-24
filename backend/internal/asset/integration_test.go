@@ -262,6 +262,71 @@ func TestAsset_TagSeq_PerOfficeNotPerYear(t *testing.T) {
 	assert.Equal(t, "BDG01FRN202600004", tag2026b)
 }
 
+// TestAsset_TagSeq_SurvivesTransferOut is the regression guard for a real bug:
+// the sequence used to be derived from MAX(tag_seq) WHERE office_id = <office>.
+// A transfer moves office_id to the destination and takes tag_seq with it, so the
+// source office's MAX dropped and the NEXT create REISSUED that number — producing
+// a duplicate asset_tag (23505, surfaced as an opaque 500) whenever the category
+// and year happened to match, and violating the spec rule that a sequence number
+// is never reused. Migration 000046 anchors the counter to tag_office_id (the
+// ISSUING office), which a transfer never changes.
+func TestAsset_TagSeq_SurvivesTransferOut(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	_ = testsupport.NewRedis(t)
+	ctx := context.Background()
+	resetAll(t, pool)
+
+	srcOffice := seedOfficeWithType(t, pool, "SrcType", "SRC01")
+	dstOffice := seedOfficeWithType(t, pool, "DstType", "DST01")
+	catID := seedCategory(t, pool, "SWL")
+
+	q := sqlc.New(pool)
+	svc := asset.NewService(q, pool, storage.NewFake(), 0, "")
+
+	create := func() (uuid.UUID, string) {
+		tx, err := pool.Begin(ctx)
+		require.NoError(t, err)
+		qtx := q.WithTx(tx)
+		tag, seq, err := svc.GenerateAssetTag(ctx, qtx, srcOffice, catID, 2026)
+		require.NoError(t, err)
+		row, err := qtx.CreateAsset(ctx, sqlc.CreateAssetParams{
+			AssetTag: tag, TagSeq: &seq, Name: "Asset", CategoryID: catID,
+			OfficeID: srcOffice, AssetClass: sqlc.SharedAssetClassIntangible,
+			Capitalized: true, Specifications: []byte("{}"),
+		})
+		require.NoError(t, err)
+		require.NoError(t, tx.Commit(ctx))
+		return row.ID, tag
+	}
+
+	_, first := create()
+	movedID, moved := create()
+	assert.Equal(t, "SRC01SWL202600001", first)
+	assert.Equal(t, "SRC01SWL202600002", moved)
+
+	// Transfer the highest-numbered asset OUT of the source office (what the
+	// transfer receive step does).
+	_, err := q.SetAssetOffice(ctx, sqlc.SetAssetOfficeParams{ID: movedID, OfficeID: dstOffice, RoomID: nil})
+	require.NoError(t, err)
+
+	// The next create in the SOURCE office must continue at 3 — not reuse 2.
+	_, next := create()
+	assert.Equal(t, "SRC01SWL202600003", next,
+		"sequence must not be reused after the top asset is transferred out")
+	assert.NotEqual(t, moved, next, "reissuing the number would duplicate the moved asset's tag")
+
+	// The destination office keeps its own (independent) sequence: the incoming
+	// asset was issued by SRC01, so it must not advance DST01's counter.
+	tx, err := pool.Begin(ctx)
+	require.NoError(t, err)
+	qtx := q.WithTx(tx)
+	dstTag, _, err := svc.GenerateAssetTag(ctx, qtx, dstOffice, catID, 2026)
+	require.NoError(t, err)
+	require.NoError(t, tx.Rollback(ctx))
+	assert.Equal(t, "DST01SWL202600001", dstTag,
+		"a transferred-in asset must not consume the destination office's sequence")
+}
+
 // TestAsset_ReadScope_OfficeFiltered verifies that List correctly filters assets
 // by office ID when AllScope=false.
 func TestAsset_ReadScope_OfficeFiltered(t *testing.T) {

@@ -1295,6 +1295,7 @@ type AssetAsset struct {
 	FloorID                  *uuid.UUID                `json:"floor_id"`
 	PicEmployeeID            *uuid.UUID                `json:"pic_employee_id"`
 	TagSeq                   *int32                    `json:"tag_seq"`
+	TagOfficeID              *uuid.UUID                `json:"tag_office_id"`
 }
 
 type AssetAssetAttachment struct {

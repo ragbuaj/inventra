@@ -198,8 +198,14 @@ type Querier interface {
 	GetMaintRecordEnriched(ctx context.Context, arg GetMaintRecordEnrichedParams) (GetMaintRecordEnrichedRow, error)
 	GetMaintRecordScoped(ctx context.Context, arg GetMaintRecordScopedParams) (MaintenanceMaintenanceRecord, error)
 	GetMaintScheduleScoped(ctx context.Context, arg GetMaintScheduleScopedParams) (MaintenanceMaintenanceSchedule, error)
-	// Highest tag_seq for an office, INCLUDING soft-deleted rows (they reserve their
-	// number); hard-deleted rows are gone so the top number frees up. NULL -> 0.
+	// Highest tag_seq ISSUED BY an office, INCLUDING soft-deleted rows (they reserve
+	// their number); hard-deleted rows are gone so the top number frees up. NULL -> 0.
+	//
+	// Keyed on tag_office_id (the office that issued the tag), NOT office_id: a
+	// transfer moves office_id to the destination and would otherwise drop the source
+	// office's MAX, letting the next create REISSUE a number already embedded in the
+	// moved asset's (immutable) tag — a duplicate asset_tag. COALESCE covers rows
+	// predating migration 000046.
 	GetMaxTagSeqForOffice(ctx context.Context, officeID uuid.UUID) (int32, error)
 	GetModelByBrandAndName(ctx context.Context, arg GetModelByBrandAndNameParams) (MasterdataModel, error)
 	GetOffice(ctx context.Context, arg GetOfficeParams) (MasterdataOffice, error)

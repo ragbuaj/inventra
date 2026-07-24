@@ -63,33 +63,33 @@ func (q *Queries) CountAssets(ctx context.Context, arg CountAssetsParams) (int64
 
 const createAsset = `-- name: CreateAsset :one
 INSERT INTO asset.assets (
-  asset_tag, tag_seq, name, category_id, brand_id, model_id, room_id, floor_id, office_id, unit_id,
+  asset_tag, tag_seq, tag_office_id, name, category_id, brand_id, model_id, room_id, floor_id, office_id, unit_id,
   status, serial_number, purchase_date, purchase_cost, vendor_id, po_number,
   funding_source, warranty_expiry, warranty_start, capacity, lease_date, installation_date,
   pic_employee_id, specifications, asset_class, capitalized,
   acquisition_bast_no, created_by_id, notes
 ) VALUES (
-  $1,$2,$3,$4,$5,
-  $6,$7,$8,$9,$10,
+  $1,$2,$3::uuid,$4,$5,$6,
+  $7,$8,$9,$3,$10,
   'available',$11,$12,$13,
   $14,$15,$16,$17,
   $18,$19,$20,$21,
   $22,
   COALESCE($23,'{}')::jsonb,$24,$25,
   $26,$27,$28
-) RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq
+) RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq, tag_office_id
 `
 
 type CreateAssetParams struct {
 	AssetTag          string           `json:"asset_tag"`
 	TagSeq            *int32           `json:"tag_seq"`
+	OfficeID          uuid.UUID        `json:"office_id"`
 	Name              string           `json:"name"`
 	CategoryID        uuid.UUID        `json:"category_id"`
 	BrandID           *uuid.UUID       `json:"brand_id"`
 	ModelID           *uuid.UUID       `json:"model_id"`
 	RoomID            *uuid.UUID       `json:"room_id"`
 	FloorID           *uuid.UUID       `json:"floor_id"`
-	OfficeID          uuid.UUID        `json:"office_id"`
 	UnitID            *uuid.UUID       `json:"unit_id"`
 	SerialNumber      *string          `json:"serial_number"`
 	PurchaseDate      pgtype.Date      `json:"purchase_date"`
@@ -115,13 +115,13 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 	row := q.db.QueryRow(ctx, createAsset,
 		arg.AssetTag,
 		arg.TagSeq,
+		arg.OfficeID,
 		arg.Name,
 		arg.CategoryID,
 		arg.BrandID,
 		arg.ModelID,
 		arg.RoomID,
 		arg.FloorID,
-		arg.OfficeID,
 		arg.UnitID,
 		arg.SerialNumber,
 		arg.PurchaseDate,
@@ -189,6 +189,7 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 		&i.FloorID,
 		&i.PicEmployeeID,
 		&i.TagSeq,
+		&i.TagOfficeID,
 	)
 	return i, err
 }
@@ -289,7 +290,7 @@ func (q *Queries) CreateAttachment(ctx context.Context, arg CreateAttachmentPara
 }
 
 const getAsset = `-- name: GetAsset :one
-SELECT id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq FROM asset.assets WHERE id = $1 AND deleted_at IS NULL
+SELECT id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq, tag_office_id FROM asset.assets WHERE id = $1 AND deleted_at IS NULL
 `
 
 func (q *Queries) GetAsset(ctx context.Context, id uuid.UUID) (AssetAsset, error) {
@@ -341,12 +342,13 @@ func (q *Queries) GetAsset(ctx context.Context, id uuid.UUID) (AssetAsset, error
 		&i.FloorID,
 		&i.PicEmployeeID,
 		&i.TagSeq,
+		&i.TagOfficeID,
 	)
 	return i, err
 }
 
 const getAssetByTag = `-- name: GetAssetByTag :one
-SELECT id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq FROM asset.assets WHERE asset_tag = $1 AND deleted_at IS NULL
+SELECT id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq, tag_office_id FROM asset.assets WHERE asset_tag = $1 AND deleted_at IS NULL
 `
 
 func (q *Queries) GetAssetByTag(ctx context.Context, assetTag string) (AssetAsset, error) {
@@ -398,6 +400,7 @@ func (q *Queries) GetAssetByTag(ctx context.Context, assetTag string) (AssetAsse
 		&i.FloorID,
 		&i.PicEmployeeID,
 		&i.TagSeq,
+		&i.TagOfficeID,
 	)
 	return i, err
 }
@@ -533,11 +536,18 @@ func (q *Queries) GetFloorOffice(ctx context.Context, id uuid.UUID) (uuid.UUID, 
 }
 
 const getMaxTagSeqForOffice = `-- name: GetMaxTagSeqForOffice :one
-SELECT COALESCE(MAX(tag_seq), 0)::int FROM asset.assets WHERE office_id = $1
+SELECT COALESCE(MAX(tag_seq), 0)::int FROM asset.assets
+WHERE COALESCE(tag_office_id, office_id) = $1::uuid
 `
 
-// Highest tag_seq for an office, INCLUDING soft-deleted rows (they reserve their
-// number); hard-deleted rows are gone so the top number frees up. NULL -> 0.
+// Highest tag_seq ISSUED BY an office, INCLUDING soft-deleted rows (they reserve
+// their number); hard-deleted rows are gone so the top number frees up. NULL -> 0.
+//
+// Keyed on tag_office_id (the office that issued the tag), NOT office_id: a
+// transfer moves office_id to the destination and would otherwise drop the source
+// office's MAX, letting the next create REISSUE a number already embedded in the
+// moved asset's (immutable) tag — a duplicate asset_tag. COALESCE covers rows
+// predating migration 000046.
 func (q *Queries) GetMaxTagSeqForOffice(ctx context.Context, officeID uuid.UUID) (int32, error) {
 	row := q.db.QueryRow(ctx, getMaxTagSeqForOffice, officeID)
 	var column_1 int32
@@ -647,7 +657,7 @@ func (q *Queries) ListAssetTags(ctx context.Context) ([]string, error) {
 
 const listAssets = `-- name: ListAssets :many
 
-SELECT id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq FROM asset.assets
+SELECT id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq, tag_office_id FROM asset.assets
 WHERE deleted_at IS NULL
   AND ($1::boolean OR office_id = ANY($2::uuid[]))
   AND ($3::text IS NULL OR name ILIKE '%' || $3 || '%'
@@ -740,6 +750,7 @@ func (q *Queries) ListAssets(ctx context.Context, arg ListAssetsParams) ([]Asset
 			&i.FloorID,
 			&i.PicEmployeeID,
 			&i.TagSeq,
+			&i.TagOfficeID,
 		); err != nil {
 			return nil, err
 		}
@@ -831,7 +842,7 @@ SET office_id = $1,
     floor_id = (SELECT rr.floor_id FROM masterdata.rooms rr
                 WHERE rr.id = $2 AND rr.deleted_at IS NULL)
 WHERE assets.id = $3 AND assets.deleted_at IS NULL
-RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq
+RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq, tag_office_id
 `
 
 type SetAssetOfficeParams struct {
@@ -894,12 +905,13 @@ func (q *Queries) SetAssetOffice(ctx context.Context, arg SetAssetOfficeParams) 
 		&i.FloorID,
 		&i.PicEmployeeID,
 		&i.TagSeq,
+		&i.TagOfficeID,
 	)
 	return i, err
 }
 
 const setAssetStatus = `-- name: SetAssetStatus :one
-UPDATE asset.assets SET status = $2 WHERE id = $1 AND deleted_at IS NULL RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq
+UPDATE asset.assets SET status = $2 WHERE id = $1 AND deleted_at IS NULL RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq, tag_office_id
 `
 
 type SetAssetStatusParams struct {
@@ -956,13 +968,14 @@ func (q *Queries) SetAssetStatus(ctx context.Context, arg SetAssetStatusParams) 
 		&i.FloorID,
 		&i.PicEmployeeID,
 		&i.TagSeq,
+		&i.TagOfficeID,
 	)
 	return i, err
 }
 
 const setAssetValuationExclusion = `-- name: SetAssetValuationExclusion :one
 UPDATE asset.assets SET excluded_from_valuation = $2, valuation_exclusion_reason = $3
-WHERE id = $1 AND deleted_at IS NULL RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq
+WHERE id = $1 AND deleted_at IS NULL RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq, tag_office_id
 `
 
 type SetAssetValuationExclusionParams struct {
@@ -1020,6 +1033,7 @@ func (q *Queries) SetAssetValuationExclusion(ctx context.Context, arg SetAssetVa
 		&i.FloorID,
 		&i.PicEmployeeID,
 		&i.TagSeq,
+		&i.TagOfficeID,
 	)
 	return i, err
 }
@@ -1060,7 +1074,7 @@ UPDATE asset.assets SET
   lease_date = $16, installation_date = $17,
   pic_employee_id = $18,
   specifications = COALESCE($19,'{}')::jsonb, notes = $20
-WHERE id = $21 AND deleted_at IS NULL RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq
+WHERE id = $21 AND deleted_at IS NULL RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq, tag_office_id
 `
 
 type UpdateAssetParams struct {
@@ -1158,6 +1172,7 @@ func (q *Queries) UpdateAsset(ctx context.Context, arg UpdateAssetParams) (Asset
 		&i.FloorID,
 		&i.PicEmployeeID,
 		&i.TagSeq,
+		&i.TagOfficeID,
 	)
 	return i, err
 }

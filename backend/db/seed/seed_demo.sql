@@ -706,7 +706,7 @@ FROM building_final;
 --     GenerateAssetTag (MAX(tag_seq)+1 per kantor) melanjutkan dari data seed ini
 --     dan tidak menerbitkan tag yang bentrok.
 INSERT INTO asset.assets
-  (asset_tag, tag_seq, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status,
+  (asset_tag, tag_seq, tag_office_id, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status,
    serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry,
    asset_class, capitalized, depreciation_method, useful_life_months, salvage_value,
    fiscal_group, fiscal_life_months, accumulated_depreciation, book_value,
@@ -715,6 +715,7 @@ SELECT
   b.office_code || b.cat_code || b.yr ||
     lpad(row_number() OVER (PARTITION BY b.office_id ORDER BY b.ord)::text, 5, '0'),
   row_number() OVER (PARTITION BY b.office_id ORDER BY b.ord)::int,
+  b.office_id,
   b.name, b.category_id, b.brand_id, b.model_id, b.room_id, b.office_id, b.unit_id, b.status,
   b.serial_number, b.purchase_date, b.cost, b.vendor_id, b.po_number, b.funding_source, b.warranty_expiry,
   b.asset_class, true, b.method, b.life, b.salvage_value,
