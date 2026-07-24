@@ -42,14 +42,14 @@ async function selectResource(page: import('@playwright/test').Page, key: Refere
 // Sidebar renders
 // ---------------------------------------------------------------------------
 test.describe('Master Data Referensi — sidebar', () => {
-  test('sidebar renders all 11 resource labels', async ({ page }) => {
+  test('sidebar renders the resource labels', async ({ page }) => {
     await login(page)
     await page.goto('/master/reference')
 
     // Wait for the panel to mount (heading "Master Data" is always visible).
     await expect(page.getByTestId('reference-panel-title')).toBeVisible({ timeout: 10_000 })
 
-    // Assert a representative subset of the 11 sidebar nav buttons via their stable
+    // Assert a representative subset of the sidebar nav buttons via their stable
     // per-resource testid, and that each renders its i18n label text. (The button's
     // accessible name also includes the count badge, so we assert the label as a
     // substring via toContainText rather than an exact name match.)
