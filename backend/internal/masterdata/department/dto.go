@@ -30,6 +30,11 @@ func (r Request) toInput() (CreateInput, error) {
 	if err != nil {
 		return CreateInput{}, err
 	}
+	// Every department belongs to an office — global (NULL-office) departments are
+	// no longer creatable/editable (enforced here and in the service layer).
+	if officeID == nil {
+		return CreateInput{}, ErrOfficeRequired
+	}
 	floorID, err := common.ParseUUIDPtr(r.FloorID)
 	if err != nil {
 		return CreateInput{}, err

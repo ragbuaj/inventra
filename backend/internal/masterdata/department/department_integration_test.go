@@ -36,12 +36,16 @@ func TestDepartmentDataScope(t *testing.T) {
 	svc := department.NewService(sqlc.New(pool))
 	ctx := context.Background()
 
-	// seedGlobal creates a NULL-office (shared) department via a global-scope call.
+	// seedGlobal inserts a legacy NULL-office (global) department directly. Such rows
+	// can no longer be created through the service (office is mandatory), but old ones
+	// must stay readable and be rejected on write.
 	seedGlobal := func(t *testing.T, name string) uuid.UUID {
 		t.Helper()
-		d, err := svc.Create(ctx, true, nil, department.CreateInput{Name: name, IsActive: true})
-		require.NoError(t, err)
-		return d.ID
+		var id uuid.UUID
+		require.NoError(t, pool.QueryRow(ctx,
+			`INSERT INTO masterdata.departments (name, is_active) VALUES ($1, true) RETURNING id`,
+			name).Scan(&id))
+		return id
 	}
 
 	t.Run("scoped List returns in-scope + global, excludes other office", func(t *testing.T) {
@@ -87,8 +91,15 @@ func TestDepartmentDataScope(t *testing.T) {
 		_, err = svc.Create(ctx, false, ids, department.CreateInput{Name: "Bad", OfficeID: &tree.Wilayah2, IsActive: true})
 		assert.ErrorIs(t, err, department.ErrOfficeOutOfScope, "cannot create in another office")
 
-		_, err = svc.Create(ctx, false, ids, department.CreateInput{Name: "Global", IsActive: true})
-		assert.ErrorIs(t, err, department.ErrOfficeOutOfScope, "scoped caller cannot create a global (NULL-office) department")
+		_, err = svc.Create(ctx, false, ids, department.CreateInput{Name: "NoOffice", IsActive: true})
+		assert.ErrorIs(t, err, department.ErrOfficeRequired, "a department without an office is rejected")
+	})
+
+	t.Run("Create without an office is rejected even for a global caller", func(t *testing.T) {
+		testsupport.Reset(t, pool)
+		testsupport.SeedOfficeTree(t, pool)
+		_, err := svc.Create(ctx, true, nil, department.CreateInput{Name: "NoOffice", IsActive: true})
+		assert.ErrorIs(t, err, department.ErrOfficeRequired)
 	})
 
 	t.Run("scoped caller cannot edit or delete a global department", func(t *testing.T) {
@@ -120,17 +131,17 @@ func TestDepartmentDataScope(t *testing.T) {
 		assert.ErrorIs(t, err, department.ErrOfficeOutOfScope)
 	})
 
-	t.Run("scoped Update cannot globalize its own department (office_id -> NULL)", func(t *testing.T) {
+	t.Run("Update cannot globalize its own department (office_id -> NULL)", func(t *testing.T) {
 		testsupport.Reset(t, pool)
 		tree := testsupport.SeedOfficeTree(t, pool)
 		ids := []uuid.UUID{tree.Wilayah, tree.Cabang}
 		d, err := svc.Create(ctx, false, ids, department.CreateInput{Name: "Mine", OfficeID: &tree.Cabang, IsActive: true})
 		require.NoError(t, err)
 
-		// Setting office_id to nil would turn it into a shared global department;
-		// the new-office guard must reject that for a scoped caller.
+		// Clearing office_id would turn it into a shared global department; the
+		// mandatory-office guard rejects that.
 		_, _, err = svc.Update(ctx, d.ID, false, ids, department.UpdateInput{CreateInput: department.CreateInput{Name: "Mine", OfficeID: nil, IsActive: true}})
-		assert.ErrorIs(t, err, department.ErrOfficeOutOfScope)
+		assert.ErrorIs(t, err, department.ErrOfficeRequired)
 	})
 
 	t.Run("scoped Get / Delete of another office's department is not found / rejected", func(t *testing.T) {
@@ -182,15 +193,15 @@ func TestDepartmentFloorValidation(t *testing.T) {
 		assert.ErrorIs(t, err, department.ErrFloorOfficeMismatch)
 	})
 
-	t.Run("floor referenced without an office is rejected", func(t *testing.T) {
+	t.Run("floor without an office is rejected as office-required (guard runs first)", func(t *testing.T) {
 		testsupport.Reset(t, pool)
 		tree := testsupport.SeedOfficeTree(t, pool)
 		floor := testsupport.SeedFloor(t, pool, tree.Cabang, "Lantai 1")
 
 		_, err := svc.Create(ctx, true, nil, department.CreateInput{
-			Name: "Global", OfficeID: nil, FloorID: &floor, IsActive: true,
+			Name: "NoOffice", OfficeID: nil, FloorID: &floor, IsActive: true,
 		})
-		assert.ErrorIs(t, err, department.ErrFloorOfficeMismatch)
+		assert.ErrorIs(t, err, department.ErrOfficeRequired)
 	})
 
 	t.Run("nil floor is always valid", func(t *testing.T) {

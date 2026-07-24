@@ -37,6 +37,13 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > (5 test integrasi floor baru → CI); frontend ESLint + `vue-tsc` 0-error; vitest/e2e via CI (Node v24
 > lokal). Test diperbarui: `nav-model`, `app-sidebar` (import dihapus), `reference-resources` (+field
 > lantai), `master-reference` mock (+`/offices/tree`,`/floors`).
+> - **Tindak lanjut review (PR #119):** (a) `office_id` departemen kini **wajib** di write path (DTO +
+>   service `ErrOfficeRequired`, semua caller termasuk global) — konsep departemen global (NULL-office)
+>   dihapus untuk data baru. **Non-destruktif**: kolom DB tetap nullable karena 8 departemen legacy
+>   dipakai 1008 pegawai; read tetap menampilkannya sehingga bisa dimigrasi lewat edit (superadmin beri
+>   office). Test dto/integrasi disesuaikan. (b) **S3** wiring departemen di layar Referensi diekstrak ke
+>   composable `useDepartmentFields`. (c) **S1** cache officeNames (sekali) + floors per-kantor (sekali)
+>   agar tak refetch tiap keystroke pencarian.
 >
 > **AKTIF (2026-07-23): Legacy-parity data model** — penyelarasan model data agar Inventra
 > menggantikan sistem lama (Vue2/Yii2/PG12) sebagai sole asset system anak-perusahaan bank. Spec:
