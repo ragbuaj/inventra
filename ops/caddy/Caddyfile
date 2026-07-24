@@ -14,6 +14,12 @@
 		directives `
 			Include @coraza.conf-recommended
 			Include @crs-setup.conf.example
+			# REST API memakai PUT/PATCH/DELETE. CRS default hanya mengizinkan
+			# GET HEAD POST OPTIONS (rule 911100 METHOD-ENFORCEMENT), sehingga
+			# tiap PUT/PATCH/DELETE kena skor anomali dan diblok 949110 (403).
+			# Override daftar metode HARUS sebelum Include @owasp_crs/*.conf agar
+			# 911100 membaca nilai baru (rule fase 1 dieksekusi urut definisi).
+			SecAction "id:900201,phase:1,nolog,pass,t:none,setvar:'tx.allowed_methods=GET HEAD POST OPTIONS PUT PATCH DELETE'"
 			Include @owasp_crs/*.conf
 			Include /etc/caddy/coraza-exclusions.conf
 			SecRuleEngine On
