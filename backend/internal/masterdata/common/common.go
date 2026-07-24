@@ -8,6 +8,7 @@ package common
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -24,6 +25,7 @@ var (
 	ErrNotFound         = errors.New("not found")
 	ErrConflict         = errors.New("a record with this unique value already exists")
 	ErrInvalidReference = errors.New("invalid reference")
+	ErrCheckViolation   = errors.New("value violates a field constraint")
 	ErrForbidden        = errors.New("forbidden")
 )
 
@@ -39,6 +41,8 @@ func MapDBError(err error) error {
 			return ErrConflict
 		case "23503":
 			return ErrInvalidReference
+		case "23514": // check_violation (e.g. building_classifications max_floors < min_floors)
+			return ErrCheckViolation
 		}
 	}
 	return err
@@ -53,9 +57,16 @@ func WriteError(c *gin.Context, err error) {
 		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 	case errors.Is(err, ErrInvalidReference):
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	case errors.Is(err, ErrCheckViolation):
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	case errors.Is(err, ErrForbidden):
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 	default:
+		// Every unmapped error funnels through here and is flattened to an opaque
+		// "internal error". Log the real one — without this a 500 is undiagnosable
+		// from the response alone (and from CI, where only the status is visible).
+		slog.Error("unhandled request error",
+			"method", c.Request.Method, "path", c.Request.URL.Path, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 	}
 }

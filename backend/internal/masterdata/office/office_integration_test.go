@@ -415,3 +415,51 @@ func TestOffice_Tree_RespectsSubtreeScope(t *testing.T) {
 	assert.False(t, ids[tree.Cabang2.String()], "out-of-scope office absent")
 	assert.False(t, ids[tree.Pusat.String()], "out-of-scope ancestor absent")
 }
+
+func TestOffice_LegacyParityFields_RoundTrip(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	svc := office.NewService(sqlc.New(pool))
+	ctx := context.Background()
+	testsupport.Reset(t, pool)
+	tree := testsupport.SeedOfficeTree(t, pool)
+
+	ownership := sqlc.SharedOfficeOwnershipSewa
+	area := "1250.50"
+	desc := "Gedung utama"
+	contact := "021-555000"
+	fc := int32(3)
+	created, err := svc.Create(ctx, true, nil, office.CreateInput{
+		ParentID:        &tree.Pusat,
+		OfficeTypeID:    tree.OfficeTypeID,
+		Name:            "Kantor Parity",
+		Code:            "PRTY01",
+		IsActive:        true,
+		OwnershipStatus: &ownership,
+		OfficeKind:      sqlc.SharedOfficeKindSyariah,
+		FloorCount:      &fc,
+		BuildingArea:    &area,
+		Description:     &desc,
+		Contact:         &contact,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, created.OwnershipStatus)
+	assert.Equal(t, sqlc.SharedOfficeOwnershipSewa, *created.OwnershipStatus)
+	assert.Equal(t, sqlc.SharedOfficeKindSyariah, created.OfficeKind)
+	require.NotNil(t, created.FloorCount)
+	assert.Equal(t, int32(3), *created.FloorCount)
+	require.NotNil(t, created.BuildingArea)
+	assert.Equal(t, "1250.50", *created.BuildingArea)
+
+	got, err := svc.Get(ctx, created.ID, true, nil)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedOfficeKindSyariah, got.OfficeKind)
+	require.NotNil(t, got.Description)
+	assert.Equal(t, "Gedung utama", *got.Description)
+
+	// Zero-value CreateInput (no office_kind) defaults to konvensional.
+	def, err := svc.Create(ctx, true, nil, office.CreateInput{
+		ParentID: &tree.Pusat, OfficeTypeID: tree.OfficeTypeID, Name: "Kantor Default", Code: "DFLT01", IsActive: true,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedOfficeKindKonvensional, def.OfficeKind)
+}

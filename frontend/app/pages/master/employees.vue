@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Employee, RowAction, TableSorting } from '~/types'
+import type { Employee, ReferenceRow, RowAction, TableSorting } from '~/types'
 import type { EmployeeInput } from '~/composables/api/useEmployees'
 
 definePageMeta({ middleware: 'can', permission: 'masterdata.office.manage' })
@@ -50,12 +50,29 @@ const officeCache = useResolveCache(office.resolveFn)
 // (see usePickerSource.ts). deptOptions/positionOptions stay an eager
 // `{limit:100}` id→name list — the filter dropdowns and the table's
 // departemen/jabatan cells (out of scope here, Task 6) still read from them.
-const department = useReferencePicker('departments')
 const position = useReferencePicker('positions')
 const deptOptions = ref<{ value: string, label: string }[]>([])
 const positionOptions = ref<{ value: string, label: string }[]>([])
 const deptMap = computed(() => new Map(deptOptions.value.map(o => [o.value, o.label])))
 const positionMap = computed(() => new Map(positionOptions.value.map(o => [o.value, o.label])))
+
+// Legacy-parity Fase 6: departments are per-office (filter by the chosen office;
+// legacy departments with a null office stay selectable), plus company + executor
+// division masters.
+const deptRows = ref<ReferenceRow[]>([])
+const companyRows = ref<ReferenceRow[]>([])
+const execDivRows = ref<ReferenceRow[]>([])
+// USelect forbids an item whose value is the empty string (Reka UI throws
+// "A <SelectItem /> must have a value prop that is not an empty string"), so the
+// "no selection" entry uses a sentinel that the writable models below translate
+// back to '' — the same pattern as the office form.
+const NONE = '__none__'
+const deptItemsForOffice = computed(() => [
+  { value: NONE, label: t('masterdata.employees.selectPlaceholder') },
+  ...deptRows.value.filter(d => !d.office_id || d.office_id === form.office_id).map(d => ({ value: d.id, label: d.name }))
+])
+const companyItems = computed(() => [{ value: NONE, label: t('masterdata.employees.selectPlaceholder') }, ...companyRows.value.map(c => ({ value: c.id, label: c.name }))])
+const execDivItems = computed(() => [{ value: NONE, label: t('masterdata.employees.selectPlaceholder') }, ...execDivRows.value.map(e => ({ value: e.id, label: e.name }))])
 function officeName(id: string | null): string {
   return officeCache.get(id)
 }
@@ -70,7 +87,29 @@ const formOpen = ref(false)
 const saving = ref(false)
 const editingId = ref<string>()
 const form = reactive<EmployeeInput>({
-  code: '', name: '', email: '', phone: '', department_id: '', position_id: '', office_id: '', status: 'active'
+  code: '', name: '', email: '', phone: '', department_id: '', position_id: '', office_id: '', status: 'active',
+  company_id: '', executor_division_id: ''
+})
+
+// Bridge '' (unset) to the NONE sentinel the USelect items use.
+function noneModel(key: 'department_id' | 'company_id' | 'executor_division_id') {
+  return computed({
+    get: () => form[key] || NONE,
+    set: (val: string) => { form[key] = val === NONE ? '' : val }
+  })
+}
+const departmentModel = noneModel('department_id')
+const companyModel = noneModel('company_id')
+const execDivModel = noneModel('executor_division_id')
+
+// Clear a chosen department when it no longer belongs to the selected office.
+// MUST stay below `form`: watch() invokes its getter immediately, so declaring
+// it earlier reads `form` inside its temporal dead zone and throws
+// "Cannot access 'form' before initialization", which blanks the whole page.
+watch(() => form.office_id, () => {
+  if (form.department_id && !deptRows.value.some(d => d.id === form.department_id && (!d.office_id || d.office_id === form.office_id))) {
+    form.department_id = ''
+  }
 })
 
 const columns = [
@@ -141,17 +180,22 @@ async function refresh() {
 }
 
 async function loadFkData() {
-  const [depts, positions] = await Promise.all([
+  const [depts, positions, companies, execDivs] = await Promise.all([
     refApi.list('departments', { limit: 100 }),
-    refApi.list('positions', { limit: 100 })
+    refApi.list('positions', { limit: 100 }),
+    refApi.list('companies', { limit: 100 }),
+    refApi.list('executor-divisions', { limit: 100 })
   ])
+  deptRows.value = depts.data
   deptOptions.value = depts.data.map(d => ({ value: d.id, label: d.name }))
   positionOptions.value = positions.data.map(p => ({ value: p.id, label: p.name }))
+  companyRows.value = companies.data
+  execDivRows.value = execDivs.data
 }
 
 function openCreate() {
   editingId.value = undefined
-  Object.assign(form, { code: '', name: '', email: '', phone: '', department_id: '', position_id: '', office_id: '', status: 'active' })
+  Object.assign(form, { code: '', name: '', email: '', phone: '', department_id: '', position_id: '', office_id: '', status: 'active', company_id: '', executor_division_id: '' })
   formOpen.value = true
 }
 
@@ -160,7 +204,8 @@ function openEdit(row: Employee) {
   Object.assign(form, {
     code: row.code, name: row.name, email: row.email ?? '', phone: row.phone ?? '',
     department_id: row.department_id ?? '', position_id: row.position_id ?? '', office_id: row.office_id,
-    status: row.status === 'suspended' ? 'suspended' : row.status
+    status: row.status === 'suspended' ? 'suspended' : row.status,
+    company_id: row.company_id ?? '', executor_division_id: row.executor_division_id ?? ''
   })
   formOpen.value = true
 }
@@ -175,7 +220,8 @@ async function onSubmit() {
     const input: EmployeeInput = {
       code: form.code, name: form.name, office_id: form.office_id, status: form.status,
       email: form.email || undefined, phone: form.phone || undefined,
-      department_id: form.department_id || undefined, position_id: form.position_id || undefined
+      department_id: form.department_id || undefined, position_id: form.position_id || undefined,
+      company_id: form.company_id || null, executor_division_id: form.executor_division_id || null
     }
     if (editingId.value) await api.update(editingId.value, input)
     else await api.create(input)
@@ -246,7 +292,10 @@ watch(offset, () => {
 
 onMounted(() => {
   refresh()
-  loadFkData()
+  // Non-fatal: the FK lists only populate filter/form dropdowns. An unhandled
+  // rejection here would surface as a page-level error and block the whole
+  // screen, so degrade to empty dropdowns instead.
+  loadFkData().catch(() => {})
 })
 
 onUnmounted(() => {
@@ -459,15 +508,17 @@ onUnmounted(() => {
 
         <!-- Row 3: Departemen + Jabatan -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">
-          <UFormField :label="t('masterdata.employees.fields.departemen')">
-            <AsyncSearchPicker
-              :model-value="form.department_id || null"
-              :search-fn="department.searchFn"
-              :resolve-fn="department.resolveFn"
-              :placeholder="t('common.searchDepartment')"
-              testid="employee-department"
-              clearable
-              @update:model-value="form.department_id = $event ?? ''"
+          <UFormField
+            :label="t('masterdata.employees.fields.departemen')"
+            :hint="t('masterdata.employees.deptOfficeHint')"
+          >
+            <USelect
+              v-model="departmentModel"
+              :items="deptItemsForOffice"
+              :disabled="!form.office_id"
+              :placeholder="t('masterdata.employees.selectPlaceholder')"
+              class="w-full"
+              data-testid="employee-department"
             />
           </UFormField>
           <UFormField :label="t('masterdata.employees.fields.jabatan')">
@@ -503,6 +554,28 @@ onUnmounted(() => {
             </span>
           </template>
         </UFormField>
+
+        <!-- Legacy-parity Fase 6: perusahaan + divisi pelaksana -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">
+          <UFormField :label="t('masterdata.employees.fields.company')">
+            <USelect
+              v-model="companyModel"
+              :items="companyItems"
+              :placeholder="t('masterdata.employees.selectPlaceholder')"
+              class="w-full"
+              data-testid="employee-company"
+            />
+          </UFormField>
+          <UFormField :label="t('masterdata.employees.fields.executorDivision')">
+            <USelect
+              v-model="execDivModel"
+              :items="execDivItems"
+              :placeholder="t('masterdata.employees.selectPlaceholder')"
+              class="w-full"
+              data-testid="employee-executor-division"
+            />
+          </UFormField>
+        </div>
 
         <!-- Row 5: Email + Telepon -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">

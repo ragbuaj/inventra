@@ -54,6 +54,16 @@ export interface Office {
   is_active: boolean
   latitude: number | null
   longitude: number | null
+  // Legacy-parity Fase 5 fields.
+  ownership_status: string | null
+  office_class_id: string | null
+  building_classification_id: string | null
+  floor_count: number | null
+  building_area: string | null
+  office_kind: string
+  description: string | null
+  head_employee_id: string | null
+  contact: string | null
   created_at: string | null
   updated_at: string | null
 }
@@ -89,6 +99,9 @@ export interface Employee {
   office_id: string
   status: EmployeeStatus
   avatar_key?: string | null
+  // Legacy-parity Fase 6 fields.
+  company_id: string | null
+  executor_division_id: string | null
   created_at: string | null
   updated_at: string | null
 }
@@ -156,6 +169,13 @@ export interface Asset {
   po_number?: string | null
   funding_source?: string | null
   warranty_expiry?: string | null
+  // Legacy-parity fields (spec 2026-07-23).
+  floor_id?: string | null
+  pic_employee_id?: string | null
+  capacity?: string | null
+  lease_date?: string | null
+  installation_date?: string | null
+  warranty_start?: string | null
   capitalized?: boolean
   depreciation_method?: string | null
   useful_life_months?: number | null
@@ -183,12 +203,22 @@ export interface AssetUpdateInput {
   purchase_date?: string | null
   warranty_expiry?: string | null
   notes?: string | null
+  // Legacy-parity fields (spec 2026-07-23).
+  floor_id?: string | null
+  pic_employee_id?: string | null
+  capacity?: string | null
+  lease_date?: string | null
+  installation_date?: string | null
+  warranty_start?: string | null
 }
 
 export interface AssetCreateInput extends AssetUpdateInput {
   office_id: string
   asset_class: AssetClass
   purchase_cost?: string | null
+  // Batch registration (spec 2026-07-23 section 9): number of identical units to
+  // create. Defaults to 1; each unit gets its own sequential asset tag.
+  quantity?: number
 }
 
 export interface AssetAttachment {

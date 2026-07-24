@@ -39,8 +39,13 @@ SELECT code FROM masterdata.employees WHERE deleted_at IS NULL;
 
 -- name: CreateEmployee :one
 INSERT INTO masterdata.employees (
-  code, name, email, phone, avatar_key, department_id, position_id, office_id, status
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+  code, name, email, phone, avatar_key, department_id, position_id, office_id, status,
+  company_id, executor_division_id
+) VALUES (
+  sqlc.arg(code), sqlc.arg(name), sqlc.narg(email), sqlc.narg(phone), sqlc.narg(avatar_key),
+  sqlc.narg(department_id), sqlc.narg(position_id), sqlc.arg(office_id), sqlc.arg(status),
+  sqlc.narg(company_id), sqlc.narg(executor_division_id)
+)
 RETURNING *;
 
 -- name: UpdateEmployee :one
@@ -53,10 +58,17 @@ SET code = sqlc.arg(code),
     department_id = sqlc.narg(department_id),
     position_id = sqlc.narg(position_id),
     office_id = sqlc.arg(office_id),
-    status = sqlc.arg(status)
+    status = sqlc.arg(status),
+    company_id = sqlc.narg(company_id),
+    executor_division_id = sqlc.narg(executor_division_id)
 WHERE id = sqlc.arg(id) AND deleted_at IS NULL
   AND (sqlc.arg(all_scope)::bool OR office_id = ANY(sqlc.arg(office_ids)::uuid[]))
 RETURNING *;
+
+-- name: GetDepartmentOffice :one
+-- Returns a department's office_id (NULL for legacy global departments), used to
+-- validate that an employee's department belongs to the employee's office.
+SELECT office_id FROM masterdata.departments WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: SoftDeleteEmployee :execrows
 UPDATE masterdata.employees SET deleted_at = now()

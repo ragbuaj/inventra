@@ -43,7 +43,7 @@ func resetAll(t *testing.T, pool *pgxpool.Pool) {
 	ctx := context.Background()
 	_, err := pool.Exec(ctx,
 		`TRUNCATE approval.request_approvals, approval.requests,
-		 asset.asset_tag_counters, asset.assets CASCADE`)
+		 asset.assets CASCADE`)
 	require.NoError(t, err)
 }
 
@@ -273,9 +273,9 @@ func TestApproval_AssetCreate_ThreeStep(t *testing.T) {
 	assert.Equal(t, int64(1), total)
 	assert.Equal(t, "Laptop 150M", assets[0].Name)
 
-	// Assert the generated asset tag matches the expected format built from the seeded codes.
-	// Office "CBG" (Cabang Alpha), category "ELK", current year, first sequence.
-	expectedTag := fmt.Sprintf("%s-%s-%d-%05d", tr.CabangCode, "ELK", time.Now().Year(), 1)
+	// Assert the generated asset tag matches the new (no-separator) format built from
+	// the seeded codes: {office}{category}{year}{seq5}. Office "CBG", category "ELK".
+	expectedTag := fmt.Sprintf("%s%s%d%05d", tr.CabangCode, "ELK", time.Now().Year(), 1)
 	assert.Equal(t, expectedTag, assets[0].AssetTag)
 }
 
@@ -423,6 +423,88 @@ func TestApproval_AssetCreate_FullFieldSet(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), total, "no new asset should have been created for the failed request")
 	})
+}
+
+// TestApproval_AssetCreate_Batch submits a single asset_create request with
+// quantity=3 (spec 2026-07-23 section 9). On final approve the executor must
+// create exactly 3 asset rows, each with its own sequential tag (seq 1..3) drawn
+// from the per-office counter, and the approval amount is purchase_cost*quantity.
+func TestApproval_AssetCreate_Batch(t *testing.T) {
+	pool := testsupport.NewPostgres(t)
+	rdb := testsupport.NewRedis(t)
+	ctx := context.Background()
+	resetAll(t, pool)
+
+	tr := seedTieredOfficeTree(t, pool)
+	catID := seedCategory(t, pool, "ELK")
+
+	officeRoleID := lookupRole(t, pool, "Kepala Unit")
+	maker := seedUser(t, pool, officeRoleID, "makerbatch@test.local")
+	approver1 := seedUser(t, pool, officeRoleID, "approverbatch@test.local")
+
+	q := sqlc.New(pool)
+	scopeSvc := authz.NewScopeService(q, rdb)
+	svc := approval.NewService(q, pool, scopeSvc, rdb)
+	assetSvc := asset.NewService(q, pool, storage.NewFake(), 0, "")
+	svc.RegisterExecutor(sqlc.SharedRequestTypeAssetCreate, assetSvc.CreateExecutor())
+
+	officeID := tr.CabangID
+	// Tangible assets need a location; a floor-only placement is valid (Fase 1).
+	floorID := testsupport.SeedFloor(t, pool, officeID, "Lantai Batch")
+	floorIDStr := floorID.String()
+	purchaseCost := "3000000"
+	purchaseDate := "2026-01-10"
+	// A serial number is unique per unit, so even if the payload carries one the
+	// executor must drop it for a batch (quantity > 1) to avoid N rows sharing it.
+	serial := "SN-SHOULD-BE-DROPPED"
+	payload, err := json.Marshal(asset.AssetCreatePayload{
+		Name:         "Kursi Kantor",
+		CategoryID:   catID.String(),
+		OfficeID:     officeID.String(),
+		AssetClass:   "tangible",
+		FloorID:      &floorIDStr,
+		PurchaseCost: &purchaseCost,
+		PurchaseDate: &purchaseDate,
+		SerialNumber: &serial,
+		Quantity:     3,
+	})
+	require.NoError(t, err)
+
+	// Amount = purchase_cost * quantity = 9,000,000 (still in the 0-10M single-step band).
+	req, err := svc.Submit(ctx, approval.SubmitInput{
+		Type:     sqlc.SharedRequestTypeAssetCreate,
+		Amount:   "9000000",
+		OfficeID: officeID,
+		Payload:  payload,
+		Maker:    maker,
+	})
+	require.NoError(t, err)
+
+	caller1 := buildCaller(approver1, officeRoleID, false, []uuid.UUID{tr.CabangID})
+	req, err = svc.Decide(ctx, req.ID, caller1, true, nil)
+	require.NoError(t, err)
+	assert.Equal(t, sqlc.SharedRequestStatusApproved, req.Status)
+
+	// Exactly 3 asset rows created from the one request.
+	assets, total, err := assetSvc.List(ctx, asset.ListInput{AllScope: true, OfficeIDs: nil, Limit: 10, Offset: 0})
+	require.NoError(t, err)
+	require.Equal(t, int64(3), total)
+
+	// Each unit carries the batch's shared attributes and a sequential tag 1..3.
+	year := time.Now().Year()
+	gotTags := make(map[string]bool, 3)
+	for _, a := range assets {
+		assert.Equal(t, "Kursi Kantor", a.Name)
+		if assert.NotNil(t, a.PurchaseCost) {
+			assert.Equal(t, purchaseCost+".00", *a.PurchaseCost, "numeric column renders with 2 decimals")
+		}
+		assert.Nil(t, a.SerialNumber, "batch units must not share a serial number")
+		gotTags[a.AssetTag] = true
+	}
+	for seq := 1; seq <= 3; seq++ {
+		want := fmt.Sprintf("%s%s%d%05d", tr.CabangCode, "ELK", year, seq)
+		assert.True(t, gotTags[want], "expected a unit with tag %s", want)
+	}
 }
 
 // TestApproval_SoD_MakerCannotApprove verifies that the maker of a request cannot

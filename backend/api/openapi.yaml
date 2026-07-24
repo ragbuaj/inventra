@@ -42,11 +42,19 @@ tags:
       The following reference resources share the **same generic CRUD contract**
       as `brands` (`GET/POST /api/v1/{resource}`, `GET/PUT/DELETE /api/v1/{resource}/{id}`),
       differing only in their writable fields:
-      `office-types` (field `tier`: `pusat|wilayah|office|null`), `departments`, `positions`,
+      `office-types` (field `tier`: `pusat|wilayah|office|null`), `positions`,
       `units`, `maintenance-categories`, `problem-categories`, `brands`, `vendors`, `provinces`,
-      `cities` (field `province_id`), `models` (field `brand_id`).
+      `cities` (field `province_id`), `models` (field `brand_id`),
+      `office-classes`, `executor-divisions`, `companies`,
+      `building-classifications` (integer fields `min_floors` required, `max_floors` nullable = unbounded/"25+").
 
-      **Offices & employees** (documented in full) are data-scoped per row.
+      **Offices, employees & departments** (data-scoped per row) keep the same
+      `GET/POST /{resource}` + `GET/PUT/DELETE /{resource}/{id}` shape but writes
+      require `masterdata.office.manage` (not `global.manage`) and every verb is
+      filtered by the caller's office data scope. `departments` carries
+      `name`/`code`/`office_id`/`is_active`; a scoped caller sees departments in
+      their office subtree plus shared `office_id: null` ones, and may only write
+      within their scope (global `null`-office departments need global scope).
       **Floors** (`GET /api/v1/floors?office_id=...`) and **rooms**
       (`GET /api/v1/rooms?floor_id=...`) are nested, office-scoped location
       resources (writes require `masterdata.office.manage`); see the Bruno
@@ -1757,6 +1765,60 @@ paths:
                 type: string
                 format: binary
         "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Asset not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/assets/{id}/location-history:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: Asset id }
+    get:
+      tags: [Assets]
+      operationId: listAssetLocationHistory
+      summary: List an asset's location-change history
+      description: Riwayat perpindahan lokasi (kantor/lantai/ruangan) aset, terbaru dulu. Requires `asset.view` + data scope.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: Location history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/AssetLocationHistory" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Asset not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/assets/{id}/pic-history:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: Asset id }
+    get:
+      tags: [Assets]
+      operationId: listAssetPICHistory
+      summary: List an asset's PIC (person-in-charge) history
+      description: Riwayat PIC aset, terbaru dulu. Requires `asset.view` + data scope.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: PIC history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/AssetPICHistory" } }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404":
@@ -5172,8 +5234,8 @@ components:
       properties:
         email:
           type: string
-          format: email
-          examples: ["admin@inventra.local"]
+          description: Login identifier — an email (case-insensitive) OR a username/NIP.
+          examples: ["admin@inventra.local", "198501012010011001"]
         password:
           type: string
           format: password
@@ -5580,6 +5642,15 @@ components:
         is_active: { type: boolean }
         latitude: { type: [number, "null"], minimum: -90, maximum: 90 }
         longitude: { type: [number, "null"], minimum: -180, maximum: 180 }
+        ownership_status: { type: [string, "null"], enum: [sewa, milik, hg_pakai, free] }
+        office_class_id: { type: [string, "null"], format: uuid }
+        building_classification_id: { type: [string, "null"], format: uuid }
+        floor_count: { type: [integer, "null"], minimum: 0 }
+        building_area: { type: [string, "null"], description: "Decimal string (m2)" }
+        office_kind: { type: string, enum: [konvensional, syariah] }
+        description: { type: [string, "null"] }
+        head_employee_id: { type: [string, "null"], format: uuid }
+        contact: { type: [string, "null"] }
         created_at: { type: [string, "null"], format: date-time }
         updated_at: { type: [string, "null"], format: date-time }
 
@@ -5597,6 +5668,15 @@ components:
         is_active: { type: boolean, default: true }
         latitude: { type: [number, "null"], minimum: -90, maximum: 90 }
         longitude: { type: [number, "null"], minimum: -180, maximum: 180 }
+        ownership_status: { type: [string, "null"], enum: [sewa, milik, hg_pakai, free] }
+        office_class_id: { type: [string, "null"], format: uuid }
+        building_classification_id: { type: [string, "null"], format: uuid }
+        floor_count: { type: [integer, "null"], minimum: 0 }
+        building_area: { type: [string, "null"], description: "Decimal string (m2)" }
+        office_kind: { type: [string, "null"], enum: [konvensional, syariah], default: konvensional }
+        description: { type: [string, "null"] }
+        head_employee_id: { type: [string, "null"], format: uuid }
+        contact: { type: [string, "null"] }
 
     OfficeMapItem:
       type: object
@@ -5640,6 +5720,8 @@ components:
         position_id: { type: [string, "null"], format: uuid }
         office_id: { type: string, format: uuid }
         status: { type: string, enum: [active, inactive, suspended] }
+        company_id: { type: [string, "null"], format: uuid }
+        executor_division_id: { type: [string, "null"], format: uuid }
         created_at: { type: [string, "null"], format: date-time }
         updated_at: { type: [string, "null"], format: date-time }
 
@@ -5656,6 +5738,8 @@ components:
         position_id: { type: [string, "null"], format: uuid }
         office_id: { type: string, format: uuid }
         status: { type: string, enum: [active, inactive, suspended], default: active }
+        company_id: { type: [string, "null"], format: uuid }
+        executor_division_id: { type: [string, "null"], format: uuid }
 
     EmployeeList:
       type: object
@@ -5733,6 +5817,12 @@ components:
         po_number: { type: [string, "null"] }
         funding_source: { type: [string, "null"] }
         warranty_expiry: { type: [string, "null"], format: date }
+        floor_id: { type: [string, "null"], format: uuid }
+        pic_employee_id: { type: [string, "null"], format: uuid }
+        capacity: { type: [string, "null"] }
+        lease_date: { type: [string, "null"], format: date }
+        installation_date: { type: [string, "null"], format: date }
+        warranty_start: { type: [string, "null"], format: date }
         capitalized: { type: [boolean, "null"] }
         depreciation_method: { type: [string, "null"] }
         useful_life_months: { type: [integer, "null"] }
@@ -5762,6 +5852,12 @@ components:
         funding_source: { type: [string, "null"] }
         purchase_date: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
         warranty_expiry: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
+        floor_id: { type: [string, "null"], format: uuid }
+        pic_employee_id: { type: [string, "null"], format: uuid }
+        capacity: { type: [string, "null"] }
+        lease_date: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
+        installation_date: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
+        warranty_start: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
         notes: { type: [string, "null"] }
 
     AssetList:
@@ -5800,7 +5896,53 @@ components:
         po_number: { type: [string, "null"] }
         funding_source: { type: [string, "null"] }
         warranty_expiry: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
+        floor_id: { type: [string, "null"], format: uuid }
+        pic_employee_id: { type: [string, "null"], format: uuid }
+        capacity: { type: [string, "null"] }
+        lease_date: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
+        installation_date: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
+        warranty_start: { type: [string, "null"], format: date, description: "YYYY-MM-DD" }
         notes: { type: [string, "null"] }
+        quantity:
+          type: integer
+          minimum: 1
+          default: 1
+          description: >-
+            Batch registration: number of identical units to create in one
+            request. Absent or 0 means 1. Each unit draws its own sequential
+            asset tag. The submit `amount` must equal `purchase_cost * quantity`.
+
+    AssetLocationHistory:
+      type: object
+      description: One asset location-change record (spec legacy-parity Fase 3).
+      properties:
+        id: { type: string, format: uuid }
+        office_id: { type: string, format: uuid }
+        office_name: { type: string }
+        floor_id: { type: [string, "null"], format: uuid }
+        floor_name: { type: [string, "null"] }
+        room_id: { type: [string, "null"], format: uuid }
+        room_name: { type: [string, "null"] }
+        source: { type: string, enum: [registration, edit, transfer, migration] }
+        moved_at: { type: [string, "null"], format: date-time }
+        moved_by_id: { type: [string, "null"], format: uuid }
+        moved_by_name: { type: [string, "null"] }
+        transfer_id: { type: [string, "null"], format: uuid }
+        note: { type: [string, "null"] }
+
+    AssetPICHistory:
+      type: object
+      description: One asset PIC (person-in-charge) record (spec legacy-parity Fase 3).
+      properties:
+        id: { type: string, format: uuid }
+        pic_employee_id: { type: string, format: uuid }
+        pic_name: { type: string }
+        pic_code: { type: string }
+        assigned_at: { type: [string, "null"], format: date-time }
+        released_at: { type: [string, "null"], format: date-time }
+        assigned_by_id: { type: [string, "null"], format: uuid }
+        assigned_by_name: { type: [string, "null"] }
+        note: { type: [string, "null"] }
 
     SubmitRequest:
       type: object
@@ -5814,10 +5956,11 @@ components:
           type: string
           description: >-
             Decimal string (IDR). Determines which threshold steps apply.
-            For asset_create it must numerically equal payload.purchase_cost
-            (or 0 when the payload has no purchase_cost); a mismatch is
-            rejected with 400 so the maker cannot understate the amount to
-            route the request through a lower approval band.
+            For asset_create it must numerically equal
+            payload.purchase_cost * payload.quantity (cost 0 when absent,
+            quantity defaults to 1); a mismatch is rejected with 400 so the
+            maker cannot understate the amount to route the request through a
+            lower approval band.
         office_id:
           type: string
           format: uuid

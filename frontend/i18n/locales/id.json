@@ -102,7 +102,13 @@
       "months": "{n} bulan",
       "moduleNotAvailable": "Belum ada data — modul belum tersedia",
       "maintenanceEmpty": "Belum ada riwayat maintenance untuk aset ini",
-      "tabs": { "info": "Info", "assignment": "Riwayat Penugasan", "maintenance": "Riwayat Maintenance", "depreciation": "Jadwal Depresiasi" },
+      "locationEmpty": "Belum ada riwayat lokasi untuk aset ini",
+      "picEmpty": "Belum ada riwayat PIC untuk aset ini",
+      "picActive": "Aktif",
+      "locCols": { "date": "Waktu", "location": "Lokasi", "source": "Sumber", "by": "Oleh" },
+      "picCols": { "pic": "PIC", "from": "Mulai", "to": "Selesai", "by": "Oleh" },
+      "locSource": { "registration": "Registrasi", "edit": "Ubah", "transfer": "Mutasi", "migration": "Migrasi" },
+      "tabs": { "info": "Info", "assignment": "Riwayat Penugasan", "maintenance": "Riwayat Maintenance", "depreciation": "Jadwal Depresiasi", "location": "Riwayat Lokasi", "pic": "Riwayat PIC" },
       "sections": { "identity": "Identitas", "placement": "Penempatan", "procurement": "Pengadaan", "valuation": "Valuasi", "notes": "Catatan" },
       "fields": {
         "kategori": "Kategori",
@@ -159,15 +165,23 @@
         "kantor": "Kantor", "lantai": "Lantai", "ruangan": "Ruangan",
         "tglBeli": "Tanggal Beli", "harga": "Harga Beli", "vendor": "Vendor",
         "poNumber": "Nomor PO", "fundingSource": "Sumber Pendanaan", "warranty": "Garansi s/d", "notes": "Catatan",
+        "capacity": "Kapasitas / Spesifikasi", "pic": "PIC (Penanggung Jawab)", "warrantyStart": "Garansi Mulai",
+        "installationDate": "Tanggal Instalasi", "leaseDate": "Tanggal Sewa", "quantity": "Jumlah",
         "metode": "Metode Depresiasi", "masa": "Masa Manfaat", "residu": "Nilai Residu"
       },
-      "placeholders": { "nama": "mis. Laptop Dell Latitude 5440", "select": "Pilih…" },
+      "placeholders": { "nama": "mis. Laptop Dell Latitude 5440", "select": "Pilih…", "capacity": "mis. 2 PK / Core i7 16GB", "pic": "Cari pegawai…" },
+      "floorOrRoomHint": "Boleh berhenti di lantai — ruangan opsional.",
+      "quantityHint": "Jumlah unit identik yang dibuat sekaligus. Tiap unit mendapat kode aset berurutan.",
+      "batchSummary": "Akan dibuat {count} aset dengan kode berurutan.",
+      "serialBatchHint": "Nonaktif untuk registrasi batch — nomor seri unik per unit.",
       "errors": {
         "nama": "Nama aset wajib diisi.",
         "kategori": "Kategori wajib dipilih.",
         "kantor": "Kantor wajib dipilih.",
         "tglBeli": "Tanggal beli wajib diisi.",
-        "harga": "Harga beli wajib diisi."
+        "harga": "Harga beli wajib diisi.",
+        "lokasi": "Pilih minimal lantai (ruangan opsional).",
+        "quantity": "Jumlah harus bilangan bulat antara 1 dan {max}."
       }
     },
     "import": {
@@ -1517,6 +1531,8 @@
     "signInSubtitle": "Selamat datang kembali. Silakan masuk untuk melanjutkan.",
     "email": "Email",
     "emailPlaceholder": "nama{'@'}organisasi.go.id",
+    "identifier": "NIP atau Email",
+    "identifierPlaceholder": "NIP atau nama{'@'}organisasi.go.id",
     "password": "Kata Sandi",
     "passwordPlaceholder": "Masukkan kata sandi",
     "togglePassword": "Lihat / sembunyikan kata sandi",
@@ -1733,7 +1749,11 @@
         "alamat": "Alamat",
         "active": "Status",
         "latitude": "Latitude",
-        "longitude": "Longitude"
+        "longitude": "Longitude",
+        "ownershipStatus": "Status Kepemilikan", "officeKind": "Tipe Kantor",
+        "officeClass": "Kelas Kantor", "floorCount": "Jumlah Lantai",
+        "buildingClass": "Klasifikasi Gedung", "buildingArea": "Luas Bangunan (m2)",
+        "headEmployee": "Kepala Kantor", "contact": "Kontak", "description": "Deskripsi"
       },
       "tipe": { "pusat": "Pusat", "kanwil": "Kanwil", "cabang": "Cabang", "unit": "Unit" },
       "noParent": "Tanpa induk (Pusat)",
@@ -1744,7 +1764,11 @@
       "required": "Nama, Kode, dan Jenis Kantor wajib diisi.",
       "loadError": "Gagal memuat kantor.",
       "selectPlaceholder": "Pilih…",
-      "coordHint": "Opsional — untuk menampilkan kantor pada Peta Lokasi."
+      "coordHint": "Opsional — untuk menampilkan kantor pada Peta Lokasi.",
+      "ownership": { "sewa": "Sewa", "milik": "Milik", "hg_pakai": "HG Pakai Bangunan", "free": "Free" },
+      "kind": { "konvensional": "Konvensional", "syariah": "Syariah" },
+      "buildingClassHint": "Tersaran otomatis dari jumlah lantai (bisa diubah).",
+      "searchEmployee": "Cari pegawai…"
     },
     "employees": {
       "title": "Pegawai",
@@ -1783,9 +1807,12 @@
         "jabatan": "Jabatan",
         "departemen": "Departemen",
         "office": "Kantor",
-        "status": "Status"
+        "status": "Status",
+        "company": "Perusahaan", "executorDivision": "Divisi Pelaksana"
       },
       "status": { "active": "Aktif", "inactive": "Nonaktif", "suspended": "Ditangguhkan" },
+      "selectPlaceholder": "Pilih…",
+      "deptOfficeHint": "Pilih kantor dulu — departemen mengikuti kantor.",
       "createTitle": "Tambah Pegawai",
       "editTitle": "Ubah Pegawai",
       "deleteConfirm": "Pegawai “{nama}” (NIP {nip}) akan dihapus. Tindakan ini tidak dapat dibatalkan.",
@@ -1893,12 +1920,15 @@
       "nonaktif": "Nonaktif",
       "entitySubtitle": "Kelola data referensi",
       "requiredField": "{field} wajib diisi.",
-      "fields": { "name": "Nama", "code": "Kode", "symbol": "Simbol", "email": "Email", "phone": "Telepon", "province": "Provinsi", "brand": "Brand", "contact_name": "Nama Kontak", "address": "Alamat", "tier": "Tingkat" },
+      "fields": { "name": "Nama", "code": "Kode", "symbol": "Simbol", "email": "Email", "phone": "Telepon", "province": "Provinsi", "brand": "Brand", "contact_name": "Nama Kontak", "address": "Alamat", "tier": "Tingkat", "min_floors": "Lantai Min", "max_floors": "Lantai Maks", "office": "Kantor" },
+      "searchOffice": "Cari kantor…",
       "resources": {
         "office-types": "Jenis Kantor", "departments": "Departemen", "positions": "Jabatan",
         "units": "Satuan", "maintenance-categories": "Kategori Pemeliharaan",
         "problem-categories": "Kategori Masalah", "brands": "Brand", "vendors": "Vendor",
-        "provinces": "Provinsi", "cities": "Kota", "models": "Model"
+        "provinces": "Provinsi", "cities": "Kota", "models": "Model",
+        "office-classes": "Kelas Kantor", "executor-divisions": "Divisi Pelaksana",
+        "companies": "Perusahaan", "building-classifications": "Klasifikasi Gedung"
       }
     },
     "floors": {
@@ -2099,6 +2129,7 @@
         "kantor": "Kantor tidak ditemukan",
         "vendor": "Vendor tidak ditemukan",
         "lokasi": "Lokasi/ruangan tidak ditemukan",
+        "lokasiRequired": "Ruangan wajib diisi untuk aset",
         "tgl": "Tanggal tidak valid",
         "harga": "Harga tidak valid (bukan angka)",
         "dupTag": "asset_tag duplikat",

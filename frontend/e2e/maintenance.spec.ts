@@ -81,7 +81,7 @@ async function login_(api: APIRequestContext, email: string, password: string): 
 }
 async function loginAs(page: Page, email: string, password: string): Promise<void> {
   await page.goto('/login')
-  await page.locator('input[type="email"]').fill(email)
+  await page.locator('input[name="email"]').fill(email)
   await page.locator('input[type="password"]').fill(password)
   await page.getByRole('button', { name: 'Masuk', exact: true }).click()
   await expect(page).toHaveURL(/\/$/)

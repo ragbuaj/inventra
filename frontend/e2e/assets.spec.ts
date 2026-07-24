@@ -73,6 +73,7 @@ test.describe('Assets — real backend (maker-checker e2e)', () => {
   let categoryId: string
   let categoryName: string
   let roomId: string
+  let floorName: string
 
   // The asset created + approved via the API in beforeAll — used by the
   // Katalog/Detail/Edit/Label UI tests below.
@@ -99,9 +100,10 @@ test.describe('Assets — real backend (maker-checker e2e)', () => {
     const office = await apiJson<{ id: string }>(offRes)
     officeId = office.id
 
+    floorName = `E2E Floor ${RUN}`
     const flRes = await api.post('floors', {
       headers: authHeader(adminToken),
-      data: { office_id: officeId, name: `E2E Floor ${RUN}` }
+      data: { office_id: officeId, name: floorName }
     })
     const floor = await apiJson<{ id: string }>(flRes)
 
@@ -303,6 +305,14 @@ test.describe('Assets — real backend (maker-checker e2e)', () => {
     // + click the matching result), replacing the old eager USelect dropdowns.
     await pickAsync(page, 'category', categoryName, categoryName)
     await pickAsync(page, 'office', officeName, officeName)
+
+    // Legacy-parity Fase 1: a tangible asset must carry a location — at least a
+    // floor (room stays optional). The floor USelect only populates once an
+    // office is chosen. NEVER use selectOption — USelect is a custom popover.
+    const floorSelect = page.getByTestId('asset-form-lantai-select')
+    await expect(floorSelect).toBeEnabled({ timeout: 8_000 })
+    await floorSelect.click()
+    await page.getByRole('option', { name: floorName, exact: true }).click()
 
     await page.getByLabel('Tanggal Beli', { exact: true }).fill('2026-07-01')
     await page.getByLabel('Harga Beli', { exact: true }).fill(formPrice)

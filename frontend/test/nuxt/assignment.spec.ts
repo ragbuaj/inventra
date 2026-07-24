@@ -14,6 +14,8 @@ function employee(over: Partial<Employee> = {}): Employee {
   return {
     id: 'e1', code: 'EMP001', name: 'Andi Saputra', email: 'andi@test.com', phone: null,
     department_id: null, position_id: null, office_id: 'o-mine', status: 'active',
+    // Legacy-parity Fase 6 fields.
+    company_id: null, executor_division_id: null,
     created_at: null, updated_at: null,
     ...over
   }

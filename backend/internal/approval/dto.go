@@ -11,6 +11,11 @@ import (
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
 )
 
+// maxAssetCreateQuantity caps the batch size of an asset_create request. Must
+// stay in sync with asset.MaxBatchQuantity (a separate literal avoids an import
+// cycle, since internal/asset already imports internal/approval).
+const maxAssetCreateQuantity = 500
+
 // SubmitRequest is the request body for POST /requests.
 type SubmitRequest struct {
 	Type     string          `json:"type" binding:"required,oneof=asset_create asset_disposal valuation_exclusion"`
@@ -36,12 +41,14 @@ func (r SubmitRequest) validate() error {
 	return nil
 }
 
-// validateAssetCreateAmount enforces amount == payload.purchase_cost (zero when the
-// payload carries no cost), so a maker cannot understate the amount to route an
-// asset_create through a lower approval band than its real purchase cost requires.
+// validateAssetCreateAmount enforces amount == payload.purchase_cost * quantity
+// (cost zero when absent; quantity defaults to 1), so a maker cannot understate the
+// amount to route an asset_create through a lower approval band than its real total
+// purchase cost requires. Batch registration (quantity > 1) is covered by the product.
 func (r SubmitRequest) validateAssetCreateAmount() error {
 	var p struct {
 		PurchaseCost *string `json:"purchase_cost"`
+		Quantity     int     `json:"quantity"`
 	}
 	if len(r.Payload) > 0 {
 		if err := json.Unmarshal(r.Payload, &p); err != nil {
@@ -58,8 +65,22 @@ func (r SubmitRequest) validateAssetCreateAmount() error {
 			return errors.New("invalid purchase_cost")
 		}
 	}
-	if amount.Cmp(cost) != 0 {
-		return errors.New("amount must equal payload.purchase_cost")
+	qty := p.Quantity
+	if qty == 0 {
+		qty = 1
+	}
+	if qty < 0 {
+		return errors.New("invalid quantity")
+	}
+	// Cap batch size so an approved request cannot loop the executor an unbounded
+	// number of times while holding the per-office tag advisory lock. Must match
+	// asset.MaxBatchQuantity (kept as a separate literal to avoid an import cycle).
+	if qty > maxAssetCreateQuantity {
+		return errors.New("quantity exceeds the maximum batch size")
+	}
+	expected := new(big.Rat).Mul(cost, big.NewRat(int64(qty), 1))
+	if amount.Cmp(expected) != 0 {
+		return errors.New("amount must equal payload.purchase_cost * quantity")
 	}
 	return nil
 }

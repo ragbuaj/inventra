@@ -16,6 +16,12 @@ import (
 	sqlc "github.com/ragbuaj/inventra/db/sqlc"
 )
 
+// MaxBatchQuantity caps how many identical units one asset_create request may
+// create (spec 2026-07-23 section 9). The approval submit-time cross-check in
+// internal/approval enforces the same ceiling with its own constant — the two
+// MUST stay in sync (approval cannot import asset without an import cycle).
+const MaxBatchQuantity = 500
+
 // AssetCreatePayload is the JSON stored in approval_requests.payload for the
 // asset_create request type.
 type AssetCreatePayload struct {
@@ -35,6 +41,17 @@ type AssetCreatePayload struct {
 	FundingSource  *string `json:"funding_source"`
 	WarrantyExpiry *string `json:"warranty_expiry"` // "2006-01-02"
 	Notes          *string `json:"notes"`
+	// Legacy-parity fields (spec 2026-07-23).
+	FloorID          *string `json:"floor_id"`
+	PICEmployeeID    *string `json:"pic_employee_id"`
+	Capacity         *string `json:"capacity"`
+	LeaseDate        *string `json:"lease_date"`        // "2006-01-02"
+	InstallationDate *string `json:"installation_date"` // "2006-01-02"
+	WarrantyStart    *string `json:"warranty_start"`    // "2006-01-02"
+	// Batch registration: number of identical asset units to create in one
+	// request (spec 2026-07-23 section 9). Absent/0 means a single unit; each
+	// unit takes its own sequential tag. Approval amount = purchase_cost * quantity.
+	Quantity int `json:"quantity"`
 }
 
 // parsePurchaseDate parses an optional "2006-01-02" date string into a pgtype.Date.
@@ -87,11 +104,6 @@ func (e createExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.App
 		year = int32(purchaseDate.Time.Year())
 	}
 
-	tag, err := e.s.GenerateAssetTag(ctx, qtx, officeID, categoryID, year)
-	if err != nil {
-		return mapDBError(err)
-	}
-
 	// Parse optional room UUID.
 	roomID, err := common.ParseUUIDPtr(p.RoomID)
 	if err != nil {
@@ -119,31 +131,123 @@ func (e createExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.App
 		return fmt.Errorf("invalid warranty_expiry: %w", derr)
 	}
 
+	// Legacy-parity fields.
+	floorID, err := common.ParseUUIDPtr(p.FloorID)
+	if err != nil {
+		return ErrInvalidRef
+	}
+	picID, err := common.ParseUUIDPtr(p.PICEmployeeID)
+	if err != nil {
+		return ErrInvalidRef
+	}
+	leaseDate, derr := parsePurchaseDate(p.LeaseDate)
+	if derr != nil {
+		return fmt.Errorf("invalid lease_date: %w", derr)
+	}
+	installationDate, derr := parsePurchaseDate(p.InstallationDate)
+	if derr != nil {
+		return fmt.Errorf("invalid installation_date: %w", derr)
+	}
+	warrantyStart, derr := parsePurchaseDate(p.WarrantyStart)
+	if derr != nil {
+		return fmt.Errorf("invalid warranty_start: %w", derr)
+	}
+
+	// Validate + normalize floor/room against the asset's office (forces floor to
+	// the room's own floor when a room is chosen).
+	floorID, err = e.s.resolveLocation(ctx, qtx, officeID, floorID, roomID)
+	if err != nil {
+		return err
+	}
+
 	requesterID := req.RequestedByID
-	_, err = qtx.CreateAsset(ctx, sqlc.CreateAssetParams{
-		AssetTag:       tag,
-		Name:           p.Name,
-		CategoryID:     categoryID,
-		OfficeID:       officeID,
-		RoomID:         roomID,
-		AssetClass:     sqlc.SharedAssetClass(p.AssetClass),
-		Capitalized:    true,
-		CreatedByID:    &requesterID,
-		SerialNumber:   p.SerialNumber,
-		PurchaseCost:   p.PurchaseCost,
-		PurchaseDate:   purchaseDate,
-		BrandID:        brandID,
-		ModelID:        modelID,
-		UnitID:         unitID,
-		VendorID:       vendorID,
-		PoNumber:       p.PONumber,
-		FundingSource:  p.FundingSource,
-		WarrantyExpiry: warrantyExpiry,
-		Notes:          p.Notes,
-		// Unset optional fields — leave as zero values (nil / false / empty).
-		Specifications: []byte("{}"),
-	})
-	return mapDBError(err)
+
+	// Batch registration: create `quantity` identical units in one approval
+	// commit (spec 2026-07-23 section 9). Absent/0 quantity means a single unit.
+	// Each unit draws its own sequential tag from the per-office advisory-locked
+	// counter, so a batch of N yields N consecutive tag_seq values.
+	quantity := p.Quantity
+	if quantity <= 0 {
+		quantity = 1
+	}
+	// Defense-in-depth: the submit-time cross-check (approval.validateAssetCreateAmount)
+	// already caps quantity, but the executor re-reads the raw payload, so bound it
+	// here too — a huge N would hold the per-office tag advisory lock for the whole
+	// commit and starve every other asset create in that office.
+	if quantity > MaxBatchQuantity {
+		return ErrInvalidRef
+	}
+
+	// A serial number identifies one physical unit, so it can never be shared
+	// across a batch. The form clears it, but a hand-crafted payload could still
+	// carry one — drop it server-side for quantity > 1.
+	serialNumber := p.SerialNumber
+	if quantity > 1 {
+		serialNumber = nil
+	}
+
+	for i := 0; i < quantity; i++ {
+		tag, tagSeq, terr := e.s.GenerateAssetTag(ctx, qtx, officeID, categoryID, year)
+		if terr != nil {
+			return mapDBError(terr)
+		}
+
+		created, cerr := qtx.CreateAsset(ctx, sqlc.CreateAssetParams{
+			AssetTag:         tag,
+			TagSeq:           &tagSeq,
+			Name:             p.Name,
+			CategoryID:       categoryID,
+			OfficeID:         officeID,
+			RoomID:           roomID,
+			FloorID:          floorID,
+			AssetClass:       sqlc.SharedAssetClass(p.AssetClass),
+			Capitalized:      true,
+			CreatedByID:      &requesterID,
+			SerialNumber:     serialNumber,
+			PurchaseCost:     p.PurchaseCost,
+			PurchaseDate:     purchaseDate,
+			BrandID:          brandID,
+			ModelID:          modelID,
+			UnitID:           unitID,
+			VendorID:         vendorID,
+			PoNumber:         p.PONumber,
+			FundingSource:    p.FundingSource,
+			WarrantyExpiry:   warrantyExpiry,
+			WarrantyStart:    warrantyStart,
+			Capacity:         p.Capacity,
+			LeaseDate:        leaseDate,
+			InstallationDate: installationDate,
+			PicEmployeeID:    picID,
+			Notes:            p.Notes,
+			// Unset optional fields — leave as zero values (nil / false / empty).
+			Specifications: []byte("{}"),
+		})
+		if cerr != nil {
+			return mapDBError(cerr)
+		}
+
+		// Record initial location + PIC history (Fase 3 legacy-parity).
+		if herr := qtx.InsertAssetLocationHistory(ctx, sqlc.InsertAssetLocationHistoryParams{
+			AssetID:   created.ID,
+			OfficeID:  officeID,
+			FloorID:   floorID,
+			RoomID:    roomID,
+			Source:    sqlc.SharedLocationChangeSourceRegistration,
+			MovedByID: &requesterID,
+		}); herr != nil {
+			return mapDBError(herr)
+		}
+		if picID != nil {
+			if herr := qtx.InsertAssetPICHistory(ctx, sqlc.InsertAssetPICHistoryParams{
+				AssetID:       created.ID,
+				PicEmployeeID: *picID,
+				AssignedByID:  &requesterID,
+			}); herr != nil {
+				return mapDBError(herr)
+			}
+		}
+	}
+	return nil
 }
 
 // --- exclusionExec -------------------------------------------------------

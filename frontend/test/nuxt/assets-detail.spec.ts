@@ -178,6 +178,8 @@ function defaultHandler(asset: Record<string, unknown>): RequestHandler {
     if (path.startsWith('/rooms')) return { data: ROOMS, total: ROOMS.length, limit: 100, offset: 0 }
     if (path.match(/\/assets\/[^/]+\/depreciation$/)) return DEPR_RESPONSE_EMPTY
     if (path.match(/\/assets\/[^/]+\/maintenance$/)) return { data: [] }
+    if (path.match(/\/assets\/[^/]+\/location-history$/)) return { data: [] }
+    if (path.match(/\/assets\/[^/]+\/pic-history$/)) return { data: [] }
     throw new Error(`Unhandled request: ${path}`)
   }
 }
@@ -785,5 +787,72 @@ describe('Asset Detail page — no delete action', () => {
     const wrapper = await mountTag('JKT01-ELK-2026-00001')
     const vm = wrapper.vm as unknown as Record<string, unknown>
     expect(vm['onDelete']).toBeUndefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Location & PIC history tabs (Fase 3 legacy-parity)
+// ---------------------------------------------------------------------------
+
+describe('Asset Detail page — Location & PIC history tabs', () => {
+  const LOC_HISTORY = [
+    { id: 'l1', office_id: 'o1', office_name: 'Cabang Jakarta Selatan', floor_id: 'f1', floor_name: 'Lantai 3', room_id: 'r1', room_name: 'Ruang IT', source: 'registration', moved_at: '2026-01-12T02:00:00Z', moved_by_id: 'u1', moved_by_name: 'Admin', transfer_id: null, note: null }
+  ]
+  const PIC_HISTORY = [
+    { id: 'p1', pic_employee_id: 'e1', pic_name: 'Andi Saputra', pic_code: 'NIP001', assigned_at: '2026-01-12T02:00:00Z', released_at: null, assigned_by_id: 'u1', assigned_by_name: 'Admin', note: null }
+  ]
+
+  function historyHandler(): RequestHandler {
+    return (path: string, opts?: Record<string, unknown>) => {
+      // Record here too: the history routes return before delegating to
+      // defaultHandler (which is what normally pushes onto requestedPaths), so
+      // without this the lazy-load assertions below never see these paths.
+      if (path.match(/\/assets\/[^/]+\/location-history$/)) {
+        requestedPaths.push(path)
+        return { data: LOC_HISTORY }
+      }
+      if (path.match(/\/assets\/[^/]+\/pic-history$/)) {
+        requestedPaths.push(path)
+        return { data: PIC_HISTORY }
+      }
+      return defaultHandler(FULL_ASSET)(path, opts)
+    }
+  }
+
+  async function openTab(wrapper: Awaited<ReturnType<typeof mountTag>>, label: string) {
+    const btn = wrapper.findAll('button').find(b => b.text().trim() === label)
+    expect(btn).toBeDefined()
+    await btn!.trigger('click')
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+  }
+
+  it('lazy-loads location history only when the Riwayat Lokasi tab is opened', async () => {
+    setHandler(historyHandler())
+    const wrapper = await mountTag('JKT01-ELK-2026-00001')
+    expect(requestedPaths.some(p => p.includes('/location-history'))).toBe(false)
+    await openTab(wrapper, 'Riwayat Lokasi')
+    expect(requestedPaths.some(p => p.includes('/location-history'))).toBe(true)
+    expect(wrapper.findAll('[data-testid="loc-tab-row"]')).toHaveLength(1)
+    const text = wrapper.text()
+    expect(text).toContain('Ruang IT')
+    expect(text).toContain('Registrasi')
+  })
+
+  it('renders PIC history with an active (Aktif) row', async () => {
+    setHandler(historyHandler())
+    const wrapper = await mountTag('JKT01-ELK-2026-00001')
+    await openTab(wrapper, 'Riwayat PIC')
+    expect(wrapper.findAll('[data-testid="pic-tab-row"]')).toHaveLength(1)
+    const text = wrapper.text()
+    expect(text).toContain('Andi Saputra')
+    expect(text).toContain('NIP001')
+    expect(text).toContain('Aktif')
+  })
+
+  it('shows the empty state when there is no location history', async () => {
+    const wrapper = await mountTag('JKT01-ELK-2026-00001')
+    await openTab(wrapper, 'Riwayat Lokasi')
+    expect(wrapper.find('[data-testid="loc-tab-empty"]').exists()).toBe(true)
   })
 })

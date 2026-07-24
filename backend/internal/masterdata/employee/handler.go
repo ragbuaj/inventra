@@ -33,6 +33,10 @@ func (h *Handler) svcError(c *gin.Context, err error) {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
 	}
+	if errors.Is(err, ErrDepartmentOfficeMismatch) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	common.WriteError(c, err)
 }
 

@@ -189,10 +189,25 @@ func (s *Service) Receive(ctx context.Context, all bool, ids []uuid.UUID, receiv
 		return before, before, mapDBError(err)
 	}
 	// Relocate the asset to the destination office/room.
-	if _, err = qtx.SetAssetOffice(ctx, sqlc.SetAssetOfficeParams{
+	movedAsset, err := qtx.SetAssetOffice(ctx, sqlc.SetAssetOfficeParams{
 		ID:       before.AssetID,
 		OfficeID: before.ToOfficeID,
 		RoomID:   after.ToRoomID,
+	})
+	if err != nil {
+		return before, before, mapDBError(err)
+	}
+	// Record the move in the asset's location history (Fase 3 legacy-parity),
+	// reflecting the asset's actual post-relocation state and linking the transfer.
+	transferID := before.ID
+	if err = qtx.InsertAssetLocationHistory(ctx, sqlc.InsertAssetLocationHistoryParams{
+		AssetID:    movedAsset.ID,
+		OfficeID:   movedAsset.OfficeID,
+		FloorID:    movedAsset.FloorID,
+		RoomID:     movedAsset.RoomID,
+		Source:     sqlc.SharedLocationChangeSourceTransfer,
+		MovedByID:  &receiver,
+		TransferID: &transferID,
 	}); err != nil {
 		return before, before, mapDBError(err)
 	}

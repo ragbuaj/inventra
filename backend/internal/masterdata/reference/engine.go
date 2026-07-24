@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -24,6 +25,7 @@ const (
 	typeBool
 	typeUUID
 	typeEnum
+	typeInt
 )
 
 type column struct {
@@ -226,6 +228,35 @@ func coerce(r resource, body map[string]any) ([]any, error) {
 				return nil, fmt.Errorf("%s must be one of %s", c.Name, strings.Join(c.Enum, ", "))
 			}
 			out[i] = s
+		case typeInt:
+			if !present || raw == nil {
+				if c.Required {
+					return nil, fmt.Errorf("%s is required", c.Name)
+				}
+				out[i] = nil
+				continue
+			}
+			// JSON numbers decode to float64; also accept a numeric string.
+			switch v := raw.(type) {
+			case float64:
+				out[i] = int64(v)
+			case string:
+				s := strings.TrimSpace(v)
+				if s == "" {
+					if c.Required {
+						return nil, fmt.Errorf("%s is required", c.Name)
+					}
+					out[i] = nil
+					continue
+				}
+				n, err := strconv.ParseInt(s, 10, 64)
+				if err != nil {
+					return nil, fmt.Errorf("%s must be an integer", c.Name)
+				}
+				out[i] = n
+			default:
+				return nil, fmt.Errorf("%s must be a number", c.Name)
+			}
 		}
 	}
 	return out, nil

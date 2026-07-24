@@ -54,7 +54,7 @@ func (q *Queries) CreateRole(ctx context.Context, arg CreateRoleParams) (Identit
 const createUser = `-- name: CreateUser :one
 INSERT INTO identity.users (name, email, password_hash, role_id, office_id, employee_id)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, employee_id, office_id, name, email, password_hash, google_id, avatar_key, role_id, status, created_at, updated_at, deleted_at, password_changed_at
+RETURNING id, employee_id, office_id, name, email, password_hash, google_id, avatar_key, role_id, status, created_at, updated_at, deleted_at, password_changed_at, username
 `
 
 type CreateUserParams struct {
@@ -91,6 +91,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Identit
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.PasswordChangedAt,
+		&i.Username,
 	)
 	return i, err
 }
@@ -150,7 +151,7 @@ func (q *Queries) GetRoleByCode(ctx context.Context, code string) (IdentityRole,
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, employee_id, office_id, name, email, password_hash, google_id, avatar_key, role_id, status, created_at, updated_at, deleted_at, password_changed_at FROM identity.users
+SELECT id, employee_id, office_id, name, email, password_hash, google_id, avatar_key, role_id, status, created_at, updated_at, deleted_at, password_changed_at, username FROM identity.users
 WHERE email = $1 AND deleted_at IS NULL
 `
 
@@ -172,12 +173,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (IdentityUse
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.PasswordChangedAt,
+		&i.Username,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, employee_id, office_id, name, email, password_hash, google_id, avatar_key, role_id, status, created_at, updated_at, deleted_at, password_changed_at FROM identity.users
+SELECT id, employee_id, office_id, name, email, password_hash, google_id, avatar_key, role_id, status, created_at, updated_at, deleted_at, password_changed_at, username FROM identity.users
 WHERE id = $1 AND deleted_at IS NULL
 `
 
@@ -199,6 +201,42 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (IdentityUser, 
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.PasswordChangedAt,
+		&i.Username,
+	)
+	return i, err
+}
+
+const getUserByLogin = `-- name: GetUserByLogin :one
+SELECT id, employee_id, office_id, name, email, password_hash, google_id, avatar_key, role_id, status, created_at, updated_at, deleted_at, password_changed_at, username FROM identity.users
+WHERE (email = $1::citext OR username = $1)
+  AND deleted_at IS NULL
+ORDER BY (email = $1::citext) DESC
+LIMIT 1
+`
+
+// Login lookup: match by email (citext, case-insensitive) OR username (NIP).
+// Deterministic: an email match is preferred over a username match (so a username
+// colliding with another user's email can never shadow the email owner), and
+// LIMIT 1 guards against pgx silently taking an arbitrary row on a multi-match.
+func (q *Queries) GetUserByLogin(ctx context.Context, identifier string) (IdentityUser, error) {
+	row := q.db.QueryRow(ctx, getUserByLogin, identifier)
+	var i IdentityUser
+	err := row.Scan(
+		&i.ID,
+		&i.EmployeeID,
+		&i.OfficeID,
+		&i.Name,
+		&i.Email,
+		&i.PasswordHash,
+		&i.GoogleID,
+		&i.AvatarKey,
+		&i.RoleID,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.PasswordChangedAt,
+		&i.Username,
 	)
 	return i, err
 }
@@ -571,7 +609,7 @@ func (q *Queries) UpdateUserAvatarKey(ctx context.Context, arg UpdateUserAvatarK
 
 const updateUserEmail = `-- name: UpdateUserEmail :one
 UPDATE identity.users SET email = $2 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, employee_id, office_id, name, email, password_hash, google_id, avatar_key, role_id, status, created_at, updated_at, deleted_at, password_changed_at
+RETURNING id, employee_id, office_id, name, email, password_hash, google_id, avatar_key, role_id, status, created_at, updated_at, deleted_at, password_changed_at, username
 `
 
 type UpdateUserEmailParams struct {
@@ -597,13 +635,14 @@ func (q *Queries) UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.PasswordChangedAt,
+		&i.Username,
 	)
 	return i, err
 }
 
 const updateUserName = `-- name: UpdateUserName :one
 UPDATE identity.users SET name = $2 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, employee_id, office_id, name, email, password_hash, google_id, avatar_key, role_id, status, created_at, updated_at, deleted_at, password_changed_at
+RETURNING id, employee_id, office_id, name, email, password_hash, google_id, avatar_key, role_id, status, created_at, updated_at, deleted_at, password_changed_at, username
 `
 
 type UpdateUserNameParams struct {
@@ -629,6 +668,7 @@ func (q *Queries) UpdateUserName(ctx context.Context, arg UpdateUserNameParams) 
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.PasswordChangedAt,
+		&i.Username,
 	)
 	return i, err
 }

@@ -42,6 +42,15 @@ const CITIES = [
   { id: 'c1', name: 'Jakarta Pusat', province_id: 'pr1' },
   { id: 'c2', name: 'Bandung', province_id: 'pr2' }
 ]
+
+// Legacy-parity Fase 5 masters the office form loads for its two new selects.
+const OFFICE_CLASSES = [
+  { id: 'oc1', name: 'Kelas A', code: 'A', is_active: true }
+]
+const BUILDING_CLASSIFICATIONS = [
+  { id: 'bc1', name: 'Gedung Rendah', code: 'LOW', min_floors: 1, max_floors: 4, is_active: true },
+  { id: 'bc2', name: 'Gedung Tinggi', code: 'HIGH', min_floors: 25, max_floors: null, is_active: true }
+]
 const OFFICES = [
   { id: 'o1', parent_id: null, office_type_id: 'ot1', province_id: 'pr1', city_id: 'c1', name: 'Kantor Pusat', code: 'PST', address: 'Jl. Merdeka No. 1', is_active: true, latitude: null, longitude: null, created_at: null, updated_at: null },
   { id: 'o2', parent_id: 'o1', office_type_id: 'ot2', province_id: 'pr2', city_id: 'c2', name: 'Cabang Bandung', code: 'BDG', address: null, is_active: false, latitude: null, longitude: null, created_at: null, updated_at: null }
@@ -65,9 +74,14 @@ function parseQuery(path: string): Record<string, string> {
 
 function defaultHandler(path: string, opts?: Record<string, unknown>): unknown {
   const method = (opts?.method as string) ?? 'GET'
+  // NOTE: /office-classes must be matched BEFORE /offices — startsWith('/offices')
+  // would otherwise swallow it and return the office list shape.
+  if (path.startsWith('/office-classes')) return { data: OFFICE_CLASSES, total: OFFICE_CLASSES.length, limit: 100, offset: 0 }
+  if (path.startsWith('/building-classifications')) return { data: BUILDING_CLASSIFICATIONS, total: BUILDING_CLASSIFICATIONS.length, limit: 100, offset: 0 }
   if (path.startsWith('/office-types')) return { data: OFFICE_TYPES }
   if (path.startsWith('/provinces')) return { data: PROVINCES }
   if (path.startsWith('/cities')) return { data: CITIES }
+  if (path.startsWith('/employees')) return { data: [], total: 0, limit: 20, offset: 0 }
   if (path.startsWith('/floors')) {
     if (method === 'GET') return { data: FLOORS[parseQuery(path)['office_id'] ?? ''] ?? [], total: 0, limit: 100, offset: 0 }
     if (method === 'DELETE') return undefined

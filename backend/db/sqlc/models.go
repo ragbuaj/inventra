@@ -585,6 +585,50 @@ func (ns NullSharedImportStatus) Value() (driver.Value, error) {
 	return string(ns.SharedImportStatus), nil
 }
 
+type SharedLocationChangeSource string
+
+const (
+	SharedLocationChangeSourceRegistration SharedLocationChangeSource = "registration"
+	SharedLocationChangeSourceEdit         SharedLocationChangeSource = "edit"
+	SharedLocationChangeSourceTransfer     SharedLocationChangeSource = "transfer"
+	SharedLocationChangeSourceMigration    SharedLocationChangeSource = "migration"
+)
+
+func (e *SharedLocationChangeSource) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedLocationChangeSource(s)
+	case string:
+		*e = SharedLocationChangeSource(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedLocationChangeSource: %T", src)
+	}
+	return nil
+}
+
+type NullSharedLocationChangeSource struct {
+	SharedLocationChangeSource SharedLocationChangeSource `json:"shared_location_change_source"`
+	Valid                      bool                       `json:"valid"` // Valid is true if SharedLocationChangeSource is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedLocationChangeSource) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedLocationChangeSource, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedLocationChangeSource.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedLocationChangeSource) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedLocationChangeSource), nil
+}
+
 type SharedMaintenanceStatus string
 
 const (
@@ -713,6 +757,92 @@ func (ns NullSharedNotificationType) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.SharedNotificationType), nil
+}
+
+type SharedOfficeKind string
+
+const (
+	SharedOfficeKindKonvensional SharedOfficeKind = "konvensional"
+	SharedOfficeKindSyariah      SharedOfficeKind = "syariah"
+)
+
+func (e *SharedOfficeKind) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedOfficeKind(s)
+	case string:
+		*e = SharedOfficeKind(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedOfficeKind: %T", src)
+	}
+	return nil
+}
+
+type NullSharedOfficeKind struct {
+	SharedOfficeKind SharedOfficeKind `json:"shared_office_kind"`
+	Valid            bool             `json:"valid"` // Valid is true if SharedOfficeKind is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedOfficeKind) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedOfficeKind, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedOfficeKind.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedOfficeKind) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedOfficeKind), nil
+}
+
+type SharedOfficeOwnership string
+
+const (
+	SharedOfficeOwnershipSewa    SharedOfficeOwnership = "sewa"
+	SharedOfficeOwnershipMilik   SharedOfficeOwnership = "milik"
+	SharedOfficeOwnershipHgPakai SharedOfficeOwnership = "hg_pakai"
+	SharedOfficeOwnershipFree    SharedOfficeOwnership = "free"
+)
+
+func (e *SharedOfficeOwnership) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedOfficeOwnership(s)
+	case string:
+		*e = SharedOfficeOwnership(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedOfficeOwnership: %T", src)
+	}
+	return nil
+}
+
+type NullSharedOfficeOwnership struct {
+	SharedOfficeOwnership SharedOfficeOwnership `json:"shared_office_ownership"`
+	Valid                 bool                  `json:"valid"` // Valid is true if SharedOfficeOwnership is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedOfficeOwnership) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedOfficeOwnership, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedOfficeOwnership.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedOfficeOwnership) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedOfficeOwnership), nil
 }
 
 type SharedOpnameItemResult string
@@ -1158,6 +1288,14 @@ type AssetAsset struct {
 	UpdatedAt                pgtype.Timestamptz        `json:"updated_at"`
 	DeletedAt                pgtype.Timestamptz        `json:"deleted_at"`
 	ImpairedBookValue        *string                   `json:"impaired_book_value"`
+	Capacity                 *string                   `json:"capacity"`
+	LeaseDate                pgtype.Date               `json:"lease_date"`
+	InstallationDate         pgtype.Date               `json:"installation_date"`
+	WarrantyStart            pgtype.Date               `json:"warranty_start"`
+	FloorID                  *uuid.UUID                `json:"floor_id"`
+	PicEmployeeID            *uuid.UUID                `json:"pic_employee_id"`
+	TagSeq                   *int32                    `json:"tag_seq"`
+	TagOfficeID              *uuid.UUID                `json:"tag_office_id"`
 }
 
 type AssetAssetAttachment struct {
@@ -1192,14 +1330,33 @@ type AssetAssetDocument struct {
 	DeletedAt         pgtype.Timestamptz      `json:"deleted_at"`
 }
 
-type AssetAssetTagCounter struct {
-	ID         uuid.UUID          `json:"id"`
-	OfficeID   uuid.UUID          `json:"office_id"`
-	CategoryID uuid.UUID          `json:"category_id"`
-	Year       int32              `json:"year"`
-	LastSeq    int32              `json:"last_seq"`
-	CreatedAt  pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+type AssetAssetLocationHistory struct {
+	ID         uuid.UUID                  `json:"id"`
+	AssetID    uuid.UUID                  `json:"asset_id"`
+	OfficeID   uuid.UUID                  `json:"office_id"`
+	FloorID    *uuid.UUID                 `json:"floor_id"`
+	RoomID     *uuid.UUID                 `json:"room_id"`
+	Source     SharedLocationChangeSource `json:"source"`
+	MovedAt    pgtype.Timestamptz         `json:"moved_at"`
+	MovedByID  *uuid.UUID                 `json:"moved_by_id"`
+	TransferID *uuid.UUID                 `json:"transfer_id"`
+	Note       *string                    `json:"note"`
+	CreatedAt  pgtype.Timestamptz         `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz         `json:"updated_at"`
+	DeletedAt  pgtype.Timestamptz         `json:"deleted_at"`
+}
+
+type AssetAssetPicHistory struct {
+	ID            uuid.UUID          `json:"id"`
+	AssetID       uuid.UUID          `json:"asset_id"`
+	PicEmployeeID uuid.UUID          `json:"pic_employee_id"`
+	AssignedAt    pgtype.Timestamptz `json:"assigned_at"`
+	ReleasedAt    pgtype.Timestamptz `json:"released_at"`
+	AssignedByID  *uuid.UUID         `json:"assigned_by_id"`
+	Note          *string            `json:"note"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt     pgtype.Timestamptz `json:"deleted_at"`
 }
 
 type AssignmentAssignment struct {
@@ -1346,6 +1503,7 @@ type IdentityUser struct {
 	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt         pgtype.Timestamptz `json:"deleted_at"`
 	PasswordChangedAt pgtype.Timestamptz `json:"password_changed_at"`
+	Username          *string            `json:"username"`
 }
 
 type ImportImportJob struct {
@@ -1425,6 +1583,17 @@ type MasterdataBrand struct {
 	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
 }
 
+type MasterdataBuildingClassification struct {
+	ID        uuid.UUID          `json:"id"`
+	Name      string             `json:"name"`
+	MinFloors int32              `json:"min_floors"`
+	MaxFloors *int32             `json:"max_floors"`
+	IsActive  bool               `json:"is_active"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
+}
+
 type MasterdataCategory struct {
 	ID                        uuid.UUID                 `json:"id"`
 	Name                      string                    `json:"name"`
@@ -1454,6 +1623,15 @@ type MasterdataCity struct {
 	DeletedAt  pgtype.Timestamptz `json:"deleted_at"`
 }
 
+type MasterdataCompany struct {
+	ID        uuid.UUID          `json:"id"`
+	Name      string             `json:"name"`
+	IsActive  bool               `json:"is_active"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
+}
+
 type MasterdataDepartment struct {
 	ID        uuid.UUID          `json:"id"`
 	Name      string             `json:"name"`
@@ -1462,22 +1640,34 @@ type MasterdataDepartment struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
+	OfficeID  *uuid.UUID         `json:"office_id"`
 }
 
 type MasterdataEmployee struct {
-	ID           uuid.UUID          `json:"id"`
-	Code         string             `json:"code"`
-	Name         string             `json:"name"`
-	Email        *string            `json:"email"`
-	AvatarKey    *string            `json:"avatar_key"`
-	DepartmentID *uuid.UUID         `json:"department_id"`
-	PositionID   *uuid.UUID         `json:"position_id"`
-	OfficeID     uuid.UUID          `json:"office_id"`
-	Status       SharedUserStatus   `json:"status"`
-	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt    pgtype.Timestamptz `json:"deleted_at"`
-	Phone        *string            `json:"phone"`
+	ID                 uuid.UUID          `json:"id"`
+	Code               string             `json:"code"`
+	Name               string             `json:"name"`
+	Email              *string            `json:"email"`
+	AvatarKey          *string            `json:"avatar_key"`
+	DepartmentID       *uuid.UUID         `json:"department_id"`
+	PositionID         *uuid.UUID         `json:"position_id"`
+	OfficeID           uuid.UUID          `json:"office_id"`
+	Status             SharedUserStatus   `json:"status"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt          pgtype.Timestamptz `json:"deleted_at"`
+	Phone              *string            `json:"phone"`
+	CompanyID          *uuid.UUID         `json:"company_id"`
+	ExecutorDivisionID *uuid.UUID         `json:"executor_division_id"`
+}
+
+type MasterdataExecutorDivision struct {
+	ID        uuid.UUID          `json:"id"`
+	Name      string             `json:"name"`
+	IsActive  bool               `json:"is_active"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
 }
 
 type MasterdataFloor struct {
@@ -1510,21 +1700,39 @@ type MasterdataModel struct {
 }
 
 type MasterdataOffice struct {
-	ID             uuid.UUID          `json:"id"`
-	ParentID       *uuid.UUID         `json:"parent_id"`
-	OfficeTypeID   uuid.UUID          `json:"office_type_id"`
-	ProvinceID     *uuid.UUID         `json:"province_id"`
-	CityID         *uuid.UUID         `json:"city_id"`
-	Name           string             `json:"name"`
-	Code           string             `json:"code"`
-	CostCenterCode *string            `json:"cost_center_code"`
-	Address        *string            `json:"address"`
-	IsActive       bool               `json:"is_active"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt      pgtype.Timestamptz `json:"deleted_at"`
-	Latitude       *float64           `json:"latitude"`
-	Longitude      *float64           `json:"longitude"`
+	ID                       uuid.UUID              `json:"id"`
+	ParentID                 *uuid.UUID             `json:"parent_id"`
+	OfficeTypeID             uuid.UUID              `json:"office_type_id"`
+	ProvinceID               *uuid.UUID             `json:"province_id"`
+	CityID                   *uuid.UUID             `json:"city_id"`
+	Name                     string                 `json:"name"`
+	Code                     string                 `json:"code"`
+	CostCenterCode           *string                `json:"cost_center_code"`
+	Address                  *string                `json:"address"`
+	IsActive                 bool                   `json:"is_active"`
+	CreatedAt                pgtype.Timestamptz     `json:"created_at"`
+	UpdatedAt                pgtype.Timestamptz     `json:"updated_at"`
+	DeletedAt                pgtype.Timestamptz     `json:"deleted_at"`
+	Latitude                 *float64               `json:"latitude"`
+	Longitude                *float64               `json:"longitude"`
+	OwnershipStatus          *SharedOfficeOwnership `json:"ownership_status"`
+	OfficeClassID            *uuid.UUID             `json:"office_class_id"`
+	BuildingClassificationID *uuid.UUID             `json:"building_classification_id"`
+	FloorCount               *int32                 `json:"floor_count"`
+	BuildingArea             *string                `json:"building_area"`
+	OfficeKind               SharedOfficeKind       `json:"office_kind"`
+	Description              *string                `json:"description"`
+	HeadEmployeeID           *uuid.UUID             `json:"head_employee_id"`
+	Contact                  *string                `json:"contact"`
+}
+
+type MasterdataOfficeClass struct {
+	ID        uuid.UUID          `json:"id"`
+	Name      string             `json:"name"`
+	IsActive  bool               `json:"is_active"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
 }
 
 type MasterdataOfficeType struct {

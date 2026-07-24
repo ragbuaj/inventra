@@ -364,6 +364,10 @@ func (o officeImporter) Execute(ctx context.Context, qtx *sqlc.Queries, job impo
 			IsActive:     parseActive(trim(r.Data[colAktif])),
 			Latitude:     nil,
 			Longitude:    nil,
+			// office_kind is NOT NULL (legacy-parity Fase 5); the import template
+			// carries no such column, so fall back to the same default the service
+			// applies. Leaving the zero value would send '' and fail the enum cast.
+			OfficeKind: defaultOfficeKind(""),
 		})
 		if err != nil {
 			// Residual concurrent-race window: the pre-check saw the code

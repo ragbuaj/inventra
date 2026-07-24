@@ -29,6 +29,9 @@ func (f *fakeUserStore) GetUserByID(_ context.Context, _ uuid.UUID) (sqlc.Identi
 func (f *fakeUserStore) GetUserByEmail(_ context.Context, _ string) (sqlc.IdentityUser, error) {
 	return f.user, f.getErr
 }
+func (f *fakeUserStore) GetUserByLogin(_ context.Context, _ string) (sqlc.IdentityUser, error) {
+	return f.user, f.getErr
+}
 func (f *fakeUserStore) LinkGoogleID(_ context.Context, p sqlc.LinkGoogleIDParams) error {
 	f.linked = p.GoogleID
 	return f.linkErr

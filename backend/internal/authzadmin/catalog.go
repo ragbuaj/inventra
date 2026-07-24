@@ -94,7 +94,7 @@ func ScopeLevels() []string {
 // ScopeModules returns the known data-scope module strings the handlers resolve
 // scope for, plus the '*' default sentinel.
 func ScopeModules() []string {
-	return []string{"*", "offices", "employees", "assets", "requests", "audit", "transfers", "disposals", "depreciation", "assignments", "maintenance", "stockopname", "report"}
+	return []string{"*", "offices", "employees", "departments", "assets", "requests", "audit", "transfers", "disposals", "depreciation", "assignments", "maintenance", "stockopname", "report"}
 }
 
 // CatalogResponse is the GET /authz/catalog payload for the admin UI.

@@ -66,7 +66,7 @@ async function login_(api: APIRequestContext, email: string, password: string): 
 /** Signs in through the real backend UI and lands on the dashboard. */
 async function loginAs(page: Page, email: string, password: string): Promise<void> {
   await page.goto('/login')
-  await page.locator('input[type="email"]').fill(email)
+  await page.locator('input[name="email"]').fill(email)
   await page.locator('input[type="password"]').fill(password)
   await page.getByRole('button', { name: 'Masuk', exact: true }).click()
   await expect(page).toHaveURL(/\/$/)
@@ -100,6 +100,9 @@ test.describe('Account security — real backend', () => {
   // Dedicated throwaway user for the email-change test — never the shared admin.
   let acctEmail: string
   let acctPassword: string
+  // Dedicated throwaway user for the password-change test — never the shared admin.
+  let pwdEmail: string
+  let pwdPassword: string
 
   test.beforeAll(async () => {
     setupApi = await request.newContext({ baseURL: API_BASE })
@@ -117,19 +120,33 @@ test.describe('Account security — real backend', () => {
       data: { name: `E2E Account ${RUN}`, email: acctEmail, password: acctPassword, role_id: superadminRole.id }
     })
     if (!userRes.ok()) throw new Error(`throwaway user create failed: ${userRes.status()} ${await userRes.text()}`)
+
+    // A SECOND throwaway user, dedicated to the change-password test. Using the
+    // shared seeded admin there left its password changed until this file's
+    // afterAll restored it, and the very next spec (account.spec, which runs
+    // immediately after alphabetically) raced that restore — a real, repeated
+    // CI flake. A per-test user removes the cross-file coupling entirely. It is
+    // separate from acctEmail because the change-email test rewrites that one's
+    // address, which would break a password login here.
+    pwdEmail = `e2e.pwd.${RUN}@inventra.local`
+    pwdPassword = `Pwd${RUN}!`
+    const pwdRes = await setupApi.post('users', {
+      headers: authHeader(adminToken),
+      data: { name: `E2E Password ${RUN}`, email: pwdEmail, password: pwdPassword, role_id: superadminRole.id }
+    })
+    if (!pwdRes.ok()) throw new Error(`password-test user create failed: ${pwdRes.status()} ${await pwdRes.text()}`)
   })
 
   /**
-   * Failure-safe restore of the shared seeded admin's password, run
-   * regardless of pass/fail. Mirrors password-reset.spec.ts's afterAll —
-   * see that file for the full rationale (CI's serial, alphabetical, shared-DB
-   * run order and why `helpers.ts`'s `login()` hardcoding `PASSWORD_SEED`
-   * makes this the primary protection for every spec after this one).
+   * Safety net only. The tests in this file now mutate throwaway users
+   * (pwdEmail / acctEmail), never the shared seeded admin, so on a healthy run
+   * the first check below succeeds and this returns immediately.
    *
-   * Unlike password-reset.spec.ts this restore uses the direct
-   * `PUT /auth/password` endpoint rather than another forgot/reset round
-   * trip — the test below already knows both candidate passwords, so no
-   * email needs to be sent or read during teardown.
+   * It is kept because a run interrupted BEFORE this change (or a stale DB from
+   * an older revision) can still leave the admin on PASSWORD_CHANGED, and
+   * `helpers.ts`'s `login()` hardcodes PASSWORD_SEED for every later spec.
+   * Restoring via the direct `PUT /auth/password` endpoint needs no email
+   * round-trip during teardown. See password-reset.spec.ts for the same pattern.
    */
   test.afterAll(async () => {
     await setupApi?.dispose()
@@ -162,7 +179,9 @@ test.describe('Account security — real backend', () => {
   test('change-password: current password -> email link -> reset -> login with new password', async ({ page, request: req }) => {
     await req.delete(`${MAILPIT}/api/v1/messages`)
 
-    await loginAs(page, ADMIN, PASSWORD_SEED)
+    // Uses its own throwaway user, so the shared seeded admin's password is never
+    // in flux for the specs that run after this file.
+    await loginAs(page, pwdEmail, pwdPassword)
 
     await page.goto('/account?tab=security')
     await expect(page.getByTestId('security-change-password')).toBeVisible()
@@ -170,7 +189,7 @@ test.describe('Account security — real backend', () => {
 
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
-    await dialog.getByTestId('change-password-current').fill(PASSWORD_SEED)
+    await dialog.getByTestId('change-password-current').fill(pwdPassword)
     await dialog.getByRole('button', { name: 'Simpan', exact: true }).click()
     await expect(dialog.getByTestId('change-password-sent')).toBeVisible()
 
@@ -184,7 +203,7 @@ test.describe('Account security — real backend', () => {
     await expect(page).toHaveURL(/\/login/)
 
     // Confirm the change actually took effect by logging in with the new password.
-    await page.locator('input[type="email"]').fill(ADMIN)
+    await page.locator('input[name="email"]').fill(pwdEmail)
     await page.locator('input[type="password"]').fill(PASSWORD_CHANGED)
     await page.getByRole('button', { name: 'Masuk', exact: true }).click()
     await expect(page).toHaveURL(/\/$/)

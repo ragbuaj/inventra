@@ -12,6 +12,8 @@ func RegisterRoutes(rg *gin.RouterGroup, h *Handler, authMW, requireView, requir
 	g.GET("/:id/barcode", authMW, requireView, h.getBarcode)
 	g.POST("/labels", authMW, requireView, h.generateLabels)
 	g.PUT("/:id", authMW, requireManage, h.update)
+	g.GET("/:id/location-history", authMW, requireView, h.listLocationHistory)
+	g.GET("/:id/pic-history", authMW, requireView, h.listPICHistory)
 
 	a := g.Group("/:id/attachments")
 	a.POST("", authMW, requireManage, h.uploadAttachment)

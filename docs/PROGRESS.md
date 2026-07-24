@@ -17,6 +17,128 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
+> **AKTIF (2026-07-23): Legacy-parity data model** — penyelarasan model data agar Inventra
+> menggantikan sistem lama (Vue2/Yii2/PG12) sebagai sole asset system anak-perusahaan bank. Spec:
+> `docs/superpowers/specs/2026-07-23-legacy-parity-data-model-design.md` (disetujui user). Branch
+> `feat/legacy-parity-data-model` (worktree). 8 fase (migrasi `000038`–`000045`).
+> - **Fase 1 (kolom aset + constraint lokasi) — kode selesai.** Migrasi `000038` (enum office/lokasi) +
+>   `000039` (kolom `capacity`/`lease_date`/`installation_date`/`warranty_start`/`floor_id`/
+>   `pic_employee_id`, constraint tangible = floor ATAU room); sqlc + DTO + executor + `assetToMap` +
+>   OpenAPI; form Aset (kapasitas, PIC picker, 3 tanggal, lokasi boleh berhenti di lantai) + i18n
+>   id/en + test komponen. **Gate backend hijau** (build/vet/test/spectral). **Gate frontend: lint
+>   hijau; typecheck/vitest/build tertunda ke CI** (blocker environmental Node v24 + vite8/babel8 —
+>   `nuxt prepare` gagal lokal, analog integration-test CI-only). Deviasi mockup disetujui: field baru
+>   (kapasitas/PIC/tanggal instalasi-sewa-garansi mulai) di luar `Form Aset.dc.html` — permintaan user.
+> - **Fase 2 (penomoran kode aset baru) — kode selesai.** Migrasi `000040`: kolom `assets.tag_seq`
+>   (NULLABLE), backfill + re-tag semua aset ke format `{KANTOR}{KATEGORI}{TAHUN}{NNNNN}` tanpa dash,
+>   hapus `asset_tag_counters`. `formatAssetTag` tanpa pemisah; `GenerateAssetTag`/`NextTagSeq` pakai
+>   `MAX(tag_seq)+1` + `pg_advisory_xact_lock` per-kantor (sequence per-KANTOR, tak reset per tahun,
+>   tak dipakai ulang kecuali hard-delete teratas). Executor + importer + 2 integration test tag
+>   ditulis ulang; DATABASE.md bagian 4.7 + DB-Q5 diperbarui. **Gate:** backend build/vet/unit (31 pkg)
+>   hijau + `go vet -tags=integration` compile-check lolos (run integrasi via CI). Frontend tak berubah
+>   (hanya menampilkan string tag). **Sisa doc-sweep:** referensi `asset_tag_counters` di daftar
+>   skema/indeks/migrasi DATABASE.md (baris ~62/725/807) belum dibersihkan — kerjakan di sweep akhir.
+> - **Fase 3 (history aset) — kode selesai.** Migrasi `000041`: tabel `asset_location_history` +
+>   `asset_pic_history` (partial-unique PIC aktif) + backfill lokasi awal & PIC. Penulis history:
+>   create executor (registration + PIC), `Update` (tx + actor; lokasi saat floor/room berubah, PIC
+>   saat berubah — close aktif + buka baru), transfer `Receive` (source=transfer, dari state aktual
+>   pasca-relokasi). Read: `GET /assets/:id/location-history` + `/pic-history` (scope-gated),
+>   serializer + service list, OpenAPI (2 path + 2 skema). Frontend: tab **Riwayat Lokasi** & **Riwayat
+>   PIC** di Detail Aset (lazy-load), composable `useAssets.locationHistory/picHistory`, i18n id/en,
+>   test komponen. **Gate:** backend build/vet/unit + serializer unit test + Spectral 0-error +
+>   `go vet -tags=integration` compile-check (incl. integration test baru Update-history) hijau;
+>   frontend lint + JSON hijau (typecheck/vitest/build CI). **Pemegang** = tab `assign` existing
+>   (masih placeholder — wiring assignment-history di luar scope Fase 3).
+> - **Review fix (code-review 5-sumbu) — SELESAI.** #1 (Important): `SetAssetOffice` kini menurunkan
+>   `floor_id` dari lantai room tujuan (NULL bila tanpa room) — aset tak lagi menyimpan floor kantor
+>   asal pasca-mutasi; assert floor+history transfer ditambah. #2: `resolveLocation` memvalidasi &
+>   memaksa floor = lantai room (konsistensi) di create + Update. #3: `LIMIT 200` pada query history.
+>   #5: `formatDateTime` ikut locale (id/en). #4 (respons `{data}`) sengaja dipertahankan (sub-resource
+>   read-only tak berpaginasi; LIMIT jadi pengaman) — bukan memalsukan pagination.
+> - **Fase 4 (master baru) — SELESAI.** Migrasi `000042`: `office_classes`, `executor_divisions`
+>   (+seed 5), `companies` (semua datar → generic reference engine deklaratif), dan
+>   `building_classifications` (numerik min/max lantai + check-constraint). Engine diberi tipe kolom
+>   **`typeInt`** (bukan sub-package) sehingga keempatnya deklaratif; route auto-mount. Frontend:
+>   4 resource + tipe field **`number`** (NumberInput) di layar Referensi + i18n id/en. **Gate:**
+>   backend build/vet + Spectral 0-error + unit (`TestCoerceInt`) + **integrasi Docker** (reference
+>   pkg + `TestBuildingClassificationRoundTrip`: int round-trip, max nullable, check-constraint,
+>   required) hijau; frontend eslint + JSON + unit config-test hijau (vitest/build via CI).
+> - **Fase 5 (kolom kantor) — SELESAI.** Migrasi `000043`: 9 kolom (ownership_status enum,
+>   office_class_id, building_classification_id, floor_count, building_area, office_kind enum
+>   default konvensional, description, head_employee_id, contact). Query CreateOffice dikonversi ke
+>   named-args + 9 kolom; UpdateOffice +9; DTO Request/Response + toInput/toResponse; service default
+>   office_kind=konvensional (robust untuk zero-value CreateInput — memperbaiki test lama). Frontend:
+>   9 field di form Kantor (select ownership/kind, USelect kelas/klasifikasi dari reference, NumberInput
+>   floor_count/building_area, picker kepala kantor, textarea deskripsi) + **auto-saran klasifikasi
+>   gedung dari floor_count** (watcher, hanya mengisi bila kosong) + i18n id/en. **Gate:** backend
+>   build/vet + Spectral 0-error + **integrasi Docker** (office pkg + `TestOffice_LegacyParityFields_RoundTrip`)
+>   hijau; frontend eslint + JSON hijau (typecheck/vitest/build via CI). Follow-up: test frontend form
+>   Kantor (mount) belum ditambah.
+> - **Fase 6 (pegawai + divisi per-kantor) — SELESAI.** Migrasi `000044`: employees +`company_id`
+>   +`executor_division_id`; departments +`office_id` (NULLABLE — wajib di app layer, DB NOT NULL
+>   menyusul) + unik code jadi per-kantor. Backend: CreateEmployee named-args +2; validasi
+>   **department-in-office** (`GetDepartmentOffice`; departemen legacy office-null exempt) → sentinel
+>   `ErrDepartmentOfficeMismatch` (400); DTO/Response/map +2; OpenAPI Employee/EmployeeRequest +2;
+>   departments reference resource +`office_id` (typeUUID nullable). Frontend: form Pegawai +
+>   select Perusahaan/Divisi Pelaksana (dari reference) + **department jadi USelect ter-filter kantor**
+>   (client-side; watcher membersihkan department bila kantor ganti); Referensi departments + field
+>   `office` (tipe field baru 'office' pakai `useOfficePicker`) + i18n id/en. **Gate:** backend
+>   build/vet + Spectral 0-error + **integrasi Docker** (employee pkg + `TestEmployee_DepartmentOffice
+>   ValidationAndParityFields`, reference pkg) hijau; frontend eslint + JSON hijau (typecheck/vitest/
+>   build via CI). Catatan: `testsupport.Reset` menghapus seed executor_divisions — test insert sendiri.
+> - **Fase 7 (login NIP-atau-email) — SELESAI.** Migrasi `000045`: kolom `identity.users.username`
+>   (unik partial) + backfill dari NIP (`employees.code`). Query `GetUserByLogin` (email citext ATAU
+>   username); `Login` service pakai itu (jalur lain—forgot/email-change—tetap `GetUserByEmail`);
+>   loginRequest binding `email` direlaksasi jadi `required` (terima NIP), field JSON tetap `email`;
+>   fake store test +`GetUserByLogin`. Frontend: field login jadi **NIP atau Email** (label/placeholder,
+>   `type="text"`, autocomplete username). **PENTING—e2e:** 12 selector `input[type="email"]` (login)
+>   di 9 spec + helpers.ts diganti `input[name="email"]` (name tetap) — field email asli (change-email/
+>   forgot) pakai selector lain. **Gate:** backend build/vet + Spectral 0-error + **integrasi Docker**
+>   (identity pkg penuh + `TestGetUserByLogin_EmailOrUsername`) hijau; frontend eslint + JSON hijau.
+> - **Fase 8 (batch registrasi aset) — SELESAI.** Payload `asset_create` +`quantity` (default 1);
+>   `createExec.Execute` kini loop N kali (tiap unit ambil `tag_seq` berurutan via advisory lock kantor
+>   + tulis history lokasi/PIC). `validateAssetCreateAmount` diperluas: amount == `purchase_cost *
+>   quantity` (qty default 1, negatif ditolak). OpenAPI AssetCreatePayload +`quantity` + deskripsi
+>   amount. Frontend: field **"Jumlah"** (NumberInput min 1) + ringkasan "akan dibuat N aset" +
+>   validasi; helper `multiplyDecimalByInt` (BigInt, presisi desimal) menghitung amount = cost*qty;
+>   **serial nonaktif + dikosongkan saat batch >1** (nomor seri unik per unit); i18n id/en. **Gate:**
+>   backend build/vet + unit (approval/asset) + `go vet -tags=integration` compile-check (incl.
+>   `TestApproval_AssetCreate_Batch`: 3 aset, tag seq 1..3) + Spectral 0-error hijau; frontend eslint +
+>   JSON hijau (typecheck/vitest/build via CI — [[frontend-toolchain-node24-broken]]). **Legacy-parity
+>   8 fase kode SELESAI.**
+> - **Doc-sweep DATABASE.md — SELESAI** (dikerjakan bersama Fase 8): hapus `asset_tag_counters` +
+>   dokumentasikan `tag_seq`, 2 tabel history, 4 master baru, 9 kolom kantor, kolom pegawai/departemen,
+>   `users.username`. Lihat commit doc-sweep.
+> - **Code-review 5-sumbu (4 agent paralel) — SELESAI + perbaikan diterapkan.** 0 Critical; 9 Important
+>   + suggestion. **Fix batch (#1-8 + suggestion aman):** serial di-drop saat batch >1 + cap
+>   quantity 500 (backend+frontend); `GetUserByLogin` deterministik (ORDER BY email-match, LIMIT 1) +
+>   CHECK `username !~ '@'` + backfill dedup/deleted-filter; import tulis location-history + pra-cek
+>   lokasi (cegah 23514 meracuni tx); down-migrasi 000039 `NOT VALID`; `MapDBError` map 23514→400;
+>   `validateDepartmentOffice` bedakan `pgx.ErrNoRows`. **#9 (departments ter-scope) — SELESAI:**
+>   departments dipromosi dari generic reference engine ke sub-package `internal/masterdata/department`
+>   (data scope pada read+write; path `/departments` shape sama → frontend tak berubah; modul scope
+>   `departments` ditambah ke katalog). Test integrasi scope departemen ditambah. **Follow-up UI:** layar
+>   Referensi masih gated `global.manage` — role office-manager belum punya UI kelola departemen sendiri
+>   (backend sudah mendukung).
+> - **PR [#118](https://github.com/ragbuaj/inventra/pull/118) dibuka — SEMUA CI HIJAU** (backend,
+>   backend-integration, frontend, e2e, mobile, api-docs). Menstabilkan CI menemukan **3 bug produksi**
+>   yang lolos semua gate lain:
+>   1. **Import kantor gagal total** — `office/importer.go` memanggil `CreateOffice` tanpa `OfficeKind`,
+>      mengirim `''` ke kolom NOT NULL (fase 5). Ditambah test integrasi eksekusi import kantor
+>      (sebelumnya tak ada satu pun) yang diverifikasi gagal tanpa fix.
+>   2. **Halaman Pegawai 500** — `watch(() => form.office_id, ...)` diletakkan SEBELUM `const form`;
+>      `watch` memanggil getter seketika sehingga membaca `form` di temporal dead zone. Plus `USelect`
+>      menolak item bernilai `''` (dipakai fase 6 di 3 select + form Kantor) — diganti sentinel `NONE`.
+>   3. **Kode aset bisa DUPLIKAT setelah mutasi** (paling serius, migrasi `000046`): deret nomor
+>      di-kunci pada `office_id` yang BERUBAH saat mutasi, sehingga nomor terbit ulang dan bentrok
+>      dengan tag aset yang dimutasi. Diperbaiki dengan kolom `tag_office_id` (kantor PENERBIT, tak
+>      pernah diubah mutasi). Test regresi diverifikasi gagal tanpa fix.
+>   Seed demo juga diselaraskan (urutan reset FK riwayat, `asset_tag_counters` yang sudah di-drop,
+>   format tag + `tag_seq`). Observability: `common.WriteError` kini mencatat error asli tiap 500
+>   (sebelumnya dibuang total) dan job e2e membuang log backend saat gagal.
+> - **Berikutnya:** review/merge PR #118. Migrasi produksi `000038`–`000046` perlu dijalankan saat
+>   rilis; `redis-cli FLUSHALL` bila seed/authz berubah ([[seed-flush-redis-authz]]).
+>
 > 1. ~~**Bring the dev stack up, reset & migrate**~~ ✅ **DONE (2026-06-27).**
 > 2. ~~**#6 Kategori Aset screen**~~ ✅ **DONE.**
 > 3. ~~**Approval engine + Asset core backend**~~ ✅ **DONE (2026-06-28).**

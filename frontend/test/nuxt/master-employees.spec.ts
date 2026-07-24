@@ -39,9 +39,13 @@ const OFFICES = [
   { id: 'o2', name: 'Kantor Cabang', code: 'KC' }
 ]
 
+// d1/d2 are legacy office-less departments (selectable under any office);
+// d-o1/d-o2 belong to a specific office (legacy-parity Fase 6).
 const DEPARTMENTS = [
   { id: 'd1', name: 'Umum' },
-  { id: 'd2', name: 'Keuangan' }
+  { id: 'd2', name: 'Keuangan' },
+  { id: 'd-o1', name: 'Dept O1', office_id: 'o1' },
+  { id: 'd-o2', name: 'Dept O2', office_id: 'o2' }
 ]
 
 const POSITIONS = [
@@ -117,6 +121,9 @@ function defaultHandler(path: string, opts?: Record<string, unknown>): unknown {
   if (path.startsWith('/offices')) return { data: OFFICES }
   if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
   if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
+  // Legacy-parity Fase 6: the form also loads company + executor-division masters.
+  if (path.startsWith('/companies')) return makeRefResponse([])
+  if (path.startsWith('/executor-divisions')) return makeRefResponse([])
   if (path.startsWith('/employees') && (!opts?.method || opts.method === 'GET')) {
     return makeEmployeesResponse()
   }
@@ -604,55 +611,68 @@ describe('Master Pegawai page — create form', () => {
     expect(vm.form['office_id']).toBe('')
   })
 
-  it('renders department/jabatan fields as AsyncSearchPickers (no eager-options USelect) and defaults them empty', async () => {
+  // Legacy-parity Fase 6: departments are per-office, so the field became a
+  // USelect fed by the eagerly-loaded list and filtered by the chosen office.
+  // Jabatan (position) is still an AsyncSearchPicker.
+  it('renders departemen as a USelect and jabatan as an AsyncSearchPicker, both defaulting empty', async () => {
     const wrapper = await mountAndWait()
     const vm = wrapper.vm as unknown as { openCreate: () => void, form: Record<string, unknown> }
     vm.openCreate()
     await wrapper.vm.$nextTick()
-    expect(bodyElExists('employee-dept-select')).toBe(false)
+    expect(bodyElExists('employee-department')).toBe(true)
+    expect(bodyElExists('employee-department-picker-input')).toBe(false)
     expect(bodyElExists('employee-position-select')).toBe(false)
-    expect(bodyElExists('employee-department-picker-input')).toBe(true)
     expect(bodyElExists('employee-position-picker-input')).toBe(true)
     expect(vm.form['department_id']).toBe('')
     expect(vm.form['position_id']).toBe('')
   })
 
-  it('typing in the department picker drives GET /departments with search+limit=20', async () => {
+  it('department options are filtered to the chosen office (office-less legacy departments stay selectable)', async () => {
     const wrapper = await mountAndWait()
-    ;(wrapper.vm as unknown as { openCreate: () => void }).openCreate()
+    const vm = wrapper.vm as unknown as {
+      openCreate: () => void
+      form: Record<string, unknown>
+      deptItemsForOffice: { value: string, label: string }[]
+    }
+    vm.openCreate()
     await wrapper.vm.$nextTick()
 
-    let captured: string | undefined
-    setHandler((path, opts) => {
-      if (path.startsWith('/departments?')) {
-        captured = path
-        return makeRefResponse(DEPARTMENTS)
-      }
-      return defaultHandler(path, opts)
-    })
-
-    const input = bodyEl('employee-department-picker-input') as HTMLInputElement
-    vi.useFakeTimers()
-    input.value = 'Keuangan'
-    input.dispatchEvent(new Event('input'))
-    await vi.advanceTimersByTimeAsync(300)
-    await flushPromises()
-    vi.useRealTimers()
-    expect(captured).toContain('search=Keuangan')
-    expect(captured).toContain('limit=20')
+    vm.form['office_id'] = 'o1'
+    await wrapper.vm.$nextTick()
+    const labels = vm.deptItemsForOffice.map(i => i.label)
+    // d1 (office-less legacy) and d-o1 (belongs to o1) are offered; d-o2 is not.
+    expect(labels).toContain('Umum')
+    expect(labels).toContain('Dept O1')
+    expect(labels).not.toContain('Dept O2')
   })
 
-  it('resolves preselected department_id/position_id to their labels via GET /:resource/:id in edit mode', async () => {
+  it('clears a chosen department when the office changes to one it does not belong to', async () => {
+    const wrapper = await mountAndWait()
+    const vm = wrapper.vm as unknown as { openCreate: () => void, form: Record<string, unknown> }
+    vm.openCreate()
+    await wrapper.vm.$nextTick()
+
+    vm.form['office_id'] = 'o1'
+    await wrapper.vm.$nextTick()
+    vm.form['department_id'] = 'd-o1'
+    await wrapper.vm.$nextTick()
+
+    vm.form['office_id'] = 'o2'
+    await wrapper.vm.$nextTick()
+    expect(vm.form['department_id']).toBe('')
+  })
+
+  it('resolves a preselected position_id to its label via GET /positions/:id in edit mode', async () => {
     const wrapper = await mountAndWait()
     ;(wrapper.vm as unknown as { openEdit: (row: unknown) => void }).openEdit(EMPLOYEES[0])
     await wrapper.vm.$nextTick()
     await new Promise(r => setTimeout(r, 100))
     await wrapper.vm.$nextTick()
 
-    const deptInput = bodyEl('employee-department-picker-input') as HTMLInputElement
     const posInput = bodyEl('employee-position-picker-input') as HTMLInputElement
-    expect(deptInput.value).toBe('Umum')
     expect(posInput.value).toBe('Staf')
+    // The department USelect holds the raw id (its label comes from the loaded list).
+    expect((wrapper.vm as unknown as { form: Record<string, unknown> }).form['department_id']).toBe('d1')
   })
 
   it('POST /employees body contains code, name, office_id, department_id, position_id with UUID values', async () => {
@@ -664,6 +684,10 @@ describe('Master Pegawai page — create form', () => {
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
+      // Fase 6 form also loads these two; without them loadFkData rejects, deptRows
+      // stays empty and the office watcher wrongly clears the chosen department.
+      if (path.startsWith('/companies')) return makeRefResponse([])
+      if (path.startsWith('/executor-divisions')) return makeRefResponse([])
       if (path === '/employees' && opts?.method === 'POST') {
         capturedPath = path
         capturedOpts = opts
@@ -718,6 +742,10 @@ describe('Master Pegawai page — create form', () => {
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
+      // Fase 6 form also loads these two; without them loadFkData rejects, deptRows
+      // stays empty and the office watcher wrongly clears the chosen department.
+      if (path.startsWith('/companies')) return makeRefResponse([])
+      if (path.startsWith('/executor-divisions')) return makeRefResponse([])
       if (path === '/employees' && opts?.method === 'POST') {
         postCalled = true
         return EMPLOYEES[0]
@@ -754,6 +782,10 @@ describe('Master Pegawai page — create form', () => {
       if (path.startsWith('/offices')) return { data: OFFICES }
       if (path.startsWith('/departments')) return makeRefResponse(DEPARTMENTS)
       if (path.startsWith('/positions')) return makeRefResponse(POSITIONS)
+      // Fase 6 form also loads these two; without them loadFkData rejects, deptRows
+      // stays empty and the office watcher wrongly clears the chosen department.
+      if (path.startsWith('/companies')) return makeRefResponse([])
+      if (path.startsWith('/executor-divisions')) return makeRefResponse([])
       if (path === '/employees' && opts?.method === 'POST') {
         postCalled = true
         return EMPLOYEES[0]

@@ -28,7 +28,7 @@ const API_BASE = `${process.env.E2E_API_BASE || 'http://localhost:8080/api/v1'}/
 async function loginWithKnownPassword(page: Page): Promise<string> {
   for (const password of [PASSWORD_SEED, PASSWORD_RESET]) {
     await page.goto('/login')
-    await page.locator('input[type="email"]').fill(ADMIN)
+    await page.locator('input[name="email"]').fill(ADMIN)
     await page.locator('input[type="password"]').fill(password)
     await page.getByRole('button', { name: 'Masuk', exact: true }).click()
     const signedIn = await page.waitForURL(/\/$/, { timeout: 5000 }).then(() => true).catch(() => false)

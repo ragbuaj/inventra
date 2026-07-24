@@ -414,8 +414,8 @@ func (a assetImporter) createRows(ctx context.Context, qtx *sqlc.Queries, maker 
 	// is visible to a DB read.
 	usedTags := map[string]bool{}
 
-	markFailed := func(id uuid.UUID) error {
-		errsJSON, mErr := json.Marshal([]importer.CellError{{Column: colTag, ErrorKey: "dupTag"}})
+	markFailed := func(id uuid.UUID, col, key string) error {
+		errsJSON, mErr := json.Marshal([]importer.CellError{{Column: col, ErrorKey: key}})
 		if mErr != nil {
 			return mErr
 		}
@@ -436,6 +436,17 @@ func (a assetImporter) createRows(ctx context.Context, qtx *sqlc.Queries, maker 
 		if err != nil {
 			return created, ErrInvalidRef
 		}
+		// TX-POISONING DEFENSE (location): imported assets are always tangible and
+		// the template only carries a room (no floor), so a row without a resolved
+		// room would violate chk_assets_tangible_location (23514) at CreateAsset and
+		// poison the shared approval tx. Pre-check and skip such a row as failed —
+		// same pattern as the tag pre-check below.
+		if roomID == nil {
+			if fErr := markFailed(r.ID, colRoom, "lokasiRequired"); fErr != nil {
+				return created, fErr
+			}
+			continue
+		}
 		vendorStr := r.Data["_vendor_id"]
 		vendorID, err := common.ParseUUIDPtr(&vendorStr)
 		if err != nil {
@@ -453,8 +464,17 @@ func (a assetImporter) createRows(ctx context.Context, qtx *sqlc.Queries, maker 
 		}
 
 		tag := trim(r.Data[colTag])
+		var tagSeq int32
 		if tag == "" {
-			tag, err = a.s.GenerateAssetTag(ctx, qtx, officeID, categoryID, year)
+			tag, tagSeq, err = a.s.GenerateAssetTag(ctx, qtx, officeID, categoryID, year)
+			if err != nil {
+				return created, mapDBError(err)
+			}
+		} else {
+			// User-supplied tag: still consume a per-office sequence (tag_seq is NOT NULL).
+			// If the row is later skipped as a duplicate (below), no row is inserted so the
+			// sequence is not actually consumed — MAX(tag_seq) is unchanged for the next row.
+			tagSeq, err = a.s.NextTagSeq(ctx, qtx, officeID)
 			if err != nil {
 				return created, mapDBError(err)
 			}
@@ -465,7 +485,7 @@ func (a assetImporter) createRows(ctx context.Context, qtx *sqlc.Queries, maker 
 		tagKey := strings.ToLower(tag)
 		if usedTags[tagKey] {
 			// Collides with an earlier row in this same batch.
-			if fErr := markFailed(r.ID); fErr != nil {
+			if fErr := markFailed(r.ID, colTag, "dupTag"); fErr != nil {
 				return created, fErr
 			}
 			continue
@@ -474,7 +494,7 @@ func (a assetImporter) createRows(ctx context.Context, qtx *sqlc.Queries, maker 
 		// validation (TOCTOU) or one already committed by a prior approval.
 		if _, gErr := qtx.GetAssetByTag(ctx, tag); gErr == nil {
 			// A row already exists for this tag — skip it as failed.
-			if fErr := markFailed(r.ID); fErr != nil {
+			if fErr := markFailed(r.ID, colTag, "dupTag"); fErr != nil {
 				return created, fErr
 			}
 			continue
@@ -484,8 +504,9 @@ func (a assetImporter) createRows(ctx context.Context, qtx *sqlc.Queries, maker 
 		}
 
 		harga := r.Data[colPrice]
-		_, err = qtx.CreateAsset(ctx, sqlc.CreateAssetParams{
+		createdAsset, err := qtx.CreateAsset(ctx, sqlc.CreateAssetParams{
 			AssetTag:       tag,
+			TagSeq:         &tagSeq,
 			Name:           r.Data[colName],
 			CategoryID:     categoryID,
 			OfficeID:       officeID,
@@ -511,6 +532,21 @@ func (a assetImporter) createRows(ctx context.Context, qtx *sqlc.Queries, maker 
 			// committed tag via GetAssetByTag and skips that row, so the batch
 			// completes on the next attempt.
 			return created, mapDBError(err)
+		}
+
+		// Record the initial location (source=registration), mirroring the
+		// create executor and transfer receive — every create path must seed a
+		// location-history row so an asset's location timeline is never empty.
+		// Import sets no PIC, so no PIC-history row is written here.
+		if hErr := qtx.InsertAssetLocationHistory(ctx, sqlc.InsertAssetLocationHistoryParams{
+			AssetID:   createdAsset.ID,
+			OfficeID:  createdAsset.OfficeID,
+			FloorID:   createdAsset.FloorID,
+			RoomID:    createdAsset.RoomID,
+			Source:    sqlc.SharedLocationChangeSourceRegistration,
+			MovedByID: maker,
+		}); hErr != nil {
+			return created, mapDBError(hErr)
 		}
 
 		usedTags[tagKey] = true

@@ -11,6 +11,16 @@ export interface OfficeInput {
   is_active: boolean
   latitude?: number | null
   longitude?: number | null
+  // Legacy-parity Fase 5 fields.
+  ownership_status?: string | null
+  office_class_id?: string | null
+  building_classification_id?: string | null
+  floor_count?: number | null
+  building_area?: string | null
+  office_kind?: string | null
+  description?: string | null
+  head_employee_id?: string | null
+  contact?: string | null
 }
 
 /** Offices, wired to /api/v1/offices (server-enforced `offices` data-scope). */

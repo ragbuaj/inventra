@@ -9,7 +9,7 @@ test.describe('Login (real backend)', () => {
   test('signs in with valid credentials and reaches the dashboard', async ({ page }) => {
     await page.goto('/login')
 
-    await page.locator('input[type="email"]').fill(EMAIL)
+    await page.locator('input[name="email"]').fill(EMAIL)
     await page.locator('input[type="password"]').fill(PASSWORD)
     await page.getByRole('button', { name: 'Masuk', exact: true }).click()
 
@@ -21,7 +21,7 @@ test.describe('Login (real backend)', () => {
   test('shows an inline error on invalid credentials', async ({ page }) => {
     await page.goto('/login')
 
-    await page.locator('input[type="email"]').fill('wrong@example.com')
+    await page.locator('input[name="email"]').fill('wrong@example.com')
     await page.locator('input[type="password"]').fill('definitely-wrong')
     await page.getByRole('button', { name: 'Masuk', exact: true }).click()
 

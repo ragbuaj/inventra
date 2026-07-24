@@ -17,6 +17,17 @@ WHERE id = $1 AND deleted_at IS NULL;
 SELECT * FROM identity.users
 WHERE email = $1 AND deleted_at IS NULL;
 
+-- name: GetUserByLogin :one
+-- Login lookup: match by email (citext, case-insensitive) OR username (NIP).
+-- Deterministic: an email match is preferred over a username match (so a username
+-- colliding with another user's email can never shadow the email owner), and
+-- LIMIT 1 guards against pgx silently taking an arbitrary row on a multi-match.
+SELECT * FROM identity.users
+WHERE (email = sqlc.arg(identifier)::citext OR username = sqlc.arg(identifier))
+  AND deleted_at IS NULL
+ORDER BY (email = sqlc.arg(identifier)::citext) DESC
+LIMIT 1;
+
 -- name: CreateUser :one
 INSERT INTO identity.users (name, email, password_hash, role_id, office_id, employee_id)
 VALUES ($1, $2, $3, $4, $5, $6)

@@ -37,6 +37,8 @@ const editingRoomName = ref('')
 const officeTypeRows = ref<ReferenceRow[]>([])
 const provinceRows = ref<ReferenceRow[]>([])
 const cityRows = ref<ReferenceRow[]>([])
+const officeClassRows = ref<ReferenceRow[]>([])
+const buildingClassRows = ref<ReferenceRow[]>([])
 
 const officeTypeOptions = computed(() => officeTypeRows.value.map(r => ({ value: r.id, label: r.name })))
 const provinceOptions = computed(() => provinceRows.value.map(r => ({ value: r.id, label: r.name })))
@@ -75,6 +77,16 @@ const form = reactive<{
   is_active: boolean
   latitude: number | null
   longitude: number | null
+  // Legacy-parity Fase 5 fields (numbers kept as strings for the inputs).
+  ownership_status: string
+  office_class_id: string | null
+  building_classification_id: string | null
+  floor_count: string
+  building_area: string
+  office_kind: string
+  description: string
+  head_employee_id: string
+  contact: string
 }>({
   parent_id: null,
   office_type_id: '',
@@ -85,7 +97,16 @@ const form = reactive<{
   address: '',
   is_active: true,
   latitude: null,
-  longitude: null
+  longitude: null,
+  ownership_status: '',
+  office_class_id: null,
+  building_classification_id: null,
+  floor_count: '',
+  building_area: '',
+  office_kind: 'konvensional',
+  description: '',
+  head_employee_id: '',
+  contact: ''
 })
 
 const NONE = '__none__'
@@ -119,6 +140,49 @@ const formLat = computed({
 const formLng = computed({
   get: () => form.longitude == null ? '' : String(form.longitude),
   set: (v: string) => { form.longitude = toCoord(v) }
+})
+
+// Legacy-parity Fase 5: office class + building classification selects, head-of-office
+// picker, and ownership/kind option lists.
+const officeClassItems = computed(() => [{ value: NONE, label: t('masterdata.offices.selectPlaceholder') }, ...officeClassRows.value.map(r => ({ value: r.id, label: r.name }))])
+const buildingClassItems = computed(() => [{ value: NONE, label: t('masterdata.offices.selectPlaceholder') }, ...buildingClassRows.value.map(r => ({ value: r.id, label: r.name }))])
+const formOfficeClassId = computed({
+  get: () => form.office_class_id ?? NONE,
+  set: (val: string) => { form.office_class_id = val === NONE ? null : val }
+})
+const formBuildingClassId = computed({
+  get: () => form.building_classification_id ?? NONE,
+  set: (val: string) => { form.building_classification_id = val === NONE ? null : val }
+})
+const headPicker = useEmployeePicker()
+const OWNERSHIP_OPTIONS = ['sewa', 'milik', 'hg_pakai', 'free'] as const
+// USelect forbids an empty-string item value (Reka UI throws), so the "unset"
+// entry uses the NONE sentinel and the model below maps it back to ''.
+const ownershipItems = computed(() => [
+  { value: NONE, label: t('masterdata.offices.selectPlaceholder') },
+  ...OWNERSHIP_OPTIONS.map(v => ({ value: v, label: t(`masterdata.offices.ownership.${v}`) }))
+])
+const ownershipModel = computed({
+  get: () => form.ownership_status || NONE,
+  set: (val: string) => { form.ownership_status = val === NONE ? '' : val }
+})
+const officeKindItems = computed(() => [
+  { value: 'konvensional', label: t('masterdata.offices.kind.konvensional') },
+  { value: 'syariah', label: t('masterdata.offices.kind.syariah') }
+])
+
+// Auto-suggest the building classification whose floor range contains floor_count.
+// Only fills an empty selection (never overrides a manual choice).
+watch(() => form.floor_count, (v) => {
+  if (form.building_classification_id) return
+  const n = Number(v)
+  if (!v || Number.isNaN(n)) return
+  const match = buildingClassRows.value.find((r) => {
+    const min = Number(r.min_floors)
+    const max = r.max_floors == null ? Infinity : Number(r.max_floors)
+    return n >= min && n <= max
+  })
+  if (match) form.building_classification_id = match.id
 })
 
 const cityOptions = computed(() => {
@@ -216,14 +280,18 @@ async function refresh() {
 }
 
 async function loadFkData() {
-  const [types, provinces, cities] = await Promise.all([
+  const [types, provinces, cities, officeClasses, buildingClasses] = await Promise.all([
     refApi.list('office-types', { limit: 100 }),
     refApi.list('provinces', { limit: 100 }),
-    refApi.list('cities', { limit: 100 })
+    refApi.list('cities', { limit: 100 }),
+    refApi.list('office-classes', { limit: 100 }),
+    refApi.list('building-classifications', { limit: 100 })
   ])
   officeTypeRows.value = types.data
   provinceRows.value = provinces.data
   cityRows.value = cities.data
+  officeClassRows.value = officeClasses.data
+  buildingClassRows.value = buildingClasses.data
 }
 
 async function loadFloors(officeId: string) {
@@ -255,7 +323,16 @@ function openCreate() {
     address: '',
     is_active: true,
     latitude: null,
-    longitude: null
+    longitude: null,
+    ownership_status: '',
+    office_class_id: null,
+    building_classification_id: null,
+    floor_count: '',
+    building_area: '',
+    office_kind: 'konvensional',
+    description: '',
+    head_employee_id: '',
+    contact: ''
   })
   formOpen.value = true
 }
@@ -273,7 +350,16 @@ function openEdit() {
     address: selected.value.address ?? '',
     is_active: selected.value.is_active,
     latitude: selected.value.latitude,
-    longitude: selected.value.longitude
+    longitude: selected.value.longitude,
+    ownership_status: selected.value.ownership_status ?? '',
+    office_class_id: selected.value.office_class_id,
+    building_classification_id: selected.value.building_classification_id,
+    floor_count: selected.value.floor_count == null ? '' : String(selected.value.floor_count),
+    building_area: selected.value.building_area ?? '',
+    office_kind: selected.value.office_kind || 'konvensional',
+    description: selected.value.description ?? '',
+    head_employee_id: selected.value.head_employee_id ?? '',
+    contact: selected.value.contact ?? ''
   })
   formOpen.value = true
 }
@@ -295,7 +381,16 @@ async function onSubmit() {
       address: form.address || null,
       is_active: form.is_active,
       latitude: form.latitude,
-      longitude: form.longitude
+      longitude: form.longitude,
+      ownership_status: form.ownership_status || null,
+      office_class_id: form.office_class_id,
+      building_classification_id: form.building_classification_id,
+      floor_count: form.floor_count === '' ? null : Number(form.floor_count),
+      building_area: form.building_area.trim() || null,
+      office_kind: form.office_kind || 'konvensional',
+      description: form.description.trim() || null,
+      head_employee_id: form.head_employee_id || null,
+      contact: form.contact.trim() || null
     }
     const saved = editingId.value
       ? await api.update(editingId.value, input)
@@ -953,6 +1048,89 @@ onMounted(async () => {
           <p class="text-[12px] text-muted mt-1.5">
             {{ t('masterdata.offices.coordHint') }}
           </p>
+        </div>
+        <!-- Legacy-parity Fase 5: building & ownership info -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <UFormField :label="t('masterdata.offices.fields.ownershipStatus')">
+            <USelect
+              v-model="ownershipModel"
+              :items="ownershipItems"
+              class="w-full"
+              data-testid="office-ownership-select"
+            />
+          </UFormField>
+          <UFormField :label="t('masterdata.offices.fields.officeKind')">
+            <USelect
+              v-model="form.office_kind"
+              :items="officeKindItems"
+              class="w-full"
+              data-testid="office-kind-select"
+            />
+          </UFormField>
+          <UFormField :label="t('masterdata.offices.fields.officeClass')">
+            <USelect
+              v-model="formOfficeClassId"
+              :items="officeClassItems"
+              class="w-full"
+              data-testid="office-class-select"
+            />
+          </UFormField>
+          <UFormField :label="t('masterdata.offices.fields.floorCount')">
+            <NumberInput
+              v-model="form.floor_count"
+              placeholder="0"
+              class="w-full"
+              data-testid="office-floor-count"
+            />
+          </UFormField>
+          <UFormField
+            :label="t('masterdata.offices.fields.buildingClass')"
+            :hint="t('masterdata.offices.buildingClassHint')"
+          >
+            <USelect
+              v-model="formBuildingClassId"
+              :items="buildingClassItems"
+              class="w-full"
+              data-testid="office-building-class-select"
+            />
+          </UFormField>
+          <UFormField :label="t('masterdata.offices.fields.buildingArea')">
+            <NumberInput
+              v-model="form.building_area"
+              :decimals="2"
+              placeholder="0"
+              class="w-full"
+            />
+          </UFormField>
+          <UFormField
+            :label="t('masterdata.offices.fields.headEmployee')"
+            class="sm:col-span-2"
+          >
+            <AsyncSearchPicker
+              :model-value="form.head_employee_id || null"
+              :search-fn="headPicker.searchFn"
+              :resolve-fn="headPicker.resolveFn"
+              :placeholder="t('masterdata.offices.searchEmployee')"
+              testid="office-head"
+              clearable
+              @update:model-value="form.head_employee_id = $event ?? ''"
+            />
+          </UFormField>
+          <UFormField :label="t('masterdata.offices.fields.contact')">
+            <UInput
+              v-model="form.contact"
+              class="w-full"
+            />
+          </UFormField>
+          <UFormField
+            :label="t('masterdata.offices.fields.description')"
+            class="sm:col-span-2"
+          >
+            <UTextarea
+              v-model="form.description"
+              class="w-full"
+            />
+          </UFormField>
         </div>
         <!-- Aktif toggle -->
         <div class="flex items-center justify-between gap-2.5 px-3 py-[11px] rounded-[11px] bg-muted/50">

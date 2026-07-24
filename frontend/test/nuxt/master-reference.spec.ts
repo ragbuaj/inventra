@@ -110,6 +110,12 @@ function buildDefaultHandler(overrides: Record<string, unknown> = {}): RequestHa
       if (pathBase === '/provinces') return makeEnvelope(PROVINCES)
       if (pathBase === '/cities') return isCountCall ? countResponse(10) : makeEnvelope(CITIES)
       if (pathBase === '/models') return isCountCall ? countResponse(11) : makeEnvelope([])
+      // Legacy-parity Fase 4 masters (also rendered in the sidebar, so they issue
+      // their own ?limit=1 count call on mount).
+      if (pathBase === '/office-classes') return isCountCall ? countResponse(12) : makeEnvelope([])
+      if (pathBase === '/executor-divisions') return isCountCall ? countResponse(13) : makeEnvelope([])
+      if (pathBase === '/companies') return isCountCall ? countResponse(14) : makeEnvelope([])
+      if (pathBase === '/building-classifications') return isCountCall ? countResponse(15) : makeEnvelope([])
     }
 
     throw new Error(`Unhandled: ${method} ${path}`)
@@ -196,7 +202,7 @@ describe('Master Data Referensi — default load', () => {
     expect(text).toContain('Model')
   })
 
-  it('sidebar shows numeric counts from the 11 count calls', async () => {
+  it('sidebar shows numeric counts from the per-resource count calls', async () => {
     const wrapper = await mountAndWait()
     const text = wrapper.text()
     // office-types total=1, departments total=2 — both must appear as digits

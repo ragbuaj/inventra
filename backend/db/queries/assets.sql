@@ -32,15 +32,18 @@ SELECT * FROM asset.assets WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: CreateAsset :one
 INSERT INTO asset.assets (
-  asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id,
+  asset_tag, tag_seq, tag_office_id, name, category_id, brand_id, model_id, room_id, floor_id, office_id, unit_id,
   status, serial_number, purchase_date, purchase_cost, vendor_id, po_number,
-  funding_source, warranty_expiry, specifications, asset_class, capitalized,
+  funding_source, warranty_expiry, warranty_start, capacity, lease_date, installation_date,
+  pic_employee_id, specifications, asset_class, capitalized,
   acquisition_bast_no, created_by_id, notes
 ) VALUES (
-  sqlc.arg(asset_tag),sqlc.arg(name),sqlc.arg(category_id),sqlc.arg(brand_id),
-  sqlc.arg(model_id),sqlc.arg(room_id),sqlc.arg(office_id),sqlc.arg(unit_id),
+  sqlc.arg(asset_tag),sqlc.arg(tag_seq),sqlc.arg(office_id)::uuid,sqlc.arg(name),sqlc.arg(category_id),sqlc.arg(brand_id),
+  sqlc.arg(model_id),sqlc.arg(room_id),sqlc.arg(floor_id),sqlc.arg(office_id),sqlc.arg(unit_id),
   'available',sqlc.arg(serial_number),sqlc.arg(purchase_date),sqlc.arg(purchase_cost),
   sqlc.arg(vendor_id),sqlc.arg(po_number),sqlc.arg(funding_source),sqlc.arg(warranty_expiry),
+  sqlc.arg(warranty_start),sqlc.arg(capacity),sqlc.arg(lease_date),sqlc.arg(installation_date),
+  sqlc.arg(pic_employee_id),
   COALESCE(sqlc.arg(specifications),'{}')::jsonb,sqlc.arg(asset_class),sqlc.arg(capitalized),
   sqlc.arg(acquisition_bast_no),sqlc.arg(created_by_id),sqlc.arg(notes)
 ) RETURNING *;
@@ -48,10 +51,14 @@ INSERT INTO asset.assets (
 -- name: UpdateAsset :one
 UPDATE asset.assets SET
   name = sqlc.arg(name), category_id = sqlc.arg(category_id), brand_id = sqlc.arg(brand_id),
-  model_id = sqlc.arg(model_id), room_id = sqlc.arg(room_id), unit_id = sqlc.arg(unit_id),
+  model_id = sqlc.arg(model_id), room_id = sqlc.arg(room_id), floor_id = sqlc.arg(floor_id),
+  unit_id = sqlc.arg(unit_id),
   serial_number = sqlc.arg(serial_number), purchase_date = sqlc.arg(purchase_date),
   vendor_id = sqlc.arg(vendor_id), po_number = sqlc.arg(po_number),
   funding_source = sqlc.arg(funding_source), warranty_expiry = sqlc.arg(warranty_expiry),
+  warranty_start = sqlc.arg(warranty_start), capacity = sqlc.arg(capacity),
+  lease_date = sqlc.arg(lease_date), installation_date = sqlc.arg(installation_date),
+  pic_employee_id = sqlc.arg(pic_employee_id),
   specifications = COALESCE(sqlc.arg(specifications),'{}')::jsonb, notes = sqlc.arg(notes)
 WHERE id = sqlc.arg(id) AND deleted_at IS NULL RETURNING *;
 
@@ -62,12 +69,22 @@ UPDATE asset.assets SET status = $2 WHERE id = $1 AND deleted_at IS NULL RETURNI
 UPDATE asset.assets SET excluded_from_valuation = $2, valuation_exclusion_reason = $3
 WHERE id = $1 AND deleted_at IS NULL RETURNING *;
 
--- name: BumpAssetTagCounter :one
-INSERT INTO asset.asset_tag_counters (office_id, category_id, year, last_seq)
-VALUES ($1, $2, $3, 1)
-ON CONFLICT (office_id, category_id, year)
-DO UPDATE SET last_seq = asset.asset_tag_counters.last_seq + 1
-RETURNING last_seq;
+-- name: AcquireOfficeTagLock :exec
+-- Serialize per-office tag-sequence allocation within the caller's transaction
+-- (pg_advisory_xact_lock is released at commit/rollback). $1 = office id (text).
+SELECT pg_advisory_xact_lock(hashtext('asset_tag'), hashtext($1));
+
+-- name: GetMaxTagSeqForOffice :one
+-- Highest tag_seq ISSUED BY an office, INCLUDING soft-deleted rows (they reserve
+-- their number); hard-deleted rows are gone so the top number frees up. NULL -> 0.
+--
+-- Keyed on tag_office_id (the office that issued the tag), NOT office_id: a
+-- transfer moves office_id to the destination and would otherwise drop the source
+-- office's MAX, letting the next create REISSUE a number already embedded in the
+-- moved asset's (immutable) tag — a duplicate asset_tag. COALESCE covers rows
+-- predating migration 000046.
+SELECT COALESCE(MAX(tag_seq), 0)::int FROM asset.assets
+WHERE COALESCE(tag_office_id, office_id) = sqlc.arg(office_id)::uuid;
 
 -- name: GetOfficeCode :one
 SELECT code FROM masterdata.offices WHERE id = $1 AND deleted_at IS NULL;
@@ -145,7 +162,25 @@ WHERE a.asset_tag = $1 AND a.deleted_at IS NULL;
 
 -- name: SetAssetOffice :one
 -- Relocate an asset to a new office/room (used by the transfer receive step).
+-- floor_id is DERIVED from the destination room's floor (NULL when no room) so a
+-- relocated asset never keeps the origin office's floor. A tangible asset moved
+-- without a destination room hits chk_assets_tangible_location (correct: a physical
+-- asset must have a destination location).
 UPDATE asset.assets
-SET office_id = sqlc.arg(office_id), room_id = sqlc.narg(room_id)
-WHERE id = sqlc.arg(id) AND deleted_at IS NULL
+SET office_id = sqlc.arg(office_id),
+    room_id = sqlc.narg(room_id),
+    floor_id = (SELECT rr.floor_id FROM masterdata.rooms rr
+                WHERE rr.id = sqlc.narg(room_id) AND rr.deleted_at IS NULL)
+WHERE assets.id = sqlc.arg(id) AND assets.deleted_at IS NULL
 RETURNING *;
+
+-- name: GetRoomFloorOffice :one
+-- Resolve a room's floor and the office that floor belongs to (for location
+-- consistency validation on asset create/update).
+SELECT r.floor_id, f.office_id
+FROM masterdata.rooms r
+JOIN masterdata.floors f ON f.id = r.floor_id
+WHERE r.id = $1 AND r.deleted_at IS NULL;
+
+-- name: GetFloorOffice :one
+SELECT office_id FROM masterdata.floors WHERE id = $1 AND deleted_at IS NULL;

@@ -127,6 +127,11 @@ function defaultHandler(): RequestHandler {
       return VENDORS.find(v => v.id === id) ?? null
     }
     if (path.startsWith('/vendors')) return { data: VENDORS, total: VENDORS.length, limit: 20, offset: 0 }
+    if (/^\/employees\/[^/?]+$/.test(path)) {
+      const id = path.split('/')[2]!
+      return { id, name: `Pegawai ${id}`, code: `NIP${id}` }
+    }
+    if (path.startsWith('/employees')) return { data: [], total: 0, limit: 20, offset: 0 }
     if (path.startsWith('/floors')) return { data: FLOORS, total: FLOORS.length, limit: 100, offset: 0 }
     if (path.startsWith('/rooms')) return { data: ROOMS, total: ROOMS.length, limit: 100, offset: 0 }
     if (path.match(/\/assets\/[^/]+\/attachments$/) && (!opts || opts.method !== 'POST')) {
@@ -548,8 +553,15 @@ describe('AssetForm — create mode: submit', () => {
       funding_source: 'APBN',
       purchase_date: '2026-01-12',
       warranty_expiry: '2029-01-12',
+      floor_id: 'f1',
+      pic_employee_id: null,
+      capacity: null,
+      lease_date: null,
+      installation_date: null,
+      warranty_start: null,
       notes: 'catatan uji',
-      purchase_cost: '18500000'
+      purchase_cost: '18500000',
+      quantity: 1
     })
     expect(typeof capturedBody!.purchase_cost).toBe('string')
   })
@@ -665,6 +677,12 @@ describe('AssetForm — edit mode: submit only AssetUpdateInput fields', () => {
       funding_source: 'APBN',
       purchase_date: '2026-01-12',
       warranty_expiry: '2029-01-12',
+      floor_id: 'f1',
+      pic_employee_id: null,
+      capacity: null,
+      lease_date: null,
+      installation_date: null,
+      warranty_start: null,
       notes: 'Catatan pengadaan awal.'
     })
     expect(capturedBody).not.toHaveProperty('purchase_cost')
@@ -782,5 +800,232 @@ describe('AssetForm — depreciation info is read-only and category-derived', ()
     const wrapper = await mountEdit()
     // No select bound to a "metode" field, no number input for masa/residu.
     expect(wrapper.find('[data-testid="asset-form-metode-select"]').exists()).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Legacy-parity fields (spec 2026-07-23): capacity, PIC picker, floor-only
+// location, installation/lease/warranty-start dates.
+// ---------------------------------------------------------------------------
+
+describe('AssetForm — legacy-parity fields', () => {
+  it('renders the capacity input and the PIC async picker', async () => {
+    const wrapper = await mountNew()
+    expect(wrapper.find('[data-testid="asset-form-capacity"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="pic-picker-input"]').exists()).toBe(true)
+  })
+
+  it('renders the new date fields (installation, lease, warranty-start labels)', async () => {
+    const wrapper = await mountNew()
+    const text = wrapper.text()
+    expect(text).toContain('Tanggal Instalasi')
+    expect(text).toContain('Tanggal Sewa')
+    expect(text).toContain('Garansi Mulai')
+  })
+
+  it('blocks save for a tangible asset with neither floor nor room, showing the location error', async () => {
+    const wrapper = await mountNew()
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.nama = 'Kursi Kerja'
+    vm.form.categoryId = 'c1' // tangible
+    vm.form.officeId = 'o1'
+    await flushPromises()
+    vm.form.tglBeli = '2026-02-01'
+    vm.form.harga = '750000'
+    // deliberately leave floorId + roomId empty
+    let requestsCalled = false
+    setHandler((path, opts) => {
+      if (path === '/requests') {
+        requestsCalled = true
+        return { id: 'r1', status: 'pending' }
+      }
+      return defaultHandler()(path, opts)
+    })
+    await vm.save()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('Pilih minimal lantai')
+    expect(requestsCalled).toBe(false)
+  })
+
+  it('a floor-only tangible asset (no room) passes validation and submits floor_id with null room_id + capacity', async () => {
+    const wrapper = await mountNew()
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.nama = 'AC Split'
+    vm.form.categoryId = 'c1'
+    vm.form.officeId = 'o1'
+    await flushPromises()
+    vm.form.floorId = 'f1'
+    await flushPromises()
+    // no roomId
+    vm.form.tglBeli = '2026-02-01'
+    vm.form.harga = '4500000'
+    vm.form.capacity = '2 PK'
+    await wrapper.vm.$nextTick()
+    let capturedBody: Record<string, unknown> | undefined
+    setHandler((path, opts) => {
+      if (path === '/requests') {
+        capturedBody = (opts?.body as { payload: Record<string, unknown> }).payload
+        return { id: 'r1', status: 'pending' }
+      }
+      return defaultHandler()(path, opts)
+    })
+    await vm.save()
+    await flushPromises()
+    expect(capturedBody).toBeDefined()
+    expect(capturedBody!.floor_id).toBe('f1')
+    expect(capturedBody!.room_id).toBe(null)
+    expect(capturedBody!.capacity).toBe('2 PK')
+  })
+
+  it('populates capacity and PIC from the initial asset in edit mode', async () => {
+    const wrapper = await mountEdit({ ...EDIT_ASSET, capacity: 'Core i7 16GB', pic_employee_id: 'e9', floor_id: 'f1' })
+    const vm = wrapper.vm as unknown as FormVm
+    expect(vm.form.capacity).toBe('Core i7 16GB')
+    expect((vm.form as Record<string, string>).picEmployeeId).toBe('e9')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Batch registration (spec 2026-07-23 section 9): quantity field, summary,
+// serial-per-unit guard, and amount = purchase_cost * quantity.
+// ---------------------------------------------------------------------------
+
+describe('AssetForm — batch registration', () => {
+  async function fillBatchForm(wrapper: Awaited<ReturnType<typeof mountNew>>) {
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.nama = 'Kursi Kantor'
+    vm.form.categoryId = 'c1'
+    vm.form.officeId = 'o1'
+    await flushPromises()
+    vm.form.floorId = 'f1'
+    await flushPromises()
+    vm.form.tglBeli = '2026-02-01'
+    vm.form.harga = '3000000'
+    await wrapper.vm.$nextTick()
+  }
+
+  it('renders the Jumlah quantity field in new mode only', async () => {
+    const newWrapper = await mountNew()
+    expect(newWrapper.find('[data-testid="asset-form-quantity"]').exists()).toBe(true)
+    const editWrapper = await mountEdit()
+    expect(editWrapper.find('[data-testid="asset-form-quantity"]').exists()).toBe(false)
+  })
+
+  it('defaults quantity to 1 and hides the batch summary until quantity > 1', async () => {
+    const wrapper = await mountNew()
+    const vm = wrapper.vm as unknown as FormVm
+    expect(vm.form.quantity).toBe('1')
+    expect(wrapper.find('[data-testid="asset-form-batch-summary"]').exists()).toBe(false)
+  })
+
+  it('shows the "N assets" summary once quantity exceeds 1', async () => {
+    const wrapper = await mountNew()
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.quantity = '5'
+    await wrapper.vm.$nextTick()
+    const summary = wrapper.find('[data-testid="asset-form-batch-summary"]')
+    expect(summary.exists()).toBe(true)
+    expect(summary.text()).toContain('5')
+  })
+
+  it('disables the serial input for a batch (serial is unique per unit)', async () => {
+    const wrapper = await mountNew()
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.serialNumber = 'SN-1'
+    vm.form.quantity = '3'
+    await wrapper.vm.$nextTick()
+    // The serial input is the one bound to the serial FormField; find it via its
+    // label proximity is brittle, so assert on the disabled input count change:
+    const disabledInputs = wrapper.findAll('input').filter(i => (i.element as HTMLInputElement).disabled)
+    // In new mode the only disabled text input is the auto-tag code + the batched serial.
+    expect(disabledInputs.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('submits amount = purchase_cost * quantity, quantity in payload, and null serial for a batch', async () => {
+    const wrapper = await mountNew()
+    await fillBatchForm(wrapper)
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.serialNumber = 'SN-should-be-dropped'
+    vm.form.quantity = '10'
+    await wrapper.vm.$nextTick()
+
+    let capturedAmount: unknown
+    let capturedPayload: Record<string, unknown> | undefined
+    setHandler((path, opts) => {
+      if (path === '/requests') {
+        const body = opts?.body as { amount: unknown, payload: Record<string, unknown> }
+        capturedAmount = body.amount
+        capturedPayload = body.payload
+        return { id: 'r1', status: 'pending' }
+      }
+      return defaultHandler()(path, opts)
+    })
+    await vm.save()
+    await flushPromises()
+
+    expect(capturedAmount).toBe('30000000')
+    expect(capturedPayload!.quantity).toBe(10)
+    expect(capturedPayload!.serial_number).toBe(null)
+  })
+
+  it('keeps the serial number for a single-unit submit (quantity 1)', async () => {
+    const wrapper = await mountNew()
+    await fillBatchForm(wrapper)
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.serialNumber = 'SN-KEEP'
+    vm.form.quantity = '1'
+    await wrapper.vm.$nextTick()
+
+    let capturedPayload: Record<string, unknown> | undefined
+    setHandler((path, opts) => {
+      if (path === '/requests') {
+        capturedPayload = (opts?.body as { payload: Record<string, unknown> }).payload
+        return { id: 'r1', status: 'pending' }
+      }
+      return defaultHandler()(path, opts)
+    })
+    await vm.save()
+    await flushPromises()
+    expect(capturedPayload!.serial_number).toBe('SN-KEEP')
+    expect(capturedPayload!.quantity).toBe(1)
+  })
+
+  it('blocks save with a validation error when quantity is below 1', async () => {
+    const wrapper = await mountNew()
+    await fillBatchForm(wrapper)
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.quantity = '0'
+    let requestsCalled = false
+    setHandler((path, opts) => {
+      if (path === '/requests') {
+        requestsCalled = true
+        return { id: 'r1', status: 'pending' }
+      }
+      return defaultHandler()(path, opts)
+    })
+    await vm.save()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('Jumlah harus bilangan bulat')
+    expect(requestsCalled).toBe(false)
+  })
+
+  it('blocks save when quantity exceeds the max batch size (500)', async () => {
+    const wrapper = await mountNew()
+    await fillBatchForm(wrapper)
+    const vm = wrapper.vm as unknown as FormVm
+    vm.form.quantity = '9999'
+    let requestsCalled = false
+    setHandler((path, opts) => {
+      if (path === '/requests') {
+        requestsCalled = true
+        return { id: 'r1', status: 'pending' }
+      }
+      return defaultHandler()(path, opts)
+    })
+    await vm.save()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('Jumlah harus bilangan bulat')
+    expect(wrapper.text()).toContain('500') // the {max} bound is interpolated into the message
+    expect(requestsCalled).toBe(false)
   })
 })

@@ -37,22 +37,40 @@ func (q *Queries) CountOffices(ctx context.Context, arg CountOfficesParams) (int
 
 const createOffice = `-- name: CreateOffice :one
 INSERT INTO masterdata.offices (
-  parent_id, office_type_id, province_id, city_id, name, code, address, is_active, latitude, longitude
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-RETURNING id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at, latitude, longitude
+  parent_id, office_type_id, province_id, city_id, name, code, address, is_active, latitude, longitude,
+  ownership_status, office_class_id, building_classification_id, floor_count, building_area,
+  office_kind, description, head_employee_id, contact
+) VALUES (
+  $1, $2, $3, $4,
+  $5, $6, $7, $8,
+  $9, $10,
+  $11, $12, $13,
+  $14, $15, $16,
+  $17, $18, $19
+)
+RETURNING id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at, latitude, longitude, ownership_status, office_class_id, building_classification_id, floor_count, building_area, office_kind, description, head_employee_id, contact
 `
 
 type CreateOfficeParams struct {
-	ParentID     *uuid.UUID `json:"parent_id"`
-	OfficeTypeID uuid.UUID  `json:"office_type_id"`
-	ProvinceID   *uuid.UUID `json:"province_id"`
-	CityID       *uuid.UUID `json:"city_id"`
-	Name         string     `json:"name"`
-	Code         string     `json:"code"`
-	Address      *string    `json:"address"`
-	IsActive     bool       `json:"is_active"`
-	Latitude     *float64   `json:"latitude"`
-	Longitude    *float64   `json:"longitude"`
+	ParentID                 *uuid.UUID             `json:"parent_id"`
+	OfficeTypeID             uuid.UUID              `json:"office_type_id"`
+	ProvinceID               *uuid.UUID             `json:"province_id"`
+	CityID                   *uuid.UUID             `json:"city_id"`
+	Name                     string                 `json:"name"`
+	Code                     string                 `json:"code"`
+	Address                  *string                `json:"address"`
+	IsActive                 bool                   `json:"is_active"`
+	Latitude                 *float64               `json:"latitude"`
+	Longitude                *float64               `json:"longitude"`
+	OwnershipStatus          *SharedOfficeOwnership `json:"ownership_status"`
+	OfficeClassID            *uuid.UUID             `json:"office_class_id"`
+	BuildingClassificationID *uuid.UUID             `json:"building_classification_id"`
+	FloorCount               *int32                 `json:"floor_count"`
+	BuildingArea             *string                `json:"building_area"`
+	OfficeKind               SharedOfficeKind       `json:"office_kind"`
+	Description              *string                `json:"description"`
+	HeadEmployeeID           *uuid.UUID             `json:"head_employee_id"`
+	Contact                  *string                `json:"contact"`
 }
 
 func (q *Queries) CreateOffice(ctx context.Context, arg CreateOfficeParams) (MasterdataOffice, error) {
@@ -67,6 +85,15 @@ func (q *Queries) CreateOffice(ctx context.Context, arg CreateOfficeParams) (Mas
 		arg.IsActive,
 		arg.Latitude,
 		arg.Longitude,
+		arg.OwnershipStatus,
+		arg.OfficeClassID,
+		arg.BuildingClassificationID,
+		arg.FloorCount,
+		arg.BuildingArea,
+		arg.OfficeKind,
+		arg.Description,
+		arg.HeadEmployeeID,
+		arg.Contact,
 	)
 	var i MasterdataOffice
 	err := row.Scan(
@@ -85,12 +112,21 @@ func (q *Queries) CreateOffice(ctx context.Context, arg CreateOfficeParams) (Mas
 		&i.DeletedAt,
 		&i.Latitude,
 		&i.Longitude,
+		&i.OwnershipStatus,
+		&i.OfficeClassID,
+		&i.BuildingClassificationID,
+		&i.FloorCount,
+		&i.BuildingArea,
+		&i.OfficeKind,
+		&i.Description,
+		&i.HeadEmployeeID,
+		&i.Contact,
 	)
 	return i, err
 }
 
 const getOffice = `-- name: GetOffice :one
-SELECT id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at, latitude, longitude FROM masterdata.offices
+SELECT id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at, latitude, longitude, ownership_status, office_class_id, building_classification_id, floor_count, building_area, office_kind, description, head_employee_id, contact FROM masterdata.offices
 WHERE id = $1 AND deleted_at IS NULL
   AND ($2::bool OR id = ANY($3::uuid[]))
 `
@@ -120,6 +156,15 @@ func (q *Queries) GetOffice(ctx context.Context, arg GetOfficeParams) (Masterdat
 		&i.DeletedAt,
 		&i.Latitude,
 		&i.Longitude,
+		&i.OwnershipStatus,
+		&i.OfficeClassID,
+		&i.BuildingClassificationID,
+		&i.FloorCount,
+		&i.BuildingArea,
+		&i.OfficeKind,
+		&i.Description,
+		&i.HeadEmployeeID,
+		&i.Contact,
 	)
 	return i, err
 }
@@ -165,7 +210,7 @@ func (q *Queries) GetOfficeAncestors(ctx context.Context, id uuid.UUID) ([]GetOf
 }
 
 const getOfficeByCode = `-- name: GetOfficeByCode :one
-SELECT id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at, latitude, longitude FROM masterdata.offices WHERE code = $1 AND deleted_at IS NULL LIMIT 1
+SELECT id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at, latitude, longitude, ownership_status, office_class_id, building_classification_id, floor_count, building_area, office_kind, description, head_employee_id, contact FROM masterdata.offices WHERE code = $1 AND deleted_at IS NULL LIMIT 1
 `
 
 // Fresh, side-effect-free existence check used by the office importer's
@@ -189,6 +234,15 @@ func (q *Queries) GetOfficeByCode(ctx context.Context, code string) (MasterdataO
 		&i.DeletedAt,
 		&i.Latitude,
 		&i.Longitude,
+		&i.OwnershipStatus,
+		&i.OfficeClassID,
+		&i.BuildingClassificationID,
+		&i.FloorCount,
+		&i.BuildingArea,
+		&i.OfficeKind,
+		&i.Description,
+		&i.HeadEmployeeID,
+		&i.Contact,
 	)
 	return i, err
 }
@@ -226,7 +280,7 @@ func (q *Queries) ListOfficeTypesLookup(ctx context.Context) ([]ListOfficeTypesL
 
 const listOffices = `-- name: ListOffices :many
 
-SELECT id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at, latitude, longitude FROM masterdata.offices
+SELECT id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at, latitude, longitude, ownership_status, office_class_id, building_classification_id, floor_count, building_area, office_kind, description, head_employee_id, contact FROM masterdata.offices
 WHERE deleted_at IS NULL
   AND ($1::bool OR id = ANY($2::uuid[]))
   AND (
@@ -279,6 +333,15 @@ func (q *Queries) ListOffices(ctx context.Context, arg ListOfficesParams) ([]Mas
 			&i.DeletedAt,
 			&i.Latitude,
 			&i.Longitude,
+			&i.OwnershipStatus,
+			&i.OfficeClassID,
+			&i.BuildingClassificationID,
+			&i.FloorCount,
+			&i.BuildingArea,
+			&i.OfficeKind,
+			&i.Description,
+			&i.HeadEmployeeID,
+			&i.Contact,
 		); err != nil {
 			return nil, err
 		}
@@ -363,7 +426,7 @@ func (q *Queries) ListOfficesMap(ctx context.Context, arg ListOfficesMapParams) 
 }
 
 const listOfficesTree = `-- name: ListOfficesTree :many
-SELECT id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at, latitude, longitude FROM masterdata.offices
+SELECT id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at, latitude, longitude, ownership_status, office_class_id, building_classification_id, floor_count, building_area, office_kind, description, head_employee_id, contact FROM masterdata.offices
 WHERE deleted_at IS NULL
   AND ($1::bool OR id = ANY($2::uuid[]))
 ORDER BY name
@@ -401,6 +464,15 @@ func (q *Queries) ListOfficesTree(ctx context.Context, arg ListOfficesTreeParams
 			&i.DeletedAt,
 			&i.Latitude,
 			&i.Longitude,
+			&i.OwnershipStatus,
+			&i.OfficeClassID,
+			&i.BuildingClassificationID,
+			&i.FloorCount,
+			&i.BuildingArea,
+			&i.OfficeKind,
+			&i.Description,
+			&i.HeadEmployeeID,
+			&i.Contact,
 		); err != nil {
 			return nil, err
 		}
@@ -443,26 +515,44 @@ SET parent_id = $1,
     address = $7,
     is_active = $8,
     latitude = $9,
-    longitude = $10
-WHERE id = $11 AND deleted_at IS NULL
-  AND ($12::bool OR id = ANY($13::uuid[]))
-RETURNING id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at, latitude, longitude
+    longitude = $10,
+    ownership_status = $11,
+    office_class_id = $12,
+    building_classification_id = $13,
+    floor_count = $14,
+    building_area = $15,
+    office_kind = $16,
+    description = $17,
+    head_employee_id = $18,
+    contact = $19
+WHERE id = $20 AND deleted_at IS NULL
+  AND ($21::bool OR id = ANY($22::uuid[]))
+RETURNING id, parent_id, office_type_id, province_id, city_id, name, code, cost_center_code, address, is_active, created_at, updated_at, deleted_at, latitude, longitude, ownership_status, office_class_id, building_classification_id, floor_count, building_area, office_kind, description, head_employee_id, contact
 `
 
 type UpdateOfficeParams struct {
-	ParentID     *uuid.UUID  `json:"parent_id"`
-	OfficeTypeID uuid.UUID   `json:"office_type_id"`
-	ProvinceID   *uuid.UUID  `json:"province_id"`
-	CityID       *uuid.UUID  `json:"city_id"`
-	Name         string      `json:"name"`
-	Code         string      `json:"code"`
-	Address      *string     `json:"address"`
-	IsActive     bool        `json:"is_active"`
-	Latitude     *float64    `json:"latitude"`
-	Longitude    *float64    `json:"longitude"`
-	ID           uuid.UUID   `json:"id"`
-	AllScope     bool        `json:"all_scope"`
-	OfficeIds    []uuid.UUID `json:"office_ids"`
+	ParentID                 *uuid.UUID             `json:"parent_id"`
+	OfficeTypeID             uuid.UUID              `json:"office_type_id"`
+	ProvinceID               *uuid.UUID             `json:"province_id"`
+	CityID                   *uuid.UUID             `json:"city_id"`
+	Name                     string                 `json:"name"`
+	Code                     string                 `json:"code"`
+	Address                  *string                `json:"address"`
+	IsActive                 bool                   `json:"is_active"`
+	Latitude                 *float64               `json:"latitude"`
+	Longitude                *float64               `json:"longitude"`
+	OwnershipStatus          *SharedOfficeOwnership `json:"ownership_status"`
+	OfficeClassID            *uuid.UUID             `json:"office_class_id"`
+	BuildingClassificationID *uuid.UUID             `json:"building_classification_id"`
+	FloorCount               *int32                 `json:"floor_count"`
+	BuildingArea             *string                `json:"building_area"`
+	OfficeKind               SharedOfficeKind       `json:"office_kind"`
+	Description              *string                `json:"description"`
+	HeadEmployeeID           *uuid.UUID             `json:"head_employee_id"`
+	Contact                  *string                `json:"contact"`
+	ID                       uuid.UUID              `json:"id"`
+	AllScope                 bool                   `json:"all_scope"`
+	OfficeIds                []uuid.UUID            `json:"office_ids"`
 }
 
 func (q *Queries) UpdateOffice(ctx context.Context, arg UpdateOfficeParams) (MasterdataOffice, error) {
@@ -477,6 +567,15 @@ func (q *Queries) UpdateOffice(ctx context.Context, arg UpdateOfficeParams) (Mas
 		arg.IsActive,
 		arg.Latitude,
 		arg.Longitude,
+		arg.OwnershipStatus,
+		arg.OfficeClassID,
+		arg.BuildingClassificationID,
+		arg.FloorCount,
+		arg.BuildingArea,
+		arg.OfficeKind,
+		arg.Description,
+		arg.HeadEmployeeID,
+		arg.Contact,
 		arg.ID,
 		arg.AllScope,
 		arg.OfficeIds,
@@ -498,6 +597,15 @@ func (q *Queries) UpdateOffice(ctx context.Context, arg UpdateOfficeParams) (Mas
 		&i.DeletedAt,
 		&i.Latitude,
 		&i.Longitude,
+		&i.OwnershipStatus,
+		&i.OfficeClassID,
+		&i.BuildingClassificationID,
+		&i.FloorCount,
+		&i.BuildingArea,
+		&i.OfficeKind,
+		&i.Description,
+		&i.HeadEmployeeID,
+		&i.Contact,
 	)
 	return i, err
 }

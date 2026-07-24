@@ -37,21 +37,28 @@ func (q *Queries) CountEmployees(ctx context.Context, arg CountEmployeesParams) 
 
 const createEmployee = `-- name: CreateEmployee :one
 INSERT INTO masterdata.employees (
-  code, name, email, phone, avatar_key, department_id, position_id, office_id, status
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at, phone
+  code, name, email, phone, avatar_key, department_id, position_id, office_id, status,
+  company_id, executor_division_id
+) VALUES (
+  $1, $2, $3, $4, $5,
+  $6, $7, $8, $9,
+  $10, $11
+)
+RETURNING id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at, phone, company_id, executor_division_id
 `
 
 type CreateEmployeeParams struct {
-	Code         string           `json:"code"`
-	Name         string           `json:"name"`
-	Email        *string          `json:"email"`
-	Phone        *string          `json:"phone"`
-	AvatarKey    *string          `json:"avatar_key"`
-	DepartmentID *uuid.UUID       `json:"department_id"`
-	PositionID   *uuid.UUID       `json:"position_id"`
-	OfficeID     uuid.UUID        `json:"office_id"`
-	Status       SharedUserStatus `json:"status"`
+	Code               string           `json:"code"`
+	Name               string           `json:"name"`
+	Email              *string          `json:"email"`
+	Phone              *string          `json:"phone"`
+	AvatarKey          *string          `json:"avatar_key"`
+	DepartmentID       *uuid.UUID       `json:"department_id"`
+	PositionID         *uuid.UUID       `json:"position_id"`
+	OfficeID           uuid.UUID        `json:"office_id"`
+	Status             SharedUserStatus `json:"status"`
+	CompanyID          *uuid.UUID       `json:"company_id"`
+	ExecutorDivisionID *uuid.UUID       `json:"executor_division_id"`
 }
 
 func (q *Queries) CreateEmployee(ctx context.Context, arg CreateEmployeeParams) (MasterdataEmployee, error) {
@@ -65,6 +72,8 @@ func (q *Queries) CreateEmployee(ctx context.Context, arg CreateEmployeeParams) 
 		arg.PositionID,
 		arg.OfficeID,
 		arg.Status,
+		arg.CompanyID,
+		arg.ExecutorDivisionID,
 	)
 	var i MasterdataEmployee
 	err := row.Scan(
@@ -81,12 +90,27 @@ func (q *Queries) CreateEmployee(ctx context.Context, arg CreateEmployeeParams) 
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.Phone,
+		&i.CompanyID,
+		&i.ExecutorDivisionID,
 	)
 	return i, err
 }
 
+const getDepartmentOffice = `-- name: GetDepartmentOffice :one
+SELECT office_id FROM masterdata.departments WHERE id = $1 AND deleted_at IS NULL
+`
+
+// Returns a department's office_id (NULL for legacy global departments), used to
+// validate that an employee's department belongs to the employee's office.
+func (q *Queries) GetDepartmentOffice(ctx context.Context, id uuid.UUID) (*uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, getDepartmentOffice, id)
+	var office_id *uuid.UUID
+	err := row.Scan(&office_id)
+	return office_id, err
+}
+
 const getEmployee = `-- name: GetEmployee :one
-SELECT id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at, phone FROM masterdata.employees
+SELECT id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at, phone, company_id, executor_division_id FROM masterdata.employees
 WHERE id = $1 AND deleted_at IS NULL
   AND ($2::bool OR office_id = ANY($3::uuid[]))
 `
@@ -114,12 +138,14 @@ func (q *Queries) GetEmployee(ctx context.Context, arg GetEmployeeParams) (Maste
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.Phone,
+		&i.CompanyID,
+		&i.ExecutorDivisionID,
 	)
 	return i, err
 }
 
 const getEmployeeByCode = `-- name: GetEmployeeByCode :one
-SELECT id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at, phone FROM masterdata.employees WHERE code = $1 AND deleted_at IS NULL LIMIT 1
+SELECT id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at, phone, company_id, executor_division_id FROM masterdata.employees WHERE code = $1 AND deleted_at IS NULL LIMIT 1
 `
 
 func (q *Queries) GetEmployeeByCode(ctx context.Context, code string) (MasterdataEmployee, error) {
@@ -139,6 +165,8 @@ func (q *Queries) GetEmployeeByCode(ctx context.Context, code string) (Masterdat
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.Phone,
+		&i.CompanyID,
+		&i.ExecutorDivisionID,
 	)
 	return i, err
 }
@@ -173,7 +201,7 @@ func (q *Queries) ListEmployeeCodes(ctx context.Context) ([]string, error) {
 
 const listEmployees = `-- name: ListEmployees :many
 
-SELECT id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at, phone FROM masterdata.employees
+SELECT id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at, phone, company_id, executor_division_id FROM masterdata.employees
 WHERE deleted_at IS NULL
   AND ($1::bool OR office_id = ANY($2::uuid[]))
   AND (
@@ -223,6 +251,8 @@ func (q *Queries) ListEmployees(ctx context.Context, arg ListEmployeesParams) ([
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.Phone,
+			&i.CompanyID,
+			&i.ExecutorDivisionID,
 		); err != nil {
 			return nil, err
 		}
@@ -264,25 +294,29 @@ SET code = $1,
     department_id = $6,
     position_id = $7,
     office_id = $8,
-    status = $9
-WHERE id = $10 AND deleted_at IS NULL
-  AND ($11::bool OR office_id = ANY($12::uuid[]))
-RETURNING id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at, phone
+    status = $9,
+    company_id = $10,
+    executor_division_id = $11
+WHERE id = $12 AND deleted_at IS NULL
+  AND ($13::bool OR office_id = ANY($14::uuid[]))
+RETURNING id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at, phone, company_id, executor_division_id
 `
 
 type UpdateEmployeeParams struct {
-	Code         string           `json:"code"`
-	Name         string           `json:"name"`
-	Email        *string          `json:"email"`
-	Phone        *string          `json:"phone"`
-	AvatarKey    *string          `json:"avatar_key"`
-	DepartmentID *uuid.UUID       `json:"department_id"`
-	PositionID   *uuid.UUID       `json:"position_id"`
-	OfficeID     uuid.UUID        `json:"office_id"`
-	Status       SharedUserStatus `json:"status"`
-	ID           uuid.UUID        `json:"id"`
-	AllScope     bool             `json:"all_scope"`
-	OfficeIds    []uuid.UUID      `json:"office_ids"`
+	Code               string           `json:"code"`
+	Name               string           `json:"name"`
+	Email              *string          `json:"email"`
+	Phone              *string          `json:"phone"`
+	AvatarKey          *string          `json:"avatar_key"`
+	DepartmentID       *uuid.UUID       `json:"department_id"`
+	PositionID         *uuid.UUID       `json:"position_id"`
+	OfficeID           uuid.UUID        `json:"office_id"`
+	Status             SharedUserStatus `json:"status"`
+	CompanyID          *uuid.UUID       `json:"company_id"`
+	ExecutorDivisionID *uuid.UUID       `json:"executor_division_id"`
+	ID                 uuid.UUID        `json:"id"`
+	AllScope           bool             `json:"all_scope"`
+	OfficeIds          []uuid.UUID      `json:"office_ids"`
 }
 
 func (q *Queries) UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) (MasterdataEmployee, error) {
@@ -296,6 +330,8 @@ func (q *Queries) UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) 
 		arg.PositionID,
 		arg.OfficeID,
 		arg.Status,
+		arg.CompanyID,
+		arg.ExecutorDivisionID,
 		arg.ID,
 		arg.AllScope,
 		arg.OfficeIds,
@@ -315,6 +351,8 @@ func (q *Queries) UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) 
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.Phone,
+		&i.CompanyID,
+		&i.ExecutorDivisionID,
 	)
 	return i, err
 }

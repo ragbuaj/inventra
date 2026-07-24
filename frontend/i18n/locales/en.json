@@ -102,7 +102,13 @@
       "months": "{n} months",
       "moduleNotAvailable": "No data yet — module not available",
       "maintenanceEmpty": "No maintenance history yet for this asset",
-      "tabs": { "info": "Info", "assignment": "Assignment History", "maintenance": "Maintenance History", "depreciation": "Depreciation Schedule" },
+      "locationEmpty": "No location history yet for this asset",
+      "picEmpty": "No PIC history yet for this asset",
+      "picActive": "Active",
+      "locCols": { "date": "Time", "location": "Location", "source": "Source", "by": "By" },
+      "picCols": { "pic": "PIC", "from": "From", "to": "To", "by": "By" },
+      "locSource": { "registration": "Registration", "edit": "Edit", "transfer": "Transfer", "migration": "Migration" },
+      "tabs": { "info": "Info", "assignment": "Assignment History", "maintenance": "Maintenance History", "depreciation": "Depreciation Schedule", "location": "Location History", "pic": "PIC History" },
       "sections": { "identity": "Identity", "placement": "Placement", "procurement": "Procurement", "valuation": "Valuation", "notes": "Notes" },
       "fields": {
         "kategori": "Category",
@@ -159,15 +165,23 @@
         "kantor": "Office", "lantai": "Floor", "ruangan": "Room",
         "tglBeli": "Buy Date", "harga": "Buy Price", "vendor": "Vendor",
         "poNumber": "PO Number", "fundingSource": "Funding Source", "warranty": "Warranty until", "notes": "Notes",
+        "capacity": "Capacity / Spec", "pic": "PIC (Person in Charge)", "warrantyStart": "Warranty From",
+        "installationDate": "Installation Date", "leaseDate": "Lease Date", "quantity": "Quantity",
         "metode": "Depreciation Method", "masa": "Useful Life", "residu": "Residual Value"
       },
-      "placeholders": { "nama": "e.g. Dell Latitude 5440 Laptop", "select": "Select…" },
+      "placeholders": { "nama": "e.g. Dell Latitude 5440 Laptop", "select": "Select…", "capacity": "e.g. 2 PK / Core i7 16GB", "pic": "Search employee…" },
+      "floorOrRoomHint": "May stop at floor — room optional.",
+      "quantityHint": "Number of identical units to create at once. Each unit gets a sequential asset tag.",
+      "batchSummary": "Will create {count} assets with sequential tags.",
+      "serialBatchHint": "Disabled for batch registration — a serial number is unique per unit.",
       "errors": {
         "nama": "Asset name is required.",
         "kategori": "Category is required.",
         "kantor": "Office is required.",
         "tglBeli": "Buy date is required.",
-        "harga": "Buy price is required."
+        "harga": "Buy price is required.",
+        "lokasi": "Pick at least a floor (room optional).",
+        "quantity": "Quantity must be a whole number between 1 and {max}."
       }
     },
     "import": {
@@ -1517,6 +1531,8 @@
     "signInSubtitle": "Welcome back. Please sign in to continue.",
     "email": "Email",
     "emailPlaceholder": "name{'@'}organization.com",
+    "identifier": "NIP or Email",
+    "identifierPlaceholder": "NIP or name{'@'}organization.com",
     "password": "Password",
     "passwordPlaceholder": "Enter your password",
     "togglePassword": "Show / hide password",
@@ -1733,7 +1749,11 @@
         "alamat": "Address",
         "active": "Status",
         "latitude": "Latitude",
-        "longitude": "Longitude"
+        "longitude": "Longitude",
+        "ownershipStatus": "Ownership Status", "officeKind": "Office Kind",
+        "officeClass": "Office Class", "floorCount": "Floor Count",
+        "buildingClass": "Building Classification", "buildingArea": "Building Area (m2)",
+        "headEmployee": "Head of Office", "contact": "Contact", "description": "Description"
       },
       "tipe": { "pusat": "Head Office", "kanwil": "Regional", "cabang": "Branch", "unit": "Unit" },
       "noParent": "No parent (Head Office)",
@@ -1744,7 +1764,11 @@
       "required": "Name, Code, and Office Type are required.",
       "loadError": "Failed to load offices.",
       "selectPlaceholder": "Select…",
-      "coordHint": "Optional — used to show the office on the Location Map."
+      "coordHint": "Optional — used to show the office on the Location Map.",
+      "ownership": { "sewa": "Rented", "milik": "Owned", "hg_pakai": "Right-to-Use Building", "free": "Free" },
+      "kind": { "konvensional": "Conventional", "syariah": "Sharia" },
+      "buildingClassHint": "Auto-suggested from the floor count (editable).",
+      "searchEmployee": "Search employee…"
     },
     "employees": {
       "title": "Employees",
@@ -1783,9 +1807,12 @@
         "jabatan": "Position",
         "departemen": "Department",
         "office": "Office",
-        "status": "Status"
+        "status": "Status",
+        "company": "Company", "executorDivision": "Executor Division"
       },
       "status": { "active": "Active", "inactive": "Inactive", "suspended": "Suspended" },
+      "selectPlaceholder": "Select…",
+      "deptOfficeHint": "Pick an office first — departments follow the office.",
       "createTitle": "Add Employee",
       "editTitle": "Edit Employee",
       "deleteConfirm": "Employee “{nama}” (NIP {nip}) will be deleted. This cannot be undone.",
@@ -1893,12 +1920,15 @@
       "nonaktif": "Inactive",
       "entitySubtitle": "Manage reference data",
       "requiredField": "{field} is required.",
-      "fields": { "name": "Name", "code": "Code", "symbol": "Symbol", "email": "Email", "phone": "Phone", "province": "Province", "brand": "Brand", "contact_name": "Contact name", "address": "Address", "tier": "Tier" },
+      "fields": { "name": "Name", "code": "Code", "symbol": "Symbol", "email": "Email", "phone": "Phone", "province": "Province", "brand": "Brand", "contact_name": "Contact name", "address": "Address", "tier": "Tier", "min_floors": "Min Floors", "max_floors": "Max Floors", "office": "Office" },
+      "searchOffice": "Search office…",
       "resources": {
         "office-types": "Office Types", "departments": "Departments", "positions": "Positions",
         "units": "Units", "maintenance-categories": "Maintenance Categories",
         "problem-categories": "Problem Categories", "brands": "Brands", "vendors": "Vendors",
-        "provinces": "Provinces", "cities": "Cities", "models": "Models"
+        "provinces": "Provinces", "cities": "Cities", "models": "Models",
+        "office-classes": "Office Classes", "executor-divisions": "Executor Divisions",
+        "companies": "Companies", "building-classifications": "Building Classifications"
       }
     },
     "floors": {
@@ -2099,6 +2129,7 @@
         "kantor": "Office not found",
         "vendor": "Vendor not found",
         "lokasi": "Location/room not found",
+        "lokasiRequired": "A room is required for the asset",
         "tgl": "Invalid date",
         "harga": "Invalid price (not a number)",
         "dupTag": "Duplicate asset_tag",

@@ -12,6 +12,9 @@ import (
 )
 
 type Querier interface {
+	// Serialize per-office tag-sequence allocation within the caller's transaction
+	// (pg_advisory_xact_lock is released at commit/rollback). $1 = office id (text).
+	AcquireOfficeTagLock(ctx context.Context, hashtext string) error
 	AdvanceRequestStep(ctx context.Context, id uuid.UUID) (ApprovalRequest, error)
 	// Depreciation engine queries. See docs/DATABASE.md §4.4 and spec 2026-07-05.
 	// Transaction-scoped exclusive lock; released automatically at COMMIT/ROLLBACK.
@@ -27,7 +30,6 @@ type Querier interface {
 	// RecordImpairment / regenerateBasis). Both are set to the recoverable amount
 	// here; a later, deeper impairment lowers the floor further (correct).
 	ApplyAssetImpairment(ctx context.Context, arg ApplyAssetImpairmentParams) (AssetAsset, error)
-	BumpAssetTagCounter(ctx context.Context, arg BumpAssetTagCounterParams) (int32, error)
 	CancelJob(ctx context.Context, id uuid.UUID) (ImportImportJob, error)
 	CancelRequest(ctx context.Context, arg CancelRequestParams) (ApprovalRequest, error)
 	CheckinAssignment(ctx context.Context, arg CheckinAssignmentParams) (AssignmentAssignment, error)
@@ -37,6 +39,7 @@ type Querier interface {
 	// Same FOR UPDATE SKIP LOCKED claim the import worker uses, so two relays never
 	// publish the same row.
 	ClaimUnpublishedOutbox(ctx context.Context, limit int32) ([]NotificationOutbox, error)
+	CloseActivePIC(ctx context.Context, assetID uuid.UUID) error
 	ConfirmJob(ctx context.Context, id uuid.UUID) (ImportImportJob, error)
 	// Active = scheduled or in_progress. exclude_id lets the caller ignore the row
 	// it is about to transition (release check).
@@ -45,6 +48,7 @@ type Querier interface {
 	CountAssignments(ctx context.Context, arg CountAssignmentsParams) (int64, error)
 	CountAuditLogs(ctx context.Context, arg CountAuditLogsParams) (int64, error)
 	CountCategories(ctx context.Context, search string) (int64, error)
+	CountDepartments(ctx context.Context, arg CountDepartmentsParams) (int64, error)
 	CountDisposals(ctx context.Context, arg CountDisposalsParams) (int64, error)
 	CountEmployees(ctx context.Context, arg CountEmployeesParams) (int64, error)
 	CountFloorsByOffice(ctx context.Context, arg CountFloorsByOfficeParams) (int64, error)
@@ -74,6 +78,7 @@ type Querier interface {
 	CreateBrand(ctx context.Context, name string) (MasterdataBrand, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (MasterdataCategory, error)
 	CreateCity(ctx context.Context, arg CreateCityParams) (MasterdataCity, error)
+	CreateDepartment(ctx context.Context, arg CreateDepartmentParams) (MasterdataDepartment, error)
 	// gain_loss is computed here (null-propagating): null when either input is null.
 	CreateDisposal(ctx context.Context, arg CreateDisposalParams) (DisposalDisposal, error)
 	CreateEmployee(ctx context.Context, arg CreateEmployeeParams) (MasterdataEmployee, error)
@@ -171,6 +176,11 @@ type Querier interface {
 	// constrained — uq_cities_code — so this pre-check is required, mirroring
 	// GetProvinceByCode).
 	GetCityByCode(ctx context.Context, code *string) (MasterdataCity, error)
+	// Read visibility includes NULL-office (global) departments.
+	GetDepartment(ctx context.Context, arg GetDepartmentParams) (MasterdataDepartment, error)
+	// Returns a department's office_id (NULL for legacy global departments), used to
+	// validate that an employee's department belongs to the employee's office.
+	GetDepartmentOffice(ctx context.Context, id uuid.UUID) (*uuid.UUID, error)
 	GetDepreciationPeriod(ctx context.Context, period pgtype.Date) (DepreciationDepreciationPeriod, error)
 	// Guard (office-unscoped): at most one live disposal per asset.
 	GetDisposalByAsset(ctx context.Context, assetID uuid.UUID) (DisposalDisposal, error)
@@ -182,11 +192,21 @@ type Querier interface {
 	GetEmployee(ctx context.Context, arg GetEmployeeParams) (MasterdataEmployee, error)
 	GetEmployeeByCode(ctx context.Context, code string) (MasterdataEmployee, error)
 	GetFloor(ctx context.Context, arg GetFloorParams) (MasterdataFloor, error)
+	GetFloorOffice(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
 	GetImportJob(ctx context.Context, id uuid.UUID) (ImportImportJob, error)
 	GetImportJobForUpdate(ctx context.Context, id uuid.UUID) (ImportImportJob, error)
 	GetMaintRecordEnriched(ctx context.Context, arg GetMaintRecordEnrichedParams) (GetMaintRecordEnrichedRow, error)
 	GetMaintRecordScoped(ctx context.Context, arg GetMaintRecordScopedParams) (MaintenanceMaintenanceRecord, error)
 	GetMaintScheduleScoped(ctx context.Context, arg GetMaintScheduleScopedParams) (MaintenanceMaintenanceSchedule, error)
+	// Highest tag_seq ISSUED BY an office, INCLUDING soft-deleted rows (they reserve
+	// their number); hard-deleted rows are gone so the top number frees up. NULL -> 0.
+	//
+	// Keyed on tag_office_id (the office that issued the tag), NOT office_id: a
+	// transfer moves office_id to the destination and would otherwise drop the source
+	// office's MAX, letting the next create REISSUE a number already embedded in the
+	// moved asset's (immutable) tag — a duplicate asset_tag. COALESCE covers rows
+	// predating migration 000046.
+	GetMaxTagSeqForOffice(ctx context.Context, officeID uuid.UUID) (int32, error)
 	GetModelByBrandAndName(ctx context.Context, arg GetModelByBrandAndNameParams) (MasterdataModel, error)
 	GetOffice(ctx context.Context, arg GetOfficeParams) (MasterdataOffice, error)
 	GetOfficeAncestors(ctx context.Context, id uuid.UUID) ([]GetOfficeAncestorsRow, error)
@@ -215,6 +235,9 @@ type Querier interface {
 	// Identity module queries. Schema-qualified (see DATABASE.md §1.2).
 	GetRoleByCode(ctx context.Context, code string) (IdentityRole, error)
 	GetRoom(ctx context.Context, arg GetRoomParams) (MasterdataRoom, error)
+	// Resolve a room's floor and the office that floor belongs to (for location
+	// consistency validation on asset create/update).
+	GetRoomFloorOffice(ctx context.Context, id uuid.UUID) (GetRoomFloorOfficeRow, error)
 	// Scoped: caller must have the from- or to-office in scope. Plain (unenriched)
 	// row — used internally by Ship/Receive/RejectReceive, which only need the
 	// base columns to validate state + perform the update.
@@ -226,7 +249,15 @@ type Querier interface {
 	GetUnitByName(ctx context.Context, lower string) (MasterdataUnit, error)
 	GetUserByEmail(ctx context.Context, email string) (IdentityUser, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (IdentityUser, error)
+	// Login lookup: match by email (citext, case-insensitive) OR username (NIP).
+	// Deterministic: an email match is preferred over a username match (so a username
+	// colliding with another user's email can never shadow the email owner), and
+	// LIMIT 1 guards against pgx silently taking an arbitrary row on a multi-match.
+	GetUserByLogin(ctx context.Context, identifier string) (IdentityUser, error)
 	GetUserProfile(ctx context.Context, id uuid.UUID) (GetUserProfileRow, error)
+	// Asset location + PIC history (spec 2026-07-23 legacy-parity, Fase 3).
+	InsertAssetLocationHistory(ctx context.Context, arg InsertAssetLocationHistoryParams) error
+	InsertAssetPICHistory(ctx context.Context, arg InsertAssetPICHistoryParams) error
 	// Audit log: append-only writes + an office-scoped, filterable read model.
 	// all_scope bypasses the office filter (global scope); otherwise only rows whose
 	// office_id is in office_ids are returned. NULL-office (global) rows are visible
@@ -245,6 +276,8 @@ type Querier interface {
 	LinkGoogleID(ctx context.Context, arg LinkGoogleIDParams) error
 	ListAssetDocuments(ctx context.Context, assetID uuid.UUID) ([]AssetAssetDocument, error)
 	ListAssetEntries(ctx context.Context, assetID uuid.UUID) ([]DepreciationDepreciationEntry, error)
+	ListAssetLocationHistory(ctx context.Context, assetID uuid.UUID) ([]ListAssetLocationHistoryRow, error)
+	ListAssetPICHistory(ctx context.Context, assetID uuid.UUID) ([]ListAssetPICHistoryRow, error)
 	// All existing (non-deleted) asset tags, used by the asset importer to detect
 	// collisions with user-supplied asset_tag values during validation. Asset tags
 	// are globally unique, so this set is deliberately unscoped.
@@ -271,6 +304,11 @@ type Querier interface {
 	// match here is authoritative, not just an in-file check.
 	ListCityCodes(ctx context.Context) ([]*string, error)
 	ListDataScopePolicies(ctx context.Context, roleID uuid.UUID) ([]IdentityDataScopePolicy, error)
+	// Departments are office-scoped master data (legacy-parity Fase 6 made them
+	// per-office). Reads/writes are filtered by the caller's office data scope; legacy
+	// departments with a NULL office_id are shared reference data visible to everyone
+	// but mutable only by a global-scope caller (enforced in the service layer).
+	ListDepartments(ctx context.Context, arg ListDepartmentsParams) ([]MasterdataDepartment, error)
 	// id/name/code lookup for the employee importer's optional "departemen" column
 	// (matched by name OR code, case-insensitive).
 	ListDepartmentsLookup(ctx context.Context) ([]ListDepartmentsLookupRow, error)
@@ -461,6 +499,10 @@ type Querier interface {
 	SessionKpis(ctx context.Context, sessionID uuid.UUID) (SessionKpisRow, error)
 	SetAssetDocumentObjectKey(ctx context.Context, arg SetAssetDocumentObjectKeyParams) (AssetAssetDocument, error)
 	// Relocate an asset to a new office/room (used by the transfer receive step).
+	// floor_id is DERIVED from the destination room's floor (NULL when no room) so a
+	// relocated asset never keeps the origin office's floor. A tangible asset moved
+	// without a destination room hits chk_assets_tangible_location (correct: a physical
+	// asset must have a destination location).
 	SetAssetOffice(ctx context.Context, arg SetAssetOfficeParams) (AssetAsset, error)
 	SetAssetStatus(ctx context.Context, arg SetAssetStatusParams) (AssetAsset, error)
 	SetAssetValuationExclusion(ctx context.Context, arg SetAssetValuationExclusionParams) (AssetAsset, error)
@@ -484,6 +526,7 @@ type Querier interface {
 	SoftDeleteAttachment(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteCategory(ctx context.Context, id uuid.UUID) (int64, error)
 	SoftDeleteDataScopePoliciesByRole(ctx context.Context, roleID uuid.UUID) (int64, error)
+	SoftDeleteDepartment(ctx context.Context, arg SoftDeleteDepartmentParams) (int64, error)
 	SoftDeleteEmployee(ctx context.Context, arg SoftDeleteEmployeeParams) (int64, error)
 	SoftDeleteFieldPermissionsByRole(ctx context.Context, roleID uuid.UUID) (int64, error)
 	SoftDeleteFloor(ctx context.Context, arg SoftDeleteFloorParams) (int64, error)
@@ -512,6 +555,9 @@ type Querier interface {
 	UpdateAssetDepreciationSummary(ctx context.Context, arg UpdateAssetDepreciationSummaryParams) error
 	UpdateAssetDocument(ctx context.Context, arg UpdateAssetDocumentParams) (AssetAssetDocument, error)
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (MasterdataCategory, error)
+	// Write scope EXCLUDES NULL-office rows: only a global-scope caller may mutate a
+	// shared/global department (a scoped caller can read but not edit it).
+	UpdateDepartment(ctx context.Context, arg UpdateDepartmentParams) (MasterdataDepartment, error)
 	UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) (MasterdataEmployee, error)
 	UpdateEmployeePhone(ctx context.Context, arg UpdateEmployeePhoneParams) error
 	UpdateFloor(ctx context.Context, arg UpdateFloorParams) (MasterdataFloor, error)

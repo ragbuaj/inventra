@@ -42,6 +42,15 @@ func TestSubmitRequest_Validate_AssetCreateAmount(t *testing.T) {
 		{"fraction amount rejected despite matching fraction purchase_cost", "1/3", `{"purchase_cost":"1/3"}`, true},
 		{"exponent amount rejected despite numeric equality with purchase_cost", "1e6", `{"purchase_cost":"1000000"}`, true},
 		{"fraction purchase_cost rejected", "1000", `{"purchase_cost":"1/3"}`, true},
+		// Batch registration: amount must equal purchase_cost * quantity.
+		{"batch amount equals cost times quantity", "30000000", `{"purchase_cost":"3000000","quantity":10}`, false},
+		{"batch quantity 1 equals cost", "3000000", `{"purchase_cost":"3000000","quantity":1}`, false},
+		{"batch amount ignores single-unit cost", "3000000", `{"purchase_cost":"3000000","quantity":10}`, true},
+		{"batch fractional cost times quantity", "9000000.75", `{"purchase_cost":"3000000.25","quantity":3}`, false},
+		{"batch zero cost requires zero amount", "0", `{"purchase_cost":"0","quantity":5}`, false},
+		{"batch negative quantity rejected", "0", `{"purchase_cost":"1000","quantity":-2}`, true},
+		{"batch at max quantity accepted", "500000", `{"purchase_cost":"1000","quantity":500}`, false},
+		{"batch above max quantity rejected", "501000", `{"purchase_cost":"1000","quantity":501}`, true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

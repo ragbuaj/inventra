@@ -11,8 +11,16 @@ import { referenceResources } from '~/composables/api/referenceResources'
 beforeEach(() => request.mockReset())
 
 describe('useReference', () => {
-  it('declares all 11 reference resources (descriptor sanity)', () => {
-    expect(referenceResources).toHaveLength(11)
+  // Asserting the exact key set (not just a count) makes this fail loudly with a
+  // readable diff when a resource is added or removed — a bare length check only
+  // says "expected 11, got 15". The last four landed with legacy-parity Fase 4.
+  it('declares every reference resource (descriptor sanity)', () => {
+    expect(referenceResources.map(r => r.key)).toEqual([
+      'office-types', 'departments', 'positions', 'units',
+      'maintenance-categories', 'problem-categories', 'brands', 'vendors',
+      'provinces', 'cities', 'models',
+      'office-classes', 'executor-divisions', 'companies', 'building-classifications'
+    ])
   })
 
   it('list builds /key query (omits empty search) and returns the envelope', async () => {

@@ -49,6 +49,11 @@ DELETE FROM import.import_jobs;
 DELETE FROM stockopname.stock_opname_items;
 DELETE FROM stockopname.stock_opname_sessions;
 DELETE FROM approval.request_approvals;
+-- Riwayat lokasi/PIC aset (legacy-parity Fase 3) dihapus DULU: asset_location_history
+-- .transfer_id -> transfer.asset_transfers, dan keduanya mereferensikan asset.assets,
+-- jadi harus dibersihkan sebelum tabel-tabel itu.
+DELETE FROM asset.asset_location_history;
+DELETE FROM asset.asset_pic_history;
 DELETE FROM asset.asset_attachments;
 DELETE FROM asset.asset_documents;
 DELETE FROM assignment.assignments;
@@ -60,7 +65,8 @@ DELETE FROM depreciation.depreciation_entries;
 DELETE FROM depreciation.depreciation_periods;
 DELETE FROM approval.requests;
 DELETE FROM audit.audit_logs;
-DELETE FROM asset.asset_tag_counters;
+-- asset.asset_tag_counters DIHAPUS di migrasi 000040 (nomor urut kini kolom
+-- assets.tag_seq per-kantor) — tak ada lagi yang perlu dibersihkan di sini.
 DELETE FROM asset.assets;
 
 -- Semua user KECUALI superadmin kanonik.
@@ -693,16 +699,23 @@ SELECT office_id, office_code, category_id, cat_code, asset_class, name, brand_i
        serial_number, po_number, funding_source, warranty_expiry, bast_no, ord
 FROM building_final;
 
--- 8c) INSERT aset final + asset_tag (seq per office/category/year) + penyusutan.
+-- 8c) INSERT aset final + asset_tag + tag_seq + penyusutan.
+--     Format tag legacy-parity (migrasi 000040): {KANTOR}{KATEGORI}{TAHUN}{NNNNN}
+--     TANPA pemisah, dan nomor urut berjalan PER-KANTOR (bukan per kantor+kategori+
+--     tahun seperti format lama). tag_seq diisi dengan nomor urut yang sama supaya
+--     GenerateAssetTag (MAX(tag_seq)+1 per kantor) melanjutkan dari data seed ini
+--     dan tidak menerbitkan tag yang bentrok.
 INSERT INTO asset.assets
-  (asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status,
+  (asset_tag, tag_seq, tag_office_id, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status,
    serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry,
    asset_class, capitalized, depreciation_method, useful_life_months, salvage_value,
    fiscal_group, fiscal_life_months, accumulated_depreciation, book_value,
    acquisition_bast_no, current_holder_employee_id, created_by_id, notes)
 SELECT
-  b.office_code || '-' || b.cat_code || '-' || b.yr || '-' ||
-    lpad(row_number() OVER (PARTITION BY b.office_id, b.category_id, b.yr ORDER BY b.ord)::text, 5, '0'),
+  b.office_code || b.cat_code || b.yr ||
+    lpad(row_number() OVER (PARTITION BY b.office_id ORDER BY b.ord)::text, 5, '0'),
+  row_number() OVER (PARTITION BY b.office_id ORDER BY b.ord)::int,
+  b.office_id,
   b.name, b.category_id, b.brand_id, b.model_id, b.room_id, b.office_id, b.unit_id, b.status,
   b.serial_number, b.purchase_date, b.cost, b.vendor_id, b.po_number, b.funding_source, b.warranty_expiry,
   b.asset_class, true, b.method, b.life, b.salvage_value,
@@ -712,10 +725,9 @@ SELECT
   NULL
 FROM _bulk b;
 
--- 8d) Sinkronkan asset_tag_counters agar tag berikutnya dari app tidak bentrok.
-INSERT INTO asset.asset_tag_counters (office_id, category_id, year, last_seq)
-SELECT office_id, category_id, yr, count(*)
-FROM _bulk GROUP BY office_id, category_id, yr;
+-- 8d) Tidak ada lagi tabel counter untuk disinkronkan: sejak migrasi 000040 nomor
+--     urut tag hidup di kolom assets.tag_seq (diisi di 8c) dan app menurunkannya
+--     dengan MAX(tag_seq)+1 per kantor di bawah advisory lock.
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 9) DATA TRANSAKSIONAL — konsisten dengan status aset yang sudah di-assign.

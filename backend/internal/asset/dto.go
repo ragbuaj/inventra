@@ -25,42 +25,49 @@ func assetToMap(a sqlc.AssetAsset) map[string]any {
 		fiscalGroup = &s
 	}
 	return map[string]any{
-		"id":                        a.ID.String(),
-		"asset_tag":                 a.AssetTag,
-		"name":                      a.Name,
-		"category_id":               a.CategoryID.String(),
-		"office_id":                 a.OfficeID.String(),
-		"brand_id":                  common.UUIDPtrStr(a.BrandID),
-		"model_id":                  common.UUIDPtrStr(a.ModelID),
-		"room_id":                   common.UUIDPtrStr(a.RoomID),
-		"unit_id":                   common.UUIDPtrStr(a.UnitID),
-		"vendor_id":                 common.UUIDPtrStr(a.VendorID),
+		"id":                         a.ID.String(),
+		"asset_tag":                  a.AssetTag,
+		"name":                       a.Name,
+		"category_id":                a.CategoryID.String(),
+		"office_id":                  a.OfficeID.String(),
+		"brand_id":                   common.UUIDPtrStr(a.BrandID),
+		"model_id":                   common.UUIDPtrStr(a.ModelID),
+		"room_id":                    common.UUIDPtrStr(a.RoomID),
+		"unit_id":                    common.UUIDPtrStr(a.UnitID),
+		"vendor_id":                  common.UUIDPtrStr(a.VendorID),
 		"current_holder_employee_id": common.UUIDPtrStr(a.CurrentHolderEmployeeID),
-		"created_by_id":             common.UUIDPtrStr(a.CreatedByID),
-		"status":                    string(a.Status),
-		"asset_class":               string(a.AssetClass),
-		"serial_number":             a.SerialNumber,
-		"purchase_date":             dateStr(a.PurchaseDate),
+		"created_by_id":              common.UUIDPtrStr(a.CreatedByID),
+		"status":                     string(a.Status),
+		"asset_class":                string(a.AssetClass),
+		"serial_number":              a.SerialNumber,
+		"purchase_date":              dateStr(a.PurchaseDate),
 		// Sensitive financial fields — present pre-mask so FilterView can drop them.
-		"purchase_cost":             a.PurchaseCost,
-		"book_value":                a.BookValue,
-		"accumulated_depreciation":  a.AccumulatedDepreciation,
-		"salvage_value":             a.SalvageValue,
-		"impairment_loss":           a.ImpairmentLoss,
-		"po_number":                 a.PoNumber,
-		"funding_source":            a.FundingSource,
-		"warranty_expiry":           dateStr(a.WarrantyExpiry),
-		"capitalized":               a.Capitalized,
-		"depreciation_method":       deprMethod,
-		"useful_life_months":        a.UsefulLifeMonths,
-		"fiscal_group":              fiscalGroup,
-		"fiscal_life_months":        a.FiscalLifeMonths,
-		"acquisition_bast_no":       a.AcquisitionBastNo,
-		"excluded_from_valuation":   a.ExcludedFromValuation,
+		"purchase_cost":            a.PurchaseCost,
+		"book_value":               a.BookValue,
+		"accumulated_depreciation": a.AccumulatedDepreciation,
+		"salvage_value":            a.SalvageValue,
+		"impairment_loss":          a.ImpairmentLoss,
+		"po_number":                a.PoNumber,
+		"funding_source":           a.FundingSource,
+		"warranty_expiry":          dateStr(a.WarrantyExpiry),
+		// Legacy-parity fields (spec 2026-07-23).
+		"floor_id":                   common.UUIDPtrStr(a.FloorID),
+		"pic_employee_id":            common.UUIDPtrStr(a.PicEmployeeID),
+		"capacity":                   a.Capacity,
+		"lease_date":                 dateStr(a.LeaseDate),
+		"installation_date":          dateStr(a.InstallationDate),
+		"warranty_start":             dateStr(a.WarrantyStart),
+		"capitalized":                a.Capitalized,
+		"depreciation_method":        deprMethod,
+		"useful_life_months":         a.UsefulLifeMonths,
+		"fiscal_group":               fiscalGroup,
+		"fiscal_life_months":         a.FiscalLifeMonths,
+		"acquisition_bast_no":        a.AcquisitionBastNo,
+		"excluded_from_valuation":    a.ExcludedFromValuation,
 		"valuation_exclusion_reason": a.ValuationExclusionReason,
-		"notes":                     a.Notes,
-		"created_at":                common.TsStr(a.CreatedAt),
-		"updated_at":                common.TsStr(a.UpdatedAt),
+		"notes":                      a.Notes,
+		"created_at":                 common.TsStr(a.CreatedAt),
+		"updated_at":                 common.TsStr(a.UpdatedAt),
 	}
 }
 
@@ -107,6 +114,13 @@ type AssetUpdateRequest struct {
 	PurchaseDate   *string `json:"purchase_date"`
 	WarrantyExpiry *string `json:"warranty_expiry"`
 	Notes          *string `json:"notes"`
+	// Legacy-parity fields (spec 2026-07-23).
+	FloorID          *string `json:"floor_id" binding:"omitempty,uuid"`
+	PICEmployeeID    *string `json:"pic_employee_id" binding:"omitempty,uuid"`
+	Capacity         *string `json:"capacity"`
+	LeaseDate        *string `json:"lease_date"`
+	InstallationDate *string `json:"installation_date"`
+	WarrantyStart    *string `json:"warranty_start"`
 }
 
 // toInput converts the request to an UpdateInput, parsing UUIDs and dates.
@@ -143,20 +157,46 @@ func (r AssetUpdateRequest) toInput() (UpdateInput, error) {
 	if err != nil {
 		return UpdateInput{}, err
 	}
+	floorID, err := common.ParseUUIDPtr(r.FloorID)
+	if err != nil {
+		return UpdateInput{}, err
+	}
+	picID, err := common.ParseUUIDPtr(r.PICEmployeeID)
+	if err != nil {
+		return UpdateInput{}, err
+	}
+	leaseDate, err := parseDate(r.LeaseDate)
+	if err != nil {
+		return UpdateInput{}, err
+	}
+	installationDate, err := parseDate(r.InstallationDate)
+	if err != nil {
+		return UpdateInput{}, err
+	}
+	warrantyStart, err := parseDate(r.WarrantyStart)
+	if err != nil {
+		return UpdateInput{}, err
+	}
 	return UpdateInput{
-		Name:           r.Name,
-		CategoryID:     catID,
-		BrandID:        brandID,
-		ModelID:        modelID,
-		RoomID:         roomID,
-		UnitID:         unitID,
-		VendorID:       vendorID,
-		SerialNumber:   r.SerialNumber,
-		PONumber:       r.PONumber,
-		FundingSource:  r.FundingSource,
-		PurchaseDate:   purchaseDate,
-		WarrantyExpiry: warrantyExpiry,
-		Notes:          r.Notes,
+		Name:             r.Name,
+		CategoryID:       catID,
+		BrandID:          brandID,
+		ModelID:          modelID,
+		RoomID:           roomID,
+		FloorID:          floorID,
+		UnitID:           unitID,
+		VendorID:         vendorID,
+		SerialNumber:     r.SerialNumber,
+		PONumber:         r.PONumber,
+		FundingSource:    r.FundingSource,
+		PurchaseDate:     purchaseDate,
+		WarrantyExpiry:   warrantyExpiry,
+		WarrantyStart:    warrantyStart,
+		Capacity:         r.Capacity,
+		LeaseDate:        leaseDate,
+		InstallationDate: installationDate,
+		PICEmployeeID:    picID,
+		Notes:            r.Notes,
 	}, nil
 }
 
@@ -175,4 +215,38 @@ func parseDate(s *string) (pgtype.Date, error) {
 		return pgtype.Date{}, err
 	}
 	return pgtype.Date{Time: t, Valid: true}, nil
+}
+
+// locationHistoryToMap serializes an asset location-history row for the API.
+func locationHistoryToMap(r sqlc.ListAssetLocationHistoryRow) map[string]any {
+	return map[string]any{
+		"id":            r.ID.String(),
+		"office_id":     r.OfficeID.String(),
+		"office_name":   r.OfficeName,
+		"floor_id":      common.UUIDPtrStr(r.FloorID),
+		"floor_name":    r.FloorName,
+		"room_id":       common.UUIDPtrStr(r.RoomID),
+		"room_name":     r.RoomName,
+		"source":        string(r.Source),
+		"moved_at":      common.TsStr(r.MovedAt),
+		"moved_by_id":   common.UUIDPtrStr(r.MovedByID),
+		"moved_by_name": r.MovedByName,
+		"transfer_id":   common.UUIDPtrStr(r.TransferID),
+		"note":          r.Note,
+	}
+}
+
+// picHistoryToMap serializes an asset PIC-history row for the API.
+func picHistoryToMap(r sqlc.ListAssetPICHistoryRow) map[string]any {
+	return map[string]any{
+		"id":               r.ID.String(),
+		"pic_employee_id":  r.PicEmployeeID.String(),
+		"pic_name":         r.PicName,
+		"pic_code":         r.PicCode,
+		"assigned_at":      common.TsStr(r.AssignedAt),
+		"released_at":      common.TsStr(r.ReleasedAt),
+		"assigned_by_id":   common.UUIDPtrStr(r.AssignedByID),
+		"assigned_by_name": r.AssignedByName,
+		"note":             r.Note,
+	}
 }

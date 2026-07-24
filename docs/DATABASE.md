@@ -58,8 +58,8 @@ Tabel dipisah ke **PostgreSQL schema per modul**, selaras dengan modul backend (
 | `shared` | Semua **tipe enum** (bagian 2) + fungsi trigger `set_updated_at()` — kosakata bersama |
 | `identity` | `roles`, `role_permissions`, `users`, `field_permissions`, `data_scope_policies` |
 | `audit` | `audit_logs` |
-| `masterdata` | offices, floors, rooms, provinces, cities, office_types, departments, positions, employees, vendors, brands, models, categories, maintenance_categories, problem_categories, units *(fase 3)* |
-| `asset` | assets, asset_attachments, asset_tag_counters *(fase 4)*; **🆕 v1.1** `asset_documents` (BAST) |
+| `masterdata` | offices, floors, rooms, provinces, cities, office_types, departments, positions, employees, vendors, brands, models, categories, maintenance_categories, problem_categories, units *(fase 3)*; **🆕 legacy-parity** `office_classes`, `executor_divisions`, `companies`, `building_classifications` |
+| `asset` | assets, asset_attachments; **🆕 v1.1** `asset_documents` (BAST); **🆕 legacy-parity** `asset_location_history`, `asset_pic_history` (`asset_tag_counters` dihapus di `000040`) |
 | `assignment` · `maintenance` · `depreciation` · `approval` · `import` | tabel modul masing-masing *(fase berikutnya)*. **🆕 v1.1** `approval`: `approval_thresholds`, `request_approvals` |
 | **🆕 `transfer`** | `asset_transfers` (mutasi antar-kantor) *(v1.1)* |
 | **🆕 `stockopname`** | `stock_opname_sessions`, `stock_opname_items` (inventarisasi fisik) *(v1.1)* |
@@ -113,6 +113,13 @@ ALTER TYPE asset_status ADD VALUE IF NOT EXISTS 'in_transfer';
 ALTER TYPE asset_status ADD VALUE IF NOT EXISTS 'disposed';
 ALTER TYPE request_type ADD VALUE IF NOT EXISTS 'asset_transfer';
 ALTER TYPE request_type ADD VALUE IF NOT EXISTS 'asset_disposal';  -- 'asset_delete' lama disetarakan → asset_disposal
+```
+
+```sql
+-- 🆕LP legacy-parity — tipe baru (migrasi 000038)
+CREATE TYPE office_ownership       AS ENUM ('sewa','milik','hg_pakai','free');            -- status kepemilikan gedung kantor (kolom offices.ownership_status)
+CREATE TYPE office_kind            AS ENUM ('konvensional','syariah');                     -- jenis layanan kantor (default konvensional)
+CREATE TYPE location_change_source AS ENUM ('registration','edit','transfer','migration'); -- sumber baris asset_location_history
 ```
 
 > **Catatan enum (penting):** `ALTER TYPE ... ADD VALUE` **tidak boleh** dipakai pada nilai yang sama di
@@ -257,8 +264,12 @@ Index: partial `UNIQUE(role_id, permission_key)`, `idx_role_permissions_role`. D
 | avatar_url | text? | yes | | |
 | role_id | uuid | no | | **FK** roles (default = peran `staf`) |
 | status | user_status | no | 'active' | |
+| **username** 🆕LP | text? | yes | | **UNIQUE** (partial) — login via NIP **atau** email; di-backfill dari `employees.code` (migrasi `000045`) |
 
-Index: partial `UNIQUE(email)`, partial `UNIQUE(google_id)`, `idx_users_office_id`, `idx_users_role_id`, `idx_users_employee_id`.
+Index: partial `UNIQUE(email)`, partial `UNIQUE(google_id)`, partial `UNIQUE(username)` 🆕LP, `idx_users_office_id`, `idx_users_role_id`, `idx_users_employee_id`.
+
+> 🆕LP login (migrasi `000045`): query `GetUserByLogin` mencocokkan `email` (citext) **ATAU** `username`;
+> jalur lain (forgot-password, ganti email) tetap memakai `email`.
 
 #### `field_permissions` — hak akses per-field per-role (bagian 2.3 PRD, **semua entitas**)
 | Kolom | Tipe | Null | Default | Keterangan |
@@ -314,7 +325,20 @@ Index: partial `UNIQUE(key)`. Ditembolok di Redis (invalidasi saat berubah). See
 | id | uuid PK · name text UNIQUE (Pusat/Wilayah/Cabang/Outlet) · is_active bool · ts |
 
 #### `departments`
-| id | uuid PK · name text · code text? UNIQUE · is_active bool · ts |
+| id uuid PK · name text · code text? · **office_id** 🆕LP uuid? **FK** offices · is_active bool · ts |
+
+> 🆕LP (migrasi `000044`): `office_id` ditambah (**NULLABLE** untuk sementara — wajib di app layer,
+> `NOT NULL` menyusul setelah data siap) sehingga departemen menjadi **per-kantor**; `code` unik
+> diubah jadi **per-kantor** (partial `UNIQUE(office_id, code)`). Validasi app: department yang dipilih
+> pada pegawai harus se-kantor (departemen legacy `office_id NULL` dikecualikan).
+>
+> 🆕LP (review-fix): departments **dipindah dari generic reference engine ke sub-package ter-scope**
+> `internal/masterdata/department` (data scope ditegakkan pada read DAN write, konsisten dg
+> office/employee). Tetap di path `/departments` dengan shape JSON sama (frontend tak berubah). Read:
+> subtree kantor caller + departemen global `office_id NULL` (dibagikan). Write: hanya dalam scope;
+> departemen global hanya bisa diubah caller global-scope. Modul scope: `departments`. Follow-up UI:
+> layar Referensi masih gated `masterdata.global.manage`, jadi role office-manager (mis. kepala_kanwil)
+> belum punya UI kelola departemen sendiri walau backend sudah mendukung.
 
 #### `positions`
 | id | uuid PK · name text · is_active bool · ts |
@@ -358,6 +382,14 @@ Index: partial `UNIQUE(key)`. Ditembolok di Redis (invalidasi saat berubah). See
 #### `units` — satuan
 | id uuid PK · name text · symbol text? · is_active bool · ts | (mis. Unit/Pcs/Set) |
 
+#### Master legacy-parity 🆕LP (migrasi `000042`)
+Empat master datar — dilayani **generic reference engine** (deklaratif), bukan sub-package.
+
+- **`office_classes`** — kelas kantor: `| id uuid PK · name text · code text? · is_active bool · ts |`. Diacu `offices.office_class_id`.
+- **`executor_divisions`** — divisi pelaksana (bukan enum): `| id uuid PK · name text · code text? · is_active bool · ts |`; **seed 5** (engineering/security/housekeeping/parkir/operator). Diacu `employees.executor_division_id`.
+- **`companies`** — perusahaan/badan usaha: `| id uuid PK · name text · code text? · is_active bool · ts |`. Diacu `employees.company_id`.
+- **`building_classifications`** — klasifikasi gedung dengan rentang lantai: `| id uuid PK · name text · code text? · min_floors int · max_floors int? · is_active bool · ts |`; CHECK `max_floors IS NULL OR max_floors >= min_floors`. Kolom `int` didukung engine via tipe **`typeInt`**. Diacu `offices.building_classification_id`; form Kantor menyarankan otomatis dari `floor_count`.
+
 ### 4.3 Master Data — Struktur Kantor & Orang
 
 #### `offices` — hierarki Pusat → Wilayah → Cabang → Outlet
@@ -372,6 +404,15 @@ Index: partial `UNIQUE(key)`. Ditembolok di Redis (invalidasi saat berubah). See
 | code | text | no | **UNIQUE** |
 | **cost_center_code** 🆕 | text? | yes | kode cost center / unit kerja (pembebanan biaya, output jurnal) |
 | address | text? | yes | |
+| **ownership_status** 🆕LP | office_ownership? | yes | status kepemilikan gedung (sewa/milik/hg_pakai/free) |
+| **office_class_id** 🆕LP | uuid? | yes | **FK** office_classes — kelas kantor |
+| **building_classification_id** 🆕LP | uuid? | yes | **FK** building_classifications — klasifikasi gedung (disarankan dari `floor_count`) |
+| **floor_count** 🆕LP | int? | yes | jumlah lantai gedung |
+| **building_area** 🆕LP | numeric(12,2)? | yes | luas bangunan (m2) |
+| **office_kind** 🆕LP | office_kind | no | konvensional/syariah (**NOT NULL** default `konvensional`) |
+| **description** 🆕LP | text? | yes | deskripsi kantor |
+| **head_employee_id** 🆕LP | uuid? | yes | **FK** employees — kepala kantor |
+| **contact** 🆕LP | text? | yes | kontak kantor |
 | is_active | boolean | no | |
 | ts | timestamptz | no | |
 
@@ -379,6 +420,7 @@ Index: `idx_offices_parent_id`, `UNIQUE(code)`. Lihat bagian 5 untuk komputasi s
 
 > **Hierarki tetap 4 jenjang** (Pusat → Wilayah → Cabang/Unit → Outlet) via `parent_id`; `office_type`
 > boleh banyak label tanpa menambah kedalaman. `cost_center_code` ditambah migrasi 000016 (🆕 v1.1).
+> 🆕LP: 9 kolom kantor (`ownership_status`..`contact`) ditambah migrasi `000043`.
 
 #### `floors`
 | id uuid PK · office_id uuid **FK** offices · name text · level int? · ts · **UNIQUE(office_id, name)** |
@@ -405,9 +447,14 @@ Index: `idx_offices_parent_id`, `UNIQUE(code)`. Lihat bagian 5 untuk komputasi s
 | department_id | uuid? | yes | **FK** departments |
 | position_id | uuid? | yes | **FK** positions — jabatan |
 | office_id | uuid | no | **FK** offices — kantor penempatan |
+| **company_id** 🆕LP | uuid? | yes | **FK** companies — perusahaan/badan usaha |
+| **executor_division_id** 🆕LP | uuid? | yes | **FK** executor_divisions — divisi pelaksana |
 | status | user_status | no | active/inactive (mis. pegawai nonaktif/pensiun) |
 
-Index: partial `UNIQUE(code)`, `idx_employees_office_id`, `idx_employees_department_id`, `idx_employees_position_id`.
+Index: partial `UNIQUE(code)`, `idx_employees_office_id`, `idx_employees_department_id`, `idx_employees_position_id`, `idx_employees_company_id` 🆕LP, `idx_employees_executor_division_id` 🆕LP.
+
+> 🆕LP (migrasi `000044`): `company_id` + `executor_division_id` ditambah. Departemen yang dipilih harus
+> se-kantor dengan `office_id` pegawai (lihat catatan `departments`).
 
 ### 4.4 Aset & Operasional
 
@@ -415,7 +462,9 @@ Index: partial `UNIQUE(code)`, `idx_employees_office_id`, `idx_employees_departm
 | Kolom | Tipe | Null | Default | Keterangan |
 |---|---|---|---|---|
 | id | uuid | no | gen_random_uuid() | **PK** |
-| asset_tag | text | no | | **UNIQUE** (partial) — **kode aset** unik, format `<kode_kantor>-<kode_kategori>-<tahun>-<seq5>` (lihat bagian 4.7) = payload **barcode** Code128 (FR-2.12); slug URL |
+| asset_tag | text | no | | **UNIQUE** (partial) — **kode aset** unik, format `{kode_kantor}{kode_kategori}{tahun}{seq5}` tanpa pemisah (lihat bagian 4.7) = payload **barcode** Code128 (FR-2.12); slug URL |
+| tag_seq | int | yes | | nomor urut per-kantor sumber `seq5` (NULLABLE; lihat bagian 4.7) |
+| **tag_office_id** 🆕LP | uuid? | yes | | **FK** offices — kantor **PENERBIT** tag. Diisi saat aset dibuat dan **tidak pernah diubah oleh mutasi**; sumber `MAX(tag_seq)` (lihat bagian 4.7) |
 | name | text | no | | |
 | category_id | uuid | no | | **FK** categories |
 | brand_id | uuid? | yes | | **FK** brands |
@@ -448,18 +497,61 @@ Index: partial `UNIQUE(code)`, `idx_employees_office_id`, `idx_employees_departm
 | valuation_exclusion_reason | text? | yes | | |
 | created_by_id | uuid? | yes | | **FK** users |
 | notes | text? | yes | | |
+| **floor_id** 🆕LP | uuid? | yes | | **FK** floors — lokasi bila aset berhenti di lantai (tanpa ruangan); dipaksa = lantai `room` saat room dipilih |
+| **pic_employee_id** 🆕LP | uuid? | yes | | **FK** employees — PIC/penanggung jawab (beda dari pemegang `current_holder_employee_id`; riwayat di `asset_pic_history`) |
+| **capacity** 🆕LP | text? | yes | | kapasitas/spesifikasi bebas (mis. "2 PK", "Core i7 16GB") |
+| **lease_date** 🆕LP | date? | yes | | tanggal sewa (aset sewa) |
+| **installation_date** 🆕LP | date? | yes | | tanggal instalasi |
+| **warranty_start** 🆕LP | date? | yes | | mulai garansi (pasangan `warranty_expiry`) |
 | ts | timestamptz | no | now() | created/updated |
 
-Index: `UNIQUE(asset_tag)`, `idx_assets_office_id`, `idx_assets_status`, `idx_assets_category_id`, `idx_assets_holder`, `idx_assets_class` 🆕.
+Index: `UNIQUE(asset_tag)`, `idx_assets_office_id`, `idx_assets_status`, `idx_assets_category_id`, `idx_assets_holder`, `idx_assets_class` 🆕, `idx_assets_floor_id` 🆕LP, `idx_assets_pic_employee_id` 🆕LP.
 
 > 🆕 v1.1 (migrasi 000016): kolom akuntansi/pajak & intangible ditambah via `ALTER TABLE`; `room_id`
-> dilonggarkan jadi nullable. **Aturan integritas:** aset `tangible` **wajib** `room_id` (CHECK
-> `asset_class='intangible' OR room_id IS NOT NULL`); aset `intangible` tak punya `room_id`/barcode/stock-opname.
+> dilonggarkan jadi nullable.
+>
+> 🆕LP (legacy-parity, migrasi `000039`): kolom `floor_id`/`pic_employee_id`/`capacity`/`lease_date`/
+> `installation_date`/`warranty_start` ditambah, dan **CHECK lokasi dilonggarkan** — aset `tangible`
+> kini wajib **lantai ATAU ruangan** (`chk_assets_tangible_location`: `asset_class='intangible' OR
+> floor_id IS NOT NULL OR room_id IS NOT NULL`), menggantikan aturan "wajib `room_id`" sebelumnya.
+> Aset `intangible` tetap tak punya lokasi/barcode/stock-opname.
 
 #### `asset_attachments` — file di MinIO
 | id uuid PK · asset_id uuid **FK** assets `ON DELETE CASCADE` · kind attachment_kind · object_key text · thumbnail_key text? · original_filename text · size_bytes bigint · mime_type text · created_by_id uuid? **FK** users · created_at timestamptz |
 
 Index: `idx_attachments_asset_id`.
+
+#### `asset_location_history` 🆕LP — riwayat perpindahan lokasi (migrasi `000041`)
+Satu baris per perpindahan lokasi aset (registrasi, edit, mutasi/transfer, migrasi data).
+
+| Kolom | Tipe | Null | Keterangan |
+|---|---|---|---|
+| id | uuid | no | **PK** |
+| asset_id | uuid | no | **FK** assets `ON DELETE CASCADE` |
+| office_id | uuid | no | **FK** offices — kantor pada saat itu |
+| floor_id | uuid? | yes | **FK** floors |
+| room_id | uuid? | yes | **FK** rooms |
+| source | location_change_source | no | enum `registration`/`edit`/`transfer`/`migration` |
+| transfer_id | uuid? | yes | **FK** asset_transfers — diisi bila `source='transfer'` |
+| moved_by_id | uuid? | yes | **FK** users — aktor |
+| note | text? | yes | |
+| moved_at | timestamptz | no | default now() |
+
+Index: `idx_alh_asset_id` (asset_id, moved_at desc). Penulis: create executor (`registration`), `Update` service (`edit`, saat floor/room berubah), transfer `Receive` (`transfer`).
+
+#### `asset_pic_history` 🆕LP — riwayat PIC/penanggung jawab (migrasi `000041`)
+Satu baris per periode PIC; **partial-unique** memastikan hanya satu PIC aktif per aset.
+
+| Kolom | Tipe | Null | Keterangan |
+|---|---|---|---|
+| id | uuid | no | **PK** |
+| asset_id | uuid | no | **FK** assets `ON DELETE CASCADE` |
+| pic_employee_id | uuid | no | **FK** employees |
+| assigned_by_id | uuid? | yes | **FK** users — aktor |
+| assigned_at | timestamptz | no | default now() — mulai periode |
+| released_at | timestamptz? | yes | akhir periode (NULL = PIC aktif) |
+
+Index: `idx_aph_asset_id`, partial `UNIQUE(asset_id) WHERE released_at IS NULL` (satu PIC aktif). Penulis: create executor + `Update` service (tutup periode aktif, buka periode baru saat PIC berubah).
 
 #### `assignments` — check-out / check-in
 | Kolom | Tipe | Null | Keterangan |
@@ -722,7 +814,9 @@ Index: partial `UNIQUE(asset_id)`, `idx_disposal_date`. Saat final: `assets.stat
 | requests | `idx_requests_status_type`, `idx_requests_office_id`, `idx_requests_requester`, `idx_requests_decided_by`, `idx_requests_target` |
 | audit_logs | `idx_audit_entity(entity_type, entity_id)`, `idx_audit_actor`, `idx_audit_created_at` |
 | import_jobs | `idx_import_created_by`, `idx_import_status` |
-| asset_tag_counters | `UNIQUE(office_id, category_id, year)`, `idx_atc_office`, `idx_atc_category` |
+| asset_location_history 🆕LP | `idx_alh_asset_id(asset_id, moved_at desc)` |
+| asset_pic_history 🆕LP | `idx_aph_asset_id`, partial `UNIQUE(asset_id) WHERE released_at IS NULL` |
+| building_classifications 🆕LP | `UNIQUE(code)` (partial); CHECK `max_floors IS NULL OR max_floors >= min_floors` |
 | app_settings 🆕 | `UNIQUE(key)` |
 | approval_thresholds 🆕 | `UNIQUE(request_type, amount_from, step_order)`, `idx_apprthr_type` |
 | request_approvals 🆕 | `UNIQUE(request_id, step_order)`, `idx_reqappr_request`, `idx_reqappr_approver` |
@@ -734,36 +828,42 @@ Index: partial `UNIQUE(asset_id)`, `idx_disposal_date`. Saat final: `assets.stat
 
 ### 4.7 Generator `asset_tag` (kode aset)
 
-**Format:** `<kode_kantor>-<kode_kategori>-<tahun_beli>-<seq5>`
+**Format:** `{kode_kantor}{kode_kategori}{tahun_beli}{seq5}` (tanpa pemisah; diubah dari format
+lama ber-`-` di migrasi `000040`)
 - `kode_kantor` = `offices.code` (kantor aset)
 - `kode_kategori` = `categories.code`
-- `tahun_beli` = tahun dari `assets.purchase_date` (4 digit)
-- `seq5` = nomor urut **5 digit** (zero-padded), berjalan **per kantor & kategori**, **direset tiap tahun**
+- `tahun_beli` = tahun dari `assets.purchase_date` (4 digit; fallback tahun pembuatan bila kosong)
+- `seq5` = nomor urut **5 digit** (zero-padded), berjalan **per KANTOR** (bukan per kategori/tahun),
+  **tidak direset per tahun** — kategori & tahun hanya bagian deskriptif string
 
-Contoh: `JKT01-ELK-2026-00001`, `JKT01-ELK-2026-00002`; di kantor lain `JKT02-ELK-2026-00001` (tiap kantor mulai dari `00001`); tahun `2027` mulai `00001` lagi.
+Contoh: `JKT01ELK202600001`, `JKT01KEN202700002` (deret per-kantor berjalan lintas kategori & tahun);
+kantor lain punya deret sendiri.
 
-**Tabel counter** — sumber kebenaran nomor urut (dikecualikan dari soft delete; ini helper sequence):
+**Sumber nomor urut:** kolom `assets.tag_seq` (int, **NULLABLE**) per aset — bukan lagi tabel counter
+terpisah (`asset_tag_counters` **dihapus** di `000040`). Alokasi:
+`next = COALESCE(MAX(tag_seq), 0) + 1` atas semua baris **kantor PENERBIT** (`tag_office_id`) tsb
+**termasuk yang soft-delete** (menahan nomornya) tetapi bukan yang hard-delete — nomor teratas bisa
+dipakai lagi hanya bila baris teratas di-hard-delete. `tag_seq` NULLABLE: jalur create auto/import
+selalu mengisinya; INSERT langsung (seed/test/migrasi data) boleh NULL, dan `COALESCE(MAX,0)`
+mengabaikan NULL.
 
-| Kolom | Tipe | Null | Keterangan |
-|---|---|---|---|
-| id | uuid | no | **PK** |
-| office_id | uuid | no | **FK** offices |
-| category_id | uuid | no | **FK** categories |
-| year | int | no | tahun |
-| last_seq | int | no | nomor urut terakhir terpakai |
+> ⚠️ **Kunci deret adalah `tag_office_id`, BUKAN `office_id`** (migrasi `000046`). `office_id` berubah
+> saat **mutasi**: aset yang dipindah membawa serta `tag_seq`-nya, sehingga `MAX` kantor asal TURUN dan
+> pembuatan berikutnya akan **menerbitkan ulang** nomor yang sudah tertanam di tag aset yang dimutasi —
+> menghasilkan `asset_tag` duplikat (23505) bila kategori & tahun kebetulan sama, sekaligus melanggar
+> aturan "nomor tak dipakai ulang". `tag_office_id` diisi saat create dan tak pernah diubah mutasi.
+> `COALESCE(tag_office_id, office_id)` menjaga baris pra-`000046`.
 
-Index: `UNIQUE(office_id, category_id, year)`.
-
-**Generasi atomik** (aman dari race tanpa perlu lock eksternal):
+**Generasi** (di dalam transaksi create; advisory lock per-kantor menggantikan upsert counter):
 ```sql
-INSERT INTO asset_tag_counters (office_id, category_id, year, last_seq)
-VALUES ($office_id, $category_id, $year, 1)
-ON CONFLICT (office_id, category_id, year)
-DO UPDATE SET last_seq = asset_tag_counters.last_seq + 1
-RETURNING last_seq;
--- asset_tag = format('%s-%s-%s-%05d', office_code, category_code, year, last_seq)
+SELECT pg_advisory_xact_lock(hashtext('asset_tag'), hashtext($office_id::text));  -- serialisasi per kantor
+SELECT COALESCE(MAX(tag_seq), 0)::int FROM asset.assets
+WHERE COALESCE(tag_office_id, office_id) = $office_id;  -- => maxSeq (kantor PENERBIT)
+-- tag_seq   = maxSeq + 1
+-- asset_tag = format('%s%s%d%05d', office_code, category_code, year, tag_seq)
 ```
-`UNIQUE(asset_tag)` (partial) berlaku sebagai jaring pengaman. Redis lock **tidak diperlukan** karena upsert+`RETURNING` sudah atomik per baris.
+Lock dipegang sampai transaksi commit/rollback, jadi dua create serempak di kantor sama tak pernah
+mengambil nomor yang sama. `UNIQUE(asset_tag)` (partial) tetap jadi jaring pengaman.
 
 **Catatan:**
 - `purchase_date` **wajib** saat auto-generate (untuk `tahun_beli`); bila aset diinput tanpa tanggal beli, sistem meminta tahun atau memakai tahun berjalan.
@@ -804,7 +904,7 @@ Tiap fase roadmap (PRD bagian 10) menambah migrasi `golang-migrate` di `backend/
 | `000005_seed_identity` | 2 | seed: 5 peran sistem, default data_scope_policies, RBAC (45 izin) ✅ |
 | `000006_masterdata` | 3 | `masterdata`: provinces, cities, office_types, departments, positions, vendors, brands, models, categories, maintenance_categories, problem_categories, units ✅ |
 | `000007_offices_employees` | 3 | `masterdata`: offices, floors, rooms, employees + FK `identity.users.{employee_id,office_id}` ✅ |
-| `000008_asset` | 4 | `asset`: assets, asset_attachments, asset_tag_counters ✅ |
+| `000008_asset` | 4 | `asset`: assets, asset_attachments, asset_tag_counters (dihapus di `000040`) ✅ |
 | `000009_import` | 4 | `import`: import_jobs ✅ |
 | `000010_approval` | 5 | `approval`: requests (maker-checker, SoD check) ✅ |
 | `000011_assignment` | 6 | `assignment`: assignments (1 aktif/aset) ✅ |
@@ -816,8 +916,11 @@ Tiap fase roadmap (PRD bagian 10) menambah migrasi `golang-migrate` di `backend/
 | **`000023_depreciation_periods`** 🆕 | v1.1 | `depreciation`: tabel `depreciation_periods` (state machine `open`/`computed`/`closed`, ringkasan run) + enum `shared.depreciation_period_status`; seed `app_settings` key `depreciation.accumulated_gl_account` + permission `depreciation.view`/`depreciation.manage` ✅ |
 | **`000024_asset_impaired_floor`** 🆕 | v1.1 | `asset.assets.impaired_book_value numeric(18,2)` (nullable) — floor nilai buku stabil yang HANYA ditulis oleh impairment (PSAK 48) dan dikonsumsi engine sebagai titik resume; memisahkan sinyal impairment dari `book_value` turunan agar recompute tetap idempotent. Tidak diekspos di respons Aset (internal) ✅ |
 | `000025`–`000033` | v1.1+ | migrasi inkremental modul-modul setelahnya (import, account security, dsb.) — lihat riwayat migrasi untuk detail per-file |
+| `000036_user_avatar` · `000037_asset_financial_field_perms` | v1.1+ | `users.avatar_url`; seed field-permission finansial aset |
 | **`000034_notification_module`** 🆕 | notif | skema **baru** `notification`: `outbox` (transactional outbox — event bisnis se-transaksi) + `notifications` (feed per-user), enum `shared.notification_type`, 4 index partial (`uq_notif_dedup` menopang consumer at-least-once). Lihat [ADR-0014](adr/0014-notification-delivery.md) ✅ |
 | **`000035_notification_outbox_lookup_index`** 🆕 | notif | `notification.idx_outbox_event_aggregate` partial `(event_type, aggregate_id) WHERE deleted_at IS NULL` — menopang guard idempotensi sisi-outbox sweeper (mencari baris yang SUDAH dipublish; `idx_outbox_unpublished` partial pada `published_at IS NULL` tak bisa melayaninya) ✅ |
+| **`000038`–`000045`** 🆕LP | legacy-parity | penyelarasan model data ke sistem lama (spec 2026-07-23). `000038` enum `office_ownership`/`office_kind`/`location_change_source`; `000039` kolom aset (`floor_id`/`pic_employee_id`/`capacity`/`lease_date`/`installation_date`/`warranty_start`) + longgarkan CHECK lokasi (`chk_assets_tangible_location`); `000040` `assets.tag_seq` + re-tag + **drop `asset_tag_counters`**; `000041` `asset_location_history` + `asset_pic_history`; `000042` master `office_classes`/`executor_divisions`(+seed 5)/`companies`/`building_classifications`; `000043` 9 kolom `offices`; `000044` `employees.{company_id,executor_division_id}` + `departments.office_id` (per-kantor); `000045` `users.username` (login NIP-atau-email) ✅ |
+| **`000046_asset_tag_office`** 🆕LP | legacy-parity | `asset.assets.tag_office_id` (FK offices) + backfill dari `office_id` + index `(tag_office_id, tag_seq)`. Memperbaiki bug nyata: deret nomor tag di-kunci pada `office_id` yang BERUBAH saat mutasi, sehingga nomor bisa terbit ulang dan menghasilkan `asset_tag` duplikat (lihat bagian 4.7) ✅ |
 
 > **Strategi greenfield (PRD v1.1).** Karena belum ada data, perubahan v1.1 untuk tabel/enum yang
 > **sudah ada** di-bake **in-place ke migrasi awal** (bukan migrasi `ALTER` terpisah):
@@ -853,7 +956,7 @@ Tiap fase roadmap (PRD bagian 10) menambah migrasi `golang-migrate` di `backend/
 - **~~DB-Q1~~ (final)** — `email` memakai `citext` (case-insensitive; extension `citext`).
 - **~~DB-Q3~~ (final)** — `audit_logs` & `import_jobs` tabel biasa (tanpa partisi); ditinjau ulang saat volume besar.
 - **~~DB-Q4~~ (final)** — `created_by` hanya pada tabel operasional; `updated_by` tidak dipakai (audit via `audit_logs`).
-- **~~DB-Q5~~ (final)** — Sequence `asset_tag` di-key **(kantor, kategori, tahun)** — tiap kantor punya urutan terpisah.
+- **~~DB-Q5~~ (final, direvisi 000040)** — Sequence `asset_tag` kini **per-kantor** (kolom `assets.tag_seq`, `MAX+1` + advisory lock), **tidak** lagi di-key per kategori/tahun dan tidak direset per tahun. Format string tetap memuat kategori & tahun (deskriptif). Tabel `asset_tag_counters` dihapus.
 
 **Keputusan v1.1 (Bank Fixed Asset Management) 🆕:**
 - **Penyusutan dua basis** — `depreciation_entries.basis` (`commercial`/`fiscal`); parameter fiskal dari

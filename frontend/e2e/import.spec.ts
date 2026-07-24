@@ -84,7 +84,7 @@ async function login_(api: APIRequestContext, email: string, password: string): 
 // approval.spec.ts's `loginAs`).
 async function loginAs(page: Page, email: string, password: string): Promise<void> {
   await page.goto('/login')
-  await page.locator('input[type="email"]').fill(email)
+  await page.locator('input[name="email"]').fill(email)
   await page.locator('input[type="password"]').fill(password)
   await page.getByRole('button', { name: 'Masuk', exact: true }).click()
   await expect(page).toHaveURL(/\/$/)
@@ -328,6 +328,9 @@ test.describe('Bulk Import — real backend (asset + employee e2e)', () => {
     // fresh (CI) DB, best-effort on an accumulated local dev DB.
     await page.goto('/master/employees')
     await expect(page.getByRole('heading', { name: 'Pegawai', exact: true })).toBeVisible({ timeout: 10_000 })
+    // The page loads four FK lists after mount (legacy-parity Fase 6); the filter
+    // bar re-renders as each lands and detaches the search input mid-fill. Settle first.
+    await page.waitForLoadState('networkidle')
     await page.getByPlaceholder('Cari nama atau NIP…', { exact: true }).fill(nameA)
     await expect(page.getByText(nameA, { exact: true })).toBeVisible({ timeout: 10_000 })
   })

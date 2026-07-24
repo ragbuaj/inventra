@@ -10,7 +10,9 @@ import (
 )
 
 type loginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
+	// Email holds the login identifier — an email OR a username/NIP (Fase 7), so the
+	// `email` validator is intentionally dropped. Field name kept for API compatibility.
+	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
