@@ -120,8 +120,24 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >   `departments` ditambah ke katalog). Test integrasi scope departemen ditambah. **Follow-up UI:** layar
 >   Referensi masih gated `global.manage` — role office-manager belum punya UI kelola departemen sendiri
 >   (backend sudah mendukung).
-> - **Berikutnya:** siapkan PR `feat/legacy-parity-data-model`. Migrasi produksi `000038`–`000045` perlu
->   dijalankan saat rilis; `redis-cli FLUSHALL` bila seed/authz berubah ([[seed-flush-redis-authz]]).
+> - **PR [#118](https://github.com/ragbuaj/inventra/pull/118) dibuka — SEMUA CI HIJAU** (backend,
+>   backend-integration, frontend, e2e, mobile, api-docs). Menstabilkan CI menemukan **3 bug produksi**
+>   yang lolos semua gate lain:
+>   1. **Import kantor gagal total** — `office/importer.go` memanggil `CreateOffice` tanpa `OfficeKind`,
+>      mengirim `''` ke kolom NOT NULL (fase 5). Ditambah test integrasi eksekusi import kantor
+>      (sebelumnya tak ada satu pun) yang diverifikasi gagal tanpa fix.
+>   2. **Halaman Pegawai 500** — `watch(() => form.office_id, ...)` diletakkan SEBELUM `const form`;
+>      `watch` memanggil getter seketika sehingga membaca `form` di temporal dead zone. Plus `USelect`
+>      menolak item bernilai `''` (dipakai fase 6 di 3 select + form Kantor) — diganti sentinel `NONE`.
+>   3. **Kode aset bisa DUPLIKAT setelah mutasi** (paling serius, migrasi `000046`): deret nomor
+>      di-kunci pada `office_id` yang BERUBAH saat mutasi, sehingga nomor terbit ulang dan bentrok
+>      dengan tag aset yang dimutasi. Diperbaiki dengan kolom `tag_office_id` (kantor PENERBIT, tak
+>      pernah diubah mutasi). Test regresi diverifikasi gagal tanpa fix.
+>   Seed demo juga diselaraskan (urutan reset FK riwayat, `asset_tag_counters` yang sudah di-drop,
+>   format tag + `tag_seq`). Observability: `common.WriteError` kini mencatat error asli tiap 500
+>   (sebelumnya dibuang total) dan job e2e membuang log backend saat gagal.
+> - **Berikutnya:** review/merge PR #118. Migrasi produksi `000038`–`000046` perlu dijalankan saat
+>   rilis; `redis-cli FLUSHALL` bila seed/authz berubah ([[seed-flush-redis-authz]]).
 >
 > 1. ~~**Bring the dev stack up, reset & migrate**~~ ✅ **DONE (2026-06-27).**
 > 2. ~~**#6 Kategori Aset screen**~~ ✅ **DONE.**
