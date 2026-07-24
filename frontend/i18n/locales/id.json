@@ -1705,6 +1705,10 @@
       "approval_decided": "Pengajuan {request_type} Anda telah {status}",
       "maintenance_due": "Maintenance {asset_name} ({asset_tag}) jatuh tempo {due_date}",
       "asset_returned": "Aset {asset_name} ({asset_tag}) telah dikembalikan",
+      "transfer_approved": "Mutasi {asset_name} ({asset_tag}) disetujui dan siap dikirim",
+      "transfer_in_transit": "Aset {asset_name} ({asset_tag}) sedang menuju kantor Anda — menunggu penerimaan",
+      "transfer_received": "Mutasi {asset_name} ({asset_tag}) telah diterima",
+      "transfer_returned": "Mutasi {asset_name} ({asset_tag}) ditolak dan dikembalikan",
       "unknown": "Notifikasi baru"
     }
   },

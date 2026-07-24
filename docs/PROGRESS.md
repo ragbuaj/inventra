@@ -17,6 +17,19 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
+> **Notifikasi tahap mutasi (2026-07-25) — SELESAI (kode, belum commit).** Menutup celah: kantor tujuan
+> tak pernah dinotifikasi saat aset masuk. Tambah 4 event outbox di `internal/transfer` (`events.go` baru:
+> `transfer_approved`/`transfer_in_transit`/`transfer_received`/`transfer_returned`) — di-enqueue di
+> `executor.go` (approved) dan `service.go` (Ship ke in_transit, Receive ke received, RejectReceive ke
+> returned; Ship & RejectReceive dibungkus transaksi agar event senasib dengan perubahan status).
+> Consumer `internal/notification/consumer.go`: 4 handler + `transferRecipients` (izin `transfer.manage`
+> + scope `transfers`, pola `maintenanceRecipients`) — kantor asal dapat approved/received/returned,
+> **kantor tujuan dapat in_transit**. Migrasi `000048` (ALTER TYPE notification_type +4 nilai), i18n id/en
+> (`notifications.item.transfer_*`). Tes integrasi `transfer_notification_integration_test.go` (lifecycle +
+> reject; assert tiap tahap ke office yang benar, bocor ke office lain = gagal). **Gate:** `go build/vet/test`
+> hijau penuh; integrasi compile (`-tags=integration`), dijalankan CI. Belum ada notifikasi email/push
+> (kanal terpisah, belum dibangun).
+>
 > **UX batch 2 (2026-07-24, branch `feat/request-pages-list-first-ux`) — SELESAI (kode).** Tujuh
 > permintaan user: (1) **urutan input form pegawai** diubah jadi Kantor lalu Departemen lalu Jabatan
 > (`master/employees.vue`) supaya alur dependensi benar (departemen ter-scope ke kantor, sebelumnya

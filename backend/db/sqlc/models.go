@@ -718,10 +718,14 @@ func (ns NullSharedMaintenanceType) Value() (driver.Value, error) {
 type SharedNotificationType string
 
 const (
-	SharedNotificationTypeApprovalPending SharedNotificationType = "approval_pending"
-	SharedNotificationTypeApprovalDecided SharedNotificationType = "approval_decided"
-	SharedNotificationTypeMaintenanceDue  SharedNotificationType = "maintenance_due"
-	SharedNotificationTypeAssetReturned   SharedNotificationType = "asset_returned"
+	SharedNotificationTypeApprovalPending   SharedNotificationType = "approval_pending"
+	SharedNotificationTypeApprovalDecided   SharedNotificationType = "approval_decided"
+	SharedNotificationTypeMaintenanceDue    SharedNotificationType = "maintenance_due"
+	SharedNotificationTypeAssetReturned     SharedNotificationType = "asset_returned"
+	SharedNotificationTypeTransferApproved  SharedNotificationType = "transfer_approved"
+	SharedNotificationTypeTransferInTransit SharedNotificationType = "transfer_in_transit"
+	SharedNotificationTypeTransferReceived  SharedNotificationType = "transfer_received"
+	SharedNotificationTypeTransferReturned  SharedNotificationType = "transfer_returned"
 )
 
 func (e *SharedNotificationType) Scan(src interface{}) error {

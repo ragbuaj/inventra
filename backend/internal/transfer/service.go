@@ -146,9 +146,31 @@ func (s *Service) Ship(ctx context.Context, all bool, ids []uuid.UUID, id uuid.U
 	if !shipped.Valid {
 		shipped = pgtype.Date{Time: time.Now(), Valid: true}
 	}
-	out, err := s.q.SetTransferShipped(ctx, sqlc.SetTransferShippedParams{ID: id, ShippedDate: shipped})
+
+	// The state change and its notification share one tx: an in_transit that
+	// committed while the event was lost would leave the destination office
+	// with no signal that an asset is on its way to them.
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return cur, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	qtx := s.q.WithTx(tx)
+
+	out, err := qtx.SetTransferShipped(ctx, sqlc.SetTransferShippedParams{ID: id, ShippedDate: shipped})
 	if err != nil {
 		return cur, mapDBError(err)
+	}
+	// Notify the destination office an asset is incoming and awaiting receipt.
+	ev, err := s.transferEventFor(ctx, qtx, out)
+	if err != nil {
+		return cur, err
+	}
+	if err := s.enqueueTransferEvent(ctx, qtx, EventTransferInTransit, ev); err != nil {
+		return cur, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return cur, err
 	}
 	return out, nil
 }
@@ -211,6 +233,14 @@ func (s *Service) Receive(ctx context.Context, all bool, ids []uuid.UUID, receiv
 	}); err != nil {
 		return before, before, mapDBError(err)
 	}
+	// Notify the origin office the transfer was received (asset relocated).
+	ev, err := s.transferEventFor(ctx, qtx, after)
+	if err != nil {
+		return before, before, err
+	}
+	if err := s.enqueueTransferEvent(ctx, qtx, EventTransferReceived, ev); err != nil {
+		return before, before, err
+	}
 	if err = tx.Commit(ctx); err != nil {
 		return before, before, err
 	}
@@ -230,7 +260,15 @@ func (s *Service) RejectReceive(ctx context.Context, all bool, ids []uuid.UUID, 
 	if cur.Status != sqlc.SharedTransferStatusInTransit {
 		return cur, ErrInvalidState
 	}
-	out, err := s.q.SetTransferReturned(ctx, sqlc.SetTransferReturnedParams{
+	// The state change and its notification share one tx (same reasoning as Ship).
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return cur, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	qtx := s.q.WithTx(tx)
+
+	out, err := qtx.SetTransferReturned(ctx, sqlc.SetTransferReturnedParams{
 		ID: id, ReturnNote: note, ActorID: &actor,
 	})
 	if err != nil {
@@ -238,6 +276,17 @@ func (s *Service) RejectReceive(ctx context.Context, all bool, ids []uuid.UUID, 
 			return cur, ErrInvalidState // status raced away from in_transit
 		}
 		return cur, mapDBError(err)
+	}
+	// Notify the origin office the shipment was declined and returned.
+	ev, err := s.transferEventFor(ctx, qtx, out)
+	if err != nil {
+		return cur, err
+	}
+	if err := s.enqueueTransferEvent(ctx, qtx, EventTransferReturned, ev); err != nil {
+		return cur, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return cur, err
 	}
 	return out, nil
 }

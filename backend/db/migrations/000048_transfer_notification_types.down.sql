@@ -1,0 +1,4 @@
+-- shared.notification_type intentionally keeps the transfer_* values on the way
+-- down (harmless). PostgreSQL cannot DROP an enum value without recreating the
+-- type and rewriting every dependent column, which is far riskier than leaving
+-- four unused labels in place. Mirrors 000022's down migration for transfer_status.

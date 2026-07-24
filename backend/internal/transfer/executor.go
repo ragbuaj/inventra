@@ -87,8 +87,21 @@ func (e transferExec) Execute(ctx context.Context, qtx *sqlc.Queries, req sqlc.A
 		}
 		params.TransferDate = pgtype.Date{Time: td, Valid: true}
 	}
-	_, err = qtx.CreateTransfer(ctx, params)
-	return err
+	created, err := qtx.CreateTransfer(ctx, params)
+	if err != nil {
+		return err
+	}
+	// Notify the origin office the transfer is approved and ready to ship. Enqueued
+	// in the same commit tx as the transfer row, so it shares its fate. asset (loaded
+	// above) supplies the tag/name the notification renders.
+	return e.s.enqueueTransferEvent(ctx, qtx, EventTransferApproved, TransferEvent{
+		TransferID:   created.ID,
+		AssetID:      created.AssetID,
+		AssetTag:     asset.AssetTag,
+		AssetName:    asset.Name,
+		FromOfficeID: created.FromOfficeID,
+		ToOfficeID:   created.ToOfficeID,
+	})
 }
 
 // Executor returns the asset_transfer approval executor.
