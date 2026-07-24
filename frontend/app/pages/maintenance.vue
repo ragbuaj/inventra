@@ -507,7 +507,7 @@ onMounted(async () => {
           {{ attentionItems.length }}
         </UBadge>
       </div>
-      <div class="flex flex-col gap-2 max-h-[360px] overflow-y-auto pr-1">
+      <div class="flex flex-col gap-2 max-h-[200px] overflow-y-auto pr-1">
         <div
           v-for="item in attentionItems"
           :key="item.id"

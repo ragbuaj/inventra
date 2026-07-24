@@ -506,7 +506,30 @@ onUnmounted(() => {
           />
         </UFormField>
 
-        <!-- Row 3: Departemen + Jabatan -->
+        <!-- Row 3: Kantor + scope note (comes first — department options are
+             scoped to the chosen office, so office must be picked before the
+             department/position row below). -->
+        <UFormField :label="t('masterdata.employees.fields.office')">
+          <AsyncSearchPicker
+            :model-value="form.office_id || null"
+            :search-fn="office.searchFn"
+            :resolve-fn="office.resolveFn"
+            :placeholder="t('common.searchOffice')"
+            testid="office"
+            @update:model-value="form.office_id = $event ?? ''"
+          />
+          <template #hint>
+            <span class="flex items-center gap-1 text-xs text-dimmed mt-1">
+              <UIcon
+                name="i-lucide-lock"
+                class="size-3"
+              />
+              {{ t('masterdata.employees.scopeNote') }}
+            </span>
+          </template>
+        </UFormField>
+
+        <!-- Row 4: Departemen + Jabatan -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">
           <UFormField
             :label="t('masterdata.employees.fields.departemen')"
@@ -533,27 +556,6 @@ onUnmounted(() => {
             />
           </UFormField>
         </div>
-
-        <!-- Row 4: Kantor + scope note -->
-        <UFormField :label="t('masterdata.employees.fields.office')">
-          <AsyncSearchPicker
-            :model-value="form.office_id || null"
-            :search-fn="office.searchFn"
-            :resolve-fn="office.resolveFn"
-            :placeholder="t('common.searchOffice')"
-            testid="office"
-            @update:model-value="form.office_id = $event ?? ''"
-          />
-          <template #hint>
-            <span class="flex items-center gap-1 text-xs text-dimmed mt-1">
-              <UIcon
-                name="i-lucide-lock"
-                class="size-3"
-              />
-              {{ t('masterdata.employees.scopeNote') }}
-            </span>
-          </template>
-        </UFormField>
 
         <!-- Legacy-parity Fase 6: perusahaan + divisi pelaksana -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">

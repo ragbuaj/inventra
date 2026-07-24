@@ -151,6 +151,16 @@ async function mountAndWait() {
   return wrapper
 }
 
+// The page lands on the Riwayat view; the "Ajukan Penghapusan" form is a
+// full-view swap reached via the "Buat Pengajuan" button. Form-focused tests
+// open it first.
+async function mountFormAndWait() {
+  const wrapper = await mountAndWait()
+  await wrapper.find('[data-testid="disposal-create"]').trigger('click')
+  await wrapper.vm.$nextTick()
+  return wrapper
+}
+
 type Wrapper = Awaited<ReturnType<typeof mountAndWait>>
 
 async function setVmRef(wrapper: Wrapper, key: string, value: unknown) {
@@ -161,7 +171,10 @@ async function setVmRef(wrapper: Wrapper, key: string, value: unknown) {
 }
 
 function clickTab(wrapper: Wrapper, key: 'ajukan' | 'history') {
-  return wrapper.find(`[data-testid="disposal-tab-${key}"]`).trigger('click')
+  if (key === 'ajukan') return wrapper.find('[data-testid="disposal-create"]').trigger('click')
+  // History is the default landing view; return to it via Back if the form is open.
+  const back = wrapper.find('[data-testid="disposal-back"]')
+  return back.exists() ? back.trigger('click') : wrapper.vm.$nextTick()
 }
 
 function bodyButton(testid: string): HTMLButtonElement {
@@ -206,7 +219,7 @@ beforeEach(() => {
 
 describe('pages/disposals — Ringkasan Valuasi', () => {
   it('renders acquisition, accumulated depreciation and book value once an asset is selected', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     expect(w.find('[data-testid="disposal-valuation-acquisition"]').text()).toContain('6.800.000')
     expect(w.find('[data-testid="disposal-valuation-accum"]').text()).toContain('6.120.000')
@@ -214,7 +227,7 @@ describe('pages/disposals — Ringkasan Valuasi', () => {
   })
 
   it('renders masked "•••" for absent money fields instead of Rp 0', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_MASKED)
     expect(w.find('[data-testid="disposal-valuation-acquisition"]').text()).toContain('•••')
     expect(w.find('[data-testid="disposal-valuation-accum"]').text()).toContain('•••')
@@ -222,7 +235,7 @@ describe('pages/disposals — Ringkasan Valuasi', () => {
   })
 
   it('shows "—" for the fiscal book value chip when the schedule has no fiscal entries yet', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     expect(depAssetScheduleMock).toHaveBeenCalledWith('a1')
     expect(w.find('[data-testid="disposal-valuation-book-fiscal"]').text()).toBe('—')
@@ -237,14 +250,14 @@ describe('pages/disposals — Ringkasan Valuasi', () => {
         { basis: 'commercial', period: '2026-05', opening: '700000', amount: '20000', closing: '680000', method: 'straight_line' }
       ]
     }))
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     expect(w.find('[data-testid="disposal-valuation-book-fiscal"]').text()).toContain('680.000')
   })
 
   it('prefers the schedule\'s computed_book_value over the asset\'s stale book_value column for the commercial cell', async () => {
     depAssetScheduleMock.mockResolvedValue(scheduleResp({ computed_book_value: '555000' }))
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     expect(w.find('[data-testid="disposal-valuation-book-commercial"]').text()).toContain('555.000')
   })
@@ -252,18 +265,18 @@ describe('pages/disposals — Ringkasan Valuasi', () => {
 
 describe('pages/disposals — Laba/Rugi card', () => {
   it('shows the empty state when no asset is selected', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     expect(w.find('[data-testid="disposal-gainloss-empty"]').exists()).toBe(true)
   })
 
   it('shows the empty state when an asset is selected but no proceeds are entered', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     expect(w.find('[data-testid="disposal-gainloss-empty"]').exists()).toBe(true)
   })
 
   it('renders a green gain (+ Rp) when proceeds exceed book value', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     await setVmRef(w, 'proceedsRaw', '1500000')
     const value = w.find('[data-testid="disposal-gainloss-value"]')
@@ -272,7 +285,7 @@ describe('pages/disposals — Laba/Rugi card', () => {
   })
 
   it('renders a red loss (− Rp) when proceeds are below book value', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_RUGI)
     await setVmRef(w, 'proceedsRaw', '50000000')
     const value = w.find('[data-testid="disposal-gainloss-value"]')
@@ -281,7 +294,7 @@ describe('pages/disposals — Laba/Rugi card', () => {
   })
 
   it('renders a neutral break-even when proceeds equal book value', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     await setVmRef(w, 'proceedsRaw', '680000')
     const value = w.find('[data-testid="disposal-gainloss-value"]')
@@ -295,7 +308,7 @@ describe('pages/disposals — Laba/Rugi card', () => {
     // (gain_loss from BookValueAsOf), i.e. 1500000 − 500000 = 1000000, not
     // the stale 1500000 − 680000 = 820000.
     depAssetScheduleMock.mockResolvedValue(scheduleResp({ computed_book_value: '500000' }))
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     await setVmRef(w, 'proceedsRaw', '1500000')
     const value = w.find('[data-testid="disposal-gainloss-value"]')
@@ -307,7 +320,7 @@ describe('pages/disposals — Laba/Rugi card', () => {
   })
 
   it('shows a masked "—" + note when book value is hidden for the caller\'s role', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_BV_MASKED)
     await setVmRef(w, 'proceedsRaw', '1000000')
     expect(w.find('[data-testid="disposal-gainloss-masked"]').text()).toBe('—')
@@ -315,7 +328,7 @@ describe('pages/disposals — Laba/Rugi card', () => {
   })
 
   it('shows "—" for the fiscal gain/loss row when no fiscal entries exist yet', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     await setVmRef(w, 'proceedsRaw', '1500000')
     expect(w.text()).toContain('Laba/rugi fiskal')
@@ -326,7 +339,7 @@ describe('pages/disposals — Laba/Rugi card', () => {
     depAssetScheduleMock.mockResolvedValue(scheduleResp({
       entries: [{ basis: 'fiscal', period: '2026-05', opening: '750000', amount: '70000', closing: '680000', method: 'declining_balance' }]
     }))
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     await setVmRef(w, 'proceedsRaw', '1500000')
     expect(w.find('[data-testid="disposal-gainloss-fiscal-value"]').text()).toContain('820.000')
@@ -335,7 +348,7 @@ describe('pages/disposals — Laba/Rugi card', () => {
 
 describe('pages/disposals — Jenjang Persetujuan (chain) card', () => {
   it('falls back to the acquisition cost for the preview amount when no computed book value exists yet', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     expect(previewMock).toHaveBeenCalledWith('asset_disposal', '6800000')
     expect(w.text()).toContain('berdasar nilai buku')
@@ -346,7 +359,7 @@ describe('pages/disposals — Jenjang Persetujuan (chain) card', () => {
 
   it('mirrors the server\'s basis switch: previews with computed_book_value once the depreciation schedule resolves it', async () => {
     depAssetScheduleMock.mockResolvedValue(scheduleResp({ computed_book_value: '4200000' }))
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     expect(previewMock).toHaveBeenCalledWith('asset_disposal', '4200000')
     expect(w.text()).toContain('berdasar nilai buku')
@@ -355,13 +368,13 @@ describe('pages/disposals — Jenjang Persetujuan (chain) card', () => {
 
   it('falls back to "band belum dikonfigurasi" on a 422 from the preview endpoint', async () => {
     previewMock.mockRejectedValue(Object.assign(new Error('no band'), { statusCode: 422 }))
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     expect(w.find('[data-testid="disposal-chain-not-configured"]').text()).toContain('belum dikonfigurasi')
   })
 
   it('skips the preview call and shows "nilai perolehan tersembunyi" when purchase_cost is masked', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_MASKED)
     expect(previewMock).not.toHaveBeenCalled()
     expect(w.find('[data-testid="disposal-chain-masked"]').text()).toContain('tersembunyi')
@@ -370,7 +383,7 @@ describe('pages/disposals — Jenjang Persetujuan (chain) card', () => {
 
 describe('pages/disposals — Ajukan Penghapusan form', () => {
   it('keeps the right summary column sticky on large screens (mockup parity)', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     const col = w.find('[data-testid="disposal-summary-column"]')
     expect(col.exists()).toBe(true)
     expect(col.classes()).toContain('lg:sticky')
@@ -379,7 +392,7 @@ describe('pages/disposals — Ajukan Penghapusan form', () => {
   })
 
   it('disables submit until asset + date + method are set, then enables it', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     const submit = () => w.find('[data-testid="disposal-submit"]')
     expect(submit().attributes('disabled')).toBeDefined()
 
@@ -391,7 +404,7 @@ describe('pages/disposals — Ajukan Penghapusan form', () => {
   })
 
   it('NumberInput: typing a formatted-looking value into the proceeds field keeps the submitted payload a raw digit-string', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     await w.find('[data-testid="disposal-date"]').setValue('2026-07-04')
 
@@ -409,7 +422,7 @@ describe('pages/disposals — Ajukan Penghapusan form', () => {
   })
 
   it('submits the exact body — book_value_at_disposal is server-computed, never sent by the client', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     await setVmRef(w, 'proceedsRaw', '1500000')
     await w.find('[data-testid="disposal-date"]').setValue('2026-07-04')
@@ -431,7 +444,7 @@ describe('pages/disposals — Ajukan Penghapusan form', () => {
   })
 
   it('submits with proceeds/bast_no null when omitted, still without book_value_at_disposal', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_MASKED)
     await w.find('[data-testid="disposal-date"]').setValue('2026-07-04')
 
@@ -444,7 +457,7 @@ describe('pages/disposals — Ajukan Penghapusan form', () => {
   })
 
   it('switches to the post-submit view showing the summary card on success', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     await setVmRef(w, 'proceedsRaw', '1500000')
     await w.find('[data-testid="disposal-date"]').setValue('2026-07-04')
@@ -458,7 +471,7 @@ describe('pages/disposals — Ajukan Penghapusan form', () => {
 
   it('keeps submit disabled and shows the no-permission note without disposal.manage', async () => {
     grantSession(['disposal.view'])
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     await w.find('[data-testid="disposal-date"]').setValue('2026-07-04')
 
@@ -469,6 +482,82 @@ describe('pages/disposals — Ajukan Penghapusan form', () => {
     await w.find('[data-testid="disposal-submit"]').trigger('click')
     await flushPromises()
     expect(disposalsSubmitMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('pages/disposals — list-first navigation (Buat Pengajuan / Kembali)', () => {
+  it('lands on the Riwayat view by default: history rows + create button, no ajukan form', async () => {
+    const w = await mountAndWait()
+    expect(w.find('[data-testid="disposal-create"]').exists()).toBe(true)
+    // The old tab bar is gone; the form (and its Back button) is not mounted.
+    expect(w.find('[data-testid="disposal-back"]').exists()).toBe(false)
+    expect(w.find('[data-testid="disposal-submit"]').exists()).toBe(false)
+    expect(w.findAll('[data-testid="disposal-history-row"]').length).toBeGreaterThan(0)
+  })
+
+  it('hides the create button while the Ajukan form is open and restores it on Back', async () => {
+    const w = await mountAndWait()
+    expect(w.find('[data-testid="disposal-create"]').exists()).toBe(true)
+
+    await w.find('[data-testid="disposal-create"]').trigger('click')
+    await w.vm.$nextTick()
+    expect(w.find('[data-testid="disposal-create"]').exists()).toBe(false)
+    expect(w.find('[data-testid="disposal-submit"]').exists()).toBe(true)
+
+    await w.find('[data-testid="disposal-back"]').trigger('click')
+    await w.vm.$nextTick()
+    expect(w.find('[data-testid="disposal-create"]').exists()).toBe(true)
+    expect(w.find('[data-testid="disposal-submit"]').exists()).toBe(false)
+  })
+
+  it('the Back button returns to Riwayat without submitting', async () => {
+    const w = await mountFormAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    await w.find('[data-testid="disposal-date"]').setValue('2026-07-04')
+    // Form is now submit-ready — Back must still not submit.
+    expect(w.find('[data-testid="disposal-submit"]').attributes('disabled')).toBeUndefined()
+
+    await w.find('[data-testid="disposal-back"]').trigger('click')
+    await w.vm.$nextTick()
+
+    expect(disposalsSubmitMock).not.toHaveBeenCalled()
+    expect(w.find('[data-testid="disposal-create"]').exists()).toBe(true)
+    expect(w.findAll('[data-testid="disposal-history-row"]').length).toBeGreaterThan(0)
+  })
+
+  it('reopening the Ajukan form clears the previously selected asset', async () => {
+    const w = await mountFormAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    expect(w.find('[data-testid="disposal-valuation"]').exists()).toBe(true)
+
+    await w.find('[data-testid="disposal-back"]').trigger('click')
+    await w.vm.$nextTick()
+    await w.find('[data-testid="disposal-create"]').trigger('click')
+    await w.vm.$nextTick()
+
+    // openAjukan() calls resetForm(), so the reopened form starts blank.
+    expect((w.vm as unknown as { selectedAsset: unknown }).selectedAsset).toBeNull()
+    expect(w.find('[data-testid="disposal-valuation"]').exists()).toBe(false)
+    expect(w.find('[data-testid="disposal-submit"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('Back from the post-submit timeline returns to Riwayat without re-submitting', async () => {
+    const w = await mountFormAndWait()
+    await setVmRef(w, 'selectedAsset', ASSET_LABA)
+    await setVmRef(w, 'proceedsRaw', '1500000')
+    await w.find('[data-testid="disposal-date"]').setValue('2026-07-04')
+    await w.find('[data-testid="disposal-submit"]').trigger('click')
+    await flushPromises()
+    expect(w.text()).toContain('Menunggu Approval')
+    expect(disposalsSubmitMock).toHaveBeenCalledTimes(1)
+
+    // The Back button is still rendered above the post-submit timeline.
+    await w.find('[data-testid="disposal-back"]').trigger('click')
+    await w.vm.$nextTick()
+
+    expect(disposalsSubmitMock).toHaveBeenCalledTimes(1)
+    expect(w.find('[data-testid="disposal-create"]').exists()).toBe(true)
+    expect(w.findAll('[data-testid="disposal-history-row"]').length).toBeGreaterThan(0)
   })
 })
 
@@ -495,7 +584,7 @@ describe('pages/disposals — Timeline Approval Berlapis', () => {
         stepFixture({ step_order: 3, required_level: 'pusat', decision: 'pending' })
       ]
     }))
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     await setVmRef(w, 'proceedsRaw', '1500000')
     await w.find('[data-testid="disposal-date"]').setValue('2026-07-04')
@@ -513,7 +602,7 @@ describe('pages/disposals — Timeline Approval Berlapis', () => {
 
   it('"Ajukan Penghapusan Lain" resets to the empty pre-submit form', async () => {
     approvalGetMock.mockResolvedValue(detailFixture({ current_step: 1, steps: [stepFixture()] }))
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     await w.find('[data-testid="disposal-date"]').setValue('2026-07-04')
     await w.find('[data-testid="disposal-submit"]').trigger('click')
@@ -530,7 +619,7 @@ describe('pages/disposals — Timeline Approval Berlapis', () => {
 
 describe('pages/disposals — evidence dropzone', () => {
   it('uploads each selected file immediately to the asset\'s attachments and renders a chip', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
 
     const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' })
@@ -543,7 +632,7 @@ describe('pages/disposals — evidence dropzone', () => {
   })
 
   it('removes an uploaded chip via remove()', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' })
     const vm = w.vm as unknown as { onEvidenceFileChange: (e: unknown) => Promise<void> }
@@ -558,7 +647,7 @@ describe('pages/disposals — evidence dropzone', () => {
   })
 
   it('is disabled until an asset is selected', async () => {
-    const w = await mountAndWait()
+    const w = await mountFormAndWait()
     expect(w.find('[data-testid="disposal-evidence-dropzone"]').attributes('disabled')).toBeDefined()
     await setVmRef(w, 'selectedAsset', ASSET_LABA)
     expect(w.find('[data-testid="disposal-evidence-dropzone"]').attributes('disabled')).toBeUndefined()

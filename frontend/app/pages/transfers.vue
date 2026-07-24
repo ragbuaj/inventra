@@ -78,8 +78,11 @@ async function toOfficeSearchFn(term: string) {
   return results.filter(r => r.id !== fromOfficeId.value)
 }
 
+// The page lands on the request history; the "Ajukan Mutasi" form is a
+// full-view swap reached via the "Buat Pengajuan" button. "Kotak Masuk"
+// (incoming queue) stays a tab alongside history.
 type TabKey = 'ajukan' | 'inbox' | 'history'
-const tab = ref<TabKey>('ajukan')
+const tab = ref<TabKey>('history')
 
 function fmtDate(iso: string | null): string {
   if (!iso) return '—'
@@ -155,7 +158,6 @@ const condition = ref<TransferCondition>('baik')
 const reason = ref('')
 const submitting = ref(false)
 const ajMsg = ref<{ text: string, type: 'ok' | 'error' } | null>(null)
-let ajTimer: ReturnType<typeof setTimeout> | undefined
 
 const destFloors = ref<Floor[]>([])
 const destRoomsByFloor = ref<Record<string, Room[]>>({})
@@ -227,11 +229,10 @@ async function submitTransfer() {
     const officeLabel = officeNameMap.value.get(toOfficeId.value) ?? toOfficeId.value
     await transfersApi.submit(input)
     resetForm()
-    ajMsg.value = { text: t('transfer.submitSuccess', { name: assetName, office: officeLabel }), type: 'ok' }
-    if (ajTimer) clearTimeout(ajTimer)
-    ajTimer = setTimeout(() => {
-      ajMsg.value = null
-    }, 4500)
+    // Full-view swap: return to the history list after a successful submit;
+    // feedback is delivered via a toast (the in-form banner would be hidden here).
+    tab.value = 'history'
+    toast.add({ title: t('transfer.submitSuccess', { name: assetName, office: officeLabel }), color: 'success' })
     await loadHistory()
   } catch {
     // useApiClient surfaces the error toast
@@ -469,11 +470,22 @@ function onTableContextMenu(e: MouseEvent) {
 // ---------------------------------------------------------------------------
 // Tabs
 // ---------------------------------------------------------------------------
+// "Ajukan Mutasi" is no longer a tab — it is reached via the header button and
+// rendered as a full-view swap. History is the landing view; Kotak Masuk stays.
 const tabs = computed(() => [
-  { key: 'ajukan' as const, label: t('transfer.tabs.ajukan'), icon: 'i-lucide-repeat', badge: 0 },
-  { key: 'inbox' as const, label: t('transfer.tabs.inbox'), icon: 'i-lucide-inbox', badge: inboxRows.value.length },
-  { key: 'history' as const, label: t('transfer.tabs.history'), icon: 'i-lucide-history', badge: 0 }
+  { key: 'history' as const, label: t('transfer.tabs.history'), icon: 'i-lucide-history', badge: 0 },
+  { key: 'inbox' as const, label: t('transfer.tabs.inbox'), icon: 'i-lucide-inbox', badge: inboxRows.value.length }
 ])
+
+function openAjukan() {
+  resetForm()
+  tab.value = 'ajukan'
+}
+
+function backFromAjukan() {
+  resetForm()
+  tab.value = 'history'
+}
 
 onMounted(() => {
   loadLookups()
@@ -481,34 +493,44 @@ onMounted(() => {
   loadHistory()
   loadMyRooms()
 })
-
-onBeforeUnmount(() => {
-  if (ajTimer) clearTimeout(ajTimer)
-})
 </script>
 
 <template>
   <div class="max-w-[1000px] mx-auto">
     <!-- Header -->
-    <div class="mb-[18px]">
-      <h1 class="text-[23px] font-bold tracking-tight mb-[5px]">
-        {{ t('transfer.pageTitle') }}
-      </h1>
-      <div
-        v-if="myOfficeId"
-        data-testid="transfer-my-office"
-        class="flex items-center gap-1.5 text-[13px] font-medium text-muted"
-      >
-        <UIcon
-          name="i-lucide-building-2"
-          class="size-[15px]"
-        />
-        {{ myOfficeLabel }}
+    <div class="flex items-start justify-between gap-3 flex-wrap mb-[18px]">
+      <div>
+        <h1 class="text-[23px] font-bold tracking-tight mb-[5px]">
+          {{ t('transfer.pageTitle') }}
+        </h1>
+        <div
+          v-if="myOfficeId"
+          data-testid="transfer-my-office"
+          class="flex items-center gap-1.5 text-[13px] font-medium text-muted"
+        >
+          <UIcon
+            name="i-lucide-building-2"
+            class="size-[15px]"
+          />
+          {{ myOfficeLabel }}
+        </div>
       </div>
+      <UButton
+        v-if="tab !== 'ajukan'"
+        icon="i-lucide-plus"
+        class="flex-none"
+        data-testid="transfer-create"
+        @click="openAjukan"
+      >
+        {{ t('transfer.createButton') }}
+      </UButton>
     </div>
 
     <!-- Flow legend -->
-    <div class="flex items-center gap-2 flex-wrap px-[15px] py-3 mb-[18px] bg-default border border-default rounded-xl shadow-sm">
+    <div
+      v-if="tab !== 'ajukan'"
+      class="flex items-center gap-2 flex-wrap px-[15px] py-3 mb-[18px] bg-default border border-default rounded-xl shadow-sm"
+    >
       <span class="text-[11px] font-semibold uppercase tracking-wider text-dimmed me-0.5">
         {{ t('transfer.flow.label') }}
       </span>
@@ -535,8 +557,11 @@ onBeforeUnmount(() => {
       </template>
     </div>
 
-    <!-- Tabs -->
-    <div class="flex gap-1 border-b border-default mb-[22px]">
+    <!-- Tabs (hidden while the Ajukan Mutasi form is open) -->
+    <div
+      v-if="tab !== 'ajukan'"
+      class="flex gap-1 border-b border-default mb-[22px]"
+    >
       <button
         v-for="tb in tabs"
         :key="tb.key"
@@ -563,6 +588,19 @@ onBeforeUnmount(() => {
       v-if="tab === 'ajukan'"
       class="max-w-[640px]"
     >
+      <div class="mb-[18px]">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-arrow-left"
+          size="sm"
+          data-testid="transfer-back"
+          @click="backFromAjukan"
+        >
+          {{ t('transfer.back') }}
+        </UButton>
+      </div>
+
       <div
         v-if="ajMsg"
         class="flex gap-2.5 items-center px-3.5 py-3 mb-[18px] rounded-[11px] border text-[13px] font-medium"

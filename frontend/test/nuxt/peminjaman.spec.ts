@@ -123,6 +123,13 @@ async function mountAndWait() {
   return wrapper
 }
 
+// The page lands on the request list; the submission form is a full-view swap
+// reached via the "Buat Pengajuan" button. Open it before touching form fields.
+async function openForm(wrapper: Awaited<ReturnType<typeof mountAndWait>>) {
+  await wrapper.find('[data-testid="peminjaman-create"]').trigger('click')
+  await wrapper.vm.$nextTick()
+}
+
 // Row-actions kebab/context-menu items are portaled to document.body; locale
 // here is 'id', so matching on the resolved Indonesian label text is reliable.
 function menuItemByText(text: string): HTMLElement | undefined {
@@ -145,8 +152,27 @@ beforeEach(() => {
 })
 
 describe('Peminjaman page — Ajukan Peminjaman card', () => {
+  it('lands on the list (form hidden) and opens/closes the form via the buttons', async () => {
+    const wrapper = await mountAndWait()
+    // Form is not mounted until "Buat Pengajuan" is clicked.
+    expect(wrapper.find('[data-testid="peminjaman-submit"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="peminjaman-create"]').exists()).toBe(true)
+
+    await openForm(wrapper)
+    expect(wrapper.find('[data-testid="peminjaman-submit"]').exists()).toBe(true)
+    // The list header (and its create button) is hidden while the form is open.
+    expect(wrapper.find('[data-testid="peminjaman-create"]').exists()).toBe(false)
+
+    // "Batal" returns to the list.
+    await wrapper.find('[data-testid="peminjaman-reset"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[data-testid="peminjaman-submit"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="peminjaman-create"]').exists()).toBe(true)
+  })
+
   it('blocks submit when asset is not picked, even with Alasan filled', async () => {
     const wrapper = await mountAndWait()
+    await openForm(wrapper)
     await wrapper.find('[data-testid="peminjaman-notes"]').setValue('Butuh untuk rapat')
     await wrapper.find('[data-testid="peminjaman-submit"]').trigger('click')
     await flushPromises()
@@ -157,6 +183,7 @@ describe('Peminjaman page — Ajukan Peminjaman card', () => {
 
   it('blocks submit when Alasan is empty, even with an asset picked', async () => {
     const wrapper = await mountAndWait()
+    await openForm(wrapper)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(wrapper.vm as any).assetId = 'as1'
     await wrapper.vm.$nextTick()
@@ -167,9 +194,10 @@ describe('Peminjaman page — Ajukan Peminjaman card', () => {
     expect(wrapper.text()).toContain('Alasan wajib diisi.')
   })
 
-  it('on success calls borrow, reloads myRequests + available, and shows a success toast', async () => {
+  it('on success calls borrow, reloads myRequests + available, shows a success toast, and returns to the list', async () => {
     borrowMock.mockResolvedValueOnce({ request_id: 'req9', status: 'pending' })
     const wrapper = await mountAndWait()
+    await openForm(wrapper)
 
     myRequestsMock.mockClear()
     availableMock.mockClear()
@@ -185,6 +213,44 @@ describe('Peminjaman page — Ajukan Peminjaman card', () => {
     expect(myRequestsMock).toHaveBeenCalled()
     expect(availableMock).toHaveBeenCalled()
     expect(toastAddMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Pengajuan peminjaman terkirim' }))
+    // Full-view swap returns to the list after a successful submit.
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[data-testid="peminjaman-create"]').exists()).toBe(true)
+  })
+})
+
+describe('Peminjaman page — list-first navigation (Buat Pengajuan / Kembali)', () => {
+  it('the back arrow returns to the list without submitting, and the create button reappears', async () => {
+    const wrapper = await mountAndWait()
+    await openForm(wrapper)
+    // Fill the form completely — backing out via the arrow must still not borrow.
+    ;(wrapper.vm as unknown as { assetId: string }).assetId = 'as1'
+    await wrapper.vm.$nextTick()
+    await wrapper.find('[data-testid="peminjaman-notes"]').setValue('Sudah tidak jadi')
+
+    await wrapper.find('[data-testid="peminjaman-back"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(borrowMock).not.toHaveBeenCalled()
+    expect(toastAddMock).not.toHaveBeenCalled()
+    // Back on the list: the form is unmounted and the header create button returns.
+    expect(wrapper.find('[data-testid="peminjaman-submit"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="peminjaman-create"]').exists()).toBe(true)
+  })
+
+  it('reopening the form after backing out clears the stale field values', async () => {
+    const wrapper = await mountAndWait()
+    await openForm(wrapper)
+    await wrapper.find('[data-testid="peminjaman-notes"]').setValue('Catatan lama')
+    expect((wrapper.find('[data-testid="peminjaman-notes"]').element as HTMLTextAreaElement).value).toBe('Catatan lama')
+
+    await wrapper.find('[data-testid="peminjaman-back"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    await openForm(wrapper)
+
+    // openForm() calls resetForm(), so the reopened form starts empty.
+    expect((wrapper.find('[data-testid="peminjaman-notes"]').element as HTMLTextAreaElement).value).toBe('')
+    expect((wrapper.vm as unknown as { assetId: string }).assetId).toBe('')
   })
 })
 

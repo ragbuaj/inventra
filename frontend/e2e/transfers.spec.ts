@@ -168,6 +168,9 @@ test.describe('Transfer (Mutasi) — real backend (submit → approve → ship �
     await page.goto('/transfers')
     await expect(page.getByRole('heading', { name: 'Mutasi Aset' })).toBeVisible({ timeout: 10_000 })
 
+    // The page lands on Riwayat; open the "Ajukan Mutasi" form (full-view swap).
+    await page.getByTestId('transfer-create').click()
+
     const picker = page.getByTestId('transfer-asset-picker')
     await picker.getByTestId('asset-picker-input').fill(asset1Name)
     await picker.getByTestId('asset-picker-item').first().click()

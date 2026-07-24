@@ -41,8 +41,10 @@ const deprApi = useDepreciation()
 
 const canManage = computed(() => can('disposal.manage'))
 
+// The page lands on the request history; the submission form is a full-view
+// swap reached via the "Buat Pengajuan" button.
 type TabKey = 'ajukan' | 'history'
-const tab = ref<TabKey>('ajukan')
+const tab = ref<TabKey>('history')
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -354,6 +356,15 @@ function resetForm() {
   pickerKey.value++
 }
 
+function openAjukan() {
+  resetForm()
+  tab.value = 'ajukan'
+}
+
+function backToHistory() {
+  tab.value = 'history'
+}
+
 // ---------------------------------------------------------------------------
 // Riwayat
 // ---------------------------------------------------------------------------
@@ -489,14 +500,6 @@ function onTableContextMenu(e: MouseEvent) {
   if (!tr) contextItems.value = []
 }
 
-// ---------------------------------------------------------------------------
-// Tabs
-// ---------------------------------------------------------------------------
-const tabs = computed(() => [
-  { key: 'ajukan' as const, label: t('disposal.tabs.ajukan'), icon: 'i-lucide-trash-2' },
-  { key: 'history' as const, label: t('disposal.tabs.history'), icon: 'i-lucide-history' }
-])
-
 onMounted(() => {
   loadOffices()
   loadHistory()
@@ -506,35 +509,40 @@ onMounted(() => {
 <template>
   <div class="max-w-[1000px] mx-auto">
     <!-- Header -->
-    <div class="mb-[18px]">
-      <h1 class="text-[23px] font-bold tracking-tight mb-[5px]">
-        {{ t('disposal.pageTitle') }}
-      </h1>
-      <p class="text-sm text-muted">
-        {{ t('disposal.pageSub') }}
-      </p>
-    </div>
-
-    <!-- Tabs -->
-    <div class="flex gap-1 border-b border-default mb-[22px]">
-      <button
-        v-for="tb in tabs"
-        :key="tb.key"
-        class="inline-flex items-center gap-2 px-4 py-3 -mb-px text-sm border-b-2 transition-colors"
-        :class="tab === tb.key ? 'font-semibold text-default border-primary' : 'font-medium text-muted border-transparent hover:text-default'"
-        :data-testid="`disposal-tab-${tb.key}`"
-        @click="tab = tb.key"
+    <div class="flex items-start justify-between gap-3 flex-wrap mb-[22px]">
+      <div>
+        <h1 class="text-[23px] font-bold tracking-tight mb-[5px]">
+          {{ t('disposal.pageTitle') }}
+        </h1>
+        <p class="text-sm text-muted">
+          {{ t('disposal.pageSub') }}
+        </p>
+      </div>
+      <UButton
+        v-if="tab === 'history'"
+        icon="i-lucide-plus"
+        class="flex-none"
+        data-testid="disposal-create"
+        @click="openAjukan"
       >
-        <UIcon
-          :name="tb.icon"
-          class="size-[15px]"
-        />
-        {{ tb.label }}
-      </button>
+        {{ t('disposal.createButton') }}
+      </UButton>
     </div>
 
     <!-- ============ AJUKAN PENGHAPUSAN ============ -->
     <div v-if="tab === 'ajukan'">
+      <div class="mb-[18px]">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-arrow-left"
+          size="sm"
+          data-testid="disposal-back"
+          @click="backToHistory"
+        >
+          {{ t('disposal.back') }}
+        </UButton>
+      </div>
       <!-- POST-SUBMIT -->
       <div
         v-if="submitted && submittedSnapshot"

@@ -254,8 +254,9 @@
     "title": "Penugasan Aset",
     "subtitle": "Check-out aset ke pegawai, kembalikan, dan lihat riwayatnya.",
     "reset": "Reset",
+    "createButton": "Buat Penugasan",
+    "back": "Kembali",
     "tabs": {
-      "checkout": "Check-out",
       "checkin": "Check-in",
       "history": "Riwayat"
     },
@@ -332,6 +333,7 @@
       "alasanPlaceholder": "mis. Presentasi ke nasabah prioritas…",
       "alasanErr": "Alasan wajib diisi.",
       "cancel": "Batal",
+      "back": "Kembali",
       "submit": "Ajukan Peminjaman"
     },
     "modal": {
@@ -369,6 +371,7 @@
       "colCatatan": "Catatan Keputusan",
       "colAksi": "Aksi",
       "cancelAction": "Batalkan",
+      "createButton": "Buat Pengajuan",
       "timelineTitle": "Timeline Persetujuan",
       "timelineEmpty": "Belum ada riwayat persetujuan.",
       "timelineWaiting": "Menunggu",
@@ -380,7 +383,7 @@
       },
       "total": "Total {n} pengajuan",
       "emptyTitle": "Belum ada pengajuan peminjaman",
-      "emptySub": "Ajukan peminjaman aset melalui form di atas."
+      "emptySub": "Klik \"Buat Pengajuan\" untuk mengajukan peminjaman aset."
     },
     "timeline": {
       "submitted": "Diajukan oleh saya"
@@ -396,10 +399,11 @@
       "received": "Diterima"
     },
     "tabs": {
-      "ajukan": "Ajukan Mutasi",
       "inbox": "Kotak Masuk",
       "history": "Riwayat"
     },
+    "createButton": "Buat Pengajuan",
+    "back": "Kembali",
     "form": {
       "asset": "Aset (hanya status tersedia)",
       "assetPlaceholder": "Cari nama / kode aset…",
@@ -504,10 +508,8 @@
   "disposal": {
     "pageTitle": "Penghapusan Aset",
     "pageSub": "Ajukan pelepasan aset (jual/lelang/hibah/musnah) dengan perhitungan laba/rugi dan approval berjenjang.",
-    "tabs": {
-      "ajukan": "Ajukan Penghapusan",
-      "history": "Riwayat"
-    },
+    "createButton": "Buat Pengajuan",
+    "back": "Kembali",
     "form": {
       "assetSection": "Aset yang Dilepas",
       "asset": "Pilih Aset (status tersedia)",

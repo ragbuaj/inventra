@@ -254,8 +254,9 @@
     "title": "Asset Assignment",
     "subtitle": "Check assets out to staff, return them, and view history.",
     "reset": "Reset",
+    "createButton": "New Assignment",
+    "back": "Back",
     "tabs": {
-      "checkout": "Check-out",
       "checkin": "Check-in",
       "history": "History"
     },
@@ -332,6 +333,7 @@
       "alasanPlaceholder": "e.g. Presentation to a priority client…",
       "alasanErr": "Reason is required.",
       "cancel": "Cancel",
+      "back": "Back",
       "submit": "Submit Loan Request"
     },
     "modal": {
@@ -369,6 +371,7 @@
       "colCatatan": "Decision Note",
       "colAksi": "Actions",
       "cancelAction": "Cancel",
+      "createButton": "New Request",
       "timelineTitle": "Approval Timeline",
       "timelineEmpty": "No approval history yet.",
       "timelineWaiting": "Awaiting",
@@ -380,7 +383,7 @@
       },
       "total": "Total {n} requests",
       "emptyTitle": "No loan requests yet",
-      "emptySub": "Submit an asset loan using the form above."
+      "emptySub": "Click \"New Request\" to submit an asset loan."
     },
     "timeline": {
       "submitted": "Submitted by me"
@@ -396,10 +399,11 @@
       "received": "Received"
     },
     "tabs": {
-      "ajukan": "New Transfer",
       "inbox": "Inbox",
       "history": "History"
     },
+    "createButton": "New Request",
+    "back": "Back",
     "form": {
       "asset": "Asset (available only)",
       "assetPlaceholder": "Search asset name / code…",
@@ -504,10 +508,8 @@
   "disposal": {
     "pageTitle": "Asset Disposal",
     "pageSub": "Submit asset disposal (sale/auction/grant/destroy) with gain/loss calculation and tiered approval.",
-    "tabs": {
-      "ajukan": "New Disposal",
-      "history": "History"
-    },
+    "createButton": "New Request",
+    "back": "Back",
     "form": {
       "assetSection": "Asset to Dispose",
       "asset": "Select Asset (available)",

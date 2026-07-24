@@ -159,6 +159,9 @@ test.describe('Disposal (Penghapusan) — real backend (submit → approve → B
     await page.goto('/disposals')
     await expect(page.getByRole('heading', { name: 'Penghapusan Aset' })).toBeVisible({ timeout: 10_000 })
 
+    // The page lands on Riwayat; open the "Ajukan Penghapusan" form (full-view swap).
+    await page.getByTestId('disposal-create').click()
+
     const picker = page.getByTestId('disposal-asset-picker')
     await picker.getByTestId('asset-picker-input').fill(assetName)
     await picker.getByTestId('asset-picker-item').first().click()
@@ -208,7 +211,6 @@ test.describe('Disposal (Penghapusan) — real backend (submit → approve → B
 
     await login(page)
     await page.goto('/disposals')
-    await page.getByTestId('disposal-tab-history').click()
 
     const row = page.locator('[data-testid="disposal-history-row"]', { hasText: assetName }).first()
     await expect(row).toBeVisible({ timeout: 10_000 })
@@ -223,7 +225,6 @@ test.describe('Disposal (Penghapusan) — real backend (submit → approve → B
   test('Lampirkan BAST: attaching a document creates a bast_disposal asset document', async ({ page }) => {
     await login(page)
     await page.goto('/disposals')
-    await page.getByTestId('disposal-tab-history').click()
 
     const row = page.locator('[data-testid="disposal-history-row"]', { hasText: assetName }).first()
     await expect(row).toBeVisible({ timeout: 10_000 })
@@ -251,7 +252,6 @@ test.describe('Disposal (Penghapusan) — real backend (submit → approve → B
   test('Riwayat: searching a non-existent string shows the empty state', async ({ page }) => {
     await login(page)
     await page.goto('/disposals')
-    await page.getByTestId('disposal-tab-history').click()
 
     await page.getByTestId('disposal-history-search').fill(`nonexistent-zzz-${RUN}`)
 

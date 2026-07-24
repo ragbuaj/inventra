@@ -244,7 +244,9 @@ test.describe('Assignment (Penugasan/Peminjaman) — real backend e2e', () => {
     await page.goto('/assignment')
     await expect(page.getByRole('heading', { name: 'Penugasan Aset', exact: true })).toBeVisible({ timeout: 10_000 })
 
-    // --- Check-out tab (default) ---
+    // --- Check-out form (full-view swap via "Buat Penugasan") ---
+    // The page lands on Riwayat; open the check-out form first.
+    await page.getByTestId('assignment-create').click()
     // Asset USelectMenu (searchable): open by its placeholder trigger text,
     // then pick the option (label = "<name> · <tag>", matched by unique name).
     await page.getByText('Cari nama / kode aset…', { exact: true }).first().click()
@@ -266,7 +268,7 @@ test.describe('Assignment (Penugasan/Peminjaman) — real backend e2e', () => {
     await expect(page.getByText(`Aset "${asset1Name} · ${asset1Tag}" berhasil di-check-out ke ${employeeLabel}.`, { exact: true }))
       .toBeVisible({ timeout: 10_000 })
 
-    // --- Riwayat tab: Aktif ---
+    // --- Riwayat: Aktif (Option A auto-returns to history after check-out) ---
     await page.getByRole('button', { name: 'Riwayat', exact: true }).click()
     await page.getByPlaceholder('Cari aset / pemegang…', { exact: true }).fill(asset1Name)
     const historyRow = page.locator('tr', { hasText: asset1Name })
@@ -308,6 +310,9 @@ test.describe('Assignment (Penugasan/Peminjaman) — real backend e2e', () => {
     await loginAs(page, stafEmail, stafPassword)
     await page.goto('/peminjaman')
     await expect(page.getByRole('heading', { name: 'Peminjaman Aset', exact: true })).toBeVisible({ timeout: 10_000 })
+
+    // The page lands on the request list; open the form (full-view swap).
+    await page.getByTestId('peminjaman-create').click()
 
     // Fill Alasan BEFORE opening the asset picker. The USelectMenu popover's focus
     // management swallows keystrokes typed into the textarea immediately after the
@@ -369,6 +374,9 @@ test.describe('Assignment (Penugasan/Peminjaman) — real backend e2e', () => {
     await loginAs(page, stafEmail, stafPassword)
     await page.goto('/peminjaman')
     await expect(page.getByRole('heading', { name: 'Peminjaman Aset', exact: true })).toBeVisible({ timeout: 10_000 })
+
+    // Open the form (full-view swap) before exercising the empty-Alasan guard.
+    await page.getByTestId('peminjaman-create').click()
 
     const stafToken = await login_(api, stafEmail, stafPassword)
     const before = await apiJson<{ total: number }>(
