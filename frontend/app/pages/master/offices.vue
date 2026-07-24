@@ -951,13 +951,27 @@ onMounted(async () => {
       @submit="onSubmit"
     >
       <div class="space-y-4">
-        <!-- Row 1: Induk + Jenis -->
+        <!-- Identitas dulu: Nama (full-width) -->
+        <UFormField
+          :label="t('masterdata.offices.fields.nama')"
+          required
+        >
+          <UInput
+            v-model="form.name"
+            :placeholder="t('masterdata.offices.fields.nama')"
+            class="w-full"
+          />
+        </UFormField>
+        <!-- Row: Kode + Jenis -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-          <UFormField :label="t('masterdata.offices.induk')">
-            <USelect
-              v-model="formParentId"
-              :items="parentOptions"
-              class="w-full"
+          <UFormField
+            :label="t('masterdata.offices.fields.kode')"
+            required
+          >
+            <UInput
+              v-model="form.code"
+              placeholder="mis. JKT01"
+              class="w-full font-mono"
             />
           </UFormField>
           <UFormField
@@ -973,27 +987,13 @@ onMounted(async () => {
             />
           </UFormField>
         </div>
-        <!-- Nama -->
-        <UFormField
-          :label="t('masterdata.offices.fields.nama')"
-          required
-        >
-          <UInput
-            v-model="form.name"
-            :placeholder="t('masterdata.offices.fields.nama')"
-            class="w-full"
-          />
-        </UFormField>
-        <!-- Row 2: Kode + Provinsi -->
+        <!-- Row: Induk + Provinsi -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-          <UFormField
-            :label="t('masterdata.offices.fields.kode')"
-            required
-          >
-            <UInput
-              v-model="form.code"
-              placeholder="mis. JKT01"
-              class="w-full font-mono"
+          <UFormField :label="t('masterdata.offices.induk')">
+            <USelect
+              v-model="formParentId"
+              :items="parentOptions"
+              class="w-full"
             />
           </UFormField>
           <UFormField :label="t('masterdata.offices.fields.provinsi')">
