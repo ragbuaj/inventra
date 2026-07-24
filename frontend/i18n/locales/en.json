@@ -1705,6 +1705,10 @@
       "approval_decided": "Your {request_type} request was {status}",
       "maintenance_due": "Maintenance for {asset_name} ({asset_tag}) is due {due_date}",
       "asset_returned": "Asset {asset_name} ({asset_tag}) has been returned",
+      "transfer_approved": "Transfer of {asset_name} ({asset_tag}) is approved and ready to ship",
+      "transfer_in_transit": "Asset {asset_name} ({asset_tag}) is on its way to your office — awaiting receipt",
+      "transfer_received": "Transfer of {asset_name} ({asset_tag}) has been received",
+      "transfer_returned": "Transfer of {asset_name} ({asset_tag}) was declined and returned",
       "unknown": "New notification"
     }
   },

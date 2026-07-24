@@ -33,6 +33,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/assignment"
 	"github.com/ragbuaj/inventra/internal/authz"
 	"github.com/ragbuaj/inventra/internal/masterdata/common"
+	"github.com/ragbuaj/inventra/internal/transfer"
 )
 
 // ConsumerGroup is the fan-out consumer group on StreamKey. A future channel
@@ -121,6 +122,12 @@ func NewConsumer(q *sqlc.Queries, rdb *redis.Client, approvers ApproverResolver,
 		approval.EventChainAdvanced:       c.handleRequestPending,
 		assignment.EventAssignmentCheckin: c.handleAssignmentCheckin,
 		EventMaintenanceDue:               c.handleMaintenanceDue,
+		// Transfer (mutasi) lifecycle: origin office hears approved/received/returned,
+		// destination office hears in_transit. The office picker selects which end.
+		transfer.EventTransferApproved:  c.handleTransfer(sqlc.SharedNotificationTypeTransferApproved, func(e transfer.TransferEvent) uuid.UUID { return e.FromOfficeID }),
+		transfer.EventTransferInTransit: c.handleTransfer(sqlc.SharedNotificationTypeTransferInTransit, func(e transfer.TransferEvent) uuid.UUID { return e.ToOfficeID }),
+		transfer.EventTransferReceived:  c.handleTransfer(sqlc.SharedNotificationTypeTransferReceived, func(e transfer.TransferEvent) uuid.UUID { return e.FromOfficeID }),
+		transfer.EventTransferReturned:  c.handleTransfer(sqlc.SharedNotificationTypeTransferReturned, func(e transfer.TransferEvent) uuid.UUID { return e.FromOfficeID }),
 	}
 	return c
 }
@@ -528,6 +535,106 @@ func (c *Consumer) maintenanceRecipients(ctx context.Context, officeID uuid.UUID
 	out := make([]uuid.UUID, 0, len(candidates))
 	for _, cand := range candidates {
 		all, ids, err := common.OfficeScopeFor(ctx, c.scope, cand.RoleID, cand.OfficeID, maintenanceScopeModule)
+		if err != nil {
+			return nil, err
+		}
+		if common.InScope(all, ids, officeID) {
+			out = append(out, cand.ID)
+		}
+	}
+	return out, nil
+}
+
+// transferScopeModule is the data_scope_policies module the transfer module
+// resolves callers against (internal/transfer/handler.go scopeModule). It must
+// stay identical to that value, or the users told about a transfer would diverge
+// from the users allowed to act on it.
+const transferScopeModule = "transfers"
+
+// transferPermission gates the transfer write actions (submit/ship/receive/
+// reject) in internal/transfer/routes.go. Recipients of a transfer-stage notice
+// are exactly the users who can act on it in the relevant office.
+const transferPermission = "transfer.manage"
+
+// handleTransfer builds a handler for one transfer-stage event. notifType is the
+// notification kind written; office picks which end of the transfer (origin or
+// destination) hears about this stage. Recipients are resolved at consume time
+// against the state then, matching handleRequestPending / handleMaintenanceDue.
+func (c *Consumer) handleTransfer(notifType sqlc.SharedNotificationType, office func(transfer.TransferEvent) uuid.UUID) eventHandler {
+	return func(ctx context.Context, payload []byte) error {
+		var ev transfer.TransferEvent
+		if err := json.Unmarshal(payload, &ev); err != nil {
+			return fmt.Errorf("%w: %v", errUndecodable, err)
+		}
+		if ev.TransferID == uuid.Nil || ev.AssetID == uuid.Nil {
+			return fmt.Errorf("%w: missing transfer_id or asset_id", errUndecodable)
+		}
+		if c.scope == nil {
+			// Retryable, deliberately: without a scope service every candidate would
+			// have to be either notified or dropped, and both are wrong. A
+			// misconfigured process should be loud, not quietly over- or under-notifying.
+			return errors.New("notification: transfer event received but no scope service is configured")
+		}
+		officeID := office(ev)
+		if officeID == uuid.Nil {
+			return fmt.Errorf("%w: missing target office", errUndecodable)
+		}
+
+		recipients, err := c.transferRecipients(ctx, officeID)
+		if err != nil {
+			return err
+		}
+
+		// Only interpolation params, never rendered text: the client renders the
+		// sentence via i18n, so storing an Indonesian string here would freeze the
+		// notification into one locale.
+		params, err := json.Marshal(map[string]string{
+			"asset_tag":  ev.AssetTag,
+			"asset_name": ev.AssetName,
+		})
+		if err != nil {
+			return err
+		}
+
+		// One stage of a transfer fires at most once, so transfer id + kind is a
+		// stable identity; ON CONFLICT DO NOTHING on (user_id, dedup_key) makes
+		// redelivery a no-op.
+		dedupKey := fmt.Sprintf("transfer:%s:%s", ev.TransferID, string(notifType))
+		entityType := "assets"
+		entityID := ev.AssetID
+
+		// One row per recipient, no enclosing transaction -- same reasoning as
+		// handleRequestPending: each insert is independently idempotent, so a partial
+		// failure leaves the written rows correct and redelivery fills the rest.
+		var errs []error
+		for _, userID := range recipients {
+			if err := c.q.CreateNotification(ctx, sqlc.CreateNotificationParams{
+				UserID:     userID,
+				Type:       notifType,
+				Params:     params,
+				EntityType: &entityType,
+				EntityID:   &entityID,
+				DedupKey:   &dedupKey,
+			}); err != nil {
+				errs = append(errs, fmt.Errorf("notify %s: %w", userID, err))
+			}
+		}
+		return errors.Join(errs...)
+	}
+}
+
+// transferRecipients returns the users holding transfer.manage whose data scope
+// covers officeID: the inverse of the permission-plus-scope check a live request
+// passes through, built from the same two pieces (ListUsersWithPermission,
+// common.OfficeScopeFor + common.InScope) as maintenanceRecipients.
+func (c *Consumer) transferRecipients(ctx context.Context, officeID uuid.UUID) ([]uuid.UUID, error) {
+	candidates, err := c.q.ListUsersWithPermission(ctx, transferPermission)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]uuid.UUID, 0, len(candidates))
+	for _, cand := range candidates {
+		all, ids, err := common.OfficeScopeFor(ctx, c.scope, cand.RoleID, cand.OfficeID, transferScopeModule)
 		if err != nil {
 			return nil, err
 		}
