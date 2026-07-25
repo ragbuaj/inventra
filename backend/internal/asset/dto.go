@@ -65,6 +65,9 @@ func assetToMap(a sqlc.AssetAsset) map[string]any {
 		"acquisition_bast_no":        a.AcquisitionBastNo,
 		"excluded_from_valuation":    a.ExcludedFromValuation,
 		"valuation_exclusion_reason": a.ValuationExclusionReason,
+		"is_operational_asset":       a.IsOperationalAsset,
+		"spk_number":                 a.SpkNumber,
+		// legacy_asset_code & legacy_barcode sengaja TIDAK diserialisasi (arsip internal).
 		"notes":                      a.Notes,
 		"created_at":                 common.TsStr(a.CreatedAt),
 		"updated_at":                 common.TsStr(a.UpdatedAt),

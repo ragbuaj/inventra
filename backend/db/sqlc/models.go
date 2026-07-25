@@ -1300,6 +1300,14 @@ type AssetAsset struct {
 	PicEmployeeID            *uuid.UUID                `json:"pic_employee_id"`
 	TagSeq                   *int32                    `json:"tag_seq"`
 	TagOfficeID              *uuid.UUID                `json:"tag_office_id"`
+	// Klasifikasi aset operasional vs non-operasional (bukan status fungsional).
+	IsOperationalAsset bool `json:"is_operational_asset"`
+	// Nomor Surat Perintah Kerja; berbeda dari po_number (Purchase Order).
+	SpkNumber *string `json:"spk_number"`
+	// Kode aset dari sistem lama; arsip migrasi, tidak ditampilkan di Inventra.
+	LegacyAssetCode *string `json:"legacy_asset_code"`
+	// Barcode dari sistem lama; arsip migrasi, tidak ditampilkan di Inventra.
+	LegacyBarcode *string `json:"legacy_barcode"`
 }
 
 type AssetAssetAttachment struct {

@@ -36,7 +36,8 @@ INSERT INTO asset.assets (
   status, serial_number, purchase_date, purchase_cost, vendor_id, po_number,
   funding_source, warranty_expiry, warranty_start, capacity, lease_date, installation_date,
   pic_employee_id, specifications, asset_class, capitalized,
-  acquisition_bast_no, created_by_id, notes
+  acquisition_bast_no, created_by_id, notes,
+  spk_number, legacy_asset_code, legacy_barcode
 ) VALUES (
   sqlc.arg(asset_tag),sqlc.arg(tag_seq),sqlc.arg(office_id)::uuid,sqlc.arg(name),sqlc.arg(category_id),sqlc.arg(brand_id),
   sqlc.arg(model_id),sqlc.arg(room_id),sqlc.arg(floor_id),sqlc.arg(office_id),sqlc.arg(unit_id),
@@ -45,7 +46,8 @@ INSERT INTO asset.assets (
   sqlc.arg(warranty_start),sqlc.arg(capacity),sqlc.arg(lease_date),sqlc.arg(installation_date),
   sqlc.arg(pic_employee_id),
   COALESCE(sqlc.arg(specifications),'{}')::jsonb,sqlc.arg(asset_class),sqlc.arg(capitalized),
-  sqlc.arg(acquisition_bast_no),sqlc.arg(created_by_id),sqlc.arg(notes)
+  sqlc.arg(acquisition_bast_no),sqlc.arg(created_by_id),sqlc.arg(notes),
+  sqlc.arg(spk_number),sqlc.arg(legacy_asset_code),sqlc.arg(legacy_barcode)
 ) RETURNING *;
 
 -- name: UpdateAsset :one
@@ -64,6 +66,11 @@ WHERE id = sqlc.arg(id) AND deleted_at IS NULL RETURNING *;
 
 -- name: SetAssetStatus :one
 UPDATE asset.assets SET status = $2 WHERE id = $1 AND deleted_at IS NULL RETURNING *;
+
+-- name: SetAssetOperational :exec
+-- Override the operational classification (default true at insert). Used by the
+-- asset importer for rows whose `operasional` column resolves to non-operational.
+UPDATE asset.assets SET is_operational_asset = $2 WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: SetAssetValuationExclusion :one
 UPDATE asset.assets SET excluded_from_valuation = $2, valuation_exclusion_reason = $3

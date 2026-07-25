@@ -37,6 +37,11 @@ SELECT * FROM masterdata.employees WHERE code = $1 AND deleted_at IS NULL LIMIT 
 -- unscoped.
 SELECT code FROM masterdata.employees WHERE deleted_at IS NULL;
 
+-- name: ListEmployeeLookup :many
+-- id + code for the asset importer's `pemegang` (PIC) resolution. Employee codes
+-- (NIP) are globally unique (uq_employees_code), so this set is deliberately unscoped.
+SELECT id, code FROM masterdata.employees WHERE deleted_at IS NULL;
+
 -- name: CreateEmployee :one
 INSERT INTO masterdata.employees (
   code, name, email, phone, avatar_key, department_id, position_id, office_id, status,
