@@ -14,7 +14,8 @@
 // CSV column order matches each target's ColumnSpec exactly (header matching
 // is case-insensitive and order-insensitive on the backend, but keeping this
 // order mirrors the downloaded template for readability):
-//   asset:    asset_tag, nama, kategori, kantor, tgl_beli, harga, vendor, lokasi
+//   asset:    asset_tag, nama, kategori, kantor, tgl_beli, harga, vendor, lokasi,
+//             merk, kapasitas, spk_number, kode_aset_lama, barcode, pemegang, kondisi, operasional
 //   employee: kode, nama, email, telepon, kantor, status, departemen, jabatan
 
 function toCsv(header: string[], rows: string[][]): string {
@@ -46,7 +47,7 @@ export function buildAssetHappyPathCsv({ officeName, categoryName, roomName, run
   const row1Name = `E2E Import Meja ${run}`
   const row2Name = `E2E Import Kursi ${run}`
   const badRowName = `E2E Import BadCat ${run}`
-  const header = ['asset_tag', 'nama', 'kategori', 'kantor', 'tgl_beli', 'harga', 'vendor', 'lokasi']
+  const header = ['asset_tag', 'nama', 'kategori', 'kantor', 'tgl_beli', 'harga', 'vendor', 'lokasi', 'merk', 'kapasitas', 'spk_number', 'kode_aset_lama', 'barcode', 'pemegang', 'kondisi', 'operasional']
   const rows = [
     ['', row1Name, categoryName, officeName, '2026-06-01', '700000', '', roomName],
     ['', row2Name, categoryName, officeName, '2026-06-02', '800000', '', roomName],
@@ -83,7 +84,7 @@ export function buildAssetValidationRejectionCsv(
   const badDateRowName = `E2E Import BadDate ${run}`
   const multiOfficeRowName = `E2E Import MultiOffice ${run}`
   const validRowName = `E2E Import RejectValid ${run}`
-  const header = ['asset_tag', 'nama', 'kategori', 'kantor', 'tgl_beli', 'harga', 'vendor', 'lokasi']
+  const header = ['asset_tag', 'nama', 'kategori', 'kantor', 'tgl_beli', 'harga', 'vendor', 'lokasi', 'merk', 'kapasitas', 'spk_number', 'kode_aset_lama', 'barcode', 'pemegang', 'kondisi', 'operasional']
   const rows = [
     // First row resolves officeA — becomes the batch's reference office, even
     // though it also carries its own bad-date error.

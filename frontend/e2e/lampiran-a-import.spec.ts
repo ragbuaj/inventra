@@ -14,7 +14,7 @@ let maker: Actor // Manager @ branch (asset.manage) — MAKER, pemilik job
 let officeAppr: Actor // Kepala Unit @ branch
 let wilayahAppr: Actor // Kepala Kanwil
 
-const FULL_HEADER = 'asset_tag,nama,kategori,kantor,tgl_beli,harga,vendor,lokasi'
+const FULL_HEADER = 'asset_tag,nama,kategori,kantor,tgl_beli,harga,vendor,lokasi,merk,kapasitas,spk_number,kode_aset_lama,barcode,pemegang,kondisi,operasional'
 
 function assetCsv(run: string, rows: Array<[string, string]>): string {
   const body = rows.map(([name, harga], i) => `,${name},KOM,BDG01,2026-06-0${i + 1},${harga},,R1-1`).join('\n')
