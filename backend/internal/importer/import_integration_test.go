@@ -57,7 +57,7 @@ import (
 // Parse matches columns by name (case-insensitive, order-insensitive), so the
 // order here is cosmetic but kept aligned with asset/importer.go and
 // masterdata/employee/importer.go's Columns() for readability.
-var assetHeader = []string{"asset_tag", "nama", "kategori", "kantor", "tgl_beli", "harga", "vendor", "lokasi"}
+var assetHeader = []string{"asset_tag", "nama", "kategori", "kantor", "tgl_beli", "harga", "vendor", "lokasi", "merk", "kapasitas", "spk_number", "kode_aset_lama", "barcode", "pemegang", "kondisi", "operasional"}
 var employeeHeader = []string{"kode", "nama", "email", "telepon", "kantor", "status", "departemen", "jabatan"}
 var brandHeader = []string{"nama"}
 var unitHeader = []string{"nama", "simbol"}
@@ -277,6 +277,17 @@ func seedBrand(t *testing.T, pool *pgxpool.Pool, name string) uuid.UUID {
 	return id
 }
 
+// seedEmployee inserts a masterdata.employees row (code = NIP) under officeID and
+// returns its id — used to resolve the asset importer's `pemegang` (PIC) column.
+func seedEmployee(t *testing.T, pool *pgxpool.Pool, code string, officeID uuid.UUID) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`INSERT INTO masterdata.employees (code, name, office_id) VALUES ($1, $1, $2) RETURNING id`,
+		code, officeID).Scan(&id))
+	return id
+}
+
 // seedCategory inserts a masterdata.categories row and returns its id.
 func seedCategory(t *testing.T, pool *pgxpool.Pool, code string) uuid.UUID {
 	t.Helper()
@@ -400,14 +411,20 @@ func TestImport_AssetFullCycle_ApproveCreatesAssets(t *testing.T) {
 	officeID := seedOfficeSimple(t, h.pool, "AFC")
 	seedCategory(t, h.pool, "AFC-CAT")
 	seedRoom(t, h.pool, officeID, "Ruang AFC")
+	brandID := seedBrand(t, h.pool, "AFC Brand")
+	empID := seedEmployee(t, h.pool, "NIP-AFC", officeID)
 
 	makerRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
 	makerID := seedUser(t, h.pool, makerRoleID, nil, "maker.afc@test.local")
 	approverRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
 	approverID := seedUser(t, h.pool, approverRoleID, nil, "approver.afc@test.local")
 
+	// The valid row carries every optional legacy-parity column (merk -> brand_id,
+	// kapasitas, spk_number, kode_aset_lama -> legacy_asset_code, barcode ->
+	// legacy_barcode) so the assertions below guard the createRows persistence path,
+	// not just validation. Order matches assetHeader.
 	csvBytes := buildCSV(t, assetHeader, [][]string{
-		{"", "Laptop Valid", "AFC-CAT", "AFC", "2026-01-05", "5000000", "", "Ruang AFC"},
+		{"", "Laptop Valid", "AFC-CAT", "AFC", "2026-01-05", "5000000", "", "Ruang AFC", "AFC Brand", "7PK", "SPK/AFC/1", "LEG-AFC-1", "BC-AFC-1", "NIP-AFC - Budi", "Rusak", "Tidak"},
 		{"", "", "AFC-CAT", "AFC", "2026-01-05", "5000000", "", "Ruang AFC"}, // missing nama -> required
 	})
 
@@ -494,6 +511,32 @@ func TestImport_AssetFullCycle_ApproveCreatesAssets(t *testing.T) {
 	assert.Equal(t, officeID, createdAsset.OfficeID)
 	assert.Equal(t, sqlc.SharedAssetClassTangible, createdAsset.AssetClass)
 	assert.Equal(t, "5000000.00", *createdAsset.PurchaseCost, "numeric column renders with 2 decimals")
+
+	// Legacy-parity columns must be persisted end-to-end (regression guard for the
+	// createRows -> CreateAsset mapping; validation alone does not exercise this).
+	require.NotNil(t, createdAsset.BrandID, "merk must resolve to brand_id")
+	assert.Equal(t, brandID, *createdAsset.BrandID)
+	require.NotNil(t, createdAsset.Capacity)
+	assert.Equal(t, "7PK", *createdAsset.Capacity)
+	require.NotNil(t, createdAsset.SpkNumber)
+	assert.Equal(t, "SPK/AFC/1", *createdAsset.SpkNumber)
+	require.NotNil(t, createdAsset.LegacyAssetCode)
+	assert.Equal(t, "LEG-AFC-1", *createdAsset.LegacyAssetCode)
+	require.NotNil(t, createdAsset.LegacyBarcode)
+	assert.Equal(t, "BC-AFC-1", *createdAsset.LegacyBarcode)
+	// pemegang (NIP) -> pic_employee_id; kondisi Rusak -> under_maintenance;
+	// operasional Tidak -> is_operational_asset=false. These exercise the
+	// createRows post-insert override paths (SetAssetStatus / SetAssetOperational).
+	require.NotNil(t, createdAsset.PicEmployeeID, "pemegang must resolve to pic_employee_id")
+	assert.Equal(t, empID, *createdAsset.PicEmployeeID)
+	assert.Equal(t, sqlc.SharedAssetStatusUnderMaintenance, createdAsset.Status)
+	assert.False(t, createdAsset.IsOperationalAsset)
+
+	// A PIC was set -> the assignment timeline must be seeded.
+	pics, err := h.q.ListAssetPICHistory(ctx, createdAsset.ID)
+	require.NoError(t, err)
+	require.Len(t, pics, 1, "imported asset with pemegang must have one PIC-history row")
+	assert.Equal(t, empID, pics[0].PicEmployeeID)
 
 	// Every create path must seed an initial location-history row (registration).
 	hist, err := h.q.ListAssetLocationHistory(ctx, createdAsset.ID)

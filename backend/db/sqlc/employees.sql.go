@@ -199,6 +199,37 @@ func (q *Queries) ListEmployeeCodes(ctx context.Context) ([]string, error) {
 	return items, nil
 }
 
+const listEmployeeLookup = `-- name: ListEmployeeLookup :many
+SELECT id, code FROM masterdata.employees WHERE deleted_at IS NULL
+`
+
+type ListEmployeeLookupRow struct {
+	ID   uuid.UUID `json:"id"`
+	Code string    `json:"code"`
+}
+
+// id + code for the asset importer's `pemegang` (PIC) resolution. Employee codes
+// (NIP) are globally unique (uq_employees_code), so this set is deliberately unscoped.
+func (q *Queries) ListEmployeeLookup(ctx context.Context) ([]ListEmployeeLookupRow, error) {
+	rows, err := q.db.Query(ctx, listEmployeeLookup)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListEmployeeLookupRow{}
+	for rows.Next() {
+		var i ListEmployeeLookupRow
+		if err := rows.Scan(&i.ID, &i.Code); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listEmployees = `-- name: ListEmployees :many
 
 SELECT id, code, name, email, avatar_key, department_id, position_id, office_id, status, created_at, updated_at, deleted_at, phone, company_id, executor_division_id FROM masterdata.employees

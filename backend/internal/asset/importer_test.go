@@ -18,6 +18,8 @@ type fixedIDs struct {
 	office2  uuid.UUID // "cabang jakarta" / "CBJ" — in scope
 	vendor   uuid.UUID
 	room     uuid.UUID // "ruang server" / "RS01" — lives in office
+	brand    uuid.UUID // "daikin"
+	employee uuid.UUID // NIP "12345"
 }
 
 // mkLookups builds a hand-crafted assetLookups (no DB) plus the fixed IDs. The
@@ -30,6 +32,8 @@ func mkLookups() (assetLookups, fixedIDs) {
 		office2:  uuid.New(),
 		vendor:   uuid.New(),
 		room:     uuid.New(),
+		brand:    uuid.New(),
+		employee: uuid.New(),
 	}
 	lk := assetLookups{
 		categories: map[string]uuid.UUID{
@@ -44,6 +48,12 @@ func mkLookups() (assetLookups, fixedIDs) {
 		},
 		vendors: map[string]uuid.UUID{
 			"pt maju jaya": ids.vendor,
+		},
+		brands: map[string]uuid.UUID{
+			"daikin": ids.brand,
+		},
+		employees: map[string]uuid.UUID{
+			"12345": ids.employee,
 		},
 		rooms: map[string][]roomRef{
 			"ruang server": {{id: ids.room, officeID: ids.office}},
@@ -70,14 +80,22 @@ func row(no int, cells map[string]string) importer.RawRow {
 // caller can mutate individual keys to construct a specific failure.
 func validCells() map[string]string {
 	return map[string]string{
-		"asset_tag": "",
-		"nama":      "Laptop Dell",
-		"kategori":  "Elektronik",
-		"kantor":    "Kantor Pusat",
-		"tgl_beli":  "2026-01-15",
-		"harga":     "15000000.00",
-		"vendor":    "PT Maju Jaya",
-		"lokasi":    "Ruang Server",
+		"asset_tag":      "",
+		"nama":           "Laptop Dell",
+		"kategori":       "Elektronik",
+		"kantor":         "Kantor Pusat",
+		"tgl_beli":       "2026-01-15",
+		"harga":          "15000000.00",
+		"vendor":         "PT Maju Jaya",
+		"lokasi":         "Ruang Server",
+		"merk":           "Daikin",
+		"kapasitas":      "5PK",
+		"spk_number":     "SPK/012/2023",
+		"kode_aset_lama": "LEG-CODE-001",
+		"barcode":        "8991234567890",
+		"pemegang":       "12345 - Budi Santoso",
+		"kondisi":        "Baik",
+		"operasional":    "Ya",
 	}
 }
 
@@ -230,11 +248,15 @@ func TestAssetImporterValidateInFileDuplicateTag(t *testing.T) {
 func TestAssetImporterValidateAllValid(t *testing.T) {
 	lk, ids := mkLookups()
 
-	r1 := validCells()               // vendor + lokasi present
-	r2 := validCells()               // minimal optional fields
+	r1 := validCells()                    // vendor + lokasi + merk present
+	r2 := validCells()                    // minimal optional fields
 	r2["asset_tag"] = "KP-ELK-2026-12345" // explicit, valid, unique tag
 	r2["vendor"] = ""
 	r2["lokasi"] = ""
+	r2["merk"] = ""
+	r2["pemegang"] = ""
+	r2["kondisi"] = ""
+	r2["operasional"] = ""
 
 	results := validateAssetRows([]importer.RawRow{row(1, r1), row(2, r2)}, lk, allScope())
 	if len(results) != 2 {
@@ -262,12 +284,109 @@ func TestAssetImporterValidateAllValid(t *testing.T) {
 	if results[0].Data["_room_id"] != ids.room.String() {
 		t.Fatalf("row 1 _room_id = %q, want %q", results[0].Data["_room_id"], ids.room.String())
 	}
+	// Row 1 resolved merk -> brand stamped; free-text columns carried verbatim.
+	if results[0].Data["_brand_id"] != ids.brand.String() {
+		t.Fatalf("row 1 _brand_id = %q, want %q", results[0].Data["_brand_id"], ids.brand.String())
+	}
+	if results[0].Data["kapasitas"] != "5PK" {
+		t.Fatalf("row 1 kapasitas = %q, want 5PK", results[0].Data["kapasitas"])
+	}
+	if results[0].Data["spk_number"] != "SPK/012/2023" {
+		t.Fatalf("row 1 spk_number = %q", results[0].Data["spk_number"])
+	}
+	if results[0].Data["kode_aset_lama"] != "LEG-CODE-001" || results[0].Data["barcode"] != "8991234567890" {
+		t.Fatalf("row 1 legacy code/barcode not carried: %q / %q", results[0].Data["kode_aset_lama"], results[0].Data["barcode"])
+	}
+	// Row 1 resolved pemegang -> pic; kondisi Baik -> available; operasional Ya -> true.
+	if results[0].Data["_pic_id"] != ids.employee.String() {
+		t.Fatalf("row 1 _pic_id = %q, want %q", results[0].Data["_pic_id"], ids.employee.String())
+	}
+	if results[0].Data["_status"] != "available" {
+		t.Fatalf("row 1 _status = %q, want available", results[0].Data["_status"])
+	}
+	if results[0].Data["_operational"] != "true" {
+		t.Fatalf("row 1 _operational = %q, want true", results[0].Data["_operational"])
+	}
 	// Row 2 had neither -> empty stamps.
+	if results[1].Data["_pic_id"] != "" {
+		t.Fatalf("row 2 _pic_id = %q, want empty", results[1].Data["_pic_id"])
+	}
+	if results[1].Data["_status"] != "" || results[1].Data["_operational"] != "" {
+		t.Fatalf("row 2 kondisi/operasional should be empty (default), got %q / %q", results[1].Data["_status"], results[1].Data["_operational"])
+	}
 	if results[1].Data["_vendor_id"] != "" {
 		t.Fatalf("row 2 _vendor_id = %q, want empty", results[1].Data["_vendor_id"])
 	}
 	if results[1].Data["_room_id"] != "" {
 		t.Fatalf("row 2 _room_id = %q, want empty", results[1].Data["_room_id"])
+	}
+	if results[1].Data["_brand_id"] != "" {
+		t.Fatalf("row 2 _brand_id = %q, want empty", results[1].Data["_brand_id"])
+	}
+}
+
+// TestAssetImporterValidateBrand covers the optional merk lookup: an unknown
+// brand fails with "merk", an empty value is accepted.
+func TestAssetImporterValidateBrand(t *testing.T) {
+	lk, _ := mkLookups()
+
+	cells := validCells()
+	cells["merk"] = "MerkTidakAda"
+	res := validateAssetRows([]importer.RawRow{row(1, cells)}, lk, allScope())[0]
+	if res.Valid || !hasErr(res, "merk") {
+		t.Fatalf("unknown merk: expected merk error, got valid=%v keys=%v", res.Valid, errKeys(res))
+	}
+
+	cells2 := validCells()
+	cells2["merk"] = ""
+	res2 := validateAssetRows([]importer.RawRow{row(1, cells2)}, lk, allScope())[0]
+	if !res2.Valid {
+		t.Fatalf("empty merk should be valid, got %v", errKeys(res2))
+	}
+	if res2.Data["_brand_id"] != "" {
+		t.Fatalf("empty merk should leave _brand_id empty, got %q", res2.Data["_brand_id"])
+	}
+}
+
+// TestAssetImporterValidatePicConditionOperational covers the pemegang (PIC by
+// NIP), kondisi -> status, and operasional -> is_operational_asset columns.
+func TestAssetImporterValidatePicConditionOperational(t *testing.T) {
+	lk, ids := mkLookups()
+
+	// pemegang: unknown NIP -> error; bare NIP resolves.
+	bad := validCells()
+	bad["pemegang"] = "99999 - Orang Asing"
+	if r := validateAssetRows([]importer.RawRow{row(1, bad)}, lk, allScope())[0]; r.Valid || !hasErr(r, "pemegang") {
+		t.Fatalf("unknown pemegang: want pemegang error, got valid=%v keys=%v", r.Valid, errKeys(r))
+	}
+	bare := validCells()
+	bare["pemegang"] = "12345" // bare NIP, no " - Nama"
+	if r := validateAssetRows([]importer.RawRow{row(1, bare)}, lk, allScope())[0]; !r.Valid || r.Data["_pic_id"] != ids.employee.String() {
+		t.Fatalf("bare NIP should resolve, got valid=%v pic=%q", r.Valid, r.Data["_pic_id"])
+	}
+
+	// kondisi: Rusak -> under_maintenance; unknown -> error.
+	rusak := validCells()
+	rusak["kondisi"] = "Rusak"
+	if r := validateAssetRows([]importer.RawRow{row(1, rusak)}, lk, allScope())[0]; !r.Valid || r.Data["_status"] != "under_maintenance" {
+		t.Fatalf("Rusak -> under_maintenance failed: valid=%v status=%q", r.Valid, r.Data["_status"])
+	}
+	badCond := validCells()
+	badCond["kondisi"] = "Sedang Diperbaiki"
+	if r := validateAssetRows([]importer.RawRow{row(1, badCond)}, lk, allScope())[0]; r.Valid || !hasErr(r, "kondisi") {
+		t.Fatalf("unknown kondisi: want kondisi error, got valid=%v keys=%v", r.Valid, errKeys(r))
+	}
+
+	// operasional: Tidak -> false; unknown -> error.
+	nonop := validCells()
+	nonop["operasional"] = "Tidak"
+	if r := validateAssetRows([]importer.RawRow{row(1, nonop)}, lk, allScope())[0]; !r.Valid || r.Data["_operational"] != "false" {
+		t.Fatalf("Tidak -> false failed: valid=%v oper=%q", r.Valid, r.Data["_operational"])
+	}
+	badOper := validCells()
+	badOper["operasional"] = "mungkin"
+	if r := validateAssetRows([]importer.RawRow{row(1, badOper)}, lk, allScope())[0]; r.Valid || !hasErr(r, "operasional") {
+		t.Fatalf("unknown operasional: want operasional error, got valid=%v keys=%v", r.Valid, errKeys(r))
 	}
 }
 
@@ -296,6 +415,14 @@ func TestAssetImporterColumns(t *testing.T) {
 		{"harga", true, "decimal"},
 		{"vendor", false, "lookup"},
 		{"lokasi", false, "lookup"},
+		{"merk", false, "lookup"},
+		{"kapasitas", false, "text"},
+		{"spk_number", false, "text"},
+		{"kode_aset_lama", false, "text"},
+		{"barcode", false, "text"},
+		{"pemegang", false, "lookup"},
+		{"kondisi", false, "text"},
+		{"operasional", false, "text"},
 	}
 	if len(cols) != len(want) {
 		t.Fatalf("Columns() len = %d, want %d", len(cols), len(want))

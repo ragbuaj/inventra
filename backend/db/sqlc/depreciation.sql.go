@@ -30,7 +30,7 @@ SET impairment_loss = $1,
     book_value = $2,
     impaired_book_value = $3
 WHERE id = $4 AND deleted_at IS NULL
-RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq, tag_office_id
+RETURNING id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq, tag_office_id, is_operational_asset, spk_number, legacy_asset_code, legacy_barcode
 `
 
 type ApplyAssetImpairmentParams struct {
@@ -102,6 +102,10 @@ func (q *Queries) ApplyAssetImpairment(ctx context.Context, arg ApplyAssetImpair
 		&i.PicEmployeeID,
 		&i.TagSeq,
 		&i.TagOfficeID,
+		&i.IsOperationalAsset,
+		&i.SpkNumber,
+		&i.LegacyAssetCode,
+		&i.LegacyBarcode,
 	)
 	return i, err
 }
@@ -146,7 +150,7 @@ func (q *Queries) DeleteEntriesThrough(ctx context.Context, target pgtype.Date) 
 }
 
 const getAssetForUpdate = `-- name: GetAssetForUpdate :one
-SELECT id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq, tag_office_id FROM asset.assets WHERE id = $1 AND deleted_at IS NULL FOR UPDATE
+SELECT id, asset_tag, name, category_id, brand_id, model_id, room_id, office_id, unit_id, status, serial_number, purchase_date, purchase_cost, vendor_id, po_number, funding_source, warranty_expiry, specifications, asset_class, capitalized, depreciation_method, useful_life_months, salvage_value, fiscal_group, fiscal_life_months, accumulated_depreciation, book_value, impairment_loss, acquisition_bast_no, current_holder_employee_id, excluded_from_valuation, valuation_exclusion_reason, created_by_id, notes, created_at, updated_at, deleted_at, impaired_book_value, capacity, lease_date, installation_date, warranty_start, floor_id, pic_employee_id, tag_seq, tag_office_id, is_operational_asset, spk_number, legacy_asset_code, legacy_barcode FROM asset.assets WHERE id = $1 AND deleted_at IS NULL FOR UPDATE
 `
 
 // Row-locked read for RecordImpairment's read-modify-write (precedent:
@@ -203,6 +207,10 @@ func (q *Queries) GetAssetForUpdate(ctx context.Context, id uuid.UUID) (AssetAss
 		&i.PicEmployeeID,
 		&i.TagSeq,
 		&i.TagOfficeID,
+		&i.IsOperationalAsset,
+		&i.SpkNumber,
+		&i.LegacyAssetCode,
+		&i.LegacyBarcode,
 	)
 	return i, err
 }
@@ -341,7 +349,7 @@ func (q *Queries) ListAssetEntries(ctx context.Context, assetID uuid.UUID) ([]De
 }
 
 const listAssetsForDepreciation = `-- name: ListAssetsForDepreciation :many
-SELECT a.id, a.asset_tag, a.name, a.category_id, a.brand_id, a.model_id, a.room_id, a.office_id, a.unit_id, a.status, a.serial_number, a.purchase_date, a.purchase_cost, a.vendor_id, a.po_number, a.funding_source, a.warranty_expiry, a.specifications, a.asset_class, a.capitalized, a.depreciation_method, a.useful_life_months, a.salvage_value, a.fiscal_group, a.fiscal_life_months, a.accumulated_depreciation, a.book_value, a.impairment_loss, a.acquisition_bast_no, a.current_holder_employee_id, a.excluded_from_valuation, a.valuation_exclusion_reason, a.created_by_id, a.notes, a.created_at, a.updated_at, a.deleted_at, a.impaired_book_value, a.capacity, a.lease_date, a.installation_date, a.warranty_start, a.floor_id, a.pic_employee_id, a.tag_seq, a.tag_office_id, c.id, c.name, c.code, c.parent_id, c.default_depreciation_method, c.default_useful_life_months, c.default_salvage_rate, c.asset_class, c.default_fiscal_group, c.default_fiscal_life_months, c.gl_account_code, c.capitalization_threshold, c.is_active, c.created_at, c.updated_at, c.deleted_at
+SELECT a.id, a.asset_tag, a.name, a.category_id, a.brand_id, a.model_id, a.room_id, a.office_id, a.unit_id, a.status, a.serial_number, a.purchase_date, a.purchase_cost, a.vendor_id, a.po_number, a.funding_source, a.warranty_expiry, a.specifications, a.asset_class, a.capitalized, a.depreciation_method, a.useful_life_months, a.salvage_value, a.fiscal_group, a.fiscal_life_months, a.accumulated_depreciation, a.book_value, a.impairment_loss, a.acquisition_bast_no, a.current_holder_employee_id, a.excluded_from_valuation, a.valuation_exclusion_reason, a.created_by_id, a.notes, a.created_at, a.updated_at, a.deleted_at, a.impaired_book_value, a.capacity, a.lease_date, a.installation_date, a.warranty_start, a.floor_id, a.pic_employee_id, a.tag_seq, a.tag_office_id, a.is_operational_asset, a.spk_number, a.legacy_asset_code, a.legacy_barcode, c.id, c.name, c.code, c.parent_id, c.default_depreciation_method, c.default_useful_life_months, c.default_salvage_rate, c.asset_class, c.default_fiscal_group, c.default_fiscal_life_months, c.gl_account_code, c.capitalization_threshold, c.is_active, c.created_at, c.updated_at, c.deleted_at
 FROM asset.assets a
 JOIN masterdata.categories c ON c.id = a.category_id
 WHERE a.deleted_at IS NULL
@@ -409,6 +417,10 @@ func (q *Queries) ListAssetsForDepreciation(ctx context.Context) ([]ListAssetsFo
 			&i.AssetAsset.PicEmployeeID,
 			&i.AssetAsset.TagSeq,
 			&i.AssetAsset.TagOfficeID,
+			&i.AssetAsset.IsOperationalAsset,
+			&i.AssetAsset.SpkNumber,
+			&i.AssetAsset.LegacyAssetCode,
+			&i.AssetAsset.LegacyBarcode,
 			&i.MasterdataCategory.ID,
 			&i.MasterdataCategory.Name,
 			&i.MasterdataCategory.Code,
@@ -475,7 +487,7 @@ func (q *Queries) ListDepreciationPeriods(ctx context.Context) ([]DepreciationDe
 }
 
 const listEntriesForPeriod = `-- name: ListEntriesForPeriod :many
-SELECT e.id, e.asset_id, e.basis, e.period, e.opening_value, e.depreciation_amount, e.closing_value, e.method, e.created_at, e.updated_at, e.deleted_at, a.id, a.asset_tag, a.name, a.category_id, a.brand_id, a.model_id, a.room_id, a.office_id, a.unit_id, a.status, a.serial_number, a.purchase_date, a.purchase_cost, a.vendor_id, a.po_number, a.funding_source, a.warranty_expiry, a.specifications, a.asset_class, a.capitalized, a.depreciation_method, a.useful_life_months, a.salvage_value, a.fiscal_group, a.fiscal_life_months, a.accumulated_depreciation, a.book_value, a.impairment_loss, a.acquisition_bast_no, a.current_holder_employee_id, a.excluded_from_valuation, a.valuation_exclusion_reason, a.created_by_id, a.notes, a.created_at, a.updated_at, a.deleted_at, a.impaired_book_value, a.capacity, a.lease_date, a.installation_date, a.warranty_start, a.floor_id, a.pic_employee_id, a.tag_seq, a.tag_office_id, c.id, c.name, c.code, c.parent_id, c.default_depreciation_method, c.default_useful_life_months, c.default_salvage_rate, c.asset_class, c.default_fiscal_group, c.default_fiscal_life_months, c.gl_account_code, c.capitalization_threshold, c.is_active, c.created_at, c.updated_at, c.deleted_at,
+SELECT e.id, e.asset_id, e.basis, e.period, e.opening_value, e.depreciation_amount, e.closing_value, e.method, e.created_at, e.updated_at, e.deleted_at, a.id, a.asset_tag, a.name, a.category_id, a.brand_id, a.model_id, a.room_id, a.office_id, a.unit_id, a.status, a.serial_number, a.purchase_date, a.purchase_cost, a.vendor_id, a.po_number, a.funding_source, a.warranty_expiry, a.specifications, a.asset_class, a.capitalized, a.depreciation_method, a.useful_life_months, a.salvage_value, a.fiscal_group, a.fiscal_life_months, a.accumulated_depreciation, a.book_value, a.impairment_loss, a.acquisition_bast_no, a.current_holder_employee_id, a.excluded_from_valuation, a.valuation_exclusion_reason, a.created_by_id, a.notes, a.created_at, a.updated_at, a.deleted_at, a.impaired_book_value, a.capacity, a.lease_date, a.installation_date, a.warranty_start, a.floor_id, a.pic_employee_id, a.tag_seq, a.tag_office_id, a.is_operational_asset, a.spk_number, a.legacy_asset_code, a.legacy_barcode, c.id, c.name, c.code, c.parent_id, c.default_depreciation_method, c.default_useful_life_months, c.default_salvage_rate, c.asset_class, c.default_fiscal_group, c.default_fiscal_life_months, c.gl_account_code, c.capitalization_threshold, c.is_active, c.created_at, c.updated_at, c.deleted_at,
        o.name AS office_name
 FROM depreciation.depreciation_entries e
 JOIN asset.assets a ON a.id = e.asset_id
@@ -575,6 +587,10 @@ func (q *Queries) ListEntriesForPeriod(ctx context.Context, arg ListEntriesForPe
 			&i.AssetAsset.PicEmployeeID,
 			&i.AssetAsset.TagSeq,
 			&i.AssetAsset.TagOfficeID,
+			&i.AssetAsset.IsOperationalAsset,
+			&i.AssetAsset.SpkNumber,
+			&i.AssetAsset.LegacyAssetCode,
+			&i.AssetAsset.LegacyBarcode,
 			&i.MasterdataCategory.ID,
 			&i.MasterdataCategory.Name,
 			&i.MasterdataCategory.Code,
@@ -681,7 +697,7 @@ func (q *Queries) ScheduleKpi(ctx context.Context, arg ScheduleKpiParams) (Sched
 }
 
 const scheduleRows = `-- name: ScheduleRows :many
-SELECT a.id, a.asset_tag, a.name, a.category_id, a.brand_id, a.model_id, a.room_id, a.office_id, a.unit_id, a.status, a.serial_number, a.purchase_date, a.purchase_cost, a.vendor_id, a.po_number, a.funding_source, a.warranty_expiry, a.specifications, a.asset_class, a.capitalized, a.depreciation_method, a.useful_life_months, a.salvage_value, a.fiscal_group, a.fiscal_life_months, a.accumulated_depreciation, a.book_value, a.impairment_loss, a.acquisition_bast_no, a.current_holder_employee_id, a.excluded_from_valuation, a.valuation_exclusion_reason, a.created_by_id, a.notes, a.created_at, a.updated_at, a.deleted_at, a.impaired_book_value, a.capacity, a.lease_date, a.installation_date, a.warranty_start, a.floor_id, a.pic_employee_id, a.tag_seq, a.tag_office_id, c.id, c.name, c.code, c.parent_id, c.default_depreciation_method, c.default_useful_life_months, c.default_salvage_rate, c.asset_class, c.default_fiscal_group, c.default_fiscal_life_months, c.gl_account_code, c.capitalization_threshold, c.is_active, c.created_at, c.updated_at, c.deleted_at,
+SELECT a.id, a.asset_tag, a.name, a.category_id, a.brand_id, a.model_id, a.room_id, a.office_id, a.unit_id, a.status, a.serial_number, a.purchase_date, a.purchase_cost, a.vendor_id, a.po_number, a.funding_source, a.warranty_expiry, a.specifications, a.asset_class, a.capitalized, a.depreciation_method, a.useful_life_months, a.salvage_value, a.fiscal_group, a.fiscal_life_months, a.accumulated_depreciation, a.book_value, a.impairment_loss, a.acquisition_bast_no, a.current_holder_employee_id, a.excluded_from_valuation, a.valuation_exclusion_reason, a.created_by_id, a.notes, a.created_at, a.updated_at, a.deleted_at, a.impaired_book_value, a.capacity, a.lease_date, a.installation_date, a.warranty_start, a.floor_id, a.pic_employee_id, a.tag_seq, a.tag_office_id, a.is_operational_asset, a.spk_number, a.legacy_asset_code, a.legacy_barcode, c.id, c.name, c.code, c.parent_id, c.default_depreciation_method, c.default_useful_life_months, c.default_salvage_rate, c.asset_class, c.default_fiscal_group, c.default_fiscal_life_months, c.gl_account_code, c.capitalization_threshold, c.is_active, c.created_at, c.updated_at, c.deleted_at,
        o.name AS office_name,
        (e.id IS NOT NULL)::boolean AS has_entry,
        e.method AS entry_method,
@@ -838,6 +854,10 @@ func (q *Queries) ScheduleRows(ctx context.Context, arg ScheduleRowsParams) ([]S
 			&i.AssetAsset.PicEmployeeID,
 			&i.AssetAsset.TagSeq,
 			&i.AssetAsset.TagOfficeID,
+			&i.AssetAsset.IsOperationalAsset,
+			&i.AssetAsset.SpkNumber,
+			&i.AssetAsset.LegacyAssetCode,
+			&i.AssetAsset.LegacyBarcode,
 			&i.MasterdataCategory.ID,
 			&i.MasterdataCategory.Name,
 			&i.MasterdataCategory.Code,

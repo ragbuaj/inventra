@@ -28,6 +28,19 @@ const (
 	colPrice    = "harga"
 	colVendor   = "vendor"
 	colRoom     = "lokasi"
+	// Kolom opsional tambahan (legacy-parity): merk -> brand_id (lookup);
+	// sisanya teks bebas. kode_aset_lama/barcode diarsipkan ke kolom legacy_*
+	// dan tidak ditampilkan di UI.
+	colBrand      = "merk"
+	colCapacity   = "kapasitas"
+	colSpk        = "spk_number"
+	colLegacyCode = "kode_aset_lama"
+	colBarcode    = "barcode"
+	// pemegang -> pic_employee_id (lookup by NIP); kondisi -> status
+	// (baik=available, rusak=under_maintenance); operasional -> is_operational_asset.
+	colPic         = "pemegang"
+	colCondition   = "kondisi"
+	colOperational = "operasional"
 )
 
 // importLookupLimit bounds the office lookup page. Office volume is reference-
@@ -61,6 +74,8 @@ type assetLookups struct {
 	categories   map[string]uuid.UUID
 	offices      map[string]uuid.UUID
 	vendors      map[string]uuid.UUID
+	brands       map[string]uuid.UUID
+	employees    map[string]uuid.UUID
 	rooms        map[string][]roomRef
 	existingTags map[string]bool
 }
@@ -93,6 +108,14 @@ func (assetImporter) Columns() []importer.ColumnSpec {
 		{Name: colPrice, Required: true, Kind: "decimal"},
 		{Name: colVendor, Required: false, Kind: "lookup"},
 		{Name: colRoom, Required: false, Kind: "lookup"},
+		{Name: colBrand, Required: false, Kind: "lookup"},
+		{Name: colCapacity, Required: false, Kind: "text"},
+		{Name: colSpk, Required: false, Kind: "text"},
+		{Name: colLegacyCode, Required: false, Kind: "text"},
+		{Name: colBarcode, Required: false, Kind: "text"},
+		{Name: colPic, Required: false, Kind: "lookup"},
+		{Name: colCondition, Required: false, Kind: "text"},
+		{Name: colOperational, Required: false, Kind: "text"},
 	}
 }
 
@@ -116,6 +139,8 @@ func (a assetImporter) buildAssetLookups(ctx context.Context, scope importer.Sco
 		categories:   map[string]uuid.UUID{},
 		offices:      map[string]uuid.UUID{},
 		vendors:      map[string]uuid.UUID{},
+		brands:       map[string]uuid.UUID{},
+		employees:    map[string]uuid.UUID{},
 		rooms:        map[string][]roomRef{},
 		existingTags: map[string]bool{},
 	}
@@ -168,6 +193,22 @@ func (a assetImporter) buildAssetLookups(ctx context.Context, scope importer.Sco
 		addKey(lk.vendors, v.Name, v.ID)
 	}
 
+	brnds, err := a.s.q.ListBrandsLookup(ctx)
+	if err != nil {
+		return lk, err
+	}
+	for _, b := range brnds {
+		addKey(lk.brands, b.Name, b.ID)
+	}
+
+	emps, err := a.s.q.ListEmployeeLookup(ctx)
+	if err != nil {
+		return lk, err
+	}
+	for _, e := range emps {
+		addKey(lk.employees, e.Code, e.ID)
+	}
+
 	tags, err := a.s.q.ListAssetTags(ctx)
 	if err != nil {
 		return lk, err
@@ -201,6 +242,59 @@ func normKey(s string) string { return strings.ToLower(strings.TrimSpace(s)) }
 // normTag upper-cases and trims an asset tag for case-insensitive comparison.
 func normTag(s string) string { return strings.ToUpper(strings.TrimSpace(s)) }
 
+// optText returns a pointer to the trimmed string, or nil when it is empty —
+// used to store optional free-text columns (capacity, spk, legacy_*) as NULL.
+func optText(s string) *string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+// picNIP extracts the employee NIP from a `pemegang` cell. It accepts either a
+// bare NIP ("12345") or the "NIP - Nama" display form ("12345 - Budi Santoso"),
+// returning the leading NIP token.
+func picNIP(s string) string {
+	s = strings.TrimSpace(s)
+	if i := strings.Index(s, " - "); i >= 0 {
+		s = s[:i]
+	}
+	return strings.TrimSpace(s)
+}
+
+// condStatus maps a `kondisi` cell to an asset status. It returns (status, ok):
+// ok=false means the value is unrecognized. An empty cell maps to ("", true) —
+// no override, so the asset keeps its default 'available' status.
+func condStatus(s string) (string, bool) {
+	switch normKey(s) {
+	case "":
+		return "", true
+	case "baik", "bagus", "bersih", "available":
+		return "available", true
+	case "rusak", "under_maintenance":
+		return "under_maintenance", true
+	default:
+		return "", false
+	}
+}
+
+// operBool maps an `operasional` cell to "true"/"false". It returns (value, ok):
+// ok=false means unrecognized; an empty cell maps to ("", true) — no override,
+// so the asset keeps its default is_operational_asset=true.
+func operBool(s string) (string, bool) {
+	switch normKey(s) {
+	case "":
+		return "", true
+	case "ya", "y", "1", "true", "operasional", "aktif":
+		return "true", true
+	case "tidak", "t", "0", "false", "non-operasional", "non operasional", "nonaktif":
+		return "false", true
+	default:
+		return "", false
+	}
+}
+
 // validateAssetRows validates raw asset rows against pre-loaded lookups and the
 // caller's data scope, returning one RowResult per input row (same order). It
 // performs NO database access: all resolution is against lk, so the full rule
@@ -227,14 +321,22 @@ func validateAssetRows(rows []importer.RawRow, lk assetLookups, scope importer.S
 
 	for i, raw := range rows {
 		data := map[string]string{
-			colTag:      trim(raw.Cells[colTag]),
-			colName:     trim(raw.Cells[colName]),
-			colCategory: trim(raw.Cells[colCategory]),
-			colOffice:   trim(raw.Cells[colOffice]),
-			colDate:     trim(raw.Cells[colDate]),
-			colPrice:    trim(raw.Cells[colPrice]),
-			colVendor:   trim(raw.Cells[colVendor]),
-			colRoom:     trim(raw.Cells[colRoom]),
+			colTag:         trim(raw.Cells[colTag]),
+			colName:        trim(raw.Cells[colName]),
+			colCategory:    trim(raw.Cells[colCategory]),
+			colOffice:      trim(raw.Cells[colOffice]),
+			colDate:        trim(raw.Cells[colDate]),
+			colPrice:       trim(raw.Cells[colPrice]),
+			colVendor:      trim(raw.Cells[colVendor]),
+			colRoom:        trim(raw.Cells[colRoom]),
+			colBrand:       trim(raw.Cells[colBrand]),
+			colCapacity:    trim(raw.Cells[colCapacity]),
+			colSpk:         trim(raw.Cells[colSpk]),
+			colLegacyCode:  trim(raw.Cells[colLegacyCode]),
+			colBarcode:     trim(raw.Cells[colBarcode]),
+			colPic:         trim(raw.Cells[colPic]),
+			colCondition:   trim(raw.Cells[colCondition]),
+			colOperational: trim(raw.Cells[colOperational]),
 		}
 		var errs []importer.CellError
 		add := func(col, key string) { errs = append(errs, importer.CellError{Column: col, ErrorKey: key}) }
@@ -299,6 +401,43 @@ func validateAssetRows(rows []importer.RawRow, lk assetLookups, scope importer.S
 			}
 		}
 
+		// merk (optional): must resolve to a known brand when provided.
+		var brandID uuid.UUID
+		hasBrand := false
+		if v := data[colBrand]; v != "" {
+			if id, ok := lk.brands[normKey(v)]; ok {
+				brandID = id
+				hasBrand = true
+			} else {
+				add(colBrand, "merk")
+			}
+		}
+
+		// pemegang (optional): resolve the PIC employee by NIP (accepts "NIP" or
+		// "NIP - Nama").
+		var picID uuid.UUID
+		hasPic := false
+		if v := data[colPic]; v != "" {
+			if id, ok := lk.employees[normKey(picNIP(v))]; ok {
+				picID = id
+				hasPic = true
+			} else {
+				add(colPic, "pemegang")
+			}
+		}
+
+		// kondisi (optional): baik -> available, rusak -> under_maintenance.
+		condVal, condOK := condStatus(data[colCondition])
+		if !condOK {
+			add(colCondition, "kondisi")
+		}
+
+		// operasional (optional): ya/tidak -> is_operational_asset.
+		operVal, operOK := operBool(data[colOperational])
+		if !operOK {
+			add(colOperational, "operasional")
+		}
+
 		// lokasi (optional): must be a room in this row's resolved office.
 		var roomID uuid.UUID
 		hasRoom := false
@@ -347,6 +486,18 @@ func validateAssetRows(rows []importer.RawRow, lk assetLookups, scope importer.S
 			} else {
 				data["_room_id"] = ""
 			}
+			if hasBrand {
+				data["_brand_id"] = brandID.String()
+			} else {
+				data["_brand_id"] = ""
+			}
+			if hasPic {
+				data["_pic_id"] = picID.String()
+			} else {
+				data["_pic_id"] = ""
+			}
+			data["_status"] = condVal
+			data["_operational"] = operVal
 			data["_category_id"] = categoryID.String()
 			data["_office_id"] = officeID.String()
 		}
@@ -384,6 +535,10 @@ func validateAssetRows(rows []importer.RawRow, lk assetLookups, scope importer.S
 			delete(w.data, "_office_id")
 			delete(w.data, "_vendor_id")
 			delete(w.data, "_room_id")
+			delete(w.data, "_brand_id")
+			delete(w.data, "_pic_id")
+			delete(w.data, "_status")
+			delete(w.data, "_operational")
 		}
 		results[i] = res
 	}
@@ -452,6 +607,16 @@ func (a assetImporter) createRows(ctx context.Context, qtx *sqlc.Queries, maker 
 		if err != nil {
 			return created, ErrInvalidRef
 		}
+		brandStr := r.Data["_brand_id"]
+		brandID, err := common.ParseUUIDPtr(&brandStr)
+		if err != nil {
+			return created, ErrInvalidRef
+		}
+		picStr := r.Data["_pic_id"]
+		picID, err := common.ParseUUIDPtr(&picStr)
+		if err != nil {
+			return created, ErrInvalidRef
+		}
 
 		dateStr := r.Data[colDate]
 		purchaseDate, derr := parsePurchaseDate(&dateStr)
@@ -505,19 +670,25 @@ func (a assetImporter) createRows(ctx context.Context, qtx *sqlc.Queries, maker 
 
 		harga := r.Data[colPrice]
 		createdAsset, err := qtx.CreateAsset(ctx, sqlc.CreateAssetParams{
-			AssetTag:       tag,
-			TagSeq:         &tagSeq,
-			Name:           r.Data[colName],
-			CategoryID:     categoryID,
-			OfficeID:       officeID,
-			RoomID:         roomID,
-			VendorID:       vendorID,
-			AssetClass:     sqlc.SharedAssetClassTangible,
-			Capitalized:    true,
-			CreatedByID:    maker,
-			PurchaseCost:   &harga,
-			PurchaseDate:   purchaseDate,
-			Specifications: []byte("{}"),
+			AssetTag:        tag,
+			TagSeq:          &tagSeq,
+			Name:            r.Data[colName],
+			CategoryID:      categoryID,
+			OfficeID:        officeID,
+			RoomID:          roomID,
+			VendorID:        vendorID,
+			BrandID:         brandID,
+			PicEmployeeID:   picID,
+			Capacity:        optText(r.Data[colCapacity]),
+			SpkNumber:       optText(r.Data[colSpk]),
+			LegacyAssetCode: optText(r.Data[colLegacyCode]),
+			LegacyBarcode:   optText(r.Data[colBarcode]),
+			AssetClass:      sqlc.SharedAssetClassTangible,
+			Capitalized:     true,
+			CreatedByID:     maker,
+			PurchaseCost:    &harga,
+			PurchaseDate:    purchaseDate,
+			Specifications:  []byte("{}"),
 		})
 		if err != nil {
 			// Residual concurrent-race window: the pre-check saw the tag free, but
@@ -547,6 +718,41 @@ func (a assetImporter) createRows(ctx context.Context, qtx *sqlc.Queries, maker 
 			MovedByID: maker,
 		}); hErr != nil {
 			return created, mapDBError(hErr)
+		}
+
+		// PIC history: seed the assignment timeline when a pemegang was resolved
+		// (mirrors the create executor).
+		if picID != nil {
+			if hErr := qtx.InsertAssetPICHistory(ctx, sqlc.InsertAssetPICHistoryParams{
+				AssetID:       createdAsset.ID,
+				PicEmployeeID: *picID,
+				AssignedByID:  maker,
+			}); hErr != nil {
+				return created, mapDBError(hErr)
+			}
+		}
+
+		// kondisi: CreateAsset inserts 'available'; override only for non-available
+		// statuses (e.g. rusak -> under_maintenance). These UPDATEs cannot fire a
+		// 23505, so they do not poison the shared approval tx.
+		if st := r.Data["_status"]; st != "" && st != string(sqlc.SharedAssetStatusAvailable) {
+			if _, sErr := qtx.SetAssetStatus(ctx, sqlc.SetAssetStatusParams{
+				ID:     createdAsset.ID,
+				Status: sqlc.SharedAssetStatus(st),
+			}); sErr != nil {
+				return created, mapDBError(sErr)
+			}
+		}
+
+		// operasional: is_operational_asset defaults true at insert; override only
+		// when the row marks it non-operational.
+		if r.Data["_operational"] == "false" {
+			if oErr := qtx.SetAssetOperational(ctx, sqlc.SetAssetOperationalParams{
+				ID:                 createdAsset.ID,
+				IsOperationalAsset: false,
+			}); oErr != nil {
+				return created, mapDBError(oErr)
+			}
 		}
 
 		usedTags[tagKey] = true

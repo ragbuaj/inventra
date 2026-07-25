@@ -2156,7 +2156,11 @@
         "provinsi": "Provinsi tidak ditemukan",
         "departemen": "Departemen tidak ditemukan",
         "jabatan": "Jabatan tidak ditemukan",
-        "merek": "Brand tidak ditemukan"
+        "merek": "Brand tidak ditemukan",
+        "merk": "Merk tidak ditemukan",
+        "pemegang": "Pemegang (NIP) tidak ditemukan",
+        "kondisi": "Kondisi tidak dikenali (pakai Baik atau Rusak)",
+        "operasional": "Nilai operasional tidak dikenali (pakai Ya atau Tidak)"
       },
       "jobErrors": {
         "badHeader": "Header kolom tidak sesuai template.",

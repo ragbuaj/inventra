@@ -5835,6 +5835,8 @@ components:
         acquisition_bast_no: { type: [string, "null"] }
         excluded_from_valuation: { type: [boolean, "null"] }
         valuation_exclusion_reason: { type: [string, "null"] }
+        is_operational_asset: { type: boolean, description: 'Klasifikasi aset operasional vs non-operasional (bukan status fungsional).' }
+        spk_number: { type: [string, "null"], description: 'Nomor Surat Perintah Kerja; berbeda dari po_number (Purchase Order).' }
         notes: { type: [string, "null"] }
         created_at: { type: [string, "null"], format: date-time }
         updated_at: { type: [string, "null"], format: date-time }

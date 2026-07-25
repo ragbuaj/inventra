@@ -320,6 +320,9 @@ type Querier interface {
 	// codes are globally unique (uq_employees_code), so this set is deliberately
 	// unscoped.
 	ListEmployeeCodes(ctx context.Context) ([]string, error)
+	// id + code for the asset importer's `pemegang` (PIC) resolution. Employee codes
+	// (NIP) are globally unique (uq_employees_code), so this set is deliberately unscoped.
+	ListEmployeeLookup(ctx context.Context) ([]ListEmployeeLookupRow, error)
 	// Employees (asset custodians) with data-scoping by office.
 	ListEmployees(ctx context.Context, arg ListEmployeesParams) ([]MasterdataEmployee, error)
 	// Schedule/journal source: entries of one period+basis joined to asset+category+office.
@@ -504,6 +507,9 @@ type Querier interface {
 	// without a destination room hits chk_assets_tangible_location (correct: a physical
 	// asset must have a destination location).
 	SetAssetOffice(ctx context.Context, arg SetAssetOfficeParams) (AssetAsset, error)
+	// Override the operational classification (default true at insert). Used by the
+	// asset importer for rows whose `operasional` column resolves to non-operational.
+	SetAssetOperational(ctx context.Context, arg SetAssetOperationalParams) error
 	SetAssetStatus(ctx context.Context, arg SetAssetStatusParams) (AssetAsset, error)
 	SetAssetValuationExclusion(ctx context.Context, arg SetAssetValuationExclusionParams) (AssetAsset, error)
 	SetDisposalBastNo(ctx context.Context, arg SetDisposalBastNoParams) (DisposalDisposal, error)

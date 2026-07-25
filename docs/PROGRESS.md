@@ -17,6 +17,20 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
+> **Import aset legacy-parity + kolom aset (2026-07-26, branch `feat/asset-import-legacy-columns`) — SELESAI (kode).**
+> Migrasi `000049`: kolom `asset.assets` baru — `is_operational_asset` (bool, default true), `spk_number`,
+> `legacy_asset_code`, `legacy_barcode` (dua terakhir arsip, TIDAK diserialisasi ke API; `dto.assetToMap`
+> mengekspos hanya `is_operational_asset`+`spk_number`). Importer aset (`internal/asset/importer.go`)
+> diperluas dari 8 ke 16 kolom: +`merk` (ke brand_id, lookup), `kapasitas`, `spk_number`,
+> `kode_aset_lama` (ke legacy_asset_code), `barcode` (ke legacy_barcode), `pemegang` (ke pic_employee_id
+> by NIP, + PIC-history), `kondisi` (Baik ke available / Rusak ke under_maintenance via `SetAssetStatus`),
+> `operasional` (Ya/Tidak ke is_operational_asset via `SetAssetOperational` baru). `CreateAsset` tak
+> diubah (hindari bool silent-false di executor); override pasca-insert aman-poisoning. Query baru
+> `SetAssetOperational` + `ListEmployeeLookup`. Template resmi (`GET /imports/template`) otomatis 16 kolom;
+> i18n id/en error key (merk/pemegang/kondisi/operasional). **Gate:** build/vet/unit (32 paket) hijau;
+> integrasi `TestImport_AssetFullCycle` diperluas (assert brand/capacity/spk/legacy/pic/status/operasional
+> + PIC-history) & suite importer/asset/approval lolos lokal (testcontainers). Spectral 0-error.
+>
 > **Notifikasi tahap mutasi (2026-07-25) — SELESAI (kode, belum commit).** Menutup celah: kantor tujuan
 > tak pernah dinotifikasi saat aset masuk. Tambah 4 event outbox di `internal/transfer` (`events.go` baru:
 > `transfer_approved`/`transfer_in_transit`/`transfer_received`/`transfer_returned`) — di-enqueue di

@@ -2156,7 +2156,11 @@
         "provinsi": "Province not found",
         "departemen": "Department not found",
         "jabatan": "Position not found",
-        "merek": "Brand not found"
+        "merek": "Brand not found",
+        "merk": "Brand not found",
+        "pemegang": "Holder (NIP) not found",
+        "kondisi": "Unrecognized condition (use Baik or Rusak)",
+        "operasional": "Unrecognized operational value (use Ya or Tidak)"
       },
       "jobErrors": {
         "badHeader": "Column header does not match the template.",
