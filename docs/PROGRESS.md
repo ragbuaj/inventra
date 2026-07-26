@@ -17,6 +17,29 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
+> **Perbaikan batch: impor xlsx, peta, label, opname (2026-07-26, branch `feat/perbaikan-impor-peta-label-opname`) — SELESAI (kode, belum commit).**
+> Enam permintaan user: (1) **Template impor jadi XLSX 2 sheet** — sheet "Data Impor" (header saja, sheet
+> yang diisi & di-upload; parser membaca `sheets[0]`) + "Contoh Penggunaan" (header + 1 baris contoh
+> terisi). `ColumnSpec` dapat field `Example` (`importer/target.go`); `BuildTemplate` XLSX ditulis ulang
+> (`importer/template.go`, header tebal + lebar kolom auto); contoh diisi di keempat `Columns()`
+> (asset/employee/office/reference). Frontend `ImportWizard.vue` minta `'xlsx'` (unduh `.xlsx`). Upload
+> xlsx lama (sheet tunggal) tetap ter-parse. (2) **Peta lokasi default seluruh Indonesia**
+> (`OfficeMap.client.vue`): dulu selalu `fitBounds` ke marker (zoom rapat / peta dunia bila tak ada
+> koordinat); kini default + Reset View pakai `INDONESIA_BOUNDS` (Sabang–Merauke). (3) **Label 1 halaman
+> per label, ukuran halaman = ukuran label** (`asset/barcode.go`, `barcode_handler.go`): dihapus layout
+> `sheet`/A4, kolom-per-baris, media width, `ErrSheetOverflow`, `sheetFits`. Frontend `assets/label.vue`
+> hapus kontrol kolom + logika roll/sheet; hanya kirim `size`. openapi + i18n (`label.pageSizeHint`,
+> `onePerPage`) disesuaikan. *Deviasi dari mockup label atas permintaan eksplisit user (mockup punya
+> pilihan kolom/kertas).* (4) **Opname: scroll tak reset saat isi hasil** (`stock-opname.vue`):
+> `loadDetail` dapat opsi `{silent}` agar refresh KPI tak men-toggle `detailLoading` (mencegah
+> unmount/remount subtree). (5) **Opname: params URL `?session=<id>`** + watcher route → tombol Back
+> browser kembali ke index; deep-link saat mount. (6) **Opname: urutan aset stabil** — `stockopname.sql`
+> `ORDER BY a.name` → `a.name NULLS LAST, it.id` (tiebreaker; sqlc regenerated). **Gate:** `go build/vet/test`
+> hijau penuh, spectral 0-error, `pnpm lint` + `vue-tsc` hijau; vitest/e2e/build frontend via CI (Node 24
+> lokal rusak). Test disesuaikan: `template_test.go` (+2-sheet), `barcode_test.go`/`barcode_integration_test.go`
+> (buang sheet/kolom/overflow), `assets-label.spec.ts` (buang kolom/A4), `import-wizard.spec.ts` +
+> `e2e/import.spec.ts` (csv→xlsx). Review 5-sumbu via agent code-reviewer dijalankan.
+>
 > **Import aset legacy-parity + kolom aset (2026-07-26, branch `feat/asset-import-legacy-columns`) — SELESAI (kode).**
 > Migrasi `000049`: kolom `asset.assets` baru — `is_operational_asset` (bool, default true), `spk_number`,
 > `legacy_asset_code`, `legacy_barcode` (dua terakhir arsip, TIDAK diserialisasi ke API; `dto.assetToMap`
