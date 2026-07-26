@@ -17,6 +17,18 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
+> **Revisi template impor aset (2026-07-26, branch `feat/import-template-refinements`, follow-up PR #130) — SELESAI (kode, belum merge).**
+> Penyempurnaan lanjutan atas template legacy (#130 sudah merged): (1) **hapus kolom "Last Location" &
+> "Last Change"** (template 15 ke 13 kolom). (2) **rename header**: "First Location" ke **"Location Name"**,
+> "Asset Code" ke **"Legacy Asset Code"**, "Barcode" ke **"Legacy Barcode"** (mapping tetap). (3) **PIC
+> se-kantor**: kolom User ditolak bila pegawai bukan dari kantor baris (error `pemegangScope`) — konsisten
+> dgn Location Name yang office-scoped; `ListEmployeeLookup` +office_id, employees lookup jadi
+> `map[string]empRef{id,officeID}`. (4) **header kolom wajib MERAH** (bold C80000) di template saat
+> `MarkRequired` (`styleHeaderRow` per-kolom). Frontend `ImportWizard` ASSET_COLUMNS ke 13 kolom + i18n
+> `pemegangScope`. **Gate:** `go build/vet/test ./...` hijau + integrasi compile, spectral 0-error,
+> `pnpm lint` + `vue-tsc` hijau; vitest/e2e via CI. Tes asset/template/parser/integrasi + fixtures e2e
+> diperbarui (+test PIC-scope & warna header). *Deviasi diperbarui: [[Template Impor Aset Layout Legacy]].*
+>
 > **Template impor aset layout legacy (2026-07-26, branch `feat/import-template-legacy-format`) — SELESAI (kode, 3 commit, belum push).**
 > Permintaan user: template impor aset mengikuti file legacy (`TemplateAset.xlsx`, header Inggris) +
 > dropdown + sheet contoh. (1) **Engine template** (`internal/importer`): `ColumnSpec`/`TemplateSpec` +
