@@ -398,8 +398,8 @@ describe('ImportWizard — polling lifecycle', () => {
 })
 
 describe('ImportWizard — template download', () => {
-  it('downloads the CSV template for the target', async () => {
-    getTemplate.mockResolvedValue(new Blob(['tag,name'], { type: 'text/csv' }))
+  it('downloads the xlsx template for the target', async () => {
+    getTemplate.mockResolvedValue(new Blob(['tag,name'], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }))
     // jsdom lacks createObjectURL — stub it so the download path runs.
     const createURL = vi.fn(() => 'blob:x')
     const revokeURL = vi.fn()
@@ -410,7 +410,7 @@ describe('ImportWizard — template download', () => {
     await btn!.trigger('click')
     await flushPromises()
 
-    expect(getTemplate).toHaveBeenCalledWith('asset', 'csv')
+    expect(getTemplate).toHaveBeenCalledWith('asset', 'xlsx')
     expect(createURL).toHaveBeenCalled()
     vi.unstubAllGlobals()
     w.unmount()

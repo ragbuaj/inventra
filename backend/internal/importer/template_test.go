@@ -1,6 +1,18 @@
 package importer
 
-import "testing"
+import (
+	"bytes"
+	"testing"
+
+	"github.com/xuri/excelize/v2"
+)
+
+// exampleCols mirrors a real target: each column carries an illustrative
+// Example value used to build the "Contoh Penggunaan" sheet.
+var exampleCols = []ColumnSpec{
+	{Name: "nama", Required: true, Kind: "text", Example: "Budi Santoso"},
+	{Name: "harga", Required: true, Kind: "decimal", Example: "15000000"},
+}
 
 func TestBuildTemplateCSV(t *testing.T) {
 	body, ct, ext, err := BuildTemplate("csv", testCols)
@@ -48,9 +60,55 @@ func TestBuildTemplateXLSX(t *testing.T) {
 	if ext != "xlsx" {
 		t.Fatalf("bad ext %s", ext)
 	}
+	// The first sheet ("Data Impor") is header-only, so parsing it yields no
+	// data rows — proving the fill-in sheet is empty and comes first.
 	rows, err := Parse("xlsx", body, testCols, 100)
 	if err != ErrEmptyFile {
 		t.Fatalf("template should have header only, got rows=%v err=%v", rows, err)
+	}
+}
+
+// TestBuildTemplateXLSXTwoSheets asserts the XLSX template carries exactly the
+// two named sheets in the required order: "Data Impor" first (the fill-in
+// sheet the parser reads on re-upload) then "Contoh Penggunaan".
+func TestBuildTemplateXLSXTwoSheets(t *testing.T) {
+	body, _, _, err := BuildTemplate("xlsx", exampleCols)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := excelize.OpenReader(bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	sheets := f.GetSheetList()
+	if len(sheets) != 2 || sheets[0] != sheetData || sheets[1] != sheetExample {
+		t.Fatalf("want sheets [%q %q], got %v", sheetData, sheetExample, sheets)
+	}
+
+	// "Data Impor" is header-only.
+	dataRows, err := f.GetRows(sheetData)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(dataRows) != 1 {
+		t.Fatalf("Data Impor should have only a header row, got %d rows", len(dataRows))
+	}
+	if dataRows[0][0] != "nama" || dataRows[0][1] != "harga" {
+		t.Fatalf("bad Data Impor header: %v", dataRows[0])
+	}
+
+	// "Contoh Penggunaan" has the header plus one example row.
+	exRows, err := f.GetRows(sheetExample)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(exRows) != 2 {
+		t.Fatalf("Contoh Penggunaan should have header + 1 example row, got %d rows", len(exRows))
+	}
+	if exRows[1][0] != "Budi Santoso" || exRows[1][1] != "15000000" {
+		t.Fatalf("bad example row: %v", exRows[1])
 	}
 }
 

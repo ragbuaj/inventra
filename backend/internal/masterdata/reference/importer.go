@@ -79,28 +79,28 @@ func (r referenceImporter) Columns() []importer.ColumnSpec {
 	switch r.resource {
 	case "provinces":
 		return []importer.ColumnSpec{
-			{Name: provColName, Required: true, Kind: "text"},
-			{Name: provColCode, Required: false, Kind: "text"},
+			{Name: provColName, Required: true, Kind: "text", Example: "Jawa Barat"},
+			{Name: provColCode, Required: false, Kind: "text", Example: "32"},
 		}
 	case "cities":
 		return []importer.ColumnSpec{
-			{Name: cityColName, Required: true, Kind: "text"},
-			{Name: cityColProvince, Required: true, Kind: "lookup"},
-			{Name: cityColCode, Required: false, Kind: "text"},
+			{Name: cityColName, Required: true, Kind: "text", Example: "Kota Bandung"},
+			{Name: cityColProvince, Required: true, Kind: "lookup", Example: "Jawa Barat"},
+			{Name: cityColCode, Required: false, Kind: "text", Example: "3273"},
 		}
 	case "brands":
 		return []importer.ColumnSpec{
-			{Name: brandColName, Required: true, Kind: "text"},
+			{Name: brandColName, Required: true, Kind: "text", Example: "Dell"},
 		}
 	case "units":
 		return []importer.ColumnSpec{
-			{Name: unitColName, Required: true, Kind: "text"},
-			{Name: unitColSymbol, Required: false, Kind: "text"},
+			{Name: unitColName, Required: true, Kind: "text", Example: "Unit"},
+			{Name: unitColSymbol, Required: false, Kind: "text", Example: "unit"},
 		}
 	case "models":
 		return []importer.ColumnSpec{
-			{Name: modelColBrand, Required: true, Kind: "lookup"},
-			{Name: modelColName, Required: true, Kind: "text"},
+			{Name: modelColBrand, Required: true, Kind: "lookup", Example: "Dell"},
+			{Name: modelColName, Required: true, Kind: "text", Example: "Latitude 5440"},
 		}
 	default:
 		return nil

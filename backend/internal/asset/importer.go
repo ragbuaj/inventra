@@ -100,22 +100,22 @@ func (assetImporter) NeedsApproval() bool { return true }
 // the worker sums it for the batch approval amount.
 func (assetImporter) Columns() []importer.ColumnSpec {
 	return []importer.ColumnSpec{
-		{Name: colTag, Required: false, Kind: "text"},
-		{Name: colName, Required: true, Kind: "text"},
-		{Name: colCategory, Required: true, Kind: "lookup"},
-		{Name: colOffice, Required: true, Kind: "lookup"},
-		{Name: colDate, Required: true, Kind: "date"},
-		{Name: colPrice, Required: true, Kind: "decimal"},
-		{Name: colVendor, Required: false, Kind: "lookup"},
-		{Name: colRoom, Required: false, Kind: "lookup"},
-		{Name: colBrand, Required: false, Kind: "lookup"},
-		{Name: colCapacity, Required: false, Kind: "text"},
-		{Name: colSpk, Required: false, Kind: "text"},
-		{Name: colLegacyCode, Required: false, Kind: "text"},
-		{Name: colBarcode, Required: false, Kind: "text"},
-		{Name: colPic, Required: false, Kind: "lookup"},
-		{Name: colCondition, Required: false, Kind: "text"},
-		{Name: colOperational, Required: false, Kind: "text"},
+		{Name: colTag, Required: false, Kind: "text", Example: ""},
+		{Name: colName, Required: true, Kind: "text", Example: "Laptop Dell Latitude 5440"},
+		{Name: colCategory, Required: true, Kind: "lookup", Example: "Perangkat IT"},
+		{Name: colOffice, Required: true, Kind: "lookup", Example: "KC Jakarta Thamrin"},
+		{Name: colDate, Required: true, Kind: "date", Example: "2024-03-15"},
+		{Name: colPrice, Required: true, Kind: "decimal", Example: "15000000"},
+		{Name: colVendor, Required: false, Kind: "lookup", Example: "PT Sarana Teknologi"},
+		{Name: colRoom, Required: false, Kind: "lookup", Example: "Ruang IT Lantai 3"},
+		{Name: colBrand, Required: false, Kind: "lookup", Example: "Dell"},
+		{Name: colCapacity, Required: false, Kind: "text", Example: "16GB RAM / 512GB SSD"},
+		{Name: colSpk, Required: false, Kind: "text", Example: "SPK/2024/03/012"},
+		{Name: colLegacyCode, Required: false, Kind: "text", Example: "AST-0012"},
+		{Name: colBarcode, Required: false, Kind: "text", Example: "8991234567890"},
+		{Name: colPic, Required: false, Kind: "lookup", Example: "198501012010011001 - Budi Santoso"},
+		{Name: colCondition, Required: false, Kind: "text", Example: "baik"},
+		{Name: colOperational, Required: false, Kind: "text", Example: "ya"},
 	}
 }
 

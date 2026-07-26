@@ -293,8 +293,10 @@ async function downloadTemplate() {
   if (dlTemplate.value) return
   dlTemplate.value = true
   try {
-    const blob = await imports.getTemplate(props.target, 'csv')
-    triggerDownload(blob, `${props.target}-template.csv`)
+    const blob = await imports.getTemplate(props.target, 'xlsx')
+    // ':' (e.g. "reference:provinces") is not a valid filename char on Windows.
+    const safeTarget = props.target.replace(/:/g, '-')
+    triggerDownload(blob, `${safeTarget}-template.xlsx`)
   } catch {
     // toast handled by useApiClient
   } finally {

@@ -16,11 +16,16 @@ import (
 
 // ColumnSpec describes one column of a target's import template: its name,
 // whether it is required, and its value kind (used for parsing/validation).
-// Kind is one of "text", "date", "decimal", or "lookup".
+// Kind is one of "text", "date", "decimal", or "lookup". Example is an
+// illustrative value shown on the template's "Contoh Penggunaan" sheet to
+// demonstrate how the column should be filled; it is never parsed on
+// re-upload (see BuildTemplate) and may be empty for genuinely optional
+// columns.
 type ColumnSpec struct {
 	Name     string
 	Required bool
 	Kind     string // "text" | "date" | "decimal" | "lookup"
+	Example  string
 }
 
 // RawRow is a single row as read from the uploaded file, before validation:
