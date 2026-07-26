@@ -20,26 +20,23 @@ import (
 // Asset import column names. These mirror the legacy export layout the bank
 // migrates from (English headers). The asset tag is NOT a column — it is always
 // generated per-office. `Location Folder Name` is the office, `Asset Type Name`
-// the category, `First Location` a "Floor - Room" (or floor-only) location,
-// `User` the PIC (by NIP), `Asset Code`/`Barcode` archive to the legacy_* fields.
-// `Last Location` and `Last Change` are accepted in the header for layout parity
-// but intentionally ignored.
+// the category, `Location Name` a "Floor - Room" (or floor-only) location,
+// `User` the PIC (by NIP), `Legacy Asset Code`/`Legacy Barcode` archive to the
+// legacy_* fields.
 const (
-	colOffice     = "Location Folder Name"
-	colCategory   = "Asset Type Name"
-	colName       = "Asset Name"
-	colLocation   = "First Location"
-	colLastLoc    = "Last Location" // ignored (layout parity only)
-	colDate       = "Purchase Date"
-	colPrice      = "Purchase Price"
-	colUser       = "User"
-	colCondition  = "Condition"
-	colLastChange = "Last Change" // ignored (layout parity only)
-	colAssetCode  = "Asset Code"  // -> legacy_asset_code
-	colBarcode    = "Barcode"     // -> legacy_barcode
-	colBrand      = "Merk"
-	colCapacity   = "Kapasitas"
-	colSpk        = "SPK Number"
+	colOffice    = "Location Folder Name"
+	colCategory  = "Asset Type Name"
+	colName      = "Asset Name"
+	colLocation  = "Location Name"
+	colDate      = "Purchase Date"
+	colPrice     = "Purchase Price"
+	colUser      = "User"
+	colCondition = "Condition"
+	colAssetCode = "Legacy Asset Code" // -> legacy_asset_code
+	colBarcode   = "Legacy Barcode"    // -> legacy_barcode
+	colBrand     = "Merk"
+	colCapacity  = "Kapasitas"
+	colSpk       = "SPK Number"
 )
 
 // hargaKey is the internal Data key the generic worker sums to compute the
@@ -65,17 +62,24 @@ const dateLayout = "2006-01-02"
 var decimalRe = regexp.MustCompile(`^\d+(\.\d+)?$`)
 
 // floorRef is a floor's id and the office it belongs to, used to resolve a
-// row's First Location floor within that row's resolved office.
+// row's Location Name floor within that row's resolved office.
 type floorRef struct {
 	id       uuid.UUID
 	officeID uuid.UUID
 }
 
 // roomRef is a room's id together with its floor and office, used to resolve a
-// "Floor - Room" First Location to a room in the right floor+office.
+// "Floor - Room" Location Name to a room in the right floor+office.
 type roomRef struct {
 	id      uuid.UUID
 	floorID uuid.UUID
+}
+
+// empRef is an employee's id and office, used to resolve the `User` (PIC) by NIP
+// and enforce that the PIC belongs to the row's office.
+type empRef struct {
+	id       uuid.UUID
+	officeID uuid.UUID
 }
 
 // assetLookups holds the case-insensitive name -> id maps the asset importer
@@ -85,7 +89,7 @@ type assetLookups struct {
 	categories map[string]uuid.UUID
 	offices    map[string]uuid.UUID
 	brands     map[string]uuid.UUID
-	employees  map[string]uuid.UUID
+	employees  map[string]empRef     // keyed by lower(NIP)
 	floors     map[string][]floorRef // keyed by lower(floor name)
 	rooms      map[string][]roomRef  // keyed by lower(room name)
 }
@@ -108,7 +112,7 @@ func (assetImporter) NeedsApproval() bool { return true }
 
 // Columns describes the asset import template (legacy English layout). Required
 // columns (marked with "*" in the generated header): Location Folder Name,
-// Asset Type Name, Asset Name, First Location, Condition. Purchase Price is
+// Asset Type Name, Asset Name, Location Name, Condition. Purchase Price is
 // optional per the source layout — rows without it contribute 0 to the batch's
 // approval amount.
 func (assetImporter) Columns() []importer.ColumnSpec {
@@ -117,12 +121,10 @@ func (assetImporter) Columns() []importer.ColumnSpec {
 		{Name: colCategory, Required: true, Kind: "lookup", Example: "Chiller"},
 		{Name: colName, Required: true, Kind: "text", Example: "Chiller Daikin 5PK"},
 		{Name: colLocation, Required: true, Kind: "lookup", Example: "Lantai 1 - Ruang Server"},
-		{Name: colLastLoc, Required: false, Kind: "text", Example: "Lantai 2 - Ruang Arsip"},
 		{Name: colDate, Required: false, Kind: "date", Example: "2023-05-10"},
 		{Name: colPrice, Required: false, Kind: "decimal", Example: "15000000"},
 		{Name: colUser, Required: false, Kind: "lookup", Example: "12345 - Budi Santoso"},
 		{Name: colCondition, Required: true, Kind: "text", Example: "Baik"},
-		{Name: colLastChange, Required: false, Kind: "text", Example: ""},
 		{Name: colAssetCode, Required: false, Kind: "text", Example: "KP0CHL202300001"},
 		{Name: colBarcode, Required: false, Kind: "text", Example: "8991234567890"},
 		{Name: colBrand, Required: false, Kind: "lookup", Example: "Daikin"},
@@ -149,8 +151,8 @@ func (a assetImporter) TemplateSpec(ctx context.Context, scope importer.Scope) (
 		ExampleSheet: "Contoh Pengisian",
 		ExampleNote:  exampleNote,
 		ExampleRows: [][]string{
-			{"Kantor Pusat", "Chiller", "Chiller Daikin 5PK", "Lantai 1 - Ruang Server", "Lantai 2 - Ruang Arsip", "2023-05-10", "15000000", "12345 - Budi Santoso", "Baik", "", "KP0CHL202300001", "8991234567890", "Daikin", "5PK", "SPK/012/BMIS/2023"},
-			{"Kantor Cabang Bekasi", "Genset", "Genset Perkins 100 kVA", "Lantai 1", "", "2021-11-02", "250000000", "", "Rusak", "", "KCB0GST202100007", "", "Perkins", "100 kVA", ""},
+			{"Kantor Pusat", "Chiller", "Chiller Daikin 5PK", "Lantai 1 - Ruang Server", "2023-05-10", "15000000", "12345 - Budi Santoso", "Baik", "KP0CHL202300001", "8991234567890", "Daikin", "5PK", "SPK/012/BMIS/2023"},
+			{"Kantor Cabang Bekasi", "Genset", "Genset Perkins 100 kVA", "Lantai 1", "2021-11-02", "250000000", "", "Rusak", "KCB0GST202100007", "", "Perkins", "100 kVA", ""},
 		},
 		Dropdowns:    dropdowns,
 		MarkRequired: true,
@@ -267,7 +269,7 @@ func (a assetImporter) buildAssetLookups(ctx context.Context, scope importer.Sco
 		categories: map[string]uuid.UUID{},
 		offices:    map[string]uuid.UUID{},
 		brands:     map[string]uuid.UUID{},
-		employees:  map[string]uuid.UUID{},
+		employees:  map[string]empRef{},
 		floors:     map[string][]floorRef{},
 		rooms:      map[string][]roomRef{},
 	}
@@ -327,7 +329,9 @@ func (a assetImporter) buildAssetLookups(ctx context.Context, scope importer.Sco
 		return lk, err
 	}
 	for _, e := range emps {
-		addKey(lk.employees, e.Code, e.ID)
+		if k := normKey(e.Code); k != "" {
+			lk.employees[k] = empRef{id: e.ID, officeID: e.OfficeID}
+		}
 	}
 
 	return lk, nil
@@ -363,7 +367,7 @@ func picNIP(s string) string {
 	return strings.TrimSpace(s)
 }
 
-// splitLocation splits a First Location cell into floor and (optional) room:
+// splitLocation splits a Location Name cell into floor and (optional) room:
 // "Lantai 1 - Ruang Server" -> ("Lantai 1", "Ruang Server"); "Lantai 1" ->
 // ("Lantai 1", "").
 func splitLocation(s string) (floorName, roomName string) {
@@ -413,21 +417,19 @@ func validateAssetRows(rows []importer.RawRow, lk assetLookups, scope importer.S
 
 	for i, raw := range rows {
 		data := map[string]string{
-			colOffice:     trim(raw.Cells[colOffice]),
-			colCategory:   trim(raw.Cells[colCategory]),
-			colName:       trim(raw.Cells[colName]),
-			colLocation:   trim(raw.Cells[colLocation]),
-			colLastLoc:    trim(raw.Cells[colLastLoc]),
-			colDate:       trim(raw.Cells[colDate]),
-			colPrice:      trim(raw.Cells[colPrice]),
-			colUser:       trim(raw.Cells[colUser]),
-			colCondition:  trim(raw.Cells[colCondition]),
-			colLastChange: trim(raw.Cells[colLastChange]),
-			colAssetCode:  trim(raw.Cells[colAssetCode]),
-			colBarcode:    trim(raw.Cells[colBarcode]),
-			colBrand:      trim(raw.Cells[colBrand]),
-			colCapacity:   trim(raw.Cells[colCapacity]),
-			colSpk:        trim(raw.Cells[colSpk]),
+			colOffice:    trim(raw.Cells[colOffice]),
+			colCategory:  trim(raw.Cells[colCategory]),
+			colName:      trim(raw.Cells[colName]),
+			colLocation:  trim(raw.Cells[colLocation]),
+			colDate:      trim(raw.Cells[colDate]),
+			colPrice:     trim(raw.Cells[colPrice]),
+			colUser:      trim(raw.Cells[colUser]),
+			colCondition: trim(raw.Cells[colCondition]),
+			colAssetCode: trim(raw.Cells[colAssetCode]),
+			colBarcode:   trim(raw.Cells[colBarcode]),
+			colBrand:     trim(raw.Cells[colBrand]),
+			colCapacity:  trim(raw.Cells[colCapacity]),
+			colSpk:       trim(raw.Cells[colSpk]),
 		}
 		var errs []importer.CellError
 		add := func(col, key string) { errs = append(errs, importer.CellError{Column: col, ErrorKey: key}) }
@@ -465,7 +467,7 @@ func validateAssetRows(rows []importer.RawRow, lk assetLookups, scope importer.S
 			add(colOffice, "scope")
 		}
 
-		// First Location -> floor (required) + room (optional), within the
+		// Location Name -> floor (required) + room (optional), within the
 		// row's office. Only resolvable once the office is known; when the
 		// office is missing the office error already covers the row.
 		var floorID, roomID uuid.UUID
@@ -509,13 +511,19 @@ func validateAssetRows(rows []importer.RawRow, lk assetLookups, scope importer.S
 		}
 		data[hargaKey] = data[colPrice]
 
-		// User -> PIC (optional), by NIP.
+		// User -> PIC (optional), by NIP. The PIC must belong to the row's
+		// office (pemegangScope) — a "Floor - Room" location is already office-
+		// scoped, and the PIC is enforced the same way here.
 		var picID uuid.UUID
 		hasPic := false
 		if v := data[colUser]; v != "" {
-			if id, ok := lk.employees[normKey(picNIP(v))]; ok {
-				picID = id
-				hasPic = true
+			if er, ok := lk.employees[normKey(picNIP(v))]; ok {
+				if hasOffice && er.officeID != officeID {
+					add(colUser, "pemegangScope")
+				} else {
+					picID = er.id
+					hasPic = true
+				}
 			} else {
 				add(colUser, "pemegang")
 			}
@@ -629,7 +637,7 @@ func (a assetImporter) createRows(ctx context.Context, qtx *sqlc.Queries, maker 
 			return created, ErrInvalidRef
 		}
 
-		// Location: First Location is required, so a valid row always resolved a
+		// Location: Location Name is required, so a valid row always resolved a
 		// floor; room is optional (assets may stop at the floor level).
 		floorStr := r.Data["_floor_id"]
 		floorID, err := common.ParseUUIDPtr(&floorStr)

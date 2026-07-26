@@ -2,10 +2,36 @@ package importer
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/xuri/excelize/v2"
 )
+
+// headerFontColor returns the trimmed RGB font color (e.g. "C80000", no alpha
+// prefix — see excelize extractFont) of a header cell's style, or "" when the
+// cell carries no explicit font color.
+func headerFontColor(t *testing.T, f *excelize.File, sheet, cell string) string {
+	t.Helper()
+	id, err := f.GetCellStyle(sheet, cell)
+	if err != nil {
+		t.Fatal(err)
+	}
+	style, err := f.GetStyle(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if style.Font == nil {
+		return ""
+	}
+	return style.Font.Color
+}
+
+// isRedHeader reports whether the given header font color is the required-column
+// red (C80000), tolerant of case and any alpha prefix excelize may surface.
+func isRedHeader(color string) bool {
+	return strings.Contains(strings.ToUpper(color), "C80000")
+}
 
 // exampleCols mirrors a real target: each column carries an illustrative
 // Example value used to build the "Contoh Penggunaan" sheet.
@@ -178,6 +204,26 @@ func TestBuildTemplateWith_CustomSpec(t *testing.T) {
 		t.Fatalf("required headers must be marked with '*': %v", dataRows[0])
 	}
 
+	// Both exampleCols are required, so both fill-sheet headers must render in
+	// the required red (C80000) and bold (styleHeaderRow with MarkRequired).
+	for _, cell := range []string{"A1", "B1"} {
+		color := headerFontColor(t, f, "Aset", cell)
+		if !isRedHeader(color) {
+			t.Fatalf("required header %s must be red C80000, got %q", cell, color)
+		}
+		id, err := f.GetCellStyle("Aset", cell)
+		if err != nil {
+			t.Fatal(err)
+		}
+		style, err := f.GetStyle(id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if style.Font == nil || !style.Font.Bold {
+			t.Fatalf("required header %s must be bold", cell)
+		}
+	}
+
 	// Example sheet: row 1 note, row 2 marked header, rows 3-4 the two examples.
 	exRows, err := f.GetRows("Contoh Pengisian")
 	if err != nil {
@@ -246,5 +292,54 @@ func TestBuildTemplateWith_NoMarkerWhenNotRequested(t *testing.T) {
 	}
 	if dataRows[0][0] != "nama" || dataRows[0][1] != "harga" {
 		t.Fatalf("headers must stay bare without MarkRequired: %v", dataRows[0])
+	}
+
+	// Without MarkRequired even the required columns must NOT render red — the
+	// red styling is scoped to the marked branch (default targets stay plain).
+	for _, cell := range []string{"A1", "B1"} {
+		if color := headerFontColor(t, f, sheetData, cell); isRedHeader(color) {
+			t.Fatalf("header %s must not be red without MarkRequired, got %q", cell, color)
+		}
+	}
+}
+
+// TestBuildTemplateWith_RequiredHeaderColorByColumn asserts styleHeaderRow paints
+// ONLY required headers red (C80000) when MarkRequired is set: a required column
+// is red, an optional column in the same template is not. Guards against the red
+// styling leaking onto optional headers (or being dropped from required ones).
+func TestBuildTemplateWith_RequiredHeaderColorByColumn(t *testing.T) {
+	mixedCols := []ColumnSpec{
+		{Name: "wajib", Required: true, Kind: "text", Example: "x"},
+		{Name: "opsional", Required: false, Kind: "text", Example: "y"},
+	}
+	body, _, _, err := BuildTemplateWith("xlsx", mixedCols, TemplateSpec{MarkRequired: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := excelize.OpenReader(bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	// Default sheet name (no custom DataSheet in the spec) is sheetData.
+	if color := headerFontColor(t, f, sheetData, "A1"); !isRedHeader(color) {
+		t.Fatalf("required header (col A) must be red C80000, got %q", color)
+	}
+	if color := headerFontColor(t, f, sheetData, "B1"); isRedHeader(color) {
+		t.Fatalf("optional header (col B) must NOT be red, got %q", color)
+	}
+
+	// The optional header is still bold (normalStyle), just not red.
+	id, err := f.GetCellStyle(sheetData, "B1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	style, err := f.GetStyle(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if style.Font == nil || !style.Font.Bold {
+		t.Fatalf("optional header must still be bold")
 	}
 }

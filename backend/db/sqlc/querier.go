@@ -320,9 +320,10 @@ type Querier interface {
 	// codes are globally unique (uq_employees_code), so this set is deliberately
 	// unscoped.
 	ListEmployeeCodes(ctx context.Context) ([]string, error)
-	// id + code + name for the asset importer's `User`/PIC resolution and its
-	// location dropdown ("NIP - Nama"). Employee codes (NIP) are globally unique
-	// (uq_employees_code), so this set is deliberately unscoped.
+	// id + code + name + office_id for the asset importer's `User`/PIC resolution
+	// (office_id enforces that the PIC belongs to the row's office) and its "NIP -
+	// Nama" dropdown. Employee codes (NIP) are globally unique (uq_employees_code),
+	// so this set is deliberately unscoped.
 	ListEmployeeLookup(ctx context.Context) ([]ListEmployeeLookupRow, error)
 	// Employees (asset custodians) with data-scoping by office.
 	ListEmployees(ctx context.Context, arg ListEmployeesParams) ([]MasterdataEmployee, error)
