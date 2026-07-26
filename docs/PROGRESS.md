@@ -17,6 +17,29 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
+> **Template impor aset layout legacy (2026-07-26, branch `feat/import-template-legacy-format`) — SELESAI (kode, 3 commit, belum push).**
+> Permintaan user: template impor aset mengikuti file legacy (`TemplateAset.xlsx`, header Inggris) +
+> dropdown + sheet contoh. (1) **Engine template** (`internal/importer`): `ColumnSpec`/`TemplateSpec` +
+> interface `TemplateProvider` (di-resolve dgn data-scope pemanggil di handler) — nama sheet kustom, baris
+> catatan, banyak baris contoh, tanda `*` pada header wajib, dropdown Excel (data validation) via sheet
+> tersembunyi `_pilihan` (referensi rentang, hindari batas 255 char inline). Parser strip trailing `*`
+> saat cocokkan header (`normHeader`). (2) **Importer aset** ditulis ulang ke 15 kolom Inggris (Location
+> Folder Name/Asset Type Name/Asset Name/First Location/Last Location/Purchase Date/Purchase Price/User/
+> Condition/Last Change/Asset Code/Barcode/Merk/Kapasitas/SPK Number). Mapping: office/kategori/nama;
+> First Location diparse "Lantai - Ruang" (floor-only sah per `chk_assets_tangible_location`); User->PIC
+> by NIP; Condition (Baik/Rusak)->status; Asset Code/Barcode->legacy_*; Merk->brand; Last Location & Last
+> Change **diabaikan**. **Kontrak berubah:** `asset_tag`+vendor+operasional dibuang; tag selalu digenerate;
+> **Purchase Price OPSIONAL** (di-stamp ke kunci internal `harga` utk nominal approval; kosong=0); First
+> Location + Condition wajib. Dropdown ter-scope (kantor/kategori/lokasi/user/merk + Condition Baik/Rusak).
+> SQL baru: `ListFloorsLookup`, `ListRoomsLookup`(+floor_id/floor_name), `ListEmployeeLookup`(+name); sqlc
+> regen. (3) **Frontend** `ImportWizard` `ASSET_COLUMNS`/`ORDER`->15 header baru; sel Purchase Price (Rp) &
+> Asset Code (monospace). e2e fixtures (`import-fixtures`/`import.spec`/`lampiran-a-import`) ke header baru
+> + nilai seed valid (office BDG01, kategori KOM, First Location "Lantai 1" floor-only, Condition Baik).
+> *Deviasi: [[Template Impor Aset Layout Legacy]].* **Gate:** `go build/vet/test ./...` hijau + integrasi
+> compile (`-tags=integration`), spectral 0-error, `pnpm lint` + `vue-tsc` hijau; vitest/e2e via CI. Tes
+> unit asset/importer/parser/template ditulis ulang menyeluruh + 2 tes usang (anti-poisoning tag buatan-
+> user) dihapus (tag kini selalu auto-generate; hanya `asset_tag` yang UNIQUE, legacy_* tidak).
+>
 > **Perbaikan batch: impor xlsx, peta, label, opname (2026-07-26, branch `feat/perbaikan-impor-peta-label-opname`) — SELESAI (kode, belum commit).**
 > Enam permintaan user: (1) **Template impor jadi XLSX 2 sheet** — sheet "Data Impor" (header saja, sheet
 > yang diisi & di-upload; parser membaca `sheets[0]`) + "Contoh Penggunaan" (header + 1 baris contoh
