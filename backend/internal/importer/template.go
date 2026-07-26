@@ -94,10 +94,14 @@ func buildTemplateXLSX(cols []ColumnSpec, spec TemplateSpec) (body []byte, conte
 	if err != nil {
 		return nil, "", "", err
 	}
-	noteStyle, err := f.NewStyle(&excelize.Style{Font: &excelize.Font{Bold: true, Color: "C80000"}})
+	// Required headers render bold red (only when the spec marks required, so
+	// default targets keep plain bold headers). The example-sheet note reuses
+	// the same red for emphasis.
+	requiredStyle, err := f.NewStyle(&excelize.Style{Font: &excelize.Font{Bold: true, Color: "C80000"}})
 	if err != nil {
 		return nil, "", "", err
 	}
+	noteStyle := requiredStyle
 
 	// Sheet 1: fill-in sheet — MUST stay first (parsed on re-upload).
 	if err = f.SetSheetName(f.GetSheetName(0), dataSheet); err != nil {
@@ -135,10 +139,10 @@ func buildTemplateXLSX(cols []ColumnSpec, spec TemplateSpec) (body []byte, conte
 	if len(exampleRows) > 0 {
 		firstExample = exampleRows[0]
 	}
-	if err = styleHeader(f, dataSheet, len(headers), 1, headerStyle); err != nil {
+	if err = styleHeaderRow(f, dataSheet, cols, 1, headerStyle, requiredStyle, spec.MarkRequired); err != nil {
 		return nil, "", "", err
 	}
-	if err = styleHeader(f, exampleSheet, len(headers), exHeaderRow, headerStyle); err != nil {
+	if err = styleHeaderRow(f, exampleSheet, cols, exHeaderRow, headerStyle, requiredStyle, spec.MarkRequired); err != nil {
 		return nil, "", "", err
 	}
 	for _, sheet := range []string{dataSheet, exampleSheet} {
@@ -222,21 +226,24 @@ func writeRow(f *excelize.File, sheet string, row int, values []string) error {
 	return nil
 }
 
-// styleHeader applies the given style to the header cells of a sheet on the
-// given 1-based row.
-func styleHeader(f *excelize.File, sheet string, ncols, row, style int) error {
-	if ncols == 0 {
-		return nil
+// styleHeaderRow styles each header cell of a sheet on the given 1-based row:
+// required columns get requiredStyle (bold red) when markRequired is set,
+// otherwise every header gets normalStyle (bold).
+func styleHeaderRow(f *excelize.File, sheet string, cols []ColumnSpec, row, normalStyle, requiredStyle int, markRequired bool) error {
+	for i, c := range cols {
+		style := normalStyle
+		if markRequired && c.Required {
+			style = requiredStyle
+		}
+		cell, err := excelize.CoordinatesToCellName(i+1, row)
+		if err != nil {
+			return err
+		}
+		if err := f.SetCellStyle(sheet, cell, cell, style); err != nil {
+			return err
+		}
 	}
-	first, err := excelize.CoordinatesToCellName(1, row)
-	if err != nil {
-		return err
-	}
-	last, err := excelize.CoordinatesToCellName(ncols, row)
-	if err != nil {
-		return err
-	}
-	return f.SetCellStyle(sheet, first, last, style)
+	return nil
 }
 
 // autoWidth sizes each column to fit the wider of its header or its example

@@ -100,9 +100,17 @@ describe('ImportWizard — step 1 (upload)', () => {
     const text = w.text()
     // Template download button (resolved i18n, not the raw key).
     expect(text).toContain('Unduh Template')
-    // Asset column badges are hardcoded for the asset target (legacy English layout).
+    // Asset column badges are hardcoded for the asset target (13-column legacy
+    // English layout — see ImportWizard.vue).
     expect(text).toContain('Location Folder Name')
     expect(text).toContain('Asset Name')
+    // Renamed columns in the revised contract must render under their new names.
+    expect(text).toContain('Location Name')
+    expect(text).toContain('Legacy Asset Code')
+    expect(text).toContain('Legacy Barcode')
+    // The dropped legacy-parity columns must NOT appear anymore.
+    expect(text).not.toContain('Last Location')
+    expect(text).not.toContain('Last Change')
 
     w.unmount()
   })

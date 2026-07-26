@@ -13,30 +13,34 @@ import (
 // fixedIDs holds the resolved UUIDs used across the validation tests so
 // assertions can compare NormalizedRef / stamped data against known values.
 type fixedIDs struct {
-	category uuid.UUID
-	office   uuid.UUID // "Kantor Pusat" / "KP" — in scope
-	office2  uuid.UUID // "Cabang Jakarta" / "CBJ" — in scope
-	brand    uuid.UUID // "Daikin"
-	employee uuid.UUID // NIP "12345"
-	floor1   uuid.UUID // "Lantai 1" — lives in office
-	floor2   uuid.UUID // "Lantai 2" — lives in office2
-	room1    uuid.UUID // "Ruang Server" — lives in floor1 (office)
+	category  uuid.UUID
+	office    uuid.UUID // "Kantor Pusat" / "KP" — in scope
+	office2   uuid.UUID // "Cabang Jakarta" / "CBJ" — in scope
+	brand     uuid.UUID // "Daikin"
+	employee  uuid.UUID // NIP "12345" — lives in office (Kantor Pusat)
+	employee2 uuid.UUID // NIP "67890" — lives in office2 (Cabang Jakarta)
+	floor1    uuid.UUID // "Lantai 1" — lives in office
+	floor2    uuid.UUID // "Lantai 2" — lives in office2
+	room1     uuid.UUID // "Ruang Server" — lives in floor1 (office)
 }
 
 // mkLookups builds a hand-crafted assetLookups (no DB) plus the fixed IDs.
 // It mirrors buildAssetLookups' output: name AND code keys for offices and
-// categories, floors keyed by lower(name) -> []floorRef{id, officeID}, and
-// rooms keyed by lower(name) -> []roomRef{id, floorID}.
+// categories, floors keyed by lower(name) -> []floorRef{id, officeID}, rooms
+// keyed by lower(name) -> []roomRef{id, floorID}, and employees keyed by
+// lower(NIP) -> empRef{id, officeID}. NIP "12345" lives in office and NIP
+// "67890" in office2, so the PIC same-office rule (pemegangScope) is testable.
 func mkLookups() (assetLookups, fixedIDs) {
 	ids := fixedIDs{
-		category: uuid.New(),
-		office:   uuid.New(),
-		office2:  uuid.New(),
-		brand:    uuid.New(),
-		employee: uuid.New(),
-		floor1:   uuid.New(),
-		floor2:   uuid.New(),
-		room1:    uuid.New(),
+		category:  uuid.New(),
+		office:    uuid.New(),
+		office2:   uuid.New(),
+		brand:     uuid.New(),
+		employee:  uuid.New(),
+		employee2: uuid.New(),
+		floor1:    uuid.New(),
+		floor2:    uuid.New(),
+		room1:     uuid.New(),
 	}
 	lk := assetLookups{
 		categories: map[string]uuid.UUID{
@@ -52,8 +56,9 @@ func mkLookups() (assetLookups, fixedIDs) {
 		brands: map[string]uuid.UUID{
 			"daikin": ids.brand,
 		},
-		employees: map[string]uuid.UUID{
-			"12345": ids.employee,
+		employees: map[string]empRef{
+			"12345": {id: ids.employee, officeID: ids.office},
+			"67890": {id: ids.employee2, officeID: ids.office2},
 		},
 		floors: map[string][]floorRef{
 			"lantai 1": {{id: ids.floor1, officeID: ids.office}},
@@ -77,25 +82,23 @@ func row(no int, cells map[string]string) importer.RawRow {
 }
 
 // validCells returns a fully-valid cell set for the "Kantor Pusat" office with
-// a "Floor - Room" First Location; callers mutate individual keys to construct
-// a specific failure. Uses the new legacy-English column contract.
+// a "Floor - Room" Location Name; callers mutate individual keys to construct
+// a specific failure. Uses the 13-column legacy-English column contract.
 func validCells() map[string]string {
 	return map[string]string{
-		colOffice:     "Kantor Pusat",
-		colCategory:   "Elektronik",
-		colName:       "Laptop Dell",
-		colLocation:   "Lantai 1 - Ruang Server",
-		colLastLoc:    "Lantai 2 - Ruang Arsip", // ignored (layout parity only)
-		colDate:       "2026-01-15",
-		colPrice:      "15000000.00",
-		colUser:       "12345 - Budi Santoso",
-		colCondition:  "Baik",
-		colLastChange: "2026-02-01", // ignored (layout parity only)
-		colAssetCode:  "LEG-CODE-001",
-		colBarcode:    "8991234567890",
-		colBrand:      "Daikin",
-		colCapacity:   "5PK",
-		colSpk:        "SPK/012/2023",
+		colOffice:    "Kantor Pusat",
+		colCategory:  "Elektronik",
+		colName:      "Laptop Dell",
+		colLocation:  "Lantai 1 - Ruang Server",
+		colDate:      "2026-01-15",
+		colPrice:     "15000000.00",
+		colUser:      "12345 - Budi Santoso",
+		colCondition: "Baik",
+		colAssetCode: "LEG-CODE-001",
+		colBarcode:   "8991234567890",
+		colBrand:     "Daikin",
+		colCapacity:  "5PK",
+		colSpk:       "SPK/012/2023",
 	}
 }
 
@@ -126,7 +129,7 @@ func validateOne(cells map[string]string, lk assetLookups, scope importer.Scope)
 // --- happy path ----------------------------------------------------------
 
 // TestAssetImporterValidateHappyPath_FloorRoom asserts a fully-valid row with a
-// "Floor - Room" First Location resolves every lookup, stamps every internal id,
+// "Floor - Room" Location Name resolves every lookup, stamps every internal id,
 // and carries the office in NormalizedRef.
 func TestAssetImporterValidateHappyPath_FloorRoom(t *testing.T) {
 	lk, ids := mkLookups()
@@ -163,7 +166,7 @@ func TestAssetImporterValidateHappyPath_FloorRoom(t *testing.T) {
 	}
 }
 
-// TestAssetImporterValidateHappyPath_FloorOnly asserts a First Location naming
+// TestAssetImporterValidateHappyPath_FloorOnly asserts a Location Name naming
 // only a floor ("Lantai 1") is valid: the floor resolves and _room_id is empty.
 func TestAssetImporterValidateHappyPath_FloorOnly(t *testing.T) {
 	lk, ids := mkLookups()
@@ -172,7 +175,7 @@ func TestAssetImporterValidateHappyPath_FloorOnly(t *testing.T) {
 	cells[colLocation] = "Lantai 1" // floor only, no room
 	res := validateOne(cells, lk, allScope())
 	if !res.Valid {
-		t.Fatalf("floor-only First Location should be valid, got %v", errKeys(res))
+		t.Fatalf("floor-only Location Name should be valid, got %v", errKeys(res))
 	}
 	if res.Data["_floor_id"] != ids.floor1.String() {
 		t.Fatalf("_floor_id = %q, want %q", res.Data["_floor_id"], ids.floor1.String())
@@ -292,6 +295,11 @@ func TestAssetImporterValidateErrorKeys(t *testing.T) {
 		{"signed price", func(c map[string]string) { c[colPrice] = "+100" }, colPrice, "harga"},
 		{"scientific price", func(c map[string]string) { c[colPrice] = "1e5" }, colPrice, "harga"},
 		{"pic miss", func(c map[string]string) { c[colUser] = "99999 - Orang Asing" }, colUser, "pemegang"},
+		{"pic wrong office", func(c map[string]string) {
+			// NIP 67890 lives in office2; validCells resolves office (Kantor
+			// Pusat), so the PIC belongs to a different office -> pemegangScope.
+			c[colUser] = "67890 - Sri Rahayu"
+		}, colUser, "pemegangScope"},
 		{"brand miss", func(c map[string]string) { c[colBrand] = "MerkTakAda" }, colBrand, "merk"},
 		{"condition unknown", func(c map[string]string) { c[colCondition] = "Sedang Diperbaiki" }, colCondition, "kondisi"},
 	}
@@ -369,6 +377,47 @@ func TestAssetImporterValidatePIC(t *testing.T) {
 	empty[colUser] = ""
 	if r := validateOne(empty, lk, allScope()); !r.Valid || r.Data["_pic_id"] != "" {
 		t.Fatalf("empty User should be valid with empty pic, valid=%v pic=%q", r.Valid, r.Data["_pic_id"])
+	}
+}
+
+// TestAssetImporterValidatePICScope covers the PIC same-office rule: a User
+// (PIC) whose employee belongs to the row's office resolves and is valid, while
+// a User whose employee belongs to a DIFFERENT office is rejected with
+// "pemegangScope" and never stamps a _pic_id.
+func TestAssetImporterValidatePICScope(t *testing.T) {
+	lk, ids := mkLookups()
+
+	// Same office: validCells resolves office (Kantor Pusat); NIP 12345 also
+	// lives in office -> valid, PIC stamped.
+	same := validCells()
+	same[colUser] = "12345"
+	if r := validateOne(same, lk, allScope()); !r.Valid || r.Data["_pic_id"] != ids.employee.String() {
+		t.Fatalf("same-office PIC should resolve, valid=%v pic=%q errs=%v", r.Valid, r.Data["_pic_id"], errKeys(r))
+	}
+
+	// Different office: NIP 67890 lives in office2 while the row resolves office
+	// -> pemegangScope, row invalid, no PIC leaked.
+	diff := validCells()
+	diff[colUser] = "67890 - Sri Rahayu"
+	r := validateOne(diff, lk, allScope())
+	if r.Valid {
+		t.Fatalf("cross-office PIC should be invalid")
+	}
+	if !hasErrOn(r, colUser, "pemegangScope") {
+		t.Fatalf("expected pemegangScope on %q, got %v", colUser, r.Errors)
+	}
+	if _, ok := r.Data["_pic_id"]; ok {
+		t.Fatalf("invalid cross-office PIC row must not stamp _pic_id, got %q", r.Data["_pic_id"])
+	}
+
+	// The SAME cross-office NIP is valid when the row itself resolves that
+	// office2 (proving pemegangScope is a relation, not a blanket ban on 67890).
+	inOffice2 := validCells()
+	inOffice2[colOffice] = "Cabang Jakarta"
+	inOffice2[colLocation] = "Lantai 2" // floor in office2
+	inOffice2[colUser] = "67890"
+	if r := validateOne(inOffice2, lk, allScope()); !r.Valid || r.Data["_pic_id"] != ids.employee2.String() {
+		t.Fatalf("PIC 67890 under office2 should resolve, valid=%v pic=%q errs=%v", r.Valid, r.Data["_pic_id"], errKeys(r))
 	}
 }
 
@@ -503,20 +552,6 @@ func TestAssetImporterValidateInvalidDropsStamps(t *testing.T) {
 	}
 }
 
-// TestAssetImporterValidateIgnoredColumns asserts the layout-parity columns
-// (Last Location, Last Change) are accepted but never cause an error.
-func TestAssetImporterValidateIgnoredColumns(t *testing.T) {
-	lk, _ := mkLookups()
-
-	cells := validCells()
-	cells[colLastLoc] = "Sembarang Isi"
-	cells[colLastChange] = "kapan saja"
-	res := validateOne(cells, lk, allScope())
-	if !res.Valid {
-		t.Fatalf("ignored columns must not affect validity, got %v", errKeys(res))
-	}
-}
-
 // --- columns / needs-approval contract ----------------------------------
 
 func TestAssetImporterColumns(t *testing.T) {
@@ -538,12 +573,10 @@ func TestAssetImporterColumns(t *testing.T) {
 		{colCategory, true, "lookup"},
 		{colName, true, "text"},
 		{colLocation, true, "lookup"},
-		{colLastLoc, false, "text"},
 		{colDate, false, "date"},
 		{colPrice, false, "decimal"},
 		{colUser, false, "lookup"},
 		{colCondition, true, "text"},
-		{colLastChange, false, "text"},
 		{colAssetCode, false, "text"},
 		{colBarcode, false, "text"},
 		{colBrand, false, "lookup"},

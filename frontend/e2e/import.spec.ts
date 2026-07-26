@@ -174,9 +174,9 @@ test.describe('Bulk Import — real backend (asset + employee e2e)', () => {
       data: { floor_id: floor.id, name: roomName }
     }))
 
-    // A floor on office B so the cross-office row's First Location resolves
+    // A floor on office B so the cross-office row's Location Name resolves
     // there (floor-only) — its only validation error is then the multiOffice
-    // batch rule, not a missing/unresolvable First Location.
+    // batch rule, not a missing/unresolvable Location Name.
     officeBFloorName = `E2E Import Floor B ${RUN}`
     await apiJson<{ id: string }>(await api.post('floors', {
       headers: authHeader(adminToken),

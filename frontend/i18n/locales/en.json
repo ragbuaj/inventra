@@ -2158,6 +2158,7 @@
         "merek": "Brand not found",
         "merk": "Brand not found",
         "pemegang": "Holder (NIP) not found",
+        "pemegangScope": "Holder is not from the selected office",
         "kondisi": "Unrecognized condition (use Baik or Rusak)",
         "operasional": "Unrecognized operational value (use Ya or Tidak)"
       },

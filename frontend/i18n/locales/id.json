@@ -2158,6 +2158,7 @@
         "merek": "Brand tidak ditemukan",
         "merk": "Merk tidak ditemukan",
         "pemegang": "Pemegang (NIP) tidak ditemukan",
+        "pemegangScope": "Pemegang bukan dari kantor yang dipilih",
         "kondisi": "Kondisi tidak dikenali (pakai Baik atau Rusak)",
         "operasional": "Nilai operasional tidak dikenali (pakai Ya atau Tidak)"
       },

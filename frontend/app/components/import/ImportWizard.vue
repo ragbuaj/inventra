@@ -19,10 +19,9 @@ const imports = useImports()
 // columns — they get a generic "download template" note.
 const ASSET_COLUMNS: [string, boolean][] = [
   ['Location Folder Name', true], ['Asset Type Name', true], ['Asset Name', true],
-  ['First Location', true], ['Last Location', false], ['Purchase Date', false],
-  ['Purchase Price', false], ['User', false], ['Condition', true],
-  ['Last Change', false], ['Asset Code', false], ['Barcode', false],
-  ['Merk', false], ['Kapasitas', false], ['SPK Number', false]
+  ['Location Name', true], ['Purchase Date', false], ['Purchase Price', false],
+  ['User', false], ['Condition', true], ['Legacy Asset Code', false],
+  ['Legacy Barcode', false], ['Merk', false], ['Kapasitas', false], ['SPK Number', false]
 ]
 // Stable header order for the asset preview table (falls back to data keys).
 const ASSET_COL_ORDER = ASSET_COLUMNS.map(([name]) => name)
@@ -136,7 +135,7 @@ function cellClass(r: ImportRow, col: string): string {
 // Asset-specific cell styling: the legacy Asset Code renders monospaced. Other
 // targets fall back to the plain generic cell.
 function cellExtraClass(col: string): string {
-  return isAsset.value && col === 'Asset Code' ? 'font-mono text-[12px]' : ''
+  return isAsset.value && col === 'Legacy Asset Code' ? 'font-mono text-[12px]' : ''
 }
 // Asset-specific cell display: the Purchase Price column carries a "Rp" prefix
 // when it holds a numeric value. Everything else renders raw.

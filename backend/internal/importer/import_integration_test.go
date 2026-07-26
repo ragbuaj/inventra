@@ -57,7 +57,7 @@ import (
 // Parse matches columns by name (case-insensitive, order-insensitive), so the
 // order here is cosmetic but kept aligned with asset/importer.go and
 // masterdata/employee/importer.go's Columns() for readability.
-var assetHeader = []string{"Location Folder Name", "Asset Type Name", "Asset Name", "First Location", "Last Location", "Purchase Date", "Purchase Price", "User", "Condition", "Last Change", "Asset Code", "Barcode", "Merk", "Kapasitas", "SPK Number"}
+var assetHeader = []string{"Location Folder Name", "Asset Type Name", "Asset Name", "Location Name", "Purchase Date", "Purchase Price", "User", "Condition", "Legacy Asset Code", "Legacy Barcode", "Merk", "Kapasitas", "SPK Number"}
 var employeeHeader = []string{"kode", "nama", "email", "telepon", "kantor", "status", "departemen", "jabatan"}
 var brandHeader = []string{"nama"}
 var unitHeader = []string{"nama", "simbol"}
@@ -300,15 +300,15 @@ func seedCategory(t *testing.T, pool *pgxpool.Pool, code string) uuid.UUID {
 }
 
 // seedLocation seeds a floor + room under officeID and returns BOTH the room id
-// and the "Floor - Room" string the asset importer's `First Location` column
+// and the "Floor - Room" string the asset importer's `Location Name` column
 // resolves to that room. The asset importer's createRows always creates
 // tangible assets (see internal/asset/importer.go), and asset.assets has
 // chk_assets_tangible_location CHECK(asset_class = 'intangible' OR floor_id IS
-// NOT NULL OR room_id IS NOT NULL). Under the legacy-English contract First
-// Location is REQUIRED and resolves a floor (mandatory) plus an optional room;
+// NOT NULL OR room_id IS NOT NULL). Under the legacy-English contract Location
+// Name is REQUIRED and resolves a floor (mandatory) plus an optional room;
 // this helper returns the full "Lantai <label> - Ruang <label>" form so a row
 // resolves down to the room.
-func seedLocation(t *testing.T, pool *pgxpool.Pool, officeID uuid.UUID, label string) (firstLocation string, roomID uuid.UUID) {
+func seedLocation(t *testing.T, pool *pgxpool.Pool, officeID uuid.UUID, label string) (locationName string, roomID uuid.UUID) {
 	t.Helper()
 	floorName := "Lantai " + label
 	roomName := "Ruang " + label
@@ -426,16 +426,17 @@ func TestImport_AssetFullCycle_ApproveCreatesAssets(t *testing.T) {
 	approverID := seedUser(t, h.pool, approverRoleID, nil, "approver.afc@test.local")
 
 	// The valid row carries every optional legacy-parity column (Merk -> brand_id,
-	// Kapasitas, SPK Number, Asset Code -> legacy_asset_code, Barcode ->
-	// legacy_barcode, User -> pic_employee_id) so the assertions below guard the
-	// createRows persistence path, not just validation. Order matches assetHeader:
-	// [Location Folder Name, Asset Type Name, Asset Name, First Location, Last
-	// Location, Purchase Date, Purchase Price, User, Condition, Last Change, Asset
-	// Code, Barcode, Merk, Kapasitas, SPK Number].
+	// Kapasitas, SPK Number, Legacy Asset Code -> legacy_asset_code, Legacy Barcode
+	// -> legacy_barcode, User -> pic_employee_id) so the assertions below guard the
+	// createRows persistence path, not just validation. Order matches assetHeader
+	// (13 columns): [Location Folder Name, Asset Type Name, Asset Name, Location
+	// Name, Purchase Date, Purchase Price, User, Condition, Legacy Asset Code,
+	// Legacy Barcode, Merk, Kapasitas, SPK Number]. The PIC NIP-AFC belongs to the
+	// row's office (seedEmployee under officeID), satisfying the same-office rule.
 	csvBytes := buildCSV(t, assetHeader, [][]string{
-		{"AFC", "AFC-CAT", "Laptop Valid", loc, "", "2026-01-05", "5000000", "NIP-AFC - Budi", "Rusak", "", "LEG-AFC-1", "BC-AFC-1", "AFC Brand", "7PK", "SPK/AFC/1"},
+		{"AFC", "AFC-CAT", "Laptop Valid", loc, "2026-01-05", "5000000", "NIP-AFC - Budi", "Rusak", "LEG-AFC-1", "BC-AFC-1", "AFC Brand", "7PK", "SPK/AFC/1"},
 		// missing Asset Name -> "required"; everything else valid so it is the ONLY error.
-		{"AFC", "AFC-CAT", "", loc, "", "2026-01-05", "5000000", "", "Baik", "", "", "", "", "", ""},
+		{"AFC", "AFC-CAT", "", loc, "2026-01-05", "5000000", "", "Baik", "", "", "", "", ""},
 	})
 
 	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "batch.csv", "text/csv", csvBytes, makerID)
@@ -556,14 +557,14 @@ func TestImport_AssetFullCycle_ApproveCreatesAssets(t *testing.T) {
 	assert.Equal(t, *createdAsset.RoomID, *hist[0].RoomID)
 }
 
-// TestImport_AssetMissingFirstLocation_FailsValidation drives an import whose
-// second row carries NO First Location. Under the legacy-English contract First
-// Location is REQUIRED, so that row is rejected at VALIDATION with "required" and
+// TestImport_AssetMissingLocationName_FailsValidation drives an import whose
+// second row carries NO Location Name. Under the legacy-English contract Location
+// Name is REQUIRED, so that row is rejected at VALIDATION with "required" and
 // never reaches Execute; the located row still flows through approval and is
 // created. This is the new-contract successor to the old
 // tangible-without-location execute-time skip: because a location-less row can no
 // longer pass validation, the poisoning path it guarded against is unreachable.
-func TestImport_AssetMissingFirstLocation_FailsValidation(t *testing.T) {
+func TestImport_AssetMissingLocationName_FailsValidation(t *testing.T) {
 	h := newHarness(t)
 	ctx := context.Background()
 
@@ -579,14 +580,14 @@ func TestImport_AssetMissingFirstLocation_FailsValidation(t *testing.T) {
 	// Keep the batch total inside the single-step approval band so one Decide
 	// finalizes the request and runs the executor. Only the located row is valid.
 	csvBytes := buildCSV(t, assetHeader, [][]string{
-		{"NLC", "NLC-CAT", "Aset Berlokasi", loc, "", "2026-01-05", "2000000", "", "Baik", "", "", "", "", "", ""},
-		{"NLC", "NLC-CAT", "Aset Tanpa Lokasi", "", "", "2026-01-05", "2000000", "", "Baik", "", "", "", "", "", ""}, // no First Location -> required
+		{"NLC", "NLC-CAT", "Aset Berlokasi", loc, "2026-01-05", "2000000", "", "Baik", "", "", "", "", ""},
+		{"NLC", "NLC-CAT", "Aset Tanpa Lokasi", "", "2026-01-05", "2000000", "", "Baik", "", "", "", "", ""}, // no Location Name -> required
 	})
 
 	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "nolokasi.csv", "text/csv", csvBytes, makerID)
 	require.NoError(t, err)
 
-	// validate: the location-less row fails here (First Location is required).
+	// validate: the location-less row fails here (Location Name is required).
 	did, err := h.worker.Tick(ctx)
 	require.NoError(t, err)
 	assert.True(t, did)
@@ -627,8 +628,8 @@ func TestImport_AssetMissingFirstLocation_FailsValidation(t *testing.T) {
 	var failedErrs []importer.CellError
 	require.NoError(t, json.Unmarshal(byName["Aset Tanpa Lokasi"].Errors, &failedErrs))
 	require.Len(t, failedErrs, 1)
-	assert.Equal(t, "First Location", failedErrs[0].Column)
-	assert.Equal(t, "required", failedErrs[0].ErrorKey, "an empty First Location is a required-column failure")
+	assert.Equal(t, "Location Name", failedErrs[0].Column)
+	assert.Equal(t, "required", failedErrs[0].ErrorKey, "an empty Location Name is a required-column failure")
 }
 
 // ─── 2. asset reject ─────────────────────────────────────────────────────────
@@ -653,8 +654,8 @@ func TestImport_AssetReject_DerivedStatusAndErrorReport(t *testing.T) {
 	approverID := seedUser(t, h.pool, approverRoleID, nil, "approver.rej@test.local")
 
 	csvBytes := buildCSV(t, assetHeader, [][]string{
-		{"REJ", "REJ-CAT", "Printer Valid", loc, "", "2026-02-01", "2000000", "", "Baik", "", "", "", "", "", ""},
-		{"REJ", "TIDAK-ADA", "Printer NoKategori", loc, "", "2026-02-01", "2000000", "", "Baik", "", "", "", "", "", ""}, // unknown Asset Type Name
+		{"REJ", "REJ-CAT", "Printer Valid", loc, "2026-02-01", "2000000", "", "Baik", "", "", "", "", ""},
+		{"REJ", "TIDAK-ADA", "Printer NoKategori", loc, "2026-02-01", "2000000", "", "Baik", "", "", "", "", ""}, // unknown Asset Type Name
 	})
 
 	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "reject.csv", "text/csv", csvBytes, makerID)
@@ -971,8 +972,8 @@ func TestImport_AssetValidate_ScopeOutOfReach(t *testing.T) {
 	makerID := seedUser(t, h.pool, makerRoleID, &officeIn, "maker.scope@test.local")
 
 	csvBytes := buildCSV(t, assetHeader, [][]string{
-		{"SIN", "SCOPE-CAT", "Dalam Scope", locIn, "", "2026-04-01", "1000000", "", "Baik", "", "", "", "", "", ""},
-		{"SOUT", "SCOPE-CAT", "Luar Scope", locOut, "", "2026-04-01", "1000000", "", "Baik", "", "", "", "", "", ""},
+		{"SIN", "SCOPE-CAT", "Dalam Scope", locIn, "2026-04-01", "1000000", "", "Baik", "", "", "", "", ""},
+		{"SOUT", "SCOPE-CAT", "Luar Scope", locOut, "2026-04-01", "1000000", "", "Baik", "", "", "", "", ""},
 	})
 
 	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "scope.csv", "text/csv", csvBytes, makerID)
@@ -992,7 +993,7 @@ func TestImport_AssetValidate_ScopeOutOfReach(t *testing.T) {
 	var errs []importer.CellError
 	require.NoError(t, json.Unmarshal(failedRows[0].Errors, &errs))
 	// The out-of-scope office is invisible to the scoped lookup, so the office
-	// never resolves and the First Location floor lookup (guarded by hasOffice)
+	// never resolves and the Location Name floor lookup (guarded by hasOffice)
 	// is skipped entirely — the row carries a single "kantor" error on the
 	// Location Folder Name column, not a separate lokasi error.
 	require.Len(t, errs, 1)
@@ -1020,8 +1021,8 @@ func TestImport_AssetValidate_MultiOfficeBatchFlagged(t *testing.T) {
 	makerID := seedUser(t, h.pool, makerRoleID, nil, "maker.multi@test.local")
 
 	csvBytes := buildCSV(t, assetHeader, [][]string{
-		{"MO1", "MO-CAT", "Aset Kantor 1", loc1, "", "2026-05-01", "1000000", "", "Baik", "", "", "", "", "", ""},
-		{"MO2", "MO-CAT", "Aset Kantor 2", loc2, "", "2026-05-01", "1000000", "", "Baik", "", "", "", "", "", ""},
+		{"MO1", "MO-CAT", "Aset Kantor 1", loc1, "2026-05-01", "1000000", "", "Baik", "", "", "", "", ""},
+		{"MO2", "MO-CAT", "Aset Kantor 2", loc2, "2026-05-01", "1000000", "", "Baik", "", "", "", "", ""},
 	})
 
 	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "multioffice.csv", "text/csv", csvBytes, makerID)
@@ -1133,10 +1134,10 @@ func TestImport_Rows_PaginationAndOnlyErrors(t *testing.T) {
 
 	var rowsIn [][]string
 	for i := 1; i <= 3; i++ {
-		rowsIn = append(rowsIn, []string{"PAG", "PAG-CAT", fmt.Sprintf("Valid %d", i), loc, "", "2026-06-01", "1000000", "", "Baik", "", "", "", "", "", ""})
+		rowsIn = append(rowsIn, []string{"PAG", "PAG-CAT", fmt.Sprintf("Valid %d", i), loc, "2026-06-01", "1000000", "", "Baik", "", "", "", "", ""})
 	}
 	for i := 1; i <= 2; i++ {
-		rowsIn = append(rowsIn, []string{"PAG", "PAG-CAT", "", loc, "", "2026-06-01", "1000000", "", "Baik", "", "", "", "", "", ""}) // missing Asset Name
+		rowsIn = append(rowsIn, []string{"PAG", "PAG-CAT", "", loc, "2026-06-01", "1000000", "", "Baik", "", "", "", "", ""}) // missing Asset Name
 		_ = i
 	}
 	csvBytes := buildCSV(t, assetHeader, rowsIn)
