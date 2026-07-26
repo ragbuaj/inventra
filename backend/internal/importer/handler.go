@@ -189,7 +189,27 @@ func (h *Handler) template(c *gin.Context) {
 		return
 	}
 	format := c.DefaultQuery("format", "xlsx")
-	body, contentType, ext, err := BuildTemplate(format, t.Columns())
+
+	// A target may customize its template (custom sheets, an example note,
+	// dropdowns sourced from the caller's data scope). Resolve the scope and
+	// ask the target for its spec; targets that don't implement TemplateProvider
+	// get the default header-only two-sheet template.
+	var spec TemplateSpec
+	if tp, ok := t.(TemplateProvider); ok {
+		all, officeIDs, sErr := h.scoped.CallerOfficeScope(c, scopeModule)
+		if sErr != nil {
+			common.WriteError(c, sErr)
+			return
+		}
+		uid, _ := callerID(c) // authenticated by RequireAuth; zero UID is unused by dropdowns
+		scope := Scope{AllScope: all, OfficeIDs: officeIDs, UserID: uid}
+		if spec, err = tp.TemplateSpec(c.Request.Context(), scope); err != nil {
+			h.svcError(c, err)
+			return
+		}
+	}
+
+	body, contentType, ext, err := BuildTemplateWith(format, t.Columns(), spec)
 	if err != nil {
 		h.svcError(c, err)
 		return

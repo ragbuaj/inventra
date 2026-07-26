@@ -88,6 +88,37 @@ type Row struct {
 	Data  map[string]string
 }
 
+// TemplateSpec optionally overrides the default two-sheet template layout for
+// a target (see TemplateProvider). Zero-valued fields fall back to defaults.
+type TemplateSpec struct {
+	// DataSheet is the fill-in sheet name (parsed on re-upload, so it MUST be
+	// the first sheet). "" -> "Data Impor".
+	DataSheet string
+	// ExampleSheet is the worked-example sheet name. "" -> "Contoh Penggunaan".
+	ExampleSheet string
+	// ExampleNote, when set, is written as row 1 of the example sheet with the
+	// header shifted to row 2 — used to warn users not to fill the example.
+	ExampleNote string
+	// ExampleRows are the example data rows (each aligned to the Columns order).
+	// When nil, a single row is built from each ColumnSpec.Example.
+	ExampleRows [][]string
+	// Dropdowns maps a column Name to its allowed values (a fixed enum or a
+	// caller-scoped DB list); the values become an Excel data-validation drop
+	// list on that column of the fill sheet, backed by a hidden options sheet.
+	Dropdowns map[string][]string
+	// MarkRequired appends "*" to required column headers (both sheets). The
+	// parser strips a trailing "*" so the marked header still round-trips.
+	MarkRequired bool
+}
+
+// TemplateProvider is implemented by a target that wants a customized import
+// template — custom sheet names, an example note, explicit example rows, and
+// dropdowns sourced from the caller's data scope. Optional: targets that do
+// not implement it get the default header-only two-sheet template.
+type TemplateProvider interface {
+	TemplateSpec(ctx context.Context, scope Scope) (TemplateSpec, error)
+}
+
 // TargetImporter is implemented by each per-domain import target (asset,
 // employee, office, reference data, ...). The generic engine (parser,
 // template generator, job service, worker) drives targets purely through

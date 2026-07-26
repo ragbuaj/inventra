@@ -64,10 +64,10 @@ func Parse(format string, body []byte, cols []ColumnSpec, maxRows int) ([]RawRow
 	header := records[0]
 	idx := map[string]int{}
 	for i, h := range header {
-		idx[strings.ToLower(strings.TrimSpace(h))] = i
+		idx[normHeader(h)] = i
 	}
 	for _, c := range cols {
-		if _, ok := idx[strings.ToLower(c.Name)]; !ok {
+		if _, ok := idx[normHeader(c.Name)]; !ok {
 			return nil, ErrBadHeader
 		}
 	}
@@ -84,7 +84,7 @@ func Parse(format string, body []byte, cols []ColumnSpec, maxRows int) ([]RawRow
 	for i, rec := range data {
 		cells := map[string]string{}
 		for _, c := range cols {
-			j := idx[strings.ToLower(c.Name)]
+			j := idx[normHeader(c.Name)]
 			v := ""
 			if j < len(rec) {
 				v = strings.TrimSpace(rec[j])
@@ -94,6 +94,16 @@ func Parse(format string, body []byte, cols []ColumnSpec, maxRows int) ([]RawRow
 		out = append(out, RawRow{RowNo: i + 1, Cells: cells})
 	}
 	return out, nil
+}
+
+// normHeader normalizes a header cell / column name for order- and
+// case-insensitive matching: lower-cased, trimmed, with a trailing "*"
+// (the required-column marker some templates print into the header) removed
+// so a "Name*" header still matches the ColumnSpec named "Name".
+func normHeader(s string) string {
+	s = strings.TrimSpace(s)
+	s = strings.TrimRight(s, "*")
+	return strings.ToLower(strings.TrimSpace(s))
 }
 
 // errorKeyFor maps a parser sentinel to an i18n key stored on the job.
