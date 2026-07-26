@@ -49,15 +49,25 @@ const rowsPage = (data: ImportRow[]) => ({ data, total: data.length, limit: 10, 
 // Backend/OpenAPI ImportRow shape: target-column values are flat siblings of
 // id/row_no/valid/errors (additionalProperties), NOT nested under a `data`
 // key — see useImports.ts's ImportRow doc comment.
-const okRow: ImportRow = { id: 'r-1', row_no: 1, valid: true, asset_tag: 'A-1', nama: 'Kursi', kategori: 'Furnitur', errors: [] }
+// Asset preview rows use the legacy English column layout (must match the
+// backend asset importer's Columns() — see internal/asset/importer.go).
+const okRow: ImportRow = {
+  'id': 'r-1',
+  'row_no': 1,
+  'valid': true,
+  'Location Folder Name': 'Kantor Pusat',
+  'Asset Type Name': 'Furnitur',
+  'Asset Name': 'Kursi',
+  'errors': []
+}
 const badRow: ImportRow = {
-  id: 'r-2',
-  row_no: 2,
-  valid: false,
-  asset_tag: 'A-2',
-  nama: 'Meja',
-  kategori: 'Elektronikk',
-  errors: [{ column: 'kategori', error_key: 'kat' }]
+  'id': 'r-2',
+  'row_no': 2,
+  'valid': false,
+  'Location Folder Name': 'Kantor Pusat',
+  'Asset Type Name': 'Elektronikk',
+  'Asset Name': 'Meja',
+  'errors': [{ column: 'Asset Type Name', error_key: 'kat' }]
 }
 
 beforeEach(() => {
@@ -90,9 +100,9 @@ describe('ImportWizard — step 1 (upload)', () => {
     const text = w.text()
     // Template download button (resolved i18n, not the raw key).
     expect(text).toContain('Unduh Template')
-    // Asset column badges are hardcoded for the asset target.
-    expect(text).toContain('asset_tag')
-    expect(text).toContain('kategori')
+    // Asset column badges are hardcoded for the asset target (legacy English layout).
+    expect(text).toContain('Location Folder Name')
+    expect(text).toContain('Asset Name')
 
     w.unmount()
   })

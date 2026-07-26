@@ -14,14 +14,18 @@ const toast = useToast()
 const can = useCan()
 const imports = useImports()
 
-// --- Asset columns badges (kept from the mockup for the asset target). Other
-// targets don't hardcode columns — they get a generic "download template" note.
+// --- Asset column badges (legacy English layout; must match the backend
+// asset importer's Columns()). [name, required]. Other targets don't hardcode
+// columns — they get a generic "download template" note.
 const ASSET_COLUMNS: [string, boolean][] = [
-  ['asset_tag', false], ['nama', true], ['kategori', true], ['kantor', true],
-  ['tgl_beli', true], ['harga', true], ['vendor', false], ['lokasi', false]
+  ['Location Folder Name', true], ['Asset Type Name', true], ['Asset Name', true],
+  ['First Location', true], ['Last Location', false], ['Purchase Date', false],
+  ['Purchase Price', false], ['User', false], ['Condition', true],
+  ['Last Change', false], ['Asset Code', false], ['Barcode', false],
+  ['Merk', false], ['Kapasitas', false], ['SPK Number', false]
 ]
 // Stable header order for the asset preview table (falls back to data keys).
-const ASSET_COL_ORDER = ['asset_tag', 'nama', 'kategori', 'kantor', 'tgl_beli', 'harga', 'vendor', 'lokasi']
+const ASSET_COL_ORDER = ASSET_COLUMNS.map(([name]) => name)
 
 const MAX_BYTES = 10 * 1024 * 1024
 const POLL_MS = 1500
@@ -129,16 +133,16 @@ function cellError(r: ImportRow, col: string): ImportCellError | undefined {
 function cellClass(r: ImportRow, col: string): string {
   return cellError(r, col) ? 'bg-error/10 text-error' : ''
 }
-// Asset-specific cell styling to match the Import Aset mockup (asset_tag is
-// monospaced). Other targets fall back to the plain generic cell.
+// Asset-specific cell styling: the legacy Asset Code renders monospaced. Other
+// targets fall back to the plain generic cell.
 function cellExtraClass(col: string): string {
-  return isAsset.value && col === 'asset_tag' ? 'font-mono text-[12px]' : ''
+  return isAsset.value && col === 'Asset Code' ? 'font-mono text-[12px]' : ''
 }
-// Asset-specific cell display: the harga column carries a "Rp" prefix when it
-// holds a numeric value, mirroring the mockup. Everything else renders raw.
+// Asset-specific cell display: the Purchase Price column carries a "Rp" prefix
+// when it holds a numeric value. Everything else renders raw.
 function cellDisplay(r: ImportRow, col: string): string {
   const v = importRowValue(r, col)
-  if (isAsset.value && col === 'harga' && v && /^[\d.,]+$/.test(v)) return `Rp ${v}`
+  if (isAsset.value && col === 'Purchase Price' && v && /^[\d.,]+$/.test(v)) return `Rp ${v}`
   return v || '—'
 }
 function cellErrorMsg(r: ImportRow, col: string): string {

@@ -13,9 +13,14 @@
 //
 // CSV column order matches each target's ColumnSpec exactly (header matching
 // is case-insensitive and order-insensitive on the backend, but keeping this
-// order mirrors the downloaded template for readability):
-//   asset:    asset_tag, nama, kategori, kantor, tgl_beli, harga, vendor, lokasi,
-//             merk, kapasitas, spk_number, kode_aset_lama, barcode, pemegang, kondisi, operasional
+// order mirrors the downloaded template for readability). The asset target uses
+// the legacy English export layout (see backend/internal/asset/importer.go
+// Columns; required = Location Folder Name, Asset Type Name, Asset Name, First
+// Location, Condition — there is no asset_tag column, tags are generated
+// per-office):
+//   asset:    Location Folder Name, Asset Type Name, Asset Name, First Location,
+//             Last Location, Purchase Date, Purchase Price, User, Condition,
+//             Last Change, Asset Code, Barcode, Merk, Kapasitas, SPK Number
 //   employee: kode, nama, email, telepon, kantor, status, departemen, jabatan
 
 function toCsv(header: string[], rows: string[][]): string {
@@ -23,9 +28,28 @@ function toCsv(header: string[], rows: string[][]): string {
   return [header, ...rows].map(r => r.map(esc).join(',')).join('\n') + '\n'
 }
 
+// The asset target's legacy English column layout (all 15 columns must be in the
+// header — the parser requires every declared ColumnSpec present, see
+// backend/internal/importer/parser.go). Column order mirrors the template.
+const ASSET_HEADER = [
+  'Location Folder Name', 'Asset Type Name', 'Asset Name', 'First Location',
+  'Last Location', 'Purchase Date', 'Purchase Price', 'User', 'Condition',
+  'Last Change', 'Asset Code', 'Barcode', 'Merk', 'Kapasitas', 'SPK Number'
+]
+
+// assetRow builds one asset CSV row in ASSET_HEADER order from the few fields the
+// scenarios vary; everything else is left blank (all optional per the layout).
+function assetRow(
+  { office, category, name, location, date = '', price = '', condition = 'Baik' }:
+  { office: string, category: string, name: string, location: string, date?: string, price?: string, condition?: string }
+): string[] {
+  return [office, category, name, location, '', date, price, '', condition, '', '', '', '', '', '']
+}
+
 export interface AssetHappyPathInputs {
   officeName: string
   categoryName: string
+  floorName: string
   roomName: string
   run: string
 }
@@ -39,28 +63,32 @@ export interface AssetHappyPathFixture {
 }
 
 /**
- * Two valid rows + one invalid row (an unknown `kategori`) — drives the asset
- * import happy-path scenario: preview shows 2 valid / 1 error, confirm
- * creates a maker-checker `asset_import` request for the 2 valid rows.
+ * Two valid rows + one invalid row (an unknown `Asset Type Name`) — drives the
+ * asset import happy-path scenario: preview shows 2 valid / 1 error, confirm
+ * creates a maker-checker `asset_import` request for the 2 valid rows. The bad
+ * row keeps every other field valid so its ONLY error is the unknown category.
+ * First Location is a "Floor - Room" that must resolve within `officeName`.
  */
-export function buildAssetHappyPathCsv({ officeName, categoryName, roomName, run }: AssetHappyPathInputs): AssetHappyPathFixture {
+export function buildAssetHappyPathCsv({ officeName, categoryName, floorName, roomName, run }: AssetHappyPathInputs): AssetHappyPathFixture {
   const row1Name = `E2E Import Meja ${run}`
   const row2Name = `E2E Import Kursi ${run}`
   const badRowName = `E2E Import BadCat ${run}`
-  const header = ['asset_tag', 'nama', 'kategori', 'kantor', 'tgl_beli', 'harga', 'vendor', 'lokasi', 'merk', 'kapasitas', 'spk_number', 'kode_aset_lama', 'barcode', 'pemegang', 'kondisi', 'operasional']
+  const location = `${floorName} - ${roomName}`
   const rows = [
-    ['', row1Name, categoryName, officeName, '2026-06-01', '700000', '', roomName],
-    ['', row2Name, categoryName, officeName, '2026-06-02', '800000', '', roomName],
-    ['', badRowName, `Nonexistent Category ${run}`, officeName, '2026-06-03', '500000', '', roomName]
+    assetRow({ office: officeName, category: categoryName, name: row1Name, location, date: '2026-06-01', price: '700000' }),
+    assetRow({ office: officeName, category: categoryName, name: row2Name, location, date: '2026-06-02', price: '800000' }),
+    assetRow({ office: officeName, category: `Nonexistent Category ${run}`, name: badRowName, location, date: '2026-06-03', price: '500000' })
   ]
-  return { filename: `assets-${run}.csv`, csv: toCsv(header, rows), row1Name, row2Name, badRowName }
+  return { filename: `assets-${run}.csv`, csv: toCsv(ASSET_HEADER, rows), row1Name, row2Name, badRowName }
 }
 
 export interface AssetValidationRejectionInputs {
   officeAName: string
   officeBName: string
   categoryName: string
-  roomName: string
+  floorAName: string
+  roomAName: string
+  floorBName: string
   run: string
 }
 
@@ -73,27 +101,34 @@ export interface AssetValidationRejectionFixture {
 }
 
 /**
- * A bad-date row (`tgl_beli` not in ISO form) plus a cross-office row (a
- * second, different `kantor` than the batch's first resolved office) — drives
- * the "validation rejected in preview" scenario. Never confirmed by the spec,
- * so it never reaches the approval flow.
+ * A bad-date row (`Purchase Date` not in ISO form) plus a cross-office row (a
+ * second, different office than the batch's first resolved one) — drives the
+ * "validation rejected in preview" scenario. Never confirmed by the spec, so it
+ * never reaches the approval flow.
+ *
+ * Each error row carries EXACTLY one error so its note cell renders a single
+ * message the spec asserts on: the bad-date row resolves office A + a valid
+ * First Location (only the date is wrong), and the cross-office row resolves
+ * office B + a valid office-B First Location (only the multiOffice batch rule
+ * trips). `floorBName` must be a real floor under office B for that to hold.
  */
 export function buildAssetValidationRejectionCsv(
-  { officeAName, officeBName, categoryName, roomName, run }: AssetValidationRejectionInputs
+  { officeAName, officeBName, categoryName, floorAName, roomAName, floorBName, run }: AssetValidationRejectionInputs
 ): AssetValidationRejectionFixture {
   const badDateRowName = `E2E Import BadDate ${run}`
   const multiOfficeRowName = `E2E Import MultiOffice ${run}`
   const validRowName = `E2E Import RejectValid ${run}`
-  const header = ['asset_tag', 'nama', 'kategori', 'kantor', 'tgl_beli', 'harga', 'vendor', 'lokasi', 'merk', 'kapasitas', 'spk_number', 'kode_aset_lama', 'barcode', 'pemegang', 'kondisi', 'operasional']
+  const locationA = `${floorAName} - ${roomAName}`
   const rows = [
     // First row resolves officeA — becomes the batch's reference office, even
-    // though it also carries its own bad-date error.
-    ['', badDateRowName, categoryName, officeAName, '31/12/2025', '600000', '', roomName],
-    // Resolves a DIFFERENT office than the batch reference -> multiOffice.
-    ['', multiOfficeRowName, categoryName, officeBName, '2026-06-04', '650000', '', ''],
-    ['', validRowName, categoryName, officeAName, '2026-06-05', '700000', '', roomName]
+    // though it also carries its own bad-date error (its only error).
+    assetRow({ office: officeAName, category: categoryName, name: badDateRowName, location: locationA, date: '31/12/2025', price: '600000' }),
+    // Resolves a DIFFERENT office than the batch reference -> multiOffice (its
+    // only error). Floor-only First Location resolves within office B.
+    assetRow({ office: officeBName, category: categoryName, name: multiOfficeRowName, location: floorBName, date: '2026-06-04', price: '650000' }),
+    assetRow({ office: officeAName, category: categoryName, name: validRowName, location: locationA, date: '2026-06-05', price: '700000' })
   ]
-  return { filename: `assets-reject-${run}.csv`, csv: toCsv(header, rows), badDateRowName, multiOfficeRowName, validRowName }
+  return { filename: `assets-reject-${run}.csv`, csv: toCsv(ASSET_HEADER, rows), badDateRowName, multiOfficeRowName, validRowName }
 }
 
 export interface EmployeeImportInputs {
