@@ -2,7 +2,7 @@
   "name": "inventra-api-docs",
   "version": "0.0.0",
   "private": true,
-  "description": "Tooling-only package: pins Spectral (and its @asyncapi/specs transitive dep) so the OpenAPI lint is reproducible in CI. @asyncapi/specs 6.11.x ships an ESM/CJS mismatch that crashes under Node 24 when pulled fresh via npx, so it is overridden to a known-good version and locked here.",
+  "description": "Tooling-only package: pins Spectral (and its @asyncapi/specs transitive dep) so the OpenAPI lint is reproducible in CI. @asyncapi/specs 6.11.x ships an ESM/CJS mismatch that crashes under Node 24 when pulled fresh via npx, so it is overridden to a known-good version and locked here. fast-uri is pinned to >=3.1.4 to clear GHSA-v2hh-gcrm-f6hx (transitive via Spectral's ajv; CI-lint tooling only).",
   "scripts": {
     "lint": "spectral lint openapi.yaml --ruleset ../../.spectral.yaml"
   },
@@ -10,6 +10,7 @@
     "@stoplight/spectral-cli": "6.16.1"
   },
   "overrides": {
-    "@asyncapi/specs": "6.8.1"
+    "@asyncapi/specs": "6.8.1",
+    "fast-uri": "3.1.4"
   }
 }
