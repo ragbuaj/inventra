@@ -8,6 +8,17 @@ WHERE deleted_at IS NULL AND office_id = sqlc.arg(office_id)
 ORDER BY name
 LIMIT sqlc.arg(lim) OFFSET sqlc.arg(off);
 
+-- name: ListFloorsLookup :many
+-- Flat floor lookup (id, name, office_id) for the asset importer, scoped to the
+-- caller's offices. all_scope bypasses the office filter; otherwise only floors
+-- whose office is in office_ids are returned. Lets the importer resolve a
+-- floor-only "First Location" and build the location dropdown.
+SELECT f.id, f.name, f.office_id
+FROM masterdata.floors f
+WHERE f.deleted_at IS NULL
+  AND (sqlc.arg(all_scope)::bool OR f.office_id = ANY(sqlc.arg(office_ids)::uuid[]))
+ORDER BY f.name;
+
 -- name: CountFloorsByOffice :one
 SELECT count(*) FROM masterdata.floors
 WHERE deleted_at IS NULL AND office_id = sqlc.arg(office_id)

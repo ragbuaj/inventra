@@ -138,7 +138,9 @@ test.describe('Bulk Import — real backend (asset + employee e2e)', () => {
 
   let officeAName: string
   let officeBName: string
+  let floorName: string
   let roomName: string
+  let officeBFloorName: string
   let categoryName: string
 
   test.beforeAll(async () => {
@@ -156,19 +158,29 @@ test.describe('Bulk Import — real backend (asset + employee e2e)', () => {
     }))
 
     officeBName = `E2E Import Office B ${RUN}`
-    await apiJson<{ id: string }>(await api.post('offices', {
+    const officeB = await apiJson<{ id: string }>(await api.post('offices', {
       headers: authHeader(adminToken),
       data: { name: officeBName, code: `E2EIMB${RUN}`, office_type_id: ot.id }
     }))
 
+    floorName = `E2E Import Floor ${RUN}`
     const floor = await apiJson<{ id: string }>(await api.post('floors', {
       headers: authHeader(adminToken),
-      data: { office_id: officeA.id, name: `E2E Import Floor ${RUN}` }
+      data: { office_id: officeA.id, name: floorName }
     }))
     roomName = `E2E Import Room ${RUN}`
     await apiJson<{ id: string }>(await api.post('rooms', {
       headers: authHeader(adminToken),
       data: { floor_id: floor.id, name: roomName }
+    }))
+
+    // A floor on office B so the cross-office row's First Location resolves
+    // there (floor-only) — its only validation error is then the multiOffice
+    // batch rule, not a missing/unresolvable First Location.
+    officeBFloorName = `E2E Import Floor B ${RUN}`
+    await apiJson<{ id: string }>(await api.post('floors', {
+      headers: authHeader(adminToken),
+      data: { office_id: officeB.id, name: officeBFloorName }
     }))
 
     categoryName = `E2E Import Category ${RUN}`
@@ -200,7 +212,7 @@ test.describe('Bulk Import — real backend (asset + employee e2e)', () => {
 
   test('asset import: template download, preview errors, maker-checker approval, appears in Katalog', async ({ page, context }) => {
     const { filename, csv, row1Name, row2Name, badRowName } = buildAssetHappyPathCsv({
-      officeName: officeAName, categoryName, roomName, run: RUN
+      officeName: officeAName, categoryName, floorName, roomName, run: RUN
     })
 
     // --- MAKER: upload + preview ---------------------------------------
@@ -337,7 +349,7 @@ test.describe('Bulk Import — real backend (asset + employee e2e)', () => {
 
   test('asset import: validation preview rejects a bad date and a cross-office row', async ({ page }) => {
     const { filename, csv, badDateRowName, multiOfficeRowName, validRowName } = buildAssetValidationRejectionCsv({
-      officeAName, officeBName, categoryName, roomName, run: RUN
+      officeAName, officeBName, categoryName, floorAName: floorName, roomAName: roomName, floorBName: officeBFloorName, run: RUN
     })
 
     await loginAs(page, EMAIL, PASSWORD)

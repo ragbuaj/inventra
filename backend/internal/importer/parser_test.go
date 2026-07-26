@@ -108,6 +108,56 @@ func TestParseCSV_StripsLeadingBOM(t *testing.T) {
 	}
 }
 
+// TestParseCSV_HeaderStripsRequiredMarker ensures a header whose cells carry a
+// trailing "*" (the required-column marker BuildTemplateWith prints when
+// MarkRequired is set, and which the user's re-uploaded file therefore keeps)
+// still matches the bare ColumnSpec name: normHeader strips the "*", so "nama*"
+// maps to the "nama" column and the file parses.
+func TestParseCSV_HeaderStripsRequiredMarker(t *testing.T) {
+	csv := "nama*,harga*\nMeja,1000\n"
+	rows, err := Parse("csv", []byte(csv), testCols, 100)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("want 1 row, got %d", len(rows))
+	}
+	if rows[0].Cells["nama"] != "Meja" || rows[0].Cells["harga"] != "1000" {
+		t.Fatalf("marked header must map to bare column names: %+v", rows[0])
+	}
+}
+
+// TestParseCSV_HeaderMarkerMixedWithReorder combines the "*" marker with
+// reordered, differently-cased headers and surrounding whitespace — normHeader
+// must normalize all of it so every ColumnSpec still resolves.
+func TestParseCSV_HeaderMarkerMixedWithReorder(t *testing.T) {
+	csv := " HARGA* , Nama* \n1000,Meja\n"
+	rows, err := Parse("csv", []byte(csv), testCols, 100)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if rows[0].Cells["nama"] != "Meja" || rows[0].Cells["harga"] != "1000" {
+		t.Fatalf("column mapping wrong: %+v", rows[0])
+	}
+}
+
+// TestNormHeader documents normHeader's normalization directly: trim, strip a
+// trailing "*" marker, and lower-case.
+func TestNormHeader(t *testing.T) {
+	cases := map[string]string{
+		"nama":     "nama",
+		"Nama":     "nama",
+		"NAMA*":    "nama",
+		"  nama* ": "nama",
+		"harga":    "harga",
+	}
+	for in, want := range cases {
+		if got := normHeader(in); got != want {
+			t.Fatalf("normHeader(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
 func TestParseXLSX_RoundTrip(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()

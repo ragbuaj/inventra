@@ -117,3 +117,134 @@ func TestBuildTemplateBadFormat(t *testing.T) {
 		t.Fatalf("want ErrBadFormat, got %v", err)
 	}
 }
+
+// TestBuildTemplateWith_CustomSpec exercises the full TemplateSpec surface a
+// target (e.g. the asset importer) uses: custom sheet names, an example note
+// (which shifts the example header to row 2), explicit multi-row examples,
+// required-column markers ("*") on the headers, and per-column dropdowns backed
+// by a hidden "_pilihan" options sheet.
+func TestBuildTemplateWith_CustomSpec(t *testing.T) {
+	spec := TemplateSpec{
+		DataSheet:    "Aset",
+		ExampleSheet: "Contoh Pengisian",
+		ExampleNote:  "SHEET INI HANYA CONTOH - jangan diisi.",
+		ExampleRows: [][]string{
+			{"Budi Santoso", "15000000"},
+			{"Sri Rahayu", "250000000"},
+		},
+		Dropdowns:    map[string][]string{"nama": {"Budi Santoso", "Sri Rahayu"}},
+		MarkRequired: true,
+	}
+
+	body, ct, ext, err := BuildTemplateWith("xlsx", exampleCols, spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ext != "xlsx" || ct != "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" {
+		t.Fatalf("bad meta: %s %s", ct, ext)
+	}
+
+	f, err := excelize.OpenReader(bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	// The custom fill/example sheets come first (fill sheet MUST be first so the
+	// parser reads it on re-upload), then the hidden "_pilihan" options sheet.
+	sheets := f.GetSheetList()
+	if len(sheets) != 3 || sheets[0] != "Aset" || sheets[1] != "Contoh Pengisian" || sheets[2] != sheetOptions {
+		t.Fatalf("want sheets [Aset, Contoh Pengisian, %q], got %v", sheetOptions, sheets)
+	}
+
+	// The options sheet is hidden.
+	visible, err := f.GetSheetVisible(sheetOptions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if visible {
+		t.Fatalf("%q must be hidden", sheetOptions)
+	}
+
+	// Required headers carry the "*" marker on the fill sheet.
+	dataRows, err := f.GetRows("Aset")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(dataRows) != 1 {
+		t.Fatalf("fill sheet must be header-only, got %d rows", len(dataRows))
+	}
+	if dataRows[0][0] != "nama*" || dataRows[0][1] != "harga*" {
+		t.Fatalf("required headers must be marked with '*': %v", dataRows[0])
+	}
+
+	// Example sheet: row 1 note, row 2 marked header, rows 3-4 the two examples.
+	exRows, err := f.GetRows("Contoh Pengisian")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(exRows) != 4 {
+		t.Fatalf("example sheet want note + header + 2 rows = 4, got %d: %v", len(exRows), exRows)
+	}
+	if exRows[0][0] != spec.ExampleNote {
+		t.Fatalf("example row 1 must be the note, got %q", exRows[0][0])
+	}
+	if exRows[1][0] != "nama*" || exRows[1][1] != "harga*" {
+		t.Fatalf("example header (row 2) must be marked: %v", exRows[1])
+	}
+	if exRows[2][0] != "Budi Santoso" || exRows[3][0] != "Sri Rahayu" {
+		t.Fatalf("example data rows wrong: %v / %v", exRows[2], exRows[3])
+	}
+
+	// The options sheet carries the dropdown values for "nama".
+	optRows, err := f.GetRows(sheetOptions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(optRows) < 3 || optRows[0][0] != "nama" || optRows[1][0] != "Budi Santoso" || optRows[2][0] != "Sri Rahayu" {
+		t.Fatalf("options sheet must hold the nama dropdown values, got %v", optRows)
+	}
+
+	// A data validation (the drop list) is attached to the fill sheet.
+	dvs, err := f.GetDataValidations("Aset")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(dvs) == 0 {
+		t.Fatalf("expected a data-validation drop list on the fill sheet, got none")
+	}
+
+	// The marked, header-only fill sheet still round-trips through Parse: the
+	// "*" markers are stripped by normHeader, so the columns resolve and the
+	// header-only sheet yields ErrEmptyFile (no data rows).
+	if _, err := Parse("xlsx", body, exampleCols, 100); err != ErrEmptyFile {
+		t.Fatalf("marked header-only template should parse to ErrEmptyFile, got %v", err)
+	}
+}
+
+// TestBuildTemplateWith_NoMarkerWhenNotRequested asserts MarkRequired defaults
+// off: with a zero spec the headers stay bare even for required columns.
+func TestBuildTemplateWith_NoMarkerWhenNotRequested(t *testing.T) {
+	body, _, _, err := BuildTemplateWith("xlsx", exampleCols, TemplateSpec{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := excelize.OpenReader(bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	// No dropdowns requested -> no hidden options sheet, just the two defaults.
+	sheets := f.GetSheetList()
+	if len(sheets) != 2 || sheets[0] != sheetData || sheets[1] != sheetExample {
+		t.Fatalf("want default two sheets, got %v", sheets)
+	}
+	dataRows, err := f.GetRows(sheetData)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dataRows[0][0] != "nama" || dataRows[0][1] != "harga" {
+		t.Fatalf("headers must stay bare without MarkRequired: %v", dataRows[0])
+	}
+}

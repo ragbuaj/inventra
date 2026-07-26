@@ -13,11 +13,12 @@ WHERE deleted_at IS NULL AND floor_id = sqlc.arg(floor_id)
   AND (sqlc.arg(search)::text = '' OR name ILIKE '%' || sqlc.arg(search) || '%' OR coalesce(code, '') ILIKE '%' || sqlc.arg(search) || '%');
 
 -- name: ListRoomsLookup :many
--- Flat room lookup (id, name, code, office_id) for the asset importer, scoped
--- to the caller's offices via the room's floor -> office chain. all_scope
--- bypasses the office filter; otherwise only rooms whose office is in office_ids
--- are returned.
-SELECT r.id, r.name, r.code, f.office_id
+-- Flat room lookup (id, name, code, office_id, floor_id, floor_name) for the
+-- asset importer, scoped to the caller's offices via the room's floor -> office
+-- chain. all_scope bypasses the office filter; otherwise only rooms whose office
+-- is in office_ids are returned. floor_id/floor_name let the importer resolve a
+-- "Floor - Room" location and build the location dropdown.
+SELECT r.id, r.name, r.code, f.office_id, r.floor_id, f.name AS floor_name
 FROM masterdata.rooms r
 JOIN masterdata.floors f ON f.id = r.floor_id AND f.deleted_at IS NULL
 WHERE r.deleted_at IS NULL

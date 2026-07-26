@@ -200,16 +200,18 @@ func (q *Queries) ListEmployeeCodes(ctx context.Context) ([]string, error) {
 }
 
 const listEmployeeLookup = `-- name: ListEmployeeLookup :many
-SELECT id, code FROM masterdata.employees WHERE deleted_at IS NULL
+SELECT id, code, name FROM masterdata.employees WHERE deleted_at IS NULL
 `
 
 type ListEmployeeLookupRow struct {
 	ID   uuid.UUID `json:"id"`
 	Code string    `json:"code"`
+	Name string    `json:"name"`
 }
 
-// id + code for the asset importer's `pemegang` (PIC) resolution. Employee codes
-// (NIP) are globally unique (uq_employees_code), so this set is deliberately unscoped.
+// id + code + name for the asset importer's `User`/PIC resolution and its
+// location dropdown ("NIP - Nama"). Employee codes (NIP) are globally unique
+// (uq_employees_code), so this set is deliberately unscoped.
 func (q *Queries) ListEmployeeLookup(ctx context.Context) ([]ListEmployeeLookupRow, error) {
 	rows, err := q.db.Query(ctx, listEmployeeLookup)
 	if err != nil {
@@ -219,7 +221,7 @@ func (q *Queries) ListEmployeeLookup(ctx context.Context) ([]ListEmployeeLookupR
 	items := []ListEmployeeLookupRow{}
 	for rows.Next() {
 		var i ListEmployeeLookupRow
-		if err := rows.Scan(&i.ID, &i.Code); err != nil {
+		if err := rows.Scan(&i.ID, &i.Code, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

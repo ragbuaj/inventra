@@ -14,10 +14,14 @@ let maker: Actor // Manager @ branch (asset.manage) — MAKER, pemilik job
 let officeAppr: Actor // Kepala Unit @ branch
 let wilayahAppr: Actor // Kepala Kanwil
 
-const FULL_HEADER = 'asset_tag,nama,kategori,kantor,tgl_beli,harga,vendor,lokasi,merk,kapasitas,spk_number,kode_aset_lama,barcode,pemegang,kondisi,operasional'
+// Legacy English asset layout (see backend/internal/asset/importer.go Columns).
+// Location Folder Name = kantor (BDG01), Asset Type Name = kategori (KOM), First
+// Location = a floor in that office (floor-only is valid for tangible per migrasi
+// 000039), Purchase Price = harga (disumkan jadi amount approval), Condition Baik.
+const FULL_HEADER = 'Location Folder Name,Asset Type Name,Asset Name,First Location,Last Location,Purchase Date,Purchase Price,User,Condition,Last Change,Asset Code,Barcode,Merk,Kapasitas,SPK Number'
 
 function assetCsv(run: string, rows: Array<[string, string]>): string {
-  const body = rows.map(([name, harga], i) => `,${name},KOM,BDG01,2026-06-0${i + 1},${harga},,R1-1`).join('\n')
+  const body = rows.map(([name, harga], i) => `BDG01,KOM,${name},Lantai 1,,2026-06-0${i + 1},${harga},,Baik,,,,,,`).join('\n')
   return `${FULL_HEADER}\n${body}\n`
 }
 
@@ -102,9 +106,10 @@ test('TIDAK boleh: user lain meng-confirm job milik maker -> 403 (assertOwner)',
 
 test('TIDAK boleh: header CSV tak memuat semua kolom target -> job failed (ErrBadHeader)', async () => {
   const run = uniq('hdr')
-  // Header tanpa kolom 'harga'. Kontrak header dicek WORKER (async), bukan saat
-  // upload — job dibuat (201) lalu berakhir 'failed', tak pernah 'validated'.
-  const badCsv = `asset_tag,nama,kategori,kantor,tgl_beli,vendor,lokasi\n,Bad ${run},KOM,BDG01,2026-06-01,,R1-1\n`
+  // Header tanpa kolom 'Purchase Price'. Kontrak header dicek WORKER (async), bukan
+  // saat upload — parser mensyaratkan SEMUA kolom target ada di header, jadi job
+  // dibuat (201) lalu berakhir 'failed', tak pernah 'validated'.
+  const badCsv = `Location Folder Name,Asset Type Name,Asset Name,First Location,Last Location,Purchase Date,User,Condition,Last Change,Asset Code,Barcode,Merk,Kapasitas,SPK Number\nBDG01,KOM,Bad ${run},Lantai 1,,2026-06-01,,Baik,,,,,,\n`
   const res = await uploadAsset(maker, `bad-${run}.csv`, badCsv)
   expect(res.status()).toBe(201)
   const jobId = (await res.json()).id
