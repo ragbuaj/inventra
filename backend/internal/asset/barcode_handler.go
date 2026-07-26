@@ -15,12 +15,9 @@ type LabelRequest struct {
 	AssetIDs []string `json:"asset_ids"`
 	Tags     []string `json:"tags"`
 	Template string   `json:"template"` // btn (default) | generic
-	Layout   string   `json:"layout"`   // roll (default) | sheet
 	Size     string   `json:"size"`
 	WidthMM  float64  `json:"w_mm"`
 	HeightMM float64  `json:"h_mm"`
-	MediaWMM float64  `json:"media_w_mm"`
-	Columns  int      `json:"columns"`
 	Mode     string   `json:"mode"` // barcode (default) | qr | both
 	Fields   struct {
 		Name   bool `json:"name"`
@@ -41,11 +38,6 @@ func (r LabelRequest) validate() error {
 	case "", "btn", "generic":
 	default:
 		return errors.New("template must be btn or generic")
-	}
-	switch r.Layout {
-	case "", "roll", "sheet":
-	default:
-		return errors.New("layout must be roll or sheet")
 	}
 	switch r.Mode {
 	case "", "barcode", "qr", "both":
@@ -135,7 +127,7 @@ func (h *Handler) generateLabels(c *gin.Context) {
 		return
 	}
 
-	labelW, labelH, mediaW, err := resolveLabelDims(req.Size, req.WidthMM, req.HeightMM, req.MediaWMM)
+	labelW, labelH, err := resolveLabelDims(req.Size, req.WidthMM, req.HeightMM)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -145,10 +137,6 @@ func (h *Handler) generateLabels(c *gin.Context) {
 	if tmpl == "" {
 		tmpl = "btn"
 	}
-	layout := req.Layout
-	if layout == "" {
-		layout = "roll"
-	}
 	mode := req.Mode
 	if mode == "" {
 		mode = "barcode"
@@ -157,11 +145,8 @@ func (h *Handler) generateLabels(c *gin.Context) {
 	in := LabelInput{
 		Opts: labelOpts{
 			Template:   tmpl,
-			Layout:     layout,
 			LabelW:     labelW,
 			LabelH:     labelH,
-			MediaW:     mediaW,
-			Columns:    req.Columns,
 			Mode:       mode,
 			ShowName:   req.Fields.Name,
 			ShowOffice: req.Fields.Office,
@@ -189,8 +174,6 @@ func (h *Handler) generateLabels(c *gin.Context) {
 		switch {
 		case errors.Is(err, ErrNoAssets):
 			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
-		case errors.Is(err, ErrSheetOverflow):
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		case errors.Is(err, common.ErrForbidden):
 			common.WriteError(c, common.ErrForbidden)
 		default:

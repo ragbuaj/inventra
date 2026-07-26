@@ -212,7 +212,7 @@ test.describe('Bulk Import — real backend (asset + employee e2e)', () => {
       page.waitForEvent('download'),
       page.getByRole('button', { name: 'Unduh Template', exact: true }).click()
     ])
-    expect(templateDl.suggestedFilename()).toBe('asset-template.csv')
+    expect(templateDl.suggestedFilename()).toBe('asset-template.xlsx')
 
     await page.locator('[data-testid="import-file-input"]').setInputFiles({
       name: filename, mimeType: 'text/csv', buffer: Buffer.from(csv, 'utf-8')

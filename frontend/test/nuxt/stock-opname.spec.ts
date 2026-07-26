@@ -351,6 +351,74 @@ describe('pages/stock-opname — detail (open)', () => {
 })
 
 // ---------------------------------------------------------------------------
+// 4b. URL session sync (?session=<id>) — deep-link + browser Back/Forward
+// ---------------------------------------------------------------------------
+
+// The page records the open session in the URL so the browser Back button
+// returns to the index. Rendering stays driven by in-memory view/activeId; the
+// route param carries history and syncs the view on Back/Forward. These tests
+// assert the *observable* effect (which view is shown) rather than poking the
+// router's internal `currentRoute` — under mountSuspended, reading the injected
+// route's query back is unreliable, but driving navigation via `router.push`
+// and observing the resulting view is solid. The router is reached via a cast
+// off wrapper.vm, the same way the suite reaches other component internals.
+type TestRouter = {
+  push: (to: { query: Record<string, string> }) => Promise<unknown>
+}
+function routerOf(w: Wrapper): TestRouter {
+  return (w.vm as unknown as { $router: TestRouter }).$router
+}
+
+describe('pages/stock-opname — URL session sync', () => {
+  it('opens the detail on card click and returns to the list via the back button', async () => {
+    const w = await mountAndWait()
+    await openDetail(w)
+    expect(w.find('[data-testid="opname-back"]').exists()).toBe(true)
+
+    await w.find('[data-testid="opname-back"]').trigger('click')
+    await flushPromises()
+    await w.vm.$nextTick()
+
+    expect(w.find('[data-testid="opname-back"]').exists()).toBe(false)
+    expect(w.find('[data-testid="opname-create-open"]').exists()).toBe(true)
+  })
+
+  it('opens the session named in ?session=<id> on mount (deep-link / refresh)', async () => {
+    const w = await mountSuspended(StockOpnamePage, { route: '/stock-opname?session=s1' })
+    await flushPromises()
+    await new Promise(r => setTimeout(r, 50))
+    await flushPromises()
+    await w.vm.$nextTick()
+
+    expect(getMock).toHaveBeenCalledWith('s1')
+    expect(itemsMock).toHaveBeenCalledWith('s1')
+    expect(w.find('[data-testid="opname-back"]').exists()).toBe(true)
+  })
+
+  it('syncs the view to the URL session param (Forward opens detail, Back returns to list)', async () => {
+    const w = await mountAndWait()
+    const router = routerOf(w)
+
+    // Navigating INTO a ?session entry (Forward) opens that detail.
+    getMock.mockClear()
+    await router.push({ query: { session: 's1' } })
+    await flushPromises()
+    await new Promise(r => setTimeout(r, 50))
+    await flushPromises()
+    await w.vm.$nextTick()
+    expect(getMock).toHaveBeenCalledWith('s1')
+    expect(w.find('[data-testid="opname-back"]').exists()).toBe(true)
+
+    // Losing the param (Back to the list entry) returns to the list.
+    await router.push({ query: {} })
+    await flushPromises()
+    await w.vm.$nextTick()
+    expect(w.find('[data-testid="opname-back"]').exists()).toBe(false)
+    expect(w.find('[data-testid="opname-create-open"]').exists()).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // 5. Detail — counting state (scan + editable results)
 // ---------------------------------------------------------------------------
 

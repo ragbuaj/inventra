@@ -2,7 +2,6 @@ package asset
 
 import (
 	"bytes"
-	"errors"
 	"testing"
 	"unicode/utf8"
 )
@@ -26,25 +25,25 @@ func TestTrunc_MultiByteUTF8(t *testing.T) {
 }
 
 func TestResolveLabelDims_Defaults(t *testing.T) {
-	w, h, media, err := resolveLabelDims("", 0, 0, 0)
+	w, h, err := resolveLabelDims("", 0, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if w != 60 || h != 24 || media != 60 {
-		t.Fatalf("got %v %v %v", w, h, media)
+	if w != 60 || h != 24 {
+		t.Fatalf("got %v %v", w, h)
 	}
 }
 
 func TestResolveLabelDims_PresetExplicitUnknown(t *testing.T) {
-	w, h, _, err := resolveLabelDims("50x30", 0, 0, 0)
+	w, h, err := resolveLabelDims("50x30", 0, 0)
 	if err != nil || w != 50 || h != 30 {
 		t.Fatalf("preset: %v %v %v", w, h, err)
 	}
-	w, h, _, _ = resolveLabelDims("60x24", 70, 40, 0)
+	w, h, _ = resolveLabelDims("60x24", 70, 40)
 	if w != 70 || h != 40 {
 		t.Fatalf("explicit override: %v %v", w, h)
 	}
-	if _, _, _, err := resolveLabelDims("bogus", 0, 0, 0); err == nil {
+	if _, _, err := resolveLabelDims("bogus", 0, 0); err == nil {
 		t.Fatal("unknown preset should error")
 	}
 }
@@ -57,8 +56,8 @@ func itemsN(n int) []labelItem {
 	return it
 }
 
-func TestRenderLabelPDF_BTN_Roll_OnePagePerAsset(t *testing.T) {
-	opts := labelOpts{Template: "btn", Layout: "roll", LabelW: 60, LabelH: 24, MediaW: 64, CompanyName: "PT BTN", Disclaimer: "x"}
+func TestRenderLabelPDF_BTN_OnePagePerAsset(t *testing.T) {
+	opts := labelOpts{Template: "btn", LabelW: 60, LabelH: 24, CompanyName: "PT BTN", Disclaimer: "x"}
 	one, err := renderLabelPDF(itemsN(1), opts)
 	if err != nil {
 		t.Fatal(err)
@@ -86,8 +85,8 @@ func TestRenderLabelPDF_BTN_Roll_OnePagePerAsset(t *testing.T) {
 	}
 }
 
-func TestRenderLabelPDF_Generic_Sheet(t *testing.T) {
-	out, err := renderLabelPDF(itemsN(7), labelOpts{Template: "generic", Layout: "sheet", LabelW: 60, LabelH: 24, Columns: 3, Mode: "barcode"})
+func TestRenderLabelPDF_Generic_OnePagePerAsset(t *testing.T) {
+	out, err := renderLabelPDF(itemsN(7), labelOpts{Template: "generic", LabelW: 60, LabelH: 24, Mode: "barcode"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,7 +94,7 @@ func TestRenderLabelPDF_Generic_Sheet(t *testing.T) {
 		t.Fatal("not a PDF")
 	}
 	if n := pdfPageCount(out); n < 1 {
-		t.Fatalf("sheet want >=1 /Type /Page entry, got %d", n)
+		t.Fatalf("want >=1 /Type /Page entry, got %d", n)
 	}
 }
 
@@ -119,13 +118,10 @@ func TestLabelRequest_Validate(t *testing.T) {
 	if err := (LabelRequest{}).validate(); err == nil {
 		t.Fatal("need ids or tags")
 	}
-	if err := (LabelRequest{Tags: []string{"A"}, Layout: "weird"}).validate(); err == nil {
-		t.Fatal("bad layout")
-	}
 	if err := (LabelRequest{Tags: []string{"A"}, Template: "nope"}).validate(); err == nil {
 		t.Fatal("bad template")
 	}
-	if err := (LabelRequest{Tags: []string{"A"}, Template: "btn", Layout: "roll"}).validate(); err != nil {
+	if err := (LabelRequest{Tags: []string{"A"}, Template: "btn"}).validate(); err != nil {
 		t.Fatalf("valid: %v", err)
 	}
 
@@ -146,29 +142,6 @@ func TestLabelRequest_Validate(t *testing.T) {
 	tags300 := make([]string, 300)
 	if err := (LabelRequest{AssetIDs: ids300, Tags: tags300}).validate(); err == nil {
 		t.Fatal("300+300=600 combined should exceed cap")
-	}
-}
-
-func TestSheetFits(t *testing.T) {
-	// 3 cols × 60 mm + 2 gutters × 3 mm + 2 margins × 8 mm = 180+6+16 = 202 ≤ 210 → fits
-	if !sheetFits(3, 60) {
-		t.Fatal("3 cols × 60 mm should fit on A4")
-	}
-	// 4 cols × 60 mm + 3 gutters × 3 mm + 2 margins × 8 mm = 240+9+16 = 265 > 210 → overflow
-	if sheetFits(4, 60) {
-		t.Fatal("4 cols × 60 mm should overflow A4")
-	}
-}
-
-func TestRenderLabelPDF_Sheet_OverflowReturnsError(t *testing.T) {
-	// 4 cols × 60 mm width — sheetFits says no → must return ErrSheetOverflow.
-	opts := labelOpts{
-		Template: "generic", Layout: "sheet",
-		LabelW: 60, LabelH: 24, Columns: 4, Mode: "barcode",
-	}
-	_, err := renderLabelPDF(itemsN(1), opts)
-	if !errors.Is(err, ErrSheetOverflow) {
-		t.Fatalf("want ErrSheetOverflow, got %v", err)
 	}
 }
 

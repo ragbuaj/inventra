@@ -69,14 +69,14 @@ func (employeeImporter) NeedsApproval() bool { return false }
 // Columns describes the employee import template.
 func (employeeImporter) Columns() []importer.ColumnSpec {
 	return []importer.ColumnSpec{
-		{Name: colCode, Required: true, Kind: "text"},
-		{Name: colName, Required: true, Kind: "text"},
-		{Name: colEmail, Required: false, Kind: "text"},
-		{Name: colPhone, Required: false, Kind: "text"},
-		{Name: colOffice, Required: true, Kind: "lookup"},
-		{Name: colStatus, Required: true, Kind: "text"},
-		{Name: colDepartment, Required: false, Kind: "lookup"},
-		{Name: colPosition, Required: false, Kind: "lookup"},
+		{Name: colCode, Required: true, Kind: "text", Example: "198501012010011001"},
+		{Name: colName, Required: true, Kind: "text", Example: "Budi Santoso"},
+		{Name: colEmail, Required: false, Kind: "text", Example: "budi.santoso@bank.co.id"},
+		{Name: colPhone, Required: false, Kind: "text", Example: "081234567890"},
+		{Name: colOffice, Required: true, Kind: "lookup", Example: "KC Jakarta Thamrin"},
+		{Name: colStatus, Required: true, Kind: "text", Example: "active"},
+		{Name: colDepartment, Required: false, Kind: "lookup", Example: "Teknologi Informasi"},
+		{Name: colPosition, Required: false, Kind: "lookup", Example: "Staff IT"},
 	}
 }
 

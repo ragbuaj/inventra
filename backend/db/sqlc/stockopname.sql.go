@@ -230,7 +230,7 @@ LEFT JOIN masterdata.floors fl ON fl.id = rm.floor_id AND fl.deleted_at IS NULL
 LEFT JOIN identity.users cu ON cu.id = it.counted_by_id AND cu.deleted_at IS NULL
 WHERE it.session_id = $1 AND it.deleted_at IS NULL
   AND ($2::shared.opname_item_result IS NULL OR it.result = $2)
-ORDER BY a.name
+ORDER BY a.name NULLS LAST, it.id
 `
 
 type ListOpnameItemsEnrichedParams struct {
@@ -248,6 +248,8 @@ type ListOpnameItemsEnrichedRow struct {
 	CountedByName              *string                    `json:"counted_by_name"`
 }
 
+// it.id is a stable tiebreaker so the item order never shifts between fetches
+// (assets can share a name; a deleted asset yields a NULL name, sorted last).
 func (q *Queries) ListOpnameItemsEnriched(ctx context.Context, arg ListOpnameItemsEnrichedParams) ([]ListOpnameItemsEnrichedRow, error) {
 	rows, err := q.db.Query(ctx, listOpnameItemsEnriched, arg.SessionID, arg.Result)
 	if err != nil {

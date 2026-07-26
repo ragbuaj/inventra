@@ -79,11 +79,11 @@ func (officeImporter) NeedsApproval() bool { return false }
 // Columns describes the office import template.
 func (officeImporter) Columns() []importer.ColumnSpec {
 	return []importer.ColumnSpec{
-		{Name: colCode, Required: true, Kind: "text"},
-		{Name: colName, Required: true, Kind: "text"},
-		{Name: colTipe, Required: true, Kind: "lookup"},
-		{Name: colInduk, Required: false, Kind: "lookup"},
-		{Name: colAktif, Required: false, Kind: "text"},
+		{Name: colCode, Required: true, Kind: "text", Example: "KC001"},
+		{Name: colName, Required: true, Kind: "text", Example: "KC Jakarta Thamrin"},
+		{Name: colTipe, Required: true, Kind: "lookup", Example: "Kantor Cabang"},
+		{Name: colInduk, Required: false, Kind: "lookup", Example: "KP001"},
+		{Name: colAktif, Required: false, Kind: "text", Example: "ya"},
 	}
 }
 
