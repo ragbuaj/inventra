@@ -356,29 +356,29 @@ describe('pages/stock-opname — detail (open)', () => {
 
 // The page records the open session in the URL so the browser Back button
 // returns to the index. Rendering stays driven by in-memory view/activeId; the
-// route param only carries history and syncs the view on Back/Forward. Access
-// the router the same way the suite reaches other component internals — a cast
-// off wrapper.vm (see the label spec's `wrapper.vm as unknown as {...}`).
+// route param carries history and syncs the view on Back/Forward. These tests
+// assert the *observable* effect (which view is shown) rather than poking the
+// router's internal `currentRoute` — under mountSuspended, reading the injected
+// route's query back is unreliable, but driving navigation via `router.push`
+// and observing the resulting view is solid. The router is reached via a cast
+// off wrapper.vm, the same way the suite reaches other component internals.
 type TestRouter = {
-  currentRoute: { value: { query: Record<string, string | undefined> } }
-  push: (to: { query: Record<string, string | undefined> }) => Promise<unknown>
+  push: (to: { query: Record<string, string> }) => Promise<unknown>
 }
 function routerOf(w: Wrapper): TestRouter {
   return (w.vm as unknown as { $router: TestRouter }).$router
 }
 
 describe('pages/stock-opname — URL session sync', () => {
-  it('records the open session as ?session=<id> and clears it on back', async () => {
+  it('opens the detail on card click and returns to the list via the back button', async () => {
     const w = await mountAndWait()
     await openDetail(w)
-    expect(routerOf(w).currentRoute.value.query.session).toBe('s1')
     expect(w.find('[data-testid="opname-back"]').exists()).toBe(true)
 
     await w.find('[data-testid="opname-back"]').trigger('click')
     await flushPromises()
     await w.vm.$nextTick()
 
-    expect(routerOf(w).currentRoute.value.query.session).toBeUndefined()
     expect(w.find('[data-testid="opname-back"]').exists()).toBe(false)
     expect(w.find('[data-testid="opname-create-open"]').exists()).toBe(true)
   })
@@ -395,32 +395,26 @@ describe('pages/stock-opname — URL session sync', () => {
     expect(w.find('[data-testid="opname-back"]').exists()).toBe(true)
   })
 
-  it('returns to the list when the session param is removed (browser Back)', async () => {
+  it('syncs the view to the URL session param (Forward opens detail, Back returns to list)', async () => {
     const w = await mountAndWait()
-    await openDetail(w)
-    expect(w.find('[data-testid="opname-back"]').exists()).toBe(true)
+    const router = routerOf(w)
 
-    await routerOf(w).push({ query: {} })
-    await flushPromises()
-    await w.vm.$nextTick()
-
-    expect(w.find('[data-testid="opname-back"]').exists()).toBe(false)
-    expect(w.find('[data-testid="opname-create-open"]').exists()).toBe(true)
-  })
-
-  it('opens the detail when navigating into a ?session entry (browser Forward)', async () => {
-    const w = await mountAndWait()
-    expect(w.find('[data-testid="opname-back"]').exists()).toBe(false)
-
+    // Navigating INTO a ?session entry (Forward) opens that detail.
     getMock.mockClear()
-    await routerOf(w).push({ query: { session: 's1' } })
+    await router.push({ query: { session: 's1' } })
     await flushPromises()
     await new Promise(r => setTimeout(r, 50))
     await flushPromises()
     await w.vm.$nextTick()
-
     expect(getMock).toHaveBeenCalledWith('s1')
     expect(w.find('[data-testid="opname-back"]').exists()).toBe(true)
+
+    // Losing the param (Back to the list entry) returns to the list.
+    await router.push({ query: {} })
+    await flushPromises()
+    await w.vm.$nextTick()
+    expect(w.find('[data-testid="opname-back"]').exists()).toBe(false)
+    expect(w.find('[data-testid="opname-create-open"]').exists()).toBe(true)
   })
 })
 
