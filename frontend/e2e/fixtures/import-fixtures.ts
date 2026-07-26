@@ -15,12 +15,12 @@
 // is case-insensitive and order-insensitive on the backend, but keeping this
 // order mirrors the downloaded template for readability). The asset target uses
 // the legacy English export layout (see backend/internal/asset/importer.go
-// Columns; required = Location Folder Name, Asset Type Name, Asset Name, First
-// Location, Condition — there is no asset_tag column, tags are generated
+// Columns; required = Location Folder Name, Asset Type Name, Asset Name,
+// Location Name, Condition — there is no asset_tag column, tags are generated
 // per-office):
-//   asset:    Location Folder Name, Asset Type Name, Asset Name, First Location,
-//             Last Location, Purchase Date, Purchase Price, User, Condition,
-//             Last Change, Asset Code, Barcode, Merk, Kapasitas, SPK Number
+//   asset:    Location Folder Name, Asset Type Name, Asset Name, Location Name,
+//             Purchase Date, Purchase Price, User, Condition, Legacy Asset Code,
+//             Legacy Barcode, Merk, Kapasitas, SPK Number
 //   employee: kode, nama, email, telepon, kantor, status, departemen, jabatan
 
 function toCsv(header: string[], rows: string[][]): string {
@@ -28,22 +28,24 @@ function toCsv(header: string[], rows: string[][]): string {
   return [header, ...rows].map(r => r.map(esc).join(',')).join('\n') + '\n'
 }
 
-// The asset target's legacy English column layout (all 15 columns must be in the
+// The asset target's legacy English column layout (all 13 columns must be in the
 // header — the parser requires every declared ColumnSpec present, see
 // backend/internal/importer/parser.go). Column order mirrors the template.
 const ASSET_HEADER = [
-  'Location Folder Name', 'Asset Type Name', 'Asset Name', 'First Location',
-  'Last Location', 'Purchase Date', 'Purchase Price', 'User', 'Condition',
-  'Last Change', 'Asset Code', 'Barcode', 'Merk', 'Kapasitas', 'SPK Number'
+  'Location Folder Name', 'Asset Type Name', 'Asset Name', 'Location Name',
+  'Purchase Date', 'Purchase Price', 'User', 'Condition',
+  'Legacy Asset Code', 'Legacy Barcode', 'Merk', 'Kapasitas', 'SPK Number'
 ]
 
 // assetRow builds one asset CSV row in ASSET_HEADER order from the few fields the
 // scenarios vary; everything else is left blank (all optional per the layout).
+// User (PIC) is left blank on purpose — a filled PIC must belong to the row's
+// office (pemegangScope), which these fixtures do not seed.
 function assetRow(
   { office, category, name, location, date = '', price = '', condition = 'Baik' }:
   { office: string, category: string, name: string, location: string, date?: string, price?: string, condition?: string }
 ): string[] {
-  return [office, category, name, location, '', date, price, '', condition, '', '', '', '', '', '']
+  return [office, category, name, location, date, price, '', condition, '', '', '', '', '']
 }
 
 export interface AssetHappyPathInputs {
@@ -67,7 +69,7 @@ export interface AssetHappyPathFixture {
  * asset import happy-path scenario: preview shows 2 valid / 1 error, confirm
  * creates a maker-checker `asset_import` request for the 2 valid rows. The bad
  * row keeps every other field valid so its ONLY error is the unknown category.
- * First Location is a "Floor - Room" that must resolve within `officeName`.
+ * Location Name is a "Floor - Room" that must resolve within `officeName`.
  */
 export function buildAssetHappyPathCsv({ officeName, categoryName, floorName, roomName, run }: AssetHappyPathInputs): AssetHappyPathFixture {
   const row1Name = `E2E Import Meja ${run}`
@@ -108,8 +110,8 @@ export interface AssetValidationRejectionFixture {
  *
  * Each error row carries EXACTLY one error so its note cell renders a single
  * message the spec asserts on: the bad-date row resolves office A + a valid
- * First Location (only the date is wrong), and the cross-office row resolves
- * office B + a valid office-B First Location (only the multiOffice batch rule
+ * Location Name (only the date is wrong), and the cross-office row resolves
+ * office B + a valid office-B Location Name (only the multiOffice batch rule
  * trips). `floorBName` must be a real floor under office B for that to hold.
  */
 export function buildAssetValidationRejectionCsv(
@@ -124,7 +126,7 @@ export function buildAssetValidationRejectionCsv(
     // though it also carries its own bad-date error (its only error).
     assetRow({ office: officeAName, category: categoryName, name: badDateRowName, location: locationA, date: '31/12/2025', price: '600000' }),
     // Resolves a DIFFERENT office than the batch reference -> multiOffice (its
-    // only error). Floor-only First Location resolves within office B.
+    // only error). Floor-only Location Name resolves within office B.
     assetRow({ office: officeBName, category: categoryName, name: multiOfficeRowName, location: floorBName, date: '2026-06-04', price: '650000' }),
     assetRow({ office: officeAName, category: categoryName, name: validRowName, location: locationA, date: '2026-06-05', price: '700000' })
   ]
