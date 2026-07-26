@@ -22,20 +22,6 @@ const SIZES: Record<string, { w: number, h: number }> = {
 const LABEL_COMPANY = 'PT Bank Tabungan Negara (Persero) Tbk'
 const LABEL_DISCLAIMER = 'Tidak Untuk Diperjualbelikan & Apabila Dipindah posisi untuk disampaikan ke Pengelola Gedung'
 
-// A4 sheet-fit constants — mirror the backend's `sheetFits` check
-// (backend/internal/asset/barcode.go:104-107): cols*labelW + (cols-1)*gutter +
-// 2*margin <= pageW, with pageW=210mm, margin=8mm/side (16mm total), gutter=3mm
-// between columns. Batch prints whose column count violates this get a 400
-// ErrSheetOverflow from the backend, so the UI must never offer/send one.
-const A4_PAGE_W_MM = 210
-const A4_MARGINS_MM = 16
-const SHEET_GUTTER_MM = 3
-
-function maxColsForLabelWidth(labelWmm: number): number {
-  const usable = A4_PAGE_W_MM - A4_MARGINS_MM + SHEET_GUTTER_MM
-  return Math.max(1, Math.floor(usable / (labelWmm + SHEET_GUTTER_MM)))
-}
-
 const { t } = useI18n()
 const route = useRoute()
 const toast = useToast()
@@ -43,7 +29,6 @@ const assetsApi = useAssets()
 const { requestBlob } = useApiClient()
 
 const size = ref('60x24')
-const cols = ref(3)
 const downloading = ref(false)
 
 const sizeOptions = [
@@ -54,18 +39,6 @@ const sizeOptions = [
 ]
 
 const sz = computed(() => SIZES[size.value] ?? SIZES['60x24']!)
-
-// Label width in mm, parsed from the "WxH" size key (e.g. '70x40' → 70).
-const sizeWidthMM = computed(() => Number(size.value.split('x')[0]))
-const maxCols = computed(() => maxColsForLabelWidth(sizeWidthMM.value))
-
-// Keep the selected column count within what the current size can fit on an
-// A4 sheet — runs immediately so the default 70x40/3-column combo (which
-// overflows: 70mm only fits 2 columns) is clamped on mount too, not just on
-// later size changes.
-watch(maxCols, (max) => {
-  if (cols.value > max) cols.value = max
-}, { immediate: true })
 
 // --- Picker: server search over /assets (debounced), independent of selection. ---
 const pickerQuery = ref('')
@@ -107,10 +80,6 @@ watch(debouncedPickerQuery, () => loadPicker())
 // --- Selection: Map keyed by asset id so we hold real Asset objects. ---
 const selectedMap = ref<Map<string, Asset>>(new Map())
 const selectedLabels = computed(() => Array.from(selectedMap.value.values()))
-const perPage = computed(() => {
-  const rowsPer = Math.max(1, Math.floor(1040 / (sz.value.h + 12)))
-  return cols.value * rowsPer
-})
 
 function warnCap() {
   toast.add({ title: t('assets.label.maxSelected', { n: MAX_SELECTED }), color: 'warning', icon: 'i-lucide-triangle-alert' })
@@ -219,23 +188,15 @@ async function downloadLabels() {
   if (selectedLabels.value.length === 0) return
   downloading.value = true
   try {
-    // A single selected label prints on a continuous roll; more than one
-    // normally uses the on-screen column count as a tiled sheet grid (matches
-    // the "Label Tunggal"/"Label Batch" preview distinction above). But when
-    // the current size only fits 1 column on an A4 sheet (e.g. 100x50), a
-    // "sheet" with 1 column is pointless and the backend's A4 fit check would
-    // reject anything above that — print it as a roll instead, same as a
-    // single label.
-    const isBatch = selectedLabels.value.length > 1
-    const useRoll = !isBatch || maxCols.value <= 1
+    // Each label prints on its own page whose size equals the label size, so
+    // the request carries only the selection, the fixed BTN template, and the
+    // label size — no paper size or column grid.
     const blob = await requestBlob('/assets/labels', {
       method: 'POST',
       body: {
         asset_ids: selectedLabels.value.map(a => a.id),
         template: 'btn',
-        layout: useRoll ? 'roll' : 'sheet',
-        size: size.value,
-        ...(useRoll ? {} : { columns: cols.value })
+        size: size.value
       }
     })
     const url = URL.createObjectURL(blob)
@@ -372,28 +333,9 @@ onUnmounted(() => {
               size="sm"
             />
           </UFormField>
-          <div>
-            <div class="text-xs text-muted mb-1.5">
-              {{ t('assets.label.columns') }}
-            </div>
-            <div class="flex gap-1.5">
-              <UButton
-                v-for="n in [2, 3, 4]"
-                :key="n"
-                :color="cols === n ? 'primary' : 'neutral'"
-                :variant="cols === n ? 'soft' : 'outline'"
-                size="sm"
-                class="flex-1 justify-center"
-                :disabled="n > maxCols"
-                @click="() => { cols = n }"
-              >
-                {{ n }}
-              </UButton>
-            </div>
-            <div class="text-[11px] text-dimmed mt-1.5">
-              {{ t('assets.label.maxColsHint', { n: maxCols }) }}
-            </div>
-          </div>
+          <p class="text-[11px] text-dimmed">
+            {{ t('assets.label.pageSizeHint') }}
+          </p>
           <p class="text-[11px] text-dimmed">
             {{ t('assets.label.btnTemplateHint') }}
           </p>
@@ -408,7 +350,7 @@ onUnmounted(() => {
               {{ selectedLabels.length <= 1 ? t('assets.label.single') : t('assets.label.batch') }}
             </div>
             <div class="text-[12px] text-muted">
-              {{ t('assets.label.count', { n: selectedLabels.length }) }} · {{ t('assets.label.perPage', { n: perPage }) }}
+              {{ t('assets.label.count', { n: selectedLabels.length }) }} · {{ t('assets.label.onePerPage') }}
             </div>
           </div>
           <div class="flex items-center gap-2.5">
@@ -457,7 +399,7 @@ onUnmounted(() => {
         >
           <div
             class="grid gap-3 justify-start"
-            :style="{ gridTemplateColumns: `repeat(${Math.min(cols, Math.max(1, selectedLabels.length))}, ${sz.w}px)` }"
+            :style="{ gridTemplateColumns: `repeat(auto-fill, ${sz.w}px)` }"
           >
             <AssetLabel
               v-for="lbl in selectedLabels"

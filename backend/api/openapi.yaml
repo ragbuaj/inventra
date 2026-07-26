@@ -6828,14 +6828,16 @@ components:
       type: object
       description: |
         Request body for `POST /assets/labels`. Supply either `asset_ids` or `tags`
-        (or both). All dimensional fields are in millimetres. When `size` is a known
-        preset the individual `w_mm`/`h_mm` fields are ignored; supply them when using
-        a custom size.
+        (or both). All dimensional fields are in millimetres. Each label prints on its
+        own page whose size equals the label size (page size = label size), so there is
+        no paper size or column grid. `size` picks a named preset; `w_mm`/`h_mm`
+        override it per-dimension when provided (each is applied only when greater
+        than zero), so a custom size can be sent with or without a preset.
       properties:
         asset_ids:
           type: array
           items: { type: string, format: uuid }
-          description: Asset UUIDs to include in the label sheet.
+          description: Asset UUIDs to include; one label (one page) is produced per asset.
         tags:
           type: array
           items: { type: string }
@@ -6845,11 +6847,6 @@ components:
           enum: [btn, generic]
           default: btn
           description: Label template. `btn` uses the Bank BTN house style; `generic` is a plain layout.
-        layout:
-          type: string
-          enum: [roll, sheet]
-          default: roll
-          description: "`roll` outputs a single-column continuous roll; `sheet` tiles labels in a grid."
         size:
           type: string
           description: Named preset size (e.g. `50x30`). When omitted, supply `w_mm` and `h_mm`.
@@ -6861,13 +6858,6 @@ components:
           type: number
           format: double
           description: Label height in mm (used when `size` is absent or unknown).
-        media_w_mm:
-          type: number
-          format: double
-          description: Media (paper/roll) width in mm — required for `sheet` layout.
-        columns:
-          type: integer
-          description: Number of label columns per row (`sheet` layout only).
         mode:
           type: string
           enum: [barcode, qr, both]

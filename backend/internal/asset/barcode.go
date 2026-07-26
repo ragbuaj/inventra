@@ -22,9 +22,8 @@ import (
 )
 
 var (
-	ErrNoAssets      = errors.New("no assets selected for labels")
-	ErrUnknownSize   = errors.New("unknown label size preset")
-	ErrSheetOverflow = errors.New("label columns overflow A4 page width — reduce columns or label width")
+	ErrNoAssets    = errors.New("no assets selected for labels")
+	ErrUnknownSize = errors.New("unknown label size preset")
 )
 
 const (
@@ -42,22 +41,24 @@ var sizePresets = map[string][2]float64{
 type labelItem struct{ Tag, Name, OfficeCode, CategoryName, Year string }
 
 type labelOpts struct {
-	Template, Layout        string
+	Template                string
 	LabelW, LabelH          float64
-	MediaW                  float64
-	Columns                 int
 	Mode                    string
 	ShowName, ShowOffice    bool
 	CompanyName, Disclaimer string
 	LogoPNG                 []byte
 }
 
-func resolveLabelDims(size string, wMM, hMM, mediaWMM float64) (labelW, labelH, mediaW float64, err error) {
+// resolveLabelDims resolves the label (= page) dimensions in mm. Each label
+// prints on its own page whose size equals the label size, so there is no
+// separate paper/media size. A named size preset wins unless w_mm/h_mm
+// override it.
+func resolveLabelDims(size string, wMM, hMM float64) (labelW, labelH float64, err error) {
 	labelW, labelH = 60, 24
 	if size != "" {
 		p, ok := sizePresets[size]
 		if !ok {
-			return 0, 0, 0, ErrUnknownSize
+			return 0, 0, ErrUnknownSize
 		}
 		labelW, labelH = p[0], p[1]
 	}
@@ -67,16 +68,7 @@ func resolveLabelDims(size string, wMM, hMM, mediaWMM float64) (labelW, labelH, 
 	if hMM > 0 {
 		labelH = hMM
 	}
-	// Default media = label size, so the roll PDF page is exactly the label
-	// (60x24 by default). Wider roll stock can still be set via media_w_mm.
-	mediaW = labelW
-	if mediaWMM > 0 {
-		mediaW = mediaWMM
-	}
-	if mediaW < labelW {
-		mediaW = labelW
-	}
-	return labelW, labelH, mediaW, nil
+	return labelW, labelH, nil
 }
 
 // prepLogo downscales oversized logo art and crops transparent/near-white
@@ -159,24 +151,14 @@ func composeQRWithLogo(tag string, logoPNG []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// sheetFits reports whether cols labels of width labelW mm fit across A4 (210 mm)
-// with the layout's fixed margins (8 mm each side) and gutters (3 mm between cols).
-func sheetFits(cols int, labelW float64) bool {
-	const pageW, margin, gutter = 210.0, 8.0, 3.0
-	return float64(cols)*labelW+float64(cols-1)*gutter+2*margin <= pageW
-}
-
 func renderLabelPDF(items []labelItem, opts labelOpts) ([]byte, error) {
 	if len(items) == 0 {
 		return nil, ErrNoAssets
 	}
-	var pdf *fpdf.Fpdf
-	if opts.Layout == "sheet" {
-		pdf = pdfutil.NewUTF8PDF("P", "mm", "A4")
-	} else {
-		pdf = fpdf.NewCustom(&fpdf.InitType{UnitStr: "mm", Size: fpdf.SizeType{Wd: opts.MediaW, Ht: opts.LabelH}})
-		pdfutil.RegisterFonts(pdf)
-	}
+	// One label per page: the page size IS the label size, so there is no
+	// paper/media size and no grid of columns to lay out.
+	pdf := fpdf.NewCustom(&fpdf.InitType{UnitStr: "mm", Size: fpdf.SizeType{Wd: opts.LabelW, Ht: opts.LabelH}})
+	pdfutil.RegisterFonts(pdf)
 	// Pages are managed manually; the default page break (bottom margin 20 mm)
 	// would fire on every cell of a 24 mm-tall label page and scatter the label
 	// across many pages. The default 1 mm cell margin would also shift every
@@ -336,41 +318,12 @@ func renderLabelPDF(items []labelItem, opts labelOpts) ([]byte, error) {
 		draw = drawBTN
 	}
 
-	if opts.Layout == "sheet" {
-		const pageW, pageH = 210.0, 297.0
-		margin, gutter := 8.0, 3.0
-		cols := opts.Columns
-		if cols < 1 {
-			cols = 3
-		}
-		if !sheetFits(cols, opts.LabelW) {
-			return nil, ErrSheetOverflow
-		}
-		cellW, cellH := opts.LabelW, opts.LabelH
-		rows := int((pageH - 2*margin + gutter) / (cellH + gutter))
-		if rows < 1 {
-			rows = 1
-		}
-		perPage := cols * rows
-		for i, it := range items {
-			if i%perPage == 0 {
-				pdf.AddPage()
-			}
-			slot := i % perPage
-			r, cc := slot/cols, slot%cols
-			x := margin + float64(cc)*(cellW+gutter)
-			y := margin + float64(r)*(cellH+gutter)
-			if err := draw(x, y, it); err != nil {
-				return nil, err
-			}
-		}
-	} else {
-		left := (opts.MediaW - opts.LabelW) / 2
-		for _, it := range items {
-			pdf.AddPage()
-			if err := draw(left, 0, it); err != nil {
-				return nil, err
-			}
+	// One label per page; the page is exactly the label, so each label is
+	// drawn at the page origin.
+	for _, it := range items {
+		pdf.AddPage()
+		if err := draw(0, 0, it); err != nil {
+			return nil, err
 		}
 	}
 	var buf bytes.Buffer

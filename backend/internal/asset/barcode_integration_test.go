@@ -333,18 +333,17 @@ func TestLabel_BTNRoll(t *testing.T) {
 		"response body must start with %%PDF")
 }
 
-// TestLabel_GenericSheet verifies that a generic sheet label PDF is generated
-// for a single asset resolved by tag, with mode=both.
-func TestLabel_GenericSheet(t *testing.T) {
+// TestLabel_GenericBothSymbols verifies that a generic label PDF (one page per
+// label) is generated for a single asset resolved by tag, with mode=both.
+func TestLabel_GenericBothSymbols(t *testing.T) {
 	h := barcodeNewHarness(t)
 	body := jsonBody(t, map[string]any{
 		"tags":     []string{h.assetTag},
 		"template": "generic",
-		"layout":   "sheet",
 		"mode":     "both",
 	})
 	w := h.do(t, http.MethodPost, "/api/v1/assets/labels", body, "application/json")
-	require.Equal(t, http.StatusOK, w.Code, "generic sheet label → 200; body: %s", w.Body.String())
+	require.Equal(t, http.StatusOK, w.Code, "generic both-symbol label → 200; body: %s", w.Body.String())
 	assert.Equal(t, "application/pdf", w.Header().Get("Content-Type"))
 	assert.True(t, bytes.HasPrefix(w.Body.Bytes(), []byte("%PDF")),
 		"response body must start with %%PDF")
@@ -371,7 +370,6 @@ func TestLabel_WithNameAndOfficeFields(t *testing.T) {
 	body := jsonBody(t, map[string]any{
 		"asset_ids": []string{h.assetID.String()},
 		"template":  "generic",
-		"layout":    "sheet",
 		"mode":      "both",
 		"fields": map[string]any{
 			"name":   true,
@@ -408,18 +406,6 @@ func TestLabel_InvalidTemplate(t *testing.T) {
 	w := h.do(t, http.MethodPost, "/api/v1/assets/labels", body, "application/json")
 	assert.Equal(t, http.StatusBadRequest, w.Code,
 		"invalid template → 400; body: %s", w.Body.String())
-}
-
-// TestLabel_InvalidLayout verifies that an unrecognized layout value returns 400.
-func TestLabel_InvalidLayout(t *testing.T) {
-	h := barcodeNewHarness(t)
-	body := jsonBody(t, map[string]any{
-		"asset_ids": []string{h.assetID.String()},
-		"layout":    "invalid_layout",
-	})
-	w := h.do(t, http.MethodPost, "/api/v1/assets/labels", body, "application/json")
-	assert.Equal(t, http.StatusBadRequest, w.Code,
-		"invalid layout → 400; body: %s", w.Body.String())
 }
 
 // TestLabel_InvalidMode verifies that an unrecognized mode value returns 400.
