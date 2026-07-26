@@ -4823,11 +4823,15 @@ paths:
       summary: Download a blank import template (CSV or xlsx)
       description: |
         Streams an import template listing the target's importable columns. The xlsx form
-        has two sheets: "Data Impor" (header-only, the sheet the user fills in and
-        re-uploads) and "Contoh Penggunaan" (the same header plus one worked example row).
-        The csv form is a single header-only line. Requires the guarding permission for
-        `target` (`asset.manage`, `masterdata.employee.manage`, `masterdata.office.manage`,
-        or `masterdata.global.manage` for `reference:*`). Streams with
+        has two sheets: a fill-in sheet (header-only, the sheet the user fills in and
+        re-uploads — the parser reads it) and an example sheet (the same header plus
+        worked example rows). The `asset` target uses the legacy English layout: sheets
+        "Aset" + "Contoh Pengisian", required headers marked with "*", and dropdowns on
+        the lookup columns (kantor, kategori, lokasi, user, merk, condition) sourced from
+        the caller's scoped master data. The csv form is a single header-only line.
+        Requires the guarding permission for `target` (`asset.manage`,
+        `masterdata.employee.manage`, `masterdata.office.manage`, or
+        `masterdata.global.manage` for `reference:*`). Streams with
         `Content-Disposition: attachment` and `X-Content-Type-Options: nosniff`.
       security:
         - bearerJWT: []

@@ -135,7 +135,7 @@ func (q *Queries) ListRoomsByFloor(ctx context.Context, arg ListRoomsByFloorPara
 }
 
 const listRoomsLookup = `-- name: ListRoomsLookup :many
-SELECT r.id, r.name, r.code, f.office_id
+SELECT r.id, r.name, r.code, f.office_id, r.floor_id, f.name AS floor_name
 FROM masterdata.rooms r
 JOIN masterdata.floors f ON f.id = r.floor_id AND f.deleted_at IS NULL
 WHERE r.deleted_at IS NULL
@@ -149,16 +149,19 @@ type ListRoomsLookupParams struct {
 }
 
 type ListRoomsLookupRow struct {
-	ID       uuid.UUID `json:"id"`
-	Name     string    `json:"name"`
-	Code     *string   `json:"code"`
-	OfficeID uuid.UUID `json:"office_id"`
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Code      *string   `json:"code"`
+	OfficeID  uuid.UUID `json:"office_id"`
+	FloorID   uuid.UUID `json:"floor_id"`
+	FloorName string    `json:"floor_name"`
 }
 
-// Flat room lookup (id, name, code, office_id) for the asset importer, scoped
-// to the caller's offices via the room's floor -> office chain. all_scope
-// bypasses the office filter; otherwise only rooms whose office is in office_ids
-// are returned.
+// Flat room lookup (id, name, code, office_id, floor_id, floor_name) for the
+// asset importer, scoped to the caller's offices via the room's floor -> office
+// chain. all_scope bypasses the office filter; otherwise only rooms whose office
+// is in office_ids are returned. floor_id/floor_name let the importer resolve a
+// "Floor - Room" location and build the location dropdown.
 func (q *Queries) ListRoomsLookup(ctx context.Context, arg ListRoomsLookupParams) ([]ListRoomsLookupRow, error) {
 	rows, err := q.db.Query(ctx, listRoomsLookup, arg.AllScope, arg.OfficeIds)
 	if err != nil {
@@ -173,6 +176,8 @@ func (q *Queries) ListRoomsLookup(ctx context.Context, arg ListRoomsLookupParams
 			&i.Name,
 			&i.Code,
 			&i.OfficeID,
+			&i.FloorID,
+			&i.FloorName,
 		); err != nil {
 			return nil, err
 		}

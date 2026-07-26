@@ -57,7 +57,7 @@ import (
 // Parse matches columns by name (case-insensitive, order-insensitive), so the
 // order here is cosmetic but kept aligned with asset/importer.go and
 // masterdata/employee/importer.go's Columns() for readability.
-var assetHeader = []string{"asset_tag", "nama", "kategori", "kantor", "tgl_beli", "harga", "vendor", "lokasi", "merk", "kapasitas", "spk_number", "kode_aset_lama", "barcode", "pemegang", "kondisi", "operasional"}
+var assetHeader = []string{"Location Folder Name", "Asset Type Name", "Asset Name", "First Location", "Last Location", "Purchase Date", "Purchase Price", "User", "Condition", "Last Change", "Asset Code", "Barcode", "Merk", "Kapasitas", "SPK Number"}
 var employeeHeader = []string{"kode", "nama", "email", "telepon", "kantor", "status", "departemen", "jabatan"}
 var brandHeader = []string{"nama"}
 var unitHeader = []string{"nama", "simbol"}
@@ -299,17 +299,22 @@ func seedCategory(t *testing.T, pool *pgxpool.Pool, code string) uuid.UUID {
 	return id
 }
 
-// seedRoom inserts a floor + room under officeID and returns the room id. The
-// asset importer's createRows always creates tangible assets (see
-// internal/asset/importer.go), and asset.assets has chk_assets_tangible_location
-// CHECK(asset_class = 'intangible' OR floor_id IS NOT NULL OR room_id IS NOT
-// NULL) — the import template carries only a room (no floor), so every
-// asset-import row that is meant to succeed needs a resolvable room in its
-// target office.
-func seedRoom(t *testing.T, pool *pgxpool.Pool, officeID uuid.UUID, name string) uuid.UUID {
+// seedLocation seeds a floor + room under officeID and returns BOTH the room id
+// and the "Floor - Room" string the asset importer's `First Location` column
+// resolves to that room. The asset importer's createRows always creates
+// tangible assets (see internal/asset/importer.go), and asset.assets has
+// chk_assets_tangible_location CHECK(asset_class = 'intangible' OR floor_id IS
+// NOT NULL OR room_id IS NOT NULL). Under the legacy-English contract First
+// Location is REQUIRED and resolves a floor (mandatory) plus an optional room;
+// this helper returns the full "Lantai <label> - Ruang <label>" form so a row
+// resolves down to the room.
+func seedLocation(t *testing.T, pool *pgxpool.Pool, officeID uuid.UUID, label string) (firstLocation string, roomID uuid.UUID) {
 	t.Helper()
-	floorID := testsupport.SeedFloor(t, pool, officeID, "Lantai "+name)
-	return testsupport.SeedRoom(t, pool, floorID, name)
+	floorName := "Lantai " + label
+	roomName := "Ruang " + label
+	floorID := testsupport.SeedFloor(t, pool, officeID, floorName)
+	roomID = testsupport.SeedRoom(t, pool, floorID, roomName)
+	return floorName + " - " + roomName, roomID
 }
 
 // grantPermission inserts an identity.role_permissions row for the role.
@@ -384,15 +389,16 @@ func multipartCSV(t *testing.T, target string, csvBody []byte) (*bytes.Buffer, s
 	return &buf, w.FormDataContentType()
 }
 
-// rowsByName groups a job's rows by their "nama" cell (asset target) for
-// assertions that need to find a specific row.
-func rowsByName(t *testing.T, rows []sqlc.ImportImportRow) map[string]sqlc.ImportImportRow {
+// rowsByName groups a job's rows by the value of their nameCol cell for
+// assertions that need to find a specific row. The name column differs per
+// target: "Asset Name" for the asset target, "nama" for reference targets.
+func rowsByName(t *testing.T, rows []sqlc.ImportImportRow, nameCol string) map[string]sqlc.ImportImportRow {
 	t.Helper()
 	out := map[string]sqlc.ImportImportRow{}
 	for _, r := range rows {
 		var data map[string]string
 		require.NoError(t, json.Unmarshal(r.Data, &data))
-		out[data["nama"]] = r
+		out[data[nameCol]] = r
 	}
 	return out
 }
@@ -410,7 +416,7 @@ func TestImport_AssetFullCycle_ApproveCreatesAssets(t *testing.T) {
 
 	officeID := seedOfficeSimple(t, h.pool, "AFC")
 	seedCategory(t, h.pool, "AFC-CAT")
-	seedRoom(t, h.pool, officeID, "Ruang AFC")
+	loc, _ := seedLocation(t, h.pool, officeID, "AFC")
 	brandID := seedBrand(t, h.pool, "AFC Brand")
 	empID := seedEmployee(t, h.pool, "NIP-AFC", officeID)
 
@@ -419,13 +425,17 @@ func TestImport_AssetFullCycle_ApproveCreatesAssets(t *testing.T) {
 	approverRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
 	approverID := seedUser(t, h.pool, approverRoleID, nil, "approver.afc@test.local")
 
-	// The valid row carries every optional legacy-parity column (merk -> brand_id,
-	// kapasitas, spk_number, kode_aset_lama -> legacy_asset_code, barcode ->
-	// legacy_barcode) so the assertions below guard the createRows persistence path,
-	// not just validation. Order matches assetHeader.
+	// The valid row carries every optional legacy-parity column (Merk -> brand_id,
+	// Kapasitas, SPK Number, Asset Code -> legacy_asset_code, Barcode ->
+	// legacy_barcode, User -> pic_employee_id) so the assertions below guard the
+	// createRows persistence path, not just validation. Order matches assetHeader:
+	// [Location Folder Name, Asset Type Name, Asset Name, First Location, Last
+	// Location, Purchase Date, Purchase Price, User, Condition, Last Change, Asset
+	// Code, Barcode, Merk, Kapasitas, SPK Number].
 	csvBytes := buildCSV(t, assetHeader, [][]string{
-		{"", "Laptop Valid", "AFC-CAT", "AFC", "2026-01-05", "5000000", "", "Ruang AFC", "AFC Brand", "7PK", "SPK/AFC/1", "LEG-AFC-1", "BC-AFC-1", "NIP-AFC - Budi", "Rusak", "Tidak"},
-		{"", "", "AFC-CAT", "AFC", "2026-01-05", "5000000", "", "Ruang AFC"}, // missing nama -> required
+		{"AFC", "AFC-CAT", "Laptop Valid", loc, "", "2026-01-05", "5000000", "NIP-AFC - Budi", "Rusak", "", "LEG-AFC-1", "BC-AFC-1", "AFC Brand", "7PK", "SPK/AFC/1"},
+		// missing Asset Name -> "required"; everything else valid so it is the ONLY error.
+		{"AFC", "AFC-CAT", "", loc, "", "2026-01-05", "5000000", "", "Baik", "", "", "", "", "", ""},
 	})
 
 	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "batch.csv", "text/csv", csvBytes, makerID)
@@ -449,13 +459,13 @@ func TestImport_AssetFullCycle_ApproveCreatesAssets(t *testing.T) {
 	allRows, err := h.q.ListImportRows(ctx, sqlc.ListImportRowsParams{JobID: job.ID, OnlyErrors: false, Off: 0, Lim: 20})
 	require.NoError(t, err)
 	require.Len(t, allRows, 2)
-	byName := rowsByName(t, allRows)
+	byName := rowsByName(t, allRows, "Asset Name")
 	invalidRow := byName[""]
 	assert.False(t, invalidRow.Valid)
 	var invalidErrs []importer.CellError
 	require.NoError(t, json.Unmarshal(invalidRow.Errors, &invalidErrs))
 	require.Len(t, invalidErrs, 1)
-	assert.Equal(t, "nama", invalidErrs[0].Column)
+	assert.Equal(t, "Asset Name", invalidErrs[0].Column)
 	assert.Equal(t, "required", invalidErrs[0].ErrorKey)
 	assert.True(t, byName["Laptop Valid"].Valid)
 
@@ -501,7 +511,7 @@ func TestImport_AssetFullCycle_ApproveCreatesAssets(t *testing.T) {
 
 	allRows, err = h.q.ListImportRows(ctx, sqlc.ListImportRowsParams{JobID: job.ID, OnlyErrors: false, Off: 0, Lim: 20})
 	require.NoError(t, err)
-	byName = rowsByName(t, allRows)
+	byName = rowsByName(t, allRows, "Asset Name")
 	validRow := byName["Laptop Valid"]
 	require.NotNil(t, validRow.ResultRef, "the executor stamps the generated asset tag as result_ref")
 
@@ -524,13 +534,12 @@ func TestImport_AssetFullCycle_ApproveCreatesAssets(t *testing.T) {
 	assert.Equal(t, "LEG-AFC-1", *createdAsset.LegacyAssetCode)
 	require.NotNil(t, createdAsset.LegacyBarcode)
 	assert.Equal(t, "BC-AFC-1", *createdAsset.LegacyBarcode)
-	// pemegang (NIP) -> pic_employee_id; kondisi Rusak -> under_maintenance;
-	// operasional Tidak -> is_operational_asset=false. These exercise the
-	// createRows post-insert override paths (SetAssetStatus / SetAssetOperational).
-	require.NotNil(t, createdAsset.PicEmployeeID, "pemegang must resolve to pic_employee_id")
+	// User (NIP) -> pic_employee_id; Condition Rusak -> under_maintenance. These
+	// exercise the createRows post-insert override path (SetAssetStatus) and the
+	// PIC resolution/history seeding.
+	require.NotNil(t, createdAsset.PicEmployeeID, "User must resolve to pic_employee_id")
 	assert.Equal(t, empID, *createdAsset.PicEmployeeID)
 	assert.Equal(t, sqlc.SharedAssetStatusUnderMaintenance, createdAsset.Status)
-	assert.False(t, createdAsset.IsOperationalAsset)
 
 	// A PIC was set -> the assignment timeline must be seeded.
 	pics, err := h.q.ListAssetPICHistory(ctx, createdAsset.ID)
@@ -547,46 +556,47 @@ func TestImport_AssetFullCycle_ApproveCreatesAssets(t *testing.T) {
 	assert.Equal(t, *createdAsset.RoomID, *hist[0].RoomID)
 }
 
-// TestImport_AssetTangibleWithoutLocation_SkippedNotPoisoned drives an import
-// whose valid row carries NO lokasi. It passes validation (lokasi is optional),
-// but at create time a tangible asset with neither floor nor room would violate
-// chk_assets_tangible_location (23514) and poison the shared approval commit.
-// The createRows pre-check must instead skip it as a failed row so the batch
-// completes cleanly and no asset is created.
-func TestImport_AssetTangibleWithoutLocation_SkippedNotPoisoned(t *testing.T) {
+// TestImport_AssetMissingFirstLocation_FailsValidation drives an import whose
+// second row carries NO First Location. Under the legacy-English contract First
+// Location is REQUIRED, so that row is rejected at VALIDATION with "required" and
+// never reaches Execute; the located row still flows through approval and is
+// created. This is the new-contract successor to the old
+// tangible-without-location execute-time skip: because a location-less row can no
+// longer pass validation, the poisoning path it guarded against is unreachable.
+func TestImport_AssetMissingFirstLocation_FailsValidation(t *testing.T) {
 	h := newHarness(t)
 	ctx := context.Background()
 
 	officeID := seedOfficeSimple(t, h.pool, "NLC")
 	seedCategory(t, h.pool, "NLC-CAT")
-	seedRoom(t, h.pool, officeID, "Ruang NLC")
+	loc, _ := seedLocation(t, h.pool, officeID, "NLC")
 
 	makerRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
 	makerID := seedUser(t, h.pool, makerRoleID, nil, "maker.nlc@test.local")
 	approverRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
 	approverID := seedUser(t, h.pool, approverRoleID, nil, "approver.nlc@test.local")
 
-	// Keep the batch total (2 x 2,000,000 = 4,000,000) inside the single-step
-	// approval band so one Decide finalizes the request and runs the executor.
+	// Keep the batch total inside the single-step approval band so one Decide
+	// finalizes the request and runs the executor. Only the located row is valid.
 	csvBytes := buildCSV(t, assetHeader, [][]string{
-		{"", "Aset Berlokasi", "NLC-CAT", "NLC", "2026-01-05", "2000000", "", "Ruang NLC"},
-		{"", "Aset Tanpa Lokasi", "NLC-CAT", "NLC", "2026-01-05", "2000000", "", ""}, // valid, but no room
+		{"NLC", "NLC-CAT", "Aset Berlokasi", loc, "", "2026-01-05", "2000000", "", "Baik", "", "", "", "", "", ""},
+		{"NLC", "NLC-CAT", "Aset Tanpa Lokasi", "", "", "2026-01-05", "2000000", "", "Baik", "", "", "", "", "", ""}, // no First Location -> required
 	})
 
 	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "nolokasi.csv", "text/csv", csvBytes, makerID)
 	require.NoError(t, err)
 
-	// validate: both rows pass (lokasi is optional at validation time).
+	// validate: the location-less row fails here (First Location is required).
 	did, err := h.worker.Tick(ctx)
 	require.NoError(t, err)
 	assert.True(t, did)
 	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
 	require.NoError(t, err)
 	assert.Equal(t, sqlc.SharedImportStatusValidated, job.Status)
-	assert.EqualValues(t, 2, job.SuccessRows)
-	assert.EqualValues(t, 0, job.FailedRows)
+	assert.EqualValues(t, 1, job.SuccessRows)
+	assert.EqualValues(t, 1, job.FailedRows)
 
-	// confirm + execute (submits approval).
+	// confirm + execute (submits approval for the single valid row).
 	_, err = h.importSvc.ConfirmJob(ctx, job.ID, makerID)
 	require.NoError(t, err)
 	did, err = h.worker.Tick(ctx)
@@ -596,8 +606,7 @@ func TestImport_AssetTangibleWithoutLocation_SkippedNotPoisoned(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, job.RequestID)
 
-	// approve: the executor creates the located row and skips the location-less
-	// one as failed — the commit must NOT be poisoned by a 23514.
+	// approve: the located row is created; the batch completes cleanly.
 	caller := approval.Caller{UserID: approverID, RoleID: approverRoleID, AllScope: true}
 	decided, err := h.approvalSvc.Decide(ctx, *job.RequestID, caller, true, nil)
 	require.NoError(t, err)
@@ -607,19 +616,19 @@ func TestImport_AssetTangibleWithoutLocation_SkippedNotPoisoned(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, sqlc.SharedImportStatusCompleted, job.Status)
 	assert.EqualValues(t, 1, job.SuccessRows, "only the located row is created")
-	assert.EqualValues(t, 1, job.FailedRows, "the location-less row is skipped as failed")
+	assert.EqualValues(t, 1, job.FailedRows, "the location-less row failed validation")
 
 	// The location-less asset must not exist; the located one must.
 	allRows, err := h.q.ListImportRows(ctx, sqlc.ListImportRowsParams{JobID: job.ID, OnlyErrors: false, Off: 0, Lim: 20})
 	require.NoError(t, err)
-	byName := rowsByName(t, allRows)
+	byName := rowsByName(t, allRows, "Asset Name")
 	assert.Nil(t, byName["Aset Tanpa Lokasi"].ResultRef, "no asset created for the location-less row")
 	require.NotNil(t, byName["Aset Berlokasi"].ResultRef)
 	var failedErrs []importer.CellError
 	require.NoError(t, json.Unmarshal(byName["Aset Tanpa Lokasi"].Errors, &failedErrs))
 	require.Len(t, failedErrs, 1)
-	assert.Equal(t, "lokasi", failedErrs[0].Column)
-	assert.Equal(t, "lokasiRequired", failedErrs[0].ErrorKey, "missing room reports 'required', not 'not found'")
+	assert.Equal(t, "First Location", failedErrs[0].Column)
+	assert.Equal(t, "required", failedErrs[0].ErrorKey, "an empty First Location is a required-column failure")
 }
 
 // ─── 2. asset reject ─────────────────────────────────────────────────────────
@@ -636,7 +645,7 @@ func TestImport_AssetReject_DerivedStatusAndErrorReport(t *testing.T) {
 
 	officeID := seedOfficeSimple(t, h.pool, "REJ")
 	seedCategory(t, h.pool, "REJ-CAT")
-	seedRoom(t, h.pool, officeID, "Ruang REJ")
+	loc, _ := seedLocation(t, h.pool, officeID, "REJ")
 
 	makerRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
 	makerID := seedUser(t, h.pool, makerRoleID, nil, "maker.rej@test.local")
@@ -644,8 +653,8 @@ func TestImport_AssetReject_DerivedStatusAndErrorReport(t *testing.T) {
 	approverID := seedUser(t, h.pool, approverRoleID, nil, "approver.rej@test.local")
 
 	csvBytes := buildCSV(t, assetHeader, [][]string{
-		{"", "Printer Valid", "REJ-CAT", "REJ", "2026-02-01", "2000000", "", "Ruang REJ"},
-		{"", "Printer NoKategori", "TIDAK-ADA", "REJ", "2026-02-01", "2000000", "", "Ruang REJ"}, // unknown kategori
+		{"REJ", "REJ-CAT", "Printer Valid", loc, "", "2026-02-01", "2000000", "", "Baik", "", "", "", "", "", ""},
+		{"REJ", "TIDAK-ADA", "Printer NoKategori", loc, "", "2026-02-01", "2000000", "", "Baik", "", "", "", "", "", ""}, // unknown Asset Type Name
 	})
 
 	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "reject.csv", "text/csv", csvBytes, makerID)
@@ -731,229 +740,17 @@ func TestImport_AssetReject_DerivedStatusAndErrorReport(t *testing.T) {
 		"error-report endpoint must stream exactly the object persisted at error_report_key")
 }
 
-// ─── 3. mid-batch tag collision (tx-poisoning regression) ──────────────────
-
-// TestImport_AssetMidBatchTagCollision_BatchStillCompletes is the regression
-// test for the Task 10 tx-poisoning fix: a batch's explicit asset_tag is
-// still free at validation time, but by the time the batch is approved a
-// concurrent (already-approved) batch has taken it. Without the pre-check in
-// createRows, CreateAsset's 23505 would poison the WHOLE approval-commit
-// transaction, rolling back the approval decision itself and permanently
-// stranding the request. With the fix: the colliding row is marked failed
-// (dupTag), the non-colliding row is still created, and the job completes.
-func TestImport_AssetMidBatchTagCollision_BatchStillCompletes(t *testing.T) {
-	h := newHarness(t)
-	ctx := context.Background()
-
-	officeID := seedOfficeSimple(t, h.pool, "COL")
-	catID := seedCategory(t, h.pool, "COL-CAT")
-	seedRoom(t, h.pool, officeID, "Ruang COL")
-
-	makerRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
-	makerID := seedUser(t, h.pool, makerRoleID, nil, "maker.col@test.local")
-	approverRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
-	approverID := seedUser(t, h.pool, approverRoleID, nil, "approver.col@test.local")
-
-	const collidingTag = "COL-EXPLICIT-01"
-	csvBytes := buildCSV(t, assetHeader, [][]string{
-		{collidingTag, "Aset Bentrok", "COL-CAT", "COL", "2026-03-01", "3000000", "", "Ruang COL"},
-		{"", "Aset Selamat", "COL-CAT", "COL", "2026-03-01", "4000000", "", "Ruang COL"},
-	})
-
-	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "collide.csv", "text/csv", csvBytes, makerID)
-	require.NoError(t, err)
-
-	// Validate: the tag does not exist yet, so BOTH rows are valid.
-	_, err = h.worker.Tick(ctx)
-	require.NoError(t, err)
-	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
-	require.NoError(t, err)
-	assert.EqualValues(t, 2, job.SuccessRows)
-	assert.EqualValues(t, 0, job.FailedRows)
-
-	// Simulate a tag committed by a concurrent, already-approved batch between
-	// THIS batch's validation and its own approval.
-	_, err = h.pool.Exec(ctx,
-		`INSERT INTO asset.assets (asset_tag, name, category_id, office_id, asset_class, capitalized, specifications, status)
-		 VALUES ($1, 'Concurrent Winner', $2, $3, 'intangible', true, '{}', 'available')`,
-		collidingTag, catID, officeID)
-	require.NoError(t, err)
-
-	job, err = h.importSvc.ConfirmJob(ctx, job.ID, makerID)
-	require.NoError(t, err)
-	_, err = h.worker.Tick(ctx) // execute -> submit approval (rows untouched so far)
-	require.NoError(t, err)
-
-	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
-	require.NoError(t, err)
-	require.NotNil(t, job.RequestID)
-
-	caller := approval.Caller{UserID: approverID, RoleID: approverRoleID, AllScope: true}
-	decided, err := h.approvalSvc.Decide(ctx, *job.RequestID, caller, true, nil)
-	require.NoError(t, err, "the batch must still complete despite the mid-batch collision")
-	assert.Equal(t, sqlc.SharedRequestStatusApproved, decided.Status)
-
-	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
-	require.NoError(t, err)
-	assert.Equal(t, sqlc.SharedImportStatusCompleted, job.Status,
-		"the batch completes; a single collision must not roll back the whole approval")
-	assert.EqualValues(t, 1, job.SuccessRows, "only the non-colliding row was created")
-	assert.EqualValues(t, 1, job.FailedRows, "the colliding row is marked failed instead of aborting")
-
-	allRows, err := h.q.ListImportRows(ctx, sqlc.ListImportRowsParams{JobID: job.ID, OnlyErrors: false, Off: 0, Lim: 20})
-	require.NoError(t, err)
-	byName := rowsByName(t, allRows)
-
-	collided := byName["Aset Bentrok"]
-	assert.False(t, collided.Valid, "MarkRowFailed flips the row to invalid at execute time")
-	var collidedErrs []importer.CellError
-	require.NoError(t, json.Unmarshal(collided.Errors, &collidedErrs))
-	require.Len(t, collidedErrs, 1)
-	assert.Equal(t, "asset_tag", collidedErrs[0].Column)
-	assert.Equal(t, "dupTag", collidedErrs[0].ErrorKey)
-
-	survived := byName["Aset Selamat"]
-	assert.True(t, survived.Valid)
-	require.NotNil(t, survived.ResultRef)
-	survivedAsset, err := h.q.GetAssetByTag(ctx, *survived.ResultRef)
-	require.NoError(t, err)
-	assert.Equal(t, "Aset Selamat", survivedAsset.Name)
-
-	// Exactly one asset carries collidingTag — the pre-inserted "concurrent
-	// winner" — proving the importer's own would-be insert was skipped rather
-	// than erroring out or double-creating.
-	var count int
-	require.NoError(t, h.pool.QueryRow(ctx,
-		`SELECT count(*) FROM asset.assets WHERE asset_tag = $1`, collidingTag).Scan(&count))
-	assert.Equal(t, 1, count)
-}
-
-// TestImport_AssetApprovedExecuteFailure_ErrorReportIncludesExecuteTimeFailure
-// is the regression test for the stale-stored-report fix in handler.go's
-// errorReport: an asset batch that has BOTH a validate-time failure (unknown
-// kategori) AND, after approval, an execute-time dup-tag collision (the same
-// mid-batch TOCTOU technique as
-// TestImport_AssetMidBatchTagCollision_BatchStillCompletes) on a DIFFERENT
-// row. The validate phase persists error_report_key pointing at an object
-// that only lists the validate-time failure; assetImportExec.Execute (see
-// asset/executor.go) appends the execute-time failure to job.FailedRows but
-// never refreshes that stored object. Before the fix, GET
-// /imports/:id/error-report (format=csv, matching job.Format) would hit the
-// handler's stored-object fast path and silently omit the execute-time
-// failure. After the fix (guard now excludes NeedsApproval() targets), the
-// endpoint always rebuilds on-demand for "asset" and returns both failures.
-func TestImport_AssetApprovedExecuteFailure_ErrorReportIncludesExecuteTimeFailure(t *testing.T) {
-	h := newHarness(t)
-	ctx := context.Background()
-
-	officeID := seedOfficeSimple(t, h.pool, "STL")
-	catID := seedCategory(t, h.pool, "STL-CAT")
-	seedRoom(t, h.pool, officeID, "Ruang STL")
-
-	makerRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
-	makerID := seedUser(t, h.pool, makerRoleID, nil, "maker.stl@test.local")
-	approverRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
-	approverID := seedUser(t, h.pool, approverRoleID, nil, "approver.stl@test.local")
-
-	const collidingTag = "STL-EXPLICIT-01"
-	csvBytes := buildCSV(t, assetHeader, [][]string{
-		{collidingTag, "Aset Bentrok Eksekusi", "STL-CAT", "STL", "2026-04-01", "3000000", "", "Ruang STL"},
-		{"", "Aset Gagal Validasi", "TIDAK-ADA", "STL", "2026-04-01", "2000000", "", "Ruang STL"}, // unknown kategori -> fails at VALIDATE
-		{"", "Aset Selamat", "STL-CAT", "STL", "2026-04-01", "4000000", "", "Ruang STL"},
-	})
-
-	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "stale.csv", "text/csv", csvBytes, makerID)
-	require.NoError(t, err)
-
-	// --- validate: only "Aset Gagal Validasi" fails (unknown kategori); the
-	// colliding tag is still free at this point, so "Aset Bentrok Eksekusi"
-	// validates fine.
-	_, err = h.worker.Tick(ctx)
-	require.NoError(t, err)
-	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
-	require.NoError(t, err)
-	assert.EqualValues(t, 3, job.TotalRows)
-	assert.EqualValues(t, 2, job.SuccessRows)
-	assert.EqualValues(t, 1, job.FailedRows)
-	require.NotNil(t, job.ErrorReportKey, "validate phase must persist error_report_key when failed_rows > 0")
-
-	// Snapshot the object the validate phase stored — this is the STALE
-	// report the bug would have served after execute-time failures land.
-	staleRC, _, err := h.store.Get(ctx, *job.ErrorReportKey)
-	require.NoError(t, err)
-	staleBody, err := io.ReadAll(staleRC)
-	require.NoError(t, err)
-	require.NoError(t, staleRC.Close())
-	assert.Contains(t, string(staleBody), "Aset Gagal Validasi")
-	assert.NotContains(t, string(staleBody), "Aset Bentrok Eksekusi",
-		"the validate-phase stored report cannot yet know about the not-yet-occurred execute-time collision")
-
-	// Simulate a tag committed by a concurrent, already-approved batch between
-	// THIS batch's validation and its own approval (same technique as
-	// TestImport_AssetMidBatchTagCollision_BatchStillCompletes).
-	_, err = h.pool.Exec(ctx,
-		`INSERT INTO asset.assets (asset_tag, name, category_id, office_id, asset_class, capitalized, specifications, status)
-		 VALUES ($1, 'Concurrent Winner STL', $2, $3, 'intangible', true, '{}', 'available')`,
-		collidingTag, catID, officeID)
-	require.NoError(t, err)
-
-	// --- confirm + execute: submits the asset_import approval request.
-	job, err = h.importSvc.ConfirmJob(ctx, job.ID, makerID)
-	require.NoError(t, err)
-	_, err = h.worker.Tick(ctx)
-	require.NoError(t, err)
-
-	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
-	require.NoError(t, err)
-	require.NotNil(t, job.RequestID)
-
-	// --- approve: assetImportExec.Execute now discovers the mid-batch dup-tag
-	// collision on "Aset Bentrok Eksekusi" and appends it to job.FailedRows,
-	// WITHOUT touching error_report_key.
-	caller := approval.Caller{UserID: approverID, RoleID: approverRoleID, AllScope: true}
-	decided, err := h.approvalSvc.Decide(ctx, *job.RequestID, caller, true, nil)
-	require.NoError(t, err)
-	assert.Equal(t, sqlc.SharedRequestStatusApproved, decided.Status)
-
-	job, err = h.importSvc.GetJob(ctx, job.ID, makerID)
-	require.NoError(t, err)
-	assert.Equal(t, sqlc.SharedImportStatusCompleted, job.Status)
-	assert.EqualValues(t, 1, job.SuccessRows, "only \"Aset Selamat\" survives to creation")
-	assert.EqualValues(t, 2, job.FailedRows,
-		"1 validate-time failure + 1 execute-time dup-tag collision")
-
-	// error_report_key must still point at the STALE validate-only object —
-	// the executor never refreshes it (that's the bug this test guards
-	// against being reintroduced).
-	stillStaleRC, _, err := h.store.Get(ctx, *job.ErrorReportKey)
-	require.NoError(t, err)
-	stillStaleBody, err := io.ReadAll(stillStaleRC)
-	require.NoError(t, err)
-	require.NoError(t, stillStaleRC.Close())
-	assert.Equal(t, staleBody, stillStaleBody,
-		"the executor does not refresh the stored object — precondition for this regression test")
-
-	// --- the fix under test: GET /imports/:id/error-report must NOT serve
-	// that stale stored object for an approval-gated target — it must rebuild
-	// fresh and include BOTH failed rows.
-	r := newRouter(h, makerID, makerRoleID)
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/imports/"+job.ID.String()+"/error-report?format=csv", nil)
-	r.ServeHTTP(w, req)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	report := w.Body.String()
-	assert.Contains(t, report, "Aset Gagal Validasi", "the validate-time failure must still be listed")
-	assert.Contains(t, report, "Aset Bentrok Eksekusi", "the execute-time dup-tag failure must be listed (this is the fix)")
-	assert.NotContains(t, report, "Aset Selamat", "only failed rows are listed in the error report")
-	assert.NotEqual(t, staleBody, w.Body.Bytes(),
-		"the served report must not be the stale validate-only object")
-
-	// The served report's row count must match the job's final FailedRows
-	// (2), not the validate-phase-only count (1) that the stale object holds.
-	reportLines := strings.Split(strings.TrimRight(report, "\n"), "\n")
-	require.Len(t, reportLines, 3, "header + 2 failed rows")
-}
+// ─── 3. tag generation note ───────────────────────────────────────────────
+//
+// The legacy-English asset contract has no `asset_tag` column: tags are ALWAYS
+// generated per issuing office (GenerateAssetTag). The old explicit-tag
+// mid-batch-collision / stale-report regression tests
+// (TestImport_AssetMidBatchTagCollision_BatchStillCompletes and
+// TestImport_AssetApprovedExecuteFailure_ErrorReportIncludesExecuteTimeFailure)
+// exercised behavior that no longer exists — a caller can no longer supply a
+// tag, and createRows now maps a CreateAsset error to a returned error rather
+// than marking the row failed and continuing. They were removed with the
+// contract rewrite; see the test report for the anti-poisoning behavior change.
 
 // ─── 4. employee cycle ──────────────────────────────────────────────────────
 
@@ -1165,8 +962,8 @@ func TestImport_AssetValidate_ScopeOutOfReach(t *testing.T) {
 	officeIn := seedOfficeSimple(t, h.pool, "SIN")
 	officeOut := seedOfficeSimple(t, h.pool, "SOUT")
 	seedCategory(t, h.pool, "SCOPE-CAT")
-	seedRoom(t, h.pool, officeIn, "Ruang SIN")
-	seedRoom(t, h.pool, officeOut, "Ruang SOUT")
+	locIn, _ := seedLocation(t, h.pool, officeIn, "SIN")
+	locOut, _ := seedLocation(t, h.pool, officeOut, "SOUT")
 
 	makerRoleID := testsupport.SeedRole(t, h.pool, "scoped-maker-"+uuid.New().String()[:8])
 	testsupport.SeedScopePolicy(t, h.pool, makerRoleID, "imports", sqlc.SharedScopeLevelOffice)
@@ -1174,8 +971,8 @@ func TestImport_AssetValidate_ScopeOutOfReach(t *testing.T) {
 	makerID := seedUser(t, h.pool, makerRoleID, &officeIn, "maker.scope@test.local")
 
 	csvBytes := buildCSV(t, assetHeader, [][]string{
-		{"", "Dalam Scope", "SCOPE-CAT", "SIN", "2026-04-01", "1000000", "", "Ruang SIN"},
-		{"", "Luar Scope", "SCOPE-CAT", "SOUT", "2026-04-01", "1000000", "", "Ruang SOUT"},
+		{"SIN", "SCOPE-CAT", "Dalam Scope", locIn, "", "2026-04-01", "1000000", "", "Baik", "", "", "", "", "", ""},
+		{"SOUT", "SCOPE-CAT", "Luar Scope", locOut, "", "2026-04-01", "1000000", "", "Baik", "", "", "", "", "", ""},
 	})
 
 	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "scope.csv", "text/csv", csvBytes, makerID)
@@ -1194,13 +991,13 @@ func TestImport_AssetValidate_ScopeOutOfReach(t *testing.T) {
 	require.Len(t, failedRows, 1)
 	var errs []importer.CellError
 	require.NoError(t, json.Unmarshal(failedRows[0].Errors, &errs))
-	require.Len(t, errs, 2)
-	byColumn := map[string]string{}
-	for _, e := range errs {
-		byColumn[e.Column] = e.ErrorKey
-	}
-	assert.Equal(t, "kantor", byColumn["kantor"], "the out-of-scope office is invisible to the scoped lookup")
-	assert.Equal(t, "lokasi", byColumn["lokasi"], "no office resolved -> its room can never match either")
+	// The out-of-scope office is invisible to the scoped lookup, so the office
+	// never resolves and the First Location floor lookup (guarded by hasOffice)
+	// is skipped entirely — the row carries a single "kantor" error on the
+	// Location Folder Name column, not a separate lokasi error.
+	require.Len(t, errs, 1)
+	assert.Equal(t, "Location Folder Name", errs[0].Column)
+	assert.Equal(t, "kantor", errs[0].ErrorKey)
 }
 
 // TestImport_AssetValidate_MultiOfficeBatchFlagged verifies the asset
@@ -1216,15 +1013,15 @@ func TestImport_AssetValidate_MultiOfficeBatchFlagged(t *testing.T) {
 	office1 := seedOfficeSimple(t, h.pool, "MO1")
 	office2 := seedOfficeSimple(t, h.pool, "MO2")
 	seedCategory(t, h.pool, "MO-CAT")
-	seedRoom(t, h.pool, office1, "Ruang MO1")
-	seedRoom(t, h.pool, office2, "Ruang MO2")
+	loc1, _ := seedLocation(t, h.pool, office1, "MO1")
+	loc2, _ := seedLocation(t, h.pool, office2, "MO2")
 
 	makerRoleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
 	makerID := seedUser(t, h.pool, makerRoleID, nil, "maker.multi@test.local")
 
 	csvBytes := buildCSV(t, assetHeader, [][]string{
-		{"", "Aset Kantor 1", "MO-CAT", "MO1", "2026-05-01", "1000000", "", "Ruang MO1"},
-		{"", "Aset Kantor 2", "MO-CAT", "MO2", "2026-05-01", "1000000", "", "Ruang MO2"},
+		{"MO1", "MO-CAT", "Aset Kantor 1", loc1, "", "2026-05-01", "1000000", "", "Baik", "", "", "", "", "", ""},
+		{"MO2", "MO-CAT", "Aset Kantor 2", loc2, "", "2026-05-01", "1000000", "", "Baik", "", "", "", "", "", ""},
 	})
 
 	job, err := h.importSvc.CreateJob(ctx, "asset", "csv", "multioffice.csv", "text/csv", csvBytes, makerID)
@@ -1246,7 +1043,7 @@ func TestImport_AssetValidate_MultiOfficeBatchFlagged(t *testing.T) {
 	var errs []importer.CellError
 	require.NoError(t, json.Unmarshal(failedRows[0].Errors, &errs))
 	require.Len(t, errs, 1)
-	assert.Equal(t, "kantor", errs[0].Column)
+	assert.Equal(t, "Location Folder Name", errs[0].Column)
 	assert.Equal(t, "multiOffice", errs[0].ErrorKey)
 }
 
@@ -1329,17 +1126,17 @@ func TestImport_Rows_PaginationAndOnlyErrors(t *testing.T) {
 
 	officeID := seedOfficeSimple(t, h.pool, "PAG")
 	seedCategory(t, h.pool, "PAG-CAT")
-	seedRoom(t, h.pool, officeID, "Ruang PAG")
+	loc, _ := seedLocation(t, h.pool, officeID, "PAG")
 
 	roleID := seedGlobalMakerRole(t, h.pool, "asset.manage")
 	makerID := seedUser(t, h.pool, roleID, nil, "maker.pag@test.local")
 
 	var rowsIn [][]string
 	for i := 1; i <= 3; i++ {
-		rowsIn = append(rowsIn, []string{"", fmt.Sprintf("Valid %d", i), "PAG-CAT", "PAG", "2026-06-01", "1000000", "", "Ruang PAG"})
+		rowsIn = append(rowsIn, []string{"PAG", "PAG-CAT", fmt.Sprintf("Valid %d", i), loc, "", "2026-06-01", "1000000", "", "Baik", "", "", "", "", "", ""})
 	}
 	for i := 1; i <= 2; i++ {
-		rowsIn = append(rowsIn, []string{"", "", "PAG-CAT", "PAG", "2026-06-01", "1000000", "", "Ruang PAG"}) // missing nama
+		rowsIn = append(rowsIn, []string{"PAG", "PAG-CAT", "", loc, "", "2026-06-01", "1000000", "", "Baik", "", "", "", "", "", ""}) // missing Asset Name
 		_ = i
 	}
 	csvBytes := buildCSV(t, assetHeader, rowsIn)
@@ -1579,7 +1376,7 @@ func TestImport_ReferenceModelCycle_UnknownBrandAndDuplicatePair(t *testing.T) {
 
 	allRows, err := h.q.ListImportRows(ctx, sqlc.ListImportRowsParams{JobID: job.ID, OnlyErrors: false, Off: 0, Lim: 20})
 	require.NoError(t, err)
-	byName := rowsByName(t, allRows)
+	byName := rowsByName(t, allRows, "nama")
 	collided := byName[dupModelName]
 	assert.False(t, collided.Valid, "MarkRowFailed flips the row to invalid at execute time")
 	var collidedErrs []importer.CellError

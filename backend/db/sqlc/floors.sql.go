@@ -134,6 +134,49 @@ func (q *Queries) ListFloorsByOffice(ctx context.Context, arg ListFloorsByOffice
 	return items, nil
 }
 
+const listFloorsLookup = `-- name: ListFloorsLookup :many
+SELECT f.id, f.name, f.office_id
+FROM masterdata.floors f
+WHERE f.deleted_at IS NULL
+  AND ($1::bool OR f.office_id = ANY($2::uuid[]))
+ORDER BY f.name
+`
+
+type ListFloorsLookupParams struct {
+	AllScope  bool        `json:"all_scope"`
+	OfficeIds []uuid.UUID `json:"office_ids"`
+}
+
+type ListFloorsLookupRow struct {
+	ID       uuid.UUID `json:"id"`
+	Name     string    `json:"name"`
+	OfficeID uuid.UUID `json:"office_id"`
+}
+
+// Flat floor lookup (id, name, office_id) for the asset importer, scoped to the
+// caller's offices. all_scope bypasses the office filter; otherwise only floors
+// whose office is in office_ids are returned. Lets the importer resolve a
+// floor-only "First Location" and build the location dropdown.
+func (q *Queries) ListFloorsLookup(ctx context.Context, arg ListFloorsLookupParams) ([]ListFloorsLookupRow, error) {
+	rows, err := q.db.Query(ctx, listFloorsLookup, arg.AllScope, arg.OfficeIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListFloorsLookupRow{}
+	for rows.Next() {
+		var i ListFloorsLookupRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.OfficeID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const softDeleteFloor = `-- name: SoftDeleteFloor :execrows
 UPDATE masterdata.floors SET deleted_at = now()
 WHERE id = $1 AND deleted_at IS NULL

@@ -320,8 +320,9 @@ type Querier interface {
 	// codes are globally unique (uq_employees_code), so this set is deliberately
 	// unscoped.
 	ListEmployeeCodes(ctx context.Context) ([]string, error)
-	// id + code for the asset importer's `pemegang` (PIC) resolution. Employee codes
-	// (NIP) are globally unique (uq_employees_code), so this set is deliberately unscoped.
+	// id + code + name for the asset importer's `User`/PIC resolution and its
+	// location dropdown ("NIP - Nama"). Employee codes (NIP) are globally unique
+	// (uq_employees_code), so this set is deliberately unscoped.
 	ListEmployeeLookup(ctx context.Context) ([]ListEmployeeLookupRow, error)
 	// Employees (asset custodians) with data-scoping by office.
 	ListEmployees(ctx context.Context, arg ListEmployeesParams) ([]MasterdataEmployee, error)
@@ -333,6 +334,11 @@ type Querier interface {
 	// Floors (within an office). Listed per office; single-row ops carry the
 	// office scope (all_scope OR office_id = ANY(office_ids)).
 	ListFloorsByOffice(ctx context.Context, arg ListFloorsByOfficeParams) ([]MasterdataFloor, error)
+	// Flat floor lookup (id, name, office_id) for the asset importer, scoped to the
+	// caller's offices. all_scope bypasses the office filter; otherwise only floors
+	// whose office is in office_ids are returned. Lets the importer resolve a
+	// floor-only "First Location" and build the location dropdown.
+	ListFloorsLookup(ctx context.Context, arg ListFloorsLookupParams) ([]ListFloorsLookupRow, error)
 	ListImportJobs(ctx context.Context, arg ListImportJobsParams) ([]ImportImportJob, error)
 	ListImportRows(ctx context.Context, arg ListImportRowsParams) ([]ImportImportRow, error)
 	ListInboxCandidates(ctx context.Context) ([]ApprovalRequest, error)
@@ -379,10 +385,11 @@ type Querier interface {
 	ListRoles(ctx context.Context) ([]IdentityRole, error)
 	// Rooms (within a floor). Scope is derived from the room's floor -> office.
 	ListRoomsByFloor(ctx context.Context, arg ListRoomsByFloorParams) ([]MasterdataRoom, error)
-	// Flat room lookup (id, name, code, office_id) for the asset importer, scoped
-	// to the caller's offices via the room's floor -> office chain. all_scope
-	// bypasses the office filter; otherwise only rooms whose office is in office_ids
-	// are returned.
+	// Flat room lookup (id, name, code, office_id, floor_id, floor_name) for the
+	// asset importer, scoped to the caller's offices via the room's floor -> office
+	// chain. all_scope bypasses the office filter; otherwise only rooms whose office
+	// is in office_ids are returned. floor_id/floor_name let the importer resolve a
+	// "Floor - Room" location and build the location dropdown.
 	ListRoomsLookup(ctx context.Context, arg ListRoomsLookupParams) ([]ListRoomsLookupRow, error)
 	// Unscoped, unlimited sweep for the notification due-reminder job. Distinct from
 	// DashboardMaintenanceDueList, which is scope-filtered and hardcodes LIMIT 3 for
