@@ -67,7 +67,9 @@ LEFT JOIN masterdata.floors fl ON fl.id = rm.floor_id AND fl.deleted_at IS NULL
 LEFT JOIN identity.users cu ON cu.id = it.counted_by_id AND cu.deleted_at IS NULL
 WHERE it.session_id = sqlc.arg(session_id) AND it.deleted_at IS NULL
   AND (sqlc.narg(result)::shared.opname_item_result IS NULL OR it.result = sqlc.narg(result))
-ORDER BY a.name;
+-- it.id is a stable tiebreaker so the item order never shifts between fetches
+-- (assets can share a name; a deleted asset yields a NULL name, sorted last).
+ORDER BY a.name NULLS LAST, it.id;
 
 -- name: GetOpnameItem :one
 SELECT * FROM stockopname.stock_opname_items

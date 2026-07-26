@@ -35,6 +35,8 @@ const SEG_ACTIVE_CLASS: Record<ItemResult, string> = {
 const { t } = useI18n()
 const can = useCan()
 const toast = useToast()
+const route = useRoute()
+const router = useRouter()
 
 const opnameApi = useStockOpname()
 
@@ -128,16 +130,26 @@ const itemsLoading = ref(true)
 const itemsError = ref(false)
 const allItems = ref<OpnameItem[]>([])
 
-async function loadDetail(id: string) {
-  detailLoading.value = true
+// loadDetail refetches the session. Pass { silent: true } to refresh the KPI
+// counts in place WITHOUT toggling detailLoading — flipping detailLoading
+// unmounts and remounts the whole detail subtree (the v-if skeleton branch),
+// which resets the scroll position to the top. A silent refresh (used after
+// setting an item result) keeps the user where they were.
+async function loadDetail(id: string, opts: { silent?: boolean } = {}) {
+  if (!opts.silent) detailLoading.value = true
   detailError.value = false
   try {
     detailSession.value = await opnameApi.get(id)
   } catch {
-    detailError.value = true
-    detailSession.value = null
+    // On a silent KPI refresh, keep the detail the user is working in — a
+    // transient refresh failure must not blow the view away. Only the initial
+    // (non-silent) load surfaces the hard error state.
+    if (!opts.silent) {
+      detailError.value = true
+      detailSession.value = null
+    }
   } finally {
-    detailLoading.value = false
+    if (!opts.silent) detailLoading.value = false
   }
 }
 
@@ -158,13 +170,41 @@ async function loadItems(id: string) {
 async function openDetail(id: string) {
   activeId.value = id
   view.value = 'detail'
+  // Push a `?session=<id>` history entry so the browser Back button returns to
+  // the session index instead of leaving the page. Rendering stays driven by
+  // the in-memory view/activeId; the route param only records history and lets
+  // Back/Forward sync the view (see the route watcher below).
+  if (route.query.session !== id) {
+    void router.push({ query: { ...route.query, session: id } })
+  }
   await Promise.all([loadDetail(id), loadItems(id)])
 }
 
 function backToList() {
   view.value = 'list'
   activeId.value = null
+  if (route.query.session) {
+    const query = { ...route.query }
+    delete query.session
+    void router.push({ query })
+  }
 }
+
+// Keep the view in sync with the URL so browser Back/Forward always match what
+// the address bar says. Navigating INTO a `?session=<id>` (Forward, or Back
+// landing on a prior session entry) opens that detail; losing the param returns
+// to the list. openDetail's own `route.query.session !== id` guard stops the
+// push it issues from looping back through here, and the activeId check avoids
+// re-loading the session already on screen.
+watch(() => route.query.session, (sid) => {
+  const id = typeof sid === 'string' ? sid : null
+  if (id) {
+    if (activeId.value !== id) openDetail(id)
+  } else if (view.value === 'detail') {
+    view.value = 'list'
+    activeId.value = null
+  }
+})
 
 async function reloadDetail() {
   if (!activeId.value) return
@@ -245,7 +285,9 @@ async function setItemResult(item: OpnameItem, result: ItemResult) {
     const res = await opnameApi.setResult(activeId.value, item.id, { result })
     const idx = allItems.value.findIndex(i => i.id === item.id)
     if (idx !== -1) allItems.value[idx] = { ...allItems.value[idx]!, result: res.result }
-    if (detailSession.value) await loadDetail(activeId.value)
+    // Silent KPI refresh: update the tile counts without remounting the detail
+    // subtree, so the scroll position is preserved while counting.
+    if (detailSession.value) await loadDetail(activeId.value, { silent: true })
   } catch {
     // useApiClient surfaces the error toast
   }
@@ -476,6 +518,9 @@ async function downloadReport(format: 'pdf' | 'xlsx') {
 
 onMounted(() => {
   loadList()
+  // Deep-link / refresh support: open the session named in the URL on load.
+  const sid = typeof route.query.session === 'string' ? route.query.session : null
+  if (sid) openDetail(sid)
 })
 </script>
 

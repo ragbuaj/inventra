@@ -361,6 +361,8 @@ type Querier interface {
 	// Full scoped office set (no pagination) for building the office hierarchy tree
 	// client-side. Mirrors ListOffices' scope filter but without LIMIT/OFFSET/search.
 	ListOfficesTree(ctx context.Context, arg ListOfficesTreeParams) ([]MasterdataOffice, error)
+	// it.id is a stable tiebreaker so the item order never shifts between fetches
+	// (assets can share a name; a deleted asset yields a NULL name, sorted last).
 	ListOpnameItemsEnriched(ctx context.Context, arg ListOpnameItemsEnrichedParams) ([]ListOpnameItemsEnrichedRow, error)
 	ListOpnameSessions(ctx context.Context, arg ListOpnameSessionsParams) ([]ListOpnameSessionsRow, error)
 	// id/name lookup for the employee importer's optional "jabatan" column
