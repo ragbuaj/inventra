@@ -6,6 +6,10 @@ import { tierMeta } from '~/constants/officeMapMeta'
 const props = defineProps<{ offices: MapOffice[], selectedId: string | null }>()
 const emit = defineEmits<{ (e: 'select', id: string): void }>()
 
+// Bounding box wilayah Indonesia (Sabang sampai Merauke) — dipakai sebagai
+// tampilan default agar peta langsung memperlihatkan seluruh Indonesia.
+const INDONESIA_BOUNDS = L.latLngBounds([[6.5, 94.5], [-11.5, 141.5]])
+
 const el = ref<HTMLElement | null>(null)
 let map: L.Map | null = null
 let markers = new Map<string, L.Marker>()
@@ -41,15 +45,13 @@ function render() {
   }
 }
 
-function fitAll() {
+function fitIndonesia() {
   if (!map) return
-  const pts = props.offices.filter(o => o.latitude != null && o.longitude != null).map(o => [o.latitude as number, o.longitude as number] as [number, number])
-  if (pts.length === 0) return
-  map.fitBounds(L.latLngBounds(pts), { padding: [48, 48] })
+  map.fitBounds(INDONESIA_BOUNDS, { padding: [24, 24] })
 }
 
 function resetView() {
-  fitAll()
+  fitIndonesia()
 }
 function zoomIn() {
   map?.zoomIn()
@@ -64,7 +66,7 @@ onMounted(() => {
   map = L.map(el.value, { zoomControl: false, attributionControl: true })
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map)
   render()
-  fitAll()
+  fitIndonesia()
 })
 
 onUnmounted(() => {
@@ -74,7 +76,7 @@ onUnmounted(() => {
 
 watch(() => props.offices, () => {
   render()
-  fitAll()
+  fitIndonesia()
 }, { deep: true })
 watch(() => props.selectedId, (id) => {
   render()
