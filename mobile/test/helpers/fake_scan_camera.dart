@@ -24,9 +24,15 @@ class FakeScanCamera implements ScanCamera {
   /// Simulasi kamera mendeteksi barcode/QR bernilai [tag].
   void detect(String tag) => _onDetect?.call(tag);
 
+  Rect? lastScanWindow;
+
   @override
-  Widget buildPreview({required ValueChanged<String> onDetect}) {
+  Widget buildPreview({
+    required ValueChanged<String> onDetect,
+    Rect? scanWindow,
+  }) {
     _onDetect = onDetect;
+    lastScanWindow = scanWindow;
     return const SizedBox.expand();
   }
 

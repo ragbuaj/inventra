@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/api/failure_message.dart';
 import '../../../core/i18n/gen/app_localizations.dart';
+import '../../../core/utils/currency_input.dart';
 import '../../catalog/data/filter_options_repository.dart';
 import '../data/asset_register_repository.dart';
 
@@ -103,7 +104,7 @@ class _AssetRegisterScreenState extends ConsumerState<AssetRegisterScreen> {
             categoryId: _category!.id,
             officeId: _office!.id,
             assetClass: _assetClass,
-            purchaseCost: _cost.text,
+            purchaseCost: currencyDigits(_cost.text),
             purchaseDate: _purchaseDate == null
                 ? null
                 : DateFormat('yyyy-MM-dd').format(_purchaseDate!),
@@ -146,18 +147,31 @@ class _AssetRegisterScreenState extends ConsumerState<AssetRegisterScreen> {
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.registerTitle)),
-      body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            Expanded(
-              child: Stepper(
-                type: StepperType.horizontal,
+    final List<String> stepTitles = <String>[
+      l10n.registerStepIdentity,
+      l10n.registerStepPlacement,
+      l10n.registerStepReview,
+    ];
+
+    // Tombol back sistem mundur satu langkah stepper dulu (bukan langsung
+    // keluar layar) selama belum di langkah pertama.
+    return PopScope(
+      canPop: _step == 0,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) {
+          return;
+        }
+        _back();
+      },
+      child: Scaffold(
+        appBar: AppBar(title: Text(l10n.registerTitle)),
+        body: SafeArea(
+          child: Column(
+            children: <Widget>[
+              _StepHeader(
                 currentStep: _step,
-                onStepContinue: _next,
-                onStepCancel: _back,
-                onStepTapped: (int s) {
+                titles: stepTitles,
+                onTapStep: (int s) {
                   // Hanya boleh mundur bebas; maju lewat validasi.
                   if (s < _step) {
                     setState(() {
@@ -166,75 +180,68 @@ class _AssetRegisterScreenState extends ConsumerState<AssetRegisterScreen> {
                     });
                   }
                 },
-                controlsBuilder: (BuildContext context, ControlsDetails d) =>
-                    const SizedBox.shrink(),
-                steps: <Step>[
-                  Step(
-                    title: Text(l10n.registerStepIdentity),
-                    isActive: _step >= 0,
-                    state: _step > 0 ? StepState.complete : StepState.indexed,
-                    content: _IdentityStep(
-                      name: _name,
-                      serial: _serial,
-                      category: _category,
-                      onCategory: (FilterOption? c) =>
-                          setState(() => _category = c),
-                      assetClass: _assetClass,
-                      onAssetClass: (String c) =>
-                          setState(() => _assetClass = c),
-                    ),
-                  ),
-                  Step(
-                    title: Text(l10n.registerStepPlacement),
-                    isActive: _step >= 1,
-                    state: _step > 1 ? StepState.complete : StepState.indexed,
-                    content: _PlacementStep(
-                      office: _office,
-                      onOffice: (FilterOption? o) => setState(() => _office = o),
-                      cost: _cost,
-                      notes: _notes,
-                      purchaseDate: _purchaseDate,
-                      onPickDate: _pickDate,
-                    ),
-                  ),
-                  Step(
-                    title: Text(l10n.registerStepReview),
-                    isActive: _step >= 2,
-                    state: StepState.indexed,
-                    content: _ReviewStep(
-                      name: _name.text,
-                      category: _category?.name,
-                      assetClass: _assetClass,
-                      office: _office?.name,
-                      cost: _cost.text,
-                      serial: _serial.text,
-                    ),
-                  ),
-                ],
               ),
-            ),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                child: Text(
-                  _error!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                    fontSize: 13,
-                  ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                  child: _stepContent(),
                 ),
               ),
-            _ControlBar(
-              step: _step,
-              submitting: _submitting,
-              onBack: _step == 0 ? null : _back,
-              onNext: _step < 2 ? _next : null,
-              onSubmit: _step == 2 ? _submit : null,
-            ),
-          ],
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                  child: Text(
+                    _error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              _ControlBar(
+                step: _step,
+                submitting: _submitting,
+                onBack: _step == 0 ? null : _back,
+                onNext: _step < 2 ? _next : null,
+                onSubmit: _step == 2 ? _submit : null,
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Widget _stepContent() {
+    switch (_step) {
+      case 0:
+        return _IdentityStep(
+          name: _name,
+          serial: _serial,
+          category: _category,
+          onCategory: (FilterOption? c) => setState(() => _category = c),
+          assetClass: _assetClass,
+          onAssetClass: (String c) => setState(() => _assetClass = c),
+        );
+      case 1:
+        return _PlacementStep(
+          office: _office,
+          onOffice: (FilterOption? o) => setState(() => _office = o),
+          cost: _cost,
+          notes: _notes,
+          purchaseDate: _purchaseDate,
+          onPickDate: _pickDate,
+        );
+      default:
+        return _ReviewStep(
+          name: _name.text,
+          category: _category?.name,
+          assetClass: _assetClass,
+          office: _office?.name,
+          cost: currencyDigits(_cost.text),
+          serial: _serial.text,
+        );
+    }
   }
 }
 
@@ -304,6 +311,143 @@ class _ControlBar extends StatelessWidget {
   }
 }
 
+/// Gaya teks field registrasi (lebih ringkas dari default bodyLarge 16).
+const TextStyle _fieldTextStyle = TextStyle(fontSize: 14);
+
+/// Dekorasi input padat (isDense + contentPadding lebih rapat) supaya field
+/// tidak terlihat kebesaran pada form registrasi.
+InputDecoration _denseDecoration(String label, {String? prefixText}) {
+  return InputDecoration(
+    labelText: label,
+    prefixText: prefixText,
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+  );
+}
+
+/// Header stepper kompak (pengganti `Stepper` horizontal Material yang
+/// overflow pada layar sempit): tiga bulatan bernomor/centang + label kecil,
+/// dihubungkan garis. Langkah yang sudah lewat bisa di-tap untuk mundur.
+class _StepHeader extends StatelessWidget {
+  const _StepHeader({
+    required this.currentStep,
+    required this.titles,
+    required this.onTapStep,
+  });
+
+  final int currentStep;
+  final List<String> titles;
+  final ValueChanged<int> onTapStep;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 14, 12, 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          for (int i = 0; i < titles.length; i++) ...<Widget>[
+            if (i > 0)
+              Expanded(
+                child: Container(
+                  height: 2,
+                  margin: const EdgeInsets.only(top: 13),
+                  color: i <= currentStep
+                      ? scheme.primary
+                      : scheme.outlineVariant,
+                ),
+              ),
+            _StepDot(
+              index: i,
+              title: titles[i],
+              done: i < currentStep,
+              active: i == currentStep,
+              onTap: i < currentStep ? () => onTapStep(i) : null,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Satu bulatan langkah + label di bawahnya (lebar tetap agar garis penghubung
+/// mengisi sisa ruang tanpa overflow).
+class _StepDot extends StatelessWidget {
+  const _StepDot({
+    required this.index,
+    required this.title,
+    required this.done,
+    required this.active,
+    this.onTap,
+  });
+
+  final int index;
+  final String title;
+  final bool done;
+  final bool active;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
+    final bool filled = done || active;
+
+    return SizedBox(
+      width: 72,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          children: <Widget>[
+            Container(
+              width: 28,
+              height: 28,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: filled ? scheme.primary : scheme.surface,
+                border: Border.all(
+                  color: filled ? scheme.primary : scheme.outlineVariant,
+                  width: 1.5,
+                ),
+              ),
+              child: done
+                  ? Icon(Icons.check_rounded, size: 16, color: scheme.onPrimary)
+                  : Text(
+                      '${index + 1}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: active
+                            ? scheme.onPrimary
+                            : scheme.onSurfaceVariant,
+                      ),
+                    ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                height: 1.15,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                color: active ? scheme.onSurface : scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _IdentityStep extends StatelessWidget {
   const _IdentityStep({
     required this.name,
@@ -329,7 +473,8 @@ class _IdentityStep extends StatelessWidget {
       children: <Widget>[
         TextField(
           controller: name,
-          decoration: InputDecoration(labelText: l10n.registerName),
+          style: _fieldTextStyle,
+          decoration: _denseDecoration(l10n.registerName),
         ),
         const SizedBox(height: 12),
         _OptionDropdown(
@@ -358,7 +503,8 @@ class _IdentityStep extends StatelessWidget {
         const SizedBox(height: 12),
         TextField(
           controller: serial,
-          decoration: InputDecoration(labelText: l10n.registerSerial),
+          style: _fieldTextStyle,
+          decoration: _denseDecoration(l10n.registerSerial),
         ),
       ],
     );
@@ -398,15 +544,18 @@ class _PlacementStep extends StatelessWidget {
         const SizedBox(height: 12),
         TextField(
           controller: cost,
+          style: _fieldTextStyle,
           keyboardType: TextInputType.number,
-          // Digit-only (rupiah bulat, selaras decimalDigits:0 di ringkasan):
-          // menolak keystroke non-angka termasuk titik ribuan yang membuat
-          // purchase_cost/amount malformed lalu ditolak backend.
+          // Format ribuan saat mengetik ("1000000" -> "1.000.000") + tolak
+          // non-digit. Digit mentah diambil ulang saat submit (rupiah bulat,
+          // selaras decimalDigits:0 di ringkasan) supaya payload tetap valid.
           inputFormatters: <TextInputFormatter>[
-            FilteringTextInputFormatter.digitsOnly,
+            ThousandsSeparatorInputFormatter(
+              groupSeparator: localeName == 'en' ? ',' : '.',
+            ),
           ],
-          decoration: InputDecoration(
-            labelText: l10n.registerPurchaseCost,
+          decoration: _denseDecoration(
+            l10n.registerPurchaseCost,
             prefixText: 'Rp ',
           ),
         ),
@@ -429,9 +578,10 @@ class _PlacementStep extends StatelessWidget {
         const SizedBox(height: 12),
         TextField(
           controller: notes,
+          style: _fieldTextStyle,
           minLines: 2,
           maxLines: 4,
-          decoration: InputDecoration(labelText: l10n.registerNotes),
+          decoration: _denseDecoration(l10n.registerNotes),
         ),
       ],
     );
@@ -550,7 +700,7 @@ class _OptionDropdown extends ConsumerWidget {
 
     return options.when(
       loading: () => InputDecorator(
-        decoration: InputDecoration(labelText: label),
+        decoration: _denseDecoration(label),
         child: const SizedBox(
           height: 20,
           child: Align(
@@ -564,20 +714,23 @@ class _OptionDropdown extends ConsumerWidget {
         ),
       ),
       error: (Object e, StackTrace s) => InputDecorator(
-        decoration: InputDecoration(labelText: label),
+        decoration: _denseDecoration(label),
         child: Text(l10n.catalogFilterNoOptions),
       ),
       data: (List<FilterOption> list) {
         if (list.isEmpty) {
           return InputDecorator(
-            decoration: InputDecoration(labelText: label),
+            decoration: _denseDecoration(label),
             child: Text(l10n.catalogFilterNoOptions),
           );
         }
         return DropdownButtonFormField<String>(
           initialValue: selected?.id,
           isExpanded: true,
-          decoration: InputDecoration(labelText: label),
+          style: _fieldTextStyle.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+          decoration: _denseDecoration(label),
           items: <DropdownMenuItem<String>>[
             for (final FilterOption o in list)
               DropdownMenuItem<String>(value: o.id, child: Text(o.name)),

@@ -191,8 +191,8 @@ class _Header extends ConsumerWidget {
   }
 }
 
-/// Lonceng notifikasi header dengan badge unread merah (mockup) — menuju tab
-/// Notifikasi.
+/// Lonceng notifikasi header dengan badge unread merah — satu-satunya jalur ke
+/// Notifikasi (tidak lagi ada tab navbar; navbar memakai slot Pengajuan).
 class _BellButton extends StatelessWidget {
   const _BellButton({required this.unreadCount});
 
@@ -255,7 +255,7 @@ class _BellButton extends StatelessWidget {
         shape: CircleBorder(side: BorderSide(color: scheme.outlineVariant)),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => context.go('/notifications'),
+          onTap: () => context.push('/notifications'),
           child: SizedBox(width: 42, height: 42, child: Center(child: icon)),
         ),
       ),
@@ -762,8 +762,9 @@ class _ApprovalRow extends StatelessWidget {
   }
 }
 
-/// Quick actions 1:1 mockup: Pindai Aset / Sesi Opname / Approval (badge
-/// jumlah menunggu keputusan) / Notifikasi.
+/// Quick actions: HANYA menu yang tidak ada di navbar bawah (Beranda/Opname/
+/// Pindai/Approval/Pengajuan) supaya tidak ganda — Katalog / Registrasi /
+/// Aset Saya. Notifikasi diakses dari lonceng header.
 class _QuickActions extends ConsumerWidget {
   const _QuickActions();
 
@@ -773,83 +774,32 @@ class _QuickActions extends ConsumerWidget {
     final InventraStatusColors colors = Theme.of(
       context,
     ).extension<InventraStatusColors>()!;
-    final int approvalCount = ref.watch(approvalPendingBadgeProvider);
 
-    return Column(
+    return Row(
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: _QuickAction(
-                label: l10n.homeQuickScan,
-                icon: Symbols.qr_code_scanner_rounded,
-                colorSet: colors.success,
-                onTap: () => context.go('/scan'),
-              ),
-            ),
-            Expanded(
-              child: _QuickAction(
-                label: l10n.homeQuickOpname,
-                icon: Symbols.fact_check_rounded,
-                colorSet: colors.info,
-                onTap: () => context.go('/stock-opname'),
-              ),
-            ),
-            Expanded(
-              child: _QuickAction(
-                label: l10n.homeQuickApproval,
-                icon: Symbols.approval_rounded,
-                colorSet: colors.warning,
-                badgeCount: approvalCount,
-                onTap: () => context.go('/approval'),
-              ),
-            ),
-            Expanded(
-              child: _QuickAction(
-                label: l10n.homeQuickNotifications,
-                icon: Symbols.notifications_rounded,
-                colorSet: colors.neutral,
-                onTap: () => context.go('/notifications'),
-              ),
-            ),
-          ],
+        Expanded(
+          child: _QuickAction(
+            label: l10n.homeQuickCatalog,
+            icon: Symbols.inventory_2_rounded,
+            colorSet: colors.info,
+            onTap: () => context.push('/catalog'),
+          ),
         ),
-        const SizedBox(height: 14),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: _QuickAction(
-                label: l10n.homeQuickCatalog,
-                icon: Symbols.inventory_2_rounded,
-                colorSet: colors.info,
-                onTap: () => context.push('/catalog'),
-              ),
-            ),
-            Expanded(
-              child: _QuickAction(
-                label: l10n.homeQuickMyAssets,
-                icon: Symbols.badge_rounded,
-                colorSet: colors.success,
-                onTap: () => context.push('/my-assets'),
-              ),
-            ),
-            Expanded(
-              child: _QuickAction(
-                label: l10n.homeQuickMyRequests,
-                icon: Symbols.description_rounded,
-                colorSet: colors.neutral,
-                onTap: () => context.push('/my-requests'),
-              ),
-            ),
-            Expanded(
-              child: _QuickAction(
-                label: l10n.homeQuickRegister,
-                icon: Symbols.add_box_rounded,
-                colorSet: colors.warning,
-                onTap: () => context.push('/register-asset'),
-              ),
-            ),
-          ],
+        Expanded(
+          child: _QuickAction(
+            label: l10n.homeQuickRegister,
+            icon: Symbols.add_box_rounded,
+            colorSet: colors.warning,
+            onTap: () => context.push('/register-asset'),
+          ),
+        ),
+        Expanded(
+          child: _QuickAction(
+            label: l10n.homeQuickMyAssets,
+            icon: Symbols.badge_rounded,
+            colorSet: colors.success,
+            onTap: () => context.push('/my-assets'),
+          ),
         ),
       ],
     );
@@ -862,21 +812,17 @@ class _QuickAction extends StatelessWidget {
     required this.icon,
     required this.colorSet,
     required this.onTap,
-    this.badgeCount = 0,
   });
 
   final String label;
   final IconData icon;
   final StatusColorSet colorSet;
   final VoidCallback onTap;
-  final int badgeCount;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final ColorScheme scheme = theme.colorScheme;
-
-    Widget tile = Container(
+    final Widget tile = Container(
       width: 54,
       height: 54,
       decoration: BoxDecoration(
@@ -885,42 +831,6 @@ class _QuickAction extends StatelessWidget {
       ),
       child: Icon(icon, size: 26, color: colorSet.text),
     );
-    if (badgeCount > 0) {
-      tile = Stack(
-        clipBehavior: Clip.none,
-        children: <Widget>[
-          tile,
-          Positioned(
-            top: -4,
-            right: -4,
-            child: Container(
-              constraints: const BoxConstraints(minWidth: 18),
-              height: 18,
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              alignment: Alignment.center,
-              decoration: ShapeDecoration(
-                color: scheme.error,
-                shape: StadiumBorder(
-                  side: BorderSide(
-                    color: theme.scaffoldBackgroundColor,
-                    width: 2,
-                  ),
-                ),
-              ),
-              child: Text(
-                badgeCount > 99 ? '99+' : '$badgeCount',
-                style: TextStyle(
-                  fontSize: 10,
-                  height: 1,
-                  fontWeight: FontWeight.w700,
-                  color: scheme.onError,
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
 
     return Semantics(
       button: true,

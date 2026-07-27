@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../app/locale_controller.dart';
@@ -79,6 +80,14 @@ class SettingsScreen extends ConsumerWidget {
                     AppInfo.version,
                     AppInfo.buildNumber,
                   ),
+                ),
+                const Divider(height: 25),
+                _SettingsRow(
+                  rowKey: 'settings-privacy',
+                  icon: Symbols.privacy_tip_rounded,
+                  title: l10n.privacyPolicyLink,
+                  subtitle: l10n.privacyPolicySubtitle,
+                  onTap: () => context.push('/privacy-policy'),
                 ),
               ],
             ),

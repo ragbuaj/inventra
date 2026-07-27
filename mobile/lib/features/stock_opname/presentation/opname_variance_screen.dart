@@ -308,6 +308,7 @@ class _SummaryCard extends StatelessWidget {
             label,
             textAlign: TextAlign.center,
             maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 9.5,
               fontWeight: FontWeight.w600,

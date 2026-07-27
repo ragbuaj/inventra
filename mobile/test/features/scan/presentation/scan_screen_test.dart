@@ -73,6 +73,20 @@ void main() {
     expect(find.text(l10nId.scanCameraUnavailableTitle), findsNothing);
   });
 
+  testWidgets('deteksi dibatasi ke kotak target (scanWindow 252x252)', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+
+    // Setelah layout, ScanScreen menghitung rect bingkai target dan
+    // meneruskannya sebagai scanWindow — barcode di luar kotak diabaikan.
+    final Rect? window = camera.lastScanWindow;
+    expect(window, isNotNull);
+    expect(window!.width, 252);
+    expect(window.height, 252);
+  });
+
   testWidgets('deteksi kamera menavigasi ke detail aset', (
     WidgetTester tester,
   ) async {
@@ -196,6 +210,8 @@ void main() {
       expect(find.text(l10nId.scanCameraUnavailableTitle), findsOneWidget);
       expect(find.text(l10nId.scanCameraUnavailableBody), findsOneWidget);
       expect(find.text(l10nId.scanHint), findsNothing);
+      // Tanpa bingkai target dan tanpa preview kamera, tidak ada scanWindow.
+      expect(camera.lastScanWindow, isNull);
     });
 
     testWidgets('jalur manual tetap berfungsi', (WidgetTester tester) async {

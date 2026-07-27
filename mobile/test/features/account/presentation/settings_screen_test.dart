@@ -44,6 +44,18 @@ void main() {
       );
     });
 
+    testWidgets('kartu Tentang memuat baris Kebijakan Privasi yang dapat '
+        'di-tap', (WidgetTester tester) async {
+      await pumpSettings(tester);
+
+      expect(
+        find.byKey(const ValueKey<String>('settings-privacy')),
+        findsOneWidget,
+      );
+      expect(find.text(l10nId.privacyPolicyLink), findsOneWidget);
+      expect(find.text(l10nId.privacyPolicySubtitle), findsOneWidget);
+    });
+
     testWidgets('preferensi tersimpan terbaca saat cold start', (
       WidgetTester tester,
     ) async {

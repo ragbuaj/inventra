@@ -50,5 +50,12 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Membuka aplikasi email (mailto) untuk permintaan penghapusan akun
+             via url_launcher. Wajib dideklarasikan agar canLaunch/launchUrl
+             menemukan aplikasi email pada Android 11+ (package visibility). -->
+        <intent>
+            <action android:name="android.intent.action.SENDTO"/>
+            <data android:scheme="mailto"/>
+        </intent>
     </queries>
 </manifest>

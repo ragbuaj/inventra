@@ -30,6 +30,30 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   DateTime? _cooldownUntil;
   static const Duration _detectCooldown = Duration(seconds: 2);
 
+  /// Bingkai target di layar; dipakai menghitung [_scanWindow] agar hanya
+  /// barcode di dalam kotak yang terdeteksi.
+  final GlobalKey _frameKey = GlobalKey();
+  Rect? _scanWindow;
+
+  /// Menghitung rect bingkai target dalam koordinat layar (== koordinat widget
+  /// MobileScanner yang mengisi penuh layar) lalu menyimpannya sebagai
+  /// scanWindow. Dipanggil pasca-layout; setState hanya bila rect berubah.
+  void _syncScanWindow() {
+    final BuildContext? frameContext = _frameKey.currentContext;
+    if (frameContext == null) {
+      return;
+    }
+    final RenderObject? renderObject = frameContext.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return;
+    }
+    final Offset topLeft = renderObject.localToGlobal(Offset.zero);
+    final Rect rect = topLeft & renderObject.size;
+    if (_scanWindow != rect) {
+      setState(() => _scanWindow = rect);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -93,6 +117,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context);
 
+    // Setiap layout ulang (rotasi, keyboard, dsb.) menyelaraskan scanWindow ke
+    // posisi bingkai target terkini.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncScanWindow());
+
     // Viewfinder gelap di kedua tema; ikon status bar dipaksa terang.
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
@@ -104,7 +132,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
             return Stack(
               fit: StackFit.expand,
               children: <Widget>[
-                if (!unavailable) _camera.buildPreview(onDetect: _openDetail),
+                if (!unavailable)
+                  _camera.buildPreview(
+                    onDetect: _openDetail,
+                    scanWindow: _scanWindow,
+                  ),
                 // Vignette lembut supaya kontrol tetap terbaca di atas frame
                 // kamera (mockup: radial transparan tengah -> gelap tepi).
                 DecoratedBox(
@@ -156,7 +188,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                       Expanded(
                         child: unavailable
                             ? _CameraUnavailable(l10n: l10n)
-                            : _TargetFrame(hint: l10n.scanHint),
+                            : _TargetFrame(
+                                hint: l10n.scanHint,
+                                frameKey: _frameKey,
+                              ),
                       ),
                       Padding(
                         padding: const EdgeInsets.only(bottom: 44),
@@ -251,9 +286,12 @@ class _TorchButton extends StatelessWidget {
 /// Bingkai target 252x252 dengan empat sudut hijau + garis scan statis, lalu
 /// pill petunjuk di bawahnya.
 class _TargetFrame extends StatelessWidget {
-  const _TargetFrame({required this.hint});
+  const _TargetFrame({required this.hint, this.frameKey});
 
   final String hint;
+
+  /// Key untuk mengukur posisi kotak target (scanWindow).
+  final Key? frameKey;
 
   @override
   Widget build(BuildContext context) {
@@ -261,6 +299,7 @@ class _TargetFrame extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
         SizedBox(
+          key: frameKey,
           width: 252,
           height: 252,
           child: Stack(

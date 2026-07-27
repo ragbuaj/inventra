@@ -114,7 +114,16 @@ class ConfirmDialog extends StatelessWidget {
                       ),
                     ),
                     onPressed: () => Navigator.of(context).pop(false),
-                    child: Text(cancelLabel ?? l10n.commonCancel),
+                    // scaleDown menjaga label tetap satu baris (mis. "Ya,
+                    // keluar") pada tombol setengah-lebar; mengecil bila perlu
+                    // alih-alih membungkus ke dua baris.
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        cancelLabel ?? l10n.commonCancel,
+                        maxLines: 1,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -137,7 +146,10 @@ class ConfirmDialog extends StatelessWidget {
                       ),
                     ),
                     onPressed: () => Navigator.of(context).pop(true),
-                    child: Text(confirmLabel),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(confirmLabel, maxLines: 1),
+                    ),
                   ),
                 ),
               ],

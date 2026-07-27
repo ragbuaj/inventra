@@ -64,6 +64,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get shellTabNotifications => 'Notif';
 
   @override
+  String get shellTabRequests => 'Pengajuan';
+
+  @override
   String get notificationsTitle => 'Notifikasi';
 
   @override
@@ -1671,4 +1674,125 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get securityInvalidEmail => 'Format email tidak valid.';
+
+  @override
+  String get privacyPolicyLink => 'Kebijakan Privasi';
+
+  @override
+  String get privacyPolicySubtitle => 'Cara kami menangani data Anda';
+
+  @override
+  String get privacyTitle => 'Kebijakan Privasi';
+
+  @override
+  String get privacyLastUpdated => 'Terakhir diperbarui 27 Juli 2026';
+
+  @override
+  String get privacyIntro =>
+      'Inventra Mobile digunakan untuk mengelola aset tetap dan inventaris. Kebijakan ini menjelaskan data apa yang kami proses saat Anda memakai aplikasi dan bagaimana kami melindunginya.';
+
+  @override
+  String get privacyCollectTitle => 'Data yang Kami Kumpulkan';
+
+  @override
+  String get privacyCollectBody =>
+      'Kami memproses data akun (nama, email, nomor telepon), data pegawai yang tertaut (unit, jabatan), serta data aktivitas aset seperti pemindaian, registrasi, pengajuan, dan hasil stock opname. Kamera perangkat digunakan untuk memindai label aset (barcode/QR) dan, bila Anda pilih, mengambil foto profil; gambar hasil pindaian tidak disimpan dan foto profil hanya diproses saat Anda mengunggahnya.';
+
+  @override
+  String get privacyUseTitle => 'Cara Kami Menggunakan Data';
+
+  @override
+  String get privacyUseBody =>
+      'Data dipakai untuk mengautentikasi Anda, menjalankan alur kerja aset (maker-checker), menampilkan riwayat, dan menjaga keamanan seperti mengelola sesi perangkat aktif. Kami tidak menjual data Anda.';
+
+  @override
+  String get privacyStorageTitle => 'Penyimpanan dan Keamanan';
+
+  @override
+  String get privacyStorageBody =>
+      'Data disimpan di server perusahaan atau bank. Koneksi dienkripsi (HTTPS/TLS) dan akses dibatasi sesuai peran serta cakupan kantor Anda. Token sesi disimpan aman di perangkat dan dapat dicabut kapan saja dari menu Profil.';
+
+  @override
+  String get privacySharingTitle => 'Berbagi Data';
+
+  @override
+  String get privacySharingBody =>
+      'Data hanya dibagikan di dalam organisasi sesuai kebutuhan operasional dan kepada penyedia layanan yang mendukung sistem, dengan kewajiban menjaga kerahasiaan. Kami dapat membuka data bila diwajibkan oleh hukum atau regulasi perbankan yang berlaku.';
+
+  @override
+  String get privacyRightsTitle => 'Hak Anda';
+
+  @override
+  String get privacyRightsBody =>
+      'Anda dapat melihat dan memperbarui sebagian data diri (nama dan telepon) di aplikasi. Untuk perubahan data lain, penghapusan akun, atau pertanyaan tentang data Anda, hubungi administrator sistem atau unit terkait di organisasi Anda.';
+
+  @override
+  String get privacyContactTitle => 'Kontak';
+
+  @override
+  String get privacyContactBody =>
+      'Pertanyaan mengenai kebijakan privasi ini dapat disampaikan melalui administrator sistem Inventra di organisasi Anda.';
+
+  @override
+  String get accountDeletionLink => 'Penghapusan Akun & Data';
+
+  @override
+  String get accountDeletionLinkSubtitle =>
+      'Ajukan penghapusan data pribadi Anda';
+
+  @override
+  String get accountDeletionTitle => 'Penghapusan Akun & Data';
+
+  @override
+  String get accountDeletionIntro =>
+      'Akun Inventra dikelola oleh administrator organisasi Anda dan dibuat serta dinonaktifkan oleh admin/HR — tidak ada pendaftaran mandiri. Karena itu, penghapusan akun dan data pribadi diajukan melalui administrator, bukan dihapus sendiri dari aplikasi.';
+
+  @override
+  String get accountDeletionDeletedTitle => 'Yang dihapus';
+
+  @override
+  String get accountDeletionDeletedBody =>
+      'Data pribadi Anda dihapus atau dianonimkan saat akun dinonaktifkan: nama, nomor telepon, email kontak, foto profil, preferensi aplikasi, dan seluruh sesi perangkat.';
+
+  @override
+  String get accountDeletionRetainedTitle => 'Yang tetap disimpan';
+
+  @override
+  String get accountDeletionRetainedBody =>
+      'Catatan aktivitas aset (registrasi, mutasi, stock opname, persetujuan) dan jejak audit tetap disimpan sesuai kewajiban hukum dan regulasi perbankan (mis. retensi POJK) meski akun Anda dihapus. Bila memungkinkan, catatan ini dipisahkan dari identitas pribadi Anda.';
+
+  @override
+  String get accountDeletionHowTitle => 'Cara mengajukan';
+
+  @override
+  String get accountDeletionHowBody =>
+      'Kirim permintaan penghapusan dari email kantor Anda ke administrator sistem, sertakan nama dan email akun Anda. Administrator akan memverifikasi dan memproses permintaan tersebut.';
+
+  @override
+  String get accountDeletionContactLabel => 'Email administrator';
+
+  @override
+  String get accountDeletionCopyButton => 'Salin';
+
+  @override
+  String get accountDeletionCopied => 'Email admin disalin';
+
+  @override
+  String get accountDeletionProcessNote =>
+      'Permintaan biasanya diproses dalam beberapa hari kerja. Anda akan menerima konfirmasi setelah akun dinonaktifkan.';
+
+  @override
+  String get accountDeletionEmailButton => 'Kirim via email';
+
+  @override
+  String get accountDeletionEmailSubject =>
+      'Permintaan Penghapusan Akun & Data - Inventra';
+
+  @override
+  String get accountDeletionEmailBody =>
+      'Halo Administrator,\n\nSaya ingin mengajukan penghapusan akun dan data pribadi saya di Inventra.\n\nNama: \nEmail akun: \n\nTerima kasih.';
+
+  @override
+  String get accountDeletionEmailFailed =>
+      'Tidak ada aplikasi email. Salin alamat lalu kirim manual.';
 }

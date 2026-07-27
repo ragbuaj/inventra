@@ -62,6 +62,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shellTabNotifications => 'Alerts';
 
   @override
+  String get shellTabRequests => 'Requests';
+
+  @override
   String get notificationsTitle => 'Notifications';
 
   @override
@@ -1670,4 +1673,125 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get securityInvalidEmail => 'Invalid email format.';
+
+  @override
+  String get privacyPolicyLink => 'Privacy Policy';
+
+  @override
+  String get privacyPolicySubtitle => 'How we handle your data';
+
+  @override
+  String get privacyTitle => 'Privacy Policy';
+
+  @override
+  String get privacyLastUpdated => 'Last updated 27 July 2026';
+
+  @override
+  String get privacyIntro =>
+      'Inventra Mobile is used to manage fixed assets and inventory. This policy explains what data we process when you use the app and how we protect it.';
+
+  @override
+  String get privacyCollectTitle => 'Data We Collect';
+
+  @override
+  String get privacyCollectBody =>
+      'We process account data (name, email, phone number), linked employee data (unit, position), and asset activity such as scans, registrations, requests, and stock-take results. The device camera is used to scan asset labels (barcode/QR) and, if you choose, to take a profile photo; scanned images are not stored and your profile photo is processed only when you upload it.';
+
+  @override
+  String get privacyUseTitle => 'How We Use Your Data';
+
+  @override
+  String get privacyUseBody =>
+      'Data is used to authenticate you, run asset workflows (maker-checker), show history, and keep the app secure, such as managing your active device sessions. We do not sell your data.';
+
+  @override
+  String get privacyStorageTitle => 'Storage and Security';
+
+  @override
+  String get privacyStorageBody =>
+      'Data is stored on company or bank servers. Connections are encrypted (HTTPS/TLS) and access is restricted according to your role and office scope. Session tokens are stored securely on your device and can be revoked at any time from the Profile menu.';
+
+  @override
+  String get privacySharingTitle => 'Data Sharing';
+
+  @override
+  String get privacySharingBody =>
+      'Data is shared only within your organisation as needed for operations and with service providers that support the system, all bound by confidentiality. We may disclose data where required by applicable law or banking regulation.';
+
+  @override
+  String get privacyRightsTitle => 'Your Rights';
+
+  @override
+  String get privacyRightsBody =>
+      'You can view and update part of your personal data (name and phone) in the app. For other changes, account deletion, or questions about your data, contact your system administrator or the relevant unit in your organisation.';
+
+  @override
+  String get privacyContactTitle => 'Contact';
+
+  @override
+  String get privacyContactBody =>
+      'Questions about this privacy policy can be raised through your organisation\'s Inventra system administrator.';
+
+  @override
+  String get accountDeletionLink => 'Account & Data Deletion';
+
+  @override
+  String get accountDeletionLinkSubtitle =>
+      'Request deletion of your personal data';
+
+  @override
+  String get accountDeletionTitle => 'Account & Data Deletion';
+
+  @override
+  String get accountDeletionIntro =>
+      'Your Inventra account is managed by your organisation\'s administrator and is created and deactivated by admin/HR — there is no self sign-up. Account and personal data deletion is therefore requested through the administrator, not deleted yourself from the app.';
+
+  @override
+  String get accountDeletionDeletedTitle => 'What is deleted';
+
+  @override
+  String get accountDeletionDeletedBody =>
+      'Your personal data is deleted or anonymised when the account is deactivated: name, phone number, contact email, profile photo, app preferences, and all device sessions.';
+
+  @override
+  String get accountDeletionRetainedTitle => 'What is retained';
+
+  @override
+  String get accountDeletionRetainedBody =>
+      'Asset activity records (registration, transfers, stock-take, approvals) and audit trails are retained as required by law and banking regulation (e.g. OJK retention) even after your account is deleted. Where feasible, these records are separated from your personal identity.';
+
+  @override
+  String get accountDeletionHowTitle => 'How to request';
+
+  @override
+  String get accountDeletionHowBody =>
+      'Send a deletion request from your work email to the system administrator, including your account name and email. The administrator will verify and process the request.';
+
+  @override
+  String get accountDeletionContactLabel => 'Administrator email';
+
+  @override
+  String get accountDeletionCopyButton => 'Copy';
+
+  @override
+  String get accountDeletionCopied => 'Administrator email copied';
+
+  @override
+  String get accountDeletionProcessNote =>
+      'Requests are usually processed within a few business days. You will receive a confirmation once the account is deactivated.';
+
+  @override
+  String get accountDeletionEmailButton => 'Send via email';
+
+  @override
+  String get accountDeletionEmailSubject =>
+      'Account & Data Deletion Request - Inventra';
+
+  @override
+  String get accountDeletionEmailBody =>
+      'Hello Administrator,\n\nI would like to request deletion of my Inventra account and personal data.\n\nName: \nAccount email: \n\nThank you.';
+
+  @override
+  String get accountDeletionEmailFailed =>
+      'No email app found. Copy the address and send manually.';
 }
