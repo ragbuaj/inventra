@@ -173,5 +173,29 @@ export const appNav: NavGroup[] = [
         ]
       }
     ]
+  },
+  {
+    // Help & policy pages carry no `permission`, so they are visible to every
+    // authenticated user. The pages are also public (see auth.global.ts) and
+    // reachable from the user menu, so guests without a session can still open
+    // them (e.g. the privacy policy URL the Play Store listing requires).
+    labelKey: 'nav.group.bantuan',
+    items: [
+      {
+        labelKey: 'nav.guide',
+        icon: 'i-lucide-book-open',
+        to: '/guide'
+      },
+      {
+        labelKey: 'nav.faq',
+        icon: 'i-lucide-help-circle',
+        to: '/faq'
+      },
+      {
+        labelKey: 'nav.privacy',
+        icon: 'i-lucide-shield-check',
+        to: '/privacy'
+      }
+    ]
   }
 ]

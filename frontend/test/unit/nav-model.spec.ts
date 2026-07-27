@@ -125,15 +125,26 @@ const EXPECTED_ROUTES: Record<string, string[]> = {
   ]
 }
 
+// The Help & Policy group carries no permission, so its three leaves are visible
+// to every role and are appended to each role's expected route set.
+const HELP_ROUTES = ['/guide', '/faq', '/privacy']
+
 // ---------------------------------------------------------------------------
 // Structure
 // ---------------------------------------------------------------------------
 
 describe('appNav — structure', () => {
-  it('has exactly 2 groups: Operasional then Administrasi', () => {
-    expect(appNav).toHaveLength(2)
+  it('has exactly 3 groups: Operasional, Administrasi, then Bantuan & Kebijakan', () => {
+    expect(appNav).toHaveLength(3)
     expect(appNav[0]!.labelKey).toBe('nav.group.operasional')
     expect(appNav[1]!.labelKey).toBe('nav.group.administrasi')
+    expect(appNav[2]!.labelKey).toBe('nav.group.bantuan')
+  })
+
+  it('Bantuan & Kebijakan has 3 permission-free leaves: guide, faq, privacy', () => {
+    const help = appNav[2]!
+    expect(help.items.map(i => i.to)).toEqual(['/guide', '/faq', '/privacy'])
+    expect(help.items.every(i => !i.permission && !i.children)).toBe(true)
   })
 
   it('Operasional has 12 top-level items (Aset is a parent, the rest leaves)', () => {
@@ -167,9 +178,9 @@ describe('appNav — structure', () => {
     expect(notif?.permission).toBeUndefined()
   })
 
-  it('Dashboard and Notifikasi are the only permission-free leaves', () => {
+  it('permission-free leaves are Dashboard, Notifikasi, and the Help & Policy pages', () => {
     const free = ALL_ITEMS.filter(i => i.to && !i.permission).map(i => i.to)
-    expect(free.sort()).toEqual(['/', '/notifications'])
+    expect(free.sort()).toEqual(['/', '/faq', '/guide', '/notifications', '/privacy'])
   })
 })
 
@@ -206,7 +217,7 @@ describe('appNav — per-role visible leaf routes equal the permission-derived s
   for (const role of Object.keys(ROLE_PERMS)) {
     it(`${role} sees exactly the expected routes`, () => {
       const perms = new Set(ROLE_PERMS[role]!)
-      expect(visibleLeafRoutes(perms)).toEqual([...EXPECTED_ROUTES[role]!].sort())
+      expect(visibleLeafRoutes(perms)).toEqual([...EXPECTED_ROUTES[role]!, ...HELP_ROUTES].sort())
     })
   }
 })

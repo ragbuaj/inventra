@@ -17,6 +17,21 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
+> **Halaman info Web: Kebijakan Privasi + Panduan Penggunaan + FAQ (2026-07-27, branch `feat/info-pages`) — SELESAI (kode + tes; lint + typecheck lokal hijau).**
+> Menambah tiga halaman informasi di frontend Nuxt (`app/pages/privacy.vue`, `guide.vue`, `faq.vue`)
+> memakai layout baru `info` yang **adaptif auth**: pengguna login melihat app-shell penuh (sidebar +
+> topbar), tamu melihat chrome publik minimal (logo, pemilih bahasa/tema, tombol Masuk, footer + tautan
+> silang antar-halaman). Ketiga rute **publik** (didaftarkan di `publicPaths` `auth.global.ts`) sehingga
+> dapat diakses tanpa sesi — memenuhi syarat URL Kebijakan Privasi untuk listing Play Store — sekaligus
+> muncul di **menu**: grup sidebar baru **"Bantuan & Kebijakan"** (`app/utils/nav.ts`, tanpa permission
+> jadi tampil untuk semua) **dan** tautan di dropdown `UserMenu`. Konten ditulis lengkap ID+EN sebagai
+> array di `i18n/locales/{id,en}.json` (`privacyPage`/`guidePage`/`faqPage`), dirender via `tm()`/`rt()`;
+> FAQ punya pencarian klien + pengelompokan kategori + `UAccordion`. Tes: `test/unit/nav-model.spec.ts`
+> (grup ke-3 + rute bebas-permission) diperbarui, `test/nuxt/app-sidebar.spec.ts` diperbarui (HELP_ROUTES),
+> plus baru `test/nuxt/info-pages.spec.ts` & `test/nuxt/info-layout.spec.ts`. Verifikasi: `eslint` + `vue-tsc`
+> hijau lokal; `pnpm test`/e2e via CI (toolchain vitest lokal rusak di Node 24). Tanpa mockup `docs/design`
+> (halaman baru di luar set desain).
+>
 > **Batch UX Mobile + kesiapan Play Store (2026-07-27, branch `feat/mobile-ux-fixes-batch`) — SELESAI (kode + tes; di-commit & PR).**
 > Batch besar pada app Flutter (`mobile/`), diverifikasi live di HP fisik. **Sembilan permintaan awal**
 > (satu ditunda): (1) **Link "Lupa password?"** — awalnya dipindah ke dalam card login, lalu (revisi user)

@@ -1626,11 +1626,183 @@
     "toggleSidebar": "Tampilkan/sembunyikan menu",
     "openMenu": "Buka menu navigasi",
     "primary": "Navigasi utama",
+    "signIn": "Masuk",
+    "helpPolicy": "Bantuan & Kebijakan",
+    "guide": "Panduan Penggunaan",
+    "faq": "FAQ",
+    "privacy": "Kebijakan Privasi",
     "group": {
       "operasional": "Operasional",
       "administrasi": "Administrasi",
+      "bantuan": "Bantuan & Kebijakan",
       "menu": "Menu"
     }
+  },
+  "privacyPage": {
+    "title": "Kebijakan Privasi",
+    "subtitle": "Bagaimana Inventra mengumpulkan, menggunakan, dan melindungi data dalam pengelolaan aset tetap.",
+    "updated": "Terakhir diperbarui: 27 Juli 2026",
+    "tocTitle": "Daftar isi",
+    "intro": "Inventra adalah sistem manajemen aset tetap dan inventaris untuk lingkungan perbankan. Kebijakan ini menjelaskan data apa yang kami proses saat Anda menggunakan aplikasi web dan mobile Inventra, tujuan pemrosesannya, serta hak Anda atas data tersebut. Aplikasi ini ditujukan untuk pengguna internal (pegawai dan administrator), bukan untuk publik umum.",
+    "sections": [
+      {
+        "heading": "1. Data yang Kami Kumpulkan",
+        "body": "Kami hanya mengumpulkan data yang diperlukan untuk menjalankan fungsi manajemen aset:",
+        "points": [
+          "Data akun: nama, email kantor, jabatan, kantor atau unit kerja, peran (role), dan kata sandi yang disimpan dalam bentuk hash (bcrypt). Kami tidak pernah menyimpan kata sandi dalam bentuk asli.",
+          "Data aktivitas: jejak audit atas tindakan penting (pembuatan, perubahan, persetujuan, penghapusan) beserta waktu, pengguna, dan alamat IP untuk keperluan keamanan dan kepatuhan.",
+          "Data operasional aset: informasi aset, penugasan, peminjaman, mutasi, pemeliharaan, dan dokumen terkait yang Anda masukkan ke sistem.",
+          "Data teknis: jenis perangkat, versi aplikasi, dan log teknis untuk diagnosis gangguan."
+        ]
+      },
+      {
+        "heading": "2. Cara Kami Menggunakan Data",
+        "body": "Data digunakan semata-mata untuk tujuan operasional dan kepatuhan, antara lain:",
+        "points": [
+          "Mengautentikasi pengguna dan menegakkan otorisasi berlapis (izin aksi, lingkup data per kantor, dan izin per-field).",
+          "Menjalankan proses bisnis aset: registrasi, penugasan, peminjaman, mutasi, stock opname, penyusutan, dan penghapusan.",
+          "Menyediakan jejak audit dan laporan bagi fungsi pengawasan internal.",
+          "Menjaga keamanan sistem, mencegah penyalahgunaan, dan memenuhi kewajiban regulasi."
+        ]
+      },
+      {
+        "heading": "3. Dasar dan Tujuan Pemrosesan",
+        "body": "Pemrosesan data dilakukan atas dasar hubungan kepegawaian dan kebutuhan sah pengelolaan aset perusahaan, serta untuk memenuhi ketentuan tata kelola dan pengawasan yang berlaku di sektor perbankan. Kami tidak menggunakan data Anda untuk iklan dan tidak menjualnya kepada pihak mana pun."
+      },
+      {
+        "heading": "4. Penyimpanan dan Keamanan",
+        "body": "Kami menerapkan langkah pengamanan teknis dan organisasional yang wajar:",
+        "points": [
+          "Kata sandi di-hash dengan bcrypt; sesi memakai token akses berumur pendek dan token refresh yang disimpan sebagai cookie HttpOnly.",
+          "Akses data dibatasi oleh peran dan lingkup kantor pengguna (segregation of duties).",
+          "Transmisi data dienkripsi melalui HTTPS/TLS, dan berkas disimpan pada penyimpanan objek yang terkontrol.",
+          "Perubahan sensitif dicatat dalam jejak audit yang tidak dapat diubah oleh pengguna biasa."
+        ]
+      },
+      {
+        "heading": "5. Pembagian Data",
+        "body": "Data hanya dapat diakses oleh pengguna internal sesuai peran dan lingkup kantornya, serta oleh administrator sistem untuk keperluan pemeliharaan. Kami tidak membagikan data kepada pihak ketiga di luar organisasi kecuali diwajibkan oleh hukum atau atas permintaan sah dari otoritas yang berwenang."
+      },
+      {
+        "heading": "6. Retensi Data",
+        "body": "Data aset dan jejak audit disimpan selama masih diperlukan untuk operasional dan kepatuhan, mengikuti kebijakan retensi internal dan ketentuan regulasi. Penghapusan data menggunakan mekanisme soft delete sehingga riwayat tetap dapat ditelusuri untuk keperluan audit."
+      },
+      {
+        "heading": "7. Hak Anda",
+        "body": "Sesuai kebijakan internal, Anda dapat:",
+        "points": [
+          "Melihat dan memperbarui data profil melalui menu Profil Akun.",
+          "Mengubah kata sandi kapan saja.",
+          "Mengajukan koreksi atas data yang tidak akurat kepada administrator.",
+          "Meminta penjelasan mengenai pemrosesan data Anda kepada administrator sistem."
+        ]
+      },
+      {
+        "heading": "8. Perubahan Kebijakan",
+        "body": "Kebijakan ini dapat diperbarui sewaktu-waktu mengikuti perkembangan fitur atau regulasi. Perubahan material akan diinformasikan melalui aplikasi. Tanggal Terakhir diperbarui di atas menunjukkan versi yang berlaku."
+      },
+      {
+        "heading": "9. Kontak",
+        "body": "Untuk pertanyaan terkait privasi atau perlindungan data, hubungi administrator sistem atau unit pengelola aset di organisasi Anda."
+      }
+    ]
+  },
+  "guidePage": {
+    "title": "Panduan Penggunaan",
+    "subtitle": "Langkah singkat memakai Inventra untuk mengelola aset tetap sehari-hari.",
+    "intro": "Panduan ini membantu Anda mulai menggunakan Inventra. Menu yang tampil menyesuaikan peran dan lingkup kantor Anda, sehingga sebagian fitur mungkin tidak terlihat jika izin Anda belum mencakupnya.",
+    "sections": [
+      {
+        "heading": "Masuk dan Keamanan Akun",
+        "icon": "i-lucide-log-in",
+        "body": "Masuk dengan email kantor dan kata sandi Anda. Anda juga dapat masuk dengan akun Google organisasi bila fitur ini diaktifkan.",
+        "steps": [
+          "Buka halaman Masuk, isi email dan kata sandi, lalu tekan Masuk.",
+          "Jika lupa kata sandi, gunakan tautan Lupa Kata Sandi untuk menerima instruksi reset.",
+          "Ganti kata sandi secara berkala melalui menu Profil Akun."
+        ]
+      },
+      {
+        "heading": "Dashboard",
+        "icon": "i-lucide-layout-dashboard",
+        "body": "Halaman awal menampilkan ringkasan aset, aktivitas terbaru, dan pintasan ke tugas yang membutuhkan perhatian Anda, seperti persetujuan yang tertunda."
+      },
+      {
+        "heading": "Katalog Aset",
+        "icon": "i-lucide-package",
+        "body": "Telusuri dan kelola seluruh aset dalam lingkup kantor Anda.",
+        "steps": [
+          "Gunakan kolom pencarian dan filter (status, kategori) untuk menemukan aset.",
+          "Klik sebuah aset untuk melihat detail, riwayat, dan dokumennya.",
+          "Tekan Tambah Aset untuk registrasi aset baru, atau gunakan Import untuk unggah massal melalui berkas.",
+          "Cetak label barcode atau QR dari menu Label & Barcode."
+        ]
+      },
+      {
+        "heading": "Peminjaman dan Penugasan",
+        "icon": "i-lucide-hand",
+        "body": "Ajukan peminjaman aset atau serahkan aset kepada pegawai.",
+        "steps": [
+          "Buka Peminjaman Aset, pilih aset yang tersedia, lalu ajukan permohonan.",
+          "Permohonan masuk ke antrean persetujuan sesuai kewenangan.",
+          "Aset yang telah disetujui tercatat pada menu Penugasan beserta pemegangnya."
+        ]
+      },
+      {
+        "heading": "Pengajuan dan Persetujuan",
+        "icon": "i-lucide-check-square",
+        "body": "Inventra menerapkan mekanisme maker-checker berjenjang berdasarkan nilai aset.",
+        "steps": [
+          "Pembuat (maker) mengajukan tindakan; sistem menentukan penyetuju sesuai batas otorisasi.",
+          "Penyetuju (checker) meninjau di menu Pengajuan & Approval, lalu menyetujui atau menolak.",
+          "Notifikasi memberi tahu Anda saat ada tugas yang menunggu."
+        ]
+      },
+      {
+        "heading": "Pemeliharaan (Maintenance)",
+        "icon": "i-lucide-wrench",
+        "body": "Ajukan dan pantau perbaikan aset. Aset yang sedang diperbaiki berstatus Maintenance dan tidak dapat dipinjam hingga selesai."
+      },
+      {
+        "heading": "Mutasi, Stock Opname, dan Penghapusan",
+        "icon": "i-lucide-arrow-right-left",
+        "body": "Kelola perpindahan antar kantor, pemeriksaan fisik, dan pelepasan aset.",
+        "steps": [
+          "Mutasi memindahkan aset antar kantor melalui persetujuan.",
+          "Stock Opname mencatat hasil pemeriksaan fisik beserta selisihnya.",
+          "Penghapusan melepas aset sambil mencatat keuntungan atau kerugian pelepasan."
+        ]
+      },
+      {
+        "heading": "Laporan dan Depresiasi",
+        "icon": "i-lucide-bar-chart-2",
+        "body": "Lihat penyusutan komersial dan fiskal serta hasilkan laporan untuk kebutuhan pengawasan dan akuntansi melalui menu Depresiasi dan Laporan."
+      },
+      {
+        "heading": "Master Data dan Pengaturan",
+        "icon": "i-lucide-database",
+        "body": "Administrator mengelola data kantor, pegawai, dan kategori, serta pengaturan pengguna, peran (RBAC), lingkup data, dan izin field. Menu ini hanya tampil bagi pengguna dengan izin terkait."
+      }
+    ]
+  },
+  "faqPage": {
+    "title": "Pertanyaan yang Sering Diajukan",
+    "subtitle": "Jawaban singkat atas pertanyaan umum seputar penggunaan Inventra.",
+    "searchPlaceholder": "Cari pertanyaan…",
+    "empty": "Tidak ada pertanyaan yang cocok dengan pencarian Anda.",
+    "items": [
+      { "category": "Umum", "q": "Apa itu Inventra?", "a": "Inventra adalah sistem manajemen aset tetap dan inventaris untuk lingkungan perbankan, mencakup registrasi, penugasan, peminjaman, mutasi, pemeliharaan, penyusutan, dan penghapusan aset dengan kontrol persetujuan berjenjang." },
+      { "category": "Umum", "q": "Mengapa beberapa menu tidak muncul untuk saya?", "a": "Menu menyesuaikan peran dan lingkup kantor Anda. Jika sebuah menu tidak terlihat, berarti izin Anda belum mencakup fitur tersebut. Hubungi administrator bila Anda membutuhkannya." },
+      { "category": "Akun", "q": "Bagaimana cara mengganti kata sandi?", "a": "Buka menu Profil Akun, pilih bagian keamanan, lalu ubah kata sandi Anda. Gunakan kata sandi yang kuat dan unik." },
+      { "category": "Akun", "q": "Saya lupa kata sandi, apa yang harus dilakukan?", "a": "Pada halaman Masuk, klik Lupa Kata Sandi dan ikuti instruksi yang dikirim ke email kantor Anda. Bila email tidak diterima, hubungi administrator." },
+      { "category": "Aset", "q": "Bagaimana cara menambah aset baru?", "a": "Buka Katalog Aset lalu tekan Tambah Aset untuk satu aset, atau gunakan Import untuk mengunggah banyak aset sekaligus melalui berkas sesuai template." },
+      { "category": "Aset", "q": "Bagaimana cara mencetak label barcode aset?", "a": "Pilih aset yang diinginkan lalu buka menu Label & Barcode untuk mencetak label berisi barcode atau kode QR." },
+      { "category": "Peminjaman", "q": "Bagaimana alur meminjam aset?", "a": "Ajukan peminjaman melalui menu Peminjaman Aset. Permohonan masuk ke antrean persetujuan; setelah disetujui, aset tercatat atas nama Anda pada menu Penugasan." },
+      { "category": "Persetujuan", "q": "Siapa yang menyetujui pengajuan saya?", "a": "Penyetuju ditentukan otomatis berdasarkan nilai aset dan batas otorisasi (maker-checker). Anda akan menerima notifikasi mengenai status pengajuan." },
+      { "category": "Data", "q": "Apakah data yang dihapus benar-benar hilang?", "a": "Tidak. Inventra menggunakan soft delete sehingga data tetap tersimpan untuk keperluan audit dan tidak muncul lagi pada daftar aktif." },
+      { "category": "Keamanan", "q": "Seberapa aman data saya?", "a": "Kata sandi disimpan dalam bentuk hash, akses dibatasi peran dan lingkup kantor, koneksi dienkripsi dengan HTTPS, dan tindakan penting dicatat dalam jejak audit. Selengkapnya lihat Kebijakan Privasi." },
+      { "category": "Bahasa", "q": "Bagaimana mengganti bahasa aplikasi?", "a": "Gunakan pemilih bahasa (ID/EN) pada bilah atas atau di menu pengguna untuk beralih antara Bahasa Indonesia dan Inggris." }
+    ]
   },
   "common": {
     "save": "Simpan", "cancel": "Batal", "delete": "Hapus", "edit": "Ubah",

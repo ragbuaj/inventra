@@ -86,6 +86,10 @@ const EXPECTED_ROUTES: Record<string, string[]> = {
   ]
 }
 
+// The Help & Policy group carries no permission, so its three leaves render for
+// every role and are appended to each role's expected route set.
+const HELP_ROUTES = ['/guide', '/faq', '/privacy']
+
 function login(role: string) {
   useAuthStore().setSession(
     'tok',
@@ -115,7 +119,7 @@ describe('AppSidebar — per-role visible routes equal the reachable set', () =>
     it(`${role} renders exactly its reachable menu links`, async () => {
       login(role)
       const wrapper = await mountSuspended(AppSidebar)
-      expect(hrefs(wrapper)).toEqual([...EXPECTED_ROUTES[role]!].sort())
+      expect(hrefs(wrapper)).toEqual([...EXPECTED_ROUTES[role]!, ...HELP_ROUTES].sort())
     })
   }
 })
