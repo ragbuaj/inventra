@@ -52,12 +52,18 @@ class StatusChip extends StatelessWidget {
             decoration: BoxDecoration(color: set.dot, shape: BoxShape.circle),
           ),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: set.text,
+          // Flexible + ellipsis: label status yang tak dikenal/panjang (dari
+          // fallback backend) tidak melebarkan chip melewati ruang tersedia.
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: set.text,
+              ),
             ),
           ),
         ],

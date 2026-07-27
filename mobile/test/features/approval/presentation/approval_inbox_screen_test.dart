@@ -433,9 +433,9 @@ void main() {
       await tester.pumpWidget(RouterTestApp(container: container));
       await tester.pumpAndSettle();
 
-      // Badge tab Approval dari GET /requests/inbox/count — di tab shell dan
-      // quick action Approval Beranda (Task 11).
-      expect(find.text('17'), findsNWidgets(2));
+      // Badge tab Approval dari GET /requests/inbox/count — hanya di navbar
+      // (quick action Approval Beranda dihapus agar tidak ganda).
+      expect(find.text('17'), findsOneWidget);
 
       await tester.tap(
         find.byWidgetPredicate(

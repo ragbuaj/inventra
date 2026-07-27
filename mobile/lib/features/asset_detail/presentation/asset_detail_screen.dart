@@ -443,11 +443,15 @@ class _Header extends StatelessWidget {
                     color: scheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    asset.assetTag ?? _emDash,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: theme.textTheme.labelMedium?.color,
+                  Flexible(
+                    child: Text(
+                      asset.assetTag ?? _emDash,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: theme.textTheme.labelMedium?.color,
+                      ),
                     ),
                   ),
                 ],
@@ -673,13 +677,18 @@ class _MoneyRow extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                color: theme.textTheme.bodySmall?.color,
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: theme.textTheme.bodySmall?.color,
+                ),
               ),
             ),
+            const SizedBox(width: 8),
             _ValueText(value: value, fontSize: 14.5, bold: true),
           ],
         ),

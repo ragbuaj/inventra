@@ -60,16 +60,18 @@ void main() {
     expect(navLabel(l10nId.shellTabOpname), findsOneWidget);
     expect(navLabel(l10nId.shellTabScan), findsOneWidget);
     expect(navLabel(l10nId.shellTabApproval), findsOneWidget);
-    expect(navLabel(l10nId.shellTabNotifications), findsOneWidget);
+    // Slot ke-5 kini Pengajuan (bukan Notifikasi).
+    expect(navLabel(l10nId.shellTabRequests), findsOneWidget);
+    expect(navLabel(l10nId.shellTabNotifications), findsNothing);
 
-    // Sejak Beranda 1:1 (Task 11), ikon tab juga muncul di quick actions
-    // Beranda (fact_check/approval/qr_code_scanner) dan lonceng header
-    // (notifications) — hitungan mencakup keduanya.
+    // Notifikasi hanya di lonceng header Beranda; navbar memakai slot
+    // Pengajuan. Beranda tidak menduplikasi menu navbar, jadi tiap ikon
+    // muncul sekali (notifications = lonceng header, sisanya = navbar).
     expect(find.byIcon(Symbols.home_rounded), findsWidgets);
-    expect(find.byIcon(Symbols.fact_check_rounded), findsNWidgets(2));
-    expect(find.byIcon(Symbols.qr_code_scanner_rounded), findsNWidgets(2));
-    expect(find.byIcon(Symbols.approval_rounded), findsNWidgets(2));
-    expect(find.byIcon(Symbols.notifications_rounded), findsNWidgets(3));
+    expect(find.byIcon(Symbols.fact_check_rounded), findsOneWidget);
+    expect(find.byIcon(Symbols.qr_code_scanner_rounded), findsOneWidget);
+    expect(find.byIcon(Symbols.approval_rounded), findsOneWidget);
+    expect(find.byIcon(Symbols.notifications_rounded), findsOneWidget);
   });
 
   testWidgets('tab aktif memakai pill primary-container, non-aktif tidak', (
@@ -172,8 +174,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Badge tab shell + badge lonceng header Beranda (Task 11).
-      expect(find.text('3'), findsNWidgets(2));
+      // Badge unread kini hanya di lonceng header Beranda (tab notif dihapus).
+      expect(find.text('3'), findsOneWidget);
     });
 
     testWidgets('disembunyikan saat count 0', (WidgetTester tester) async {
@@ -191,8 +193,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Badge tab shell + badge lonceng header Beranda (Task 11).
-      expect(find.text('99+'), findsNWidgets(2));
+      // Badge unread kini hanya di lonceng header Beranda (tab notif dihapus).
+      expect(find.text('99+'), findsOneWidget);
     });
   });
 
@@ -205,8 +207,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Badge tab shell + badge quick action Approval Beranda (Task 11).
-      expect(find.text('17'), findsNWidgets(2));
+      // Hanya badge tab navbar (quick action Approval Beranda dihapus).
+      expect(find.text('17'), findsOneWidget);
     });
 
     testWidgets('disembunyikan saat count 0 (termasuk peran tanpa izin)', (

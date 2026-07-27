@@ -225,8 +225,9 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text(l10nId.homeApprovalCardTitle), findsOneWidget);
-        // Angka besar kartu + badge quick action Approval (inbox count 12).
-        expect(find.text('12'), findsNWidgets(2));
+        // Angka besar kartu (Approval kini hanya di navbar + kartu ringkasan,
+        // tidak lagi sebagai tile quick action berbadge).
+        expect(find.text('12'), findsOneWidget);
         expect(find.text(l10nId.homeApprovalStale(1)), findsOneWidget);
         expect(
           find.text(
@@ -250,22 +251,24 @@ void main() {
       },
     );
 
-    testWidgets('quick actions: delapan label tile (4 lama + 4 FR-M7)', (
+    testWidgets('quick actions: hanya empat tile non-navbar (tanpa duplikat)', (
       WidgetTester tester,
     ) async {
       stubPending(_pendingPage(const <RequestDto>[], total: 0));
       await pumpHome(tester);
       await tester.pumpAndSettle();
 
-      expect(find.text(l10nId.homeQuickScan), findsOneWidget);
-      expect(find.text(l10nId.homeQuickOpname), findsOneWidget);
-      expect(find.text(l10nId.homeQuickApproval), findsOneWidget);
-      expect(find.text(l10nId.homeQuickNotifications), findsOneWidget);
-      // FR-M7 (M7-8): destinasi baru.
+      // Hanya menu yang TIDAK ada di navbar (dan bukan notifikasi).
       expect(find.text(l10nId.homeQuickCatalog), findsOneWidget);
-      expect(find.text(l10nId.homeQuickMyAssets), findsOneWidget);
-      expect(find.text(l10nId.homeQuickMyRequests), findsOneWidget);
       expect(find.text(l10nId.homeQuickRegister), findsOneWidget);
+      expect(find.text(l10nId.homeQuickMyAssets), findsOneWidget);
+      // Pindai/Opname/Approval/Pengajuan sudah di navbar; Notifikasi di lonceng
+      // header — tidak diduplikasi sebagai tile.
+      expect(find.text(l10nId.homeQuickMyRequests), findsNothing);
+      expect(find.text(l10nId.homeQuickScan), findsNothing);
+      expect(find.text(l10nId.homeQuickOpname), findsNothing);
+      expect(find.text(l10nId.homeQuickApproval), findsNothing);
+      expect(find.text(l10nId.homeQuickNotifications), findsNothing);
     });
 
     testWidgets('offline: banner + pill kartu opname offline', (
@@ -341,7 +344,7 @@ void main() {
         // ... sementara header, kartu opname, dan quick actions tetap hidup.
         expect(find.text(l10nId.homeGreeting('Andi')), findsOneWidget);
         expect(find.text('Opname Semester II - Lantai 3'), findsOneWidget);
-        expect(find.text(l10nId.homeQuickScan), findsOneWidget);
+        expect(find.text(l10nId.homeQuickCatalog), findsOneWidget);
 
         stubPending(
           _pendingPage(<RequestDto>[
@@ -410,37 +413,7 @@ void main() {
       return container;
     }
 
-    testWidgets('quick action Sesi Opname membuka tab opname', (
-      WidgetTester tester,
-    ) async {
-      await pumpRouter(tester);
-
-      await tester.tap(find.text(l10nId.homeQuickOpname));
-      await tester.pumpAndSettle();
-
-      expect(find.text(l10nId.opnameSessionsTitle), findsOneWidget);
-    });
-
-    testWidgets('quick action Approval membuka inbox', (
-      WidgetTester tester,
-    ) async {
-      await pumpRouter(tester);
-
-      // Label quick action (11px) dibedakan dari label tab shell (10.5px).
-      await tester.tap(
-        find.byWidgetPredicate(
-          (Widget w) =>
-              w is Text &&
-              w.data == l10nId.homeQuickApproval &&
-              w.style?.fontSize == 11,
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text(l10nId.approvalInboxFilterApproved), findsOneWidget);
-    });
-
-    testWidgets('lonceng header membuka tab notifikasi', (
+    testWidgets('lonceng header membuka layar notifikasi', (
       WidgetTester tester,
     ) async {
       await pumpRouter(tester);

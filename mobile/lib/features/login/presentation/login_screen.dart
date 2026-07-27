@@ -105,15 +105,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           }),
                           onSubmit: _submit,
                         ),
-                        const SizedBox(height: 4),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            key: const ValueKey<String>('login-forgot-link'),
-                            onPressed: () => context.push('/forgot-password'),
-                            child: Text(l10n.forgotLink),
-                          ),
-                        ),
                         const Spacer(),
                         const SizedBox(height: 24),
                         _Footer(l10n: l10n),
@@ -346,7 +337,27 @@ class _LoginCard extends StatelessWidget {
                   ),
                 ),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              key: const ValueKey<String>('login-forgot-link'),
+              style: TextButton.styleFrom(
+                minimumSize: Size.zero,
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                textStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onPressed: isLoading
+                  ? null
+                  : () => context.push('/forgot-password'),
+              child: Text(l10n.forgotLink),
+            ),
+          ),
+          const SizedBox(height: 12),
           FilledButton(
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(

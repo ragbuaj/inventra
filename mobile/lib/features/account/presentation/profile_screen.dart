@@ -918,11 +918,15 @@ class _IdentityCard extends ConsumerWidget {
                   color: theme.textTheme.bodySmall?.color,
                 ),
                 const SizedBox(width: 5),
-                Text(
-                  officeName,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: theme.textTheme.bodySmall?.color,
+                Flexible(
+                  child: Text(
+                    officeName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: theme.textTheme.bodySmall?.color,
+                    ),
                   ),
                 ),
               ],

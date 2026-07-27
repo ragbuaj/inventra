@@ -17,6 +17,40 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
+> **Batch UX Mobile + kesiapan Play Store (2026-07-27, branch `feat/mobile-ux-fixes-batch`) — SELESAI (kode + tes; di-commit & PR).**
+> Batch besar pada app Flutter (`mobile/`), diverifikasi live di HP fisik. **Sembilan permintaan awal**
+> (satu ditunda): (1) **Link "Lupa password?"** — awalnya dipindah ke dalam card login, lalu (revisi user)
+> ditaruh **di bawah field kata sandi + diperkecil** (font 12). (2) **Label ConfirmDialog tidak wrap dua
+> baris** ("Ya, keluar") — `FittedBox(scaleDown)`+`maxLines:1` di `confirm_dialog.dart` (komponen
+> bersama). (3) **Deteksi scan dibatasi ke kotak target** — param `scanWindow` di
+> `ScanCamera.buildPreview` ke `MobileScanner`; `ScanScreen` hitung rect bingkai 252x252 via
+> `GlobalKey`+post-frame. (4) **Back button Android di branch non-Beranda kembali ke Beranda** — `PopScope`
+> di `AppShell` + `PopScope` step-mundur registrasi. (5)+(6) **Stepper registrasi kompak** (`_StepHeader`
+> kustom ganti `Stepper` Material yang overflow) + **input ringkas** (`isDense`+`contentPadding`+fontSize
+> 14). (7) **Audit + perbaikan overflow teks** lintas layar (nama kantor Profil, `StatusChip` core, pill
+> tag & baris nilai Detail Aset, ringkasan Variance). (8) **DITUNDA (keputusan user)** — data diri editable
+> tetap nama+telepon (lihat vault [[Data Diri Mobile Tetap Nama dan Telepon]]). (9) **Halaman Kebijakan
+> Privasi** (`features/legal`, route `/privacy-policy`, link di Pengaturan, i18n id/en).
+> **Follow-up sesi yang sama:** (a) **Format ribuan pada input uang** — `ThousandsSeparatorInputFormatter`
+> (`core/utils/currency_input.dart`) di field Harga Perolehan; digit mentah dikirim saat submit. (b)
+> **Halaman Penghapusan Akun & Data** (syarat Play, `account_deletion_screen.dart`, link di Keamanan Akun):
+> jelaskan data dihapus vs disimpan (retensi POJK), tombol "Kirim via email" (`url_launcher` mailto,
+> ditumpuk vertikal agar label tak wrap) + Salin (Clipboard). (c) **R8/minify + resource shrinking** aktif
+> di `build.gradle.kts` release + `proguard-rules.pro` (keep ML Kit/Play Core) — diverifikasi via
+> `flutter build apk --release`. (d) **De-dup menu Beranda + tata ulang navbar** (keputusan user): Notifikasi
+> **hanya di lonceng header**; navbar slot ke-5 diganti **Notif -> Pengajuan** (`/my-requests` jadi branch
+> shell, `/notifications` jadi route top-level); grid menu utama tinggal Katalog/Registrasi/Aset Saya (tak
+> duplikasi navbar); kartu ringkasan Opname/Approval dipertahankan. (e) **Sheet ganti password/email tak
+> tertutup navbar sistem** — tambah `MediaQuery.padding.bottom` ke padding sheet. (f) **Kalimat penggunaan
+> kamera** ditambah di Kebijakan Privasi (untuk Data Safety Play). **Deviasi mockup (user-approved):** posisi
+> link lupa-password; baris Kebijakan Privasi & Penghapusan Akun; stepper registrasi kompak; navbar slot-5
+> jadi Pengajuan; lonceng notif satu-satunya jalur notifikasi. **Gate:** `flutter gen-l10n` +
+> `flutter analyze` (0 issue) + `flutter test` **566 hijau** (+tes baru: scanWindow, formatter uang,
+> halaman privasi & penghapusan akun, mailto URI); golden `home`/`login`/`settings` diperbarui; APK rilis
+> R8 ter-build. **Catatan Play Store (belum, di luar kode):** signing key rilis (masih debug), AAB, versi,
+> ikon brand, Data Safety (foto/kamera), URL privasi+penghapusan yang dihosting, distribusi private vs
+> publik; **push/FCM belum ada** (fase M3) sehingga tak ada `POST_NOTIFICATIONS`.
+>
 > **Revisi template impor aset (2026-07-26, branch `feat/import-template-refinements`, follow-up PR #130) — SELESAI (kode, belum merge).**
 > Penyempurnaan lanjutan atas template legacy (#130 sudah merged): (1) **hapus kolom "Last Location" &
 > "Last Change"** (template 15 ke 13 kolom). (2) **rename header**: "First Location" ke **"Location Name"**,

@@ -200,6 +200,12 @@ abstract class AppLocalizations {
   /// **'Notif'**
   String get shellTabNotifications;
 
+  /// Label tab bottom-nav pengajuan saya (My Requests)
+  ///
+  /// In id, this message translates to:
+  /// **'Pengajuan'**
+  String get shellTabRequests;
+
   /// Judul layar feed notifikasi
   ///
   /// In id, this message translates to:
@@ -3163,6 +3169,216 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Format email tidak valid.'**
   String get securityInvalidEmail;
+
+  /// Label baris menuju halaman kebijakan privasi
+  ///
+  /// In id, this message translates to:
+  /// **'Kebijakan Privasi'**
+  String get privacyPolicyLink;
+
+  /// Subjudul baris kebijakan privasi di Pengaturan
+  ///
+  /// In id, this message translates to:
+  /// **'Cara kami menangani data Anda'**
+  String get privacyPolicySubtitle;
+
+  /// Judul halaman kebijakan privasi
+  ///
+  /// In id, this message translates to:
+  /// **'Kebijakan Privasi'**
+  String get privacyTitle;
+
+  /// Tanggal pembaruan kebijakan privasi
+  ///
+  /// In id, this message translates to:
+  /// **'Terakhir diperbarui 27 Juli 2026'**
+  String get privacyLastUpdated;
+
+  /// Paragraf pengantar kebijakan privasi
+  ///
+  /// In id, this message translates to:
+  /// **'Inventra Mobile digunakan untuk mengelola aset tetap dan inventaris. Kebijakan ini menjelaskan data apa yang kami proses saat Anda memakai aplikasi dan bagaimana kami melindunginya.'**
+  String get privacyIntro;
+
+  /// Judul seksi data yang dikumpulkan
+  ///
+  /// In id, this message translates to:
+  /// **'Data yang Kami Kumpulkan'**
+  String get privacyCollectTitle;
+
+  /// Isi seksi data yang dikumpulkan
+  ///
+  /// In id, this message translates to:
+  /// **'Kami memproses data akun (nama, email, nomor telepon), data pegawai yang tertaut (unit, jabatan), serta data aktivitas aset seperti pemindaian, registrasi, pengajuan, dan hasil stock opname. Kamera perangkat digunakan untuk memindai label aset (barcode/QR) dan, bila Anda pilih, mengambil foto profil; gambar hasil pindaian tidak disimpan dan foto profil hanya diproses saat Anda mengunggahnya.'**
+  String get privacyCollectBody;
+
+  /// Judul seksi penggunaan data
+  ///
+  /// In id, this message translates to:
+  /// **'Cara Kami Menggunakan Data'**
+  String get privacyUseTitle;
+
+  /// Isi seksi penggunaan data
+  ///
+  /// In id, this message translates to:
+  /// **'Data dipakai untuk mengautentikasi Anda, menjalankan alur kerja aset (maker-checker), menampilkan riwayat, dan menjaga keamanan seperti mengelola sesi perangkat aktif. Kami tidak menjual data Anda.'**
+  String get privacyUseBody;
+
+  /// Judul seksi penyimpanan dan keamanan
+  ///
+  /// In id, this message translates to:
+  /// **'Penyimpanan dan Keamanan'**
+  String get privacyStorageTitle;
+
+  /// Isi seksi penyimpanan dan keamanan
+  ///
+  /// In id, this message translates to:
+  /// **'Data disimpan di server perusahaan atau bank. Koneksi dienkripsi (HTTPS/TLS) dan akses dibatasi sesuai peran serta cakupan kantor Anda. Token sesi disimpan aman di perangkat dan dapat dicabut kapan saja dari menu Profil.'**
+  String get privacyStorageBody;
+
+  /// Judul seksi berbagi data
+  ///
+  /// In id, this message translates to:
+  /// **'Berbagi Data'**
+  String get privacySharingTitle;
+
+  /// Isi seksi berbagi data
+  ///
+  /// In id, this message translates to:
+  /// **'Data hanya dibagikan di dalam organisasi sesuai kebutuhan operasional dan kepada penyedia layanan yang mendukung sistem, dengan kewajiban menjaga kerahasiaan. Kami dapat membuka data bila diwajibkan oleh hukum atau regulasi perbankan yang berlaku.'**
+  String get privacySharingBody;
+
+  /// Judul seksi hak pengguna
+  ///
+  /// In id, this message translates to:
+  /// **'Hak Anda'**
+  String get privacyRightsTitle;
+
+  /// Isi seksi hak pengguna
+  ///
+  /// In id, this message translates to:
+  /// **'Anda dapat melihat dan memperbarui sebagian data diri (nama dan telepon) di aplikasi. Untuk perubahan data lain, penghapusan akun, atau pertanyaan tentang data Anda, hubungi administrator sistem atau unit terkait di organisasi Anda.'**
+  String get privacyRightsBody;
+
+  /// Judul seksi kontak
+  ///
+  /// In id, this message translates to:
+  /// **'Kontak'**
+  String get privacyContactTitle;
+
+  /// Isi seksi kontak
+  ///
+  /// In id, this message translates to:
+  /// **'Pertanyaan mengenai kebijakan privasi ini dapat disampaikan melalui administrator sistem Inventra di organisasi Anda.'**
+  String get privacyContactBody;
+
+  /// Label baris menuju penghapusan akun
+  ///
+  /// In id, this message translates to:
+  /// **'Penghapusan Akun & Data'**
+  String get accountDeletionLink;
+
+  /// Subjudul baris penghapusan akun
+  ///
+  /// In id, this message translates to:
+  /// **'Ajukan penghapusan data pribadi Anda'**
+  String get accountDeletionLinkSubtitle;
+
+  /// Judul halaman penghapusan akun
+  ///
+  /// In id, this message translates to:
+  /// **'Penghapusan Akun & Data'**
+  String get accountDeletionTitle;
+
+  /// Pengantar halaman penghapusan akun
+  ///
+  /// In id, this message translates to:
+  /// **'Akun Inventra dikelola oleh administrator organisasi Anda dan dibuat serta dinonaktifkan oleh admin/HR — tidak ada pendaftaran mandiri. Karena itu, penghapusan akun dan data pribadi diajukan melalui administrator, bukan dihapus sendiri dari aplikasi.'**
+  String get accountDeletionIntro;
+
+  /// Judul seksi data yang dihapus
+  ///
+  /// In id, this message translates to:
+  /// **'Yang dihapus'**
+  String get accountDeletionDeletedTitle;
+
+  /// Isi seksi data yang dihapus
+  ///
+  /// In id, this message translates to:
+  /// **'Data pribadi Anda dihapus atau dianonimkan saat akun dinonaktifkan: nama, nomor telepon, email kontak, foto profil, preferensi aplikasi, dan seluruh sesi perangkat.'**
+  String get accountDeletionDeletedBody;
+
+  /// Judul seksi data yang disimpan
+  ///
+  /// In id, this message translates to:
+  /// **'Yang tetap disimpan'**
+  String get accountDeletionRetainedTitle;
+
+  /// Isi seksi data yang disimpan karena regulasi
+  ///
+  /// In id, this message translates to:
+  /// **'Catatan aktivitas aset (registrasi, mutasi, stock opname, persetujuan) dan jejak audit tetap disimpan sesuai kewajiban hukum dan regulasi perbankan (mis. retensi POJK) meski akun Anda dihapus. Bila memungkinkan, catatan ini dipisahkan dari identitas pribadi Anda.'**
+  String get accountDeletionRetainedBody;
+
+  /// Judul seksi cara mengajukan
+  ///
+  /// In id, this message translates to:
+  /// **'Cara mengajukan'**
+  String get accountDeletionHowTitle;
+
+  /// Isi seksi cara mengajukan
+  ///
+  /// In id, this message translates to:
+  /// **'Kirim permintaan penghapusan dari email kantor Anda ke administrator sistem, sertakan nama dan email akun Anda. Administrator akan memverifikasi dan memproses permintaan tersebut.'**
+  String get accountDeletionHowBody;
+
+  /// Label alamat email admin
+  ///
+  /// In id, this message translates to:
+  /// **'Email administrator'**
+  String get accountDeletionContactLabel;
+
+  /// Tombol salin email
+  ///
+  /// In id, this message translates to:
+  /// **'Salin'**
+  String get accountDeletionCopyButton;
+
+  /// Konfirmasi email disalin
+  ///
+  /// In id, this message translates to:
+  /// **'Email admin disalin'**
+  String get accountDeletionCopied;
+
+  /// Catatan estimasi waktu proses
+  ///
+  /// In id, this message translates to:
+  /// **'Permintaan biasanya diproses dalam beberapa hari kerja. Anda akan menerima konfirmasi setelah akun dinonaktifkan.'**
+  String get accountDeletionProcessNote;
+
+  /// Tombol membuka aplikasi email permintaan hapus akun
+  ///
+  /// In id, this message translates to:
+  /// **'Kirim via email'**
+  String get accountDeletionEmailButton;
+
+  /// Subjek email permintaan hapus akun
+  ///
+  /// In id, this message translates to:
+  /// **'Permintaan Penghapusan Akun & Data - Inventra'**
+  String get accountDeletionEmailSubject;
+
+  /// Isi email permintaan hapus akun (template)
+  ///
+  /// In id, this message translates to:
+  /// **'Halo Administrator,\n\nSaya ingin mengajukan penghapusan akun dan data pribadi saya di Inventra.\n\nNama: \nEmail akun: \n\nTerima kasih.'**
+  String get accountDeletionEmailBody;
+
+  /// Pesan gagal membuka aplikasi email
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada aplikasi email. Salin alamat lalu kirim manual.'**
+  String get accountDeletionEmailFailed;
 }
 
 class _AppLocalizationsDelegate

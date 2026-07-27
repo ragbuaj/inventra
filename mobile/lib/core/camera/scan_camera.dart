@@ -17,7 +17,13 @@ abstract class ScanCamera {
   ValueListenable<bool> get unavailable;
 
   /// Preview kamera full screen; [onDetect] menerima nilai mentah barcode/QR.
-  Widget buildPreview({required ValueChanged<String> onDetect});
+  /// [scanWindow] (opsional) membatasi area deteksi ke sebuah [Rect] dalam
+  /// ruang koordinat widget preview (mis. bingkai target); barcode di luarnya
+  /// diabaikan. Null berarti mendeteksi di seluruh frame.
+  Widget buildPreview({
+    required ValueChanged<String> onDetect,
+    Rect? scanWindow,
+  });
 
   Future<void> toggleTorch();
 
@@ -50,9 +56,15 @@ class MobileScannerScanCamera implements ScanCamera {
   }
 
   @override
-  Widget buildPreview({required ValueChanged<String> onDetect}) {
+  Widget buildPreview({
+    required ValueChanged<String> onDetect,
+    Rect? scanWindow,
+  }) {
     return MobileScanner(
       controller: _controller,
+      // Membatasi deteksi ke bingkai target: mobile_scanner hanya meneruskan
+      // barcode yang berada di dalam scanWindow (koordinat logis widget).
+      scanWindow: scanWindow,
       onDetect: (BarcodeCapture capture) {
         for (final Barcode barcode in capture.barcodes) {
           final String? raw = barcode.rawValue;

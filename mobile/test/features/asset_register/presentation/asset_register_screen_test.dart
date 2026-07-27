@@ -208,16 +208,16 @@ void main() {
     await tester.pumpAndSettle();
 
     // Field harga = TextField pertama di langkah 2; ketik campuran huruf+angka
-    // -> hanya angka tersisa (inputFormatters menolak keystroke non-numerik).
+    // -> non-digit dibuang, digit diformat ribuan ("15000" -> "15.000").
     await tester.enterText(find.byType(TextField).first, '15a00b0');
     await tester.pump();
     final TextField costField = tester.widget<TextField>(
       find.byType(TextField).first,
     );
-    expect(costField.controller?.text, '15000');
+    expect(costField.controller?.text, '15.000');
   });
 
-  testWidgets('harga perolehan menolak titik ribuan (digit-only)', (
+  testWidgets('harga perolehan diformat dengan pemisah ribuan', (
     WidgetTester tester,
   ) async {
     await pump(tester);
@@ -229,13 +229,13 @@ void main() {
     await tester.tap(find.text(l10nId.registerNext));
     await tester.pumpAndSettle();
 
-    // "1.000.000" (pemisah ribuan) sebelumnya lolos dan membuat purchase_cost
-    // malformed; kini titik ditolak -> "1000000" (rupiah bulat, parseable).
-    await tester.enterText(find.byType(TextField).first, '1.000.000');
+    // Digit dikelompokkan otomatis ("1000000" -> "1.000.000"); digit mentah
+    // dikirim ulang saat submit sehingga payload tetap "1000000".
+    await tester.enterText(find.byType(TextField).first, '1000000');
     await tester.pump();
     final TextField costField = tester.widget<TextField>(
       find.byType(TextField).first,
     );
-    expect(costField.controller?.text, '1000000');
+    expect(costField.controller?.text, '1.000.000');
   });
 }

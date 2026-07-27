@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../core/api/app_failure.dart';
@@ -54,7 +55,71 @@ class AccountSecurityScreen extends ConsumerWidget {
                 builder: (BuildContext ctx) => const _PasswordChangeSheet(),
               ),
             ),
+            const SizedBox(height: 12),
+            _DeletionRow(
+              onTap: () => context.push('/account-deletion'),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Baris menuju layar Penghapusan Akun & Data (jalur yang bisa ditemukan;
+/// disyaratkan Play Store untuk aplikasi berakun).
+class _DeletionRow extends StatelessWidget {
+  const _DeletionRow({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
+
+    return Material(
+      color: theme.cardTheme.color ?? scheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: scheme.outlineVariant),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const ValueKey<String>('security-account-deletion'),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+          child: Row(
+            children: <Widget>[
+              Icon(Symbols.delete_forever_rounded, size: 22, color: scheme.error),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      l10n.accountDeletionLink,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.accountDeletionLinkSubtitle,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: theme.textTheme.labelSmall?.color,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Symbols.chevron_right_rounded, color: scheme.onSurfaceVariant),
+            ],
+          ),
         ),
       ),
     );
@@ -245,7 +310,9 @@ class _PasswordChangeSheetState extends ConsumerState<_PasswordChangeSheet> {
         20,
         0,
         20,
-        20 + MediaQuery.of(context).viewInsets.bottom,
+        20 +
+            MediaQuery.of(context).viewInsets.bottom +
+            MediaQuery.of(context).padding.bottom,
       ),
       child: _sent
           ? const _CheckEmailView()
@@ -395,7 +462,9 @@ class _EmailChangeSheetState extends ConsumerState<_EmailChangeSheet> {
         20,
         0,
         20,
-        20 + MediaQuery.of(context).viewInsets.bottom,
+        20 +
+            MediaQuery.of(context).viewInsets.bottom +
+            MediaQuery.of(context).padding.bottom,
       ),
       child: _sent
           ? const _CheckEmailView()

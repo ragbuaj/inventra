@@ -5,7 +5,6 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import '../core/i18n/gen/app_localizations.dart';
 import '../features/approval/presentation/inbox_count_provider.dart';
-import '../features/notifications/presentation/unread_count_provider.dart';
 
 /// Shell bottom-nav 5 slot 1:1 mockup Beranda: Beranda / Opname / Pindai
 /// (tombol tengah menjorok) / Approval / Notif (badge unread).
@@ -22,7 +21,6 @@ class AppShell extends ConsumerWidget {
     // Bar memakai warna permukaan card (putih light / slate-800 dark) sesuai
     // mockup; ini juga warna border cutout tombol Pindai.
     final Color barColor = theme.cardTheme.color ?? scheme.surface;
-    final int unreadCount = ref.watch(unreadNotificationCountProvider);
     // Badge tab Approval = jumlah pengajuan menunggu keputusan pengguna
     // (mockup Inbox Approval); 0 (tersembunyi) saat gagal/tanpa izin.
     final int approvalCount = ref.watch(approvalPendingBadgeProvider);
@@ -30,8 +28,19 @@ class AppShell extends ConsumerWidget {
     // "Inventra Mobile - Scan"; keluar lewat tombol tutup di layarnya.
     final bool fullScreenScan = navigationShell.currentIndex == 2;
 
-    return Scaffold(
-      body: navigationShell,
+    // Tombol back sistem Android pada branch selain Beranda kembali ke Beranda,
+    // bukan keluar aplikasi (StatefulShellRoute tidak menumpuk back-stack antar
+    // branch, sehingga tanpa ini back di tab sekunder langsung menutup app).
+    return PopScope(
+      canPop: navigationShell.currentIndex == 0,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) {
+          return;
+        }
+        navigationShell.goBranch(0);
+      },
+      child: Scaffold(
+        body: navigationShell,
       // FAB docked di tengah bar supaya tombol yang menjorok ke atas tetap
       // bisa di-tap penuh (widget yang hanya digeser secara visual kehilangan
       // hit-test di luar bounds slot-nya).
@@ -90,16 +99,15 @@ class AppShell extends ConsumerWidget {
                       _NavTab(
                         shell: navigationShell,
                         index: 4,
-                        icon: Symbols.notifications_rounded,
-                        label: l10n.shellTabNotifications,
-                        badgeCount: unreadCount,
-                        badgeBorderColor: barColor,
+                        icon: Symbols.description_rounded,
+                        label: l10n.shellTabRequests,
                       ),
                     ],
                   ),
                 ),
               ),
             ),
+      ),
     );
   }
 }

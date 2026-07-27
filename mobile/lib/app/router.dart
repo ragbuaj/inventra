@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/auth/auth_controller.dart';
 import '../core/auth/auth_session.dart';
+import '../features/account/presentation/account_deletion_screen.dart';
 import '../features/account/presentation/account_security_screen.dart';
 import '../features/account/presentation/profile_screen.dart';
 import '../features/account/presentation/settings_screen.dart';
@@ -13,6 +14,7 @@ import '../features/asset_detail/presentation/asset_detail_screen.dart';
 import '../features/asset_register/presentation/asset_register_screen.dart';
 import '../features/catalog/presentation/catalog_screen.dart';
 import '../features/home/presentation/home_screen.dart';
+import '../features/legal/presentation/privacy_policy_screen.dart';
 import '../features/login/presentation/forgot_password_screen.dart';
 import '../features/login/presentation/login_screen.dart';
 import '../features/my_assets/presentation/my_assets_screen.dart';
@@ -156,10 +158,21 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
           StatefulShellBranch(
             routes: <RouteBase>[
               GoRoute(
-                path: '/notifications',
-                name: 'notifications',
+                path: '/my-requests',
+                name: 'my-requests',
                 builder: (BuildContext context, GoRouterState state) =>
-                    const NotificationsScreen(),
+                    const MyRequestsScreen(),
+                routes: <RouteBase>[
+                  GoRoute(
+                    path: ':id',
+                    name: 'my-request-detail',
+                    parentNavigatorKey: rootNavigatorKey,
+                    builder: (BuildContext context, GoRouterState state) =>
+                        ApprovalDetailScreen(
+                          requestId: state.pathParameters['id']!,
+                        ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -184,18 +197,10 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
             const MyAssetsScreen(),
       ),
       GoRoute(
-        path: '/my-requests',
-        name: 'my-requests',
+        path: '/notifications',
+        name: 'notifications',
         builder: (BuildContext context, GoRouterState state) =>
-            const MyRequestsScreen(),
-        routes: <RouteBase>[
-          GoRoute(
-            path: ':id',
-            name: 'my-request-detail',
-            builder: (BuildContext context, GoRouterState state) =>
-                ApprovalDetailScreen(requestId: state.pathParameters['id']!),
-          ),
-        ],
+            const NotificationsScreen(),
       ),
       GoRoute(
         path: '/assets/:tag',
@@ -216,10 +221,22 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
             const AccountSecurityScreen(),
       ),
       GoRoute(
+        path: '/account-deletion',
+        name: 'account-deletion',
+        builder: (BuildContext context, GoRouterState state) =>
+            const AccountDeletionScreen(),
+      ),
+      GoRoute(
         path: '/settings',
         name: 'settings',
         builder: (BuildContext context, GoRouterState state) =>
             const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/privacy-policy',
+        name: 'privacy-policy',
+        builder: (BuildContext context, GoRouterState state) =>
+            const PrivacyPolicyScreen(),
       ),
     ],
   );
