@@ -1626,11 +1626,183 @@
     "toggleSidebar": "Toggle sidebar",
     "openMenu": "Open navigation menu",
     "primary": "Primary navigation",
+    "signIn": "Sign In",
+    "helpPolicy": "Help & Policies",
+    "guide": "User Guide",
+    "faq": "FAQ",
+    "privacy": "Privacy Policy",
     "group": {
       "operasional": "Operational",
       "administrasi": "Administration",
+      "bantuan": "Help & Policies",
       "menu": "Menu"
     }
+  },
+  "privacyPage": {
+    "title": "Privacy Policy",
+    "subtitle": "How Inventra collects, uses, and protects data in fixed-asset management.",
+    "updated": "Last updated: 27 July 2026",
+    "tocTitle": "Contents",
+    "intro": "Inventra is a fixed-asset and inventory management system for banking environments. This policy explains what data we process when you use the Inventra web and mobile apps, why we process it, and your rights over that data. The app is intended for internal users (staff and administrators), not the general public.",
+    "sections": [
+      {
+        "heading": "1. Data We Collect",
+        "body": "We collect only the data needed to run asset-management functions:",
+        "points": [
+          "Account data: name, work email, job title, office or work unit, role, and a password stored as a hash (bcrypt). We never store passwords in plain text.",
+          "Activity data: an audit trail of important actions (create, update, approve, delete) with timestamp, user, and IP address for security and compliance.",
+          "Asset operational data: asset information, assignments, borrowings, transfers, maintenance, and related documents that you enter into the system.",
+          "Technical data: device type, app version, and technical logs for troubleshooting."
+        ]
+      },
+      {
+        "heading": "2. How We Use Data",
+        "body": "Data is used solely for operational and compliance purposes, including:",
+        "points": [
+          "Authenticating users and enforcing layered authorization (action permissions, per-office data scope, and per-field permissions).",
+          "Running asset business processes: registration, assignment, borrowing, transfer, stock-take, depreciation, and disposal.",
+          "Providing an audit trail and reports for internal oversight functions.",
+          "Maintaining system security, preventing misuse, and meeting regulatory obligations."
+        ]
+      },
+      {
+        "heading": "3. Basis and Purpose of Processing",
+        "body": "Data is processed on the basis of the employment relationship and the legitimate need to manage company assets, and to meet the governance and oversight requirements applicable in the banking sector. We do not use your data for advertising and do not sell it to any party."
+      },
+      {
+        "heading": "4. Storage and Security",
+        "body": "We apply reasonable technical and organizational safeguards:",
+        "points": [
+          "Passwords are hashed with bcrypt; sessions use short-lived access tokens and a refresh token stored as an HttpOnly cookie.",
+          "Data access is limited by the user's role and office scope (segregation of duties).",
+          "Data in transit is encrypted over HTTPS/TLS, and files are kept in controlled object storage.",
+          "Sensitive changes are recorded in an audit trail that ordinary users cannot alter."
+        ]
+      },
+      {
+        "heading": "5. Data Sharing",
+        "body": "Data is accessible only to internal users according to their role and office scope, and to system administrators for maintenance. We do not share data with third parties outside the organization unless required by law or upon a lawful request from a competent authority."
+      },
+      {
+        "heading": "6. Data Retention",
+        "body": "Asset data and audit trails are kept as long as needed for operations and compliance, following internal retention policy and regulatory requirements. Deletion uses a soft-delete mechanism so history remains traceable for audit purposes."
+      },
+      {
+        "heading": "7. Your Rights",
+        "body": "In line with internal policy, you may:",
+        "points": [
+          "View and update your profile data via the My Account menu.",
+          "Change your password at any time.",
+          "Request correction of inaccurate data through an administrator.",
+          "Request an explanation of how your data is processed from a system administrator."
+        ]
+      },
+      {
+        "heading": "8. Policy Changes",
+        "body": "This policy may be updated from time to time as features or regulations evolve. Material changes will be communicated in the app. The Last updated date above indicates the version in effect."
+      },
+      {
+        "heading": "9. Contact",
+        "body": "For privacy or data-protection questions, contact your system administrator or the asset-management unit in your organization."
+      }
+    ]
+  },
+  "guidePage": {
+    "title": "User Guide",
+    "subtitle": "Quick steps for using Inventra to manage fixed assets day to day.",
+    "intro": "This guide helps you get started with Inventra. The menu adapts to your role and office scope, so some features may not appear if your permissions do not cover them.",
+    "sections": [
+      {
+        "heading": "Sign In and Account Security",
+        "icon": "i-lucide-log-in",
+        "body": "Sign in with your work email and password. You can also sign in with your organization Google account if the feature is enabled.",
+        "steps": [
+          "Open the Sign In page, enter your email and password, then press Sign In.",
+          "If you forget your password, use the Forgot Password link to receive reset instructions.",
+          "Change your password periodically via the My Account menu."
+        ]
+      },
+      {
+        "heading": "Dashboard",
+        "icon": "i-lucide-layout-dashboard",
+        "body": "The home page shows an asset summary, recent activity, and shortcuts to tasks that need your attention, such as pending approvals."
+      },
+      {
+        "heading": "Asset Catalog",
+        "icon": "i-lucide-package",
+        "body": "Browse and manage all assets within your office scope.",
+        "steps": [
+          "Use the search box and filters (status, category) to find assets.",
+          "Click an asset to view its details, history, and documents.",
+          "Press Add Asset to register a new asset, or use Import for bulk upload via a file.",
+          "Print barcode or QR labels from the Label & Barcode menu."
+        ]
+      },
+      {
+        "heading": "Borrowing and Assignment",
+        "icon": "i-lucide-hand",
+        "body": "Request to borrow an asset or hand an asset to an employee.",
+        "steps": [
+          "Open Asset Borrowing, pick an available asset, then submit a request.",
+          "The request enters the approval queue according to authority.",
+          "Approved assets are recorded under the Assignments menu along with the holder."
+        ]
+      },
+      {
+        "heading": "Requests and Approval",
+        "icon": "i-lucide-check-square",
+        "body": "Inventra applies a tiered maker-checker mechanism based on asset value.",
+        "steps": [
+          "A maker submits an action; the system determines the approver by authorization limit.",
+          "A checker reviews it in the Requests & Approval menu, then approves or rejects.",
+          "Notifications tell you when a task is waiting."
+        ]
+      },
+      {
+        "heading": "Maintenance",
+        "icon": "i-lucide-wrench",
+        "body": "Request and track asset repairs. An asset under repair has the Maintenance status and cannot be borrowed until it is done."
+      },
+      {
+        "heading": "Transfer, Stock Opname, and Disposal",
+        "icon": "i-lucide-arrow-right-left",
+        "body": "Manage moves between offices, physical checks, and asset disposal.",
+        "steps": [
+          "Transfer moves an asset between offices through approval.",
+          "Stock Opname records the results of a physical check and any discrepancy.",
+          "Disposal releases an asset while recording the gain or loss on disposal."
+        ]
+      },
+      {
+        "heading": "Reports and Depreciation",
+        "icon": "i-lucide-bar-chart-2",
+        "body": "View commercial and fiscal depreciation and generate reports for oversight and accounting needs from the Depreciation and Reports menus."
+      },
+      {
+        "heading": "Master Data and Settings",
+        "icon": "i-lucide-database",
+        "body": "Administrators manage offices, employees, and categories, plus user settings, roles (RBAC), data scope, and field permissions. These menus appear only for users with the relevant permissions."
+      }
+    ]
+  },
+  "faqPage": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Short answers to common questions about using Inventra.",
+    "searchPlaceholder": "Search questions…",
+    "empty": "No questions match your search.",
+    "items": [
+      { "category": "General", "q": "What is Inventra?", "a": "Inventra is a fixed-asset and inventory management system for banking environments, covering registration, assignment, borrowing, transfer, maintenance, depreciation, and disposal of assets with tiered approval controls." },
+      { "category": "General", "q": "Why don't some menus appear for me?", "a": "The menu adapts to your role and office scope. If a menu is not visible, your permissions do not yet cover that feature. Contact an administrator if you need it." },
+      { "category": "Account", "q": "How do I change my password?", "a": "Open the My Account menu, go to the security section, then change your password. Use a strong, unique password." },
+      { "category": "Account", "q": "I forgot my password, what should I do?", "a": "On the Sign In page, click Forgot Password and follow the instructions sent to your work email. If you do not receive the email, contact an administrator." },
+      { "category": "Assets", "q": "How do I add a new asset?", "a": "Open the Asset Catalog then press Add Asset for a single asset, or use Import to upload many assets at once via a file that follows the template." },
+      { "category": "Assets", "q": "How do I print an asset barcode label?", "a": "Select the asset you want, then open the Label & Barcode menu to print a label containing a barcode or QR code." },
+      { "category": "Borrowing", "q": "What is the flow to borrow an asset?", "a": "Submit a borrowing request via the Asset Borrowing menu. The request enters the approval queue; once approved, the asset is recorded under your name in the Assignments menu." },
+      { "category": "Approval", "q": "Who approves my request?", "a": "The approver is determined automatically based on asset value and authorization limits (maker-checker). You will receive notifications about the request status." },
+      { "category": "Data", "q": "Is deleted data truly gone?", "a": "No. Inventra uses soft delete, so data is retained for audit purposes and no longer appears in active lists." },
+      { "category": "Security", "q": "How secure is my data?", "a": "Passwords are stored as hashes, access is limited by role and office scope, connections are encrypted with HTTPS, and important actions are recorded in an audit trail. See the Privacy Policy for more." },
+      { "category": "Language", "q": "How do I change the app language?", "a": "Use the language switcher (ID/EN) in the top bar or the user menu to switch between Indonesian and English." }
+    ]
   },
   "common": {
     "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit",

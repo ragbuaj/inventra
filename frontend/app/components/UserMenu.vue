@@ -2,7 +2,14 @@
 const auth = useAuthStore()
 const { logout } = useAuthApi()
 const { t, locale, setLocale } = useI18n()
+const localePath = useLocalePath()
 const colorMode = useColorMode()
+
+const helpLinks = computed(() => [
+  { to: '/guide', label: t('nav.guide'), icon: 'i-lucide-book-open' },
+  { to: '/faq', label: t('nav.faq'), icon: 'i-lucide-help-circle' },
+  { to: '/privacy', label: t('nav.privacy'), icon: 'i-lucide-shield-check' }
+])
 
 const open = ref(false)
 
@@ -26,6 +33,11 @@ const initials = computed(() => {
   }
   return name.slice(0, 2).toUpperCase()
 })
+
+function go(path: string) {
+  open.value = false
+  navigateTo(localePath(path))
+}
 
 function handleLogout() {
   open.value = false
@@ -149,6 +161,20 @@ function handleLogout() {
               class="size-4 flex-none"
             />
             {{ t('nav.accountSettings') }}
+          </button>
+          <div class="h-px bg-[var(--ui-border)] my-[5px] mx-1" />
+          <!-- Help & policy pages (also reachable from the sidebar; public routes) -->
+          <button
+            v-for="link in helpLinks"
+            :key="link.to"
+            class="flex items-center gap-[10px] w-full px-[10px] py-[9px] text-[14px] text-default bg-transparent border-0 rounded-[8px] cursor-pointer text-left hover:bg-muted transition-colors"
+            @click="go(link.to)"
+          >
+            <UIcon
+              :name="link.icon"
+              class="size-4 flex-none"
+            />
+            {{ link.label }}
           </button>
           <div class="h-px bg-[var(--ui-border)] my-[5px] mx-1" />
           <button
