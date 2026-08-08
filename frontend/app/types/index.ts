@@ -340,3 +340,71 @@ export interface PickerItem {
   label: string
   sublabel?: string
 }
+
+/**
+ * One attachment on a guide module.
+ *
+ * Two shapes arrive on the same type: for a caller without a session the API
+ * sends `locked: true` and omits every media-bearing field, so the UI can render
+ * "there is a video here, sign in to watch" without ever holding the video id or
+ * a file link. Treat the optional fields as absent unless `locked` is false.
+ */
+export interface GuideAttachment {
+  id: string
+  kind: 'video' | 'document'
+  title_id: string
+  title_en: string | null
+  sort_order: number
+  locked: boolean
+  youtube_id?: string
+  file_url?: string
+  original_filename?: string
+  size_bytes?: number
+}
+
+export interface GuideStep {
+  text_id: string
+  text_en?: string | null
+}
+
+export interface GuideModule {
+  id: string
+  slug: string
+  icon: string
+  sort_order: number
+  status: 'draft' | 'published'
+  title_id: string
+  title_en: string | null
+  body_id: string | null
+  body_en: string | null
+  steps: GuideStep[]
+  attachments: GuideAttachment[]
+  published_at: string | null
+  updated_at: string | null
+}
+
+/** Writable half of a guide module; an update replaces every field. */
+export interface GuideModuleInput {
+  slug: string
+  icon: string
+  sort_order: number
+  status: 'draft' | 'published'
+  title_id: string
+  title_en: string | null
+  body_id: string | null
+  body_en: string | null
+  steps: GuideStep[]
+}
+
+export interface GuideVideoInput {
+  url: string
+  title_id: string
+  title_en: string | null
+  sort_order: number
+}
+
+export interface GuideAttachmentPatch {
+  title_id: string
+  title_en: string | null
+  sort_order: number
+}
