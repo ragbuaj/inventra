@@ -4,6 +4,11 @@ import 'package:flutter/material.dart';
 /// (docs/mobile/design). Widget tidak boleh memakai `Color(0xFF...)` literal;
 /// semua warna diambil dari [ColorScheme], [InventraStatusColors], atau
 /// konstanta di file ini (CONVENTIONS.md bagian 3).
+///
+/// Warna brand (primary dan turunannya) memakai biru korporat Bank BTN dan
+/// MENIMPA warna hijau di mockup — lihat CLAUDE.md, warna dikecualikan dari
+/// perbandingan 1:1 terhadap mockup. Warna status (sukses/info/peringatan/
+/// bahaya) tetap semantik dan tidak ikut berubah.
 abstract final class InventraTheme {
   static ThemeData get light => _build(_LightTokens());
 
@@ -179,8 +184,10 @@ abstract final class InventraScanColors {
   /// Border tipis pill tombol manual: putih 16%.
   static const Color manualButtonBorder = Color(0x29FFFFFF);
 
-  /// Sudut bingkai target + garis scan: green-400 (sama di kedua tema).
-  static const Color frameAccent = Color(0xFF4ADE80);
+  /// Sudut bingkai target + garis scan: brand-400 (sama di kedua tema).
+  /// Aksen ini menandai brand, bukan status sukses, jadi ia ikut biru BTN.
+  /// Kontras di atas [viewfinderBackground] 6.44:1.
+  static const Color frameAccent = Color(0xFF5891FF);
 
   /// Teks/ikon di atas viewfinder.
   static const Color foreground = Color(0xFFFFFFFF);
@@ -196,13 +203,13 @@ abstract final class InventraThemePreviewColors {
   static const Color lightBackground = Color(0xFFF8FAFC);
   static const Color lightSurface = Color(0xFFFFFFFF);
   static const Color lightBorder = Color(0xFFE2E8F0);
-  static const Color lightAccent = Color(0xFFDCFCE7);
+  static const Color lightAccent = Color(0xFFDCE9FF);
   static const Color lightBlock = Color(0xFFE2E8F0);
 
   static const Color darkBackground = Color(0xFF0F172A);
   static const Color darkSurface = Color(0xFF1E293B);
   static const Color darkBorder = Color(0xFF334155);
-  static const Color darkAccent = Color(0xFF14532D);
+  static const Color darkAccent = Color(0xFF012C81);
   static const Color darkBlock = Color(0xFF334155);
 }
 
@@ -414,11 +421,13 @@ final class _LightTokens extends _Tokens {
   @override
   ColorScheme get colorScheme => ColorScheme(
     brightness: Brightness.light,
-    primary: const Color(0xFF16A34A),
+    // Biru korporat Bank BTN (brand-500), diambil apa adanya dari logo.
+    // Putih di atasnya 5.36:1.
+    primary: const Color(0xFF005BFD),
     onPrimary: const Color(0xFFFFFFFF),
-    primaryContainer: const Color(0xFFDCFCE7),
-    // Shade hover/gelap primary dari mockup.
-    onPrimaryContainer: const Color(0xFF15803D),
+    primaryContainer: const Color(0xFFDCE9FF),
+    // Shade hover/gelap primary (brand-700); di atas container 6.95:1.
+    onPrimaryContainer: const Color(0xFF0041BA),
     secondary: textLabel,
     onSecondary: const Color(0xFFFFFFFF),
     secondaryContainer: const Color(0xFFF1F5F9),
@@ -476,11 +485,13 @@ final class _DarkTokens extends _Tokens {
   @override
   ColorScheme get colorScheme => ColorScheme(
     brightness: Brightness.dark,
-    primary: const Color(0xFF22C55E),
-    onPrimary: const Color(0xFF052E16),
-    primaryContainer: const Color(0xFF14532D),
-    // Aksen hijau terang dari mockup dark.
-    onPrimaryContainer: const Color(0xFF4ADE80),
+    // brand-400: biru BTN dinaikkan terangnya agar terbaca di atas slate-950.
+    primary: const Color(0xFF5891FF),
+    onPrimary: const Color(0xFF02194F),
+    primaryContainer: const Color(0xFF012C81),
+    // Aksen biru terang. Step 300, bukan 400 seperti padanan hijaunya dulu:
+    // brand-400 di atas brand-900 hanya 4.12:1 (gagal AA), step 300 6.46:1.
+    onPrimaryContainer: const Color(0xFF96BBFF),
     secondary: textSecondary,
     onSecondary: scaffoldBackground,
     secondaryContainer: border,

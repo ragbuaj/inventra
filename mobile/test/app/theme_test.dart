@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -28,10 +30,10 @@ void main() {
       find.byType(MaterialApp),
     );
 
-    // Token primary dari mockup: hijau light/dark.
-    expect(app.theme?.colorScheme.primary, const Color(0xFF16A34A));
-    expect(app.darkTheme?.colorScheme.primary, const Color(0xFF22C55E));
-    expect(app.darkTheme?.colorScheme.onPrimary, const Color(0xFF052E16));
+    // Token primary: biru korporat Bank BTN (brand-500 light, brand-400 dark).
+    expect(app.theme?.colorScheme.primary, const Color(0xFF005BFD));
+    expect(app.darkTheme?.colorScheme.primary, const Color(0xFF5891FF));
+    expect(app.darkTheme?.colorScheme.onPrimary, const Color(0xFF02194F));
 
     // Font Inter di-bundle dan dipakai lewat tema.
     expect(app.theme?.textTheme.bodyMedium?.fontFamily, 'Inter');
@@ -67,6 +69,82 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(l10nEn.loginCardSubtitle), findsOneWidget);
+  });
+
+  // Rasio kontras WCAG 2.1. Warna brand ditetapkan sekali lalu diwarisi setiap
+  // layar, jadi penurunan kontras di sini menyebar diam-diam ke seluruh
+  // aplikasi — dikunci sebagai tes, bukan diserahkan ke pemeriksaan manual.
+  double luminance(Color c) {
+    double channel(double v) {
+      return v <= 0.03928
+          ? v / 12.92
+          : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
+    }
+
+    return 0.2126 * channel(c.r) +
+        0.7152 * channel(c.g) +
+        0.0722 * channel(c.b);
+  }
+
+  double contrast(Color a, Color b) {
+    final double x = luminance(a);
+    final double y = luminance(b);
+    return (math.max(x, y) + 0.05) / (math.min(x, y) + 0.05);
+  }
+
+  group('kontras warna brand memenuhi WCAG AA', () {
+    final ColorScheme light = InventraTheme.light.colorScheme;
+    final ColorScheme dark = InventraTheme.dark.colorScheme;
+
+    test('teks di atas primary terbaca di kedua tema', () {
+      expect(
+        contrast(light.onPrimary, light.primary),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(contrast(dark.onPrimary, dark.primary), greaterThanOrEqualTo(4.5));
+    });
+
+    test('teks di atas primaryContainer terbaca di kedua tema', () {
+      expect(
+        contrast(light.onPrimaryContainer, light.primaryContainer),
+        greaterThanOrEqualTo(4.5),
+      );
+      // Regresi yang pernah nyaris lolos: padanan step 400 hanya 4.12:1, jadi
+      // mode gelap memakai step 300. Menurunkannya lagi harus menggagalkan tes.
+      expect(
+        contrast(dark.onPrimaryContainer, dark.primaryContainer),
+        greaterThanOrEqualTo(4.5),
+      );
+    });
+
+    test('primary tetap terbaca di atas latar scaffold masing-masing tema', () {
+      // Primary dipakai sebagai warna teks tautan/aksi, bukan hanya latar tombol.
+      expect(
+        contrast(light.primary, const Color(0xFFF8FAFC)),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        contrast(dark.primary, const Color(0xFF0F172A)),
+        greaterThanOrEqualTo(4.5),
+      );
+    });
+
+    test('aksen bingkai pemindai terbaca di atas viewfinder gelap', () {
+      // Elemen grafis non-teks: ambang WCAG 3:1.
+      expect(
+        contrast(
+          InventraScanColors.frameAccent,
+          InventraScanColors.viewfinderBackground,
+        ),
+        greaterThanOrEqualTo(3.0),
+      );
+    });
+  });
+
+  test('brand primary memakai biru korporat Bank BTN apa adanya', () {
+    // Diambil verbatim dari logo (frontend/public/logo-btn.png). Kalau nilai ini
+    // bergeser, ia tidak lagi warna resmi BTN.
+    expect(InventraTheme.light.colorScheme.primary, const Color(0xFF005BFD));
   });
 
   test('chip status aset memetakan keluarga semantik yang benar', () {

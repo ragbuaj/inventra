@@ -16,6 +16,26 @@
   --color-green-800: #166534;
   --color-green-900: #14532d;
   --color-green-950: #052e16;
+
+  /* Bank BTN brand ramp. Step 500 is the corporate blue taken verbatim from the
+     logo (public/logo-btn.png, #005BFD); the rest is interpolated in OKLCH at a
+     fixed hue (262.01) with chroma tapered toward both ends and clipped to the
+     sRGB gamut. Anchored at 500 — not 600 — because Nuxt UI resolves
+     `--ui-primary` to primary-500 in light mode, so this is the step users
+     actually see on primary surfaces; anchoring deeper would put a lighter blue
+     on buttons and drop white-on-primary below the WCAG AA 4.5:1 floor.
+     White on 500 is 5.36:1; 600 on white is 6.72:1; 400 on slate-950 is 6.64:1. */
+  --color-brand-50: #f0f5ff;
+  --color-brand-100: #dce9ff;
+  --color-brand-200: #bfd6ff;
+  --color-brand-300: #96bbff;
+  --color-brand-400: #5891ff;
+  --color-brand-500: #005bfd;
+  --color-brand-600: #004edc;
+  --color-brand-700: #0041ba;
+  --color-brand-800: #00349b;
+  --color-brand-900: #012c81;
+  --color-brand-950: #02194f;
 }
 
 /* Moving-gradient shimmer used by skeleton loaders (matches the mockup's @keyframes shimmer). */
