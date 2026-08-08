@@ -17,6 +17,30 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
+> **Panduan Penggunaan berbasis data + lampiran video/PDF (2026-08-08, branch `feat/guide-media`) — SEDANG BERJALAN, 11 dari 19 langkah.**
+> Spec: `docs/superpowers/specs/2026-08-08-guide-media-cms-design.md` (46 acceptance criteria).
+> Rencana: `docs/superpowers/plans/2026-08-08-guide-media-cms.md` (19 langkah, 6 keputusan arsitektur).
+> Mockup: `docs/design/Panduan Media.dc.html` + `docs/design/Panduan Pengelolaan.dc.html`.
+>
+> **Sudah selesai (langkah 1-11, 13 commit):** migration `000050` (skema `guide`, dua enum, dua tabel,
+> seed permission `guide.manage` ke Superadmin) dan `000051` (seed 9 modul dari i18n, idempoten);
+> kueri sqlc; service + validator YouTube/PDF; middleware `OptionalAuth`; DTO/handler/rute; wiring
+> router + `GUIDE_PDF_MAX_BYTES`; kontrak OpenAPI; tes integrasi; composable + helper bahasa; halaman
+> pembaca berbasis data + `GuideMediaCard`.
+>
+> **Berikutnya — langkah 12:** halaman pengelolaan `frontend/app/pages/settings/guide.vue` beserta
+> `GuideModuleForm` dan `GuideAttachmentManager`, leaf nav baru bergerbang `guide.manage`. Lalu 13
+> (perbaiki `test/unit/nav-model.spec.ts` + `test/nuxt/app-sidebar.spec.ts` yang pasti memerah karena
+> leaf nav bertambah), 14 (tulis ulang `test/nuxt/info-pages.spec.ts` yang masih menguji isi panduan
+> dari i18n, plus tes runtime baru), 15 (e2e), 16-19 (env di `docker-compose.prod.yml`, pembuktian
+> plafon body WAF di produksi, ADR-0018 + DATABASE.md, lalu hapus kunci `guidePage.sections` di rilis
+> berikutnya).
+>
+> **Yang wajib diingat sebelum melanjutkan:** batas PDF sengaja 10 MB, bukan 20 MB usulan spec, karena
+> Coraza WAF di produksi memuat konfigurasi rekomendasi dengan plafon body sekitar 12,5 MB — menaikkannya
+> menuntut `SecRequestBodyLimit` dinaikkan lebih dulu di `ops/caddy/Caddyfile`. Kunci i18n
+> `guidePage.sections` sengaja BELUM dihapus supaya membatalkan rilis cukup mengembalikan kode.
+>
 > **Rebrand tema Bank BTN: web + mobile (2026-08-08, branch `feat/theme-btn-brand`) — SELESAI (kode + tes; lint, typecheck, analyze, 571 tes Flutter, 1740 tes Vitest hijau).**
 > Mengganti warna brand dari hijau ke **biru korporat Bank BTN `#005BFD`**, diekstrak langsung dari
 > `frontend/public/logo-btn.png` (logo hanya memuat dua warna: biru 91,6% dan merah `#FF0000` 8,4%).
