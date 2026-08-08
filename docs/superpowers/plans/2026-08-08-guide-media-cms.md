@@ -194,6 +194,15 @@ di-seed ulang atau dibatalkan tanpa menyentuh struktur.
 | DELETE | `/guide/attachments/:aid` | idem | Soft delete baris, objek MinIO dihapus |
 | GET | `/guide/attachments/:aid/content` | `RequireAuth` saja | Stream PDF. Tanpa sesi: 401 |
 
+Endpoint daftar mengembalikan `steps` dan `attachments` **utuh** untuk seluruh modul (sembilan
+baris, bukan ribuan), sehingga layar pengelolaan menghitung jumlah langkah dan jumlah lampiran
+di klien tanpa kolom agregat maupun panggilan tambahan. Setiap modul juga membawa `updated_at`
+untuk kolom "Diperbarui" di layar pengelolaan; **pelakunya tidak ikut diserialisasi** — "siapa
+mengubah apa" sudah dicatat audit trail yang punya layarnya sendiri, dan menampilkannya di sini
+menuntut join ke tabel user pada setiap baris. Jumlah halaman PDF tidak ada di skema dan tidak
+ditambahkan: menurunkannya berarti mem-parse setiap berkas yang diunggah, sementara nama berkas
+dan ukurannya sudah cukup sebagai meta.
+
 Bentuk daftar mengikuti kebiasaan repo: `{data, total}`. Bentuk error `{"error": "..."}`.
 Kode status: 400 id tidak valid, 401 tanpa sesi, 403 tanpa permission, 404 tidak ada,
 413 berkas terlalu besar, 415 tipe tidak didukung, 422 validasi (termasuk tautan YouTube
@@ -232,8 +241,8 @@ dijalankan dari `backend/`, frontend dari `frontend/`.
 
 ### Fase 0 — desain (sebelum kode frontend)
 
-**0. Dua mockup lewat agent `designer`** — berkas: `docs/design/Panduan Media.dc.html`,
-`docs/design/Panduan Pengelolaan.dc.html`
+**0. Dua mockup lewat agent `designer`** — SELESAI 2026-08-08 — berkas:
+`docs/design/Panduan Media.dc.html`, `docs/design/Panduan Pengelolaan.dc.html`
 Alasan menjalankan `designer` dan bukan langsung membangun: halaman pengelolaan memuat dua
 komponen yang belum pernah ada di repo ini — penyunting daftar langkah yang bisa
 ditambah/dihapus/diurutkan, dan pengelola lampiran yang menggabungkan unggah berkas dengan
@@ -243,6 +252,13 @@ untuk anonim; mockup kedua mencakup daftar modul (status, penanda belum diterjem
 urutan) beserta penyuntingnya.
 Verifikasi: kedua berkas dibuka di browser dan disetujui pemilik produk.
 Bisa di-deploy sendiri: tidak berlaku (tidak menyentuh kode).
+
+Hasil rancangan yang mengikat langkah-langkah berikutnya: penyunting modul berupa slideover
+720px (bukan modal), langkah bernomor otomatis dengan tombol naik/turun (bukan kolom angka —
+kolom angka hanya untuk urutan modul), kolom Indonesia dan Inggris berdampingan dengan sakelar
+penyembunyi, pengelola lampiran berupa dua tab (tempel tautan dan unggah berkas, tidak pernah
+dipakai bersamaan), dan pratinjau pengelola berupa halaman pembaca yang sama ditambah banner
+serta lencana Draf — bukan tata letak ketiga.
 
 ### Fase 1 — basis data
 
@@ -349,6 +365,10 @@ Bisa di-deploy sendiri: ya.
 Dibangun mengikuti mockup langkah 0, seluruhnya dari komponen `U*`; leaf nav baru di grup
 `administrasi` dengan `permission: 'guide.manage'`; input angka memakai komponen angka yang
 sudah ada (tolak karakter non-angka, tanpa minus).
+Satu detail yang mudah terlewat: mockup menuliskan batas "10 MB" langsung di dalam drop zone.
+Angka itu **wajib dirangkai dari konfigurasi** yang dikirim backend, bukan ditulis mati di
+berkas i18n — kalau tidak, langkah 17 yang menaikkan batas setelah plafon WAF terbukti akan
+meninggalkan antarmuka yang berbohong kepada pengelolanya.
 Verifikasi: `pnpm lint` dan `vue-tsc` bersih; menu tidak muncul untuk peran tanpa permission.
 Bisa di-deploy sendiri: ya.
 
