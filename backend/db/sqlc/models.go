@@ -536,6 +536,90 @@ func (ns NullSharedFiscalAssetGroup) Value() (driver.Value, error) {
 	return string(ns.SharedFiscalAssetGroup), nil
 }
 
+type SharedGuideAttachmentKind string
+
+const (
+	SharedGuideAttachmentKindVideo    SharedGuideAttachmentKind = "video"
+	SharedGuideAttachmentKindDocument SharedGuideAttachmentKind = "document"
+)
+
+func (e *SharedGuideAttachmentKind) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedGuideAttachmentKind(s)
+	case string:
+		*e = SharedGuideAttachmentKind(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedGuideAttachmentKind: %T", src)
+	}
+	return nil
+}
+
+type NullSharedGuideAttachmentKind struct {
+	SharedGuideAttachmentKind SharedGuideAttachmentKind `json:"shared_guide_attachment_kind"`
+	Valid                     bool                      `json:"valid"` // Valid is true if SharedGuideAttachmentKind is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedGuideAttachmentKind) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedGuideAttachmentKind, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedGuideAttachmentKind.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedGuideAttachmentKind) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedGuideAttachmentKind), nil
+}
+
+type SharedGuideStatus string
+
+const (
+	SharedGuideStatusDraft     SharedGuideStatus = "draft"
+	SharedGuideStatusPublished SharedGuideStatus = "published"
+)
+
+func (e *SharedGuideStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SharedGuideStatus(s)
+	case string:
+		*e = SharedGuideStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SharedGuideStatus: %T", src)
+	}
+	return nil
+}
+
+type NullSharedGuideStatus struct {
+	SharedGuideStatus SharedGuideStatus `json:"shared_guide_status"`
+	Valid             bool              `json:"valid"` // Valid is true if SharedGuideStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSharedGuideStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.SharedGuideStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SharedGuideStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSharedGuideStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SharedGuideStatus), nil
+}
+
 type SharedImportStatus string
 
 const (
@@ -1445,6 +1529,43 @@ type DisposalDisposal struct {
 	CreatedAt           pgtype.Timestamptz   `json:"created_at"`
 	UpdatedAt           pgtype.Timestamptz   `json:"updated_at"`
 	DeletedAt           pgtype.Timestamptz   `json:"deleted_at"`
+}
+
+type GuideGuideAttachment struct {
+	ID               uuid.UUID                 `json:"id"`
+	ModuleID         uuid.UUID                 `json:"module_id"`
+	Kind             SharedGuideAttachmentKind `json:"kind"`
+	TitleID          string                    `json:"title_id"`
+	TitleEn          *string                   `json:"title_en"`
+	SortOrder        int32                     `json:"sort_order"`
+	YoutubeID        *string                   `json:"youtube_id"`
+	ObjectKey        *string                   `json:"object_key"`
+	OriginalFilename *string                   `json:"original_filename"`
+	MimeType         *string                   `json:"mime_type"`
+	SizeBytes        *int64                    `json:"size_bytes"`
+	CreatedBy        *uuid.UUID                `json:"created_by"`
+	CreatedAt        pgtype.Timestamptz        `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz        `json:"updated_at"`
+	DeletedAt        pgtype.Timestamptz        `json:"deleted_at"`
+}
+
+type GuideGuideModule struct {
+	ID          uuid.UUID          `json:"id"`
+	Slug        string             `json:"slug"`
+	Icon        string             `json:"icon"`
+	SortOrder   int32              `json:"sort_order"`
+	Status      SharedGuideStatus  `json:"status"`
+	PublishedAt pgtype.Timestamptz `json:"published_at"`
+	TitleID     string             `json:"title_id"`
+	TitleEn     *string            `json:"title_en"`
+	BodyID      *string            `json:"body_id"`
+	BodyEn      *string            `json:"body_en"`
+	Steps       []byte             `json:"steps"`
+	CreatedBy   *uuid.UUID         `json:"created_by"`
+	UpdatedBy   *uuid.UUID         `json:"updated_by"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
 }
 
 type IdentityAppSetting struct {
