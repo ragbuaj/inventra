@@ -1448,6 +1448,129 @@
       },
       "loadError": "Failed to load the audit trail.",
       "retry": "Retry"
+    },
+    "guide": {
+      "title": "User Guide",
+      "subtitle": "Compose the guide modules readers see, set their order, and attach YouTube videos or PDF files. Changes go live without waiting for a code release.",
+      "previewPage": "Preview page",
+      "add": "Add Module",
+      "searchPlaceholder": "Search module title…",
+      "count": "Showing {shown} of {total} modules",
+      "filter": {
+        "all": "All",
+        "published": "Published",
+        "draft": "Draft"
+      },
+      "columns": {
+        "modul": "Module",
+        "urutan": "Order",
+        "status": "Status",
+        "langkah": "Steps",
+        "lampiran": "Attachments",
+        "diperbarui": "Updated"
+      },
+      "status": {
+        "published": "Published",
+        "draft": "Draft"
+      },
+      "noTranslation": "Not translated",
+      "stepsCount": "{n} steps",
+      "actions": {
+        "edit": "Edit module",
+        "attachments": "Manage attachments",
+        "publish": "Publish",
+        "unpublish": "Move to draft",
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "delete": "Delete module"
+      },
+      "empty": {
+        "title": "No guide modules yet",
+        "description": "Create the first module to start building the User Guide page your readers see."
+      },
+      "emptyFilter": "No module matches the search or the status filter.",
+      "error": {
+        "title": "The module list failed to load",
+        "description": "Something went wrong while fetching the guide modules. Check your connection and try again."
+      },
+      "delete": {
+        "title": "Delete this module?",
+        "body": "Module {title} will disappear from the guide page and from this list. All of its attachments go with it: PDF files are removed from storage and their links answer 404 immediately. This cannot be undone from this screen.",
+        "confirm": "Yes, Delete"
+      },
+      "toast": {
+        "saved": "Guide module saved.",
+        "published": "Module published.",
+        "unpublished": "Module moved to draft.",
+        "deleted": "Guide module deleted.",
+        "reordered": "Module order updated."
+      },
+      "conflict": "Another module already uses this slug. Change the title slightly and save again.",
+      "form": {
+        "createTitle": "New module",
+        "editTitle": "Edit guide module",
+        "createSub": "A new module stays a draft until you publish it.",
+        "secInfo": "Module information",
+        "secSteps": "Step list",
+        "secAttachments": "Attachments",
+        "fieldTitle": "Title",
+        "fieldBody": "Description",
+        "optional": "(optional)",
+        "fallbackPlaceholder": "Leave empty to fall back to Indonesian",
+        "fieldIcon": "Icon",
+        "iconHint": "Pick from the icons available in the application.",
+        "fieldOrder": "Order",
+        "orderHint": "Lower numbers appear first on the reader page.",
+        "orderDecrease": "Decrease order",
+        "orderIncrease": "Increase order",
+        "fieldStatus": "Status",
+        "statusHint": "Draft modules are invisible to readers.",
+        "showEn": "English column",
+        "addStep": "Add step",
+        "stepPlaceholder": "Write one short step.",
+        "noSteps": "This module has no steps yet. A module without steps is still valid — the reader page shows only its title and description.",
+        "required": "Required",
+        "saveNote": "Changes reach readers once the module is Published. Every save is written to the audit trail.",
+        "attachmentsAfterSave": "Save this module first. Attachments are added afterwards, because each one belongs to a specific module."
+      },
+      "attachments": {
+        "limitHint": "Up to 10 attachments per module",
+        "none": "This module has no attachments yet.",
+        "kindVideo": "Video",
+        "kindDocument": "PDF",
+        "tabVideo": "YouTube link",
+        "tabPdf": "Upload PDF",
+        "urlLabel": "YouTube video link",
+        "urlHint": "Links from youtube.com, youtu.be, m.youtube.com, or /shorts. Extra parameters such as &t= and &list= are dropped automatically.",
+        "urlError": "Link not recognised. Only official YouTube links are accepted; make sure the address is on youtube.com or youtu.be.",
+        "urlOk": "Link accepted",
+        "extractedId": "youtube_id: {id}",
+        "storedNote": "Only the video id is stored; the embed is built by the server on youtube-nocookie.com.",
+        "fieldTitle": "Attachment title",
+        "addVideo": "Add attachment",
+        "addPdf": "Upload & add",
+        "uploadWarning": "Attachments are visible to EVERY signed-in user, across offices and roles. Do not upload documents containing customer data, production screenshots, or other confidential information.",
+        "dropTitle": "Drag a PDF file here, or click to choose one",
+        "dropSub": "PDF only · {size} maximum per file",
+        "uploading": "Uploading… {size}",
+        "errTypeTitle": "File rejected — not a PDF",
+        "errTypeBody": "The file content is checked, not just the extension. This file is not a PDF document.",
+        "errSizeTitle": "File rejected — over {size}",
+        "errSizeBody": "A single guide file may be at most {size}. Shrink the file (for example by compressing the images inside) and upload it again.",
+        "errUpload": "The attachment could not be added. Try again.",
+        "edit": "Edit attachment",
+        "editNoteVideo": "Only the title and order can change. To swap the video, delete this attachment and paste a new link.",
+        "editNoteDoc": "Only the title and order can change. The PDF file cannot be replaced in place — delete this attachment and upload again.",
+        "limitTitle": "Attachment limit reached",
+        "limitBody": "This module already has 10 attachments, the maximum per module. Delete one before adding another.",
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "deleteTitle": "Delete this attachment?",
+        "deleteBody": "Attachment {title} is removed from this module. The PDF file is deleted from storage and its link answers 404 immediately.",
+        "toastAdded": "Attachment added.",
+        "toastSaved": "Attachment updated.",
+        "toastDeleted": "Attachment deleted."
+      }
     }
   },
   "audit": {
@@ -1622,6 +1745,7 @@
     "dataScope": "Data Scope",
     "fieldPermission": "Field Permission",
     "auditTrail": "Audit Trail",
+    "guideManage": "User Guide",
     "comingSoon": "Coming soon",
     "toggleSidebar": "Toggle sidebar",
     "openMenu": "Open navigation menu",

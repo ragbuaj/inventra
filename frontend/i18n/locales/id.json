@@ -1448,6 +1448,129 @@
       },
       "loadError": "Gagal memuat audit trail.",
       "retry": "Coba lagi"
+    },
+    "guide": {
+      "title": "Panduan Penggunaan",
+      "subtitle": "Susun modul panduan yang dibaca pengguna, atur urutannya, dan lampirkan video YouTube atau berkas PDF. Perubahan tayang tanpa menunggu rilis kode.",
+      "previewPage": "Pratinjau halaman",
+      "add": "Tambah Modul",
+      "searchPlaceholder": "Cari judul modul…",
+      "count": "Menampilkan {shown} dari {total} modul",
+      "filter": {
+        "all": "Semua",
+        "published": "Terbit",
+        "draft": "Draf"
+      },
+      "columns": {
+        "modul": "Modul",
+        "urutan": "Urutan",
+        "status": "Status",
+        "langkah": "Langkah",
+        "lampiran": "Lampiran",
+        "diperbarui": "Diperbarui"
+      },
+      "status": {
+        "published": "Terbit",
+        "draft": "Draf"
+      },
+      "noTranslation": "Belum diterjemahkan",
+      "stepsCount": "{n} langkah",
+      "actions": {
+        "edit": "Edit modul",
+        "attachments": "Kelola lampiran",
+        "publish": "Terbitkan",
+        "unpublish": "Tarik ke draf",
+        "moveUp": "Naikkan urutan",
+        "moveDown": "Turunkan urutan",
+        "delete": "Hapus modul"
+      },
+      "empty": {
+        "title": "Belum ada modul panduan",
+        "description": "Buat modul pertama untuk mulai menyusun halaman Panduan Penggunaan yang dibaca pengguna."
+      },
+      "emptyFilter": "Tidak ada modul yang cocok dengan pencarian atau filter status.",
+      "error": {
+        "title": "Daftar modul gagal dimuat",
+        "description": "Terjadi gangguan saat mengambil daftar modul panduan. Periksa koneksi Anda, lalu coba lagi."
+      },
+      "delete": {
+        "title": "Hapus modul ini?",
+        "body": "Modul {title} akan dihapus dari halaman panduan dan dari daftar pengelolaan. Seluruh lampirannya ikut terhapus: berkas PDF dihapus dari penyimpanan dan tautannya langsung menjawab 404. Tindakan ini tidak bisa dibatalkan dari layar ini.",
+        "confirm": "Ya, Hapus"
+      },
+      "toast": {
+        "saved": "Modul panduan tersimpan.",
+        "published": "Modul diterbitkan.",
+        "unpublished": "Modul ditarik ke draf.",
+        "deleted": "Modul panduan dihapus.",
+        "reordered": "Urutan modul diperbarui."
+      },
+      "conflict": "Slug modul sudah dipakai modul lain. Ubah judulnya sedikit, lalu simpan lagi.",
+      "form": {
+        "createTitle": "Modul baru",
+        "editTitle": "Edit modul panduan",
+        "createSub": "Modul baru tersimpan sebagai draf sampai Anda menerbitkannya.",
+        "secInfo": "Informasi modul",
+        "secSteps": "Daftar langkah",
+        "secAttachments": "Lampiran",
+        "fieldTitle": "Judul",
+        "fieldBody": "Deskripsi",
+        "optional": "(opsional)",
+        "fallbackPlaceholder": "Kosongkan untuk memakai versi Indonesia",
+        "fieldIcon": "Ikon",
+        "iconHint": "Pilih dari daftar ikon yang tersedia di aplikasi.",
+        "fieldOrder": "Urutan",
+        "orderHint": "Angka kecil tampil lebih dulu di halaman pembaca.",
+        "orderDecrease": "Kurangi urutan",
+        "orderIncrease": "Tambah urutan",
+        "fieldStatus": "Status",
+        "statusHint": "Modul draf tidak terlihat oleh pembaca.",
+        "showEn": "Kolom Inggris",
+        "addStep": "Tambah langkah",
+        "stepPlaceholder": "Tulis satu langkah singkat.",
+        "noSteps": "Modul ini belum punya langkah. Modul tanpa langkah tetap sah — halaman pembaca hanya menampilkan judul dan deskripsinya.",
+        "required": "Wajib diisi",
+        "saveNote": "Perubahan baru terlihat pembaca setelah modul berstatus Terbit. Setiap penyimpanan tercatat di jejak audit.",
+        "attachmentsAfterSave": "Simpan modul ini lebih dulu. Lampiran ditambahkan setelah modulnya ada, karena setiap lampiran menempel pada modul tertentu."
+      },
+      "attachments": {
+        "limitHint": "Maksimal 10 lampiran per modul",
+        "none": "Belum ada lampiran pada modul ini.",
+        "kindVideo": "Video",
+        "kindDocument": "PDF",
+        "tabVideo": "Tautan YouTube",
+        "tabPdf": "Unggah PDF",
+        "urlLabel": "Tautan video YouTube",
+        "urlHint": "Tautan youtube.com, youtu.be, m.youtube.com, atau /shorts. Parameter tambahan seperti &t= dan &list= dibuang otomatis.",
+        "urlError": "Tautan tidak dikenali. Hanya tautan YouTube resmi yang diterima; pastikan alamatnya berdomain youtube.com atau youtu.be.",
+        "urlOk": "Tautan sah",
+        "extractedId": "youtube_id: {id}",
+        "storedNote": "Yang disimpan hanya identitas video; sematan dibangun server ke youtube-nocookie.com.",
+        "fieldTitle": "Judul lampiran",
+        "addVideo": "Tambah lampiran",
+        "addPdf": "Unggah & tambahkan",
+        "uploadWarning": "Lampiran terlihat oleh SEMUA pengguna yang sudah masuk, lintas kantor dan lintas peran. Jangan unggah dokumen yang memuat data nasabah, tangkapan layar data produksi, atau informasi rahasia lain.",
+        "dropTitle": "Seret berkas PDF ke sini, atau klik untuk memilih",
+        "dropSub": "Hanya PDF · maksimal {size} per berkas",
+        "uploading": "Mengunggah… {size}",
+        "errTypeTitle": "Berkas ditolak — bukan PDF",
+        "errTypeBody": "Isi berkas diperiksa, bukan hanya ekstensinya. Berkas ini bukan dokumen PDF.",
+        "errSizeTitle": "Berkas ditolak — melebihi {size}",
+        "errSizeBody": "Ukuran maksimal satu berkas panduan adalah {size}. Perkecil berkas (mis. kompres gambar di dalamnya) lalu unggah ulang.",
+        "errUpload": "Lampiran gagal ditambahkan. Coba lagi.",
+        "edit": "Sunting lampiran",
+        "editNoteVideo": "Yang bisa diubah hanya judul dan urutan. Untuk mengganti videonya, hapus lampiran ini lalu tempel tautan baru.",
+        "editNoteDoc": "Yang bisa diubah hanya judul dan urutan. Berkas PDF tidak bisa diganti di tempat — hapus lampiran ini lalu unggah ulang.",
+        "limitTitle": "Batas lampiran tercapai",
+        "limitBody": "Modul ini sudah punya 10 lampiran, jumlah maksimal per modul. Hapus salah satu lampiran sebelum menambah yang baru.",
+        "moveUp": "Naikkan urutan",
+        "moveDown": "Turunkan urutan",
+        "deleteTitle": "Hapus lampiran ini?",
+        "deleteBody": "Lampiran {title} dihapus dari modul ini. Berkas PDF ikut dihapus dari penyimpanan dan tautannya langsung menjawab 404.",
+        "toastAdded": "Lampiran ditambahkan.",
+        "toastSaved": "Lampiran diperbarui.",
+        "toastDeleted": "Lampiran dihapus."
+      }
     }
   },
   "audit": {
@@ -1622,6 +1745,7 @@
     "dataScope": "Data Scope",
     "fieldPermission": "Field-Permission",
     "auditTrail": "Audit Trail",
+    "guideManage": "Panduan Penggunaan",
     "comingSoon": "Segera hadir",
     "toggleSidebar": "Tampilkan/sembunyikan menu",
     "openMenu": "Buka menu navigasi",

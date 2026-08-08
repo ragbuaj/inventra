@@ -64,7 +64,7 @@ const EXPECTED_ROUTES: Record<string, string[]> = {
     '/master/offices', '/master/employees', '/master/categories', '/master/map',
     '/master/reference',
     '/settings/users', '/settings/rbac', '/settings/data-scope',
-    '/settings/field-permission', '/settings/audit'
+    '/settings/field-permission', '/settings/audit', '/settings/guide'
   ],
   kepala_kanwil: [
     '/', '/notifications', '/assets', '/assets/label', '/peminjaman', '/assignment', '/stock-opname',
@@ -173,6 +173,27 @@ describe('AppSidebar — group + label rendering', () => {
     for (const href of ['/settings/users', '/settings/rbac', '/settings/data-scope', '/settings/field-permission']) {
       expect(hrefs(wrapper)).not.toContain(href)
     }
+  })
+})
+
+describe('AppSidebar — guide CMS leaf', () => {
+  it('superadmin reaches the CMS while still seeing the public reader page', async () => {
+    login('superadmin')
+    const wrapper = await mountSuspended(AppSidebar)
+    const links = hrefs(wrapper)
+    expect(links).toContain('/settings/guide')
+    expect(links).toContain('/guide')
+  })
+
+  it('a role without guide.manage sees only the public reader page', async () => {
+    // kepala_kanwil holds a wide permission set but not guide.manage: the
+    // authoring menu must not render, which is the same rule the endpoints
+    // enforce (menu visibility equals page reachability).
+    login('kepala_kanwil')
+    const wrapper = await mountSuspended(AppSidebar)
+    const links = hrefs(wrapper)
+    expect(links).not.toContain('/settings/guide')
+    expect(links).toContain('/guide')
   })
 })
 
