@@ -20,10 +20,18 @@ import type {
 export function useGuide() {
   const client = useApiClient()
 
-  /** Published modules. `includeDrafts` is honoured only for guide.manage holders. */
+  /**
+   * Published modules. `includeDrafts` is honoured only for guide.manage holders.
+   *
+   * The generic error toast is suppressed on purpose: both screens that call this
+   * render their own error state with a retry, and a toast on top of it says the
+   * same thing twice — on a public page, to a visitor who has no idea what an API
+   * is. The rejection still propagates, so callers decide what to show.
+   */
   async function list(includeDrafts = false): Promise<GuideModule[]> {
     const res = await client.request<{ data: GuideModule[] }>(
-      `/guide/modules${includeDrafts ? '?status=all' : ''}`
+      `/guide/modules${includeDrafts ? '?status=all' : ''}`,
+      { suppressErrorToast: true }
     )
     return res.data ?? []
   }

@@ -1711,6 +1711,34 @@
     "title": "User Guide",
     "subtitle": "Quick steps for using Inventra to manage fixed assets day to day.",
     "intro": "This guide helps you get started with Inventra. The menu adapts to your role and office scope, so some features may not appear if your permissions do not cover them.",
+    "draft": "Draft",
+    "empty": {
+      "title": "No guide available yet",
+      "description": "No guide module has been published yet. Please check back later."
+    },
+    "error": {
+      "title": "Could not load the guide",
+      "description": "Something went wrong while fetching the guide content. Check your connection and try again."
+    },
+    "media": {
+      "label": "Attachments ({n})",
+      "kindVideo": "Video",
+      "kindDocument": "PDF document",
+      "play": "Play video {title}",
+      "lazyNote": "The video is only loaded from youtube-nocookie.com after you press play.",
+      "lockedVideoTitle": "Guide video is locked",
+      "lockedDocTitle": "Guide document is locked",
+      "lockedHint": "Attachments are available to signed-in users only. The guide text above stays readable without an account.",
+      "signIn": "Sign in",
+      "brokenTitle": "This video cannot be played",
+      "brokenBody": "The video may have been removed or made private. The rest of the guide is still readable.",
+      "brokenRetry": "Reload player",
+      "preview": "Preview",
+      "hidePreview": "Hide preview",
+      "download": "Download",
+      "previewFailed": "The file could not be opened. Try downloading it instead.",
+      "sandboxNote": "The document is displayed in an isolated (sandboxed) frame."
+    },
     "sections": [
       {
         "heading": "Sign In and Account Security",

@@ -1711,6 +1711,34 @@
     "title": "Panduan Penggunaan",
     "subtitle": "Langkah singkat memakai Inventra untuk mengelola aset tetap sehari-hari.",
     "intro": "Panduan ini membantu Anda mulai menggunakan Inventra. Menu yang tampil menyesuaikan peran dan lingkup kantor Anda, sehingga sebagian fitur mungkin tidak terlihat jika izin Anda belum mencakupnya.",
+    "draft": "Draf",
+    "empty": {
+      "title": "Panduan belum tersedia",
+      "description": "Belum ada modul panduan yang diterbitkan. Silakan kembali lagi nanti."
+    },
+    "error": {
+      "title": "Panduan gagal dimuat",
+      "description": "Terjadi gangguan saat mengambil isi panduan. Periksa koneksi Anda lalu coba lagi."
+    },
+    "media": {
+      "label": "Lampiran ({n})",
+      "kindVideo": "Video",
+      "kindDocument": "Dokumen PDF",
+      "play": "Putar video {title}",
+      "lazyNote": "Video baru dimuat dari youtube-nocookie.com setelah Anda menekan putar.",
+      "lockedVideoTitle": "Video panduan terkunci",
+      "lockedDocTitle": "Dokumen panduan terkunci",
+      "lockedHint": "Lampiran hanya terbuka bagi pengguna yang sudah masuk. Teks panduan di atas tetap bisa dibaca tanpa akun.",
+      "signIn": "Masuk",
+      "brokenTitle": "Video tidak dapat diputar",
+      "brokenBody": "Video ini mungkin telah dihapus atau dijadikan privat. Bagian panduan lain tetap bisa dibaca.",
+      "brokenRetry": "Muat ulang pemutar",
+      "preview": "Pratinjau",
+      "hidePreview": "Tutup pratinjau",
+      "download": "Unduh",
+      "previewFailed": "Berkas tidak dapat dibuka. Coba unduh berkasnya.",
+      "sandboxNote": "Dokumen ditampilkan dalam mode terisolasi (sandbox)."
+    },
     "sections": [
       {
         "heading": "Masuk dan Keamanan Akun",
