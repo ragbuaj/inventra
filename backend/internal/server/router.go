@@ -30,6 +30,7 @@ import (
 	"github.com/ragbuaj/inventra/internal/disposal"
 	"github.com/ragbuaj/inventra/internal/email"
 	"github.com/ragbuaj/inventra/internal/geoip"
+	"github.com/ragbuaj/inventra/internal/guide"
 	"github.com/ragbuaj/inventra/internal/identity"
 	"github.com/ragbuaj/inventra/internal/importer"
 	"github.com/ragbuaj/inventra/internal/maintenance"
@@ -306,6 +307,19 @@ func NewRouter(d Deps) (*gin.Engine, Workers) {
 			webOnly,
 			middleware.RequirePermission(permSvc, "report.view"),
 			middleware.RequirePermission(permSvc, "report.export"),
+		)
+
+		// Panduan Penggunaan. The read route is the app's only public API surface
+		// besides auth: OptionalAuth resolves a caller when there is one and lets
+		// guests through otherwise, and the serializer — not the route — decides
+		// that guests see no media refs.
+		guideSvc := guide.NewService(queries, d.Pool, d.Storage, d.Cfg.GuidePDFMaxBytes)
+		guideHandler := guide.NewHandler(guideSvc, permSvc, auditSvc)
+		guide.RegisterRoutes(api, guideHandler,
+			requireAuth,
+			middleware.OptionalAuth(tokenManager, tokenStore),
+			middleware.RequirePermission(permSvc, "guide.manage"),
+			webOnly,
 		)
 
 		notificationSvc := notification.NewService(queries)
