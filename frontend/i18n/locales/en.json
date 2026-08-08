@@ -1495,7 +1495,7 @@
       },
       "delete": {
         "title": "Delete this module?",
-        "body": "Module {title} will disappear from the guide page and from this list. All of its attachments go with it: PDF files are removed from storage and their links answer 404 immediately. This cannot be undone from this screen.",
+        "body": "Module {title} will disappear from the guide page and from this list. All of its attachments go with it and their file links answer 404 immediately, but the PDF files themselves are kept so a mistaken deletion can still be recovered. To remove the files from storage as well, delete the attachments one by one first. This cannot be undone from this screen.",
         "confirm": "Yes, Delete"
       },
       "toast": {

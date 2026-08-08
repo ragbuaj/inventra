@@ -1495,7 +1495,7 @@
       },
       "delete": {
         "title": "Hapus modul ini?",
-        "body": "Modul {title} akan dihapus dari halaman panduan dan dari daftar pengelolaan. Seluruh lampirannya ikut terhapus: berkas PDF dihapus dari penyimpanan dan tautannya langsung menjawab 404. Tindakan ini tidak bisa dibatalkan dari layar ini.",
+        "body": "Modul {title} akan dihapus dari halaman panduan dan dari daftar pengelolaan. Seluruh lampirannya ikut terhapus dan tautan berkasnya langsung menjawab 404, tetapi berkas PDF-nya sendiri tetap tersimpan supaya penghapusan yang keliru masih bisa dipulihkan. Untuk membuang berkasnya dari penyimpanan, hapus lampirannya satu per satu lebih dulu. Tindakan ini tidak bisa dibatalkan dari layar ini.",
         "confirm": "Ya, Hapus"
       },
       "toast": {
