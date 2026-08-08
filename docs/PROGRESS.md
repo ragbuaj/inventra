@@ -17,7 +17,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
-> **Panduan Penggunaan berbasis data + lampiran video/PDF (2026-08-08, branch `feat/guide-media`) — SEDANG BERJALAN, 14 dari 19 langkah.**
+> **Panduan Penggunaan berbasis data + lampiran video/PDF (2026-08-08, branch `feat/guide-media`) — SEDANG BERJALAN, 15 dari 19 langkah.**
 > Spec: `docs/superpowers/specs/2026-08-08-guide-media-cms-design.md` (46 acceptance criteria).
 > Rencana: `docs/superpowers/plans/2026-08-08-guide-media-cms.md` (19 langkah, 6 keputusan arsitektur).
 > Mockup: `docs/design/Panduan Media.dc.html` + `docs/design/Panduan Pengelolaan.dc.html`.
@@ -32,10 +32,34 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > `guide-page.spec.ts` dan `guide-admin.spec.ts` (langkah 14). Lint, typecheck, dan seluruh suite Vitest
 > hijau (128 berkas, 1837 tes).
 >
-> **Berikutnya — langkah 15:** e2e `frontend/e2e/guide.spec.ts` (admin membuat modul, menambah video dan
-> PDF, menerbitkan, lalu muncul di `/guide`; konteks anonim melihat kartu terkunci; user tanpa permission
-> tidak melihat menunya). Lalu 16-19: env di `docker-compose.prod.yml`, pembuktian plafon body WAF di
-> produksi, ADR-0018 + DATABASE.md, lalu hapus kunci `guidePage.sections` di rilis berikutnya.
+> **Langkah 15 SELESAI:** e2e `frontend/e2e/guide.spec.ts`, 10 tes dalam dua kelompok. Kelompok A
+> (serial): buat modul draf dengan langkah bernomor; tambah lampiran video YouTube dan unggah PDF nyata
+> ke MinIO; berkas ber-ekstensi `.pdf` yang isinya bukan PDF ditolak server (415); modul draf tak
+> terlihat oleh tamu di halaman maupun API; terbitkan lalu modul, sematan `youtube-nocookie.com`, dan
+> kartu dokumen muncul untuk pembaca ber-sesi; tamu membaca teksnya tetapi mendapat kartu terkunci —
+> plus pembuktian bahwa `youtube_id`, `file_url`, nama berkas, dan ukurannya benar-benar tidak ada di
+> muatan anonim, header `Cache-Control: no-store` + `Vary: Authorization` terpasang, dan
+> `GET /guide/attachments/:id/content` menjawab 401 tanpa sesi. Kelompok B: user dengan peran khusus
+> tanpa `guide.manage` (tetapi punya `user.manage`, sehingga grup Pengaturan tetap tampil) tidak melihat
+> leaf Panduan, ditolak `can` middleware saat membuka `/settings/guide` langsung, ditolak 403 di API
+> tulis, tidak menerima draf walau meminta `?status=all`, namun tetap bisa membaca lampiran modul
+> terbit (permission mengatur tulis, sesi mengatur baca). Lint + typecheck bersih; suite dijalankan
+> penuh terhadap stack Docker nyata: 5 kali berturut-turut 10/10 hijau. Setiap tes dibuktikan bisa merah
+> lewat 13 mutasi terarah. Data uji dibersihkan sendiri lewat API di `afterAll`.
+>
+> **Berikutnya — langkah 16-19:** env `GUIDE_PDF_MAX_BYTES` di `docker-compose.prod.yml`, pembuktian
+> plafon body WAF di produksi, ADR-0018 + DATABASE.md, lalu hapus kunci `guidePage.sections` di rilis
+> berikutnya.
+>
+> **Temuan dari langkah 15 (belum ditindaklanjuti, bukan pemblokir):**
+> 1. `GuideMediaCard.vue` tidak punya `data-testid` di elemen akarnya, sehingga e2e harus memakai
+>    lokator struktural (saudara-berikutnya dari baris judul) untuk membatasi asersi ke satu lampiran.
+>    Usul: `data-testid="guide-media-card"` beserta penanda status terkunci.
+> 2. `nav.guide` dan `nav.guideManage` memakai label yang persis sama, "Panduan Penggunaan". Superadmin
+>    melihat label kembar di sidebar (Bantuan dan Administrasi > Pengaturan). Perlu keputusan produk.
+> 3. `e2e/nav-access.spec.ts` menyapu seluruh menu dalam satu tes ber-anggaran 30 detik dan kini
+>    bertambah satu rute. Terhadap dev server Vite tes itu butuh sekitar 1,3 menit dan gagal karena
+>    waktu habis (bukan 403 — dengan `--timeout=180000` ia hijau). Anggaran waktunya layak dinaikkan.
 >
 > **Perbandingan dengan mockup — SUDAH dijalankan.** Stack dev Docker dinyalakan, login superadmin,
 > lalu `/settings/guide` dibandingkan berdampingan dengan `docs/design/Panduan Pengelolaan.dc.html`:
