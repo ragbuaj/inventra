@@ -217,6 +217,39 @@ func (h *Handler) addVideo(c *gin.Context) {
 	c.JSON(http.StatusCreated, resp)
 }
 
+// multipartOverheadAllowance is the headroom the whole request body gets over
+// the per-file limit.
+//
+// The body carries the file PLUS the multipart boundaries, the part headers, and
+// the three text fields, so capping it at exactly the file limit would reject a
+// file that is precisely AT the limit — the very size the upload form advertises.
+// The per-file check in the service is the rule; this cap is only a bound on how
+// much we are willing to read. It stays far below the roughly 12.5 MB request
+// body ceiling the production WAF enforces (see config.GuidePDFMaxBytes).
+const multipartOverheadAllowance = 1 << 20 // 1 MiB
+
+// limitAwareBody records that the body cap was hit.
+//
+// http.MaxBytesReader on its own is not enough to answer correctly. mime/multipart
+// reads the body through it, and when the cap trips while PART HEADERS are still
+// being parsed, the parser fails with "malformed MIME header: missing colon" and
+// the *http.MaxBytesError never reaches the handler — an upload that is merely
+// too large would then be reported as 422 malformed input. Recording the trip
+// where it happens survives whatever the parser makes of the error afterwards.
+type limitAwareBody struct {
+	io.ReadCloser
+	tripped bool
+}
+
+func (b *limitAwareBody) Read(p []byte) (int, error) {
+	n, err := b.ReadCloser.Read(p)
+	var maxErr *http.MaxBytesError
+	if errors.As(err, &maxErr) {
+		b.tripped = true
+	}
+	return n, err
+}
+
 // addDocument handles the PDF upload. The body is capped before parsing so an
 // oversized request is rejected without being buffered whole.
 func (h *Handler) addDocument(c *gin.Context) {
@@ -225,12 +258,15 @@ func (h *Handler) addDocument(c *gin.Context) {
 		return
 	}
 
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, h.svc.MaxBytes()+1)
+	body := &limitAwareBody{
+		ReadCloser: http.MaxBytesReader(c.Writer, c.Request.Body,
+			h.svc.MaxBytes()+multipartOverheadAllowance),
+	}
+	c.Request.Body = body
 
 	var req documentRequest
 	if err := c.ShouldBind(&req); err != nil {
-		var maxErr *http.MaxBytesError
-		if errors.As(err, &maxErr) {
+		if body.tripped {
 			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": ErrTooLarge.Error()})
 			return
 		}
@@ -240,8 +276,7 @@ func (h *Handler) addDocument(c *gin.Context) {
 
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
-		var maxErr *http.MaxBytesError
-		if errors.As(err, &maxErr) {
+		if body.tripped {
 			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": ErrTooLarge.Error()})
 			return
 		}
@@ -322,14 +357,24 @@ func (h *Handler) deleteAttachment(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// downloadAttachment streams the stored PDF. It sits behind RequireAuth: a
-// session is the whole access rule, and the unguessable object key is NOT one.
+// downloadAttachment streams the stored PDF. It sits behind RequireAuth, and a
+// session is *almost* the whole access rule: media on a PUBLISHED module is
+// readable by any signed-in user, but media on a draft follows its module and
+// stays with the authors.
+//
+// That second half matters because withdrawing a module has to withdraw its
+// files too. Every reader who loaded the page while it was published holds the
+// attachment ids, so if the rule were "any session", pulling a module back to
+// draft would remove the text and leave the PDF downloadable forever — which is
+// exactly the containment step the spec relies on for a document published by
+// mistake. Neither the id nor the object key is a capability.
 func (h *Handler) downloadAttachment(c *gin.Context) {
 	id, ok := parseID(c, "aid")
 	if !ok {
 		return
 	}
-	att, err := h.svc.GetAttachment(c.Request.Context(), id)
+	_, canManage := h.caller(c)
+	att, err := h.svc.GetAttachmentForRead(c.Request.Context(), id, canManage)
 	if err != nil {
 		h.svcError(c, err)
 		return

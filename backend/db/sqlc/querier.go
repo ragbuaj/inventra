@@ -199,6 +199,13 @@ type Querier interface {
 	GetFloor(ctx context.Context, arg GetFloorParams) (MasterdataFloor, error)
 	GetFloorOffice(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
 	GetGuideAttachment(ctx context.Context, id uuid.UUID) (GuideGuideAttachment, error)
+	// Dipakai endpoint penyajian berkas. Status modul induk ikut disaring DI DALAM
+	// kueri, bukan diperiksa pada hasilnya: lampiran milik modul draf tidak
+	// dikembalikan sama sekali kecuali @include_draft menyala, dan handler hanya
+	// menyalakannya untuk pemanggil yang memegang guide.manage. Tanpa baris,
+	// pemanggil menerima 404 yang sama persis dengan id yang tidak ada — keberadaan
+	// draf pun tidak terbocorkan.
+	GetGuideAttachmentForRead(ctx context.Context, arg GetGuideAttachmentForReadParams) (GuideGuideAttachment, error)
 	GetGuideModule(ctx context.Context, id uuid.UUID) (GuideGuideModule, error)
 	GetImportJob(ctx context.Context, id uuid.UUID) (ImportImportJob, error)
 	GetImportJobForUpdate(ctx context.Context, id uuid.UUID) (ImportImportJob, error)

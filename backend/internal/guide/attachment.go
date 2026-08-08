@@ -172,6 +172,23 @@ func (s *Service) GetAttachment(ctx context.Context, id uuid.UUID) (sqlc.GuideGu
 	return row, mapDBError(err)
 }
 
+// GetAttachmentForRead loads an attachment for the file endpoint, where the
+// parent module's status is part of the access rule: a draft is an authoring
+// workspace, so its media belongs to whoever may author, not to every session.
+//
+// includeDraft is the caller's RESOLVED authority — the same discipline as
+// List: the handler sets it from guide.manage, never from a request parameter.
+// The filtering happens inside the query rather than on its result, so a caller
+// without that authority cannot tell a draft's attachment from one that was
+// never there.
+func (s *Service) GetAttachmentForRead(ctx context.Context, id uuid.UUID, includeDraft bool) (sqlc.GuideGuideAttachment, error) {
+	row, err := s.q.GetGuideAttachmentForRead(ctx, sqlc.GetGuideAttachmentForReadParams{
+		ID:           id,
+		IncludeDraft: includeDraft,
+	})
+	return row, mapDBError(err)
+}
+
 // UpdateAttachment changes the title and ordering only. Neither the file nor the
 // link can be swapped in place: replacing one means deleting the attachment and
 // adding it again, so no row ever ends up pointing at an object it did not

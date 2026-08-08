@@ -225,11 +225,14 @@ tags:
       Because the body varies with `Authorization`, the response is served
       `Cache-Control: no-store` and `Vary: Authorization`.
 
-      `GET /guide/attachments/{aid}/content` streams the PDF and requires only a
-      **session** — any authenticated user may read guide media; `guide.manage`
-      governs authoring, not reading. The object key is generated server-side and
-      is never exposed; it is not a capability, and no unauthenticated request
-      can reach a file.
+      `GET /guide/attachments/{aid}/content` streams the PDF. For media on a
+      **published** module a **session** is the whole rule — any authenticated
+      user may read it; `guide.manage` governs authoring, not reading. Media on a
+      **draft** module is another matter: it follows its module and is readable
+      only by `guide.manage` holders, so pulling a module back to draft also
+      pulls its files. The object key is generated server-side and is never
+      exposed; neither it nor the attachment id is a capability, and no
+      unauthenticated request can reach a file.
 
       Every **write** requires `guide.manage` and a **web** audience token
       (ADR-0017), like the other admin surfaces. Drafts are visible only to
@@ -5364,8 +5367,11 @@ paths:
         generated server-side; the original filename is kept as display metadata
         only and never becomes part of a storage path.
 
-        The size cap comes from `GUIDE_PDF_MAX_BYTES` (10 MB by default) and is
-        enforced on the request body before parsing.
+        The size cap comes from `GUIDE_PDF_MAX_BYTES` (10 MB by default) and
+        applies **per file**: a PDF of exactly that size is accepted. The request
+        body is additionally bounded (the limit plus a small allowance for the
+        multipart envelope) so an oversized upload is cut off rather than
+        buffered whole; whichever bound is reached, the answer is 413.
       security:
         - bearerJWT: []
       requestBody:
@@ -5439,9 +5445,17 @@ paths:
       operationId: downloadGuideAttachment
       summary: Stream an attachment's PDF
       description: |
-        Streams the stored PDF to any **authenticated** caller; no permission key
-        is needed. Without a session the request is rejected with 401 — the
-        unguessable object key is not a substitute for that check.
+        Streams the stored PDF. A session is required and, for a **published**
+        module, sufficient — no permission key is needed to read guide media.
+        Without a session the request is rejected with 401; the unguessable
+        object key is not a substitute for that check.
+
+        Media on a **draft** module follows its module: only a caller holding
+        `guide.manage` may read it, and everyone else gets **404**, the same
+        answer as an id that does not exist, so a draft's existence is not
+        disclosed. This also means withdrawing a module to draft withdraws its
+        files — the attachment ids handed out while it was published stop
+        working for ordinary readers.
 
         Served with a server-chosen `application/pdf` content type,
         `X-Content-Type-Options: nosniff`, `Content-Security-Policy: sandbox` and

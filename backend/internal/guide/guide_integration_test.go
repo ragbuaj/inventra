@@ -169,6 +169,17 @@ func (h *harness) createModule(t *testing.T, slug, status string) uuid.UUID {
 func pdfBytes() []byte  { return []byte("%PDF-1.4\n%%EOF\n") }
 func htmlBytes() []byte { return []byte("<!doctype html><script>alert(1)</script>") }
 
+// pdfOfSize builds a real-looking PDF of EXACTLY n bytes, so a size limit can be
+// tested at the limit instead of far beyond it.
+func pdfOfSize(n int) []byte {
+	head := []byte("%PDF-1.4\n")
+	tail := []byte("\n%%EOF\n")
+	if n <= len(head)+len(tail) {
+		panic("pdfOfSize: n terlalu kecil untuk sebuah PDF")
+	}
+	return append(append(head, bytes.Repeat([]byte("A"), n-len(head)-len(tail))...), tail...)
+}
+
 // ─── seeds ───────────────────────────────────────────────────────────────────
 
 func seedOffice(t *testing.T, pool *pgxpool.Pool) uuid.UUID {
@@ -346,6 +357,29 @@ func TestUploadRejectsOversizedFile(t *testing.T) {
 	require.NotContains(t, list.Body.String(), "file_url", "unggahan yang ditolak tidak boleh menyisakan baris")
 }
 
+// The size rule is per FILE. The body cap must not quietly become a second,
+// stricter rule: a file of exactly the advertised limit is legal, and the form
+// tells authors so.
+func TestUploadSizeLimitIsExactAndPerFile(t *testing.T) {
+	const limit = 4096
+	h := newHarness(t, limit)
+	moduleID := h.createModule(t, "batas-ukuran", "published")
+
+	atLimit := h.upload(t, moduleID, h.adminToken, "pas.pdf", pdfOfSize(limit))
+	require.Equal(t, http.StatusCreated, atLimit.Code, atLimit.Body.String())
+
+	over := h.upload(t, moduleID, h.adminToken, "lebih.pdf", pdfOfSize(limit+1))
+	require.Equal(t, http.StatusRequestEntityTooLarge, over.Code, over.Body.String())
+
+	// Far over the cap the body reader trips inside the multipart parser, which
+	// then reports a malformed MIME header. The caller must still be told the
+	// file is too large — not that their request was malformed.
+	far := h.upload(t, moduleID, h.adminToken, "raksasa.pdf", pdfOfSize(limit+(2<<20)))
+	require.Equal(t, http.StatusRequestEntityTooLarge, far.Code, far.Body.String())
+	require.Contains(t, far.Body.String(), "size limit")
+	require.NotContains(t, far.Body.String(), "MIME")
+}
+
 func TestVideoLinkValidationAtTheEdge(t *testing.T) {
 	h := newHarness(t, 10<<20)
 	moduleID := h.createModule(t, "video", "published")
@@ -447,6 +481,68 @@ func TestPublishToggleControlsReaderVisibility(t *testing.T) {
 	require.Contains(t, w.Body.String(), `"published_at":null`, "menarik ke draf mengosongkan published_at")
 
 	require.NotContains(t, h.do(t, http.MethodGet, "/api/v1/guide/modules", "", nil).Body.String(), "Modul terbit-tarik")
+}
+
+// Media follows the status of its module. A draft is an authoring workspace, so
+// its PDF is readable by an author and by nobody else — the attachment id is not
+// a capability, exactly as the object key behind it is not one.
+func TestDraftMediaIsReadableOnlyByAuthors(t *testing.T) {
+	h := newHarness(t, 10<<20)
+	moduleID := h.createModule(t, "draf-berkas", "draft")
+	created := h.upload(t, moduleID, h.adminToken, "rahasia.pdf", pdfBytes())
+	require.Equal(t, http.StatusCreated, created.Code, created.Body.String())
+
+	var att struct {
+		ID string `json:"id"`
+	}
+	require.NoError(t, json.Unmarshal(created.Body.Bytes(), &att))
+	path := "/api/v1/guide/attachments/" + att.ID + "/content"
+
+	// The author who is drafting it can still preview it.
+	require.Equal(t, http.StatusOK, h.do(t, http.MethodGet, path, h.adminToken, nil).Code)
+
+	// A signed-in user without guide.manage gets 404, NOT 403: the answer must be
+	// indistinguishable from an id that never existed, or it confirms a draft is
+	// there.
+	denied := h.do(t, http.MethodGet, path, h.readerToken, nil)
+	require.Equal(t, http.StatusNotFound, denied.Code, denied.Body.String())
+	require.NotContains(t, denied.Body.String(), "draft")
+
+	// And no session at all is still 401 — the earlier gate has not moved.
+	require.Equal(t, http.StatusUnauthorized, h.do(t, http.MethodGet, path, "", nil).Code)
+}
+
+// Withdrawing a module has to withdraw its files. Every reader who loaded the
+// page while it was published holds the attachment ids, so a rule that stopped
+// at "any session" would leave the PDF downloadable forever after a document was
+// published by mistake — the one containment step the spec relies on.
+func TestPullingAModuleBackToDraftRevokesItsMedia(t *testing.T) {
+	h := newHarness(t, 10<<20)
+	moduleID := h.createModule(t, "tarik-berkas", "published")
+	created := h.upload(t, moduleID, h.adminToken, "terlanjur.pdf", pdfBytes())
+	require.Equal(t, http.StatusCreated, created.Code, created.Body.String())
+
+	var att struct {
+		ID string `json:"id"`
+	}
+	require.NoError(t, json.Unmarshal(created.Body.Bytes(), &att))
+	path := "/api/v1/guide/attachments/" + att.ID + "/content"
+
+	// While published, any signed-in reader may read it. This is the moment the
+	// id becomes public knowledge.
+	require.Equal(t, http.StatusOK, h.do(t, http.MethodGet, path, h.readerToken, nil).Code)
+
+	w := h.do(t, http.MethodPatch, "/api/v1/guide/modules/"+moduleID.String(), h.adminToken, map[string]any{
+		"slug": "tarik-berkas", "icon": "i-lucide-book-open", "status": "draft",
+		"title_id": "Modul tarik-berkas", "sort_order": 1,
+	})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	require.Equal(t, http.StatusNotFound,
+		h.do(t, http.MethodGet, path, h.readerToken, nil).Code,
+		"menarik modul ke draf harus ikut menarik berkasnya")
+	require.Equal(t, http.StatusOK, h.do(t, http.MethodGet, path, h.adminToken, nil).Code,
+		"penulisnya tetap bisa membukanya")
 }
 
 func TestSlugConflictIsReported(t *testing.T) {

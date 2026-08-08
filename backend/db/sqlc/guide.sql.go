@@ -171,6 +171,49 @@ func (q *Queries) GetGuideAttachment(ctx context.Context, id uuid.UUID) (GuideGu
 	return i, err
 }
 
+const getGuideAttachmentForRead = `-- name: GetGuideAttachmentForRead :one
+SELECT a.id, a.module_id, a.kind, a.title_id, a.title_en, a.sort_order, a.youtube_id, a.object_key, a.original_filename, a.mime_type, a.size_bytes, a.created_by, a.created_at, a.updated_at, a.deleted_at FROM guide.guide_attachments a
+JOIN guide.guide_modules m ON m.id = a.module_id
+WHERE a.id = $1
+  AND a.deleted_at IS NULL
+  AND m.deleted_at IS NULL
+  AND ($2::boolean OR m.status = 'published')
+`
+
+type GetGuideAttachmentForReadParams struct {
+	ID           uuid.UUID `json:"id"`
+	IncludeDraft bool      `json:"include_draft"`
+}
+
+// Dipakai endpoint penyajian berkas. Status modul induk ikut disaring DI DALAM
+// kueri, bukan diperiksa pada hasilnya: lampiran milik modul draf tidak
+// dikembalikan sama sekali kecuali @include_draft menyala, dan handler hanya
+// menyalakannya untuk pemanggil yang memegang guide.manage. Tanpa baris,
+// pemanggil menerima 404 yang sama persis dengan id yang tidak ada — keberadaan
+// draf pun tidak terbocorkan.
+func (q *Queries) GetGuideAttachmentForRead(ctx context.Context, arg GetGuideAttachmentForReadParams) (GuideGuideAttachment, error) {
+	row := q.db.QueryRow(ctx, getGuideAttachmentForRead, arg.ID, arg.IncludeDraft)
+	var i GuideGuideAttachment
+	err := row.Scan(
+		&i.ID,
+		&i.ModuleID,
+		&i.Kind,
+		&i.TitleID,
+		&i.TitleEn,
+		&i.SortOrder,
+		&i.YoutubeID,
+		&i.ObjectKey,
+		&i.OriginalFilename,
+		&i.MimeType,
+		&i.SizeBytes,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const getGuideModule = `-- name: GetGuideModule :one
 SELECT id, slug, icon, sort_order, status, published_at, title_id, title_en, body_id, body_en, steps, created_by, updated_by, created_at, updated_at, deleted_at FROM guide.guide_modules
 WHERE id = $1 AND deleted_at IS NULL

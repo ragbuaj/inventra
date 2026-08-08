@@ -72,6 +72,20 @@ ORDER BY module_id, sort_order, created_at;
 SELECT * FROM guide.guide_attachments
 WHERE id = $1 AND deleted_at IS NULL;
 
+-- Dipakai endpoint penyajian berkas. Status modul induk ikut disaring DI DALAM
+-- kueri, bukan diperiksa pada hasilnya: lampiran milik modul draf tidak
+-- dikembalikan sama sekali kecuali @include_draft menyala, dan handler hanya
+-- menyalakannya untuk pemanggil yang memegang guide.manage. Tanpa baris,
+-- pemanggil menerima 404 yang sama persis dengan id yang tidak ada — keberadaan
+-- draf pun tidak terbocorkan.
+-- name: GetGuideAttachmentForRead :one
+SELECT a.* FROM guide.guide_attachments a
+JOIN guide.guide_modules m ON m.id = a.module_id
+WHERE a.id = @id
+  AND a.deleted_at IS NULL
+  AND m.deleted_at IS NULL
+  AND (@include_draft::boolean OR m.status = 'published');
+
 -- Menegakkan batas jumlah lampiran per modul. Dihitung di dalam transaksi yang
 -- sama dengan penyisipan supaya dua permintaan bersamaan tidak sama-sama lolos.
 -- name: CountGuideAttachments :one
