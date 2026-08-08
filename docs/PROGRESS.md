@@ -47,9 +47,36 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > penuh terhadap stack Docker nyata: 5 kali berturut-turut 10/10 hijau. Setiap tes dibuktikan bisa merah
 > lewat 13 mutasi terarah. Data uji dibersihkan sendiri lewat API di `afterAll`.
 >
-> **Berikutnya — langkah 16-19:** env `GUIDE_PDF_MAX_BYTES` di `docker-compose.prod.yml`, pembuktian
-> plafon body WAF di produksi, ADR-0018 + DATABASE.md, lalu hapus kunci `guidePage.sections` di rilis
-> berikutnya.
+> **Audit sebelum merge (`/audit`) SUDAH dijalankan, dan tiga temuannya SUDAH diperbaiki.** Alat
+> otomatis: `go build`/`vet`/`test`, `golangci-lint`, `govulncheck` (hanya GO-2026-5856 di stdlib,
+> pra-ada seluruh repo), `gitleaks` bersih, `squawk` (peringatan hanya pada tabel yang baru dibuat di
+> migrasi yang sama), Spectral 0 error, dan `git diff` OpenAPI tanpa satu pun baris terhapus sehingga
+> klien lama aman. Yang diperbaiki:
+> 1. **[TINGGI, `fix(security)`]** `GET /guide/attachments/:aid/content` menyajikan berkas tanpa pernah
+>    memeriksa status modul induknya, sehingga PDF milik modul **draf** bisa diunduh user ber-sesi mana
+>    pun yang tahu id lampirannya — dan karena id itu dibagikan ke setiap pembaca selagi modul terbit,
+>    menarik modul kembali ke draf tidak pernah menarik berkasnya. Penyaringan sekarang di dalam kueri
+>    (`GetGuideAttachmentForRead`), gerbangnya `guide.manage`, jawabannya 404 supaya keberadaan draf
+>    tidak terbocorkan. Dibuktikan empiris merah sebelum perbaikan (200) dan hijau sesudahnya.
+> 2. **[SEDANG, commit yang sama]** Plafon badan `maxBytes+1` membuat berkas berukuran **tepat** 10 MB —
+>    angka yang ditulis form unggah — selalu ditolak 413, karena badan multipart selalu lebih besar dari
+>    berkasnya. Plafon badan diberi kelonggaran 1 MiB di atas batas per-berkas (tetap jauh di bawah
+>    plafon WAF). Sekalian: saat plafon terpicu di tengah header MIME, `*http.MaxBytesError` hilang dan
+>    unggahan kebesaran dilaporkan 422 `malformed MIME header`; pemicunya kini dicatat di tempat
+>    kejadian. **Cacat kedua ini membuat `TestUploadRejectsOversizedFile` merah di HEAD sebelumnya** —
+>    branch belum pernah di-push, jadi CI belum pernah menjalankannya.
+> 3. **[SEDANG, `fix(guide)`]** Dialog konfirmasi hapus modul menjanjikan "berkas PDF dihapus dari
+>    penyimpanan", padahal `Service.Delete` sengaja mempertahankan objeknya di MinIO. Teks id/en diganti
+>    dengan perilaku sebenarnya beserta cara membuang berkasnya (hapus lampiran satu per satu).
+>
+> **Berikutnya — langkah 16-19:** env `GUIDE_PDF_MAX_BYTES` di `docker-compose.prod.yml` (temuan SEDANG
+> keempat dari audit, sengaja **belum** dikerjakan karena memang langkah 16), pembuktian plafon body WAF
+> di produksi, ADR-0018 + DATABASE.md, lalu hapus kunci `guidePage.sections` di rilis berikutnya.
+>
+> **Temuan audit yang dibiarkan (saran, bukan pemblokir):** `Icon` tidak divalidasi terhadap daftar
+> tertutup di server; `ListGuideModules` tanpa `LIMIT` pada endpoint publik yang tak bisa di-cache;
+> `PATCH /guide/modules/:id` bersemantik PUT; filter status dan tab lampiran tanpa `role="tab"`/
+> `aria-selected`; tidak ada kuota unggahan per-user.
 >
 > **Temuan dari langkah 15 (belum ditindaklanjuti, bukan pemblokir):**
 > 1. `GuideMediaCard.vue` tidak punya `data-testid` di elemen akarnya, sehingga e2e harus memakai
