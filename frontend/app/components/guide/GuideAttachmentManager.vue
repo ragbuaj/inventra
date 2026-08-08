@@ -172,7 +172,10 @@ async function addVideo() {
 /* ── adder: PDF upload ─────────────────────────────────────────────────── */
 
 const fileInput = ref<HTMLInputElement | null>(null)
-const pdfFile = ref<File | null>(null)
+// shallowRef, not ref: a File must reach FormData as the real object. Vue would
+// hand a reactive proxy to FormData.append, which has no File internal slots and
+// would be coerced to the string "[object File]" instead of the bytes.
+const pdfFile = shallowRef<File | null>(null)
 const pdfTitleId = ref('')
 const pdfTitleEn = ref('')
 const pdfUploading = ref(false)
