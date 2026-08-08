@@ -17,24 +17,49 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
-> **Panduan Penggunaan berbasis data + lampiran video/PDF (2026-08-08, branch `feat/guide-media`) — SEDANG BERJALAN, 11 dari 19 langkah.**
+> **Panduan Penggunaan berbasis data + lampiran video/PDF (2026-08-08, branch `feat/guide-media`) — SEDANG BERJALAN, 14 dari 19 langkah.**
 > Spec: `docs/superpowers/specs/2026-08-08-guide-media-cms-design.md` (46 acceptance criteria).
 > Rencana: `docs/superpowers/plans/2026-08-08-guide-media-cms.md` (19 langkah, 6 keputusan arsitektur).
 > Mockup: `docs/design/Panduan Media.dc.html` + `docs/design/Panduan Pengelolaan.dc.html`.
 >
-> **Sudah selesai (langkah 1-11, 13 commit):** migration `000050` (skema `guide`, dua enum, dua tabel,
+> **Sudah selesai (langkah 1-14, 15 commit):** migration `000050` (skema `guide`, dua enum, dua tabel,
 > seed permission `guide.manage` ke Superadmin) dan `000051` (seed 9 modul dari i18n, idempoten);
 > kueri sqlc; service + validator YouTube/PDF; middleware `OptionalAuth`; DTO/handler/rute; wiring
 > router + `GUIDE_PDF_MAX_BYTES`; kontrak OpenAPI; tes integrasi; composable + helper bahasa; halaman
-> pembaca berbasis data + `GuideMediaCard`.
+> pembaca berbasis data + `GuideMediaCard`; **halaman pengelolaan `settings/guide.vue` + `GuideModuleForm`
+> + `GuideAttachmentManager` + leaf nav bergerbang `guide.manage`** (langkah 12); **penyesuaian tes nav**
+> (langkah 13); **tes panduan berbasis API tiruan**: `info-pages.spec.ts` ditulis ulang, ditambah
+> `guide-page.spec.ts` dan `guide-admin.spec.ts` (langkah 14). Lint, typecheck, dan seluruh suite Vitest
+> hijau (128 berkas, 1837 tes).
 >
-> **Berikutnya — langkah 12:** halaman pengelolaan `frontend/app/pages/settings/guide.vue` beserta
-> `GuideModuleForm` dan `GuideAttachmentManager`, leaf nav baru bergerbang `guide.manage`. Lalu 13
-> (perbaiki `test/unit/nav-model.spec.ts` + `test/nuxt/app-sidebar.spec.ts` yang pasti memerah karena
-> leaf nav bertambah), 14 (tulis ulang `test/nuxt/info-pages.spec.ts` yang masih menguji isi panduan
-> dari i18n, plus tes runtime baru), 15 (e2e), 16-19 (env di `docker-compose.prod.yml`, pembuktian
-> plafon body WAF di produksi, ADR-0018 + DATABASE.md, lalu hapus kunci `guidePage.sections` di rilis
-> berikutnya).
+> **Berikutnya — langkah 15:** e2e `frontend/e2e/guide.spec.ts` (admin membuat modul, menambah video dan
+> PDF, menerbitkan, lalu muncul di `/guide`; konteks anonim melihat kartu terkunci; user tanpa permission
+> tidak melihat menunya). Lalu 16-19: env di `docker-compose.prod.yml`, pembuktian plafon body WAF di
+> produksi, ADR-0018 + DATABASE.md, lalu hapus kunci `guidePage.sections` di rilis berikutnya.
+>
+> **Perbandingan dengan mockup — SUDAH dijalankan.** Stack dev Docker dinyalakan, login superadmin,
+> lalu `/settings/guide` dibandingkan berdampingan dengan `docs/design/Panduan Pengelolaan.dc.html`:
+> tata letak, hierarki, dan komponen cocok pada layar lebar (tabel 7 kolom, ikon + judul + subjudul EN,
+> urutan mono, pil status bertitik, cip lampiran, kebab), lebar ponsel (tabel dipecah jadi kartu),
+> mode terang dan gelap, penyunting slideover 720px (tiga bagian, kolom ID/EN berdampingan, penyunting
+> langkah bernomor, sakelar Kolom Inggris, dua tab lampiran, pratinjau "Tautan sah" dengan `youtube_id`),
+> dan leaf nav di Administrasi > Pengaturan. Jalur tulis diuji langsung ke backend nyata: buat modul,
+> tambah lampiran video YouTube, hapus modul — ketiganya berhasil.
+>
+> **Penyimpangan dari mockup — perlu ditinjau:**
+> 1. Keadaan mockup "sesi berakhir di tengah unggahan" (panel 401 dengan tombol Masuk kembali dan Unggah
+>    ulang, isian judul dipertahankan) **tidak dibangun**: `useApiClient` menangani 401 secara global
+>    dengan `auth.clear()` lalu redirect ke `/login`, sehingga panel itu tidak pernah sempat terlihat.
+>    Membangunnya menuntut jalan keluar per-panggilan dari penanganan sesi global — perubahan lintas
+>    fitur, di luar cakupan langkah ini.
+> 2. Bilah progres unggahan **tanpa persentase**: `$fetch` tidak memberi peristiwa progres unggahan.
+>    Diganti bilah indeterminate dengan nama dan ukuran berkas.
+> 3. Angka "10 MB" di drop zone dirangkai dari satu konstanta frontend (`GUIDE_PDF_MAX_BYTES` di
+>    `app/utils/guideText.ts`), **bukan** dari konfigurasi yang dikirim backend seperti diminta rencana
+>    langkah 12 — kontrak API pada rencana tidak memuat endpoint apa pun yang membawa batas itu, dan
+>    menambahkannya berarti mengubah kontrak. Pola ini sama dengan `ImportWizard` dan `useAccount` yang
+>    sudah ada. Konsekuensinya: menaikkan batas di langkah 17 menuntut konstanta ini ikut diubah, bukan
+>    hanya variabel lingkungan backend. Kalau itu dianggap terlalu rapuh, endpoint batas perlu dibuat.
 >
 > **Yang wajib diingat sebelum melanjutkan:** batas PDF sengaja 10 MB, bukan 20 MB usulan spec, karena
 > Coraza WAF di produksi memuat konfigurasi rekomendasi dengan plafon body sekitar 12,5 MB — menaikkannya
