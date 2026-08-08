@@ -10,7 +10,7 @@ const features = computed(() => [
 <template>
   <div class="min-h-screen grid lg:grid-cols-[1.05fr_1fr]">
     <!-- Brand panel -->
-    <aside class="relative hidden lg:flex flex-col justify-between overflow-hidden p-12 text-white bg-gradient-to-br from-green-900 via-green-700 to-green-600">
+    <aside class="relative hidden lg:flex flex-col justify-between overflow-hidden p-12 text-white bg-gradient-to-br from-brand-900 via-brand-700 to-brand-600">
       <div class="absolute -top-24 -right-20 size-80 rounded-full bg-white/10 blur-lg" />
       <div class="absolute -bottom-28 -left-16 size-72 rounded-full bg-white/[0.07]" />
 

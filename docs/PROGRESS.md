@@ -17,6 +17,34 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
+> **Rebrand tema Bank BTN: web + mobile (2026-08-08, branch `feat/theme-btn-brand`) — SELESAI (kode + tes; lint, typecheck, analyze, 571 tes Flutter, 1740 tes Vitest hijau).**
+> Mengganti warna brand dari hijau ke **biru korporat Bank BTN `#005BFD`**, diekstrak langsung dari
+> `frontend/public/logo-btn.png` (logo hanya memuat dua warna: biru 91,6% dan merah `#FF0000` 8,4%).
+> Ramp 50-950 diturunkan lewat interpolasi **OKLCH** pada hue tetap 262,01 dengan chroma meruncing ke
+> kedua ujung dan di-clip ke gamut sRGB. Biru resmi di-**anchor pada step 500, bukan 600**, karena Nuxt UI
+> me-resolve `--ui-primary` ke `primary-500` (terang) dan `primary-400` (gelap) — anchor lebih dalam akan
+> menaruh biru yang lebih muda di tombol dan menjatuhkan kontras putih-di-atas-primary ke bawah 4,5:1.
+> **Web:** ramp `--color-brand-*` baru di `frontend/app/assets/css/main.css`, `primary: 'brand'` di
+> `app.config.ts`, gradien panel brand `layouts/auth.vue` ikut biru. **Mobile:** `mobile/lib/app/theme.dart`
+> (primary/primaryContainer/onPrimaryContainer light+dark, `InventraScanColors.frameAccent`,
+> `InventraThemePreviewColors.*Accent`); 20 golden diregenerasi.
+> **Yang sengaja TIDAK diubah:** warna status semantik (sukses/info/peringatan/bahaya) dan warna pin peta —
+> hijau di sana berarti "sukses/tersedia", bukan brand. Setelah primary jadi biru, hijau justru bersih
+> hanya bermakna sukses. Merah `#FF0000` **tidak** dipakai sebagai warna permukaan: putih di atasnya hanya
+> 4,00:1 (gagal AA teks normal), jadi ia tetap aksen identitas seperti di logo.
+> **Aksesibilitas:** setiap pasangan diuji WCAG. Satu regresi tertangkap — memetakan step-per-step secara
+> naif menaruh brand-400 di atas brand-900 untuk `onPrimaryContainer` gelap (4,12:1, gagal AA), diperbaiki
+> ke step 300 (6,46:1). Dikunci sebagai tes kontras baru di `mobile/test/app/theme_test.dart`, dan tes itu
+> **dibuktikan bisa gagal** lewat mutasi balik ke step 400.
+> **Keputusan produk:** mockup `docs/design/` dan `docs/mobile/design/` **tidak** diregenerasi — warna
+> dikeluarkan dari kontrak perbandingan 1:1, mockup kini mengikat **struktur saja** (aturan ditulis di
+> CLAUDE.md, yang tidak dilacak git sehingga tidak ikut di PR ini).
+> **Catatan:** `pnpm test` kadang keluar dengan kode 1 karena `EnvironmentTeardownError` di
+> `test/nuxt/assets-index.spec.ts` — **sudah ada di main** (diverifikasi dengan menjalankan suite penuh dua
+> kali pada frontend yang di-stash: keduanya exit 1, 1740 tes tetap lolos). Bukan bawaan perubahan ini.
+> **PWA sengaja dikecualikan** atas permintaan user; belum ada infrastrukturnya (tidak ada `@vite-pwa/nuxt`,
+> manifest, atau service worker) dan cakupannya masih perlu `/spec`.
+>
 > **Halaman info Web: Kebijakan Privasi + Panduan Penggunaan + FAQ (2026-07-27, branch `feat/info-pages`) — SELESAI (kode + tes; lint + typecheck lokal hijau).**
 > Menambah tiga halaman informasi di frontend Nuxt (`app/pages/privacy.vue`, `guide.vue`, `faq.vue`)
 > memakai layout baru `info` yang **adaptif auth**: pengguna login melihat app-shell penuh (sidebar +
