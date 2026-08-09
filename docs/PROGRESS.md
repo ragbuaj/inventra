@@ -17,7 +17,25 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
-> **Panduan Penggunaan berbasis data + lampiran video/PDF (2026-08-08, branch `feat/guide-media`) — SEDANG BERJALAN, 15 dari 19 langkah, plus separuh langkah 16 (env prod) dan tiga audit yang temuannya sudah ditutup.**
+> **Sisa langkah 16-19 Panduan Penggunaan.** Modulnya sendiri sudah **MERGED (PR #139, squash
+> `0c12b34`, 2026-08-09)** dengan seluruh CI hijau — `backend`, `backend-integration` (14m4s),
+> `frontend` (4m43s), `e2e` (7m8s), `api-docs` — dan branch `feat/guide-media` sudah dihapus. Yang
+> benar-benar tersisa tinggal tiga hal, semuanya di luar kode fitur:
+> 1. **Pembuktian plafon body WAF di produksi.** Batas PDF 10 MB, bukan 20 MB usulan spec, karena
+>    Coraza menolak body di atas sekitar 12,5 MB; menaikkannya menuntut `SecRequestBodyLimit` naik
+>    lebih dulu di `ops/caddy/Caddyfile`. Separuh langkah 16 (pendaftaran env di compose produksi)
+>    sudah selesai.
+> 2. **ADR-0018 + pembaruan `docs/DATABASE.md`** untuk skema `guide`.
+> 3. **Hapus kunci i18n `guidePage.sections`** dari `id.json` dan `en.json` (langkah 19). Sengaja
+>    ditahan sampai sekarang supaya membatalkan rilis cukup dengan mengembalikan kode.
+>
+> Catatan lapangan yang mahal ditemukan ulang: **e2e lokal wajib `--workers=1`** seperti CI, dan
+> backend wajib `RATELIMIT_ENABLED=false`. Tanpa yang pertama, spec saling mengganggu lewat akun admin
+> bersama dan menghasilkan belasan merah yang tidak satu pun regresi.
+>
+> Riwayat pengerjaan modul ini disimpan di bawah, apa adanya.
+>
+> **Panduan Penggunaan berbasis data + lampiran video/PDF (2026-08-08, branch `feat/guide-media`) — 15 dari 19 langkah saat merge, plus separuh langkah 16 (env prod) dan tiga audit yang temuannya sudah ditutup.**
 > Spec: `docs/superpowers/specs/2026-08-08-guide-media-cms-design.md` (46 acceptance criteria).
 > Rencana: `docs/superpowers/plans/2026-08-08-guide-media-cms.md` (19 langkah, 6 keputusan arsitektur).
 > Mockup: `docs/design/Panduan Media.dc.html` + `docs/design/Panduan Pengelolaan.dc.html`.
