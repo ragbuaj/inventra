@@ -124,7 +124,7 @@ func (h *Handler) getModule(c *gin.Context) {
 }
 
 func (h *Handler) createModule(c *gin.Context) {
-	var req moduleRequest
+	var req moduleCreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
 		return
@@ -147,7 +147,7 @@ func (h *Handler) updateModule(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var req moduleRequest
+	var req moduleUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
 		return

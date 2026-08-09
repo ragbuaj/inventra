@@ -396,6 +396,14 @@ export interface GuideModuleInput {
   steps: GuideStep[]
 }
 
+/**
+ * Creating a module carries no status: the API always stores a draft and
+ * publishing is a separate update. Mirroring that omission in the type is what
+ * stops a caller from sending `status: 'published'` and quietly wondering why
+ * nothing appeared on the public page.
+ */
+export type GuideModuleCreateInput = Omit<GuideModuleInput, 'status'>
+
 export interface GuideVideoInput {
   url: string
   title_id: string

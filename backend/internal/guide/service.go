@@ -84,6 +84,9 @@ type ModuleWithAttachments struct {
 // ModuleInput carries the writable fields of a module. Create and update take
 // the same shape: an update always replaces the whole module, including its
 // step list, because that is how the editor works.
+//
+// Status is the one exception — it is read by Update only. Create ignores it and
+// stores a draft; see the comment there.
 type ModuleInput struct {
 	Slug      string
 	Icon      string
@@ -185,6 +188,13 @@ func (s *Service) Get(ctx context.Context, id uuid.UUID) (ModuleWithAttachments,
 	return ModuleWithAttachments{Module: m, Attachments: atts}, nil
 }
 
+// Create always produces a DRAFT, whatever in.Status holds.
+//
+// A module is published by editing it, never by creating it (spec business rule
+// 5): the guide page is readable without a session, so half-written content must
+// not be one request away from being public. The HTTP layer already withholds
+// the field — moduleCreateRequest has no status — and this line is what keeps
+// the rule true for any other caller of the service.
 func (s *Service) Create(ctx context.Context, in ModuleInput) (sqlc.GuideGuideModule, error) {
 	steps, err := validateSteps(in.Steps)
 	if err != nil {
@@ -195,7 +205,7 @@ func (s *Service) Create(ctx context.Context, in ModuleInput) (sqlc.GuideGuideMo
 		Slug:      in.Slug,
 		Icon:      in.Icon,
 		SortOrder: in.SortOrder,
-		Status:    in.Status,
+		Status:    sqlc.SharedGuideStatusDraft,
 		TitleID:   in.TitleID,
 		TitleEn:   in.TitleEn,
 		BodyID:    in.BodyID,

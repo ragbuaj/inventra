@@ -2,6 +2,7 @@ import type {
   GuideAttachment,
   GuideAttachmentPatch,
   GuideModule,
+  GuideModuleCreateInput,
   GuideModuleInput,
   GuideVideoInput
 } from '~/types'
@@ -40,7 +41,11 @@ export function useGuide() {
     return client.request<GuideModule>(`/guide/modules/${id}`)
   }
 
-  async function create(input: GuideModuleInput): Promise<GuideModule> {
+  /**
+   * A new module is always stored as a draft — the server has no `status` field
+   * on this endpoint at all. Publishing it is an `update()` away.
+   */
+  async function create(input: GuideModuleCreateInput): Promise<GuideModule> {
     return client.request<GuideModule>('/guide/modules', { method: 'POST', body: input })
   }
 

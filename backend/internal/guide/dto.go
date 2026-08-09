@@ -14,11 +14,13 @@ type stepRequest struct {
 	TextEn *string `json:"text_en" binding:"omitempty,max=500"`
 }
 
-type moduleRequest struct {
+// moduleFields is everything an author writes on a module EXCEPT its status.
+// Embedded by both request shapes so a field added here can never reach one
+// endpoint and quietly miss the other.
+type moduleFields struct {
 	Slug      string        `json:"slug" binding:"required,max=120"`
 	Icon      string        `json:"icon" binding:"required,max=80"`
 	SortOrder int32         `json:"sort_order" binding:"gte=0"`
-	Status    string        `json:"status" binding:"required,oneof=draft published"`
 	TitleID   string        `json:"title_id" binding:"required,max=200"`
 	TitleEn   *string       `json:"title_en" binding:"omitempty,max=200"`
 	BodyID    *string       `json:"body_id" binding:"omitempty,max=2000"`
@@ -26,7 +28,7 @@ type moduleRequest struct {
 	Steps     []stepRequest `json:"steps" binding:"omitempty,max=50,dive"`
 }
 
-func (r moduleRequest) toInput() ModuleInput {
+func (r moduleFields) toInput() ModuleInput {
 	steps := make([]Step, 0, len(r.Steps))
 	for _, s := range r.Steps {
 		steps = append(steps, Step{TextID: s.TextID, TextEn: s.TextEn})
@@ -35,13 +37,34 @@ func (r moduleRequest) toInput() ModuleInput {
 		Slug:      r.Slug,
 		Icon:      r.Icon,
 		SortOrder: r.SortOrder,
-		Status:    sqlc.SharedGuideStatus(r.Status),
 		TitleID:   r.TitleID,
 		TitleEn:   r.TitleEn,
 		BodyID:    r.BodyID,
 		BodyEn:    r.BodyEn,
 		Steps:     steps,
 	}
+}
+
+// moduleCreateRequest deliberately carries NO status field: a new module is
+// always born a draft (spec business rule 5). A status sent by an older client
+// is not bound and therefore cannot publish anything — the omission is the
+// enforcement, not a check that could be forgotten. Service.Create pins the
+// value again for any caller that does not come through HTTP.
+type moduleCreateRequest struct {
+	moduleFields
+}
+
+// moduleUpdateRequest is where status becomes writable: publishing and pulling
+// back to draft are edits of an existing module, not part of creating one.
+type moduleUpdateRequest struct {
+	moduleFields
+	Status string `json:"status" binding:"required,oneof=draft published"`
+}
+
+func (r moduleUpdateRequest) toInput() ModuleInput {
+	in := r.moduleFields.toInput()
+	in.Status = sqlc.SharedGuideStatus(r.Status)
+	return in
 }
 
 type videoRequest struct {

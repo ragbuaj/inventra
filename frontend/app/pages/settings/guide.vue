@@ -137,8 +137,15 @@ function openEdit(m: GuideModule) {
 async function onSubmit(input: GuideModuleInput) {
   saving.value = true
   try {
-    if (editing.value) await api.update(editing.value.id, input)
-    else await api.create(input)
+    if (editing.value) {
+      await api.update(editing.value.id, input)
+    } else {
+      // status is dropped rather than passed along: creation always yields a
+      // draft, and sending a field the endpoint does not have would only look
+      // like it works.
+      const { status: _status, ...create } = input
+      await api.create(create)
+    }
     formOpen.value = false
     toast.add({ title: t('settings.guide.toast.saved'), color: 'success', icon: 'i-lucide-check' })
     await load()

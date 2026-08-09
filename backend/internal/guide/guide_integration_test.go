@@ -151,18 +151,34 @@ func (h *harness) upload(t *testing.T, moduleID uuid.UUID, token, filename strin
 }
 
 // createModule inserts a module through the API and returns its id.
+//
+// Creation can only ever produce a draft, so a test that wants a published
+// module gets the same two steps an author takes: create, then publish with a
+// PATCH. The status argument is still honoured — it just costs a second request
+// now, which is the point of the rule.
 func (h *harness) createModule(t *testing.T, slug, status string) uuid.UUID {
 	t.Helper()
 	w := h.do(t, http.MethodPost, "/api/v1/guide/modules", h.adminToken, map[string]any{
-		"slug": slug, "icon": "i-lucide-book-open", "status": status,
+		"slug": slug, "icon": "i-lucide-book-open",
 		"title_id": "Modul " + slug, "sort_order": 1,
 		"steps": []map[string]any{{"text_id": "Langkah pertama"}},
 	})
 	require.Equal(t, http.StatusCreated, w.Code, w.Body.String())
 	var resp struct {
-		ID string `json:"id"`
+		ID     string `json:"id"`
+		Status string `json:"status"`
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, "draft", resp.Status, "a new module must always be born a draft")
+
+	if status == "published" {
+		p := h.do(t, http.MethodPatch, "/api/v1/guide/modules/"+resp.ID, h.adminToken, map[string]any{
+			"slug": slug, "icon": "i-lucide-book-open", "status": "published",
+			"title_id": "Modul " + slug, "sort_order": 1,
+			"steps": []map[string]any{{"text_id": "Langkah pertama"}},
+		})
+		require.Equal(t, http.StatusOK, p.Code, p.Body.String())
+	}
 	return uuid.MustParse(resp.ID)
 }
 
@@ -465,6 +481,26 @@ func TestDeletionSemanticsForStoredObjects(t *testing.T) {
 		"berkas milik modul terhapus harus tak terjangkau")
 	_, _, err = h.store.Get(ctx, key2)
 	require.NoError(t, err, "objek milik modul terhapus sengaja dipertahankan")
+}
+
+// Creation cannot publish, no matter what the payload asks for. The guide page
+// is readable without a session, so a half-written module must never be one
+// request away from being public — publishing is a deliberate second step.
+func TestCreateAlwaysProducesADraft(t *testing.T) {
+	h := newHarness(t, 10<<20)
+
+	w := h.do(t, http.MethodPost, "/api/v1/guide/modules", h.adminToken, map[string]any{
+		"slug": "coba-terbit-langsung", "icon": "i-lucide-book-open",
+		"status":   "published", // ignored on purpose
+		"title_id": "Modul coba-terbit-langsung", "sort_order": 1,
+	})
+	require.Equal(t, http.StatusCreated, w.Code, w.Body.String())
+	require.Contains(t, w.Body.String(), `"status":"draft"`)
+	require.Contains(t, w.Body.String(), `"published_at":null`)
+
+	// And it really is invisible to a reader, not merely labelled a draft.
+	require.NotContains(t, h.do(t, http.MethodGet, "/api/v1/guide/modules", "", nil).Body.String(),
+		"Modul coba-terbit-langsung")
 }
 
 func TestPublishToggleControlsReaderVisibility(t *testing.T) {

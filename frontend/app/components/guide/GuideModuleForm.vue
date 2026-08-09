@@ -86,6 +86,13 @@ const statusChoices = computed(() => [
   { value: 'published' as const, label: t('settings.guide.status.published'), icon: 'i-lucide-send' }
 ])
 
+/**
+ * A brand-new module is always a draft — the create endpoint has no status field
+ * at all. The control stays visible so the form keeps its shape and the author
+ * can see where publishing will live, but it is inert until the module exists.
+ */
+const isCreate = computed(() => props.module === null)
+
 /* ── step list ─────────────────────────────────────────────────────────────
    Steps are reordered with up/down buttons rather than drag-and-drop: the list
    is short, the buttons are reachable by keyboard, and ordering is implicit in
@@ -316,6 +323,7 @@ function onSubmit() {
                     :color="form.status === choice.value ? 'primary' : 'neutral'"
                     :variant="form.status === choice.value ? 'solid' : 'ghost'"
                     :icon="choice.icon"
+                    :disabled="isCreate"
                     :data-testid="`guide-status-${choice.value}`"
                     size="sm"
                     class="flex-1 justify-center"
@@ -325,7 +333,9 @@ function onSubmit() {
                   </UButton>
                 </div>
                 <p class="mt-1.5 text-[11.5px] leading-snug text-muted">
-                  {{ t('settings.guide.form.statusHint') }}
+                  {{ isCreate
+                    ? t('settings.guide.form.statusHintCreate')
+                    : t('settings.guide.form.statusHint') }}
                 </p>
               </UFormField>
             </div>

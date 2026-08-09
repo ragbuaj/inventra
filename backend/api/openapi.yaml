@@ -5230,14 +5230,17 @@ paths:
       tags: [Guide]
       operationId: createGuideModule
       summary: Create a guide module
-      description: Creates a module. New modules are always created as drafts unless `status` says otherwise, and are invisible to readers until published.
+      description: |
+        Creates a module. It is **always** a draft and therefore invisible to
+        readers; publishing is a separate `PATCH`. The reader page is public, so
+        a half-written module must never be one request away from being visible.
       security:
         - bearerJWT: []
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/GuideModuleInput" }
+            schema: { $ref: "#/components/schemas/GuideModuleCreateInput" }
       responses:
         "201":
           description: The created module
@@ -7969,10 +7972,28 @@ components:
         data: { type: array, items: { $ref: "#/components/schemas/GuideModule" } }
         total: { type: integer }
 
+    GuideModuleCreateInput:
+      type: object
+      required: [slug, icon, title_id]
+      description: |
+        The writable half of a NEW module. There is deliberately no `status`
+        property: a module is always created as a draft and is published by a
+        subsequent update. A `status` sent anyway is ignored, not rejected, so an
+        older client keeps working — it simply cannot publish in one step.
+      properties:
+        slug: { type: string, maxLength: 120 }
+        icon: { type: string, maxLength: 80 }
+        sort_order: { type: integer, minimum: 0, default: 0 }
+        title_id: { type: string, maxLength: 200 }
+        title_en: { type: string, nullable: true, maxLength: 200 }
+        body_id: { type: string, nullable: true, maxLength: 2000 }
+        body_en: { type: string, nullable: true, maxLength: 2000 }
+        steps: { type: array, maxItems: 50, items: { $ref: "#/components/schemas/GuideStep" } }
+
     GuideModuleInput:
       type: object
       required: [slug, icon, status, title_id]
-      description: The writable half of a module. An update replaces every field, including the whole step list.
+      description: The writable half of a module on update. An update replaces every field, including the whole step list, and it is the only way to publish or withdraw one.
       properties:
         slug: { type: string, maxLength: 120 }
         icon: { type: string, maxLength: 80 }

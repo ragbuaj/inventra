@@ -1525,6 +1525,7 @@
         "orderIncrease": "Tambah urutan",
         "fieldStatus": "Status",
         "statusHint": "Modul draf tidak terlihat oleh pembaca.",
+        "statusHintCreate": "Modul baru selalu dibuat sebagai draf. Terbitkan setelah isinya lengkap.",
         "showEn": "Kolom Inggris",
         "addStep": "Tambah langkah",
         "stepPlaceholder": "Tulis satu langkah singkat.",

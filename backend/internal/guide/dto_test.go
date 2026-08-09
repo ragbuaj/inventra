@@ -2,14 +2,29 @@ package guide
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	sqlc "github.com/ragbuaj/inventra/db/sqlc"
 )
+
+// bindJSON runs a body through the same binding path the handlers use, so these
+// tests exercise the real validator and the real json tags rather than a
+// hand-rolled approximation of them.
+func bindJSON(t *testing.T, body string, dst any) error {
+	t.Helper()
+	gin.SetMode(gin.TestMode)
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	c.Request.Header.Set("Content-Type", "application/json")
+	return c.ShouldBindJSON(dst)
+}
 
 func videoRow() sqlc.GuideGuideAttachment {
 	id := uuid.MustParse("11111111-1111-1111-1111-111111111111")
@@ -107,6 +122,89 @@ func TestAttachmentResponseGivesMediaToSignedInCallers(t *testing.T) {
 	raw, _ := json.Marshal(doc)
 	if strings.Contains(string(raw), "guide/9f8e.pdf") {
 		t.Fatalf("kunci objek bocor ke respons: %s", raw)
+	}
+}
+
+const moduleBody = `{"slug":"panduan-baru","icon":"i-lucide-book-open","sort_order":3,` +
+	`"status":"published","title_id":"Panduan Baru","title_en":"New Guide",` +
+	`"body_id":"Isi","steps":[{"text_id":"Langkah satu"}]}`
+
+// Aturan bisnis 5: modul baru selalu lahir sebagai draf. Yang menegakkannya
+// adalah ketiadaan field-nya, bukan pemeriksaan yang bisa lupa dipanggil — jadi
+// yang diuji adalah bahwa "status":"published" di badan permintaan benar-benar
+// tidak sampai ke ModuleInput.
+func TestCreateRequestNeverCarriesStatus(t *testing.T) {
+	var req moduleCreateRequest
+	if err := bindJSON(t, moduleBody, &req); err != nil {
+		t.Fatalf("binding gagal: %v", err)
+	}
+	in := req.toInput()
+	if in.Status != "" {
+		t.Fatalf("status ikut terikat pada pembuatan: %q", in.Status)
+	}
+	// Sisa field tetap terbawa — kalau embedding memutusnya, ini yang merah.
+	if in.Slug != "panduan-baru" || in.Icon != "i-lucide-book-open" || in.SortOrder != 3 {
+		t.Fatalf("field modul hilang setelah binding: %+v", in)
+	}
+	if in.TitleID != "Panduan Baru" || in.TitleEn == nil || *in.TitleEn != "New Guide" {
+		t.Fatalf("judul hilang setelah binding: %+v", in)
+	}
+	if len(in.Steps) != 1 || in.Steps[0].TextID != "Langkah satu" {
+		t.Fatalf("langkah hilang setelah binding: %+v", in.Steps)
+	}
+}
+
+// Pada pengubahan, status justru wajib: menerbitkan dan menarik kembali ke draf
+// adalah penyuntingan modul yang sudah ada.
+func TestUpdateRequestCarriesStatus(t *testing.T) {
+	var req moduleUpdateRequest
+	if err := bindJSON(t, moduleBody, &req); err != nil {
+		t.Fatalf("binding gagal: %v", err)
+	}
+	if got := req.toInput().Status; got != sqlc.SharedGuideStatusPublished {
+		t.Fatalf("status = %q, mau published", got)
+	}
+}
+
+// Validasi harus tetap menembus struct yang disematkan. Tanpa test ini,
+// moduleFields yang berhenti divalidasi tidak akan terlihat sampai ada payload
+// tanpa judul yang lolos ke database.
+func TestModuleRequestValidationStillFires(t *testing.T) {
+	cases := map[string]string{
+		"judul Indonesia kosong": `{"slug":"s","icon":"i","sort_order":1,"status":"draft","title_id":""}`,
+		"slug kosong":            `{"slug":"","icon":"i","sort_order":1,"status":"draft","title_id":"Judul"}`,
+		"ikon kosong":            `{"slug":"s","icon":"","sort_order":1,"status":"draft","title_id":"Judul"}`,
+		"urutan negatif":         `{"slug":"s","icon":"i","sort_order":-1,"status":"draft","title_id":"Judul"}`,
+		"langkah tanpa teks":     `{"slug":"s","icon":"i","sort_order":1,"status":"draft","title_id":"J","steps":[{"text_id":""}]}`,
+	}
+	for name, body := range cases {
+		t.Run(name, func(t *testing.T) {
+			var create moduleCreateRequest
+			if err := bindJSON(t, body, &create); err == nil {
+				t.Error("pembuatan menerima payload yang tidak sah")
+			}
+			var update moduleUpdateRequest
+			if err := bindJSON(t, body, &update); err == nil {
+				t.Error("pengubahan menerima payload yang tidak sah")
+			}
+		})
+	}
+}
+
+// Status yang tidak sah ditolak pada pengubahan, dan status yang hilang juga —
+// `oneof` tanpa `required` akan meloloskan string kosong.
+func TestUpdateRequestRejectsBadStatus(t *testing.T) {
+	for name, body := range map[string]string{
+		"status hilang":      `{"slug":"s","icon":"i","sort_order":1,"title_id":"Judul"}`,
+		"status kosong":      `{"slug":"s","icon":"i","sort_order":1,"status":"","title_id":"Judul"}`,
+		"status tak dikenal": `{"slug":"s","icon":"i","sort_order":1,"status":"archived","title_id":"Judul"}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			var req moduleUpdateRequest
+			if err := bindJSON(t, body, &req); err == nil {
+				t.Fatal("pengubahan menerima status yang tidak sah")
+			}
+		})
 	}
 }
 

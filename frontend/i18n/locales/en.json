@@ -1525,6 +1525,7 @@
         "orderIncrease": "Increase order",
         "fieldStatus": "Status",
         "statusHint": "Draft modules are invisible to readers.",
+        "statusHintCreate": "A new module is always created as a draft. Publish it once the content is complete.",
         "showEn": "English column",
         "addStep": "Add step",
         "stepPlaceholder": "Write one short step.",

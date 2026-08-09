@@ -288,6 +288,44 @@ describe('guide admin — publish, reorder, delete', () => {
     expect(writes()[0]).toMatchObject({ path: '/guide/modules/m1', method: 'DELETE' })
   })
 
+  // Creation cannot publish. The endpoint has no status field, so sending one
+  // would look like it works and quietly do nothing — the page drops it instead.
+  it('creates without a status, so a new module can only be a draft', async () => {
+    const wrapper = await mountPage()
+    await (wrapper.vm as unknown as PageVm).onSubmit({
+      slug: 'modul-baru', icon: 'i-lucide-book-open', sort_order: 4, status: 'published',
+      title_id: 'Modul Baru', title_en: null, body_id: null, body_en: null,
+      steps: [{ text_id: 'Langkah satu', text_en: null }]
+    })
+    await flushPromises()
+
+    const call = writes()[0]!
+    expect(call.method).toBe('POST')
+    expect(call.path).toBe('/guide/modules')
+    expect(call.body).not.toHaveProperty('status')
+    // Everything else still travels; dropping status must not drop the payload.
+    expect(call.body).toMatchObject({
+      slug: 'modul-baru', icon: 'i-lucide-book-open', sort_order: 4, title_id: 'Modul Baru'
+    })
+    expect((call.body as { steps: unknown[] }).steps).toHaveLength(1)
+  })
+
+  // Editing is where status becomes writable, and it must still travel.
+  it('sends the status on update, because publishing is an edit', async () => {
+    const wrapper = await mountPage()
+    const vm = wrapper.vm as unknown as PageVm
+    vm.openEdit(MODULES[0]!)
+    await vm.onSubmit({
+      slug: MODULES[0]!.slug, icon: MODULES[0]!.icon, sort_order: 1, status: 'published',
+      title_id: MODULES[0]!.title_id, title_en: null, body_id: null, body_en: null, steps: []
+    })
+    await flushPromises()
+
+    const call = writes()[0]!
+    expect(call.method).toBe('PATCH')
+    expect(call.body).toMatchObject({ status: 'published' })
+  })
+
   it('explains a slug collision instead of leaving the generic toast', async () => {
     const wrapper = await mountPage()
     handler = () => {
@@ -343,6 +381,25 @@ describe('GuideModuleForm', () => {
     expect(html).toContain('Informasi modul')
     expect(html).toContain('Daftar langkah')
     expect(html).toContain('Lampiran')
+  })
+
+  // The control stays on screen so the form keeps its shape, but it cannot be
+  // used before the module exists — and the hint says why rather than leaving a
+  // dead button to be discovered by clicking it.
+  it('pins the status control while creating, and explains it', async () => {
+    await mountForm(null)
+    const buttons = document.body.querySelectorAll('[data-testid^="guide-status-"]')
+    expect(buttons).toHaveLength(2)
+    buttons.forEach(b => expect(b.hasAttribute('disabled')).toBe(true))
+    expect(document.body.innerHTML).toContain('Modul baru selalu dibuat sebagai draf')
+  })
+
+  it('releases the status control once the module exists', async () => {
+    await mountForm(guideModule())
+    const buttons = document.body.querySelectorAll('[data-testid^="guide-status-"]')
+    expect(buttons).toHaveLength(2)
+    buttons.forEach(b => expect(b.hasAttribute('disabled')).toBe(false))
+    expect(document.body.innerHTML).toContain('Modul draf tidak terlihat oleh pembaca')
   })
 
   it('hydrates every field from the module being edited', async () => {
