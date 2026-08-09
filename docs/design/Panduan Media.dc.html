@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;}
+input::placeholder,textarea::placeholder{color:var(--text-dimmed);}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:9px;border:2px solid transparent;background-clip:padding-box;}
+:root{
+  --bg:#f8fafc; --bg-base:#ffffff; --bg-muted:#f1f5f9; --bg-elevated:#ffffff;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#0f172a; --text-muted:#64748b; --text-dimmed:#94a3b8;
+  /* Bank BTN corporate blue — ramp dari frontend/app/assets/css/main.css (--color-brand-*).
+     500 #005bfd pada permukaan primary (putih di atasnya 5.36:1), soft = 100/700. */
+  --primary:#005bfd; --primary-hover:#004edc; --primary-fg:#ffffff;
+  --primary-soft-bg:#dce9ff; --primary-soft-text:#0041ba;
+  --success:#16a34a; --success-soft-bg:#dcfce7; --success-soft-text:#15803d;
+  --warning:#d97706; --warning-soft-bg:#fef3c7; --warning-soft-text:#b45309;
+  --error:#dc2626; --error-soft-bg:#fee2e2; --error-soft-text:#b91c1c;
+  --neutral-soft-bg:#eef2f6; --neutral-soft-text:#475569;
+  --ring:color-mix(in srgb, var(--primary) 28%, transparent);
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
+  --shadow-lg:0 18px 50px rgba(15,23,42,.18);
+}
+[data-theme="dark"]{
+  --bg:#020617; --bg-base:#0b1220; --bg-muted:#1e293b; --bg-elevated:#0f172a;
+  --border:#1e293b; --border-strong:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8; --text-dimmed:#64748b;
+  /* Gelap: brand-400 #5891ff (teks brand-950 di atasnya 5.95:1); soft = #12234d / brand-300 (7.9:1). */
+  --primary:#5891ff; --primary-hover:#96bbff; --primary-fg:#02194f;
+  --primary-soft-bg:#12234d; --primary-soft-text:#96bbff;
+  --success:#22c55e; --success-soft-bg:#14331f; --success-soft-text:#4ade80;
+  --warning:#f59e0b; --warning-soft-bg:#3a2a10; --warning-soft-text:#fbbf24;
+  --error:#ef4444; --error-soft-bg:#3a1414; --error-soft-text:#f87171;
+  --neutral-soft-bg:#1e293b; --neutral-soft-text:#cbd5e1;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 18px 50px rgba(0,0,0,.6);
+}
+@keyframes shimmer{0%{background-position:-500px 0}100%{background-position:500px 0}}
+@keyframes popIn{from{opacity:0;transform:scale(.98) translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" data-theme="{{ theme }}" style="font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--text);height:100vh;display:flex;align-items:{{ frameAlign }};justify-content:center;background:{{ pageBg }};padding:{{ framePad }};">
+  <div style="display:flex;width:{{ frameW }};height:{{ frameH }};max-width:100%;max-height:100%;overflow:hidden;background:var(--bg);border:{{ frameBorder }};border-radius:{{ frameRadius }};box-shadow:{{ frameShadow }};">
+
+    <!-- SIDEBAR (hanya untuk pembaca yang sudah masuk, layar lebar) -->
+    <sc-if value="{{ showSidebar }}" hint-placeholder-val="{{ false }}">
+      <aside style="width:264px;flex:none;display:flex;flex-direction:column;background:var(--bg-base);border-right:1px solid var(--border);overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:11px;height:61px;padding:0 18px;border-bottom:1px solid var(--border);flex:none;">
+          <div style="width:34px;height:34px;border-radius:9px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--primary-fg);flex:none;">{{ iconLogo }}</div>
+          <span style="font:700 18px Inter;letter-spacing:-.01em;white-space:nowrap;">Inventra</span>
+        </div>
+        <nav style="flex:1;overflow-y:auto;overflow-x:hidden;padding:12px;">
+          <sc-for list="{{ nav }}" as="g" hint-placeholder-count="3">
+            <div style="padding:14px 12px 6px;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dimmed);white-space:nowrap;">{{ g.label }}</div>
+            <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+              <div style="position:relative;display:flex;align-items:center;gap:11px;width:100%;padding:9px 12px;margin-bottom:2px;font:{{ it.weight }} 14px Inter;color:{{ it.fg }};background:{{ it.bg }};border-radius:9px;box-shadow:inset 3px 0 0 {{ it.accent }};white-space:nowrap;">
+                {{ it.icon }}<span style="flex:1;overflow:hidden;text-overflow:ellipsis;">{{ it.label }}</span>
+              </div>
+            </sc-for>
+          </sc-for>
+        </nav>
+      </aside>
+    </sc-if>
+
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+
+      <!-- TOPBAR APLIKASI (pembaca yang sudah masuk) -->
+      <sc-if value="{{ memberChrome }}" hint-placeholder-val="{{ false }}">
+        <header style="display:flex;align-items:center;gap:12px;height:61px;flex:none;padding:0 {{ chromePadX }};background:var(--bg-base);border-bottom:1px solid var(--border);">
+          <sc-if value="{{ isMobile }}" hint-placeholder-val="{{ false }}">
+            <button style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex:none;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">{{ iconMenu }}</button>
+          </sc-if>
+          <div style="display:flex;align-items:center;gap:6px;font:400 12px Inter;color:var(--text-muted);min-width:0;">
+            <sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ true }}"><span>Inventra</span>{{ iconCrumb }}<span>{{ bcBantuan }}</span>{{ iconCrumb }}</sc-if>
+            <span style="color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ pageTitle }}</span>
+          </div>
+          <div style="flex:1;"></div>
+          <div style="display:flex;align-items:center;gap:8px;flex:none;">
+            <sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;gap:2px;padding:3px;background:var(--bg-muted);border-radius:9px;">
+                <button onClick="{{ setId }}" style="padding:5px 9px;font:600 12px Inter;color:{{ idFg }};background:{{ idBg }};border:none;border-radius:6px;cursor:pointer;">ID</button>
+                <button onClick="{{ setEn }}" style="padding:5px 9px;font:600 12px Inter;color:{{ enFg }};background:{{ enBg }};border:none;border-radius:6px;cursor:pointer;">EN</button>
+              </div>
+            </sc-if>
+            <button onClick="{{ toggleTheme }}" title="Tema" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">{{ iconTheme }}</button>
+            <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;border:1px solid var(--border);border-radius:999px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--primary);color:var(--primary-fg);display:flex;align-items:center;justify-content:center;font:700 12px Inter;">{{ avatarIni }}</span>{{ iconChevDown }}</div>
+          </div>
+        </header>
+      </sc-if>
+
+      <!-- HEADER PUBLIK (pengunjung tanpa sesi) -->
+      <sc-if value="{{ guestChrome }}" hint-placeholder-val="{{ true }}">
+        <header style="flex:none;border-bottom:1px solid var(--border);background:var(--bg-base);">
+          <div style="margin:0 auto;width:100%;max-width:{{ chromeMaxW }};display:flex;align-items:center;gap:12px;padding:0 {{ chromePadX }};height:61px;">
+            <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+              <span style="width:34px;height:34px;border-radius:9px;background:var(--primary);color:var(--primary-fg);display:flex;align-items:center;justify-content:center;flex:none;">{{ iconLogo }}</span>
+              <span style="font:700 18px Inter;letter-spacing:-.01em;white-space:nowrap;">Inventra</span>
+            </div>
+            <sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ true }}">
+              <nav style="display:flex;align-items:center;gap:2px;margin-left:16px;">
+                <sc-for list="{{ publicLinks }}" as="l" hint-placeholder-count="3">
+                  <span style="padding:7px 12px;font:{{ l.weight }} 13.5px Inter;border-radius:8px;color:{{ l.fg }};background:{{ l.bg }};white-space:nowrap;">{{ l.label }}</span>
+                </sc-for>
+              </nav>
+            </sc-if>
+            <div style="flex:1;"></div>
+            <div style="display:flex;align-items:center;gap:8px;flex:none;">
+              <sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;gap:2px;padding:3px;background:var(--bg-muted);border-radius:9px;">
+                  <button onClick="{{ setId }}" style="padding:5px 9px;font:600 12px Inter;color:{{ idFg }};background:{{ idBg }};border:none;border-radius:6px;cursor:pointer;">ID</button>
+                  <button onClick="{{ setEn }}" style="padding:5px 9px;font:600 12px Inter;color:{{ enFg }};background:{{ enBg }};border:none;border-radius:6px;cursor:pointer;">EN</button>
+                </div>
+              </sc-if>
+              <button onClick="{{ toggleTheme }}" title="Tema" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);color:var(--text);">{{ iconTheme }}</button>
+              <button style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;font:600 13.5px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);">{{ iconLogin }}<sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ true }}"><span>{{ signInLbl }}</span></sc-if></button>
+            </div>
+          </div>
+        </header>
+      </sc-if>
+
+      <main style="flex:1;overflow-y:auto;padding:{{ mainPad }};">
+        <div style="margin:0 auto;width:100%;max-width:{{ readMaxW }};">
+
+          <!-- Banner pratinjau pengelola (AC37) -->
+          <sc-if value="{{ isPreview }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;margin-bottom:18px;border:1px solid color-mix(in srgb,var(--primary) 30%,transparent);background:var(--primary-soft-bg);border-radius:12px;">
+              <span style="color:var(--primary-soft-text);flex:none;display:flex;margin-top:1px;">{{ iconEye }}</span>
+              <div style="font:400 13px/1.55 Inter;color:var(--primary-soft-text);">{{ previewNote }}</div>
+            </div>
+          </sc-if>
+
+          <!-- PAGE HEADER -->
+          <div style="margin-bottom:18px;">
+            <h1 style="margin:0 0 6px;font:700 {{ h1Size }} Inter;letter-spacing:-.02em;">{{ pageTitle }}</h1>
+            <p style="margin:0;font:400 13.5px/1.6 Inter;color:var(--text-muted);">{{ pageSubtitle }}</p>
+          </div>
+          <p style="margin:0 0 26px;font:400 15px/1.7 Inter;color:var(--text);">{{ intro }}</p>
+
+          <!-- KEADAAN: MEMUAT (skeleton mengikuti bentuk kartu) -->
+          <sc-if value="{{ isLoading }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <sc-for list="{{ skeletons }}" as="sk" hint-placeholder-count="3">
+                <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:{{ cardPad }};">
+                  <div style="display:flex;align-items:flex-start;gap:14px;">
+                    <div style="width:40px;height:40px;border-radius:10px;flex:none;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;"></div>
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:9px;">
+                      <div style="height:13px;width:{{ sk.w1 }};border-radius:6px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;"></div>
+                      <div style="height:10px;width:{{ sk.w2 }};border-radius:6px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;"></div>
+                      <div style="height:10px;width:{{ sk.w3 }};border-radius:6px;background:var(--bg-muted);"></div>
+                      <sc-if value="{{ sk.hasMedia }}" hint-placeholder-val="{{ false }}">
+                        <div style="margin-top:8px;aspect-ratio:16/9;width:100%;border-radius:12px;background:linear-gradient(90deg,var(--bg-muted) 25%,var(--border) 37%,var(--bg-muted) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;"></div>
+                      </sc-if>
+                    </div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <!-- KEADAAN: KOSONG (AC40) -->
+          <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:56px 24px;text-align:center;">
+              <div style="width:54px;height:54px;margin:0 auto 14px;border-radius:14px;background:var(--bg-muted);color:var(--text-dimmed);display:flex;align-items:center;justify-content:center;">{{ iconInbox }}</div>
+              <div style="font:600 16px Inter;margin-bottom:6px;">{{ emptyTitle }}</div>
+              <div style="font:400 14px/1.6 Inter;color:var(--text-muted);max-width:360px;margin:0 auto;">{{ emptySub }}</div>
+            </div>
+          </sc-if>
+
+          <!-- KEADAAN: ERROR + COBA LAGI (AC41) -->
+          <sc-if value="{{ isError }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:44px 24px;text-align:center;">
+              <div style="width:54px;height:54px;margin:0 auto 14px;border-radius:14px;background:var(--error-soft-bg);color:var(--error);display:flex;align-items:center;justify-content:center;">{{ iconAlert }}</div>
+              <div style="font:600 16px Inter;margin-bottom:6px;">{{ errorTitle }}</div>
+              <div style="font:400 14px/1.6 Inter;color:var(--text-muted);max-width:380px;margin:0 auto 18px;">{{ errorSub }}</div>
+              <button onClick="{{ retry }}" style="display:inline-flex;align-items:center;gap:8px;padding:9px 16px;font:600 14px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);">{{ iconRetry }}{{ retryLbl }}</button>
+            </div>
+          </sc-if>
+
+          <!-- KEADAAN: DATA -->
+          <sc-if value="{{ isData }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <sc-for list="{{ modules }}" as="m" hint-placeholder-count="4">
+                <div style="background:var(--bg-base);border:1px solid {{ m.cardBorder }};border-radius:14px;box-shadow:var(--shadow);padding:{{ cardPad }};">
+                  <div style="display:flex;align-items:flex-start;gap:14px;">
+                    <span style="width:40px;height:40px;border-radius:10px;background:var(--primary-soft-bg);color:var(--primary-soft-text);display:flex;align-items:center;justify-content:center;flex:none;">{{ m.icon }}</span>
+                    <div style="min-width:0;flex:1;">
+                      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+                        <h2 style="margin:0;font:600 16px Inter;letter-spacing:-.01em;">{{ m.heading }}</h2>
+                        <sc-if value="{{ m.isDraft }}" hint-placeholder-val="{{ false }}">
+                          <span style="display:inline-flex;align-items:center;gap:5px;padding:2px 9px;font:600 11.5px Inter;border-radius:999px;background:var(--warning-soft-bg);color:var(--warning-soft-text);">{{ draftLbl }}</span>
+                        </sc-if>
+                      </div>
+                      <p style="margin:0;font:400 14.5px/1.65 Inter;color:var(--text-muted);">{{ m.body }}</p>
+
+                      <sc-if value="{{ m.hasSteps }}" hint-placeholder-val="{{ true }}">
+                        <ol style="list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:9px;">
+                          <sc-for list="{{ m.steps }}" as="st" hint-placeholder-count="3">
+                            <li style="display:flex;gap:12px;font:400 14px/1.6 Inter;color:var(--text-muted);">
+                              <span style="width:22px;height:22px;border-radius:50%;background:var(--bg-muted);color:var(--text);font:600 12px Inter;display:flex;align-items:center;justify-content:center;flex:none;">{{ st.n }}</span>
+                              <span style="padding-top:1px;">{{ st.text }}</span>
+                            </li>
+                          </sc-for>
+                        </ol>
+                      </sc-if>
+
+                      <!-- BLOK LAMPIRAN -->
+                      <sc-if value="{{ m.hasMedia }}" hint-placeholder-val="{{ true }}">
+                        <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
+                          <div style="display:flex;align-items:center;gap:7px;margin-bottom:12px;color:var(--text-muted);">
+                            {{ iconPaperclip }}<span style="font:600 11px 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;">{{ m.mediaLabel }}</span>
+                          </div>
+
+                          <div style="display:flex;flex-direction:column;gap:14px;">
+                            <sc-for list="{{ m.atts }}" as="a" hint-placeholder-count="2">
+                              <div>
+                                <!-- baris judul lampiran: selalu tampil, terkunci maupun tidak (AC26) -->
+                                <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:8px;">
+                                  <span style="display:inline-flex;align-items:center;gap:6px;padding:3px 9px;font:600 11.5px Inter;border-radius:7px;background:{{ a.kindBg }};color:{{ a.kindFg }};flex:none;">{{ a.kindIcon }}{{ a.kindLabel }}</span>
+                                  <span style="font:600 13.5px Inter;color:var(--text);min-width:0;">{{ a.title }}</span>
+                                </div>
+
+                                <!-- VIDEO, sudah masuk: sematan dimuat malas (AC16) -->
+                                <sc-if value="{{ a.isVideoIdle }}" hint-placeholder-val="{{ true }}">
+                                  <button onClick="{{ a.play }}" style="display:block;width:100%;padding:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:transparent;cursor:pointer;text-align:left;" style-hover="border-color:var(--primary);">
+                                    <div style="position:relative;width:100%;aspect-ratio:16/9;background:linear-gradient(135deg,#0b1220 0%,#12234d 48%,#02194f 100%);display:flex;align-items:center;justify-content:center;">
+                                      <span style="position:absolute;inset:0;background:radial-gradient(circle at 50% 45%, rgba(88,145,255,.28), rgba(2,6,23,0) 62%);"></span>
+                                      <span style="position:relative;width:62px;height:62px;border-radius:50%;background:rgba(255,255,255,.94);color:#0f172a;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(2,6,23,.45);">{{ iconPlayBig }}</span>
+                                      <span style="position:absolute;left:12px;bottom:11px;display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:7px;background:rgba(2,6,23,.62);color:#e2e8f0;font:500 11.5px 'JetBrains Mono',monospace;">{{ iconShield }}youtube-nocookie.com</span>
+                                      <span style="position:absolute;right:12px;bottom:11px;padding:3px 8px;border-radius:6px;background:rgba(2,6,23,.72);color:#f1f5f9;font:500 11.5px 'JetBrains Mono',monospace;">{{ a.dur }}</span>
+                                    </div>
+                                  </button>
+                                  <div style="margin-top:7px;font:400 12.5px/1.5 Inter;color:var(--text-muted);">{{ lazyNote }}</div>
+                                </sc-if>
+
+                                <!-- VIDEO, gagal diputar: video dihapus atau dijadikan privat (AC17).
+                                     Kegagalan terkurung di dalam kotak 16:9 ini; kartu dan halaman tetap utuh. -->
+                                <sc-if value="{{ a.isVideoBroken }}" hint-placeholder-val="{{ false }}">
+                                  <div style="width:100%;aspect-ratio:16/9;border:1px solid var(--border);border-radius:12px;background:var(--bg-muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:18px;text-align:center;">
+                                    <span style="width:42px;height:42px;border-radius:11px;background:var(--bg-base);color:var(--text-muted);display:flex;align-items:center;justify-content:center;flex:none;">{{ iconVideoOff }}</span>
+                                    <div style="font:600 13.5px Inter;color:var(--text);">{{ brokenVideoTitle }}</div>
+                                    <div style="font:400 12.5px/1.55 Inter;color:var(--text-muted);max-width:360px;">{{ brokenVideoBody }}</div>
+                                    <button onClick="{{ a.play }}" style="margin-top:2px;display:inline-flex;align-items:center;gap:7px;padding:7px 13px;font:500 12.5px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);">{{ iconRetrySm }}{{ brokenVideoRetry }}</button>
+                                  </div>
+                                </sc-if>
+
+                                <!-- VIDEO, setelah tombol putar ditekan -->
+                                <sc-if value="{{ a.isVideoPlaying }}" hint-placeholder-val="{{ false }}">
+                                  <div style="width:100%;aspect-ratio:16/9;border:1px solid var(--border);border-radius:12px;background:#020617;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;text-align:center;">
+                                    <span style="color:#94a3b8;display:flex;">{{ iconVideoBig }}</span>
+                                    <div style="font:500 13px Inter;color:#cbd5e1;">{{ embedNote }}</div>
+                                    <div style="font:400 12px 'JetBrains Mono',monospace;color:#64748b;word-break:break-all;">{{ a.embedUrl }}</div>
+                                    <button onClick="{{ a.stop }}" style="margin-top:4px;padding:6px 12px;font:500 12.5px Inter;color:#e2e8f0;background:transparent;border:1px solid #334155;border-radius:8px;cursor:pointer;">{{ closeEmbedLbl }}</button>
+                                  </div>
+                                </sc-if>
+
+                                <!-- VIDEO, terkunci untuk pengunjung anonim (AC26) -->
+                                <sc-if value="{{ a.isVideoLocked }}" hint-placeholder-val="{{ false }}">
+                                  <div style="width:100%;aspect-ratio:16/9;border:1.5px dashed var(--border-strong);border-radius:12px;background:var(--bg-muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:18px;text-align:center;">
+                                    <span style="width:42px;height:42px;border-radius:11px;background:var(--primary-soft-bg);color:var(--primary-soft-text);display:flex;align-items:center;justify-content:center;flex:none;">{{ iconLock }}</span>
+                                    <div style="font:600 13.5px Inter;color:var(--text);">{{ lockedVideoTitle }}</div>
+                                    <div style="font:400 12.5px/1.55 Inter;color:var(--text-muted);max-width:330px;">{{ lockedHint }}</div>
+                                    <button style="margin-top:2px;display:inline-flex;align-items:center;gap:7px;padding:8px 14px;font:600 13px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);">{{ iconLogin }}{{ signInToOpen }}</button>
+                                  </div>
+                                </sc-if>
+
+                                <!-- DOKUMEN PDF, sudah masuk -->
+                                <sc-if value="{{ a.isDocOpen }}" hint-placeholder-val="{{ false }}">
+                                  <div style="border:1px solid var(--border);border-radius:12px;background:var(--bg-muted);overflow:hidden;">
+                                    <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;flex-wrap:{{ docRowWrap }};">
+                                      <span style="width:42px;height:42px;border-radius:10px;background:var(--error-soft-bg);color:var(--error-soft-text);display:flex;align-items:center;justify-content:center;flex:none;">{{ iconPdf }}</span>
+                                      <div style="flex:1;min-width:0;">
+                                        <div style="font:500 13.5px Inter;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ a.fileName }}</div>
+                                        <div style="font:400 12px Inter;color:var(--text-muted);">{{ a.fileMeta }}</div>
+                                      </div>
+                                      <div style="display:flex;align-items:center;gap:8px;flex:none;">
+                                        <button onClick="{{ a.togglePreview }}" style="display:inline-flex;align-items:center;gap:7px;padding:7px 12px;font:500 13px Inter;color:var(--text);background:var(--bg-base);border:1px solid var(--border-strong);border-radius:9px;cursor:pointer;" style-hover="background:var(--bg-muted);">{{ a.previewIcon }}{{ a.previewLbl }}</button>
+                                        <button style="display:inline-flex;align-items:center;gap:7px;padding:7px 12px;font:600 13px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;" style-hover="background:var(--primary-hover);">{{ iconDownload }}{{ downloadLbl }}</button>
+                                      </div>
+                                    </div>
+                                    <sc-if value="{{ a.previewOpen }}" hint-placeholder-val="{{ false }}">
+                                      <div style="border-top:1px solid var(--border);padding:14px;background:var(--bg-base);">
+                                        <div style="height:{{ pdfPreviewH }};border:1px solid var(--border);border-radius:10px;background:#f8fafc;overflow:hidden;padding:22px 26px;display:flex;flex-direction:column;gap:9px;">
+                                          <div style="height:12px;width:52%;border-radius:4px;background:#334155;"></div>
+                                          <div style="height:7px;width:88%;border-radius:4px;background:#cbd5e1;margin-top:6px;"></div>
+                                          <div style="height:7px;width:94%;border-radius:4px;background:#cbd5e1;"></div>
+                                          <div style="height:7px;width:73%;border-radius:4px;background:#cbd5e1;"></div>
+                                          <div style="height:64px;width:100%;border-radius:6px;background:#e2e8f0;margin-top:6px;"></div>
+                                          <div style="height:7px;width:81%;border-radius:4px;background:#cbd5e1;margin-top:6px;"></div>
+                                          <div style="height:7px;width:56%;border-radius:4px;background:#cbd5e1;"></div>
+                                        </div>
+                                        <div style="margin-top:9px;display:flex;align-items:center;gap:7px;color:var(--text-muted);">
+                                          {{ iconShieldSm }}<span style="font:400 12px Inter;">{{ sandboxNote }}</span>
+                                        </div>
+                                      </div>
+                                    </sc-if>
+                                  </div>
+                                </sc-if>
+
+                                <!-- DOKUMEN PDF, terkunci untuk pengunjung anonim -->
+                                <sc-if value="{{ a.isDocLocked }}" hint-placeholder-val="{{ false }}">
+                                  <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border:1.5px dashed var(--border-strong);border-radius:12px;background:var(--bg-muted);flex-wrap:{{ docRowWrap }};">
+                                    <span style="width:42px;height:42px;border-radius:10px;background:var(--primary-soft-bg);color:var(--primary-soft-text);display:flex;align-items:center;justify-content:center;flex:none;">{{ iconLock }}</span>
+                                    <div style="flex:1;min-width:0;">
+                                      <div style="font:600 13.5px Inter;color:var(--text);">{{ lockedDocTitle }}</div>
+                                      <div style="font:400 12.5px/1.5 Inter;color:var(--text-muted);">{{ lockedHint }}</div>
+                                    </div>
+                                    <button style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;font:600 13px Inter;color:var(--primary-fg);background:var(--primary);border:1px solid var(--primary);border-radius:9px;cursor:pointer;flex:none;" style-hover="background:var(--primary-hover);">{{ iconLogin }}{{ signInToOpen }}</button>
+                                  </div>
+                                </sc-if>
+                              </div>
+                            </sc-for>
+                          </div>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <div style="height:74px;"></div>
+        </div>
+      </main>
+
+      <!-- FOOTER PUBLIK -->
+      <sc-if value="{{ guestChrome }}" hint-placeholder-val="{{ true }}">
+        <footer style="flex:none;border-top:1px solid var(--border);background:var(--bg-base);">
+          <div style="margin:0 auto;width:100%;max-width:{{ chromeMaxW }};padding:14px {{ chromePadX }};display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+            <span style="font:400 12.5px Inter;color:var(--text-muted);">{{ copyright }}</span>
+            <nav style="display:flex;align-items:center;gap:2px;">
+              <sc-for list="{{ publicLinks }}" as="l" hint-placeholder-count="3">
+                <span style="padding:4px 8px;font:400 12.5px Inter;border-radius:6px;color:var(--text-muted);">{{ l.label }}</span>
+              </sc-for>
+            </nav>
+          </div>
+        </footer>
+      </sc-if>
+    </div>
+  </div>
+
+  <!-- ================= PANEL PRATINJAU MOCKUP — BUKAN BAGIAN UI PRODUK ================= -->
+  <div style="position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:90;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;max-width:calc(100% - 24px);padding:9px 12px;background:var(--bg-elevated);border:1px solid var(--border-strong);border-radius:14px;box-shadow:var(--shadow-lg);">
+    <span style="font:600 9.5px 'JetBrains Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dimmed);white-space:nowrap;">Pratinjau mockup</span>
+    <sc-for list="{{ demoGroups }}" as="d" hint-placeholder-count="3">
+      <div style="display:flex;align-items:center;gap:7px;">
+        <span style="font:500 11px Inter;color:var(--text-dimmed);white-space:nowrap;">{{ d.label }}</span>
+        <div style="display:flex;gap:2px;padding:3px;background:var(--bg-muted);border-radius:9px;">
+          <sc-for list="{{ d.options }}" as="o" hint-placeholder-count="3">
+            <button onClick="{{ o.on }}" style="padding:5px 9px;font:600 11.5px Inter;color:{{ o.fg }};background:{{ o.bg }};border:none;border-radius:6px;cursor:pointer;white-space:nowrap;">{{ o.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;id&quot;,&quot;en&quot;],&quot;default&quot;:&quot;id&quot;,&quot;tsType&quot;:&quot;'id' | 'en'&quot;},&quot;audience&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;tamu&quot;,&quot;user&quot;,&quot;pengelola&quot;],&quot;default&quot;:&quot;user&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;state&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;data&quot;,&quot;loading&quot;,&quot;empty&quot;,&quot;error&quot;],&quot;default&quot;:&quot;data&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;device&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;desktop&quot;,&quot;mobile&quot;],&quot;default&quot;:&quot;desktop&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;primaryColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#005bfd&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const ICONS={
+  logo:[['path',{d:'M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2'}],['path',{d:'M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'}],['path',{d:'M9 13h6'}]],
+  dashboard:[['rect',{x:3,y:3,width:7,height:9,rx:1}],['rect',{x:14,y:3,width:7,height:5,rx:1}],['rect',{x:14,y:12,width:7,height:9,rx:1}],['rect',{x:3,y:16,width:7,height:5,rx:1}]],
+  login:[['path',{d:'M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4'}],['path',{d:'M10 17l5-5-5-5'}],['path',{d:'M15 12H3'}]],
+  box:[['path',{d:'M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2'}],['path',{d:'M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'}],['path',{d:'M9 13h6'}]],
+  hand:[['path',{d:'M18 11V6a2 2 0 0 0-4 0v5'}],['path',{d:'M14 10V4a2 2 0 0 0-4 0v6'}],['path',{d:'M10 10.5V6a2 2 0 0 0-4 0v8'}],['path',{d:'M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2a8 8 0 0 1-8-8'}]],
+  approval:[['path',{d:'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'}],['path',{d:'M9 11l3 3 8-8'}]],
+  wrench:[['path',{d:'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.7 2.7-2-2z'}]],
+  transfer:[['path',{d:'M16 3l4 4-4 4'}],['path',{d:'M20 7H4'}],['path',{d:'M8 21l-4-4 4-4'}],['path',{d:'M4 17h16'}]],
+  chart:[['path',{d:'M3 3v18h18'}],['path',{d:'M7 16v-5M12 16V8M17 16v-3'}]],
+  database:[['path',{d:'M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3z'}],['path',{d:'M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6'}]],
+  book:[['path',{d:'M12 7v14'}],['path',{d:'M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z'}]],
+  help:[['circle',{cx:12,cy:12,r:9}],['path',{d:'M9.2 9a3 3 0 0 1 5.8 1c0 2-3 2.4-3 4'}],['path',{d:'M12 17h.01'}]],
+  shieldCheck:[['path',{d:'M12 3l8 3v6c0 4.4-3.2 8.2-8 9-4.8-.8-8-4.6-8-9V6z'}],['path',{d:'M9 12l2 2 4-4'}]],
+  shield:[['path',{d:'M12 3l8 3v6c0 4.4-3.2 8.2-8 9-4.8-.8-8-4.6-8-9V6z'}]],
+  menu:[['path',{d:'M4 6h16M4 12h16M4 18h16'}]],
+  chevDown:[['polyline',{points:'6 9 12 15 18 9'}]],
+  chevRight:[['polyline',{points:'9 18 15 12 9 6'}]],
+  chevUp:[['polyline',{points:'18 15 12 9 6 15'}]],
+  sun:[['circle',{cx:12,cy:12,r:4}],['path',{d:'M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'}]],
+  moon:[['path',{d:'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'}]],
+  play:[['polygon',{points:'6 3 20 12 6 21 6 3',fill:'currentColor',stroke:'none'}]],
+  video:[['path',{d:'M22 8l-6 4 6 4V8z'}],['rect',{x:2,y:6,width:14,height:12,rx:2}]],
+  videoOff:[['path',{d:'M16 16H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2'}],['path',{d:'M10 6h4a2 2 0 0 1 2 2v2l6-4v8'}],['path',{d:'M3 3l18 18'}]],
+  pdf:[['path',{d:'M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z'}],['path',{d:'M14 2v5h5'}],['path',{d:'M9 13h6M9 17h4'}]],
+  lock:[['rect',{x:3,y:11,width:18,height:11,rx:2}],['path',{d:'M7 11V7a5 5 0 0 1 10 0v4'}]],
+  download:[['path',{d:'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'}],['path',{d:'M7 10l5 5 5-5'}],['path',{d:'M12 15V3'}]],
+  eye:[['path',{d:'M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z'}],['circle',{cx:12,cy:12,r:3}]],
+  eyeOff:[['path',{d:'M10.6 5.2A9.9 9.9 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4'}],['path',{d:'M6.2 6.4A17 17 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 4.3-1'}],['path',{d:'M3 3l18 18'}]],
+  paperclip:[['path',{d:'M21 12.5 12.6 21a5 5 0 0 1-7.1-7.1l8.5-8.5a3.4 3.4 0 0 1 4.8 4.8l-8.5 8.4a1.8 1.8 0 0 1-2.5-2.5l7.8-7.8'}]],
+  inbox:[['path',{d:'M22 12h-6l-2 3h-4l-2-3H2'}],['path',{d:'M5.4 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.4-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.8 1.1z'}]],
+  alert:[['path',{d:'M21.7 18 13.7 4a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3z'}],['path',{d:'M12 9v4M12 17h.01'}]],
+  retry:[['path',{d:'M3 12a9 9 0 0 1 15-6.7L21 8'}],['path',{d:'M21 3v5h-5'}],['path',{d:'M21 12a9 9 0 0 1-15 6.7L3 16'}],['path',{d:'M3 21v-5h5'}]],
+};
+function mk(key,size,sw,color){const d=ICONS[key]||ICONS.box;return React.createElement('svg',{width:size||18,height:size||18,viewBox:'0 0 24 24',fill:'none',stroke:color||'currentColor',strokeWidth:sw||1.9,strokeLinecap:'round',strokeLinejoin:'round',style:{flex:'none'}},d.map((x,i)=>React.createElement(x[0],{...x[1],key:i})));}
+const L=(id,en)=>({id,en});
+
+const NAV=[
+  { label:L('Operasional','Operational'), items:[
+    { label:L('Dashboard','Dashboard'), icon:'dashboard' },
+    { label:L('Aset','Assets'), icon:'box' },
+    { label:L('Peminjaman','Loans'), icon:'hand' },
+    { label:L('Maintenance','Maintenance'), icon:'wrench' },
+    { label:L('Pengajuan & Approval','Requests & Approval'), icon:'approval' },
+    { label:L('Laporan','Reports'), icon:'chart' },
+  ]},
+  { label:L('Administrasi','Administration'), items:[
+    { label:L('Master Data','Master Data'), icon:'database' },
+  ]},
+  { label:L('Bantuan','Help'), items:[
+    { label:L('Panduan Penggunaan','User Guide'), icon:'book', active:true },
+    { label:L('FAQ','FAQ'), icon:'help' },
+    { label:L('Kebijakan Privasi','Privacy Policy'), icon:'shieldCheck' },
+  ]},
+];
+
+// Modul contoh = sembilan modul yang ada hari ini di guidePage.sections (dipangkas
+// jadi lima yang paling menjelaskan bentuk lampiran).
+const A=(kind,ti,te,extra)=>({kind,title:L(ti,te),...extra});
+const MODULES=[
+  { slug:'masuk', icon:'login',
+    heading:L('Masuk dan Keamanan Akun','Signing In and Account Security'),
+    body:L('Masuk dengan email kantor dan kata sandi Anda. Anda juga dapat masuk dengan akun Google organisasi bila fitur ini diaktifkan.','Sign in with your work email and password. You can also use your organisation Google account when that option is enabled.'),
+    steps:[
+      L('Buka halaman Masuk, isi email dan kata sandi, lalu tekan Masuk.','Open the sign-in page, enter your email and password, then press Sign in.'),
+      L('Jika lupa kata sandi, gunakan tautan Lupa Kata Sandi untuk menerima instruksi reset.','If you forgot your password, use the Forgot Password link to receive reset instructions.'),
+      L('Ganti kata sandi secara berkala melalui menu Profil Akun.','Change your password regularly from the Account Profile menu.'),
+    ],
+    atts:[ A('video','Cara masuk dan mengganti kata sandi','How to sign in and change your password',{vid:'kL9pQ2rT7aB',dur:'2:14'}) ] },
+
+  { slug:'katalog', icon:'box',
+    heading:L('Katalog Aset','Asset Catalogue'),
+    body:L('Telusuri dan kelola seluruh aset dalam lingkup kantor Anda.','Browse and manage every asset within your office scope.'),
+    steps:[
+      L('Gunakan kolom pencarian dan filter (status, kategori) untuk menemukan aset.','Use the search box and filters (status, category) to find an asset.'),
+      L('Klik sebuah aset untuk melihat detail, riwayat, dan dokumennya.','Click an asset to see its details, history, and documents.'),
+      L('Tekan Tambah Aset untuk registrasi aset baru, atau gunakan Import untuk unggah massal melalui berkas.','Press Add Asset to register a new asset, or use Import for a bulk upload from a file.'),
+      L('Cetak label barcode atau QR dari menu Label & Barcode.','Print barcode or QR labels from the Label & Barcode menu.'),
+    ],
+    atts:[
+      A('video','Menelusuri, memfilter, dan menambah aset','Browsing, filtering, and adding assets',{vid:'7hTzWm4Xq1D',dur:'4:38'}),
+      A('document','Ringkasan alur registrasi aset','Asset registration flow summary',{file:'panduan-registrasi-aset.pdf',size:'1,4 MB'}),
+    ] },
+
+  { slug:'dashboard', icon:'dashboard',
+    heading:L('Dashboard','Dashboard'),
+    body:L('Halaman awal menampilkan ringkasan aset, aktivitas terbaru, dan pintasan ke tugas yang membutuhkan perhatian Anda, seperti persetujuan yang tertunda.','The home page shows an asset summary, recent activity, and shortcuts to tasks needing your attention, such as pending approvals.'),
+    steps:[], atts:[] },
+
+  { slug:'mutasi', icon:'transfer',
+    heading:L('Mutasi, Stock Opname, dan Penghapusan','Transfers, Stock-take, and Disposal'),
+    body:L('Kelola perpindahan antar kantor, pemeriksaan fisik, dan pelepasan aset.','Manage inter-office movement, physical checks, and asset disposal.'),
+    steps:[
+      L('Mutasi memindahkan aset antar kantor melalui persetujuan.','A transfer moves an asset between offices through an approval.'),
+      L('Stock Opname mencatat hasil pemeriksaan fisik beserta selisihnya.','Stock-take records the physical check result and its variance.'),
+      L('Penghapusan melepas aset sambil mencatat keuntungan atau kerugian pelepasan.','Disposal releases an asset while recording the gain or loss.'),
+    ],
+    atts:[
+      A('document','Formulir BAST mutasi antar kantor','Inter-office transfer BAST form',{file:'bast-mutasi-antar-kantor.pdf',size:'820 KB'}),
+      A('video','Contoh pengisian berita acara mutasi','Filling in the transfer minutes',{vid:'Qm5rD1kY8pT',dur:'3:20',broken:true}),
+    ] },
+
+  { slug:'approval', icon:'approval', draft:true,
+    heading:L('Pengajuan dan Persetujuan','Requests and Approval'),
+    body:L('Inventra menerapkan mekanisme maker-checker berjenjang berdasarkan nilai aset.','Inventra applies a tiered maker-checker mechanism based on asset value.'),
+    steps:[
+      L('Pembuat (maker) mengajukan tindakan; sistem menentukan penyetuju sesuai batas otorisasi.','The maker submits an action; the system picks the approver from the authorisation limits.'),
+      L('Penyetuju (checker) meninjau di menu Pengajuan & Approval, lalu menyetujui atau menolak.','The checker reviews it in Requests & Approval, then approves or rejects.'),
+      L('Notifikasi memberi tahu Anda saat ada tugas yang menunggu.','Notifications tell you when a task is waiting.'),
+    ],
+    atts:[ A('video','Alur maker-checker dari pengajuan sampai disetujui','Maker-checker flow from submission to approval',{vid:'Zx3Nb8Vc0Qe',dur:'6:02'}) ] },
+];
+
+const CH={
+  id:{ bcBantuan:'Bantuan', signInLbl:'Masuk', pageTitle:'Panduan Penggunaan',
+    pageSubtitle:'Langkah singkat memakai Inventra untuk mengelola aset tetap sehari-hari.',
+    intro:'Panduan ini membantu Anda mulai menggunakan Inventra. Menu yang tampil menyesuaikan peran dan lingkup kantor Anda, sehingga sebagian fitur mungkin tidak terlihat jika izin Anda belum mencakupnya.',
+    mediaLabelF:(n)=>'Lampiran ('+n+')', kindVideo:'Video', kindDoc:'Dokumen PDF',
+    lazyNote:'Video baru dimuat dari youtube-nocookie.com setelah Anda menekan putar.',
+    embedNote:'Sematan youtube-nocookie.com dimuat di sini.', closeEmbedLbl:'Tutup sematan',
+    lockedVideoTitle:'Masuk untuk menonton video ini', lockedDocTitle:'Masuk untuk membuka dokumen ini',
+    brokenVideoTitle:'Video tidak dapat diputar', brokenVideoBody:'Video ini mungkin sudah dihapus atau dijadikan privat oleh pemiliknya. Bagian panduan lainnya tetap bisa dibaca seperti biasa.', brokenVideoRetry:'Muat ulang pemutar',
+    lockedHint:'Lampiran hanya terbuka bagi pengguna yang sudah masuk. Teks panduan di atas tetap bisa dibaca tanpa akun.',
+    signInToOpen:'Masuk', previewLbl:'Pratinjau', hidePreviewLbl:'Tutup pratinjau', downloadLbl:'Unduh',
+    sandboxNote:'Pratinjau dibuka di bingkai terisolasi (sandbox); berkas disajikan oleh server aplikasi, bukan tautan langsung.',
+    emptyTitle:'Panduan belum tersedia', emptySub:'Belum ada modul panduan yang diterbitkan. Silakan kembali beberapa saat lagi.',
+    errorTitle:'Panduan gagal dimuat', errorSub:'Terjadi gangguan saat mengambil isi panduan. Periksa koneksi Anda, lalu coba lagi.', retryLbl:'Coba lagi',
+    draftLbl:'Draf', previewNote:'Mode pratinjau pengelola: modul berstatus draf ikut ditampilkan dan ditandai. Pembaca lain tidak melihatnya.',
+    copyright:'© 2026 Inventra. Seluruh hak cipta dilindungi.',
+    navGuide:'Panduan Penggunaan', navFaq:'FAQ', navPrivacy:'Kebijakan Privasi',
+    dChrome:'Pembaca', dState:'Keadaan', dDevice:'Layar',
+    oGuest:'Tamu', oUser:'Sudah masuk', oManager:'Pengelola', oData:'Data', oLoading:'Memuat', oEmpty:'Kosong', oError:'Error', oWide:'Lebar', oPhone:'Ponsel' },
+  en:{ bcBantuan:'Help', signInLbl:'Sign in', pageTitle:'User Guide',
+    pageSubtitle:'A short walkthrough for using Inventra to manage fixed assets day to day.',
+    intro:'This guide helps you get started with Inventra. The menus you see follow your role and office scope, so some features may not appear if your permissions do not cover them yet.',
+    mediaLabelF:(n)=>'Attachments ('+n+')', kindVideo:'Video', kindDoc:'PDF document',
+    lazyNote:'The video is only loaded from youtube-nocookie.com after you press play.',
+    embedNote:'The youtube-nocookie.com embed loads here.', closeEmbedLbl:'Close embed',
+    lockedVideoTitle:'Sign in to watch this video', lockedDocTitle:'Sign in to open this document',
+    brokenVideoTitle:'This video cannot be played', brokenVideoBody:'The video may have been deleted or made private by its owner. The rest of the guide stays readable as usual.', brokenVideoRetry:'Reload the player',
+    lockedHint:'Attachments open only for signed-in users. The guide text above stays readable without an account.',
+    signInToOpen:'Sign in', previewLbl:'Preview', hidePreviewLbl:'Hide preview', downloadLbl:'Download',
+    sandboxNote:'The preview opens in a sandboxed frame; the file is served by the application, not a direct link.',
+    emptyTitle:'No guide available yet', emptySub:'No guide module has been published yet. Please check back a little later.',
+    errorTitle:'The guide failed to load', errorSub:'Something went wrong while fetching the guide content. Check your connection and try again.', retryLbl:'Try again',
+    draftLbl:'Draft', previewNote:'Manager preview mode: draft modules are shown and marked. Other readers do not see them.',
+    copyright:'© 2026 Inventra. All rights reserved.',
+    navGuide:'User Guide', navFaq:'FAQ', navPrivacy:'Privacy Policy',
+    dChrome:'Reader', dState:'State', dDevice:'Screen',
+    oGuest:'Guest', oUser:'Signed in', oManager:'Manager', oData:'Data', oLoading:'Loading', oEmpty:'Empty', oError:'Error', oWide:'Wide', oPhone:'Phone' },
+};
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef=React.createRef();
+    this.state={
+      theme:(props.theme==='dark'?'dark':'light'),
+      lang:(props.lang==='en'?'en':'id'),
+      audience:(['tamu','user','pengelola'].indexOf(props.audience)>=0?props.audience:'user'),
+      state:(['data','loading','empty','error'].indexOf(props.state)>=0?props.state:'data'),
+      device:(props.device==='mobile'?'mobile':'desktop'),
+      playing:{}, previews:{'mutasi-0':true},
+    };
+    this._tt=false;this._tl=false;
+  }
+  componentDidMount(){ this.applyPrimary(); }
+  componentDidUpdate(){ this.applyPrimary(); }
+  applyPrimary(){ const c=this.props.primaryColor,el=this.rootRef.current; if(el&&c&&c!=='#005bfd') el.style.setProperty('--primary',c); }
+  effTheme(){ return this._tt?this.state.theme:(this.props.theme||'light'); }
+  effLang(){ return this._tl?this.state.lang:(this.props.lang||'id'); }
+  togglePlay(k,on){ this.setState(s=>({playing:{...s.playing,[k]:on}})); }
+  togglePreview(k){ this.setState(s=>({previews:{...s.previews,[k]:!s.previews[k]}})); }
+
+  renderVals(){
+    const s=this.state, lang=this.effLang(), theme=this.effTheme(), isDark=theme==='dark';
+    const ch=CH[lang], T=(o)=>o[lang];
+    const guest=s.audience==='tamu', manager=s.audience==='pengelola';
+    const mobile=s.device==='mobile', desktop=!mobile;
+
+    const nav=NAV.map(g=>({label:T(g.label),items:g.items.map(it=>({
+      label:T(it.label), icon:mk(it.icon,18),
+      bg:it.active?'var(--primary-soft-bg)':'transparent',
+      fg:it.active?'var(--primary-soft-text)':'var(--text-muted)',
+      weight:it.active?'600':'500', accent:it.active?'var(--primary)':'transparent',
+    }))}));
+
+    const publicLinks=[
+      {label:ch.navGuide,active:true},{label:ch.navFaq},{label:ch.navPrivacy}
+    ].map(l=>({label:l.label,weight:l.active?'500':'400',
+      fg:l.active?'var(--primary)':'var(--text-muted)', bg:l.active?'var(--primary-soft-bg)':'transparent'}));
+
+    const visible=MODULES.filter(m=>!m.draft||manager);
+    const modules=visible.map(m=>{
+      const atts=m.atts.map((a,i)=>{
+        const key=m.slug+'-'+i;
+        const isVideo=a.kind==='video';
+        const playing=!!s.playing[key], prevOpen=!!s.previews[key];
+        return {
+          kindLabel:isVideo?ch.kindVideo:ch.kindDoc,
+          kindIcon:mk(isVideo?'video':'pdf',13,2),
+          kindBg:isVideo?'var(--primary-soft-bg)':'var(--neutral-soft-bg)',
+          kindFg:isVideo?'var(--primary-soft-text)':'var(--neutral-soft-text)',
+          title:T(a.title),
+          dur:a.dur, embedUrl:'https://www.youtube-nocookie.com/embed/'+(a.vid||''),
+          isVideoIdle:isVideo&&!guest&&!playing&&!a.broken,
+          isVideoBroken:isVideo&&!guest&&!playing&&!!a.broken,
+          isVideoPlaying:isVideo&&!guest&&playing,
+          isVideoLocked:isVideo&&guest,
+          isDocOpen:!isVideo&&!guest,
+          isDocLocked:!isVideo&&guest,
+          play:()=>this.togglePlay(key,true), stop:()=>this.togglePlay(key,false),
+          fileName:a.file, fileMeta:a.size,
+          previewOpen:prevOpen, togglePreview:()=>this.togglePreview(key),
+          previewLbl:prevOpen?ch.hidePreviewLbl:ch.previewLbl,
+          previewIcon:mk(prevOpen?'eyeOff':'eye',15,2),
+        };
+      });
+      return {
+        icon:mk(m.icon,20), heading:T(m.heading), body:T(m.body),
+        steps:m.steps.map((st,i)=>({n:String(i+1),text:T(st)})),
+        hasSteps:m.steps.length>0, hasMedia:m.atts.length>0,
+        mediaLabel:ch.mediaLabelF(m.atts.length), atts,
+        isDraft:!!m.draft,
+        cardBorder:m.draft?'color-mix(in srgb,var(--warning) 45%,var(--border))':'var(--border)',
+      };
+    });
+
+    const seg=(cur,val)=>({bg:cur===val?'var(--bg-base)':'transparent',fg:cur===val?'var(--text)':'var(--text-muted)'});
+    const demoGroups=[
+      { label:ch.dChrome, options:[
+        {label:ch.oGuest,...seg(s.audience,'tamu'),on:()=>this.setState({audience:'tamu'})},
+        {label:ch.oUser,...seg(s.audience,'user'),on:()=>this.setState({audience:'user'})},
+        {label:ch.oManager,...seg(s.audience,'pengelola'),on:()=>this.setState({audience:'pengelola'})},
+      ]},
+      { label:ch.dState, options:[
+        {label:ch.oData,...seg(s.state,'data'),on:()=>this.setState({state:'data'})},
+        {label:ch.oLoading,...seg(s.state,'loading'),on:()=>this.setState({state:'loading'})},
+        {label:ch.oEmpty,...seg(s.state,'empty'),on:()=>this.setState({state:'empty'})},
+        {label:ch.oError,...seg(s.state,'error'),on:()=>this.setState({state:'error'})},
+      ]},
+      { label:ch.dDevice, options:[
+        {label:ch.oWide,...seg(s.device,'desktop'),on:()=>this.setState({device:'desktop'})},
+        {label:ch.oPhone,...seg(s.device,'mobile'),on:()=>this.setState({device:'mobile'})},
+      ]},
+    ];
+
+    return {
+      rootRef:this.rootRef, theme,
+      // kerangka / perangkat
+      pageBg:mobile?'var(--bg-muted)':'var(--bg)',
+      framePad:mobile?'22px 22px 92px':'0',
+      frameAlign:mobile?'center':'stretch',
+      frameW:mobile?'390px':'100%', frameH:mobile?'812px':'100%',
+      frameBorder:mobile?'1px solid var(--border-strong)':'none',
+      frameRadius:mobile?'26px':'0', frameShadow:mobile?'var(--shadow-lg)':'none',
+      isMobile:mobile, isDesktop:desktop,
+      chromePadX:mobile?'14px':'22px', chromeMaxW:mobile?'100%':'896px',
+      mainPad:mobile?'18px 16px 26px':(guest?'30px 24px 40px':'26px 32px 40px'),
+      readMaxW:guest?'768px':'768px', h1Size:mobile?'20px':'22px',
+      cardPad:mobile?'15px':'18px', docRowWrap:mobile?'wrap':'nowrap',
+      pdfPreviewH:mobile?'220px':'300px',
+      // chrome
+      showSidebar:!guest&&desktop, memberChrome:!guest, guestChrome:guest,
+      nav, publicLinks, avatarIni:'SA', bcBantuan:ch.bcBantuan, signInLbl:ch.signInLbl,
+      iconLogo:mk('logo',19,2), iconMenu:mk('menu',18,2), iconCrumb:mk('chevRight',12,2),
+      iconTheme:isDark?mk('sun',17,2):mk('moon',17,2), iconChevDown:mk('chevDown',15,2),
+      iconLogin:mk('login',15,2),
+      toggleTheme:()=>{this._tt=true;this.setState({theme:this.effTheme()==='light'?'dark':'light'});},
+      setId:()=>{this._tl=true;this.setState({lang:'id'});}, setEn:()=>{this._tl=true;this.setState({lang:'en'});},
+      idBg:lang==='id'?'var(--bg-base)':'transparent', idFg:lang==='id'?'var(--text)':'var(--text-muted)',
+      enBg:lang==='en'?'var(--bg-base)':'transparent', enFg:lang==='en'?'var(--text)':'var(--text-muted)',
+      copyright:ch.copyright,
+      // isi halaman
+      pageTitle:ch.pageTitle, pageSubtitle:ch.pageSubtitle, intro:ch.intro,
+      isData:s.state==='data', isLoading:s.state==='loading', isEmpty:s.state==='empty', isError:s.state==='error',
+      isPreview:manager, previewNote:ch.previewNote, draftLbl:ch.draftLbl,
+      modules,
+      skeletons:[{w1:'46%',w2:'92%',w3:'74%',hasMedia:true},{w1:'38%',w2:'88%',w3:'61%',hasMedia:false},{w1:'52%',w2:'95%',w3:'70%',hasMedia:false}],
+      emptyTitle:ch.emptyTitle, emptySub:ch.emptySub,
+      errorTitle:ch.errorTitle, errorSub:ch.errorSub, retryLbl:ch.retryLbl,
+      retry:()=>{this.setState({state:'loading'});setTimeout(()=>this.setState({state:'data'}),900);},
+      lazyNote:ch.lazyNote, embedNote:ch.embedNote, closeEmbedLbl:ch.closeEmbedLbl,
+      lockedVideoTitle:ch.lockedVideoTitle, lockedDocTitle:ch.lockedDocTitle,
+      brokenVideoTitle:ch.brokenVideoTitle, brokenVideoBody:ch.brokenVideoBody, brokenVideoRetry:ch.brokenVideoRetry,
+      iconVideoOff:mk('videoOff',22,1.8), iconRetrySm:mk('retry',14,2),
+      lockedHint:ch.lockedHint, signInToOpen:ch.signInToOpen, downloadLbl:ch.downloadLbl,
+      sandboxNote:ch.sandboxNote,
+      iconPaperclip:mk('paperclip',13,2), iconPlayBig:mk('play',24,2), iconVideoBig:mk('video',30,1.6),
+      iconLock:mk('lock',19,2), iconPdf:mk('pdf',20,1.9), iconDownload:mk('download',15,2),
+      iconInbox:mk('inbox',26,1.8), iconAlert:mk('alert',26,1.9), iconRetry:mk('retry',15,2),
+      iconEye:mk('eye',16,2), iconShield:mk('shield',12,2), iconShieldSm:mk('shield',13,2),
+      // panel pratinjau mockup
+      demoGroups,
+    };
+  }
+}
+</script>
+</body>
+</html>

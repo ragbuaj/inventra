@@ -17,6 +17,249 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
+> **Panduan Penggunaan berbasis data + lampiran video/PDF (2026-08-08, branch `feat/guide-media`) — SEDANG BERJALAN, 15 dari 19 langkah, plus separuh langkah 16 (env prod) dan tiga audit yang temuannya sudah ditutup.**
+> Spec: `docs/superpowers/specs/2026-08-08-guide-media-cms-design.md` (46 acceptance criteria).
+> Rencana: `docs/superpowers/plans/2026-08-08-guide-media-cms.md` (19 langkah, 6 keputusan arsitektur).
+> Mockup: `docs/design/Panduan Media.dc.html` + `docs/design/Panduan Pengelolaan.dc.html`.
+>
+> **Sudah selesai (langkah 1-14, 15 commit):** migration `000050` (skema `guide`, dua enum, dua tabel,
+> seed permission `guide.manage` ke Superadmin) dan `000051` (seed 9 modul dari i18n, idempoten);
+> kueri sqlc; service + validator YouTube/PDF; middleware `OptionalAuth`; DTO/handler/rute; wiring
+> router + `GUIDE_PDF_MAX_BYTES`; kontrak OpenAPI; tes integrasi; composable + helper bahasa; halaman
+> pembaca berbasis data + `GuideMediaCard`; **halaman pengelolaan `settings/guide.vue` + `GuideModuleForm`
+> + `GuideAttachmentManager` + leaf nav bergerbang `guide.manage`** (langkah 12); **penyesuaian tes nav**
+> (langkah 13); **tes panduan berbasis API tiruan**: `info-pages.spec.ts` ditulis ulang, ditambah
+> `guide-page.spec.ts` dan `guide-admin.spec.ts` (langkah 14). Lint, typecheck, dan seluruh suite Vitest
+> hijau (128 berkas, 1837 tes).
+>
+> **Langkah 15 SELESAI:** e2e `frontend/e2e/guide.spec.ts`, 10 tes dalam dua kelompok. Kelompok A
+> (serial): buat modul draf dengan langkah bernomor; tambah lampiran video YouTube dan unggah PDF nyata
+> ke MinIO; berkas ber-ekstensi `.pdf` yang isinya bukan PDF ditolak server (415); modul draf tak
+> terlihat oleh tamu di halaman maupun API; terbitkan lalu modul, sematan `youtube-nocookie.com`, dan
+> kartu dokumen muncul untuk pembaca ber-sesi; tamu membaca teksnya tetapi mendapat kartu terkunci —
+> plus pembuktian bahwa `youtube_id`, `file_url`, nama berkas, dan ukurannya benar-benar tidak ada di
+> muatan anonim, header `Cache-Control: no-store` + `Vary: Authorization` terpasang, dan
+> `GET /guide/attachments/:id/content` menjawab 401 tanpa sesi. Kelompok B: user dengan peran khusus
+> tanpa `guide.manage` (tetapi punya `user.manage`, sehingga grup Pengaturan tetap tampil) tidak melihat
+> leaf Panduan, ditolak `can` middleware saat membuka `/settings/guide` langsung, ditolak 403 di API
+> tulis, tidak menerima draf walau meminta `?status=all`, namun tetap bisa membaca lampiran modul
+> terbit (permission mengatur tulis, sesi mengatur baca). Lint + typecheck bersih; suite dijalankan
+> penuh terhadap stack Docker nyata: 5 kali berturut-turut 10/10 hijau. Setiap tes dibuktikan bisa merah
+> lewat 13 mutasi terarah. Data uji dibersihkan sendiri lewat API di `afterAll`.
+>
+> **Audit sebelum merge (`/audit`) SUDAH dijalankan, dan tiga temuannya SUDAH diperbaiki.** Alat
+> otomatis: `go build`/`vet`/`test`, `golangci-lint`, `govulncheck` (hanya GO-2026-5856 di stdlib,
+> pra-ada seluruh repo), `gitleaks` bersih, `squawk` (peringatan hanya pada tabel yang baru dibuat di
+> migrasi yang sama), Spectral 0 error, dan `git diff` OpenAPI tanpa satu pun baris terhapus sehingga
+> klien lama aman. Yang diperbaiki:
+> 1. **[TINGGI, `fix(security)`]** `GET /guide/attachments/:aid/content` menyajikan berkas tanpa pernah
+>    memeriksa status modul induknya, sehingga PDF milik modul **draf** bisa diunduh user ber-sesi mana
+>    pun yang tahu id lampirannya — dan karena id itu dibagikan ke setiap pembaca selagi modul terbit,
+>    menarik modul kembali ke draf tidak pernah menarik berkasnya. Penyaringan sekarang di dalam kueri
+>    (`GetGuideAttachmentForRead`), gerbangnya `guide.manage`, jawabannya 404 supaya keberadaan draf
+>    tidak terbocorkan. Dibuktikan empiris merah sebelum perbaikan (200) dan hijau sesudahnya.
+> 2. **[SEDANG, commit yang sama]** Plafon badan `maxBytes+1` membuat berkas berukuran **tepat** 10 MB —
+>    angka yang ditulis form unggah — selalu ditolak 413, karena badan multipart selalu lebih besar dari
+>    berkasnya. Plafon badan diberi kelonggaran 1 MiB di atas batas per-berkas (tetap jauh di bawah
+>    plafon WAF). Sekalian: saat plafon terpicu di tengah header MIME, `*http.MaxBytesError` hilang dan
+>    unggahan kebesaran dilaporkan 422 `malformed MIME header`; pemicunya kini dicatat di tempat
+>    kejadian. **Cacat kedua ini membuat `TestUploadRejectsOversizedFile` merah di HEAD sebelumnya** —
+>    branch belum pernah di-push, jadi CI belum pernah menjalankannya.
+> 3. **[SEDANG, `fix(guide)`]** Dialog konfirmasi hapus modul menjanjikan "berkas PDF dihapus dari
+>    penyimpanan", padahal `Service.Delete` sengaja mempertahankan objeknya di MinIO. Teks id/en diganti
+>    dengan perilaku sebenarnya beserta cara membuang berkasnya (hapus lampiran satu per satu).
+>
+> **Audit kedua (`/audit`, sesi bersih) SUDAH dijalankan, dan ketiga temuan SEDANG-nya SUDAH
+> diperbaiki.** Tidak ada temuan yang menghalangi merge; jalur otorisasi tiap endpoint ditelusuri ulang
+> satu per satu dan bersih (daftar publik menyaring draf lewat otoritas bukan parameter, endpoint berkas
+> menyaring status modul induk di dalam kueri, seluruh tulis lewat auth + web-only + `guide.manage`).
+> Alat: `go build`/`vet`/`test` penuh, `gofmt`, `govulncheck` (hanya GO-2026-5856 di stdlib, pra-ada
+> seluruh repo), `gitleaks` bersih 21 commit, Spectral 0 error, `squawk` (peringatan hanya pada tabel
+> yang dibuat di migrasi yang sama), ESLint exit 0, `vue-tsc` bersih, dan diff OpenAPI tanpa baris
+> terhapus. `gosec` tidak terpasang di mesin ini sehingga bagian itu tidak tercakup alat. Yang
+> diperbaiki:
+> 1. **[SEDANG, `fix(guide)`]** `POST /guide/modules` menerima `status` dan menulisnya apa adanya,
+>    sehingga satu permintaan bisa langsung menerbitkan modul — bertentangan dengan aturan bisnis 5,
+>    AC1, dan tabel kontrak di rencana yang ketiganya menyebut modul selalu lahir sebagai draf.
+>    Penegakannya sekarang lewat **ketiadaan field**: `moduleCreateRequest` tidak punya `status` sama
+>    sekali dan `Service.Create` mematoknya lagi untuk pemanggil non-HTTP. Keduanya berbagi
+>    `moduleFields` yang disematkan supaya kolom baru tidak bisa sampai ke satu endpoint lalu terlewat
+>    di yang lain. Klien lama tidak rusak — `status` yang tetap dikirim hanya tidak terikat.
+> 2. **[SEDANG, `fix(ops)`]** `GUIDE_PDF_MAX_BYTES` tidak terdaftar di allowlist environment
+>    `docker-compose.prod.yml`, jadi menyetelnya di `.env` VPS tidak berpengaruh apa pun dan backend
+>    diam-diam memakai default. Sudah didaftarkan dengan `${GUIDE_PDF_MAX_BYTES:-10485760}`;
+>    diverifikasi lewat `docker compose config` yang merender 10485760 tanpa override dan 5242880
+>    dengan override. **Ini menuntaskan separuh langkah 16**; pembuktian plafon body WAF di produksi
+>    masih tersisa.
+> 3. **[SEDANG, `fix(guide)`]** `GET /guide/modules` tanpa `LIMIT` pada satu-satunya endpoint data yang
+>    menjawab tanpa sesi dan tidak bisa di-cache. Diberi plafon `guide.MaxModules = 200` — plafon, bukan
+>    paginasi, karena panduan dibaca utuh sebagai satu dokumen. Bersama batas sepuluh lampiran per
+>    modul, respons terburuk terkunci di 200 modul dan 2000 baris lampiran. Menyentuh plafon dicatat
+>    sebagai peringatan supaya pemotongan tidak terbaca seperti daftar yang lengkap.
+>
+> **Perubahan UI yang menyertai perbaikan 1:** kontrol status di form pembuatan tetap terlihat tetapi
+> **mati**, dengan keterangan `statusHintCreate` yang menjelaskan modul baru selalu draf. Bukan
+> penyimpangan mockup — `Panduan Pengelolaan.dc.html` hanya menggambarkan form penyuntingan, dan bentuk
+> formnya tidak berubah.
+>
+> **Berikutnya — sisa langkah 16-19:** pembuktian plafon body WAF di produksi, ADR-0018 +
+> DATABASE.md, lalu hapus kunci `guidePage.sections` di rilis berikutnya.
+>
+> **Penguatan tes (sesi `/test`, 2026-08-09) — SELESAI.** Sesi terpisah dari implementasi, memakai
+> teknik ISTQB (equivalence partitioning, boundary value analysis, decision table) atas seluruh diff
+> branch. Ditambahkan 32 tes tingkat atas: `internal/guide/handler_test.go` (baru, 11 tes — tabel status `svcError`,
+> kebocoran detail error pada 500, `contentDisposition` terhadap sisipan CRLF dan round-trip nama
+> non-ASCII, 400 untuk id cacat pada 8 rute, `caller`/`actor` yang konservatif, `limitAwareBody`,
+> koleksi JSON yang tidak pernah null), `internal/guide/service_test.go` (baru, 7 tes — tabel
+> `mapDBError` termasuk kode yang harus lewat apa adanya, batas `maxSteps` tepat di tepinya, enkode
+> kanonis langkah, `trimPtr`), tambahan batas nilai pada `dto_test.go` (4 tes — panjang slug/ikon/judul/
+> isi, jumlah dan panjang langkah, `sort_order`, judul lampiran), 8 tes integrasi baru
+> (`guide_integration_test.go` — id video pada endpoint berkas menjawab 404, ganti nama ke slug yang
+> sudah dipakai 409 dan slug bekas modul terhapus boleh dipakai lagi, baris tak dikenal dan yang sudah
+> dihapus menjawab 404 termasuk penghapusan kedua, endpoint penyunting tertutup bagi pembaca biasa dan
+> token mobile, unggahan tanpa bagian berkas 422, validasi PATCH lampiran, plafon lampiran di bawah
+> konkurensi, rollback objek saat sisipan gagal), dan batas satuan `formatFileSize` di frontend.
+> **Setiap tes baru dibuktikan bisa merah** lewat 7 batch mutasi kode produksi (kode dikembalikan
+> setelah tiap batch). Suite hijau: `go build/vet ./...`, `go test ./...`,
+> `go test -tags=integration ./internal/guide/ ./internal/middleware/`, Vitest.
+>
+> **Dua temuan dari sesi tes:**
+> 1. **[SEDANG, `fix(guide)`] — SUDAH DIPERBAIKI (2026-08-09).** Plafon 10 lampiran per modul **tidak
+>    tertahan di bawah konkurensi**. `insertCapped` menghitung lalu menyisipkan dalam satu transaksi dan
+>    komentarnya mengklaim itu cukup; pada READ COMMITTED `SELECT count(*)` tidak mengunci apa pun,
+>    sehingga 20 permintaan serentak menghasilkan 17 baris (terbukti di
+>    `TestConcurrentAttachmentsCannotExceedTheCap`). Perbaikannya: kueri baru `LockGuideModuleForUpdate`
+>    (`SELECT id ... FOR UPDATE`, menyaring `deleted_at`) dipanggil sebagai langkah pertama transaksi,
+>    sehingga baris modul menjadi titik serialisasi — plafonnya memang per modul. Tanpa migrasi dan tanpa
+>    perubahan kontrak API. Tes diperketat menjadi "tepat 10", dan perbaikannya dibuktikan dengan mencabut
+>    kunci itu sementara: tesnya merah lagi. Sisi lain yang ikut tertutup: baris modul diperiksa ulang di
+>    dalam transaksi, jadi modul yang dihapus tepat setelah `requireModule` tidak lagi bisa menerima
+>    lampiran.
+> 2. **[RENDAH, `fix(guide)`]** — belum diperbaiki. Cabang cadangan pada `contentDisposition` tidak pernah tercapai:
+>    `mime.FormatMediaType` mengembalikan `inline; filename=""` untuk nama kosong, bukan string kosong,
+>    sehingga nama berkas yang hanya berisi CR/LF terkirim sebagai filename kosong. Helper kembar di
+>    modul aset kemungkinan besar sama. Bukan celah keamanan — CR/LF tetap dibuang.
+>
+> **Celah tes yang tersisa:** `-race` tidak dijalankan (butuh cgo/gcc yang tidak ada di mesin Windows
+> ini, dan CI pun memanggil `go test ./...` tanpa `-race`); menyalakannya di CI layak dipertimbangkan.
+>
+> **Audit ketiga (`/audit`, sesi bersih, 2026-08-09) SUDAH dijalankan, dan ketiga temuan SEDANG-nya
+> SUDAH diperbaiki.** Tidak ada temuan yang menghalangi merge; jalur otorisasi tiap endpoint ditelusuri
+> ulang dan tetap bersih. Alat: `go build`/`vet`/`test ./...`, `golangci-lint` (4 isu di kode panduan —
+> 2 errcheck `defer Close`, 2 staticcheck S1016 — sejalan dengan baseline repo 28 isu, dan CI hanya
+> menjalankan `go vet`), `govulncheck` (hanya GO-2026-5856 di stdlib, pra-ada seluruh repo), `gitleaks`
+> bersih pada diff branch, Spectral 0 error, ESLint dan `vue-tsc` bersih, diff OpenAPI tanpa satu pun
+> baris terhapus, dan berkas tema tidak tersentuh. `gosec` dan `semgrep` tidak terpasang di mesin ini.
+> Suite Vitest penuh menyisakan satu berkas merah pada tiap jalannya, tetapi **berkas yang berbeda tiap
+> kali** (`assets-index.spec.ts` lalu `assets-label.spec.ts`), keduanya tidak tersentuh branch ini dan
+> keduanya hijau 28/28 saat dijalankan berdua di luar suite; gejalanya timeout dan
+> `EnvironmentTeardownError`, jadi flake beban paralel di mesin ini, bukan regresi. Skor akhir 1849 dari
+> 1850. Yang diperbaiki:
+> 1. **[SEDANG, `fix(guide)`]** Menaikkan atau menurunkan urutan modul **diam-diam tidak berefek** ketika
+>    dua modul memegang `sort_order` yang sama, tetapi toast keberhasilan tetap muncul. Kondisinya bukan
+>    teoretis: setiap modul baru lahir dengan `sort_order` 1, jadi langsung bertabrakan dengan modul
+>    bawaan `login-security` dan dengan setiap modul baru lainnya. Modul baru kini mengambil angka bebas
+>    pertama (`max + 1`, aturan yang sudah dipakai lampiran), dan untuk angka kembar yang terlanjur
+>    diketik pengelola penukaran diganti dorongan satu langkah **ke bawah** pada baris yang harus berada
+>    di urutan kedua — ke bawah, bukan ke atas, karena `sort_order` divalidasi `gte=0`. Enam tes baru,
+>    dua di antaranya dibuktikan merah lewat mutasi.
+> 2. **[SEDANG, `fix(guide)`]** **AC16 tidak terpenuhi:** fasad pemutar memuat thumbnail dari
+>    `i.ytimg.com` saat halaman dirender, jadi alamat pembaca beserta identitas video yang ia lihat
+>    sampai ke Google sebelum ia menekan apa pun. Pembukaan mockup menyelesaikan ketegangannya: fasad
+>    diam di `docs/design/Panduan Media.dc.html` **tidak punya gambar sama sekali**, hanya gradien,
+>    sorotan radial, tombol putar, dan badge `youtube-nocookie.com` — thumbnail itu tambahan di luar
+>    desain. Gambar dihapus, sorotan radial yang memang digambar mockup dipasang, dan pemeriksaan
+>    thumbnail (satu-satunya sinyal jujur bahwa video sudah dihapus) pindah ke belakang tombol putar,
+>    saat sematan memang sudah akan dimuat. Kartu "Video tidak dapat diputar" dipertahankan dan tombol
+>    muat ulangnya kini benar-benar mencoba memutar ulang. E2E ikut menghitung permintaan ke
+>    `i.ytimg.com` supaya AC16 dibuktikan dari sisi jaringan browser, bukan dari isi DOM.
+>    **Keputusan user** di antara empat opsi (hapus + pindahkan deteksi, hapus keduanya, catat sebagai
+>    penyimpangan, proksikan lewat backend).
+> 3. **[SEDANG, `test(guide)`]** **AC45 tidak dijaga apa pun.** `audit.Record` sengaja menelan
+>    kegagalannya sendiri, sehingga mencabut panggilannya dari keenam handler tulis meninggalkan seluruh
+>    suite hijau. Dua tes integrasi baru: satu menelusuri jejak lengkap sebuah modul dan lampirannya dari
+>    dibuat, diterbitkan, diubah, sampai dihapus beserta isi perubahannya; satu lagi memastikan penulisan
+>    yang ditolak 403 maupun 422 tidak meninggalkan baris apa pun. Keduanya dibuktikan merah lewat dua
+>    mutasi. Mengikuti konvensi yang sudah ada di `internal/authzadmin` dan `internal/user`.
+>
+> **E2E SUDAH dijalankan penuh** terhadap stack Docker nyata (2026-08-09), mereplikasi job CI: `docker
+> compose up postgres redis minio migrate mailpit backend` dengan `RATELIMIT_ENABLED=false`, DB bersih
+> (`down -v`), admin di-seed, `pnpm build`, lalu `playwright test --project=chromium`. **114 lolos, 1
+> merah** — `notifications.spec.ts` (umpan approval asinkron, menunggu 40 detik dan tidak dapat), yang
+> **lolos 2/2 dalam 6,5 detik saat dijalankan sendiri**; flake timing di bawah beban, dan CI punya
+> `retries: 2` yang menyerapnya. **Kesepuluh tes `guide.spec.ts` lolos.**
+>
+> **Pelajaran menjalankan e2e lokal:** jalankan dengan **`--workers=1`** seperti CI
+> (`playwright.config.ts` menyetel `workers: process.env.CI ? 1 : undefined`). Jalan pertama memakai
+> worker paralel default menghasilkan **11 merah tersebar di spec yang tidak berhubungan**, termasuk
+> `403 "office must be placed under an office within your scope"` — spec saling mengganggu lewat akun
+> admin bersama (`account-security` dan `password-reset` sama-sama mengganti passwordnya) dan hierarki
+> kantor. Bukan satu pun regresi. Jalan serial di DB yang sama bersih.
+>
+> **Asersi AC16 baru dibuktikan bukan asersi kosong** lewat dua mutasi terhadap build nyata: (1)
+> mengembalikan thumbnail ke fasad diam menjatuhkan `expect(img[src*="ytimg.com"]).toHaveCount(0)`; (2)
+> prefetch `new Image()` saat mount **tanpa** elemen DOM lolos pemeriksaan DOM tetapi dijatuhkan
+> penghitung jaringan `expect(thumbRequests()).toBe(0)` — jadi penghitung itu penjaga yang berdiri
+> sendiri, bukan hiasan di atas asersi DOM.
+>
+> **Saran audit ketiga yang sengaja TIDAK dikerjakan** (di luar cakupan perbaikan yang diminta):
+> `download()` di `GuideMediaCard` mencabut object URL tepat setelah `click()`; kegagalan `download()`
+> menyetel `previewFailed` yang hanya terlihat kalau panel pratinjau terbuka; penanda "belum
+> diterjemahkan" masih hanya memeriksa `title_en`; komentar `move()` di `GuideAttachmentManager` masih
+> mengklaim kegagalan di antara dua PATCH menyisakan "urutan lama"; nilai heksa mentah di fasad pemutar
+> (disalin dari mockup, permukaan yang memang sengaja gelap di kedua tema); dan `sandbox=""` pada iframe
+> pratinjau PDF yang masih belum pernah dibuktikan di browser nyata.
+>
+
+> **Temuan audit yang dibiarkan (saran, bukan pemblokir):** `Icon` tidak divalidasi terhadap daftar
+> tertutup di server; `PATCH /guide/modules/:id` bersemantik PUT; filter status dan tab lampiran tanpa
+> `role="tab"`/`aria-selected`; tidak ada kuota unggahan per-user; penanda "belum diterjemahkan" hanya
+> memeriksa `title_en` sehingga modul dengan judul Inggris tetapi langkah Indonesia tidak tertandai;
+> komentar pada `move()` (halaman dan `GuideAttachmentManager`) mengklaim kegagalan di antara dua PATCH
+> menyisakan "urutan lama", padahal menyisakan dua baris dengan `sort_order` yang sama; `download()` di
+> `GuideMediaCard` mencabut object URL tepat setelah `click()` dan tidak memakai pola `triggerDownload`
+> yang sudah ada di `ImportWizard`; `sandbox=""` pada iframe pratinjau PDF belum pernah dibuktikan di
+> browser nyata (tidak ada test yang bisa membuktikannya).
+>
+> **Temuan dari langkah 15 (belum ditindaklanjuti, bukan pemblokir):**
+> 1. `GuideMediaCard.vue` tidak punya `data-testid` di elemen akarnya, sehingga e2e harus memakai
+>    lokator struktural (saudara-berikutnya dari baris judul) untuk membatasi asersi ke satu lampiran.
+>    Usul: `data-testid="guide-media-card"` beserta penanda status terkunci.
+> 2. `nav.guide` dan `nav.guideManage` memakai label yang persis sama, "Panduan Penggunaan". Superadmin
+>    melihat label kembar di sidebar (Bantuan dan Administrasi > Pengaturan). Perlu keputusan produk.
+> 3. `e2e/nav-access.spec.ts` menyapu seluruh menu dalam satu tes ber-anggaran 30 detik dan kini
+>    bertambah satu rute. Terhadap dev server Vite tes itu butuh sekitar 1,3 menit dan gagal karena
+>    waktu habis (bukan 403 — dengan `--timeout=180000` ia hijau). Anggaran waktunya layak dinaikkan.
+>
+> **Perbandingan dengan mockup — SUDAH dijalankan.** Stack dev Docker dinyalakan, login superadmin,
+> lalu `/settings/guide` dibandingkan berdampingan dengan `docs/design/Panduan Pengelolaan.dc.html`:
+> tata letak, hierarki, dan komponen cocok pada layar lebar (tabel 7 kolom, ikon + judul + subjudul EN,
+> urutan mono, pil status bertitik, cip lampiran, kebab), lebar ponsel (tabel dipecah jadi kartu),
+> mode terang dan gelap, penyunting slideover 720px (tiga bagian, kolom ID/EN berdampingan, penyunting
+> langkah bernomor, sakelar Kolom Inggris, dua tab lampiran, pratinjau "Tautan sah" dengan `youtube_id`),
+> dan leaf nav di Administrasi > Pengaturan. Jalur tulis diuji langsung ke backend nyata: buat modul,
+> tambah lampiran video YouTube, hapus modul — ketiganya berhasil.
+>
+> **Penyimpangan dari mockup — perlu ditinjau:**
+> 1. Keadaan mockup "sesi berakhir di tengah unggahan" (panel 401 dengan tombol Masuk kembali dan Unggah
+>    ulang, isian judul dipertahankan) **tidak dibangun**: `useApiClient` menangani 401 secara global
+>    dengan `auth.clear()` lalu redirect ke `/login`, sehingga panel itu tidak pernah sempat terlihat.
+>    Membangunnya menuntut jalan keluar per-panggilan dari penanganan sesi global — perubahan lintas
+>    fitur, di luar cakupan langkah ini.
+> 2. Bilah progres unggahan **tanpa persentase**: `$fetch` tidak memberi peristiwa progres unggahan.
+>    Diganti bilah indeterminate dengan nama dan ukuran berkas.
+> 3. Angka "10 MB" di drop zone dirangkai dari satu konstanta frontend (`GUIDE_PDF_MAX_BYTES` di
+>    `app/utils/guideText.ts`), **bukan** dari konfigurasi yang dikirim backend seperti diminta rencana
+>    langkah 12 — kontrak API pada rencana tidak memuat endpoint apa pun yang membawa batas itu, dan
+>    menambahkannya berarti mengubah kontrak. Pola ini sama dengan `ImportWizard` dan `useAccount` yang
+>    sudah ada. Konsekuensinya: menaikkan batas di langkah 17 menuntut konstanta ini ikut diubah, bukan
+>    hanya variabel lingkungan backend. Kalau itu dianggap terlalu rapuh, endpoint batas perlu dibuat.
+>
+> **Yang wajib diingat sebelum melanjutkan:** batas PDF sengaja 10 MB, bukan 20 MB usulan spec, karena
+> Coraza WAF di produksi memuat konfigurasi rekomendasi dengan plafon body sekitar 12,5 MB — menaikkannya
+> menuntut `SecRequestBodyLimit` dinaikkan lebih dulu di `ops/caddy/Caddyfile`. Kunci i18n
+> `guidePage.sections` sengaja BELUM dihapus supaya membatalkan rilis cukup mengembalikan kode.
+>
 > **Rebrand tema Bank BTN: web + mobile (2026-08-08, branch `feat/theme-btn-brand`) — SELESAI (kode + tes; lint, typecheck, analyze, 571 tes Flutter, 1740 tes Vitest hijau).**
 > Mengganti warna brand dari hijau ke **biru korporat Bank BTN `#005BFD`**, diekstrak langsung dari
 > `frontend/public/logo-btn.png` (logo hanya memuat dua warna: biru 91,6% dan merah `#FF0000` 8,4%).

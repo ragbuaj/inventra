@@ -41,6 +41,14 @@ type Config struct {
 	// AvatarMaxBytes caps profile-photo uploads. Lower than attachments because
 	// the profile screen advertises a 2 MB limit.
 	AvatarMaxBytes int64
+	// GuidePDFMaxBytes caps the PDF attachments on Panduan Penggunaan. Higher
+	// than AttachmentMaxBytes because a screenshot-heavy manual is bigger than a
+	// scanned form, but deliberately NOT higher than the WAF in front of
+	// production will pass: Coraza's recommended config caps a request body at
+	// roughly 12.5 MB and rejects beyond it, so a larger value here would only
+	// produce uploads that fail outside the application. Raising it means
+	// raising SecRequestBodyLimit first — see ops/caddy/Caddyfile.
+	GuidePDFMaxBytes int64
 
 	// Auth.
 	JWTSecret     string
@@ -149,6 +157,7 @@ func Load() *Config {
 		MinIOUseSSL:        getEnvBool("MINIO_USE_SSL", false),
 		AttachmentMaxBytes: int64(getEnvInt("ATTACHMENT_MAX_BYTES", 5*1024*1024)),
 		AvatarMaxBytes:     int64(getEnvInt("AVATAR_MAX_BYTES", 2*1024*1024)),
+		GuidePDFMaxBytes:   int64(getEnvInt("GUIDE_PDF_MAX_BYTES", 10*1024*1024)),
 
 		JWTSecret:     getEnv("JWT_SECRET", "change-me-in-production"),
 		JWTAccessTTL:  getEnvDuration("JWT_ACCESS_TTL", 15*time.Minute),

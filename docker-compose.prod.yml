@@ -108,6 +108,15 @@ services:
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET: inventra
       MINIO_USE_SSL: "false"
+      # Batas unggahan PDF Panduan Penggunaan. Wajib disebut di sini: compose
+      # hanya meneruskan variabel yang terdaftar, jadi tanpa baris ini menyetel
+      # GUIDE_PDF_MAX_BYTES di .env tidak berpengaruh apa pun dan backend diam-
+      # diam memakai defaultnya. Jangan dinaikkan melewati SecRequestBodyLimit
+      # Coraza (sekitar 12,5 MB pada konfigurasi rekomendasi) tanpa menaikkan
+      # batas itu lebih dulu di ops/caddy/Caddyfile — unggahan yang lebih besar
+      # akan ditolak WAF sebelum sampai ke aplikasi. Angkanya juga dicerminkan
+      # frontend di app/utils/guideText.ts (GUIDE_PDF_MAX_BYTES).
+      GUIDE_PDF_MAX_BYTES: ${GUIDE_PDF_MAX_BYTES:-10485760}
       JWT_SECRET: ${JWT_SECRET}
       FRONTEND_URL: https://${DOMAIN}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}

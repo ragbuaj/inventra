@@ -206,6 +206,43 @@ tags:
       notification owned by another user is **indistinguishable from acting on
       one that does not exist** — both return 404, never 403, so the response
       cannot confirm an id exists.
+  - name: Guide
+    description: |
+      Panduan Penggunaan: the in-app user guide, stored as data so it can be
+      edited without a release. A module is one card on the guide page (icon,
+      title, description, numbered steps); each module may carry up to **10**
+      attachments — a YouTube link or a PDF held in object storage.
+
+      **Three different access rules apply here, and the split is the point.**
+
+      `GET /guide/modules` is the only public read in this API besides auth.
+      The guide page is reachable without a session, so the endpoint answers
+      guests too. What changes is the projection: for a caller **without** a
+      session every attachment is returned as `locked: true` carrying only its
+      `kind`, title and ordering — no `youtube_id`, no `file_url`, no filename,
+      no size. Enough to render "there is a video here, sign in to watch", not
+      enough to reconstruct the media or learn an internal document's name.
+      Because the body varies with `Authorization`, the response is served
+      `Cache-Control: no-store` and `Vary: Authorization`.
+
+      `GET /guide/attachments/{aid}/content` streams the PDF. For media on a
+      **published** module a **session** is the whole rule — any authenticated
+      user may read it; `guide.manage` governs authoring, not reading. Media on a
+      **draft** module is another matter: it follows its module and is readable
+      only by `guide.manage` holders, so pulling a module back to draft also
+      pulls its files. The object key is generated server-side and is never
+      exposed; neither it nor the attachment id is a capability, and no
+      unauthenticated request can reach a file.
+
+      Every **write** requires `guide.manage` and a **web** audience token
+      (ADR-0017), like the other admin surfaces. Drafts are visible only to
+      callers holding `guide.manage`: passing `status=all` without it simply
+      returns the published set rather than an error.
+
+      Guide content is **global** — there is no office scoping and no data-scope
+      module for it. Uploads accept `application/pdf` only, verified from the
+      file's own bytes rather than its extension or declared content type, and
+      video links must resolve to a YouTube host by exact match.
 
 paths:
   /health:
@@ -5154,6 +5191,298 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { description: 'No such notification for this caller (also returned when the id belongs to another user)', content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
 
+  /api/v1/guide/modules:
+    get:
+      tags: [Guide]
+      operationId: listGuideModules
+      summary: List guide modules (public; richer with a session)
+      description: |
+        Returns published modules ordered by `sort_order`. **No session is
+        required** — the guide page is public.
+
+        The attachment projection depends on the caller. Without a session every
+        attachment comes back `locked: true` with only `kind`, titles and
+        ordering; with a session it also carries `youtube_id` (videos) or
+        `file_url`, `original_filename` and `size_bytes` (documents).
+
+        `status=all` additionally returns drafts, but only for a caller holding
+        `guide.manage`; without that permission the parameter is ignored rather
+        than rejected.
+
+        The response is **capped at 200 modules** and is not paginated: the guide
+        is read as one document, and this is the only data endpoint that answers
+        without a session, so the cost of an anonymous request must not grow with
+        the number of modules an author creates. `total` reports what was
+        actually returned. Reaching the cap is logged server-side; no real guide
+        is expected to approach it.
+      security:
+        - bearerJWT: []
+        - {}
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [all] }, description: 'Include drafts. Honoured only for callers holding `guide.manage`; ignored otherwise.' }
+      responses:
+        "200":
+          description: The guide modules visible to this caller
+          headers:
+            Cache-Control:
+              description: Always `no-store` — the body varies with the caller's session.
+              schema: { type: string }
+            Vary:
+              description: Always `Authorization`, so a shared cache cannot serve a signed-in body to a guest.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuideModuleList" }
+    post:
+      tags: [Guide]
+      operationId: createGuideModule
+      summary: Create a guide module
+      description: |
+        Creates a module. It is **always** a draft and therefore invisible to
+        readers; publishing is a separate `PATCH`. The reader page is public, so
+        a half-written module must never be one request away from being visible.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GuideModuleCreateInput" }
+      responses:
+        "201":
+          description: The created module
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuideModule" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { description: 'A module with this slug already exists', content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /api/v1/guide/modules/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Guide]
+      operationId: getGuideModule
+      summary: Get one guide module for editing
+      description: Returns a single module including drafts and full attachment refs. Backs the authoring screen; readers use the list endpoint.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The module
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuideModule" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Guide]
+      operationId: updateGuideModule
+      summary: Update a guide module
+      description: |
+        Replaces the module's writable fields, **including the whole step list** —
+        the editor sends the list as a unit.
+
+        `status` doubles as the publish control. `published_at` records the first
+        publication and is not touched when an already-published module is edited
+        again; moving back to `draft` clears it.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GuideModuleInput" }
+      responses:
+        "200":
+          description: The updated module
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuideModule" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: 'Another module already uses this slug', content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      tags: [Guide]
+      operationId: deleteGuideModule
+      summary: Delete a guide module
+      description: |
+        Soft-deletes the module and its attachments in one transaction. The
+        stored PDFs are deliberately left in object storage: with their rows gone
+        the file endpoint answers 404, so they are unreachable, and keeping the
+        bytes means a mistaken delete is still recoverable. Deleting a single
+        attachment does remove its object.
+      security:
+        - bearerJWT: []
+      responses:
+        "204": { description: Deleted }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/guide/modules/{id}/attachments/video:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Guide]
+      operationId: addGuideVideoAttachment
+      summary: Attach a YouTube video to a module
+      description: |
+        Accepts a YouTube watch, `youtu.be` or shorts link and stores **only the
+        extracted video id** — the submitted URL is never stored and never
+        rendered, so the embed is always built from an 11-character validated id.
+
+        The host must match `youtube.com`, `www.youtube.com`, `m.youtube.com` or
+        `youtu.be` **exactly**; anything else is rejected with 422, including
+        links that merely contain a YouTube host in their path or as a prefix of
+        another domain. Extra parameters (`t`, `list`, `si`) are discarded.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GuideVideoInput" }
+      responses:
+        "201":
+          description: The created attachment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuideAttachment" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { description: 'Not a valid YouTube link, or the module already holds 10 attachments', content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/v1/guide/modules/{id}/attachments/document:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Guide]
+      operationId: addGuideDocumentAttachment
+      summary: Upload a PDF attachment to a module
+      description: |
+        Multipart upload of a single PDF. The type is verified from the file's
+        **own bytes**, not from its extension or the declared content type, so a
+        renamed HTML or image file is rejected with 415. The stored object key is
+        generated server-side; the original filename is kept as display metadata
+        only and never becomes part of a storage path.
+
+        The size cap comes from `GUIDE_PDF_MAX_BYTES` (10 MB by default) and
+        applies **per file**: a PDF of exactly that size is accepted. The request
+        body is additionally bounded (the limit plus a small allowance for the
+        multipart envelope) so an oversized upload is cut off rather than
+        buffered whole; whichever bound is reached, the answer is 413.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { $ref: "#/components/schemas/GuideDocumentInput" }
+      responses:
+        "201":
+          description: The created attachment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuideAttachment" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "413": { description: 'The file exceeds the configured size limit', content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "415": { description: 'The uploaded bytes are not a PDF', content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "422": { description: 'Missing field, or the module already holds 10 attachments', content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/v1/guide/attachments/{aid}:
+    parameters:
+      - { name: aid, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [Guide]
+      operationId: updateGuideAttachment
+      summary: Rename or reorder an attachment
+      description: |
+        Changes the titles and ordering only. Neither the file nor the video link
+        can be swapped in place — replacing one means deleting the attachment and
+        adding it again, so no row ever ends up pointing at an object it did not
+        create.
+      security:
+        - bearerJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GuideAttachmentPatch" }
+      responses:
+        "200":
+          description: The updated attachment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuideAttachment" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      tags: [Guide]
+      operationId: deleteGuideAttachment
+      summary: Delete an attachment
+      description: Soft-deletes the attachment row and removes its stored object. The row goes first, so a failed object removal leaves a logged orphan blob rather than a live row whose file has vanished.
+      security:
+        - bearerJWT: []
+      responses:
+        "204": { description: Deleted }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/guide/attachments/{aid}/content:
+    parameters:
+      - { name: aid, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Guide]
+      operationId: downloadGuideAttachment
+      summary: Stream an attachment's PDF
+      description: |
+        Streams the stored PDF. A session is required and, for a **published**
+        module, sufficient — no permission key is needed to read guide media.
+        Without a session the request is rejected with 401; the unguessable
+        object key is not a substitute for that check.
+
+        Media on a **draft** module follows its module: only a caller holding
+        `guide.manage` may read it, and everyone else gets **404**, the same
+        answer as an id that does not exist, so a draft's existence is not
+        disclosed. This also means withdrawing a module to draft withdraws its
+        files — the attachment ids handed out while it was published stop
+        working for ordinary readers.
+
+        Served with a server-chosen `application/pdf` content type,
+        `X-Content-Type-Options: nosniff`, `Content-Security-Policy: sandbox` and
+        an inline `Content-Disposition` whose filename is sanitised, so an
+        uploader-supplied name cannot inject header bytes.
+      security:
+        - bearerJWT: []
+      responses:
+        "200":
+          description: The PDF bytes
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
 components:
   securitySchemes:
     bearerJWT:
@@ -5176,6 +5505,18 @@ components:
             $ref: "#/components/schemas/Error"
     Forbidden:
       description: Authenticated but lacking the required permission
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: No such record (also returned for a record the caller may not see)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ValidationError:
+      description: The request body failed validation
       content:
         application/json:
           schema:
@@ -7574,3 +7915,128 @@ components:
         total: { type: integer }
         limit: { type: integer }
         offset: { type: integer }
+
+    GuideStep:
+      type: object
+      required: [text_id]
+      description: One entry of a module's numbered list. Indonesian is required; English is optional and falls back to Indonesian when absent.
+      properties:
+        text_id: { type: string, maxLength: 500 }
+        text_en: { type: string, nullable: true, maxLength: 500 }
+
+    GuideAttachment:
+      type: object
+      required: [id, kind, title_id, sort_order, locked]
+      description: |
+        A module's media. The media-bearing fields are present only for callers
+        with a session: a guest receives `locked: true` and nothing that would let
+        them reconstruct the video or the file.
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [video, document] }
+        title_id: { type: string }
+        title_en: { type: string, nullable: true }
+        sort_order: { type: integer }
+        locked:
+          type: boolean
+          description: '`true` when the caller has no session; the fields below are then omitted entirely.'
+        youtube_id:
+          type: string
+          description: The extracted 11-character video id (videos only, signed-in callers only). Embed it via `youtube-nocookie.com`; the submitted URL is never stored.
+        file_url:
+          type: string
+          description: Path to the PDF stream (documents only, signed-in callers only). Requires a session of its own.
+        original_filename:
+          type: string
+          description: Display name of the uploaded file (documents only, signed-in callers only). Never part of the storage path.
+        size_bytes:
+          type: integer
+          format: int64
+          description: Size of the stored PDF (documents only, signed-in callers only).
+
+    GuideModule:
+      type: object
+      required: [id, slug, icon, sort_order, status, title_id, steps, attachments]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string, description: 'Stable key used for seeding and deep links; not shown to readers.' }
+        icon: { type: string, description: 'Icon name from the app''s closed set, e.g. `i-lucide-log-in`.' }
+        sort_order: { type: integer }
+        status: { type: string, enum: [draft, published] }
+        title_id: { type: string }
+        title_en: { type: string, nullable: true }
+        body_id: { type: string, nullable: true }
+        body_en: { type: string, nullable: true }
+        steps: { type: array, items: { $ref: "#/components/schemas/GuideStep" } }
+        attachments: { type: array, items: { $ref: "#/components/schemas/GuideAttachment" } }
+        published_at: { type: string, format: date-time, nullable: true, description: 'First publication. Not refreshed when an already-published module is edited; cleared when it returns to draft.' }
+        updated_at: { type: string, format: date-time, nullable: true }
+
+    GuideModuleList:
+      type: object
+      required: [data, total]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/GuideModule" } }
+        total: { type: integer }
+
+    GuideModuleCreateInput:
+      type: object
+      required: [slug, icon, title_id]
+      description: |
+        The writable half of a NEW module. There is deliberately no `status`
+        property: a module is always created as a draft and is published by a
+        subsequent update. A `status` sent anyway is ignored, not rejected, so an
+        older client keeps working — it simply cannot publish in one step.
+      properties:
+        slug: { type: string, maxLength: 120 }
+        icon: { type: string, maxLength: 80 }
+        sort_order: { type: integer, minimum: 0, default: 0 }
+        title_id: { type: string, maxLength: 200 }
+        title_en: { type: string, nullable: true, maxLength: 200 }
+        body_id: { type: string, nullable: true, maxLength: 2000 }
+        body_en: { type: string, nullable: true, maxLength: 2000 }
+        steps: { type: array, maxItems: 50, items: { $ref: "#/components/schemas/GuideStep" } }
+
+    GuideModuleInput:
+      type: object
+      required: [slug, icon, status, title_id]
+      description: The writable half of a module on update. An update replaces every field, including the whole step list, and it is the only way to publish or withdraw one.
+      properties:
+        slug: { type: string, maxLength: 120 }
+        icon: { type: string, maxLength: 80 }
+        sort_order: { type: integer, minimum: 0, default: 0 }
+        status: { type: string, enum: [draft, published] }
+        title_id: { type: string, maxLength: 200 }
+        title_en: { type: string, nullable: true, maxLength: 200 }
+        body_id: { type: string, nullable: true, maxLength: 2000 }
+        body_en: { type: string, nullable: true, maxLength: 2000 }
+        steps: { type: array, maxItems: 50, items: { $ref: "#/components/schemas/GuideStep" } }
+
+    GuideVideoInput:
+      type: object
+      required: [url, title_id]
+      properties:
+        url:
+          type: string
+          maxLength: 500
+          description: 'A YouTube watch, `youtu.be` or shorts link. Only the video id is kept; the host must match a YouTube domain exactly.'
+        title_id: { type: string, maxLength: 200 }
+        title_en: { type: string, nullable: true, maxLength: 200 }
+        sort_order: { type: integer, minimum: 0, default: 0 }
+
+    GuideDocumentInput:
+      type: object
+      required: [file, title_id]
+      properties:
+        file: { type: string, format: binary, description: 'The PDF. Verified from its own bytes, not its extension.' }
+        title_id: { type: string, maxLength: 200 }
+        title_en: { type: string, maxLength: 200 }
+        sort_order: { type: integer, minimum: 0, default: 0 }
+
+    GuideAttachmentPatch:
+      type: object
+      required: [title_id]
+      properties:
+        title_id: { type: string, maxLength: 200 }
+        title_en: { type: string, nullable: true, maxLength: 200 }
+        sort_order: { type: integer, minimum: 0, default: 0 }

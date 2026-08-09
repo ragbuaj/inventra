@@ -52,6 +52,9 @@ type Querier interface {
 	CountDisposals(ctx context.Context, arg CountDisposalsParams) (int64, error)
 	CountEmployees(ctx context.Context, arg CountEmployeesParams) (int64, error)
 	CountFloorsByOffice(ctx context.Context, arg CountFloorsByOfficeParams) (int64, error)
+	// Menegakkan batas jumlah lampiran per modul. Dihitung setelah baris modulnya
+	// dikunci, di dalam transaksi yang sama dengan penyisipan.
+	CountGuideAttachments(ctx context.Context, moduleID uuid.UUID) (int64, error)
 	CountImportJobs(ctx context.Context, arg CountImportJobsParams) (int64, error)
 	CountImportRows(ctx context.Context, arg CountImportRowsParams) (int64, error)
 	CountMaintRecords(ctx context.Context, arg CountMaintRecordsParams) (int64, error)
@@ -83,6 +86,8 @@ type Querier interface {
 	CreateDisposal(ctx context.Context, arg CreateDisposalParams) (DisposalDisposal, error)
 	CreateEmployee(ctx context.Context, arg CreateEmployeeParams) (MasterdataEmployee, error)
 	CreateFloor(ctx context.Context, arg CreateFloorParams) (MasterdataFloor, error)
+	CreateGuideAttachment(ctx context.Context, arg CreateGuideAttachmentParams) (GuideGuideAttachment, error)
+	CreateGuideModule(ctx context.Context, arg CreateGuideModuleParams) (GuideGuideModule, error)
 	CreateImportJob(ctx context.Context, arg CreateImportJobParams) (ImportImportJob, error)
 	CreateMaintRecord(ctx context.Context, arg CreateMaintRecordParams) (MaintenanceMaintenanceRecord, error)
 	CreateMaintSchedule(ctx context.Context, arg CreateMaintScheduleParams) (MaintenanceMaintenanceSchedule, error)
@@ -193,6 +198,15 @@ type Querier interface {
 	GetEmployeeByCode(ctx context.Context, code string) (MasterdataEmployee, error)
 	GetFloor(ctx context.Context, arg GetFloorParams) (MasterdataFloor, error)
 	GetFloorOffice(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
+	GetGuideAttachment(ctx context.Context, id uuid.UUID) (GuideGuideAttachment, error)
+	// Dipakai endpoint penyajian berkas. Status modul induk ikut disaring DI DALAM
+	// kueri, bukan diperiksa pada hasilnya: lampiran milik modul draf tidak
+	// dikembalikan sama sekali kecuali @include_draft menyala, dan handler hanya
+	// menyalakannya untuk pemanggil yang memegang guide.manage. Tanpa baris,
+	// pemanggil menerima 404 yang sama persis dengan id yang tidak ada — keberadaan
+	// draf pun tidak terbocorkan.
+	GetGuideAttachmentForRead(ctx context.Context, arg GetGuideAttachmentForReadParams) (GuideGuideAttachment, error)
+	GetGuideModule(ctx context.Context, id uuid.UUID) (GuideGuideModule, error)
 	GetImportJob(ctx context.Context, id uuid.UUID) (ImportImportJob, error)
 	GetImportJobForUpdate(ctx context.Context, id uuid.UUID) (ImportImportJob, error)
 	GetMaintRecordEnriched(ctx context.Context, arg GetMaintRecordEnrichedParams) (GetMaintRecordEnrichedRow, error)
@@ -340,6 +354,22 @@ type Querier interface {
 	// whose office is in office_ids are returned. Lets the importer resolve a
 	// floor-only "First Location" and build the location dropdown.
 	ListFloorsLookup(ctx context.Context, arg ListFloorsLookupParams) ([]ListFloorsLookupRow, error)
+	// Dipakai daftar modul: satu kueri untuk seluruh modul yang tampil, bukan satu
+	// kueri per modul.
+	ListGuideAttachmentsByModules(ctx context.Context, moduleIds []uuid.UUID) ([]GuideGuideAttachment, error)
+	// Konten Panduan Penggunaan. Panduan bersifat global: tidak ada penyaringan
+	// office scope di mana pun berkas ini, dan itu memang disengaja (lihat
+	// docs/superpowers/plans/2026-08-08-guide-media-cms.md).
+	// Satu kueri untuk pembaca dan pengelola. @include_draft = false menyisakan
+	// modul terbit saja; handler hanya menyalakannya untuk pemanggil yang memegang
+	// guide.manage, sehingga draf tidak pernah bocor lewat parameter.
+	//
+	// @max_rows adalah plafon, bukan paginasi: halaman panduan dibaca utuh sebagai
+	// satu dokumen, dan ini satu-satunya endpoint data yang bisa dipanggil tanpa
+	// sesi. Tanpa batas, biaya tiap permintaan anonim tumbuh mengikuti jumlah modul
+	// yang dibuat pengelola. Service memberi nilainya dan mencatat log peringatan
+	// kalau plafonnya benar-benar tersentuh.
+	ListGuideModules(ctx context.Context, arg ListGuideModulesParams) ([]GuideGuideModule, error)
 	ListImportJobs(ctx context.Context, arg ListImportJobsParams) ([]ImportImportJob, error)
 	ListImportRows(ctx context.Context, arg ListImportRowsParams) ([]ImportImportRow, error)
 	ListInboxCandidates(ctx context.Context) ([]ApprovalRequest, error)
@@ -420,6 +450,18 @@ type Querier interface {
 	// Flat vendor lookup (id, name) for the asset importer. Vendors are not
 	// office-scoped, so the full non-deleted set is returned.
 	ListVendorsLookup(ctx context.Context) ([]ListVendorsLookupRow, error)
+	// Mengunci baris modul selama transaksi penambahan lampiran.
+	//
+	// Ini yang membuat plafon lampiran benar-benar tertahan. Menghitung lalu
+	// menyisipkan di dalam satu transaksi TIDAK cukup: pada READ COMMITTED,
+	// count(*) tidak mengunci apa pun, sehingga permintaan bersamaan sama-sama
+	// membaca angka di bawah plafon dan sama-sama menyisipkan (terbukti: 20
+	// permintaan serentak menghasilkan 17 baris pada plafon 10). Baris modul dipakai
+	// sebagai titik serialisasi karena plafonnya memang per modul.
+	//
+	// Menyaring deleted_at sekaligus: melampirkan media ke modul yang sudah dihapus
+	// harus terbaca "tidak ditemukan", bukan berhasil.
+	LockGuideModuleForUpdate(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
 	MarkAllNotificationsRead(ctx context.Context, userID uuid.UUID) error
 	// user_id is part of the predicate, not just the lookup: marking someone else's
 	// notification read must affect zero rows (the handler turns that into a 404).
@@ -546,6 +588,12 @@ type Querier interface {
 	SoftDeleteEmployee(ctx context.Context, arg SoftDeleteEmployeeParams) (int64, error)
 	SoftDeleteFieldPermissionsByRole(ctx context.Context, roleID uuid.UUID) (int64, error)
 	SoftDeleteFloor(ctx context.Context, arg SoftDeleteFloorParams) (int64, error)
+	SoftDeleteGuideAttachment(ctx context.Context, id uuid.UUID) (GuideGuideAttachment, error)
+	// Lampiran ikut ditandai terhapus dalam transaksi yang sama oleh service, bukan
+	// oleh cascade: baris lampiran perlu tetap ada supaya objek MinIO-nya masih bisa
+	// ditelusuri kalau penghapusan objek gagal.
+	SoftDeleteGuideModule(ctx context.Context, arg SoftDeleteGuideModuleParams) (GuideGuideModule, error)
+	SoftDeleteGuideModuleAttachments(ctx context.Context, moduleID uuid.UUID) ([]GuideGuideAttachment, error)
 	SoftDeleteMaintSchedule(ctx context.Context, id uuid.UUID) (int64, error)
 	// Auto-resolve: a notification whose turn has passed is soft-deleted, not just
 	// marked read -- it cannot be acted on, so it should not sit in the feed.
@@ -577,6 +625,14 @@ type Querier interface {
 	UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) (MasterdataEmployee, error)
 	UpdateEmployeePhone(ctx context.Context, arg UpdateEmployeePhoneParams) error
 	UpdateFloor(ctx context.Context, arg UpdateFloorParams) (MasterdataFloor, error)
+	// Hanya judul dan urutan. Berkas maupun tautan tidak bisa diganti di tempat:
+	// untuk itu lampirannya dihapus lalu dibuat ulang, sehingga tidak pernah ada
+	// baris yang menunjuk objek MinIO yang sudah bukan miliknya.
+	UpdateGuideAttachment(ctx context.Context, arg UpdateGuideAttachmentParams) (GuideGuideAttachment, error)
+	// published_at menandai penerbitan PERTAMA dan tidak diperbarui saat modul yang
+	// sudah terbit disunting lagi; menariknya kembali ke draf mengosongkannya, jadi
+	// penerbitan berikutnya mencatat waktu barunya sendiri.
+	UpdateGuideModule(ctx context.Context, arg UpdateGuideModuleParams) (GuideGuideModule, error)
 	UpdateJobStatus(ctx context.Context, arg UpdateJobStatusParams) (ImportImportJob, error)
 	UpdateMaintRecord(ctx context.Context, arg UpdateMaintRecordParams) (MaintenanceMaintenanceRecord, error)
 	UpdateMaintSchedule(ctx context.Context, arg UpdateMaintScheduleParams) (MaintenanceMaintenanceSchedule, error)

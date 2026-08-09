@@ -169,6 +169,14 @@ export const appNav: NavGroup[] = [
             labelKey: 'nav.auditTrail',
             to: '/settings/audit',
             permission: 'audit.view'
+          },
+          {
+            // Guide authoring. The reader page (/guide) stays in the Help group
+            // with no permission; this leaf is the CMS behind it, so it carries
+            // the write key the endpoints enforce.
+            labelKey: 'nav.guideManage',
+            to: '/settings/guide',
+            permission: 'guide.manage'
           }
         ]
       }

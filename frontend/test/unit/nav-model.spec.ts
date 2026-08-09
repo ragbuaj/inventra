@@ -103,7 +103,7 @@ const EXPECTED_ROUTES: Record<string, string[]> = {
     '/master/offices', '/master/employees', '/master/categories', '/master/map',
     '/master/reference',
     '/settings/users', '/settings/rbac', '/settings/data-scope',
-    '/settings/field-permission', '/settings/audit'
+    '/settings/field-permission', '/settings/audit', '/settings/guide'
   ],
   kepala_kanwil: [
     '/', '/notifications', '/assets', '/assets/label', '/peminjaman', '/assignment', '/stock-opname',
@@ -151,13 +151,15 @@ describe('appNav — structure', () => {
     expect(appNav[0]!.items).toHaveLength(12)
   })
 
-  it('Administrasi has 2 parents: Master Data (5 children) and Pengaturan (5 children)', () => {
+  it('Administrasi has 2 parents: Master Data (5 children) and Pengaturan (6 children)', () => {
     const master = appNav[1]!.items.find(i => i.labelKey === 'nav.masterData')
     const settings = appNav[1]!.items.find(i => i.labelKey === 'nav.settings')
     // Bulk "Impor Data" is intentionally not a sidebar entry — the import flow is
     // reached from each master screen's own Import button.
     expect(master?.children).toHaveLength(5)
-    expect(settings?.children).toHaveLength(5)
+    // Pengaturan gained the guide CMS leaf; the reader page /guide stays in the
+    // Help group and is a different entry with no permission.
+    expect(settings?.children).toHaveLength(6)
   })
 
   it('no disabled placeholder items remain (My Assets / staff Approval removed)', () => {
@@ -206,6 +208,16 @@ describe('appNav — key per-item permissions match the spec map', () => {
     expect(byRoute.get('/settings/field-permission')?.permission).toBe('fieldperm.manage')
     expect(byRoute.get('/settings/users')?.permission).toBe('user.manage')
     expect(byRoute.get('/settings/audit')?.permission).toBe('audit.view')
+    expect(byRoute.get('/settings/guide')?.permission).toBe('guide.manage')
+  })
+
+  it('the guide CMS leaf is gated while the public reader page is not', () => {
+    // Two distinct entries with the same label: /guide is the page every reader
+    // (even without a session) may open, /settings/guide is the CMS behind it.
+    expect(byRoute.get('/guide')?.permission).toBeUndefined()
+    expect(byRoute.get('/settings/guide')?.permission).toBe('guide.manage')
+    const settings = appNav[1]!.items.find(i => i.labelKey === 'nav.settings')
+    expect(settings?.children?.some(c => c.to === '/settings/guide')).toBe(true)
   })
 })
 
