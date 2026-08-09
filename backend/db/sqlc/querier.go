@@ -52,8 +52,8 @@ type Querier interface {
 	CountDisposals(ctx context.Context, arg CountDisposalsParams) (int64, error)
 	CountEmployees(ctx context.Context, arg CountEmployeesParams) (int64, error)
 	CountFloorsByOffice(ctx context.Context, arg CountFloorsByOfficeParams) (int64, error)
-	// Menegakkan batas jumlah lampiran per modul. Dihitung di dalam transaksi yang
-	// sama dengan penyisipan supaya dua permintaan bersamaan tidak sama-sama lolos.
+	// Menegakkan batas jumlah lampiran per modul. Dihitung setelah baris modulnya
+	// dikunci, di dalam transaksi yang sama dengan penyisipan.
 	CountGuideAttachments(ctx context.Context, moduleID uuid.UUID) (int64, error)
 	CountImportJobs(ctx context.Context, arg CountImportJobsParams) (int64, error)
 	CountImportRows(ctx context.Context, arg CountImportRowsParams) (int64, error)
@@ -450,6 +450,18 @@ type Querier interface {
 	// Flat vendor lookup (id, name) for the asset importer. Vendors are not
 	// office-scoped, so the full non-deleted set is returned.
 	ListVendorsLookup(ctx context.Context) ([]ListVendorsLookupRow, error)
+	// Mengunci baris modul selama transaksi penambahan lampiran.
+	//
+	// Ini yang membuat plafon lampiran benar-benar tertahan. Menghitung lalu
+	// menyisipkan di dalam satu transaksi TIDAK cukup: pada READ COMMITTED,
+	// count(*) tidak mengunci apa pun, sehingga permintaan bersamaan sama-sama
+	// membaca angka di bawah plafon dan sama-sama menyisipkan (terbukti: 20
+	// permintaan serentak menghasilkan 17 baris pada plafon 10). Baris modul dipakai
+	// sebagai titik serialisasi karena plafonnya memang per modul.
+	//
+	// Menyaring deleted_at sekaligus: melampirkan media ke modul yang sudah dihapus
+	// harus terbaca "tidak ditemukan", bukan berhasil.
+	LockGuideModuleForUpdate(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
 	MarkAllNotificationsRead(ctx context.Context, userID uuid.UUID) error
 	// user_id is part of the predicate, not just the lookup: marking someone else's
 	// notification read must affect zero rows (the handler turns that into a 404).

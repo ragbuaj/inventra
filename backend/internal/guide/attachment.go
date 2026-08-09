@@ -138,8 +138,16 @@ func (s *Service) AddDocument(ctx context.Context, moduleID uuid.UUID, in Docume
 	return row, nil
 }
 
-// insertCapped counts and inserts inside ONE transaction. Counting outside it
-// would let two concurrent uploads both read nine and both insert.
+// insertCapped locks the module row, then counts and inserts — all in ONE
+// transaction.
+//
+// The lock is the part that matters, and one transaction alone is NOT enough to
+// replace it: under READ COMMITTED a `SELECT count(*)` takes no locks, so
+// concurrent uploads all read a number below the cap and all insert. Twenty
+// concurrent requests against a cap of ten produced seventeen rows before this
+// line existed. The module row is the serialization point because the cap is
+// per module; holding it for the length of one small insert costs nothing, and
+// the only other writer of that row is an edit of the module itself.
 func (s *Service) insertCapped(ctx context.Context, arg sqlc.CreateGuideAttachmentParams) (sqlc.GuideGuideAttachment, error) {
 	var zero sqlc.GuideGuideAttachment
 
@@ -150,6 +158,11 @@ func (s *Service) insertCapped(ctx context.Context, arg sqlc.CreateGuideAttachme
 	defer tx.Rollback(ctx) //nolint:errcheck // no-op once Commit succeeded
 
 	qtx := s.q.WithTx(tx)
+	// Also re-checks the module inside the transaction: requireModule ran before
+	// the object was stored, and the module can be deleted between the two.
+	if _, err := qtx.LockGuideModuleForUpdate(ctx, arg.ModuleID); err != nil {
+		return zero, mapDBError(err)
+	}
 	n, err := qtx.CountGuideAttachments(ctx, arg.ModuleID)
 	if err != nil {
 		return zero, mapDBError(err)

@@ -16,8 +16,8 @@ SELECT count(*) FROM guide.guide_attachments
 WHERE module_id = $1 AND deleted_at IS NULL
 `
 
-// Menegakkan batas jumlah lampiran per modul. Dihitung di dalam transaksi yang
-// sama dengan penyisipan supaya dua permintaan bersamaan tidak sama-sama lolos.
+// Menegakkan batas jumlah lampiran per modul. Dihitung setelah baris modulnya
+// dikunci, di dalam transaksi yang sama dengan penyisipan.
 func (q *Queries) CountGuideAttachments(ctx context.Context, moduleID uuid.UUID) (int64, error) {
 	row := q.db.QueryRow(ctx, countGuideAttachments, moduleID)
 	var count int64
@@ -348,6 +348,30 @@ func (q *Queries) ListGuideModules(ctx context.Context, arg ListGuideModulesPara
 		return nil, err
 	}
 	return items, nil
+}
+
+const lockGuideModuleForUpdate = `-- name: LockGuideModuleForUpdate :one
+SELECT id FROM guide.guide_modules
+WHERE id = $1 AND deleted_at IS NULL
+FOR UPDATE
+`
+
+// Mengunci baris modul selama transaksi penambahan lampiran.
+//
+// Ini yang membuat plafon lampiran benar-benar tertahan. Menghitung lalu
+// menyisipkan di dalam satu transaksi TIDAK cukup: pada READ COMMITTED,
+// count(*) tidak mengunci apa pun, sehingga permintaan bersamaan sama-sama
+// membaca angka di bawah plafon dan sama-sama menyisipkan (terbukti: 20
+// permintaan serentak menghasilkan 17 baris pada plafon 10). Baris modul dipakai
+// sebagai titik serialisasi karena plafonnya memang per modul.
+//
+// Menyaring deleted_at sekaligus: melampirkan media ke modul yang sudah dihapus
+// harus terbaca "tidak ditemukan", bukan berhasil.
+func (q *Queries) LockGuideModuleForUpdate(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, lockGuideModuleForUpdate, id)
+	var id_2 uuid.UUID
+	err := row.Scan(&id_2)
+	return id_2, err
 }
 
 const softDeleteGuideAttachment = `-- name: SoftDeleteGuideAttachment :one
