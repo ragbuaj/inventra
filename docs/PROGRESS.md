@@ -17,7 +17,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
-> **Panduan Penggunaan berbasis data + lampiran video/PDF (2026-08-08, branch `feat/guide-media`) — SEDANG BERJALAN, 15 dari 19 langkah, plus separuh langkah 16 (env prod) dan dua audit yang temuannya sudah ditutup.**
+> **Panduan Penggunaan berbasis data + lampiran video/PDF (2026-08-08, branch `feat/guide-media`) — SEDANG BERJALAN, 15 dari 19 langkah, plus separuh langkah 16 (env prod) dan tiga audit yang temuannya sudah ditutup.**
 > Spec: `docs/superpowers/specs/2026-08-08-guide-media-cms-design.md` (46 acceptance criteria).
 > Rencana: `docs/superpowers/plans/2026-08-08-guide-media-cms.md` (19 langkah, 6 keputusan arsitektur).
 > Mockup: `docs/design/Panduan Media.dc.html` + `docs/design/Panduan Pengelolaan.dc.html`.
@@ -142,6 +142,53 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >
 > **Celah tes yang tersisa:** `-race` tidak dijalankan (butuh cgo/gcc yang tidak ada di mesin Windows
 > ini, dan CI pun memanggil `go test ./...` tanpa `-race`); menyalakannya di CI layak dipertimbangkan.
+>
+> **Audit ketiga (`/audit`, sesi bersih, 2026-08-09) SUDAH dijalankan, dan ketiga temuan SEDANG-nya
+> SUDAH diperbaiki.** Tidak ada temuan yang menghalangi merge; jalur otorisasi tiap endpoint ditelusuri
+> ulang dan tetap bersih. Alat: `go build`/`vet`/`test ./...`, `golangci-lint` (4 isu di kode panduan —
+> 2 errcheck `defer Close`, 2 staticcheck S1016 — sejalan dengan baseline repo 28 isu, dan CI hanya
+> menjalankan `go vet`), `govulncheck` (hanya GO-2026-5856 di stdlib, pra-ada seluruh repo), `gitleaks`
+> bersih pada diff branch, Spectral 0 error, ESLint dan `vue-tsc` bersih, diff OpenAPI tanpa satu pun
+> baris terhapus, dan berkas tema tidak tersentuh. `gosec` dan `semgrep` tidak terpasang di mesin ini.
+> Suite Vitest penuh menyisakan satu berkas merah pada tiap jalannya, tetapi **berkas yang berbeda tiap
+> kali** (`assets-index.spec.ts` lalu `assets-label.spec.ts`), keduanya tidak tersentuh branch ini dan
+> keduanya hijau 28/28 saat dijalankan berdua di luar suite; gejalanya timeout dan
+> `EnvironmentTeardownError`, jadi flake beban paralel di mesin ini, bukan regresi. Skor akhir 1849 dari
+> 1850. Yang diperbaiki:
+> 1. **[SEDANG, `fix(guide)`]** Menaikkan atau menurunkan urutan modul **diam-diam tidak berefek** ketika
+>    dua modul memegang `sort_order` yang sama, tetapi toast keberhasilan tetap muncul. Kondisinya bukan
+>    teoretis: setiap modul baru lahir dengan `sort_order` 1, jadi langsung bertabrakan dengan modul
+>    bawaan `login-security` dan dengan setiap modul baru lainnya. Modul baru kini mengambil angka bebas
+>    pertama (`max + 1`, aturan yang sudah dipakai lampiran), dan untuk angka kembar yang terlanjur
+>    diketik pengelola penukaran diganti dorongan satu langkah **ke bawah** pada baris yang harus berada
+>    di urutan kedua — ke bawah, bukan ke atas, karena `sort_order` divalidasi `gte=0`. Enam tes baru,
+>    dua di antaranya dibuktikan merah lewat mutasi.
+> 2. **[SEDANG, `fix(guide)`]** **AC16 tidak terpenuhi:** fasad pemutar memuat thumbnail dari
+>    `i.ytimg.com` saat halaman dirender, jadi alamat pembaca beserta identitas video yang ia lihat
+>    sampai ke Google sebelum ia menekan apa pun. Pembukaan mockup menyelesaikan ketegangannya: fasad
+>    diam di `docs/design/Panduan Media.dc.html` **tidak punya gambar sama sekali**, hanya gradien,
+>    sorotan radial, tombol putar, dan badge `youtube-nocookie.com` — thumbnail itu tambahan di luar
+>    desain. Gambar dihapus, sorotan radial yang memang digambar mockup dipasang, dan pemeriksaan
+>    thumbnail (satu-satunya sinyal jujur bahwa video sudah dihapus) pindah ke belakang tombol putar,
+>    saat sematan memang sudah akan dimuat. Kartu "Video tidak dapat diputar" dipertahankan dan tombol
+>    muat ulangnya kini benar-benar mencoba memutar ulang. E2E ikut menghitung permintaan ke
+>    `i.ytimg.com` supaya AC16 dibuktikan dari sisi jaringan browser, bukan dari isi DOM.
+>    **Keputusan user** di antara empat opsi (hapus + pindahkan deteksi, hapus keduanya, catat sebagai
+>    penyimpangan, proksikan lewat backend).
+> 3. **[SEDANG, `test(guide)`]** **AC45 tidak dijaga apa pun.** `audit.Record` sengaja menelan
+>    kegagalannya sendiri, sehingga mencabut panggilannya dari keenam handler tulis meninggalkan seluruh
+>    suite hijau. Dua tes integrasi baru: satu menelusuri jejak lengkap sebuah modul dan lampirannya dari
+>    dibuat, diterbitkan, diubah, sampai dihapus beserta isi perubahannya; satu lagi memastikan penulisan
+>    yang ditolak 403 maupun 422 tidak meninggalkan baris apa pun. Keduanya dibuktikan merah lewat dua
+>    mutasi. Mengikuti konvensi yang sudah ada di `internal/authzadmin` dan `internal/user`.
+>
+> **Saran audit ketiga yang sengaja TIDAK dikerjakan** (di luar cakupan perbaikan yang diminta):
+> `download()` di `GuideMediaCard` mencabut object URL tepat setelah `click()`; kegagalan `download()`
+> menyetel `previewFailed` yang hanya terlihat kalau panel pratinjau terbuka; penanda "belum
+> diterjemahkan" masih hanya memeriksa `title_en`; komentar `move()` di `GuideAttachmentManager` masih
+> mengklaim kegagalan di antara dua PATCH menyisakan "urutan lama"; nilai heksa mentah di fasad pemutar
+> (disalin dari mockup, permukaan yang memang sengaja gelap di kedua tema); dan `sandbox=""` pada iframe
+> pratinjau PDF yang masih belum pernah dibuktikan di browser nyata.
 >
 
 > **Temuan audit yang dibiarkan (saran, bukan pemblokir):** `Icon` tidak divalidasi terhadap daftar
