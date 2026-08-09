@@ -17,7 +17,7 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
-> **Panduan Penggunaan berbasis data + lampiran video/PDF (2026-08-08, branch `feat/guide-media`) — SEDANG BERJALAN, 15 dari 19 langkah.**
+> **Panduan Penggunaan berbasis data + lampiran video/PDF (2026-08-08, branch `feat/guide-media`) — SEDANG BERJALAN, 15 dari 19 langkah, plus separuh langkah 16 (env prod) dan dua audit yang temuannya sudah ditutup.**
 > Spec: `docs/superpowers/specs/2026-08-08-guide-media-cms-design.md` (46 acceptance criteria).
 > Rencana: `docs/superpowers/plans/2026-08-08-guide-media-cms.md` (19 langkah, 6 keputusan arsitektur).
 > Mockup: `docs/design/Panduan Media.dc.html` + `docs/design/Panduan Pengelolaan.dc.html`.
@@ -69,14 +69,51 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >    penyimpanan", padahal `Service.Delete` sengaja mempertahankan objeknya di MinIO. Teks id/en diganti
 >    dengan perilaku sebenarnya beserta cara membuang berkasnya (hapus lampiran satu per satu).
 >
-> **Berikutnya — langkah 16-19:** env `GUIDE_PDF_MAX_BYTES` di `docker-compose.prod.yml` (temuan SEDANG
-> keempat dari audit, sengaja **belum** dikerjakan karena memang langkah 16), pembuktian plafon body WAF
-> di produksi, ADR-0018 + DATABASE.md, lalu hapus kunci `guidePage.sections` di rilis berikutnya.
+> **Audit kedua (`/audit`, sesi bersih) SUDAH dijalankan, dan ketiga temuan SEDANG-nya SUDAH
+> diperbaiki.** Tidak ada temuan yang menghalangi merge; jalur otorisasi tiap endpoint ditelusuri ulang
+> satu per satu dan bersih (daftar publik menyaring draf lewat otoritas bukan parameter, endpoint berkas
+> menyaring status modul induk di dalam kueri, seluruh tulis lewat auth + web-only + `guide.manage`).
+> Alat: `go build`/`vet`/`test` penuh, `gofmt`, `govulncheck` (hanya GO-2026-5856 di stdlib, pra-ada
+> seluruh repo), `gitleaks` bersih 21 commit, Spectral 0 error, `squawk` (peringatan hanya pada tabel
+> yang dibuat di migrasi yang sama), ESLint exit 0, `vue-tsc` bersih, dan diff OpenAPI tanpa baris
+> terhapus. `gosec` tidak terpasang di mesin ini sehingga bagian itu tidak tercakup alat. Yang
+> diperbaiki:
+> 1. **[SEDANG, `fix(guide)`]** `POST /guide/modules` menerima `status` dan menulisnya apa adanya,
+>    sehingga satu permintaan bisa langsung menerbitkan modul — bertentangan dengan aturan bisnis 5,
+>    AC1, dan tabel kontrak di rencana yang ketiganya menyebut modul selalu lahir sebagai draf.
+>    Penegakannya sekarang lewat **ketiadaan field**: `moduleCreateRequest` tidak punya `status` sama
+>    sekali dan `Service.Create` mematoknya lagi untuk pemanggil non-HTTP. Keduanya berbagi
+>    `moduleFields` yang disematkan supaya kolom baru tidak bisa sampai ke satu endpoint lalu terlewat
+>    di yang lain. Klien lama tidak rusak — `status` yang tetap dikirim hanya tidak terikat.
+> 2. **[SEDANG, `fix(ops)`]** `GUIDE_PDF_MAX_BYTES` tidak terdaftar di allowlist environment
+>    `docker-compose.prod.yml`, jadi menyetelnya di `.env` VPS tidak berpengaruh apa pun dan backend
+>    diam-diam memakai default. Sudah didaftarkan dengan `${GUIDE_PDF_MAX_BYTES:-10485760}`;
+>    diverifikasi lewat `docker compose config` yang merender 10485760 tanpa override dan 5242880
+>    dengan override. **Ini menuntaskan separuh langkah 16**; pembuktian plafon body WAF di produksi
+>    masih tersisa.
+> 3. **[SEDANG, `fix(guide)`]** `GET /guide/modules` tanpa `LIMIT` pada satu-satunya endpoint data yang
+>    menjawab tanpa sesi dan tidak bisa di-cache. Diberi plafon `guide.MaxModules = 200` — plafon, bukan
+>    paginasi, karena panduan dibaca utuh sebagai satu dokumen. Bersama batas sepuluh lampiran per
+>    modul, respons terburuk terkunci di 200 modul dan 2000 baris lampiran. Menyentuh plafon dicatat
+>    sebagai peringatan supaya pemotongan tidak terbaca seperti daftar yang lengkap.
+>
+> **Perubahan UI yang menyertai perbaikan 1:** kontrol status di form pembuatan tetap terlihat tetapi
+> **mati**, dengan keterangan `statusHintCreate` yang menjelaskan modul baru selalu draf. Bukan
+> penyimpangan mockup — `Panduan Pengelolaan.dc.html` hanya menggambarkan form penyuntingan, dan bentuk
+> formnya tidak berubah.
+>
+> **Berikutnya — sisa langkah 16-19:** pembuktian plafon body WAF di produksi, ADR-0018 +
+> DATABASE.md, lalu hapus kunci `guidePage.sections` di rilis berikutnya.
 >
 > **Temuan audit yang dibiarkan (saran, bukan pemblokir):** `Icon` tidak divalidasi terhadap daftar
-> tertutup di server; `ListGuideModules` tanpa `LIMIT` pada endpoint publik yang tak bisa di-cache;
-> `PATCH /guide/modules/:id` bersemantik PUT; filter status dan tab lampiran tanpa `role="tab"`/
-> `aria-selected`; tidak ada kuota unggahan per-user.
+> tertutup di server; `PATCH /guide/modules/:id` bersemantik PUT; filter status dan tab lampiran tanpa
+> `role="tab"`/`aria-selected`; tidak ada kuota unggahan per-user; penanda "belum diterjemahkan" hanya
+> memeriksa `title_en` sehingga modul dengan judul Inggris tetapi langkah Indonesia tidak tertandai;
+> komentar pada `move()` (halaman dan `GuideAttachmentManager`) mengklaim kegagalan di antara dua PATCH
+> menyisakan "urutan lama", padahal menyisakan dua baris dengan `sort_order` yang sama; `download()` di
+> `GuideMediaCard` mencabut object URL tepat setelah `click()` dan tidak memakai pola `triggerDownload`
+> yang sudah ada di `ImportWizard`; `sandbox=""` pada iframe pratinjau PDF belum pernah dibuktikan di
+> browser nyata (tidak ada test yang bisa membuktikannya).
 >
 > **Temuan dari langkah 15 (belum ditindaklanjuti, bukan pemblokir):**
 > 1. `GuideMediaCard.vue` tidak punya `data-testid` di elemen akarnya, sehingga e2e harus memakai

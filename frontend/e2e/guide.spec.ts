@@ -526,24 +526,33 @@ test.describe('Panduan Penggunaan — a user without guide.manage', () => {
     readerToken = await loginApi(api, readerEmail, readerPassword)
 
     // An unpublished module this user must never see, whatever it asks for.
+    // Creation always yields a draft, so this needs no second step.
     draftId = (await apiJson<{ id: string }>(await api.post('guide/modules', {
       headers: authHeader(adminToken),
       data: {
         slug: `e2e-draf-${RUN}`, icon: 'i-lucide-book-open', sort_order: 900,
-        status: 'draft', title_id: draftTitle, steps: []
+        title_id: draftTitle, steps: []
       }
     }))).id
 
     // ...and a published one WITH a document, to prove the other half of the
     // rule: reading attachments needs a session, nothing more. Built here via
     // the API so this describe never depends on describe A having run.
+    // Publishing is a second request by design — POST cannot publish.
     openId = (await apiJson<{ id: string }>(await api.post('guide/modules', {
+      headers: authHeader(adminToken),
+      data: {
+        slug: `e2e-terbit-${RUN}`, icon: 'i-lucide-book-open', sort_order: 901,
+        title_id: openTitle, steps: []
+      }
+    }))).id
+    await apiJson(await api.patch(`guide/modules/${openId}`, {
       headers: authHeader(adminToken),
       data: {
         slug: `e2e-terbit-${RUN}`, icon: 'i-lucide-book-open', sort_order: 901,
         status: 'published', title_id: openTitle, steps: []
       }
-    }))).id
+    }))
     openDocId = (await apiJson<{ id: string }>(await api.post(`guide/modules/${openId}/attachments/document`, {
       headers: authHeader(adminToken),
       multipart: {
