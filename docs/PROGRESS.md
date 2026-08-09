@@ -105,6 +105,45 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > **Berikutnya — sisa langkah 16-19:** pembuktian plafon body WAF di produksi, ADR-0018 +
 > DATABASE.md, lalu hapus kunci `guidePage.sections` di rilis berikutnya.
 >
+> **Penguatan tes (sesi `/test`, 2026-08-09) — SELESAI.** Sesi terpisah dari implementasi, memakai
+> teknik ISTQB (equivalence partitioning, boundary value analysis, decision table) atas seluruh diff
+> branch. Ditambahkan 32 tes tingkat atas: `internal/guide/handler_test.go` (baru, 11 tes — tabel status `svcError`,
+> kebocoran detail error pada 500, `contentDisposition` terhadap sisipan CRLF dan round-trip nama
+> non-ASCII, 400 untuk id cacat pada 8 rute, `caller`/`actor` yang konservatif, `limitAwareBody`,
+> koleksi JSON yang tidak pernah null), `internal/guide/service_test.go` (baru, 7 tes — tabel
+> `mapDBError` termasuk kode yang harus lewat apa adanya, batas `maxSteps` tepat di tepinya, enkode
+> kanonis langkah, `trimPtr`), tambahan batas nilai pada `dto_test.go` (4 tes — panjang slug/ikon/judul/
+> isi, jumlah dan panjang langkah, `sort_order`, judul lampiran), 8 tes integrasi baru
+> (`guide_integration_test.go` — id video pada endpoint berkas menjawab 404, ganti nama ke slug yang
+> sudah dipakai 409 dan slug bekas modul terhapus boleh dipakai lagi, baris tak dikenal dan yang sudah
+> dihapus menjawab 404 termasuk penghapusan kedua, endpoint penyunting tertutup bagi pembaca biasa dan
+> token mobile, unggahan tanpa bagian berkas 422, validasi PATCH lampiran, plafon lampiran di bawah
+> konkurensi, rollback objek saat sisipan gagal), dan batas satuan `formatFileSize` di frontend.
+> **Setiap tes baru dibuktikan bisa merah** lewat 7 batch mutasi kode produksi (kode dikembalikan
+> setelah tiap batch). Suite hijau: `go build/vet ./...`, `go test ./...`,
+> `go test -tags=integration ./internal/guide/ ./internal/middleware/`, Vitest.
+>
+> **Dua temuan dari sesi tes:**
+> 1. **[SEDANG, `fix(guide)`] — SUDAH DIPERBAIKI (2026-08-09).** Plafon 10 lampiran per modul **tidak
+>    tertahan di bawah konkurensi**. `insertCapped` menghitung lalu menyisipkan dalam satu transaksi dan
+>    komentarnya mengklaim itu cukup; pada READ COMMITTED `SELECT count(*)` tidak mengunci apa pun,
+>    sehingga 20 permintaan serentak menghasilkan 17 baris (terbukti di
+>    `TestConcurrentAttachmentsCannotExceedTheCap`). Perbaikannya: kueri baru `LockGuideModuleForUpdate`
+>    (`SELECT id ... FOR UPDATE`, menyaring `deleted_at`) dipanggil sebagai langkah pertama transaksi,
+>    sehingga baris modul menjadi titik serialisasi — plafonnya memang per modul. Tanpa migrasi dan tanpa
+>    perubahan kontrak API. Tes diperketat menjadi "tepat 10", dan perbaikannya dibuktikan dengan mencabut
+>    kunci itu sementara: tesnya merah lagi. Sisi lain yang ikut tertutup: baris modul diperiksa ulang di
+>    dalam transaksi, jadi modul yang dihapus tepat setelah `requireModule` tidak lagi bisa menerima
+>    lampiran.
+> 2. **[RENDAH, `fix(guide)`]** — belum diperbaiki. Cabang cadangan pada `contentDisposition` tidak pernah tercapai:
+>    `mime.FormatMediaType` mengembalikan `inline; filename=""` untuk nama kosong, bukan string kosong,
+>    sehingga nama berkas yang hanya berisi CR/LF terkirim sebagai filename kosong. Helper kembar di
+>    modul aset kemungkinan besar sama. Bukan celah keamanan — CR/LF tetap dibuang.
+>
+> **Celah tes yang tersisa:** `-race` tidak dijalankan (butuh cgo/gcc yang tidak ada di mesin Windows
+> ini, dan CI pun memanggil `go test ./...` tanpa `-race`); menyalakannya di CI layak dipertimbangkan.
+>
+
 > **Temuan audit yang dibiarkan (saran, bukan pemblokir):** `Icon` tidak divalidasi terhadap daftar
 > tertutup di server; `PATCH /guide/modules/:id` bersemantik PUT; filter status dan tab lampiran tanpa
 > `role="tab"`/`aria-selected`; tidak ada kuota unggahan per-user; penanda "belum diterjemahkan" hanya
