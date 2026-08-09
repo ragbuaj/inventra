@@ -5,11 +5,18 @@
 -- Satu kueri untuk pembaca dan pengelola. @include_draft = false menyisakan
 -- modul terbit saja; handler hanya menyalakannya untuk pemanggil yang memegang
 -- guide.manage, sehingga draf tidak pernah bocor lewat parameter.
+--
+-- @max_rows adalah plafon, bukan paginasi: halaman panduan dibaca utuh sebagai
+-- satu dokumen, dan ini satu-satunya endpoint data yang bisa dipanggil tanpa
+-- sesi. Tanpa batas, biaya tiap permintaan anonim tumbuh mengikuti jumlah modul
+-- yang dibuat pengelola. Service memberi nilainya dan mencatat log peringatan
+-- kalau plafonnya benar-benar tersentuh.
 -- name: ListGuideModules :many
 SELECT * FROM guide.guide_modules
 WHERE deleted_at IS NULL
   AND (@include_draft::boolean OR status = 'published')
-ORDER BY sort_order, created_at;
+ORDER BY sort_order, created_at
+LIMIT @max_rows;
 
 -- name: GetGuideModule :one
 SELECT * FROM guide.guide_modules

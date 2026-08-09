@@ -483,6 +483,41 @@ func TestDeletionSemanticsForStoredObjects(t *testing.T) {
 	require.NoError(t, err, "objek milik modul terhapus sengaja dipertahankan")
 }
 
+// The public listing is bounded. This is the only data endpoint that answers
+// without a session and its response cannot be cached, so the cost of an
+// anonymous request must not grow with however many modules an author creates.
+//
+// Rows go in through SQL rather than the API: the point is the ceiling, and 205
+// HTTP round trips would only make the test slow.
+func TestModuleListIsCapped(t *testing.T) {
+	h := newHarness(t, 10<<20)
+
+	over := guide.MaxModules + 5
+	_, err := h.pool.Exec(context.Background(),
+		`INSERT INTO guide.guide_modules (slug, icon, sort_order, status, title_id)
+		 SELECT 'massal-' || i, 'i-lucide-book-open', i, 'published', 'Modul massal ' || i
+		 FROM generate_series(1, $1) AS i`, over)
+	require.NoError(t, err)
+
+	for name, token := range map[string]string{
+		"tamu":      "",
+		"pengelola": h.adminToken,
+	} {
+		t.Run(name, func(t *testing.T) {
+			w := h.do(t, http.MethodGet, "/api/v1/guide/modules?status=all", token, nil)
+			require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+			var resp struct {
+				Data  []json.RawMessage `json:"data"`
+				Total int               `json:"total"`
+			}
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+			require.Len(t, resp.Data, guide.MaxModules, "daftar harus dipotong di plafonnya")
+			require.Equal(t, guide.MaxModules, resp.Total, "total melaporkan apa yang benar-benar dikirim")
+		})
+	}
+}
+
 // Creation cannot publish, no matter what the payload asks for. The guide page
 // is readable without a session, so a half-written module must never be one
 // request away from being public — publishing is a deliberate second step.

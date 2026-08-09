@@ -293,7 +293,13 @@ SELECT id, slug, icon, sort_order, status, published_at, title_id, title_en, bod
 WHERE deleted_at IS NULL
   AND ($1::boolean OR status = 'published')
 ORDER BY sort_order, created_at
+LIMIT $2
 `
+
+type ListGuideModulesParams struct {
+	IncludeDraft bool  `json:"include_draft"`
+	MaxRows      int32 `json:"max_rows"`
+}
 
 // Konten Panduan Penggunaan. Panduan bersifat global: tidak ada penyaringan
 // office scope di mana pun berkas ini, dan itu memang disengaja (lihat
@@ -301,8 +307,14 @@ ORDER BY sort_order, created_at
 // Satu kueri untuk pembaca dan pengelola. @include_draft = false menyisakan
 // modul terbit saja; handler hanya menyalakannya untuk pemanggil yang memegang
 // guide.manage, sehingga draf tidak pernah bocor lewat parameter.
-func (q *Queries) ListGuideModules(ctx context.Context, includeDraft bool) ([]GuideGuideModule, error) {
-	rows, err := q.db.Query(ctx, listGuideModules, includeDraft)
+//
+// @max_rows adalah plafon, bukan paginasi: halaman panduan dibaca utuh sebagai
+// satu dokumen, dan ini satu-satunya endpoint data yang bisa dipanggil tanpa
+// sesi. Tanpa batas, biaya tiap permintaan anonim tumbuh mengikuti jumlah modul
+// yang dibuat pengelola. Service memberi nilainya dan mencatat log peringatan
+// kalau plafonnya benar-benar tersentuh.
+func (q *Queries) ListGuideModules(ctx context.Context, arg ListGuideModulesParams) ([]GuideGuideModule, error) {
+	rows, err := q.db.Query(ctx, listGuideModules, arg.IncludeDraft, arg.MaxRows)
 	if err != nil {
 		return nil, err
 	}

@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"strings"
 
 	"github.com/google/uuid"
@@ -33,6 +34,15 @@ import (
 // maxSteps bounds one module's numbered list. Well above the nine seeded modules
 // (longest has four) and low enough that a runaway payload cannot bloat a row.
 const maxSteps = 50
+
+// MaxModules is the ceiling on one guide listing.
+//
+// Not paginated on purpose: the guide is read as a single document, and slicing
+// it into pages would be worse for the reader than a bound that no real guide
+// will reach — twenty-two times today's nine modules. Together with the ten
+// attachments a module may carry, it caps the worst-case response at 200 modules
+// and 2000 attachment rows.
+const MaxModules = 200
 
 var (
 	ErrNotFound           = errors.New("guide: not found")
@@ -144,10 +154,23 @@ func validateSteps(steps []Step) ([]byte, error) {
 // List returns modules with their attachments. includeDraft is the caller's
 // resolved authority, never a raw request parameter: the handler only sets it
 // for callers holding guide.manage.
+//
+// The result is capped at MaxModules. This is the only data endpoint in the API
+// that answers without a session, and its response cannot be cached, so the cost
+// of an anonymous request must not grow with however many modules an author
+// creates. Hitting the cap is logged rather than passed over in silence — a
+// truncated list that nobody is told about reads exactly like a complete one.
 func (s *Service) List(ctx context.Context, includeDraft bool) ([]ModuleWithAttachments, error) {
-	mods, err := s.q.ListGuideModules(ctx, includeDraft)
+	mods, err := s.q.ListGuideModules(ctx, sqlc.ListGuideModulesParams{
+		IncludeDraft: includeDraft,
+		MaxRows:      MaxModules,
+	})
 	if err != nil {
 		return nil, mapDBError(err)
+	}
+	if len(mods) >= MaxModules {
+		slog.WarnContext(ctx, "guide: module list hit its ceiling and was truncated",
+			"limit", MaxModules, "include_draft", includeDraft)
 	}
 	if len(mods) == 0 {
 		return []ModuleWithAttachments{}, nil

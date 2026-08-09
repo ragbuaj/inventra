@@ -5208,6 +5208,13 @@ paths:
         `status=all` additionally returns drafts, but only for a caller holding
         `guide.manage`; without that permission the parameter is ignored rather
         than rejected.
+
+        The response is **capped at 200 modules** and is not paginated: the guide
+        is read as one document, and this is the only data endpoint that answers
+        without a session, so the cost of an anonymous request must not grow with
+        the number of modules an author creates. `total` reports what was
+        actually returned. Reaching the cap is logged server-side; no real guide
+        is expected to approach it.
       security:
         - bearerJWT: []
         - {}

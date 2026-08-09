@@ -363,7 +363,13 @@ type Querier interface {
 	// Satu kueri untuk pembaca dan pengelola. @include_draft = false menyisakan
 	// modul terbit saja; handler hanya menyalakannya untuk pemanggil yang memegang
 	// guide.manage, sehingga draf tidak pernah bocor lewat parameter.
-	ListGuideModules(ctx context.Context, includeDraft bool) ([]GuideGuideModule, error)
+	//
+	// @max_rows adalah plafon, bukan paginasi: halaman panduan dibaca utuh sebagai
+	// satu dokumen, dan ini satu-satunya endpoint data yang bisa dipanggil tanpa
+	// sesi. Tanpa batas, biaya tiap permintaan anonim tumbuh mengikuti jumlah modul
+	// yang dibuat pengelola. Service memberi nilainya dan mencatat log peringatan
+	// kalau plafonnya benar-benar tersentuh.
+	ListGuideModules(ctx context.Context, arg ListGuideModulesParams) ([]GuideGuideModule, error)
 	ListImportJobs(ctx context.Context, arg ListImportJobsParams) ([]ImportImportJob, error)
 	ListImportRows(ctx context.Context, arg ListImportRowsParams) ([]ImportImportRow, error)
 	ListInboxCandidates(ctx context.Context) ([]ApprovalRequest, error)
