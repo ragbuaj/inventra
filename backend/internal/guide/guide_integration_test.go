@@ -190,6 +190,44 @@ func (h *harness) createModule(t *testing.T, slug, status string) uuid.UUID {
 	return uuid.MustParse(resp.ID)
 }
 
+// auditActions returns the audit trail recorded for one entity, oldest first.
+//
+// audit.audit_logs is append-only and has no deleted_at, and audit.Record writes
+// synchronously inside the request, so reading straight after the response is
+// enough — there is nothing to wait for.
+func (h *harness) auditActions(t *testing.T, entityType string, entityID uuid.UUID) []string {
+	t.Helper()
+	rows, err := h.pool.Query(context.Background(),
+		`SELECT action::text FROM audit.audit_logs
+		 WHERE entity_type = $1 AND entity_id = $2 AND actor_id = $3
+		 ORDER BY created_at, id`,
+		entityType, entityID, h.adminID)
+	require.NoError(t, err)
+	defer rows.Close()
+
+	var out []string
+	for rows.Next() {
+		var action string
+		require.NoError(t, rows.Scan(&action))
+		out = append(out, action)
+	}
+	require.NoError(t, rows.Err())
+	return out
+}
+
+// auditChanges returns the `changes` payload of the newest audit row for an
+// entity. An entry that records WHO and WHEN but not WHAT is only half a trail.
+func (h *harness) auditChanges(t *testing.T, entityType string, entityID uuid.UUID, action string) []byte {
+	t.Helper()
+	var raw []byte
+	require.NoError(t, h.pool.QueryRow(context.Background(),
+		`SELECT changes FROM audit.audit_logs
+		 WHERE entity_type = $1 AND entity_id = $2 AND action = $3
+		 ORDER BY created_at DESC, id DESC LIMIT 1`,
+		entityType, entityID, action).Scan(&raw))
+	return raw
+}
+
 func pdfBytes() []byte  { return []byte("%PDF-1.4\n%%EOF\n") }
 func htmlBytes() []byte { return []byte("<!doctype html><script>alert(1)</script>") }
 
@@ -901,6 +939,87 @@ func TestConcurrentAttachmentsCannotExceedTheCap(t *testing.T) {
 		`SELECT count(*) FROM guide.guide_attachments WHERE module_id = $1 AND deleted_at IS NULL`,
 		moduleID).Scan(&n))
 	require.Equal(t, 10, n, "jumlah baris harus sama dengan jumlah yang dijawab 201")
+}
+
+// AC45: every successful write on a module or an attachment is recorded, with
+// the actor, the action, and the object's identity.
+//
+// Worth an explicit test because nothing else in this package notices when it
+// stops happening: audit.Record swallows its own failure (by design — a write
+// must not fail because the trail could not be written), so removing the call
+// altogether leaves every other test in this file green.
+func TestEveryWriteLeavesAnAuditTrail(t *testing.T) {
+	h := newHarness(t, 10<<20)
+
+	// create, then publish: two writes on the module.
+	moduleID := h.createModule(t, "jejak-audit", "published")
+	require.Equal(t, []string{"create", "update"}, h.auditActions(t, "guide_modules", moduleID))
+
+	// The trail has to say what changed, not merely that something did.
+	require.NotEmpty(t, h.auditChanges(t, "guide_modules", moduleID, "create"),
+		"baris audit tanpa isi perubahan hanya mencatat setengah cerita")
+
+	attachmentID := func(w *httptest.ResponseRecorder) uuid.UUID {
+		t.Helper()
+		require.Equal(t, http.StatusCreated, w.Code, w.Body.String())
+		var att struct {
+			ID string `json:"id"`
+		}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &att))
+		return uuid.MustParse(att.ID)
+	}
+
+	// A video attachment.
+	videoID := attachmentID(h.do(t, http.MethodPost,
+		"/api/v1/guide/modules/"+moduleID.String()+"/attachments/video", h.adminToken,
+		map[string]any{"url": validVideoURL, "title_id": "Rekaman", "sort_order": 1}))
+	require.Equal(t, []string{"create"}, h.auditActions(t, "guide_attachments", videoID))
+
+	// A document attachment, then a retitle and a delete on it.
+	docID := attachmentID(h.upload(t, moduleID, h.adminToken, "panduan.pdf", pdfBytes()))
+
+	wp := h.do(t, http.MethodPatch, "/api/v1/guide/attachments/"+docID.String(), h.adminToken,
+		map[string]any{"title_id": "Judul baru", "sort_order": 2})
+	require.Equal(t, http.StatusOK, wp.Code, wp.Body.String())
+
+	wdel := h.do(t, http.MethodDelete, "/api/v1/guide/attachments/"+docID.String(), h.adminToken, nil)
+	require.Equal(t, http.StatusNoContent, wdel.Code)
+	require.Equal(t, []string{"create", "update", "delete"}, h.auditActions(t, "guide_attachments", docID))
+
+	// And finally the module itself.
+	wmd := h.do(t, http.MethodDelete, "/api/v1/guide/modules/"+moduleID.String(), h.adminToken, nil)
+	require.Equal(t, http.StatusNoContent, wmd.Code)
+	require.Equal(t, []string{"create", "update", "delete"}, h.auditActions(t, "guide_modules", moduleID))
+}
+
+// The other half of AC45: a write that was refused is not a write, and must not
+// appear in the trail. An audit log padded with attempts that changed nothing is
+// worse than useless during an investigation.
+func TestRefusedWritesLeaveNoAuditTrail(t *testing.T) {
+	h := newHarness(t, 10<<20)
+	moduleID := h.createModule(t, "ditolak", "published")
+
+	countAttachmentRows := func() int {
+		var n int
+		require.NoError(t, h.pool.QueryRow(context.Background(),
+			`SELECT count(*) FROM audit.audit_logs WHERE entity_type = 'guide_attachments'`).Scan(&n))
+		return n
+	}
+	before := countAttachmentRows()
+
+	// 403: a signed-in reader without guide.manage.
+	w := h.do(t, http.MethodDelete, "/api/v1/guide/modules/"+moduleID.String(), h.readerToken, nil)
+	require.Equal(t, http.StatusForbidden, w.Code)
+	require.Equal(t, []string{"create", "update"}, h.auditActions(t, "guide_modules", moduleID),
+		"penghapusan yang ditolak tidak boleh meninggalkan baris audit")
+
+	// 422: a link that is not YouTube never becomes an attachment, so there is
+	// no attachment id to record against.
+	wv := h.do(t, http.MethodPost, "/api/v1/guide/modules/"+moduleID.String()+"/attachments/video",
+		h.adminToken, map[string]any{"url": "https://vimeo.com/123", "title_id": "Bukan YouTube", "sort_order": 1})
+	require.Equal(t, http.StatusUnprocessableEntity, wv.Code)
+	require.Equal(t, before, countAttachmentRows(),
+		"lampiran yang ditolak tidak boleh meninggalkan baris audit")
 }
 
 // The object is written before the row, so a failed insert has to take the
