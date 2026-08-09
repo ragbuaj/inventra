@@ -182,6 +182,26 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >    yang ditolak 403 maupun 422 tidak meninggalkan baris apa pun. Keduanya dibuktikan merah lewat dua
 >    mutasi. Mengikuti konvensi yang sudah ada di `internal/authzadmin` dan `internal/user`.
 >
+> **E2E SUDAH dijalankan penuh** terhadap stack Docker nyata (2026-08-09), mereplikasi job CI: `docker
+> compose up postgres redis minio migrate mailpit backend` dengan `RATELIMIT_ENABLED=false`, DB bersih
+> (`down -v`), admin di-seed, `pnpm build`, lalu `playwright test --project=chromium`. **114 lolos, 1
+> merah** — `notifications.spec.ts` (umpan approval asinkron, menunggu 40 detik dan tidak dapat), yang
+> **lolos 2/2 dalam 6,5 detik saat dijalankan sendiri**; flake timing di bawah beban, dan CI punya
+> `retries: 2` yang menyerapnya. **Kesepuluh tes `guide.spec.ts` lolos.**
+>
+> **Pelajaran menjalankan e2e lokal:** jalankan dengan **`--workers=1`** seperti CI
+> (`playwright.config.ts` menyetel `workers: process.env.CI ? 1 : undefined`). Jalan pertama memakai
+> worker paralel default menghasilkan **11 merah tersebar di spec yang tidak berhubungan**, termasuk
+> `403 "office must be placed under an office within your scope"` — spec saling mengganggu lewat akun
+> admin bersama (`account-security` dan `password-reset` sama-sama mengganti passwordnya) dan hierarki
+> kantor. Bukan satu pun regresi. Jalan serial di DB yang sama bersih.
+>
+> **Asersi AC16 baru dibuktikan bukan asersi kosong** lewat dua mutasi terhadap build nyata: (1)
+> mengembalikan thumbnail ke fasad diam menjatuhkan `expect(img[src*="ytimg.com"]).toHaveCount(0)`; (2)
+> prefetch `new Image()` saat mount **tanpa** elemen DOM lolos pemeriksaan DOM tetapi dijatuhkan
+> penghitung jaringan `expect(thumbRequests()).toBe(0)` — jadi penghitung itu penjaga yang berdiri
+> sendiri, bukan hiasan di atas asersi DOM.
+>
 > **Saran audit ketiga yang sengaja TIDAK dikerjakan** (di luar cakupan perbaikan yang diminta):
 > `download()` di `GuideMediaCard` mencabut object URL tepat setelah `click()`; kegagalan `download()`
 > menyetel `previewFailed` yang hanya terlihat kalau panel pratinjau terbuka; penanda "belum
