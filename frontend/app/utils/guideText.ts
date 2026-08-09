@@ -38,7 +38,16 @@ export function youtubeEmbedUrl(videoId: string): string {
   return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?rel=0`
 }
 
-/** Thumbnail for the lazy-loaded player facade; same origin rules as the embed. */
+/**
+ * Thumbnail URL, used as a liveness probe for a video — NOT as page decoration.
+ *
+ * A deleted video answers 404 here, which is the only honest signal a
+ * cross-origin embed will ever give us. It must be requested no earlier than the
+ * moment the reader presses play: fetching it while the guide renders would tell
+ * Google who is reading which guide video before they asked for anything, and
+ * AC16 rules that out. The idle facade in `docs/design/Panduan Media.dc.html`
+ * carries no image at all, so nothing in the design needs one.
+ */
 export function youtubeThumbnailUrl(videoId: string): string {
   return `https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg`
 }

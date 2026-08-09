@@ -30,12 +30,13 @@ import { EMAIL, PASSWORD, login, clickRowAction } from './helpers'
 //   - middleware/serializer authorization matrix → backend
 //     internal/guide/guide_integration_test.go (CI, testcontainers)
 //
-// NO EXTERNAL NETWORK: the reader page renders a YouTube thumbnail facade
-// (i.ytimg.com) and, after pressing play, an iframe to youtube-nocookie.com.
-// Both are intercepted (`stubYouTube`) so the assertions never depend on
-// reaching YouTube — an unreachable thumbnail would otherwise flip the card
-// into its "video tidak dapat diputar" state and the test would fail for a
-// reason that has nothing to do with the code under test.
+// NO EXTERNAL NETWORK: pressing play probes the video's thumbnail (i.ytimg.com)
+// and then loads an iframe from youtube-nocookie.com. Both are intercepted
+// (`stubYouTube`) so the assertions never depend on reaching YouTube — an
+// unreachable thumbnail would otherwise flip the card into its "video tidak
+// dapat diputar" state and the test would fail for a reason that has nothing to
+// do with the code under test. The interceptor also COUNTS the thumbnail
+// requests, which is how AC16 is proven in a real browser: zero before play.
 //
 // IMPORTANT: `pnpm test:e2e` needs the full backend stack (postgres/redis/minio)
 // + the seeded admin, and locally the backend must run with
@@ -137,16 +138,26 @@ async function findModule(
  * the CI runner can reach YouTube. Blocking the embed does not affect the
  * assertion on it — the iframe's `src` attribute is set by us before the
  * browser tries to load it.
+ *
+ * Returns a counter of thumbnail requests. AC16 says opening the guide must
+ * reach no YouTube domain at all, and a counter is the only way to prove a
+ * request that should not happen did not happen — asserting on the DOM only
+ * shows what rendered, not what the browser fetched.
  */
-async function stubYouTube(page: Page): Promise<void> {
+async function stubYouTube(page: Page): Promise<() => number> {
+  let thumbRequests = 0
   await page.route(
     url => url.hostname === 'i.ytimg.com',
-    route => route.fulfill({ status: 200, contentType: 'image/png', body: PNG_1PX })
+    (route) => {
+      thumbRequests++
+      return route.fulfill({ status: 200, contentType: 'image/png', body: PNG_1PX })
+    }
   )
   await page.route(
     url => url.hostname.endsWith('youtube-nocookie.com'),
     route => route.abort()
   )
+  return () => thumbRequests
 }
 
 /**
@@ -376,7 +387,7 @@ test.describe('Panduan Penggunaan — CMS end-to-end', () => {
 
   test('publishing puts the module, its video, and its PDF in front of a reader', async ({ page }) => {
     test.setTimeout(90_000)
-    await stubYouTube(page)
+    const thumbRequests = await stubYouTube(page)
     await login(page)
     await page.goto('/settings/guide')
     await page.getByTestId('guide-search').fill(moduleTitle)
@@ -394,14 +405,20 @@ test.describe('Panduan Penggunaan — CMS end-to-end', () => {
     await expect(page.getByText(step1, { exact: true })).toBeVisible()
     await expect(page.getByText(step2, { exact: true })).toBeVisible()
 
-    // Video: the facade renders, nothing is requested from YouTube until the
-    // reader presses play, and the embed that then appears is the one the app
-    // builds — youtube-nocookie.com — never a URL echoed back from the editor.
+    // Video: the facade renders, NOTHING is requested from any YouTube domain
+    // until the reader presses play (AC16) — not the embed and not the
+    // thumbnail — and the embed that then appears is the one the app builds
+    // from the stored id, never a URL echoed back from the editor.
     const videoBlock = mediaBlockFor(page, videoTitle)
     await expect(videoBlock).toBeVisible()
     await expect(page.locator('iframe')).toHaveCount(0)
+    await expect(page.locator('img[src*="ytimg.com"]')).toHaveCount(0)
+    expect(thumbRequests()).toBe(0)
+
     await videoBlock.click()
     await expect(page.locator(`iframe[src*="youtube-nocookie.com/embed/${YT_ID}"]`)).toHaveCount(1)
+    // Pressing play is what releases the probe, and only then.
+    expect(thumbRequests()).toBeGreaterThan(0)
 
     // Document: filename, size, and the two actions a reader gets.
     const docBlock = mediaBlockFor(page, docTitle)

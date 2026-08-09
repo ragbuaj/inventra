@@ -206,7 +206,10 @@ describe('guide page — locked media for a guest', () => {
 })
 
 describe('guide page — unlocked media for a reader', () => {
-  it('shows the video facade first and only embeds after pressing play', async () => {
+  // AC16: opening the guide must reach NO YouTube domain — not the embed, and
+  // not i.ytimg.com either. The idle facade therefore carries no image at all,
+  // matching docs/design/Panduan Media.dc.html.
+  it('renders the facade without touching YouTube, and embeds only after play', async () => {
     signIn(['asset.view'])
     respondWith([guideModule({
       attachments: [attachment({ locked: false, youtube_id: 'dQw4w9WgXcQ' })]
@@ -214,13 +217,23 @@ describe('guide page — unlocked media for a reader', () => {
     const wrapper = await mountSuspended(GuidePage)
     await flushPromises()
 
-    // Facade: a thumbnail, no iframe — nothing is requested from YouTube yet.
     expect(wrapper.find('iframe').exists()).toBe(false)
-    expect(wrapper.find('img').attributes('src')).toContain('dQw4w9WgXcQ')
+    expect(wrapper.find('img').exists()).toBe(false)
+    // Nothing anywhere in the markup points at a YouTube host yet.
+    expect(wrapper.html()).not.toContain('ytimg.com')
+    expect(wrapper.html()).not.toContain('youtube-nocookie.com/embed')
 
     const play = wrapper.find('button[aria-label*="Putar video"]')
     expect(play.exists()).toBe(true)
     await play.trigger('click')
+
+    // Pressing play probes the thumbnail first; that is the earliest a YouTube
+    // domain is contacted, and the embed waits for the probe to succeed.
+    const probe = wrapper.find('[data-testid="guide-video-probing"] img')
+    expect(probe.attributes('src')).toContain('dQw4w9WgXcQ')
+    expect(wrapper.find('iframe').exists()).toBe(false)
+
+    await probe.trigger('load')
     await flushPromises()
 
     const frame = wrapper.find('iframe')
@@ -228,16 +241,40 @@ describe('guide page — unlocked media for a reader', () => {
     expect(frame.attributes('src')).toBe('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0')
   })
 
-  it('falls back to the broken-video card when the thumbnail 404s', async () => {
+  it('falls back to the broken-video card when the probe 404s, without embedding', async () => {
     signIn(['asset.view'])
     respondWith([guideModule({
       attachments: [attachment({ locked: false, youtube_id: 'dQw4w9WgXcQ' })]
     })])
     const wrapper = await mountSuspended(GuidePage)
     await flushPromises()
-    await wrapper.find('img').trigger('error')
+    await wrapper.find('button[aria-label*="Putar video"]').trigger('click')
+    await wrapper.find('[data-testid="guide-video-probing"] img').trigger('error')
     await flushPromises()
+
     expect(wrapper.html()).toContain('Video tidak dapat diputar')
+    expect(wrapper.find('iframe').exists()).toBe(false)
+    // The rest of the module keeps rendering: the failure is contained (AC17).
+    expect(wrapper.html()).toContain('Telusuri dan kelola seluruh aset')
+  })
+
+  it('retries playback from the broken card rather than only dismissing it', async () => {
+    signIn(['asset.view'])
+    respondWith([guideModule({
+      attachments: [attachment({ locked: false, youtube_id: 'dQw4w9WgXcQ' })]
+    })])
+    const wrapper = await mountSuspended(GuidePage)
+    await flushPromises()
+    await wrapper.find('button[aria-label*="Putar video"]').trigger('click')
+    await wrapper.find('[data-testid="guide-video-probing"] img').trigger('error')
+    await flushPromises()
+
+    const retry = wrapper.findAll('button').find(b => b.text().includes('Muat ulang pemutar'))!
+    await retry.trigger('click')
+    // A video that came back plays without a page reload.
+    await wrapper.find('[data-testid="guide-video-probing"] img').trigger('load')
+    await flushPromises()
+    expect(wrapper.find('iframe').exists()).toBe(true)
   })
 
   it('shows filename and size for a document, and fetches the bytes to preview', async () => {

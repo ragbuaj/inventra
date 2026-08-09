@@ -18,6 +18,7 @@ const locked = computed(() => a.value.locked)
 /* ── video ─────────────────────────────────────────────────────────────── */
 
 const playing = ref(false)
+const probing = ref(false)
 const thumbBroken = ref(false)
 
 const embedUrl = computed(() => (a.value.youtube_id ? youtubeEmbedUrl(a.value.youtube_id) : ''))
@@ -30,9 +31,40 @@ const thumbUrl = computed(() => (a.value.youtube_id ? youtubeThumbnailUrl(a.valu
 // video still has a thumbnail and will report itself inside the player.
 const broken = computed(() => isVideo.value && !locked.value && thumbBroken.value)
 
-function retryVideo() {
+// The idle facade holds NO image, matching the mockup: opening the guide must
+// not touch a YouTube domain at all (AC16), and a thumbnail from i.ytimg.com
+// would hand Google the reader's address and which guide video they are looking
+// at before they asked for anything.
+//
+// So the probe moved behind the play button. Pressing play loads the thumbnail
+// first; by then we are about to load the embed anyway, so it adds no exposure
+// the reader has not already accepted. It resolves through the browser's own
+// load/error events on a rendered element rather than `new Image()`, which keeps
+// the failure path reachable from a test.
+function play() {
   thumbBroken.value = false
+  if (!thumbUrl.value) {
+    playing.value = true
+    return
+  }
+  probing.value = true
+}
+
+function onProbeLoaded() {
+  probing.value = false
+  playing.value = true
+}
+
+function onProbeFailed() {
+  probing.value = false
+  thumbBroken.value = true
+}
+
+// The mockup's retry button re-attempts playback rather than merely dismissing
+// the card, so a video that came back works without a page reload.
+function retryVideo() {
   playing.value = false
+  play()
 }
 
 /* ── document ──────────────────────────────────────────────────────────── */
@@ -160,25 +192,39 @@ onBeforeUnmount(revokePreview)
       </UButton>
     </div>
 
-    <!-- Video facade: nothing is requested from YouTube until the reader presses
-         play, so opening the guide sets no third-party cookies (AC16). -->
+    <!-- Video facade: nothing at all is requested from YouTube until the reader
+         presses play — no embed and no thumbnail — so opening the guide neither
+         sets third-party cookies nor announces the reader to YouTube (AC16). -->
     <template v-else-if="isVideo">
+      <!-- Checking the video exists. The image is the probe, not decoration: it
+           is off-screen for assistive tech and never painted. -->
+      <div
+        v-if="probing"
+        class="w-full aspect-video border border-default rounded-xl bg-gradient-to-br from-[#0b1220] via-[#12234d] to-[#02194f] flex items-center justify-center"
+        data-testid="guide-video-probing"
+      >
+        <img
+          :src="thumbUrl"
+          alt=""
+          aria-hidden="true"
+          class="hidden"
+          @load="onProbeLoaded"
+          @error="onProbeFailed"
+        >
+        <UIcon
+          name="i-lucide-loader-circle"
+          class="size-7 text-white/90 animate-spin"
+        />
+      </div>
       <button
-        v-if="!playing"
+        v-else-if="!playing"
         type="button"
         class="block w-full p-0 border border-default rounded-xl overflow-hidden bg-transparent cursor-pointer text-left hover:border-primary transition-colors"
         :aria-label="t('guidePage.media.play', { title })"
-        @click="playing = true"
+        @click="play"
       >
         <div class="relative w-full aspect-video bg-gradient-to-br from-[#0b1220] via-[#12234d] to-[#02194f] flex items-center justify-center">
-          <img
-            v-if="thumbUrl"
-            :src="thumbUrl"
-            alt=""
-            loading="lazy"
-            class="absolute inset-0 size-full object-cover opacity-70"
-            @error="thumbBroken = true"
-          >
+          <span class="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(88,145,255,0.28),rgba(2,6,23,0)_62%)]" />
           <span class="relative size-[62px] rounded-full bg-white/95 text-[#0f172a] flex items-center justify-center shadow-lg">
             <UIcon
               name="i-lucide-play"
@@ -208,7 +254,7 @@ onBeforeUnmount(revokePreview)
         />
       </div>
       <p
-        v-if="!playing"
+        v-if="!playing && !probing"
         class="mt-1.5 text-[12.5px] leading-relaxed text-muted"
       >
         {{ t('guidePage.media.lazyNote') }}
