@@ -218,4 +218,21 @@ describe('formatFileSize', () => {
     expect(formatFileSize(0, 'id')).toBe('')
     expect(formatFileSize(-5, 'id')).toBe('')
   })
+
+  // The MB/KB switch sits at exactly one mebibyte. Tested at the edge because
+  // that is the one value where an off-by-one turns "1 MB" into "1.024 KB".
+  it('switches unit exactly at one mebibyte', () => {
+    expect(formatFileSize(1024 * 1024, 'id')).toBe('1 MB')
+    expect(formatFileSize(1024 * 1024 + 1, 'id')).toMatch(/MB$/)
+    expect(formatFileSize(1024 * 1024 - 1, 'id')).toMatch(/KB$/)
+    expect(formatFileSize(1024, 'id')).toBe('1 KB')
+    expect(formatFileSize(1, 'id')).toMatch(/KB$/)
+  })
+
+  // Locale decides the decimal separator; the document card renders inside the
+  // reader's locale, so a hardcoded dot would read wrong in Indonesian.
+  it('formats the decimal separator per locale', () => {
+    expect(formatFileSize(1_572_864, 'id')).toBe('1,5 MB')
+    expect(formatFileSize(1_572_864, 'en')).toBe('1.5 MB')
+  })
 })

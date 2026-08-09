@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -13,6 +14,7 @@ import (
 	"net/http/httptest"
 	"net/textproto"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -46,6 +48,11 @@ type harness struct {
 	adminToken  string // holds guide.manage
 	readerToken string // signed in, no guide.manage
 	mobileToken string // holds guide.manage but on a mobile-audience token
+
+	// adminID is the row behind adminToken. Tests that call the service directly
+	// need it: created_by is a real FK, so an actor of uuid.Nil is rejected as an
+	// invalid reference rather than stored as "nobody".
+	adminID uuid.UUID
 }
 
 func newHarness(t *testing.T, maxBytes int64) *harness {
@@ -96,6 +103,7 @@ func newHarness(t *testing.T, maxBytes int64) *harness {
 		router:      router,
 		pool:        pool,
 		store:       store,
+		adminID:     adminID,
 		adminToken:  mint(adminID, adminRole, auth.AudienceWeb),
 		readerToken: mint(readerID, readerRole, auth.AudienceWeb),
 		mobileToken: mint(adminID, adminRole, auth.AudienceMobile),
@@ -624,4 +632,313 @@ func TestSlugConflictIsReported(t *testing.T) {
 		"slug": "kembar", "icon": "i-lucide-book-open", "status": "draft", "title_id": "Kembar lagi",
 	})
 	require.Equal(t, http.StatusConflict, w.Code, w.Body.String())
+}
+
+// Renaming into a slug someone else already holds is the same collision as
+// creating one, and it arrives through a different query — so it is mapped in a
+// different place and has to be checked separately. The slug is the deep-link
+// key; a second row holding it would make one of the two unreachable.
+func TestRenamingIntoAnExistingSlugConflicts(t *testing.T) {
+	h := newHarness(t, 10<<20)
+	h.createModule(t, "pertama", "published")
+	second := h.createModule(t, "kedua", "published")
+
+	w := h.do(t, http.MethodPatch, "/api/v1/guide/modules/"+second.String(), h.adminToken, map[string]any{
+		"slug": "pertama", "icon": "i-lucide-book-open", "status": "published",
+		"title_id": "Modul kedua", "sort_order": 1,
+	})
+	require.Equal(t, http.StatusConflict, w.Code, w.Body.String())
+
+	// Nothing moved: the module keeps the slug it had.
+	after := h.do(t, http.MethodGet, "/api/v1/guide/modules/"+second.String(), h.adminToken, nil)
+	require.Equal(t, http.StatusOK, after.Code)
+	require.Contains(t, after.Body.String(), `"slug":"kedua"`)
+
+	// Renaming to a slug freed by a soft-deleted module is allowed: the unique
+	// index is partial (WHERE deleted_at IS NULL).
+	third := h.createModule(t, "ketiga", "draft")
+	require.Equal(t, http.StatusNoContent,
+		h.do(t, http.MethodDelete, "/api/v1/guide/modules/"+third.String(), h.adminToken, nil).Code)
+	reuse := h.do(t, http.MethodPatch, "/api/v1/guide/modules/"+second.String(), h.adminToken, map[string]any{
+		"slug": "ketiga", "icon": "i-lucide-book-open", "status": "published",
+		"title_id": "Modul kedua", "sort_order": 1,
+	})
+	require.Equal(t, http.StatusOK, reuse.Code, reuse.Body.String())
+}
+
+// A video attachment has no stored object. Asking the file endpoint for one is a
+// client mistake, not a server fault — it must answer 404, and it must not reach
+// storage with a nil key.
+func TestVideoAttachmentHasNoDownloadableFile(t *testing.T) {
+	h := newHarness(t, 10<<20)
+	moduleID := h.createModule(t, "video-tanpa-berkas", "published")
+
+	w := h.do(t, http.MethodPost, "/api/v1/guide/modules/"+moduleID.String()+"/attachments/video",
+		h.adminToken, map[string]any{"url": validVideoURL, "title_id": "Video uji"})
+	require.Equal(t, http.StatusCreated, w.Code, w.Body.String())
+
+	var att struct {
+		ID string `json:"id"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &att))
+	path := "/api/v1/guide/attachments/" + att.ID + "/content"
+
+	for name, token := range map[string]string{"pembaca": h.readerToken, "pengelola": h.adminToken} {
+		t.Run(name, func(t *testing.T) {
+			got := h.do(t, http.MethodGet, path, token, nil)
+			require.Equal(t, http.StatusNotFound, got.Code, got.Body.String())
+		})
+	}
+}
+
+// Every id-taking endpoint has to answer 404 for an id that is well-formed but
+// does not exist — including one that used to exist. A second delete is the
+// shape a double-click takes, and it must not be reported as success.
+func TestUnknownAndAlreadyDeletedRowsAnswerNotFound(t *testing.T) {
+	h := newHarness(t, 10<<20)
+	ghost := uuid.New().String()
+
+	require.Equal(t, http.StatusNotFound,
+		h.do(t, http.MethodGet, "/api/v1/guide/modules/"+ghost, h.adminToken, nil).Code)
+	require.Equal(t, http.StatusNotFound,
+		h.do(t, http.MethodDelete, "/api/v1/guide/modules/"+ghost, h.adminToken, nil).Code)
+	require.Equal(t, http.StatusNotFound,
+		h.do(t, http.MethodPatch, "/api/v1/guide/modules/"+ghost, h.adminToken, map[string]any{
+			"slug": "hantu", "icon": "i-lucide-book-open", "status": "draft",
+			"title_id": "Hantu", "sort_order": 1}).Code)
+	require.Equal(t, http.StatusNotFound,
+		h.do(t, http.MethodDelete, "/api/v1/guide/attachments/"+ghost, h.adminToken, nil).Code)
+	require.Equal(t, http.StatusNotFound,
+		h.do(t, http.MethodPatch, "/api/v1/guide/attachments/"+ghost, h.adminToken,
+			map[string]any{"title_id": "Judul", "sort_order": 0}).Code)
+
+	// The same, one step later: a row that existed and was deleted.
+	moduleID := h.createModule(t, "hapus-dua-kali", "published")
+	created := h.upload(t, moduleID, h.adminToken, "panduan.pdf", pdfBytes())
+	require.Equal(t, http.StatusCreated, created.Code, created.Body.String())
+	var att struct {
+		ID string `json:"id"`
+	}
+	require.NoError(t, json.Unmarshal(created.Body.Bytes(), &att))
+
+	require.Equal(t, http.StatusNoContent,
+		h.do(t, http.MethodDelete, "/api/v1/guide/attachments/"+att.ID, h.adminToken, nil).Code)
+	require.Equal(t, http.StatusNotFound,
+		h.do(t, http.MethodDelete, "/api/v1/guide/attachments/"+att.ID, h.adminToken, nil).Code,
+		"penghapusan kedua harus 404, bukan 204")
+
+	require.Equal(t, http.StatusNoContent,
+		h.do(t, http.MethodDelete, "/api/v1/guide/modules/"+moduleID.String(), h.adminToken, nil).Code)
+	require.Equal(t, http.StatusNotFound,
+		h.do(t, http.MethodDelete, "/api/v1/guide/modules/"+moduleID.String(), h.adminToken, nil).Code)
+
+	// The FK alone still points at a soft-deleted module, so attaching to one has
+	// to be caught explicitly — otherwise media lands on a module nobody can see.
+	require.Equal(t, http.StatusNotFound,
+		h.do(t, http.MethodPost, "/api/v1/guide/modules/"+moduleID.String()+"/attachments/video",
+			h.adminToken, map[string]any{"url": validVideoURL, "title_id": "Terlambat"}).Code)
+	require.Equal(t, http.StatusNotFound,
+		h.upload(t, moduleID, h.adminToken, "terlambat.pdf", pdfBytes()).Code)
+}
+
+// The editor endpoint is part of the authoring surface, not a read endpoint that
+// happens to need a session. Checked here because the guard order (auth → web →
+// manage) decides which of 401/403 a caller sees.
+func TestEditorEndpointIsClosedToPlainReaders(t *testing.T) {
+	h := newHarness(t, 10<<20)
+	moduleID := h.createModule(t, "editor", "published")
+	path := "/api/v1/guide/modules/" + moduleID.String()
+
+	require.Equal(t, http.StatusUnauthorized, h.do(t, http.MethodGet, path, "", nil).Code)
+	require.Equal(t, http.StatusForbidden, h.do(t, http.MethodGet, path, h.readerToken, nil).Code)
+	require.Equal(t, http.StatusForbidden, h.do(t, http.MethodGet, path, h.mobileToken, nil).Code)
+	require.Equal(t, http.StatusOK, h.do(t, http.MethodGet, path, h.adminToken, nil).Code)
+}
+
+// A multipart body that carries the text fields but no file is a form bug, not a
+// media-type problem — and it must not be answered as though a file arrived.
+func TestUploadWithoutAFileIsRejected(t *testing.T) {
+	h := newHarness(t, 10<<20)
+	moduleID := h.createModule(t, "tanpa-berkas", "published")
+
+	post := func(t *testing.T, write func(*multipart.Writer)) *httptest.ResponseRecorder {
+		t.Helper()
+		var buf bytes.Buffer
+		mw := multipart.NewWriter(&buf)
+		write(mw)
+		require.NoError(t, mw.Close())
+		req := httptest.NewRequest(http.MethodPost,
+			"/api/v1/guide/modules/"+moduleID.String()+"/attachments/document", &buf)
+		req.Header.Set("Content-Type", mw.FormDataContentType())
+		req.Header.Set("Authorization", "Bearer "+h.adminToken)
+		w := httptest.NewRecorder()
+		h.router.ServeHTTP(w, req)
+		return w
+	}
+
+	t.Run("tanpa bagian berkas", func(t *testing.T) {
+		w := post(t, func(mw *multipart.Writer) {
+			require.NoError(t, mw.WriteField("title_id", "Dokumen uji"))
+			require.NoError(t, mw.WriteField("sort_order", "1"))
+		})
+		require.Equal(t, http.StatusUnprocessableEntity, w.Code, w.Body.String())
+		require.Contains(t, w.Body.String(), "missing file field")
+	})
+
+	t.Run("nama bagian salah", func(t *testing.T) {
+		w := post(t, func(mw *multipart.Writer) {
+			require.NoError(t, mw.WriteField("title_id", "Dokumen uji"))
+			require.NoError(t, mw.WriteField("sort_order", "1"))
+			fw, err := mw.CreateFormFile("berkas", "panduan.pdf") // bukan "file"
+			require.NoError(t, err)
+			_, err = fw.Write(pdfBytes())
+			require.NoError(t, err)
+		})
+		require.Equal(t, http.StatusUnprocessableEntity, w.Code, w.Body.String())
+	})
+
+	t.Run("tanpa judul", func(t *testing.T) {
+		w := post(t, func(mw *multipart.Writer) {
+			require.NoError(t, mw.WriteField("sort_order", "1"))
+			fw, err := mw.CreateFormFile("file", "panduan.pdf")
+			require.NoError(t, err)
+			_, err = fw.Write(pdfBytes())
+			require.NoError(t, err)
+		})
+		require.Equal(t, http.StatusUnprocessableEntity, w.Code, w.Body.String())
+	})
+
+	// Tidak ada satu pun yang menyisakan baris.
+	var n int
+	require.NoError(t, h.pool.QueryRow(context.Background(),
+		`SELECT count(*) FROM guide.guide_attachments WHERE module_id = $1 AND deleted_at IS NULL`,
+		moduleID).Scan(&n))
+	require.Zero(t, n, "unggahan yang ditolak tidak boleh menyisakan lampiran")
+}
+
+// Blank titles are refused on the patch path too — the title is what a locked
+// card shows a guest, so an empty one leaves a card with nothing to read.
+func TestAttachmentPatchValidatesAndPersists(t *testing.T) {
+	h := newHarness(t, 10<<20)
+	moduleID := h.createModule(t, "ubah-lampiran", "published")
+	created := h.do(t, http.MethodPost, "/api/v1/guide/modules/"+moduleID.String()+"/attachments/video",
+		h.adminToken, map[string]any{"url": validVideoURL, "title_id": "Judul lama", "sort_order": 1})
+	require.Equal(t, http.StatusCreated, created.Code, created.Body.String())
+	var att struct {
+		ID string `json:"id"`
+	}
+	require.NoError(t, json.Unmarshal(created.Body.Bytes(), &att))
+	path := "/api/v1/guide/attachments/" + att.ID
+
+	for name, body := range map[string]map[string]any{
+		"judul kosong":      {"title_id": "", "sort_order": 1},
+		"judul hanya spasi": {"title_id": "   ", "sort_order": 1},
+		"urutan negatif":    {"title_id": "Judul", "sort_order": -1},
+	} {
+		t.Run(name, func(t *testing.T) {
+			w := h.do(t, http.MethodPatch, path, h.adminToken, body)
+			require.Equal(t, http.StatusUnprocessableEntity, w.Code, w.Body.String())
+		})
+	}
+
+	ok := h.do(t, http.MethodPatch, path, h.adminToken,
+		map[string]any{"title_id": "  Judul baru  ", "title_en": "  ", "sort_order": 4})
+	require.Equal(t, http.StatusOK, ok.Code, ok.Body.String())
+	require.Contains(t, ok.Body.String(), `"title_id":"Judul baru"`, "judul disimpan tanpa spasi tepi")
+	require.Contains(t, ok.Body.String(), `"title_en":null`, "terjemahan yang dikosongkan menjadi NULL")
+	// Media milik lampiran tidak boleh berubah karena penggantian judul.
+	require.Contains(t, ok.Body.String(), `"youtube_id":"dQw4w9WgXcQ"`)
+}
+
+// Plafon sepuluh lampiran harus tertahan juga ketika permintaannya datang
+// bersamaan.
+//
+// Sebelum insertCapped mengunci baris modulnya, dua puluh permintaan serentak
+// menghasilkan tujuh belas baris: pada isolasi READ COMMITTED, SELECT count(*)
+// tidak mengunci apa pun, jadi semuanya membaca angka di bawah sepuluh dan
+// semuanya menyisipkan. Transaksi memberi keatomikan, bukan saling-kunci. Test
+// ini adalah yang menemukan itu, dan sekarang yang menjaganya tidak kembali.
+func TestConcurrentAttachmentsCannotExceedTheCap(t *testing.T) {
+	h := newHarness(t, 10<<20)
+	moduleID := h.createModule(t, "serentak", "published")
+	path := "/api/v1/guide/modules/" + moduleID.String() + "/attachments/video"
+
+	const attempts = 20
+	codes := make([]int, attempts)
+	var wg sync.WaitGroup
+	for i := 0; i < attempts; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			req := bytes.NewReader([]byte(fmt.Sprintf(
+				`{"url":%q,"title_id":"Video %d","sort_order":%d}`, validVideoURL, i, i)))
+			r := httptest.NewRequest(http.MethodPost, path, req)
+			r.Header.Set("Content-Type", "application/json")
+			r.Header.Set("Authorization", "Bearer "+h.adminToken)
+			w := httptest.NewRecorder()
+			h.router.ServeHTTP(w, r)
+			codes[i] = w.Code
+		}(i)
+	}
+	wg.Wait()
+
+	created, rejected := 0, 0
+	for _, code := range codes {
+		switch code {
+		case http.StatusCreated:
+			created++
+		case http.StatusUnprocessableEntity:
+			rejected++
+		default:
+			t.Fatalf("status tak terduga dari unggahan serentak: %d", code)
+		}
+	}
+	require.Equal(t, 10, created, "tepat sepuluh yang boleh lolos, tidak lebih dan tidak kurang")
+	require.Equal(t, attempts-10, rejected)
+
+	var n int
+	require.NoError(t, h.pool.QueryRow(context.Background(),
+		`SELECT count(*) FROM guide.guide_attachments WHERE module_id = $1 AND deleted_at IS NULL`,
+		moduleID).Scan(&n))
+	require.Equal(t, 10, n, "jumlah baris harus sama dengan jumlah yang dijawab 201")
+}
+
+// The object is written before the row, so a failed insert has to take the
+// object back with it. Run against a fake store because the assertion is "what
+// is left in storage", which the real one cannot be asked.
+func TestFailedInsertLeavesNoOrphanObject(t *testing.T) {
+	h := newHarness(t, 10<<20)
+	ctx := context.Background()
+	moduleID := h.createModule(t, "rollback", "published")
+
+	fake := storage.NewFake()
+	svc := guide.NewService(sqlc.New(h.pool), h.pool, fake, 10<<20)
+
+	in := func(title string) guide.DocumentInput {
+		return guide.DocumentInput{
+			Filename: "panduan.pdf", Data: pdfBytes(), TitleID: title, Actor: h.adminID}
+	}
+
+	// Ten succeed and leave exactly ten objects behind.
+	for i := 0; i < 10; i++ {
+		_, err := svc.AddDocument(ctx, moduleID, in(fmt.Sprintf("Dokumen %d", i)))
+		require.NoError(t, err, "dokumen ke-%d", i+1)
+	}
+	require.Len(t, fake.ObjsKeys(), 10)
+
+	// The eleventh trips the cap AFTER its object was written; it must not stay.
+	_, err := svc.AddDocument(ctx, moduleID, in("Kesebelas"))
+	require.ErrorIs(t, err, guide.ErrTooManyAttachments)
+	require.Len(t, fake.ObjsKeys(), 10, "objek dari sisipan yang gagal tertinggal di penyimpanan")
+
+	// And a store that refuses the write records nothing at all.
+	fake.PutErr = errors.New("penyimpanan sedang tidak bisa ditulis")
+	other := h.createModule(t, "rollback-2", "draft")
+	_, err = svc.AddDocument(ctx, other, in("Gagal simpan"))
+	require.Error(t, err)
+	var n int
+	require.NoError(t, h.pool.QueryRow(ctx,
+		`SELECT count(*) FROM guide.guide_attachments WHERE module_id = $1 AND deleted_at IS NULL`,
+		other).Scan(&n))
+	require.Zero(t, n, "kegagalan penyimpanan tidak boleh menyisakan baris")
 }

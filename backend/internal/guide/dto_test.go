@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -205,6 +206,170 @@ func TestUpdateRequestRejectsBadStatus(t *testing.T) {
 				t.Fatal("pengubahan menerima status yang tidak sah")
 			}
 		})
+	}
+}
+
+// Batas panjang field, diuji tepat di tepinya. Kolomnya `text` tanpa batas di
+// Postgres (migrasi 000050), jadi tag binding INILAH satu-satunya yang menjaga
+// sebuah judul sepanjang satu megabyte tidak masuk ke halaman publik. Nilai yang
+// tepat di batas harus diterima: menolaknya berarti penulis kehilangan karakter
+// terakhir tanpa penjelasan.
+func TestModuleRequestLengthBoundaries(t *testing.T) {
+	fill := func(n int) string { return strings.Repeat("a", n) }
+	body := func(field string, value string) string {
+		f := map[string]string{
+			"slug": "s", "icon": "i", "title_id": "Judul",
+			"title_en": "Title", "body_id": "Isi", "body_en": "Body",
+		}
+		f[field] = value
+		raw, err := json.Marshal(map[string]any{
+			"slug": f["slug"], "icon": f["icon"], "sort_order": 1, "status": "draft",
+			"title_id": f["title_id"], "title_en": f["title_en"],
+			"body_id": f["body_id"], "body_en": f["body_en"]})
+		if err != nil {
+			t.Fatalf("marshal: %v", err)
+		}
+		return string(raw)
+	}
+
+	cases := []struct {
+		field string
+		max   int
+	}{
+		{"slug", 120},
+		{"icon", 80},
+		{"title_id", 200},
+		{"title_en", 200},
+		{"body_id", 2000},
+		{"body_en", 2000},
+	}
+	for _, tc := range cases {
+		t.Run(tc.field, func(t *testing.T) {
+			var atLimit moduleUpdateRequest
+			if err := bindJSON(t, body(tc.field, fill(tc.max)), &atLimit); err != nil {
+				t.Fatalf("%s tepat %d karakter ditolak: %v", tc.field, tc.max, err)
+			}
+			var over moduleUpdateRequest
+			if err := bindJSON(t, body(tc.field, fill(tc.max+1)), &over); err == nil {
+				t.Fatalf("%s sepanjang %d karakter diterima", tc.field, tc.max+1)
+			}
+			// Aturan yang sama harus berlaku pada pembuatan; keduanya berbagi
+			// moduleFields justru supaya tidak bisa berbeda.
+			var create moduleCreateRequest
+			if err := bindJSON(t, body(tc.field, fill(tc.max+1)), &create); err == nil {
+				t.Fatalf("pembuatan menerima %s sepanjang %d karakter", tc.field, tc.max+1)
+			}
+		})
+	}
+}
+
+// Batas daftar langkah dan panjang teks tiap langkah, juga di tepinya. Angka 50
+// di sini harus sama dengan maxSteps pada service — kalau tidak, permintaan
+// lolos binding lalu ditolak 422 oleh lapisan di belakangnya.
+func TestStepListBoundaries(t *testing.T) {
+	steps := func(n, textLen int) string {
+		list := make([]map[string]string, n)
+		for i := range list {
+			list[i] = map[string]string{"text_id": strings.Repeat("a", textLen)}
+		}
+		raw, err := json.Marshal(map[string]any{
+			"slug": "s", "icon": "i", "sort_order": 0, "status": "draft",
+			"title_id": "Judul", "steps": list})
+		if err != nil {
+			t.Fatalf("marshal: %v", err)
+		}
+		return string(raw)
+	}
+
+	for name, tc := range map[string]struct {
+		n, textLen int
+		wantOK     bool
+	}{
+		"tanpa langkah":         {0, 0, true},
+		"satu langkah":          {1, 10, true},
+		"tepat batas jumlah":    {50, 10, true},
+		"melewati batas jumlah": {51, 10, false},
+		"teks tepat batas":      {1, 500, true},
+		"teks melewati batas":   {1, 501, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var req moduleUpdateRequest
+			err := bindJSON(t, steps(tc.n, tc.textLen), &req)
+			if tc.wantOK && err != nil {
+				t.Fatalf("ditolak: %v", err)
+			}
+			if !tc.wantOK && err == nil {
+				t.Fatal("diterima, mau ditolak")
+			}
+			if tc.wantOK && len(req.Steps) != tc.n {
+				t.Fatalf("jumlah langkah terikat = %d, mau %d", len(req.Steps), tc.n)
+			}
+		})
+	}
+
+	// Batas binding tidak boleh lebih longgar dari batas service: kalau berbeda,
+	// penulis melihat 422 tanpa keterangan field alih-alih pesan validasi.
+	if maxSteps != 50 {
+		t.Fatalf("maxSteps = %d tapi tag binding masih max=50 — keduanya harus bergerak bersama", maxSteps)
+	}
+}
+
+// sort_order tepat di nol harus diterima (gte=0) — itu urutan paling atas, dan
+// nilai bawaan untuk modul pertama.
+func TestSortOrderBoundary(t *testing.T) {
+	for name, tc := range map[string]struct {
+		value  int
+		wantOK bool
+	}{
+		"nol":            {0, true},
+		"satu":           {1, true},
+		"negatif":        {-1, false},
+		"negatif jauh":   {-2147483648, false},
+		"maksimum int32": {2147483647, true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			body := `{"slug":"s","icon":"i","status":"draft","title_id":"Judul","sort_order":` +
+				strconv.Itoa(tc.value) + `}`
+			var req moduleUpdateRequest
+			err := bindJSON(t, body, &req)
+			if tc.wantOK && err != nil {
+				t.Fatalf("sort_order %d ditolak: %v", tc.value, err)
+			}
+			if !tc.wantOK && err == nil {
+				t.Fatalf("sort_order %d diterima", tc.value)
+			}
+			if tc.wantOK && int(req.SortOrder) != tc.value {
+				t.Fatalf("sort_order terikat = %d, mau %d", req.SortOrder, tc.value)
+			}
+		})
+	}
+}
+
+// Judul lampiran punya batas yang sama pada ketiga bentuk permintaannya, dan
+// tautan video punya batasnya sendiri.
+func TestAttachmentRequestBoundaries(t *testing.T) {
+	long := strings.Repeat("a", 201)
+
+	var video videoRequest
+	if err := bindJSON(t, `{"url":"https://youtu.be/dQw4w9WgXcQ","title_id":"`+long+`"}`, &video); err == nil {
+		t.Fatal("judul video sepanjang 201 karakter diterima")
+	}
+	if err := bindJSON(t, `{"url":"","title_id":"Judul"}`, &video); err == nil {
+		t.Fatal("tautan video kosong diterima")
+	}
+	if err := bindJSON(t, `{"url":"https://youtu.be/`+strings.Repeat("a", 500)+`","title_id":"Judul"}`, &video); err == nil {
+		t.Fatal("tautan video melebihi 500 karakter diterima")
+	}
+
+	var patch attachmentPatchRequest
+	if err := bindJSON(t, `{"title_id":"","sort_order":0}`, &patch); err == nil {
+		t.Fatal("judul lampiran kosong diterima pada pengubahan")
+	}
+	if err := bindJSON(t, `{"title_id":"Judul","sort_order":-1}`, &patch); err == nil {
+		t.Fatal("urutan negatif diterima pada pengubahan lampiran")
+	}
+	if err := bindJSON(t, `{"title_id":"Judul","sort_order":0}`, &patch); err != nil {
+		t.Fatalf("pengubahan lampiran yang sah ditolak: %v", err)
 	}
 }
 
