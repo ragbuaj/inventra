@@ -184,8 +184,23 @@ async function move(m: GuideModule, delta: number) {
   const other = rows[index + delta]
   if (!other) return
   try {
-    await api.update(m.id, toInput(m, { sort_order: other.sort_order }))
-    await api.update(other.id, toInput(other, { sort_order: m.sort_order }))
+    if (m.sort_order === other.sort_order) {
+      // Two modules on the same number cannot be reordered by swapping their
+      // numbers: the swap writes the same value to both, nothing moves, and the
+      // success toast below would be a lie. Break the tie by pushing whichever
+      // row must end up SECOND one step down — never by decrementing the other,
+      // because sort_order is validated `gte=0` and a row already at 0 would be
+      // rejected. Any further row that shared the number is reshuffled among the
+      // others; that is inherent to breaking an integer tie, and the ordering of
+      // rows that were already tied was arbitrary to begin with. New modules no
+      // longer create ties (see the form's nextOrder), so this is the repair
+      // path for numbers an author typed by hand.
+      const loser = delta < 0 ? other : m
+      await api.update(loser.id, toInput(loser, { sort_order: loser.sort_order + 1 }))
+    } else {
+      await api.update(m.id, toInput(m, { sort_order: other.sort_order }))
+      await api.update(other.id, toInput(other, { sort_order: m.sort_order }))
+    }
     toast.add({ title: t('settings.guide.toast.reordered'), color: 'success', icon: 'i-lucide-check' })
   } catch {
     // useApiClient already toasted the failure.
@@ -215,6 +230,15 @@ async function onDelete(m: GuideModule) {
  * attachment is added or removed it has to be re-read from the refreshed list —
  * otherwise the slideover would still be holding the pre-change copy.
  */
+/**
+ * Where a new module lands. One past the highest number in use, so a fresh
+ * module never shares a `sort_order` with an existing one — two modules on the
+ * same number cannot be reordered by swapping numbers (see `move`).
+ */
+const nextOrder = computed(() =>
+  modules.value.reduce((max, m) => Math.max(max, m.sort_order), 0) + 1
+)
+
 async function onAttachmentsChanged() {
   const id = editing.value?.id
   await load()
@@ -510,6 +534,7 @@ useSeoMeta({ title: () => `${t('settings.guide.title')} - ${t('app.name')}` })
       v-model:open="formOpen"
       :module="editing"
       :loading="saving"
+      :next-order="nextOrder"
       @submit="onSubmit"
     >
       <template

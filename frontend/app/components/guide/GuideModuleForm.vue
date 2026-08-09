@@ -14,6 +14,16 @@ import type { GuideModule, GuideModuleInput } from '~/types'
 const props = defineProps<{
   module: GuideModule | null
   loading?: boolean
+  /**
+   * Where a NEW module should land: one past the highest `sort_order` in use.
+   *
+   * A fixed default would tie every new module with the first seeded one (which
+   * sits at 1) and with every other module created since, and two modules
+   * sharing a number cannot be reordered by swapping their numbers — the swap
+   * writes the same value twice. The parent knows the whole list, so it computes
+   * this; the same rule already governs attachments (GuideAttachmentManager).
+   */
+  nextOrder?: number
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
@@ -40,7 +50,7 @@ interface FormState {
 function emptyForm(): FormState {
   return {
     icon: GUIDE_ICON_CHOICES[0]!,
-    sort_order: '1',
+    sort_order: String(props.nextOrder ?? 1),
     status: 'draft',
     title_id: '',
     title_en: '',

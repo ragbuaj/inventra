@@ -112,6 +112,7 @@ interface PageVm {
   togglePublish: (m: GuideModule) => Promise<void>
   move: (m: GuideModule, delta: number) => Promise<void>
   onDelete: (m: GuideModule) => Promise<void>
+  nextOrder: number
 }
 
 async function mountPage(modules: GuideModule[] = MODULES) {
@@ -270,6 +271,51 @@ describe('guide admin — publish, reorder, delete', () => {
     expect(writes()).toHaveLength(0)
   })
 
+  // Two modules on the same number cannot be reordered by swapping numbers: the
+  // swap writes the same value twice, nothing moves, and the success toast lies.
+  // The tie is broken by pushing the row that must end up second one step down.
+  it('breaks a sort_order tie when moving up instead of swapping nothing', async () => {
+    const tied = [
+      guideModule({ id: 't0', slug: 'satu', title_id: 'Satu', sort_order: 2 }),
+      guideModule({ id: 't1', slug: 'dua', title_id: 'Dua', sort_order: 2 })
+    ]
+    const wrapper = await mountPage(tied)
+    await (wrapper.vm as unknown as PageVm).move(tied[1]!, -1)
+    await flushPromises()
+
+    // One PATCH, on the NEIGHBOUR — never a decrement, because sort_order is
+    // validated `gte=0` and a row already at 0 would be rejected.
+    expect(writes()).toHaveLength(1)
+    expect(writes()[0]!.path).toBe('/guide/modules/t0')
+    expect(writes()[0]!.body).toMatchObject({ sort_order: 3 })
+  })
+
+  it('breaks a sort_order tie when moving down by pushing the mover', async () => {
+    const tied = [
+      guideModule({ id: 't0', slug: 'satu', title_id: 'Satu', sort_order: 2 }),
+      guideModule({ id: 't1', slug: 'dua', title_id: 'Dua', sort_order: 2 })
+    ]
+    const wrapper = await mountPage(tied)
+    await (wrapper.vm as unknown as PageVm).move(tied[0]!, 1)
+    await flushPromises()
+
+    expect(writes()).toHaveLength(1)
+    expect(writes()[0]!.path).toBe('/guide/modules/t0')
+    expect(writes()[0]!.body).toMatchObject({ sort_order: 3 })
+  })
+
+  // A new module must not land on a number that is already taken, or the very
+  // first reorder the author tries hits the tie path above.
+  it('offers a new module the first free sort_order, not a fixed one', async () => {
+    const wrapper = await mountPage()
+    expect((wrapper.vm as unknown as PageVm).nextOrder).toBe(6) // highest is 5
+  })
+
+  it('offers 1 when there is no module at all', async () => {
+    const wrapper = await mountPage([])
+    expect((wrapper.vm as unknown as PageVm).nextOrder).toBe(1)
+  })
+
   it('deletes only after the confirmation is accepted', async () => {
     const wrapper = await mountPage()
     const vm = wrapper.vm as unknown as PageVm
@@ -363,8 +409,8 @@ interface FormVm {
   onSubmit: () => void
 }
 
-async function mountForm(module: GuideModule | null) {
-  const wrapper = await mountSuspended(GuideModuleForm, { props: { open: true, module } })
+async function mountForm(module: GuideModule | null, nextOrder?: number) {
+  const wrapper = await mountSuspended(GuideModuleForm, { props: { open: true, module, nextOrder } })
   await wrapper.vm.$nextTick()
   return wrapper
 }
@@ -381,6 +427,17 @@ describe('GuideModuleForm', () => {
     expect(html).toContain('Informasi modul')
     expect(html).toContain('Daftar langkah')
     expect(html).toContain('Lampiran')
+  })
+
+  // Prefilled from the parent so a new module never ties with an existing one.
+  it('prefills a new module with the order the parent hands it', async () => {
+    const wrapper = await mountForm(null, 6)
+    expect((wrapper.vm as unknown as FormVm).form.sort_order).toBe('6')
+  })
+
+  it('falls back to 1 when no order is supplied', async () => {
+    const wrapper = await mountForm(null)
+    expect((wrapper.vm as unknown as FormVm).form.sort_order).toBe('1')
   })
 
   // The control stays on screen so the form keeps its shape, but it cannot be
