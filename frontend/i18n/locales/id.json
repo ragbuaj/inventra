@@ -2500,5 +2500,12 @@
         "unknown": "Terjadi kesalahan saat memproses berkas."
       }
     }
+  },
+  "pwa": {
+    "update": {
+      "message": "Versi baru Inventra sudah tersedia.",
+      "reload": "Muat ulang",
+      "later": "Nanti"
+    }
   }
 }

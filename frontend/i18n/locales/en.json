@@ -2500,5 +2500,12 @@
         "unknown": "Something went wrong while processing the file."
       }
     }
+  },
+  "pwa": {
+    "update": {
+      "message": "A new version of Inventra is available.",
+      "reload": "Reload",
+      "later": "Later"
+    }
   }
 }
