@@ -126,13 +126,16 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        # Browser-facing API base (requests originate from the user's browser).
+        # Build-time, not run-time: route `/` is prerendered into a static HTML
+        # file so the service worker can precache the app shell, and that file
+        # already carries this value. See frontend/Dockerfile.
+        NUXT_PUBLIC_API_BASE: http://localhost:8080/api/v1
     container_name: inventra-frontend
     depends_on:
       backend:
         condition: service_started
-    environment:
-      # Browser-facing API base (requests originate from the user's browser).
-      NUXT_PUBLIC_API_BASE: http://localhost:8080/api/v1
     ports:
       - "3000:3000"
 

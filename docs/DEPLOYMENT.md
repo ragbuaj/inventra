@@ -282,13 +282,23 @@ server (menghindari build di VPS sama sekali).
 
 **Login gagal / "Network Error" di browser, padahal backend hidup.**
 `NUXT_PUBLIC_API_BASE` harus URL publik (`https://<DOMAIN>/api/v1`), bukan
-`localhost`. Nilai ini dipakai browser pengguna. Sudah diset di
-`docker-compose.prod.yml`; pastikan `DOMAIN` di `.env.prod` benar, lalu:
+`localhost`. Nilai ini dipakai browser pengguna, dan sejak frontend menjadi PWA ia
+**dibekukan saat image dibangun**, bukan saat container dijalankan: rute `/`
+di-prerender jadi HTML statis supaya service worker bisa mem-precache shell
+aplikasi, sehingga berkas itu sudah membawa nilainya. Karena itu `up -d
+--force-recreate frontend` saja tidak akan mengubahnya — image-nya harus dibangun
+ulang.
+
+Image dari GHCR sudah membawa nilai produksi dari CD (`build-args` di
+`.github/workflows/deploy.yml`, domain dari variabel repo `PROD_DOMAIN`). Kalau
+domain produksi berubah, set variabel itu lalu jalankan ulang workflow Deploy.
+Bila image dibangun langsung di VPS, pastikan `DOMAIN` di `.env.prod` benar lalu:
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --force-recreate frontend
+docker compose -f docker-compose.prod.yml --env-file .env.prod build --no-cache frontend
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d frontend
 ```
-Jika masih memakai localhost setelah itu, rebuild frontend tanpa cache:
-`docker compose -f docker-compose.prod.yml --env-file .env.prod build --no-cache frontend`.
+Setelah frontend diganti, minta pengguna memuat ulang sekali supaya service worker
+mengambil shell yang baru.
 
 **Sertifikat TLS tidak terbit (log Caddy error ACME).**
 DNS A record belum menunjuk ke IP VPS, atau port 80/443 tertutup. Pastikan
@@ -299,8 +309,9 @@ DNS A record belum menunjuk ke IP VPS, atau port 80/443 tertutup. Pastikan
 
 **Tanpa domain (hanya IP).**
 HTTPS otomatis tidak bisa jalan dengan IP. Untuk uji cepat, ganti blok situs di
-`ops/Caddyfile` menjadi `:80 { ... }` dan set `NUXT_PUBLIC_API_BASE` +
-`FRONTEND_URL` ke `http://<IP>`. Ini **hanya untuk testing** — untuk produksi,
+`ops/Caddyfile` menjadi `:80 { ... }`, bangun ulang image frontend dengan
+`--build-arg NUXT_PUBLIC_API_BASE=http://<IP>/api/v1` (nilainya build-time, lihat
+butir "Network Error" di atas), dan set `FRONTEND_URL` backend ke `http://<IP>`. Ini **hanya untuk testing** — untuk produksi,
 gunakan domain agar dapat HTTPS.
 
 ---

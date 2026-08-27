@@ -5,6 +5,7 @@ import {
   PWA_MANIFEST_HREF,
   PWA_THEME_COLOR
 } from './pwa/manifest'
+import { pwaWorkbox } from './pwa/workbox'
 
 // Optional filesystem polling for dev watchers (set NUXT_DEV_POLLING=true). Off by
 // default — the Docker dev stack uses `docker compose watch`, which syncs files onto
@@ -72,6 +73,20 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2025-01-15',
 
+  // Rute `/` dipaksa jadi berkas HTML statis. Tanpa ini `nuxt build` tidak
+  // menerbitkan satu pun HTML ke `.output/public/` — shell-nya dirender Nitro saat
+  // runtime, sehingga tidak ada yang bisa di-precache dan luring tidak mungkin.
+  // Karena `ssr: false`, HTML hasil prerender hanyalah kerangka kosong tanpa data
+  // pengguna; satu berkas ini melayani seluruh rute dan kedua locale.
+  nitro: {
+    prerender: {
+      routes: ['/'],
+      // Jangan telusuri tautan: seluruh rute memakai shell yang sama, dan menelusuri
+      // hanya akan menerbitkan salinan kembar dari kerangka yang identik.
+      crawlLinks: false
+    }
+  },
+
   vite: {
     server: {
       watch: devPolling ? { usePolling: true, interval: 300 } : undefined
@@ -98,11 +113,13 @@ export default defineNuxtConfig({
     ]
   },
 
-  // PWA. Isi manifest tinggal di pwa/manifest.ts supaya app.vue memakai konstanta yang
-  // sama dan tes unit bisa menguncinya. Strategi precache menyusul di tugas berikutnya.
+  // PWA. Isi manifest tinggal di pwa/manifest.ts dan strategi caching di
+  // pwa/workbox.ts, supaya app.vue memakai konstanta yang sama dan tes unit bisa
+  // menguncinya — termasuk aturan bahwa tidak ada satu pun runtime caching.
   pwa: {
     registerType: 'prompt',
     manifest: pwaManifest,
+    workbox: pwaWorkbox,
     // Service worker sengaja mati saat `pnpm dev` — pengujiannya lewat `pnpm preview`.
     devOptions: {
       enabled: false

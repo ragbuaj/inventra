@@ -141,14 +141,21 @@ services:
     image: ghcr.io/ragbuaj/inventra-frontend:latest
     build:
       context: ./frontend
+      args:
+        # API base yang dipanggil BROWSER pengguna — harus URL publik HTTPS.
+        # Ditetapkan saat BUILD, bukan saat container jalan: rute `/` di-prerender
+        # jadi HTML statis supaya service worker bisa mem-precache shell aplikasi,
+        # dan berkas statis itu sudah membawa nilainya. Env runtime tidak lagi
+        # menjangkau halaman depan, jadi sengaja tidak dipasang di sini supaya
+        # tidak ada dua sumber kebenaran yang saling bertentangan.
+        # Image dari GHCR sudah membawa nilai ini dari CD (deploy.yml); baris ini
+        # berlaku saat image dibangun langsung di VPS (`up --build`).
+        NUXT_PUBLIC_API_BASE: https://${DOMAIN}/api/v1
     container_name: inventra-frontend
     restart: unless-stopped
     depends_on:
       backend:
         condition: service_started
-    environment:
-      # API base yang dipanggil BROWSER pengguna — harus URL publik HTTPS.
-      NUXT_PUBLIC_API_BASE: https://${DOMAIN}/api/v1
 
   caddy:
     build:

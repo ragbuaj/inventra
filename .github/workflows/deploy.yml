@@ -53,6 +53,13 @@ jobs:
         with:
           context: ./frontend
           push: true
+          # apiBase dibekukan saat build, bukan saat container jalan: rute `/`
+          # di-prerender jadi HTML statis supaya service worker bisa mem-precache
+          # shell-nya (lihat frontend/Dockerfile). Domainnya dari variabel repo
+          # `PROD_DOMAIN`; fallback-nya domain produksi yang berlaku sekarang,
+          # sama seperti yang sudah dipakai ops/monitoring/prometheus.
+          build-args: |
+            NUXT_PUBLIC_API_BASE=https://${{ vars.PROD_DOMAIN || 'inventra.ragilbuaj.web.id' }}/api/v1
           tags: |
             ghcr.io/ragbuaj/inventra-frontend:latest
             ghcr.io/ragbuaj/inventra-frontend:${{ github.event.workflow_run.head_sha || github.sha }}
