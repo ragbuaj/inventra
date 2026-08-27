@@ -17,6 +17,36 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
+> **PWA aplikasi web — fase 4 (regresi, dokumen, rilis).** Branch `feat/web-pwa`, spec
+> `docs/superpowers/specs/2026-08-27-web-pwa-design.md` (40 acceptance criteria), rencana
+> `docs/superpowers/plans/2026-08-27-web-pwa.md` (11 tugas). **Fase 1 sampai 3 selesai
+> (tugas 1-8):** modul `@vite-pwa/nuxt` terbukti bekerja di Nuxt 4, ikon diturunkan dari mark
+> aplikasi, manifest terpusat di `frontend/pwa/`, shell statis + precache tanpa satu pun aturan
+> runtime caching, e2e service worker/offline/keamanan cache (11 tes), ajakan perbarui, ajakan
+> pasang Android + petunjuk manual iOS, dan poles mode standalone (area aman + bilah status per
+> skema warna). Acceptance criteria 1 sampai 35 tertutup; 36 sampai 40 tersisa di fase 4.
+>
+> Yang tersisa:
+> 1. **Tugas 9 — regresi e2e penuh** dengan service worker aktif, `--workers=1`, dua kali
+>    berturut-turut. `e2e/pwa.spec.ts` sendiri sudah hijau setelah tugas 8.
+> 2. **Tugas 10 — ADR-0019 + PROGRESS + vault**, lalu titik pemeriksaan D (siap merge).
+> 3. **Tugas 11 — verifikasi produksi** pasca-merge.
+>
+> Dua hal yang perlu keputusan manusia sebelum merge: **tinjauan pemilik produk** atas ajakan
+> pasang dan ajakan perbarui (titik pemeriksaan A dan C), dan **suite `pnpm test` penuh** yang
+> berakhir exit 1 karena kerapuhan paralel yang **sudah ada di main** (satu spec acak gagal plus
+> `EnvironmentTeardownError`; 1920 dari 1921 tes lulus, dan spec yang gagal lulus penuh saat
+> dijalankan sendiri).
+>
+> **Keputusan cakupan (acceptance criteria 32).** Ajakan pasang disembunyikan di seluruh layar
+> berlayout `auth` — masuk, lupa kata sandi, atur ulang kata sandi — bukan hanya di halaman
+> masuk. Alasannya sama untuk ketiganya, jadi aturannya satu baris, bukan daftar rute.
+>
+> **Temuan yang layak diingat.** `pwa.client.installPrompt` bukan sekadar nama kunci penyimpanan:
+> tanpa opsi itu plugin klien modul tidak memasang listener `beforeinstallprompt` sama sekali,
+> sehingga tombol pasang tidak akan pernah muncul — sementara tes runtime tetap hijau karena
+> memalsukan `$pwa`. Dikunci di `frontend/pwa/client.ts` + `test/unit/pwa-client.spec.ts`.
+>
 > **Sisa langkah 16-19 Panduan Penggunaan.** Modulnya sendiri sudah **MERGED (PR #139, squash
 > `0c12b34`, 2026-08-09)** dengan seluruh CI hijau — `backend`, `backend-integration` (14m4s),
 > `frontend` (4m43s), `e2e` (7m8s), `api-docs` — dan branch `feat/guide-media` sudah dihapus. Yang
@@ -304,7 +334,9 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > `test/nuxt/assets-index.spec.ts` — **sudah ada di main** (diverifikasi dengan menjalankan suite penuh dua
 > kali pada frontend yang di-stash: keduanya exit 1, 1740 tes tetap lolos). Bukan bawaan perubahan ini.
 > **PWA sengaja dikecualikan** atas permintaan user; belum ada infrastrukturnya (tidak ada `@vite-pwa/nuxt`,
-> manifest, atau service worker) dan cakupannya masih perlu `/spec`.
+> manifest, atau service worker) dan cakupannya masih perlu `/spec`. **Tidak berlaku lagi sejak
+> 2026-08-27** — PWA sudah di-spec dan dibangun di branch `feat/web-pwa`; lihat blok "Next session"
+> di atas.
 >
 > **Halaman info Web: Kebijakan Privasi + Panduan Penggunaan + FAQ (2026-07-27, branch `feat/info-pages`) — SELESAI (kode + tes; lint + typecheck lokal hijau).**
 > Menambah tiga halaman informasi di frontend Nuxt (`app/pages/privacy.vue`, `guide.vue`, `faq.vue`)
