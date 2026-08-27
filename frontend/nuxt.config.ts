@@ -2,11 +2,11 @@
 import {
   pwaManifest,
   PWA_APPLE_TOUCH_ICON,
-  PWA_MANIFEST_HREF,
-  PWA_THEME_COLOR
+  PWA_MANIFEST_HREF
 } from './pwa/manifest'
 import { pwaWorkbox } from './pwa/workbox'
 import { pwaClient } from './pwa/client'
+import { PWA_VIEWPORT, pwaHeadMeta } from './pwa/head'
 
 // Optional filesystem polling for dev watchers (set NUXT_DEV_POLLING=true). Off by
 // default — the Docker dev stack uses `docker compose watch`, which syncs files onto
@@ -40,9 +40,8 @@ export default defineNuxtConfig({
   // virtual module dari integrasi assets-generator yang sengaja tidak dipasang.
   app: {
     head: {
-      meta: [
-        { name: 'theme-color', content: PWA_THEME_COLOR }
-      ],
+      viewport: PWA_VIEWPORT,
+      meta: pwaHeadMeta,
       link: [
         { rel: 'manifest', href: PWA_MANIFEST_HREF },
         { rel: 'apple-touch-icon', sizes: '180x180', href: PWA_APPLE_TOUCH_ICON }
