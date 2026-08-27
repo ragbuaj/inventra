@@ -23,7 +23,7 @@ const publicLinks = computed(() => [
   <!-- Signed in: reuse the standard app shell so info pages match every other screen. -->
   <div
     v-if="auth.isAuthenticated"
-    class="flex h-screen overflow-hidden bg-default"
+    class="flex h-screen overflow-hidden bg-default app-safe-area"
   >
     <AppSidebar />
     <div class="flex-1 flex flex-col min-w-0">
@@ -39,7 +39,7 @@ const publicLinks = computed(() => [
   <!-- Guest: standalone reading shell, no app navigation. -->
   <div
     v-else
-    class="min-h-screen flex flex-col bg-default"
+    class="min-h-screen flex flex-col bg-default app-safe-area"
   >
     <header class="flex-none border-b border-default bg-default/80 backdrop-blur sticky top-0 z-30">
       <div class="mx-auto w-full max-w-4xl flex items-center gap-3 px-4 sm:px-6 h-[61px]">

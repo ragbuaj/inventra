@@ -18,6 +18,16 @@ function reload() {
   // `true` = aktifkan service worker yang menunggu lalu muat ulang halamannya.
   $pwa?.updateServiceWorker(true)
 }
+
+function dismiss() {
+  // Dua langkah, dan keduanya perlu. `dismissed` menjaga kartu ini tidak balik lagi
+  // di sesi yang sama; `cancelPrompt` menurunkan `needRefresh` supaya kunci yang
+  // menahan `PwaInstallPrompt` ikut terlepas — tanpa itu ajakan pasang mati sesesi
+  // penuh padahal layarnya sudah bersih. Service worker yang menunggu tidak
+  // terpengaruh: ia tetap menunggu sampai pengguna memuat ulang sendiri.
+  dismissed.value = true
+  $pwa?.cancelPrompt()
+}
 </script>
 
 <template>
@@ -42,7 +52,7 @@ function reload() {
           color="neutral"
           variant="ghost"
           data-testid="pwa-update-later"
-          @click="dismissed = true"
+          @click="dismiss"
         >
           {{ t('pwa.update.later') }}
         </UButton>

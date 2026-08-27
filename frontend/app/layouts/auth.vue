@@ -8,7 +8,7 @@ const features = computed(() => [
 </script>
 
 <template>
-  <div class="min-h-screen grid lg:grid-cols-[1.05fr_1fr]">
+  <div class="min-h-screen grid lg:grid-cols-[1.05fr_1fr] app-safe-area">
     <!-- Brand panel -->
     <aside class="relative hidden lg:flex flex-col justify-between overflow-hidden p-12 text-white bg-gradient-to-br from-brand-900 via-brand-700 to-brand-600">
       <div class="absolute -top-24 -right-20 size-80 rounded-full bg-white/10 blur-lg" />

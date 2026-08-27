@@ -9,7 +9,11 @@
 //
 // Ajakan ini sengaja tidak muncul di layar masuk: mengganggu alur login demi
 // pemasangan bukan pertukaran yang sepadan.
-const KEY = 'inventra.pwa.install-dismissed'
+//
+// Kuncinya diimpor, bukan diketik ulang: plugin klien modul membaca kunci yang sama
+// saat menentukan apakah ajakan pernah ditutup (lihat pwa/client.ts), dan dua literal
+// yang menyimpang membuat penutupan berhenti bertahan lintas pemuatan halaman.
+import { PWA_INSTALL_DISMISS_KEY } from '~~/pwa/client'
 
 const { $pwa } = useNuxtApp()
 const { t } = useI18n()
@@ -21,7 +25,7 @@ const standalone = ref(false)
 
 onMounted(() => {
   try {
-    dismissed.value = localStorage.getItem(KEY) === 'true'
+    dismissed.value = localStorage.getItem(PWA_INSTALL_DISMISS_KEY) === 'true'
   } catch {
     // Mode privat sebagian peramban melempar error saat localStorage dibaca;
     // ajakan tetap boleh muncul, hanya penutupannya yang tidak bertahan.
@@ -48,7 +52,7 @@ function install() {
 function dismiss() {
   dismissed.value = true
   try {
-    localStorage.setItem(KEY, 'true')
+    localStorage.setItem(PWA_INSTALL_DISMISS_KEY, 'true')
   } catch { /* lihat catatan di onMounted */ }
   $pwa?.cancelInstall()
 }

@@ -20,7 +20,13 @@ import PwaUpdatePrompt from '~/components/PwaUpdatePrompt.vue'
 enableAutoUnmount(afterEach)
 
 const updateServiceWorker = vi.fn()
-const pwa = reactive({ needRefresh: false, updateServiceWorker })
+// `cancelPrompt` meniru milik modul: ia MENURUNKAN `needRefresh`, bukan sekadar
+// dicatat. Itu yang membuat tes di bawah berbasis keadaan — yang diperiksa adalah
+// kuncinya benar-benar terlepas, bukan sekadar sebuah metode terpanggil.
+const cancelPrompt = vi.fn(() => {
+  pwa.needRefresh = false
+})
+const pwa = reactive({ needRefresh: false, updateServiceWorker, cancelPrompt })
 
 let provided = false
 function providePwa() {
@@ -113,6 +119,22 @@ describe('PwaUpdatePrompt', () => {
     await w.find('[data-testid="pwa-update-later"]').trigger('click')
 
     expect(w.find('[data-testid="pwa-update-prompt"]').exists()).toBe(false)
+    expect(updateServiceWorker).not.toHaveBeenCalled()
+  })
+
+  it('melepas needRefresh saat ditutup, supaya ajakan pasang tidak ikut terkunci', async () => {
+    // `PwaInstallPrompt` menahan diri selama `needRefresh` menyala supaya dua kartu
+    // tidak menumpuk di sudut yang sama. Kalau penutupan di sini hanya menyembunyikan
+    // kartunya sendiri, kuncinya tetap terpasang sampai tab ditutup dan ajakan pasang
+    // tidak akan pernah bisa muncul lagi.
+    providePwa()
+    const w = await mountSuspended(PwaUpdatePrompt)
+    pwa.needRefresh = true
+    await w.vm.$nextTick()
+
+    await w.find('[data-testid="pwa-update-later"]').trigger('click')
+
+    expect(pwa.needRefresh).toBe(false)
     expect(updateServiceWorker).not.toHaveBeenCalled()
   })
 

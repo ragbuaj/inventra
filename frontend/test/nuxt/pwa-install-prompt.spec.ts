@@ -16,6 +16,10 @@ import { mountSuspended, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { enableAutoUnmount } from '@vue/test-utils'
 import { reactive } from 'vue'
 import PwaInstallPrompt from '~/components/PwaInstallPrompt.vue'
+// Konstanta kanonik yang sama yang diserahkan nuxt.config ke plugin klien modul.
+// Mengimpornya di sini membuat tes penutupan di bawah menjadi penjaga sesungguhnya:
+// kalau komponen memakai kunci lain, tes itu merah.
+import { PWA_INSTALL_DISMISS_KEY } from '~~/pwa/client'
 
 const { platform, route } = vi.hoisted(() => ({
   platform: { ios: false, standalone: false },
@@ -28,7 +32,7 @@ mockNuxtImport('useRoute', () => () => route)
 
 enableAutoUnmount(afterEach)
 
-const DISMISS_KEY = 'inventra.pwa.install-dismissed'
+const DISMISS_KEY = PWA_INSTALL_DISMISS_KEY
 
 const install = vi.fn()
 const cancelInstall = vi.fn()
@@ -185,6 +189,24 @@ describe('PwaInstallPrompt', () => {
 
     expect(w.find('[data-testid="pwa-install-ios-hint"]').exists()).toBe(false)
     expect(w.find('[data-testid="pwa-install-prompt"]').exists()).toBe(false)
+  })
+
+  it('muncul kembali setelah ajakan perbarui ditutup dan needRefresh dilepas', async () => {
+    // Sisi lain dari aturan satu-ajakan-pada-satu-waktu. `PwaUpdatePrompt` melepas
+    // `needRefresh` lewat `cancelPrompt` saat pengguna menekan Nanti; tanpa itu
+    // kunci di sini menempel selamanya dan ajakan pasang mati sesesi penuh, padahal
+    // layarnya sudah bersih.
+    androidWithPrompt()
+    pwa.needRefresh = true
+
+    const w = await mountSuspended(PwaInstallPrompt)
+    expect(w.find('[data-testid="pwa-install-prompt"]').exists()).toBe(false)
+
+    pwa.needRefresh = false
+    await w.vm.$nextTick()
+
+    expect(w.find('[data-testid="pwa-install-prompt"]').exists()).toBe(true)
+    expect(w.find('[data-testid="pwa-install-action"]').exists()).toBe(true)
   })
 
   it('merender ajakan dalam bahasa Inggris saat locale en aktif', async () => {

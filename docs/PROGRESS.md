@@ -24,9 +24,10 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >
 > Langkah berikutnya, berurutan:
 > 1. **Titik pemeriksaan D.** PR sudah dibuka: https://github.com/ragbuaj/inventra/pull/148.
->    Yang tersisa di kotak ini: jalankan review kode dan review keamanan; fokus keamanan satu
->    kalimat: tidak ada jalur yang bisa membuat respons API mendarat di Cache Storage. Setelah
->    merge, hapus branch-nya serta sinkronkan `main`.
+>    **Review kode lima sumbu sudah dijalankan (2026-08-27)** dan seluruh temuan Kritis serta
+>    Penting sudah diperbaiki di branch ini; rinciannya di entri PWA di bawah. Review keamanan
+>    berfokus satu kalimat masih tersisa: tidak ada jalur yang bisa membuat respons API mendarat
+>    di Cache Storage. Setelah merge, hapus branch-nya serta sinkronkan `main`.
 > 2. **Tugas 11 — verifikasi produksi**, pasca-deploy. Empat hal yang secara struktural tidak bisa
 >    dibuktikan sebelumnya: `manifest.webmanifest` dan `sw.js` lolos Caddy + WAF Coraza tanpa false
 >    positive OWASP CRS, Lighthouse kategori PWA installable tanpa peringatan, pemasangan di Android
@@ -335,6 +336,43 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > `caches` lewat `page.evaluate` dan menuntut nol entri ber-URL `/api/`, sebelum dan sesudah logout.
 > Tesnya **dibuktikan bisa merah**: menambahkan satu aturan NetworkFirst untuk `/api/` membuat 16 URL
 > API mendarat di Cache Storage, dan hanya tes keamanan cache yang menangkapnya.
+>
+> **Review kode lima sumbu (2026-08-27) — empat temuan diperbaiki, vonis awal "minta perubahan".**
+> Gerbang dijalankan ulang oleh peninjau, bukan diterima sebagai klaim: lint bersih, typecheck exit 0,
+> seluruh tes unit lulus, dan isi precache dibaca langsung dari `.output/public/sw.js` (196 entri,
+> nol URL mengandung `/api/`). Satu **Kritis** dan tiga **Penting** ditemukan, semuanya sudah ditutup
+> di branch ini dengan tes yang dibuktikan merah lebih dulu:
+>
+> 1. **Kritis. `.gitignore` pola `tasks/` menelan direktori Ansible.** Pola tanpa garis miring depan
+>    cocok di kedalaman mana pun, sehingga `ops/ansible/roles/*/tasks/` ikut terabaikan: berkas task
+>    baru akan hilang tanpa suara dan IaC di VPS jadi tidak lengkap tanpa ada yang sadar. Diperbaiki
+>    jadi `/tasks/`, yang hanya menjangkau akar repo. Dibuktikan lewat `git check-ignore -v`.
+> 2. **Penting. Ajakan pasang mati sesesi penuh begitu ajakan perbarui ditutup.** `PwaInstallPrompt`
+>    menahan diri selama `$pwa.needRefresh` menyala (aturan satu ajakan pada satu waktu), tapi tombol
+>    Nanti di `PwaUpdatePrompt` hanya menyembunyikan kartunya sendiri — `needRefresh` tetap menyala,
+>    jadi kuncinya menempel sampai tab ditutup. `PwaUpdatePrompt.dismiss()` sekarang juga memanggil
+>    `$pwa.cancelPrompt()`, yang menurunkan `needRefresh`. Service worker yang menunggu tidak
+>    terpengaruh: ia tetap menunggu sampai pengguna memuat ulang sendiri.
+> 3. **Penting. Area aman berhenti di shell aplikasi.** `viewport-fit=cover` berlaku untuk seluruh
+>    dokumen, jadi sejak ia dipasang setiap layout menembus ke bawah notch — termasuk `layouts/auth.vue`,
+>    yang justru layar pertama yang dilihat pengguna terpasang (sesi belum pulih, guard melempar ke
+>    `/login`), dan `layouts/info.vue` pada kedua cabangnya. Ketiganya kini memakai `app-safe-area`.
+>    Kelas itu no-op di luar mode standalone, jadi tidak ada satu layar pun berubah di browser dan
+>    kontrak mockup tidak tersentuh.
+> 4. **Penting. Kunci `localStorage` diduplikasi sebagai literal.** `PwaInstallPrompt` mengetik ulang
+>    `'inventra.pwa.install-dismissed'` dan yang menjaganya tetap sama dengan `pwa/client.ts` hanyalah
+>    grep substring atas berkas `.vue` — lulus kalau kuncinya cuma muncul di komentar, dan tidak
+>    berdaya terhadap perubahan gaya kutip. Komponen kini **mengimpor** `PWA_INSTALL_DISMISS_KEY` dari
+>    `~~/pwa/client`, sehingga divergensinya mustahil; tes grep-nya dihapus dan digantikan tes
+>    penutupan di `test/nuxt/pwa-install-prompt.spec.ts` yang memakai konstanta yang sama.
+>
+> Empat tes baru menyertai perbaikan ini (1927 tes, naik dari 1923). Gerbang setelah perbaikan:
+> lint bersih, typecheck exit 0, `vitest run` exit 0 dengan 1927 lulus, `nuxt build` sukses, dan
+> precache hasil build ulang tetap 196 entri dengan nol URL `/api/`. Empat temuan tingkat **Saran**
+> sengaja tidak dikerjakan di branch ini dan dicatat sebagai lanjutan: assertion teks sumber yang
+> redundan di `pwa-standalone.spec.ts`, biaya precache 3,16 MiB pada kunjungan pertama (layak diukur
+> di Tugas 11 justru karena pengguna sasarannya bersinyal buruk), `role="status"` yang belum ada di
+> ajakan pasang, dan domain produksi yang dikeraskan sebagai fallback di `deploy.yml`.
 >
 > **Verifikasi independen (sesi /test, 2026-08-27) dan satu penajaman.** Seluruh gerbang dijalankan
 > ulang dari nol: lint bersih, typecheck exit 0, 1921 tes unit lulus, build menghasilkan 196 entri
