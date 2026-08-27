@@ -168,6 +168,25 @@ describe('PwaInstallPrompt', () => {
     expect(w.find('[data-testid="pwa-install-prompt"]').exists()).toBe(false)
   })
 
+  it('tidak merender apa pun saat ajakan perbarui sedang menunggu, supaya hanya satu ajakan tampil', async () => {
+    androidWithPrompt()
+    pwa.needRefresh = true
+
+    const w = await mountSuspended(PwaInstallPrompt)
+
+    expect(w.find('[data-testid="pwa-install-prompt"]').exists()).toBe(false)
+  })
+
+  it('menahan juga petunjuk iOS saat ajakan perbarui sedang menunggu', async () => {
+    platform.ios = true
+    pwa.needRefresh = true
+
+    const w = await mountSuspended(PwaInstallPrompt)
+
+    expect(w.find('[data-testid="pwa-install-ios-hint"]').exists()).toBe(false)
+    expect(w.find('[data-testid="pwa-install-prompt"]').exists()).toBe(false)
+  })
+
   it('merender ajakan dalam bahasa Inggris saat locale en aktif', async () => {
     androidWithPrompt()
     setLocale('en')

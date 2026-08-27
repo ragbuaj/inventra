@@ -335,6 +335,23 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > Tesnya **dibuktikan bisa merah**: menambahkan satu aturan NetworkFirst untuk `/api/` membuat 16 URL
 > API mendarat di Cache Storage, dan hanya tes keamanan cache yang menangkapnya.
 >
+> **Verifikasi independen (sesi /test, 2026-08-27) dan satu penajaman.** Seluruh gerbang dijalankan
+> ulang dari nol: lint bersih, typecheck exit 0, 1921 tes unit lulus, build menghasilkan 196 entri
+> precache tanpa satu pun URL `/api/`, dan `e2e/pwa.spec.ts` 11 dari 11 hijau. Dua belas mutasi
+> terarah dijalankan terhadap kode sumber; sebelas tertangkap. **Satu lubang ditemukan dan ditutup:**
+> perilaku "satu ajakan pada satu waktu" — `PwaInstallPrompt` menahan diri saat `$pwa.needRefresh`
+> menyala supaya tidak menumpuk dengan `PwaUpdatePrompt` di sudut layar yang sama — didokumentasikan
+> di kode tapi tidak ada tesnya; menghapus penjagaannya lolos hijau. Dua kasus ditambahkan di
+> `test/nuxt/pwa-install-prompt.spec.ts` (jalur tombol pasang dan jalur petunjuk iOS), dibuktikan
+> merah pada kode dimutasi lalu hijau pada kode asli. **Penajaman atas kalimat di atas:** e2e keamanan
+> cache hanya menangkap aturan runtime caching yang regex-nya berjangkar di awal URL. `RegExpRoute`
+> Workbox mencocokkan permintaan lintas-origin hanya bila regex-nya cocok mulai indeks 0 URL penuh,
+> dan di e2e API ada di `localhost:8080` sementara app di `:3000` — mutasi `urlPattern: /api/` karena
+> itu lolos hijau, sedangkan `urlPattern: /^http:..localhost:8080.api./` membuatnya merah dengan URL
+> API sungguhan di Cache Storage. Di produksi API se-origin, jadi aturan tak berjangkar pun akan
+> mengendap. Penjaga sebenarnya untuk kelas kesalahan ini adalah `test/unit/pwa-workbox.spec.ts`
+> yang melarang `runtimeCaching` sama sekali, bukan e2e.
+>
 > **Temuan yang layak diingat.** `pwa.client.installPrompt` bukan sekadar nama kunci penyimpanan:
 > tanpa opsi itu plugin klien modul tidak memasang listener `beforeinstallprompt` sama sekali,
 > sehingga tombol pasang tidak akan pernah muncul — sementara tes runtime tetap hijau karena
