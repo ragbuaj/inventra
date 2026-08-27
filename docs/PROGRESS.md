@@ -23,11 +23,11 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > acceptance criteria 1 sampai 40 tertutup. Rinciannya di entri "PWA aplikasi web" di bawah.
 >
 > Langkah berikutnya, berurutan:
-> 1. **Titik pemeriksaan D.** PR sudah dibuka: https://github.com/ragbuaj/inventra/pull/148.
->    **Review kode lima sumbu sudah dijalankan (2026-08-27)** dan seluruh temuan Kritis serta
->    Penting sudah diperbaiki di branch ini; rinciannya di entri PWA di bawah. Review keamanan
->    berfokus satu kalimat masih tersisa: tidak ada jalur yang bisa membuat respons API mendarat
->    di Cache Storage. Setelah merge, hapus branch-nya serta sinkronkan `main`.
+> 1. **Titik pemeriksaan D — selesai.** PR sudah dibuka: https://github.com/ragbuaj/inventra/pull/148.
+>    **Review kode lima sumbu** dan **review keamanan berfokus** sudah dijalankan (2026-08-27/28);
+>    seluruh temuan Kritis dan Penting ditutup, rinciannya di entri PWA di bawah. Yang tersisa di
+>    kotak ini tinggal tinjauan pemilik produk (titik pemeriksaan A dan C). Setelah merge, hapus
+>    branch-nya serta sinkronkan `main`.
 > 2. **Tugas 11 — verifikasi produksi**, pasca-deploy. Empat hal yang secara struktural tidak bisa
 >    dibuktikan sebelumnya: `manifest.webmanifest` dan `sw.js` lolos Caddy + WAF Coraza tanpa false
 >    positive OWASP CRS, Lighthouse kategori PWA installable tanpa peringatan, pemasangan di Android
@@ -336,6 +336,47 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > `caches` lewat `page.evaluate` dan menuntut nol entri ber-URL `/api/`, sebelum dan sesudah logout.
 > Tesnya **dibuktikan bisa merah**: menambahkan satu aturan NetworkFirst untuk `/api/` membuat 16 URL
 > API mendarat di Cache Storage, dan hanya tes keamanan cache yang menangkapnya.
+>
+> **Review keamanan berfokus (2026-08-28) — invarian berlaku, dibuktikan di tingkat artefak.**
+> Pertanyaannya satu kalimat: adakah jalur yang bisa membuat respons API mendarat di Cache Storage?
+> Jawabannya tidak, dan buktinya diambil dari service worker yang benar-benar dikirim, bukan dari
+> konfigurasi yang menghasilkannya. `sw.js` hasil build mendaftarkan **tepat satu rute** — sebuah
+> `NavigationRoute` ke shell — dan tidak memuat satu pun kemunculan `NetworkFirst`, `CacheFirst`,
+> `StaleWhileRevalidate`, `CacheOnly`, atau `NetworkOnly`. `cache.put` hanya ada di dalam chunk
+> Workbox, yaitu pengendali precache-nya sendiri; `importScripts` menunjuk berkas lokal tanpa
+> rujukan CDN. Di sisi sumber, seluruh frontend tidak memuat satu pun `caches.open`, `caches.match`,
+> atau `serviceWorker.register` di luar berkas e2e. Shell hasil prerender (7.611 byte) dipindai dan
+> nol kecocokan untuk token, password, secret, maupun email — ia hanya membawa `apiBase`.
+>
+> **Dua penjaga baru ditambahkan, keduanya dibuktikan merah lewat mutasi.**
+> Penjaga lama hanya memeriksa satu kunci (`'runtimeCaching' in pwaWorkbox`), sehingga caching masih
+> bisa masuk lewat `importScripts`, lewat perpindahan ke `injectManifest` dengan worker tulis tangan,
+> atau lewat opsi yang dibawa versi modul berikutnya. Sekarang ada dua lapis:
+>
+> - `test/unit/pwa-workbox.spec.ts` memeriksa **himpunan kunci** konfigurasi terhadap daftar-izin
+>   eksplisit, jadi kunci baru apa pun merah sampai seseorang sadar menambahkannya. Dibuktikan lewat
+>   dua mutasi: menyuntikkan `runtimeCaching` membuat dua tes merah, sedangkan menyuntikkan
+>   `importScripts` membuat **hanya penjaga baru** yang merah — penjaga lama tetap hijau, dan itulah
+>   celah yang ditutup.
+> - `e2e/pwa.spec.ts` mengambil `/sw.js` dari build nyata lalu menuntut nol nama kelas strategi dan
+>   tepat satu `registerRoute`. Ini penting justru karena pemeriksaan `caches` di e2e buta pada
+>   konfigurasi yang berisiko: saat e2e API beda origin (`:8080`) sementara di produksi se-origin,
+>   dan `RegExpRoute` Workbox hanya berlaku lintas-origin bila polanya cocok mulai indeks 0. Aturan
+>   caching khusus se-origin karena itu tidak akan pernah terlihat oleh tes lain di berkas itu.
+>   Dibuktikan terhadap artefak hasil mutasi: `NetworkFirst` muncul dan `registerRoute` jadi dua.
+>
+> **Satu paparan bersebelahan, di luar cakupan branch ini: isu #149.** Invarian ini menyebut Cache
+> Storage, dan di sana ia rapat. Cache HTTP peramban adalah pintu kedua ke disk yang sama, dan
+> respons `/api/v1/*` tidak menyetel `Cache-Control` sama sekali — hanya lima baris di seluruh
+> backend yang menyetelnya (`guide/handler.go`, `identity/avatar_handler.go`), dan Caddy tidak
+> menyetelnya global. Bukan regresi dari branch ini, tapi ia menyerang aset yang sama dengan yang
+> dilindungi Keputusan 2 spec. Diusulkan middleware Gin `Cache-Control: no-store` untuk seluruh
+> `/api/v1/*`; dilacak di https://github.com/ragbuaj/inventra/issues/149.
+>
+> Dua butir tingkat Saran dari review ini sengaja tidak dikerjakan: assertion cache di e2e masih
+> berupa daftar-larangan (`tidak ada /api/`) alih-alih daftar-izin (`hanya isi precache`), dan
+> denylist navigasi harus tetap sinkron dengan matcher `@api path /api/* /health` di
+> `ops/caddy/Caddyfile` tanpa ada tes yang mengikat keduanya.
 >
 > **Review kode lima sumbu (2026-08-27) — empat temuan diperbaiki, vonis awal "minta perubahan".**
 > Gerbang dijalankan ulang oleh peninjau, bukan diterima sebagai klaim: lint bersih, typecheck exit 0,

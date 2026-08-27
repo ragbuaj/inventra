@@ -6,6 +6,25 @@ import {
 } from '../../pwa/workbox'
 
 /**
+ * Every key this config is allowed to declare. The list is deliberately exhaustive
+ * rather than a denylist of keys we happened to think of: asserting the whole key
+ * set means ANY new option — `runtimeCaching`, `importScripts`, a strategy switch —
+ * turns this test red until someone consciously adds it here and justifies it.
+ *
+ * The narrow version of this test (checking `runtimeCaching` alone) left three ways
+ * in that nothing caught: `importScripts` loading a script that registers routes,
+ * switching to `injectManifest` with a hand-written worker, and options added by a
+ * future version of the module.
+ */
+const ALLOWED_WORKBOX_KEYS = [
+  'cleanupOutdatedCaches',
+  'globPatterns',
+  'maximumFileSizeToCacheInBytes',
+  'navigateFallback',
+  'navigateFallbackDenylist'
+]
+
+/**
  * Workbox tests `navigateFallbackDenylist` against `url.pathname + url.search`
  * (workbox-routing `NavigationRoute._match`), so the fixtures below are written in
  * exactly that shape rather than as bare pathnames.
@@ -25,6 +44,10 @@ describe('pwa workbox strategy', () => {
     // same-origin with the frontend, so one runtime rule here would quietly persist
     // asset data to Cache Storage on every device.
     expect('runtimeCaching' in pwaWorkbox).toBe(false)
+  })
+
+  it('declares no option outside the allowlist, so no caching can arrive unnoticed', () => {
+    expect(Object.keys(pwaWorkbox).sort()).toEqual(ALLOWED_WORKBOX_KEYS)
   })
 
   it('never precaches anything under /api/', () => {

@@ -160,6 +160,29 @@ test.describe('PWA service worker', () => {
 })
 
 test.describe('PWA cache safety', () => {
+  test('ships a service worker that registers no caching strategy at all', async ({ page }) => {
+    // The strongest form of the "no runtime caching" invariant: asserted against the
+    // worker actually delivered to the device, not against the config that produced
+    // it. A config-level test can be bypassed (importScripts, a switch to
+    // injectManifest, a hand-written worker); the shipped artefact cannot.
+    //
+    // This matters most because the runtime check below is blind to the case that
+    // actually bites: here the API is cross-origin (:8080), in production it is
+    // same-origin, and Workbox's RegExpRoute only applies cross-origin when the
+    // pattern matches at index 0 of the full URL. A same-origin-only caching rule
+    // would therefore stay invisible to every other test in this file.
+    const sw = await (await page.request.get('/sw.js')).text()
+
+    for (const strategy of ['NetworkFirst', 'CacheFirst', 'StaleWhileRevalidate', 'CacheOnly', 'NetworkOnly']) {
+      expect(sw, `service worker must not register a ${strategy} route`).not.toContain(strategy)
+    }
+
+    // Exactly one route, and it is the navigation fallback to the precached shell.
+    const routes = sw.match(/registerRoute\(/g) ?? []
+    expect(routes, 'the shipped worker must register exactly one route').toHaveLength(1)
+    expect(sw).toContain('NavigationRoute')
+  })
+
   test('keeps every API response out of Cache Storage, before and after logout', async ({ page }) => {
     await page.goto('/')
     await waitForPrimedServiceWorker(page)
