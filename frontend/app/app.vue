@@ -22,5 +22,6 @@ useSeoMeta({ title: 'Inventra', description: 'Manajemen aset & inventaris' })
       <NuxtPage />
     </NuxtLayout>
     <PwaUpdatePrompt />
+    <PwaInstallPrompt />
   </UApp>
 </template>

@@ -6,6 +6,7 @@ import {
   PWA_THEME_COLOR
 } from './pwa/manifest'
 import { pwaWorkbox } from './pwa/workbox'
+import { pwaClient } from './pwa/client'
 
 // Optional filesystem polling for dev watchers (set NUXT_DEV_POLLING=true). Off by
 // default — the Docker dev stack uses `docker compose watch`, which syncs files onto
@@ -120,6 +121,7 @@ export default defineNuxtConfig({
     registerType: 'prompt',
     manifest: pwaManifest,
     workbox: pwaWorkbox,
+    client: pwaClient,
     // Service worker sengaja mati saat `pnpm dev` — pengujiannya lewat `pnpm preview`.
     devOptions: {
       enabled: false
