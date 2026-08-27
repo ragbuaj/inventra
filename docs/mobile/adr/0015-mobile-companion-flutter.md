@@ -8,6 +8,11 @@
   Men-supersede butir non-goal PRD v1.1 "Aplikasi mobile native" (PRD dinaikkan ke v1.2).
   Butir "Auth" (cookie jar persisten) di-supersede oleh
   [ADR-0017](0017-mobile-client-identity.md) — jalur refresh per-klien diadopsi sebelum M1.
+  [ADR-0019](../../adr/0019-web-pwa.md) menjadikan aplikasi web sebuah PWA yang dapat dipasang.
+  Itu **tidak** membatalkan keputusan ini: ketiga alasan penolakan "PWA murni" di bawah tetap
+  berlaku, dan ADR-0019 secara eksplisit mengecualikan ketiganya dari cakupannya (tanpa push,
+  tanpa penyimpanan data lokal, tanpa scan kamera). Scan, opname offline, approval di jalan, dan
+  push tetap milik aplikasi Flutter ini.
 
 ## Konteks
 

@@ -17,35 +17,32 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
-> **PWA aplikasi web — fase 4 (regresi, dokumen, rilis).** Branch `feat/web-pwa`, spec
+> **PWA aplikasi web — siap merge.** Branch `feat/web-pwa`, spec
 > `docs/superpowers/specs/2026-08-27-web-pwa-design.md` (40 acceptance criteria), rencana
-> `docs/superpowers/plans/2026-08-27-web-pwa.md` (11 tugas). **Fase 1 sampai 3 selesai
-> (tugas 1-8):** modul `@vite-pwa/nuxt` terbukti bekerja di Nuxt 4, ikon diturunkan dari mark
-> aplikasi, manifest terpusat di `frontend/pwa/`, shell statis + precache tanpa satu pun aturan
-> runtime caching, e2e service worker/offline/keamanan cache (11 tes), ajakan perbarui, ajakan
-> pasang Android + petunjuk manual iOS, dan poles mode standalone (area aman + bilah status per
-> skema warna). Acceptance criteria 1 sampai 35 tertutup; 36 sampai 40 tersisa di fase 4.
+> `docs/superpowers/plans/2026-08-27-web-pwa.md` (11 tugas). **Tugas 1 sampai 10 selesai**;
+> acceptance criteria 1 sampai 40 tertutup. Rinciannya di entri "PWA aplikasi web" di bawah.
 >
-> Yang tersisa:
-> 1. **Tugas 9 — regresi e2e penuh** dengan service worker aktif, `--workers=1`, dua kali
->    berturut-turut. `e2e/pwa.spec.ts` sendiri sudah hijau setelah tugas 8.
-> 2. **Tugas 10 — ADR-0019 + PROGRESS + vault**, lalu titik pemeriksaan D (siap merge).
-> 3. **Tugas 11 — verifikasi produksi** pasca-merge.
+> Langkah berikutnya, berurutan:
+> 1. **Titik pemeriksaan D.** Jalankan review kode dan review keamanan; fokus keamanan satu
+>    kalimat: tidak ada jalur yang bisa membuat respons API mendarat di Cache Storage. Lalu buka PR,
+>    dan setelah merge hapus branch-nya serta sinkronkan `main`.
+> 2. **Tugas 11 — verifikasi produksi**, pasca-deploy. Empat hal yang secara struktural tidak bisa
+>    dibuktikan sebelumnya: `manifest.webmanifest` dan `sw.js` lolos Caddy + WAF Coraza tanpa false
+>    positive OWASP CRS, Lighthouse kategori PWA installable tanpa peringatan, pemasangan di Android
+>    nyata, dan Tambahkan ke Layar Utama di iPhone nyata. Hasil keempatnya dicatat balik ke sini.
+>    Kalau WAF memblok, perbaikannya di `ops/caddy/Caddyfile` dan itu **tanya dulu** sesuai batasan spec.
 >
-> Dua hal yang perlu keputusan manusia sebelum merge: **tinjauan pemilik produk** atas ajakan
-> pasang dan ajakan perbarui (titik pemeriksaan A dan C), dan **suite `pnpm test` penuh** yang
-> berakhir exit 1 karena kerapuhan paralel yang **sudah ada di main** (satu spec acak gagal plus
-> `EnvironmentTeardownError`; 1920 dari 1921 tes lulus, dan spec yang gagal lulus penuh saat
-> dijalankan sendiri).
+> **Dua hal yang menunggu manusia, bukan kode.** Pertama, **tinjauan pemilik produk** atas ajakan
+> pasang dan ajakan perbarui (titik pemeriksaan A dan C) — belum dijalankan. Kedua, suite
+> `pnpm test` penuh berakhir exit 1 karena kerapuhan paralel yang **sudah ada di `main`**: satu spec
+> acak gagal plus `EnvironmentTeardownError`, 1920 dari 1921 tes lulus, dan spec yang gagal lulus
+> penuh saat dijalankan sendiri. Perlu dituntaskan terpisah, bukan di branch ini.
 >
-> **Keputusan cakupan (acceptance criteria 32).** Ajakan pasang disembunyikan di seluruh layar
-> berlayout `auth` — masuk, lupa kata sandi, atur ulang kata sandi — bukan hanya di halaman
-> masuk. Alasannya sama untuk ketiganya, jadi aturannya satu baris, bukan daftar rute.
->
-> **Temuan yang layak diingat.** `pwa.client.installPrompt` bukan sekadar nama kunci penyimpanan:
-> tanpa opsi itu plugin klien modul tidak memasang listener `beforeinstallprompt` sama sekali,
-> sehingga tombol pasang tidak akan pernah muncul — sementara tes runtime tetap hijau karena
-> memalsukan `$pwa`. Dikunci di `frontend/pwa/client.ts` + `test/unit/pwa-client.spec.ts`.
+> **Menjalankan e2e secara lokal menuntut persiapan.** Backend wajib `RATELIMIT_ENABLED=false`.
+> Suite `lampiran` menuntut seed demo (`backend/db/seed/seed_demo.sql`) disusul
+> `docker exec inventra-redis redis-cli FLUSHALL` — tanpa flush itu scope authz basi dan superadmin
+> jatuh ke `own`. Antar-jalan proyek `chromium`, residu yang ditinggalkan suite perlu dibersihkan
+> lebih dulu; lihat temuan di entri PWA di bawah, dan usulan branch `fix/e2e-self-cleanup`.
 >
 > **Sisa langkah 16-19 Panduan Penggunaan.** Modulnya sendiri sudah **MERGED (PR #139, squash
 > `0c12b34`, 2026-08-09)** dengan seluruh CI hijau — `backend`, `backend-integration` (14m4s),
@@ -308,6 +305,67 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > menuntut `SecRequestBodyLimit` dinaikkan lebih dulu di `ops/caddy/Caddyfile`. Kunci i18n
 > `guidePage.sections` sengaja BELUM dihapus supaya membatalkan rilis cukup mengembalikan kode.
 >
+> **PWA aplikasi web: installable + tahan jaringan putus (2026-08-27, branch `feat/web-pwa`) — SELESAI (kode + tes; lint, typecheck, build hijau; e2e 127 + 46 hijau dua kali).**
+> Menjadikan aplikasi web yang sama dapat dipasang ke layar utama dan tidak runtuh saat jaringan
+> putus, memakai `@vite-pwa/nuxt` (pembungkus Workbox). Menutup pengguna iPhone dan pengguna Android
+> yang tidak boleh memasang APK — dua kelompok yang selama ini tidak punya kanal ber-ikon sama sekali
+> karena fokus rilis Flutter tetap Android. Dicatat sebagai **ADR-0019**, yang menaut balik ke
+> ADR-0015 dan menegaskan keduanya hidup berdampingan.
+>
+> **Empat fase, sebelas tugas, empat puluh acceptance criteria** (spec
+> `docs/superpowers/specs/2026-08-27-web-pwa-design.md`, rencana
+> `docs/superpowers/plans/2026-08-27-web-pwa.md`). Tugas 1-10 selesai; tugas 11 adalah verifikasi
+> produksi pasca-merge.
+>
+> **Yang dibangun:** manifest terpusat di `frontend/pwa/` (`manifest.ts`, `workbox.ts`, `client.ts`,
+> `head.ts`) supaya `nuxt.config.ts` dan `app.vue` memakai konstanta yang sama dan tes unit bisa
+> menguncinya; ikon diturunkan dari mark aplikasi yang sudah dipakai sidebar/halaman masuk (kotak
+> `#005bfd` + glyph Lucide `package`), digenerate `@vite-pwa/assets-generator` dan hasilnya di-commit;
+> shell dipaksa jadi berkas statis lewat prerender rute `/` lalu di-precache dengan `navigateFallback`;
+> ajakan perbarui saat versi baru menunggu; ajakan pasang Android lewat `beforeinstallprompt` plus
+> petunjuk manual iOS yang penutupannya diingat; dan poles mode standalone (area aman + warna bilah
+> status per skema warna).
+>
+> **Invarian keamanan yang paling penting: nol runtime caching.** `frontend/pwa/workbox.ts` sama
+> sekali tidak memuat `runtimeCaching`. Di produksi API se-origin dengan frontend, sehingga satu
+> aturan runtime saja sudah cukup mengendapkan respons API ke Cache Storage tiap perangkat — dan
+> kesalahan itu **tidak akan pernah terlihat saat dev**, karena di dev API beda origin. Invarian ini
+> dikunci `test/unit/pwa-workbox.spec.ts` dan dibuktikan e2e `frontend/e2e/pwa.spec.ts` yang membaca
+> `caches` lewat `page.evaluate` dan menuntut nol entri ber-URL `/api/`, sebelum dan sesudah logout.
+> Tesnya **dibuktikan bisa merah**: menambahkan satu aturan NetworkFirst untuk `/api/` membuat 16 URL
+> API mendarat di Cache Storage, dan hanya tes keamanan cache yang menangkapnya.
+>
+> **Temuan yang layak diingat.** `pwa.client.installPrompt` bukan sekadar nama kunci penyimpanan:
+> tanpa opsi itu plugin klien modul tidak memasang listener `beforeinstallprompt` sama sekali,
+> sehingga tombol pasang tidak akan pernah muncul — sementara tes runtime tetap hijau karena
+> memalsukan `$pwa`. Dikunci di `frontend/pwa/client.ts` + `test/unit/pwa-client.spec.ts`.
+> Temuan kedua: `navigateFallbackDenylist` hanya berlaku pada **navigasi**, bukan pada caching, dan
+> saat daring perilakunya tidak bisa dibedakan sama sekali karena SPA fallback Nitro mengembalikan
+> shell yang sama untuk path tak dikenal. Hanya luring yang memisahkan keduanya.
+>
+> **Keputusan cakupan (acceptance criteria 32).** Ajakan pasang disembunyikan di seluruh layar
+> berlayout `auth` — masuk, lupa kata sandi, atur ulang kata sandi — bukan hanya halaman masuk.
+>
+> **Regresi e2e (tugas 9): `chromium` 127 dari 127 dan `lampiran` 46 dari 46, keduanya dua kali
+> berturut-turut, dengan service worker aktif** karena Playwright berjalan terhadap `pnpm preview`
+> atas build nyata. Nol berkas di `frontend/e2e/` disentuh dan nol perubahan konfigurasi PWA yang
+> dibutuhkan.
+>
+> **Temuan di luar cakupan yang ditemukan tugas 9, sudah ada di `main`:** suite e2e **mencemari
+> databasenya sendiri** sehingga tidak bisa hijau dua kali berturut-turut terhadap DB yang sama tanpa
+> perintah SQL manual di antaranya. Dua sumbernya: `depreciation.spec.ts:209` menuntut periode
+> berjalan berstatus `open` lalu menghitung dan menutupnya sendiri (backend sengaja tidak punya jalur
+> reopen), dan `account-security.spec.ts` meninggalkan dua pengguna tiap jalan sehingga begitu
+> pengguna aktif melewati 10, `admin@inventra.local` terdorong ke halaman dua daftar pengguna dan
+> `settings.spec.ts:16` serta `:43` gagal. CI tidak pernah menemuinya karena tiap jalannya memakai DB
+> baru. **Sengaja tidak diperbaiki di branch ini** supaya cakupannya tidak melebar; usulan branch
+> tersendiri `fix/e2e-self-cleanup`.
+>
+> **Yang belum dan wajib dikerjakan setelah deploy (tugas 11):** membuktikan
+> `manifest.webmanifest` dan `sw.js` terlayani normal di belakang Caddy + WAF Coraza tanpa false
+> positive OWASP CRS, Lighthouse kategori PWA installable tanpa peringatan, serta pemasangan di
+> Android nyata dan iPhone nyata. Keempatnya secara struktural tidak bisa dibuktikan sebelum deploy.
+>
 > **Rebrand tema Bank BTN: web + mobile (2026-08-08, branch `feat/theme-btn-brand`) — SELESAI (kode + tes; lint, typecheck, analyze, 571 tes Flutter, 1740 tes Vitest hijau).**
 > Mengganti warna brand dari hijau ke **biru korporat Bank BTN `#005BFD`**, diekstrak langsung dari
 > `frontend/public/logo-btn.png` (logo hanya memuat dua warna: biru 91,6% dan merah `#FF0000` 8,4%).
@@ -334,9 +392,9 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > `test/nuxt/assets-index.spec.ts` — **sudah ada di main** (diverifikasi dengan menjalankan suite penuh dua
 > kali pada frontend yang di-stash: keduanya exit 1, 1740 tes tetap lolos). Bukan bawaan perubahan ini.
 > **PWA sengaja dikecualikan** atas permintaan user; belum ada infrastrukturnya (tidak ada `@vite-pwa/nuxt`,
-> manifest, atau service worker) dan cakupannya masih perlu `/spec`. **Tidak berlaku lagi sejak
-> 2026-08-27** — PWA sudah di-spec dan dibangun di branch `feat/web-pwa`; lihat blok "Next session"
-> di atas.
+> manifest, atau service worker) dan cakupannya masih perlu `/spec`. **Sudah tidak berlaku sejak
+> 2026-08-27** — PWA di-spec, dibangun, dan diselesaikan di branch `feat/web-pwa` (ADR-0019); lihat
+> entri "PWA aplikasi web" di bawah.
 >
 > **Halaman info Web: Kebijakan Privasi + Panduan Penggunaan + FAQ (2026-07-27, branch `feat/info-pages`) — SELESAI (kode + tes; lint + typecheck lokal hijau).**
 > Menambah tiga halaman informasi di frontend Nuxt (`app/pages/privacy.vue`, `guide.vue`, `faq.vue`)
