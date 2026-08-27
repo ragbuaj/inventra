@@ -11,7 +11,8 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
     '@nuxt/ui',
     '@pinia/nuxt',
-    '@nuxtjs/i18n'
+    '@nuxtjs/i18n',
+    '@vite-pwa/nuxt'
   ],
 
   ssr: false,
@@ -72,5 +73,19 @@ export default defineNuxtConfig({
       { code: 'id', name: 'Bahasa Indonesia', file: 'id.json' },
       { code: 'en', name: 'English', file: 'en.json' }
     ]
+  },
+
+  // PWA. Konfigurasi minimal untuk pembuktian modul (tugas 1 rencana PWA); manifest
+  // sesungguhnya dan strategi precache menyusul di tugas berikutnya.
+  pwa: {
+    registerType: 'prompt',
+    manifest: {
+      name: 'Inventra',
+      short_name: 'Inventra'
+    },
+    // Service worker sengaja mati saat `pnpm dev` — pengujiannya lewat `pnpm preview`.
+    devOptions: {
+      enabled: false
+    }
   }
 })

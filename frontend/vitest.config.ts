@@ -13,7 +13,21 @@ export default defineVitestConfig({
     // test so it can't fire post-teardown and fail the run — see the file header.
     setupFiles: ['./test/setup/flush-focus-timers.ts'],
     environment: 'node',
-    environmentOptions: {},
+    // The PWA module's client plugin imports Vite virtual modules
+    // (`virtual:pwa-register/vue`, `virtual:nuxt-pwa-configuration`). The Nuxt test
+    // runtime hands those ids to Node's module loader as filenames, which throws
+    // ("The argument 'filename' must be a file URL object ... Received
+    // 'file:///@vite-plugin-pwa/virtual:pwa-register/vue'") and kills every
+    // `@vitest-environment nuxt` spec at boot. Skip registering that plugin under
+    // test — it only wires service-worker state, which no unit test should rely on;
+    // specs that need `$pwa` provide it themselves.
+    environmentOptions: {
+      nuxt: {
+        overrides: {
+          pwa: { client: { registerPlugin: false } }
+        }
+      }
+    },
     // Each `@vitest-environment nuxt` spec boots its own Nuxt app in the setup
     // hook. Past ~120 such files the parallel cold-start contention pushes some
     // of them over 60s, failing an arbitrary unrelated spec. Give the hook room.

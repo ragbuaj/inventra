@@ -32,6 +32,14 @@ overrides:
   js-yaml: '>=5.2.2'
   launch-editor: '>=2.14.1'
   '@babel/core': '>=7.29.1'
+  # Override di atas tidak berbatas atas, sehingga pnpm menariknya ke @babel/core 8.
+  # Seluruh plugin Babel di pohon ini masih 7.x (tidak ada satu pun paket yang menuntut
+  # ^8), dan workbox-build 7.4.1 — yang dipakai vite-plugin-pwa untuk menulis service
+  # worker — menuntut @babel/core ^7.24.4. Dipasangkan dengan core 8, @rollup/plugin-babel
+  # gagal: "Requires Babel ^7.0.0-0, but was loaded with 8.0.1", dan build berhenti dengan
+  # "Unable to write the service worker file". Batas atas ini BERLINGKUP hanya ke subpohon
+  # workbox-build, jadi paket lain tidak berubah, dan lantai keamanan >=7.29.1 tetap utuh.
+  'workbox-build>@babel/core': '>=7.29.1 <8'
   # brace-expansion CVE-2026-14257 (DoS OOM): whole <=5.0.7 range affected, only
   # 5.0.8 patched — forces both the 2.1.x and 5.0.x copies in the tree to 5.0.8.
   brace-expansion: '>=5.0.8'
