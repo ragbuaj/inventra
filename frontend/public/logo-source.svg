@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Inventra">
+  <!--
+    Sumber tunggal seluruh ikon PWA. Ini mark aplikasi yang sudah dipakai di shell:
+    kotak sudut-membulat brand berisi glyph Lucide `package` putih — lihat
+    app/components/AppSidebar.vue, app/layouts/auth.vue, app/layouts/info.vue.
+    Sengaja BUKAN logo korporat BTN (public/logo-btn.png): itu merek pihak lain dan
+    hanya dipakai pada label aset yang dicetak.
+
+    Warna #005bfd adalah variabel color-brand-500 di app/assets/css/main.css.
+    Path glyph disalin dari paket @iconify-json/lucide yang sudah jadi dependency
+    (icons.json, ikon `package`, grid 24), bukan dari sumber luar.
+
+    Proporsi glyph 280/512 (54,7%) mengikuti mark di shell (19/34 dan 24/44). Titik
+    terjauh glyph berjarak sekitar 149px dari pusat, jauh di dalam lingkaran aman
+    maskable berjari-jari 204,8px (80% sisi), sehingga tidak terpotong di Android.
+  -->
+  <rect width="512" height="512" rx="128" ry="128" fill="#005bfd"/>
+  <g transform="translate(116 116) scale(11.666667)" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+    <path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73zm1 .27V12"/>
+    <path d="M3.29 7L12 12l8.71-5M7.5 4.27l9 5.15"/>
+  </g>
+</svg>
