@@ -1,4 +1,10 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import {
+  pwaManifest,
+  PWA_APPLE_TOUCH_ICON,
+  PWA_MANIFEST_HREF,
+  PWA_THEME_COLOR
+} from './pwa/manifest'
 
 // Optional filesystem polling for dev watchers (set NUXT_DEV_POLLING=true). Off by
 // default — the Docker dev stack uses `docker compose watch`, which syncs files onto
@@ -23,6 +29,23 @@ export default defineNuxtConfig({
 
   devtools: {
     enabled: true
+  },
+
+  // Tag PWA harus ada di shell HTML statis, bukan lewat useHead di app.vue: aplikasi ini
+  // SPA, jadi useHead baru berlaku setelah hidrasi — terlambat untuk kriteria pemasangan
+  // dan untuk Safari iOS, yang membaca apple-touch-icon saat halaman dimuat. Ditulis
+  // tangan alih-alih memakai komponen bawaan modul (`NuxtPwaAssets`), yang bergantung pada
+  // virtual module dari integrasi assets-generator yang sengaja tidak dipasang.
+  app: {
+    head: {
+      meta: [
+        { name: 'theme-color', content: PWA_THEME_COLOR }
+      ],
+      link: [
+        { rel: 'manifest', href: PWA_MANIFEST_HREF },
+        { rel: 'apple-touch-icon', sizes: '180x180', href: PWA_APPLE_TOUCH_ICON }
+      ]
+    }
   },
 
   css: ['~/assets/css/main.css', 'leaflet/dist/leaflet.css'],
@@ -75,14 +98,11 @@ export default defineNuxtConfig({
     ]
   },
 
-  // PWA. Konfigurasi minimal untuk pembuktian modul (tugas 1 rencana PWA); manifest
-  // sesungguhnya dan strategi precache menyusul di tugas berikutnya.
+  // PWA. Isi manifest tinggal di pwa/manifest.ts supaya app.vue memakai konstanta yang
+  // sama dan tes unit bisa menguncinya. Strategi precache menyusul di tugas berikutnya.
   pwa: {
     registerType: 'prompt',
-    manifest: {
-      name: 'Inventra',
-      short_name: 'Inventra'
-    },
+    manifest: pwaManifest,
     // Service worker sengaja mati saat `pnpm dev` — pengujiannya lewat `pnpm preview`.
     devOptions: {
       enabled: false
