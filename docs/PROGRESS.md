@@ -424,11 +424,45 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >
 > Empat tes baru menyertai perbaikan ini (1927 tes, naik dari 1923). Gerbang setelah perbaikan:
 > lint bersih, typecheck exit 0, `vitest run` exit 0 dengan 1927 lulus, `nuxt build` sukses, dan
-> precache hasil build ulang tetap 196 entri dengan nol URL `/api/`. Empat temuan tingkat **Saran**
-> sengaja tidak dikerjakan di branch ini dan dicatat sebagai lanjutan: assertion teks sumber yang
-> redundan di `pwa-standalone.spec.ts`, biaya precache 3,16 MiB pada kunjungan pertama (layak diukur
-> di Tugas 11 justru karena pengguna sasarannya bersinyal buruk), `role="status"` yang belum ada di
-> ajakan pasang, dan domain produksi yang dikeraskan sebagai fallback di `deploy.yml`.
+> precache hasil build ulang tetap 196 entri dengan nol URL `/api/`.
+>
+> **Keempat temuan tingkat Saran ikut ditutup (2026-08-28).**
+>
+> 1. **Assertion teks sumber yang redundan dibuang.** `test/unit/pwa-standalone.spec.ts` membaca
+>    `default.vue` dan `AppSidebar.vue` sebagai string lalu mencari nama kelas di dalamnya —
+>    bentuk yang lebih lemah dari `test/nuxt/pwa-standalone-shell.spec.ts`, yang sudah membuktikan
+>    hal yang sama lewat `mountSuspended` dan `classes()`, dan yang lulus kalau nama kelasnya
+>    kebetulan muncul di komentar. Assertion CSS-nya tetap: `env(safe-area-inset-*)` selalu nol di
+>    happy-dom, jadi aturannya memang tidak bisa diamati saat render. Header berkasnya sekarang
+>    menyebut pembagian kerja itu supaya assertion serupa tidak tumbuh kembali.
+> 2. **Biaya precache diukur, dan angkanya mengoreksi temuan aslinya.** Yang tercatat sebelumnya,
+>    3,16 MiB, adalah ukuran DI DISK. Lewat kabel ia sekitar **1,31 MiB**: Caddy menyajikan
+>    `encode gzip zstd`, 2,31 MiB JS terkompresi jauh, sementara 0,56 MiB woff2 memang sudah
+>    terkompresi. Rincian 195 entri unik: 155 JS (2,31 MiB), 26 font (0,56 MiB), 4 CSS (0,27 MiB),
+>    9 lainnya, 1 shell. Beban sekali-pasang 1,3 MiB adalah harga wajar untuk kemampuan luring,
+>    jadi precache-nya **sengaja tidak dipersempit** — mempersempitnya akan menyimpang dari
+>    Keputusan 1 spec dan merusak navigasi luring ke rute yang belum pernah dibuka. Yang
+>    ditambahkan adalah penjaga anggaran di `e2e/pwa.spec.ts` (ambang 260 entri) supaya
+>    pertumbuhannya terlihat alih-alih merayap diam-diam.
+> 3. **`role="status"` ditambahkan ke ajakan pasang**, menyamakannya dengan ajakan perbarui.
+>    Keduanya kartu yang muncul tiba-tiba tanpa ada yang memindahkan fokus ke sana. Tes runtime
+>    barunya dibuktikan merah lebih dulu.
+> 4. **Domain produksi di `deploy.yml`: fallback dipertahankan, jebakannya didokumentasikan.**
+>    Diperiksa dengan `gh variable list` dan hasilnya kosong — **`vars.PROD_DOMAIN` tidak diset**,
+>    jadi yang benar-benar dipakai tiap deploy adalah fallback yang dikeraskan itu. Menghapusnya
+>    akan langsung merusak deploy, jadi tidak dilakukan. Yang ditambahkan: satu langkah CD yang
+>    mencatat nilai apiBase beserta sumbernya ke log job, supaya nilai yang dibekukan ke image bisa
+>    diaudit per deploy dan tidak lagi hanya muncul sebagai "Network Error" di browser pengguna.
+>    Komentarnya juga diperbaiki — sebelumnya ia menyiratkan variabel repo itu jalur yang aktif.
+>    Domain produksi hidup di **dua** tempat (`deploy.yml` dan
+>    `ops/monitoring/prometheus/prometheus.yml` baris 45); komentarnya sekarang menyebut keduanya
+>    supaya penggantian domain tidak setengah jadi. Penjaga "tolak nilai non-HTTPS" di Dockerfile
+>    sengaja TIDAK ditambahkan: fallback-nya selalu menghasilkan `https://`, jadi penjaga itu tidak
+>    akan pernah berbunyi dan hanya menambah kebisingan.
+>
+> **Menunggu keputusan pemilik produk:** menyetel variabel repo `PROD_DOMAIN` akan membuat
+> indireksi di `deploy.yml` benar-benar hidup, tapi itu perubahan konfigurasi GitHub dan tidak
+> dilakukan tanpa persetujuan.
 >
 > **Verifikasi independen (sesi /test, 2026-08-27) dan satu penajaman.** Seluruh gerbang dijalankan
 > ulang dari nol: lint bersih, typecheck exit 0, 1921 tes unit lulus, build menghasilkan 196 entri

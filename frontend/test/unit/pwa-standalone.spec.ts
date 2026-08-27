@@ -1,4 +1,12 @@
-// Tugas 8: poles mode standalone.
+// Tugas 8: poles mode standalone — SISI ATURAN CSS-nya saja.
+//
+// Berkas ini sengaja hanya menguji hal yang tidak bisa diamati saat render:
+// `env(safe-area-inset-*)` selalu nol di happy-dom, jadi aturan CSS-nya dikunci
+// terhadap main.css yang nyata. Pertanyaan "apakah kelasnya sungguh sampai ke elemen
+// yang dirender" dijawab test/nuxt/pwa-standalone-shell.spec.ts lewat `mountSuspended`
+// dan `classes()`. Assertion teks sumber atas berkas .vue pernah ada di sini dan sudah
+// dibuang: ia menduplikasi tes runtime itu dengan bentuk yang lebih lemah — lulus kalau
+// nama kelasnya kebetulan muncul di komentar.
 //
 // Tiga hal yang hanya terlihat di ponsel terpasang dan tidak akan pernah
 // ketahuan dari desktop: viewport yang tidak memakai `viewport-fit=cover` membuat
@@ -16,8 +24,6 @@ import { PWA_THEME_COLOR } from '../../pwa/manifest'
 const frontendRoot = fileURLToPath(new URL('../../', import.meta.url))
 const mainCss = readFileSync(resolve(frontendRoot, 'app/assets/css/main.css'), 'utf8')
 const nuxtConfig = readFileSync(resolve(frontendRoot, 'nuxt.config.ts'), 'utf8')
-const defaultLayout = readFileSync(resolve(frontendRoot, 'app/layouts/default.vue'), 'utf8')
-const sidebar = readFileSync(resolve(frontendRoot, 'app/components/AppSidebar.vue'), 'utf8')
 
 function brandStepFromCss(step: number): string {
   const marker = `--color-brand-${step}:`
@@ -89,12 +95,7 @@ describe('area aman shell', () => {
     expect(rule.match(/env\(safe-area-inset-[a-z]+,\s*0px\)/g)).toHaveLength(4)
   })
 
-  it('dipakai shell aplikasi, bukan cuma didefinisikan', () => {
-    expect(defaultLayout).toContain('app-safe-area')
-  })
-
   it('menjaga laci mobile yang fixed, yang tidak ikut terdorong padding shell', () => {
-    expect(sidebar).toContain('app-safe-drawer')
     const rule = cssRule('.app-safe-drawer')
     expect(rule).toContain('env(safe-area-inset-top')
     expect(rule).toContain('env(safe-area-inset-bottom')

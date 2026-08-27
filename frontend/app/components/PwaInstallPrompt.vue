@@ -62,6 +62,7 @@ function dismiss() {
   <UCard
     v-if="show"
     data-testid="pwa-install-prompt"
+    role="status"
     class="fixed inset-x-4 bottom-4 z-50 shadow-lg sm:left-auto sm:w-96"
   >
     <div class="flex items-start gap-3">

@@ -191,6 +191,18 @@ describe('PwaInstallPrompt', () => {
     expect(w.find('[data-testid="pwa-install-prompt"]').exists()).toBe(false)
   })
 
+  it('mengumumkan dirinya ke pembaca layar, sama seperti ajakan perbarui', async () => {
+    // Kartu ini muncul tiba-tiba di sudut layar tanpa ada yang memindahkan fokus ke
+    // sana. Tanpa live region, pengguna pembaca layar tidak akan tahu ia ada.
+    // `PwaUpdatePrompt` sudah memakai role="status"; keduanya perilaku yang sama dan
+    // pantas diumumkan dengan cara yang sama.
+    androidWithPrompt()
+
+    const w = await mountSuspended(PwaInstallPrompt)
+
+    expect(w.find('[data-testid="pwa-install-prompt"]').attributes('role')).toBe('status')
+  })
+
   it('muncul kembali setelah ajakan perbarui ditutup dan needRefresh dilepas', async () => {
     // Sisi lain dari aturan satu-ajakan-pada-satu-waktu. `PwaUpdatePrompt` melepas
     // `needRefresh` lewat `cancelPrompt` saat pengguna menekan Nanti; tanpa itu

@@ -203,6 +203,32 @@ test.describe('PWA service worker', () => {
     expect(urls.some(u => u.endsWith('.js'))).toBe(true)
     expect(urls.some(u => u.endsWith('.css'))).toBe(true)
   })
+
+  test('keeps the precache within a budget, so bundle growth cannot creep in silently', async ({ page }) => {
+    // Workbox downloads the ENTIRE precache when the worker installs, on the user's
+    // first visit. That is the one cost this feature imposes on people the spec
+    // singles out: officers on poor signal in warehouses and branch offices.
+    //
+    // Measured on this build: 195 entries, 3.17 MiB on disk, but ~1.31 MiB over the
+    // wire — Caddy serves `encode gzip zstd` and the 2.31 MiB of JS compresses hard,
+    // while the 0.56 MiB of woff2 is already compressed. A one-off 1.3 MiB is an
+    // ordinary price for offline capability, so the precache is deliberately NOT
+    // narrowed (see spec Keputusan 1: build assets are precached so offline
+    // navigation works for routes the user has not visited yet).
+    //
+    // What this test guards is the second-order risk: that the figure grows by a
+    // factor without anyone noticing. Entry count is the cheap proxy — one request
+    // instead of 195 — and the ceiling leaves room for ordinary growth while a
+    // doubling trips it. Reproduce the byte figures against .output/public/sw.js.
+    const sw = await (await page.request.get('/sw.js')).text()
+    const entries = new Set([...sw.matchAll(/url:\s*"([^"]+)"/g)].map(m => m[1]!))
+
+    expect(entries.size, 'could not read the precache manifest from /sw.js').toBeGreaterThan(0)
+    expect(
+      entries.size,
+      'precache grew well past its budget — check what was added and whether it belongs in the precache at all'
+    ).toBeLessThanOrEqual(260)
+  })
 })
 
 test.describe('PWA cache safety', () => {

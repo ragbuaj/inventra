@@ -48,6 +48,15 @@ jobs:
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
+      # Nilai apiBase yang dibekukan ke dalam image dicatat ke log job supaya tiap
+      # deploy meninggalkan jejak yang bisa diaudit. Ia dibekukan saat BUILD, jadi
+      # nilai yang salah tidak bisa lagi diperbaiki dengan me-restart container —
+      # gejalanya hanya "Network Error" di browser pengguna, jauh dari sini.
+      - name: Catat API base yang akan dibekukan ke image
+        run: |
+          echo "NUXT_PUBLIC_API_BASE = https://${{ vars.PROD_DOMAIN || 'inventra.ragilbuaj.web.id' }}/api/v1"
+          echo "sumber: ${{ vars.PROD_DOMAIN && 'variabel repo PROD_DOMAIN' || 'fallback di deploy.yml (PROD_DOMAIN tidak diset)' }}"
+
       - name: Build & push frontend image
         uses: docker/build-push-action@v7
         with:
@@ -55,9 +64,16 @@ jobs:
           push: true
           # apiBase dibekukan saat build, bukan saat container jalan: rute `/`
           # di-prerender jadi HTML statis supaya service worker bisa mem-precache
-          # shell-nya (lihat frontend/Dockerfile). Domainnya dari variabel repo
-          # `PROD_DOMAIN`; fallback-nya domain produksi yang berlaku sekarang,
-          # sama seperti yang sudah dipakai ops/monitoring/prometheus.
+          # shell-nya (lihat frontend/Dockerfile).
+          #
+          # PENTING saat domain produksi berubah: nilainya diambil dari variabel repo
+          # `PROD_DOMAIN`, tapi variabel itu SAAT INI TIDAK DISET — yang benar-benar
+          # dipakai adalah fallback di baris bawah. Jadi mengganti domain menuntut dua
+          # perubahan, bukan satu:
+          #   1. baris ini (atau set `PROD_DOMAIN` supaya fallback-nya tidak terpakai)
+          #   2. ops/monitoring/prometheus/prometheus.yml baris 45, yang juga
+          #      mengeraskan domain yang sama untuk target blackbox /health
+          # Mengubah salah satu saja meninggalkan sistem dalam keadaan separuh pindah.
           build-args: |
             NUXT_PUBLIC_API_BASE=https://${{ vars.PROD_DOMAIN || 'inventra.ragilbuaj.web.id' }}/api/v1
           tags: |
