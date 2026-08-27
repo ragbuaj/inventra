@@ -23,9 +23,10 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > acceptance criteria 1 sampai 40 tertutup. Rinciannya di entri "PWA aplikasi web" di bawah.
 >
 > Langkah berikutnya, berurutan:
-> 1. **Titik pemeriksaan D.** Jalankan review kode dan review keamanan; fokus keamanan satu
->    kalimat: tidak ada jalur yang bisa membuat respons API mendarat di Cache Storage. Lalu buka PR,
->    dan setelah merge hapus branch-nya serta sinkronkan `main`.
+> 1. **Titik pemeriksaan D.** PR sudah dibuka: https://github.com/ragbuaj/inventra/pull/148.
+>    Yang tersisa di kotak ini: jalankan review kode dan review keamanan; fokus keamanan satu
+>    kalimat: tidak ada jalur yang bisa membuat respons API mendarat di Cache Storage. Setelah
+>    merge, hapus branch-nya serta sinkronkan `main`.
 > 2. **Tugas 11 — verifikasi produksi**, pasca-deploy. Empat hal yang secara struktural tidak bisa
 >    dibuktikan sebelumnya: `manifest.webmanifest` dan `sw.js` lolos Caddy + WAF Coraza tanpa false
 >    positive OWASP CRS, Lighthouse kategori PWA installable tanpa peringatan, pemasangan di Android
