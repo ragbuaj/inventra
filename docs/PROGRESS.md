@@ -373,10 +373,25 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > dilindungi Keputusan 2 spec. Diusulkan middleware Gin `Cache-Control: no-store` untuk seluruh
 > `/api/v1/*`; dilacak di https://github.com/ragbuaj/inventra/issues/149.
 >
-> Dua butir tingkat Saran dari review ini sengaja tidak dikerjakan: assertion cache di e2e masih
-> berupa daftar-larangan (`tidak ada /api/`) alih-alih daftar-izin (`hanya isi precache`), dan
-> denylist navigasi harus tetap sinkron dengan matcher `@api path /api/* /health` di
-> `ops/caddy/Caddyfile` tanpa ada tes yang mengikat keduanya.
+> **Dua butir tingkat Saran dari review ini ikut ditutup (2026-08-28).**
+>
+> - **Assertion cache di e2e dibalik jadi daftar-izin.** Sebelumnya ia bertanya "adakah URL
+>   `/api/`" — menangkap satu kebocoran yang sudah terpikirkan dan melewatkan sisanya. Sekarang
+>   `expectCacheHoldsOnlyPrecache` membaca manifest precache langsung dari `/sw.js` yang dikirim,
+>   lalu menuntut tiga hal terpisah supaya kegagalannya menyebut mana yang patah: cache tidak
+>   kosong, tidak ada entri lintas-origin, dan setiap entri yang ada memang di-precache saat build.
+>   Klaim ketiga itu mencakup respons API sekaligus sumber lain mana pun — font, analitik, layanan
+>   berkas yang ditambahkan nanti. Pemeriksaan `/api/` yang lama tetap dipertahankan eksplisit di
+>   sampingnya, karena itu invarian yang disebut spec dan pembaca tidak seharusnya perlu
+>   menurunkannya dari manifest. Parsingnya diverifikasi terhadap `sw.js` nyata: 195 jalur terbaca,
+>   shell `/` termasuk, dan menyuntikkan satu URL API ke daftar yang disimulasikan memunculkannya
+>   sebagai `unexpected`.
+> - **Denylist navigasi kini terikat ke matcher Caddy.** `test/unit/pwa-workbox.spec.ts` membaca
+>   `ops/caddy/Caddyfile`, mengambil jalur dari matcher `@api`, lalu menuntut tiap jalur yang
+>   diteruskan Caddy ke backend ditolak denylist. Dibuktikan merah lewat dua mutasi: menambahkan
+>   `/metrics` ke matcher memunculkan pesan "Caddy sends /metrics to the backend, so /metrics must
+>   not be answered with the shell", dan mengganti nama matcher jadi `@backend` memicu penjaga
+>   ekstraksinya ("could not read the @api matcher") alih-alih diam-diam lulus atas daftar kosong.
 >
 > **Review kode lima sumbu (2026-08-27) — empat temuan diperbaiki, vonis awal "minta perubahan".**
 > Gerbang dijalankan ulang oleh peninjau, bukan diterima sebagai klaim: lint bersih, typecheck exit 0,

@@ -80,6 +80,52 @@ async function waitForPrimedServiceWorker(page: Page): Promise<void> {
   ).toBeGreaterThan(0)
 }
 
+/**
+ * Every path the shipped service worker declares in its precache manifest.
+ *
+ * Read from `/sw.js` rather than hardcoded, so this stays correct as the bundle
+ * changes. It is what turns the cache assertion below from a denylist ("no /api/
+ * URLs") into an allowlist ("nothing but these"), which is the difference between
+ * catching the one leak we thought of and catching every leak.
+ */
+async function precachedPaths(page: Page, origin: string): Promise<Set<string>> {
+  const sw = await (await page.request.get('/sw.js')).text()
+  const paths = new Set<string>()
+  for (const match of sw.matchAll(/url:\s*"([^"]+)"/g)) {
+    paths.add(new URL(match[1]!, origin).pathname)
+  }
+  return paths
+}
+
+/**
+ * Asserts Cache Storage holds the precache and nothing else.
+ *
+ * Three separate claims, kept separate so a failure names which one broke: the
+ * cache is not empty (an empty one would make the rest prove nothing), it holds
+ * nothing from another origin, and every entry it does hold was precached at build
+ * time. The last claim subsumes "no API responses" and also catches responses from
+ * anywhere else — fonts, analytics, a file service added later.
+ */
+async function expectCacheHoldsOnlyPrecache(page: Page, when: string): Promise<void> {
+  const origin = new URL(page.url()).origin
+  const urls = await cachedUrls(page)
+  const allowed = await precachedPaths(page, origin)
+
+  expect(urls.length, `${when}: an empty cache would make this assertion prove nothing`).toBeGreaterThan(0)
+  expect(allowed.size, `${when}: could not read the precache manifest from /sw.js`).toBeGreaterThan(0)
+
+  const foreign = urls.filter(u => new URL(u).origin !== origin)
+  expect(foreign, `${when}: Cache Storage must hold nothing from another origin`).toEqual([])
+
+  const unexpected = urls.filter(u => !allowed.has(new URL(u).pathname))
+  expect(unexpected, `${when}: Cache Storage must hold nothing that was not precached at build time`).toEqual([])
+
+  // Kept explicit alongside the allowlist: this is the invariant the spec names, and
+  // a reader should not have to derive it from the manifest to see it asserted.
+  expect(urls.filter(u => new URL(u).pathname.startsWith('/api/')), `${when}: no API response may be cached`).toEqual([])
+  expect(urls.filter(u => u.startsWith(API_ORIGIN)), `${when}: nothing from the API origin may be cached`).toEqual([])
+}
+
 /** True when the document in front of us is our own shell, not the browser's network-error page. */
 async function isAppShell(page: Page): Promise<boolean> {
   return page.evaluate(() => Boolean(
@@ -194,17 +240,11 @@ test.describe('PWA cache safety', () => {
     await expect(page.getByPlaceholder(SEARCH_PLACEHOLDER)).toBeVisible()
     await expect(page.getByText(LOAD_ERROR)).toHaveCount(0)
 
-    const whileSignedIn = await cachedUrls(page)
-    expect(whileSignedIn.length, 'an empty precache would make this test prove nothing').toBeGreaterThan(0)
-    expect(whileSignedIn.filter(u => u.includes('/api/'))).toEqual([])
-    expect(whileSignedIn.filter(u => u.startsWith(API_ORIGIN))).toEqual([])
+    await expectCacheHoldsOnlyPrecache(page, 'while signed in')
 
     await logoutViaUi(page)
 
-    const afterLogout = await cachedUrls(page)
-    expect(afterLogout.length).toBeGreaterThan(0)
-    expect(afterLogout.filter(u => u.includes('/api/'))).toEqual([])
-    expect(afterLogout.filter(u => u.startsWith(API_ORIGIN))).toEqual([])
+    await expectCacheHoldsOnlyPrecache(page, 'after logout')
   })
 })
 

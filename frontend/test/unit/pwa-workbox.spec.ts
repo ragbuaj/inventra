@@ -1,9 +1,36 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
 import {
   pwaWorkbox,
   PWA_SHELL_ROUTE,
   PWA_NAVIGATE_FALLBACK_DENYLIST
 } from '../../pwa/workbox'
+
+const caddyfile = readFileSync(
+  resolve(fileURLToPath(new URL('../../', import.meta.url)), '../ops/caddy/Caddyfile'),
+  'utf8'
+)
+
+/**
+ * The paths Caddy routes to the Go backend instead of to this app.
+ *
+ * These and the navigation denylist are two lists that must agree, and until now
+ * nothing made them. Add a third backend path to the Caddyfile without touching
+ * `pwa/workbox.ts` and, offline, a navigation to it is answered with 200 of HTML
+ * where the caller expects JSON — invisible online, because Nitro's own SPA
+ * fallback returns the same shell either way.
+ */
+function caddyBackendPaths(): string[] {
+  const match = caddyfile.match(/^\s*@api\s+path\s+(.+)$/m)
+  return match?.[1]?.trim().split(/\s+/) ?? []
+}
+
+/** A concrete navigation target standing in for a Caddy path pattern. */
+function concreteNavigation(caddyPath: string): string {
+  return caddyPath.endsWith('/*') ? `${caddyPath.slice(0, -1)}probe` : caddyPath
+}
 
 /**
  * Every key this config is allowed to declare. The list is deliberately exhaustive
@@ -93,6 +120,23 @@ describe('pwa workbox strategy', () => {
   it('still serves the shell for real app routes, including the /en/ locale', () => {
     for (const route of ['/', '/aset', '/aset/123', '/en/', '/en/aset', '/pengaturan?tab=profil']) {
       expect(isDeniedNavigation(route)).toBe(false)
+    }
+  })
+
+  it('denies every path Caddy routes to the backend, so the two lists cannot drift', () => {
+    const paths = caddyBackendPaths()
+
+    // Guards the extraction itself: a restructured Caddyfile must fail loudly here
+    // rather than silently asserting over an empty list.
+    expect(paths, 'could not read the @api matcher from ops/caddy/Caddyfile').toContain('/api/*')
+    expect(paths.length).toBeGreaterThanOrEqual(2)
+
+    for (const path of paths) {
+      const navigation = concreteNavigation(path)
+      expect(
+        isDeniedNavigation(navigation),
+        `Caddy sends ${path} to the backend, so ${navigation} must not be answered with the shell`
+      ).toBe(true)
     }
   })
 
