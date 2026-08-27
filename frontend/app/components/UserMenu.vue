@@ -53,6 +53,7 @@ function handleLogout() {
     <!-- Pill trigger: avatar initials + chevron, no name text -->
     <button
       type="button"
+      data-testid="user-menu-trigger"
       class="flex items-center gap-2 px-1 py-1 pr-2 border border-default rounded-full bg-transparent cursor-pointer hover:bg-muted transition-colors"
     >
       <span class="w-[30px] h-[30px] rounded-full bg-primary text-inverted flex items-center justify-center text-[12px] font-bold flex-none select-none">
@@ -178,6 +179,7 @@ function handleLogout() {
           </button>
           <div class="h-px bg-[var(--ui-border)] my-[5px] mx-1" />
           <button
+            data-testid="user-menu-logout"
             class="flex items-center gap-[10px] w-full px-[10px] py-[9px] text-[14px] font-medium text-error bg-transparent border-0 rounded-[8px] cursor-pointer text-left hover:bg-error/10 transition-colors"
             @click="handleLogout"
           >
