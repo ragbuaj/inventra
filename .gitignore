@@ -35,6 +35,7 @@ Thumbs.db
 
 # Agent scratch (briefs, reports, ledger)
 .superpowers/
+tasks/
 
 # Playwright MCP screenshot/output scratch
 .playwright-mcp/
