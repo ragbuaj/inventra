@@ -487,8 +487,12 @@ docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml --env
 - Via Ansible: role `monitoring` (`ops/ansible/roles/monitoring/`) menjalankan langkah `docker compose up`
   di atas secara idempotent sebagai bagian dari `site.yml` — siapkan `alertmanager.yml`/`grafana.env`
   di server **sebelum** menjalankan playbook, karena role tidak merender rahasia overlay ini (berbeda
-  dari `.env.prod`, yang di-render role `app` dari Vault). Target blackbox di `prometheus.yml` sudah
-  di-hardcode ke domain publik (lihat komentar di file) — tidak perlu sed di deploy manapun.
+  dari `.env.prod`, yang di-render role `app` dari Vault).
+- Target blackbox tidak lagi dikeraskan di `prometheus.yml`. Layanan sekali-jalan
+  `prometheus-targets` merendernya dari `DOMAIN` di `.env.prod` — sumber yang sama yang dipakai
+  Caddy dan `docker-compose.prod.yml` — ke berkas `file_sd` yang dibaca Prometheus. Compose
+  gagal sebelum satu pun container naik kalau `DOMAIN` hilang. Berlaku sama untuk deploy manual
+  maupun lewat Ansible, karena keduanya menjalankan compose dengan `--env-file .env.prod`.
 
 ---
 
@@ -518,9 +522,16 @@ aplikasi, dan berkas statis itu **sudah membawa nilai apiBase di dalamnya**. Kar
   usang tanpa bersuara, tiap job CD mencatat nilai yang dibekukan **beserta sumbernya**
   ke log — periksa langkah "Catat API base yang akan dibekukan ke image". Kalau log
   berbunyi "fallback", variabelnya hilang dan harus diset ulang.
-- Domain produksi hidup di **dua** tempat. Mengganti domain menuntut keduanya:
-  1. `gh variable set PROD_DOMAIN --body <domain-baru>`
-  2. `ops/monitoring/prometheus/prometheus.yml` baris 45, target blackbox `/health`
+- Domain produksi hidup di **dua** tempat, dan pembagiannya struktural: satu untuk waktu
+  build, satu untuk waktu jalan. Mengganti domain menuntut keduanya:
+  1. **Build (GitHub):** `gh variable set PROD_DOMAIN --body <domain-baru>`, lalu jalankan
+     ulang workflow Deploy supaya image frontend dibangun ulang dengan apiBase yang baru.
+  2. **Runtime (VPS):** `DOMAIN` di `.env.prod`. Dari situ Caddy mengambil nama situs,
+     `docker-compose.prod.yml` menyusun `FRONTEND_URL`, dan sejak monitoring memakai
+     `file_sd`, target blackbox Prometheus ikut dirender dari sana juga.
+
+  Keduanya tidak bisa disatukan lebih jauh tanpa membuat CD membaca konfigurasi dari VPS.
+  Yang sudah dihilangkan adalah sumber ketiga: `prometheus.yml` tidak lagi mengeraskan domain.
 
 Gejala kalau salah: pengguna melihat "Network Error" saat login padahal backend hidup.
 Lihat butir pertama di bagian 12.

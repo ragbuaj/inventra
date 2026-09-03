@@ -2,10 +2,37 @@
 #   docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml --env-file .env.prod up -d
 # Join jaringan inventra-net milik stack app (harus sudah ada).
 services:
+  # Merender target blackbox dari DOMAIN di .env.prod, sumber yang sama yang dipakai
+  # Caddy dan docker-compose.prod.yml. Prometheus tidak meng-expand variabel lingkungan
+  # di dalam konfigurasinya, jadi domainnya dulu dikeraskan di prometheus.yml — sumber
+  # kedua yang diam-diam bisa menyimpang saat domain berubah. Layanan sekali-jalan ini
+  # menuliskannya ke berkas file_sd yang dibaca Prometheus.
+  #
+  # `${DOMAIN:?...}` membuat compose gagal SEBELUM satu pun container naik kalau
+  # variabelnya hilang, bukan menerbitkan target kosong yang diam.
+  prometheus-targets:
+    image: alpine:3.21
+    container_name: inventra-prometheus-targets
+    restart: "no"
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN belum diset - jalankan compose dengan --env-file .env.prod}
+    command:
+      - sh
+      - -c
+      - |
+        set -eu
+        printf '[{"targets":["https://%s/health"]}]' "$$DOMAIN" > /targets/blackbox.json
+        echo "target blackbox: https://$$DOMAIN/health"
+    volumes:
+      - prometheus-targets:/targets
+
   prometheus:
     image: prom/prometheus:v3.1.0
     container_name: inventra-prometheus
     restart: unless-stopped
+    depends_on:
+      prometheus-targets:
+        condition: service_completed_successfully
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.retention.time=15d"
@@ -13,6 +40,7 @@ services:
     volumes:
       - ./ops/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./ops/monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus-targets:/etc/prometheus/targets:ro
       - prometheus-data:/prometheus
     mem_limit: 400m
 
@@ -115,6 +143,7 @@ services:
 
 volumes:
   prometheus-data:
+  prometheus-targets:
   alertmanager-data:
   loki-data:
   grafana-data:
