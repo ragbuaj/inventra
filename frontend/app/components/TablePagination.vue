@@ -30,6 +30,11 @@ function goTo(p: number) {
   if (p < 1 || p > totalPages.value || p === page.value) return
   page.value = p
 }
+
+// The first/last jump controls only earn their space once the sliding window
+// can't show every page anyway. At <= MAX_PAGE_BUTTONS pages all page numbers
+// are already on screen, so jumping to first/last adds nothing but clutter.
+const showEdgeJumps = computed(() => totalPages.value > MAX_PAGE_BUTTONS)
 </script>
 
 <template>
@@ -38,6 +43,18 @@ function goTo(p: number) {
       {{ $t('common.showingRange', { from, to, total }) }}
     </p>
     <div class="flex items-center gap-1 self-end sm:self-auto">
+      <UButton
+        v-if="showEdgeJumps"
+        icon="i-lucide-chevrons-left"
+        color="neutral"
+        variant="ghost"
+        size="sm"
+        square
+        :disabled="page <= 1"
+        :aria-label="$t('common.firstPage')"
+        data-testid="pagination-first"
+        @click="goTo(1)"
+      />
       <UButton
         icon="i-lucide-chevron-left"
         color="neutral"
@@ -73,6 +90,18 @@ function goTo(p: number) {
         :aria-label="$t('common.nextPage')"
         data-testid="pagination-next"
         @click="goTo(page + 1)"
+      />
+      <UButton
+        v-if="showEdgeJumps"
+        icon="i-lucide-chevrons-right"
+        color="neutral"
+        variant="ghost"
+        size="sm"
+        square
+        :disabled="page >= totalPages"
+        :aria-label="$t('common.lastPage')"
+        data-testid="pagination-last"
+        @click="goTo(totalPages)"
       />
     </div>
   </div>

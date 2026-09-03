@@ -73,4 +73,69 @@ describe('TablePagination', () => {
     const w = await pager({ total: 0, limit: 10, offset: 0 })
     expect(pageButtons(w).map(b => b.text())).toEqual(['1'])
   })
+
+  // --- first/last jump controls -------------------------------------------
+
+  it('renders the first/last jump controls once the window cannot show every page', async () => {
+    const w = await pager({ total: 200, limit: 10, offset: 90 }) // 20 pages
+    expect(w.find('[data-testid="pagination-first"]').exists()).toBe(true)
+    expect(w.find('[data-testid="pagination-last"]').exists()).toBe(true)
+  })
+
+  it('omits the first/last jump controls when every page is already a button', async () => {
+    const w = await pager({ total: 25, limit: 10, offset: 0 }) // 3 pages == MAX_PAGE_BUTTONS
+    expect(w.find('[data-testid="pagination-first"]').exists()).toBe(false)
+    expect(w.find('[data-testid="pagination-last"]').exists()).toBe(false)
+  })
+
+  it('omits the first/last jump controls when there is no data at all', async () => {
+    const w = await pager({ total: 0, limit: 10, offset: 0 })
+    expect(w.find('[data-testid="pagination-first"]').exists()).toBe(false)
+    expect(w.find('[data-testid="pagination-last"]').exists()).toBe(false)
+  })
+
+  it('jumps to the first page, emitting offset 0', async () => {
+    const w = await pager({ total: 200, limit: 10, offset: 90 })
+    await w.find('[data-testid="pagination-first"]').trigger('click')
+    expect(w.emitted('update:offset')?.[0]).toEqual([0])
+  })
+
+  it('jumps to the last page, emitting the last page offset', async () => {
+    const w = await pager({ total: 200, limit: 10, offset: 0 })
+    await w.find('[data-testid="pagination-last"]').trigger('click')
+    expect(w.emitted('update:offset')?.[0]).toEqual([190]) // page 20
+  })
+
+  it('lands on the last page even when the final page is partial', async () => {
+    const w = await pager({ total: 195, limit: 10, offset: 0 }) // 20 pages, last holds 5 rows
+    await w.find('[data-testid="pagination-last"]').trigger('click')
+    expect(w.emitted('update:offset')?.[0]).toEqual([190])
+  })
+
+  it('disables the first jump on page 1 and the last jump on the final page', async () => {
+    const first = await pager({ total: 200, limit: 10, offset: 0 })
+    expect(first.find('[data-testid="pagination-first"]').attributes('disabled')).toBeDefined()
+    expect(first.find('[data-testid="pagination-last"]').attributes('disabled')).toBeUndefined()
+
+    const last = await pager({ total: 200, limit: 10, offset: 190 })
+    expect(last.find('[data-testid="pagination-last"]').attributes('disabled')).toBeDefined()
+    expect(last.find('[data-testid="pagination-first"]').attributes('disabled')).toBeUndefined()
+  })
+
+  it('emits nothing when a disabled jump control is clicked', async () => {
+    const w = await pager({ total: 200, limit: 10, offset: 0 })
+    await w.find('[data-testid="pagination-first"]').trigger('click')
+    expect(w.emitted('update:offset')).toBeUndefined()
+  })
+
+  it('labels the jump controls with resolved translations, not raw keys', async () => {
+    const w = await pager({ total: 200, limit: 10, offset: 90 })
+    const firstLabel = w.find('[data-testid="pagination-first"]').attributes('aria-label')
+    const lastLabel = w.find('[data-testid="pagination-last"]').attributes('aria-label')
+    expect(firstLabel).toBeTruthy()
+    expect(lastLabel).toBeTruthy()
+    expect(firstLabel).not.toContain('common.')
+    expect(lastLabel).not.toContain('common.')
+    expect(firstLabel).not.toBe(lastLabel)
+  })
 })

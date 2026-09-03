@@ -1964,6 +1964,7 @@
     "loading": "Loading…", "noData": "No data yet", "confirm": "Confirm",
     "showingRange": "Showing {from}–{to} of {total}",
     "prevPage": "Previous page", "nextPage": "Next page", "goToPage": "Go to page {n}",
+    "firstPage": "First page", "lastPage": "Last page",
     "pickDate": "Pick date",
     "error": "Something went wrong",
     "active": "Active",

@@ -1964,6 +1964,7 @@
     "loading": "Memuat…", "noData": "Belum ada data", "confirm": "Konfirmasi",
     "showingRange": "Menampilkan {from}–{to} dari {total}",
     "prevPage": "Halaman sebelumnya", "nextPage": "Halaman berikutnya", "goToPage": "Ke halaman {n}",
+    "firstPage": "Halaman pertama", "lastPage": "Halaman terakhir",
     "pickDate": "Pilih tanggal",
     "error": "Terjadi kesalahan",
     "active": "Aktif",
