@@ -1988,7 +1988,16 @@
     "searchDepartment": "Search department…",
     "searchPosition": "Search position…",
     "searchProvince": "Search province…",
-    "clearSelection": "Clear selection"
+    "clearSelection": "Clear selection",
+    "endOfList": "You've reached the end",
+    "loadMore": "Load more",
+    "filterBar": {
+      "title": "Filters",
+      "aria": "Advanced filters",
+      "ariaActive": "Advanced filters, {n} active",
+      "apply": "Apply",
+      "applyCount": "Show {n} results"
+    }
   },
   "status": {
     "asset": {

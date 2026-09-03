@@ -1988,7 +1988,16 @@
     "searchDepartment": "Cari departemen…",
     "searchPosition": "Cari jabatan…",
     "searchProvince": "Cari provinsi…",
-    "clearSelection": "Hapus pilihan"
+    "clearSelection": "Hapus pilihan",
+    "endOfList": "Semua data sudah ditampilkan",
+    "loadMore": "Muat lebih banyak",
+    "filterBar": {
+      "title": "Filter",
+      "aria": "Filter lanjutan",
+      "ariaActive": "Filter lanjutan, {n} aktif",
+      "apply": "Terapkan",
+      "applyCount": "Lihat {n} hasil"
+    }
   },
   "status": {
     "asset": {
