@@ -9,6 +9,12 @@ info:
     `Authorization: Bearer <access_token>`. Access tokens are short-lived;
     rotate with `POST /api/v1/auth/refresh`. `POST /api/v1/auth/logout` revokes
     the current access token and the supplied refresh token.
+
+    **Caching:** every response under `/api/v1` carries `Cache-Control: no-store`,
+    whatever its status code — the whole surface is authenticated data and must not
+    reach the browser's HTTP cache. It is applied as cross-cutting middleware, so it
+    is not repeated on each operation below. A few endpoints that serve binary
+    content narrow it further to `private, no-store`.
   contact:
     name: Inventra
     url: https://github.com/ragbuaj/inventra
