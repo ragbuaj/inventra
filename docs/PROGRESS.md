@@ -478,6 +478,34 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > `FilterBar` ikut memperebutkan sisa ruang sehingga kotak pencarian menyempit (258px, seharusnya
 > 525px). Spacer dihapus; pencarian kini satu-satunya anak yang tumbuh, seperti di kedua mockup.
 >
+> **Audit keamanan (2026-09-04) — 0 kritis, perbaikan sebelumnya diverifikasi lengkap.** Auditor
+> menelusuri setiap jalur akhir-sesi (logout eksplisit, 401 dengan refresh gagal, reset password,
+> logout dengan token kedaluwarsa, boot restore, OAuth) dan menyatakan `clearListStateCache()` di
+> dalam `auth.clear()` menutup semuanya, bertumpu pada invarian bahwa `accessToken` hanya pernah
+> menjadi `null` lewat `clear()`. Tidak ada cache modul-scope lain yang menyimpan data operasional.
+> Dua temuan yang **berasal dari branch ini** ditutup: (1) `refreshAll` mengirim `limit` melebihi
+> plafon 100 milik setiap endpoint daftar (`common.ClampInt`), sehingga daftar di atas 100 baris
+> menyusut diam-diam setelah mutasi — kini dijepit, dengan `canRefreshAll` memberi tahu pemanggil
+> kapan panjang daftar tidak lagi bisa dipertahankan; (2) tanda tangan snapshot kini memuat id
+> pengguna dan id peran, sehingga cache aman secara struktural alih-alih aman karena setiap jalur
+> sesi kebetulan membersihkannya. `refreshAll` juga dikonfirmasi **bukan** vektor DoS: backend
+> menjepit `limit` ke 1..100.
+>
+> **Empat temuan pra-eksisting sengaja TIDAK dikerjakan di branch ini** (keputusan pemilik produk
+> 2026-09-04: PR keamanan terpisah setelah ini), karena menyentuh berkas di luar ruang lingkupnya:
+> 1. **[TINGGI] Store notifikasi dan inbox selamat dari logout** — kelas kerentanan yang persis sama
+>    dengan yang baru ditambal, di state berbeda. `notifications.refresh()` mempertahankan `items`
+>    lama saat gagal (`stores/notifications.ts` blok catch), dan `NotificationBell.vue` menaruh
+>    cabang daftar sebelum cabang error, jadi refresh yang gagal saat login menampilkan notifikasi
+>    pengguna sebelumnya, bukan tombol coba lagi. Perbaikan: `$reset()` kedua store di dalam
+>    `auth.clear()`, catat `ownerId` di store notifikasi, dan tukar urutan cabang di lonceng.
+> 2. **[SEDANG] Riwayat pencarian di `localStorage`** (`useCommandPalette.ts`, kunci global
+>    `inventra.search.recent`) tidak pernah dibersihkan — selamat dari reload, restart peramban, dan
+>    reboot. Perbaikan: kunci per pengguna dan hapus saat `auth.clear()`.
+> 3. **[RENDAH] `/login?oauth=success` dengan sesi masih hidup** menelan sesi baru secara diam-diam
+>    dan merusak keterkaitan jejak audit.
+> 4. **[RENDAH] Logout satu tab tidak merobohkan tab lain** — pertimbangkan `BroadcastChannel`.
+>
 > **Catatan harness yang perlu diingat.** Panel browser in-app **tidak pernah** memanggil callback
 > `IntersectionObserver` — bahkan observer polos dengan `root: null` pun tidak. Jadi apa pun yang
 > bergantung pada perpotongan (infinite scroll, lazy-load) **wajib** dibuktikan lewat
