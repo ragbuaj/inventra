@@ -458,6 +458,26 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >    bisa menggantinya sementara halaman masih hidup, dan node basi tetap menjawab `scrollTop`
 >    dengan 0 tanpa error; semua akses lewat `scrollEl()` yang mengambilnya segar.
 >
+> **Putaran review kode (2026-09-04) — dua temuan kritis ditutup.** Review lima sumbu menemukan
+> seluruh cacat serius ada di lapisan wiring halaman, yang saat itu tidak punya satu pun tes.
+> (1) Cache daftar dipulihkan pada **setiap** mount rute tanpa memandang arah navigasi: menyimpan
+> hasil edit aset mengalihkan kembali ke katalog lewat push biasa, sehingga baris lama dipulihkan
+> tanpa permintaan apa pun dan suntingan pengguna tampak hilang. Pemulihan kini dijaga signature
+> filter **dan** `history.state.forward` yang harus persis rute yang ditinggalkan; snapshot sekali
+> pakai dan tidak pernah dipulihkan ke tata letak paginasi. (2) Cache tidak dibersihkan saat sesi
+> berakhir selain lewat logout eksplisit — refresh token gagal dan reset password hanya memanggil
+> `auth.clear()`, sehingga di perangkat bersama pengguna berikutnya bisa disuguhi baris aset milik
+> pengguna sebelumnya. Pembersihan dipindah **ke dalam** `auth.clear()`. Empat temuan Penting juga
+> ditutup: watcher breakpoint memicu dua permintaan untuk satu aksi, mutasi di Manajemen User
+> memangkas daftar terakumulasi kembali ke sepuluh baris, `users.vue` masih men-cache elemen
+> `<main>` (persis jebakan yang sudah didokumentasikan di katalog), dan `scrollMargin` virtualizer
+> tidak diukur ulang saat konten di atas daftar berubah. Ditambah tes tingkat halaman yang
+> menegaskan jumlah fetch per aksi dan seluruh gerbang pemulihan cache.
+>
+> **Perbandingan berdampingan dengan mockup** menemukan satu regresi desktop: spacer `flex-1` di
+> `FilterBar` ikut memperebutkan sisa ruang sehingga kotak pencarian menyempit (258px, seharusnya
+> 525px). Spacer dihapus; pencarian kini satu-satunya anak yang tumbuh, seperti di kedua mockup.
+>
 > **Catatan harness yang perlu diingat.** Panel browser in-app **tidak pernah** memanggil callback
 > `IntersectionObserver` — bahkan observer polos dengan `root: null` pun tidak. Jadi apa pun yang
 > bergantung pada perpotongan (infinite scroll, lazy-load) **wajib** dibuktikan lewat
