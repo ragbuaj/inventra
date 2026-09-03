@@ -223,11 +223,26 @@ jobs:
         working-directory: frontend
         run: pnpm exec playwright test --project=chromium
 
+      # The backend is stopped for the duration of the seed. seed_demo.sql
+      # deletes notifications and then, ~30 statements later, users — and the
+      # async notification worker can commit a new notification row in between,
+      # so deleting users fails on `notifications_user_id_fkey`. That made this
+      # step fail intermittently and block every e2e phase behind it. Taking the
+      # only writer offline removes the race instead of retrying past it.
       - name: Seed demo data (Lampiran A org + assets) + flush authz cache
         run: |
+          docker compose stop backend
           docker compose exec -T -e PGPASSWORD=secret postgres \
             psql -U inventra -d inventra_dev -v ON_ERROR_STOP=1 < backend/db/seed/seed_demo.sql
           docker compose exec -T redis redis-cli FLUSHALL
+          docker compose start backend
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8080/health/ready >/dev/null 2>&1; then
+              echo "API ready after seed"; exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not come back after seeding"; docker compose logs backend; exit 1
 
       - name: Run e2e — Lampiran A (seeded DB)
         working-directory: frontend
