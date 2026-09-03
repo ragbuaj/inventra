@@ -26,9 +26,10 @@ const fRole = ref<string>(ALL)
 const fOffice = ref<string | null>(null)
 const fStatus = ref<string>(ALL)
 
-// The scrolling ancestor (see layouts/default.vue) — the sentinel below the
-// table observes intersections against it, not the viewport.
-const scrollParent = ref<HTMLElement | null>(null)
+// The scrolling ancestor — the sentinel below the table observes
+// intersections against it, not the viewport. Re-queried on every access; see
+// useScrollParent for why caching the node is a silent-failure trap.
+const { el: scrollParent, get: scrollEl } = useScrollParent()
 
 // One data engine for both layouts: page buttons drive `loadPage`, the compact
 // layout accumulates with `loadFirst`/`loadMore`. See useInfiniteRows.
@@ -165,6 +166,15 @@ function loadList() {
   return isCompact.value ? list.loadFirst() : list.loadPage(offset.value)
 }
 
+/**
+ * Reload after a mutation. In the accumulating layout this refetches every row
+ * already on screen, so editing a user doesn't collapse an 80-row list back to
+ * 10 and leave the reader stranded below the content.
+ */
+function reloadAfterMutation() {
+  return isCompact.value ? list.refreshAll() : list.loadPage(offset.value)
+}
+
 async function load() {
   // Lookups are supplementary: a failure there must not take the list down
   // with it, so it is awaited alongside but swallows its own error.
@@ -175,7 +185,7 @@ async function load() {
 }
 
 function scrollToTop() {
-  scrollParent.value?.scrollTo({ top: 0 })
+  scrollEl()?.scrollTo({ top: 0 })
 }
 
 function reloadFromStart() {
@@ -246,7 +256,7 @@ async function onSubmit() {
       })
     }
     formOpen.value = false
-    await loadList()
+    await reloadAfterMutation()
   } catch (err: unknown) {
     if ((err as { statusCode?: number }).statusCode === 409) errors.email = t('settings.users.conflict')
     else toast.add({ title: t('settings.users.loadError'), color: 'error' })
@@ -263,7 +273,7 @@ async function onToggleStatus(row: UserView) {
       office_id: row.office_id ?? undefined, employee_id: row.employee_id ?? undefined
     })
     toast.add({ title: t('settings.users.toast.statusChanged'), color: 'success', icon: 'i-lucide-check' })
-    await loadList()
+    await reloadAfterMutation()
   } catch { /* useApiClient toasts */ }
 }
 
@@ -299,7 +309,7 @@ async function onDelete(row: UserView) {
   if (!ok) return
   try {
     await api.remove(row.id)
-    await loadList()
+    await reloadAfterMutation()
   } catch { /* useApiClient toasts */ }
 }
 
@@ -311,7 +321,7 @@ watch(offset, () => loadList())
 watch(isCompact, () => reloadFromStart())
 
 onMounted(() => {
-  scrollParent.value = document.querySelector('main')
+  scrollEl()
   load()
 })
 </script>
@@ -340,7 +350,7 @@ onMounted(() => {
       :search-placeholder="t('settings.users.searchPlaceholder')"
       :active-count="advancedFilterCount"
       :show-reset="anyFilter"
-      :total="total"
+      :total="loading ? undefined : total"
       testid="users-filter"
       @reset="resetFilters"
     >

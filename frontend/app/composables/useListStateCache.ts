@@ -4,6 +4,8 @@ export interface ListSnapshot<T = unknown> {
   scrollTop: number
   /** Serialized filter state the rows were fetched under. */
   signature: string
+  /** Route the user navigated to when this snapshot was taken. */
+  leftTo: string
 }
 
 /**
@@ -26,17 +28,25 @@ export function useListStateCache<T>(key: string) {
   }
 
   /**
-   * Returns the snapshot when it was taken under the same filters, otherwise
-   * drops it and returns null. Reading is one-shot in the sense that a
-   * mismatch clears the entry.
+   * Hands back the snapshot only for a genuine return trip, and consumes it
+   * either way. Two guards, both load-bearing:
+   *
+   * - `signature` must still match, otherwise the rows describe other filters.
+   * - `cameBackFrom` must be the very route the user left to. Vue Router only
+   *   populates `history.state.forward` when the current entry was reached by
+   *   going *back*, so a fresh push to this list — the redirect after saving an
+   *   edit, for instance — has no forward entry and correctly gets a reload
+   *   instead of stale rows.
+   *
+   * Reading is one-shot: the entry is dropped whether or not it was returned,
+   * so a snapshot can never be replayed onto a later, unrelated visit.
    */
-  function restore(signature: string): ListSnapshot<T> | null {
+  function restore(signature: string, cameBackFrom: string | null | undefined): ListSnapshot<T> | null {
     const snap = cache.get(key) as ListSnapshot<T> | undefined
+    cache.delete(key)
     if (!snap) return null
-    if (snap.signature !== signature) {
-      cache.delete(key)
-      return null
-    }
+    if (snap.signature !== signature) return null
+    if (!cameBackFrom || cameBackFrom !== snap.leftTo) return null
     return snap
   }
 

@@ -68,11 +68,15 @@ const applyLabel = computed(() => props.total === undefined
 
 <template>
   <div class="bg-default border border-default rounded-[13px] p-[14px] shadow-sm mb-4 flex items-center gap-2.5 flex-wrap">
+    <!-- The only growing child, deliberately: it absorbs every bit of slack so
+         whatever follows lands flush against the right edge, the way each
+         screen's mockup lays it out. A `flex-1` spacer after the filters would
+         compete for that slack and leave the search box visibly short. -->
     <UInput
       :model-value="props.search"
       icon="i-lucide-search"
       :placeholder="searchPlaceholderText"
-      class="flex-1 min-w-[180px]"
+      class="flex-1 min-w-[180px] md:min-w-[220px]"
       :data-testid="`${props.testid}-search`"
       @update:model-value="emit('update:search', String($event))"
     />
@@ -89,7 +93,6 @@ const applyLabel = computed(() => props.total === undefined
         :data-testid="`${props.testid}-reset`"
         @click="emit('reset')"
       />
-      <div class="flex-1" />
     </template>
 
     <!-- Compact: one button standing in for the whole advanced set. -->

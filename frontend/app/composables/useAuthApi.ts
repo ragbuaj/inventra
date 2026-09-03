@@ -66,10 +66,8 @@ export function useAuthApi() {
     try {
       await client.request('/auth/logout', { method: 'POST', credentials: 'include' })
     } finally {
+      // `auth.clear()` also drops the cached list snapshots — see the store.
       auth.clear()
-      // Cached list snapshots hold real rows (asset values, user records) —
-      // they must not survive into the next session on a shared device.
-      clearListStateCache()
       await navigateTo('/login')
     }
   }

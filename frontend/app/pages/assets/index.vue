@@ -185,7 +185,9 @@ function leaveTo(path: string) {
   // Snapshot BEFORE navigating. The router scrolls the container back to the
   // top as part of the route change, and that happens before the leaving
   // component's teardown hooks run — reading scrollTop there always yields 0.
-  saveListState()
+  // The destination is stored with the snapshot so only a return trip from
+  // that exact route may consume it.
+  saveListState(path)
   navigateTo(path)
 }
 function openDetail(tag: string) {
@@ -260,20 +262,10 @@ function onTableContextMenu(e: MouseEvent) {
 // mirrors "no valid actions" without racing the click that populates
 // `contextItems`; the stale-item guarantee itself comes from the reset above.
 
-// The scrolling ancestor (see layouts/default.vue) — the infinite list needs
-// it both as the IntersectionObserver root and as the element whose scroll
-// offset is saved and restored.
-//
-// Held in a ref for the child props, but never trusted as a cached handle:
-// the layout can replace its <main> while this page is alive, and a stale node
-// still answers `scrollTop` — with 0, silently. Always go through `scrollEl()`.
-const scrollParent = ref<HTMLElement | null>(null)
-
-function scrollEl(): HTMLElement | null {
-  const el = document.querySelector('main') as HTMLElement | null
-  if (el !== scrollParent.value) scrollParent.value = el
-  return el
-}
+// The scrolling ancestor — IntersectionObserver root and the element whose
+// scroll offset is saved and restored. See useScrollParent for why it is
+// re-queried rather than cached.
+const { el: scrollParent, get: scrollEl } = useScrollParent()
 
 // Snapshot key: the filters the rows were fetched under. A change here means
 // a restored snapshot would be showing the wrong rows.
@@ -295,13 +287,14 @@ function scrollToTop() {
  * combination. Only the accumulating layout has a position worth keeping — the
  * paged layout already comes back on the page the user left.
  */
-function saveListState() {
+function saveListState(leftTo: string) {
   if (!isCompact.value || rows.value.length === 0) return
   stateCache.save({
     rows: [...rows.value],
     total: total.value,
     scrollTop: scrollEl()?.scrollTop ?? 0,
-    signature: filterSignature.value
+    signature: filterSignature.value,
+    leftTo
   })
 }
 
@@ -323,33 +316,39 @@ watch(search, (v) => {
   }, 300)
 })
 
-watch([debouncedSearch, fStatus, fKat, fKantor, fClass], () => {
-  // A filter change invalidates whatever was accumulated, and any snapshot
-  // taken under the old filters.
+/**
+ * Discards everything accumulated and reloads from the top.
+ *
+ * Writing `page` only reloads when the value actually changes; when it was
+ * already 1 the `page` watcher never fires, so this must load itself. Doing
+ * both would fire two identical requests for one user action.
+ */
+function reloadFromStart() {
   stateCache.drop()
   list.reset()
   scrollToTop()
-  // If we're already on page 1, resetting it below is a no-op that won't
-  // trigger the `page` watcher — so this watcher must load() itself. If
-  // we're on any other page, the reset *does* trigger the `page` watcher,
-  // which already calls load() — avoid firing it twice for one filter change.
   const alreadyFirstPage = page.value === 1
   page.value = 1
   if (alreadyFirstPage) load()
-})
+}
+
+watch([debouncedSearch, fStatus, fKat, fKantor, fClass], () => reloadFromStart())
 watch(page, () => load())
 
 // Crossing the breakpoint swaps between accumulate and replace semantics, so
 // the rows held under the old mode no longer describe what the new one shows.
-watch(isCompact, () => {
-  list.reset()
-  page.value = 1
-  load()
-})
+watch(isCompact, () => reloadFromStart())
 
 onMounted(() => {
   scrollEl()
-  const snap = stateCache.restore(filterSignature.value)
+  // `history.state.forward` is only set when this entry was reached by going
+  // back, and it names the route we went back FROM. A fresh push here — the
+  // redirect after saving an edit, say — leaves it empty and so reloads,
+  // instead of resurrecting rows that no longer reflect the edit.
+  const cameBackFrom = (history.state?.forward ?? null) as string | null
+  // Only the compact layout ever writes a snapshot; restoring one into the
+  // paged layout would show accumulated rows under a "1-10 of N" paginator.
+  const snap = isCompact.value ? stateCache.restore(filterSignature.value, cameBackFrom) : null
   if (snap) {
     // Returning from a detail screen: put the accumulated rows and the scroll
     // offset back instead of starting over at row one.
@@ -419,7 +418,7 @@ onUnmounted(() => {
       :active-count="advancedFilterCount"
       :show-reset="anyFilter"
       :reset-label="t('assets.reset')"
-      :total="total"
+      :total="loading ? undefined : total"
       testid="assets-filter"
       @reset="resetFilters"
     >

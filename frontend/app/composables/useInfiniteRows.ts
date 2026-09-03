@@ -23,6 +23,8 @@ export interface InfiniteRows<T> {
   /** Replaces the rows with one page starting at `offset` — the paged mode. */
   loadPage: (offset: number) => Promise<void>
   loadFirst: () => Promise<void>
+  /** Refetches every accumulated row in one request, keeping the list length. */
+  refreshAll: () => Promise<void>
   loadMore: () => Promise<void>
   retry: () => Promise<void>
   reset: () => void
@@ -62,14 +64,14 @@ export function useInfiniteRows<T>(
 
   const done = computed(() => rows.value.length >= total.value)
 
-  async function fetchAt(offset: number, append: boolean): Promise<void> {
+  async function fetchAt(offset: number, append: boolean, size = limit): Promise<void> {
     const mine = ++seq
     if (append) loadingMore.value = true
     else loading.value = true
     error.value = false
 
     try {
-      const res = await fetchPage({ limit, offset })
+      const res = await fetchPage({ limit: size, offset })
       if (mine !== seq) return
       rows.value = append ? [...rows.value, ...res.data] : res.data
       total.value = res.total
@@ -101,6 +103,16 @@ export function useInfiniteRows<T>(
 
   function loadFirst(): Promise<void> {
     return fetchAt(0, false)
+  }
+
+  /**
+   * Refetches everything currently held, in one request, so the list keeps its
+   * length. After a row is edited or deleted, reloading only the first page
+   * would collapse an accumulated list back to `limit` rows and strand the
+   * user in blank space below their scroll position.
+   */
+  function refreshAll(): Promise<void> {
+    return fetchAt(0, false, Math.max(limit, rows.value.length))
   }
 
   function loadMore(): Promise<void> {
@@ -137,5 +149,5 @@ export function useInfiniteRows<T>(
     failed = null
   }
 
-  return { rows, total, loading, loadingMore, error, done, loadPage, loadFirst, loadMore, retry, reset, hydrate }
+  return { rows, total, loading, loadingMore, error, done, loadPage, loadFirst, refreshAll, loadMore, retry, reset, hydrate }
 }

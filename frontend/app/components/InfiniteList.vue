@@ -69,9 +69,38 @@ function measureItem(el: Element | ComponentPublicInstance | null) {
   if (el instanceof HTMLElement) virtualizer.value.measureElement(el)
 }
 
-onMounted(measureListOffset)
-watch(() => props.scrollParent, measureListOffset)
-watch(virtualized, () => nextTick(measureListOffset))
+// Anything above the list changing height moves its start point: the bulk
+// action bar appearing on selection, the filter bar wrapping to a second line,
+// an orientation change. A stale `scrollMargin` makes the virtualizer compute
+// its window from the wrong origin and render the wrong slice, so observe the
+// scroll container and re-measure rather than only measuring at mount.
+let resizeObserver: ResizeObserver | null = null
+
+function observeResize() {
+  resizeObserver?.disconnect()
+  resizeObserver = null
+  if (!import.meta.client || typeof ResizeObserver === 'undefined') return
+  const parent = props.scrollParent
+  if (!parent) return
+  resizeObserver = new ResizeObserver(() => measureListOffset())
+  resizeObserver.observe(parent)
+  if (listEl.value) resizeObserver.observe(listEl.value)
+}
+
+onMounted(() => {
+  measureListOffset()
+  observeResize()
+})
+onUnmounted(() => resizeObserver?.disconnect())
+
+watch(() => props.scrollParent, () => {
+  measureListOffset()
+  observeResize()
+})
+watch(virtualized, () => nextTick(() => {
+  measureListOffset()
+  observeResize()
+}))
 </script>
 
 <template>

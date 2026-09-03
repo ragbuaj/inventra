@@ -179,6 +179,53 @@ describe('useInfiniteRows — paged mode (loadPage)', () => {
   })
 })
 
+describe('useInfiniteRows — refreshAll', () => {
+  it('refetches every accumulated row in ONE request, keeping the length', async () => {
+    const { fetchPage, calls } = dataset(100)
+    const l = useInfiniteRows(fetchPage, { limit: 10 })
+    await l.loadFirst()
+    await l.loadMore()
+    await l.loadMore()
+    expect(l.rows.value).toHaveLength(30)
+
+    await l.refreshAll()
+    expect(calls.at(-1)).toEqual({ limit: 30, offset: 0 })
+    expect(l.rows.value).toHaveLength(30)
+  })
+
+  it('never asks for fewer rows than one page', async () => {
+    const { fetchPage, calls } = dataset(100)
+    const l = useInfiniteRows(fetchPage, { limit: 10 })
+    await l.refreshAll()
+    expect(calls.at(-1)).toEqual({ limit: 10, offset: 0 })
+  })
+
+  it('replaces rather than appends', async () => {
+    const { fetchPage } = dataset(100)
+    const l = useInfiniteRows(fetchPage, { limit: 10 })
+    await l.loadFirst()
+    await l.loadMore()
+    await l.refreshAll()
+    expect(l.rows.value).toHaveLength(20)
+    expect(l.rows.value[0]!.id).toBe(1)
+  })
+
+  it('shrinks the list when rows disappeared server-side', async () => {
+    const { fetchPage, pending } = deferredSource()
+    const l = useInfiniteRows(fetchPage, { limit: 10 })
+    const first = l.loadFirst()
+    pending[0]!.resolve(page(0, 10, 25))
+    await first
+
+    const refresh = l.refreshAll()
+    // One row was deleted elsewhere.
+    pending[1]!.resolve(page(0, 9, 24))
+    await refresh
+    expect(l.rows.value).toHaveLength(9)
+    expect(l.total.value).toBe(24)
+  })
+})
+
 describe('useInfiniteRows — done', () => {
   it('is false while rows remain', async () => {
     const { fetchPage } = dataset(25)
