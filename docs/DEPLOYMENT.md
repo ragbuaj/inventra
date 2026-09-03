@@ -225,11 +225,14 @@ curl -fsS https://<DOMAIN>/health          # → 200 dari backend
 Buka `https://<DOMAIN>` di browser, login dengan akun admin tadi. Cek gembok
 HTTPS hijau (sertifikat Let's Encrypt).
 
+Frontend adalah PWA, jadi ada empat pemeriksaan tambahan yang hanya bisa dilakukan
+terhadap produksi sungguhan. Lihat bagian 17.
+
 ---
 
 ## 10. Update / redeploy
 
-> **Otomatis?** Kalau auto-deploy (CD) sudah diaktifkan (bagian 13), setiap merge ke
+> **Otomatis?** Kalau auto-deploy (CD) sudah diaktifkan (bagian 14), setiap merge ke
 > `main` yang lolos CI akan otomatis ter-deploy — Anda tidak perlu menjalankan
 > perintah di bawah secara manual. Bagian ini untuk redeploy manual / server
 > tanpa CD.
@@ -242,6 +245,12 @@ docker image prune -f      # bersihkan image lama
 ```
 
 Migrasi DB baru otomatis dijalankan oleh service `migrate` tiap kali stack naik.
+
+> **Pengguna tidak langsung melihat versi baru.** Frontend adalah PWA dengan
+> `registerType: 'prompt'`: begitu service worker terpasang di sebuah perangkat,
+> navigasi dilayani dari precache, bukan dari jaringan. Setelah deploy, pengguna
+> menerima ajakan "Versi baru tersedia" dan **harus menekan Muat ulang** untuk pindah.
+> Ini disengaja (lihat bagian 17), bukan cache yang macet.
 
 ---
 
@@ -419,6 +428,14 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 Bila rollback juga menyangkut perubahan migrasi/compose, lakukan
 `git checkout <commit-lama>` di `~/inventra` lebih dulu, lalu jalankan langkah di atas.
 
+**Rollback frontend dan service worker.** Image frontend lama membawa `sw.js` dengan
+manifest precache yang berbeda, jadi perangkat pengguna memperlakukannya seperti
+pembaruan biasa: ajakan "Versi baru tersedia" muncul lagi, dan yang mereka pindahi
+justru versi lama. Efeknya benar, hanya kalimatnya yang terasa aneh bagi pengguna.
+Perangkat yang mengabaikan ajakan itu tetap menjalankan versi yang di-rollback sampai
+mereka memuat ulang. Kalau rollback dilakukan karena frontend rusak parah, lihat
+"Kill switch" di bagian 17.
+
 ---
 
 ## 15. Provisioning otomatis (Ansible / IaC)
@@ -472,6 +489,130 @@ docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml --env
   di server **sebelum** menjalankan playbook, karena role tidak merender rahasia overlay ini (berbeda
   dari `.env.prod`, yang di-render role `app` dari Vault). Target blackbox di `prometheus.yml` sudah
   di-hardcode ke domain publik (lihat komentar di file) — tidak perlu sed di deploy manapun.
+
+---
+
+## 17. PWA (service worker) — operasi & verifikasi
+
+Sejak PR #148 frontend adalah PWA: dapat dipasang ke layar utama dan tetap menyajikan
+shell aplikasi saat jaringan putus. Tiga hal berubah bagi operasi, dan ketiganya
+menggigit di tempat yang tidak terduga kalau tidak diketahui.
+
+Keputusan rancangannya ada di [ADR-0019](adr/0019-web-pwa.md); bagian ini hanya sisi
+operasionalnya.
+
+### 17.1 `NUXT_PUBLIC_API_BASE` dibekukan saat BUILD
+
+Rute `/` di-prerender jadi HTML statis supaya service worker bisa mem-precache shell
+aplikasi, dan berkas statis itu **sudah membawa nilai apiBase di dalamnya**. Karena itu:
+
+- Mengubah env di `docker-compose.prod.yml` lalu `up -d --force-recreate frontend`
+  **tidak berpengaruh**. Image-nya harus dibangun ulang.
+- Image dari GHCR sudah membawa nilai produksi dari CD (`build-args` di
+  `.github/workflows/deploy.yml`).
+- Domainnya diambil dari variabel repo `PROD_DOMAIN`; **variabel itu saat ini tidak
+  diset**, jadi yang benar-benar dipakai adalah fallback yang dikeraskan di berkas itu.
+  Tiap job CD mencatat nilai yang dibekukan beserta sumbernya ke log — periksa langkah
+  "Catat API base yang akan dibekukan ke image" kalau ragu image mana membawa apa.
+- Domain produksi hidup di **dua** tempat. Mengganti domain menuntut keduanya:
+  1. `.github/workflows/deploy.yml` (atau set `PROD_DOMAIN` supaya fallback tak terpakai)
+  2. `ops/monitoring/prometheus/prometheus.yml` baris 45, target blackbox `/health`
+
+Gejala kalau salah: pengguna melihat "Network Error" saat login padahal backend hidup.
+Lihat butir pertama di bagian 12.
+
+### 17.2 Pembaruan menunggu persetujuan pengguna
+
+`registerType: 'prompt'`. Begitu service worker aktif di sebuah perangkat, **navigasi
+dilayani dari precache**, bukan dari jaringan — jadi `cache-control: no-cache` pada HTML
+tidak lagi menentukan apa yang dilihat pengguna terpasang. Alurnya:
+
+1. Deploy menghasilkan `sw.js` baru. `/sw.js` disajikan `no-cache` (diverifikasi
+   terhadap build nyata; berasal dari `routeRules` `/**` di `nuxt.config.ts`), jadi
+   peramban memeriksanya saat halaman dimuat.
+2. Service worker baru terpasang lalu **menunggu**. Pengguna melihat ajakan
+   "Versi baru tersedia".
+3. Saat pengguna menekan Muat ulang, worker baru aktif, `cleanupOutdatedCaches`
+   menyapu precache lama, halaman dimuat ulang.
+
+Konsekuensi operasional:
+
+- **Deploy tidak serta-merta mengubah apa yang dijalankan pengguna.** Perangkat yang
+  mengabaikan ajakan tetap di versi lama sampai mereka memuat ulang. Untuk perbaikan
+  mendesak, sampaikan lewat kanal internal agar pengguna menekan Muat ulang.
+- Muat ulang otomatis sengaja **tidak** dipakai: ia bisa membuang isian formulir aset
+  yang sedang diketik.
+- Tidak ada pemeriksaan pembaruan berkala (`periodicSyncForUpdates` tidak diaktifkan).
+  Deteksi terjadi saat halaman dimuat.
+
+### 17.3 Kill switch — melepas service worker yang rusak
+
+Ini jebakan klasik PWA dan satu-satunya bagian di dokumen ini yang layak dibaca
+**sebelum** dibutuhkan. Service worker yang rusak tetap hidup di perangkat pengguna
+meski server sudah diperbaiki, karena ia yang melayani navigasi. Rollback image biasa
+belum tentu menolong: perangkat baru mengambil `sw.js` pengganti kalau ia sempat
+memeriksanya.
+
+Kalau sebuah build menerbitkan service worker yang membuat aplikasi tidak bisa dipakai,
+terbitkan `sw.js` yang melepas dirinya sendiri:
+
+```javascript
+// sw.js darurat — menggantikan yang rusak, lalu menghapus dirinya
+self.addEventListener('install', () => self.skipWaiting())
+self.addEventListener('activate', async () => {
+  await self.registration.unregister()
+  for (const key of await caches.keys()) await caches.delete(key)
+  for (const client of await self.clients.matchAll()) client.navigate(client.url)
+})
+```
+
+Sajikan berkas ini di `/sw.js` dengan `Cache-Control: no-store`, biarkan naik beberapa
+jam sampai perangkat mengambilnya, baru deploy versi normal. Karena `/sw.js` sudah
+disajikan `no-cache`, perangkat akan mengambilnya pada pemuatan halaman berikutnya.
+
+**Tanya dulu sebelum menjalankan ini.** Ia menghapus seluruh Cache Storage di perangkat
+pengguna dan membuat aplikasi kehilangan kemampuan luring sampai service worker normal
+terpasang kembali.
+
+### 17.4 Invarian keamanan yang harus dijaga
+
+**Tidak ada satu pun aturan runtime caching.** Di produksi API se-origin dengan frontend
+(`https://<DOMAIN>/api/v1`), jadi satu aturan runtime saja sudah cukup mengendapkan
+respons API ke Cache Storage di tiap perangkat — dan kesalahan itu tidak akan pernah
+terlihat saat dev, karena di dev API beda origin.
+
+Dijaga tiga lapis, semuanya di CI: daftar-izin kunci konfigurasi
+(`frontend/test/unit/pwa-workbox.spec.ts`), pemeriksaan artefak `sw.js` hasil build, dan
+e2e yang membaca `caches` di peramban sungguhan lalu menuntut isinya tidak lebih dari
+precache (`frontend/e2e/pwa.spec.ts`). Jangan melonggarkan ketiganya.
+
+**Terbuka:** respons `/api/v1/*` belum menyetel `Cache-Control`, sehingga data aset masih
+bisa mendarat di disk lewat cache HTTP peramban — pintu kedua yang tidak dijaga invarian
+di atas. Dilacak di [isu #149](https://github.com/ragbuaj/inventra/issues/149).
+
+### 17.5 Anggaran precache
+
+Service worker mengunduh **seluruh** precache saat terpasang, pada kunjungan pertama
+pengguna. Diukur pada build saat ini: 195 entri, 3,17 MiB di disk, sekitar **1,31 MiB
+lewat kabel** (Caddy menyajikan `encode gzip zstd`; 2,31 MiB JS terkompresi jauh, 0,56 MiB
+woff2 memang sudah terkompresi).
+
+Beban sekali-pasang 1,3 MiB wajar untuk kemampuan luring, jadi precache tidak
+dipersempit. E2E menjaga ambang 260 entri supaya pertumbuhannya terlihat. Reproduksi
+angkanya dari `.output/public/sw.js` setelah `pnpm build`.
+
+### 17.6 Verifikasi pasca-deploy (Tugas 11 — belum dijalankan)
+
+Empat hal yang secara struktural tidak bisa dibuktikan sebelum ada produksi sungguhan:
+
+| Pemeriksaan | Cara | Kalau gagal |
+|---|---|---|
+| `manifest.webmanifest` dan `sw.js` lolos WAF | `curl -fsS https://<DOMAIN>/manifest.webmanifest` dan `.../sw.js`, harus 200 bukan 403 | False positive OWASP CRS; perbaikannya di `ops/caddy/Caddyfile` dan itu **tanya dulu** sesuai batasan spec |
+| Header `sw.js` masih `no-cache` setelah lewat Caddy | `curl -sI https://<DOMAIN>/sw.js` | Pembaruan telat terdeteksi. Sudah diverifikasi benar di lapisan Nitro (`cache-control: no-cache`, dari `routeRules` `/**`), jadi yang tersisa hanya memastikan Caddy tidak menimpanya |
+| Lighthouse kategori PWA installable tanpa peringatan | DevTools Lighthouse terhadap domain produksi | Ikuti pesannya; biasanya ikon atau bidang manifest |
+| Pemasangan nyata di Android dan iPhone | Chrome Android: ajakan pasang muncul lalu ikon mendarat di layar utama. Safari iOS: Bagikan lalu Tambahkan ke Layar Utama, lalu buka dari ikon dan pastikan konten tidak tertutup notch | Catat gejalanya balik ke `docs/PROGRESS.md` |
+
+Hasil keempatnya dicatat balik ke `docs/PROGRESS.md`.
 
 ---
 
