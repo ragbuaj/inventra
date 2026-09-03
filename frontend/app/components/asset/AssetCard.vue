@@ -29,6 +29,7 @@ defineEmits<{ toggle: [], open: [] }>()
   <div
     class="bg-default border rounded-[13px] shadow-sm overflow-hidden transition-colors"
     :class="selected ? 'border-primary' : 'border-default'"
+    data-testid="asset-card"
   >
     <div class="flex items-start justify-between gap-2.5 px-[15px] pt-3.5">
       <div class="flex items-center gap-2.5 min-w-0">
@@ -37,13 +38,17 @@ defineEmits<{ toggle: [], open: [] }>()
           @update:model-value="$emit('toggle')"
           @click.stop
         />
-        <span class="text-xs font-mono text-muted truncate">{{ asset.tag }}</span>
+        <span
+          class="text-xs font-mono text-muted truncate"
+          data-testid="asset-card-tag"
+        >{{ asset.tag }}</span>
       </div>
       <AssetStatusBadge :status="asset.status" />
     </div>
     <button
       type="button"
       class="block w-full text-left px-[15px] pt-2.5 pb-3.5 cursor-pointer"
+      data-testid="asset-card-open"
       @click="$emit('open')"
     >
       <div class="text-[15px] font-semibold mb-0.5">

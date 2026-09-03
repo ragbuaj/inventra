@@ -31,7 +31,15 @@ export default defineVitestConfig({
     // Each `@vitest-environment nuxt` spec boots its own Nuxt app in the setup
     // hook. Past ~120 such files the parallel cold-start contention pushes some
     // of them over 60s, failing an arbitrary unrelated spec. Give the hook room.
-    hookTimeout: 120000
+    hookTimeout: 120000,
+    // The same contention hits the tests themselves, and the default 5s was
+    // never raised alongside `hookTimeout`. Heavy runtime specs (a 500-row
+    // selection cap, a page that mounts the whole app shell) tip over it under
+    // load while passing comfortably in isolation — and one timeout cascades:
+    // it tears the environment down while other files are still resolving lazy
+    // imports, which fails them too with `EnvironmentTeardownError`. That made
+    // a CI gate non-deterministic, not merely noisy.
+    testTimeout: 30000
   },
   resolve: {
     alias: {

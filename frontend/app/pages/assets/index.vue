@@ -19,11 +19,8 @@ const office = useOfficePicker()
 const brand = useReferencePicker('brands')
 const model = useReferencePicker('models')
 
-const rows = ref<Asset[]>([])
-const total = ref(0)
+const isCompact = useIsCompact()
 const page = ref(1)
-const loading = ref(true)
-const loadError = ref(false)
 
 const search = ref('')
 const debouncedSearch = ref('')
@@ -33,6 +30,32 @@ const fKantor = ref<string | null>(null)
 const fClass = ref<string>(ALL)
 const view = ref<'table' | 'grid'>('table')
 const selected = ref<Set<string>>(new Set())
+
+// One data engine serves both layouts: the regular layout drives `loadPage`
+// with the offset of the page button that was clicked, the compact layout
+// accumulates with `loadFirst`/`loadMore`. See useInfiniteRows.
+const list = useInfiniteRows<Asset>(
+  ({ limit, offset }) => assetsApi.list({
+    limit,
+    offset,
+    search: debouncedSearch.value.trim() || undefined,
+    status: fStatus.value !== ALL ? (fStatus.value as AssetStatus) : undefined,
+    category_id: fKat.value !== ALL ? fKat.value : undefined,
+    office_id: fKantor.value ?? undefined,
+    asset_class: fClass.value !== ALL ? (fClass.value as AssetClass) : undefined
+  }),
+  { limit: PAGE_SIZE }
+)
+// Pulled out as top-level bindings so the template auto-unwraps them.
+const rows = list.rows
+const total = list.total
+const loading = list.loading
+const loadingMore = list.loadingMore
+const listDone = list.done
+const listError = list.error
+// The page-level error screen is only for "nothing to show". A failed append
+// keeps the rows already on screen and surfaces its own inline retry.
+const loadError = computed(() => list.error.value && rows.value.length === 0)
 
 // Price columns: shown by default (admin). Per-role/per-field masking is the
 // backend field-permission concern — a row's purchase_cost/book_value simply
@@ -87,6 +110,15 @@ const classOptions = computed(() => [
 
 const anyFilter = computed(() =>
   !!(search.value.trim() || fStatus.value !== ALL || fKat.value !== ALL || fKantor.value || fClass.value !== ALL)
+)
+
+// Advanced filters only — the search box stands on its own in the filter bar,
+// so it must not inflate the count badge next to the filter button.
+const advancedFilterCount = computed(() =>
+  (fStatus.value !== ALL ? 1 : 0)
+  + (fKat.value !== ALL ? 1 : 0)
+  + (fKantor.value ? 1 : 0)
+  + (fClass.value !== ALL ? 1 : 0)
 )
 
 // Bridge the 1-based `page` ref to the shared TablePagination's 0-based offset
@@ -149,14 +181,23 @@ function resetFilters() {
   // pattern as master/employees.vue's resetFilters).
 }
 
+function leaveTo(path: string) {
+  // Snapshot BEFORE navigating. The router scrolls the container back to the
+  // top as part of the route change, and that happens before the leaving
+  // component's teardown hooks run — reading scrollTop there always yields 0.
+  // The destination is stored with the snapshot so only a return trip from
+  // that exact route may consume it.
+  saveListState(path)
+  navigateTo(path)
+}
 function openDetail(tag: string) {
-  navigateTo(localePath(`/assets/${tag}`))
+  leaveTo(localePath(`/assets/${tag}`))
 }
 function openEdit(tag: string) {
-  navigateTo(localePath(`/assets/${tag}/edit`))
+  leaveTo(localePath(`/assets/${tag}/edit`))
 }
 function openLabel(tags: string[]) {
-  navigateTo(localePath(`/assets/label?tags=${tags.join(',')}`))
+  leaveTo(localePath(`/assets/label?tags=${tags.join(',')}`))
 }
 function comingSoon() {
   toast.add({ title: t('assets.comingSoon'), color: 'neutral', icon: 'i-lucide-info' })
@@ -221,32 +262,51 @@ function onTableContextMenu(e: MouseEvent) {
 // mirrors "no valid actions" without racing the click that populates
 // `contextItems`; the stale-item guarantee itself comes from the reset above.
 
-// Guards against a stale, out-of-order response: only the most recently
-// *started* load() is allowed to write rows/total/loadError/loading.
-let seq = 0
-async function load() {
-  const mine = ++seq
-  loading.value = true
-  loadError.value = false
-  try {
-    const res = await assetsApi.list({
-      limit: PAGE_SIZE,
-      offset: (page.value - 1) * PAGE_SIZE,
-      search: debouncedSearch.value.trim() || undefined,
-      status: fStatus.value !== ALL ? (fStatus.value as AssetStatus) : undefined,
-      category_id: fKat.value !== ALL ? fKat.value : undefined,
-      office_id: fKantor.value ?? undefined,
-      asset_class: fClass.value !== ALL ? (fClass.value as AssetClass) : undefined
-    })
-    if (mine !== seq) return
-    rows.value = res.data
-    total.value = res.total
-    loading.value = false
-  } catch {
-    if (mine !== seq) return
-    loadError.value = true
-    loading.value = false
-  }
+// The scrolling ancestor — IntersectionObserver root and the element whose
+// scroll offset is saved and restored. See useScrollParent for why it is
+// re-queried rather than cached.
+const { el: scrollParent, get: scrollEl } = useScrollParent()
+
+// Snapshot key: everything the cached rows depend on. Filters are the obvious
+// part; the caller's identity and role matter just as much, because the rows
+// were already filtered by the backend for that role's data scope and field
+// permissions. Including them makes the cache safe by construction rather than
+// safe only because every session path happens to clear it.
+const auth = useAuthStore()
+const filterSignature = computed(() => [
+  currentDataEpoch(),
+  auth.user?.id ?? '',
+  auth.user?.role_id ?? '',
+  debouncedSearch.value.trim(),
+  fStatus.value,
+  fKat.value,
+  fKantor.value ?? '',
+  fClass.value
+].join('|'))
+const stateCache = useListStateCache<Asset>('/assets')
+
+function load() {
+  return isCompact.value ? list.loadFirst() : list.loadPage((page.value - 1) * PAGE_SIZE)
+}
+
+function scrollToTop() {
+  scrollEl()?.scrollTo({ top: 0 })
+}
+
+/**
+ * Stores the accumulated rows and the current scroll offset for this filter
+ * combination. Only the accumulating layout has a position worth keeping — the
+ * paged layout already comes back on the page the user left.
+ */
+function saveListState(leftTo: string) {
+  if (!isCompact.value || rows.value.length === 0) return
+  stateCache.save({
+    rows: [...rows.value],
+    total: total.value,
+    scrollTop: scrollEl()?.scrollTop ?? 0,
+    signature: filterSignature.value,
+    leftTo
+  })
 }
 
 async function loadFilterOptions() {
@@ -267,19 +327,57 @@ watch(search, (v) => {
   }, 300)
 })
 
-watch([debouncedSearch, fStatus, fKat, fKantor, fClass], () => {
-  // If we're already on page 1, resetting it below is a no-op that won't
-  // trigger the `page` watcher — so this watcher must load() itself. If
-  // we're on any other page, the reset *does* trigger the `page` watcher,
-  // which already calls load() — avoid firing it twice for one filter change.
+/**
+ * Discards everything accumulated and reloads from the top.
+ *
+ * Writing `page` only reloads when the value actually changes; when it was
+ * already 1 the `page` watcher never fires, so this must load itself. Doing
+ * both would fire two identical requests for one user action.
+ */
+function reloadFromStart() {
+  stateCache.drop()
+  list.reset()
+  scrollToTop()
   const alreadyFirstPage = page.value === 1
   page.value = 1
   if (alreadyFirstPage) load()
-})
+}
+
+watch([debouncedSearch, fStatus, fKat, fKantor, fClass], () => reloadFromStart())
 watch(page, () => load())
 
+// Crossing the breakpoint swaps between accumulate and replace semantics, so
+// the rows held under the old mode no longer describe what the new one shows.
+watch(isCompact, () => reloadFromStart())
+
 onMounted(() => {
-  load()
+  scrollEl()
+  // `history.state.forward` is only set when this entry was reached by going
+  // back, and it names the route we went back FROM. A fresh push here — the
+  // redirect after saving an edit, say — leaves it empty and so reloads,
+  // instead of resurrecting rows that no longer reflect the edit.
+  const cameBackFrom = (history.state?.forward ?? null) as string | null
+  // Only the compact layout ever writes a snapshot; restoring one into the
+  // paged layout would show accumulated rows under a "1-10 of N" paginator.
+  const snap = isCompact.value ? stateCache.restore(filterSignature.value, cameBackFrom) : null
+  if (snap) {
+    // Returning from a detail screen: put the accumulated rows and the scroll
+    // offset back instead of starting over at row one.
+    list.hydrate(snap.rows, snap.total)
+    // The rows are in the DOM after the next tick, but the router also resets
+    // this container's scroll as part of the route change. Re-applying across
+    // a couple of frames lets our position win without fighting the router.
+    nextTick(() => {
+      const apply = () => scrollEl()?.scrollTo({ top: snap.scrollTop })
+      apply()
+      requestAnimationFrame(() => {
+        apply()
+        requestAnimationFrame(apply)
+      })
+    })
+  } else {
+    load()
+  }
   loadFilterOptions()
 })
 
@@ -325,68 +423,71 @@ onUnmounted(() => {
     </div>
 
     <!-- Filter bar -->
-    <div class="bg-default border border-default rounded-[13px] p-[14px] shadow-sm mb-4 flex items-center gap-2.5 flex-wrap">
-      <UInput
-        v-model="search"
-        icon="i-lucide-search"
-        :placeholder="t('assets.searchPlaceholder')"
-        class="flex-1 min-w-[220px]"
-      />
-      <USelect
-        v-model="fStatus"
-        :items="statusOptions"
-        class="min-w-[140px]"
-      />
-      <USelect
-        v-model="fKat"
-        :items="katOptions"
-        class="min-w-[150px]"
-      />
-      <AsyncSearchPicker
-        :model-value="fKantor"
-        :search-fn="office.searchFn"
-        :resolve-fn="office.resolveFn"
-        :placeholder="t('common.searchOffice')"
-        testid="assets-office-filter"
-        clearable
-        class="min-w-[190px]"
-        @update:model-value="fKantor = $event"
-      />
-      <USelect
-        v-model="fClass"
-        :items="classOptions"
-        class="min-w-[150px]"
-      />
-      <UButton
-        v-if="anyFilter"
-        color="error"
-        variant="ghost"
-        icon="i-lucide-x"
-        :label="t('assets.reset')"
-        @click="resetFilters"
-      />
-      <div class="flex-1" />
-      <div class="flex gap-0.5 p-0.5 bg-muted rounded-lg flex-none">
-        <UButton
-          icon="i-lucide-table"
-          :color="view === 'table' ? 'primary' : 'neutral'"
-          :variant="view === 'table' ? 'soft' : 'ghost'"
-          size="sm"
-          square
-          :aria-label="t('assets.viewTable')"
-          @click="() => { view = 'table' }"
+    <FilterBar
+      v-model:search="search"
+      :search-placeholder="t('assets.searchPlaceholder')"
+      :active-count="advancedFilterCount"
+      :show-reset="anyFilter"
+      :reset-label="t('assets.reset')"
+      :total="loading ? undefined : total"
+      testid="assets-filter"
+      @reset="resetFilters"
+    >
+      <template #filters>
+        <USelect
+          v-model="fStatus"
+          :items="statusOptions"
+          class="min-w-[140px]"
         />
-        <UButton
-          icon="i-lucide-layout-grid"
-          :color="view === 'grid' ? 'primary' : 'neutral'"
-          :variant="view === 'grid' ? 'soft' : 'ghost'"
-          size="sm"
-          square
-          :aria-label="t('assets.viewGrid')"
-          @click="() => { view = 'grid' }"
+        <USelect
+          v-model="fKat"
+          :items="katOptions"
+          class="min-w-[150px]"
         />
-      </div>
-    </div>
+        <AsyncSearchPicker
+          :model-value="fKantor"
+          :search-fn="office.searchFn"
+          :resolve-fn="office.resolveFn"
+          :placeholder="t('common.searchOffice')"
+          testid="assets-office-filter"
+          clearable
+          class="min-w-[190px]"
+          @update:model-value="fKantor = $event"
+        />
+        <USelect
+          v-model="fClass"
+          :items="classOptions"
+          class="min-w-[150px]"
+        />
+      </template>
+      <template #trailing>
+        <!-- The compact layout always renders the accumulating card list, so a
+             table/grid switch would have nothing to switch. -->
+        <div
+          v-if="!isCompact"
+          class="flex gap-0.5 p-0.5 bg-muted rounded-lg flex-none"
+        >
+          <UButton
+            icon="i-lucide-table"
+            :color="view === 'table' ? 'primary' : 'neutral'"
+            :variant="view === 'table' ? 'soft' : 'ghost'"
+            size="sm"
+            square
+            :aria-label="t('assets.viewTable')"
+            @click="() => { view = 'table' }"
+          />
+          <UButton
+            icon="i-lucide-layout-grid"
+            :color="view === 'grid' ? 'primary' : 'neutral'"
+            :variant="view === 'grid' ? 'soft' : 'ghost'"
+            size="sm"
+            square
+            :aria-label="t('assets.viewGrid')"
+            @click="() => { view = 'grid' }"
+          />
+        </div>
+      </template>
+    </FilterBar>
 
     <!-- Bulk bar -->
     <div
@@ -489,6 +590,33 @@ onUnmounted(() => {
         :to="localePath('/assets/new')"
       />
     </div>
+
+    <!-- Compact: one accumulating card list. No page buttons, no table to
+         scroll sideways; the sentinel inside InfiniteList pulls the next page. -->
+    <InfiniteList
+      v-else-if="isCompact"
+      :items="cardRows"
+      :loading-more="loadingMore"
+      :done="listDone"
+      :error="listError"
+      :scroll-parent="scrollParent"
+      :estimate-size="190"
+      testid="assets-infinite"
+      @load-more="list.loadMore"
+      @retry="list.retry"
+    >
+      <template #item="{ item }">
+        <div class="pb-3">
+          <AssetCard
+            :asset="(item as CatalogCardAsset)"
+            :selected="selected.has((item as CatalogCardAsset).tag)"
+            :show-price="showPrice"
+            @toggle="toggle((item as CatalogCardAsset).tag)"
+            @open="openDetail((item as CatalogCardAsset).tag)"
+          />
+        </div>
+      </template>
+    </InfiniteList>
 
     <!-- Table view -->
     <div

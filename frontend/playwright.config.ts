@@ -19,20 +19,32 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure'
   },
-  // Two projects split by file so CI can run them against DIFFERENT DB states:
-  // `chromium` (existing specs) runs against a clean migrated DB (each spec builds
-  // its own fixtures), while `lampiran` (the Lampiran A maker-checker suite) runs
-  // against the demo seed (kantor/role per tier + aset). CI runs them in two phases
-  // with the seed applied in between; locally `playwright test` runs both.
+  // Three projects split by file so CI can run them against DIFFERENT DB states.
+  // CI applies the demo seed between phase one and phases two/three; locally
+  // `playwright test` runs all three.
+  //
+  // `chromium`   — clean migrated DB; each spec builds its own fixtures.
+  // `lampiran`   — demo seed (kantor/role per tier + aset): maker-checker suite.
+  // `seeded-ui`  — demo seed as well, for UI specs that need a data-RICH list
+  //                rather than fixtures they can build themselves. The compact
+  //                layout only exists once a list runs past one page, and assets
+  //                cannot be created directly (no POST /assets — every asset goes
+  //                through maker-checker), so building 25 of them per spec is not
+  //                practical. These specs read the seeded data instead.
   projects: [
     {
       name: 'chromium',
-      testIgnore: /lampiran-a-.*\.spec\.ts/,
+      testIgnore: [/lampiran-a-.*\.spec\.ts/, /mobile-table-ux\.spec\.ts/],
       use: { ...devices['Desktop Chrome'] }
     },
     {
       name: 'lampiran',
       testMatch: /lampiran-a-.*\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] }
+    },
+    {
+      name: 'seeded-ui',
+      testMatch: /mobile-table-ux\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] }
     }
   ],

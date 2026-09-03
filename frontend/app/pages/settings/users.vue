@@ -17,8 +17,7 @@ const employee = useEmployeePicker()
 
 const PAGE_SIZE = 10
 
-const rows = ref<UserView[]>([])
-const total = ref(0)
+const isCompact = useIsCompact()
 const lookups = ref<Lookups>({ roles: [] })
 const limit = ref(PAGE_SIZE)
 const offset = ref(0)
@@ -26,8 +25,38 @@ const search = ref('')
 const fRole = ref<string>(ALL)
 const fOffice = ref<string | null>(null)
 const fStatus = ref<string>(ALL)
-const loading = ref(true)
-const loadFailed = ref(false)
+
+// The scrolling ancestor — the sentinel below the table observes
+// intersections against it, not the viewport. Re-queried on every access; see
+// useScrollParent for why caching the node is a silent-failure trap.
+const { el: scrollParent, get: scrollEl } = useScrollParent()
+
+// One data engine for both layouts: page buttons drive `loadPage`, the compact
+// layout accumulates with `loadFirst`/`loadMore`. See useInfiniteRows.
+const list = useInfiniteRows<UserView>(
+  async ({ limit: l, offset: o }) => {
+    const res = await api.list({
+      search: search.value.trim() || undefined,
+      roleId: fRole.value !== ALL ? fRole.value : undefined,
+      officeId: fOffice.value ?? undefined,
+      status: fStatus.value !== ALL ? (fStatus.value as UserStatus) : undefined,
+      limit: l,
+      offset: o
+    })
+    return { data: res.rows, total: res.total }
+  },
+  { limit: PAGE_SIZE }
+)
+// Pulled out as top-level bindings so the template auto-unwraps them.
+const rows = list.rows
+const total = list.total
+const loading = list.loading
+const loadingMore = list.loadingMore
+const listDone = list.done
+const listError = list.error
+// The full-page error screen is only for "nothing to show"; a failed append
+// keeps the rows on screen and offers its own inline retry.
+const loadFailed = computed(() => list.error.value && rows.value.length === 0)
 
 // id → name maps for table resolution. Role stays an eager map (small,
 // bounded reference list); office/employee resolve lazily on demand via the
@@ -74,6 +103,12 @@ const statusFilterOptions = computed(() => [
 
 const anyFilter = computed(() =>
   !!(search.value.trim() || fRole.value !== ALL || fOffice.value || fStatus.value !== ALL)
+)
+
+// Advanced filters only — the search box stands on its own in the filter bar,
+// so it must not inflate the count badge next to the filter button.
+const advancedFilterCount = computed(() =>
+  (fRole.value !== ALL ? 1 : 0) + (fOffice.value ? 1 : 0) + (fStatus.value !== ALL ? 1 : 0)
 )
 
 const statusMeta: Record<UserStatus, { color: BadgeColor, dot: string }> = {
@@ -127,47 +162,55 @@ function rowActions(row: Record<string, unknown>): RowAction[] {
   ]
 }
 
-function listParams() {
-  return {
-    search: search.value.trim() || undefined,
-    roleId: fRole.value !== ALL ? fRole.value : undefined,
-    officeId: fOffice.value ?? undefined,
-    status: fStatus.value !== ALL ? (fStatus.value as UserStatus) : undefined,
-    limit: limit.value,
-    offset: offset.value
-  }
+function loadList() {
+  return isCompact.value ? list.loadFirst() : list.loadPage(offset.value)
 }
 
-async function loadList() {
-  loading.value = true
-  loadFailed.value = false
-  try {
-    const res = await api.list(listParams())
-    rows.value = res.rows
-    total.value = res.total
-  } catch {
-    loadFailed.value = true
-  } finally {
-    loading.value = false
-  }
+/**
+ * Reload after a mutation. In the accumulating layout this refetches every row
+ * already on screen, so editing a user doesn't collapse an 80-row list back to
+ * 10 and leave the reader stranded below the content.
+ *
+ * Past one server page that is no longer possible — the endpoint clamps
+ * `limit` to 100 — so rather than let the list quietly lose the overflow, go
+ * back to the top with a coherent first page.
+ */
+function reloadAfterMutation() {
+  if (!isCompact.value) return list.loadPage(offset.value)
+  if (list.canRefreshAll.value) return list.refreshAll()
+  return reloadFromStart()
 }
 
 async function load() {
-  loading.value = true
-  loadFailed.value = false
-  try {
-    const [lk, res] = await Promise.all([
-      api.lookups(),
-      api.list(listParams())
-    ])
-    lookups.value = lk
-    rows.value = res.rows
-    total.value = res.total
-  } catch {
-    loadFailed.value = true
-  } finally {
-    loading.value = false
+  // Lookups are supplementary: a failure there must not take the list down
+  // with it, so it is awaited alongside but swallows its own error.
+  const lookupsLoad = api.lookups()
+    .then((lk) => { lookups.value = lk })
+    .catch(() => {})
+  await Promise.all([lookupsLoad, loadList()])
+}
+
+function scrollToTop() {
+  scrollEl()?.scrollTo({ top: 0 })
+}
+
+// Set when this component resets `offset` itself, so the `offset` watcher can
+// tell an internal reset apart from the user clicking a page button. Without
+// it, reloading from a non-zero offset would fire twice: once from the watcher
+// and once from the direct load below.
+let internalOffsetReset = false
+
+function reloadFromStart(): Promise<void> {
+  list.reset()
+  scrollToTop()
+  // Load directly rather than letting the watcher do it: routing through the
+  // watcher makes this unawaitable, and reloadAfterMutation awaits it — a
+  // caller would otherwise resume before the rows are fresh.
+  if (offset.value !== 0) {
+    internalOffsetReset = true
+    offset.value = 0
   }
+  return loadList()
 }
 
 function resetFilters() {
@@ -227,7 +270,7 @@ async function onSubmit() {
       })
     }
     formOpen.value = false
-    await loadList()
+    await reloadAfterMutation()
   } catch (err: unknown) {
     if ((err as { statusCode?: number }).statusCode === 409) errors.email = t('settings.users.conflict')
     else toast.add({ title: t('settings.users.loadError'), color: 'error' })
@@ -244,7 +287,7 @@ async function onToggleStatus(row: UserView) {
       office_id: row.office_id ?? undefined, employee_id: row.employee_id ?? undefined
     })
     toast.add({ title: t('settings.users.toast.statusChanged'), color: 'success', icon: 'i-lucide-check' })
-    await loadList()
+    await reloadAfterMutation()
   } catch { /* useApiClient toasts */ }
 }
 
@@ -280,28 +323,27 @@ async function onDelete(row: UserView) {
   if (!ok) return
   try {
     await api.remove(row.id)
-    await loadList()
+    await reloadAfterMutation()
   } catch { /* useApiClient toasts */ }
 }
 
-watch(search, () => {
-  offset.value = 0
+watch([search, fRole, fOffice, fStatus], () => reloadFromStart())
+watch(offset, () => {
+  if (internalOffsetReset) {
+    internalOffsetReset = false
+    return
+  }
   loadList()
 })
-watch(fRole, () => {
-  offset.value = 0
-  loadList()
+
+// Crossing the breakpoint swaps accumulate and replace semantics, so the rows
+// held under the old mode no longer describe what the new one shows.
+watch(isCompact, () => reloadFromStart())
+
+onMounted(() => {
+  scrollEl()
+  load()
 })
-watch(fOffice, () => {
-  offset.value = 0
-  loadList()
-})
-watch(fStatus, () => {
-  offset.value = 0
-  loadList()
-})
-watch(offset, () => loadList())
-onMounted(() => load())
 </script>
 
 <template>
@@ -323,46 +365,40 @@ onMounted(() => load())
     </PageHeader>
 
     <!-- Filter bar -->
-    <div class="bg-default border border-default rounded-[13px] shadow p-[14px] mb-4 flex flex-wrap items-center gap-[10px]">
-      <UInput
-        v-model="search"
-        icon="i-lucide-search"
-        :placeholder="t('settings.users.searchPlaceholder')"
-        class="flex-1 min-w-[200px]"
-      />
-      <USelect
-        v-model="fRole"
-        data-testid="users-role-filter"
-        :items="roleFilterOptions"
-        class="min-w-[150px]"
-      />
-      <AsyncSearchPicker
-        :model-value="fOffice"
-        :search-fn="office.searchFn"
-        :resolve-fn="office.resolveFn"
-        :placeholder="t('common.searchOffice')"
-        testid="users-filter-office"
-        clearable
-        class="min-w-[190px]"
-        @update:model-value="fOffice = $event"
-      />
-      <USelect
-        v-model="fStatus"
-        data-testid="users-status-filter"
-        :items="statusFilterOptions"
-        class="min-w-[140px]"
-      />
-      <UButton
-        v-if="anyFilter"
-        data-testid="users-filter-reset"
-        color="error"
-        variant="ghost"
-        icon="i-lucide-x"
-        @click="resetFilters"
-      >
-        {{ t('common.reset') }}
-      </UButton>
-    </div>
+    <FilterBar
+      v-model:search="search"
+      :search-placeholder="t('settings.users.searchPlaceholder')"
+      :active-count="advancedFilterCount"
+      :show-reset="anyFilter"
+      :total="loading ? undefined : total"
+      testid="users-filter"
+      @reset="resetFilters"
+    >
+      <template #filters>
+        <USelect
+          v-model="fRole"
+          data-testid="users-role-filter"
+          :items="roleFilterOptions"
+          class="min-w-[150px]"
+        />
+        <AsyncSearchPicker
+          :model-value="fOffice"
+          :search-fn="office.searchFn"
+          :resolve-fn="office.resolveFn"
+          :placeholder="t('common.searchOffice')"
+          testid="users-filter-office"
+          clearable
+          class="min-w-[190px]"
+          @update:model-value="fOffice = $event"
+        />
+        <USelect
+          v-model="fStatus"
+          data-testid="users-status-filter"
+          :items="statusFilterOptions"
+          class="min-w-[140px]"
+        />
+      </template>
+    </FilterBar>
 
     <div
       v-if="loadFailed"
@@ -392,7 +428,14 @@ onMounted(() => load())
         :offset="offset"
         :empty-title="anyFilter ? t('settings.users.emptyFilter') : t('settings.users.empty')"
         :actions="rowActions"
+        infinite
+        :loading-more="loadingMore"
+        :done="listDone"
+        :error="listError"
+        :scroll-parent="scrollParent"
         @update:offset="offset = $event"
+        @load-more="list.loadMore"
+        @retry="list.retry"
       >
         <template #name-cell="{ row }">
           <div class="flex items-center gap-[11px]">

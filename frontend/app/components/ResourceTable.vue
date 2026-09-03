@@ -8,6 +8,12 @@ interface Column {
   sortable?: boolean
 }
 
+// Hard ceiling on accumulated table rows. UTable owns its own <tbody>, so the
+// rows here can't be windowed without abandoning it (see the spec's section on
+// the table path). Capping the DOM and handing the user an explicit control
+// past the cap is the honest alternative.
+const MAX_TABLE_ROWS = 300
+
 const props = withDefaults(defineProps<{
   rows: Record<string, unknown>[]
   columns: Column[]
@@ -17,9 +23,33 @@ const props = withDefaults(defineProps<{
   offset?: number
   emptyTitle?: string
   actions?: RowActions
-}>(), { loading: false, total: 0, limit: 10, offset: 0, emptyTitle: '' })
+  /** Opt in to accumulate-on-scroll instead of page buttons, compact width only. */
+  infinite?: boolean
+  loadingMore?: boolean
+  done?: boolean
+  error?: boolean
+  scrollParent?: HTMLElement | null
+}>(), {
+  loading: false,
+  total: 0,
+  limit: 10,
+  offset: 0,
+  emptyTitle: '',
+  infinite: false,
+  loadingMore: false,
+  done: false,
+  error: false,
+  scrollParent: null
+})
 
-const emit = defineEmits<{ 'update:offset': [number] }>()
+const emit = defineEmits<{ 'update:offset': [number], 'load-more': [], 'retry': [] }>()
+
+const isCompact = useIsCompact()
+// Infinite mode is a compact-width behaviour only; the regular layout keeps
+// its page buttons exactly as before.
+const infiniteMode = computed(() => props.infinite && isCompact.value)
+// Past the cap the sentinel stops firing and an explicit button takes over.
+const atRowCap = computed(() => props.rows.length >= MAX_TABLE_ROWS)
 const sorting = defineModel<TableSorting>('sorting', { default: () => [] })
 
 const { t } = useI18n()
@@ -181,8 +211,20 @@ function onContextMenu(e: MouseEvent) {
         </div>
       </UContextMenu>
 
+      <InfiniteScrollSentinel
+        v-if="infiniteMode"
+        :loading-more="loadingMore"
+        :done="done"
+        :error="error"
+        :has-items="rows.length > 0"
+        :manual="atRowCap && !done"
+        :scroll-parent="scrollParent"
+        testid="resource-table-infinite"
+        @load-more="emit('load-more')"
+        @retry="emit('retry')"
+      />
       <TablePagination
-        v-if="total > 0"
+        v-else-if="total > 0"
         :total="total"
         :limit="limit"
         :offset="offset"

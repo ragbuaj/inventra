@@ -31,3 +31,17 @@ export function useMediaQuery(query: string, defaultValue = false): Ref<boolean>
 export function useIsDesktop(): Ref<boolean> {
   return useMediaQuery('(min-width: 1024px)', true)
 }
+
+/**
+ * True below Tailwind's `md` breakpoint (< 768px) — the "compact" layout where
+ * a data list shows only its search box plus a filter button, and swaps
+ * numbered pagination for infinite scroll.
+ *
+ * Defaults to `false` (assume the regular layout) so every environment without
+ * `matchMedia` — SSR, the Nuxt test runtime — keeps rendering exactly what it
+ * rendered before this composable existed. Tests that need the compact branch
+ * override it with `mockNuxtImport`.
+ */
+export function useIsCompact(): Ref<boolean> {
+  return useMediaQuery('(max-width: 767.98px)', false)
+}

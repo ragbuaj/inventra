@@ -1,8 +1,17 @@
 // @vitest-environment nuxt
-import { describe, it, expect } from 'vitest'
-import { h } from 'vue'
-import { mountSuspended } from '@nuxt/test-utils/runtime'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { h, ref } from 'vue'
+import { mountSuspended, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import ResourceTable from '~/components/ResourceTable.vue'
+
+// Infinite mode is compact-width only, so the breakpoint has to be drivable.
+// It stays `false` for every pre-existing test, which is what those assert.
+const compact = ref(false)
+mockNuxtImport('useIsCompact', () => () => compact)
+
+beforeEach(() => {
+  compact.value = false
+})
 
 const columns = [
   { accessorKey: 'name', header: 'Name' },
@@ -207,5 +216,152 @@ describe('ResourceTable', () => {
     expect(labels).toContain('Hapus')
     items.find(i => i.textContent?.includes('Hapus'))?.click()
     expect(deleted).toBe(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Infinite mode (compact width). happy-dom ships no IntersectionObserver, so
+// the sentinel gets a stub the test can fire by hand.
+// ---------------------------------------------------------------------------
+interface FakeObserver { targets: Element[], disconnected: boolean, fire: (v: boolean) => void }
+let observers: FakeObserver[] = []
+
+class FakeIntersectionObserver {
+  callback: IntersectionObserverCallback
+  targets: Element[] = []
+  disconnected = false
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback
+    observers.push(this as unknown as FakeObserver)
+  }
+
+  observe(el: Element) { this.targets.push(el) }
+  unobserve() {}
+  disconnect() { this.disconnected = true }
+  takeRecords() { return [] }
+  fire(isIntersecting: boolean) {
+    this.callback(
+      this.targets.map(target => ({ target, isIntersecting }) as IntersectionObserverEntry),
+      this as unknown as IntersectionObserver
+    )
+  }
+}
+
+function liveObserver(): FakeObserver {
+  const live = observers.filter(o => !o.disconnected)
+  return live[live.length - 1]!
+}
+
+function manyRows(n: number) {
+  return Array.from({ length: n }, (_, i) => ({ name: `Aset ${i + 1}`, status: 'available' }))
+}
+
+describe('ResourceTable — infinite mode', () => {
+  beforeEach(() => {
+    observers = []
+    vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('keeps page buttons at regular width even when infinite is set', async () => {
+    compact.value = false
+    const w = await mountSuspended(ResourceTable, {
+      props: { rows, columns, total: 200, limit: 10, offset: 0, infinite: true }
+    })
+    expect(w.find('[data-testid="pagination-next"]').exists()).toBe(true)
+    expect(w.find('[data-testid="resource-table-infinite-sentinel"]').exists()).toBe(false)
+  })
+
+  it('replaces page buttons with a sentinel at compact width', async () => {
+    compact.value = true
+    const w = await mountSuspended(ResourceTable, {
+      props: { rows, columns, total: 200, limit: 10, offset: 0, infinite: true }
+    })
+    expect(w.find('[data-testid="pagination-next"]').exists()).toBe(false)
+    expect(w.find('[data-testid="resource-table-infinite-sentinel"]').exists()).toBe(true)
+  })
+
+  it('keeps page buttons at compact width when infinite is not requested', async () => {
+    compact.value = true
+    const w = await mountSuspended(ResourceTable, {
+      props: { rows, columns, total: 200, limit: 10, offset: 0 }
+    })
+    expect(w.find('[data-testid="pagination-next"]').exists()).toBe(true)
+  })
+
+  it('emits load-more when the sentinel comes into view', async () => {
+    compact.value = true
+    const w = await mountSuspended(ResourceTable, {
+      props: { rows, columns, total: 200, limit: 10, offset: 0, infinite: true }
+    })
+    liveObserver().fire(true)
+    expect(w.emitted('load-more')).toHaveLength(1)
+  })
+
+  it('does not auto-load while an append is running, is done, or has errored', async () => {
+    compact.value = true
+    for (const state of [{ loadingMore: true }, { done: true }, { error: true }]) {
+      observers = []
+      const w = await mountSuspended(ResourceTable, {
+        props: { rows, columns, total: 200, limit: 10, offset: 0, infinite: true, ...state }
+      })
+      liveObserver().fire(true)
+      expect(w.emitted('load-more')).toBeUndefined()
+    }
+  })
+
+  it('stops auto-loading at the 300-row cap and offers an explicit control', async () => {
+    compact.value = true
+    const w = await mountSuspended(ResourceTable, {
+      props: { rows: manyRows(300), columns, total: 900, limit: 10, offset: 0, infinite: true }
+    })
+    liveObserver().fire(true)
+    expect(w.emitted('load-more')).toBeUndefined()
+
+    const button = w.find('[data-testid="resource-table-infinite-load-more"]')
+    expect(button.exists()).toBe(true)
+    await button.trigger('click')
+    expect(w.emitted('load-more')).toHaveLength(1)
+  })
+
+  it('still auto-loads one row short of the cap', async () => {
+    compact.value = true
+    const w = await mountSuspended(ResourceTable, {
+      props: { rows: manyRows(299), columns, total: 900, limit: 10, offset: 0, infinite: true }
+    })
+    expect(w.find('[data-testid="resource-table-infinite-load-more"]').exists()).toBe(false)
+    liveObserver().fire(true)
+    expect(w.emitted('load-more')).toHaveLength(1)
+  })
+
+  it('shows the end marker rather than the load-more button once done at the cap', async () => {
+    compact.value = true
+    const w = await mountSuspended(ResourceTable, {
+      props: { rows: manyRows(300), columns, total: 300, limit: 10, offset: 0, infinite: true, done: true }
+    })
+    expect(w.find('[data-testid="resource-table-infinite-end"]').exists()).toBe(true)
+    expect(w.find('[data-testid="resource-table-infinite-load-more"]').exists()).toBe(false)
+  })
+
+  it('surfaces an inline retry after a failed append', async () => {
+    compact.value = true
+    const w = await mountSuspended(ResourceTable, {
+      props: { rows, columns, total: 200, limit: 10, offset: 0, infinite: true, error: true }
+    })
+    await w.find('[data-testid="resource-table-infinite-retry"]').trigger('click')
+    expect(w.emitted('retry')).toHaveLength(1)
+  })
+
+  it('exposes the status region as a polite live region', async () => {
+    compact.value = true
+    const w = await mountSuspended(ResourceTable, {
+      props: { rows, columns, total: 200, limit: 10, offset: 0, infinite: true }
+    })
+    const status = w.find('[data-testid="resource-table-infinite-status"]')
+    expect(status.attributes('role')).toBe('status')
+    expect(status.attributes('aria-live')).toBe('polite')
   })
 })

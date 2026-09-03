@@ -66,6 +66,7 @@ export function useAuthApi() {
     try {
       await client.request('/auth/logout', { method: 'POST', credentials: 'include' })
     } finally {
+      // `auth.clear()` also drops the cached list snapshots — see the store.
       auth.clear()
       await navigateTo('/login')
     }

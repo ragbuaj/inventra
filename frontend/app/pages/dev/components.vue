@@ -30,6 +30,31 @@ const tree: TreeNode[] = [
   }
 ]
 const offset = ref(0)
+
+// FilterBar showcase state
+const DEMO_ALL = '__all__'
+const demoSearch = ref('')
+const demoStatus = ref(DEMO_ALL)
+const demoCategory = ref(DEMO_ALL)
+const demoStatusOptions = [
+  { value: DEMO_ALL, label: 'Semua Status' },
+  { value: 'available', label: 'Tersedia' },
+  { value: 'under_maintenance', label: 'Maintenance' }
+]
+const demoCategoryOptions = [
+  { value: DEMO_ALL, label: 'Semua Kategori' },
+  { value: 'it', label: 'Perangkat IT' },
+  { value: 'furniture', label: 'Furnitur' }
+]
+const demoActiveCount = computed(
+  () => [demoStatus.value, demoCategory.value].filter(v => v !== DEMO_ALL).length
+)
+function resetDemoFilters() {
+  demoSearch.value = ''
+  demoStatus.value = DEMO_ALL
+  demoCategory.value = DEMO_ALL
+}
+
 async function askDelete() {
   await open({ title: 'Hapus data?', description: 'Tindakan ini tidak dapat dibatalkan.' })
 }
@@ -85,6 +110,37 @@ const rowActions = (): RowAction[] => [
         />
         <CardSkeleton />
       </div>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="font-semibold">
+        Filter bar
+      </h2>
+      <p class="text-sm text-muted">
+        Sempitkan jendela di bawah 768px: filter lanjutan pindah ke slideover bawah, dan
+        tombol filter membawa badge jumlah filter aktif.
+      </p>
+      <FilterBar
+        v-model:search="demoSearch"
+        search-placeholder="Cari aset…"
+        :active-count="demoActiveCount"
+        :total="rows.length"
+        testid="demo-filter-bar"
+        @reset="resetDemoFilters"
+      >
+        <template #filters>
+          <USelect
+            v-model="demoStatus"
+            :items="demoStatusOptions"
+            class="min-w-[150px]"
+          />
+          <USelect
+            v-model="demoCategory"
+            :items="demoCategoryOptions"
+            class="min-w-[150px]"
+          />
+        </template>
+      </FilterBar>
     </section>
 
     <section class="space-y-2">
