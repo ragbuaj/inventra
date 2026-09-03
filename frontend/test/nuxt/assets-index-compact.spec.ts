@@ -139,7 +139,8 @@ describe('Catalog (compact) — fetch accounting', () => {
 // Regression guards for the two critical review findings.
 // ---------------------------------------------------------------------------
 describe('Catalog (compact) — cached list is only restored on a real return trip', () => {
-  const SIG = '|__all__|__all__||__all__'
+  // id|role|search|status|category|office|class — see filterSignature.
+  const SIG = '1|r1||__all__|__all__||__all__'
 
   function seedSnapshot(leftTo: string) {
     useListStateCache('/assets').save({
@@ -199,9 +200,41 @@ describe('Catalog (compact) — cached list is only restored on a real return tr
       rows: [{ id: 'cached', asset_tag: 'CACHED', name: 'Dari cache', category_id: 'c1', office_id: 'o1', status: 'available' }],
       total: 99,
       scrollTop: 500,
-      signature: 'kursi|available|__all__||__all__',
+      signature: '1|r1|kursi|available|__all__||__all__',
       leftTo: '/assets/TAG-0'
     })
+
+    const w = await mountCatalog()
+    expect(assetCalls).toHaveLength(1)
+    expect(w.html()).not.toContain('Dari cache')
+  })
+
+  // The rows in a snapshot were already filtered by the backend for the
+  // caller's role and data scope. Binding identity into the signature makes the
+  // cache safe by construction, not merely because every session path happens
+  // to clear it.
+  it('reloads when a different user is signed in', async () => {
+    seedSnapshot('/assets/TAG-0')
+    history.replaceState({ forward: '/assets/TAG-0' }, '')
+    useAuthStore().setSession(
+      'tok',
+      { id: '2', name: 'Staf', email: 'staf@test.com', role_id: 'r1', role_name: 'Staf', office_id: null },
+      ['*']
+    )
+
+    const w = await mountCatalog()
+    expect(assetCalls).toHaveLength(1)
+    expect(w.html()).not.toContain('Dari cache')
+  })
+
+  it('reloads when the same user comes back under a different role', async () => {
+    seedSnapshot('/assets/TAG-0')
+    history.replaceState({ forward: '/assets/TAG-0' }, '')
+    useAuthStore().setSession(
+      'tok',
+      { id: '1', name: 'Admin', email: 'admin@test.com', role_id: 'r9', role_name: 'Auditor', office_id: null },
+      ['*']
+    )
 
     const w = await mountCatalog()
     expect(assetCalls).toHaveLength(1)

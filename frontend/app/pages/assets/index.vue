@@ -267,11 +267,21 @@ function onTableContextMenu(e: MouseEvent) {
 // re-queried rather than cached.
 const { el: scrollParent, get: scrollEl } = useScrollParent()
 
-// Snapshot key: the filters the rows were fetched under. A change here means
-// a restored snapshot would be showing the wrong rows.
-const filterSignature = computed(() =>
-  [debouncedSearch.value.trim(), fStatus.value, fKat.value, fKantor.value ?? '', fClass.value].join('|')
-)
+// Snapshot key: everything the cached rows depend on. Filters are the obvious
+// part; the caller's identity and role matter just as much, because the rows
+// were already filtered by the backend for that role's data scope and field
+// permissions. Including them makes the cache safe by construction rather than
+// safe only because every session path happens to clear it.
+const auth = useAuthStore()
+const filterSignature = computed(() => [
+  auth.user?.id ?? '',
+  auth.user?.role_id ?? '',
+  debouncedSearch.value.trim(),
+  fStatus.value,
+  fKat.value,
+  fKantor.value ?? '',
+  fClass.value
+].join('|'))
 const stateCache = useListStateCache<Asset>('/assets')
 
 function load() {

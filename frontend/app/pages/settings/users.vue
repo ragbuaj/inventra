@@ -170,9 +170,15 @@ function loadList() {
  * Reload after a mutation. In the accumulating layout this refetches every row
  * already on screen, so editing a user doesn't collapse an 80-row list back to
  * 10 and leave the reader stranded below the content.
+ *
+ * Past one server page that is no longer possible — the endpoint clamps
+ * `limit` to 100 — so rather than let the list quietly lose the overflow, go
+ * back to the top with a coherent first page.
  */
 function reloadAfterMutation() {
-  return isCompact.value ? list.refreshAll() : list.loadPage(offset.value)
+  if (!isCompact.value) return list.loadPage(offset.value)
+  if (list.canRefreshAll.value) return list.refreshAll()
+  return reloadFromStart()
 }
 
 async function load() {

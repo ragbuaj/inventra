@@ -25,6 +25,12 @@ export interface InfiniteRows<T> {
   loadFirst: () => Promise<void>
   /** Refetches every accumulated row in one request, keeping the list length. */
   refreshAll: () => Promise<void>
+  /**
+   * False once the list is longer than one request can return, so `refreshAll`
+   * could no longer preserve it — the caller should reload from the top
+   * instead of silently dropping the overflow.
+   */
+  canRefreshAll: ComputedRef<boolean>
   loadMore: () => Promise<void>
   retry: () => Promise<void>
   reset: () => void
@@ -46,9 +52,13 @@ export interface InfiniteRows<T> {
  */
 export function useInfiniteRows<T>(
   fetchPage: (arg: PageArg) => Promise<PageResult<T>>,
-  opts: { limit?: number } = {}
+  opts: { limit?: number, maxLimit?: number } = {}
 ): InfiniteRows<T> {
   const limit = opts.limit ?? 10
+  // The largest page the server will actually return. Every list endpoint
+  // clamps `limit` to 1..100 (common.ClampInt in the Go handlers), so asking
+  // for more silently comes back short.
+  const maxLimit = opts.maxLimit ?? 100
 
   const rows = ref([]) as Ref<T[]>
   const total = ref(0)
@@ -105,14 +115,20 @@ export function useInfiniteRows<T>(
     return fetchAt(0, false)
   }
 
+  const canRefreshAll = computed(() => rows.value.length <= maxLimit)
+
   /**
    * Refetches everything currently held, in one request, so the list keeps its
    * length. After a row is edited or deleted, reloading only the first page
    * would collapse an accumulated list back to `limit` rows and strand the
    * user in blank space below their scroll position.
+   *
+   * Only meaningful while `canRefreshAll` holds: beyond one server page this
+   * cannot keep its promise, and quietly returning a shorter list would look
+   * like rows had vanished.
    */
   function refreshAll(): Promise<void> {
-    return fetchAt(0, false, Math.max(limit, rows.value.length))
+    return fetchAt(0, false, Math.min(Math.max(limit, rows.value.length), maxLimit))
   }
 
   function loadMore(): Promise<void> {
@@ -149,5 +165,5 @@ export function useInfiniteRows<T>(
     failed = null
   }
 
-  return { rows, total, loading, loadingMore, error, done, loadPage, loadFirst, refreshAll, loadMore, retry, reset, hydrate }
+  return { rows, total, loading, loadingMore, error, done, loadPage, loadFirst, refreshAll, canRefreshAll, loadMore, retry, reset, hydrate }
 }

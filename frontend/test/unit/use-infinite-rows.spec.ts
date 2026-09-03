@@ -200,6 +200,40 @@ describe('useInfiniteRows — refreshAll', () => {
     expect(calls.at(-1)).toEqual({ limit: 10, offset: 0 })
   })
 
+  // The list endpoints clamp `limit` to 100, so asking for more comes back
+  // short and the list would silently lose the overflow.
+  it('never asks for more rows than the server will return', async () => {
+    const { fetchPage, calls } = dataset(500)
+    const l = useInfiniteRows(fetchPage, { limit: 50, maxLimit: 100 })
+    await l.loadFirst()
+    await l.loadMore()
+    await l.loadMore()
+    expect(l.rows.value).toHaveLength(150)
+
+    await l.refreshAll()
+    expect(calls.at(-1)!.limit).toBe(100)
+  })
+
+  it('reports that it can no longer preserve a list longer than one server page', async () => {
+    const { fetchPage } = dataset(500)
+    const l = useInfiniteRows(fetchPage, { limit: 50, maxLimit: 100 })
+    await l.loadFirst()
+    expect(l.canRefreshAll.value).toBe(true)
+    await l.loadMore()
+    expect(l.canRefreshAll.value).toBe(true)
+    await l.loadMore()
+    expect(l.canRefreshAll.value).toBe(false)
+  })
+
+  it('defaults the server page cap to 100', async () => {
+    const { fetchPage, calls } = dataset(500)
+    const l = useInfiniteRows(fetchPage, { limit: 60 })
+    await l.loadFirst()
+    await l.loadMore()
+    await l.refreshAll()
+    expect(calls.at(-1)!.limit).toBe(100)
+  })
+
   it('replaces rather than appends', async () => {
     const { fetchPage } = dataset(100)
     const l = useInfiniteRows(fetchPage, { limit: 10 })
