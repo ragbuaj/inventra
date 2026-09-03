@@ -233,6 +233,13 @@ jobs:
         working-directory: frontend
         run: pnpm exec playwright test --project=lampiran
 
+      # UI specs that need a data-rich list rather than fixtures they can build
+      # themselves — the compact (mobile) layout only exists once a list runs
+      # past one page, and assets can only be created through maker-checker.
+      - name: Run e2e — seeded UI specs (seeded DB)
+        working-directory: frontend
+        run: pnpm exec playwright test --project=seeded-ui
+
       # Playwright only sees the HTTP status, so a 500 from the API is opaque in
       # the test output. Dump the server side before teardown wipes it.
       - name: Dump backend logs (on failure)

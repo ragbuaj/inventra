@@ -338,8 +338,10 @@ dari detail. Laporkan hasilnya sebelum lanjut ke Fase 4.
 
 **Berkas:** `frontend/e2e/mobile-table-ux.spec.ts` (baru)
 
-**Yang dikerjakan:** `test.use({ viewport: { width: 390, height: 844 } })` di tingkat berkas,
-supaya `playwright.config.ts` dan tahapan CI dua fase tidak perlu diubah. Cakupan: filter lanjutan
+**Yang dikerjakan:** `test.use({ viewport: { width: 390, height: 844 } })` di tingkat berkas.
+Spec berjalan di proyek Playwright baru `seeded-ui` (setelah seed demo), bukan `chromium` — lihat
+koreksi di spec bagian 9: fase `chromium` berjalan terhadap DB bersih tanpa aset, sedangkan tata
+letak compact baru ada setelah daftar melewati satu halaman. Cakupan: filter lanjutan
 tersembunyi, slideover membuka dan menerapkan filter, badge terisi, gulir memuat lebih banyak,
 kembali dari detail memulihkan posisi.
 

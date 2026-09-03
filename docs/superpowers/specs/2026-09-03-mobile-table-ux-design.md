@@ -369,9 +369,17 @@ Dicatat agar tidak hilang, bukan bagian dari PR ini.
 
 **E2E (`e2e/`, Playwright).**
 
-- Spesifikasi baru dengan viewport ponsel. Viewport disetel per berkas lewat
-  `test.use({ viewport: { width: 390, height: 844 } })`, bukan lewat proyek Playwright baru,
-  supaya `playwright.config.ts` dan tahapan CI dua fase yang ada tidak perlu diubah.
+- Spesifikasi baru dengan viewport ponsel, disetel per berkas lewat
+  `test.use({ viewport: { width: 390, height: 844 } })`.
+
+  **Koreksi (2026-09-04, ditemukan di gerbang ship).** Rencana awal menyatakan spec ini bisa ikut
+  proyek `chromium` sehingga `playwright.config.ts` dan tahapan CI tidak perlu diubah. Itu keliru:
+  fase `chromium` di CI berjalan terhadap DB yang **bersih** — hanya superadmin ter-seed, nol aset
+  dan satu user. Tata letak compact justru baru ada setelah daftar melewati satu halaman, dan aset
+  **tidak bisa dibuat langsung** (tidak ada `POST /assets`; setiap aset lahir lewat maker-checker),
+  jadi membangun 25 aset sebagai fixture per spec tidak praktis. Spec ini karena itu pindah ke
+  proyek baru `seeded-ui` yang berjalan setelah seed demo diterapkan, dengan satu langkah CI
+  tambahan. Lolos lokal sebelumnya semata karena DB dev sudah ter-seed.
 - Isi spesifikasi itu: buka Katalog Aset, pastikan filter lanjutan tersembunyi, buka slideover,
   terapkan filter, pastikan daftar berubah dan badge terisi.
 - Gulir untuk memicu pemuatan tambahan, pastikan jumlah kartu bertambah, buka detail, tekan
