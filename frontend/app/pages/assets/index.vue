@@ -274,6 +274,7 @@ const { el: scrollParent, get: scrollEl } = useScrollParent()
 // safe only because every session path happens to clear it.
 const auth = useAuthStore()
 const filterSignature = computed(() => [
+  currentDataEpoch(),
   auth.user?.id ?? '',
   auth.user?.role_id ?? '',
   debouncedSearch.value.trim(),

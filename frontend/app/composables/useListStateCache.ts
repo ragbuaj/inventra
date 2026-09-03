@@ -22,6 +22,27 @@ export interface ListSnapshot<T = unknown> {
  */
 const cache = new Map<string, ListSnapshot>()
 
+/**
+ * Bumped by every successful write to the API. Callers fold it into their
+ * snapshot signature, so any mutation anywhere invalidates every snapshot.
+ *
+ * The navigation-direction guard alone is not enough: going Back from a detail
+ * screen where the user just changed something (check-out, maintenance
+ * request, valuation exception, an edit) is a legitimate return trip, and the
+ * snapshot would faithfully restore rows that no longer describe the data.
+ * Showing a pre-mutation status or book value in a bank fixed-asset system is
+ * not a cosmetic problem.
+ */
+let dataEpoch = 0
+
+export function bumpDataEpoch(): void {
+  dataEpoch++
+}
+
+export function currentDataEpoch(): number {
+  return dataEpoch
+}
+
 export function useListStateCache<T>(key: string) {
   function save(snapshot: ListSnapshot<T>): void {
     cache.set(key, snapshot as ListSnapshot)
@@ -60,4 +81,5 @@ export function useListStateCache<T>(key: string) {
 /** Wipes every cached list. Called on logout so no rows survive the session. */
 export function clearListStateCache(): void {
   cache.clear()
+  dataEpoch++
 }

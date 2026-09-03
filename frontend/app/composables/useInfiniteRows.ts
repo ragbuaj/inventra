@@ -52,7 +52,7 @@ export interface InfiniteRows<T> {
  */
 export function useInfiniteRows<T>(
   fetchPage: (arg: PageArg) => Promise<PageResult<T>>,
-  opts: { limit?: number, maxLimit?: number } = {}
+  opts: { limit?: number, maxLimit?: number, initiallyLoading?: boolean } = {}
 ): InfiniteRows<T> {
   const limit = opts.limit ?? 10
   // The largest page the server will actually return. Every list endpoint
@@ -62,7 +62,13 @@ export function useInfiniteRows<T>(
 
   const rows = ref([]) as Ref<T[]>
   const total = ref(0)
-  const loading = ref(false)
+  // Starts true because every consumer loads on mount, and the skeleton
+  // contract depends on it: ResourceTable locks `everLoaded` from an
+  // `immediate` watcher that runs during ITS setup — before the parent's
+  // onMounted fires the first load. Starting false there means the watcher
+  // sees `loading === false` once and the first-load skeleton can never
+  // render again for the life of the component.
+  const loading = ref(opts.initiallyLoading ?? true)
   const loadingMore = ref(false)
   const error = ref(false)
 

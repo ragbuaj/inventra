@@ -105,12 +105,19 @@ describe('InfiniteList — rendering branch', () => {
     expect(w.find('[data-testid="infinite-list-plain"]').exists()).toBe(false)
   })
 
-  // NOTE: the test runtime has no layout, so the virtualizer resolves a very
-  // small window. This asserts the branch keeps the DOM far below the item
-  // count; that the *right* items land in the *right* place is verified in a
-  // real browser (see the plan's checkpoint B).
-  it('keeps the DOM far smaller than the item count once windowed', async () => {
+  // The virtualizer needs a scroll element with real layout to compute a
+  // window, and this runtime has neither — `mountList` passes no scrollParent,
+  // so it resolves to ZERO rendered items here. An assertion like
+  // `count < 500` would therefore pass against a completely blank list, which
+  // is exactly the regression it would need to catch. So assert only what this
+  // environment can actually prove — the branch swapped — and let the real
+  // proof live where layout exists: `e2e/mobile-table-ux.spec.ts` scrolls a
+  // real browser past the threshold and checks the window is non-empty,
+  // bounded, and correctly positioned.
+  it('hands rendering to the virtualizer once windowed (window itself proven in e2e)', async () => {
     const w = await mountList({ items: items(500), threshold: 200 })
+    expect(w.find('[data-testid="infinite-list-virtual"]').exists()).toBe(true)
+    expect(w.find('[data-testid="infinite-list-plain"]').exists()).toBe(false)
     expect(w.findAll('.stub-item').length).toBeLessThan(500)
   })
 

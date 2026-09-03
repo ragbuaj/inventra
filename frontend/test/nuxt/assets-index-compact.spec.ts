@@ -9,7 +9,7 @@ import { ref } from 'vue'
 import { mountSuspended, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { enableAutoUnmount, flushPromises } from '@vue/test-utils'
 import { useAuthStore } from '~/stores/auth'
-import { clearListStateCache, useListStateCache } from '~/composables/useListStateCache'
+import { clearListStateCache, useListStateCache, currentDataEpoch, bumpDataEpoch } from '~/composables/useListStateCache'
 
 type RequestHandler = (path: string, opts?: Record<string, unknown>) => unknown
 
@@ -139,15 +139,15 @@ describe('Catalog (compact) — fetch accounting', () => {
 // Regression guards for the two critical review findings.
 // ---------------------------------------------------------------------------
 describe('Catalog (compact) — cached list is only restored on a real return trip', () => {
-  // id|role|search|status|category|office|class — see filterSignature.
-  const SIG = '1|r1||__all__|__all__||__all__'
+  // epoch|id|role|search|status|category|office|class — see filterSignature.
+  const sig = () => `${currentDataEpoch()}|1|r1||__all__|__all__||__all__`
 
   function seedSnapshot(leftTo: string) {
     useListStateCache('/assets').save({
       rows: [{ id: 'cached', asset_tag: 'CACHED', name: 'Dari cache', category_id: 'c1', office_id: 'o1', status: 'available' }],
       total: 99,
       scrollTop: 500,
-      signature: SIG,
+      signature: sig(),
       leftTo
     })
   }
@@ -200,7 +200,7 @@ describe('Catalog (compact) — cached list is only restored on a real return tr
       rows: [{ id: 'cached', asset_tag: 'CACHED', name: 'Dari cache', category_id: 'c1', office_id: 'o1', status: 'available' }],
       total: 99,
       scrollTop: 500,
-      signature: '1|r1|kursi|available|__all__||__all__',
+      signature: `${currentDataEpoch()}|1|r1|kursi|available|__all__||__all__`,
       leftTo: '/assets/TAG-0'
     })
 
@@ -235,6 +235,20 @@ describe('Catalog (compact) — cached list is only restored on a real return tr
       { id: '1', name: 'Admin', email: 'admin@test.com', role_id: 'r9', role_name: 'Auditor', office_id: null },
       ['*']
     )
+
+    const w = await mountCatalog()
+    expect(assetCalls).toHaveLength(1)
+    expect(w.html()).not.toContain('Dari cache')
+  })
+
+  // Going Back from a detail screen where the user just changed something —
+  // a check-out, a maintenance request, an edit — is a legitimate return trip,
+  // so the direction guard alone would happily restore rows that no longer
+  // describe the data. Any successful write bumps the epoch and invalidates it.
+  it('reloads when anything was mutated while away', async () => {
+    seedSnapshot('/assets/TAG-0')
+    history.replaceState({ forward: '/assets/TAG-0' }, '')
+    bumpDataEpoch()
 
     const w = await mountCatalog()
     expect(assetCalls).toHaveLength(1)

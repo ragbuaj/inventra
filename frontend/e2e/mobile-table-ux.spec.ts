@@ -160,6 +160,56 @@ test.describe('Compact layout — infinite card list', () => {
     await expect.poll(() => page.locator('main').evaluate(el => el.scrollTop)).toBe(0)
   })
 
+  // The windowed branch (threshold 200) is unreachable by any runtime test:
+  // the virtualizer needs real layout, which jsdom/happy-dom cannot give it,
+  // so a harness assertion there passes against a blank list. This is the only
+  // place the window can actually be proven, so it is proven here.
+  test('windows the DOM past the threshold without losing or misplacing rows', async ({ page }) => {
+    test.setTimeout(120_000)
+    await login(page)
+    await page.goto(CATALOG)
+    await expect(cards(page).first()).toBeVisible({ timeout: 15_000 })
+
+    // Accumulate past the 200-card threshold.
+    await expect
+      .poll(async () => {
+        await page.locator('main').evaluate(el => el.scrollTo({ top: el.scrollHeight }))
+        await page.waitForTimeout(250)
+        return page.getByTestId('infinite-list-virtual').count()
+      }, { timeout: 90_000, intervals: [200] })
+      .toBe(1)
+
+    const state = await page.evaluate(() => {
+      const rendered = Array.from(document.querySelectorAll('[data-testid="infinite-list-virtual"] > div'))
+      return {
+        rendered: rendered.length,
+        indexes: rendered.map(el => Number((el as HTMLElement).dataset.index)),
+        tops: rendered.map(el => Math.round(el.getBoundingClientRect().top)),
+        containerHeight: Math.round(
+          (document.querySelector('[data-testid="infinite-list-virtual"]') as HTMLElement).getBoundingClientRect().height
+        )
+      }
+    })
+
+    // Reaching the windowed branch at all already proves 200+ items are held:
+    // `virtualized` is `items.length >= threshold`. Counting cards in the DOM
+    // would NOT prove it — once windowed, the DOM only holds the slice.
+    //
+    // Non-empty: a blank window is the regression this test exists to catch.
+    expect(state.rendered).toBeGreaterThan(0)
+    // Bounded: a slice plus overscan, nowhere near the 200+ items behind it.
+    expect(state.rendered).toBeLessThan(60)
+    // Contiguous and ascending — no gaps, no duplicates in the window.
+    const sorted = [...state.indexes].sort((a, b) => a - b)
+    expect(state.indexes).toEqual(sorted)
+    expect(new Set(state.indexes).size).toBe(state.indexes.length)
+    expect(sorted[sorted.length - 1]! - sorted[0]!).toBe(sorted.length - 1)
+    // Positioned, not stacked at the origin.
+    const uniqueTops = new Set(state.tops)
+    expect(uniqueTops.size).toBe(state.tops.length)
+    expect(state.containerHeight).toBeGreaterThan(1000)
+  })
+
   test('restores the accumulated rows and the scroll position on back navigation', async ({ page }) => {
     await login(page)
     await page.goto(CATALOG)

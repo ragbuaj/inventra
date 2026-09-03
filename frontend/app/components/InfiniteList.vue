@@ -72,13 +72,23 @@ function measureItem(el: Element | ComponentPublicInstance | null) {
 // Anything above the list changing height moves its start point: the bulk
 // action bar appearing on selection, the filter bar wrapping to a second line,
 // an orientation change. A stale `scrollMargin` makes the virtualizer compute
-// its window from the wrong origin and render the wrong slice, so observe the
-// scroll container and re-measure rather than only measuring at mount.
+// its window from the wrong origin and pick the wrong slice.
+//
+// The ResizeObserver alone does NOT cover all of that: it watches border
+// boxes, and the scroll container's own box never changes when its content
+// grows taller. It catches viewport and orientation changes; the item-count
+// watcher below catches the rest.
 let resizeObserver: ResizeObserver | null = null
+let alive = true
 
 function observeResize() {
   resizeObserver?.disconnect()
   resizeObserver = null
+  // A deferred callback can land after teardown — the breakpoint watcher
+  // empties `items` (flipping `virtualized`) on the same render that unmounts
+  // this component, so its nextTick runs post-unmount. Without this the new
+  // observer would never be disconnected.
+  if (!alive) return
   if (!import.meta.client || typeof ResizeObserver === 'undefined') return
   const parent = props.scrollParent
   if (!parent) return
@@ -91,7 +101,17 @@ onMounted(() => {
   measureListOffset()
   observeResize()
 })
-onUnmounted(() => resizeObserver?.disconnect())
+onUnmounted(() => {
+  alive = false
+  resizeObserver?.disconnect()
+  resizeObserver = null
+})
+
+// Content above the list changes height without the scroll container's border
+// box moving, so the observer never fires for it. Re-measure whenever the item
+// count changes, which is when such content (the bulk bar, a wrapped filter
+// row) realistically appears or disappears.
+watch(() => props.items.length, () => nextTick(measureListOffset))
 
 watch(() => props.scrollParent, () => {
   measureListOffset()

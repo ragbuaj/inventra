@@ -60,13 +60,21 @@ export function useApiClient() {
     const headers: Record<string, string> = { ...(fetchOpts.headers as Record<string, string> || {}) }
     if (auth.accessToken) headers.Authorization = `Bearer ${auth.accessToken}`
     if (!headers['X-Request-ID']) headers['X-Request-ID'] = crypto.randomUUID()
+    // Any successful write invalidates cached list snapshots — see
+    // bumpDataEpoch. Read methods leave the epoch alone.
+    const method = String(fetchOpts.method ?? 'GET').toUpperCase()
+    const isWrite = method !== 'GET' && method !== 'HEAD'
     try {
-      return await $fetch<T>(`${base}${path}`, { ...fetchOpts, headers })
+      const res = await $fetch<T>(`${base}${path}`, { ...fetchOpts, headers })
+      if (isWrite) bumpDataEpoch()
+      return res
     } catch (err: unknown) {
       const status = (err as { statusCode?: number }).statusCode
       if (status === 401 && await refreshToken()) {
         headers.Authorization = `Bearer ${auth.accessToken}`
-        return await $fetch<T>(`${base}${path}`, { ...fetchOpts, headers })
+        const retried = await $fetch<T>(`${base}${path}`, { ...fetchOpts, headers })
+        if (isWrite) bumpDataEpoch()
+        return retried
       }
       if (status === 401) {
         auth.clear()

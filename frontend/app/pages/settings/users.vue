@@ -194,15 +194,23 @@ function scrollToTop() {
   scrollEl()?.scrollTo({ top: 0 })
 }
 
-function reloadFromStart() {
+// Set when this component resets `offset` itself, so the `offset` watcher can
+// tell an internal reset apart from the user clicking a page button. Without
+// it, reloading from a non-zero offset would fire twice: once from the watcher
+// and once from the direct load below.
+let internalOffsetReset = false
+
+function reloadFromStart(): Promise<void> {
   list.reset()
   scrollToTop()
-  // Writing offset only reloads when it actually changes; when it was already
-  // 0 the watcher never fires, so this function must load itself. Loading in
-  // both paths would fire two requests for one filter change.
-  const alreadyFirst = offset.value === 0
-  offset.value = 0
-  if (alreadyFirst) loadList()
+  // Load directly rather than letting the watcher do it: routing through the
+  // watcher makes this unawaitable, and reloadAfterMutation awaits it — a
+  // caller would otherwise resume before the rows are fresh.
+  if (offset.value !== 0) {
+    internalOffsetReset = true
+    offset.value = 0
+  }
+  return loadList()
 }
 
 function resetFilters() {
@@ -320,7 +328,13 @@ async function onDelete(row: UserView) {
 }
 
 watch([search, fRole, fOffice, fStatus], () => reloadFromStart())
-watch(offset, () => loadList())
+watch(offset, () => {
+  if (internalOffsetReset) {
+    internalOffsetReset = false
+    return
+  }
+  loadList()
+})
 
 // Crossing the breakpoint swaps accumulate and replace semantics, so the rows
 // held under the old mode no longer describe what the new one shows.
