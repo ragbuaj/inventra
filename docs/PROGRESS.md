@@ -17,28 +17,38 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
-> **PWA aplikasi web — siap merge.** Branch `feat/web-pwa`, spec
-> `docs/superpowers/specs/2026-08-27-web-pwa-design.md` (40 acceptance criteria), rencana
-> `docs/superpowers/plans/2026-08-27-web-pwa.md` (11 tugas). **Tugas 1 sampai 10 selesai**;
-> acceptance criteria 1 sampai 40 tertutup. Rinciannya di entri "PWA aplikasi web" di bawah.
+> **PWA aplikasi web — MERGED (PR #148, squash `9502297`, 2026-09-03)** dengan seluruh CI hijau.
+> Spec `docs/superpowers/specs/2026-08-27-web-pwa-design.md` (40 acceptance criteria), rencana
+> `docs/superpowers/plans/2026-08-27-web-pwa.md` (11 tugas); tugas 1 sampai 10 selesai, acceptance
+> criteria 1 sampai 40 tertutup. Rinciannya di entri "PWA aplikasi web" di bawah.
 >
-> Langkah berikutnya, berurutan:
-> 1. **Titik pemeriksaan D — selesai.** PR sudah dibuka: https://github.com/ragbuaj/inventra/pull/148.
->    **Review kode lima sumbu** dan **review keamanan berfokus** sudah dijalankan (2026-08-27/28);
->    seluruh temuan Kritis dan Penting ditutup, rinciannya di entri PWA di bawah. Yang tersisa di
->    kotak ini tinggal tinjauan pemilik produk (titik pemeriksaan A dan C). Setelah merge, hapus
->    branch-nya serta sinkronkan `main`.
-> 2. **Tugas 11 — verifikasi produksi**, pasca-deploy. Empat hal yang secara struktural tidak bisa
->    dibuktikan sebelumnya: `manifest.webmanifest` dan `sw.js` lolos Caddy + WAF Coraza tanpa false
->    positive OWASP CRS, Lighthouse kategori PWA installable tanpa peringatan, pemasangan di Android
->    nyata, dan Tambahkan ke Layar Utama di iPhone nyata. Hasil keempatnya dicatat balik ke sini.
->    Kalau WAF memblok, perbaikannya di `ops/caddy/Caddyfile` dan itu **tanya dulu** sesuai batasan spec.
+> **Sapuan keamanan 2026-09-03 — dua PR terbuka, menunggu review dan merge.**
+> 1. **PR #151 `chore/deps-security-bumps`** — menutup **seluruh 10 alert Dependabot** yang terbuka
+>    di tiga ekosistem, ditambah satu temuan `npm audit` (`brace-expansion`) yang belum jadi alert.
+>    Go `moby/go-archive`; npm `fast-uri` dan `brace-expansion` di tooling lint OpenAPI; pnpm
+>    `nanoid`, `postcss`, `postcss-selector-parser`, dan keluarga `@tiptap/*`. Rinciannya di entri
+>    "Sapuan keamanan dependency" di bawah.
+> 2. **PR #152 `fix/api-cache-control`** — **menutup isu #149**: seluruh respons `/api/v1/*` kini
+>    membawa `Cache-Control: no-store`. Rinciannya di entri "Cache-Control no-store" di bawah.
 >
-> **Dua hal yang menunggu manusia, bukan kode.** Pertama, **tinjauan pemilik produk** atas ajakan
-> pasang dan ajakan perbarui (titik pemeriksaan A dan C) — belum dijalankan. Kedua, suite
-> `pnpm test` penuh berakhir exit 1 karena kerapuhan paralel yang **sudah ada di `main`**: satu spec
-> acak gagal plus `EnvironmentTeardownError`, 1920 dari 1921 tes lulus, dan spec yang gagal lulus
-> penuh saat dijalankan sendiri. Perlu dituntaskan terpisah, bukan di branch ini.
+> Setelah keduanya di-merge: hapus branch-nya (lokal dan remote) dan sinkronkan `main`.
+>
+> **Langkah berikutnya yang belum dikerjakan.**
+> 1. **Tugas 11 PWA — verifikasi produksi**, pasca-deploy. Empat hal yang secara struktural tidak
+>    bisa dibuktikan sebelumnya: `manifest.webmanifest` dan `sw.js` lolos Caddy + WAF Coraza tanpa
+>    false positive OWASP CRS, Lighthouse kategori PWA installable tanpa peringatan, pemasangan di
+>    Android nyata, dan Tambahkan ke Layar Utama di iPhone nyata. Hasil keempatnya dicatat balik ke
+>    sini. Kalau WAF memblok, perbaikannya di `ops/caddy/Caddyfile` dan itu **tanya dulu** sesuai
+>    batasan spec.
+> 2. **Tinjauan pemilik produk** atas ajakan pasang dan ajakan perbarui (titik pemeriksaan A dan C)
+>    — menunggu manusia, bukan kode.
+>
+> **Kerapuhan `pnpm test` — kemungkinan besar sudah tidak ada.** Catatan sebelumnya menyebut suite
+> penuh berakhir exit 1 dengan `EnvironmentTeardownError`. Pada 2026-09-03 suite dijalankan dua kali
+> di `main` + PR #151: **136 berkas, 1929 tes, exit 0**. Gejala itu justru muncul kembali saat
+> percobaan `pnpm update --depth Infinity` menduplikasi `@vue/compiler-*` (3.5.40 dan 3.5.42), dan
+> hilang lagi begitu duplikasi itu diurungkan — jadi penyebabnya tampaknya dua salinan compiler Vue,
+> bukan kerapuhan paralel Vitest. Pantau; kalau muncul lagi, periksa duplikasi `@vue/*` lebih dulu.
 >
 > **Menjalankan e2e secara lokal menuntut persiapan.** Backend wajib `RATELIMIT_ENABLED=false`.
 > Suite `lampiran` menuntut seed demo (`backend/db/seed/seed_demo.sql`) disusul
@@ -63,6 +73,76 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > bersama dan menghasilkan belasan merah yang tidak satu pun regresi.
 >
 > Riwayat pengerjaan modul ini disimpan di bawah, apa adanya.
+>
+> **Cache-Control no-store untuk seluruh `/api/v1` (2026-09-03, branch `fix/api-cache-control`, PR #152) — menutup isu #149. SELESAI: kode + tes unit + tes integrasi; build, vet, dan seluruh suite backend hijau.**
+> Sebelumnya respons `/api/v1/*` tidak menyetel `Cache-Control` sama sekali, sehingga data aset bank
+> boleh mendarat di disk perangkat lewat cache HTTP peramban. Itu pintu kedua ke disk yang sama yang
+> sudah dirapatkan spec PWA untuk Cache Storage (Keputusan 2), dan tidak ada satu pun invarian yang
+> menjaganya. Aplikasi terpasang sebagai PWA berumur panjang di perangkat pribadi maupun perangkat
+> bersama di cabang, jadi jendela paparannya lebar.
+>
+> **Perbaikannya** satu middleware, `middleware.NoStore(prefix)`
+> (`backend/internal/middleware/nostore.go`), dipasang di `internal/server/router.go`. Tiga keputusan
+> yang perlu diingat:
+> 1. **Dipasang global, menyaring berdasarkan jalur — bukan dipasang di grup rute `/api/v1`.**
+>    Middleware grup tidak pernah jalan untuk permintaan yang tidak cocok rute mana pun, jadi 404 dan
+>    405 di bawah `/api/v1` akan lolos. Menyaring di level engine juga mencakup 429 dari pembatas laju
+>    dan 500 dari `Recovery` — "apa pun status codenya", sesuai acceptance criteria 1.
+> 2. **Kecocokan per segmen jalur, bukan `strings.HasPrefix` telanjang.** Tanpa itu `/api/v1beta` ikut
+>    tersapu. Dijaga tes tersendiri.
+> 3. **Header disetel sebelum handler jalan.** Karena `c.Header` bersifat *set* (bukan *add*), handler
+>    yang mau lebih ketat tetap menang dan nilainya tidak menumpuk: `private, no-store` milik avatar
+>    menimpa, bukan menghasilkan `no-store, private, no-store` (acceptance criteria 3).
+>
+> **Menyeluruh tanpa pengecualian**, jadi acceptance criteria 4 tidak punya daftar kecuali: seluruh isi
+> `/api/v1/*` adalah data terautentikasi, dan kelima baris yang sudah menyetel header ini sebelumnya
+> (`guide/handler.go`, `identity/avatar_handler.go`) memang sudah memakai `no-store` — tidak ada satu
+> pun endpoint di bawah prefiks itu yang ingin di-cache. Endpoint di luar prefiks tidak disentuh:
+> `/health`, `/health/ready`, `/metrics`, `/openapi.yaml`, `/docs`. Keputusannya dicatat di
+> `docs/DEPLOYMENT.md` bagian 17.4, menggantikan catatan "Terbuka" yang menunjuk isu #149.
+>
+> **Tes.** `backend/internal/middleware/nostore_test.go` — 12 tes: jalur di bawah prefiks, prefiks itu
+> sendiri, jalur mirip-prefiks, rute non-API, tujuh status code (200/201/204/401/403/429/500), 404 dan
+> 405 yang tak berute, lima metode HTTP, query string, panik lewat `Recovery`, penimpaan handler tanpa
+> duplikasi, dan nilai identik dari handler yang juga tidak boleh dobel.
+> `backend/internal/server/cachecontrol_integration_test.go` — 5 tes atas router sungguhan lewat
+> testcontainers: endpoint **daftar** (`GET /offices`) dan **detail** (`GET /offices/:id`) yang
+> terautentikasi dan **terisi** (peran diberi scope `global` pada modul `offices` supaya detail benar
+> benar mengembalikan baris, bukan 404), enam jalur error, respons tulis 403, endpoint avatar yang
+> menyetel headernya sendiri, dan pembuktian bahwa rute di luar `/api/v1` tidak tersentuh. Tiap
+> assertion menuntut header muncul **tepat sekali**.
+>
+> `backend/api/openapi.yaml` mencatat header lintas-potong ini di `info.description` alih-alih
+> mengulanginya di ratusan operasi.
+>
+> **Sapuan keamanan dependency (2026-09-03, branch `chore/deps-security-bumps`, PR #151) — menutup seluruh 10 alert Dependabot + 1 temuan `npm audit`.**
+> Go: `moby/go-archive` 0.2.0 ke 0.3.0 (tar bisa menulis di luar direktori ekstraksi; tak langsung
+> lewat testcontainers). npm tooling lint OpenAPI: override `fast-uri` 3.1.4 ke 3.1.7 (empat advisory
+> tinggi: SSRF dan host confusion) dan override baru `brace-expansion` 1.1.18 (DoS OOM — belum jadi
+> alert Dependabot, terbaca dari `npm audit` setelah bump `fast-uri`). pnpm frontend: override baru
+> `nanoid` `>=3.3.18 <4`, `postcss` `>=8.5.23`, `postcss-selector-parser` `>=7.1.3`, plus 17 paket
+> `@tiptap/*` ke `^3.30.4`.
+>
+> **Dua hal yang mahal ditemukan ulang.**
+> 1. **Override pnpm tidak menggerakkan auto-installed peer dependency.** `@tiptap/*` masuk hanya
+>    sebagai peer **non-opsional** komponen editor `@nuxt/ui`, dibekukan pnpm di 3.24.0. Menaruh
+>    override untuk keluarga itu menghasilkan pohon **campur** (3.24.0 dan 3.31.1 berdampingan), bukan
+>    kenaikan. Menaikkan `@tiptap/core` sendirian juga mustahil: tiap paket `@tiptap` menyematkan
+>    saudaranya pada versi **persis**. Jalur yang benar adalah **mendeklarasikan ketujuh belas paket
+>    itu eksplisit** di `dependencies` — sekaligus membuat Dependabot bisa mem-bump-nya sendiri nanti.
+> 2. **Lantai override tanpa batas atas menyeberang major.** `nanoid: '>=3.3.18'` menarik nanoid 6
+>    yang ESM-only dan merusak postcss yang menuntut API 3.x — persis jebakan yang sudah diperingatkan
+>    komentar `@babel/core` di `pnpm-workspace.yaml`. Selalu pasang batas atas.
+>
+> Lantai `@tiptap` sengaja `^3.30.4`, bukan `^3.31.1`: 3.31.1 terbit hari itu juga dan tertahan gerbang
+> `minimumReleaseAge`, dan memakainya menuntut 37 entri `minimumReleaseAgeExclude` yang justru
+> melumpuhkan gerbang rantai-pasok itu. Dengan `^3.30.4` pnpm memilih 3.31.0 yang sudah cukup umur dan
+> `pnpm-workspace.yaml` tidak butuh daftar pengecualian sama sekali.
+>
+> **Cakupan dijaga sengaja.** Percobaan pertama `pnpm update --depth Infinity` menggeser **84** paket
+> dan menduplikasi `@vue/compiler-*` (3.5.40 dan 3.5.42); akibatnya `pnpm test` berakhir exit 1 dengan
+> `EnvironmentTeardownError` meski 1929 tes lulus. Diurungkan; pendekatan override menyentuh **40**
+> paket, seluruhnya disengaja, dan suite kembali exit 0.
 >
 > **Panduan Penggunaan berbasis data + lampiran video/PDF (2026-08-08, branch `feat/guide-media`) — 15 dari 19 langkah saat merge, plus separuh langkah 16 (env prod) dan tiga audit yang temuannya sudah ditutup.**
 > Spec: `docs/superpowers/specs/2026-08-08-guide-media-cms-design.md` (46 acceptance criteria).
@@ -365,13 +445,13 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 >   caching khusus se-origin karena itu tidak akan pernah terlihat oleh tes lain di berkas itu.
 >   Dibuktikan terhadap artefak hasil mutasi: `NetworkFirst` muncul dan `registerRoute` jadi dua.
 >
-> **Satu paparan bersebelahan, di luar cakupan branch ini: isu #149.** Invarian ini menyebut Cache
-> Storage, dan di sana ia rapat. Cache HTTP peramban adalah pintu kedua ke disk yang sama, dan
-> respons `/api/v1/*` tidak menyetel `Cache-Control` sama sekali — hanya lima baris di seluruh
-> backend yang menyetelnya (`guide/handler.go`, `identity/avatar_handler.go`), dan Caddy tidak
-> menyetelnya global. Bukan regresi dari branch ini, tapi ia menyerang aset yang sama dengan yang
-> dilindungi Keputusan 2 spec. Diusulkan middleware Gin `Cache-Control: no-store` untuk seluruh
-> `/api/v1/*`; dilacak di https://github.com/ragbuaj/inventra/issues/149.
+> **Satu paparan bersebelahan, di luar cakupan branch ini: isu #149 — ✅ DITUTUP (PR #152,
+> 2026-09-03).** Invarian ini menyebut Cache Storage, dan di sana ia rapat. Cache HTTP peramban
+> adalah pintu kedua ke disk yang sama, dan respons `/api/v1/*` tidak menyetel `Cache-Control` sama
+> sekali — hanya lima baris di seluruh backend yang menyetelnya (`guide/handler.go`,
+> `identity/avatar_handler.go`), dan Caddy tidak menyetelnya global. Bukan regresi dari branch ini,
+> tapi ia menyerang aset yang sama dengan yang dilindungi Keputusan 2 spec. Ditutup oleh middleware
+> `NoStore`; lihat entri "Cache-Control no-store" di bawah.
 >
 > **Dua butir tingkat Saran dari review ini ikut ditutup (2026-08-28).**
 >

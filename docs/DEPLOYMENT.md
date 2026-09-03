@@ -604,9 +604,31 @@ Dijaga tiga lapis, semuanya di CI: daftar-izin kunci konfigurasi
 e2e yang membaca `caches` di peramban sungguhan lalu menuntut isinya tidak lebih dari
 precache (`frontend/e2e/pwa.spec.ts`). Jangan melonggarkan ketiganya.
 
-**Terbuka:** respons `/api/v1/*` belum menyetel `Cache-Control`, sehingga data aset masih
-bisa mendarat di disk lewat cache HTTP peramban — pintu kedua yang tidak dijaga invarian
-di atas. Dilacak di [isu #149](https://github.com/ragbuaj/inventra/issues/149).
+**Seluruh `/api/v1/*` menyetel `Cache-Control: no-store`.** Cache HTTP peramban adalah
+pintu kedua ke disk perangkat yang sama, dan invarian di atas tidak menjaganya. Ditutup
+oleh middleware `NoStore` (`backend/internal/middleware/nostore.go`) yang dipasang di
+`internal/server/router.go`.
+
+Keputusannya **menyeluruh tanpa pengecualian**: seluruh isi `/api/v1/*` adalah data
+terautentikasi, dan tiap handler yang sudah menyetel header ini sebelumnya (panduan,
+avatar) memang sudah memakai `no-store` — jadi tidak ada satu pun endpoint di bawah
+prefiks itu yang ingin di-cache. Endpoint di luar prefiks tidak disentuh: `/health`,
+`/health/ready`, `/metrics`, `/openapi.yaml`, dan `/docs` tidak membawa data
+terautentikasi.
+
+Middleware dipasang global lalu menyaring berdasarkan jalur, bukan dipasang di grup rute
+`/api/v1`. Sebabnya: middleware grup tidak pernah jalan untuk permintaan yang tidak cocok
+rute mana pun, sehingga 404 dan 405 di bawah `/api/v1` akan lolos. Menyaring di level
+engine juga mencakup 429 dari pembatas laju dan 500 dari `Recovery` — "apa pun status
+codenya", sesuai invariannya. Handler yang mau lebih ketat tetap menang: header disetel
+sebelum handler jalan dan `c.Header` bersifat *set*, jadi `private, no-store` milik avatar
+menimpa, bukan menumpuk.
+
+Dijaga dua lapis: matriks unit di `backend/internal/middleware/nostore_test.go` (prefiks,
+mirip-prefiks, tiap status, tiap metode, 404/405 tak berute, panik, tanpa duplikasi) dan
+tes integrasi atas router sungguhan di
+`backend/internal/server/cachecontrol_integration_test.go` (endpoint daftar dan detail
+yang terautentikasi dan terisi, plus jalur error).
 
 ### 17.5 Anggaran precache
 

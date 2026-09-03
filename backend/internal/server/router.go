@@ -51,6 +51,10 @@ import (
 	"github.com/ragbuaj/inventra/internal/user"
 )
 
+// apiPrefix is the mount point for every feature module's routes; it is also the
+// scope of the no-store cache policy (see middleware.NoStore).
+const apiPrefix = "/api/v1"
+
 // Deps holds the shared infrastructure passed to feature modules.
 type Deps struct {
 	Cfg     *config.Config
@@ -103,6 +107,10 @@ func NewRouter(d Deps) (*gin.Engine, Workers) {
 
 	r.Use(
 		middleware.RequestID(),
+		// Every /api/v1 response is authenticated data that must not reach the
+		// browser's HTTP cache. Mounted globally (not on the api group) so that
+		// 404/405 responses, which never enter the group, are covered too.
+		middleware.NoStore(apiPrefix),
 		middleware.Metrics(),
 		middleware.RequestLogger(d.Log),
 		middleware.Recovery(d.Log),
@@ -166,7 +174,7 @@ func NewRouter(d Deps) (*gin.Engine, Workers) {
 	// here so they can be returned to main.go for the graceful-shutdown wiring.
 	var workers Workers
 
-	api := r.Group("/api/v1")
+	api := r.Group(apiPrefix)
 	api.Use(middleware.PerIP(d.Limiter, d.Cfg.RateLimitGlobalPerMin, "global", false))
 	{
 		api.GET("/health", func(c *gin.Context) {
