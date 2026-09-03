@@ -1,4 +1,12 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import {
+  pwaManifest,
+  PWA_APPLE_TOUCH_ICON,
+  PWA_MANIFEST_HREF
+} from './pwa/manifest'
+import { pwaWorkbox } from './pwa/workbox'
+import { pwaClient } from './pwa/client'
+import { PWA_VIEWPORT, pwaHeadMeta } from './pwa/head'
 
 // Optional filesystem polling for dev watchers (set NUXT_DEV_POLLING=true). Off by
 // default — the Docker dev stack uses `docker compose watch`, which syncs files onto
@@ -11,7 +19,8 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
     '@nuxt/ui',
     '@pinia/nuxt',
-    '@nuxtjs/i18n'
+    '@nuxtjs/i18n',
+    '@vite-pwa/nuxt'
   ],
 
   ssr: false,
@@ -22,6 +31,22 @@ export default defineNuxtConfig({
 
   devtools: {
     enabled: true
+  },
+
+  // Tag PWA harus ada di shell HTML statis, bukan lewat useHead di app.vue: aplikasi ini
+  // SPA, jadi useHead baru berlaku setelah hidrasi — terlambat untuk kriteria pemasangan
+  // dan untuk Safari iOS, yang membaca apple-touch-icon saat halaman dimuat. Ditulis
+  // tangan alih-alih memakai komponen bawaan modul (`NuxtPwaAssets`), yang bergantung pada
+  // virtual module dari integrasi assets-generator yang sengaja tidak dipasang.
+  app: {
+    head: {
+      viewport: PWA_VIEWPORT,
+      meta: pwaHeadMeta,
+      link: [
+        { rel: 'manifest', href: PWA_MANIFEST_HREF },
+        { rel: 'apple-touch-icon', sizes: '180x180', href: PWA_APPLE_TOUCH_ICON }
+      ]
+    }
   },
 
   css: ['~/assets/css/main.css', 'leaflet/dist/leaflet.css'],
@@ -48,6 +73,20 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2025-01-15',
 
+  // Rute `/` dipaksa jadi berkas HTML statis. Tanpa ini `nuxt build` tidak
+  // menerbitkan satu pun HTML ke `.output/public/` — shell-nya dirender Nitro saat
+  // runtime, sehingga tidak ada yang bisa di-precache dan luring tidak mungkin.
+  // Karena `ssr: false`, HTML hasil prerender hanyalah kerangka kosong tanpa data
+  // pengguna; satu berkas ini melayani seluruh rute dan kedua locale.
+  nitro: {
+    prerender: {
+      routes: ['/'],
+      // Jangan telusuri tautan: seluruh rute memakai shell yang sama, dan menelusuri
+      // hanya akan menerbitkan salinan kembar dari kerangka yang identik.
+      crawlLinks: false
+    }
+  },
+
   vite: {
     server: {
       watch: devPolling ? { usePolling: true, interval: 300 } : undefined
@@ -72,5 +111,19 @@ export default defineNuxtConfig({
       { code: 'id', name: 'Bahasa Indonesia', file: 'id.json' },
       { code: 'en', name: 'English', file: 'en.json' }
     ]
+  },
+
+  // PWA. Isi manifest tinggal di pwa/manifest.ts dan strategi caching di
+  // pwa/workbox.ts, supaya app.vue memakai konstanta yang sama dan tes unit bisa
+  // menguncinya — termasuk aturan bahwa tidak ada satu pun runtime caching.
+  pwa: {
+    registerType: 'prompt',
+    manifest: pwaManifest,
+    workbox: pwaWorkbox,
+    client: pwaClient,
+    // Service worker sengaja mati saat `pnpm dev` — pengujiannya lewat `pnpm preview`.
+    devOptions: {
+      enabled: false
+    }
   }
 })

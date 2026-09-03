@@ -35,6 +35,7 @@
     "@nuxt/test-utils": "^4.1.0",
     "@playwright/test": "^1.62.1",
     "@types/leaflet": "^1.9.21",
+    "@vite-pwa/nuxt": "1.1.1",
     "@vue/test-utils": "^2.4.11",
     "eslint": "^10.8.0",
     "happy-dom": "^20.11.1",

@@ -17,6 +17,35 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
+> **PWA aplikasi web — siap merge.** Branch `feat/web-pwa`, spec
+> `docs/superpowers/specs/2026-08-27-web-pwa-design.md` (40 acceptance criteria), rencana
+> `docs/superpowers/plans/2026-08-27-web-pwa.md` (11 tugas). **Tugas 1 sampai 10 selesai**;
+> acceptance criteria 1 sampai 40 tertutup. Rinciannya di entri "PWA aplikasi web" di bawah.
+>
+> Langkah berikutnya, berurutan:
+> 1. **Titik pemeriksaan D — selesai.** PR sudah dibuka: https://github.com/ragbuaj/inventra/pull/148.
+>    **Review kode lima sumbu** dan **review keamanan berfokus** sudah dijalankan (2026-08-27/28);
+>    seluruh temuan Kritis dan Penting ditutup, rinciannya di entri PWA di bawah. Yang tersisa di
+>    kotak ini tinggal tinjauan pemilik produk (titik pemeriksaan A dan C). Setelah merge, hapus
+>    branch-nya serta sinkronkan `main`.
+> 2. **Tugas 11 — verifikasi produksi**, pasca-deploy. Empat hal yang secara struktural tidak bisa
+>    dibuktikan sebelumnya: `manifest.webmanifest` dan `sw.js` lolos Caddy + WAF Coraza tanpa false
+>    positive OWASP CRS, Lighthouse kategori PWA installable tanpa peringatan, pemasangan di Android
+>    nyata, dan Tambahkan ke Layar Utama di iPhone nyata. Hasil keempatnya dicatat balik ke sini.
+>    Kalau WAF memblok, perbaikannya di `ops/caddy/Caddyfile` dan itu **tanya dulu** sesuai batasan spec.
+>
+> **Dua hal yang menunggu manusia, bukan kode.** Pertama, **tinjauan pemilik produk** atas ajakan
+> pasang dan ajakan perbarui (titik pemeriksaan A dan C) — belum dijalankan. Kedua, suite
+> `pnpm test` penuh berakhir exit 1 karena kerapuhan paralel yang **sudah ada di `main`**: satu spec
+> acak gagal plus `EnvironmentTeardownError`, 1920 dari 1921 tes lulus, dan spec yang gagal lulus
+> penuh saat dijalankan sendiri. Perlu dituntaskan terpisah, bukan di branch ini.
+>
+> **Menjalankan e2e secara lokal menuntut persiapan.** Backend wajib `RATELIMIT_ENABLED=false`.
+> Suite `lampiran` menuntut seed demo (`backend/db/seed/seed_demo.sql`) disusul
+> `docker exec inventra-redis redis-cli FLUSHALL` — tanpa flush itu scope authz basi dan superadmin
+> jatuh ke `own`. Antar-jalan proyek `chromium`, residu yang ditinggalkan suite perlu dibersihkan
+> lebih dulu; lihat temuan di entri PWA di bawah, dan usulan branch `fix/e2e-self-cleanup`.
+>
 > **Sisa langkah 16-19 Panduan Penggunaan.** Modulnya sendiri sudah **MERGED (PR #139, squash
 > `0c12b34`, 2026-08-09)** dengan seluruh CI hijau — `backend`, `backend-integration` (14m4s),
 > `frontend` (4m43s), `e2e` (7m8s), `api-docs` — dan branch `feat/guide-media` sudah dihapus. Yang
@@ -278,6 +307,211 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > menuntut `SecRequestBodyLimit` dinaikkan lebih dulu di `ops/caddy/Caddyfile`. Kunci i18n
 > `guidePage.sections` sengaja BELUM dihapus supaya membatalkan rilis cukup mengembalikan kode.
 >
+> **PWA aplikasi web: installable + tahan jaringan putus (2026-08-27, branch `feat/web-pwa`) — SELESAI (kode + tes; lint, typecheck, build hijau; e2e 127 + 46 hijau dua kali).**
+> Menjadikan aplikasi web yang sama dapat dipasang ke layar utama dan tidak runtuh saat jaringan
+> putus, memakai `@vite-pwa/nuxt` (pembungkus Workbox). Menutup pengguna iPhone dan pengguna Android
+> yang tidak boleh memasang APK — dua kelompok yang selama ini tidak punya kanal ber-ikon sama sekali
+> karena fokus rilis Flutter tetap Android. Dicatat sebagai **ADR-0019**, yang menaut balik ke
+> ADR-0015 dan menegaskan keduanya hidup berdampingan.
+>
+> **Empat fase, sebelas tugas, empat puluh acceptance criteria** (spec
+> `docs/superpowers/specs/2026-08-27-web-pwa-design.md`, rencana
+> `docs/superpowers/plans/2026-08-27-web-pwa.md`). Tugas 1-10 selesai; tugas 11 adalah verifikasi
+> produksi pasca-merge.
+>
+> **Yang dibangun:** manifest terpusat di `frontend/pwa/` (`manifest.ts`, `workbox.ts`, `client.ts`,
+> `head.ts`) supaya `nuxt.config.ts` dan `app.vue` memakai konstanta yang sama dan tes unit bisa
+> menguncinya; ikon diturunkan dari mark aplikasi yang sudah dipakai sidebar/halaman masuk (kotak
+> `#005bfd` + glyph Lucide `package`), digenerate `@vite-pwa/assets-generator` dan hasilnya di-commit;
+> shell dipaksa jadi berkas statis lewat prerender rute `/` lalu di-precache dengan `navigateFallback`;
+> ajakan perbarui saat versi baru menunggu; ajakan pasang Android lewat `beforeinstallprompt` plus
+> petunjuk manual iOS yang penutupannya diingat; dan poles mode standalone (area aman + warna bilah
+> status per skema warna).
+>
+> **Invarian keamanan yang paling penting: nol runtime caching.** `frontend/pwa/workbox.ts` sama
+> sekali tidak memuat `runtimeCaching`. Di produksi API se-origin dengan frontend, sehingga satu
+> aturan runtime saja sudah cukup mengendapkan respons API ke Cache Storage tiap perangkat — dan
+> kesalahan itu **tidak akan pernah terlihat saat dev**, karena di dev API beda origin. Invarian ini
+> dikunci `test/unit/pwa-workbox.spec.ts` dan dibuktikan e2e `frontend/e2e/pwa.spec.ts` yang membaca
+> `caches` lewat `page.evaluate` dan menuntut nol entri ber-URL `/api/`, sebelum dan sesudah logout.
+> Tesnya **dibuktikan bisa merah**: menambahkan satu aturan NetworkFirst untuk `/api/` membuat 16 URL
+> API mendarat di Cache Storage, dan hanya tes keamanan cache yang menangkapnya.
+>
+> **Review keamanan berfokus (2026-08-28) — invarian berlaku, dibuktikan di tingkat artefak.**
+> Pertanyaannya satu kalimat: adakah jalur yang bisa membuat respons API mendarat di Cache Storage?
+> Jawabannya tidak, dan buktinya diambil dari service worker yang benar-benar dikirim, bukan dari
+> konfigurasi yang menghasilkannya. `sw.js` hasil build mendaftarkan **tepat satu rute** — sebuah
+> `NavigationRoute` ke shell — dan tidak memuat satu pun kemunculan `NetworkFirst`, `CacheFirst`,
+> `StaleWhileRevalidate`, `CacheOnly`, atau `NetworkOnly`. `cache.put` hanya ada di dalam chunk
+> Workbox, yaitu pengendali precache-nya sendiri; `importScripts` menunjuk berkas lokal tanpa
+> rujukan CDN. Di sisi sumber, seluruh frontend tidak memuat satu pun `caches.open`, `caches.match`,
+> atau `serviceWorker.register` di luar berkas e2e. Shell hasil prerender (7.611 byte) dipindai dan
+> nol kecocokan untuk token, password, secret, maupun email — ia hanya membawa `apiBase`.
+>
+> **Dua penjaga baru ditambahkan, keduanya dibuktikan merah lewat mutasi.**
+> Penjaga lama hanya memeriksa satu kunci (`'runtimeCaching' in pwaWorkbox`), sehingga caching masih
+> bisa masuk lewat `importScripts`, lewat perpindahan ke `injectManifest` dengan worker tulis tangan,
+> atau lewat opsi yang dibawa versi modul berikutnya. Sekarang ada dua lapis:
+>
+> - `test/unit/pwa-workbox.spec.ts` memeriksa **himpunan kunci** konfigurasi terhadap daftar-izin
+>   eksplisit, jadi kunci baru apa pun merah sampai seseorang sadar menambahkannya. Dibuktikan lewat
+>   dua mutasi: menyuntikkan `runtimeCaching` membuat dua tes merah, sedangkan menyuntikkan
+>   `importScripts` membuat **hanya penjaga baru** yang merah — penjaga lama tetap hijau, dan itulah
+>   celah yang ditutup.
+> - `e2e/pwa.spec.ts` mengambil `/sw.js` dari build nyata lalu menuntut nol nama kelas strategi dan
+>   tepat satu `registerRoute`. Ini penting justru karena pemeriksaan `caches` di e2e buta pada
+>   konfigurasi yang berisiko: saat e2e API beda origin (`:8080`) sementara di produksi se-origin,
+>   dan `RegExpRoute` Workbox hanya berlaku lintas-origin bila polanya cocok mulai indeks 0. Aturan
+>   caching khusus se-origin karena itu tidak akan pernah terlihat oleh tes lain di berkas itu.
+>   Dibuktikan terhadap artefak hasil mutasi: `NetworkFirst` muncul dan `registerRoute` jadi dua.
+>
+> **Satu paparan bersebelahan, di luar cakupan branch ini: isu #149.** Invarian ini menyebut Cache
+> Storage, dan di sana ia rapat. Cache HTTP peramban adalah pintu kedua ke disk yang sama, dan
+> respons `/api/v1/*` tidak menyetel `Cache-Control` sama sekali — hanya lima baris di seluruh
+> backend yang menyetelnya (`guide/handler.go`, `identity/avatar_handler.go`), dan Caddy tidak
+> menyetelnya global. Bukan regresi dari branch ini, tapi ia menyerang aset yang sama dengan yang
+> dilindungi Keputusan 2 spec. Diusulkan middleware Gin `Cache-Control: no-store` untuk seluruh
+> `/api/v1/*`; dilacak di https://github.com/ragbuaj/inventra/issues/149.
+>
+> **Dua butir tingkat Saran dari review ini ikut ditutup (2026-08-28).**
+>
+> - **Assertion cache di e2e dibalik jadi daftar-izin.** Sebelumnya ia bertanya "adakah URL
+>   `/api/`" — menangkap satu kebocoran yang sudah terpikirkan dan melewatkan sisanya. Sekarang
+>   `expectCacheHoldsOnlyPrecache` membaca manifest precache langsung dari `/sw.js` yang dikirim,
+>   lalu menuntut tiga hal terpisah supaya kegagalannya menyebut mana yang patah: cache tidak
+>   kosong, tidak ada entri lintas-origin, dan setiap entri yang ada memang di-precache saat build.
+>   Klaim ketiga itu mencakup respons API sekaligus sumber lain mana pun — font, analitik, layanan
+>   berkas yang ditambahkan nanti. Pemeriksaan `/api/` yang lama tetap dipertahankan eksplisit di
+>   sampingnya, karena itu invarian yang disebut spec dan pembaca tidak seharusnya perlu
+>   menurunkannya dari manifest. Parsingnya diverifikasi terhadap `sw.js` nyata: 195 jalur terbaca,
+>   shell `/` termasuk, dan menyuntikkan satu URL API ke daftar yang disimulasikan memunculkannya
+>   sebagai `unexpected`.
+> - **Denylist navigasi kini terikat ke matcher Caddy.** `test/unit/pwa-workbox.spec.ts` membaca
+>   `ops/caddy/Caddyfile`, mengambil jalur dari matcher `@api`, lalu menuntut tiap jalur yang
+>   diteruskan Caddy ke backend ditolak denylist. Dibuktikan merah lewat dua mutasi: menambahkan
+>   `/metrics` ke matcher memunculkan pesan "Caddy sends /metrics to the backend, so /metrics must
+>   not be answered with the shell", dan mengganti nama matcher jadi `@backend` memicu penjaga
+>   ekstraksinya ("could not read the @api matcher") alih-alih diam-diam lulus atas daftar kosong.
+>
+> **Review kode lima sumbu (2026-08-27) — empat temuan diperbaiki, vonis awal "minta perubahan".**
+> Gerbang dijalankan ulang oleh peninjau, bukan diterima sebagai klaim: lint bersih, typecheck exit 0,
+> seluruh tes unit lulus, dan isi precache dibaca langsung dari `.output/public/sw.js` (196 entri,
+> nol URL mengandung `/api/`). Satu **Kritis** dan tiga **Penting** ditemukan, semuanya sudah ditutup
+> di branch ini dengan tes yang dibuktikan merah lebih dulu:
+>
+> 1. **Kritis. `.gitignore` pola `tasks/` menelan direktori Ansible.** Pola tanpa garis miring depan
+>    cocok di kedalaman mana pun, sehingga `ops/ansible/roles/*/tasks/` ikut terabaikan: berkas task
+>    baru akan hilang tanpa suara dan IaC di VPS jadi tidak lengkap tanpa ada yang sadar. Diperbaiki
+>    jadi `/tasks/`, yang hanya menjangkau akar repo. Dibuktikan lewat `git check-ignore -v`.
+> 2. **Penting. Ajakan pasang mati sesesi penuh begitu ajakan perbarui ditutup.** `PwaInstallPrompt`
+>    menahan diri selama `$pwa.needRefresh` menyala (aturan satu ajakan pada satu waktu), tapi tombol
+>    Nanti di `PwaUpdatePrompt` hanya menyembunyikan kartunya sendiri — `needRefresh` tetap menyala,
+>    jadi kuncinya menempel sampai tab ditutup. `PwaUpdatePrompt.dismiss()` sekarang juga memanggil
+>    `$pwa.cancelPrompt()`, yang menurunkan `needRefresh`. Service worker yang menunggu tidak
+>    terpengaruh: ia tetap menunggu sampai pengguna memuat ulang sendiri.
+> 3. **Penting. Area aman berhenti di shell aplikasi.** `viewport-fit=cover` berlaku untuk seluruh
+>    dokumen, jadi sejak ia dipasang setiap layout menembus ke bawah notch — termasuk `layouts/auth.vue`,
+>    yang justru layar pertama yang dilihat pengguna terpasang (sesi belum pulih, guard melempar ke
+>    `/login`), dan `layouts/info.vue` pada kedua cabangnya. Ketiganya kini memakai `app-safe-area`.
+>    Kelas itu no-op di luar mode standalone, jadi tidak ada satu layar pun berubah di browser dan
+>    kontrak mockup tidak tersentuh.
+> 4. **Penting. Kunci `localStorage` diduplikasi sebagai literal.** `PwaInstallPrompt` mengetik ulang
+>    `'inventra.pwa.install-dismissed'` dan yang menjaganya tetap sama dengan `pwa/client.ts` hanyalah
+>    grep substring atas berkas `.vue` — lulus kalau kuncinya cuma muncul di komentar, dan tidak
+>    berdaya terhadap perubahan gaya kutip. Komponen kini **mengimpor** `PWA_INSTALL_DISMISS_KEY` dari
+>    `~~/pwa/client`, sehingga divergensinya mustahil; tes grep-nya dihapus dan digantikan tes
+>    penutupan di `test/nuxt/pwa-install-prompt.spec.ts` yang memakai konstanta yang sama.
+>
+> Empat tes baru menyertai perbaikan ini (1927 tes, naik dari 1923). Gerbang setelah perbaikan:
+> lint bersih, typecheck exit 0, `vitest run` exit 0 dengan 1927 lulus, `nuxt build` sukses, dan
+> precache hasil build ulang tetap 196 entri dengan nol URL `/api/`.
+>
+> **Keempat temuan tingkat Saran ikut ditutup (2026-08-28).**
+>
+> 1. **Assertion teks sumber yang redundan dibuang.** `test/unit/pwa-standalone.spec.ts` membaca
+>    `default.vue` dan `AppSidebar.vue` sebagai string lalu mencari nama kelas di dalamnya —
+>    bentuk yang lebih lemah dari `test/nuxt/pwa-standalone-shell.spec.ts`, yang sudah membuktikan
+>    hal yang sama lewat `mountSuspended` dan `classes()`, dan yang lulus kalau nama kelasnya
+>    kebetulan muncul di komentar. Assertion CSS-nya tetap: `env(safe-area-inset-*)` selalu nol di
+>    happy-dom, jadi aturannya memang tidak bisa diamati saat render. Header berkasnya sekarang
+>    menyebut pembagian kerja itu supaya assertion serupa tidak tumbuh kembali.
+> 2. **Biaya precache diukur, dan angkanya mengoreksi temuan aslinya.** Yang tercatat sebelumnya,
+>    3,16 MiB, adalah ukuran DI DISK. Lewat kabel ia sekitar **1,31 MiB**: Caddy menyajikan
+>    `encode gzip zstd`, 2,31 MiB JS terkompresi jauh, sementara 0,56 MiB woff2 memang sudah
+>    terkompresi. Rincian 195 entri unik: 155 JS (2,31 MiB), 26 font (0,56 MiB), 4 CSS (0,27 MiB),
+>    9 lainnya, 1 shell. Beban sekali-pasang 1,3 MiB adalah harga wajar untuk kemampuan luring,
+>    jadi precache-nya **sengaja tidak dipersempit** — mempersempitnya akan menyimpang dari
+>    Keputusan 1 spec dan merusak navigasi luring ke rute yang belum pernah dibuka. Yang
+>    ditambahkan adalah penjaga anggaran di `e2e/pwa.spec.ts` (ambang 260 entri) supaya
+>    pertumbuhannya terlihat alih-alih merayap diam-diam.
+> 3. **`role="status"` ditambahkan ke ajakan pasang**, menyamakannya dengan ajakan perbarui.
+>    Keduanya kartu yang muncul tiba-tiba tanpa ada yang memindahkan fokus ke sana. Tes runtime
+>    barunya dibuktikan merah lebih dulu.
+> 4. **Domain produksi di `deploy.yml`: indireksinya dihidupkan, jebakannya didokumentasikan.**
+>    Saat review, `gh variable list` mengembalikan daftar kosong — `vars.PROD_DOMAIN` tidak diset,
+>    jadi yang benar-benar dipakai tiap deploy adalah fallback yang dikeraskan, sementara
+>    komentarnya menyiratkan variabel repo adalah jalur yang aktif. Ditambahkan satu langkah CD
+>    yang mencatat nilai apiBase **beserta sumbernya** ke log job, supaya nilai yang dibekukan ke
+>    image bisa diaudit per deploy dan tidak lagi hanya muncul sebagai "Network Error" di browser
+>    pengguna. **Menyusul atas permintaan pemilik produk (2026-09-03), `PROD_DOMAIN` sudah diset**
+>    ke `inventra.ragilbuaj.web.id`, sehingga indireksinya kini benar-benar hidup dan penggantian
+>    domain cukup lewat `gh variable set`. Fallback-nya sengaja dipertahankan sebagai jaring
+>    pengaman agar deploy tidak runtuh jadi `https:///api/v1` bila variabelnya terhapus; karena
+>    fallback semacam itu bisa jadi usang tanpa bersuara, langkah pencatatan tadi yang menjaganya
+>    — log yang berbunyi "fallback" berarti variabelnya hilang. Domain produksi tetap hidup di
+>    **dua** tempat (variabel repo dan `ops/monitoring/prometheus/prometheus.yml` baris 45);
+>    komentar serta `docs/DEPLOYMENT.md` bagian 17.1 menyebut keduanya supaya penggantian domain
+>    tidak setengah jadi. Penjaga "tolak nilai non-HTTPS" di Dockerfile sengaja TIDAK ditambahkan:
+>    fallback-nya selalu menghasilkan `https://`, jadi penjaga itu tidak akan pernah berbunyi.
+>
+> **Verifikasi independen (sesi /test, 2026-08-27) dan satu penajaman.** Seluruh gerbang dijalankan
+> ulang dari nol: lint bersih, typecheck exit 0, 1921 tes unit lulus, build menghasilkan 196 entri
+> precache tanpa satu pun URL `/api/`, dan `e2e/pwa.spec.ts` 11 dari 11 hijau. Dua belas mutasi
+> terarah dijalankan terhadap kode sumber; sebelas tertangkap. **Satu lubang ditemukan dan ditutup:**
+> perilaku "satu ajakan pada satu waktu" — `PwaInstallPrompt` menahan diri saat `$pwa.needRefresh`
+> menyala supaya tidak menumpuk dengan `PwaUpdatePrompt` di sudut layar yang sama — didokumentasikan
+> di kode tapi tidak ada tesnya; menghapus penjagaannya lolos hijau. Dua kasus ditambahkan di
+> `test/nuxt/pwa-install-prompt.spec.ts` (jalur tombol pasang dan jalur petunjuk iOS), dibuktikan
+> merah pada kode dimutasi lalu hijau pada kode asli. **Penajaman atas kalimat di atas:** e2e keamanan
+> cache hanya menangkap aturan runtime caching yang regex-nya berjangkar di awal URL. `RegExpRoute`
+> Workbox mencocokkan permintaan lintas-origin hanya bila regex-nya cocok mulai indeks 0 URL penuh,
+> dan di e2e API ada di `localhost:8080` sementara app di `:3000` — mutasi `urlPattern: /api/` karena
+> itu lolos hijau, sedangkan `urlPattern: /^http:..localhost:8080.api./` membuatnya merah dengan URL
+> API sungguhan di Cache Storage. Di produksi API se-origin, jadi aturan tak berjangkar pun akan
+> mengendap. Penjaga sebenarnya untuk kelas kesalahan ini adalah `test/unit/pwa-workbox.spec.ts`
+> yang melarang `runtimeCaching` sama sekali, bukan e2e.
+>
+> **Temuan yang layak diingat.** `pwa.client.installPrompt` bukan sekadar nama kunci penyimpanan:
+> tanpa opsi itu plugin klien modul tidak memasang listener `beforeinstallprompt` sama sekali,
+> sehingga tombol pasang tidak akan pernah muncul — sementara tes runtime tetap hijau karena
+> memalsukan `$pwa`. Dikunci di `frontend/pwa/client.ts` + `test/unit/pwa-client.spec.ts`.
+> Temuan kedua: `navigateFallbackDenylist` hanya berlaku pada **navigasi**, bukan pada caching, dan
+> saat daring perilakunya tidak bisa dibedakan sama sekali karena SPA fallback Nitro mengembalikan
+> shell yang sama untuk path tak dikenal. Hanya luring yang memisahkan keduanya.
+>
+> **Keputusan cakupan (acceptance criteria 32).** Ajakan pasang disembunyikan di seluruh layar
+> berlayout `auth` — masuk, lupa kata sandi, atur ulang kata sandi — bukan hanya halaman masuk.
+>
+> **Regresi e2e (tugas 9): `chromium` 127 dari 127 dan `lampiran` 46 dari 46, keduanya dua kali
+> berturut-turut, dengan service worker aktif** karena Playwright berjalan terhadap `pnpm preview`
+> atas build nyata. Nol berkas di `frontend/e2e/` disentuh dan nol perubahan konfigurasi PWA yang
+> dibutuhkan.
+>
+> **Temuan di luar cakupan yang ditemukan tugas 9, sudah ada di `main`:** suite e2e **mencemari
+> databasenya sendiri** sehingga tidak bisa hijau dua kali berturut-turut terhadap DB yang sama tanpa
+> perintah SQL manual di antaranya. Dua sumbernya: `depreciation.spec.ts:209` menuntut periode
+> berjalan berstatus `open` lalu menghitung dan menutupnya sendiri (backend sengaja tidak punya jalur
+> reopen), dan `account-security.spec.ts` meninggalkan dua pengguna tiap jalan sehingga begitu
+> pengguna aktif melewati 10, `admin@inventra.local` terdorong ke halaman dua daftar pengguna dan
+> `settings.spec.ts:16` serta `:43` gagal. CI tidak pernah menemuinya karena tiap jalannya memakai DB
+> baru. **Sengaja tidak diperbaiki di branch ini** supaya cakupannya tidak melebar; usulan branch
+> tersendiri `fix/e2e-self-cleanup`.
+>
+> **Yang belum dan wajib dikerjakan setelah deploy (tugas 11):** membuktikan
+> `manifest.webmanifest` dan `sw.js` terlayani normal di belakang Caddy + WAF Coraza tanpa false
+> positive OWASP CRS, Lighthouse kategori PWA installable tanpa peringatan, serta pemasangan di
+> Android nyata dan iPhone nyata. Keempatnya secara struktural tidak bisa dibuktikan sebelum deploy.
+>
 > **Rebrand tema Bank BTN: web + mobile (2026-08-08, branch `feat/theme-btn-brand`) — SELESAI (kode + tes; lint, typecheck, analyze, 571 tes Flutter, 1740 tes Vitest hijau).**
 > Mengganti warna brand dari hijau ke **biru korporat Bank BTN `#005BFD`**, diekstrak langsung dari
 > `frontend/public/logo-btn.png` (logo hanya memuat dua warna: biru 91,6% dan merah `#FF0000` 8,4%).
@@ -304,7 +538,9 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > `test/nuxt/assets-index.spec.ts` — **sudah ada di main** (diverifikasi dengan menjalankan suite penuh dua
 > kali pada frontend yang di-stash: keduanya exit 1, 1740 tes tetap lolos). Bukan bawaan perubahan ini.
 > **PWA sengaja dikecualikan** atas permintaan user; belum ada infrastrukturnya (tidak ada `@vite-pwa/nuxt`,
-> manifest, atau service worker) dan cakupannya masih perlu `/spec`.
+> manifest, atau service worker) dan cakupannya masih perlu `/spec`. **Sudah tidak berlaku sejak
+> 2026-08-27** — PWA di-spec, dibangun, dan diselesaikan di branch `feat/web-pwa` (ADR-0019); lihat
+> entri "PWA aplikasi web" di bawah.
 >
 > **Halaman info Web: Kebijakan Privasi + Panduan Penggunaan + FAQ (2026-07-27, branch `feat/info-pages`) — SELESAI (kode + tes; lint + typecheck lokal hijau).**
 > Menambah tiga halaman informasi di frontend Nuxt (`app/pages/privacy.vue`, `guide.vue`, `faq.vue`)

@@ -1,4 +1,8 @@
 <script setup>
+// Catatan: tag PWA (manifest, theme-color, apple-touch-icon) TIDAK di sini melainkan di
+// `app.head` pada nuxt.config.ts. Aplikasi ini SPA (`ssr: false`), sehingga useHead baru
+// berlaku setelah hidrasi — terlambat untuk kriteria pemasangan dan untuk Safari iOS yang
+// membaca apple-touch-icon saat halaman dimuat.
 useHead({
   htmlAttrs: { lang: 'id' },
   link: [
@@ -17,5 +21,7 @@ useSeoMeta({ title: 'Inventra', description: 'Manajemen aset & inventaris' })
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
+    <PwaUpdatePrompt />
+    <PwaInstallPrompt />
   </UApp>
 </template>

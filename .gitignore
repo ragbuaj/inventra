@@ -35,6 +35,7 @@ Thumbs.db
 
 # Agent scratch (briefs, reports, ledger)
 .superpowers/
+/tasks/
 
 # Playwright MCP screenshot/output scratch
 .playwright-mcp/
@@ -55,3 +56,6 @@ GEMINI.md
 .clinerules
 .windsurfrules
 .github/copilot-instructions.md
+
+# Scratch verify.sh (dirender lalu dihapus; disebut di sini kalau run-nya gagal di tengah)
+ops/monitoring/.verify-targets/

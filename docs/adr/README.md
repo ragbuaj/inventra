@@ -35,6 +35,11 @@ domain genuinely needs custom, and document the trade-off either way.
 | [0015](../mobile/adr/0015-mobile-companion-flutter.md) | Mobile companion: Flutter (field companion, Android-first, `mobile/` monorepo); supersedes PRD v1.1 non-goal "aplikasi mobile native" (PRD v1.2) | Accepted | mobile roadmap M0 |
 | [0016](../mobile/adr/0016-stock-opname-offline-sync.md) | Stock opname offline-first: local snapshot + idempotent batch sync (`client_scan_id`), first-write-wins per asset per session, conflicts reported | Accepted | mobile roadmap M5 |
 | [0017](../mobile/adr/0017-mobile-client-identity.md) | Mobile client identity: shared backend (no BFF), `aud` claim + `RequireAudience`, per-client refresh path (supersedes ADR-0015 "Auth" cookie-jar plan), shared-endpoint response contract | Accepted | mobile roadmap M1 |
+| [0019](0019-web-pwa.md) | Web app as PWA: installable + shell-only offline, zero runtime caching, `registerType: 'prompt'`; sits alongside ADR-0015 (Flutter keeps every field capability) | Accepted | PWA fase 1-4 |
+
+> **0018 is reserved, not missing.** It belongs to the `guide` schema decision (see PROGRESS,
+> "sisa langkah 16-19 Panduan Penggunaan") and has not been written yet. The number stays held so
+> the sequence keeps matching the plan that claimed it.
 
 > **Mobile ADRs** live in [`docs/mobile/adr/`](../mobile/adr/) (docs web/mobile are separated for
 > readability) but keep this **single global numbering sequence** — this table remains the master

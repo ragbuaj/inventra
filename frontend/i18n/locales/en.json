@@ -2500,5 +2500,18 @@
         "unknown": "Something went wrong while processing the file."
       }
     }
+  },
+  "pwa": {
+    "update": {
+      "message": "A new version of Inventra is available.",
+      "reload": "Reload",
+      "later": "Later"
+    },
+    "install": {
+      "message": "Install Inventra on this device for faster access.",
+      "iosHint": "Open the Share menu in Safari, then choose Add to Home Screen.",
+      "action": "Install",
+      "later": "Later"
+    }
   }
 }

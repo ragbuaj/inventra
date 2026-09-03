@@ -48,11 +48,38 @@ jobs:
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
+      # Nilai apiBase yang dibekukan ke dalam image dicatat ke log job supaya tiap
+      # deploy meninggalkan jejak yang bisa diaudit. Ia dibekukan saat BUILD, jadi
+      # nilai yang salah tidak bisa lagi diperbaiki dengan me-restart container —
+      # gejalanya hanya "Network Error" di browser pengguna, jauh dari sini.
+      - name: Catat API base yang akan dibekukan ke image
+        run: |
+          echo "NUXT_PUBLIC_API_BASE = https://${{ vars.PROD_DOMAIN || 'inventra.ragilbuaj.web.id' }}/api/v1"
+          echo "sumber: ${{ vars.PROD_DOMAIN && 'variabel repo PROD_DOMAIN' || 'fallback di deploy.yml (PROD_DOMAIN tidak diset)' }}"
+
       - name: Build & push frontend image
         uses: docker/build-push-action@v7
         with:
           context: ./frontend
           push: true
+          # apiBase dibekukan saat build, bukan saat container jalan: rute `/`
+          # di-prerender jadi HTML statis supaya service worker bisa mem-precache
+          # shell-nya (lihat frontend/Dockerfile).
+          #
+          # PENTING saat domain produksi berubah. Nilainya diambil dari variabel repo
+          # `PROD_DOMAIN` (diset 2026-09-03), jadi mengganti domain menuntut dua
+          # perubahan, bukan satu:
+          #   1. `gh variable set PROD_DOMAIN --body <domain-baru>`
+          #   2. ops/monitoring/prometheus/prometheus.yml baris 45, yang juga
+          #      mengeraskan domain yang sama untuk target blackbox /health
+          # Mengubah salah satu saja meninggalkan sistem dalam keadaan separuh pindah.
+          #
+          # Fallback di baris bawah sengaja dipertahankan supaya deploy tidak runtuh
+          # jadi `https:///api/v1` kalau variabelnya terhapus. Ia bisa jadi usang tanpa
+          # bersuara, jadi langkah "Catat API base" di atas menyebutkan sumber nilainya
+          # — kalau log berbunyi "fallback", variabelnya hilang dan harus diset ulang.
+          build-args: |
+            NUXT_PUBLIC_API_BASE=https://${{ vars.PROD_DOMAIN || 'inventra.ragilbuaj.web.id' }}/api/v1
           tags: |
             ghcr.io/ragbuaj/inventra-frontend:latest
             ghcr.io/ragbuaj/inventra-frontend:${{ github.event.workflow_run.head_sha || github.sha }}

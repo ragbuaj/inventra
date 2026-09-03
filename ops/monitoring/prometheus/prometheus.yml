@@ -40,9 +40,14 @@ scrape_configs:
     metrics_path: /probe
     params:
       module: [http_2xx]
-    static_configs:
-      # Ganti domain ini bila deploy ke domain lain (Prometheus tak meng-expand env).
-      - targets: ["https://inventra.ragilbuaj.web.id/health"]
+    # Targetnya TIDAK dikeraskan di sini. Prometheus tidak meng-expand variabel
+    # lingkungan di dalam konfigurasinya, jadi domainnya dirender ke berkas ini oleh
+    # layanan sekali-jalan `prometheus-targets` di docker-compose.monitoring.yml, dari
+    # DOMAIN di .env.prod — sumber yang sama yang dipakai Caddy dan compose produksi.
+    # Ganti domain cukup di .env.prod; jangan menambahkan static_configs di sini lagi.
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/targets/blackbox.json
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target

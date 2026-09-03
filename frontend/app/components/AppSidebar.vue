@@ -115,7 +115,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
     :aria-label="t('nav.primary')"
     :inert="!isDesktop && !ui.mobileNavOpen"
     :class="[
-      'flex flex-col border-e border-default bg-default overflow-hidden',
+      'flex flex-col border-e border-default bg-default overflow-hidden app-safe-drawer',
       // Mobile (<lg): off-canvas fixed drawer, always full width, slides in/out.
       'fixed inset-y-0 start-0 z-50 w-[264px] max-w-[85vw] shadow-xl transition-transform duration-200',
       ui.mobileNavOpen ? 'translate-x-0' : '-translate-x-full',

@@ -2500,5 +2500,18 @@
         "unknown": "Terjadi kesalahan saat memproses berkas."
       }
     }
+  },
+  "pwa": {
+    "update": {
+      "message": "Versi baru Inventra sudah tersedia.",
+      "reload": "Muat ulang",
+      "later": "Nanti"
+    },
+    "install": {
+      "message": "Pasang Inventra di perangkat ini untuk akses lebih cepat.",
+      "iosHint": "Buka menu Bagikan di Safari, lalu pilih Tambahkan ke Layar Utama.",
+      "action": "Pasang",
+      "later": "Nanti"
+    }
   }
 }
