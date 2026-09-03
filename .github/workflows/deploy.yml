@@ -66,14 +66,18 @@ jobs:
           # di-prerender jadi HTML statis supaya service worker bisa mem-precache
           # shell-nya (lihat frontend/Dockerfile).
           #
-          # PENTING saat domain produksi berubah: nilainya diambil dari variabel repo
-          # `PROD_DOMAIN`, tapi variabel itu SAAT INI TIDAK DISET — yang benar-benar
-          # dipakai adalah fallback di baris bawah. Jadi mengganti domain menuntut dua
+          # PENTING saat domain produksi berubah. Nilainya diambil dari variabel repo
+          # `PROD_DOMAIN` (diset 2026-09-03), jadi mengganti domain menuntut dua
           # perubahan, bukan satu:
-          #   1. baris ini (atau set `PROD_DOMAIN` supaya fallback-nya tidak terpakai)
+          #   1. `gh variable set PROD_DOMAIN --body <domain-baru>`
           #   2. ops/monitoring/prometheus/prometheus.yml baris 45, yang juga
           #      mengeraskan domain yang sama untuk target blackbox /health
           # Mengubah salah satu saja meninggalkan sistem dalam keadaan separuh pindah.
+          #
+          # Fallback di baris bawah sengaja dipertahankan supaya deploy tidak runtuh
+          # jadi `https:///api/v1` kalau variabelnya terhapus. Ia bisa jadi usang tanpa
+          # bersuara, jadi langkah "Catat API base" di atas menyebutkan sumber nilainya
+          # — kalau log berbunyi "fallback", variabelnya hilang dan harus diset ulang.
           build-args: |
             NUXT_PUBLIC_API_BASE=https://${{ vars.PROD_DOMAIN || 'inventra.ragilbuaj.web.id' }}/api/v1
           tags: |

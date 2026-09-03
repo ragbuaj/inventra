@@ -510,12 +510,16 @@ aplikasi, dan berkas statis itu **sudah membawa nilai apiBase di dalamnya**. Kar
   **tidak berpengaruh**. Image-nya harus dibangun ulang.
 - Image dari GHCR sudah membawa nilai produksi dari CD (`build-args` di
   `.github/workflows/deploy.yml`).
-- Domainnya diambil dari variabel repo `PROD_DOMAIN`; **variabel itu saat ini tidak
-  diset**, jadi yang benar-benar dipakai adalah fallback yang dikeraskan di berkas itu.
-  Tiap job CD mencatat nilai yang dibekukan beserta sumbernya ke log — periksa langkah
-  "Catat API base yang akan dibekukan ke image" kalau ragu image mana membawa apa.
+- Domainnya diambil dari variabel repo `PROD_DOMAIN` (diset 2026-09-03 ke
+  `inventra.ragilbuaj.web.id`). Nilainya hostname telanjang — tanpa skema, tanpa garis
+  miring di akhir — karena dipakai sebagai `https://<PROD_DOMAIN>/api/v1`.
+- `deploy.yml` tetap memuat fallback yang dikeraskan supaya deploy tidak runtuh jadi
+  `https:///api/v1` kalau variabelnya terhapus. Karena fallback semacam itu bisa jadi
+  usang tanpa bersuara, tiap job CD mencatat nilai yang dibekukan **beserta sumbernya**
+  ke log — periksa langkah "Catat API base yang akan dibekukan ke image". Kalau log
+  berbunyi "fallback", variabelnya hilang dan harus diset ulang.
 - Domain produksi hidup di **dua** tempat. Mengganti domain menuntut keduanya:
-  1. `.github/workflows/deploy.yml` (atau set `PROD_DOMAIN` supaya fallback tak terpakai)
+  1. `gh variable set PROD_DOMAIN --body <domain-baru>`
   2. `ops/monitoring/prometheus/prometheus.yml` baris 45, target blackbox `/health`
 
 Gejala kalau salah: pengguna melihat "Network Error" saat login padahal backend hidup.

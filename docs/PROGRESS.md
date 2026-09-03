@@ -447,22 +447,22 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > 3. **`role="status"` ditambahkan ke ajakan pasang**, menyamakannya dengan ajakan perbarui.
 >    Keduanya kartu yang muncul tiba-tiba tanpa ada yang memindahkan fokus ke sana. Tes runtime
 >    barunya dibuktikan merah lebih dulu.
-> 4. **Domain produksi di `deploy.yml`: fallback dipertahankan, jebakannya didokumentasikan.**
->    Diperiksa dengan `gh variable list` dan hasilnya kosong — **`vars.PROD_DOMAIN` tidak diset**,
->    jadi yang benar-benar dipakai tiap deploy adalah fallback yang dikeraskan itu. Menghapusnya
->    akan langsung merusak deploy, jadi tidak dilakukan. Yang ditambahkan: satu langkah CD yang
->    mencatat nilai apiBase beserta sumbernya ke log job, supaya nilai yang dibekukan ke image bisa
->    diaudit per deploy dan tidak lagi hanya muncul sebagai "Network Error" di browser pengguna.
->    Komentarnya juga diperbaiki — sebelumnya ia menyiratkan variabel repo itu jalur yang aktif.
->    Domain produksi hidup di **dua** tempat (`deploy.yml` dan
->    `ops/monitoring/prometheus/prometheus.yml` baris 45); komentarnya sekarang menyebut keduanya
->    supaya penggantian domain tidak setengah jadi. Penjaga "tolak nilai non-HTTPS" di Dockerfile
->    sengaja TIDAK ditambahkan: fallback-nya selalu menghasilkan `https://`, jadi penjaga itu tidak
->    akan pernah berbunyi dan hanya menambah kebisingan.
->
-> **Menunggu keputusan pemilik produk:** menyetel variabel repo `PROD_DOMAIN` akan membuat
-> indireksi di `deploy.yml` benar-benar hidup, tapi itu perubahan konfigurasi GitHub dan tidak
-> dilakukan tanpa persetujuan.
+> 4. **Domain produksi di `deploy.yml`: indireksinya dihidupkan, jebakannya didokumentasikan.**
+>    Saat review, `gh variable list` mengembalikan daftar kosong — `vars.PROD_DOMAIN` tidak diset,
+>    jadi yang benar-benar dipakai tiap deploy adalah fallback yang dikeraskan, sementara
+>    komentarnya menyiratkan variabel repo adalah jalur yang aktif. Ditambahkan satu langkah CD
+>    yang mencatat nilai apiBase **beserta sumbernya** ke log job, supaya nilai yang dibekukan ke
+>    image bisa diaudit per deploy dan tidak lagi hanya muncul sebagai "Network Error" di browser
+>    pengguna. **Menyusul atas permintaan pemilik produk (2026-09-03), `PROD_DOMAIN` sudah diset**
+>    ke `inventra.ragilbuaj.web.id`, sehingga indireksinya kini benar-benar hidup dan penggantian
+>    domain cukup lewat `gh variable set`. Fallback-nya sengaja dipertahankan sebagai jaring
+>    pengaman agar deploy tidak runtuh jadi `https:///api/v1` bila variabelnya terhapus; karena
+>    fallback semacam itu bisa jadi usang tanpa bersuara, langkah pencatatan tadi yang menjaganya
+>    — log yang berbunyi "fallback" berarti variabelnya hilang. Domain produksi tetap hidup di
+>    **dua** tempat (variabel repo dan `ops/monitoring/prometheus/prometheus.yml` baris 45);
+>    komentar serta `docs/DEPLOYMENT.md` bagian 17.1 menyebut keduanya supaya penggantian domain
+>    tidak setengah jadi. Penjaga "tolak nilai non-HTTPS" di Dockerfile sengaja TIDAK ditambahkan:
+>    fallback-nya selalu menghasilkan `https://`, jadi penjaga itu tidak akan pernah berbunyi.
 >
 > **Verifikasi independen (sesi /test, 2026-08-27) dan satu penajaman.** Seluruh gerbang dijalankan
 > ulang dari nol: lint bersih, typecheck exit 0, 1921 tes unit lulus, build menghasilkan 196 entri
