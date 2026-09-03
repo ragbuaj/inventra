@@ -69,11 +69,15 @@ onUnmounted(teardownObserver)
 // The scroll parent is resolved by the page after mount, so rebuild on it.
 watch(() => props.scrollParent, setupObserver)
 
-// A short page can leave the sentinel still on screen after an append; the
-// observer won't fire again until it leaves and re-enters, which would stall
-// the list. Re-observing re-evaluates the current intersection.
-watch(() => props.loadingMore, (busy) => {
-  if (!busy) nextTick(setupObserver)
+// IntersectionObserver only calls back when the intersection *changes*. A
+// sentinel that was already on screen while loading was blocked therefore
+// never fires again once the block clears, and the list stalls forever. This
+// is not hypothetical: at mount `rows` and `total` are both 0, so `done` is
+// true, the first callback is refused, and nothing re-triggers it after the
+// first page lands. Re-observing re-evaluates the current intersection, so
+// watch every blocking input, not just `loadingMore`.
+watch(blocked, (isBlocked) => {
+  if (!isBlocked) nextTick(setupObserver)
 })
 </script>
 

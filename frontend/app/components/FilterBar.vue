@@ -22,7 +22,15 @@ const props = withDefaults(defineProps<{
   searchPlaceholder?: string
   /** Active *advanced* filters only — the page computes it; search is excluded. */
   activeCount?: number
+  /**
+   * Whether the reset control is offered. Pages bind their own "anything is
+   * filtered" condition, which usually includes the search term — that's
+   * deliberately *not* `activeCount`, since the badge counts only the
+   * advanced filters hidden behind the button.
+   */
   showReset?: boolean
+  /** Reset label. Screens differ (see each screen's mockup). */
+  resetLabel?: string
   /** Optional row count, shown on the compact panel's close button. */
   total?: number
   testid?: string
@@ -30,7 +38,8 @@ const props = withDefaults(defineProps<{
   search: '',
   searchPlaceholder: '',
   activeCount: 0,
-  showReset: true,
+  showReset: false,
+  resetLabel: '',
   testid: 'filter-bar'
 })
 
@@ -47,6 +56,7 @@ watch(isCompact, (compact) => {
 })
 
 const searchPlaceholderText = computed(() => props.searchPlaceholder || t('common.search'))
+const resetLabelText = computed(() => props.resetLabel || t('common.reset'))
 const hasActive = computed(() => props.activeCount > 0)
 const toggleLabel = computed(() => hasActive.value
   ? t('common.filterBar.ariaActive', { n: props.activeCount })
@@ -71,11 +81,11 @@ const applyLabel = computed(() => props.total === undefined
     <template v-if="!isCompact">
       <slot name="filters" />
       <UButton
-        v-if="props.showReset && hasActive"
+        v-if="props.showReset"
         color="error"
         variant="ghost"
         icon="i-lucide-x"
-        :label="$t('common.reset')"
+        :label="resetLabelText"
         :data-testid="`${props.testid}-reset`"
         @click="emit('reset')"
       />
@@ -124,11 +134,11 @@ const applyLabel = computed(() => props.total === undefined
       <template #footer>
         <div class="flex justify-end gap-2 w-full">
           <UButton
-            v-if="props.showReset && hasActive"
+            v-if="props.showReset"
             color="error"
             variant="ghost"
             icon="i-lucide-x"
-            :label="$t('common.reset')"
+            :label="resetLabelText"
             :data-testid="`${props.testid}-reset`"
             @click="emit('reset')"
           />

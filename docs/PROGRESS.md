@@ -17,6 +17,22 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
+> **UX tabel data di layar mobile — SELESAI di branch `feat/mobile-table-ux` (2026-09-03), siap PR.**
+> Spec `docs/superpowers/specs/2026-09-03-mobile-table-ux-design.md` (38 acceptance criteria),
+> rencana `docs/superpowers/plans/2026-09-03-mobile-table-ux.md` (12 tugas). Rinciannya di entri
+> "UX tabel data di layar mobile" di bawah.
+>
+> **Langkah lanjutan yang sengaja belum dikerjakan** (dicatat di spec bagian 8):
+> 1. Migrasi 13+ halaman daftar sisanya ke `FilterBar` dan mode infinite mobile: `disposals`,
+>    `maintenance`, `transfers`, `peminjaman`, `stock-opname`, `reports`, `notifications`,
+>    `depreciation`, `settings/audit`, `settings/guide`, `master/categories`, `master/employees`,
+>    `master/reference`, `master/offices`.
+> 2. Keputusan desain: apakah `ResourceTable` di mobile sebaiknya merender daftar kartu, bukan tabel
+>    yang menggulir mendatar. Kalau ya, jalur tabel ikut dapat windowing dan batas 300 baris bisa
+>    dicabut.
+> 3. Halaman yang memaginasi in-memory (`reports`, `stock-opname`) butuh jalur tersendiri karena
+>    `useInfiniteRows` mengasumsikan pengambilan per halaman dari server.
+>
 > **PWA aplikasi web — MERGED (PR #148, squash `9502297`, 2026-09-03)** dengan seluruh CI hijau.
 > Spec `docs/superpowers/specs/2026-08-27-web-pwa-design.md` (40 acceptance criteria), rencana
 > `docs/superpowers/plans/2026-08-27-web-pwa.md` (11 tugas); tugas 1 sampai 10 selesai, acceptance
@@ -386,6 +402,66 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > Coraza WAF di produksi memuat konfigurasi rekomendasi dengan plafon body sekitar 12,5 MB — menaikkannya
 > menuntut `SecRequestBodyLimit` dinaikkan lebih dulu di `ops/caddy/Caddyfile`. Kunci i18n
 > `guidePage.sections` sengaja BELUM dihapus supaya membatalkan rilis cukup mengembalikan kode.
+>
+> **UX tabel data di layar mobile (2026-09-03, branch `feat/mobile-table-ux`) — SELESAI (kode + tes; lint, typecheck, build hijau; e2e mobile 10 hijau).**
+> Spec `docs/superpowers/specs/2026-09-03-mobile-table-ux-design.md` (38 acceptance criteria),
+> rencana `docs/superpowers/plans/2026-09-03-mobile-table-ux.md` (12 tugas). Tiga perbaikan:
+> filter compact di layar sempit, infinite scroll menggantikan paginasi bernomor, dan tombol
+> halaman pertama/terakhir di paginasi.
+>
+> **Yang dibangun.**
+> 1. `FilterBar.vue` — baris filter bersama. Di lebar `md` ke atas persis seperti sebelumnya
+>    (sebaris); di bawah `md` hanya pencarian plus satu tombol ikon ber-badge, dan filter lanjutan
+>    pindah ke `USlideover side="bottom"`. Filter berlaku langsung, tanpa langkah Terapkan — nilai
+>    filter dimiliki halaman lewat `v-model` di dalam slot, jadi komponen tidak punya cara generik
+>    menahannya, dan terapkan-langsung menghapus kelas bug "sudah diubah tapi lupa menekan Terapkan".
+>    `DataToolbar.vue` yang tidak dipakai satu halaman pun ikut dihapus.
+> 2. `useInfiniteRows.ts` — satu mesin data untuk **kedua** mode: `loadPage(offset)` untuk paginasi
+>    desktop, `loadFirst`/`loadMore` untuk akumulasi mobile, plus `hydrate` untuk memulihkan snapshot.
+>    Menggantikan penjaga balapan `seq` yang sebelumnya ditulis ulang di tiap halaman.
+> 3. `InfiniteList.vue` — jalur kartu dengan **windowing DOM bersyarat** di atas 200 baris
+>    (`@tanstack/vue-virtual`, disematkan ke 3.13.32 — versi yang sudah ditarik `@nuxt/ui`, jadi
+>    `pnpm list` tetap satu salinan). Di bawah ambang seluruh baris ada di DOM supaya Ctrl+F,
+>    scroll anchoring, dan pembacaan pembaca layar tetap utuh.
+> 4. `InfiniteScrollSentinel.vue` — sentinel `IntersectionObserver` plus daerah status
+>    `role="status" aria-live="polite"`, dipakai bersama jalur kartu dan jalur tabel.
+> 5. `useListStateCache.ts` — snapshot baris dan posisi gulir per rute, disimpan di Map cakupan
+>    modul (**bukan** `sessionStorage`: isinya baris aset lengkap dengan nilai buku), dibersihkan
+>    saat logout.
+> 6. `ResourceTable` dapat prop `infinite`; `TablePagination` dapat tombol halaman pertama/terakhir
+>    yang hanya muncul saat jumlah halaman lebih dari 3.
+> 7. Halaman pilot: Katalog Aset (jalur kartu) dan Manajemen User (jalur tabel), plus etalase di
+>    `/dev/components`.
+>
+> **Penyimpangan yang disetujui pemilik produk (2026-09-03), bukan kelalaian.**
+> 1. **Windowing hanya di jalur kartu.** `UTable` memiliki `<tbody>`-nya sendiri; window-ing `<tr>`
+>    menuntut pengambilalihan `<tbody>` dan berarti meninggalkan `UTable`, yang bertabrakan dengan
+>    aturan wajib "selalu bangun di atas komponen Nuxt UI". Gantinya batas keras
+>    `MAX_TABLE_ROWS = 300` lalu tombol "Muat lebih banyak" eksplisit, sehingga DOM tidak pernah
+>    membengkak diam-diam. Jalan keluar yang lebih baik — `ResourceTable` merender daftar kartu di
+>    mobile — dicatat sebagai kandidat fase lanjutan.
+> 2. **Cache daftar tidak menyentuh penyimpanan yang bertahan.** Posisi gulir pulih saat navigasi
+>    dalam aplikasi, tapi hilang saat muat ulang penuh browser. Itu perilaku yang diinginkan.
+>
+> **Dua bug yang hanya muncul di browser sungguhan** — keduanya lolos dari seluruh tes runtime dan
+> dari panel browser in-app, dan hanya tertangkap oleh Playwright:
+> 1. **Sentinel mandek setelah satu halaman.** `IntersectionObserver` hanya memanggil callback saat
+>    status perpotongan **berubah**. Pada render pertama `rows` dan `total` sama-sama 0, jadi `done`
+>    bernilai true dan callback pertama ditolak; setelah halaman pertama mendarat, sentinel yang
+>    sudah terlihat tidak pernah menembak lagi. Penjaga awal hanya memasang ulang observer setelah
+>    `loadingMore`, bukan setelah `done`/`error`/`manual` mereda. Diperbaiki dengan mengawasi
+>    computed `blocked`, dan dijaga tes regresi di `test/nuxt/infinite-scroll-sentinel.spec.ts`.
+> 2. **Posisi gulir selalu tersimpan 0.** Router menggulirkan `<main>` ke atas **sebelum** hook
+>    teardown komponen yang ditinggalkan berjalan, jadi membaca `scrollTop` di `onBeforeUnmount`
+>    selalu menghasilkan 0. Diperbaiki dengan menyimpan snapshot di dalam pembungkus navigasi
+>    (`leaveTo`) sebelum `navigateTo`. Terkait: elemen `<main>` **tidak boleh** di-cache — layout
+>    bisa menggantinya sementara halaman masih hidup, dan node basi tetap menjawab `scrollTop`
+>    dengan 0 tanpa error; semua akses lewat `scrollEl()` yang mengambilnya segar.
+>
+> **Catatan harness yang perlu diingat.** Panel browser in-app **tidak pernah** memanggil callback
+> `IntersectionObserver` — bahkan observer polos dengan `root: null` pun tidak. Jadi apa pun yang
+> bergantung pada perpotongan (infinite scroll, lazy-load) **wajib** dibuktikan lewat
+> `@playwright/test` chromium, bukan panel. Sejalan dengan catatan lama soal service worker.
 >
 > **PWA aplikasi web: installable + tahan jaringan putus (2026-08-27, branch `feat/web-pwa`) — SELESAI (kode + tes; lint, typecheck, build hijau; e2e 127 + 46 hijau dua kali).**
 > Menjadikan aplikasi web yang sama dapat dipasang ke layar utama dan tidak runtuh saat jaringan
@@ -2598,6 +2674,8 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 - [x] **Profil Akun** — `/akun` profile & settings (Profil / Keamanan / Preferensi tabs)
 - [x] Mock-first data seam (`mock/*` + `composables/api/use*`) ready to swap to real `$fetch` behind the same interface
 - [x] Tests: 387 Vitest unit + `mountSuspended` runtime specs green; lint/typecheck/build gate CI
+- [x] **UX tabel data di layar mobile** (2026-09-03, branch `feat/mobile-table-ux`) — filter compact,
+      infinite scroll, tombol halaman pertama/terakhir. Detail di entri di bawah.
 
 > **All 23 original `docs/design/*.dc.html` mockups are implemented.** Frontend screens currently
 > render mock fixtures; they need wiring to real backend modules as those land (below).

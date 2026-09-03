@@ -48,23 +48,34 @@ describe('FilterBar — regular width', () => {
     expect(w.find('[data-testid="stub-view-toggle"]').exists()).toBe(true)
   })
 
-  it('shows the reset button only once an advanced filter is active', async () => {
-    const none = await mountBar({ activeCount: 0 })
-    expect(none.find('[data-testid="filter-bar-reset"]').exists()).toBe(false)
-
-    const some = await mountBar({ activeCount: 2 })
-    expect(some.find('[data-testid="filter-bar-reset"]').exists()).toBe(true)
-  })
-
-  it('honours showReset=false even with active filters', async () => {
-    const w = await mountBar({ activeCount: 2, showReset: false })
+  it('leaves the reset button out until the page asks for it', async () => {
+    const w = await mountBar({ activeCount: 2 })
     expect(w.find('[data-testid="filter-bar-reset"]').exists()).toBe(false)
   })
 
+  // showReset is deliberately independent of activeCount: pages bind their own
+  // "anything is filtered" condition, which usually counts the search term too.
+  it('shows the reset button when the page asks, even with no advanced filter', async () => {
+    const w = await mountBar({ activeCount: 0, showReset: true })
+    expect(w.find('[data-testid="filter-bar-reset"]').exists()).toBe(true)
+  })
+
   it('emits reset when the reset button is pressed', async () => {
-    const w = await mountBar({ activeCount: 1 })
+    const w = await mountBar({ showReset: true })
     await w.find('[data-testid="filter-bar-reset"]').trigger('click')
     expect(w.emitted('reset')).toHaveLength(1)
+  })
+
+  it('defaults the reset label to the shared translation', async () => {
+    const w = await mountBar({ showReset: true })
+    const label = w.find('[data-testid="filter-bar-reset"]').text()
+    expect(label).toBeTruthy()
+    expect(label).not.toContain('common.')
+  })
+
+  it('uses a screen-specific reset label when given', async () => {
+    const w = await mountBar({ showReset: true, resetLabel: 'Reset filter' })
+    expect(w.find('[data-testid="filter-bar-reset"]').text()).toContain('Reset filter')
   })
 })
 
@@ -177,7 +188,7 @@ describe('FilterBar — compact width', () => {
   })
 
   it('emits reset from the panel footer', async () => {
-    const w = await mountBar({ activeCount: 2 })
+    const w = await mountBar({ activeCount: 2, showReset: true })
     await w.find('[data-testid="filter-bar-toggle"]').trigger('click')
     await flushPromises()
     const reset = document.querySelector('[data-testid="filter-bar-reset"]') as HTMLElement | null

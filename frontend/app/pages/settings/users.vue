@@ -339,6 +339,7 @@ onMounted(() => {
       v-model:search="search"
       :search-placeholder="t('settings.users.searchPlaceholder')"
       :active-count="advancedFilterCount"
+      :show-reset="anyFilter"
       :total="total"
       testid="users-filter"
       @reset="resetFilters"

@@ -181,14 +181,21 @@ function resetFilters() {
   // pattern as master/employees.vue's resetFilters).
 }
 
+function leaveTo(path: string) {
+  // Snapshot BEFORE navigating. The router scrolls the container back to the
+  // top as part of the route change, and that happens before the leaving
+  // component's teardown hooks run — reading scrollTop there always yields 0.
+  saveListState()
+  navigateTo(path)
+}
 function openDetail(tag: string) {
-  navigateTo(localePath(`/assets/${tag}`))
+  leaveTo(localePath(`/assets/${tag}`))
 }
 function openEdit(tag: string) {
-  navigateTo(localePath(`/assets/${tag}/edit`))
+  leaveTo(localePath(`/assets/${tag}/edit`))
 }
 function openLabel(tags: string[]) {
-  navigateTo(localePath(`/assets/label?tags=${tags.join(',')}`))
+  leaveTo(localePath(`/assets/label?tags=${tags.join(',')}`))
 }
 function comingSoon() {
   toast.add({ title: t('assets.comingSoon'), color: 'neutral', icon: 'i-lucide-info' })
@@ -256,7 +263,17 @@ function onTableContextMenu(e: MouseEvent) {
 // The scrolling ancestor (see layouts/default.vue) — the infinite list needs
 // it both as the IntersectionObserver root and as the element whose scroll
 // offset is saved and restored.
+//
+// Held in a ref for the child props, but never trusted as a cached handle:
+// the layout can replace its <main> while this page is alive, and a stale node
+// still answers `scrollTop` — with 0, silently. Always go through `scrollEl()`.
 const scrollParent = ref<HTMLElement | null>(null)
+
+function scrollEl(): HTMLElement | null {
+  const el = document.querySelector('main') as HTMLElement | null
+  if (el !== scrollParent.value) scrollParent.value = el
+  return el
+}
 
 // Snapshot key: the filters the rows were fetched under. A change here means
 // a restored snapshot would be showing the wrong rows.
@@ -270,7 +287,22 @@ function load() {
 }
 
 function scrollToTop() {
-  scrollParent.value?.scrollTo({ top: 0 })
+  scrollEl()?.scrollTo({ top: 0 })
+}
+
+/**
+ * Stores the accumulated rows and the current scroll offset for this filter
+ * combination. Only the accumulating layout has a position worth keeping — the
+ * paged layout already comes back on the page the user left.
+ */
+function saveListState() {
+  if (!isCompact.value || rows.value.length === 0) return
+  stateCache.save({
+    rows: [...rows.value],
+    total: total.value,
+    scrollTop: scrollEl()?.scrollTop ?? 0,
+    signature: filterSignature.value
+  })
 }
 
 async function loadFilterOptions() {
@@ -316,30 +348,27 @@ watch(isCompact, () => {
 })
 
 onMounted(() => {
-  scrollParent.value = document.querySelector('main')
+  scrollEl()
   const snap = stateCache.restore(filterSignature.value)
   if (snap) {
     // Returning from a detail screen: put the accumulated rows and the scroll
     // offset back instead of starting over at row one.
     list.hydrate(snap.rows, snap.total)
-    nextTick(() => scrollParent.value?.scrollTo({ top: snap.scrollTop }))
+    // The rows are in the DOM after the next tick, but the router also resets
+    // this container's scroll as part of the route change. Re-applying across
+    // a couple of frames lets our position win without fighting the router.
+    nextTick(() => {
+      const apply = () => scrollEl()?.scrollTo({ top: snap.scrollTop })
+      apply()
+      requestAnimationFrame(() => {
+        apply()
+        requestAnimationFrame(apply)
+      })
+    })
   } else {
     load()
   }
   loadFilterOptions()
-})
-
-onBeforeUnmount(() => {
-  // Only the accumulating layout has a position worth restoring; the paged
-  // layout already comes back on the page the user left.
-  if (isCompact.value && rows.value.length > 0) {
-    stateCache.save({
-      rows: [...rows.value],
-      total: total.value,
-      scrollTop: scrollParent.value?.scrollTop ?? 0,
-      signature: filterSignature.value
-    })
-  }
 })
 
 onUnmounted(() => {
@@ -388,6 +417,8 @@ onUnmounted(() => {
       v-model:search="search"
       :search-placeholder="t('assets.searchPlaceholder')"
       :active-count="advancedFilterCount"
+      :show-reset="anyFilter"
+      :reset-label="t('assets.reset')"
       :total="total"
       testid="assets-filter"
       @reset="resetFilters"
