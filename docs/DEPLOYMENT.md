@@ -483,7 +483,10 @@ docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml --env
 
 - Tambahkan DNS A record `monitoring.<domain>` → IP VPS; Grafana ada di `https://monitoring.<domain>` (login admin dari grafana.env).
 - Hanya Grafana yang publik; Prometheus/Alertmanager/exporters internal-only.
-- Alert dikirim ke Telegram via Alertmanager. Validasi config lokal: `ops/monitoring/verify.sh`.
+- Alert dikirim ke Telegram via Alertmanager. Validasi config lokal:
+  `bash ops/monitoring/verify.sh`. Di Windows/Git Bash jalankan dengan
+  `MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'` di depannya — tanpa itu MSYS mengubah
+  jalur tujuan bind-mount (`/p` jadi `P:\`) dan `docker run` menolaknya.
 - Via Ansible: role `monitoring` (`ops/ansible/roles/monitoring/`) menjalankan langkah `docker compose up`
   di atas secara idempotent sebagai bagian dari `site.yml` — siapkan `alertmanager.yml`/`grafana.env`
   di server **sebelum** menjalankan playbook, karena role tidak merender rahasia overlay ini (berbeda
