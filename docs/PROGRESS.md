@@ -17,12 +17,21 @@ Living checklist of what's built vs. what's left. See [PRD.md](PRD.md) for scope
 > the bank scope builds on.
 
 > ## ▶ Next session — start here
-> **UX tabel data di layar mobile — SELESAI di branch `feat/mobile-table-ux` (2026-09-03), siap PR.**
-> Spec `docs/superpowers/specs/2026-09-03-mobile-table-ux-design.md` (38 acceptance criteria),
-> rencana `docs/superpowers/plans/2026-09-03-mobile-table-ux.md` (12 tugas). Rinciannya di entri
-> "UX tabel data di layar mobile" di bawah.
+> **UX tabel data di layar mobile — MERGED (PR #153, squash `36ebe06`, 2026-09-04)** dengan seluruh
+> CI hijau. Spec `docs/superpowers/specs/2026-09-03-mobile-table-ux-design.md` (38 acceptance
+> criteria), rencana `docs/superpowers/plans/2026-09-03-mobile-table-ux.md` (12 tugas). Melewati dua
+> putaran review kode, dua putaran audit keamanan, dan gerbang ship tiga-persona. Rinciannya di
+> entri "UX tabel data di layar mobile" di bawah.
 >
-> **Langkah lanjutan yang sengaja belum dikerjakan** (dicatat di spec bagian 8):
+> **Langkah berikutnya yang paling mendesak — PR keamanan state klien.** Audit keamanan menemukan
+> empat kebocoran state klien lintas pengguna yang **pra-eksisting** dan sengaja ditunda dari PR
+> #153 (keputusan pemilik produk) karena menyentuh berkas di luar ruang lingkupnya. Yang teratas
+> nyata untuk terminal cabang bersama: store notifikasi dan inbox selamat dari logout, sehingga
+> satu kegagalan `GET /notifications` saat login berikutnya menampilkan subjek persetujuan dan
+> nomor tag aset pengguna sebelumnya. Rinciannya lengkap di entri "Audit keamanan (2026-09-04)"
+> di bawah, termasuk bentuk perbaikan tiap temuan.
+>
+> **Langkah lanjutan lain yang sengaja belum dikerjakan** (dicatat di spec bagian 8):
 > 1. Migrasi 13+ halaman daftar sisanya ke `FilterBar` dan mode infinite mobile: `disposals`,
 >    `maintenance`, `transfers`, `peminjaman`, `stock-opname`, `reports`, `notifications`,
 >    `depreciation`, `settings/audit`, `settings/guide`, `master/categories`, `master/employees`,
