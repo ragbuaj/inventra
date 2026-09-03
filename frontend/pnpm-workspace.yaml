@@ -44,3 +44,15 @@ overrides:
   # 5.0.8 patched — forces both the 2.1.x and 5.0.x copies in the tree to 5.0.8.
   brace-expansion: '>=5.0.8'
   valibot: '>=1.4.2'
+  # nanoid GHSA-r5gj-fjfq-8ffh: custom generators loop forever when size is 0.
+  # Transitive via postcss (build-time CSS pipeline), which needs the 3.x API — an
+  # unbounded floor pulls nanoid 6 (ESM-only) and breaks it, so cap the major.
+  nanoid: '>=3.3.18 <4'
+  # postcss GHSA (incomplete fix of GHSA-6g55-p6wh-862q): an attacker-controlled
+  # sourceMappingURL reads arbitrary .map files when `from` is unset. Two copies
+  # were in the tree (8.5.19 via @tailwindcss/postcss, 8.5.25 via nuxt/vite); the
+  # floor lifts both.
+  postcss: '>=8.5.23'
+  # postcss-selector-parser GHSA: DoS via uncontrolled AST recursion. Transitive
+  # via eslint-plugin-vue (7.1.1) and cssnano (7.1.4) — lint/build tooling only.
+  postcss-selector-parser: '>=7.1.3'
