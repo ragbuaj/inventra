@@ -157,32 +157,28 @@ services:
       backend:
         condition: service_started
 
-  caddy:
-    build:
-      context: ./ops/caddy
-    container_name: inventra-caddy
-    restart: unless-stopped
-    depends_on:
-      - frontend
-      - backend
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      DOMAIN: ${DOMAIN}
-      ACME_EMAIL: ${ACME_EMAIL}
-    volumes:
-      - ./ops/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./ops/caddy/coraza-exclusions.conf:/etc/caddy/coraza-exclusions.conf:ro
-      - caddy-data:/data
-      - caddy-config:/config
+  # Reverse proxy TIDAK lagi didefinisikan di sini.
+  #
+  # Caddy dipindahkan ke proxy bersama di /srv/proxy pada VPS, di luar git tree
+  # ini, karena selama ia hidup di dalam stack Inventra setiap aplikasi baru di
+  # server yang sama memaksa menyunting berkas milik Inventra.
+  #
+  # Rutenya kini ada di /srv/proxy/sites/inventra.caddy dan
+  # /srv/proxy/sites/monitoring.caddy — isinya dipotong apa adanya dari
+  # ops/caddy/Caddyfile, termasuk blok WAF Coraza. Berkas di ops/caddy/ sengaja
+  # dipertahankan sebagai rujukan dan jalan mundur.
+  #
+  # Proxy itu ikut jaringan inventra-net supaya TRUSTED_PROXIES di bawah tetap
+  # sahih, dan memakai ulang volume sertifikat lama.
 
 volumes:
   inventra-postgres:
   inventra-redis:
   inventra-minio:
-  caddy-data:
-  caddy-config:
+  # caddy-data dan caddy-config sengaja TIDAK didaftarkan lagi di sini.
+  # Keduanya kini dipakai proxy bersama sebagai volume external. Kalau tetap
+  # terdaftar, `docker compose down -v` di stack ini akan menghapus seluruh
+  # sertifikat Let's Encrypt milik semua situs di server.
 
 # Nama & subnet jaringan dipatok agar cocok dengan TRUSTED_PROXIES di atas dan
 # agar perintah one-off (seed admin) bisa join lewat `--network inventra-net`.
